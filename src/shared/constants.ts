@@ -1,0 +1,1 @@
+export const openFilesNameTemplate = 'openFiles{windowIndex}.json';

@@ -1,0 +1,27 @@
+export type PageType = "textFile";
+
+export interface IPage {
+    id: string,
+    type: PageType,
+    title: string,
+    modified: boolean,
+    language?: string,
+    filePath?: string,
+}
+
+export interface WindowState {
+    pages: Partial<IPage>[];
+    activePageId?: string;
+}
+
+export interface WindowPages {
+    pages: Partial<IPage>[];
+    windowIndex: number;
+}
+
+export interface PageDragData {
+    sourceWindowIndex?: number;
+    targetWindowIndex?: number;
+    page?: Partial<IPage>;
+    dropPosition?: { x: number; y: number };
+}
