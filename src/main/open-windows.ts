@@ -18,6 +18,7 @@ const windowsFileName = "openWindows.json";
 
 class OpenWindows {
     windows: OpenWindowData[] = [];
+    doQuit = false;
 
     get mainWindow(): OpenWindow | undefined {
         return this.windows.find((w) => w.window)?.window;
@@ -88,19 +89,17 @@ class OpenWindows {
         browserWindow: BrowserWindow | undefined,
         canQuit: boolean
     ) => {
-        const openWindow = this.findByWindow(browserWindow);
+        const openWindowData = this.findWindowDataByWindow(browserWindow);
+        const openWindow = openWindowData?.window;
+        const isLastWindow = !this.windows.some(w => w !== openWindowData && w.window);
+        if (isLastWindow && !this.doQuit) {
+            openWindow.window.hide();
+            return;
+        }
         if (openWindow) {
             openWindow.canQuit = canQuit;
             openWindow.close();
         }
-        this.quitIfCan();
-    };
-
-    quitIfCan = () => {
-        if (this.windows.some((w) => w.window && !w.window.canQuit)) {
-            return;
-        }
-        app.quit();
     };
 
     handleOpenFile = (filePath: string) => {
@@ -201,6 +200,31 @@ class OpenWindows {
         if (targetWindow.whenReady) {
             await targetWindow.whenReady;
             targetWindow.window?.send(EventEndpoint.eMovePageIn, { page, targetPageId });
+        }
+    }
+
+    hideWindows = (): void => {
+        this.windows.forEach((w) => {
+            w.window?.window.hide();
+        });
+    }
+
+    showWindows = (): void => {
+        this.windows.forEach((w) => {
+            w.window?.window.show();
+        });
+    }
+
+    anyVisible = (): boolean => {
+        return this.windows.some((w) => w.window?.window.isVisible());
+    };
+
+    makeVisible = (): void => {
+        if (!this.anyVisible()) {
+            const mainWin = this.mainWindow;
+            if (mainWin) {
+                mainWin.window.show();
+            }
         }
     }
 }

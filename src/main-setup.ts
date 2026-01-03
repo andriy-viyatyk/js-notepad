@@ -6,6 +6,7 @@ import { controller } from "./ipc/main/controller";
 import { getAssetPath, isValidFilePath } from "./main/utils";
 import { pathToFileURL } from "node:url";
 import { openWindows } from "./main/open-windows";
+import { setupTray } from "./main/tray-setup";
 
 export function setupMainProcess() {
     protocol.registerSchemesAsPrivileged([
@@ -40,6 +41,7 @@ export function setupMainProcess() {
     app.on("ready", () => {
         registerAssetProtocol(appPartition);
         openWindows.restoreState();
+        setupTray();
     });
 
     app.on("window-all-closed", () => {
@@ -50,6 +52,7 @@ export function setupMainProcess() {
 
     app.on('second-instance', (event, commandLine, workingDirectory) => {
         const filePath = commandLine[2];
+        openWindows.makeVisible();
         if (filePath && isValidFilePath(filePath)) {
             openWindows.handleOpenFile(filePath);
         }
