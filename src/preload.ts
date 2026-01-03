@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { contextBridge, ipcRenderer, IpcRendererEvent, webUtils } from "electron";
+import {
+    contextBridge,
+    ipcRenderer,
+    IpcRendererEvent,
+    webUtils,
+} from "electron";
 import { Endpoint, EventEndpoint, PreloadEvent } from "./ipc/api-types";
 const crypto = require("crypto");
 const path = require("path");
@@ -49,14 +54,25 @@ const nodeUtils = {
     },
 
     fs: {
-        listFiles: (dirPath: string, ext?: string) =>
-            fs
-                .readdirSync(dirPath)
-                .filter(
+        listFiles: (dirPath: string, pattern?: string | RegExp) => {
+            const files = fs.readdirSync(dirPath);
+
+            if (!pattern) {
+                return files;
+            }
+
+            // If it's a string, treat it as extension (backward compatibility)
+            if (typeof pattern === "string") {
+                return files.filter(
                     (file: string) =>
-                        !ext ||
-                        path.extname(file).toLowerCase() === ext.toLowerCase()
-                ),
+                        path.extname(file).toLowerCase() ===
+                        pattern.toLowerCase()
+                );
+            }
+
+            // If it's a RegExp, use it to test the filename
+            return files.filter((file: string) => pattern.test(file));
+        },
         loadStringFile: (filePath: string): string =>
             fs.readFileSync(filePath, "utf-8"),
         saveStringFile: (filePath: string, content: string): void => {
@@ -73,7 +89,7 @@ const nodeUtils = {
         deleteFile: (filePath: string): boolean => {
             if (!nodeUtils.fs.fileExists(filePath)) {
                 // File does not exist, resolve without error
-                return true
+                return true;
             }
 
             try {
@@ -92,30 +108,34 @@ const nodeUtils = {
                 }
             }
             return true;
-        }
+        },
     },
 };
 
-window.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('drop', (e) => {
-        if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) {
-            return;
-        }
+window.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener(
+        "drop",
+        (e) => {
+            if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) {
+                return;
+            }
 
-        e.preventDefault();
-        e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
 
-        const file = e.dataTransfer.files[0];
-        
-        try {
-            const filePath = webUtils.getPathForFile(file);
-            ipcRenderer.send(PreloadEvent.fileDropped, filePath);
-        } catch (error) {
-            console.error('Error getting file path:', error);
-        }
-    }, true);
+            const file = e.dataTransfer.files[0];
 
-    document.addEventListener('dragover', (e) => {
+            try {
+                const filePath = webUtils.getPathForFile(file);
+                ipcRenderer.send(PreloadEvent.fileDropped, filePath);
+            } catch (error) {
+                console.error("Error getting file path:", error);
+            }
+        },
+        true
+    );
+
+    document.addEventListener("dragover", (e) => {
         e.preventDefault();
         e.stopPropagation();
     });

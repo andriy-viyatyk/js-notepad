@@ -1,12 +1,11 @@
+import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
 
 class ScriptRunner {
-    run = async (script: string, context: object): Promise<any> => {
+    run = async (script: string, page?: PageModel): Promise<any> => {
         try {
-            const enhancedContext = {
-                ...context,
-                ...globalThis,
-            };
+            const contextModule = await import("./ScriptContext");
+            const context = contextModule.createScriptContext(page);
 
             // Check if script contains statement keywords at the start
             const trimmedScript = script.trim();
@@ -26,7 +25,7 @@ class ScriptRunner {
 
                 try {
                     const fn = new Function(expressionScript);
-                    const result = fn.call(enhancedContext);
+                    const result = fn.call(context);
 
                     if (result && typeof result.then === "function") {
                         try {
@@ -49,7 +48,7 @@ class ScriptRunner {
             const statementScript = this.wrapScriptWithImplicitReturn(script);
 
             const fn = new Function(statementScript);
-            const result = fn.call(enhancedContext);
+            const result = fn.call(context);
 
             if (result && typeof result.then === "function") {
                 try {
@@ -70,15 +69,14 @@ class ScriptRunner {
     runWithResult = async (
         pageId: string,
         script: string,
-        context: object
+        page?: PageModel,
     ): Promise<string> => {
-        const result = await this.run(script, context);
+        const result = await this.run(script, page);
         const textAndLang = this.convertToText(result);
 
         if (pageId) {
-            const groupedModel = pagesModel.requireGroupedText(pageId);
+            const groupedModel = pagesModel.requireGroupedText(pageId, textAndLang.language);
             groupedModel.changeContent(textAndLang.text);
-            groupedModel.changeLanguage(textAndLang.language);
         }
 
         return textAndLang.text;

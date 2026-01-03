@@ -11,6 +11,7 @@ export interface IPage {
 
 export interface WindowState {
     pages: Partial<IPage>[];
+    groupings?: [string, string][];
     activePageId?: string;
 }
 

@@ -29,7 +29,7 @@ declare global {
                 basename: (path: string) => string;
             };
             fs: {
-                listFiles: (dirPath: string, ext?: string) => string[];
+                listFiles: (dirPath: string, pattern?: string | RegExp) => string[];
                 loadStringFile: (filePath: string) => string;
                 saveStringFile: (filePath: string, content: string) => void;
                 fileExists: (filePath: string) => boolean;

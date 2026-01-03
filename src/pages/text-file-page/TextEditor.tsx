@@ -1,10 +1,20 @@
 import { Editor } from "@monaco-editor/react";
 import { editor as MonacoEditor } from "monaco-editor";
+import styled from "@emotion/styled";
+
 import { TextFileModel } from "./TextFilePage.model";
 import { TComponentModel, useComponentModel } from "../../common/classes/model";
 import { useEffect } from "react";
 import { pagesModel } from "../../model/pages-model";
 import { api } from "../../ipc/renderer/api";
+
+const TextEditorRoot = styled.div({
+    flex: '1 1 auto',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+});
 
 interface TextEditorProps {
     model: TextFileModel;
@@ -80,12 +90,14 @@ export function TextEditor(props: TextEditorProps) {
     }, []);
 
     return (
-        <Editor
-            value={state.content}
-            language={state.language}
-            onMount={editorModel.handleEditorDidMount}
-            onChange={editorModel.handleEditorChange}
-            theme="custom-dark"
-        />
+        <TextEditorRoot>
+            <Editor
+                value={state.content}
+                language={state.language}
+                onMount={editorModel.handleEditorDidMount}
+                onChange={editorModel.handleEditorChange}
+                theme="custom-dark"
+            />
+        </TextEditorRoot>
     )
 }

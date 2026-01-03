@@ -8,6 +8,7 @@ import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
 import { scriptRunner } from "../../script/ScriptRunner";
 import { IPage } from "../../shared/types";
+import { TextPageScriptModel } from "./TextFilePage.script.model";
 
 export interface TextFilePageModelState extends IPage {
     content: string;
@@ -23,6 +24,7 @@ export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
 
 export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     private modificationSaved = true;
+    script = new TextPageScriptModel();
 
     changeContent = (newContent: string) => {
         this.state.update((state) => {
@@ -77,7 +79,6 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
                     result = await this.saveFile();
                     break;
                 case "Don't Save":
-                    await filesModel.deleteCacheFile(this.state.get().id);
                     result = true;
                     break;
                 default:
@@ -85,7 +86,11 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
                     break;
             }
         }
-        if (!result) {
+
+        if (result) {
+            this.script.destroy();
+            await filesModel.deleteCacheFiles(this.state.get().id);
+        } else {
             pagesModel.focusPage(this as unknown as PageModel);
         }
         return result;
@@ -136,6 +141,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
                     "plaintext";
             });
         }
+        await this.script.restore(id);
     };
 
     private isSavingModifications = false;
@@ -167,16 +173,24 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
 
         if (e.key === 'F5') {
             e.preventDefault();
-            this.runScript();
-            return;
+            if (this.script.state.get().open) {
+                this.runRelatedScript();
+            } else {
+                this.runScript();
+            }
         }
     };
 
     runScript = async () => {
         const { language, content } = this.state.get();
         if (language === 'javascript') {
-            await scriptRunner.runWithResult(this.id, content, {});
+            await scriptRunner.runWithResult(this.id, content, this);
         }
+    }
+
+    runRelatedScript = async () => {
+        const content = this.script.state.get().content;
+        await scriptRunner.runWithResult(this.id, content, this);
     }
 }
 

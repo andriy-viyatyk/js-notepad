@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import clsx from "clsx";
 import React, { ReactElement, useRef } from "react";
 import color from "../theme/color";
 
@@ -82,7 +83,7 @@ export function Spliter({
         <SpliterRoot
             type={type}
             onMouseDown={handleMouseDown}
-            className={className}
+            className={clsx("splitter", className)}
             {...otherProps}
         />
     );

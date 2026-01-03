@@ -53,31 +53,56 @@ class FilesModel {
         windowUtils.fs.deleteFile(filePath);
     };
 
-    private cacheFileName = async (id: string) => {
+    private cacheFileName = async (id: string, name?: string) => {
         await this.wait();
-        const cacheFilePath = windowUtils.path.join(this.cachePath, id + ".txt");
+        const cacheFilePath = windowUtils.path.join(
+            this.cachePath,
+            id + (name ? "_" + name : "") + ".txt"
+        );
         return cacheFilePath;
-    }
+    };
 
-    getCacheFile = async (id: string): Promise<string | undefined> =>
-        await this.getFile(await this.cacheFileName(id));
+    getCacheFile = async (
+        id: string,
+        name?: string
+    ): Promise<string | undefined> =>
+        await this.getFile(await this.cacheFileName(id, name));
 
-    saveCacheFile = async (id: string, content: string): Promise<void> =>
-        await this.saveFile(await this.cacheFileName(id), content);
+    saveCacheFile = async (
+        id: string,
+        content: string,
+        name?: string
+    ): Promise<void> =>
+        await this.saveFile(await this.cacheFileName(id, name), content);
 
-    deleteCacheFile = async (id: string): Promise<void> =>
-        await this.deleteFile(await this.cacheFileName(id));
+    deleteCacheFile = async (id: string, name?: string): Promise<void> =>
+        await this.deleteFile(await this.cacheFileName(id, name));
+
+    deleteCacheFiles = async (id: string): Promise<void> => {
+        await this.wait();
+        const files = windowUtils.fs.listFiles(
+            this.cachePath,
+            new RegExp(`^${id}`, "i")
+        );
+        for (const file of files) {
+            const filePath = windowUtils.path.join(this.cachePath, file);
+            await this.deleteFile(filePath);
+        }
+    };
 
     private dataFileName = async (fileName: string) => {
         await this.wait();
-        return windowUtils.path.join(this.dataPath, fileName.replace("{windowIndex}", String(this._windowIndex)));
-    }
+        return windowUtils.path.join(
+            this.dataPath,
+            fileName.replace("{windowIndex}", String(this._windowIndex))
+        );
+    };
 
     getDataFile = async (fileName: string): Promise<string | undefined> =>
         await this.getFile(await this.dataFileName(fileName));
 
     saveDataFile = async (fileName: string, content: string): Promise<void> =>
-        await this.saveFile(await this.dataFileName(fileName), content);    
+        await this.saveFile(await this.dataFileName(fileName), content);
 
     deleteDataFile = async (fileName: string): Promise<void> =>
         await this.deleteFile(await this.dataFileName(fileName));

@@ -2,6 +2,7 @@ import { Subscription } from "../common/classes/events";
 import { TModel } from "../common/classes/model";
 import { TGlobalState } from "../common/classes/state";
 import { parseObject } from "../common/parseUtils";
+import { debounce } from "../common/utils";
 import { api } from "../ipc/renderer/api";
 import rendererEvents from "../ipc/renderer/renderer-events";
 import {
@@ -48,12 +49,16 @@ export class PagesModel extends TModel<OpenFilesState> {
 
     private initPage = (page: PageModel) => {
         const res = new Promise((resolve) => {
+            const unsubscribe = page.state.subscribe(() => {
+                this.saveStateDebounced();
+            });
             page.onClose = (res) => {
                 const isActivePage = this.activePage === page;
                 this.state.update((s) => {
                     s.pages = s.pages.filter((p) => p !== page);
                     s.ordered = s.ordered.filter((p) => p !== page);
                 });
+                unsubscribe();
                 this.fixGrouping();
                 this.saveState();
                 resolve(res);
@@ -210,13 +215,14 @@ export class PagesModel extends TModel<OpenFilesState> {
     };
 
     saveState = async (): Promise<void> => {
-        const activePagesData = this.state
-            .get()
-            .pages.map((model) => model.getRestoreData());
+        const { pages, leftRight } = this.state.get();
+        const activePagesData = pages.map((model) => model.getRestoreData());
+        const groupings = Array.from(leftRight.entries());
 
         const activePageId = this.activePage?.state.get().id;
         const storedState: WindowState = {
             pages: activePagesData,
+            groupings: groupings,
             activePageId,
         };
 
@@ -225,6 +231,8 @@ export class PagesModel extends TModel<OpenFilesState> {
             JSON.stringify(storedState, null, 4)
         );
     };
+
+    saveStateDebounced = debounce(this.saveState, 500);
 
     restoreState = async () => {
         const data = parseObject(
@@ -250,6 +258,15 @@ export class PagesModel extends TModel<OpenFilesState> {
             s.pages = models;
             s.ordered = orderedModels;
         });
+
+        if (data.groupings && Array.isArray(data.groupings)) {
+            data.groupings.forEach(el => {
+                if (Array.isArray(el) && el.length === 2) {
+                    this.group(el[0], el[1]);
+                }
+            });
+            this.fixGrouping();
+        }
     };
 
     moveTab = (fromId: string, toId: string) => {
@@ -533,7 +550,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         }
     };
 
-    requireGroupedText = (pageId: string) => {
+    requireGroupedText = (pageId: string, suggestedLanguage?: string) => {
         let groupedPage = this.getGroupedPage(pageId);
         if (groupedPage && !(groupedPage.state.get().type === "textFile")) {
             this.ungroup(pageId);
@@ -543,6 +560,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         if (!groupedPage) {
             groupedPage = this.addEmptyPage() as unknown as PageModel;
             this.groupTabs(pageId, groupedPage.state.get().id);
+            groupedPage.changeLanguage(suggestedLanguage);
         }
 
         return groupedPage as unknown as TextFileModel;

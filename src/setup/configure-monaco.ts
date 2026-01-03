@@ -69,7 +69,44 @@ function setupCompiler(monaco: Monaco) {
         esModuleInterop: true,
         allowJs: true,
         typeRoots: [],
+        strictNullChecks: true,
+        strict: true,
     });
+}
+
+async function loadEditorTypes(monaco: Monaco) {
+    try {
+        const response = await fetch('app-asset://editor-types/_imports.txt');
+        if (!response.ok) {
+            console.warn('Failed to load _imports.txt for editor types');
+            return;
+        }
+
+        const typeFiles = (await response.text()).split('\n').map(f => f.trim()).filter(f => f.length > 0);
+
+        for (const file of typeFiles) {
+            const response = await fetch(`app-asset://editor-types/${file}`);
+            if (!response.ok) {
+                console.warn(`Failed to load type definitions: ${file}`);
+                continue;
+            }
+            
+            const content = await response.text();
+            
+            // Add to both JavaScript and TypeScript
+            monaco.languages.typescript.javascriptDefaults.addExtraLib(
+                content,
+                `file:///node_modules/@types/custom/${file}`
+            );
+            
+            monaco.languages.typescript.typescriptDefaults.addExtraLib(
+                content,
+                `file:///node_modules/@types/custom/${file}`
+            );
+        }
+    } catch (error) {
+        console.error('Error loading custom type definitions:', error);
+    }
 }
 
 export async function initMonaco() {
@@ -101,6 +138,8 @@ export async function initMonaco() {
     setupCompiler(monaco);
 
     defineRegLanguage(monaco);
+
+    loadEditorTypes(monaco);
 
     // const monacoLanguages = languages.getLanguages().map(l => ({
     //     aliases: l.aliases || [],

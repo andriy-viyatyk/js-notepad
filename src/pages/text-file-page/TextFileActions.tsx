@@ -10,14 +10,14 @@ interface TextFileActionsProps {
 export function TextFileActions({ model }: TextFileActionsProps) {
     const actions: ReactNode[] = [];
 
-    const { language } = model.state.get();
+    const { language } = model.state.use(s => ({ language: s.language }));
     if (language === 'javascript') {
         actions.push(
             <Button
                 key="run-script"
                 type="icon"
                 size="small"
-                title="Run Script"
+                title="Run Script (F5)"
                 onClick={model.runScript}
             >
                 <RunIcon />
