@@ -2,6 +2,8 @@ import styled from "@emotion/styled";
 import { clsx } from "clsx";
 import { TextFileModel } from "./TextFilePage.model";
 import { TextEditor } from "./TextEditor";
+import { PageHeader } from "../shared/PageHeader";
+import { TextFileActions } from "./TextFileActions";
 
 const TextFilePageRoot = styled.div({
     flex: "1 1 auto",
@@ -29,6 +31,9 @@ export function TextFilePage({
             className={clsx("file-page", className, { isActive })}
             onKeyDown={model.handleKeyDown}
         >
+            <PageHeader>
+                <TextFileActions model={model} />
+            </PageHeader>
             <TextEditor model={model} />
         </TextFilePageRoot>
     );

@@ -205,7 +205,7 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
             case "Enter": {
                 const { hovered, items } = this.state.get();
                 const item =
-                    hovered || items.length === 1 ? items[0] : undefined;
+                    hovered || (items.length === 1 ? items[0] : undefined);
                 if (item && !item.disabled) {
                     this.onClose();
                     item.onClick?.();

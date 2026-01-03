@@ -7,6 +7,7 @@ import rendererEvents from "../ipc/renderer/renderer-events";
 import {
     newTextFileModel,
     newTextFileModelFromState,
+    TextFileModel,
 } from "../pages/text-file-page/TextFilePage.model";
 import { openFilesNameTemplate } from "../shared/constants";
 import { IPage, WindowState } from "../shared/types";
@@ -26,14 +27,15 @@ export class PagesModel extends TModel<OpenFilesState> {
     onShow = new Subscription<PageModel>();
     onFocus = new Subscription<PageModel>();
 
-    addPage = (page: PageModel) => {
+    addPage = (page: PageModel): PageModel => {
         const pageId = page.state.get().id;
-        if (this.findPage(pageId)) {
+        const existingPage = this.findPage(pageId);
+        if (existingPage) {
             this.showPage(pageId);
-            return;
+            return existingPage;
         }
 
-        const res = this.initPage(page);
+        this.initPage(page);
 
         this.state.update((s) => {
             s.pages.push(page);
@@ -41,7 +43,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         });
         this.saveState();
 
-        return res;
+        return page;
     };
 
     private initPage = (page: PageModel) => {
@@ -151,9 +153,9 @@ export class PagesModel extends TModel<OpenFilesState> {
         );
     };
 
-    addEmptyPage = () => {
+    addEmptyPage = (): PageModel => {
         const emptyFile = newTextFileModel("");
-        this.addPage(emptyFile as unknown as PageModel);
+        return this.addPage(emptyFile as unknown as PageModel);
     };
 
     checkEmptyPage = () => {
@@ -530,6 +532,21 @@ export class PagesModel extends TModel<OpenFilesState> {
             this.group(pageId2, pageId1);
         }
     };
+
+    requireGroupedText = (pageId: string) => {
+        let groupedPage = this.getGroupedPage(pageId);
+        if (groupedPage && !(groupedPage.state.get().type === "textFile")) {
+            this.ungroup(pageId);
+            groupedPage = undefined;
+        }
+
+        if (!groupedPage) {
+            groupedPage = this.addEmptyPage() as unknown as PageModel;
+            this.groupTabs(pageId, groupedPage.state.get().id);
+        }
+
+        return groupedPage as unknown as TextFileModel;
+    }
 }
 
 export const pagesModel = new PagesModel(

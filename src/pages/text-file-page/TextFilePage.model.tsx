@@ -6,6 +6,7 @@ import { filesModel } from "../../model/files-model";
 import { getLanguageByExtension } from "../../model/language-mapping";
 import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
+import { scriptRunner } from "../../script/ScriptRunner";
 import { IPage } from "../../shared/types";
 
 export interface TextFilePageModelState extends IPage {
@@ -163,7 +164,20 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
                 this.saveFile();
             }
         }
+
+        if (e.key === 'F5') {
+            e.preventDefault();
+            this.runScript();
+            return;
+        }
     };
+
+    runScript = async () => {
+        const { language, content } = this.state.get();
+        if (language === 'javascript') {
+            await scriptRunner.runWithResult(this.id, content, {});
+        }
+    }
 }
 
 export function newTextFileModel(filePath?: string): TextFileModel {
