@@ -74,8 +74,35 @@ const nodeUtils = {
             // If it's a RegExp, use it to test the filename
             return files.filter((file: string) => pattern.test(file));
         },
-        loadStringFile: (filePath: string): string =>
-            fs.readFileSync(filePath, "utf-8"),
+        loadStringFile: (filePath: string): string => {
+            const buffer = fs.readFileSync(filePath);
+
+            if (
+                buffer.length >= 2 &&
+                buffer[0] === 0xff &&
+                buffer[1] === 0xfe
+            ) {
+                return buffer.toString("utf16le");
+            }
+            if (
+                buffer.length >= 2 &&
+                buffer[0] === 0xfe &&
+                buffer[1] === 0xff
+            ) {
+                return buffer.toString("utf16be");
+            }
+
+            // Try UTF-8 and check for issues
+            const utf8Content = buffer.toString("utf-8");
+            const hasNullBytes = buffer.indexOf(0x00) !== -1;
+
+            // If we find null bytes in even positions, likely UTF-16 LE
+            if (hasNullBytes && buffer[1] === 0x00) {
+                return buffer.toString("utf16le");
+            }
+
+            return utf8Content;
+        },
         saveStringFile: (filePath: string, content: string): void => {
             fs.writeFileSync(filePath, content, "utf-8");
         },
@@ -121,7 +148,9 @@ const nodeUtils = {
                 };
             } catch (err) {
                 console.error("Error watching file:", err);
-                return () => {/**/};
+                return () => {
+                    /**/
+                };
             }
         },
         getFileStats: (filePath: string): FileStats => {
@@ -148,7 +177,7 @@ window.addEventListener("DOMContentLoaded", () => {
         "drop",
         (e) => {
             let filePath: string | undefined = undefined;
-            
+
             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 const file = e.dataTransfer.files[0];
 
@@ -162,7 +191,7 @@ window.addEventListener("DOMContentLoaded", () => {
             if (!filePath) {
                 const textData = e.dataTransfer.getData("text/plain");
                 filePath = textData?.split("\n")[0]?.trim();
-            }          
+            }
 
             if (filePath && fs.existsSync(filePath)) {
                 e.preventDefault();

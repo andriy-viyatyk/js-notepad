@@ -19,7 +19,14 @@ function defineMonacoTheme(monaco: Monaco, themeName: string) {
         base: "vs-dark",
         inherit: true,
         rules: [
-            // { token: '', background: color.background.default }, // Set the background color
+            // SQL colors fixes
+            { token: 'string.sql', foreground: 'ce9178' }, 
+            { token: 'string.quoted.single.sql', foreground: 'ce9178' },
+            { token: 'string.quoted.double.sql', foreground: 'ce9178' },
+            { token: 'predefined.sql', foreground: 'dcdcaa' },  
+            { token: 'function.sql', foreground: 'dcdcaa' },
+            { token: 'predefined.function.sql', foreground: 'dcdcaa' },
+            { token: 'type.function.sql', foreground: 'dcdcaa' },
         ],
         colors: {
             "editor.background": color.background.default,

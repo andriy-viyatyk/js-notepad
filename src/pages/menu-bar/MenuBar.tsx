@@ -69,6 +69,10 @@ const MenuBarRoot = styled("div")({
     "&.open .menu-bar-content": {
         transform: "translateX(0)", // Slide in when open
     },
+    "& button svg": {
+        width: 20,
+        height: 20,
+    }
 });
 
 interface MenuBarProps {

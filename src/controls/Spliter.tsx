@@ -52,6 +52,8 @@ export function Spliter({
     const startY = useRef<number>(0);
 
     const handleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+
         startX.current = e.clientX;
         startY.current = e.clientY;
         beforeDragWidth.current = initialWidth;
