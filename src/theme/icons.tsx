@@ -459,3 +459,14 @@ export const RunIcon = createIcon(16)(
         d="M4.25 3l1.166-.624 8 5.333v1.248l-8 5.334-1.166-.624V3zm1.5 1.401v7.864l5.898-3.932L5.75 4.401z"
     />
 );
+
+export const RunAllIcon = createIcon(16)(
+    <g fill="currentColor">
+        <path d="M2.78 2L2 2.41v12l.78.42 9-6V8l-9-6zM3 13.48V3.35l7.6 5.07L3 13.48z" />
+        <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M6 14.683l8.78-5.853V8L6 2.147V3.35l7.6 5.07L6 13.48v1.203z"
+        />
+    </g>
+);

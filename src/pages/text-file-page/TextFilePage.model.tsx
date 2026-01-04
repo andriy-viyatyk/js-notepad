@@ -8,7 +8,8 @@ import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
 import { scriptRunner } from "../../script/ScriptRunner";
 import { IPage } from "../../shared/types";
-import { TextPageScriptModel } from "./TextFilePage.script.model";
+import { ScriptEditorModel } from "./ScriptEditor";
+import { TextEditorModel } from "./TextEditor";
 
 export interface TextFilePageModelState extends IPage {
     content: string;
@@ -24,7 +25,8 @@ export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
 
 export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     private modificationSaved = true;
-    script = new TextPageScriptModel();
+    script = new ScriptEditorModel(this);
+    editor = new TextEditorModel(this);
 
     changeContent = (newContent: string) => {
         this.state.update((state) => {
@@ -181,16 +183,23 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         }
     };
 
-    runScript = async () => {
+    runScript = async (all?: boolean) => {
         const { language, content } = this.state.get();
+        let script = content;
+        if (!all) {
+            script = this.editor.getSelectedText() || content;
+        }
         if (language === 'javascript') {
-            await scriptRunner.runWithResult(this.id, content, this);
+            await scriptRunner.runWithResult(this.id, script, this);
         }
     }
 
-    runRelatedScript = async () => {
-        const content = this.script.state.get().content;
-        await scriptRunner.runWithResult(this.id, content, this);
+    runRelatedScript = async (all?: boolean) => {
+        let script = this.script.state.get().content;
+        if (!all) {
+            script = this.script.getSelectedText() || script;
+        }
+        await scriptRunner.runWithResult(this.id, script, this);
     }
 }
 

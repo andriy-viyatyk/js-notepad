@@ -1,12 +1,13 @@
 import { Editor } from "@monaco-editor/react";
-import { editor as MonacoEditor } from "monaco-editor";
+import { IDisposable, editor as MonacoEditor } from "monaco-editor";
 import styled from "@emotion/styled";
 
 import { TextFileModel } from "./TextFilePage.model";
-import { TComponentModel, useComponentModel } from "../../common/classes/model";
+import { TModel } from "../../common/classes/model";
 import { useEffect } from "react";
 import { pagesModel } from "../../model/pages-model";
 import { api } from "../../ipc/renderer/api";
+import { TComponentState } from "../../common/classes/state";
 
 const TextEditorRoot = styled.div({
     flex: '1 1 auto',
@@ -16,27 +17,61 @@ const TextEditorRoot = styled.div({
     overflow: 'hidden',
 });
 
-interface TextEditorProps {
-    model: TextFileModel;
+export const defaultTextEditorState = {
+    hasSelection: false,
 }
 
-class TextEditorModel extends TComponentModel<null, TextEditorProps> {
+export type TextEditorState = typeof defaultTextEditorState;
+
+export class TextEditorModel extends TModel<TextEditorState> {
+    private pageModel: TextFileModel;
     editorRef = null as MonacoEditor.IStandaloneCodeEditor | null;
-    wheelListenerCleanup: (() => void) | null = null;
+    private wheelListenerCleanup: (() => void) | null = null;
+    private selectionListenerDisposable: IDisposable | null = null;
+
+    constructor(pageModel: TextFileModel) {
+        super(new TComponentState(defaultTextEditorState));
+        this.pageModel = pageModel;
+    }
 
     handleEditorDidMount = (editor: MonacoEditor.IStandaloneCodeEditor) => {
         this.editorRef = editor;
         this.focusEditor();
         this.setupWheelZoom(editor);
+        this.setupSelectionListener(editor);
     };
 
     handleEditorChange = (value: string | undefined) => {
-        this.props.model.changeContent(value || "");
+        this.pageModel.changeContent(value || "");
     }
 
     focusEditor = () => {
         this.editorRef?.focus();
     }
+
+    setupSelectionListener = (editor: MonacoEditor.IStandaloneCodeEditor) => {
+        this.selectionListenerDisposable = editor.onDidChangeCursorSelection((e) => {
+            const selection = editor.getSelection();
+            const hasSelection = selection ? !selection.isEmpty() : false;
+            
+            if (this.state.get().hasSelection !== hasSelection) {
+                this.state.update(s => { s.hasSelection = hasSelection; });
+            }
+        });
+    };
+
+    getSelectedText = (): string => {
+        if (!this.editorRef) {
+            return "";
+        }
+        
+        const selection = this.editorRef.getSelection();
+        if (!selection || selection.isEmpty()) {
+            return "";
+        }
+        
+        return this.editorRef.getModel()?.getValueInRange(selection) || "";
+    };
 
     setupWheelZoom = (editor: MonacoEditor.IStandaloneCodeEditor) => {
         const editorDomNode = editor.getDomNode();
@@ -66,18 +101,24 @@ class TextEditorModel extends TComponentModel<null, TextEditorProps> {
     };
 
     onDestroy = () => {
+        this.selectionListenerDisposable?.dispose();
+        this.selectionListenerDisposable = null;
         this.wheelListenerCleanup?.();
         this.wheelListenerCleanup = null;
     }
 }
 
-export function TextEditor(props: TextEditorProps) {
-    const editorModel = useComponentModel(props, TextEditorModel, null);
-    const state = props.model.state.use();
+interface TextEditorProps {
+    model: TextFileModel;
+}
+
+export function TextEditor({model}: TextEditorProps) {
+    const editorModel = model.editor;
+    const pageState = model.state.use();
 
     useEffect(() => {
         const subscription = pagesModel.onFocus.subscribe((pageModel) => {
-            if (pageModel === props.model as any) {
+            if (pageModel === model as any) {
                 setTimeout(() => {
                     editorModel.focusEditor();
                 }, 0);
@@ -92,8 +133,8 @@ export function TextEditor(props: TextEditorProps) {
     return (
         <TextEditorRoot>
             <Editor
-                value={state.content}
-                language={state.language}
+                value={pageState.content}
+                language={pageState.language}
                 onMount={editorModel.handleEditorDidMount}
                 onChange={editorModel.handleEditorChange}
                 theme="custom-dark"

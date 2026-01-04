@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from "electron";
+import { BrowserWindow, screen, shell } from "electron";
 import path from "node:path";
 
 import { EventEndpoint } from "../ipc/api-types";
@@ -49,7 +49,7 @@ export class OpenWindow {
                 partition: appPartition,
                 nodeIntegration: true,
                 contextIsolation: true,
-                webSecurity: true,
+                webSecurity: false,
                 allowRunningInsecureContent: false,
             },
         });
@@ -114,6 +114,12 @@ export class OpenWindow {
             } else if (zoomDirection === "out") {
                 this.window.webContents.setZoomLevel(currentZoom - 0.5);
             }
+        });
+
+        this.window.webContents.setWindowOpenHandler(({ url }) => {
+            // todo: open in browser tab when implemented
+            shell.openExternal(url);
+            return { action: "deny" };
         });
 
         if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
