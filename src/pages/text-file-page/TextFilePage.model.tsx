@@ -43,7 +43,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     };
 
     getRestoreData() {
-        const { content, ...pageData } = this.state.get();
+        const { content, deleted, ...pageData } = this.state.get();
         return pageData;
     }
 

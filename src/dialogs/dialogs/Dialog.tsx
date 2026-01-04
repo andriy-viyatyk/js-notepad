@@ -24,7 +24,7 @@ const DialogRoot = styled.div<{ position?: DialogPosition }>(
         bottom: 0,
         zIndex: 100,
         background: "transparent",
-        animation: `${pulse} 0.1s ease-in-out`,
+        animation: `${pulse} 0.1s ease-out`,
         ...(props.position !== "right"
             ? {
                   display: "flex",

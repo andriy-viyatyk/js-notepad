@@ -2,67 +2,76 @@ import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
 
 class ScriptRunner {
+    handlePromiseException = 0;
+
     run = async (script: string, page?: PageModel): Promise<any> => {
+        this.handlePromiseException += 1;
         try {
-            const contextModule = await import("./ScriptContext");
-            const context = contextModule.createScriptContext(page);
+            try {
+                const contextModule = await import("./ScriptContext");
+                const context = contextModule.createScriptContext(page);
 
-            // Check if script contains statement keywords at the start
-            const trimmedScript = script.trim();
-            const statementKeywords =
-                /^(const|let|var|if|for|while|do|switch|function|class|try|throw|return)\s/;
-            const hasStatements = statementKeywords.test(trimmedScript);
+                // Check if script contains statement keywords at the start
+                const trimmedScript = script.trim();
+                const statementKeywords =
+                    /^(const|let|var|if|for|while|do|switch|function|class|try|throw|return)\s/;
+                const hasStatements = statementKeywords.test(trimmedScript);
 
-            if (!hasStatements) {
-                // Try as expression first (for simple cases like "5 + 5" or "'hello'")
-                const expressionScript = `
-                with (this) {
-                    return (async function() {
-                        return (${script});
-                    }).call(this);
-                }
-            `;
-
-                try {
-                    const fn = new Function(expressionScript);
-                    const result = fn.call(context);
-
-                    if (result && typeof result.then === "function") {
-                        try {
-                            return await result;
-                        } catch (asyncError) {
-                            return asyncError instanceof Error
-                                ? asyncError
-                                : new Error(String(asyncError));
-                        }
+                if (!hasStatements) {
+                    // Try as expression first (for simple cases like "5 + 5" or "'hello'")
+                    const expressionScript = `
+                    with (this) {
+                        return (async function() {
+                            return (${script});
+                        }).call(this);
                     }
+                `;
 
-                    return result;
-                } catch (expressionError) {
-                    // Fall through to statement handling
+                    try {
+                        const fn = new Function(expressionScript);
+                        const result = fn.call(context);
+
+                        if (result && typeof result.then === "function") {
+                            try {
+                                return await result;
+                            } catch (asyncError) {
+                                return asyncError instanceof Error
+                                    ? asyncError
+                                    : new Error(String(asyncError));
+                            }
+                        }
+
+                        return result;
+                    } catch (expressionError) {
+                        // Fall through to statement handling
+                    }
                 }
-            }
 
-            // Try to extract the last expression and make it return
-            // This handles cases like: const a = 5; a * 8
-            const statementScript = this.wrapScriptWithImplicitReturn(script);
+                // Try to extract the last expression and make it return
+                // This handles cases like: const a = 5; a * 8
+                const statementScript = this.wrapScriptWithImplicitReturn(script);
 
-            const fn = new Function(statementScript);
-            const result = fn.call(context);
+                const fn = new Function(statementScript);
+                const result = fn.call(context);
 
-            if (result && typeof result.then === "function") {
-                try {
-                    return await result;
-                } catch (asyncError) {
-                    return asyncError instanceof Error
-                        ? asyncError
-                        : new Error(String(asyncError));
+                if (result && typeof result.then === "function") {
+                    try {
+                        return await result;
+                    } catch (asyncError) {
+                        return asyncError instanceof Error
+                            ? asyncError
+                            : new Error(String(asyncError));
+                    }
                 }
-            }
 
-            return result;
-        } catch (error) {
-            return error instanceof Error ? error : new Error(String(error));
+                return result;
+            } catch (error) {
+                return error instanceof Error ? error : new Error(String(error));
+            }
+        } finally {
+            setTimeout(() => {
+                this.handlePromiseException -= 1;
+            }, 1000);
         }
     };
 

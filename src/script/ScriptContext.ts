@@ -28,6 +28,9 @@ const wrapPage = (page?: PageModel) => {
         set language(value: string) {
             textPage.changeLanguage(value);
         },
+        get data() {
+            return textPage.script.data;
+        }
     };
 };
 

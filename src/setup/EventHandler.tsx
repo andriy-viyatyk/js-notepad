@@ -6,6 +6,7 @@ import { parseObject } from "../common/parseUtils";
 import { filesModel } from "../model/files-model";
 import { api } from "../ipc/renderer/api";
 import { alertError } from "../dialogs/alerts/AlertsBar";
+import { scriptRunner } from "../script/ScriptRunner";
 
 class EventHandlerModel extends TModel<null> {
     init = () => {
@@ -43,7 +44,9 @@ class EventHandlerModel extends TModel<null> {
     }
 
     private handleUnhandledRejection = (e: PromiseRejectionEvent) => {
-        alertError(`'Unhandled promise rejection:', ${e.reason}`);
+        if (scriptRunner.handlePromiseException) {
+            alertError(`'Unhandled promise rejection:', ${e.reason}`);
+        }
     }
 }
 

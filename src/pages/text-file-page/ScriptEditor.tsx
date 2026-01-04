@@ -33,6 +33,7 @@ export const defaultScriptEditorState = {
     open: false,
     height: 160,
     hasSelection: false,
+    data: {},
 }
 
 export type ScriptEditorState = typeof defaultScriptEditorState;
@@ -43,8 +44,26 @@ export class ScriptEditorModel extends TModel<ScriptEditorState> {
     private unsubscribe: (() => void) | undefined = undefined;
     private skipSave = false;
     private selectionListenerDisposable: IDisposable | null = null;
+    private scriptData: Record<string, any> | undefined = undefined;
     id: string | undefined = undefined;
     name = "script";
+
+    get data() {
+        if (!this.scriptData) {
+            this.scriptData = JSON.parse(JSON.stringify(this.state.get().data));
+        }
+        this.updateDataDebounced();
+        return this.scriptData;
+    }
+
+    private updateDataDebounced = debounce(() => {
+        if (this.scriptData && Object.keys(this.scriptData).length > 0) {
+            this.state.update(s => {
+                s.data = JSON.parse(JSON.stringify(this.scriptData));
+            });
+            this.scriptData = JSON.parse(JSON.stringify(this.state.get().data));
+        }
+    }, 50);
 
     constructor(pageModel: TextFileModel) {
         super(new TComponentState(defaultScriptEditorState));
