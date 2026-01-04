@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { keyframes } from "@emotion/react";
 import React, { ReactNode } from "react";
 import clsx from "clsx";
 
@@ -9,6 +10,11 @@ import { CloseIcon } from "../../theme/icons";
 
 export type DialogPosition = "center" | "right";
 
+const pulse = keyframes`
+  0% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+`;
+
 const DialogRoot = styled.div<{ position?: DialogPosition }>(
     (props) => ({
         position: "absolute",
@@ -18,6 +24,7 @@ const DialogRoot = styled.div<{ position?: DialogPosition }>(
         bottom: 0,
         zIndex: 100,
         background: "transparent",
+        animation: `${pulse} 0.1s ease-in-out`,
         ...(props.position !== "right"
             ? {
                   display: "flex",

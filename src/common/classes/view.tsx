@@ -20,6 +20,7 @@ export type ViewPropsRO<M extends TModel<T>, T = any> = Readonly<
 export interface IViewData<M extends TModel<T>, T = any> {
     viewId: Symbol;
     model: M;
+    internalId?: string;
 }
 
 export interface IDialogViewData<

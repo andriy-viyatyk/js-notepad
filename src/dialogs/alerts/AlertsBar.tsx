@@ -71,7 +71,7 @@ class AlertsBarModel extends TModel<AlertsBarState> {
 
     alertTop = (alert: AlertData) => {
         const { alerts, height } = this.state.get();
-        let res = 16;
+        let res = 42;
         if (alert !== alerts[0]) {
             const alertIndex = alerts.indexOf(alert);
             for (let i = 0; i < alertIndex; i++) {

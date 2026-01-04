@@ -2,6 +2,7 @@ import React from "react";
 
 import { TGlobalState } from "../../common/classes/state";
 import { IDialogViewData, Views } from "../../common/classes/view";
+import { windowUtils } from "../../common/utils";
 
 export const dialogsState = new TGlobalState<IDialogViewData[]>([]);
 
@@ -14,8 +15,8 @@ export function Dialogs() {
 
 	return (
 		<>
-			{dialogs.map((dialogView, idx) => (
-				<React.Fragment key={idx}>
+			{dialogs.map((dialogView) => (
+				<React.Fragment key={dialogView.internalId}>
 					{Views.renderView(dialogView.viewId, {
 						model: dialogView.model,
 						className: "dialog",
@@ -27,6 +28,7 @@ export function Dialogs() {
 }
 
 export async function showDialog<R>(data: IDialogViewData): Promise<R> {
+	data.internalId = windowUtils.uuid();
 	data.model.result = new Promise<R>(resolve => {
 		data.model.onClose = res => {
 			dialogsState.set(oldState => oldState.filter(item => item !== data));
