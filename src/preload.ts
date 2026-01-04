@@ -6,6 +6,7 @@ import {
     webUtils,
 } from "electron";
 import { Endpoint, EventEndpoint, PreloadEvent } from "./ipc/api-types";
+import { FileStats } from "./shared/types";
 const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
@@ -109,6 +110,36 @@ const nodeUtils = {
             }
             return true;
         },
+        watchFile: (filePath: string, callback: (event: string) => void) => {
+            try {
+                const watcher = fs.watch(filePath, (eventType: string) => {
+                    callback(eventType);
+                });
+
+                return () => {
+                    watcher.close();
+                };
+            } catch (err) {
+                console.error("Error watching file:", err);
+                return () => {/**/};
+            }
+        },
+        getFileStats: (filePath: string): FileStats => {
+            try {
+                const stats = fs.statSync(filePath);
+                return {
+                    size: stats.size,
+                    mtime: stats.mtime.getTime(),
+                    exists: true,
+                };
+            } catch (err) {
+                return {
+                    size: 0,
+                    mtime: 0,
+                    exists: false,
+                };
+            }
+        },
     },
 };
 
@@ -116,20 +147,27 @@ window.addEventListener("DOMContentLoaded", () => {
     document.addEventListener(
         "drop",
         (e) => {
-            if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) {
-                return;
+            let filePath: string | undefined = undefined;
+            
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+
+                try {
+                    filePath = webUtils.getPathForFile(file);
+                } catch (error) {
+                    console.error("Error getting file path:", error);
+                }
             }
 
-            e.preventDefault();
-            e.stopPropagation();
+            if (!filePath) {
+                const textData = e.dataTransfer.getData("text/plain");
+                filePath = textData?.split("\n")[0]?.trim();
+            }          
 
-            const file = e.dataTransfer.files[0];
-
-            try {
-                const filePath = webUtils.getPathForFile(file);
+            if (filePath && fs.existsSync(filePath)) {
+                e.preventDefault();
+                e.stopPropagation();
                 ipcRenderer.send(PreloadEvent.fileDropped, filePath);
-            } catch (error) {
-                console.error("Error getting file path:", error);
             }
         },
         true

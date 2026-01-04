@@ -78,7 +78,7 @@ export class ScriptEditorModel extends TModel<ScriptEditorState> {
 
     private saveStateDebounced = debounce(this.saveState, 500);
 
-    destroy = () => {
+    dispose = () => {
         this.unsubscribe?.();
         this.selectionListenerDisposable?.dispose();
         this.selectionListenerDisposable = null;

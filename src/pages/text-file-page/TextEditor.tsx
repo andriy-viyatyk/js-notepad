@@ -100,7 +100,7 @@ export class TextEditorModel extends TModel<TextEditorState> {
         }
     };
 
-    onDestroy = () => {
+    onDispose = () => {
         this.selectionListenerDisposable?.dispose();
         this.selectionListenerDisposable = null;
         this.wheelListenerCleanup?.();
@@ -126,7 +126,7 @@ export function TextEditor({model}: TextEditorProps) {
         });
         return () => { 
             subscription.unsubscribe();
-            editorModel.onDestroy();
+            editorModel.onDispose();
         };
     }, []);
 

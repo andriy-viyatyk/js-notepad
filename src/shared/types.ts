@@ -26,3 +26,9 @@ export interface PageDragData {
     page?: Partial<IPage>;
     dropPosition?: { x: number; y: number };
 }
+
+export interface FileStats {
+    size: number;
+    mtime: number;
+    exists: boolean;
+}

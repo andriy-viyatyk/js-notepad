@@ -3,6 +3,7 @@ import { debounce, windowUtils } from "../../common/utils";
 import { showConfirmationDialog } from "../../dialogs/dialogs/ConfirmationDialog";
 import { api } from "../../ipc/renderer/api";
 import { filesModel } from "../../model/files-model";
+import { FileWatcher } from "../../model/FileWatcher";
 import { getLanguageByExtension } from "../../model/language-mapping";
 import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
@@ -13,18 +14,22 @@ import { TextEditorModel } from "./TextEditor";
 
 export interface TextFilePageModelState extends IPage {
     content: string;
+    deleted: boolean;
 }
 
 export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
     ...getDefaultPageModelState(),
     type: "textFile" as const,
     filePath: "",
-    content: "",
     language: "plaintext",
+    // no stored state props
+    content: "",
+    deleted: false,
 });
 
 export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     private modificationSaved = true;
+    private fileWatcher: FileWatcher | null = null;
     script = new ScriptEditorModel(this);
     editor = new TextEditorModel(this);
 
@@ -90,13 +95,20 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         }
 
         if (result) {
-            this.script.destroy();
-            await filesModel.deleteCacheFiles(this.state.get().id);
+            await this.dispose();
         } else {
             pagesModel.focusPage(this as unknown as PageModel);
         }
         return result;
     };
+
+    dispose = async (): Promise<void> => {
+        this.fileWatcher?.dispose();
+        this.fileWatcher = null;
+        this.editor.onDispose();
+        this.script.dispose();
+        await filesModel.deleteCacheFiles(this.state.get().id);
+    }
 
     saveFile = async (saveAs?: boolean): Promise<boolean> => {
         const { filePath, content, title, id } = this.state.get();
@@ -113,9 +125,12 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             await filesModel.deleteCacheFile(id);
             this.state.update((s) => {
                 s.modified = false;
-                s.filePath = savePath!;
+                s.filePath = savePath;
                 s.title = windowUtils.path.basename(savePath);
+                s.deleted = false;
             });
+            this.fileWatcher?.dispose();
+            this.fileWatcher = new FileWatcher(savePath, this.onFileChanged);
             return true;
         }
 
@@ -124,6 +139,10 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
 
     restore = async () => {
         const { id, modified, filePath } = this.state.get();
+        if (filePath) {
+            this.fileWatcher?.dispose();
+            this.fileWatcher = new FileWatcher(filePath, this.onFileChanged);
+        }
         if (modified) {
             const cachedContent = await filesModel.getCacheFile(id);
             if (cachedContent !== undefined) {
@@ -141,10 +160,29 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
                     s.language ||
                     getLanguageByExtension(ext)?.id ||
                     "plaintext";
+                s.deleted = this.fileWatcher?.stat.exists === false;
             });
         }
         await this.script.restore(id);
     };
+
+    private onFileChanged = () => {
+        if (!this.fileWatcher) return;
+        const modified = this.state.get().modified;
+        const deleted = !this.fileWatcher.stat.exists;
+        if (deleted !== this.state.get().deleted) {
+            this.state.update(s => { 
+                s.deleted = deleted;
+                s.modified = deleted || s.modified;
+            });
+        }
+        if (!modified && !deleted) {
+            const newContent = this.fileWatcher.getTextContent();
+            this.state.update(s => {
+                s.content = newContent;
+            });
+        }
+    }
 
     private isSavingModifications = false;
 
@@ -168,7 +206,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             e.preventDefault();
             if (e.shiftKey) {
                 this.saveFile(true);
-            } else if (this.state.get().modified) {
+            } else {
                 this.saveFile();
             }
         }

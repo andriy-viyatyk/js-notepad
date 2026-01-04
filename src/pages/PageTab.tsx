@@ -45,6 +45,9 @@ const PageTabRoot = styled.div({
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
     },
+    "&.deleted .title-label": {
+        color: color.misc.red,
+    },
     "& .close-button": {
         flexShrink: 0,
         visibility: "hidden",
@@ -53,7 +56,7 @@ const PageTabRoot = styled.div({
         backgroundColor: color.background.default,
         borderColor: color.border.default,
         color: color.text.default,
-        "& .title-label": {
+        "&:not(.deleted) .title-label": {
             color: color.text.default,
         },
         "& .close-button": {
@@ -240,21 +243,23 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
         } else {
             this.props.model.close(undefined);
         }
-    }
+    };
 }
 
 export function PageTab(props: PageTabProps) {
     const tabModel = useComponentModel(props, PageTabModel, null);
     const model = props.model;
     tabModel.isGrouped = pagesModel.isGrouped(model.id);
-    tabModel.isActive = pagesModel.activePage === model || pagesModel.groupedPage === model;
-    const { title, modified, language, id, filePath } = model.state.use(
+    tabModel.isActive =
+        pagesModel.activePage === model || pagesModel.groupedPage === model;
+    const { title, modified, language, id, filePath, deleted } = model.state.use(
         (s) => ({
             title: s.title,
             modified: s.modified,
             language: s.language,
             id: s.id,
             filePath: (s as any).filePath,
+            deleted: (s as any).deleted ?? false,
         })
     );
 
@@ -294,6 +299,7 @@ export function PageTab(props: PageTabProps) {
                 isActive: tabModel.isActive,
                 modified,
                 isDraggOver: isOver,
+                deleted,
             })}
             onClick={() => pagesModel.showPage(model.state.get().id)}
             onContextMenu={(e) => tabModel.handleContextMenu(e)}

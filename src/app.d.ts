@@ -35,6 +35,11 @@ declare global {
                 fileExists: (filePath: string) => boolean;
                 deleteFile: (filePath: string) => boolean;
                 preparePath: (dirPath: string) => boolean;
+                watchFile: (
+                    filePath: string,
+                    callback: (eventType: string) => void
+                ) => (() => void);
+                getFileStats: (filePath: string) => FileStats;
             };
         };
     }
