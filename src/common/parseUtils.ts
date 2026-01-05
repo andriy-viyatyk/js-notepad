@@ -1,3 +1,5 @@
+import JSON5 from 'json5';
+
 export const parseString = (value: any): string | undefined => {
     if (value === null || value === undefined || !value.toString)
         return undefined;
@@ -24,6 +26,17 @@ export const parseObject = (value: any, onError?: (error: any) => void): Record<
     if (typeof value === "object") return value;
     try {
         return JSON.parse(value);
+    } catch (error) {
+        if (onError) onError(error);
+        return undefined;
+    }
+}
+
+export const parseJSON5 = (value: any, onError?: (error: any) => void): Record<string, any> | undefined => {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value === "object") return value;
+    try {
+        return JSON5.parse(value);
     } catch (error) {
         if (onError) onError(error);
         return undefined;

@@ -14,6 +14,7 @@ import { openFilesNameTemplate } from "../shared/constants";
 import { IPage, WindowState } from "../shared/types";
 import { filesModel } from "./files-model";
 import { PageModel } from "./page-model";
+import { recentFiles } from "./recentFiles";
 
 const defaultOpenFilesState = {
     pages: [] as PageModel[],
@@ -336,6 +337,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         });
         await pageModel.restore();
         this.addPage(pageModel as unknown as PageModel);
+        recentFiles.add(filePath);
     };
 
     openFileWithDialog = async () => {
@@ -489,25 +491,6 @@ export class PagesModel extends TModel<OpenFilesState> {
             this.ungroup(rightPageId);
             this.group(leftPageId, rightPageId);
         });
-    };
-
-    groupWithLeft = (rightPageId: string) => {
-        const pageIndex = this.state
-            .get()
-            .pages.findIndex((p) => p.id === rightPageId);
-        if (pageIndex > 0) {
-            const leftPageId = this.state.get().pages[pageIndex - 1].id;
-            this.group(leftPageId, rightPageId);
-        }
-    };
-
-    groupWithRight = (leftPageId: string) => {
-        const state = this.state.get();
-        const pageIndex = state.pages.findIndex((p) => p.id === leftPageId);
-        if (pageIndex >= 0 && pageIndex < state.pages.length - 1) {
-            const rightPageId = state.pages[pageIndex + 1].id;
-            this.group(leftPageId, rightPageId);
-        }
     };
 
     canGroupWithLeft = (rightPageId: string) => {

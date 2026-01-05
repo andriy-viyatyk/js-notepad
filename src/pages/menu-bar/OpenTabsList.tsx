@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { List } from "../../controls/List";
 import { api } from "../../ipc/renderer/api";
 import { filesModel } from "../../model/files-model";
-import { PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
 import { IPage, WindowPages } from "../../shared/types";
 import color from "../../theme/color";

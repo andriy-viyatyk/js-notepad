@@ -41,6 +41,13 @@ class FilesModel {
         return undefined;
     };
 
+    prepareFile = async (filePath: string, defaultContent: string): Promise<void> => {
+        await this.wait();
+        if (!windowUtils.fs.fileExists(filePath)) {
+            this.saveFile(filePath, defaultContent);
+        }
+    }
+
     saveFile = async (filePath: string, content: string): Promise<void> => {
         await this.wait();
         const dirPath = windowUtils.path.dirname(filePath);
@@ -90,7 +97,7 @@ class FilesModel {
         }
     };
 
-    private dataFileName = async (fileName: string) => {
+    dataFileName = async (fileName: string) => {
         await this.wait();
         return windowUtils.path.join(
             this.dataPath,
@@ -106,6 +113,12 @@ class FilesModel {
 
     deleteDataFile = async (fileName: string): Promise<void> =>
         await this.deleteFile(await this.dataFileName(fileName));
+
+    prepareDataFile = async (fileName: string, defaultContent: string): Promise<void> =>
+        await this.prepareFile(
+            await this.dataFileName(fileName),
+            defaultContent
+        );
 }
 
 export const filesModel = new FilesModel();

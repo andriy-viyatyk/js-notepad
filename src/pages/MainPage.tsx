@@ -149,7 +149,11 @@ class MainPageModel extends TComponentModel<MainPageState, undefined> {
                 {
                     if (e.ctrlKey) {
                         e.preventDefault();
-                        pagesModel.addEmptyPage();
+                        if (e.shiftKey) {
+                            api.openNewWindow();
+                        } else {
+                            pagesModel.addEmptyPage();
+                        }
                     }
                 }
                 break;

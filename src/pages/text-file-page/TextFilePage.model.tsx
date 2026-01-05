@@ -7,6 +7,7 @@ import { FileWatcher } from "../../model/FileWatcher";
 import { getLanguageByExtension } from "../../model/language-mapping";
 import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
+import { recentFiles } from "../../model/recentFiles";
 import { scriptRunner } from "../../script/ScriptRunner";
 import { IPage } from "../../shared/types";
 import { ScriptEditorModel } from "./ScriptEditor";
@@ -131,6 +132,9 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             });
             this.fileWatcher?.dispose();
             this.fileWatcher = new FileWatcher(savePath, this.onFileChanged);
+            if (savePath !== filePath) {
+                recentFiles.add(savePath);
+            }
             return true;
         }
 

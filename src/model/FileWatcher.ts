@@ -26,6 +26,10 @@ export class FileWatcher {
         return windowUtils.fs.loadStringFile(this.path);
     }
 
+    get filePath(): string {
+        return this.path;
+    }
+
     private onFileChange = (eventType: string) => {
         const newStat = windowUtils.fs.getFileStats(this.path);
         this.stat = newStat;

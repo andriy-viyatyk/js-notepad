@@ -160,7 +160,7 @@ export function PageTabs(props: object) {
             <Button
                 size="medium"
                 onClick={() => pagesModel.addEmptyPage()}
-                title="Add Page"
+                title="Add Page (Ctrl+N)"
                 className="add-page-button"
                 background="dark"
             >

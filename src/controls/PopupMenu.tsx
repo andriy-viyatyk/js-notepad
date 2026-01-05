@@ -61,6 +61,7 @@ export interface MenuItem {
     startGroup?: boolean;
     title?: string;
     selected?: boolean; // initially highlighted item
+    id?: string;
 }
 
 export interface PopupMenuProps extends PopperProps {

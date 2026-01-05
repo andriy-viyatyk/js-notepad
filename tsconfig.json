@@ -18,6 +18,6 @@
         "data",
         "out",
         "temp",
-        ".vite",
+        ".vite"
     ]
 }

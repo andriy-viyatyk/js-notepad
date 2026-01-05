@@ -19,6 +19,7 @@ import { TextFileModel } from "./text-file-page/TextFilePage.model";
 import { filesModel } from "../model/files-model";
 import { PageDragData } from "../shared/types";
 import { parseObject } from "../common/parseUtils";
+import { appSettings } from "../model/appSettings";
 
 export const minTabWidth = 80;
 
@@ -96,16 +97,36 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
     isActive = false;
     isGrouped = false;
 
+    private setActiveLanuage = (langId: string) => {
+        const currentActive = appSettings.get("tab-recent-languages");
+        const newActive = [langId, ...currentActive.filter(l => l !== langId)];
+        appSettings.set("tab-recent-languages", newActive);
+    }
+
     getLanguageMenuItems = (): MenuItem[] => {
         const currLang = this.props.model.state.get().language;
-        return monacoLanguages.map((lang) => ({
+        const activeLanguages = appSettings.get("tab-recent-languages");
+        const menuItems: MenuItem[] = monacoLanguages.map((lang) => ({
+            id: lang.id,
             label: lang.aliases[0] || lang.id,
             icon: <LanguageIcon language={lang.id} />,
             onClick: () => {
                 this.props.model.changeLanguage(lang.id);
+                this.setActiveLanuage(lang.id);
             },
             selected: currLang === lang.id,
-        }));
+        })).sort((a, b) => a.label.localeCompare(b.label));
+
+        const activeItems = menuItems.filter(item => activeLanguages.includes(item.id));
+        activeItems.sort((a, b) => {
+            return activeLanguages.indexOf(a.id) - activeLanguages.indexOf(b.id)
+        })
+        const inactiveItems = menuItems.filter(item => !activeLanguages.includes(item.id));
+
+        return [
+            ...activeItems,
+            ...inactiveItems,
+        ];
     };
 
     handleContextMenu = (e: React.MouseEvent) => {
@@ -146,29 +167,6 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                     onClick: () => {
                         api.addDragEvent(this.getDragData());
                     },
-                },
-                {
-                    label: "Group with Left",
-                    onClick: () => {
-                        pagesModel.groupWithLeft(this.props.model.id);
-                    },
-                    disabled: !pagesModel.canGroupWithLeft(this.props.model.id),
-                },
-                {
-                    label: "Group with Right",
-                    onClick: () => {
-                        pagesModel.groupWithRight(this.props.model.id);
-                    },
-                    disabled: !pagesModel.canGroupWithRight(
-                        this.props.model.id
-                    ),
-                },
-                {
-                    label: "Ungroup",
-                    onClick: () => {
-                        pagesModel.ungroup(this.props.model.id);
-                    },
-                    disabled: !pagesModel.isGrouped(this.props.model.id),
                 },
                 {
                     startGroup: true,
@@ -244,6 +242,18 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
             this.props.model.close(undefined);
         }
     };
+
+    handleClick = (e: React.MouseEvent) => {
+        const thisPageId = this.props.model.state.get().id;
+        if (e.ctrlKey) {
+            const activeId = pagesModel.activePage?.state.get().id;
+            if (activeId !== thisPageId) {
+                pagesModel.groupTabs(activeId, thisPageId);
+            }
+        } 
+            
+        pagesModel.showPage(thisPageId);
+    }
 }
 
 export function PageTab(props: PageTabProps) {
@@ -252,16 +262,15 @@ export function PageTab(props: PageTabProps) {
     tabModel.isGrouped = pagesModel.isGrouped(model.id);
     tabModel.isActive =
         pagesModel.activePage === model || pagesModel.groupedPage === model;
-    const { title, modified, language, id, filePath, deleted } = model.state.use(
-        (s) => ({
+    const { title, modified, language, id, filePath, deleted } =
+        model.state.use((s) => ({
             title: s.title,
             modified: s.modified,
             language: s.language,
             id: s.id,
             filePath: (s as any).filePath,
             deleted: (s as any).deleted ?? false,
-        })
-    );
+        }));
 
     const [{ isDragging }, drag] = useDrag({
         type: "COLUMN_DRAG",
@@ -284,9 +293,10 @@ export function PageTab(props: PageTabProps) {
         canDrop: () => true,
     });
 
+    const activeLanguages = appSettings.use("tab-recent-languages");
     const languageMenuItems = useMemo(
         () => tabModel.getLanguageMenuItems(),
-        [language]
+        [language, activeLanguages]
     );
 
     return (
@@ -301,7 +311,7 @@ export function PageTab(props: PageTabProps) {
                 isDraggOver: isOver,
                 deleted,
             })}
-            onClick={() => pagesModel.showPage(model.state.get().id)}
+            onClick={tabModel.handleClick}
             onContextMenu={(e) => tabModel.handleContextMenu(e)}
             draggable
             onDragStart={tabModel.handleDragStart}

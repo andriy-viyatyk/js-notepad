@@ -7,8 +7,11 @@ import { List } from "../../controls/List";
 import { api } from "../../ipc/renderer/api";
 import { pagesModel } from "../../model/pages-model";
 import color from "../../theme/color";
-import { ArrowRightIcon, NewWindowIcon, OpenFileIcon } from "../../theme/icons";
+import { ArrowRightIcon, NewWindowIcon, OpenFileIcon, SettingsIcon } from "../../theme/icons";
 import { OpenTabsList } from "./OpenTabsList";
+import { FlexSpace } from "../../controls/Elements";
+import { appSettings } from "../../model/appSettings";
+import { RecentFileList } from "./RecentFileList";
 
 const MenuBarRoot = styled("div")({
     position: "absolute",
@@ -117,6 +120,14 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
         api.openNewWindow();
     };
 
+    openSettings = () => {
+        const filePath = appSettings.settingsFilePath;
+        if (filePath) {
+            pagesModel.openFile(filePath);
+            this.props.onClose?.();
+        }
+    }
+
     setLeftItem = (item: string) => {
         this.state.update((s) => {
             s.leftItem = item;
@@ -167,7 +178,7 @@ export function MenuBar(props: MenuBarProps) {
                         type="icon"
                         background="dark"
                         onClick={model.openFile}
-                        title="Open File"
+                        title="Open File (Ctrl+O)"
                     >
                         <OpenFileIcon />
                     </Button>
@@ -176,9 +187,19 @@ export function MenuBar(props: MenuBarProps) {
                         type="icon"
                         background="dark"
                         onClick={model.newWindow}
-                        title="New Window"
+                        title="New Window (Ctrl+Shift+N)"
                     >
                         <NewWindowIcon />
+                    </Button>
+                    <FlexSpace />
+                    <Button
+                        size="medium"
+                        type="icon"
+                        background="dark"
+                        onClick={model.openSettings}
+                        title="Settings"
+                    >
+                        <SettingsIcon />
                     </Button>
                 </div>
                 <div className="menu-bar-splitter">
@@ -195,6 +216,9 @@ export function MenuBar(props: MenuBarProps) {
                     <div className="menu-bar-panel">
                         {state.leftItem === "Open Tabs" && (
                             <OpenTabsList onClose={props.onClose} />
+                        )}
+                        {state.leftItem === "Recent Files" && (
+                            <RecentFileList onClose={props.onClose} />
                         )}
                     </div>
                 </div>
