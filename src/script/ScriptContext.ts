@@ -46,6 +46,9 @@ export function createScriptContext(page?: PageModel) {
     // Create a read-only proxy for window/globalThis
     const readOnlyGlobalThis = new Proxy(globalThis, {
         get(target, prop) {
+            if (Object.hasOwn(customContext, prop)) {
+                return (customContext as any)[prop];
+            }
             const value = (target as any)[prop];
 
             // If it's a function, bind it to globalThis
@@ -55,8 +58,8 @@ export function createScriptContext(page?: PageModel) {
 
             return value;
         },
-        set() {
-            // Silently ignore sets (or throw an error if you prefer)
+        set(target, prop, value) {
+            (customContext as any)[prop] = value;
             return true; // Return true to indicate "success" but don't actually set
         },
         deleteProperty() {
@@ -101,12 +104,7 @@ export function createScriptContext(page?: PageModel) {
         },
 
         set(target, prop, value) {
-            // Only allow setting custom context properties
-            if (prop in target) {
-                (target as any)[prop] = value;
-                return true;
-            }
-            // Silently ignore attempts to set global properties
+            (target as any)[prop] = value;
             return true;
         },
 
