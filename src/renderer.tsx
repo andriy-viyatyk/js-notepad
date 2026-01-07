@@ -6,7 +6,7 @@ function RootComponent() {
 
     useEffect(() => {
         const importMainModule = async () => {
-        const cont = await import("./index");
+        const cont = await import("./renderer/index");
             setContent(<cont.default />);
         };
         importMainModule();

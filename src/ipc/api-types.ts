@@ -87,6 +87,6 @@ export type EventApi = {
     [EventEndpoint.eMovePageOut]: EventObject<string>;
 };
 
-export enum PreloadEvent {
+export enum RendererEvent {
     fileDropped = "file-dropped",
 }

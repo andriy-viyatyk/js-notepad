@@ -5,7 +5,7 @@ import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./
 import { getFileToOpen, windowReady } from "./window-handlers";
 import { OpenFileDialogParams, SaveFileDialogParams } from "../api-param-types";
 import { openWindows } from "../../main/open-windows";
-import { initPreloadEvents } from "./preload-events";
+import { initRendererEvents } from "./renderer-events";
 import { WindowPages } from "../../shared/types";
 import { dragModel } from "../../main/drag-model";
 
@@ -149,7 +149,7 @@ const init = () => {
     bindEndpoint(Endpoint.showWindowPage, controllerInstance.showWindowPage);
     bindEndpoint(Endpoint.addDragEvent, controllerInstance.addDragEvent);
 
-    initPreloadEvents();
+    initRendererEvents();
 }
 
 export const controller = { init };

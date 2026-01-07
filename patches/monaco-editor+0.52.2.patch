@@ -1,0 +1,26 @@
+diff --git a/node_modules/monaco-editor/esm/vs/base/common/platform.js b/node_modules/monaco-editor/esm/vs/base/common/platform.js
+index 2bf4a30..c751863 100644
+--- a/node_modules/monaco-editor/esm/vs/base/common/platform.js
++++ b/node_modules/monaco-editor/esm/vs/base/common/platform.js
+@@ -25,7 +25,7 @@ if (typeof $globalThis.vscode !== 'undefined' && typeof $globalThis.vscode.proce
+     // Native environment (sandboxed)
+     nodeProcess = $globalThis.vscode.process;
+ }
+-else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string') {
++else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string' && false) {
+     // Native environment (non-sandboxed)
+     nodeProcess = process;
+ }
+diff --git a/node_modules/monaco-editor/esm/vs/base/common/process.js b/node_modules/monaco-editor/esm/vs/base/common/process.js
+index 2055113..3d7139f 100644
+--- a/node_modules/monaco-editor/esm/vs/base/common/process.js
++++ b/node_modules/monaco-editor/esm/vs/base/common/process.js
+@@ -16,7 +16,7 @@ if (typeof vscodeGlobal !== 'undefined' && typeof vscodeGlobal.process !== 'unde
+     };
+ }
+ // Native node.js environment
+-else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string') {
++else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string' && false) {
+     safeProcess = {
+         get platform() { return process.platform; },
+         get arch() { return process.arch; },

@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "node:fs";
-import { app, BrowserWindow } from "electron";
+import { BrowserWindow } from "electron";
 import { EventEndpoint } from "../ipc/api-types";
 import { OpenWindow } from "./open-window";
 import { windowStates } from "./window-states";

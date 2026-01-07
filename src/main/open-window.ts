@@ -2,10 +2,10 @@ import { BrowserWindow, screen, shell } from "electron";
 import path from "node:path";
 
 import { EventEndpoint } from "../ipc/api-types";
-import { electronStore } from "../common/e-store";
+import { electronStore } from "./e-store";
 import { getAssetPath } from "./utils";
 import { appPartition } from "./constants";
-import { debounce } from "../common/utils";
+import { debounce } from "../shared/utils";
 
 interface WindowState {
     width: number;

@@ -1,16 +1,9 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 import {
     ipcRenderer,
     IpcRendererEvent,
     webUtils,
 } from "electron";
-import { Endpoint, EventEndpoint, PreloadEvent } from "./ipc/api-types";
-import { FileStats } from "./shared/types";
-const crypto = require("crypto");
-const path = require("path");
-const fs = require("fs");
-
-console.log("Preload started");
+import { Endpoint, EventEndpoint } from "./ipc/api-types";
 
 const electronHandler = {
     ipcRenderer: {
@@ -38,177 +31,12 @@ const electronHandler = {
             ipcRenderer.once(channel, (_event, ...args) => func(...args));
         },
     },
+    getPathForFile: (file: File): string => {
+        return webUtils.getPathForFile(file);
+    }
 };
-
-const nodeUtils = {
-    uuid: () => {
-        return crypto.randomUUID();
-    },
-
-    path: {
-        join: path.join,
-        resolve: path.resolve,
-        extname: path.extname,
-        dirname: path.dirname,
-        basename: path.basename,
-    },
-
-    fs: {
-        listFiles: (dirPath: string, pattern?: string | RegExp) => {
-            const files = fs.readdirSync(dirPath);
-
-            if (!pattern) {
-                return files;
-            }
-
-            // If it's a string, treat it as extension (backward compatibility)
-            if (typeof pattern === "string") {
-                return files.filter(
-                    (file: string) =>
-                        path.extname(file).toLowerCase() ===
-                        pattern.toLowerCase()
-                );
-            }
-
-            // If it's a RegExp, use it to test the filename
-            return files.filter((file: string) => pattern.test(file));
-        },
-        loadStringFile: (filePath: string): string => {
-            const buffer = fs.readFileSync(filePath);
-
-            if (
-                buffer.length >= 2 &&
-                buffer[0] === 0xff &&
-                buffer[1] === 0xfe
-            ) {
-                return buffer.toString("utf16le");
-            }
-            if (
-                buffer.length >= 2 &&
-                buffer[0] === 0xfe &&
-                buffer[1] === 0xff
-            ) {
-                return buffer.toString("utf16be");
-            }
-
-            // Try UTF-8 and check for issues
-            const utf8Content = buffer.toString("utf-8");
-            const hasNullBytes = buffer.indexOf(0x00) !== -1;
-
-            // If we find null bytes in even positions, likely UTF-16 LE
-            if (hasNullBytes && buffer[1] === 0x00) {
-                return buffer.toString("utf16le");
-            }
-
-            return utf8Content;
-        },
-        saveStringFile: (filePath: string, content: string): void => {
-            fs.writeFileSync(filePath, content, "utf-8");
-        },
-        fileExists: (filePath: string): boolean => {
-            try {
-                fs.accessSync(filePath, fs.constants.F_OK);
-                return true;
-            } catch (err) {
-                return false;
-            }
-        },
-        deleteFile: (filePath: string): boolean => {
-            if (!nodeUtils.fs.fileExists(filePath)) {
-                // File does not exist, resolve without error
-                return true;
-            }
-
-            try {
-                fs.unlinkSync(filePath);
-                return true;
-            } catch (err) {
-                return false;
-            }
-        },
-        preparePath: (dirPath: string): boolean => {
-            if (!nodeUtils.fs.fileExists(dirPath)) {
-                try {
-                    fs.mkdirSync(dirPath, { recursive: true });
-                } catch (err) {
-                    return false;
-                }
-            }
-            return true;
-        },
-        watchFile: (filePath: string, callback: (event: string) => void) => {
-            try {
-                const watcher = fs.watch(filePath, (eventType: string) => {
-                    callback(eventType);
-                });
-
-                return () => {
-                    watcher.close();
-                };
-            } catch (err) {
-                console.error("Error watching file:", err);
-                return () => {
-                    /**/
-                };
-            }
-        },
-        getFileStats: (filePath: string): FileStats => {
-            try {
-                const stats = fs.statSync(filePath);
-                return {
-                    size: stats.size,
-                    mtime: stats.mtime.getTime(),
-                    exists: true,
-                };
-            } catch (err) {
-                return {
-                    size: 0,
-                    mtime: 0,
-                    exists: false,
-                };
-            }
-        },
-    },
-};
-
-window.addEventListener("DOMContentLoaded", () => {
-    document.addEventListener(
-        "drop",
-        (e) => {
-            let filePath: string | undefined = undefined;
-
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                const file = e.dataTransfer.files[0];
-
-                try {
-                    filePath = webUtils.getPathForFile(file);
-                } catch (error) {
-                    console.error("Error getting file path:", error);
-                }
-            }
-
-            if (!filePath) {
-                const textData = e.dataTransfer.getData("text/plain");
-                filePath = textData?.split("\n")[0]?.trim();
-            }
-
-            if (filePath && fs.existsSync(filePath)) {
-                e.preventDefault();
-                e.stopPropagation();
-                ipcRenderer.send(PreloadEvent.fileDropped, filePath);
-            }
-        },
-        true
-    );
-
-    document.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    });
-});
 
 window.electron = electronHandler;
-window.utils = nodeUtils;
 
 window.MonacoEnvironment = {
   getWorkerUrl: function (_moduleId, label) {
@@ -224,18 +52,3 @@ window.MonacoEnvironment = {
     return './editor.worker.bundle.js';
   }
 };
-
-const originalVersions = { ...process.versions };
-Object.defineProperty(process.versions, 'node', {
-  get() {
-    // Check call stack to see if it's Monaco asking
-    const stack = new Error().stack;
-    if (stack.includes('monaco-editor') || stack.includes('platform.ts')) {
-      return undefined;
-    }
-    return originalVersions.node;
-  },
-  configurable: true
-});
-
-console.log("Preload loaded");
