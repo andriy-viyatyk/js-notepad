@@ -117,13 +117,15 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
             selected: currLang === lang.id,
         })).sort((a, b) => a.label.localeCompare(b.label));
 
-        const activeItems = menuItems.filter(item => activeLanguages.includes(item.id));
+        const firstItem = menuItems.find(item => item.id === 'plaintext');
+        const activeItems = menuItems.filter(item => item.id !== 'plaintext' && activeLanguages.includes(item.id));
         activeItems.sort((a, b) => {
             return activeLanguages.indexOf(a.id) - activeLanguages.indexOf(b.id)
         })
-        const inactiveItems = menuItems.filter(item => !activeLanguages.includes(item.id));
+        const inactiveItems = menuItems.filter(item => item.id !== 'plaintext' && !activeLanguages.includes(item.id));
 
         return [
+            ...(firstItem ? [firstItem] : []),
             ...activeItems,
             ...inactiveItems,
         ];
