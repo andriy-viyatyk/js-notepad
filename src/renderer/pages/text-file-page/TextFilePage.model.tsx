@@ -17,6 +17,7 @@ import { debounce } from "../../../shared/utils";
 export interface TextFilePageModelState extends IPage {
     content: string;
     deleted: boolean;
+    encoding?: string;
 }
 
 export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
@@ -24,6 +25,7 @@ export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
     type: "textFile" as const,
     filePath: "",
     language: "plaintext",
+    encoding: undefined,
     // no stored state props
     content: "",
     deleted: false,
@@ -63,6 +65,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             s.modified = data.modified || s.modified;
             s.filePath = data.filePath || s.filePath;
             s.language = data.language || s.language;
+            s.encoding = data.encoding || s.encoding;
         });
         this.restore();
     };
@@ -123,7 +126,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         }
 
         if (savePath) {
-            await filesModel.saveFile(savePath, content);
+            await filesModel.saveFile(savePath, content, this.state.get().encoding);
             await filesModel.deleteCacheFile(id);
             this.state.update((s) => {
                 s.modified = false;
@@ -157,9 +160,11 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             }
         } else if (filePath) {
             const ext = path.extname(filePath).toLowerCase();
-            const fileContent = await filesModel.getFile(filePath);
+            const fileContent = this.fileWatcher.getTextContent(this.state.get().encoding);
+            const encoding = this.fileWatcher.encoding;
             this.state.update((s) => {
                 s.content = fileContent || "";
+                s.encoding = encoding;
                 s.title = path.basename(filePath);
                 s.language =
                     s.language ||
@@ -182,9 +187,11 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             });
         }
         if (!modified && !deleted) {
-            const newContent = this.fileWatcher.getTextContent();
+            const newContent = this.fileWatcher.getTextContent(this.state.get().encoding);
+            const encoding = this.fileWatcher.encoding;
             this.state.update(s => {
                 s.content = newContent;
+                s.encoding = encoding;
             });
         }
     }

@@ -1,7 +1,10 @@
 const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
-import { FileStats } from "../shared/types";
+import jschardet from 'jschardet';
+import iconv from 'iconv-lite';
+import { FileStats } from "../../shared/types";
+import { LoadedTextFile } from "./types";
 
 export const uuid = () => {
     return crypto.randomUUID();
@@ -19,45 +22,129 @@ export const nodeUtils = {
         if (typeof pattern === "string") {
             return files.filter(
                 (file: string) =>
-                    path.extname(file).toLowerCase() ===
-                    pattern.toLowerCase()
+                    path.extname(file).toLowerCase() === pattern.toLowerCase()
             );
         }
 
         // If it's a RegExp, use it to test the filename
         return files.filter((file: string) => pattern.test(file));
     },
-    loadStringFile: (filePath: string): string => {
+    loadStringFile: (filePath: string, encoding?: string): LoadedTextFile => {
         const buffer = fs.readFileSync(filePath);
 
         if (
-            buffer.length >= 2 &&
-            buffer[0] === 0xff &&
-            buffer[1] === 0xfe
+            buffer.length >= 3 &&
+            buffer[0] === 0xef &&
+            buffer[1] === 0xbb &&
+            buffer[2] === 0xbf
         ) {
-            return buffer.toString("utf16le");
-        }
-        if (
-            buffer.length >= 2 &&
-            buffer[0] === 0xfe &&
-            buffer[1] === 0xff
-        ) {
-            return buffer.toString("utf16be" as BufferEncoding);
+            return {
+                content: buffer.slice(3).toString("utf-8"),
+                encoding: "utf-8-bom",
+            };
         }
 
-        // Try UTF-8 and check for issues
-        const utf8Content = buffer.toString("utf-8");
-        const hasNullBytes = buffer.indexOf(0x00) !== -1;
-
-        // If we find null bytes in even positions, likely UTF-16 LE
-        if (hasNullBytes && buffer[1] === 0x00) {
-            return buffer.toString("utf16le");
+        if (buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe) {
+            return {
+                content: iconv.decode(buffer.slice(2), "utf16le"),
+                encoding: "utf-16le",
+            };
         }
 
-        return utf8Content;
+        if (buffer.length >= 2 && buffer[0] === 0xfe && buffer[1] === 0xff) {
+            return {
+                content: iconv.decode(buffer.slice(2), "utf16be"),
+                encoding: "utf-16be",
+            };
+        }
+
+        if (encoding) {
+            try {
+                return {
+                    content: iconv.decode(buffer, encoding),
+                    encoding: encoding,
+                };
+            } catch (error) {
+                console.warn(
+                    `Failed to decode with provided encoding ${encoding}:`,
+                    error
+                );
+            }
+        }
+
+        const detected = jschardet.detect(buffer);
+
+        if (detected && detected.encoding && detected.confidence > 0.7) {
+            try {
+                let detectedEncoding = detected.encoding.toLowerCase();
+
+                if (detectedEncoding === "ascii") {
+                    // ASCII is a subset of UTF-8
+                    detectedEncoding = "utf-8";
+                }
+
+                return {
+                    content: iconv.decode(buffer, detectedEncoding),
+                    encoding: detectedEncoding,
+                };
+            } catch (error) {
+                console.warn(
+                    `Failed to decode with ${detected.encoding}:`,
+                    error
+                );
+            }
+        }
+
+        try {
+            const utf8Text = buffer.toString("utf-8");
+            if (!utf8Text.includes("�")) {
+                return {
+                    content: utf8Text,
+                    encoding: "utf-8",
+                };
+            }
+        } catch (error) {
+            // UTF-8 failed
+        }
+
+        return {
+            content: iconv.decode(buffer, "windows-1251"),
+            encoding: "windows-1251",
+        };
     },
-    saveStringFile: (filePath: string, content: string): void => {
-        fs.writeFileSync(filePath, content, "utf-8");
+    saveStringFile: (
+        filePath: string,
+        content: string,
+        encoding?: string
+    ): void => {
+        const enc = encoding?.toLowerCase() || "utf-8";
+
+        if (enc === "utf-8" || enc === "utf8") {
+            fs.writeFileSync(filePath, content, "utf-8");
+        } else if (enc === "utf-8-bom" || enc === "utf8bom") {
+            const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+            const textBuffer = Buffer.from(content, "utf-8");
+            fs.writeFileSync(filePath, Buffer.concat([bom, textBuffer]));
+        } else if (enc === "utf-16le" || enc === "utf16le") {
+            const bom = Buffer.from([0xff, 0xfe]);
+            const textBuffer = iconv.encode(content, "utf16le");
+            fs.writeFileSync(filePath, Buffer.concat([bom, textBuffer]));
+        } else if (enc === "utf-16be" || enc === "utf16be") {
+            const bom = Buffer.from([0xfe, 0xff]);
+            const textBuffer = iconv.encode(content, "utf16be");
+            fs.writeFileSync(filePath, Buffer.concat([bom, textBuffer]));
+        } else {
+            try {
+                const buffer = iconv.encode(content, enc);
+                fs.writeFileSync(filePath, buffer);
+            } catch (error) {
+                console.error(
+                    `Failed to encode with ${enc}, falling back to UTF-8:`,
+                    error
+                );
+                fs.writeFileSync(filePath, content, "utf-8");
+            }
+        }
     },
     fileExists: (filePath: string): boolean => {
         try {

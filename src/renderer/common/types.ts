@@ -5,3 +5,8 @@ export interface MonacoLanguage {
 }
 
 export type TMessageType = "info" | "success" | "warning" | "error";
+
+export interface LoadedTextFile {
+    content: string;
+    encoding: string;
+}

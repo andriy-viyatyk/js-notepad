@@ -37,7 +37,7 @@ class FilesModel {
     getFile = async (filePath: string): Promise<string | undefined> => {
         await this.wait();
         if (nodeUtils.fileExists(filePath)) {
-            return nodeUtils.loadStringFile(filePath);
+            return nodeUtils.loadStringFile(filePath).content;
         }
         return undefined;
     };
@@ -49,11 +49,11 @@ class FilesModel {
         }
     }
 
-    saveFile = async (filePath: string, content: string): Promise<void> => {
+    saveFile = async (filePath: string, content: string, encoding?: string): Promise<void> => {
         await this.wait();
         const dirPath = path.dirname(filePath);
         nodeUtils.preparePath(dirPath);
-        nodeUtils.saveStringFile(filePath, content);
+        nodeUtils.saveStringFile(filePath, content, encoding);
     };
 
     deleteFile = async (filePath: string): Promise<void> => {
