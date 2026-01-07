@@ -1,5 +1,5 @@
 import { Editor } from "@monaco-editor/react";
-import { IDisposable, editor as MonacoEditor } from "monaco-editor";
+import * as monaco from "monaco-editor";
 import styled from "@emotion/styled";
 
 import { TextFileModel } from "./TextFilePage.model";
@@ -25,16 +25,16 @@ export type TextEditorState = typeof defaultTextEditorState;
 
 export class TextEditorModel extends TModel<TextEditorState> {
     private pageModel: TextFileModel;
-    editorRef = null as MonacoEditor.IStandaloneCodeEditor | null;
+    editorRef = null as monaco.editor.IStandaloneCodeEditor | null;
     private wheelListenerCleanup: (() => void) | null = null;
-    private selectionListenerDisposable: IDisposable | null = null;
+    private selectionListenerDisposable: monaco.IDisposable | null = null;
 
     constructor(pageModel: TextFileModel) {
         super(new TComponentState(defaultTextEditorState));
         this.pageModel = pageModel;
     }
 
-    handleEditorDidMount = (editor: MonacoEditor.IStandaloneCodeEditor) => {
+    handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
         this.editorRef = editor;
         this.focusEditor();
         this.setupWheelZoom(editor);
@@ -49,7 +49,7 @@ export class TextEditorModel extends TModel<TextEditorState> {
         this.editorRef?.focus();
     }
 
-    setupSelectionListener = (editor: MonacoEditor.IStandaloneCodeEditor) => {
+    setupSelectionListener = (editor: monaco.editor.IStandaloneCodeEditor) => {
         this.selectionListenerDisposable = editor.onDidChangeCursorSelection((e) => {
             const selection = editor.getSelection();
             const hasSelection = selection ? !selection.isEmpty() : false;
@@ -73,7 +73,7 @@ export class TextEditorModel extends TModel<TextEditorState> {
         return this.editorRef.getModel()?.getValueInRange(selection) || "";
     };
 
-    setupWheelZoom = (editor: MonacoEditor.IStandaloneCodeEditor) => {
+    setupWheelZoom = (editor: monaco.editor.IStandaloneCodeEditor) => {
         const editorDomNode = editor.getDomNode();
         if (editorDomNode) {
             const handleWheel = (e: WheelEvent) => {
@@ -138,6 +138,9 @@ export function TextEditor({model}: TextEditorProps) {
                 onMount={editorModel.handleEditorDidMount}
                 onChange={editorModel.handleEditorChange}
                 theme="custom-dark"
+                options={{
+                    automaticLayout: true,
+                }}
             />
         </TextEditorRoot>
     )

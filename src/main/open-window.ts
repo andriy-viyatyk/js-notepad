@@ -48,7 +48,7 @@ export class OpenWindow {
                 preload: path.join(__dirname, "preload.js"),
                 partition: appPartition,
                 nodeIntegration: true,
-                contextIsolation: true,
+                contextIsolation: false,
                 webSecurity: false,
                 allowRunningInsecureContent: false,
             },

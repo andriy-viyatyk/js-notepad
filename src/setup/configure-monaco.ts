@@ -1,11 +1,14 @@
-import { loader, Monaco } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
+import { loader } from "@monaco-editor/react";
 import { languages } from "monaco-editor";
 
 import color from "../theme/color";
 import { defineRegLanguage } from "./monaco-languages/reg";
 
-type MonacoInstance = Awaited<ReturnType<typeof loader.init>>;
-let monacoInstance: MonacoInstance | null = null;
+loader.config({ monaco });
+
+type Monaco = typeof monaco;
+let monacoInstance: Monaco | null = null;
 
 declare global {
     interface Window {
@@ -41,6 +44,10 @@ function defineMonacoTheme(monaco: Monaco, themeName: string) {
 }
 
 function setupCompiler(monaco: Monaco) {
+    monaco.languages.css.cssDefaults.setOptions({
+        validate: false,
+    });
+
     monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: true,
         noSyntaxValidation: true,
@@ -119,21 +126,7 @@ async function loadEditorTypes(monaco: Monaco) {
 export async function initMonaco() {
     if (monacoInstance) return monacoInstance;
 
-    loader.config({
-        paths: {
-            vs: "app-asset://monaco-editor/min/vs",
-        },
-    });
-
-    const monaco = await loader.init();
-
     defineMonacoTheme(monaco, "custom-dark");
-
-    await new Promise<void>((resolve) => {
-        window.require(["vs/language/typescript/monaco.contribution"], () => {
-            resolve();
-        });
-    });
 
     monaco.editor.addKeybindingRules([
         {
@@ -146,7 +139,7 @@ export async function initMonaco() {
 
     defineRegLanguage(monaco);
 
-    loadEditorTypes(monaco);
+    await loadEditorTypes(monaco);
 
     // const monacoLanguages = languages.getLanguages().map(l => ({
     //     aliases: l.aliases || [],

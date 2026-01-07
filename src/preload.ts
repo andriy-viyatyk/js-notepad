@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import {
-    contextBridge,
     ipcRenderer,
     IpcRendererEvent,
     webUtils,
@@ -208,7 +207,35 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-contextBridge.exposeInMainWorld("electron", electronHandler);
-contextBridge.exposeInMainWorld("utils", nodeUtils);
+window.electron = electronHandler;
+window.utils = nodeUtils;
+
+window.MonacoEnvironment = {
+  getWorkerUrl: function (_moduleId, label) {
+    if (label === 'json') {
+      return './json.worker.bundle.js';
+    }
+    if (label === 'html') {
+      return './html.worker.bundle.js';
+    }
+    if (label === 'typescript' || label === 'javascript') {
+      return './ts.worker.bundle.js';
+    }
+    return './editor.worker.bundle.js';
+  }
+};
+
+const originalVersions = { ...process.versions };
+Object.defineProperty(process.versions, 'node', {
+  get() {
+    // Check call stack to see if it's Monaco asking
+    const stack = new Error().stack;
+    if (stack.includes('monaco-editor') || stack.includes('platform.ts')) {
+      return undefined;
+    }
+    return originalVersions.node;
+  },
+  configurable: true
+});
 
 console.log("Preload loaded");

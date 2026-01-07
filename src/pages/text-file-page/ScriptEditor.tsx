@@ -1,6 +1,6 @@
 import { Editor } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 import styled from "@emotion/styled";
-import { IDisposable, editor as MonacoEditor } from "monaco-editor";
 
 import { TModel } from "../../common/classes/model";
 import { TextFileModel } from "./TextFilePage.model";
@@ -39,11 +39,11 @@ export const defaultScriptEditorState = {
 export type ScriptEditorState = typeof defaultScriptEditorState;
 
 export class ScriptEditorModel extends TModel<ScriptEditorState> {
-    editorRef = null as MonacoEditor.IStandaloneCodeEditor | null;
+    editorRef = null as monaco.editor.IStandaloneCodeEditor | null;
     private pageModel: TextFileModel;
     private unsubscribe: (() => void) | undefined = undefined;
     private skipSave = false;
-    private selectionListenerDisposable: IDisposable | null = null;
+    private selectionListenerDisposable: monaco.IDisposable | null = null;
     private scriptData: Record<string, any> | undefined = {};
     id: string | undefined = undefined;
     name = "script";
@@ -119,7 +119,7 @@ export class ScriptEditorModel extends TModel<ScriptEditorState> {
         }
     };
 
-    setupSelectionListener = (editor: MonacoEditor.IStandaloneCodeEditor) => {
+    setupSelectionListener = (editor: monaco.editor.IStandaloneCodeEditor) => {
         this.selectionListenerDisposable = editor.onDidChangeCursorSelection((e) => {
             const selection = editor.getSelection();
             const hasSelection = selection ? !selection.isEmpty() : false;
@@ -130,7 +130,7 @@ export class ScriptEditorModel extends TModel<ScriptEditorState> {
         });
     };
 
-    handleEditorDidMount = (editor: MonacoEditor.IStandaloneCodeEditor) => {
+    handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
         this.editorRef = editor;
         this.setupSelectionListener(editor);
     };
@@ -208,6 +208,9 @@ export function ScriptEditor({ model }: ScriptEditorProps) {
                 onMount={scriptModel.handleEditorDidMount}
                 onChange={scriptModel.handleEditorChange}
                 theme="custom-dark"
+                options={{
+                    automaticLayout: true,
+                }}
             />
         </ScriptEditorRoot>
     );
