@@ -1,10 +1,10 @@
 const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
-import jschardet from 'jschardet';
-import iconv from 'iconv-lite';
+import jschardet from "jschardet";
+import iconv from "iconv-lite";
 import { FileStats } from "../../shared/types";
-import { LoadedTextFile } from "./types";
+import { FolderItem, LoadedTextFile } from "./types";
 
 export const uuid = () => {
     return crypto.randomUUID();
@@ -12,7 +12,7 @@ export const uuid = () => {
 
 export const nodeUtils = {
     listFiles: (dirPath: string, pattern?: string | RegExp) => {
-        const files = fs.readdirSync(dirPath);
+        const files: string[] = fs.readdirSync(dirPath);
 
         if (!pattern) {
             return files;
@@ -29,6 +29,26 @@ export const nodeUtils = {
         // If it's a RegExp, use it to test the filename
         return files.filter((file: string) => pattern.test(file));
     },
+
+    listFolderContent: (dirPath: string): FolderItem[] => {
+        try {
+            const entries: string[] = fs.readdirSync(dirPath);
+
+            return entries.map((entry) => {
+                const fullPath = path.join(dirPath, entry);
+                const stats = fs.statSync(fullPath);
+
+                return {
+                    path: fullPath,
+                    isFolder: stats.isDirectory(),
+                };
+            });
+        } catch (error) {
+            console.error(`Error reading directory ${dirPath}:`, error);
+            return [];
+        }
+    },
+
     loadStringFile: (filePath: string, encoding?: string): LoadedTextFile => {
         const buffer = fs.readFileSync(filePath);
 
@@ -112,6 +132,7 @@ export const nodeUtils = {
             encoding: "windows-1251",
         };
     },
+
     saveStringFile: (
         filePath: string,
         content: string,
@@ -146,6 +167,7 @@ export const nodeUtils = {
             }
         }
     },
+
     fileExists: (filePath: string): boolean => {
         try {
             fs.accessSync(filePath, fs.constants.F_OK);
@@ -154,6 +176,7 @@ export const nodeUtils = {
             return false;
         }
     },
+
     deleteFile: (filePath: string): boolean => {
         if (!nodeUtils.fileExists(filePath)) {
             // File does not exist, resolve without error
@@ -167,6 +190,7 @@ export const nodeUtils = {
             return false;
         }
     },
+
     preparePath: (dirPath: string): boolean => {
         if (!nodeUtils.fileExists(dirPath)) {
             try {
@@ -177,6 +201,7 @@ export const nodeUtils = {
         }
         return true;
     },
+
     watchFile: (filePath: string, callback: (event: string) => void) => {
         try {
             const watcher = fs.watch(filePath, (eventType: string) => {
@@ -193,6 +218,7 @@ export const nodeUtils = {
             };
         }
     },
+
     getFileStats: (filePath: string): FileStats => {
         try {
             const stats = fs.statSync(filePath);

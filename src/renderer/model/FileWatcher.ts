@@ -1,6 +1,7 @@
 import { nodeUtils } from "../common/node-utils";
 import { FileStats } from "../../shared/types";
 import { debounce } from "../../shared/utils";
+import { filesModel } from "./files-model";
 
 export class FileWatcher {
     private path: string;
@@ -25,10 +26,10 @@ export class FileWatcher {
         this.unWatch();
     }
 
-    getTextContent = (encoding?: string): string => {
-        const fileData = nodeUtils.loadStringFile(this.path, encoding);
-        this.encoding = fileData.encoding;
-        return fileData.content;
+    getTextContent = async (encoding?: string): Promise<string | undefined> => {
+        const fileData = await filesModel.getFile(this.path, encoding);
+        this.encoding = fileData?.encoding || "utf-8";
+        return fileData?.content;
     }
 
     get filePath(): string {

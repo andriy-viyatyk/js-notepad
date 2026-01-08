@@ -62,15 +62,15 @@ class AppSettings extends TModel<AppSettingsState> {
             await filesModel.dataFileName(settingsFileName),
             this.fileChanged
         );
-        this.loadSettings();
+        await this.loadSettings();
     };
 
     private fileChanged = () => {
         this.loadSettings();
     };
 
-    private loadSettings = () => {
-        const content = parseJSON5(this.fileWatcher?.getTextContent());
+    private loadSettings = async () => {
+        const content = parseJSON5(await this.fileWatcher?.getTextContent());
         if (content) {
             const newSettings = {
                 ...defaultAppSettingsState.settings,

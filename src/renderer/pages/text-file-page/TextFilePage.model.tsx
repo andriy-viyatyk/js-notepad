@@ -160,7 +160,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             }
         } else if (filePath) {
             const ext = path.extname(filePath).toLowerCase();
-            const fileContent = this.fileWatcher.getTextContent(this.state.get().encoding);
+            const fileContent = await this.fileWatcher.getTextContent(this.state.get().encoding);
             const encoding = this.fileWatcher.encoding;
             this.state.update((s) => {
                 s.content = fileContent || "";
@@ -176,7 +176,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         await this.script.restore(id);
     };
 
-    private onFileChanged = () => {
+    private onFileChanged = async () => {
         if (!this.fileWatcher) return;
         const modified = this.state.get().modified;
         const deleted = !this.fileWatcher.stat.exists;
@@ -187,7 +187,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             });
         }
         if (!modified && !deleted) {
-            const newContent = this.fileWatcher.getTextContent(this.state.get().encoding);
+            const newContent = await this.fileWatcher.getTextContent(this.state.get().encoding);
             const encoding = this.fileWatcher.encoding;
             this.state.update(s => {
                 s.content = newContent;

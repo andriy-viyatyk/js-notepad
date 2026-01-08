@@ -135,7 +135,15 @@ class OpenWindows {
     };
 
     restoreState = (): void => {
-        this.windows = this.loadState();
+        let windows = this.loadState();
+        if (!Array.isArray(windows) || windows.some(w => !(typeof w.index === "number"))) {
+            windows = [];
+        }
+        if (windows.length === 1 && windows[0].index !== 0) {
+            windowStates.changeIndex(windows[0].index, 0);
+            windows[0].index = 0;
+        }
+        this.windows = windows;
         this.createWindow(this.windows[0]?.index);
     };
 

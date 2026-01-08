@@ -42,6 +42,22 @@ class RecentFiles extends TModel<RecentFilesState> {
         });
         return files;
     }
+
+    remove = async (filePath: string): Promise<void> => {
+        const files = await this.load();
+        const newFiles = files.filter(f => f !== filePath);
+        this.state.update(s => {
+            s.files = newFiles;
+        });
+        await filesModel.saveDataFile(recentFileName, newFiles.join('\n'));
+    }
+
+    clear = async (): Promise<void> => {
+        this.state.update(s => {
+            s.files = [];
+        });
+        await filesModel.saveDataFile(recentFileName, "");
+    }
 }
 
 export const recentFiles = new RecentFiles();

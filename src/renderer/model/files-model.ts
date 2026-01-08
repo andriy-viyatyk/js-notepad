@@ -1,6 +1,7 @@
 const path = require("path");
 import { api } from "../../ipc/renderer/api";
 import { nodeUtils } from "../common/node-utils";
+import { LoadedTextFile } from "../common/types";
 
 class FilesModel {
     private _windowIndex: number | null = null;
@@ -34,10 +35,9 @@ class FilesModel {
         console.log("dataPath:", this.dataPath);
     };
 
-    getFile = async (filePath: string): Promise<string | undefined> => {
-        await this.wait();
+    getFile = async (filePath: string, encoding?: string): Promise<LoadedTextFile | undefined> => {
         if (nodeUtils.fileExists(filePath)) {
-            return nodeUtils.loadStringFile(filePath).content;
+            return nodeUtils.loadStringFile(filePath, encoding);
         }
         return undefined;
     };
@@ -74,7 +74,7 @@ class FilesModel {
         id: string,
         name?: string
     ): Promise<string | undefined> =>
-        await this.getFile(await this.cacheFileName(id, name));
+        (await this.getFile(await this.cacheFileName(id, name)))?.content;
 
     saveCacheFile = async (
         id: string,
@@ -107,7 +107,7 @@ class FilesModel {
     };
 
     getDataFile = async (fileName: string): Promise<string | undefined> =>
-        await this.getFile(await this.dataFileName(fileName));
+        (await this.getFile(await this.dataFileName(fileName)))?.content;
 
     saveDataFile = async (fileName: string, content: string): Promise<void> =>
         await this.saveFile(await this.dataFileName(fileName), content);

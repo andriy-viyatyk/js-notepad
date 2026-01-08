@@ -24,6 +24,7 @@ import { OverflowTooltipText } from "./OverflowTooltipText";
 import { highlightText, useHighlightedText } from "./useHighlightedText";
 import { Tooltip } from "./Tooltip";
 import { uuid } from "../common/node-utils";
+import { MenuItem } from "./PopupMenu";
 
 const NoRowsRoot = styled.div({
     display: "flex",
@@ -88,6 +89,7 @@ interface OptionProps<O> {
     selectedIcon?: ReactNode;
     itemMarginY?: number;
     getTooltip?: (value: O, index?: number) => string | undefined;
+    getContextMenu?: (value: O, index?: number) => MenuItem[] | undefined;
 }
 
 export type ListOptionRenderer<O> = (props: OptionProps<O>) => ReactNode;
@@ -111,6 +113,8 @@ export interface ListProps<O> {
     selectedIcon?: ReactNode;
     itemMarginY?: number;
     getTooltip?: (value: O, index?: number) => string | undefined;
+    getContextMenu?: (value: O, index?: number) => MenuItem[] | undefined;
+    onContextMenu?: (e: React.MouseEvent<Element>) => void;
 }
 
 const columnWidth = () => "100%" as Percent;
@@ -133,6 +137,7 @@ function DefaultCell({
     selectedIcon,
     itemMarginY,
     getTooltip,
+    getContextMenu,
     ...other
 }: OptionProps<any> & {
     optionClass?: string;
@@ -148,15 +153,38 @@ function DefaultCell({
         onMouseHover?.(row, index);
     }, [onMouseHover, row, index]);
 
-    const onClick = useCallback((e: React.MouseEvent<Element>) => {
-        propsOnClick(row, index, e);
-    }, [index, propsOnClick, row]);
+    const onClick = useCallback(
+        (e: React.MouseEvent<Element>) => {
+            propsOnClick(row, index, e);
+        },
+        [index, propsOnClick, row]
+    );
 
-    const tooltip = useMemo(() => getTooltip?.(row, index), [getTooltip, row, index]);
+    const tooltip = useMemo(
+        () => getTooltip?.(row, index),
+        [getTooltip, row, index]
+    );
 
     const { top, height, ...restStyle } = style;
-    const adjustedTop = itemMarginY ? (top as number) + itemMarginY : (top as number);
-    const adjustedHeight = itemMarginY ? (height as number) - itemMarginY * 2 : (height as number);
+    const adjustedTop = itemMarginY
+        ? (top as number) + itemMarginY
+        : (top as number);
+    const adjustedHeight = itemMarginY
+        ? (height as number) - itemMarginY * 2
+        : (height as number);
+
+    const onContextMenu = useCallback(
+        (e: React.MouseEvent<Element>) => {
+            const menuItems = getContextMenu?.(row, index);
+            if (menuItems) {
+                if (!e.nativeEvent.menuItems) {
+                    e.nativeEvent.menuItems = [];
+                }
+                e.nativeEvent.menuItems.push(...menuItems);
+            }
+        },
+        [getContextMenu, row, index]
+    );
 
     return (
         <ItemRoot
@@ -172,14 +200,18 @@ function DefaultCell({
             )}
             onClick={onClick}
             onMouseEnter={onMouseEnter}
+            onContextMenu={onContextMenu}
             data-tooltip-id={id}
         >
             {Boolean(icon) && icon}
             <OverflowTooltipText className="item-text">
-                {typeof label === "string" ? highlightText(highlight, label) : label}
+                {typeof label === "string"
+                    ? highlightText(highlight, label)
+                    : label}
             </OverflowTooltipText>
-            {selected && (selectedIcon ?? <CheckIcon className="selectedCheckIcon" />)}
-            {Boolean(tooltip) && (<Tooltip id={id}>{tooltip}</Tooltip>)}
+            {selected &&
+                (selectedIcon ?? <CheckIcon className="selectedCheckIcon" />)}
+            {Boolean(tooltip) && <Tooltip id={id}>{tooltip}</Tooltip>}
         </ItemRoot>
     );
 }
@@ -208,6 +240,8 @@ function ListComponent<O = any>(
         selectedIcon,
         itemMarginY,
         getTooltip,
+        getContextMenu,
+        onContextMenu,
     } = props;
 
     useEffect(() => {
@@ -228,6 +262,8 @@ function ListComponent<O = any>(
         className,
         itemMarginY,
         getTooltip,
+        getContextMenu,
+        onContextMenu,
     ]);
 
     const getLabel = useCallback(
@@ -277,6 +313,7 @@ function ListComponent<O = any>(
                 selectedIcon,
                 itemMarginY,
                 getTooltip,
+                getContextMenu,
             });
             return (
                 res ?? (
@@ -295,6 +332,7 @@ function ListComponent<O = any>(
                         selectedIcon={selectedIcon}
                         itemMarginY={itemMarginY}
                         getTooltip={getTooltip}
+                        getContextMenu={getContextMenu}
                     />
                 )
             );
@@ -338,6 +376,7 @@ function ListComponent<O = any>(
             className={className}
             growToHeight={growToHeight}
             whiteSpaceY={whiteSpaceY}
+            contentProps={{ onContextMenu }}
         />
     );
 }

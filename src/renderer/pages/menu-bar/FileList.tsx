@@ -3,6 +3,7 @@ import styled from "@emotion/styled";
 import { List } from "../../controls/List";
 import color from "../../theme/color";
 import { LanguageIcon } from "../shared/LanguageIcon";
+import { MenuItem } from "../../controls/PopupMenu";
 
 const FileListRoot = styled(List)({
     "& .list-item": {
@@ -28,10 +29,14 @@ const FileListRoot = styled(List)({
 export interface FileListItem {
     filePath: string;
     title: string;
+    isFolder?: boolean;
 }
 
 const getFileLabel = (item: FileListItem) => item.title;
 const getFileIcon = (item: FileListItem) => {
+    if (item.isFolder) {
+        return "📁";
+    }
     const extension = path.extname(item.filePath);
     return <LanguageIcon ext={extension} />;
 };
@@ -40,6 +45,8 @@ const getTooltip = (item: FileListItem) => item.filePath;
 interface FileListProps {
     items: FileListItem[];
     onClick: (item: FileListItem) => void;
+    getContextMenu?: (item: FileListItem) => MenuItem[] | undefined;
+    onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export function FileList(props: FileListProps) {
@@ -53,6 +60,8 @@ export function FileList(props: FileListProps) {
             onClick={props.onClick}
             itemMarginY={1}
             getTooltip={getTooltip}
+            getContextMenu={props.getContextMenu}
+            onContextMenu={props.onContextMenu}
         />
     );
 }

@@ -109,6 +109,10 @@ class ApiCalls implements Api {
         return executeOnce<void>(Endpoint.showItemInFolder, path);
     };
 
+    showFolder = async (path: string) => {
+        return executeOnce<void>(Endpoint.showFolder, path);
+    }
+
     windowReady = async () => {
         return executeOnce<void>(Endpoint.windowReady);
     };

@@ -10,3 +10,8 @@ export interface LoadedTextFile {
     content: string;
     encoding: string;
 }
+
+export interface FolderItem {
+    path: string;
+    isFolder: boolean;
+}

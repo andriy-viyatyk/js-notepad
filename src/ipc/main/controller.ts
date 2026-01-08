@@ -80,6 +80,10 @@ class Controller implements MainApi {
         await shell.showItemInFolder(path);
     }
 
+    showFolder = async (event: IpcMainEvent, path: string): Promise<void> => {
+        await shell.openPath(path);
+    }
+
     windowReady = async (event: IpcMainEvent): Promise<void> => {
         const window = BrowserWindow.fromWebContents(event.sender);
         return windowReady(window);
@@ -141,6 +145,7 @@ const init = () => {
     bindEndpoint(Endpoint.getCommonFolder, controllerInstance.getCommonFolder);
     bindEndpoint(Endpoint.zoom, controllerInstance.zoom);
     bindEndpoint(Endpoint.showItemInFolder, controllerInstance.showItemInFolder);
+    bindEndpoint(Endpoint.showFolder, controllerInstance.showFolder);
     bindEndpoint(Endpoint.windowReady, controllerInstance.windowReady);
     bindEndpoint(Endpoint.getFileToOpen, controllerInstance.getFileToOpen);
     bindEndpoint(Endpoint.getWindowIndex, controllerInstance.getWindowIndex);

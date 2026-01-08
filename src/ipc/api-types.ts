@@ -21,6 +21,7 @@ export enum Endpoint {
     getCommonFolder = "getCommonFolder",
     zoom = "zoom",
     showItemInFolder = "showItemInFolder",
+    showFolder = "showFolder",
     windowReady = "windowReady",
     getFileToOpen = "getFileToOpen",
     getWindowIndex = "getWindowIndex",
@@ -51,6 +52,7 @@ export type Api = {
     [Endpoint.getCommonFolder]: (folder: CommonFolder) => Promise<string>;
     [Endpoint.zoom]: (delta: number) => Promise<void>;
     [Endpoint.showItemInFolder]: (path: string) => Promise<void>;
+    [Endpoint.showFolder]: (path: string) => Promise<void>;
     [Endpoint.windowReady]: () => Promise<void>;
     [Endpoint.getFileToOpen]: () => Promise<string | undefined>;
     [Endpoint.getWindowIndex]: () => Promise<number>;

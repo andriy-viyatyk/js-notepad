@@ -28,6 +28,17 @@ class WindowStates {
         }
     }
 
+    changeIndex = (oldIndex: number, newIndex: number): void => {
+        const oldFilePath = this.windowFileName(oldIndex);
+        const newFilePath = this.windowFileName(newIndex);
+        if (fs.existsSync(newFilePath)) {
+            fs.unlinkSync(newFilePath);
+        }
+        if (fs.existsSync(oldFilePath)) {
+            fs.renameSync(oldFilePath, newFilePath);
+        }
+    }
+
     private windowFileName = (windowIndex: number): string => {
         return path.join(getDataFolder(), openFilesNameTemplate.replace("{windowIndex}", String(windowIndex)));
     }

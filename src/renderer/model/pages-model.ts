@@ -10,11 +10,14 @@ import {
     TextFileModel,
 } from "../pages/text-file-page/TextFilePage.model";
 import { openFilesNameTemplate } from "../../shared/constants";
-import { IPage, WindowState } from "../../shared/types";
+import { IPage, PageDragData, WindowState } from "../../shared/types";
 import { filesModel } from "./files-model";
 import { PageModel } from "./page-model";
 import { recentFiles } from "./recentFiles";
 import { debounce } from "../../shared/utils";
+import { uuid } from "../common/node-utils";
+import { getLanguageByExtension } from "./language-mapping";
+const path = require("path");
 
 const defaultOpenFilesState = {
     pages: [] as PageModel[],
@@ -547,6 +550,34 @@ export class PagesModel extends TModel<OpenFilesState> {
         }
 
         return groupedPage as unknown as TextFileModel;
+    }
+
+    openPathInNewWindow = (filePath: string) => {
+        if (!filePath) {
+            return;
+        }
+
+        const page = this.state.get().pages.find((p) => {
+            const pState = p.state.get();
+            return (
+                (pState as any).filePath === filePath
+            );
+        });
+
+        const pageData: Partial<IPage> = page ? page.getRestoreData() : {
+            id: uuid(),
+            type: "textFile",
+            filePath: filePath,
+            title: path.basename(filePath),
+            language: getLanguageByExtension(path.extname(filePath))?.id || "plaintext",
+            modified: false,
+        };
+
+        const dragData: PageDragData = {
+            sourceWindowIndex: filesModel.windowIndex,
+            page: pageData,
+        };
+        api.addDragEvent(dragData);
     }
 }
 

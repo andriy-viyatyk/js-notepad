@@ -314,7 +314,7 @@ export function PageTab(props: PageTabProps) {
                 deleted,
             })}
             onClick={tabModel.handleClick}
-            onContextMenu={(e) => tabModel.handleContextMenu(e)}
+            onContextMenu={tabModel.handleContextMenu}
             draggable
             onDragStart={tabModel.handleDragStart}
             onDragEnd={tabModel.handleDragEnd}
