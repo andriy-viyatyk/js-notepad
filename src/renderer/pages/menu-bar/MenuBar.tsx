@@ -17,6 +17,7 @@ import { FileExplorer } from "./FileExplorer";
 import { Menu } from "electron";
 import { MenuItem } from "../../controls/PopupMenu";
 import { recentFiles } from "../../model/recentFiles";
+import { FolderIcon } from "./FileIcon";
 const path = require("path");
 
 const MenuBarRoot = styled("div")({
@@ -175,7 +176,7 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
             case recentFilesId:
                 return "🕘";
             default:
-                return folder.path ? "📁" : <EmptyIcon />;
+                return folder.path ? <FolderIcon /> : <EmptyIcon />;
         }
     }
 

@@ -140,6 +140,10 @@ class ApiCalls implements Api {
     addDragEvent = async (event: PageDragData) => {
         return executeOnce<void>(Endpoint.addDragEvent, event);
     };
+
+    getFileIcon = async (filePath: string) => {
+        return executeOnce<string>(Endpoint.getFileIcon, filePath);
+    }
 }
 
 export const api = new ApiCalls();

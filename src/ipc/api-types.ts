@@ -29,6 +29,7 @@ export enum Endpoint {
     getWindowPages = "getWindowPages",
     showWindowPage = "showWindowPage",
     addDragEvent = "addDragEvent",
+    getFileIcon = "getFileIcon",
 }
 
 export type Api = {
@@ -60,6 +61,7 @@ export type Api = {
     [Endpoint.getWindowPages]: () => Promise<WindowPages[]>;
     [Endpoint.showWindowPage]: (windowIndex: number, pageId: string) => Promise<void>;
     [Endpoint.addDragEvent]: (event: PageDragData) => Promise<void>;
+    [Endpoint.getFileIcon]: (filePath: string) => Promise<string>;
 };
 
 export enum EventEndpoint {

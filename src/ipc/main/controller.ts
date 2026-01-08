@@ -8,6 +8,7 @@ import { openWindows } from "../../main/open-windows";
 import { initRendererEvents } from "./renderer-events";
 import { WindowPages } from "../../shared/types";
 import { dragModel } from "../../main/drag-model";
+import { fileIconCache } from "../../main/fileIconCache";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -113,6 +114,10 @@ class Controller implements MainApi {
     addDragEvent = async (event: IpcMainEvent, dragData: any): Promise<void> => {
         return dragModel.addDragEvent(dragData);
     }
+
+    getFileIcon = async (event: IpcMainEvent, filePath: string): Promise<string> => {
+        return fileIconCache.getFileIcon(filePath);
+    }
 }
 
 const controllerInstance = new Controller();
@@ -153,6 +158,7 @@ const init = () => {
     bindEndpoint(Endpoint.getWindowPages, controllerInstance.getWindowPages);
     bindEndpoint(Endpoint.showWindowPage, controllerInstance.showWindowPage);
     bindEndpoint(Endpoint.addDragEvent, controllerInstance.addDragEvent);
+    bindEndpoint(Endpoint.getFileIcon, controllerInstance.getFileIcon);
 
     initRendererEvents();
 }

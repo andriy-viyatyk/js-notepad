@@ -4,6 +4,7 @@ import { List } from "../../controls/List";
 import color from "../../theme/color";
 import { LanguageIcon } from "../shared/LanguageIcon";
 import { MenuItem } from "../../controls/PopupMenu";
+import { FileIcon, FolderIcon } from "./FileIcon";
 
 const FileListRoot = styled(List)({
     "& .list-item": {
@@ -35,10 +36,11 @@ export interface FileListItem {
 const getFileLabel = (item: FileListItem) => item.title;
 const getFileIcon = (item: FileListItem) => {
     if (item.isFolder) {
-        return "📁";
+        return <FolderIcon />;
     }
-    const extension = path.extname(item.filePath);
-    return <LanguageIcon ext={extension} />;
+    return <FileIcon path={item.filePath} />;
+    // const extension = path.extname(item.filePath);
+    // return <LanguageIcon ext={extension} />;
 };
 const getTooltip = (item: FileListItem) => item.filePath;
 
