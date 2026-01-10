@@ -1,13 +1,27 @@
 const path = require("path");
 import { api } from "../../ipc/renderer/api";
+import { TModel } from "../common/classes/model";
+import { TGlobalState } from "../common/classes/state";
 import { nodeUtils } from "../common/node-utils";
 import { LoadedTextFile } from "../common/types";
 
-class FilesModel {
+const defaultFilesModelState = {
+    windowIndex: 0,
+    dataPath: "",
+    cachePath: "",
+}
+
+type FilesModelState = typeof defaultFilesModelState;
+
+class FilesModel extends TModel<FilesModelState> {
     private _windowIndex: number | null = null;
     private dataPath: string | null = null;
     private cachePath: string | null = null;
     private initPromise: Promise<void> | null = null;
+
+    constructor() {
+        super(new TGlobalState(defaultFilesModelState));
+    }
 
     get windowIndex(): number {
         if (this._windowIndex === null) {
@@ -32,6 +46,11 @@ class FilesModel {
         this._windowIndex = await api.getWindowIndex();
         this.dataPath = path.join(userData, "data");
         this.cachePath = path.join(this.dataPath, "cache");
+        this.state.update(s => {
+            s.dataPath = this.dataPath;
+            s.cachePath = this.cachePath;
+            s.windowIndex = this._windowIndex;
+        });
         console.log("dataPath:", this.dataPath);
     };
 

@@ -49,17 +49,28 @@ const getTooltip = (item: ListItem) => (item.page as any)?.filePath;
 
 interface OpenTabsListProps {
     onClose?: () => void;
+    open?: boolean;
 }
 
 export function OpenTabsList(props: OpenTabsListProps) {
     const [allWindowsPages, setAllWindowsPages] = useState<WindowPages[]>([]);
     const state = pagesModel.state.use();
+    const currentWindowIndex = filesModel.state.use(s => s.windowIndex);
+
+    const loadWindowPages = useCallback(async () => {
+        const windowsPages = await api.getWindowPages();
+        setAllWindowsPages(windowsPages);
+    }, []);
 
     useEffect(() => {
-        api.getWindowPages().then((windowsPages) => {
-            setAllWindowsPages(windowsPages);
-        });
+        loadWindowPages();
     }, []);
+
+    useEffect(() => {
+        if (props.open) {
+            loadWindowPages();
+        }
+    }, [props.open]);
 
     const activePageId = useMemo(
         () => pagesModel.activePage?.state.get().id,
@@ -67,7 +78,6 @@ export function OpenTabsList(props: OpenTabsListProps) {
     );
 
     const items = useMemo<ListItem[]>(() => {
-        const currentWindowIndex = filesModel.windowIndex;
         const currentPages = state.pages.map((page) => ({
             windowIndex: currentWindowIndex,
             page: page.state.get(),
@@ -90,19 +100,29 @@ export function OpenTabsList(props: OpenTabsListProps) {
             resItems.push(pages);
         });
         
-        return resItems.flatMap((x) => x);
-    }, [state.pages, allWindowsPages]);
+        const allItems = resItems.flatMap((x) => x);
+        const hasDuplicateId = allItems.some((item, _, arr) => {
+            if (!item.page) return false;
+            return arr.filter(i => i.page && i.page.id === item.page.id).length > 1;
+        });
+        if (hasDuplicateId) {
+            // heppans when moving tub in current window
+            // it displays then in this window and in window where it moved from
+            setTimeout(loadWindowPages, 50);
+        }
+        return allItems;
+    }, [state.pages, allWindowsPages, currentWindowIndex]);
 
     const onClick = useCallback((item: ListItem) => {
         if (item.page) {
-            if (item.windowIndex === filesModel.windowIndex) {
+            if (item.windowIndex === currentWindowIndex) {
                 pagesModel.showPage(item.page?.id);
             } else {
                 api.showWindowPage(item.windowIndex, item.page.id);
                 props.onClose?.();
             }
         }
-    }, [props.onClose]);
+    }, [props.onClose, currentWindowIndex]);
 
     const getSelected = useCallback((item: ListItem) => {
         return item.page?.id === activePageId;
