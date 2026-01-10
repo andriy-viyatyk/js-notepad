@@ -1,4 +1,4 @@
-export type PageType = "textFile";
+export type PageType = "textFile" | "pdfFile";
 
 export interface IPage {
     id: string,

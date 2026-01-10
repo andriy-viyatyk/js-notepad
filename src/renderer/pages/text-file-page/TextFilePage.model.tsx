@@ -28,7 +28,6 @@ export interface TextFilePageModelState extends IPage {
 export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
     ...getDefaultPageModelState(),
     type: "textFile" as const,
-    filePath: "",
     language: "plaintext",
     encoding: undefined,
     // no stored state props
@@ -197,7 +196,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         return false;
     };
 
-    restore = async () => {
+    async restore() {
         const { id, modified, filePath } = this.state.get();
         if (filePath) {
             this.fileWatcher?.dispose();
@@ -227,7 +226,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             });
         }
         await this.script.restore(id);
-    };
+    }
 
     private onFileChanged = async () => {
         if (!this.fileWatcher) return;

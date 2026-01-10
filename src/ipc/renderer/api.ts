@@ -125,8 +125,8 @@ class ApiCalls implements Api {
         return executeOnce<number>(Endpoint.getWindowIndex);
     };
 
-    openNewWindow = async () => {
-        return executeOnce<number>(Endpoint.openNewWindow);
+    openNewWindow = async (filePath?: string) => {
+        return executeOnce<number>(Endpoint.openNewWindow, filePath);
     };
 
     getWindowPages = async () => {

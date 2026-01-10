@@ -6,7 +6,6 @@ import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import {
     newTextFileModel,
-    newTextFileModelFromState,
     TextFileModel,
 } from "../pages/text-file-page/TextFilePage.model";
 import { openFilesNameTemplate } from "../../shared/constants";
@@ -15,9 +14,7 @@ import { filesModel } from "./files-model";
 import { PageModel } from "./page-model";
 import { recentFiles } from "./recentFiles";
 import { debounce } from "../../shared/utils";
-import { uuid } from "../common/node-utils";
-import { getLanguageByExtension } from "./language-mapping";
-const path = require("path");
+import { newEmptyPageModel, newPageModel, newPageModelFromState } from "./new-page-model";
 
 const defaultOpenFilesState = {
     pages: [] as PageModel[],
@@ -202,16 +199,8 @@ export class PagesModel extends TModel<OpenFilesState> {
         api.setCanQuit(true);
     };
 
-    restoreModel = (data: Partial<IPage>): PageModel | null => {
-        let model: PageModel | null = null;
-        switch (data.type) {
-            case "textFile":
-                model = newTextFileModel("") as unknown as PageModel;
-                break;
-            default:
-                console.warn("Unknown page type:", data.type);
-                return null;
-        }
+    restoreModel = async (data: Partial<IPage>): Promise<PageModel | null> => {
+        const model: PageModel | null = await newEmptyPageModel(data.type);
         if (model) {
             model.applyRestoreData(data);
         }
@@ -246,8 +235,9 @@ export class PagesModel extends TModel<OpenFilesState> {
             return;
         }
 
-        const models = (data.pages as Partial<IPage>[])
-            .map((pageData) => this.restoreModel(pageData))
+        const modelsPromise = (data.pages as Partial<IPage>[])
+            .map((pageData) => this.restoreModel(pageData));
+        const models = (await Promise.all(modelsPromise))
             .filter((model) => model) as PageModel[];
 
         models.forEach((model) => this.initPage(model));
@@ -290,7 +280,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             s.pages = newPages;
         });
         this.fixGrouping();
-        this.saveState();
+        this.saveStateDebounced();
         this.onFocus.send(movedPage);
     };
 
@@ -325,8 +315,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         const existingPage = this.state.get().pages.find((p) => {
             const pState = p.state.get();
             return (
-                pState.type === "textFile" &&
-                (pState as any).filePath === filePath
+                pState.filePath === filePath
             );
         });
         if (existingPage) {
@@ -334,13 +323,15 @@ export class PagesModel extends TModel<OpenFilesState> {
             return;
         }
 
-        const pageModel = newTextFileModel(filePath);
+        const pageModel = await newPageModel(filePath);
         pageModel.state.update((s) => {
             s.language = "";
         });
         await pageModel.restore();
         this.addPage(pageModel as unknown as PageModel);
         recentFiles.add(filePath);
+
+        this.closeFirstPageIfEmpty();
     };
 
     openFileWithDialog = async () => {
@@ -353,6 +344,22 @@ export class PagesModel extends TModel<OpenFilesState> {
         }
     };
 
+    closeFirstPageIfEmpty = () => {
+        const pages = this.state.get().pages;
+        if (pages.length === 2) {
+            const firstPage = pages[0];
+            const firstPageState = firstPage.state.get();
+            if (
+                !firstPageState.modified &&
+                !(firstPageState as any).content &&
+                !firstPageState.filePath &&
+                firstPageState.type === "textFile"
+            ) {
+                firstPage.close(undefined);
+            }
+        }
+    }
+
     movePageIn = async (data?: {
         page: Partial<IPage>;
         targetPageId: string | undefined;
@@ -360,7 +367,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         if (!data || !data.page) {
             return;
         }
-        const pageModel = newTextFileModelFromState(data.page);
+        const pageModel = await newPageModelFromState(data.page);
         await pageModel.restore();
         const targetIndex = data.targetPageId
             ? this.state
@@ -371,18 +378,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             : -1;
         if (targetIndex === -1) {
             this.addPage(pageModel);
-            const pages = this.state.get().pages;
-            if (pages.length === 2) {
-                const firstPage = pages[0];
-                const firstPageState = firstPage.state.get();
-                if (
-                    !firstPageState.modified &&
-                    !(firstPageState as any).content &&
-                    !firstPageState.filePath
-                ) {
-                    firstPage.close(undefined);
-                }
-            }
+            this.closeFirstPageIfEmpty();
         } else {
             this.initPage(pageModel);
             this.state.update((s) => {
@@ -390,7 +386,7 @@ export class PagesModel extends TModel<OpenFilesState> {
                 s.ordered.push(pageModel);
             });
             this.fixGrouping();
-            this.saveState();
+            this.saveStateDebounced();
         }
     };
 
@@ -407,7 +403,7 @@ export class PagesModel extends TModel<OpenFilesState> {
                 s.pages = s.pages.filter((p) => p !== page);
                 s.ordered = s.ordered.filter((p) => p !== page);
             });
-            this.saveState();
+            this.saveStateDebounced();
             api.closeWindow();
         } else {
             page.close(undefined);
@@ -433,6 +429,7 @@ export class PagesModel extends TModel<OpenFilesState> {
                 s.leftRight = newLeftRight;
                 s.rightLeft = newRightLeft;
             });
+            this.saveStateDebounced();
         }
     };
 
@@ -448,6 +445,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             s.leftRight = newLeftRight;
             s.rightLeft = newRightLeft;
         });
+        this.saveStateDebounced();
     };
 
     isGrouped = (pageId: string) => {
@@ -564,20 +562,17 @@ export class PagesModel extends TModel<OpenFilesState> {
             );
         });
 
-        const pageData: Partial<IPage> = page ? page.getRestoreData() : {
-            id: uuid(),
-            type: "textFile",
-            filePath: filePath,
-            title: path.basename(filePath),
-            language: getLanguageByExtension(path.extname(filePath))?.id || "plaintext",
-            modified: false,
-        };
+        if (page) {
+            const pageData: Partial<IPage> = page.getRestoreData();
 
-        const dragData: PageDragData = {
-            sourceWindowIndex: filesModel.windowIndex,
-            page: pageData,
-        };
-        api.addDragEvent(dragData);
+            const dragData: PageDragData = {
+                sourceWindowIndex: filesModel.windowIndex,
+                page: pageData,
+            };
+            api.addDragEvent(dragData);
+        } else {
+            api.openNewWindow(filePath);
+        }
     }
 }
 

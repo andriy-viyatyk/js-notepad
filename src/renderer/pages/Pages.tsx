@@ -5,28 +5,7 @@ import { Spliter } from "../controls/Spliter";
 import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
 import color from "../theme/color";
-import { TextFilePage } from "./text-file-page/TextFilePage";
-import { TextFileModel } from "./text-file-page/TextFilePage.model";
-
-function RenderPage({
-    model,
-    isActive,
-}: {
-    model: PageModel;
-    isActive: boolean;
-}) {
-    const { id, type } = model.state.get();
-    switch (type) {
-        case "textFile":
-            return (
-                <TextFilePage
-                    model={model as TextFileModel}
-                    isActive={isActive}
-                    key={id}
-                />
-            );
-    }
-}
+import { RenderEditor } from "./RenderEditor";
 
 const GroupedPagesRoot = styled.div({
     display: "flex",
@@ -37,15 +16,18 @@ const GroupedPagesRoot = styled.div({
         display: "none",
     },
     "& .page-container": {
-        flex: "1 1 auto",
         display: "flex",
         flexDirection: "column",
         position: "relative",
         overflow: "hidden",
+        width: "50%",
     },
     "& .page-spliter": {
         backgroundColor: color.background.dark,
         width: 8,
+        "&:hover": {
+            backgroundColor: color.background.light,
+        },
     },
 });
 
@@ -87,7 +69,7 @@ function RenderGroupedPages({
 
         return () => {
             objserver.disconnect();
-        }
+        };
     }, []);
 
     const resizeWidth = useCallback((width: number) => {
@@ -103,11 +85,11 @@ function RenderGroupedPages({
             setLeftWidth(newWidth);
             widthK.current = 0.5;
         }
-    }, []);    
+    }, []);
 
     const groupedModel = pagesModel.getGroupedPage(model.id);
     if (!groupedModel) {
-        return <RenderPage model={model} isActive={isActive} />;
+        return <RenderEditor key={`p-${model.id}`} model={model} isActive={isActive} />;
     }
 
     return (
@@ -121,9 +103,10 @@ function RenderGroupedPages({
                     maxWidth: containerRef.current
                         ? containerRef.current.clientWidth - 100
                         : undefined,
+                    flexShrink: 0,
                 }}
             >
-                <RenderPage model={model} isActive={isActive} />
+                <RenderEditor key={`p-${model.id}`} model={model} isActive={isActive} />
             </div>
             <Spliter
                 type="vertical"
@@ -132,8 +115,8 @@ function RenderGroupedPages({
                 onChangeWidth={resizeWidth}
                 onDoubleClick={splitterDubleClick}
             />
-            <div className="page-container">
-                <RenderPage model={groupedModel} isActive={isActive} />
+            <div className="page-container" style={{ flex: "1 1 auto" }}>
+                <RenderEditor key={`p-${groupedModel.id}`} model={groupedModel} isActive={isActive} />
             </div>
         </GroupedPagesRoot>
     );

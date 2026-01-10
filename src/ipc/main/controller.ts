@@ -98,7 +98,10 @@ class Controller implements MainApi {
         return openWindows.findByWindow(window)?.index ?? -1;
     }
 
-    openNewWindow = async (event: IpcMainEvent): Promise<number> => {
+    openNewWindow = async (event: IpcMainEvent, filePath?: string): Promise<number> => {
+        if (filePath) {
+            return await openWindows.openPathInNewWindow(filePath);
+        }
         const newWindow = openWindows.createWindow();
         return newWindow.index;
     }

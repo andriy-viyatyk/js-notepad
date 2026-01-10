@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { SvgIconComponent, SvgIconProps } from "../../theme/icons";
 import {
     getLanguageByExtension,
@@ -97,15 +97,20 @@ const languageIconMap: { [key: string]: SvgIconComponent } = {
 export interface LanguageIconProps extends SvgIconProps {
     language?: string;
     ext?: string;
+    getIcon?: () => ReactNode;
 }
 
-export function LanguageIcon({ language, ext, ...props }: LanguageIconProps) {
+export function LanguageIcon({ language, ext, getIcon, ...props }: LanguageIconProps) {
     const lang = useMemo(() => {
         return (
             getLanguageById(language || "") ||
             (ext ? getLanguageByExtension(ext) : undefined)
         );
     }, [language, ext]);
+
+    if (getIcon) {
+        return <>{getIcon()}</>;
+    }
 
     const Icon = languageIconMap[lang?.id || ""] || DefaultIcon;
     return <Icon {...props} />;

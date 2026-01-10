@@ -1,35 +1,40 @@
 import { PageModel } from "../model/page-model";
-import { TextFileModel } from "../pages/text-file-page/TextFilePage.model";
+import { isTextFileModel } from "../pages/text-file-page/TextFilePage.model";
 import { pagesModel } from "../model/pages-model";
 
 const wrapPage = (page?: PageModel) => {
-    if (!page || !(page instanceof TextFileModel)) {
-        return undefined;
-    }
-    const textPage = page as TextFileModel;
-
     return {
         get content() {
-            return textPage.state.get().content;
+            if (isTextFileModel(page)) {
+                return page.state.get().content;
+            }
+            return "";
         },
         set content(value: string) {
-            textPage.changeContent(value);
+            if (isTextFileModel(page)) {
+                page.changeContent(value);
+            }
         },
         get grouped() {
-            let grouped = pagesModel.getGroupedPage(textPage.id);
+            let grouped = pagesModel.getGroupedPage(page.id);
             if (!grouped) {
-                grouped = pagesModel.requireGroupedText(textPage.id);
+                grouped = pagesModel.requireGroupedText(page.id);
             }
             return wrapPage(grouped);
         },
         get language() {
-            return textPage.state.get().language;
+            return page.state.get().language;
         },
         set language(value: string) {
-            textPage.changeLanguage(value);
+            if (!page.noLanguage) {
+                page.changeLanguage(value);
+            }
         },
         get data() {
-            return textPage.script.data;
+            if (isTextFileModel(page)) {
+                return page.script.data;
+            }
+            return undefined;
         }
     };
 };

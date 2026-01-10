@@ -46,45 +46,53 @@ export function Spliter({
     className,
     ...otherProps
 }: SpliterProps): ReactElement {
+    const splitterRef = useRef<HTMLDivElement>(null);
     const beforeDragWidth = useRef<number>(initialWidth);
     const beforeDragHeight = useRef<number>(initialHeight);
     const startX = useRef<number>(0);
     const startY = useRef<number>(0);
 
-    const handleMouseDown = (e: React.MouseEvent) => {
+    const handlePointerDown = (e: React.PointerEvent) => {
         e.preventDefault();
+        
+        // Capture the pointer - all pointer events now go to this element
+        e.currentTarget.setPointerCapture(e.pointerId);
 
         startX.current = e.clientX;
         startY.current = e.clientY;
         beforeDragWidth.current = initialWidth;
         beforeDragHeight.current = initialHeight;
+    };
 
-        const handleMouseMove = (moveEvent: MouseEvent) => {
-            const dx = moveEvent.clientX - startX.current;
-            const dy = moveEvent.clientY - startY.current;
-            onChangeWidth?.(
-                beforeDragWidth.current +
-                    dx * (borderSized === "right" ? 1 : -1)
-            );
-            onChangeHeight?.(
-                beforeDragHeight.current +
-                    dy * (borderSized === "bottom" ? 1 : -1)
-            );
-        };
+    const handlePointerMove = (e: React.PointerEvent) => {
+        // Only process if pointer is captured (dragging)
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
 
-        const handleMouseUp = () => {
-            document.removeEventListener("mousemove", handleMouseMove);
-            document.removeEventListener("mouseup", handleMouseUp);
-        };
+        const dx = e.clientX - startX.current;
+        const dy = e.clientY - startY.current;
+        
+        onChangeWidth?.(
+            beforeDragWidth.current +
+                dx * (borderSized === "right" ? 1 : -1)
+        );
+        onChangeHeight?.(
+            beforeDragHeight.current +
+                dy * (borderSized === "bottom" ? 1 : -1)
+        );
+    };
 
-        document.addEventListener("mousemove", handleMouseMove);
-        document.addEventListener("mouseup", handleMouseUp);
+    const handlePointerUp = (e: React.PointerEvent) => {
+        // Pointer is automatically released, but you can do it explicitly
+        e.currentTarget.releasePointerCapture(e.pointerId);
     };
 
     return (
         <SpliterRoot
+            ref={splitterRef}
             type={type}
-            onMouseDown={handleMouseDown}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
             className={clsx("splitter", className)}
             {...otherProps}
         />

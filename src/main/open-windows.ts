@@ -211,6 +211,16 @@ class OpenWindows {
         }
     }
 
+    openPathInNewWindow = async (filePath?: string): Promise<number> => {
+        if (!filePath) { return; }
+
+        const newWindow = this.createWindow();
+        await newWindow.whenReady;
+        newWindow.window?.send(EventEndpoint.eOpenFile, filePath);
+        newWindow.window?.focus();
+        return newWindow.index;
+    }
+
     hideWindows = (): void => {
         this.windows.forEach((w) => {
             w.window?.window.hide();

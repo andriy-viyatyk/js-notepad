@@ -21,6 +21,7 @@ const config: ForgeConfig = {
                 manufacturer: "Andriy Viyatyk",
                 name: "JS-Notepad",
                 description: "JS-Notepad",
+                upgradeCode: "d2f1c1e4-5b6c-7c7d-9e0f-1a2b3c4d9e6f",
                 ui: {
                     chooseDirectory: true,
                 },

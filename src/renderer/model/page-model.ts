@@ -8,10 +8,13 @@ export const getDefaultPageModelState = (): IPage => ({
     title: "untitled",
     modified: false,
     language: undefined,
+    filePath: undefined,
 });
 
 export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T, R> {
     skipSave = false;
+    getIcon?: () => React.ReactNode;
+    noLanguage = false;
 
     get id() {
         return this.state.get().id;
@@ -19,6 +22,10 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
 
     get type() {
         return this.state.get().type;
+    }
+
+    async restore(): Promise<void> {
+        // Override in subclasses if needed
     }
 
     getRestoreData(): Partial<T> {
@@ -35,6 +42,7 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
             s.type = data.type || s.type;
             s.title = data.title || s.title;
             s.modified = data.modified || s.modified;
+            s.filePath = data.filePath || s.filePath;
         });
     }
 

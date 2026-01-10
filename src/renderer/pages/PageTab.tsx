@@ -94,6 +94,10 @@ const PageTabRoot = styled.div({
         paddingBottom: 4,
         marginRight: 2,
     },
+    "& .empty-language": {
+        width: 6,
+        flexShrink: 0,
+    }
 });
 
 interface PageTabProps {
@@ -256,7 +260,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                     disabled:
                         !isTextFileModel(this.props.model) ||
                         !this.props.model.decripted,
-                }
+                },
             ]
         );
     };
@@ -403,21 +407,26 @@ export function PageTab(props: PageTabProps) {
             onDragEnd={tabModel.handleDragEnd}
             onDrop={tabModel.handleDrop}
         >
-            <WithPopupMenu items={languageMenuItems}>
-                {(setOpen) => (
-                    <Button
-                        size="small"
-                        type="icon"
-                        onClick={(e) => {
-                            pagesModel.showPage(model.state.get().id);
-                            setOpen(e.currentTarget);
-                        }}
-                        title={language}
-                    >
-                        <LanguageIcon language={language} />
-                    </Button>
-                )}
-            </WithPopupMenu>
+            {model.noLanguage ? (<span className="empty-language"> </span>) : (
+                <WithPopupMenu items={languageMenuItems}>
+                    {(setOpen) => (
+                        <Button
+                            size="small"
+                            type="icon"
+                            onClick={(e) => {
+                                pagesModel.showPage(model.state.get().id);
+                                setOpen(e.currentTarget);
+                            }}
+                            title={language}
+                        >
+                            <LanguageIcon
+                                language={language}
+                                getIcon={model.getIcon}
+                            />
+                        </Button>
+                    )}
+                </WithPopupMenu>
+            )}
             <span className="title-label" data-tooltip-id={id}>
                 {(encripted || decripted) && (
                     <span
