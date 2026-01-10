@@ -15,7 +15,10 @@ import { useDrag, useDrop } from "react-dnd";
 import { useMemo } from "react";
 import { api } from "../../ipc/renderer/api";
 import { Tooltip } from "../controls/Tooltip";
-import { TextFileModel } from "./text-file-page/TextFilePage.model";
+import {
+    isTextFileModel,
+    TextFileModel,
+} from "./text-file-page/TextFilePage.model";
 import { filesModel } from "../model/files-model";
 import { PageDragData } from "../../shared/types";
 import { parseObject } from "../common/parseUtils";
@@ -87,6 +90,10 @@ const PageTabRoot = styled.div({
             display: "none",
         },
     },
+    "& .encryption-icon": {
+        paddingBottom: 4,
+        marginRight: 2,
+    },
 });
 
 interface PageTabProps {
@@ -99,30 +106,43 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
 
     private setActiveLanuage = (langId: string) => {
         const currentActive = appSettings.get("tab-recent-languages");
-        const newActive = [langId, ...currentActive.filter(l => l !== langId)];
+        const newActive = [
+            langId,
+            ...currentActive.filter((l) => l !== langId),
+        ];
         appSettings.set("tab-recent-languages", newActive);
-    }
+    };
 
     getLanguageMenuItems = (): MenuItem[] => {
         const currLang = this.props.model.state.get().language;
         const activeLanguages = appSettings.get("tab-recent-languages");
-        const menuItems: MenuItem[] = monacoLanguages.map((lang) => ({
-            id: lang.id,
-            label: lang.aliases[0] || lang.id,
-            icon: <LanguageIcon language={lang.id} />,
-            onClick: () => {
-                this.props.model.changeLanguage(lang.id);
-                this.setActiveLanuage(lang.id);
-            },
-            selected: currLang === lang.id,
-        })).sort((a, b) => a.label.localeCompare(b.label));
+        const menuItems: MenuItem[] = monacoLanguages
+            .map((lang) => ({
+                id: lang.id,
+                label: lang.aliases[0] || lang.id,
+                icon: <LanguageIcon language={lang.id} />,
+                onClick: () => {
+                    this.props.model.changeLanguage(lang.id);
+                    this.setActiveLanuage(lang.id);
+                },
+                selected: currLang === lang.id,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label));
 
-        const firstItem = menuItems.find(item => item.id === 'plaintext');
-        const activeItems = menuItems.filter(item => item.id !== 'plaintext' && activeLanguages.includes(item.id));
+        const firstItem = menuItems.find((item) => item.id === "plaintext");
+        const activeItems = menuItems.filter(
+            (item) =>
+                item.id !== "plaintext" && activeLanguages.includes(item.id)
+        );
         activeItems.sort((a, b) => {
-            return activeLanguages.indexOf(a.id) - activeLanguages.indexOf(b.id)
-        })
-        const inactiveItems = menuItems.filter(item => item.id !== 'plaintext' && !activeLanguages.includes(item.id));
+            return (
+                activeLanguages.indexOf(a.id) - activeLanguages.indexOf(b.id)
+            );
+        });
+        const inactiveItems = menuItems.filter(
+            (item) =>
+                item.id !== "plaintext" && !activeLanguages.includes(item.id)
+        );
 
         return [
             ...(firstItem ? [firstItem] : []),
@@ -189,6 +209,54 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                     },
                     disabled: !(this.props.model.state.get() as any).filePath,
                 },
+                {
+                    label: "Copy File Path",
+                    onClick: () => {
+                        navigator.clipboard.writeText(
+                            (this.props.model.state.get() as any).filePath
+                        );
+                    },
+                    disabled: !(this.props.model.state.get() as any).filePath,
+                },
+                {
+                    label: "Decrypt",
+                    onClick: () => {
+                        if (isTextFileModel(this.props.model)) {
+                            this.props.model.showEncryptionDialog();
+                        }
+                    },
+                    disabled: !(
+                        isTextFileModel(this.props.model) &&
+                        this.props.model.encripted
+                    ),
+                    startGroup: true,
+                },
+                {
+                    label:
+                        isTextFileModel(this.props.model) &&
+                        !this.props.model.withEncription
+                            ? "Encrypt"
+                            : "Change Password",
+                    onClick: () => {
+                        if (isTextFileModel(this.props.model)) {
+                            this.props.model.showEncryptionDialog();
+                        }
+                    },
+                    disabled:
+                        !isTextFileModel(this.props.model) ||
+                        this.props.model.encripted,
+                },
+                {
+                    label: "Make Unencrypted",
+                    onClick: () => {
+                        if (isTextFileModel(this.props.model)) {
+                            this.props.model.makeUnencrypted();
+                        }
+                    },
+                    disabled:
+                        !isTextFileModel(this.props.model) ||
+                        !this.props.model.decripted,
+                }
             ]
         );
     };
@@ -252,10 +320,20 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
             if (activeId !== thisPageId) {
                 pagesModel.groupTabs(activeId, thisPageId);
             }
-        } 
-            
+        }
+
         pagesModel.showPage(thisPageId);
-    }
+    };
+
+    encryptionClick = () => {
+        if (isTextFileModel(this.props.model)) {
+            if (this.props.model.encripted) {
+                this.props.model.showEncryptionDialog();
+            } else if (this.props.model.decripted) {
+                this.props.model.encryptWithCurrentPassword();
+            }
+        }
+    };
 }
 
 export function PageTab(props: PageTabProps) {
@@ -272,6 +350,8 @@ export function PageTab(props: PageTabProps) {
             id: s.id,
             filePath: (s as any).filePath,
             deleted: (s as any).deleted ?? false,
+            password: (s as any).password,
+            encripted: (s as any).encripted ?? false,
         }));
 
     const [{ isDragging }, drag] = useDrag({
@@ -300,6 +380,9 @@ export function PageTab(props: PageTabProps) {
         () => tabModel.getLanguageMenuItems(),
         [language, activeLanguages]
     );
+
+    const encripted = isTextFileModel(model) && model.encripted;
+    const decripted = isTextFileModel(model) && model.decripted;
 
     return (
         <PageTabRoot
@@ -336,6 +419,15 @@ export function PageTab(props: PageTabProps) {
                 )}
             </WithPopupMenu>
             <span className="title-label" data-tooltip-id={id}>
+                {(encripted || decripted) && (
+                    <span
+                        className="encryption-icon"
+                        onClick={tabModel.encryptionClick}
+                        title={encripted ? "Decrypt File" : "Encrypt File"}
+                    >
+                        {encripted ? "🔒" : "🔓"}
+                    </span>
+                )}
                 {title}
             </span>
             {Boolean(filePath) && !isDragging && (

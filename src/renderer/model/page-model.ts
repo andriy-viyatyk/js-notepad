@@ -17,6 +17,10 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
         return this.state.get().id;
     }
 
+    get type() {
+        return this.state.get().type;
+    }
+
     getRestoreData(): Partial<T> {
         return this.state.get();
     }

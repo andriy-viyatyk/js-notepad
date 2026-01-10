@@ -8,6 +8,7 @@ import { ScriptEditor } from "./ScriptEditor";
 import { TextFileFooterActions } from "./TextFileFooterActions";
 import { FlexSpace } from "../../controls/Elements";
 import color from "../../theme/color";
+import { EncriptionPanel } from "./EncriptionPanel";
 
 const TextFilePageRoot = styled.div({
     flex: "1 1 auto",
@@ -15,13 +16,21 @@ const TextFilePageRoot = styled.div({
     flexDirection: "column",
     height: 200,
     rowGap: 2,
+    position: "relative",
     "&:not(.isActive)": {
         display: "none",
     },
     "& .encoding-label": {
         padding: "0 8px",
         color: color.text.light,
-    }
+    },
+    "& .encription-pannel": {
+        position: "absolute",
+        top: 2,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 10,
+    },
 });
 
 interface TextFilePageProps {
@@ -35,7 +44,10 @@ export function TextFilePage({
     isActive,
     className,
 }: TextFilePageProps) {
-    const encoding = model.state.use(s => s.encoding);
+    const { encoding, showEncryptionPanel } = model.state.use((s) => ({
+        encoding: s.encoding,
+        showEncryptionPanel: s.showEncryptionPanel,
+    }));
 
     return (
         <TextFilePageRoot
@@ -52,6 +64,14 @@ export function TextFilePage({
                 <FlexSpace />
                 <span className="encoding-label">{encoding || "utf-8"}</span>
             </PageToolbar>
+            {showEncryptionPanel && (
+                <EncriptionPanel
+                    model={model}
+                    className="encription-pannel"
+                    onSubmit={model.onSubmitPassword}
+                    onCancel={model.onCancelPassword}
+                />
+            )}
         </TextFilePageRoot>
     );
 }

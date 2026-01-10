@@ -13,11 +13,16 @@ import { IPage } from "../../../shared/types";
 import { ScriptEditorModel } from "./ScriptEditor";
 import { TextEditorModel } from "./TextEditor";
 import { debounce } from "../../../shared/utils";
+import { decryptText, encryptText, isEncrypted } from "../../common/encription";
+import { alertWarning } from "../../dialogs/alerts/AlertsBar";
 
 export interface TextFilePageModelState extends IPage {
     content: string;
     deleted: boolean;
     encoding?: string;
+    password?: string;
+    encripted?: boolean;
+    showEncryptionPanel?: boolean;
 }
 
 export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
@@ -29,6 +34,9 @@ export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
     // no stored state props
     content: "",
     deleted: false,
+    password: undefined,
+    encripted: false,
+    showEncryptionPanel: false,
 });
 
 export class TextFileModel extends PageModel<TextFilePageModelState, void> {
@@ -37,23 +45,63 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     script = new ScriptEditorModel(this);
     editor = new TextEditorModel(this);
 
+    get encripted(): boolean {
+        return isEncrypted(this.state.get().content);
+    }
+
+    get decripted(): boolean {
+        return this.state.get().password !== undefined;
+    }
+
+    get withEncription(): boolean {
+        return this.decripted || this.encripted;
+    }
+
     changeContent = (newContent: string) => {
         this.state.update((state) => {
             state.content = newContent;
             state.modified = true;
+            state.encripted = isEncrypted(newContent);
         });
         this.modificationSaved = false;
-        this.saveModifications(newContent);
+        this.saveModifications();
     };
 
     getRestoreData() {
-        const { content, deleted, ...pageData } = this.state.get();
+        const { content, deleted, password, encripted, showEncryptionPanel, ...pageData } = this.state.get();
         return pageData;
+    }
+
+    private mapContentToSave = async (): Promise<string | undefined> => {
+        const text = this.state.get().content;
+        const password = this.state.get().password;
+        if (password) {
+            try {
+                return await encryptText(text, password);
+            } catch (error) {
+                this.alertEncryptionError(error as Error);
+                return undefined;
+            }
+        }
+        return text;
+    }
+
+    private mapContentFromFile = async (text: string): Promise<string | undefined> => {
+        const password = this.state.get().password;
+        if (isEncrypted(text) && password) {
+            try {
+                return await decryptText(text, password);
+            } catch (error) {
+                this.alertEncryptionError(error as Error);
+                return undefined;
+            }
+        }
+        return text;
     }
 
     saveState = async (): Promise<void> => {
         if (!this.modificationSaved) {
-            await this.doSaveModifications(this.state.get().content);
+            await this.doSaveModifications();
         }
     };
 
@@ -116,7 +164,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     }
 
     saveFile = async (saveAs?: boolean): Promise<boolean> => {
-        const { filePath, content, title, id } = this.state.get();
+        const { filePath, title, id } = this.state.get();
         let savePath: string | undefined = saveAs ? undefined : filePath;
         if (!savePath) {
             savePath = await api.showSaveFileDialog({
@@ -125,8 +173,12 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             });
         }
 
+        const text = await this.mapContentToSave();
+        if (text === undefined) {
+            return false;
+        }
         if (savePath) {
-            await filesModel.saveFile(savePath, content, this.state.get().encoding);
+            await filesModel.saveFile(savePath, text, this.state.get().encoding);
             await filesModel.deleteCacheFile(id);
             this.state.update((s) => {
                 s.modified = false;
@@ -164,6 +216,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             const encoding = this.fileWatcher.encoding;
             this.state.update((s) => {
                 s.content = fileContent || "";
+                s.encripted = isEncrypted(s.content);
                 s.encoding = encoding;
                 s.title = path.basename(filePath);
                 s.language =
@@ -189,8 +242,13 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         if (!modified && !deleted) {
             const newContent = await this.fileWatcher.getTextContent(this.state.get().encoding);
             const encoding = this.fileWatcher.encoding;
+            const text = await this.mapContentFromFile(newContent || "");
+            if (text === undefined) {
+                return;
+            }
             this.state.update(s => {
-                s.content = newContent;
+                s.content = text;
+                s.encripted = isEncrypted(s.content);
                 s.encoding = encoding;
             });
         }
@@ -198,11 +256,17 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
 
     private isSavingModifications = false;
 
-    private doSaveModifications = async (text: string) => {
+    private doSaveModifications = async () => {
         if (this.modificationSaved) return;
         this.modificationSaved = true;
         this.isSavingModifications = true;
         const { id } = this.state.get();
+
+        const text = await this.mapContentToSave();
+        if (text === undefined) {
+            return;
+        }
+
         await filesModel.saveCacheFile(id, text);
         this.isSavingModifications = false;
     };
@@ -251,6 +315,101 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         }
         await scriptRunner.runWithResult(this.id, script, this);
     }
+
+    encript = async (password: string): Promise<void> => {
+        if (this.encripted) {
+            alertWarning("File is already encrypted");
+            return;
+        }
+        try {
+            const encryptedContent = await encryptText(this.state.get().content, password);
+            this.state.update((s) => {
+                s.content = encryptedContent;
+                s.encripted = true;
+                s.password = undefined;
+                s.modified = true;
+            });
+            this.modificationSaved = false;
+            this.saveModifications();
+        } catch (error) {
+            alertWarning((error as Error).message);
+        }
+    }
+
+    encryptWithCurrentPassword = async (): Promise<void> => {
+        const password = this.state.get().password;
+        if (!password) {
+            alertWarning("No password set for encryption");
+            return;
+        }
+        await this.encript(password);
+    }
+
+    alertEncryptionError = (err: Error) => {
+        alertWarning(err.message || err.name || "Unknown encryption error");
+    }
+
+    decript = async (password: string): Promise<boolean> => {
+        if (!this.encripted) {
+            return false;
+        }
+        try {
+            const decrypted = await decryptText(this.state.get().content, password);
+            this.state.update((s) => {
+                s.content = decrypted;
+                s.encripted = false;
+                s.password = password;
+            });
+            return true;
+        } catch (error) {
+            this.alertEncryptionError(error as Error);
+        }
+    }
+
+    onSubmitPassword = async (password: string) => {
+        if (this.encripted) {
+            await this.decript(password);
+            if (this.decripted) {
+                this.state.update((s) => {
+                    s.showEncryptionPanel = false;
+                });
+                this.editor.focusEditor();
+            }
+            return;
+        }
+
+        if (!this.encripted) {
+            await this.encript(password);
+            if (this.encripted) {
+                this.state.update((s) => {
+                    s.showEncryptionPanel = false;
+                });
+                this.editor.focusEditor();
+            }
+        }
+    }
+
+    onCancelPassword = () => {
+        this.state.update((s) => {
+            s.showEncryptionPanel = false;
+        });
+        this.editor.focusEditor();
+    }
+
+    showEncryptionDialog = () => {
+        this.state.update((s) => {
+            s.showEncryptionPanel = true;
+        });
+    }
+
+    makeUnencrypted = () => {
+        this.state.update((s) => {
+            s.password = undefined;
+            s.modified = true;
+        });
+        this.modificationSaved = false;
+        this.saveModifications();
+    }
 }
 
 export function newTextFileModel(filePath?: string): TextFileModel {
@@ -268,4 +427,10 @@ export function newTextFileModelFromState(state: Partial<IPage>): TextFileModel 
         ...state,
     };
     return new TextFileModel(new TComponentState(initialState));
+}
+
+export function isTextFileModel(
+    model: PageModel<any, any>
+): model is TextFileModel {
+    return model.type === "textFile";
 }
