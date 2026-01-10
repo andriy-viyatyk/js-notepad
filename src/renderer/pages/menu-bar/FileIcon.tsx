@@ -37,6 +37,8 @@ const fileIconsModel = new FileIconsModel();
 
 interface FileIconProps {
     path: string;
+    width?: number;
+    height?: number;
 }
 
 export function FileIcon(props: FileIconProps) {
@@ -54,7 +56,8 @@ export function FileIcon(props: FileIconProps) {
 
     const iconDataUrl = iconCache.get(ext);
     if (iconDataUrl) {
-        return <img src={iconDataUrl} style={{ width: 14, height: 14 }} />;
+        const { width = 14, height = 14 } = props;
+        return <img src={iconDataUrl} style={{ width, height }} />;
     }
 
     return <LanguageIcon ext={ext} />;

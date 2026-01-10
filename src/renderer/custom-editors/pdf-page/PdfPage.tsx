@@ -41,9 +41,10 @@ class PdfPageModel extends PageModel<PdfPageModelState, void> {
         }
     }
 
-    getIcon = () => (
-        <FileIcon path={this.state.get().filePath}/>
-    )
+    getIcon = () => {
+        console.log("icon file path:", this.state.get().filePath);
+        return <FileIcon path={this.state.get().filePath} width={12} height={12} />;
+    };
 }
 
 interface PdfPageProps {
@@ -53,13 +54,13 @@ interface PdfPageProps {
 
 function PdfPage({ model, isActive }: PdfPageProps) {
     const filePath = model.state.use((s) => s.filePath);
-    const fileUrl = `safe-file://${filePath.replace(/\\/g, '/')}`;
+    const fileUrl = `safe-file://${filePath.replace(/\\/g, "/")}`;
 
     return (
         <PdvPageRoot className={clsx({ isActive })}>
-            <webview 
+            <webview
                 src={fileUrl}
-                style={{ width: '100%', height: '100%' }}
+                style={{ width: "100%", height: "100%" }}
                 partition="persist:file-access"
             />
         </PdvPageRoot>

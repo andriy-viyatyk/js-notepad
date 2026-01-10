@@ -96,8 +96,13 @@ const PageTabRoot = styled.div({
     },
     "& .empty-language": {
         width: 6,
+        height: 14,
         flexShrink: 0,
-    }
+        "&.withIcon": {
+            width: 16,
+            margin: "0 2px 0 4px",
+        }
+    },
 });
 
 interface PageTabProps {
@@ -407,7 +412,15 @@ export function PageTab(props: PageTabProps) {
             onDragEnd={tabModel.handleDragEnd}
             onDrop={tabModel.handleDrop}
         >
-            {model.noLanguage ? (<span className="empty-language"> </span>) : (
+            {model.noLanguage ? (
+                <span
+                    className={clsx("empty-language", {
+                        withIcon: model.getIcon,
+                    })}
+                >
+                    {model.getIcon ? model.getIcon() : null}
+                </span>
+            ) : (
                 <WithPopupMenu items={languageMenuItems}>
                     {(setOpen) => (
                         <Button
