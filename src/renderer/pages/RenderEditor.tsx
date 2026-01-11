@@ -7,10 +7,9 @@ import { TextFileModel } from "./text-file-page/TextFilePage.model";
 interface AsyncEditorProps {
     getEditorModule: () => Promise<EditorModule>;
     model: PageModel;
-    isActive: boolean;
 }
 
-function AsyncEditor({getEditorModule, model, isActive}: AsyncEditorProps) {
+function AsyncEditor({getEditorModule, model}: AsyncEditorProps) {
     const [EditorModule, setEditorModule] = useState<EditorModule | null>(null);
 
     useEffect(() => {
@@ -21,26 +20,22 @@ function AsyncEditor({getEditorModule, model, isActive}: AsyncEditorProps) {
         return null; // or a loading indicator
     }
 
-    return <EditorModule.Editor model={model} isActive={isActive} />;
+    return <EditorModule.Editor model={model} />;
 }
 
 const getPdfModule = async () => (await import("../custom-editors/pdf-page/PdfPage")).default;
 
 export function RenderEditor({
     model,
-    isActive,
 }: {
     model: PageModel;
-    isActive: boolean;
 }) {
-    const { id, type } = model.state.get();
+    const { type } = model.state.get();
     switch (type) {
         case "textFile":
             return (
                 <TextFilePage
                     model={model as TextFileModel}
-                    isActive={isActive}
-                    key={id}
                 />
             );
         case "pdfFile": {
@@ -48,8 +43,6 @@ export function RenderEditor({
                 <AsyncEditor
                     getEditorModule={getPdfModule}
                     model={model}
-                    isActive={isActive}
-                    key={id}
                 />
             );
         }

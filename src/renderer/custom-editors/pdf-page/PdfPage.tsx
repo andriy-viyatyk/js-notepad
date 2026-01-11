@@ -2,9 +2,9 @@ import styled from "@emotion/styled";
 import { IPage, PageType } from "../../../shared/types";
 import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { TComponentState } from "../../common/classes/state";
-import clsx from "clsx";
 import { EditorModule } from "../types";
 import { FileIcon } from "../../pages/menu-bar/FileIcon";
+import { useEffect } from "react";
 const path = require("path");
 
 const PdvPageRoot = styled.div({
@@ -13,9 +13,6 @@ const PdvPageRoot = styled.div({
     flexDirection: "column",
     height: 200,
     position: "relative",
-    "&:not(.isActive)": {
-        display: "none",
-    },
 });
 
 interface PdfPageModelState extends IPage {}
@@ -42,26 +39,28 @@ class PdfPageModel extends PageModel<PdfPageModelState, void> {
     }
 
     getIcon = () => {
-        console.log("icon file path:", this.state.get().filePath);
-        return <FileIcon path={this.state.get().filePath} width={12} height={12} />;
+        return (
+            <FileIcon path={this.state.get().filePath} width={12} height={12} />
+        );
     };
 }
 
 interface PdfPageProps {
     model: PdfPageModel;
-    isActive: boolean;
 }
 
-function PdfPage({ model, isActive }: PdfPageProps) {
+function PdfPage({ model }: PdfPageProps) {
     const filePath = model.state.use((s) => s.filePath);
     const fileUrl = `safe-file://${filePath.replace(/\\/g, "/")}`;
 
+    const viewerUrl = `app-asset://pdfjs/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
+
     return (
-        <PdvPageRoot className={clsx({ isActive })}>
-            <webview
-                src={fileUrl}
-                style={{ width: "100%", height: "100%" }}
-                partition="persist:file-access"
+        <PdvPageRoot>
+            <object
+                data={viewerUrl}
+                style={{ width: "100%", height: "100%", border: "none" }}
+                type="text/html"
             />
         </PdvPageRoot>
     );

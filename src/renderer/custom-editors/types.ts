@@ -3,7 +3,6 @@ import { PageModel } from "../model/page-model";
 
 export type FileEditorPage<T extends PageModel = PageModel> = React.ComponentType<{
     model: T;
-    isActive: boolean;
 }>;
 
 export interface EditorModelCreations {

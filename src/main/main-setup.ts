@@ -36,14 +36,21 @@ export function setupMainProcess() {
         const customSession = session.fromPartition(partition);
 
         customSession.protocol.handle("app-asset", (request) => {
-            const urlWithoutHash = request.url.split("#")[0];
-            let relativePath = urlWithoutHash.replace("app-asset://", "");
-            // The regex removes a trailing '/' only if it exists.
-            relativePath = relativePath.replace(/\/$/, "");
+            const parsedUrl = new URL(request.url);
+
+            let relativePath = path.join(parsedUrl.host, parsedUrl.pathname);
+
+            if (
+                relativePath.startsWith(path.sep) ||
+                relativePath.startsWith("/")
+            ) {
+                relativePath = relativePath.substring(1);
+            }
 
             const file = path.join(getAssetPath(), relativePath);
-            const url = pathToFileURL(file).toString();
-            return net.fetch(url, { bypassCustomProtocolHandlers: true });
+            const fileUrl = pathToFileURL(file).toString();
+
+            return net.fetch(fileUrl, { bypassCustomProtocolHandlers: true });
         });
 
         customSession.protocol.handle("safe-file", async (request) => {
@@ -51,7 +58,6 @@ export function setupMainProcess() {
                 request.url.replace("safe-file://", "")
             );
 
-            // Handle Windows paths: safe-file://d/path -> D:\path
             if (process.platform === "win32") {
                 // Check if it's a Windows path without drive letter separator
                 const match = filePath.match(/^([a-zA-Z])\/(.+)$/);
@@ -60,7 +66,6 @@ export function setupMainProcess() {
                 }
             }
 
-            // Optional: Add security validation
             if (!isValidFilePath(filePath)) {
                 return new Response("Invalid file path", { status: 403 });
             }
@@ -70,7 +75,6 @@ export function setupMainProcess() {
                 bypassCustomProtocolHandlers: true,
             });
 
-            // Ensure PDF mime type is set
             const headers = new Headers(response.headers);
             if (filePath.toLowerCase().endsWith(".pdf")) {
                 headers.set("Content-Type", "application/pdf");

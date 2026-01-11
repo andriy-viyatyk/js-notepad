@@ -52,6 +52,7 @@ export class OpenWindow {
                 webSecurity: false,
                 webviewTag: true,
                 plugins: true,
+                nodeIntegrationInSubFrames: true,
             },
         });
 
