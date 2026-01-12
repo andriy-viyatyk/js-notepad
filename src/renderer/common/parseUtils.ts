@@ -21,7 +21,7 @@ export const parseBoolean = (value: any): boolean | undefined => {
     return Boolean(value);
 };
 
-export const parseObject = (value: any, onError?: (error: any) => void): Record<string, any> | undefined => {
+export const parseObject = (value: any, onError?: (error: any) => void): any | undefined => {
     if (value === null || value === undefined) return undefined;
     if (typeof value === "object") return value;
     try {
@@ -32,7 +32,7 @@ export const parseObject = (value: any, onError?: (error: any) => void): Record<
     }
 }
 
-export const parseJSON5 = (value: any, onError?: (error: any) => void): Record<string, any> | undefined => {
+export const parseJSON5 = (value: any, onError?: (error: any) => void): any | undefined => {
     if (value === null || value === undefined) return undefined;
     if (typeof value === "object") return value;
     try {

@@ -11,6 +11,8 @@ export interface EditorModelCreations {
     newPageModelFromState(state: Partial<IPage>): Promise<PageModel>;
 }
 
-export interface EditorModule extends EditorModelCreations {
-    Editor: FileEditorPage
+export interface EditorPageModule {
+    Editor: FileEditorPage;
 }
+
+export type EditorModule = EditorPageModule & EditorModelCreations;

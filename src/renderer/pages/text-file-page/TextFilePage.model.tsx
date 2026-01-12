@@ -15,6 +15,7 @@ import { TextEditorModel } from "./TextEditor";
 import { debounce } from "../../../shared/utils";
 import { decryptText, encryptText, isEncrypted } from "../../common/encription";
 import { alertWarning } from "../../dialogs/alerts/AlertsBar";
+import { resolveEditor } from "../../model/resolve-editor";
 
 export interface TextFilePageModelState extends IPage {
     content: string;
@@ -122,6 +123,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             s.filePath = data.filePath || s.filePath;
             s.language = data.language || s.language;
             s.encoding = data.encoding || s.encoding;
+            s.editor = data.editor || s.editor;
         });
         this.restore();
     };
@@ -438,9 +440,11 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
 }
 
 export function newTextFileModel(filePath?: string): TextFileModel {
+    const editor = resolveEditor(filePath);
     const state = {
         ...getDefaultTextFilePageModelState(),
         ...(filePath ? { filePath } : {}),
+        editor,
     };
 
     return new TextFileModel(new TComponentState(state));

@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { EditorModule } from "../custom-editors/types";
+import { EditorPageModule } from "../custom-editors/types";
 import { PageModel } from "../model/page-model";
 import { TextFilePage } from "./text-file-page/TextFilePage";
 import { TextFileModel } from "./text-file-page/TextFilePage.model";
 
 interface AsyncEditorProps {
-    getEditorModule: () => Promise<EditorModule>;
+    getEditorModule: () => Promise<EditorPageModule>;
     model: PageModel;
 }
 
 function AsyncEditor({getEditorModule, model}: AsyncEditorProps) {
-    const [EditorModule, setEditorModule] = useState<EditorModule | null>(null);
+    const [EditorModule, setEditorModule] = useState<EditorPageModule | null>(null);
 
     useEffect(() => {
         getEditorModule().then(setEditorModule);
@@ -24,20 +24,36 @@ function AsyncEditor({getEditorModule, model}: AsyncEditorProps) {
 }
 
 const getPdfModule = async () => (await import("../custom-editors/pdf-page/PdfPage")).default;
+const getGridJsonModule = async () => (await import("../custom-editors/grid/GridJsonPage")).default;
 
 export function RenderEditor({
     model,
 }: {
     model: PageModel;
 }) {
-    const { type } = model.state.get();
+    const { type, editor } = model.state.use(s => ({
+        type: s.type,
+        editor: s.editor,
+    }));
+
     switch (type) {
         case "textFile":
-            return (
-                <TextFilePage
-                    model={model as TextFileModel}
-                />
-            );
+            switch (editor) {
+                case "grid-json":
+                    return (
+                        <AsyncEditor
+                            getEditorModule={getGridJsonModule}
+                            model={model}
+                        />
+                    );
+                case "monaco":
+                default:
+                    return (
+                        <TextFilePage
+                            model={model as TextFileModel}
+                        />
+                    );
+            }
         case "pdfFile": {
             return (
                 <AsyncEditor

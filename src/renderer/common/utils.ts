@@ -10,3 +10,11 @@ export function resolveState<S>(
         ? (newState as (prev: S) => S)(getPrevState())
         : newState;
 }
+
+export const range = (from: number, to: number) => from <= to
+    ? Array.from({ length: to - from + 1 }, (_, i) => from + i)
+    : Array.from({ length: from - to + 1 }, (_, i) => to + i);
+
+export function toClipboard(text: string): void {
+    navigator.clipboard.writeText(text);
+}

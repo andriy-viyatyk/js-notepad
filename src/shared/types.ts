@@ -1,4 +1,5 @@
 export type PageType = "textFile" | "pdfFile";
+export type PageEditor = "monaco" | "grid-json";
 
 export interface IPage {
     id: string,
@@ -7,6 +8,7 @@ export interface IPage {
     modified: boolean,
     language?: string,
     filePath?: string,
+    editor?: PageEditor,
 }
 
 export interface WindowState {

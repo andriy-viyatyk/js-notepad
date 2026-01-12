@@ -9,6 +9,7 @@ export const getDefaultPageModelState = (): IPage => ({
     modified: false,
     language: undefined,
     filePath: undefined,
+    editor: undefined,
 });
 
 export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T, R> {
@@ -43,6 +44,7 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
             s.title = data.title || s.title;
             s.modified = data.modified || s.modified;
             s.filePath = data.filePath || s.filePath;
+            s.editor = data.editor || s.editor;
         });
     }
 

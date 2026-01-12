@@ -4,7 +4,6 @@ import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { TComponentState } from "../../common/classes/state";
 import { EditorModule } from "../types";
 import { FileIcon } from "../../pages/menu-bar/FileIcon";
-import { useEffect } from "react";
 const path = require("path");
 
 const PdvPageRoot = styled.div({
