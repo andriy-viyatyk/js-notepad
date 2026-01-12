@@ -1,6 +1,56 @@
 import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
 
+const lexicalObjects = `
+    const Array = globalThis.Array;
+    const Boolean = globalThis.Boolean;
+    const Date = globalThis.Date;
+    const Error = globalThis.Error;
+    const EvalError = globalThis.EvalError;
+    const Function = globalThis.Function;
+    const Infinity = globalThis.Infinity;
+    const JSON = globalThis.JSON;
+    const Map = globalThis.Map;
+    const Math = globalThis.Math;
+    const NaN = globalThis.NaN;
+    const Number = globalThis.Number;
+    const Object = globalThis.Object;
+    const Promise = globalThis.Promise;
+    const RegExp = globalThis.RegExp;
+    const Set = globalThis.Set;
+    const String = globalThis.String;
+    const Symbol = globalThis.Symbol;
+    const TypeError = globalThis.TypeError;
+    const URIError = globalThis.URIError;
+    const WeakMap = globalThis.WeakMap;
+    const WeakSet = globalThis.WeakSet;
+    const BigInt = globalThis.BigInt;
+    const BigInt64Array = globalThis.BigInt64Array;
+    const BigUint64Array = globalThis.BigUint64Array;
+    const Int8Array = globalThis.Int8Array;
+    const Uint8Array = globalThis.Uint8Array;
+    const Uint8ClampedArray = globalThis.Uint8ClampedArray;
+    const Int16Array = globalThis.Int16Array;
+    const Uint16Array = globalThis.Uint16Array;
+    const Int32Array = globalThis.Int32Array;
+    const Uint32Array = globalThis.Uint32Array;
+    const Float32Array = globalThis.Float32Array;
+    const Float64Array = globalThis.Float64Array;
+    const SharedArrayBuffer = globalThis.SharedArrayBuffer;
+    const ArrayBuffer = globalThis.ArrayBuffer;
+    const DataView = globalThis.DataView;
+    const Atomics = globalThis.Atomics;
+    const Reflect = globalThis.Reflect;
+    const Proxy = globalThis.Proxy;
+    const TextEncoder = globalThis.TextEncoder;
+    const TextDecoder = globalThis.TextDecoder;
+    const URL = globalThis.URL;
+    const URLSearchParams = globalThis.URLSearchParams;
+    const AggregateError = globalThis.AggregateError;
+    const FinalizationRegistry = globalThis.FinalizationRegistry;
+    const WeakRef = globalThis.WeakRef;
+`
+
 class ScriptRunner {
     handlePromiseException = 0;
 
@@ -22,6 +72,7 @@ class ScriptRunner {
                     const expressionScript = `
                     with (this) {
                         return (async function() {
+                            ${lexicalObjects}
                             return (${script});
                         }).call(this);
                     }
@@ -99,6 +150,7 @@ class ScriptRunner {
             return `
             with (this) {
                 return (async function() {
+                    ${lexicalObjects}
                     ${script}
                 }).call(this);
             }

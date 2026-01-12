@@ -35,7 +35,7 @@ const wrapPage = (page?: PageModel) => {
                 return page.script.data;
             }
             return undefined;
-        }
+        },
     };
 };
 
@@ -43,7 +43,7 @@ const createCustomContext = (page?: PageModel) => {
     return {
         page: wrapPage(page),
     };
-}
+};
 
 export function createScriptContext(page?: PageModel) {
     const customContext = createCustomContext(page);
@@ -54,10 +54,15 @@ export function createScriptContext(page?: PageModel) {
             if (Object.hasOwn(customContext, prop)) {
                 return (customContext as any)[prop];
             }
-            const value = (target as any)[prop];
+            const value = (globalThis as any)[prop];
 
             // If it's a function, bind it to globalThis
             if (typeof value === "function") {
+                if (value.prototype) {
+                    // Do NOT bind constructors or classes
+                    return value;
+                }
+
                 return value.bind(globalThis);
             }
 
