@@ -9,7 +9,7 @@ import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
 import { recentFiles } from "../../model/recentFiles";
 import { scriptRunner } from "../../script/ScriptRunner";
-import { IPage } from "../../../shared/types";
+import { IPage, PageEditor } from "../../../shared/types";
 import { ScriptEditorModel } from "./ScriptEditor";
 import { TextEditorModel } from "./TextEditor";
 import { debounce } from "../../../shared/utils";
@@ -66,6 +66,12 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         this.modificationSaved = false;
         this.saveModifications();
     };
+
+    changeEditor = (editor: PageEditor) => {
+        this.state.update((s) => {
+            s.editor = editor;
+        });
+    }
 
     getRestoreData() {
         const {

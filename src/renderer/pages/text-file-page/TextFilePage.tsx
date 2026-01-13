@@ -1,7 +1,6 @@
 import styled from "@emotion/styled";
 import { clsx } from "clsx";
 import { TextFileModel } from "./TextFilePage.model";
-import { TextEditor } from "./TextEditor";
 import { PageToolbar } from "../shared/PageToolbar";
 import { TextFileActions } from "./TextFileActions";
 import { ScriptEditor } from "./ScriptEditor";
@@ -9,6 +8,7 @@ import { TextFileFooterActions } from "./TextFileFooterActions";
 import { FlexSpace } from "../../controls/Elements";
 import color from "../../theme/color";
 import { EncriptionPanel } from "./EncriptionPanel";
+import { ActiveEditor } from "./ActiveEditor";
 
 const TextFilePageRoot = styled.div({
     flex: "1 1 auto",
@@ -50,7 +50,7 @@ export function TextFilePage({
             <PageToolbar borderBottom>
                 <TextFileActions model={model} />
             </PageToolbar>
-            <TextEditor model={model} />
+            <ActiveEditor model={model} />
             <ScriptEditor model={model} />
             <PageToolbar borderTop>
                 <TextFileFooterActions model={model} />

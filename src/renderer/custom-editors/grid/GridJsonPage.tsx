@@ -1,6 +1,5 @@
 import styled from "@emotion/styled";
 import { TextFileModel } from "../../pages/text-file-page/TextFilePage.model";
-import { PageToolbar } from "../../pages/shared/PageToolbar";
 import { CellFocus, Column, TFilter } from "../../controls/AVGrid/avGridTypes";
 import { TComponentModel, useComponentModel } from "../../common/classes/model";
 import { parseObject } from "../../common/parseUtils";
@@ -15,6 +14,12 @@ import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
 import { SetStateAction, useCallback, useEffect, useState } from "react";
 import AVGrid from "../../controls/AVGrid/AVGrid";
 import { resolveState } from "../../common/utils";
+import {
+    FiltersProvider,
+    TOnGetFilterOptions,
+} from "../../controls/AVGrid/filters/useFilters";
+import { defaultCompare, filterRows } from "../../controls/AVGrid/avGridUtils";
+import { FilterBar } from "../../controls/AVGrid/filters/FilterBar";
 
 const GridJsonPageRoot = styled.div({
     flex: "1 1 auto",
@@ -66,6 +71,12 @@ class GridJsonPageModel extends TComponentModel<
     clearSearch = () => {
         this.state.update((s) => {
             s.search = "";
+        });
+    };
+
+    setFilters = (value: SetStateAction<TFilter[]>) => {
+        this.state.update((s) => {
+            s.filters = resolveState(value, () => this.state.get().filters);
         });
     };
 
@@ -162,6 +173,33 @@ class GridJsonPageModel extends TComponentModel<
                 break;
         }
     };
+
+    onGetOptions: TOnGetFilterOptions = (
+        columns: Column[],
+        filters: TFilter[],
+        columnKey: string,
+        search?: string
+    ) => {
+        const uniqueValues = new Set<any>();
+        filterRows(
+            this.state.get().rows,
+            columns,
+            search,
+            filters?.filter((f) => f.columnKey !== columnKey)
+        ).forEach((i) => uniqueValues.add(i[columnKey]));
+        const options = Array.from(uniqueValues);
+        options.sort(defaultCompare());
+        return options.map((i) => ({
+            value: i,
+            label:
+                i === undefined
+                    ? "(undefined)"
+                    : i === null
+                      ? "(null)"
+                      : i?.toString(),
+            italic: i === undefined || i === null,
+        }));
+    };
 }
 
 export function GridJsonPage(props: GridJsonPageProps) {
@@ -187,22 +225,28 @@ export function GridJsonPage(props: GridJsonPageProps) {
 
     return (
         <GridJsonPageRoot tabIndex={0} onKeyDown={pageModel.pageKeyDown}>
-            <PageToolbar borderBottom></PageToolbar>
-            <AVGrid
-                ref={pageModel.setGridRef}
-                columns={pageState.columns}
-                rows={pageState.rows}
-                getRowKey={getRowKey}
-                focus={pageState.focus}
-                setFocus={pageModel.setFocus}
-                searchString={pageState.search}
+            <FiltersProvider
                 filters={pageState.filters}
-                onVisibleRowsChanged={onVisibleRowsChanged}
-                editRow={pageModel.editRow}
-                onAddRows={pageModel.onAddRows}
-                onDeleteRows={pageModel.onDeleteRows}
-                onDataChanged={pageModel.onDataChanged}
-            />
+                setFilters={pageModel.setFilters}
+                onGetOptions={pageModel.onGetOptions}
+            >
+                <FilterBar className="filter-bar" gridModel={pageModel.gridRef} />
+                <AVGrid
+                    ref={pageModel.setGridRef}
+                    columns={pageState.columns}
+                    rows={pageState.rows}
+                    getRowKey={getRowKey}
+                    focus={pageState.focus}
+                    setFocus={pageModel.setFocus}
+                    searchString={pageState.search}
+                    filters={pageState.filters}
+                    onVisibleRowsChanged={onVisibleRowsChanged}
+                    editRow={pageModel.editRow}
+                    onAddRows={pageModel.onAddRows}
+                    onDeleteRows={pageModel.onDeleteRows}
+                    onDataChanged={pageModel.onDataChanged}
+                />
+            </FiltersProvider>
         </GridJsonPageRoot>
     );
 }
