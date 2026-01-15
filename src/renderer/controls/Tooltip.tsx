@@ -22,7 +22,7 @@ const TooltipRoot = styled(ReactTooltip)({
 });
 
 export function Tooltip(props: Readonly<ITooltip>) {
-    const { className, delayShow = 600, children, ...otherProps } = props;
+    const { className, delayShow = 600, children, place = "top", ...otherProps } = props;
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -33,6 +33,7 @@ export function Tooltip(props: Readonly<ITooltip>) {
             className={clsx("app-tooltip", className)}
             delayShow={delayShow}
             clickable
+            place={place}
             {...otherProps}
         >
             <div onClick={handleClick} className="tooltip-content">

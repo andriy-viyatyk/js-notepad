@@ -44,6 +44,16 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     private fileWatcher: FileWatcher | null = null;
     script = new ScriptEditorModel(this);
     editor = new TextEditorModel(this);
+    editorToolbarRefFirst: HTMLDivElement | null = null;
+    editorToolbarRefLast: HTMLDivElement | null = null;
+    
+    setEditorToolbarRefFirst = (ref: HTMLDivElement | null) => {
+        this.editorToolbarRefFirst = ref;
+    }
+
+    setEditorToolbarRefLast = (ref: HTMLDivElement | null) => {
+        this.editorToolbarRefLast = ref;
+    }
 
     get encripted(): boolean {
         return isEncrypted(this.state.get().content);

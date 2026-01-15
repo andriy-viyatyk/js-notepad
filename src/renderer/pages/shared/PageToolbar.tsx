@@ -15,7 +15,7 @@ const PageToolbarRoot = styled.div({
     flexWrap: "nowrap",
     overflow: "hidden",
     backgroundColor: color.background.dark,
-    padding: "0 4px",
+    padding: "2px 4px",
     flexShrink: 0,
     "&.borderTop": {
         borderTop: `1px solid ${color.border.light}`,

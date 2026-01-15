@@ -1,17 +1,6 @@
 import styled from "@emotion/styled";
 import clsx from "clsx";
-import {
-    CSSProperties,
-    useCallback,
-    useMemo,
-    useRef,
-    useState,
-} from "react";
-import {
-    createHtmlPortalNode,
-    InPortal,
-    OutPortal,
-} from "react-reverse-portal";
+import { CSSProperties, useCallback, useMemo, useRef, useState } from "react";
 import { Spliter } from "../controls/Spliter";
 import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
@@ -62,14 +51,12 @@ const GroupedPagesRoot = styled.div(
 
 function RenderGroupedPages({
     model,
+    groupedModel,
     isActive,
-    portalNode,
-    groupedPortalNode,
 }: {
     model: PageModel;
+    groupedModel?: PageModel;
     isActive: boolean;
-    portalNode: ReturnType<typeof createHtmlPortalNode>;
-    groupedPortalNode: ReturnType<typeof createHtmlPortalNode> | null;
 }) {
     const [leftWidth, setLeftWidth] = useState<CSSProperties["width"]>("50%");
     const widthK = useRef<number>(0.5);
@@ -120,14 +107,13 @@ function RenderGroupedPages({
         }
     }, []);
 
-    const groupedModel = pagesModel.getGroupedPage(model.id);
     if (!groupedModel) {
         return (
             <SinglePageRoot
                 id={`editor-container-${model.id}`}
                 className={clsx({ isActive })}
             >
-                <OutPortal node={portalNode} />
+                <RenderEditor key={`render-editor-${model.id}`} model={model} />
             </SinglePageRoot>
         );
     }
@@ -147,7 +133,7 @@ function RenderGroupedPages({
                     flexShrink: 0,
                 }}
             >
-                <OutPortal node={portalNode} />
+                <RenderEditor key={`render-editor-${model.id}`} model={model} />
             </div>
             <Spliter
                 type="vertical"
@@ -161,7 +147,12 @@ function RenderGroupedPages({
                 className="page-container"
                 style={{ flex: "1 1 auto" }}
             >
-                {groupedPortalNode && <OutPortal node={groupedPortalNode} />}
+                {groupedModel && (
+                    <RenderEditor
+                        key={`render-editor-${groupedModel.id}`}
+                        model={groupedModel}
+                    />
+                )}
             </div>
         </GroupedPagesRoot>
     );
@@ -172,67 +163,20 @@ export function Pages() {
     const activePage = pagesModel.activePage;
     const groupedPage = pagesModel.groupedPage;
 
-    const portalNodes = useMemo(() => {
-        const nodes = new Map<
-            string,
-            ReturnType<typeof createHtmlPortalNode>
-        >();
-        pgs?.forEach((page) => {
-            nodes.set(page.id, createHtmlPortalNode({
-                attributes: {
-                    id: `editor-portal-node-${page.id}`,
-                    style: "flex:1 1 auto; height:100%; display:flex; flex-direction:column; overflow:hidden;",
-                }
-            }));
-        });
-        return nodes;
-    }, [pgs?.map((p) => p.id).join(",")]);
-
     const pagesToRender = useMemo(() => {
-        return pgs?.filter((p) => !rightLeft.has(p.id));
+        return pgs.filter((p) => !rightLeft.has(p.id));
     }, [pgs, rightLeft]);
 
-    const layout = pagesToRender ? (
-        <>
-            {pagesToRender.map((page) => {
-                const groupedModel = pagesModel.getGroupedPage(page.id);
-                const portalNode = portalNodes.get(page.id);
-                const groupedPortalNode = groupedModel
-                    ? portalNodes.get(groupedModel.id)
-                    : null;
+    return pagesToRender.map((page) => {
+        const groupedModel = pagesModel.getGroupedPage(page.id);
 
-                if (!portalNode) return null;
-
-                return (
-                    <RenderGroupedPages
-                        key={`group-page-${page.id}`}
-                        model={page}
-                        isActive={page === activePage || page === groupedPage}
-                        portalNode={portalNode}
-                        groupedPortalNode={groupedPortalNode || null}
-                    />
-                );
-            })}
-        </>
-    ) : null;
-
-    const allEditors = pgs
-        ? pgs.map((page) => {
-              const portalNode = portalNodes.get(page.id);
-              if (!portalNode) return null;
-
-              return (
-                  <InPortal key={`editor-portal-${page.id}`} node={portalNode}>
-                      <RenderEditor model={page} />
-                  </InPortal>
-              );
-          })
-        : null;
-
-    return (
-        <>
-            {allEditors}
-            {layout}
-        </>
-    );
+        return (
+            <RenderGroupedPages
+                key={`group-page-${page.id}`}
+                model={page}
+                groupedModel={groupedModel}
+                isActive={page === activePage || page === groupedPage}
+            />
+        );
+    });
 }

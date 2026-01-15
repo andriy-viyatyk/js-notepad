@@ -82,7 +82,7 @@ export class ScriptEditorModel extends TModel<ScriptEditorState> {
         await filesModel.saveCacheFile(this.id, JSON.stringify(state), this.name);
     }
 
-    private saveStateDebounced = debounce(this.saveState, 500);
+    private saveStateDebounced = debounce(this.saveState, 300);
 
     dispose = () => {
         this.unsubscribe?.();

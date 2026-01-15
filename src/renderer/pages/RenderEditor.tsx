@@ -2,6 +2,7 @@ import { PageModel } from "../model/page-model";
 import { TextFilePage } from "./text-file-page/TextFilePage";
 import { TextFileModel } from "./text-file-page/TextFilePage.model";
 import { AsyncEditor } from "./AsyncEditor";
+import { useEffect } from "react";
 
 const getPdfModule = async () =>
     (await import("../custom-editors/pdf-page/PdfPage")).default;

@@ -7,7 +7,7 @@ const SwitchButtonsRoot = styled.div({
     display: "flex",
     "& .switch-button": {
         backgroundColor: color.background.dark,
-        padding: "2px 6px",
+        padding: "3px 8px",
         color: color.text.light,
         borderWidth: 1,
         borderStyle: "outset",

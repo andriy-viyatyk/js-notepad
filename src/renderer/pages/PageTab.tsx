@@ -101,7 +101,7 @@ const PageTabRoot = styled.div({
         "&.withIcon": {
             width: 16,
             margin: "0 2px 0 4px",
-        }
+        },
     },
 });
 
@@ -453,7 +453,12 @@ export function PageTab(props: PageTabProps) {
                 {title}
             </span>
             {Boolean(filePath) && !isDragging && (
-                <Tooltip id={id}>{filePath}</Tooltip>
+                <Tooltip
+                    id={id}
+                    place="bottom"
+                >
+                    {filePath}
+                </Tooltip>
             )}
             <Button
                 size="small"

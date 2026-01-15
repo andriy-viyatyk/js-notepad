@@ -349,7 +349,7 @@ export class FocusModel<R> {
         });
     };
 
-    private validateFocus = () => {
+    validateFocus = () => {
         const getRowKey = this.model.props.getRowKey;
         const { rows, columns } = this.model.data;
 

@@ -254,7 +254,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         });
 
         if (data.groupings && Array.isArray(data.groupings)) {
-            data.groupings.forEach(el => {
+            data.groupings.forEach((el: any) => {
                 if (Array.isArray(el) && el.length === 2) {
                     this.group(el[0], el[1]);
                 }

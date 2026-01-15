@@ -5,9 +5,18 @@ import { RunAllIcon, RunIcon } from "../../theme/icons";
 import { SwitchButtons } from "../../controls/SwitchButtons";
 import { PageEditor } from "../../../shared/types";
 import { FlexSpace } from "../../controls/Elements";
+import styled from "@emotion/styled";
+
+const EditorToolbarRoot = styled.div({
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+});
 
 interface TextFileActionsProps {
     model: TextFileModel;
+    setEditorToolbarRefFirst?: (ref: HTMLDivElement | null) => void;
+    setEditorToolbarRefLast?: (ref: HTMLDivElement | null) => void;
 }
 
 const jsonSwitchOptions: PageEditor[] = ["monaco", "grid-json"];
@@ -20,7 +29,7 @@ const jsonSwitchLabels: {
 const getJsonSwitchLabel = (option: PageEditor) =>
     jsonSwitchLabels[option] || jsonSwitchLabels["monaco"];
 
-export function TextFileActions({ model }: TextFileActionsProps) {
+export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorToolbarRefLast }: TextFileActionsProps) {
     const actions: ReactNode[] = [];
     const { hasSelection } = model.editor.state.use((s) => ({
         hasSelection: s.hasSelection,
@@ -66,6 +75,7 @@ export function TextFileActions({ model }: TextFileActionsProps) {
     if (language === "json") {
         lastItems.push(
             <SwitchButtons
+                key="json-editor-switch"
                 options={jsonSwitchOptions}
                 value={editor || "monaco"}
                 onChange={model.changeEditor}
@@ -76,8 +86,12 @@ export function TextFileActions({ model }: TextFileActionsProps) {
     }
 
     if (lastItems.length > 0) {
+        actions.unshift(
+            <EditorToolbarRoot key="editor-toolbar-root" ref={setEditorToolbarRefFirst} />
+        );
         actions.push(
             <FlexSpace key="flex-space" />,
+            <EditorToolbarRoot key="editor-toolbar-root" ref={setEditorToolbarRefLast} />,
             ...lastItems
         )
     }

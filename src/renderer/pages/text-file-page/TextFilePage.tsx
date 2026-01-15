@@ -9,6 +9,7 @@ import { FlexSpace } from "../../controls/Elements";
 import color from "../../theme/color";
 import { EncriptionPanel } from "./EncriptionPanel";
 import { ActiveEditor } from "./ActiveEditor";
+import { useEffect } from "react";
 
 const TextFilePageRoot = styled.div({
     flex: "1 1 auto",
@@ -34,9 +35,7 @@ interface TextFilePageProps {
     model: TextFileModel;
 }
 
-export function TextFilePage({
-    model,
-}: TextFilePageProps) {
+export function TextFilePage({ model }: TextFilePageProps) {
     const { encoding, showEncryptionPanel } = model.state.use((s) => ({
         encoding: s.encoding,
         showEncryptionPanel: s.showEncryptionPanel,
@@ -48,7 +47,11 @@ export function TextFilePage({
             onKeyDown={model.handleKeyDown}
         >
             <PageToolbar borderBottom>
-                <TextFileActions model={model} />
+                <TextFileActions
+                    model={model}
+                    setEditorToolbarRefLast={model.setEditorToolbarRefLast}
+                    setEditorToolbarRefFirst={model.setEditorToolbarRefFirst}
+                />
             </PageToolbar>
             <ActiveEditor model={model} />
             <ScriptEditor model={model} />
