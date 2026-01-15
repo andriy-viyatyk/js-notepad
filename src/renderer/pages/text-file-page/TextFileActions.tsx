@@ -87,11 +87,11 @@ export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorTool
 
     if (lastItems.length > 0) {
         actions.unshift(
-            <EditorToolbarRoot key="editor-toolbar-root" ref={setEditorToolbarRefFirst} />
+            <EditorToolbarRoot key="editor-toolbar-first" ref={setEditorToolbarRefFirst} />
         );
         actions.push(
             <FlexSpace key="flex-space" />,
-            <EditorToolbarRoot key="editor-toolbar-root" ref={setEditorToolbarRefLast} />,
+            <EditorToolbarRoot key="editor-toolbar-last" ref={setEditorToolbarRefLast} />,
             ...lastItems
         )
     }

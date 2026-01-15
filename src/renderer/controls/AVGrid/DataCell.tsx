@@ -11,6 +11,7 @@ import { DefaultEditFormater } from "./DefaultEditFormater";
 import { useCallback } from "react";
 import { Button } from "../Button";
 import { getValue } from "../../common/obj-path";
+import React from "react";
 
 const DataCellRoot = styled.div(
     {
@@ -75,15 +76,14 @@ export function DefaultCellFormater(props: TCellRendererProps) {
     const highlightedText = useHighlightedText();
     let isHighlighted = false;
     const isHovered =
-        model.data.hovered.row === rowIndex &&
-        model.data.hovered.col === col;
-        
+        model.data.hovered.row === rowIndex && model.data.hovered.col === col;
+
     let value: any = null;
     try {
         value = getValue(row, column.key);
-        const renderBoolean = column.dataType === "boolean" && (
-            !value || typeof value === "boolean" || isHovered
-        )
+        const renderBoolean =
+            column.dataType === "boolean" &&
+            (!value || typeof value === "boolean" || isHovered);
         if (!column.dataType || !renderBoolean) {
             value = columnDisplayValue(column, row);
 
@@ -102,7 +102,17 @@ export function DefaultCellFormater(props: TCellRendererProps) {
         value = <OverflowTooltipText>{value}</OverflowTooltipText>;
     }
 
-    return value;
+    if (
+        value === null ||
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean" ||
+        React.isValidElement(value)
+    ) {
+        return value;
+    }
+
+    return value?.toString();
 }
 
 export function DataCell(props: Readonly<TCellRendererProps>) {
