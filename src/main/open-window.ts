@@ -124,6 +124,23 @@ export class OpenWindow {
             return { action: "deny" };
         });
 
+        this.window.webContents.on("will-navigate", (event, url) => {
+            console.log("Navigating to:", url);
+            // Allow navigation within your app protocols
+            if (
+                url.startsWith("safe-file://") ||
+                url.startsWith("app-asset://") ||
+                url.startsWith("file://") ||
+                url.startsWith("http://localhost")
+            ) {
+                return;
+            }
+
+            // Block and open external links in browser
+            event.preventDefault();
+            shell.openExternal(url);
+        });
+
         if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
             this.window.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
         } else {

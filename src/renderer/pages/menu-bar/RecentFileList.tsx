@@ -48,7 +48,7 @@ export function RecentFileList(props: RecentFileListProps) {
                 invisible: item.isFolder,
             },
             {
-                label: "Show in Explorer",
+                label: "Show in File Explorer",
                 onClick: () => { api.showItemInFolder(item.filePath); },
             },
             {

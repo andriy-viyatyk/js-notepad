@@ -201,6 +201,15 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
                 {
                     startGroup: true,
+                    label: "Save",
+                    onClick: () => {
+                        if (this.props.model instanceof TextFileModel) {
+                            this.props.model.saveFile(false);
+                        }
+                    },
+                    disabled: !(this.props.model instanceof TextFileModel),
+                },
+                {
                     label: "Save As...",
                     onClick: () => {
                         if (this.props.model instanceof TextFileModel) {
@@ -210,7 +219,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                     disabled: !(this.props.model instanceof TextFileModel),
                 },
                 {
-                    label: "Reveal in File Explorer",
+                    label: "Show in File Explorer",
                     onClick: () => {
                         api.showItemInFolder(
                             (this.props.model.state.get() as any).filePath

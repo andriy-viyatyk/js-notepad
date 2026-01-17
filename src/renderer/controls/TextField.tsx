@@ -12,7 +12,7 @@ const TextFieldRoot = styled(Input)({
         color: color.text.light,
         position: 'absolute',
         left: 4,
-        top: -16,
+        top: -18,
         fontSize: 14,
         whiteSpace: "nowrap",
         "&.label-left": {

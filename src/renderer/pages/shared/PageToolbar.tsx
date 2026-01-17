@@ -32,12 +32,13 @@ export function PageToolbar({
     children,
     borderTop,
     borderBottom,
+    className,
     ...rest
 }: PageToolbarProps) {
     return (
         <PageToolbarRoot
             {...rest}
-            className={clsx("page-toolbar", { borderTop, borderBottom })}
+            className={clsx("page-toolbar", className, { borderTop, borderBottom })}
         >
             {children}
         </PageToolbarRoot>

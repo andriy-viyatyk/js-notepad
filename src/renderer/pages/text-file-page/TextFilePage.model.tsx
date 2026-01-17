@@ -46,6 +46,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
     editor = new TextEditorModel(this);
     editorToolbarRefFirst: HTMLDivElement | null = null;
     editorToolbarRefLast: HTMLDivElement | null = null;
+    editorFooterRefLast: HTMLDivElement | null = null;
     
     setEditorToolbarRefFirst = (ref: HTMLDivElement | null) => {
         this.editorToolbarRefFirst = ref;
@@ -53,6 +54,10 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
 
     setEditorToolbarRefLast = (ref: HTMLDivElement | null) => {
         this.editorToolbarRefLast = ref;
+    }
+
+    setFooterRefLast = (ref: HTMLDivElement | null) => {
+        this.editorFooterRefLast = ref;
     }
 
     get encripted(): boolean {

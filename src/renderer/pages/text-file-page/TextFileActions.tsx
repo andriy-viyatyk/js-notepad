@@ -71,6 +71,17 @@ export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorTool
         }
     }
 
+    actions.push(<FlexSpace key="flex-space" />);
+
+    if (editor && editor !== "monaco") {
+        actions.unshift(
+            <EditorToolbarRoot key="editor-toolbar-first" ref={setEditorToolbarRefFirst} />
+        );
+        actions.push(
+            <EditorToolbarRoot key="editor-toolbar-last" ref={setEditorToolbarRefLast} />,
+        )
+    }
+
     const lastItems: ReactNode[] = [];
     if (language === "json") {
         lastItems.push(
@@ -86,12 +97,7 @@ export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorTool
     }
 
     if (lastItems.length > 0) {
-        actions.unshift(
-            <EditorToolbarRoot key="editor-toolbar-first" ref={setEditorToolbarRefFirst} />
-        );
         actions.push(
-            <FlexSpace key="flex-space" />,
-            <EditorToolbarRoot key="editor-toolbar-last" ref={setEditorToolbarRefLast} />,
             ...lastItems
         )
     }

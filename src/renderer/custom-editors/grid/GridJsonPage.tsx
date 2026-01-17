@@ -27,11 +27,12 @@ import { defaultCompare, filterRows } from "../../controls/AVGrid/avGridUtils";
 import { FilterBar } from "../../controls/AVGrid/filters/FilterBar";
 import { createPortal } from "react-dom";
 import { TextField } from "../../controls/TextField";
-import { CloseIcon } from "../../theme/icons";
+import { CloseIcon, ColumnsIcon } from "../../theme/icons";
 import { Button } from "../../controls/Button";
 import { filesModel } from "../../model/files-model";
 import { debounce } from "../../../shared/utils";
 import color from "../../theme/color";
+import { showColumnsOptions } from "./ColumnsOptions";
 
 const GridJsonPageRoot = styled.div({
     flex: "1 1 auto",
@@ -184,6 +185,10 @@ class GridJsonPageModel extends TComponentModel<
     };
 
     updateContent = (content: string) => {
+        if (!this.loaded && this.gridRef?.data.columns.length) {
+            this.loaded = true;
+        }
+
         if (!this.loaded && content) {
             this.loadGridData(content);
             this.loaded = true;
@@ -306,6 +311,25 @@ class GridJsonPageModel extends TComponentModel<
             italic: i === undefined || i === null,
         }));
     };
+
+    onUpdateRows = (updateFunc: (rows: any[]) => any[]) => {
+        const rows = this.state.get().rows;
+        const updatedRows = updateFunc(rows);
+        if (updatedRows !== rows) {
+            this.state.update((s) => {
+                s.rows = updatedRows;
+            });
+            this.onDataChanged();
+        }
+    };
+
+    get recordsCount() {
+        const rows = this.state.get().rows.length;
+        const visibleRows = this.gridRef?.data.rows.length ?? rows;
+        return visibleRows === rows
+            ? `${rows} rows`
+            : `${visibleRows} of ${rows} rows`;
+    }
 }
 
 export function GridJsonPage(props: GridJsonPageProps) {
@@ -359,6 +383,26 @@ export function GridJsonPage(props: GridJsonPageProps) {
                     />,
                     model.editorToolbarRefLast
                 )}
+            {Boolean(model.editorToolbarRefFirst) &&
+                createPortal(
+                    <Button
+                            size="small"
+                            type="flat"
+                            title="Edit Columns"
+                            onClick={(e) => {
+                                if (pageModel.gridRef) {
+                                    showColumnsOptions(
+                                        e.currentTarget,
+                                        pageModel.gridRef,
+                                        pageModel.onUpdateRows
+                                    );
+                                }
+                            }}
+                        >
+                            <ColumnsIcon />
+                        </Button>,
+                    model.editorToolbarRefFirst
+                )}
             <GridJsonPageRoot tabIndex={0} onKeyDown={pageModel.pageKeyDown}>
                 <FiltersProvider
                     filters={pageState.filters}
@@ -386,6 +430,11 @@ export function GridJsonPage(props: GridJsonPageProps) {
                     />
                 </FiltersProvider>
             </GridJsonPageRoot>
+            {Boolean(model.editorFooterRefLast) &&
+                createPortal(
+                    <span className="records-count">{pageModel.recordsCount}</span>,
+                    model.editorFooterRefLast
+                )}
         </>
     );
 }

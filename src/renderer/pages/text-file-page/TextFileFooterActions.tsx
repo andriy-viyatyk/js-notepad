@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { TextFileModel } from "./TextFilePage.model";
 import { Button } from "../../controls/Button";
 import color from "../../theme/color";
+import { FlexSpace } from "../../controls/Elements";
 
 const FooterButton = styled(Button)({
     "&.footer-button": {
@@ -12,8 +13,8 @@ const FooterButton = styled(Button)({
         fontSize: 13,
         "&.isActive": {
             color: color.text.default,
-        }
-    }
+        },
+    },
 });
 
 interface TextFileFooterActionsProps {
@@ -21,7 +22,13 @@ interface TextFileFooterActionsProps {
 }
 
 export function TextFileFooterActions({ model }: TextFileFooterActionsProps) {
-    const scriptOpen = model.script.state.use().open;
+    const { open } = model.script.state.use((s) => ({
+        open: s.open,
+    }));
+    const { encoding, editor } = model.state.use((s) => ({
+        encoding: s.encoding,
+        editor: s.editor,
+    }));
     const actions: ReactNode[] = [];
 
     actions.push(
@@ -30,11 +37,28 @@ export function TextFileFooterActions({ model }: TextFileFooterActionsProps) {
             size="small"
             type="icon"
             onClick={model.script.toggleOpen}
-            className={clsx("footer-button", {isActive: scriptOpen})}
+            className={clsx("footer-button", { isActive: open })}
         >
             script
-        </FooterButton>
-    )
+        </FooterButton>,
+        <FlexSpace key="flex-space" />
+    );
 
-    return <>{actions}</>
+    if (editor && editor !== "monaco") {
+        actions.push(
+            <div
+                ref={model.setFooterRefLast}
+                key="editor-place-last"
+                className="footer-label hide-empty"
+            />
+        );
+    }
+
+    actions.push(
+        <span className="footer-label" key="encoding-label">
+            {encoding || "utf-8"}
+        </span>
+    );
+
+    return <>{actions}</>;
 }

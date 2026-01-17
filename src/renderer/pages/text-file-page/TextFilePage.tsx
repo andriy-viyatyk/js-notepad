@@ -5,11 +5,9 @@ import { PageToolbar } from "../shared/PageToolbar";
 import { TextFileActions } from "./TextFileActions";
 import { ScriptEditor } from "./ScriptEditor";
 import { TextFileFooterActions } from "./TextFileFooterActions";
-import { FlexSpace } from "../../controls/Elements";
 import color from "../../theme/color";
 import { EncriptionPanel } from "./EncriptionPanel";
 import { ActiveEditor } from "./ActiveEditor";
-import { useEffect } from "react";
 
 const TextFilePageRoot = styled.div({
     flex: "1 1 auto",
@@ -18,16 +16,22 @@ const TextFilePageRoot = styled.div({
     height: 200,
     rowGap: 2,
     position: "relative",
-    "& .encoding-label": {
-        padding: "0 8px",
-        color: color.text.light,
-    },
-    "& .encription-pannel": {
-        position: "absolute",
-        top: 2,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 10,
+    "& .footer-bar": {
+        paddingRight: 8,
+        "& .footer-label": {
+            padding: "0 8px 0 0",
+            color: color.text.light,
+            "&::before": {
+                content: '"|"',
+                marginRight: 8,
+                color: color.border.default,
+            }
+        },
+        "& .hide-empty": {
+            "&:empty": {
+                display: "none",
+            },
+        },
     },
 });
 
@@ -55,15 +59,12 @@ export function TextFilePage({ model }: TextFilePageProps) {
             </PageToolbar>
             <ActiveEditor model={model} />
             <ScriptEditor model={model} />
-            <PageToolbar borderTop>
+            <PageToolbar borderTop className="footer-bar">
                 <TextFileFooterActions model={model} />
-                <FlexSpace />
-                <span className="encoding-label">{encoding || "utf-8"}</span>
             </PageToolbar>
             {showEncryptionPanel && (
                 <EncriptionPanel
                     model={model}
-                    className="encription-pannel"
                     onSubmit={model.onSubmitPassword}
                     onCancel={model.onCancelPassword}
                 />

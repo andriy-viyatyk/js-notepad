@@ -4,16 +4,29 @@ import color from "../../theme/color";
 import { TextField } from "../../controls/TextField";
 import { useCallback, useMemo, useState } from "react";
 import { Button } from "../../controls/Button";
+import { keyframes } from "@emotion/react";
+
+const pulse = keyframes`
+  0% { transform: scale(0.9) translateX(-50%); }
+  100% { transform: scale(1) translateX(-50%); }
+`;
 
 const EncriptionPanelRoot = styled.div({
+    position: "absolute",
+    top: 2,
+    left: "50%",
+    zIndex: 10,
+    transform: "translateX(-50%)",
     display: "flex",
     flexDirection: "column",
     padding: "8px 16px",
-    border: `1px solid ${color.border.active}`,
+    border: `1px solid ${color.border.default}`,
+    outline: `1px solid ${color.border.default}`,
     borderRadius: 4,
     backgroundColor: color.background.default,
+    animation: `${pulse} 0.1s ease-out`,
     "& .password-field": {
-        marginTop: 20,
+        marginTop: 24,
         "& input": {
             width: 280,
         }
@@ -26,6 +39,9 @@ const EncriptionPanelRoot = styled.div({
         "& button": {
             width: 90,
             justifyContent: "center",
+            "&:hover": {
+                borderColor: color.border.active,
+            }
         }
     },
     "& .error-pannel": {

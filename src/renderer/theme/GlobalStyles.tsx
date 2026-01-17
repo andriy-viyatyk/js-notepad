@@ -8,6 +8,7 @@ const globalStyles = css`
         font-family: Consolas, monospace, "Courier New";
         font-size: 14px;
         font-weight: normal;
+        overflow: hidden;
     }
 
     input,

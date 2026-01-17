@@ -10,3 +10,14 @@ export function resolveEditor(filePath?: string): PageEditor | undefined {
         return "grid-json";
     }
 }
+
+export function validateEditorForLanguage(editor: PageEditor | undefined, languageId: string): PageEditor {
+    switch (editor) {
+        case "grid-json":
+            if (languageId !== "json") {
+                return "monaco";
+            }
+    }
+
+    return editor;
+}

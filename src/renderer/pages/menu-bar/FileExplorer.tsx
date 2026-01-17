@@ -131,7 +131,7 @@ class FileExplorerModel extends TComponentModel<
                 invisible: item.isFolder,
             },
             {
-                label: "Show in Explorer",
+                label: "Show in File Explorer",
                 onClick: () => {
                     if (item.isFolder) {
                         api.showFolder(item.filePath);
