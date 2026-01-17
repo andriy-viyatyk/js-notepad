@@ -471,6 +471,7 @@ export function PageTab(props: PageTabProps) {
                 <Tooltip
                     id={id}
                     place="bottom"
+                    delayShow={1500}
                 >
                     {filePath}
                 </Tooltip>

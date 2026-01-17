@@ -211,7 +211,7 @@ function DefaultCell({
             </OverflowTooltipText>
             {selected &&
                 (selectedIcon ?? <CheckIcon className="selectedCheckIcon" />)}
-            {Boolean(tooltip) && <Tooltip id={id}>{tooltip}</Tooltip>}
+            {Boolean(tooltip) && <Tooltip id={id} delayShow={1500}>{tooltip}</Tooltip>}
         </ItemRoot>
     );
 }

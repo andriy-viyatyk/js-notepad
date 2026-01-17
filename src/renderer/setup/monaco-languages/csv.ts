@@ -54,8 +54,8 @@ export function defineCSVLanguage(monaco: Monaco): void {
     // Register the language
     monaco.languages.register({
         id: languageId,
-        extensions: [".csv", ".tsv"],
-        aliases: ["CSV", "csv", "TSV", "tsv"],
+        extensions: [".csv", ".tsv", ".psv"],
+        aliases: ["CSV", "csv", "TSV", "tsv", "PSV", "psv"],
     });
 
     // Set language configuration
