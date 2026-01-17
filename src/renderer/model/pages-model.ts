@@ -15,6 +15,7 @@ import { PageModel } from "./page-model";
 import { recentFiles } from "./recentFiles";
 import { debounce } from "../../shared/utils";
 import { newEmptyPageModel, newPageModel, newPageModelFromState } from "./new-page-model";
+import { uuid } from "../common/node-utils";
 
 const defaultOpenFilesState = {
     pages: [] as PageModel[],
@@ -574,6 +575,21 @@ export class PagesModel extends TModel<OpenFilesState> {
             api.openNewWindow(filePath);
         }
     }
+
+    duplicatePage = async (pageId: string) => {
+        const page = this.findPage(pageId);
+        if (!page) {
+            return;
+        }
+
+        const pageData: Partial<IPage> = page.getRestoreData();
+        pageData.id = uuid();
+        const newPage = await this.restoreModel(pageData);
+        if (newPage) {
+            this.addPage(newPage);
+        }
+        this.groupTabs(pageId, pageData.id);
+    };
 }
 
 export const pagesModel = new PagesModel(

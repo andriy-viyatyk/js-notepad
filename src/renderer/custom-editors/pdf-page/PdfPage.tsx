@@ -25,7 +25,7 @@ class PdfPageModel extends PageModel<PdfPageModelState, void> {
     noLanguage = true;
 
     getRestoreData() {
-        return this.state.get();
+        return JSON.parse(JSON.stringify(this.state.get()));
     }
 
     async restore() {

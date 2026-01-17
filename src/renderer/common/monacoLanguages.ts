@@ -5,6 +5,11 @@ const extraLanguages: MonacoLanguage[] = [
         "aliases": ['Registry', 'reg'],
         "extensions": [".reg"],
         "id": "reg"
+    },
+    {
+        "aliases": ['CSV', 'csv', 'TSV', 'tsv'],
+        "extensions": [".csv", ".tsv"],
+        "id": "csv"
     }
 ];
 

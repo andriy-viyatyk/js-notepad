@@ -200,6 +200,12 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                     },
                 },
                 {
+                    label: "Duplicate Tab",
+                    onClick: () => {
+                        pagesModel.duplicatePage(this.props.model.id);
+                    },
+                },
+                {
                     startGroup: true,
                     label: "Save",
                     onClick: () => {

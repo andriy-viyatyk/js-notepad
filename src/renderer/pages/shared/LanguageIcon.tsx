@@ -11,6 +11,7 @@ import {
     CppIcon,
     CSharpIcon,
     CssIcon,
+    CsvIcon,
     DartIcon,
     DefaultIcon,
     DockerfileIcon,
@@ -92,6 +93,7 @@ const languageIconMap: { [key: string]: SvgIconComponent } = {
     xml: XmlIcon,
     yaml: YamlIcon,
     json: JsonIcon,
+    csv: CsvIcon,
 };
 
 export interface LanguageIconProps extends SvgIconProps {

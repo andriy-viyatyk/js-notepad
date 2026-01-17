@@ -31,7 +31,7 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
     }
 
     getRestoreData(): Partial<T> {
-        return this.state.get();
+        return JSON.parse(JSON.stringify(this.state.get()));
     }
 
     saveState(): Promise<void> {

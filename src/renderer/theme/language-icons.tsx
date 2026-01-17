@@ -7,6 +7,26 @@ export const DefaultIcon = createIconWithViewBox("150 150 900 700")(
     />
 );
 
+export const CsvIcon = createIconWithViewBox("150 150 900 700")(
+    <g>
+        <path fill="#e6194b" d="M394.1 277.2h140v54.7h-140v-54.7z"></path>
+        <path fill="#3cb44b" d="M554.1 277.2h120v54.7h-120v-54.7z"></path>
+        <path fill="#ffe119" d="M694.1 277.2h111.7v54.7h-111.7v-54.7z"></path>
+
+        <path fill="#4363d8" d="M394.1 407.5h140v54.7h-140v-54.7z"></path>
+        <path fill="#f58231" d="M554.1 407.5h120v54.7h-120v-54.7z"></path>
+        <path fill="#911eb4" d="M694.1 407.5h111.7v54.7h-111.7v-54.7z"></path>
+
+        <path fill="#42d4f4" d="M394.1 537.8h140v54.7h-140v-54.7z"></path>
+        <path fill="#f032e6" d="M554.1 537.8h120v54.7h-120v-54.7z"></path>
+        <path fill="#bfef45" d="M694.1 537.8h111.7v54.7h-111.7v-54.7z"></path>
+
+        <path fill="#e6194b" d="M394.1 668.1h140v54.7h-140v-54.7z"></path>
+        <path fill="#3cb44b" d="M554.1 668.1h120v54.7h-120v-54.7z"></path>
+        <path fill="#ffe119" d="M694.1 668.1h111.7v54.7h-111.7v-54.7z"></path>
+    </g>
+);
+
 export const WindowsIcon = createIcon(32)(
     <path
         d="M6 8.81l8.173-1.114.004 7.884-8.17.047L6 8.81zm8.17 7.68l.006 7.89-8.17-1.124v-6.82l8.163.053zm.99-8.94l10.837-1.58v9.51l-10.837.086V7.55zM26 16.564l-.003 9.468L15.16 24.5l-.015-7.955L26 16.563z"

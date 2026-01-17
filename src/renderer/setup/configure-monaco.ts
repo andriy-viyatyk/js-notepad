@@ -4,6 +4,7 @@ import { languages } from "monaco-editor";
 
 import color from "../theme/color";
 import { defineRegLanguage } from "./monaco-languages/reg";
+import { defineCSVLanguage } from "./monaco-languages/csv";
 
 loader.config({ monaco });
 
@@ -30,6 +31,19 @@ function defineMonacoTheme(monaco: Monaco, themeName: string) {
             { token: 'function.sql', foreground: 'dcdcaa' },
             { token: 'predefined.function.sql', foreground: 'dcdcaa' },
             { token: 'type.function.sql', foreground: 'dcdcaa' },
+
+            // CSV Rainbow colors
+            { token: 'csv.column0', foreground: 'e6194b' },
+            { token: 'csv.column1', foreground: '3cb44b' },
+            { token: 'csv.column2', foreground: 'ffe119' },
+            { token: 'csv.column3', foreground: '5a7ef0' },
+            { token: 'csv.column4', foreground: 'f58231' },
+            { token: 'csv.column5', foreground: '911eb4' },
+            { token: 'csv.column6', foreground: '42d4f4' },
+            { token: 'csv.column7', foreground: 'f032e6' },
+            { token: 'csv.column8', foreground: 'bfef45' },
+            { token: 'csv.column9', foreground: 'fabebe' },
+            { token: 'delimiter.csv', foreground: '808080' },
         ],
         colors: {
             "editor.background": color.background.default,
@@ -138,6 +152,7 @@ export async function initMonaco() {
     setupCompiler(monaco);
 
     defineRegLanguage(monaco);
+    defineCSVLanguage(monaco);
 
     await loadEditorTypes(monaco);
 
