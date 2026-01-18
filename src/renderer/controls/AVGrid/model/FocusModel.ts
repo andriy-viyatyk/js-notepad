@@ -328,14 +328,9 @@ export class FocusModel<R> {
             const oldSel = foc?.selection;
 
             if (oldSel) {
-                const edges = [
-                    oldSel.rowStart,
-                    oldSel.rowEnd,
-                    currentSel.rowEnd,
-                ];
-                const min = Math.min(...edges) + 1;
-                const max = Math.max(...edges) + 1;
-                this.model.update({ rows: range(min, max) });
+                this.model.update({
+                    cells: [...this.cellsToUpdate(oldSel), ...this.cellsToUpdate({...currentSel, ...startSel})],
+                });
             }
 
             return {
@@ -349,6 +344,24 @@ export class FocusModel<R> {
             };
         });
     };
+
+    private cellsToUpdate(
+        selection: CellFocus<R>["selection"],
+    ) {
+        const cells: RenderCell[] = [];
+        if (selection) {
+            const minRow = Math.min(selection.rowStart, selection.rowEnd);
+            const maxRow = Math.max(selection.rowStart, selection.rowEnd);
+            const minCol = Math.min(selection.colStart, selection.colEnd);
+            const maxCol = Math.max(selection.colStart, selection.colEnd);
+            for (let i = minRow; i <= maxRow; i++) {
+                for (let j = minCol; j <= maxCol; j++) {
+                    cells.push({ row: i + 1, col: j });
+                }
+            }
+        }
+        return cells;
+    }
 
     validateFocus = () => {
         const getRowKey = this.model.props.getRowKey;

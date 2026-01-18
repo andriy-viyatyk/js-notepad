@@ -2,14 +2,29 @@ import { SetStateAction } from "react";
 import { debounce } from "../../../shared/utils";
 import { TComponentModel } from "../../common/classes/model";
 import { parseObject } from "../../common/parseUtils";
-import { CellFocus, Column, TFilter, TFilterType } from "../../controls/AVGrid/avGridTypes";
+import {
+    CellFocus,
+    Column,
+    TFilter,
+    TFilterType,
+} from "../../controls/AVGrid/avGridTypes";
 import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
 import { filesModel } from "../../model/files-model";
 import { TextFileModel } from "../../pages/text-file-page/TextFilePage.model";
 import { resolveState } from "../../common/utils";
-import { createIdColumn, getGridDataWithColumns, getRowKey, idColumnKey, removeIdColumn } from "./grid-page-utils";
+import {
+    createIdColumn,
+    getGridDataWithColumns,
+    getRowKey,
+    idColumnKey,
+    removeIdColumn,
+} from "./grid-page-utils";
 import { csvToRecords } from "../../common/csvUtils";
-import { defaultCompare, filterRows, rowsToCsvText } from "../../controls/AVGrid/avGridUtils";
+import {
+    defaultCompare,
+    filterRows,
+    rowsToCsvText,
+} from "../../controls/AVGrid/avGridUtils";
 import { TOnGetFilterOptions } from "../../controls/AVGrid/filters/useFilters";
 
 export interface GridPageProps {
@@ -76,14 +91,21 @@ export class GridPageModel extends TComponentModel<
         const savedState = parseObject(data) || {};
         if (Array.isArray(savedState.columns)) {
             this.state.update((s) => {
-                s.columns = savedState.columns.map((c: any) => ({
-                    key: c.key,
-                    name: c.name,
-                    width: c.width,
-                    dataType: c.dataType,
-                    filterType: "options" as TFilterType,
-                    resizible: true,
-                }));
+                const existing = s.columns.filter(c => savedState.columns.some((sc: any) => sc.key === c.key));
+                const savedColumns = savedState.columns.filter((sc: any) => existing.some(c => c.key === sc.key));
+                const other = s.columns.filter(c => !savedState.columns.some((sc: any) => sc.key === c.key));
+                const newColumns = [
+                    ...savedColumns.map((c: any) => {
+                        const existingColumn = existing.find((sc: any) => sc.key === c.key);
+                        return {
+                            ...existingColumn,
+                            width: c.width,
+                            dataType: c.dataType,
+                        };
+                    }),
+                    ...other,
+                ]
+                s.columns = newColumns;
             });
         }
         if (
@@ -93,7 +115,11 @@ export class GridPageModel extends TComponentModel<
             this.gridRef
         ) {
             setTimeout(() => {
-                this.gridRef.models.focus.focusCell(savedState.focus.rowIndex, savedState.focus.colIndex, true);
+                this.gridRef.models.focus.focusCell(
+                    savedState.focus.rowIndex,
+                    savedState.focus.colIndex,
+                    true
+                );
             }, 0);
         }
         if (typeof savedState.search === "string") {
@@ -168,6 +194,7 @@ export class GridPageModel extends TComponentModel<
         }
 
         if (!this.loaded && content) {
+            this.detectCsvDelimiter(content);
             this.loadGridData(content);
             this.loaded = true;
         }
@@ -178,10 +205,36 @@ export class GridPageModel extends TComponentModel<
         }
     };
 
+    private detectCsvDelimiter = (content: string) => {
+        if (this.props.model.state.get().editor !== "grid-csv") {
+            return;
+        }
+
+        const firstLine: string =
+            content.split("\n").slice(0, 5).join("") || "";
+        const delimiters: string[] = [",", ";", "\t", "|"];
+        let maxCount = 0;
+        let detectedDelimiter = ",";
+
+        for (const delim of delimiters) {
+            const count: number = (
+                firstLine.match(new RegExp("\\" + delim, "g")) || []
+            ).length;
+            if (count > maxCount) {
+                maxCount = count;
+                detectedDelimiter = delim;
+            }
+        }
+
+        this.state.update((s) => {
+            s.csvDelimeter = detectedDelimiter;
+        });
+    };
+
     reaload = () => {
         const content = this.props.model.state.get().content || "";
         this.loadGridData(content);
-    }
+    };
 
     private loadGridData = (content: string) => {
         let rows = [];
@@ -223,12 +276,12 @@ export class GridPageModel extends TComponentModel<
             let rows = csvToRecords(content, csvWithColumns, csvDelimeter);
             if (Array.isArray(rows) && !csvWithColumns) {
                 // map array of arrays to array of objects
-                rows = rows.map(r => ({...r}));
+                rows = rows.map((r) => ({ ...r }));
             }
             return rows;
         }
         return parseObject(content);
-    }
+    };
 
     editRow = (columnKey: string, rowKey: string, value: any) => {
         this.state.update((s) => {
@@ -266,9 +319,10 @@ export class GridPageModel extends TComponentModel<
 
     private getCsvContent = () => {
         const { rows, csvDelimeter, csvWithColumns } = this.state.get();
-        const columns = /*this.gridRef?.data.columns ||*/ this.state.get().columns;
+        const columns =
+            /*this.gridRef?.data.columns ||*/ this.state.get().columns;
         return rowsToCsvText(rows, columns, csvWithColumns, csvDelimeter);
-    }
+    };
 
     private getContentToSave = () => {
         const editor = this.props.model.state.get().editor;
@@ -279,7 +333,7 @@ export class GridPageModel extends TComponentModel<
             default:
                 return this.getJsonContent();
         }
-    }
+    };
 
     onDataChanged = () => {
         const content = this.getContentToSave();

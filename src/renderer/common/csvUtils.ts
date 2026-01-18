@@ -22,6 +22,7 @@ export function csvToRecords(csv: string, withColumns = false, delimiter = '\t')
         return parse(csv, {
             columns: withColumns,
             skip_empty_lines: true,
+            relax_column_count: true,
             delimiter,
           })
     } catch (e){
