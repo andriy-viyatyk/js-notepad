@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { TextFileModel } from "./TextFilePage.model";
 import { Button } from "../../controls/Button";
 import { RunAllIcon, RunIcon } from "../../theme/icons";
@@ -6,6 +6,7 @@ import { SwitchButtons } from "../../controls/SwitchButtons";
 import { PageEditor } from "../../../shared/types";
 import { FlexSpace } from "../../controls/Elements";
 import styled from "@emotion/styled";
+import { getLanguageSwitchOptions } from "../../model/resolve-editor";
 
 const EditorToolbarRoot = styled.div({
     display: "flex",
@@ -19,16 +20,6 @@ interface TextFileActionsProps {
     setEditorToolbarRefLast?: (ref: HTMLDivElement | null) => void;
 }
 
-const jsonSwitchOptions: PageEditor[] = ["monaco", "grid-json"];
-const jsonSwitchLabels: {
-    [key in PageEditor]: ReactNode;
-} = {
-    monaco: "JSON",
-    "grid-json": "Grid",
-};
-const getJsonSwitchLabel = (option: PageEditor) =>
-    jsonSwitchLabels[option] || jsonSwitchLabels["monaco"];
-
 export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorToolbarRefLast }: TextFileActionsProps) {
     const actions: ReactNode[] = [];
     const { hasSelection } = model.editor.state.use((s) => ({
@@ -39,6 +30,10 @@ export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorTool
         language: s.language,
         editor: s.editor,
     }));
+
+    const switchOptions = useMemo(() => {
+        return getLanguageSwitchOptions(language || "plaintext");
+    }, [language]);
 
     if (language === "javascript") {
         actions.push(
@@ -83,14 +78,14 @@ export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorTool
     }
 
     const lastItems: ReactNode[] = [];
-    if (language === "json") {
+    if (switchOptions.options.length) {
         lastItems.push(
             <SwitchButtons
                 key="json-editor-switch"
-                options={jsonSwitchOptions}
+                options={switchOptions.options}
                 value={editor || "monaco"}
                 onChange={model.changeEditor}
-                getLabel={getJsonSwitchLabel}
+                getLabel={switchOptions.getOptionLabel}
                 style={{ margin: 1 }}
             />
         );

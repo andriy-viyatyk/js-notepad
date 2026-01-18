@@ -3,6 +3,7 @@ import { range } from "../../../common/utils";
 import { CellFocus, Column } from "../avGridTypes";
 import { AVGridDataChangeEvent } from "./AVGridData";
 import { AVGridModel } from "./AVGridModel";
+import { RenderCell } from "../../RenderGrid/types";
 
 type SelType = "click" | "shiftClick" | "rightClick" | "startDrag" | "drag";
 
@@ -192,15 +193,15 @@ export class FocusModel<R> {
                 ? Math.abs(focus.selection.rowEnd - focus.selection.rowStart) +
                   1
                 : focus?.rowKey
-                ? 1
-                : 0;
+                  ? 1
+                  : 0;
         const columnCount =
             focus && focus.selection
                 ? Math.abs(focus.selection.colEnd - focus.selection.colStart) +
                   1
                 : focus?.columnKey
-                ? 1
-                : 0;
+                  ? 1
+                  : 0;
         const minRow =
             focus && focus.selection
                 ? Math.min(focus.selection.rowStart, focus.selection.rowEnd)
@@ -366,8 +367,14 @@ export class FocusModel<R> {
                     if (!rows.length || !columns.length) {
                         return undefined;
                     }
-                    const rIdx = Math.min(oldFocus.selection?.rowEnd ?? 0, rows.length - 1);
-                    const cIdx = Math.min(oldFocus.selection?.colEnd ?? 0, columns.length - 1);
+                    const rIdx = Math.min(
+                        oldFocus.selection?.rowEnd ?? 0,
+                        rows.length - 1
+                    );
+                    const cIdx = Math.min(
+                        oldFocus.selection?.colEnd ?? 0,
+                        columns.length - 1
+                    );
                     return {
                         columnKey: columns[cIdx].key,
                         rowKey: getRowKey(rows[rIdx]),
@@ -381,7 +388,7 @@ export class FocusModel<R> {
                             colKeyEnd: columns[cIdx].key,
                             rowEnd: rIdx,
                             rowKeyEnd: getRowKey(rows[rIdx]),
-                        }
+                        },
                     };
                 }
                 const oldSelection = oldFocus.selection;
@@ -440,8 +447,8 @@ export class FocusModel<R> {
             data.e.shiftKey
                 ? "shiftClick"
                 : data.e.button === 0
-                ? "click"
-                : "rightClick"
+                  ? "click"
+                  : "rightClick"
         );
     };
 
@@ -655,12 +662,16 @@ export class FocusModel<R> {
                             ) {
                                 rows = [
                                     ...rows,
-                                    ...this.model.actions.addNewRow(false, true),
+                                    ...this.model.actions.addNewRow(
+                                        false,
+                                        true
+                                    ),
                                 ];
                                 rowIndex++;
                             } else {
                                 rowIndex =
-                                    columnIndex === 0 && rowIndex < rows.length - 1
+                                    columnIndex === 0 &&
+                                    rowIndex < rows.length - 1
                                         ? rowIndex + 1
                                         : rowIndex;
                             }

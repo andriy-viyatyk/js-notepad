@@ -8,7 +8,7 @@ interface ActiveEditorProps {
 }
 
 const getGridJsonModule = async () =>
-    (await import("../../custom-editors/grid/GridJsonPage")).default;
+    (await import("../../custom-editors/grid/GridPage")).default;
 
 export function ActiveEditor({ model }: ActiveEditorProps) {
     const { editor, encripted } = model.state.use((s) => ({
@@ -23,8 +23,10 @@ export function ActiveEditor({ model }: ActiveEditorProps) {
     let editorComponent: ReactNode = null;
     switch (editor) {
         case "grid-json":
+        case "grid-csv":
             editorComponent = (
                 <AsyncEditor
+                    key={editor}
                     getEditorModule={getGridJsonModule}
                     model={model}
                 />

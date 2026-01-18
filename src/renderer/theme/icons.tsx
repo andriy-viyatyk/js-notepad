@@ -531,6 +531,17 @@ export const IndeterminateIcon = createIcon(16)(
     </>
 );
 
+export const RadioCheckedIcon = createIcon(16)(
+    <>
+        <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" />
+        <circle cx="8" cy="8" r="3" fill="currentColor" />
+    </>
+);
+
+export const RadioUncheckedIcon = createIcon(16)(
+    <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" />
+);
+
 export const FilterTableIcon = createIcon(24)(
     <>
         <path

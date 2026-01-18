@@ -1,72 +1,38 @@
-import styled from "@emotion/styled";
-import { TextFileModel } from "../../pages/text-file-page/TextFilePage.model";
-import {
-    CellFocus,
-    Column,
-    TFilter,
-    TFilterType,
-} from "../../controls/AVGrid/avGridTypes";
-import { TComponentModel, useComponentModel } from "../../common/classes/model";
-import { parseObject } from "../../common/parseUtils";
-import {
-    createIdColumn,
-    getGridDataWithColumns,
-    getRowKey,
-    idColumnKey,
-    removeIdColumn,
-} from "./grid-page-utils";
-import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
-import { SetStateAction, useCallback, useEffect, useState } from "react";
-import AVGrid from "../../controls/AVGrid/AVGrid";
-import { resolveState } from "../../common/utils";
-import {
-    FiltersProvider,
-    TOnGetFilterOptions,
-} from "../../controls/AVGrid/filters/useFilters";
-import { defaultCompare, filterRows } from "../../controls/AVGrid/avGridUtils";
-import { FilterBar } from "../../controls/AVGrid/filters/FilterBar";
-import { createPortal } from "react-dom";
-import { TextField } from "../../controls/TextField";
-import { CloseIcon, ColumnsIcon } from "../../theme/icons";
-import { Button } from "../../controls/Button";
-import { filesModel } from "../../model/files-model";
+import { SetStateAction } from "react";
 import { debounce } from "../../../shared/utils";
-import color from "../../theme/color";
-import { showColumnsOptions } from "./ColumnsOptions";
+import { TComponentModel } from "../../common/classes/model";
+import { parseObject } from "../../common/parseUtils";
+import { CellFocus, Column, TFilter, TFilterType } from "../../controls/AVGrid/avGridTypes";
+import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
+import { filesModel } from "../../model/files-model";
+import { TextFileModel } from "../../pages/text-file-page/TextFilePage.model";
+import { resolveState } from "../../common/utils";
+import { createIdColumn, getGridDataWithColumns, getRowKey, idColumnKey, removeIdColumn } from "./grid-page-utils";
+import { csvToRecords } from "../../common/csvUtils";
+import { defaultCompare, filterRows, rowsToCsvText } from "../../controls/AVGrid/avGridUtils";
+import { TOnGetFilterOptions } from "../../controls/AVGrid/filters/useFilters";
 
-const GridJsonPageRoot = styled.div({
-    flex: "1 1 auto",
-    display: "flex",
-    flexDirection: "column",
-    height: 200,
-    position: "relative",
-});
-
-const SearchFieldRoot = styled(TextField)({
-    "& input": {
-        color: color.misc.blue,
-    },
-});
-
-interface GridJsonPageProps {
+export interface GridPageProps {
     model: TextFileModel;
 }
 
-const defaultGridJsonPageState = {
+export const defaultGridPageState = {
     columns: [] as Column[],
     rows: [] as any[],
     focus: undefined as CellFocus | undefined,
     search: "",
     filters: [] as TFilter[],
+    csvDelimeter: ",",
+    csvWithColumns: false,
 };
 
-type GridJsonPageState = typeof defaultGridJsonPageState;
+type GridPageState = typeof defaultGridPageState;
 
-class GridJsonPageModel extends TComponentModel<
-    GridJsonPageState,
-    GridJsonPageProps
+export class GridPageModel extends TComponentModel<
+    GridPageState,
+    GridPageProps
 > {
-    private name = "grid-json-page";
+    private name = "grid-page";
     gridRef: AVGridModel<any> | undefined = undefined;
     maxRowId = 0;
     private loaded = false;
@@ -90,6 +56,8 @@ class GridJsonPageModel extends TComponentModel<
             search: state.search,
             filters: state.filters,
             sortColumn: this.gridRef?.state.get().sortColumn,
+            csvDelimeter: state.csvDelimeter,
+            csvWithColumns: state.csvWithColumns,
         };
         await filesModel.saveCacheFile(
             this.props.model.id,
@@ -141,6 +109,16 @@ class GridJsonPageModel extends TComponentModel<
         if (savedState.sortColumn && this.gridRef) {
             this.gridRef.state.update((s) => {
                 s.sortColumn = savedState.sortColumn;
+            });
+        }
+        if (typeof savedState.csvDelimeter === "string") {
+            this.state.update((s) => {
+                s.csvDelimeter = savedState.csvDelimeter;
+            });
+        }
+        if (typeof savedState.csvWithColumns === "boolean") {
+            this.state.update((s) => {
+                s.csvWithColumns = savedState.csvWithColumns;
             });
         }
     };
@@ -200,11 +178,16 @@ class GridJsonPageModel extends TComponentModel<
         }
     };
 
+    reaload = () => {
+        const content = this.props.model.state.get().content || "";
+        this.loadGridData(content);
+    }
+
     private loadGridData = (content: string) => {
         let rows = [];
         let columns: Column[] = [];
         if (content) {
-            const parsed = parseObject(content);
+            const parsed = this.parseContent(content);
             if (parsed) {
                 const data = getGridDataWithColumns(parsed);
                 rows = data.rows;
@@ -222,7 +205,7 @@ class GridJsonPageModel extends TComponentModel<
     };
 
     private updateGridDataFromContent = (content: string) => {
-        let rows = parseObject(content ?? "[]");
+        let rows = this.parseContent(content ?? "[]");
         if (rows && Array.isArray(rows)) {
             rows = createIdColumn(rows);
             if (this.gridRef) {
@@ -233,6 +216,19 @@ class GridJsonPageModel extends TComponentModel<
             });
         }
     };
+
+    private parseContent = (content: string) => {
+        if (this.props.model.state.get().editor === "grid-csv") {
+            const { csvDelimeter, csvWithColumns } = this.state.get();
+            let rows = csvToRecords(content, csvWithColumns, csvDelimeter);
+            if (Array.isArray(rows) && !csvWithColumns) {
+                // map array of arrays to array of objects
+                rows = rows.map(r => ({...r}));
+            }
+            return rows;
+        }
+        return parseObject(content);
+    }
 
     editRow = (columnKey: string, rowKey: string, value: any) => {
         this.state.update((s) => {
@@ -268,8 +264,25 @@ class GridJsonPageModel extends TComponentModel<
         return JSON.stringify(removeIdColumn(rows), null, 4);
     };
 
+    private getCsvContent = () => {
+        const { rows, csvDelimeter, csvWithColumns } = this.state.get();
+        const columns = /*this.gridRef?.data.columns ||*/ this.state.get().columns;
+        return rowsToCsvText(rows, columns, csvWithColumns, csvDelimeter);
+    }
+
+    private getContentToSave = () => {
+        const editor = this.props.model.state.get().editor;
+        switch (editor) {
+            case "grid-csv":
+                return this.getCsvContent();
+            case "grid-json":
+            default:
+                return this.getJsonContent();
+        }
+    }
+
     onDataChanged = () => {
-        const content = this.getJsonContent();
+        const content = this.getContentToSave();
         this.changedContent = content;
         this.props.model.changeContent(content);
     };
@@ -330,117 +343,16 @@ class GridJsonPageModel extends TComponentModel<
             ? `${rows} rows`
             : `${visibleRows} of ${rows} rows`;
     }
-}
 
-export function GridJsonPage(props: GridJsonPageProps) {
-    const { model } = props;
-    const pageModel = useComponentModel(
-        props,
-        GridJsonPageModel,
-        defaultGridJsonPageState
-    );
-    const state = model.state.use();
-    const pageState = pageModel.state.use();
-    const [, /* unused */ setRefresh] = useState(0);
-
-    useEffect(() => {
-        pageModel.init();
-        return () => {
-            pageModel.dispose();
-        };
-    }, []);
-
-    useEffect(() => {
-        pageModel.updateContent(state.content || "");
-    }, [state.content]);
-
-    const onVisibleRowsChanged = useCallback(() => {
-        Promise.resolve().then(() => {
-            setRefresh(new Date().getTime());
+    setDelimiter = (delimiter: string) => {
+        this.state.update((s) => {
+            s.csvDelimeter = delimiter;
         });
-    }, []);
+    };
 
-    return (
-        <>
-            {Boolean(model.editorToolbarRefLast) &&
-                createPortal(
-                    <SearchFieldRoot
-                        value={pageState.search}
-                        onChange={pageModel.setSearch}
-                        placeholder="Search..."
-                        endButtons={[
-                            <Button
-                                size="small"
-                                type="icon"
-                                key="clear-search"
-                                title="Clear Search"
-                                onClick={pageModel.clearSearch}
-                                invisible={!pageState.search}
-                            >
-                                <CloseIcon />
-                            </Button>,
-                        ]}
-                    />,
-                    model.editorToolbarRefLast
-                )}
-            {Boolean(model.editorToolbarRefFirst) &&
-                createPortal(
-                    <Button
-                            size="small"
-                            type="flat"
-                            title="Edit Columns"
-                            onClick={(e) => {
-                                if (pageModel.gridRef) {
-                                    showColumnsOptions(
-                                        e.currentTarget,
-                                        pageModel.gridRef,
-                                        pageModel.onUpdateRows
-                                    );
-                                }
-                            }}
-                        >
-                            <ColumnsIcon />
-                        </Button>,
-                    model.editorToolbarRefFirst
-                )}
-            <GridJsonPageRoot tabIndex={0} onKeyDown={pageModel.pageKeyDown}>
-                <FiltersProvider
-                    filters={pageState.filters}
-                    setFilters={pageModel.setFilters}
-                    onGetOptions={pageModel.onGetOptions}
-                >
-                    <FilterBar
-                        className="filter-bar"
-                        gridModel={pageModel.gridRef}
-                    />
-                    <AVGrid
-                        ref={pageModel.setGridRef}
-                        columns={pageState.columns}
-                        rows={pageState.rows}
-                        getRowKey={getRowKey}
-                        focus={pageState.focus}
-                        setFocus={pageModel.setFocus}
-                        searchString={pageState.search}
-                        filters={pageState.filters}
-                        onVisibleRowsChanged={onVisibleRowsChanged}
-                        editRow={pageModel.editRow}
-                        onAddRows={pageModel.onAddRows}
-                        onDeleteRows={pageModel.onDeleteRows}
-                        onDataChanged={pageModel.onDataChanged}
-                    />
-                </FiltersProvider>
-            </GridJsonPageRoot>
-            {Boolean(model.editorFooterRefLast) &&
-                createPortal(
-                    <span className="records-count">{pageModel.recordsCount}</span>,
-                    model.editorFooterRefLast
-                )}
-        </>
-    );
+    toggleWithColumns = () => {
+        this.state.update((s) => {
+            s.csvWithColumns = !s.csvWithColumns;
+        });
+    };
 }
-
-const moduleExport = {
-    Editor: GridJsonPage,
-};
-
-export default moduleExport;

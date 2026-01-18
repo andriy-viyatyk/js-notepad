@@ -20,6 +20,12 @@ const ButtonRoot = styled.button({
     cursor: 'pointer',
     textWrap: 'nowrap',
     position: 'relative',
+    "&.light": {
+        color: color.text.light,
+        "&:hover:not(.disabled)": {
+            color: color.text.default,
+        }
+    },
     '& svg': {
         color: color.icon.light,
     },
@@ -124,6 +130,7 @@ export interface ButtonProps extends ParentType {
     className?: string;
     size?: 'small' | 'medium';
     type?: 'flat' | 'raised' | 'icon';
+    color?: "default" | "light";
     tooltip?: ReactNode;
     extraPadding?: boolean;
     disabled?: boolean;
@@ -139,6 +146,7 @@ export const Button = forwardRef(function ButtonComponent(props: Readonly<Button
         className,
         size = 'medium',
         type = 'flat',
+        color = 'default',
         title,
         tooltip,
         extraPadding: textPadding,
@@ -184,6 +192,7 @@ export const Button = forwardRef(function ButtonComponent(props: Readonly<Button
                         raised: type === 'raised',
                         flat: type === 'flat',
                         icon: type === 'icon',
+                        light: color === 'light',
                         extraPadding: textPadding,
                         disabled: disabled || loading,
                         lightBackground: background === 'light',

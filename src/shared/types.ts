@@ -1,5 +1,5 @@
 export type PageType = "textFile" | "pdfFile";
-export type PageEditor = "monaco" | "grid-json";
+export type PageEditor = "monaco" | "grid-json" | "grid-csv";
 
 export interface IPage {
     id: string,

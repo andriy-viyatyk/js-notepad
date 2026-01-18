@@ -1,0 +1,169 @@
+import styled from "@emotion/styled";
+import { useComponentModel } from "../../common/classes/model";
+import { getRowKey } from "./grid-page-utils";
+import { useCallback, useEffect, useState } from "react";
+import AVGrid from "../../controls/AVGrid/AVGrid";
+import { FiltersProvider } from "../../controls/AVGrid/filters/useFilters";
+import { FilterBar } from "../../controls/AVGrid/filters/FilterBar";
+import { createPortal } from "react-dom";
+import { TextField } from "../../controls/TextField";
+import { CloseIcon, ColumnsIcon } from "../../theme/icons";
+import { Button } from "../../controls/Button";
+import color from "../../theme/color";
+import { showColumnsOptions } from "./ColumnsOptions";
+import {
+    defaultGridPageState,
+    GridPageModel,
+    GridPageProps,
+} from "./GridPage-model";
+import { showCsvOptions } from "./CsvOptions";
+
+const GridPageRoot = styled.div({
+    flex: "1 1 auto",
+    display: "flex",
+    flexDirection: "column",
+    height: 200,
+    position: "relative",
+});
+
+const SearchFieldRoot = styled(TextField)({
+    "& input": {
+        color: color.misc.blue,
+    },
+});
+
+export function GridPage(props: GridPageProps) {
+    const { model } = props;
+    const pageModel = useComponentModel(
+        props,
+        GridPageModel,
+        defaultGridPageState
+    );
+    const state = model.state.use();
+    const pageState = pageModel.state.use();
+    const [, /* unused */ setRefresh] = useState(0);
+
+    useEffect(() => {
+        pageModel.init();
+        return () => {
+            pageModel.dispose();
+        };
+    }, []);
+
+    useEffect(() => {
+        pageModel.reaload();
+    }, [pageState.csvDelimeter, pageState.csvWithColumns]);
+
+    useEffect(() => {
+        pageModel.updateContent(state.content || "");
+    }, [state.content]);
+
+    const onVisibleRowsChanged = useCallback(() => {
+        Promise.resolve().then(() => {
+            setRefresh(new Date().getTime());
+        });
+    }, []);
+
+    return (
+        <>
+            {Boolean(model.editorToolbarRefLast) &&
+                createPortal(
+                    <SearchFieldRoot
+                        value={pageState.search}
+                        onChange={pageModel.setSearch}
+                        placeholder="Search..."
+                        endButtons={[
+                            <Button
+                                size="small"
+                                type="icon"
+                                key="clear-search"
+                                title="Clear Search"
+                                onClick={pageModel.clearSearch}
+                                invisible={!pageState.search}
+                            >
+                                <CloseIcon />
+                            </Button>,
+                        ]}
+                    />,
+                    model.editorToolbarRefLast
+                )}
+            {Boolean(model.editorToolbarRefFirst) &&
+                createPortal(
+                    <>
+                        <Button
+                            size="small"
+                            type="flat"
+                            title="Edit Columns"
+                            onClick={(e) => {
+                                if (pageModel.gridRef) {
+                                    showColumnsOptions(
+                                        e.currentTarget,
+                                        pageModel.gridRef,
+                                        pageModel.onUpdateRows
+                                    );
+                                }
+                            }}
+                        >
+                            <ColumnsIcon />
+                        </Button>
+                        {Boolean(model.state.get().editor === "grid-csv") && (
+                            <Button
+                                size="small"
+                                type="icon"
+                                color="light"
+                                key="csv-options"
+                                className="csv-options-button"
+                                title="Csv Options"
+                                onClick={(e) => {
+                                    showCsvOptions(e.currentTarget, pageModel);
+                                }}
+                            >
+                                ⚒-csv
+                            </Button>
+                        )}
+                    </>,
+                    model.editorToolbarRefFirst
+                )}
+            <GridPageRoot tabIndex={0} onKeyDown={pageModel.pageKeyDown}>
+                <FiltersProvider
+                    filters={pageState.filters}
+                    setFilters={pageModel.setFilters}
+                    onGetOptions={pageModel.onGetOptions}
+                >
+                    <FilterBar
+                        className="filter-bar"
+                        gridModel={pageModel.gridRef}
+                    />
+                    <AVGrid
+                        ref={pageModel.setGridRef}
+                        columns={pageState.columns}
+                        rows={pageState.rows}
+                        getRowKey={getRowKey}
+                        focus={pageState.focus}
+                        setFocus={pageModel.setFocus}
+                        searchString={pageState.search}
+                        filters={pageState.filters}
+                        onVisibleRowsChanged={onVisibleRowsChanged}
+                        editRow={pageModel.editRow}
+                        onAddRows={pageModel.onAddRows}
+                        onDeleteRows={pageModel.onDeleteRows}
+                        onDataChanged={pageModel.onDataChanged}
+                    />
+                </FiltersProvider>
+            </GridPageRoot>
+            {Boolean(model.editorFooterRefLast) &&
+                createPortal(
+                    <span className="records-count">
+                        {pageModel.recordsCount}
+                    </span>,
+                    model.editorFooterRefLast
+                )}
+        </>
+    );
+}
+
+const moduleExport = {
+    Editor: GridPage,
+};
+
+export default moduleExport;
