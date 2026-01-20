@@ -1,8 +1,6 @@
-const path = require("path");
 import styled from "@emotion/styled";
 import { List } from "../../controls/List";
 import color from "../../theme/color";
-import { LanguageIcon } from "../shared/LanguageIcon";
 import { MenuItem } from "../../controls/PopupMenu";
 import { FileIcon, FolderIcon } from "./FileIcon";
 
@@ -39,8 +37,6 @@ const getFileIcon = (item: FileListItem) => {
         return <FolderIcon />;
     }
     return <FileIcon path={item.filePath} />;
-    // const extension = path.extname(item.filePath);
-    // return <LanguageIcon ext={extension} />;
 };
 const getTooltip = (item: FileListItem) => item.filePath;
 
@@ -64,6 +60,7 @@ export function FileList(props: FileListProps) {
             getTooltip={getTooltip}
             getContextMenu={props.getContextMenu}
             onContextMenu={props.onContextMenu}
+            emptyMessage="no files"
         />
     );
 }

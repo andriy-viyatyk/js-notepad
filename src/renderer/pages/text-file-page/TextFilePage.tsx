@@ -8,6 +8,7 @@ import { TextFileFooterActions } from "./TextFileFooterActions";
 import color from "../../theme/color";
 import { EncriptionPanel } from "./EncriptionPanel";
 import { ActiveEditor } from "./ActiveEditor";
+import { FlexSpace } from "../../controls/Elements";
 
 const TextFilePageRoot = styled.div({
     flex: "1 1 auto",
@@ -25,7 +26,7 @@ const TextFilePageRoot = styled.div({
                 content: '"|"',
                 marginRight: 8,
                 color: color.border.default,
-            }
+            },
         },
         "& .hide-empty": {
             "&:empty": {
@@ -40,9 +41,9 @@ interface TextFilePageProps {
 }
 
 export function TextFilePage({ model }: TextFilePageProps) {
-    const { encoding, showEncryptionPanel } = model.state.use((s) => ({
-        encoding: s.encoding,
+    const { showEncryptionPanel, restored } = model.state.use((s) => ({
         showEncryptionPanel: s.showEncryptionPanel,
+        restored: s.restored,
     }));
 
     return (
@@ -57,7 +58,7 @@ export function TextFilePage({ model }: TextFilePageProps) {
                     setEditorToolbarRefFirst={model.setEditorToolbarRefFirst}
                 />
             </PageToolbar>
-            <ActiveEditor model={model} />
+            {restored ? <ActiveEditor model={model} /> : <FlexSpace />}
             <ScriptEditor model={model} />
             <PageToolbar borderTop className="footer-bar">
                 <TextFileFooterActions model={model} />

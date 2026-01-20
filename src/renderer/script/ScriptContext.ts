@@ -1,6 +1,7 @@
 import { PageModel } from "../model/page-model";
 import { isTextFileModel } from "../pages/text-file-page/TextFilePage.model";
 import { pagesModel } from "../model/pages-model";
+import React from "react";
 
 const wrapPage = (page?: PageModel) => {
     return {
@@ -42,6 +43,7 @@ const wrapPage = (page?: PageModel) => {
 const createCustomContext = (page?: PageModel) => {
     return {
         page: wrapPage(page),
+        React,
     };
 };
 

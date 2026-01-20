@@ -27,6 +27,7 @@ import { uuid } from "../common/node-utils";
 import { MenuItem } from "./PopupMenu";
 
 const NoRowsRoot = styled.div({
+    flex: "1 1 auto",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -211,7 +212,11 @@ function DefaultCell({
             </OverflowTooltipText>
             {selected &&
                 (selectedIcon ?? <CheckIcon className="selectedCheckIcon" />)}
-            {Boolean(tooltip) && <Tooltip id={id} delayShow={1500}>{tooltip}</Tooltip>}
+            {Boolean(tooltip) && (
+                <Tooltip id={id} delayShow={1500}>
+                    {tooltip}
+                </Tooltip>
+            )}
         </ItemRoot>
     );
 }
@@ -354,13 +359,17 @@ function ListComponent<O = any>(
     if (loading) {
         return (
             <NoRowsRoot>
-                <CircularProgress className="loading-indicator" /> Loading...
+                <CircularProgress className="loading-indicator" /> loading...
             </NoRowsRoot>
         );
     }
 
     if (!options.length) {
-        return <NoRowsRoot>{emptyMessage ?? "No rows"}</NoRowsRoot>;
+        return (
+            <NoRowsRoot onContextMenu={onContextMenu}>
+                {emptyMessage ?? "no rows"}
+            </NoRowsRoot>
+        );
     }
 
     return (

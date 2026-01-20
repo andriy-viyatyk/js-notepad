@@ -2,6 +2,8 @@ import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
 
 const lexicalObjects = `
+    const React = globalThis.React;
+
     const Array = globalThis.Array;
     const Boolean = globalThis.Boolean;
     const Date = globalThis.Date;

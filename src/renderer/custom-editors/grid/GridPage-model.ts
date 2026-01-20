@@ -6,7 +6,6 @@ import {
     CellFocus,
     Column,
     TFilter,
-    TFilterType,
 } from "../../controls/AVGrid/avGridTypes";
 import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
 import { filesModel } from "../../model/files-model";
@@ -26,6 +25,8 @@ import {
     rowsToCsvText,
 } from "../../controls/AVGrid/avGridUtils";
 import { TOnGetFilterOptions } from "../../controls/AVGrid/filters/useFilters";
+import { PageModel } from "../../model/page-model";
+import { pagesModel } from "../../model/pages-model";
 
 export interface GridPageProps {
     model: TextFileModel;
@@ -189,11 +190,7 @@ export class GridPageModel extends TComponentModel<
     };
 
     updateContent = (content: string) => {
-        if (!this.loaded && this.gridRef?.data.columns.length) {
-            this.loaded = true;
-        }
-
-        if (!this.loaded && content) {
+        if (!this.loaded) {
             this.detectCsvDelimiter(content);
             this.loadGridData(content);
             this.loaded = true;
@@ -320,7 +317,7 @@ export class GridPageModel extends TComponentModel<
     private getCsvContent = () => {
         const { rows, csvDelimeter, csvWithColumns } = this.state.get();
         const columns =
-            /*this.gridRef?.data.columns ||*/ this.state.get().columns;
+            this.gridRef?.data.columns || this.state.get().columns;
         return rowsToCsvText(rows, columns, csvWithColumns, csvDelimeter);
     };
 
@@ -409,4 +406,12 @@ export class GridPageModel extends TComponentModel<
             s.csvWithColumns = !s.csvWithColumns;
         });
     };
+
+    pageFocused = (page?: PageModel) => {
+        if (page === this.props.model || pagesModel.activePage === this.props.model) {
+            Promise.resolve().then(() => {
+                this.gridRef?.renderModel?.restoreScroll();
+            });
+        }
+    }
 }

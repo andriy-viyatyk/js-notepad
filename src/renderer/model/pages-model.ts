@@ -162,6 +162,7 @@ export class PagesModel extends TModel<OpenFilesState> {
 
     addEmptyPage = (): PageModel => {
         const emptyFile = newTextFileModel("");
+        emptyFile.restore();
         return this.addPage(emptyFile as unknown as PageModel);
     };
 

@@ -24,26 +24,26 @@ function defineMonacoTheme(monaco: Monaco, themeName: string) {
         inherit: true,
         rules: [
             // SQL colors fixes
-            { token: 'string.sql', foreground: 'ce9178' }, 
-            { token: 'string.quoted.single.sql', foreground: 'ce9178' },
-            { token: 'string.quoted.double.sql', foreground: 'ce9178' },
-            { token: 'predefined.sql', foreground: 'dcdcaa' },  
-            { token: 'function.sql', foreground: 'dcdcaa' },
-            { token: 'predefined.function.sql', foreground: 'dcdcaa' },
-            { token: 'type.function.sql', foreground: 'dcdcaa' },
+            { token: "string.sql", foreground: "ce9178" },
+            { token: "string.quoted.single.sql", foreground: "ce9178" },
+            { token: "string.quoted.double.sql", foreground: "ce9178" },
+            { token: "predefined.sql", foreground: "dcdcaa" },
+            { token: "function.sql", foreground: "dcdcaa" },
+            { token: "predefined.function.sql", foreground: "dcdcaa" },
+            { token: "type.function.sql", foreground: "dcdcaa" },
 
             // CSV Rainbow colors
-            { token: 'csv.column0', foreground: 'e6194b' },
-            { token: 'csv.column1', foreground: '3cb44b' },
-            { token: 'csv.column2', foreground: 'ffe119' },
-            { token: 'csv.column3', foreground: '5a7ef0' },
-            { token: 'csv.column4', foreground: 'f58231' },
-            { token: 'csv.column5', foreground: '911eb4' },
-            { token: 'csv.column6', foreground: '42d4f4' },
-            { token: 'csv.column7', foreground: 'f032e6' },
-            { token: 'csv.column8', foreground: 'bfef45' },
-            { token: 'csv.column9', foreground: 'fabebe' },
-            { token: 'delimiter.csv', foreground: '808080' },
+            { token: "csv.column0", foreground: "20b2aa" },
+            { token: "csv.column1", foreground: "1e90ff" },
+            { token: "csv.column2", foreground: "ff69b4" },
+            { token: "csv.column3", foreground: "808000" },
+            { token: "csv.column4", foreground: "9370db" },
+            { token: "csv.column5", foreground: "ffa500" },
+            { token: "csv.column6", foreground: "bdb76b" },
+            { token: "csv.column7", foreground: "00bfff" },
+            { token: "csv.column8", foreground: "ff6347" },
+            { token: "csv.column9", foreground: "32cd32" },
+            { token: "delimiter.csv", foreground: "808080" },
         ],
         colors: {
             "editor.background": color.background.default,
@@ -55,6 +55,32 @@ function defineMonacoTheme(monaco: Monaco, themeName: string) {
             "menu.border": color.border.default,
         },
     });
+}
+
+function redefineKeybinding(monaco: Monaco) {
+    monaco.editor.addKeybindingRules([
+        {
+            keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY,
+            command: "editor.action.deleteLines",
+        },
+        {
+            keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow,
+            command: 'cursorColumnSelectDown'
+        },
+        {
+            keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow,
+            command: 'cursorColumnSelectUp'
+        },
+        {
+            keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.LeftArrow,
+            command: 'cursorColumnSelectLeft'
+        },
+        {
+            keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.RightArrow,
+            command: 'cursorColumnSelectRight'
+        }
+    ]);
+    
 }
 
 function setupCompiler(monaco: Monaco) {
@@ -104,13 +130,16 @@ function setupCompiler(monaco: Monaco) {
 
 async function loadEditorTypes(monaco: Monaco) {
     try {
-        const response = await fetch('app-asset://editor-types/_imports.txt');
+        const response = await fetch("app-asset://editor-types/_imports.txt");
         if (!response.ok) {
-            console.warn('Failed to load _imports.txt for editor types');
+            console.warn("Failed to load _imports.txt for editor types");
             return;
         }
 
-        const typeFiles = (await response.text()).split('\n').map(f => f.trim()).filter(f => f.length > 0);
+        const typeFiles = (await response.text())
+            .split("\n")
+            .map((f) => f.trim())
+            .filter((f) => f.length > 0);
 
         for (const file of typeFiles) {
             const response = await fetch(`app-asset://editor-types/${file}`);
@@ -118,22 +147,22 @@ async function loadEditorTypes(monaco: Monaco) {
                 console.warn(`Failed to load type definitions: ${file}`);
                 continue;
             }
-            
+
             const content = await response.text();
-            
+
             // Add to both JavaScript and TypeScript
             monaco.languages.typescript.javascriptDefaults.addExtraLib(
                 content,
                 `file:///node_modules/@types/custom/${file}`
             );
-            
+
             monaco.languages.typescript.typescriptDefaults.addExtraLib(
                 content,
                 `file:///node_modules/@types/custom/${file}`
             );
         }
     } catch (error) {
-        console.error('Error loading custom type definitions:', error);
+        console.error("Error loading custom type definitions:", error);
     }
 }
 
@@ -141,14 +170,7 @@ export async function initMonaco() {
     if (monacoInstance) return monacoInstance;
 
     defineMonacoTheme(monaco, "custom-dark");
-
-    monaco.editor.addKeybindingRules([
-        {
-            keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY,
-            command: "editor.action.deleteLines",
-        },
-    ]);
-
+    redefineKeybinding(monaco);
     setupCompiler(monaco);
 
     defineRegLanguage(monaco);
@@ -167,5 +189,3 @@ export async function initMonaco() {
 }
 
 initMonaco();
-
-

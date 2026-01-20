@@ -24,6 +24,7 @@ export interface TextFilePageModelState extends IPage {
     password?: string;
     encripted?: boolean;
     showEncryptionPanel?: boolean;
+    restored: boolean;
 }
 
 export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
@@ -37,6 +38,7 @@ export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
     password: undefined,
     encripted: false,
     showEncryptionPanel: false,
+    restored: false,
 });
 
 export class TextFileModel extends PageModel<TextFilePageModelState, void> {
@@ -95,6 +97,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             password,
             encripted,
             showEncryptionPanel,
+            restored,
             ...pageData
         } = this.state.get();
         return pageData;
@@ -264,6 +267,9 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             });
         }
         await this.script.restore(id);
+        this.state.update((s) => {
+            s.restored = true;
+        });
     }
 
     private onFileChanged = async () => {

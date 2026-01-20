@@ -17,6 +17,7 @@ import {
     GridPageProps,
 } from "./GridPage-model";
 import { showCsvOptions } from "./CsvOptions";
+import { pagesModel } from "../../model/pages-model";
 
 const GridPageRoot = styled.div({
     flex: "1 1 auto",
@@ -45,7 +46,9 @@ export function GridPage(props: GridPageProps) {
 
     useEffect(() => {
         pageModel.init();
+        const focusSubscription = pagesModel.onFocus.subscribe(pageModel.pageFocused);
         return () => {
+            focusSubscription.unsubscribe();
             pageModel.dispose();
         };
     }, []);
@@ -99,6 +102,7 @@ export function GridPage(props: GridPageProps) {
                                     showColumnsOptions(
                                         e.currentTarget,
                                         pageModel.gridRef,
+                                        state.editor === "grid-csv",
                                         pageModel.onUpdateRows
                                     );
                                 }

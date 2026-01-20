@@ -237,6 +237,11 @@ class OpenWindows {
         return this.windows.some((w) => w.window?.window.isVisible());
     };
 
+    activateSomeWindow = (): void => {
+        const activeWindow = this.windows.find((w) => w.window?.window);
+        activeWindow?.window?.focus();
+    }
+
     makeVisible = (): void => {
         if (!this.anyVisible()) {
             const mainWin = this.mainWindow;

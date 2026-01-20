@@ -412,9 +412,16 @@ export default class RenderGridModel extends TComponentModel<
         }
     };
 
-    onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        if (e.target === this.containerRef.current) {
-            const { scrollLeft: x, scrollTop: y } = e.target as HTMLDivElement;
+    restoreScroll = () => {
+        if (this.containerRef.current && (this.offsetRef.x !== 0 || this.offsetRef.y !== 0)) {
+            this.containerRef.current.scrollLeft = this.offsetRef.x;
+            this.containerRef.current.scrollTop = this.offsetRef.y;
+        }
+    }
+
+    onScroll = (e?: React.UIEvent<HTMLDivElement>) => {
+        if (!e || e.target === this.containerRef.current) {
+            const { scrollLeft: x, scrollTop: y } = this.containerRef.current;
             const direction = {
                 x: x - this.offsetRef.x,
                 y: y - this.offsetRef.y,

@@ -1,6 +1,6 @@
 import ReactDOM from "react-dom";
 import styled from "@emotion/styled";
-import { SetStateAction, useRef } from "react";
+import { SetStateAction, useMemo, useRef } from "react";
 
 import { DefaultView, ViewPropsRO, Views } from "../../common/classes/view";
 import {
@@ -50,7 +50,7 @@ const ColumnsOptionsRoot = styled.div<{ width?: number; height?: number }>(
     })
 );
 
-const columns: Column[] = [
+const getColumns = (isCsv: boolean): Column[] => [
     {
         key: "visible",
         dataType: "boolean",
@@ -65,6 +65,7 @@ const columns: Column[] = [
         width: 100,
         resizible: true,
         isStatusColumn: true,
+        hidden: isCsv,
     },
     {
         key: "newKey",
@@ -108,6 +109,7 @@ type ColumnsOptionsState = typeof defaultColumnsOptionsState;
 class ColumnsOptionsModel extends TPopperModel<ColumnsOptionsState, undefined> {
     el = undefined as Element | undefined;
     gridModel = undefined as AVGridModel<any> | undefined;
+    isCsv = false;
     onUpdateRows = undefined as
         | ((updateFunc: (rows: any[]) => any[]) => void)
         | undefined;
@@ -305,6 +307,8 @@ export function ColumnsOptions({ model }: ViewPropsRO<ColumnsOptionsModel>) {
     const gridRef = useRef<AVGridModel<any>>(undefined);
     const state = model.state.use();
 
+    const columns = useMemo(() => getColumns(model.isCsv), [model.isCsv]);
+
     return ReactDOM.createPortal(
         <Popper
             key="avgrid-columns-options"
@@ -362,6 +366,7 @@ Views.registerView(showColumnsOptionsId, ColumnsOptions as DefaultView);
 export const showColumnsOptions = async (
     el: Element,
     gridModel: AVGridModel<any>,
+    isCsv: boolean,
     onUpdateRows: (updateFunc: (rows: any[]) => any[]) => void
 ) => {
     const model = new ColumnsOptionsModel(
@@ -369,6 +374,7 @@ export const showColumnsOptions = async (
     );
     model.el = el;
     model.gridModel = gridModel;
+    model.isCsv = isCsv;
     model.onUpdateRows = onUpdateRows;
     model.prepareEditColumns();
     model.calcInitialSize();
