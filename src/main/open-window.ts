@@ -126,12 +126,40 @@ export class OpenWindow {
 
         this.window.webContents.on("will-navigate", (event, url) => {
             console.log("Navigating to:", url);
+
+            if (url.startsWith("http://localhost")) {
+                const uri = new URL(url);
+                if (uri.pathname === "/" || uri.pathname === "") {
+                    return;
+                }
+                // todo: handle relative file to active page and open it
+                event.preventDefault();
+                return;
+            }
+
+            if (url.startsWith("file://")) {
+                const uri = new URL(url);
+                const currentUrl = this.window.webContents.getURL();
+                
+                // Allow initial load of your index.html
+                if (!currentUrl || currentUrl === "about:blank") {
+                    return;
+                }
+                
+                // Check if this is the main app file
+                const currentUri = new URL(currentUrl);
+                if (uri.pathname === currentUri.pathname) {
+                    return; // Allow same-page navigation (unlikely but safe)
+                }
+                
+                event.preventDefault();
+                return;
+            }
+
             // Allow navigation within your app protocols
             if (
                 url.startsWith("safe-file://") ||
-                url.startsWith("app-asset://") ||
-                url.startsWith("file://") ||
-                url.startsWith("http://localhost")
+                url.startsWith("app-asset://")
             ) {
                 return;
             }

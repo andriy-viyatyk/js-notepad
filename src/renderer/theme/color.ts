@@ -112,6 +112,7 @@ const color = {
         dark: vscode.editor.foreground,
         light: vscode.editorInlayHint.foreground,
         selection: vscode.button.foreground,
+        strong: "#dddddd",
     },
     icon: {
         default: vscode.icon.foreground,
@@ -189,6 +190,11 @@ const color = {
         text: "#cca700",
         border: "#000000",
         textHover: "#cca700",
+    },
+    minimapSlider: {
+        background: vscode.minimapSlider.background,
+        hoverBackground: vscode.minimapSlider.hoverBackground,
+        activeBackground: vscode.minimapSlider.activeBackground,
     }
 };
 

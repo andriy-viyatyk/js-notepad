@@ -9,6 +9,8 @@ interface ActiveEditorProps {
 
 const getGridJsonModule = async () =>
     (await import("../../custom-editors/grid/GridPage")).default;
+const getMdViewModule = async () =>
+    (await import("../../custom-editors/md-view/MdView")).default;
 
 export function ActiveEditor({ model }: ActiveEditorProps) {
     const { editor, encripted } = model.state.use((s) => ({
@@ -28,6 +30,15 @@ export function ActiveEditor({ model }: ActiveEditorProps) {
                 <AsyncEditor
                     key={editor}
                     getEditorModule={getGridJsonModule}
+                    model={model}
+                />
+            );
+            break;
+        case "md-view":
+            editorComponent = (
+                <AsyncEditor
+                    key={editor}
+                    getEditorModule={getMdViewModule}
                     model={model}
                 />
             );

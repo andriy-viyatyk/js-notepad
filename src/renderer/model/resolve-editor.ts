@@ -47,6 +47,9 @@ export function getLanguageSwitchOptions(languageId: string): SwitchOptions {
         case "csv":
             options.push("grid-csv");
             break;
+        case "markdown":
+            options.push("md-view");
+            break;
     }
 
     const getOptionLabel = (option: PageEditor) => {
@@ -57,6 +60,8 @@ export function getLanguageSwitchOptions(languageId: string): SwitchOptions {
             case "grid-json":
             case "grid-csv":
                 return "Grid";
+            case "md-view":
+                return "Preview";
             default:
                 return languageId.toUpperCase();
         }
