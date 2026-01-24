@@ -25,6 +25,7 @@ export interface TextFilePageModelState extends IPage {
     encripted?: boolean;
     showEncryptionPanel?: boolean;
     restored: boolean;
+    compareMode: boolean;
 }
 
 export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
@@ -32,6 +33,7 @@ export const getDefaultTextFilePageModelState = (): TextFilePageModelState => ({
     type: "textFile" as const,
     language: "plaintext",
     encoding: undefined,
+    compareMode: false,
     // no stored state props
     content: "",
     deleted: false,
@@ -148,6 +150,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             s.language = data.language || s.language;
             s.encoding = data.encoding || s.encoding;
             s.editor = data.editor || s.editor;
+            s.compareMode = data.compareMode || s.compareMode;
         });
         this.restore();
     };
@@ -463,6 +466,12 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         });
         this.modificationSaved = false;
         this.saveModifications();
+    };
+
+    setCompareMode = (compareMode: boolean) => {
+        this.state.update((s) => {
+            s.compareMode = compareMode;
+        });
     };
 }
 

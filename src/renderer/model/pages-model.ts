@@ -5,6 +5,7 @@ import { parseObject } from "../common/parseUtils";
 import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import {
+    isTextFileModel,
     newTextFileModel,
     TextFileModel,
 } from "../pages/text-file-page/TextFilePage.model";
@@ -494,7 +495,20 @@ export class PagesModel extends TModel<OpenFilesState> {
             this.ungroup(rightPageId);
             this.group(leftPageId, rightPageId);
         });
+
+        this.fixCompareMode();
     };
+
+    fixCompareMode = () => {
+        const textPages = this.state.get().pages.filter(
+            p => isTextFileModel(p)
+        ) as unknown as TextFileModel[];
+        textPages.forEach(page => {
+            if (page.state.get().compareMode && !this.isGrouped(page.id)) {
+                page.setCompareMode(false);
+            }
+        });
+    }
 
     canGroupWithLeft = (rightPageId: string) => {
         const pageIndex = this.state
@@ -508,6 +522,15 @@ export class PagesModel extends TModel<OpenFilesState> {
         const pageIndex = state.pages.findIndex((p) => p.id === leftPageId);
         return pageIndex >= 0 && pageIndex < state.pages.length - 1;
     };
+
+    getLeftGroupedPage = (withPageId: string) => {
+        const state = this.state.get();
+        const groupedWithId = state.rightLeft.get(withPageId);
+        if (groupedWithId) {
+            return this.findPage(groupedWithId);
+        }
+        return undefined;
+    }
 
     getGroupedPage = (withPageId: string) => {
         const state = this.state.get();

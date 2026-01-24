@@ -1,12 +1,12 @@
 import { ReactNode, useMemo } from "react";
-import { TextFileModel } from "./TextFilePage.model";
+import { isTextFileModel, TextFileModel } from "./TextFilePage.model";
 import { Button } from "../../controls/Button";
-import { RunAllIcon, RunIcon } from "../../theme/icons";
+import { CompareIcon, RunAllIcon, RunIcon } from "../../theme/icons";
 import { SwitchButtons } from "../../controls/SwitchButtons";
-import { PageEditor } from "../../../shared/types";
 import { FlexSpace } from "../../controls/Elements";
 import styled from "@emotion/styled";
 import { getLanguageSwitchOptions } from "../../model/resolve-editor";
+import { pagesModel } from "../../model/pages-model";
 
 const EditorToolbarRoot = styled.div({
     display: "flex",
@@ -34,6 +34,27 @@ export function TextFileActions({ model, setEditorToolbarRefFirst, setEditorTool
     const switchOptions = useMemo(() => {
         return getLanguageSwitchOptions(language || "plaintext");
     }, [language]);
+
+    
+    if (isTextFileModel(model)) {
+        const leftGrouped = pagesModel.getLeftGroupedPage(model.id);
+        if (leftGrouped && isTextFileModel(leftGrouped)) {
+            actions.push(
+                <Button
+                    key="compare-with-left"
+                    type="icon"
+                    size="small"
+                    title="Compare with Left Page"
+                    onClick={() => {
+                        model.setCompareMode(true);
+                        leftGrouped.setCompareMode(true);
+                    }}
+                >
+                    <CompareIcon />
+                </Button>
+            );
+        }
+    }
 
     if (language === "javascript") {
         actions.push(

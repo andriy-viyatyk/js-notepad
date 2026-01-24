@@ -6,6 +6,8 @@ import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
 import color from "../theme/color";
 import { RenderEditor } from "./RenderEditor";
+import { CompareEditor } from "./text-file-page/CompareEditor";
+import { isTextFileModel } from "./text-file-page/TextFilePage.model";
 
 const SinglePageRoot = styled.div(
     {
@@ -19,7 +21,7 @@ const SinglePageRoot = styled.div(
             display: "none",
         },
     },
-    { label: "SinglePageRoot" }
+    { label: "SinglePageRoot" },
 );
 
 const GroupedPagesRoot = styled.div(
@@ -46,7 +48,7 @@ const GroupedPagesRoot = styled.div(
             },
         },
     },
-    { label: "GroupedPagesRoot" }
+    { label: "GroupedPagesRoot" },
 );
 
 function RenderGroupedPages({
@@ -62,6 +64,7 @@ function RenderGroupedPages({
     const widthK = useRef<number>(0.5);
     const containerRef = useRef<HTMLDivElement>(null);
     const leftRef = useRef<HTMLDivElement>(null);
+    const compareMode = model.state.use((s: any) => s.compareMode);
 
     const setLeftRef = useCallback((el: HTMLDivElement | null) => {
         leftRef.current = el;
@@ -114,6 +117,26 @@ function RenderGroupedPages({
                 className={clsx({ isActive })}
             >
                 <RenderEditor key={`render-editor-${model.id}`} model={model} />
+            </SinglePageRoot>
+        );
+    }
+
+    if (
+        groupedModel &&
+        compareMode &&
+        isTextFileModel(model) &&
+        isTextFileModel(groupedModel)
+    ) {
+        return (
+            <SinglePageRoot
+                id={`editor-container-${model.id}`}
+                className={clsx({ isActive })}
+            >
+                <CompareEditor
+                    key={`render-editor-${model.id}`}
+                    model={model}
+                    groupedModel={groupedModel}
+                />
             </SinglePageRoot>
         );
     }

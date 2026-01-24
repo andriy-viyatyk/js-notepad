@@ -331,6 +331,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
     closeClick = () => {
         if (this.isGrouped) {
             pagesModel.ungroup(this.props.model.id);
+            pagesModel.fixCompareMode();
             pagesModel.showPage(this.props.model.id);
         } else {
             this.props.model.close(undefined);

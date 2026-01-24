@@ -45,7 +45,7 @@ export const MinimapRoot = styled.div({
         },
         "&.isDragging": {
             background: color.minimapSlider.activeBackground,
-        }
+        },
     },
 });
 
@@ -128,11 +128,10 @@ class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
         if (!this.scrollContainer || !this.contentMirror)
             return this.BASE_SCALE;
 
-        const mirrorScrollHeight = this.contentMirror.scrollHeight;
+        const realMirrorHeight = this.contentMirror.getBoundingClientRect().height;
         const heightRatio =
-            mirrorScrollHeight / this.scrollContainer.scrollHeight;
-        const effectiveScale = heightRatio * this.BASE_SCALE;
-        return effectiveScale;
+            realMirrorHeight / this.scrollContainer.scrollHeight;
+        return heightRatio;
     };
 
     syncEverything = () => {
@@ -215,7 +214,8 @@ class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
 
         if (this.scrollContainer) {
             this.scrollContainer.scrollTop =
-                this.startContainerTop + dy / wrapperScale / effectiveScale * 1.15;
+                this.startContainerTop +
+                (dy / wrapperScale / effectiveScale) * 1.15;
         }
     };
 
