@@ -61,6 +61,9 @@ const HeaderCellRoot = styled.div(
             backgroundColor: color.background.dark,
             "&.columnFiltered": {
                 display: "flex",
+                "& svg": {
+                    color: color.misc.blue,
+                }
             }
         },
         "&:hover": {

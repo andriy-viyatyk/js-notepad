@@ -153,6 +153,12 @@ export class OpenWindow {
                 }
                 
                 event.preventDefault();
+
+                let filePath = uri.pathname;
+                if (filePath.startsWith("/") && process.platform === "win32") {
+                    filePath = filePath.slice(1).replaceAll("/", "\\");
+                }
+                this.send(EventEndpoint.eOpenFile, filePath);
                 return;
             }
 

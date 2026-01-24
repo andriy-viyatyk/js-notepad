@@ -104,7 +104,7 @@ export class AVGridActions<R> {
 
     columnsReorder: TOnColumnsReorder = (
         sourceKey: string,
-        targetKey: string
+        targetKey: string,
     ) => {
         this.model.events.onColumnsReorder.send({ sourceKey, targetKey });
     };
@@ -129,7 +129,13 @@ export class AVGridActions<R> {
         }
     };
 
-    addRows = (count: number, insertIndex?: number, withFocus?: boolean, isTempRow?: boolean): R[] => {
+    addRows = (
+        count: number,
+        insertIndex?: number,
+        withFocus?: boolean,
+        isTempRow?: boolean,
+        focusSingleCell?: boolean,
+    ): R[] => {
         if (!this.model.props.onAddRows) return [];
         const { searchString, filters } = this.model.props;
         const sortColumn = this.model.state.get().sortColumn;
@@ -139,29 +145,46 @@ export class AVGridActions<R> {
 
         const rowsPosition = insertIndex ?? this.model.data.rows.length;
         const oldFocus = this.model.props.focus;
-        
+
         this.model.flags.noScrollOnFocus = true;
         const rows = this.model.props.onAddRows(count, insertIndex);
         this.model.events.onRowsAdded.send({ rows, insertIndex });
 
         if (withFocus) {
             Promise.resolve().then(() => {
-                this.model.models.focus.focusNewRows(rowsPosition, count, oldFocus);
+                if (focusSingleCell) {
+                    this.model.models.focus.selectRange(
+                        rowsPosition,
+                        oldFocus.selection.colStart,
+                        rowsPosition,
+                        oldFocus.selection.colStart,
+                    );
+                } else {
+                    this.model.models.focus.focusNewRows(
+                        rowsPosition,
+                        count,
+                        oldFocus,
+                    );
+                }
                 if (insertIndex === undefined) {
-                    this.model.renderModel?.scrollToRow(this.model.data.rows.length);
+                    this.model.renderModel?.scrollToRow(
+                        this.model.data.rows.length,
+                    );
                 }
             });
         }
 
         if (!isTempRow) {
-            setTimeout(() => { this.model.props.onDataChanged?.(); }, 0);
+            setTimeout(() => {
+                this.model.props.onDataChanged?.();
+            }, 0);
         }
 
         return rows;
     };
 
     addNewRow = (withFocus?: boolean, isTempRow?: boolean) => {
-        const rows = this.addRows(1, undefined, withFocus, isTempRow);
+        const rows = this.addRows(1, undefined, withFocus, isTempRow, true);
         if (isTempRow) {
             this.model.data.newRowKey = this.model.props.getRowKey(rows[0]);
             this.model.data.change();
@@ -169,7 +192,11 @@ export class AVGridActions<R> {
         return rows;
     };
 
-    deleteRows = (rowKeys: string[], skipDataChange?: boolean, withFocus?: boolean): void => {
+    deleteRows = (
+        rowKeys: string[],
+        skipDataChange?: boolean,
+        withFocus?: boolean,
+    ): void => {
         if (!this.model.props.onDeleteRows) return;
 
         const { minRow, minCol } = this.model.models.focus.selectedCount;
@@ -178,12 +205,17 @@ export class AVGridActions<R> {
         this.model.events.onRowsDeleted.send({ rowKeys });
 
         if (!skipDataChange) {
-            setTimeout(() => { this.model.props.onDataChanged?.(); }, 0);
+            setTimeout(() => {
+                this.model.props.onDataChanged?.();
+            }, 0);
         }
 
         if (withFocus) {
             Promise.resolve().then(() => {
-                const rowToSel = Math.min(minRow, this.model.data.rows.length - 1);
+                const rowToSel = Math.min(
+                    minRow,
+                    this.model.data.rows.length - 1,
+                );
                 this.model.models.focus.focusCell(rowToSel, minCol);
             });
         }

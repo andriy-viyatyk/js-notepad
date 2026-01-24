@@ -5,8 +5,13 @@ import styled from "@emotion/styled";
 import { TextFileModel } from "../../pages/text-file-page/TextFilePage.model";
 import color from "../../theme/color";
 import { CheckedIcon, UncheckedIcon } from "../../theme/icons";
-import { useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Minimap } from "../../controls/Minimap";
+import { TComponentModel, useComponentModel } from "../../common/classes/model";
+import { PageModel } from "../../model/page-model";
+import { pagesModel } from "../../model/pages-model";
+const path = require("path");
+const url = require("url");
 
 const MdViewRoot = styled.div({
     flex: "1 1 auto",
@@ -120,7 +125,31 @@ const MdViewRoot = styled.div({
     },
 });
 
-const components: Components = {
+function resolveRelatedLink(currentFilePath?: string, link?: string) {
+    if (!currentFilePath || !link) return link || "";
+    
+    const lowerLink = link.toLowerCase();
+    if (
+        lowerLink.startsWith("http://") ||
+        lowerLink.startsWith("https://") ||
+        lowerLink.startsWith("file://") ||
+        lowerLink.startsWith("mailto:") ||
+        lowerLink.startsWith("#")
+    ) {
+        return link;
+    }
+
+    try {
+        const currentDir = path.dirname(currentFilePath);
+        const absolutePath = path.resolve(currentDir, link);
+        const fileUrl = url.pathToFileURL(absolutePath).href;
+        return fileUrl;
+    } catch {
+        return link;
+    }
+}
+
+const getComponents = (filePath: string): Components => ({
     input: ({ node, ...props }) => {
         if (props.type === "checkbox") {
             return props.checked ? (
@@ -131,19 +160,81 @@ const components: Components = {
         }
         return <input {...props} />;
     },
-};
+    a: ({ node, href, children, ...props }) => {
+        return (
+            <a href={resolveRelatedLink(filePath, href)} {...props}>
+                {children}
+            </a>
+        );
+    },
+});
 
 export interface MdViewProps {
     model: TextFileModel;
 }
 
-export function MdView({ model }: MdViewProps) {
-    const content = model.state.use((s) => s.content);
-    const [container, setContainer] = useState<HTMLDivElement | null>(null);
+const defaultMdViewState = {
+    container: null as HTMLDivElement | null,
+};
+
+type MdViewState = typeof defaultMdViewState;
+
+class MdViewModel extends TComponentModel<MdViewState, MdViewProps> {
+    containerSrollTop = 0;
+
+    setContainer = (el: HTMLDivElement | null) => {
+        this.state.update((s) => {
+            s.container = el;
+        });
+    };
+
+    pageFocused = (page?: PageModel) => {
+        if (
+            page === this.props.model ||
+            pagesModel.activePage === this.props.model
+        ) {
+            Promise.resolve().then(() => {
+                const container = this.state.get().container;
+                if (container) container.scrollTop = this.containerSrollTop;
+            });
+        }
+    };
+
+    containerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        this.containerSrollTop = e.currentTarget?.scrollTop ?? 0;
+    };
+}
+
+export function MdView(props: MdViewProps) {
+    const { model } = props;
+    const pageModel = useComponentModel(props, MdViewModel, defaultMdViewState);
+    const pageState = pageModel.state.use();
+    const { content, filePath } = model.state.use((s) => ({
+        content: s.content,
+        filePath: s.filePath,
+    }));
+
+    const components = useMemo(
+        () => getComponents(filePath || ""),
+        [filePath],
+    );
+
+    useEffect(() => {
+        const focusSubscription = pagesModel.onFocus.subscribe(
+            pageModel.pageFocused,
+        );
+        return () => {
+            focusSubscription.unsubscribe();
+        };
+    }, []);
 
     return (
         <MdViewRoot>
-            <div className="md-scroll-container" ref={setContainer}>
+            <div
+                className="md-scroll-container"
+                ref={pageModel.setContainer}
+                onScroll={pageModel.containerScroll}
+            >
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[rehypeRaw]}
@@ -152,7 +243,10 @@ export function MdView({ model }: MdViewProps) {
                     {content}
                 </ReactMarkdown>
             </div>
-            <Minimap scrollContainer={container} className="md-minimap" />
+            <Minimap
+                scrollContainer={pageState.container}
+                className="md-minimap"
+            />
         </MdViewRoot>
     );
 }
