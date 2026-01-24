@@ -59,6 +59,9 @@ const MdViewRoot = styled.div({
     },
     "& a": {
         color: color.misc.blue,
+        "& strong": {
+            color: color.misc.blue,
+        },
     },
     "& h1, & h2": {
         borderBottom: `1px solid ${color.border.default}`,
@@ -127,7 +130,7 @@ const MdViewRoot = styled.div({
 
 function resolveRelatedLink(currentFilePath?: string, link?: string) {
     if (!currentFilePath || !link) return link || "";
-    
+
     const lowerLink = link.toLowerCase();
     if (
         lowerLink.startsWith("http://") ||
