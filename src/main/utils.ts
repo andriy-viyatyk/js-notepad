@@ -2,6 +2,17 @@ import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
 
+export const preparePath = (dirPath: string): boolean => {
+    if (!fs.existsSync(dirPath)) {
+        try {
+            fs.mkdirSync(dirPath, { recursive: true });
+        } catch (err) {
+            return false;
+        }
+    }
+    return true;
+};
+
 let appRootPath = undefined as string | undefined;
 export const getAppRootPath = (): string => {
     if (appRootPath === undefined) {

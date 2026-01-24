@@ -12,6 +12,10 @@ export const uuid = () => {
 
 export const nodeUtils = {
     listFiles: (dirPath: string, pattern?: string | RegExp) => {
+        if (!nodeUtils.fileExists(dirPath)) {
+            return [];
+        }
+
         const files: string[] = fs.readdirSync(dirPath);
 
         if (!pattern) {

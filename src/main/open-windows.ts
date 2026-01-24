@@ -4,7 +4,7 @@ import { BrowserWindow } from "electron";
 import { EventEndpoint } from "../ipc/api-types";
 import { OpenWindow } from "./open-window";
 import { windowStates } from "./window-states";
-import { getDataFolder } from "./utils";
+import { getDataFolder, preparePath } from "./utils";
 import { IPage, WindowPages } from "../shared/types";
 
 interface OpenWindowData {
@@ -114,6 +114,10 @@ class OpenWindows {
         const state: OpenWindowData[] = this.windows.map((w) => ({
             index: w.index,
         }));
+        const dataFolder = getDataFolder();
+        if (!preparePath(dataFolder)) {
+            return;
+        }
         const filePath = path.join(getDataFolder(), windowsFileName);
         fs.writeFileSync(filePath, JSON.stringify(state), {
             encoding: "utf-8",
