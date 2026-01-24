@@ -67,6 +67,19 @@ const config: ForgeConfig = {
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
         }),
     ],
+    publishers: [
+        {
+            name: "@electron-forge/publisher-github",
+            config: {
+                repository: {
+                    owner: "andriy-viyatyk",
+                    name: "js-notepad",
+                },
+                prerelease: false,
+                draft: true, // Highly recommended: creates the release but doesn't show it to users until you check it
+            },
+        },
+    ],
 };
 
 export default config;
