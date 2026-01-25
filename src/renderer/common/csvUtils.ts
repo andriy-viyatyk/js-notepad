@@ -14,9 +14,9 @@ export function recordsToCsv(records: readonly any[], columns: Array<string | un
     );
 }
 
-export function csvToRecords(csv: string, withColumns = false, delimiter = '\t'): Array<any> {
+export function csvToRecords(csv: string, withColumns = false, delimiter = '\t', onError?: (err: any) => void): Array<any> {
     try{
-        if (!csv){
+        if (!csv?.trim()) {
             return [];
         }
         return parse(csv, {
@@ -27,6 +27,7 @@ export function csvToRecords(csv: string, withColumns = false, delimiter = '\t')
           })
     } catch (e){
         console.error(e);
+        onError?.(e);
         return [];
     }
 }

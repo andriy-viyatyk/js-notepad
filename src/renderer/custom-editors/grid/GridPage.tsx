@@ -27,6 +27,14 @@ const GridPageRoot = styled.div({
     position: "relative",
 });
 
+const ErrorRoot = styled.div({
+    whiteSpace: "pre",
+    margin: "auto",
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: color.misc.yellow,
+});
+
 const SearchFieldRoot = styled(TextField)({
     "& input": {
         color: color.misc.blue,
@@ -66,6 +74,10 @@ export function GridPage(props: GridPageProps) {
             setRefresh(new Date().getTime());
         });
     }, []);
+
+    if (pageState.error) {
+        return <ErrorRoot>{pageState.error}</ErrorRoot>;
+    }
 
     return (
         <>

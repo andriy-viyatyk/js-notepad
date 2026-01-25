@@ -47,6 +47,13 @@ const ColumnsOptionsRoot = styled.div<{ width?: number; height?: number }>(
                 color: color.misc.red,
             },
         },
+        "& .edit-columns-header": {
+            backgroundColor: color.background.dark,
+            color: color.text.light,
+            fontSize: 13,
+            padding: "4px 8px",
+            borderBottom: `1px solid ${color.border.light}`,
+        }
     })
 );
 
@@ -320,7 +327,7 @@ export function ColumnsOptions({ model }: ViewPropsRO<ColumnsOptionsModel>) {
                     model.close(undefined);
                 }
             }}
-            placement="bottom-end"
+            placement="bottom-start"
             resizable
         >
             <ColumnsOptionsRoot
@@ -328,6 +335,7 @@ export function ColumnsOptions({ model }: ViewPropsRO<ColumnsOptionsModel>) {
                 width={model.width}
                 height={model.height}
             >
+                <div className="edit-columns-header">Edit Columns</div>
                 <AVGrid
                     ref={gridRef}
                     columns={columns}

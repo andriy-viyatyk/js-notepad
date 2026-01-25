@@ -50,6 +50,7 @@ export function TextFilePage({ model }: TextFilePageProps) {
         <TextFilePageRoot
             className={clsx("file-page")}
             onKeyDown={model.handleKeyDown}
+            tabIndex={0}
         >
             <PageToolbar borderBottom>
                 <TextFileActions

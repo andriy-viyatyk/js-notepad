@@ -2,11 +2,7 @@ import { SetStateAction } from "react";
 import { debounce } from "../../../shared/utils";
 import { TComponentModel } from "../../common/classes/model";
 import { parseObject } from "../../common/parseUtils";
-import {
-    CellFocus,
-    Column,
-    TFilter,
-} from "../../controls/AVGrid/avGridTypes";
+import { CellFocus, Column, TFilter } from "../../controls/AVGrid/avGridTypes";
 import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
 import { filesModel } from "../../model/files-model";
 import { TextFileModel } from "../../pages/text-file-page/TextFilePage.model";
@@ -40,6 +36,7 @@ export const defaultGridPageState = {
     filters: [] as TFilter[],
     csvDelimeter: ",",
     csvWithColumns: false,
+    error: undefined as string | undefined,
 };
 
 type GridPageState = typeof defaultGridPageState;
@@ -78,7 +75,7 @@ export class GridPageModel extends TComponentModel<
         await filesModel.saveCacheFile(
             this.props.model.id,
             JSON.stringify(stateToSave),
-            this.name
+            this.name,
         );
     };
 
@@ -87,17 +84,26 @@ export class GridPageModel extends TComponentModel<
     restoreState = async () => {
         const data = await filesModel.getCacheFile(
             this.props.model.id,
-            this.name
+            this.name,
         );
         const savedState = parseObject(data) || {};
         if (Array.isArray(savedState.columns)) {
             this.state.update((s) => {
-                const existing = s.columns.filter(c => savedState.columns.some((sc: any) => sc.key === c.key));
-                const savedColumns = savedState.columns.filter((sc: any) => existing.some(c => c.key === sc.key));
-                const other = s.columns.filter(c => !savedState.columns.some((sc: any) => sc.key === c.key));
+                const existing = s.columns.filter((c) =>
+                    savedState.columns.some((sc: any) => sc.key === c.key),
+                );
+                const savedColumns = savedState.columns.filter((sc: any) =>
+                    existing.some((c) => c.key === sc.key),
+                );
+                const other = s.columns.filter(
+                    (c) =>
+                        !savedState.columns.some((sc: any) => sc.key === c.key),
+                );
                 const newColumns = [
                     ...savedColumns.map((c: any) => {
-                        const existingColumn = existing.find((sc: any) => sc.key === c.key);
+                        const existingColumn = existing.find(
+                            (sc: any) => sc.key === c.key,
+                        );
                         return {
                             ...existingColumn,
                             width: c.width,
@@ -105,7 +111,7 @@ export class GridPageModel extends TComponentModel<
                         };
                     }),
                     ...other,
-                ]
+                ];
                 s.columns = newColumns;
             });
         }
@@ -119,7 +125,7 @@ export class GridPageModel extends TComponentModel<
                 this.gridRef.models.focus.focusCell(
                     savedState.focus.rowIndex,
                     savedState.focus.colIndex,
-                    true
+                    true,
                 );
             }, 0);
         }
@@ -268,16 +274,28 @@ export class GridPageModel extends TComponentModel<
     };
 
     private parseContent = (content: string) => {
+        let err: any = undefined;
+        let res: any = undefined;
         if (this.props.model.state.get().editor === "grid-csv") {
             const { csvDelimeter, csvWithColumns } = this.state.get();
-            let rows = csvToRecords(content, csvWithColumns, csvDelimeter);
+            let rows = csvToRecords(
+                content,
+                csvWithColumns,
+                csvDelimeter,
+                (e) => (err = e),
+            );
             if (Array.isArray(rows) && !csvWithColumns) {
                 // map array of arrays to array of objects
                 rows = rows.map((r) => ({ ...r }));
             }
-            return rows;
+            res = rows;
+        } else {
+            res = parseObject(content, (e) => (err = e));
         }
-        return parseObject(content);
+        this.state.update((s) => {
+            s.error = err ? err.message + "\n" + err.stack : undefined;
+        });
+        return res;
     };
 
     editRow = (columnKey: string, rowKey: string, value: any) => {
@@ -316,8 +334,7 @@ export class GridPageModel extends TComponentModel<
 
     private getCsvContent = () => {
         const { rows, csvDelimeter, csvWithColumns } = this.state.get();
-        const columns =
-            this.gridRef?.data.columns || this.state.get().columns;
+        const columns = this.gridRef?.data.columns || this.state.get().columns;
         return rowsToCsvText(rows, columns, csvWithColumns, csvDelimeter);
     };
 
@@ -353,14 +370,14 @@ export class GridPageModel extends TComponentModel<
         columns: Column[],
         filters: TFilter[],
         columnKey: string,
-        search?: string
+        search?: string,
     ) => {
         const uniqueValues = new Set<any>();
         filterRows(
             this.state.get().rows,
             columns,
             search,
-            filters?.filter((f) => f.columnKey !== columnKey)
+            filters?.filter((f) => f.columnKey !== columnKey),
         ).forEach((i) => uniqueValues.add(i[columnKey]));
         const options = Array.from(uniqueValues);
         options.sort(defaultCompare());
@@ -408,10 +425,13 @@ export class GridPageModel extends TComponentModel<
     };
 
     pageFocused = (page?: PageModel) => {
-        if (page === this.props.model || pagesModel.activePage === this.props.model) {
+        if (
+            page === this.props.model ||
+            pagesModel.activePage === this.props.model
+        ) {
             Promise.resolve().then(() => {
                 this.gridRef?.renderModel?.restoreScroll();
             });
         }
-    }
+    };
 }

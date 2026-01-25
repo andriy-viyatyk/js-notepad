@@ -2,6 +2,7 @@ import { PageModel } from "../model/page-model";
 import { isTextFileModel } from "../pages/text-file-page/TextFilePage.model";
 import { pagesModel } from "../model/pages-model";
 import React from "react";
+import { PageEditor } from "../../shared/types";
 
 const wrapPage = (page?: PageModel) => {
     return {
@@ -37,6 +38,14 @@ const wrapPage = (page?: PageModel) => {
             }
             return undefined;
         },
+        get editor() {
+            return page.state.get().editor;
+        },
+        set editor(value: PageEditor) {
+            if (isTextFileModel(page)) {
+                page.changeEditor(value);
+            }
+        }
     };
 };
 
