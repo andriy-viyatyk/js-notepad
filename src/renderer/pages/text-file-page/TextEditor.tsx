@@ -42,7 +42,7 @@ export class TextEditorModel extends TModel<TextEditorState> {
     };
 
     handleEditorChange = (value: string | undefined) => {
-        this.pageModel.changeContent(value || "");
+        this.pageModel.changeContent(value || "", true);
     };
 
     focusEditor = () => {

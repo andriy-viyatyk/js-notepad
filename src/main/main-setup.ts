@@ -55,7 +55,7 @@ export function setupMainProcess() {
 
         customSession.protocol.handle("safe-file", async (request) => {
             let filePath = decodeURIComponent(
-                request.url.replace("safe-file://", "")
+                request.url.replace("safe-file://", ""),
             );
 
             if (process.platform === "win32") {
@@ -104,7 +104,33 @@ export function setupMainProcess() {
     app.on("second-instance", (event, commandLine, workingDirectory) => {
         const filePath = commandLine[2];
         openWindows.makeVisible();
-        if (filePath && isValidFilePath(filePath)) {
+
+        if (filePath?.toLowerCase().trim() === "diff") {
+            const firstPath = commandLine[3];
+            const secondPath = commandLine[4];
+            const resolvedFirstPath = path.isAbsolute(firstPath)
+                ? firstPath
+                : path.resolve(workingDirectory, firstPath);
+
+            const resolvedSecondPath = path.isAbsolute(secondPath)
+                ? secondPath
+                : path.resolve(workingDirectory, secondPath);
+
+            if (
+                isValidFilePath(resolvedFirstPath) &&
+                isValidFilePath(resolvedSecondPath)
+            ) {
+                openWindows.handleOpenDiff(
+                    resolvedFirstPath,
+                    resolvedSecondPath,
+                );
+            }
+        } else if (filePath && !path.isAbsolute(filePath)) {
+            const resolvedPath = path.resolve(workingDirectory, filePath);
+            if (isValidFilePath(resolvedPath)) {
+                openWindows.handleOpenFile(resolvedPath);
+            }
+        } else if (filePath && isValidFilePath(filePath)) {
             openWindows.handleOpenFile(filePath);
         }
     });

@@ -57,6 +57,10 @@ const AppRoot = styled.div({
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
+            cursor: "default",
+            "&.darkBackground:hover": {
+                backgroundColor: color.background.light,
+            },
             "&.close-button:hover": {
                 backgroundColor: "#E81123",
                 "& svg": {

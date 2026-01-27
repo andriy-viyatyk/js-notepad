@@ -58,6 +58,10 @@ class RendererEvents implements EventApi {
         EventEndpoint.eOpenFile
     );
 
+    [EventEndpoint.eOpenDiff] = new RendererEventObject<{ firstPath: string; secondPath: string }>(
+        EventEndpoint.eOpenDiff
+    );
+
     [EventEndpoint.eShowPage] = new RendererEventObject<string>(
         EventEndpoint.eShowPage
     );

@@ -68,6 +68,7 @@ export enum EventEndpoint {
     eWindowMaximized = "eWindowMaximized",
     eBeforeQuit = "eBeforeQuit",
     eOpenFile = "eOpenFile",
+    eOpenDiff = "eOpenDiff",
     eShowPage = "eShowPage",
     eMovePageIn = "eMovePageIn",
     eMovePageOut = "eMovePageOut",
@@ -86,6 +87,7 @@ export type EventApi = {
     [EventEndpoint.eWindowMaximized]: EventObject<boolean>;
     [EventEndpoint.eBeforeQuit]: EventObject<void>;
     [EventEndpoint.eOpenFile]: EventObject<string>;
+    [EventEndpoint.eOpenDiff]: EventObject<{ firstPath: string; secondPath: string }>;
     [EventEndpoint.eShowPage]: EventObject<string>;
     [EventEndpoint.eMovePageIn]: EventObject<{ page: Partial<IPage>; targetPageId: string | undefined }>;
     [EventEndpoint.eMovePageOut]: EventObject<string>;

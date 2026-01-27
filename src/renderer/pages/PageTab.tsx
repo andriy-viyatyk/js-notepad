@@ -23,6 +23,7 @@ import { filesModel } from "../model/files-model";
 import { PageDragData } from "../../shared/types";
 import { parseObject } from "../common/parseUtils";
 import { appSettings } from "../model/appSettings";
+import { showInputDialog } from "../dialogs/dialogs/InputDialog";
 
 export const minTabWidth = 80;
 
@@ -48,6 +49,9 @@ const PageTabRoot = styled.div({
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
+    },
+    "&.temp .title-label": {
+        fontStyle: "italic",
     },
     "&.deleted .title-label": {
         color: color.misc.red,
@@ -225,6 +229,11 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                     disabled: !(this.props.model instanceof TextFileModel),
                 },
                 {
+                    label: "Rename",
+                    onClick: this.renameTab,
+                    disabled: !isTextFileModel(this.props.model),
+                },
+                {
                     label: "Show in File Explorer",
                     onClick: () => {
                         api.showItemInFolder(
@@ -292,6 +301,24 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
             page: this.props.model.getRestoreData(),
         };
     };
+
+    private renameTab = async () => {
+        const model = this.props.model;
+        if (isTextFileModel(model)) {
+            const pageTitle = model.state.get().title;
+            const inputResult = await showInputDialog({
+                title: "Rename File",
+                message: "Enter new file name:",
+                value: pageTitle,
+                buttons: ["Rename", "Cancel"],
+                selectAll: true,
+            });
+            if (inputResult.button === "Rename" && inputResult.value) {
+                const newName = inputResult.value;
+                await model.renameFile(newName);
+            }
+        }
+    }
 
     handleDragStart = (e: React.DragEvent) => {
         e.dataTransfer.setData(
@@ -367,16 +394,17 @@ export function PageTab(props: PageTabProps) {
     tabModel.isGrouped = pagesModel.isGrouped(model.id);
     tabModel.isActive =
         pagesModel.activePage === model || pagesModel.groupedPage === model;
-    const { title, modified, language, id, filePath, deleted } =
+    const { title, modified, language, id, filePath, deleted, temp } =
         model.state.use((s) => ({
             title: s.title,
             modified: s.modified,
             language: s.language,
             id: s.id,
-            filePath: (s as any).filePath,
+            filePath: s.filePath,
             deleted: (s as any).deleted ?? false,
             password: (s as any).password,
             encripted: (s as any).encripted ?? false,
+            temp: (s as any).temp ?? false,
         }));
 
     const [{ isDragging }, drag] = useDrag({
@@ -419,6 +447,7 @@ export function PageTab(props: PageTabProps) {
                 isActive: tabModel.isActive,
                 modified,
                 isDraggOver: isOver,
+                temp,
                 deleted,
             })}
             onClick={tabModel.handleClick}

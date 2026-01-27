@@ -48,7 +48,7 @@ class CompareEditorModel extends TComponentModel<null, CompareEditorProps> {
         this.didChangeSubscription = modifiedEditor.onDidChangeModelContent(
             () => {
                 const newValue = modifiedEditor.getValue();
-                this.props.groupedModel.changeContent(newValue);
+                this.props.groupedModel.changeContent(newValue, true);
             },
         );
     };

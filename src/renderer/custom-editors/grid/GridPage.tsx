@@ -140,7 +140,7 @@ export function GridPage(props: GridPageProps) {
                     </>,
                     model.editorToolbarRefFirst
                 )}
-            <GridPageRoot tabIndex={0} onKeyDown={pageModel.pageKeyDown}>
+            <GridPageRoot>
                 <FiltersProvider
                     filters={pageState.filters}
                     setFilters={pageModel.setFilters}

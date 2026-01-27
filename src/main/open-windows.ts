@@ -110,6 +110,14 @@ class OpenWindows {
         }
     };
 
+    handleOpenDiff = (firstPath: string, secondPath: string) => {
+        const mainWin = this.mainWindow;
+        if (mainWin) {
+            mainWin.send(EventEndpoint.eOpenDiff, { firstPath, secondPath });
+            mainWin.focus();
+        }
+    }
+
     private saveState = (): void => {
         const state: OpenWindowData[] = this.windows.map((w) => ({
             index: w.index,

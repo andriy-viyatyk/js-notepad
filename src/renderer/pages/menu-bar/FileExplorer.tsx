@@ -5,10 +5,13 @@ import { nodeUtils } from "../../common/node-utils";
 import { pagesModel } from "../../model/pages-model";
 import { MenuItem } from "../../controls/PopupMenu";
 import { api } from "../../../ipc/renderer/api";
-import { filesModel } from "../../model/files-model";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
+import { showInputDialog } from "../../dialogs/dialogs/InputDialog";
+import { alertWarning } from "../../dialogs/alerts/AlertsBar";
+import { showConfirmationDialog } from "../../dialogs/dialogs/ConfirmationDialog";
 const path = require("path");
+const fs = require("fs");
 
 const FileListRoot = styled("div")({
     flex: "1 1 auto",
@@ -83,7 +86,15 @@ class FileExplorerModel extends TComponentModel<
                 title: path.basename(i.path),
             }));
         folders.sort((a, b) => a.title.localeCompare(b.title));
-        files.sort((a, b) => a.title.localeCompare(b.title));
+        files.sort((a, b) => {
+            const aExt = path.extname(a.title);
+            const bExt = path.extname(b.title);
+            const extComp = aExt.localeCompare(bExt);
+            if (extComp !== 0) {
+                return extComp;
+            }
+            return a.title.localeCompare(b.title);
+        });
 
         if (this.state.get().subPath.length > 0) {
             folders.unshift({
@@ -140,29 +151,80 @@ class FileExplorerModel extends TComponentModel<
                     }
                 },
             },
+            {
+                startGroup: true,
+                label: "Rename",
+                onClick: () => this.renameItem(item),
+            },
+            {
+                label: "Delete",
+                onClick: () => this.deleteItem(item),
+            }
         ];
         return menuItems;
     };
 
     onContextMenu = (e: React.MouseEvent) => {
         if (e.nativeEvent.menuItems === undefined) {
-            e.nativeEvent.menuItems = [
+            e.nativeEvent.menuItems = [];
+        }
+            e.nativeEvent.menuItems.push(
                 {
                     label: "Create New File",
-                    onClick: async () => {
-                        const filePath = await api.showSaveFileDialog({
-                            defaultPath: this.state.get().currentPath,
-                            title: "Create New File",
-                        });
-                        if (filePath) {
-                            await filesModel.saveFile(filePath, "");
-                            this.loadDirectory();
-                        }
-                    },
+                    onClick: this.createNewFile,
                 },
-            ];
+                {
+                    label: "Create New Folder",
+                    onClick: this.createNewFolder,
+                }
+            );
+    };
+
+    createNewFile = async () => {
+        const currentPath = this.state.get().currentPath;
+        const inputResult = await showInputDialog({
+            title: "New File",
+            message: "Enter file name:",
+            buttons: ["Create", "Cancel"],
+        });
+        if (inputResult && inputResult.button === "Create" && inputResult.value.trim() !== "") {
+            const newFilePath = path.join(currentPath, inputResult.value.trim());
+            if (fs.existsSync(newFilePath)) {
+                alertWarning("A file or folder with that name already exists.");
+                return;
+            }
+            try {
+                fs.writeFileSync(newFilePath, "");
+            } catch (err) {
+                alertWarning(err.message || "Failed to create file.");
+                return;
+            }
+            this.loadDirectory();
         }
     };
+
+    createNewFolder = async () => {
+        const currentPath = this.state.get().currentPath;
+        const inputResult = await showInputDialog({
+            title: "New Folder",
+            message: "Enter folder name:",
+            buttons: ["Create", "Cancel"],
+        });
+        if (inputResult && inputResult.button === "Create" && inputResult.value.trim() !== "") {
+            const newFolderPath = path.join(currentPath, inputResult.value.trim());
+            if (fs.existsSync(newFolderPath)) {
+                alertWarning("A file or folder with that name already exists.");
+                return;
+            }
+            try {
+                fs.mkdirSync(newFolderPath);
+            } catch (err) {
+                alertWarning(err.message || "Failed to create folder.");
+                return;
+            }
+            this.loadDirectory();
+        }
+    }
 
     navigateToIndex = (index: number) => {
         let path = this.props.basePath;
@@ -178,6 +240,55 @@ class FileExplorerModel extends TComponentModel<
             path = this.props.basePath + "/" + subPaths.join("/");
         }
         this.loadDirectory(path);
+    };
+
+    renameItem = async (item: FileListItem) => {
+        const inputResult = await showInputDialog({
+            title: `Rename ${item.isFolder ? "Folder" : "File"}`,
+            message: "Enter new name:",
+            value: item.title,
+            buttons: ["Rename", "Cancel"],
+            selectAll: true,
+        });
+        if (inputResult && inputResult.button === "Rename" && inputResult.value.trim() !== "") {
+            const newPath = path.join(
+                path.dirname(item.filePath),
+                inputResult.value.trim()
+            );
+            if (fs.existsSync(newPath)) {
+                alertWarning("A file or folder with that name already exists.");
+                return;
+            }
+            try {
+                fs.renameSync(item.filePath, newPath);
+            } catch (err) {
+                alertWarning(err.message || `Failed to rename ${item.isFolder ? "folder" : "file"}.`);
+                return;
+            }
+            this.loadDirectory();
+        }
+    }
+
+    deleteItem = async (item: FileListItem) => {
+        const bt = await showConfirmationDialog({
+            title: "Delete Confirmation",
+            message: `Are you sure you want to delete "${item.title}" ${item.isFolder ? "folder" : "file"}?`,
+            buttons: ["Delete", "Cancel"],
+        });
+        if (bt !== "Delete") {
+            return;
+        }
+        try {
+            if (item.isFolder) {
+                fs.rmdirSync(item.filePath, { recursive: true });
+            } else {
+                fs.unlinkSync(item.filePath);
+            }
+        } catch (err) {
+            alertWarning(err.message || "Failed to delete file or folder.");
+            return;
+        }
+        this.loadDirectory();
     };
 }
 

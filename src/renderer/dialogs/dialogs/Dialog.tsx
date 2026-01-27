@@ -64,6 +64,7 @@ interface DialogProps extends Omit<
     className?: string;
     onBackdropClick?: () => void;
     position?: "center" | "right";
+    autoFocus?: boolean;
 }
 
 export function Dialog({
@@ -71,13 +72,16 @@ export function Dialog({
     className,
     onBackdropClick,
     position,
+    autoFocus = true,
     ...rest
 }: DialogProps) {
     const dialogRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
-        dialogRef.current?.focus();
-    }, []);
+        if (autoFocus) {
+            dialogRef.current?.focus();
+        }
+    }, [autoFocus]);
 
     return (
         <DialogRoot

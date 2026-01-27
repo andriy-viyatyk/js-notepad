@@ -352,18 +352,7 @@ export class GridPageModel extends TComponentModel<
     onDataChanged = () => {
         const content = this.getContentToSave();
         this.changedContent = content;
-        this.props.model.changeContent(content);
-    };
-
-    pageKeyDown = (e: React.KeyboardEvent) => {
-        switch (e.code) {
-            case "KeyS":
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    this.props.model.saveFile();
-                }
-                break;
-        }
+        this.props.model.changeContent(content, true);
     };
 
     onGetOptions: TOnGetFilterOptions = (

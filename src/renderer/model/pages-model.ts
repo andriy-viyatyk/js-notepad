@@ -185,6 +185,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         this.checkEmptyPage();
 
         rendererEvents.eOpenFile.subscribe(this.openFile);
+        rendererEvents.eOpenDiff.subscribe(this.openDiff);
         rendererEvents.eShowPage.subscribe(this.showPage);
         rendererEvents.eMovePageIn.subscribe(this.movePageIn);
         rendererEvents.eMovePageOut.subscribe(this.movePageOut);
@@ -315,12 +316,7 @@ export class PagesModel extends TModel<OpenFilesState> {
 
     openFile = async (filePath?: string) => {
         if (!filePath) return;
-        const existingPage = this.state.get().pages.find((p) => {
-            const pState = p.state.get();
-            return (
-                pState.filePath === filePath
-            );
-        });
+        const existingPage = this.state.get().pages.find((p) => p.state.get().filePath === filePath);
         if (existingPage) {
             this.showPage(existingPage.state.get().id);
             return;
@@ -336,6 +332,44 @@ export class PagesModel extends TModel<OpenFilesState> {
 
         this.closeFirstPageIfEmpty();
     };
+
+    openDiff = async (params: { firstPath: string; secondPath: string } | undefined) => {
+        if (!params) return;
+        const { firstPath, secondPath } = params;
+        if (!firstPath || !secondPath) return;
+        // Implement the logic to open a diff view between firstPath and secondPath
+        let existingFirst = this.state.get().pages.find((p) => p.state.get().filePath === firstPath);
+        let existingSecond = this.state.get().pages.find((p) => p.state.get().filePath === secondPath);
+
+        if (!existingFirst) {
+            existingFirst = await newPageModel(firstPath);
+            existingFirst.state.update((s) => {
+                s.language = "";
+            });
+            await existingFirst.restore();
+            this.addPage(existingFirst as unknown as PageModel);
+        }
+        if (!existingSecond) {
+            existingSecond = await newPageModel(secondPath);
+            existingSecond.state.update((s) => {
+                s.language = "";
+            });
+            await existingSecond.restore();
+            this.addPage(existingSecond as unknown as PageModel);
+        }
+
+        this.groupTabs(existingFirst.id, existingSecond.id);
+        this.fixCompareMode();
+        if (isTextFileModel(existingFirst) && isTextFileModel(existingSecond)) {
+            existingFirst.state.update((s) => {
+                s.compareMode = true;
+            });
+            existingSecond.state.update((s) => {
+                s.compareMode = true;
+            });
+        }
+        this.showPage(existingFirst.id);
+    }
 
     openFileWithDialog = async () => {
         const filePaths = await api.showOpenFileDialog({
