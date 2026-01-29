@@ -126,3 +126,4 @@ export function beep() {
 		// Handle any errors that may occur
 	}
 }
+

@@ -40,7 +40,7 @@ export class TDialogModel<T = any, R = any>
 {
     close = async (result: R | undefined) => {
         if (this.canClose) {
-            let can = this.canClose();
+            let can = this.canClose(result);
             if (can instanceof Promise) {
                 can = await can;
                 if (can) {
@@ -56,7 +56,7 @@ export class TDialogModel<T = any, R = any>
         return true;
     };
     result: Promise<R | undefined> = Promise.resolve(undefined);
-    canClose?: () => boolean | Promise<boolean> = undefined;
+    canClose?: (r?: R) => boolean | Promise<boolean> = undefined;
     onClose?: (result: R | undefined) => void = undefined;
 }
 

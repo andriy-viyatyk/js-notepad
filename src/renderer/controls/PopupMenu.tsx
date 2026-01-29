@@ -9,6 +9,11 @@ import { useSelectOptions } from "./utils";
 import { TextField } from "./TextField";
 import { List, ListRef } from "./List";
 import { TComponentModel, useComponentModel } from "../common/classes/model";
+import { TPopperModel } from "../dialogs/poppers/types";
+import { DefaultView, ViewPropsRO, Views } from "../common/classes/view";
+import ReactDOM from "react-dom";
+import { TComponentState } from "../common/classes/state";
+import { showPopper } from "../dialogs/poppers/Poppers";
 
 const PopupMenuRoot = styled(PopperRoot)<{
     height?: CSSProperties["height"];
@@ -49,7 +54,7 @@ const PopupMenuRoot = styled(PopperRoot)<{
             margin: "0 4px 4px 4px",
         },
     }),
-    { label: "PopupMenuRoot" }
+    { label: "PopupMenuRoot" },
 );
 
 export interface MenuItem {
@@ -62,6 +67,7 @@ export interface MenuItem {
     title?: string;
     selected?: boolean; // initially highlighted item
     id?: string;
+    items?: MenuItem[];
 }
 
 export interface PopupMenuProps extends PopperProps {
@@ -71,6 +77,7 @@ export interface PopupMenuProps extends PopperProps {
 const rowHeight = 26;
 const maxHeight = 500;
 const whiteSpaceY = 0;
+const menuClass = "popup-menu";
 
 const defaultPopupMenuState = {
     search: "",
@@ -85,6 +92,9 @@ type PopupMenuState = typeof defaultPopupMenuState;
 
 class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
     list: ListRef | null = null;
+    subMenuItem: MenuItem | null = null;
+    subMenuModel: SubMenuModel | null = null;
+    closed = false;
 
     setListRef = (ref: ListRef | null) => {
         this.list = ref;
@@ -134,7 +144,7 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
             return { filtered: options, showSearch };
         }
         const filtered = options.filter((item) =>
-            item.label.toLocaleLowerCase().includes(search)
+            item.label.toLocaleLowerCase().includes(search),
         );
         return { filtered, showSearch };
     };
@@ -152,12 +162,14 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
     private calcHeight = (itemsCount: number, showSearch: boolean) => {
         return Math.min(
             rowHeight * itemsCount + whiteSpaceY + (showSearch ? 34 : 0),
-            maxHeight
+            maxHeight,
         );
     };
 
-    onClose = () => {
-        this.props.onClose?.();
+    onClose = (itemClicked?: boolean) => {
+        this.closed = true;
+        this.closeSubMenu();
+        this.props.onClose?.(itemClicked);
     };
 
     getOptionClass = (item: MenuItem, index?: number) =>
@@ -166,17 +178,59 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
             startGroup: item.startGroup && (index === undefined || index > 0),
         });
 
-    onItemClick = (item: MenuItem) => {
-        if (!item.disabled) {
-            this.onClose();
-            item.onClick?.();
+    subMenuCanClose = (itemClicked?: boolean) => {
+        if (itemClicked) {
+            this.onClose(true);
+        }
+        return true;
+    };
+
+    closeSubMenu = () => {
+        if (this.subMenuModel) {
+            this.subMenuModel.close(false);
+            this.subMenuModel = null;
+            this.subMenuItem = null;
+        }
+    }
+
+    showSubMenu = (item: MenuItem, anchorEl: Element) => {
+        this.closeSubMenu();
+        this.subMenuModel = showSubMenu(item.items, {
+            elementRef: anchorEl,
+        });
+        if (this.subMenuModel) {
+            this.subMenuModel.canClose = this.subMenuCanClose;
+            this.subMenuItem = item;
         }
     };
 
-    onItemHover = (item?: MenuItem) => {
+    onItemClick = (item: MenuItem, index?: number, e?: React.MouseEvent) => {
+        if (!item.disabled && !item.items) {
+            this.onClose(true);
+            item.onClick?.();
+        } else if (item.items && e && this.subMenuItem !== item) {
+            this.showSubMenu(item,  e.currentTarget);
+        }
+    };
+
+    onItemHover = (item?: MenuItem, index?: number, e?: React.MouseEvent) => {
         this.state.update((s) => {
             s.hovered = item;
         });
+        if (this.subMenuItem && this.subMenuItem !== item) {
+            this.closeSubMenu();
+        }
+
+        if (item?.items?.length) {
+            const el = e?.currentTarget;
+            if (el) {
+                setTimeout(() => {
+                    if (!this.closed && this.state.get().hovered === item) {
+                        this.showSubMenu(item, el);
+                    }
+                }, 400); 
+            }
+        }
     };
 
     getHovered = (item: MenuItem) => {
@@ -189,7 +243,7 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
         const visibleRowCount = this.list?.getGrid()?.visibleRowCount || 5;
         switch (e.key) {
             case "Escape":
-                this.onClose();
+                this.onClose(false);
                 break;
             case "ArrowDown":
                 this.hoverNext(1);
@@ -208,7 +262,7 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
                 const item =
                     hovered || (items.length === 1 ? items[0] : undefined);
                 if (item && !item.disabled) {
-                    this.onClose();
+                    this.onClose(true);
                     item.onClick?.();
                 }
                 break;
@@ -229,11 +283,11 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
 }
 
 export function PopupMenu(props: PopupMenuProps) {
-    const { items, onClose, ...popperProps } = props;
+    const { items, onClose, className, ...popperProps } = props;
     const model = useComponentModel(
         props,
         PopupMenuModel,
-        defaultPopupMenuState
+        defaultPopupMenuState,
     );
     const state = model.state.use();
 
@@ -249,7 +303,13 @@ export function PopupMenu(props: PopupMenuProps) {
     }, [options, state.search, props.open]);
 
     return (
-        <Popper onClose={model.onClose} maxHeight={800} {...popperProps}>
+        <Popper
+            onClose={model.onClose}
+            maxHeight={800}
+            className={clsx(menuClass, className)}
+            allowClickInClass={menuClass}
+            {...popperProps}
+        >
             <PopupMenuRoot height={state.height} width={state.width}>
                 {state.showSearch && (
                     <TextField
@@ -277,3 +337,56 @@ export function PopupMenu(props: PopupMenuProps) {
         </Popper>
     );
 }
+
+// -- sub menu wrapper -- //
+
+const defaultSubMenuState = {
+    items: [] as MenuItem[],
+    poperProps: undefined as PopperProps | undefined,
+};
+
+type SubMenuState = typeof defaultSubMenuState;
+
+class SubMenuModel extends TPopperModel<SubMenuState, boolean> {}
+
+function SubMenu({ model }: ViewPropsRO<SubMenuModel>) {
+    const { items, poperProps } = model.state.use();
+
+    return ReactDOM.createPortal(
+        <PopupMenu
+            open
+            items={items}
+            onClose={model.close}
+            {...poperProps}
+        />,
+        document.body,
+    );
+}
+
+const subMenuId = Symbol("SubMenu");
+
+Views.registerView(subMenuId, SubMenu as DefaultView);
+
+export const showSubMenu = (
+    items: MenuItem[],
+    poperProps?: PopperProps,
+): SubMenuModel | undefined => {
+    const state = new TComponentState(defaultSubMenuState);
+    state.update((s) => {
+        s.items = items;
+        s.poperProps = {
+            anchorType: "horizontal",
+            offset: [0, 2],
+            ...poperProps,
+        };
+    });
+    const model = new SubMenuModel(state);
+    if (!model.state.get().items.length) {
+        return undefined;
+    }
+    showPopper({
+        viewId: subMenuId,
+        model,
+    });
+    return model;
+};

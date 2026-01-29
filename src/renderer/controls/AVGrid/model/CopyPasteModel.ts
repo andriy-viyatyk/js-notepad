@@ -2,7 +2,10 @@ import { csvToRecords } from "../../../common/csvUtils";
 import { toClipboard } from "../../../common/utils";
 import { Column } from "../avGridTypes";
 import { columnDisplayValue, rowsToCsvText } from "../avGridUtils";
+import { recordsToClipboardFormatted } from "../utils";
 import { AVGridModel } from "./AVGridModel";
+
+export type CopyMode = 'copy' | 'copyWithHeaders' | 'copyAsJson' | 'copyAsHtmlTable';
 
 export class CopyPasteModel<R> {
     readonly model: AVGridModel<R>;
@@ -12,22 +15,45 @@ export class CopyPasteModel<R> {
         this.model.events.content.onKeyDown.subscribe(this.onContentAreaKeyDown);
     }
 
-    copySelection = () => {
+    copySelection = (mode: CopyMode = 'copy') => {
         const { focus } = this.model.props;
         if (!focus) return;
 
         const selection = this.model.models.focus.getGridSelection();
         if (!selection) return;
 
+        if (mode === 'copyAsJson') {
+            this.copyAsJson(selection.rows, selection.columns);
+            return;
+        }
+
+        if (mode === 'copyAsHtmlTable') {
+            recordsToClipboardFormatted(selection.rows, selection.columns);
+            return;
+        }
+
         let text = '';
         if (selection.rows.length === 1 && selection.columns.length === 1) {
             text = columnDisplayValue(selection.columns[0], selection.rows[0]);
         } else {
             text =
-                rowsToCsvText(selection.rows, selection.columns, false, true) ??
+                rowsToCsvText(selection.rows, selection.columns, mode === "copyWithHeaders", true) ??
                 '';
         }
         toClipboard(text);
+    }
+
+    private copyAsJson = (rows: R[], columns: Column<R>[]) => {
+        const jsonArray: any[] = [];
+        for (const row of rows) {
+            const jsonObj: any = {};
+            for (const col of columns) {
+                const key = typeof col.key === 'string' ? col.key : String(col.key);
+                jsonObj[key] = columnDisplayValue(col, row);
+            }
+            jsonArray.push(jsonObj);
+        }
+        toClipboard(JSON.stringify(jsonArray, null, 4));
     }
 
     canPasteFromClipboard = async () => {

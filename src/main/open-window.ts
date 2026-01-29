@@ -140,18 +140,18 @@ export class OpenWindow {
             if (url.startsWith("file://")) {
                 const uri = new URL(url);
                 const currentUrl = this.window.webContents.getURL();
-                
+
                 // Allow initial load of your index.html
                 if (!currentUrl || currentUrl === "about:blank") {
                     return;
                 }
-                
+
                 // Check if this is the main app file
                 const currentUri = new URL(currentUrl);
                 if (uri.pathname === currentUri.pathname) {
                     return; // Allow same-page navigation (unlikely but safe)
                 }
-                
+
                 event.preventDefault();
 
                 let filePath = uri.pathname;
@@ -181,8 +181,8 @@ export class OpenWindow {
             this.window.loadFile(
                 path.join(
                     __dirname,
-                    `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`
-                )
+                    `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`,
+                ),
             );
         }
 

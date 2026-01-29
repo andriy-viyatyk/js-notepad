@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { TModel, useModel } from "../common/classes/model";
 import { TComponentState } from "../common/classes/state";
-import { showPopupMenu } from "../dialogs/poppers/showPopupMenu";
+import { showAppPopupMenu } from "../dialogs/poppers/showPopupMenu";
 import { parseObject } from "../common/parseUtils";
 import { filesModel } from "../model/files-model";
 import { api } from "../../ipc/renderer/api";
@@ -28,7 +28,7 @@ class EventHandlerModel extends TModel<null> {
     }
 
     private handleContextMenu = (e: PointerEvent) => {
-        showPopupMenu(e.clientX, e.clientY, e.menuItems || []);
+        showAppPopupMenu(e.clientX, e.clientY, e.menuItems || []);
         e.preventDefault();
     }
 

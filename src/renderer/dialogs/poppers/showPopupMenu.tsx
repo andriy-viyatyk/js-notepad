@@ -11,16 +11,16 @@ import { DefaultView, ViewPropsRO, Views } from "../../common/classes/view";
 import { TComponentState } from "../../common/classes/state";
 import { api } from "../../../ipc/renderer/api";
 
-const defaultPopupMenuState = {
+const defaultAppPopupMenuState = {
     x: 0,
     y: 0,
     items: [] as MenuItem[],
     poperProps: undefined as PopperProps | undefined,
 };
 
-type PopupMenuState = typeof defaultPopupMenuState;
+type AppPopupMenuState = typeof defaultAppPopupMenuState;
 
-class PopupMenuModel extends TPopperModel<PopupMenuState, void> {
+class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
     addDefaultMenus = async () => {
         const savedSelection = window.getSelection();
         const selText = savedSelection?.toString();
@@ -123,9 +123,9 @@ class PopupMenuModel extends TPopperModel<PopupMenuState, void> {
 }
 
 const defaultOffset = [8, 0] as [number, number];
-const showPopupMenuId = Symbol("ShowPopupMenu");
+const showAppPopupMenuId = Symbol("AppPopupMenu");
 
-function ShowPopupMenu({ model }: ViewPropsRO<PopupMenuModel>) {
+function AppPopupMenu({ model }: ViewPropsRO<AppPopupMenuModel>) {
     const { items, x, y, poperProps } = model.state.use();
     const el = useMemo<VirtualElement | Element>(() => {
         const res: VirtualElement = {
@@ -158,28 +158,28 @@ function ShowPopupMenu({ model }: ViewPropsRO<PopupMenuModel>) {
     );
 }
 
-Views.registerView(showPopupMenuId, ShowPopupMenu as DefaultView);
+Views.registerView(showAppPopupMenuId, AppPopupMenu as DefaultView);
 
-export const showPopupMenu = async (
+export const showAppPopupMenu = async (
     x: number,
     y: number,
     items: MenuItem[],
     poperProps?: PopperProps
 ) => {
-    const state = new TComponentState(defaultPopupMenuState);
+    const state = new TComponentState(defaultAppPopupMenuState);
     state.update((s) => {
         s.x = x;
         s.y = y;
         s.items = items;
         s.poperProps = poperProps;
     });
-    const model = new PopupMenuModel(state);
+    const model = new AppPopupMenuModel(state);
     await model.addDefaultMenus();
     if (!model.state.get().items.length) {
         return;
     }
     await showPopper<void>({
-        viewId: showPopupMenuId,
+        viewId: showAppPopupMenuId,
         model,
     });
 };

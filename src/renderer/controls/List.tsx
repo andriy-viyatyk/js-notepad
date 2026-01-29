@@ -86,7 +86,7 @@ interface OptionProps<O> {
     row: O;
     selected: boolean;
     hovered: boolean;
-    onMouseHover?: (value: O, index?: number) => void;
+    onMouseHover?: (value: O, index?: number, e?: React.MouseEvent<Element>) => void;
     selectedIcon?: ReactNode;
     itemMarginY?: number;
     getTooltip?: (value: O, index?: number) => string | undefined;
@@ -104,7 +104,7 @@ export interface ListProps<O> {
     getOptionClass?: (value: O, index?: number) => string;
     emptyMessage?: string | ReactElement;
     getHovered?: (value: O) => boolean;
-    onMouseHover?: (value: O, index?: number) => void;
+    onMouseHover?: (value: O, index?: number, e?: React.MouseEvent<Element>) => void;
     loading?: boolean;
     rowHeight?: number;
     rowRenderer?: ListOptionRenderer<O>;
@@ -142,7 +142,7 @@ function DefaultCell({
     ...other
 }: OptionProps<any> & {
     optionClass?: string;
-    onMouseHover?: (value: any, index?: number) => void;
+    onMouseHover?: (value: any, index?: number, e?: React.MouseEvent<Element>) => void;
     index: number;
     icon?: React.ReactNode;
     label?: React.ReactNode;
@@ -150,8 +150,8 @@ function DefaultCell({
     const highlight = useHighlightedText();
     const id = useMemo(() => uuid(), []);
 
-    const onMouseEnter = useCallback(() => {
-        onMouseHover?.(row, index);
+    const onMouseEnter = useCallback((e: React.MouseEvent<Element>) => {
+        onMouseHover?.(row, index, e);
     }, [onMouseHover, row, index]);
 
     const onClick = useCallback(

@@ -1,4 +1,4 @@
-import { showPopupMenu } from "../../../dialogs/poppers/showPopupMenu";
+import { showAppPopupMenu } from "../../../dialogs/poppers/showPopupMenu";
 import { CopyIcon, DeleteIcon, PasteIcon, PlusIcon } from "../../../theme/icons";
 import { AVGridModel } from "./AVGridModel";
 
@@ -24,7 +24,7 @@ export class ContextMenuModel<R> {
             e.stopPropagation();
             e.preventDefault();
             this.model.models.editing.disableBlur = true;
-            await showPopupMenu(e.clientX, e.clientY, []);
+            await showAppPopupMenu(e.clientX, e.clientY, []);
             this.model.models.editing.disableBlur = false;
             return;
         }
@@ -35,12 +35,30 @@ export class ContextMenuModel<R> {
             e.stopPropagation();
             e.preventDefault();
             const selection = this.model.models.focus.getGridSelection();
-            showPopupMenu(e.clientX, e.clientY, [
+            showAppPopupMenu(e.clientX, e.clientY, [
                 {
                     label: 'Copy',
                     onClick: () => this.model.models.copyPaste.copySelection(),
                     icon: <CopyIcon />,
                     title: "Ctrl+C",
+                },
+                {
+                    label: "Copy as...",
+                    icon: <CopyIcon />,
+                    items: [
+                        {
+                            label: "With Headers",
+                            onClick: () => this.model.models.copyPaste.copySelection('copyWithHeaders'),
+                        },
+                        {
+                            label: "JSON",
+                            onClick: () => this.model.models.copyPaste.copySelection('copyAsJson'),
+                        },
+                        {
+                            label: "Formated (HTML Table)",
+                            onClick: () => this.model.models.copyPaste.copySelection('copyAsHtmlTable'),
+                        }
+                    ]
                 },
                 {
                     label: 'Paste',
