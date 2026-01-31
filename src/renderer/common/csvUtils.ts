@@ -23,6 +23,7 @@ export function csvToRecords(csv: string, withColumns = false, delimiter = '\t',
             columns: withColumns,
             skip_empty_lines: true,
             relax_column_count: true,
+            relax_quotes: true,
             delimiter,
           })
     } catch (e){
