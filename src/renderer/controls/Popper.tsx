@@ -62,7 +62,7 @@ export interface PopperPosition {
     anchorType?: "vertical" | "horizontal";
 }
 
-export interface PopperProps extends PopperPosition {
+export interface PopperProps extends PopperPosition, React.HTMLAttributes<HTMLDivElement> {
     children?: ReactNode;
     className?: string;
     open?: boolean;
@@ -110,6 +110,7 @@ export const Popper = forwardRef(function PopperComponent(
         maxHeight,
         anchorType = "vertical",
         allowClickInClass,
+        ...other
     } = props;
     const placement = placementProps
         ? placementProps
@@ -314,6 +315,7 @@ export const Popper = forwardRef(function PopperComponent(
             }}
             onKeyDown={onKeyDown}
             tabIndex={tabIndex}
+            {...other}
         >
             {children}
             {resizable && (

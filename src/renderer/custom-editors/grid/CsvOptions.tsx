@@ -52,7 +52,7 @@ const delimiters = [",", ";", "\t"];
 
 export function CsvOptions({ model }: ViewPropsRO<CsvOptionsModel>) {
     const gridViewState = model.gridModel.state.use();
-    const [other, setOther] = useState<string>(gridViewState.csvDelimeter);
+    const [other, setOther] = useState<string>(gridViewState.csvDelimiter);
 
     const setOtherProxy = useCallback((value: string) => {
         const valueToSet = value.length > 1 ? value[0] : value;
@@ -66,14 +66,14 @@ export function CsvOptions({ model }: ViewPropsRO<CsvOptionsModel>) {
         setOther((old) => {
             if (
                 old &&
-                gridViewState.csvDelimeter &&
-                old !== gridViewState.csvDelimeter
+                gridViewState.csvDelimiter &&
+                old !== gridViewState.csvDelimiter
             ) {
-                return gridViewState.csvDelimeter;
+                return gridViewState.csvDelimiter;
             }
             return old;
         });
-    }, [gridViewState.csvDelimeter]);
+    }, [gridViewState.csvDelimiter]);
 
     return ReactDOM.createPortal(
         <Popper
@@ -104,7 +104,7 @@ export function CsvOptions({ model }: ViewPropsRO<CsvOptionsModel>) {
                         type="icon"
                         onClick={() => model.gridModel?.setDelimiter(delimiter)}
                     >
-                        {gridViewState.csvDelimeter === delimiter ? (
+                        {gridViewState.csvDelimiter === delimiter ? (
                             <RadioCheckedIcon />
                         ) : (
                             <RadioUncheckedIcon />

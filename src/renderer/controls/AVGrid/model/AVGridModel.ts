@@ -45,6 +45,9 @@ export interface AVGridProps<R> {
     editRow?: (columnKey: string, rowKey: string, value: any) => void;
     onAddRows?: (count: number, insertIndex?: number) => R[];
     onDeleteRows?: (rowKeys: string[]) => void;
+    setColumns?: (columns: SetStateAction<Column<R>[]>) => void;
+    onAddColumns?: (count: number, insertBeforeKey?: string) => Column<R>[];
+    onDeleteColumns?: (columnKeys: (keyof R | string)[]) => void;
 
     onClick?: (row: R, col: Column<R>) => void;
     onDoubleClick?: (row: R, col: Column<R>) => void;
@@ -61,14 +64,12 @@ export interface AVGridProps<R> {
 }
 
 export interface AVGridState<R> {
-    columns: Column<R>[]; // props colummns updated by resize and reorder
     sortColumn?: TSortColumn;
     cellEdit: CellEdit<R>;
     rerender: number;
 }
 
 export const defaultAVGridState: AVGridState<any> = {
-    columns: [],
     sortColumn: undefined,
     cellEdit: {
         columnKey: "",

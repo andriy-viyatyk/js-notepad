@@ -9,10 +9,7 @@ import {
 import styled from "@emotion/styled";
 import clsx from "clsx";
 
-import {
-    TCellRenderer,
-    TCellRendererProps,
-} from "./avGridTypes";
+import { TCellRenderer, TCellRendererProps } from "./avGridTypes";
 import { RefType, RenderCellFunc } from "../RenderGrid/types";
 import { AVGridProvider } from "./useAVGridContext";
 import RenderGrid from "../RenderGrid/RenderGrid";
@@ -22,7 +19,11 @@ import { HeaderCell } from "./HeaderCell";
 import { DataCell } from "./DataCell";
 import { HighlightedTextProvider } from "../useHighlightedText";
 import { FilterPoper } from "./filters/FilterPoper";
-import { AVGridModel, AVGridProps, defaultAVGridState } from "./model/AVGridModel";
+import {
+    AVGridModel,
+    AVGridProps,
+    defaultAVGridState,
+} from "./model/AVGridModel";
 import { useComponentModel } from "../../common/classes/model";
 
 const RenderGridStyled = styled(RenderGrid)(
@@ -132,7 +133,7 @@ const RenderGridStyled = styled(RenderGrid)(
             color: color.text.light,
             opacity: 0.5,
             userSelect: "none",
-            whiteSpace: 'nowrap',
+            whiteSpace: "nowrap",
             "& .add-row-plus": {
                 color: color.icon.disabled,
                 marginRight: 4,
@@ -145,8 +146,24 @@ const RenderGridStyled = styled(RenderGrid)(
                 opacity: 1,
             },
         },
+        "& .add-coll-button": {
+            position: "absolute",
+            top: 0,
+            right: 0,
+            padding: "2px 6px",
+            fontSize: 14,
+            cursor: "pointer",
+            color: color.text.light,
+            opacity: 0.5,
+            userSelect: "none",
+            borderRadius: 4,
+            "&:hover": {
+                color: color.icon.default,
+                opacity: 1,
+            },
+        },
     },
-    { label: "AVGridRoot" }
+    { label: "AVGridRoot" },
 );
 
 const LoadingContainerRoot = styled.div({
@@ -163,13 +180,15 @@ function Cell(props: Readonly<TCellRendererProps>) {
 
     const Renderer: TCellRenderer =
         row === 0
-            ? model.data.columns[col].haderRenderer ?? HeaderCell
-            : model.data.columns[col].cellRenderer ?? DataCell;
+            ? (model.data.columns[col].haderRenderer ?? HeaderCell)
+            : (model.data.columns[col].cellRenderer ?? DataCell);
 
     const className = clsx({
         "row-selected":
             row > 0 &&
-            model.props.selected?.has(model.props.getRowKey(model.data.rows[row - 1])),
+            model.props.selected?.has(
+                model.props.getRowKey(model.data.rows[row - 1]),
+            ),
         "row-hovered": row > 0 && model.data.hovered.row === row - 1,
     });
     return (
@@ -184,7 +203,7 @@ function Cell(props: Readonly<TCellRendererProps>) {
 
 function AVGridComponent<R = any>(
     props: AVGridProps<R>,
-    ref?: RefType<AVGridModel<R> | undefined>
+    ref?: RefType<AVGridModel<R> | undefined>,
 ) {
     const ModelClass = AVGridModel as unknown as AVGridModel<R>;
     const model = useComponentModel(props, ModelClass, defaultAVGridState);
@@ -196,7 +215,7 @@ function AVGridComponent<R = any>(
         ({ key, ...cellProps }) => {
             return <Cell key={key} {...cellProps} model={model} />;
         },
-        [model]
+        [model],
     );
 
     const contentProps = useMemo<HTMLAttributes<HTMLDivElement>>(() => {
@@ -220,8 +239,26 @@ function AVGridComponent<R = any>(
     let extraElement = null as ReactNode;
     if (model.props.onAddRows) {
         extraElement = (
-            <span className="add-row-button" onClick={() => model.actions.addNewRow(true, false)}>
-                <span className="add-row-plus">+</span>add {props.entity ?? "row"}
+            <span
+                className="add-row-button"
+                onClick={() => model.actions.addNewRow(true, false)}
+                title={`Add ${props.entity ?? "row"} (↓)`}
+            >
+                <span className="add-row-plus">+</span>add{" "}
+                {props.entity ?? "row"}
+            </span>
+        );
+    }
+
+    let extraElementTop = null as ReactNode;
+    if (model.props.onAddColumns) {
+        extraElementTop = (
+            <span
+                className="add-coll-button"
+                onClick={() => model.actions.addNewColumns(1)}
+                title="Add column (Ctrl + →)"
+            >
+                +
             </span>
         );
     }
@@ -242,6 +279,7 @@ function AVGridComponent<R = any>(
                     contentProps={contentProps}
                     fitToWidth={model.props.fitToWidth}
                     extraElement={extraElement}
+                    extraElementTop={extraElementTop}
                     growToHeight={model.props.growToHeight}
                     growToWidth={model.props.growToWidth}
                 />
@@ -252,5 +290,5 @@ function AVGridComponent<R = any>(
 }
 
 export default forwardRef(AVGridComponent) as <R>(
-    props: AVGridProps<R> & { ref?: RefType<AVGridModel<R> | undefined> }
+    props: AVGridProps<R> & { ref?: RefType<AVGridModel<R> | undefined> },
 ) => ReturnType<typeof AVGridComponent>;

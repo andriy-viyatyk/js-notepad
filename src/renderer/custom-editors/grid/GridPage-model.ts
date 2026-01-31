@@ -12,6 +12,7 @@ import {
     getGridDataWithColumns,
     getRowKey,
     idColumnKey,
+    nextColumnKeys,
     removeIdColumn,
 } from "./grid-page-utils";
 import { csvToRecords } from "../../common/csvUtils";
@@ -34,7 +35,7 @@ export const defaultGridPageState = {
     focus: undefined as CellFocus | undefined,
     search: "",
     filters: [] as TFilter[],
-    csvDelimeter: ",",
+    csvDelimiter: ",",
     csvWithColumns: false,
     error: undefined as string | undefined,
 };
@@ -54,7 +55,7 @@ export class GridPageModel extends TComponentModel<
 
     saveState = async () => {
         const state = this.state.get();
-        const columns = this.gridRef?.data.columns || state.columns;
+        const columns = state.columns;
         const stateToSave = {
             columns: columns.map((c) => ({
                 key: c.key,
@@ -69,7 +70,7 @@ export class GridPageModel extends TComponentModel<
             search: state.search,
             filters: state.filters,
             sortColumn: this.gridRef?.state.get().sortColumn,
-            csvDelimeter: state.csvDelimeter,
+            csvDelimiter: state.csvDelimiter,
             csvWithColumns: state.csvWithColumns,
         };
         await filesModel.saveCacheFile(
@@ -144,9 +145,9 @@ export class GridPageModel extends TComponentModel<
                 s.sortColumn = savedState.sortColumn;
             });
         }
-        if (typeof savedState.csvDelimeter === "string") {
+        if (typeof savedState.csvDelimiter === "string") {
             this.state.update((s) => {
-                s.csvDelimeter = savedState.csvDelimeter;
+                s.csvDelimiter = savedState.csvDelimiter;
             });
         }
         if (typeof savedState.csvWithColumns === "boolean") {
@@ -230,17 +231,38 @@ export class GridPageModel extends TComponentModel<
         }
 
         this.state.update((s) => {
-            s.csvDelimeter = detectedDelimiter;
+            s.csvDelimiter = detectedDelimiter;
         });
     };
 
-    reaload = () => {
+    reload = () => {
         const content = this.props.model.state.get().content || "";
         this.loadGridData(content);
     };
 
+    private initEmptyPage = () => {
+        const rows = createIdColumn([{}]);
+        const columns: Column[] = [
+            {
+                key: "a",
+                name: "a",
+                dataType: "string",
+                width: 100,
+                resizible: true,
+            },
+        ];
+        this.maxRowId = rows.length;
+        this.state.update((s) => {
+            s.rows = rows;
+            s.columns = columns;
+        });
+        Promise.resolve().then(() => {
+            this.gridRef?.models.focus.focusCell(0, 0);
+        });
+    };
+
     private loadGridData = (content: string) => {
-        let rows = [];
+        let rows: any[] = [];
         let columns: Column[] = [];
         if (content) {
             const parsed = this.parseContent(content);
@@ -250,13 +272,18 @@ export class GridPageModel extends TComponentModel<
                 columns = data.columns;
                 this.maxRowId = data.rows.length;
             }
+            this.state.update((s) => {
+                s.rows = rows;
+                s.columns = columns;
+            });
+            Promise.resolve().then(() => {
+                this.gridRef?.models.focus.validateFocus();
+            });
+        } else {
+            this.initEmptyPage();
         }
-        this.state.update((s) => {
-            s.rows = rows;
-            s.columns = columns;
-        });
         Promise.resolve().then(() => {
-            this.gridRef?.models.focus.validateFocus();
+            this.gridRef?.focusGrid();
         });
     };
 
@@ -277,11 +304,12 @@ export class GridPageModel extends TComponentModel<
         let err: any = undefined;
         let res: any = undefined;
         if (this.props.model.state.get().editor === "grid-csv") {
-            const { csvDelimeter, csvWithColumns } = this.state.get();
+            const { csvDelimiter: csvDelimiter, csvWithColumns } =
+                this.state.get();
             let rows = csvToRecords(
                 content,
                 csvWithColumns,
-                csvDelimeter,
+                csvDelimiter,
                 (e) => (err = e),
             );
             if (Array.isArray(rows) && !csvWithColumns) {
@@ -327,15 +355,70 @@ export class GridPageModel extends TComponentModel<
         });
     };
 
+    setColumns = (columns: SetStateAction<Column[]>) => {
+        const newColumns = resolveState(
+            columns,
+            () => this.state.get().columns,
+        );
+        this.state.update((s) => {
+            s.columns = newColumns;
+        });
+    };
+
+    onAddColumns = (count: number, insertBeforeKey?: string) => {
+        const currentColumns = this.state.get().columns;
+        const newColumns: Column[] = nextColumnKeys(currentColumns, count).map(
+            (key) => ({
+                key,
+                name: key,
+                dataType: "string",
+                width: 100,
+                resizible: true,
+            }),
+        );
+        let index = currentColumns.length;
+        if (insertBeforeKey) {
+            const foundIndex = currentColumns.findIndex(
+                (c) => c.key === insertBeforeKey,
+            );
+            if (foundIndex >= 0) {
+                index = foundIndex;
+            }
+        }
+        this.state.update((s) => {
+            s.columns.splice(index, 0, ...newColumns);
+        });
+        return newColumns;
+    };
+
+    onDeleteColumns = (columnKeys: (keyof any | string)[]) => {
+        this.onUpdateRows((rows) => {
+            return rows.map((row) => {
+                const newRow = { ...row };
+                for (const key of columnKeys) {
+                    delete newRow[key];
+                }
+                return newRow;
+            });
+        });
+        this.state.update((s) => {
+            s.columns = s.columns.filter((c) => !columnKeys.includes(c.key));
+        });
+    };
+
     private getJsonContent = () => {
         const { rows } = this.state.get();
         return JSON.stringify(removeIdColumn(rows), null, 4);
     };
 
     private getCsvContent = () => {
-        const { rows, csvDelimeter, csvWithColumns } = this.state.get();
-        const columns = this.gridRef?.data.columns || this.state.get().columns;
-        return rowsToCsvText(rows, columns, csvWithColumns, csvDelimeter);
+        const {
+            rows,
+            csvDelimiter: csvDelimiter,
+            csvWithColumns,
+        } = this.state.get();
+        const columns = this.state.get().columns;
+        return rowsToCsvText(rows, columns, csvWithColumns, csvDelimiter);
     };
 
     private getContentToSave = () => {
@@ -403,7 +486,7 @@ export class GridPageModel extends TComponentModel<
 
     setDelimiter = (delimiter: string) => {
         this.state.update((s) => {
-            s.csvDelimeter = delimiter;
+            s.csvDelimiter = delimiter;
         });
     };
 

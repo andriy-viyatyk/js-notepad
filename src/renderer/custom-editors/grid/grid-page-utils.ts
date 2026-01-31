@@ -164,3 +164,34 @@ export function getGridDataWithColumns(
     }
     return data;
 }
+
+function* columnNamesGenerator(): Generator<string, string, unknown> {
+    const letters = "abcdefghijklmnopqrstuvwxyz";
+    let index = 0;
+    while (true) {
+        let name = "";
+        let i = index;
+        do {
+            name = letters[i % 26] + name;
+            i = Math.floor(i / 26) - 1;
+        } while (i >= 0);
+        yield name;
+        index++;
+    }
+}
+
+export function nextColumnKeys(currentColumns: Column[], count: number): string[] {
+    const namesSet = new Set<string>(
+        currentColumns.map((col) => String(col.key))
+    );
+    const names: string[] = [];
+    const generator = columnNamesGenerator();
+
+    while (names.length < count) {
+        const name = generator.next().value;
+        if (!namesSet.has(name)) {
+            names.push(name);
+        }
+    }
+    return names;
+}

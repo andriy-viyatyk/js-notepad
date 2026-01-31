@@ -78,7 +78,9 @@ export interface RenderGridProps {
     onAdjustRenderRange?: AdjustRenderRangeFunc;
     qaData?: any;
     whiteSpaceY?: number;
+    whiteSpaceX?: number;
     extraElement?: React.ReactNode;
+    extraElementTop?: React.ReactNode;
     growToHeight?: CSSProperties['height'];
     growToWidth?: CSSProperties['height'];
     onResize?: (size: RenderSizeOptional) => void;
@@ -157,6 +159,7 @@ export default class RenderGridModel extends TComponentModel<
             onInnerSizeChange,
             onAdjustRenderRange,
             whiteSpaceY,
+            whiteSpaceX,
             onResize,
         } = props;
 
@@ -183,6 +186,7 @@ export default class RenderGridModel extends TComponentModel<
             onInnerSizeChange,
             onAdjustRenderRange,
             whiteSpaceY,
+            whiteSpaceX,
             onResize,
         };
     };
@@ -392,6 +396,7 @@ export default class RenderGridModel extends TComponentModel<
                 onAdjustRenderRange,
             },
             this.props.whiteSpaceY,
+            this.props.whiteSpaceX,
         );
 
         if (

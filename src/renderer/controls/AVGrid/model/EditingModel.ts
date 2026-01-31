@@ -217,7 +217,12 @@ export class EditingModel<R> {
                         }
                         if (e.ctrlKey) {
                             const selection = this.model.models.focus.getGridSelection();
-                            this.model.actions.deleteRows(selection?.rows.map(getRowKey) ?? [], false, true);
+                            if (e.shiftKey) {
+                                const columnKeys = selection?.columns.map(c => c.key as string) ?? [];
+                                this.model.actions.deleteColumns(columnKeys);
+                            } else {
+                                this.model.actions.deleteRows(selection?.rows.map(getRowKey) ?? [], false, true);
+                            }
                         } else {
                             this.deleteRange();
                         }
@@ -240,8 +245,16 @@ export class EditingModel<R> {
                             break;
                         }
                         if (e.ctrlKey) {
-                            const selectedCount = this.model.models.focus.selectedCount;
-                            this.model.actions.addRows(selectedCount.rows, selectedCount.minRow, true);
+                            if (e.shiftKey) {
+                                const selection = this.model.models.focus.getGridSelection();
+                                const beforeKey = selection?.columns[0]?.key as string;
+                                if (beforeKey) {
+                                    this.model.actions.addNewColumns(selection.columns.length ?? 1, beforeKey);
+                                }
+                            } else {
+                                const selectedCount = this.model.models.focus.selectedCount;
+                                this.model.actions.addRows(selectedCount.rows, selectedCount.minRow, true);
+                            }
                         }
                         break;
                     default:

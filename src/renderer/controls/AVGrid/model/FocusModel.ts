@@ -525,8 +525,7 @@ export class FocusModel<R> {
         if (!e) return;
 
         const { getRowKey, focus } = this.model.props;
-        const { rows: dataRows, columns } = this.model.data;
-        let rows = dataRows;
+        let { rows, columns } = this.model.data;
 
         if (
             ["ArrowLeft", "ArrowRight"].includes(e.key) &&
@@ -648,7 +647,17 @@ export class FocusModel<R> {
                         break;
                     case "ArrowRight":
                         if (e.ctrlKey) {
-                            columnIndex = columns.length - 1;
+                            if (columnIndex === columns.length - 1) {
+                                if (this.model.props.onAddColumns) {
+                                    columns = [
+                                        ...columns,
+                                        ...this.model.actions.addNewColumns(1),
+                                    ];
+                                    columnIndex++;
+                                }
+                            } else {
+                                columnIndex = columns.length - 1;
+                            }
                         } else if (columnIndex < columns.length - 1) {
                             columnIndex++;
                         }

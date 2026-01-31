@@ -62,8 +62,8 @@ export function GridPage(props: GridPageProps) {
     }, []);
 
     useEffect(() => {
-        pageModel.reaload();
-    }, [pageState.csvDelimeter, pageState.csvWithColumns]);
+        pageModel.reload();
+    }, [pageState.csvDelimiter, pageState.csvWithColumns]);
 
     useEffect(() => {
         pageModel.updateContent(state.content || "");
@@ -162,7 +162,10 @@ export function GridPage(props: GridPageProps) {
                         onVisibleRowsChanged={onVisibleRowsChanged}
                         editRow={pageModel.editRow}
                         onAddRows={pageModel.onAddRows}
+                        setColumns={pageModel.setColumns}
+                        onAddColumns={pageModel.onAddColumns}
                         onDeleteRows={pageModel.onDeleteRows}
+                        onDeleteColumns={pageModel.onDeleteColumns}
                         onDataChanged={pageModel.onDataChanged}
                     />
                 </FiltersProvider>

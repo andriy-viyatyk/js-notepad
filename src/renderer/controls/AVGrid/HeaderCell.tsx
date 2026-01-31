@@ -233,8 +233,7 @@ export function HeaderCell({ key, col, style, model }: TCellRendererProps) {
             })}
             onPointerDown={column.resizible ? onPointerDown : undefined}
             onClick={handleClick}
-            qa-cell={`${col}:header`}
-            qa-column={column.key}
+            data-key={column.key}
         >
             {Boolean(
                 sortColumn && column.key === sortColumn.key

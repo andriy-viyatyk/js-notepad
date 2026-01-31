@@ -195,10 +195,11 @@ export const calcInnerSize = (
     rowLength: RenderLength,
     fitToWidth: boolean,
     whiteSpaceY?: number,
+    whiteSpaceX?: number,
 ) => ({
     width:
         calcLength(columnLength, 0, columnCount) +
-        (stickyRight || fitToWidth ? 0 : whiteSpace),
+        (stickyRight || fitToWidth ? 0 : (whiteSpaceX ?? whiteSpace)),
     height:
         calcLength(rowLength, 0, rowCount) +
         (stickyBottom ? 0 : (whiteSpaceY ?? whiteSpace)),
@@ -354,6 +355,7 @@ export function calcRenderInfo(
     old: RenderInputPrepared,
     input: CalcRenderInfoInput,
     whiteSpaceY?: number,
+    whiteSpaceX?: number,
 ) {
     const {
         offset,
@@ -410,6 +412,7 @@ export function calcRenderInfo(
         rowLength,
         fitToWidth,
         whiteSpaceY,
+        whiteSpaceX,
     );
 
     const newRange: RanderedRange = calcCellRange(

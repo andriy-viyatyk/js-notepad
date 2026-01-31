@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import React, { CSSProperties, ReactNode, useEffect } from "react";
+import React, { CSSProperties, ReactNode, useCallback, useEffect } from "react";
 import clsx from "clsx";
 
 import { Popper, PopperProps, PopperRoot } from "./Popper";
@@ -14,6 +14,7 @@ import { DefaultView, ViewPropsRO, Views } from "../common/classes/view";
 import ReactDOM from "react-dom";
 import { TComponentState } from "../common/classes/state";
 import { showPopper } from "../dialogs/poppers/Poppers";
+import { FlexSpace } from "./Elements";
 
 const PopupMenuRoot = styled(PopperRoot)<{
     height?: CSSProperties["height"];
@@ -49,6 +50,23 @@ const PopupMenuRoot = styled(PopperRoot)<{
             "&.startGroup": {
                 borderTop: `1px solid ${color.border.default}`,
             },
+            "&:not(:hover) .menu-item-label.minor": {
+                "& .menu-item-text": {
+                    color: color.text.light,
+                },
+                "& .menu-item-hotkey": {
+                    opacity: 0.6,
+                }
+            },
+            "& .menu-item-label": {
+                display: "flex",
+                alignItems: "center",
+                "& .menu-item-hotkey": {
+                    marginLeft: 16,
+                    marginRight: 8,
+                    color: color.text.light,
+                },
+            },
         },
         "& .search-field": {
             margin: "0 4px 4px 4px",
@@ -64,10 +82,11 @@ export interface MenuItem {
     icon?: ReactNode;
     invisible?: boolean;
     startGroup?: boolean;
-    title?: string;
+    hotKey?: string;
     selected?: boolean; // initially highlighted item
     id?: string;
     items?: MenuItem[];
+    minor?: boolean;
 }
 
 export interface PopupMenuProps extends PopperProps {
@@ -152,11 +171,16 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
     private calcWidth = (options: MenuItem[]) => {
         let maxLength = 0;
         let withIcon = false;
+        let withHotKey = false;
         options.forEach((item) => {
-            maxLength = Math.max(maxLength, item.label.length);
+            maxLength = Math.max(
+                maxLength,
+                item.label.length + (item.hotKey ? item.hotKey.length : 0),
+            );
             withIcon = withIcon || Boolean(item.icon);
+            withHotKey = withHotKey || Boolean(item.hotKey);
         });
-        return maxLength * 8 + 32 + (withIcon ? 24 : 0);
+        return maxLength * 8 + 32 + (withIcon ? 24 : 0) + (withHotKey ? 8 : 0);
     };
 
     private calcHeight = (itemsCount: number, showSearch: boolean) => {
@@ -191,7 +215,7 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
             this.subMenuModel = null;
             this.subMenuItem = null;
         }
-    }
+    };
 
     showSubMenu = (item: MenuItem, anchorEl: Element) => {
         this.closeSubMenu();
@@ -209,7 +233,7 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
             this.onClose(true);
             item.onClick?.();
         } else if (item.items && e && this.subMenuItem !== item) {
-            this.showSubMenu(item,  e.currentTarget);
+            this.showSubMenu(item, e.currentTarget);
         }
     };
 
@@ -228,7 +252,7 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
                     if (!this.closed && this.state.get().hovered === item) {
                         this.showSubMenu(item, el);
                     }
-                }, 400); 
+                }, 400);
             }
         }
     };
@@ -280,6 +304,11 @@ class PopupMenuModel extends TComponentModel<PopupMenuState, PopupMenuProps> {
         this.list?.getGrid()?.update({ all: true });
         this.list?.getGrid()?.scrollToRow(nextIndex);
     };
+
+    onContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
 }
 
 export function PopupMenu(props: PopupMenuProps) {
@@ -302,12 +331,27 @@ export function PopupMenu(props: PopupMenuProps) {
         model.prepareItems(options);
     }, [options, state.search, props.open]);
 
+    const getLabel = useCallback((item: MenuItem) => {
+        return (
+            <span className={clsx("menu-item-label", { minor: item.minor })}>
+                <span className="menu-item-text">{item.label}</span>
+                {item.hotKey && (
+                    <>
+                        <FlexSpace />
+                        <span className="menu-item-hotkey">{item.hotKey}</span>
+                    </>
+                )}
+            </span>
+        );
+    }, []);
+
     return (
         <Popper
             onClose={model.onClose}
             maxHeight={800}
             className={clsx(menuClass, className)}
             allowClickInClass={menuClass}
+            onContextMenu={model.onContextMenu}
             {...popperProps}
         >
             <PopupMenuRoot height={state.height} width={state.width}>
@@ -332,6 +376,7 @@ export function PopupMenu(props: PopupMenuProps) {
                     onMouseHover={model.onItemHover}
                     getHovered={model.getHovered}
                     getSelected={model.getSelected}
+                    getLabel={getLabel}
                 />
             </PopupMenuRoot>
         </Popper>
@@ -353,12 +398,7 @@ function SubMenu({ model }: ViewPropsRO<SubMenuModel>) {
     const { items, poperProps } = model.state.use();
 
     return ReactDOM.createPortal(
-        <PopupMenu
-            open
-            items={items}
-            onClose={model.close}
-            {...poperProps}
-        />,
+        <PopupMenu open items={items} onClose={model.close} {...poperProps} />,
         document.body,
     );
 }

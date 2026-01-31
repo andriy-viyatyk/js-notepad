@@ -160,6 +160,7 @@ const RenderGrid = React.forwardRef<RenderGridModel, RenderGridProps>(function R
                                 </div>
                             )}
                             {info.stickyTop}
+                            {props.extraElementTop}
                         </div>
                     )}
                     {Boolean(model.props.stickyBottom) && (

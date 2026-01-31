@@ -111,10 +111,6 @@ export class AVGridActions<R> {
 
     // Internal actions
 
-    columnsChanged = () => {
-        this.model.events.onColumnsChanged.send(undefined);
-    };
-
     editRow = (columnKey: string, rowKey: string, value: any) => {
         if (!this.model.props.editRow) return;
 
@@ -155,9 +151,9 @@ export class AVGridActions<R> {
                 if (focusSingleCell) {
                     this.model.models.focus.selectRange(
                         rowsPosition,
-                        oldFocus.selection.colStart,
+                        oldFocus?.selection?.colStart ?? 0,
                         rowsPosition,
-                        oldFocus.selection.colStart,
+                        oldFocus?.selection?.colStart ?? 0,
                     );
                 } else {
                     this.model.models.focus.focusNewRows(
@@ -190,6 +186,18 @@ export class AVGridActions<R> {
             this.model.data.change();
         }
         return rows;
+    };
+
+    addNewColumns = (count: number, insertBeforeKey?: string): Column<R>[] => {
+        if (!this.model.props.onAddColumns) return [];
+
+        const columns = this.model.props.onAddColumns(count, insertBeforeKey);
+        return columns;
+    };
+
+    deleteColumns = (columnKeys: string[]): void => {
+        if (!this.model.props.onDeleteColumns) return;
+        this.model.props.onDeleteColumns(columnKeys);
     };
 
     deleteRows = (

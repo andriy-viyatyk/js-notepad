@@ -120,7 +120,7 @@ export class CopyPasteModel<R> {
         let pasteColumns: Column<R>[] = [];
         let pasteRows: R[] = [];
 
-        const { focus, setFocus, getRowKey, onAddRows } = this.model.props;
+        const { focus, setFocus, getRowKey, onAddRows, onAddColumns } = this.model.props;
         if (!focus) return { pasteColumns, pasteRows };
         const { rows, columns } = this.model.data;
 
@@ -135,9 +135,14 @@ export class CopyPasteModel<R> {
             endRowIndex = rows.length - 1 + newRows.length;
         }
 
-        const endColIndex = Math.min(startColIndex + colCount - 1, columns.length - 1);
+        let endColIndex = startColIndex + colCount - 1;
+        let newColumns: Column<R>[] = [];
+        if (endColIndex >= columns.length && onAddColumns) {
+            newColumns = this.model.actions.addNewColumns(endColIndex - columns.length + 1) ?? [];
+            endColIndex = columns.length - 1 + newColumns.length;
+        }
 
-        pasteColumns = columns.slice(startColIndex, endColIndex + 1);
+        pasteColumns = columns.slice(startColIndex, endColIndex + 1).concat(newColumns);
         pasteRows = rows.slice(startRowIndex, endRowIndex + 1).concat(newRows);
 
         if (pasteColumns.length && pasteRows.length && setFocus) {
@@ -160,7 +165,7 @@ export class CopyPasteModel<R> {
         if (e.ctrlKey && focus) {
             switch (e.code) {
                 case 'KeyC': {
-                    this.copySelection();
+                    this.copySelection(e.shiftKey ? 'copyWithHeaders' : 'copy');
                     break;
                 }
                 case 'KeyV': {
