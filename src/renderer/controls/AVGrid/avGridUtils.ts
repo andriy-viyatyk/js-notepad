@@ -2,13 +2,12 @@ import { isNullOrUndefined } from "../../common/utils";
 import { Column, TDisplayFormat, TFilter, TOptionsFilter } from "./avGridTypes";
 import { recordsToCsv } from "../../common/csvUtils";
 import { memorize } from "../../common/memorize";
-import { getValue } from "../../common/obj-path";
 
 export const defaultCompare = memorize(
     (propertyKey?: string) =>
         (left: any, right: any): number => {
-            const leftV = propertyKey ? getValue(left, propertyKey) : left;
-            const rightV = propertyKey ? getValue(right, propertyKey) : right;
+            const leftV = propertyKey ? left[propertyKey] : left;
+            const rightV = propertyKey ? right[propertyKey] : right;
 
             if (isNullOrUndefined(leftV) !== isNullOrUndefined(rightV)) {
                 return isNullOrUndefined(leftV) ? -1 : 1;
@@ -132,7 +131,7 @@ function searchStringMatch<R>(
     if (searchLower) {
         return columns.some((c) => {
             const value = formatDispayValue(
-                getValue(row, c.key),
+                row[c.key as keyof R],
                 c.displayFormat
             )
                 ?.toString()
@@ -186,8 +185,8 @@ export function columnDisplayValue(column: Column<any>, row: any) {
     if (column.formatValue) return column.formatValue(column, row);
 
     return column.displayFormat
-        ? formatDispayValue(getValue(row, column.key), column.displayFormat)
-        : getValue(row, column.key);
+        ? formatDispayValue(row[column.key], column.displayFormat)
+        : row[column.key];
 }
 
 export function rowsToCsvText(

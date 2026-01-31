@@ -1,5 +1,4 @@
 import ReactDOMServer from "react-dom/server";
-import { getValue } from "../../common/obj-path";
 import { Column } from "./avGridTypes";
 import { recordsToCsv } from "../../common/csvUtils";
 
@@ -31,7 +30,7 @@ export function detectColumns(colName: string[], rows: any[]): Column<any>[] {
         colName.forEach((name) => {
             const column = columnsMap.get(name);
             const colTypes = columnTypes.get(name);
-            const value = getValue(row, name);
+            const value = row[name];
             if (value !== null && value !== undefined) {
                 const valueStr = String(value);
                 const width = Math.min(

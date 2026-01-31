@@ -10,7 +10,6 @@ import color from "../../theme/color";
 import { DefaultEditFormater } from "./DefaultEditFormater";
 import { useCallback } from "react";
 import { Button } from "../Button";
-import { getValue } from "../../common/obj-path";
 import React from "react";
 
 const DataCellRoot = styled.div(
@@ -48,7 +47,7 @@ export function DefaultCellBoolean(props: TCellRendererProps) {
         model.data.hovered.col === colIndex;
     const isEditable = model.props.editRow && !col.readonly;
 
-    const value = gridBoolean(getValue(row, col.key));
+    const value = gridBoolean(row[col.key]);
 
     if (isHovered && isEditable) {
         return (
@@ -80,7 +79,7 @@ export function DefaultCellFormater(props: TCellRendererProps) {
 
     let value: any = null;
     try {
-        value = getValue(row, column.key);
+        value = row[column.key];
         const renderBoolean =
             column.dataType === "boolean" &&
             (!value || typeof value === "boolean" || isHovered);
@@ -127,7 +126,7 @@ export function DataCell(props: Readonly<TCellRendererProps>) {
         (isEdit ? DefaultEditFormater : DefaultCellFormater);
 
     const rows = model.data.rows;
-    const value = getValue(rows[row], column.key);
+    const value = rows[row][column.key];
 
     const onMouseEnter = useCallback(() => {
         model.models.effects.setHovered({ row, col });

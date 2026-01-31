@@ -3,7 +3,6 @@ import { CellFocus, Column } from "../avGridTypes";
 import { AVGridModel } from "./AVGridModel";
 import { defaultValidate, gridBoolean } from "../avGridUtils";
 import { beep } from "../../utils";
-import { getValue } from "../../../common/obj-path";
 
 export class EditingModel<R> {
     readonly model: AVGridModel<R>;
@@ -160,7 +159,7 @@ export class EditingModel<R> {
 
         for (const row of selection.rows) {
             for (const col of selection.columns) {
-                const currentValue = gridBoolean(getValue(row, col.key));
+                const currentValue = gridBoolean(row[col.key as keyof R]);
                 this.editCell(col, row, isEnter ? !focusValue : !currentValue);
             }
         }
@@ -203,11 +202,11 @@ export class EditingModel<R> {
                             this.openEdit(
                                 focus.columnKey,
                                 focus.rowKey,
-                                getValue(row, column.key),
+                                row[column.key as keyof R],
                                 false
                             );
                         } else if (column.dataType === "boolean" && (e.code === "Enter" || e.code === "NumpadEnter")) {
-                            this.editBooleanInSelection(getValue(row, column.key), true);
+                            this.editBooleanInSelection(row[column.key as keyof R], true);
                         }
                         break;
                     case "Delete":
@@ -232,7 +231,7 @@ export class EditingModel<R> {
                         break;
                     case "Space":
                         if (column.dataType === "boolean") {
-                            this.editBooleanInSelection(getValue(row, column.key), false);
+                            this.editBooleanInSelection(row[column.key as keyof R], false);
                         }
                         break;
                     case "Insert":
@@ -298,7 +297,7 @@ export class EditingModel<R> {
                     this.openEdit(
                         focus.columnKey,
                         focus.rowKey,
-                        getValue(data.row, data.col.key),
+                        data.row[data.col.key as keyof R],
                         true
                     );
                 }
