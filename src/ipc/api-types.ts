@@ -30,6 +30,7 @@ export enum Endpoint {
     showWindowPage = "showWindowPage",
     addDragEvent = "addDragEvent",
     getFileIcon = "getFileIcon",
+    resetZoom = "resetZoom",
 }
 
 export type Api = {
@@ -62,6 +63,7 @@ export type Api = {
     [Endpoint.showWindowPage]: (windowIndex: number, pageId: string) => Promise<void>;
     [Endpoint.addDragEvent]: (event: PageDragData) => Promise<void>;
     [Endpoint.getFileIcon]: (filePath: string) => Promise<string>;
+    [Endpoint.resetZoom]: () => Promise<void>;
 };
 
 export enum EventEndpoint {
@@ -72,6 +74,7 @@ export enum EventEndpoint {
     eShowPage = "eShowPage",
     eMovePageIn = "eMovePageIn",
     eMovePageOut = "eMovePageOut",
+    eZoomChanged = "eZoomChanged",
 }
 
 export interface EventSubscription {
@@ -91,6 +94,7 @@ export type EventApi = {
     [EventEndpoint.eShowPage]: EventObject<string>;
     [EventEndpoint.eMovePageIn]: EventObject<{ page: Partial<IPage>; targetPageId: string | undefined }>;
     [EventEndpoint.eMovePageOut]: EventObject<string>;
+    [EventEndpoint.eZoomChanged]: EventObject<number>;
 };
 
 export enum RendererEvent {

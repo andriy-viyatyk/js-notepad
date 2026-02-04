@@ -90,6 +90,19 @@ class MenuFolders extends TModel<MenuFoldersState> {
     find = (id: string): MenuFolder | undefined => {
         return this.state.get().folders.find((folder) => folder.id === id);
     }
+
+    moveFolder = (sourceId: string, targetId: string) => {
+        this.state.update((s) => {
+            const sourceIndex = s.folders.findIndex((folder) => folder.id === sourceId);
+            const targetIndex = s.folders.findIndex((folder) => folder.id === targetId);
+            if (sourceIndex === -1 || targetIndex === -1) {
+                return;
+            }
+            const [movedFolder] = s.folders.splice(sourceIndex, 1);
+            s.folders.splice(targetIndex, 0, movedFolder);
+        });
+        this.saveStateDebounced();
+    }
 }
 
 export const menuFolders = new MenuFolders();

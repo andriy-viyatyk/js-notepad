@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, IpcMainEvent, shell } from "electron";
-import { Api, Endpoint } from "../api-types";
+import { Api, Endpoint, EventEndpoint } from "../api-types";
 import { getAssetPath, getAppRootPath } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
 import { getFileToOpen, windowReady } from "./window-handlers";
@@ -74,7 +74,15 @@ class Controller implements MainApi {
     zoom = async (event: IpcMainEvent, delta: number): Promise<void> => {
         const window = BrowserWindow.fromWebContents(event.sender);
         const currentZoom = window?.webContents.getZoomLevel() || 0;
-        window?.webContents.setZoomLevel(currentZoom + delta);
+        const newZoom = currentZoom + delta;
+        window?.webContents.setZoomLevel(newZoom);
+        window?.webContents.send(EventEndpoint.eZoomChanged, newZoom);
+    }
+
+    resetZoom = async (event: IpcMainEvent): Promise<void> => {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        window?.webContents.setZoomLevel(0);
+        window?.webContents.send(EventEndpoint.eZoomChanged, 0);
     }
 
     showItemInFolder = async (event: IpcMainEvent, path: string): Promise<void> => {
@@ -152,6 +160,7 @@ const init = () => {
     bindEndpoint(Endpoint.inspectElement, controllerInstance.inspectElement);
     bindEndpoint(Endpoint.getCommonFolder, controllerInstance.getCommonFolder);
     bindEndpoint(Endpoint.zoom, controllerInstance.zoom);
+    bindEndpoint(Endpoint.resetZoom, controllerInstance.resetZoom);
     bindEndpoint(Endpoint.showItemInFolder, controllerInstance.showItemInFolder);
     bindEndpoint(Endpoint.showFolder, controllerInstance.showFolder);
     bindEndpoint(Endpoint.windowReady, controllerInstance.windowReady);

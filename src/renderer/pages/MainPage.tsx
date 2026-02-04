@@ -20,6 +20,7 @@ import { pagesModel } from "../model/pages-model";
 import { MenuBar } from "./menu-bar/MenuBar";
 import { parseObject } from "../common/parseUtils";
 import { filesModel } from "../model/files-model";
+import clsx from "clsx";
 
 const AppRoot = styled.div({
     backgroundColor: color.background.default,
@@ -83,17 +84,29 @@ const AppRoot = styled.div({
             position: "relative",
         },
     },
+    "& button.zoom-indicator": {
+        fontSize: 12,
+        padding: "2px 6px",
+        borderRadius: 4,
+        backgroundColor: color.background.light,
+        display: "none",
+        "&.visible": {
+            display: "flex",
+        },
+    },
 });
 
 const defaultMainPageState = {
     maximized: false,
     menuBarOpen: false,
+    zoomLevel: 0,
 };
 
 type MainPageState = typeof defaultMainPageState;
 
 class MainPageModel extends TComponentModel<MainPageState, undefined> {
     maximizeSubscription: SubscriptionObject | null = null;
+    zoomSubscription: SubscriptionObject | null = null;
 
     init = () => {
         this.maximizeSubscription = rendererEvents.eWindowMaximized.subscribe(
@@ -101,13 +114,23 @@ class MainPageModel extends TComponentModel<MainPageState, undefined> {
                 this.state.update((s) => {
                     s.maximized = isMaximized;
                 });
-            }
+            },
+        );
+
+        this.zoomSubscription = rendererEvents.eZoomChanged.subscribe(
+            (zoomLevel) => {
+                this.state.update((s) => {
+                    s.zoomLevel = zoomLevel;
+                });
+            },
         );
     };
 
     destroy = () => {
         this.maximizeSubscription?.unsubscribe();
         this.maximizeSubscription = null;
+        this.zoomSubscription?.unsubscribe();
+        this.zoomSubscription = null;
     };
 
     minimizeWindow = () => {
@@ -193,13 +216,25 @@ class MainPageModel extends TComponentModel<MainPageState, undefined> {
             }
         }
     };
+
+    resetZoom = () => {
+        api.resetZoom();
+    };
+
+    handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.5 : -0.5;
+            api.zoom(delta);
+        }
+    };
 }
 
 export function MainPage() {
     const model = useComponentModel(
         undefined,
         MainPageModel,
-        defaultMainPageState
+        defaultMainPageState,
     );
     const state = model.state.use();
 
@@ -211,7 +246,7 @@ export function MainPage() {
     }, []);
 
     return (
-        <AppRoot onKeyDown={model.handleKeyDown}>
+        <AppRoot onKeyDown={model.handleKeyDown} onWheel={model.handleWheel}>
             <div className="app-header">
                 <Button
                     onClick={model.toggleMenuBar}
@@ -222,6 +257,17 @@ export function MainPage() {
                 </Button>
                 <PageTabs />
                 <FlexSpace style={{ minWidth: 40 }} />
+                <Button
+                    size="small"
+                    type="icon"
+                    className={clsx("zoom-indicator", {
+                        visible: state.zoomLevel,
+                    })}
+                    onClick={model.resetZoom}
+                    title="Reset Zoom"
+                >
+                    {Math.round(Math.pow(1.2, state.zoomLevel) * 100)}%
+                </Button>
                 <Button
                     onClick={model.minimizeWindow}
                     className="system-button"

@@ -79,7 +79,7 @@ export class ContextMenuModel<R> {
                     icon: <PlusIcon />,
                     startGroup: true,
                     disabled: !canInsertRows,
-                    hotKey: !canInsertRows ? `Cannot insert ${this.model.props.entity ?? "row"}s while sorting or filtering is applied` : "(Ctrl+Insert)",
+                    hotKey: !canInsertRows ? `Filtered or Sorted` : "(Ctrl+Insert)",
                 },
                 {
                     label: `Add ${selection.rows.length} ${this.model.props.entity ?? "row"}${(selection.rows.length ?? 0) > 1 ? 's' : ''}`,

@@ -96,25 +96,17 @@ export class OpenWindow {
                     event.preventDefault();
                     const currentZoom = this.window.webContents.getZoomLevel();
                     this.window.webContents.setZoomLevel(currentZoom + 0.5);
+                    this.send(EventEndpoint.eZoomChanged, currentZoom + 0.5);
                 } else if (input.key === "-") {
                     event.preventDefault();
                     const currentZoom = this.window.webContents.getZoomLevel();
                     this.window.webContents.setZoomLevel(currentZoom - 0.5);
+                    this.send(EventEndpoint.eZoomChanged, currentZoom - 0.5);
                 } else if (input.key === "0") {
                     event.preventDefault();
                     this.window.webContents.setZoomLevel(0);
+                    this.send(EventEndpoint.eZoomChanged, 0);
                 }
-            }
-        });
-
-        this.window.webContents.on("zoom-changed", (event, zoomDirection) => {
-            if (!this.window) return;
-
-            const currentZoom = this.window.webContents.getZoomLevel();
-            if (zoomDirection === "in") {
-                this.window.webContents.setZoomLevel(currentZoom + 0.5);
-            } else if (zoomDirection === "out") {
-                this.window.webContents.setZoomLevel(currentZoom - 0.5);
             }
         });
 

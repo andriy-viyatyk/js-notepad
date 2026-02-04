@@ -105,6 +105,10 @@ class ApiCalls implements Api {
         return executeOnce<void>(Endpoint.zoom, delta);
     };
 
+    resetZoom = async () => {
+        return executeOnce<void>(Endpoint.resetZoom);
+    };
+
     showItemInFolder = async (path: string) => {
         return executeOnce<void>(Endpoint.showItemInFolder, path);
     };

@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TComponentModel, useComponentModel } from "../../common/classes/model";
 import { Button } from "../../controls/Button";
-import { List } from "../../controls/List";
+import { List, ListOptionRenderer } from "../../controls/List";
 import { api } from "../../../ipc/renderer/api";
 import { pagesModel } from "../../model/pages-model";
 import color from "../../theme/color";
@@ -20,10 +20,12 @@ import { appSettings } from "../../model/appSettings";
 import { RecentFileList } from "./RecentFileList";
 import { MenuFolder, menuFolders } from "../../model/menuFolders";
 import { FileExplorer } from "./FileExplorer";
+import { FileListRef } from "./FileList";
 import { MenuItem } from "../../controls/PopupMenu";
 import { recentFiles } from "../../model/recentFiles";
 import { FolderIcon } from "./FileIcon";
 import { Spliter } from "../../controls/Spliter";
+import { FolderItem } from "./FolderItem";
 const path = require("path");
 
 const MenuBarRoot = styled("div")({
@@ -121,6 +123,10 @@ const staticFolders: MenuFolder[] = [
     { id: openTabsId, name: "Open Tabs" },
     { id: recentFilesId, name: "Recent Files" },
 ];
+
+const isStaticFolder = (folder: MenuFolder) => {
+    return Boolean(staticFolders.find((f) => f.id === folder.id));
+};
 
 const defaultMenuBarState = {
     leftItemId: openTabsId,
@@ -274,6 +280,7 @@ export function MenuBar(props: MenuBarProps) {
     const state = model.state.use();
     const [isAnimating, setIsAnimating] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+    const fileListRef = useRef<FileListRef>(null);
     const fileFolders = menuFolders.state.use((s) => s.folders);
 
     const allFolders = useMemo(() => {
@@ -287,6 +294,18 @@ export function MenuBar(props: MenuBarProps) {
         }
     }, [allFolders]);
 
+    const handleContentKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === "Escape") {
+            props.onClose?.();
+        } else if (e.ctrlKey && e.code === "KeyF") {
+            // Trigger search on FileExplorer or RecentFileList
+            if (state.leftItemId !== openTabsId) {
+                e.preventDefault();
+                fileListRef.current?.showSearch();
+            }
+        }
+    }, [props.onClose, state.leftItemId]);
+
     useEffect(() => {
         if (props.open) {
             model.init();
@@ -298,6 +317,30 @@ export function MenuBar(props: MenuBarProps) {
         }
     }, [props.open]);
 
+    const folderRowRenderer: ListOptionRenderer<MenuFolder> = useCallback(
+        ({ row, index, style, onClick, selected, selectedIcon, itemMarginY, getTooltip, getContextMenu }) => {
+            return (
+                <FolderItem
+                    key={row.id}
+                    folder={row}
+                    index={index}
+                    style={style}
+                    selected={selected}
+                    onClick={onClick}
+                    icon={model.getFolderIcon(row)}
+                    label={model.getFolderLabel(row)}
+                    selectedIcon={selectedIcon}
+                    itemMarginY={itemMarginY}
+                    getTooltip={getTooltip}
+                    getContextMenu={getContextMenu}
+                    canDrag={!isStaticFolder(row)}
+                    canDrop={!isStaticFolder(row)}
+                />
+            );
+        },
+        [model]
+    );
+
     const renderRightList = useCallback(() => {
         switch (state.leftItemId) {
             case openTabsId:
@@ -305,12 +348,13 @@ export function MenuBar(props: MenuBarProps) {
                     <OpenTabsList onClose={props.onClose} open={props.open} />
                 );
             case recentFilesId:
-                return <RecentFileList onClose={props.onClose} />;
+                return <RecentFileList ref={fileListRef} onClose={props.onClose} />;
             default: {
                 const folder = menuFolders.find(state.leftItemId);
                 if (folder?.path) {
                     return (
                         <FileExplorer
+                            ref={fileListRef}
                             key={folder.id}
                             basePath={folder.path}
                             onClose={props.onClose}
@@ -336,7 +380,7 @@ export function MenuBar(props: MenuBarProps) {
                 ref={contentRef}
                 className="menu-bar-content"
                 onClick={model.contentClick}
-                onKeyDown={model.contentKeyDown}
+                onKeyDown={handleContentKeyDown}
                 tabIndex={0}
                 style={{ width: state.contentWidth }}
             >
@@ -385,6 +429,7 @@ export function MenuBar(props: MenuBarProps) {
                         getContextMenu={model.getMenuFolderContextMenu}
                         onContextMenu={model.onLeftPanelContextMenu}
                         getTooltip={model.getFolderTooltip}
+                        rowRenderer={folderRowRenderer}
                     />
                 </div>
                 <div className="menu-bar-panel menu-bar-right">

@@ -249,6 +249,7 @@ export class GridPageModel extends TComponentModel<
                 dataType: "string",
                 width: 100,
                 resizible: true,
+                filterType: "options",
             },
         ];
         this.maxRowId = rows.length;
@@ -374,6 +375,7 @@ export class GridPageModel extends TComponentModel<
                 dataType: "string",
                 width: 100,
                 resizible: true,
+                filterType: "options",
             }),
         );
         let index = currentColumns.length;

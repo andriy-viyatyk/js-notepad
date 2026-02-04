@@ -73,6 +73,10 @@ class RendererEvents implements EventApi {
     [EventEndpoint.eMovePageOut] = new RendererEventObject<string>(
         EventEndpoint.eMovePageOut
     );
+
+    [EventEndpoint.eZoomChanged] = new RendererEventObject<number>(
+        EventEndpoint.eZoomChanged
+    );
 }
 
 const rendererEvents = new RendererEvents();

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { forwardRef, useEffect } from "react";
 import { TComponentModel, useComponentModel } from "../../common/classes/model";
-import { FileListItem, FileList } from "./FileList";
+import { FileListItem, FileList, FileListRef } from "./FileList";
 import { nodeUtils } from "../../common/node-utils";
 import { pagesModel } from "../../model/pages-model";
 import { MenuItem } from "../../controls/PopupMenu";
@@ -292,61 +292,71 @@ class FileExplorerModel extends TComponentModel<
     };
 }
 
-export function FileExplorer(props: FileExplorerProps) {
-    const model = useComponentModel(
-        props,
-        FileExplorerModel,
-        defaultFileExplorerState
-    );
-    const state = model.state.use();
+export const FileExplorer = forwardRef<FileListRef, FileExplorerProps>(
+    function FileExplorer(props, ref) {
+        const model = useComponentModel(
+            props,
+            FileExplorerModel,
+            defaultFileExplorerState
+        );
+        const state = model.state.use();
 
-    useEffect(() => {
-        model.init();
-    }, []);
+        useEffect(() => {
+            model.init();
+        }, []);
 
-    useEffect(() => {
-        if (props.menuOpen) {
-            model.loadDirectory();
-        }
-    }, [props.menuOpen]);
+        useEffect(() => {
+            if (props.menuOpen) {
+                model.loadDirectory();
+            }
+        }, [props.menuOpen]);
 
-    return (
-        <FileListRoot>
-            <div className="file-explorer-header">
-                {state.subPath.length ? (
-                    <>
-                        <span
-                            className="sub-folder-label home-label"
-                            onClick={() => model.navigateToIndex(-1)}
-                        >
-                            ⌂
-                        </span>
-                        {state.subPath.map((p, idx) => (
+        // Clear search when navigating to a different directory
+        useEffect(() => {
+            if (ref && typeof ref !== "function") {
+                ref.current?.hideSearch();
+            }
+        }, [state.currentPath]);
+
+        return (
+            <FileListRoot>
+                <div className="file-explorer-header">
+                    {state.subPath.length ? (
+                        <>
                             <span
-                                key={idx}
-                                className="sub-folder-label"
-                                onClick={() => {
-                                    if (idx < state.subPath.length - 1) {
-                                        model.navigateToIndex(idx);
-                                    }
-                                }}
+                                className="sub-folder-label home-label"
+                                onClick={() => model.navigateToIndex(-1)}
                             >
-                                {`/${p}`}
+                                ⌂
                             </span>
-                        ))}
-                    </>
-                ) : (
-                    <span className="current-path-label">
-                        {state.currentPath}
-                    </span>
-                )}
-            </div>
-            <FileList
-                items={state.fileList}
-                onClick={model.onItemClick}
-                getContextMenu={model.getItemContextMenu}
-                onContextMenu={model.onContextMenu}
-            />
-        </FileListRoot>
-    );
-}
+                            {state.subPath.map((p, idx) => (
+                                <span
+                                    key={idx}
+                                    className="sub-folder-label"
+                                    onClick={() => {
+                                        if (idx < state.subPath.length - 1) {
+                                            model.navigateToIndex(idx);
+                                        }
+                                    }}
+                                >
+                                    {`/${p}`}
+                                </span>
+                            ))}
+                        </>
+                    ) : (
+                        <span className="current-path-label">
+                            {state.currentPath}
+                        </span>
+                    )}
+                </div>
+                <FileList
+                    ref={ref}
+                    items={state.fileList}
+                    onClick={model.onItemClick}
+                    getContextMenu={model.getItemContextMenu}
+                    onContextMenu={model.onContextMenu}
+                />
+            </FileListRoot>
+        );
+    }
+);
