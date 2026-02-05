@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { Popper } from "../../controls/Popper";
+import { Popper } from "../../components/overlay/Popper";
 import color from "../../theme/color";
 import {
     CheckedIcon,
@@ -7,14 +7,14 @@ import {
     RadioUncheckedIcon,
     UncheckedIcon,
 } from "../../theme/icons";
-import { Button } from "../../controls/Button";
+import { Button } from "../../components/basic/Button";
 import ReactDOM from "react-dom";
-import { DefaultView, ViewPropsRO, Views } from "../../common/classes/view";
+import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { useCallback, useEffect, useState } from "react";
-import { TComponentState } from "../../common/classes/state";
-import { TextField } from "../../controls/TextField";
-import { TPopperModel } from "../../dialogs/poppers/types";
-import { showPopper } from "../../dialogs/poppers/Poppers";
+import { TComponentState } from "../../core/state/state";
+import { TextField } from "../../components/basic/TextField";
+import { TPopperModel } from "../../features/dialogs/poppers/types";
+import { showPopper } from "../../features/dialogs/poppers/Poppers";
 import { GridPageModel } from "./GridPage-model";
 
 const CsvOptionsRoot = styled.div({

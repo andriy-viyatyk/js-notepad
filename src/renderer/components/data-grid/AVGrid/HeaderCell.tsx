@@ -1,0 +1,255 @@
+import React, { useCallback, useRef } from "react";
+import styled from "@emotion/styled";
+import clsx from "clsx";
+import { useDrag, useDrop } from "react-dnd";
+
+import color from "../../../theme/color";
+import { TCellRendererProps, TSortDirection } from "./avGridTypes";
+import {
+    FilterArrowDownIcon,
+    FilterArrowUpIcon,
+    FilterTableIcon,
+    QuestionIcon,
+} from "../../../theme/icons";
+import { Button } from "../../basic/Button";
+import { useFilters } from "./filters/useFilters";
+
+const HeaderCellRoot = styled.div(
+    {
+        position: "relative",
+        alignItems: "center",
+        backgroundColor: color.grid.headerCellBackground,
+        boxSizing: "border-box",
+        "&.header-resizible": {
+            paddingRight: 10,
+            "&::after": {
+                content: '""',
+                cursor: "col-resize",
+                position: "absolute",
+                insetBlockStart: 0,
+                insetInlineEnd: 0,
+                insetBlockEnd: 0,
+                inlineSize: "10px",
+            },
+            "&:hover::after": {
+                background: `linear-gradient(
+                    to bottom,
+                    transparent 0%,
+                    transparent 20%,
+                    ${color.border.default} 30%,
+                    transparent 40%,
+                    ${color.border.default} 50%,
+                    transparent 60%,
+                    ${color.border.default} 70%,
+                    transparent 80%,
+                    transparent 100%
+                )`, // Creates 3 horizontal lines
+                backgroundSize: "4px 100%", // Restrict dashes to 4px width
+                backgroundPosition: "center", // Center the dashes horizontally
+                backgroundRepeat: "no-repeat",
+            },
+        },
+        "& .flex-space": {
+            flex: "1 1 auto",
+        },
+        "& .column-filter-button": {
+            display: "none",
+            position: "absolute",
+            right: 10,
+            top: "50%",
+            transform: "translateY(-50%)",
+            backgroundColor: color.background.dark,
+            "&.columnFiltered": {
+                display: "flex",
+                "& svg": {
+                    color: color.misc.blue,
+                }
+            }
+        },
+        "&:hover": {
+            "& .column-filter-button": {
+                display: "flex",
+            },
+        },
+        "& .header-cell-title": {
+            marginRight: 4,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+        },
+        "& .sort-icon": {
+            color: color.icon.light,
+        }
+    },
+    { label: "HeaderCellRoot" }
+);
+
+function SortIcon({ direction, frozen }: { direction?: TSortDirection, frozen?: boolean }) {
+    if (frozen) {
+        return <QuestionIcon width={16} height={16} className="sort-icon" title="Rows are frozen while editing. Click to unfreeze." />;
+    }
+    if (direction === "asc") {
+        return <FilterArrowDownIcon width={16} height={16} className="sort-icon" />;
+    }
+    if (direction === "desc") {
+        return <FilterArrowUpIcon width={16} height={16} className="sort-icon" />;
+    }
+    return null;
+}
+
+export function HeaderCell({ key, col, style, model }: TCellRendererProps) {
+    const column = model.data.columns[col];
+    const headerRef = useRef<HTMLElement>(undefined);
+    const resizingRef = useRef(false);
+    const hasResized = useRef(false);
+    const { showFilterPoper } = useFilters();
+    const filter = useFilters();
+    const columnFiltered = filter.filters.find(
+        (f) => f.columnKey === column.key
+    );
+    const sortColumn = model.state.use(s => s.sortColumn);
+
+    const handleClick = () => {
+        if (hasResized.current) {
+            hasResized.current = false;
+            return;
+        }
+
+        model.actions.sortColumn(column.key);
+    };
+
+    function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+        if (event.pointerType === "mouse" && event.buttons !== 1) {
+            return;
+        }
+
+        const { currentTarget, pointerId } = event;
+        const { right } = currentTarget.getBoundingClientRect();
+        const offset = right - event.clientX;
+
+        if (offset > 11) {
+            return;
+        }
+        event.stopPropagation();
+        event.preventDefault();
+
+        hasResized.current = true;
+        resizingRef.current = true;
+
+        function onPointerMove(e: PointerEvent) {
+            e.stopPropagation();
+            e.preventDefault();
+            const { left } = currentTarget.getBoundingClientRect();
+            const width = e.clientX + offset - left;
+            if (width > 0) {
+                model.actions.columnResize(column?.key as string, width);
+            }
+        }
+
+        function onLostPointerCapture() {
+            currentTarget.removeEventListener("pointermove", onPointerMove);
+            currentTarget.removeEventListener(
+                "lostpointercapture",
+                onLostPointerCapture
+            );
+            resizingRef.current = false;
+        }
+
+        currentTarget.setPointerCapture(pointerId);
+        currentTarget.addEventListener("pointermove", onPointerMove);
+        currentTarget.addEventListener(
+            "lostpointercapture",
+            onLostPointerCapture
+        );
+    }
+
+    const [{ isDragging }, drag] = useDrag({
+        type: "COLUMN_DRAG",
+        item: { key: column.key },
+        collect: (monitor) => ({
+            isDragging: monitor.isDragging(),
+        }),
+        canDrag: () => {
+            return !column.isStatusColumn && !resizingRef.current;
+        },
+    });
+
+    const [{ isOver }, drop] = useDrop({
+        accept: ["COLUMN_DRAG", "FREEZE_DRAG"],
+        drop({ key: dropKey }: { key: string }) {
+            model.actions.columnsReorder(dropKey, column.key as string);
+        },
+        collect: (monitor) => ({
+            isOver: monitor.isOver(),
+            canDrop: monitor.canDrop(),
+        }),
+        canDrop: () => !column.isStatusColumn,
+    });
+
+    const filterClick = useCallback(
+        (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation();
+            if (column.filterType) {
+                showFilterPoper(
+                    {
+                        columnKey: column.key as string,
+                        columnName: column.name,
+                        type: column.filterType,
+                        displayFormat: column.displayFormat,
+                    },
+                    headerRef.current,
+                    {
+                        x: e.clientX,
+                        y: e.clientY,
+                    },
+                    {
+                        x: 4,
+                        y: 0,
+                    }
+                );
+            }
+        },
+        [
+            column.filterType,
+            column.displayFormat,
+            column.key,
+            column.name,
+            showFilterPoper,
+        ]
+    );
+
+    return (
+        <HeaderCellRoot
+            ref={(ref) => {
+                headerRef.current = ref as HTMLElement;
+                drag(ref);
+                drop(ref);
+            }}
+            key={key}
+            style={style}
+            className={clsx("header-cell", {
+                "header-resizible": column.resizible,
+                "is-dragging": isDragging,
+                "is-over": isOver,
+            })}
+            onPointerDown={column.resizible ? onPointerDown : undefined}
+            onClick={handleClick}
+            data-key={column.key}
+        >
+            {Boolean(
+                sortColumn && column.key === sortColumn.key
+            ) && <SortIcon direction={sortColumn?.direction} frozen={model.data.rowsFrozen}/>}
+            <span className="header-cell-title">{column?.name}</span>
+            <span className="flex-space" />
+            {Boolean(column.filterType) && !model.props.disableFiltering && (
+                <Button
+                    size="small"
+                    type="icon"
+                    className={clsx("column-filter-button", {columnFiltered})}
+                    onClick={filterClick}
+                >
+                    <FilterTableIcon />
+                </Button>
+            )}
+        </HeaderCellRoot>
+    );
+}

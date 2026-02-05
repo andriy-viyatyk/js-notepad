@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import color from "../theme/color";
-import { FlexSpace } from "../controls/Elements";
-import { Button } from "../controls/Button";
+import { FlexSpace } from "../components/layout/Elements";
+import { Button } from "../components/basic/Button";
 import {
     CloseIcon,
     JsNotepadIcon,
@@ -9,16 +9,16 @@ import {
     WindowMinimizeIcon,
     WindowRestoreIcon,
 } from "../theme/icons";
-import { TComponentModel, useComponentModel } from "../common/classes/model";
+import { TComponentModel, useComponentModel } from "../core/state/model";
 import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
-import { SubscriptionObject } from "../common/classes/events";
+import { SubscriptionObject } from "../core/state/events";
 import { useEffect } from "react";
 import { Pages } from "./Pages";
-import { PageTabs } from "./PageTabs";
+import { PageTabs } from "../features/tabs/PageTabs";
 import { pagesModel } from "../model/pages-model";
-import { MenuBar } from "./menu-bar/MenuBar";
-import { parseObject } from "../common/parseUtils";
+import { MenuBar } from "../features/sidebar/MenuBar";
+import { parseObject } from "../core/utils/parse-utils";
 import { filesModel } from "../model/files-model";
 import clsx from "clsx";
 

@@ -1,12 +1,12 @@
 import { SetStateAction } from "react";
 import { debounce } from "../../../shared/utils";
-import { TComponentModel } from "../../common/classes/model";
-import { parseObject } from "../../common/parseUtils";
-import { CellFocus, Column, TFilter } from "../../controls/AVGrid/avGridTypes";
-import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
+import { TComponentModel } from "../../core/state/model";
+import { parseObject } from "../../core/utils/parse-utils";
+import { CellFocus, Column, TFilter } from "../../components/data-grid/AVGrid/avGridTypes";
+import { AVGridModel } from "../../components/data-grid/AVGrid/model/AVGridModel";
 import { filesModel } from "../../model/files-model";
 import { TextFileModel } from "../../pages/text-file-page/TextFilePage.model";
-import { resolveState } from "../../common/utils";
+import { resolveState } from "../../core/utils/utils";
 import {
     createIdColumn,
     getGridDataWithColumns,
@@ -15,13 +15,13 @@ import {
     nextColumnKeys,
     removeIdColumn,
 } from "./grid-page-utils";
-import { csvToRecords } from "../../common/csvUtils";
+import { csvToRecords } from "../../core/utils/csv-utils";
 import {
     defaultCompare,
     filterRows,
     rowsToCsvText,
-} from "../../controls/AVGrid/avGridUtils";
-import { TOnGetFilterOptions } from "../../controls/AVGrid/filters/useFilters";
+} from "../../components/data-grid/AVGrid/avGridUtils";
+import { TOnGetFilterOptions } from "../../components/data-grid/AVGrid/filters/useFilters";
 import { PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
 

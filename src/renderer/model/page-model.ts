@@ -1,5 +1,5 @@
-import { TDialogModel } from "../common/classes/model";
-import { uuid } from "../common/node-utils";
+import { TDialogModel } from "../core/state/model";
+import { uuid } from "../core/utils/node-utils";
 import { IPage } from "../../shared/types";
 import { validateEditorForLanguage } from "./resolve-editor";
 

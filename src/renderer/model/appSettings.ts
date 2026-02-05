@@ -1,9 +1,9 @@
 import { debounce } from "../../shared/utils";
-import { TModel } from "../common/classes/model";
-import { TGlobalState } from "../common/classes/state";
-import { parseJSON5 } from "../common/parseUtils";
+import { TModel } from "../core/state/model";
+import { TGlobalState } from "../core/state/state";
+import { parseJSON5 } from "../core/utils/parse-utils";
 import { filesModel } from "./files-model";
-import { FileWatcher } from "./FileWatcher";
+import { FileWatcher } from "../core/services/file-watcher";
 
 const settingsFileName = "appSettings.json";
 

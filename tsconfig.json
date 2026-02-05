@@ -11,10 +11,13 @@
         "outDir": "dist",
         "moduleResolution": "node",
         "resolveJsonModule": true,
-        "jsx": "react-jsx",
-        "types": ["node"]
+        "jsx": "react-jsx"
     },
+    "include": [
+        "src/**/*"
+    ],
     "exclude": [
+        "node_modules",
         "assets",
         "data",
         "out",

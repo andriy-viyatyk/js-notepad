@@ -3,11 +3,11 @@ import * as monaco from "monaco-editor";
 import styled from "@emotion/styled";
 
 import { TextFileModel } from "./TextFilePage.model";
-import { TModel } from "../../common/classes/model";
+import { TModel } from "../../core/state/model";
 import { useEffect } from "react";
 import { pagesModel } from "../../model/pages-model";
 import { api } from "../../../ipc/renderer/api";
-import { TComponentState } from "../../common/classes/state";
+import { TComponentState } from "../../core/state/state";
 
 const TextEditorRoot = styled.div({
     flex: "1 1 auto",

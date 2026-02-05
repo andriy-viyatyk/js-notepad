@@ -8,7 +8,7 @@ import { TextFileFooterActions } from "./TextFileFooterActions";
 import color from "../../theme/color";
 import { EncriptionPanel } from "./EncriptionPanel";
 import { ActiveEditor } from "./ActiveEditor";
-import { FlexSpace } from "../../controls/Elements";
+import { FlexSpace } from "../../components/layout/Elements";
 
 const TextFilePageRoot = styled.div({
     flex: "1 1 auto",

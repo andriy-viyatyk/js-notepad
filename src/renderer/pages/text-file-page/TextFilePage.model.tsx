@@ -1,21 +1,21 @@
 const path = require("path");
 const fs = require("fs");
-import { TComponentState } from "../../common/classes/state";
-import { showConfirmationDialog } from "../../dialogs/dialogs/ConfirmationDialog";
+import { TComponentState } from "../../core/state/state";
+import { showConfirmationDialog } from "../../features/dialogs/ConfirmationDialog";
 import { api } from "../../../ipc/renderer/api";
 import { filesModel } from "../../model/files-model";
-import { FileWatcher } from "../../model/FileWatcher";
+import { FileWatcher } from "../../core/services/file-watcher";
 import { getLanguageByExtension } from "../../model/language-mapping";
 import { getDefaultPageModelState, PageModel } from "../../model/page-model";
 import { pagesModel } from "../../model/pages-model";
 import { recentFiles } from "../../model/recentFiles";
-import { scriptRunner } from "../../script/ScriptRunner";
+import { scriptRunner } from "../../core/services/scripting/ScriptRunner";
 import { IPage, PageEditor } from "../../../shared/types";
 import { ScriptEditorModel } from "./ScriptEditor";
 import { TextEditorModel } from "./TextEditor";
 import { debounce } from "../../../shared/utils";
-import { decryptText, encryptText, isEncrypted } from "../../common/encription";
-import { alertWarning } from "../../dialogs/alerts/AlertsBar";
+import { decryptText, encryptText, isEncrypted } from "../../core/services/encryption";
+import { alertWarning } from "../../features/dialogs/alerts/AlertsBar";
 import { resolveEditor } from "../../model/resolve-editor";
 
 export interface TextFilePageModelState extends IPage {

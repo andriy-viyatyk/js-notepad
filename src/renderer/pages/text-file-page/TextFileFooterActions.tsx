@@ -3,9 +3,9 @@ import styled from "@emotion/styled";
 import clsx from "clsx";
 
 import { TextFileModel } from "./TextFilePage.model";
-import { Button } from "../../controls/Button";
+import { Button } from "../../components/basic/Button";
 import color from "../../theme/color";
-import { FlexSpace } from "../../controls/Elements";
+import { FlexSpace } from "../../components/layout/Elements";
 
 const FooterButton = styled(Button)({
     "&.footer-button": {

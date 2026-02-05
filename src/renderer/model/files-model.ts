@@ -1,9 +1,9 @@
 const path = require("path");
 import { api } from "../../ipc/renderer/api";
-import { TModel } from "../common/classes/model";
-import { TGlobalState } from "../common/classes/state";
-import { nodeUtils } from "../common/node-utils";
-import { LoadedTextFile } from "../common/types";
+import { TModel } from "../core/state/model";
+import { TGlobalState } from "../core/state/state";
+import { nodeUtils } from "../core/utils/node-utils";
+import { LoadedTextFile } from "../core/utils/types";
 
 const defaultFilesModelState = {
     windowIndex: 0,

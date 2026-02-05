@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import clsx from "clsx";
 import { CSSProperties, useCallback, useMemo, useRef, useState } from "react";
-import { Spliter } from "../controls/Spliter";
+import { Splitter } from "../components/layout/Splitter";
 import { PageModel } from "../model/page-model";
 import { pagesModel } from "../model/pages-model";
 import color from "../theme/color";
@@ -158,9 +158,9 @@ function RenderGroupedPages({
             >
                 <RenderEditor key={`render-editor-${model.id}`} model={model} />
             </div>
-            <Spliter
+            <Splitter
                 type="vertical"
-                className="page-spliter"
+                className="page-splitter"
                 initialWidth={typeof leftWidth === "number" ? leftWidth : 200}
                 onChangeWidth={resizeWidth}
                 onDoubleClick={splitterDubleClick}

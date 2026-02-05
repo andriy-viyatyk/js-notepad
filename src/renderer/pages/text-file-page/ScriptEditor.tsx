@@ -2,17 +2,17 @@ import { Editor } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import styled from "@emotion/styled";
 
-import { TModel } from "../../common/classes/model";
+import { TModel } from "../../core/state/model";
 import { TextFileModel } from "./TextFilePage.model";
-import { Spliter } from "../../controls/Spliter";
+import { Splitter } from "../../components/layout/Splitter";
 import color from "../../theme/color";
 import { PageToolbar } from "../shared/PageToolbar";
 import { CloseIcon, RunAllIcon, RunIcon } from "../../theme/icons";
-import { Button } from "../../controls/Button";
-import { FlexSpace } from "../../controls/Elements";
-import { TComponentState } from "../../common/classes/state";
+import { Button } from "../../components/basic/Button";
+import { FlexSpace } from "../../components/layout/Elements";
+import { TComponentState } from "../../core/state/state";
 import { filesModel } from "../../model/files-model";
-import { parseObject } from "../../common/parseUtils";
+import { parseObject } from "../../core/utils/parse-utils";
 import { debounce } from "../../../shared/utils";
 
 const ScriptEditorRoot = styled.div({
@@ -166,7 +166,7 @@ export function ScriptEditor({ model }: ScriptEditorProps) {
             style={{ height: state.height }}
             onKeyDown={scriptModel.handleKeyDown}
         >
-            <Spliter
+            <Splitter
                 type="horizontal"
                 initialHeight={state.height}
                 borderSized="top"

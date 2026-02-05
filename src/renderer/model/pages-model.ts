@@ -1,7 +1,7 @@
-import { Subscription } from "../common/classes/events";
-import { TModel } from "../common/classes/model";
-import { TGlobalState } from "../common/classes/state";
-import { parseObject } from "../common/parseUtils";
+import { Subscription } from "../core/state/events";
+import { TModel } from "../core/state/model";
+import { TGlobalState } from "../core/state/state";
+import { parseObject } from "../core/utils/parse-utils";
 import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import {
@@ -16,7 +16,7 @@ import { PageModel } from "./page-model";
 import { recentFiles } from "./recentFiles";
 import { debounce } from "../../shared/utils";
 import { newEmptyPageModel, newPageModel, newPageModelFromState } from "./new-page-model";
-import { uuid } from "../common/node-utils";
+import { uuid } from "../core/utils/node-utils";
 
 const defaultOpenFilesState = {
     pages: [] as PageModel[],

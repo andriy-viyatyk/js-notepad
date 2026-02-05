@@ -1,14 +1,14 @@
 import styled from "@emotion/styled";
-import { useComponentModel } from "../../common/classes/model";
+import { useComponentModel } from "../../core/state/model";
 import { getRowKey } from "./grid-page-utils";
 import { useCallback, useEffect, useState } from "react";
-import AVGrid from "../../controls/AVGrid/AVGrid";
-import { FiltersProvider } from "../../controls/AVGrid/filters/useFilters";
-import { FilterBar } from "../../controls/AVGrid/filters/FilterBar";
+import AVGrid from "../../components/data-grid/AVGrid/AVGrid";
+import { FiltersProvider } from "../../components/data-grid/AVGrid/filters/useFilters";
+import { FilterBar } from "../../components/data-grid/AVGrid/filters/FilterBar";
 import { createPortal } from "react-dom";
-import { TextField } from "../../controls/TextField";
+import { TextField } from "../../components/basic/TextField";
 import { CloseIcon, ColumnsIcon } from "../../theme/icons";
-import { Button } from "../../controls/Button";
+import { Button } from "../../components/basic/Button";
 import color from "../../theme/color";
 import { showColumnsOptions } from "./ColumnsOptions";
 import {

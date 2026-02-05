@@ -1,13 +1,13 @@
 import { useEffect } from "react";
-import { TModel, useModel } from "../common/classes/model";
-import { TComponentState } from "../common/classes/state";
-import { showAppPopupMenu } from "../dialogs/poppers/showPopupMenu";
-import { parseObject } from "../common/parseUtils";
+import { TModel, useModel } from "../core/state/model";
+import { TComponentState } from "../core/state/state";
+import { showAppPopupMenu } from "../features/dialogs/poppers/showPopupMenu";
+import { parseObject } from "../core/utils/parse-utils";
 import { filesModel } from "../model/files-model";
 import { api } from "../../ipc/renderer/api";
-import { alertError } from "../dialogs/alerts/AlertsBar";
-import { scriptRunner } from "../script/ScriptRunner";
-import { nodeUtils } from "../common/node-utils";
+import { alertError } from "../features/dialogs/alerts/AlertsBar";
+import { scriptRunner } from "../core/services/scripting/ScriptRunner";
+import { nodeUtils } from "../core/utils/node-utils";
 import { RendererEvent } from "../../ipc/api-types";
 
 class EventHandlerModel extends TModel<null> {

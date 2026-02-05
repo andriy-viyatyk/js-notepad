@@ -2,23 +2,23 @@ import ReactDOM from "react-dom";
 import styled from "@emotion/styled";
 import { SetStateAction, useMemo, useRef } from "react";
 
-import { DefaultView, ViewPropsRO, Views } from "../../common/classes/view";
+import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import {
     CellFocus,
     Column,
     TDataType,
-} from "../../controls/AVGrid/avGridTypes";
-import { Popper } from "../../controls/Popper";
-import { TComponentState } from "../../common/classes/state";
-import { AVGridModel } from "../../controls/AVGrid/model/AVGridModel";
-import AVGrid from "../../controls/AVGrid/AVGrid";
+} from "../../components/data-grid/AVGrid/avGridTypes";
+import { Popper } from "../../components/overlay/Popper";
+import { TComponentState } from "../../core/state/state";
+import { AVGridModel } from "../../components/data-grid/AVGrid/model/AVGridModel";
+import AVGrid from "../../components/data-grid/AVGrid/AVGrid";
 import color from "../../theme/color";
-import { TPopperModel } from "../../dialogs/poppers/types";
-import { resolveState } from "../../common/utils";
-import { parseBoolean, parseNumber, parseString } from "../../common/parseUtils";
-import { showPopper, visiblePoppers } from "../../dialogs/poppers/Poppers";
-import { FlexSpace } from "../../controls/Elements";
-import { Button } from "../../controls/Button";
+import { TPopperModel } from "../../features/dialogs/poppers/types";
+import { resolveState } from "../../core/utils/utils";
+import { parseBoolean, parseNumber, parseString } from "../../core/utils/parse-utils";
+import { showPopper, visiblePoppers } from "../../features/dialogs/poppers/Poppers";
+import { FlexSpace } from "../../components/layout/Elements";
+import { Button } from "../../components/basic/Button";
 
 const minWidth = 240;
 const minHeight = 160;

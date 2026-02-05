@@ -1,5 +1,5 @@
-import { monacoLanguages } from "../common/monacoLanguages";
-import { MonacoLanguage } from "../common/types";
+import { monacoLanguages } from "../core/utils/monaco-languages";
+import { MonacoLanguage } from "../core/utils/types";
 
 let languageMapping: { [key: string]: MonacoLanguage } | undefined;
 let extensionMapping: { [key: string]: MonacoLanguage } | undefined;

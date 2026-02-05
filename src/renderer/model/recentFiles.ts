@@ -1,5 +1,5 @@
-import { TModel } from "../common/classes/model";
-import { TGlobalState } from "../common/classes/state";
+import { TModel } from "../core/state/model";
+import { TGlobalState } from "../core/state/state";
 import { filesModel } from "./files-model";
 
 const recentFileName = 'recentFiles.txt';

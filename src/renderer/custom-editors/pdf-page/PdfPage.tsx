@@ -1,9 +1,9 @@
 import styled from "@emotion/styled";
 import { IPage, PageType } from "../../../shared/types";
 import { getDefaultPageModelState, PageModel } from "../../model/page-model";
-import { TComponentState } from "../../common/classes/state";
+import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
-import { FileIcon } from "../../pages/menu-bar/FileIcon";
+import { FileIcon } from "../../features/sidebar/FileIcon";
 const path = require("path");
 
 const PdvPageRoot = styled.div({

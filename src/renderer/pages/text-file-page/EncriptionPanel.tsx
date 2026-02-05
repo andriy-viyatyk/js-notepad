@@ -1,9 +1,9 @@
 import styled from "@emotion/styled";
 import { TextFileModel } from "./TextFilePage.model";
 import color from "../../theme/color";
-import { TextField } from "../../controls/TextField";
+import { TextField } from "../../components/basic/TextField";
 import { useCallback, useMemo, useState } from "react";
-import { Button } from "../../controls/Button";
+import { Button } from "../../components/basic/Button";
 import { keyframes } from "@emotion/react";
 
 const pulse = keyframes`

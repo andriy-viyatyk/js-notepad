@@ -3,9 +3,9 @@ import * as monaco from "monaco-editor";
 import { TextFileModel } from "./TextFilePage.model";
 import { DiffEditor } from "@monaco-editor/react";
 import { PageToolbar } from "../shared/PageToolbar";
-import { Button } from "../../controls/Button";
+import { Button } from "../../components/basic/Button";
 import { CompareIcon } from "../../theme/icons";
-import { TComponentModel, useComponentModel } from "../../common/classes/model";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { useEffect } from "react";
 import color from "../../theme/color";
 

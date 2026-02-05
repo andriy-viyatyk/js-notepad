@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 import { EditorPageModule } from "../custom-editors/types";
 import { PageModel } from "../model/page-model";
 import { useEffect, useState } from "react";
-import { CircularProgress } from "../controls/CircularProgress";
+import { CircularProgress } from "../components/basic/CircularProgress";
 
 const ProgressRoot = styled.div({
     flex: "1 1 auto",

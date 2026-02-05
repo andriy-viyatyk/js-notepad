@@ -1,9 +1,9 @@
 import { ReactNode, useMemo } from "react";
 import { isTextFileModel, TextFileModel } from "./TextFilePage.model";
-import { Button } from "../../controls/Button";
+import { Button } from "../../components/basic/Button";
 import { CompareIcon, RunAllIcon, RunIcon } from "../../theme/icons";
-import { SwitchButtons } from "../../controls/SwitchButtons";
-import { FlexSpace } from "../../controls/Elements";
+import { SwitchButtons } from "../../components/form/SwitchButtons";
+import { FlexSpace } from "../../components/layout/Elements";
 import styled from "@emotion/styled";
 import { getLanguageSwitchOptions } from "../../model/resolve-editor";
 import { pagesModel } from "../../model/pages-model";

@@ -1,4 +1,4 @@
-import { Column } from "../../controls/AVGrid/avGridTypes";
+import { Column } from "../../components/data-grid/AVGrid/avGridTypes";
 
 export interface GridData {
     columns: Column[];
