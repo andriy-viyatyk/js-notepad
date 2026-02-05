@@ -1,7 +1,7 @@
 import { nodeUtils } from "../utils/node-utils";
 import { FileStats } from "../../../shared/types";
 import { debounce } from "../../../shared/utils";
-import { filesModel } from "../../model/files-model";
+import { filesModel } from "../../store";
 
 export class FileWatcher {
     private path: string;

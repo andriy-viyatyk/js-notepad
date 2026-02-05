@@ -2,7 +2,7 @@ import { forwardRef, useEffect } from "react";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { FileListItem, FileList, FileListRef } from "./FileList";
 import { nodeUtils } from "../../core/utils/node-utils";
-import { pagesModel } from "../../model/pages-model";
+import { pagesModel } from "../../store";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 import { api } from "../../../ipc/renderer/api";
 import styled from "@emotion/styled";

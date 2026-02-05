@@ -748,10 +748,24 @@ abstract class ContentPageModel extends PageModel {
 
 ---
 
-## Next Steps
+## Implementation Status
 
-If this structure looks good:
-1. Review and confirm the design decisions
-2. Prioritize which phase to start with
-3. Begin incremental migration
-4. Update CLAUDE.md as structure evolves
+### Phase 1: Folder Reorganization ✅ COMPLETE
+All files have been moved to the proposed structure:
+- ✅ `/core/` - state primitives, services, utilities
+- ✅ `/store/` - application state (pages, files, settings)
+- ✅ `/editors/` - all editors (text, grid, markdown, pdf, compare)
+- ✅ `/components/` - organized UI components (basic, form, layout, overlay, virtualization, data-grid)
+- ✅ `/features/` - app features (tabs, sidebar, dialogs)
+- ✅ `/app/` - main application shell
+- ✅ `/types/` - global type declarations
+
+See `/doc/refactoring-tasks.md` for detailed completion status.
+
+### Phase 2: Architectural Improvements (Future)
+Remaining architectural changes tracked in `/doc/refactoring-tasks-2.md`:
+- Editor Registry Pattern (declarative registration)
+- ContentPageModel base class extraction
+- Page Grouping store separation
+- Script Service enhancements
+- Tool Editors infrastructure

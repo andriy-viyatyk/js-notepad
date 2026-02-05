@@ -1,6 +1,6 @@
-import { PageModel } from "../../../model/page-model";
-import { isTextFileModel } from "../../../pages/text-file-page/TextFilePage.model";
-import { pagesModel } from "../../../model/pages-model";
+import { PageModel } from "../../../editors/base";
+import { isTextFileModel } from "../../../editors/text";
+import { pagesModel } from "../../../store";
 import React from "react";
 import { PageEditor } from "../../../../shared/types";
 

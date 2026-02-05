@@ -2,12 +2,11 @@ import styled from "@emotion/styled";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { List } from "../../components/form/List";
 import { api } from "../../../ipc/renderer/api";
-import { filesModel } from "../../model/files-model";
-import { pagesModel } from "../../model/pages-model";
+import { filesModel, pagesModel } from "../../store";
 import { IPage, WindowPages } from "../../../shared/types";
 import color from "../../theme/color";
 import { EmptyIcon } from "../../theme/icons";
-import { LanguageIcon } from "../../pages/shared/LanguageIcon";
+import { LanguageIcon } from "../../editors/base/LanguageIcon";
 
 const OpenTabsListRoot = styled(List)({
     "& .list-item": {

@@ -6,7 +6,8 @@ import color from "../../theme/color";
 import { OverflowTooltipText } from "../../components/basic/OverflowTooltipText";
 import { Tooltip } from "../../components/basic/Tooltip";
 import { uuid } from "../../core/utils/node-utils";
-import { MenuFolder, menuFolders } from "../../model/menuFolders";
+import { menuFolders } from "../../store";
+import type { MenuFolder } from "../../store";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 
 const FOLDER_DRAG_TYPE = "FOLDER_DRAG";

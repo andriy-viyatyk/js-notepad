@@ -102,40 +102,51 @@ npm run lint    # Run ESLint
 
 ## Folder Structure
 
-> **Note:** Structure is being refactored. See `/doc/proposed-structure.md` for target structure and `/doc/refactoring-tasks.md` for progress.
-
-**Current structure:**
 ```
 /src
   /main              # Electron main process
   /renderer          # React frontend (renderer process)
-    /common          # Shared utilities and helpers
-    /controls        # Reusable UI components (Button, Input, Grid, etc.)
-    /custom-editors  # Alternative editors (PDF viewer, etc.)
-    /dialogs         # Dialogs, alerts, poppers
-    /model           # Application state and data models
-    /pages           # Main page components and tab content
-    /script          # JavaScript scripting engine
-    /setup           # Monaco editor configuration
+    /app             # Main application shell (MainPage, Pages, RenderEditor, EventHandler)
+    /core            # Core infrastructure
+      /state         # State primitives (TOneState, TComponentState, TModel, events)
+      /services      # App services (encryption, file-watcher, scripting/)
+      /utils         # Utilities (csv, node, parse, obj-path, memorize)
+    /store           # Application state (Zustand stores)
+      pages-store    # Page/tab management
+      files-store    # File I/O and caching
+      app-settings   # User preferences
+      recent-files   # Recent files list
+      menu-folders   # Sidebar bookmarks
+      page-factory   # Page model creation
+      language-mapping # Language utilities
+    /editors         # ALL editors
+      /base          # Shared: PageModel, ContentPageModel, EditorToolbar, LanguageIcon
+      /text          # Monaco text editor (TextPageView, TextPageModel, ScriptPanel, etc.)
+      /grid          # JSON/CSV grid editor (GridEditor, GridPageModel)
+      /markdown      # Markdown preview (MarkdownView)
+      /pdf           # PDF viewer (PdfViewer, PdfViewerModel)
+      /compare       # Diff editor (CompareEditor)
+      registry.ts    # Editor resolution utilities
+      types.ts       # Editor interfaces
+    /components      # Reusable UI components
+      /basic         # Button, Input, TextField, Chip, Tooltip, CircularProgress
+      /form          # ComboSelect, SwitchButtons, ListMultiselect
+      /layout        # Splitter, Elements
+      /overlay       # Popper, PopupMenu, WithPopupMenu
+      /virtualization # RenderGrid (base virtualization)
+      /data-grid     # AVGrid (advanced data grid)
+    /features        # App-specific features
+      /tabs          # PageTabs, PageTab
+      /sidebar       # MenuBar, FileExplorer, FileList, RecentFileList
+      /dialogs       # Dialogs, ConfirmationDialog, InputDialog, alerts/
     /theme           # Colors, icons, global styles
+    /setup           # Monaco configuration
+    /types           # Global type declarations (window.d.ts, events.d.ts)
   /ipc               # Inter-process communication
   /shared            # Code shared between main and renderer
 /assets              # Static assets (icons, images)
 /patches             # Patch files for dependencies (patch-package)
-/doc                 # Project documentation and planning
-```
-
-**Target structure** (see `/doc/proposed-structure.md`):
-```
-/src/renderer
-  /core              # State primitives, services, utilities
-  /store             # Application state (Zustand stores)
-  /editors           # ALL editors (text, grid, markdown, pdf, compare, tools)
-  /components        # Reusable UI (basic, form, layout, overlay, data-grid)
-  /features          # App-specific features (tabs, sidebar, dialogs)
-  /app               # Main application shell
-  /theme             # Styling
-  /setup             # Configuration
+/doc                 # Project documentation
 ```
 
 ## Architecture
@@ -147,23 +158,30 @@ npm run lint    # Run ESLint
 - **IPC** (`/src/ipc`): Type-safe communication between processes
 
 ### State Management
-- Uses Zustand for global state
-- Page/tab model in `/src/renderer/model/page-model.ts`
-- File operations in `/src/renderer/model/files-model.ts`
-- App settings in `/src/renderer/model/appSettings.ts`
+- Uses Zustand-style stores in `/src/renderer/store/`
+- Page/tab management: `pages-store.ts`
+- File operations: `files-store.ts`
+- App settings: `app-settings.ts`
+- State primitives (TOneState, TComponentState, TModel) in `/src/renderer/core/state/`
 
-### Custom Editors
-Located in `/src/renderer/custom-editors/`:
-- Similar concept to VSCode extensions - register custom editors for specific file types
-- **IMPORTANT:** Custom editors must be loaded with dynamic `import()` to keep the core bundle small and fast-loading
-- Each custom editor handles specific file extensions (e.g., PDF viewer for .pdf files)
+### Editors
+All editors located in `/src/renderer/editors/`:
+- **Base classes** in `/editors/base/`: `PageModel`, `ContentPageModel`, `EditorToolbar`
+- **Text editor** in `/editors/text/`: Monaco-based, with ScriptPanel, EncryptionPanel
+- **Grid editor** in `/editors/grid/`: JSON/CSV grid view with AVGrid
+- **Markdown** in `/editors/markdown/`: Preview rendering
+- **PDF** in `/editors/pdf/`: pdf.js integration
+- **Compare** in `/editors/compare/`: Monaco DiffEditor
+- **IMPORTANT:** Editors must be loaded with dynamic `import()` for code splitting
 
-### Custom Controls
-Located in `/src/renderer/controls/`:
-- `RenderGrid` - Base virtualization component (calculates visible cells, renders via callback). Used by AVGrid, List, and other scrollable components
-- `AVGrid` - Advanced data grid with filtering and sorting (built on RenderGrid)
-- `ComboSelect`, `Input`, `Button` - Form controls
-- `Spliter` - Resizable split panes
+### Components
+Located in `/src/renderer/components/`:
+- `/basic` - Atomic components: Button, Input, TextField, Chip, Tooltip
+- `/form` - Form controls: ComboSelect, SwitchButtons, ListMultiselect
+- `/layout` - Layout helpers: Splitter, Elements
+- `/overlay` - Floating UI: Popper, PopupMenu
+- `/virtualization` - RenderGrid (base virtualization for visible cell calculation)
+- `/data-grid` - AVGrid (advanced data grid with filtering, sorting, Excel copy-paste)
 
 ## Coding Standards
 - Use TypeScript for all new code
@@ -173,11 +191,12 @@ Located in `/src/renderer/controls/`:
 - Use meaningful naming conventions
 
 ## Development Notes
-- Monaco editor configuration is in `/src/renderer/setup/configure-monaco.ts`
-- Custom language definitions in `/src/renderer/setup/monaco-languages/`
+- Monaco editor configuration: `/src/renderer/setup/configure-monaco.ts`
+- Custom language definitions: `/src/renderer/setup/monaco-languages/`
 - File encoding detection uses jschardet and iconv-lite
-- Script execution engine is in `/src/renderer/script/ScriptRunner.ts`
-- Page context interface exposed to scripts is defined in the page model
+- Script execution: `/src/renderer/core/services/scripting/ScriptRunner.ts`
+- Script context (page variable): `/src/renderer/core/services/scripting/ScriptContext.ts`
+- Page models: `/src/renderer/editors/text/TextPageModel.ts`, `/src/renderer/editors/grid/GridPageModel.ts`
 
 ## Important Patterns
 - **Async imports for editors:** Always use dynamic `import()` for editors to ensure code splitting and keep core bundle fast
@@ -189,5 +208,6 @@ Located in `/src/renderer/controls/`:
 
 ## Project Documentation
 Located in `/doc/`:
-- `proposed-structure.md` - Target folder structure and architecture decisions
-- `refactoring-tasks.md` - Task list for restructuring (153 tasks in 10 phases)
+- `proposed-structure.md` - Architecture decisions and design rationale
+- `refactoring-tasks.md` - Phase 1 completed: folder reorganization (188 tasks)
+- `refactoring-tasks-2.md` - Phase 2: architectural improvements (73 tasks, future)

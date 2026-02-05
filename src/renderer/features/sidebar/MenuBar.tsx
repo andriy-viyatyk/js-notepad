@@ -5,7 +5,8 @@ import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { Button } from "../../components/basic/Button";
 import { List, ListOptionRenderer } from "../../components/form/List";
 import { api } from "../../../ipc/renderer/api";
-import { pagesModel } from "../../model/pages-model";
+import { pagesModel, appSettings, menuFolders, recentFiles } from "../../store";
+import type { MenuFolder } from "../../store";
 import color from "../../theme/color";
 import {
     ArrowRightIcon,
@@ -16,13 +17,10 @@ import {
 } from "../../theme/icons";
 import { OpenTabsList } from "./OpenTabsList";
 import { FlexSpace } from "../../components/layout/Elements";
-import { appSettings } from "../../model/appSettings";
 import { RecentFileList } from "./RecentFileList";
-import { MenuFolder, menuFolders } from "../../model/menuFolders";
 import { FileExplorer } from "./FileExplorer";
 import { FileListRef } from "./FileList";
 import { MenuItem } from "../../components/overlay/PopupMenu";
-import { recentFiles } from "../../model/recentFiles";
 import { FolderIcon } from "./FileIcon";
 import { Splitter } from "../../components/layout/Splitter";
 import { FolderItem } from "./FolderItem";

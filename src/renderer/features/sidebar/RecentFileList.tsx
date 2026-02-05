@@ -1,8 +1,7 @@
 const path = require("path");
 import { forwardRef, useCallback, useEffect, useMemo } from "react";
-import { recentFiles } from "../../model/recentFiles";
+import { recentFiles, pagesModel } from "../../store";
 import { FileListItem, FileList, FileListRef } from "./FileList";
-import { pagesModel } from "../../model/pages-model";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 import { api } from "../../../ipc/renderer/api";
 

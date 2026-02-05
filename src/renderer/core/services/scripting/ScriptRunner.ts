@@ -1,5 +1,5 @@
-import { PageModel } from "../../../model/page-model";
-import { pagesModel } from "../../../model/pages-model";
+import { PageModel } from "../../../editors/base";
+import { pagesModel } from "../../../store";
 
 const lexicalObjects = `
     const React = globalThis.React;

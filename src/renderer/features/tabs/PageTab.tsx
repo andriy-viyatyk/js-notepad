@@ -2,11 +2,11 @@ import styled from "@emotion/styled";
 import clsx from "clsx";
 
 import color from "../../theme/color";
-import { pagesModel } from "../../model/pages-model";
-import { PageModel } from "../../model/page-model";
+import { pagesModel, filesModel, appSettings } from "../../store";
+import { PageModel } from "../../editors/base";
 import { Button } from "../../components/basic/Button";
 import { CircleIcon, CloseIcon, GroupIcon } from "../../theme/icons";
-import { LanguageIcon } from "../../pages/shared/LanguageIcon";
+import { LanguageIcon } from "../../editors/base/LanguageIcon";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 import { WithPopupMenu } from "../../components/overlay/WithPopupMenu";
@@ -18,11 +18,9 @@ import { Tooltip } from "../../components/basic/Tooltip";
 import {
     isTextFileModel,
     TextFileModel,
-} from "../../pages/text-file-page/TextFilePage.model";
-import { filesModel } from "../../model/files-model";
+} from "../../editors/text";
 import { PageDragData } from "../../../shared/types";
 import { parseObject } from "../../core/utils/parse-utils";
-import { appSettings } from "../../model/appSettings";
 import { showInputDialog } from "../dialogs/InputDialog";
 
 export const minTabWidth = 80;

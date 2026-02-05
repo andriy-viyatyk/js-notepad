@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { api } from "../../../ipc/renderer/api";
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
-import { getLanguageByExtension } from "../../model/language-mapping";
-import { LanguageIcon } from "../../pages/shared/LanguageIcon";
+import { getLanguageByExtension } from "../../store";
+import { LanguageIcon } from "../../editors/base/LanguageIcon";
 import styled from "@emotion/styled";
 const path = require("path");
 

@@ -1,0 +1,510 @@
+import { SetStateAction } from "react";
+import { debounce } from "../../../shared/utils";
+import { TComponentModel } from "../../core/state/model";
+import { parseObject } from "../../core/utils/parse-utils";
+import { CellFocus, Column, TFilter } from "../../components/data-grid/AVGrid/avGridTypes";
+import { AVGridModel } from "../../components/data-grid/AVGrid/model/AVGridModel";
+import { filesModel, pagesModel } from "../../store";
+import { TextFileModel } from "../text";
+import { resolveState } from "../../core/utils/utils";
+import {
+    createIdColumn,
+    getGridDataWithColumns,
+    getRowKey,
+    idColumnKey,
+    nextColumnKeys,
+    removeIdColumn,
+} from "./utils/grid-utils";
+import { csvToRecords } from "../../core/utils/csv-utils";
+import {
+    defaultCompare,
+    filterRows,
+    rowsToCsvText,
+} from "../../components/data-grid/AVGrid/avGridUtils";
+import { TOnGetFilterOptions } from "../../components/data-grid/AVGrid/filters/useFilters";
+import { PageModel } from "../base";
+
+export interface GridPageProps {
+    model: TextFileModel;
+}
+
+export const defaultGridPageState = {
+    columns: [] as Column[],
+    rows: [] as any[],
+    focus: undefined as CellFocus | undefined,
+    search: "",
+    filters: [] as TFilter[],
+    csvDelimiter: ",",
+    csvWithColumns: false,
+    error: undefined as string | undefined,
+};
+
+type GridPageState = typeof defaultGridPageState;
+
+export class GridPageModel extends TComponentModel<
+    GridPageState,
+    GridPageProps
+> {
+    private name = "grid-page";
+    gridRef: AVGridModel<any> | undefined = undefined;
+    maxRowId = 0;
+    private loaded = false;
+    private changedContent = "";
+    private stateChangeSubscription: (() => void) | undefined = undefined;
+
+    saveState = async () => {
+        const state = this.state.get();
+        const columns = state.columns;
+        const stateToSave = {
+            columns: columns.map((c) => ({
+                key: c.key,
+                name: c.name,
+                width: c.width,
+                dataType: c.dataType,
+            })),
+            focus: {
+                rowIndex: state.focus?.selection?.rowEnd,
+                colIndex: state.focus?.selection?.colEnd,
+            },
+            search: state.search,
+            filters: state.filters,
+            sortColumn: this.gridRef?.state.get().sortColumn,
+            csvDelimiter: state.csvDelimiter,
+            csvWithColumns: state.csvWithColumns,
+        };
+        await filesModel.saveCacheFile(
+            this.props.model.id,
+            JSON.stringify(stateToSave),
+            this.name,
+        );
+    };
+
+    saveStateDebounced = debounce(this.saveState, 300);
+
+    restoreState = async () => {
+        const data = await filesModel.getCacheFile(
+            this.props.model.id,
+            this.name,
+        );
+        const savedState = parseObject(data) || {};
+        if (Array.isArray(savedState.columns)) {
+            this.state.update((s) => {
+                const existing = s.columns.filter((c) =>
+                    savedState.columns.some((sc: any) => sc.key === c.key),
+                );
+                const savedColumns = savedState.columns.filter((sc: any) =>
+                    existing.some((c) => c.key === sc.key),
+                );
+                const other = s.columns.filter(
+                    (c) =>
+                        !savedState.columns.some((sc: any) => sc.key === c.key),
+                );
+                const newColumns = [
+                    ...savedColumns.map((c: any) => {
+                        const existingColumn = existing.find(
+                            (sc: any) => sc.key === c.key,
+                        );
+                        return {
+                            ...existingColumn,
+                            width: c.width,
+                            dataType: c.dataType,
+                        };
+                    }),
+                    ...other,
+                ];
+                s.columns = newColumns;
+            });
+        }
+        if (
+            savedState.focus &&
+            typeof savedState.focus.rowIndex === "number" &&
+            typeof savedState.focus.colIndex === "number" &&
+            this.gridRef
+        ) {
+            setTimeout(() => {
+                this.gridRef.models.focus.focusCell(
+                    savedState.focus.rowIndex,
+                    savedState.focus.colIndex,
+                    true,
+                );
+            }, 0);
+        }
+        if (typeof savedState.search === "string") {
+            this.state.update((s) => {
+                s.search = savedState.search;
+            });
+        }
+        if (Array.isArray(savedState.filters)) {
+            this.state.update((s) => {
+                s.filters = savedState.filters;
+            });
+        }
+        if (savedState.sortColumn && this.gridRef) {
+            this.gridRef.state.update((s) => {
+                s.sortColumn = savedState.sortColumn;
+            });
+        }
+        if (typeof savedState.csvDelimiter === "string") {
+            this.state.update((s) => {
+                s.csvDelimiter = savedState.csvDelimiter;
+            });
+        }
+        if (typeof savedState.csvWithColumns === "boolean") {
+            this.state.update((s) => {
+                s.csvWithColumns = savedState.csvWithColumns;
+            });
+        }
+    };
+
+    init = () => {
+        this.stateChangeSubscription = this.state.subscribe(() => {
+            this.saveStateDebounced();
+        });
+        this.restoreState();
+    };
+
+    dispose = () => {
+        this.stateChangeSubscription?.();
+    };
+
+    setGridRef = (ref: AVGridModel<any> | null) => {
+        this.gridRef = ref ?? undefined;
+    };
+
+    setFocus = (focus?: SetStateAction<CellFocus | undefined>) => {
+        this.state.update((s) => {
+            s.focus = focus ? resolveState(focus, () => s.focus) : undefined;
+        });
+    };
+
+    setSearch = (search: string) => {
+        this.state.update((s) => {
+            s.search = search;
+        });
+    };
+
+    clearSearch = () => {
+        this.state.update((s) => {
+            s.search = "";
+        });
+    };
+
+    setFilters = (value: SetStateAction<TFilter[]>) => {
+        this.state.update((s) => {
+            s.filters = resolveState(value, () => this.state.get().filters);
+        });
+    };
+
+    updateContent = (content: string) => {
+        if (!this.loaded) {
+            this.detectCsvDelimiter(content);
+            this.loadGridData(content);
+            this.loaded = true;
+        }
+
+        if (this.changedContent !== content) {
+            this.updateGridDataFromContent(content);
+            this.changedContent = content;
+        }
+    };
+
+    private detectCsvDelimiter = (content: string) => {
+        if (this.props.model.state.get().editor !== "grid-csv") {
+            return;
+        }
+
+        const firstLine: string =
+            content.split("\n").slice(0, 5).join("") || "";
+        const delimiters: string[] = [",", ";", "\t", "|"];
+        let maxCount = 0;
+        let detectedDelimiter = ",";
+
+        for (const delim of delimiters) {
+            const count: number = (
+                firstLine.match(new RegExp("\\" + delim, "g")) || []
+            ).length;
+            if (count > maxCount) {
+                maxCount = count;
+                detectedDelimiter = delim;
+            }
+        }
+
+        this.state.update((s) => {
+            s.csvDelimiter = detectedDelimiter;
+        });
+    };
+
+    reload = () => {
+        const content = this.props.model.state.get().content || "";
+        this.loadGridData(content);
+    };
+
+    private initEmptyPage = () => {
+        const rows = createIdColumn([{}]);
+        const columns: Column[] = [
+            {
+                key: "a",
+                name: "a",
+                dataType: "string",
+                width: 100,
+                resizible: true,
+                filterType: "options",
+            },
+        ];
+        this.maxRowId = rows.length;
+        this.state.update((s) => {
+            s.rows = rows;
+            s.columns = columns;
+        });
+        Promise.resolve().then(() => {
+            this.gridRef?.models.focus.focusCell(0, 0);
+        });
+    };
+
+    private loadGridData = (content: string) => {
+        let rows: any[] = [];
+        let columns: Column[] = [];
+        if (content) {
+            const parsed = this.parseContent(content);
+            if (parsed) {
+                const data = getGridDataWithColumns(parsed);
+                rows = data.rows;
+                columns = data.columns;
+                this.maxRowId = data.rows.length;
+            }
+            this.state.update((s) => {
+                s.rows = rows;
+                s.columns = columns;
+            });
+            Promise.resolve().then(() => {
+                this.gridRef?.models.focus.validateFocus();
+            });
+        } else {
+            this.initEmptyPage();
+        }
+        Promise.resolve().then(() => {
+            this.gridRef?.focusGrid();
+        });
+    };
+
+    private updateGridDataFromContent = (content: string) => {
+        let rows = this.parseContent(content ?? "[]");
+        if (rows && Array.isArray(rows)) {
+            rows = createIdColumn(rows);
+            if (this.gridRef) {
+                this.gridRef.models.focus.focusFromIndex = true;
+            }
+            this.state.update((s) => {
+                s.rows = rows;
+            });
+        }
+    };
+
+    private parseContent = (content: string) => {
+        let err: any = undefined;
+        let res: any = undefined;
+        if (this.props.model.state.get().editor === "grid-csv") {
+            const { csvDelimiter: csvDelimiter, csvWithColumns } =
+                this.state.get();
+            let rows = csvToRecords(
+                content,
+                csvWithColumns,
+                csvDelimiter,
+                (e) => (err = e),
+            );
+            if (Array.isArray(rows) && !csvWithColumns) {
+                // map array of arrays to array of objects
+                rows = rows.map((r) => ({ ...r }));
+            }
+            res = rows;
+        } else {
+            res = parseObject(content, (e) => (err = e));
+        }
+        this.state.update((s) => {
+            s.error = err ? err.message + "\n" + err.stack : undefined;
+        });
+        return res;
+    };
+
+    editRow = (columnKey: string, rowKey: string, value: any) => {
+        this.state.update((s) => {
+            const row = s.rows.find((r) => getRowKey(r) === rowKey);
+            if (row) {
+                (row as any)[columnKey] = value;
+            }
+        });
+    };
+
+    onAddRows = (count: number, insertIndex?: number) => {
+        const newRows = Array.from({ length: count }, () => ({
+            [idColumnKey]: (this.maxRowId++).toString(),
+        }));
+        this.state.update((s) => {
+            if (insertIndex !== undefined) {
+                s.rows.splice(insertIndex, 0, ...newRows);
+            } else {
+                s.rows.push(...newRows);
+            }
+        });
+        return newRows;
+    };
+
+    onDeleteRows = (rowKeys: string[]) => {
+        this.state.update((s) => {
+            s.rows = s.rows.filter((r) => !rowKeys.includes(getRowKey(r)));
+        });
+    };
+
+    setColumns = (columns: SetStateAction<Column[]>) => {
+        const newColumns = resolveState(
+            columns,
+            () => this.state.get().columns,
+        );
+        this.state.update((s) => {
+            s.columns = newColumns;
+        });
+    };
+
+    onAddColumns = (count: number, insertBeforeKey?: string) => {
+        const currentColumns = this.state.get().columns;
+        const newColumns: Column[] = nextColumnKeys(currentColumns, count).map(
+            (key) => ({
+                key,
+                name: key,
+                dataType: "string",
+                width: 100,
+                resizible: true,
+                filterType: "options",
+            }),
+        );
+        let index = currentColumns.length;
+        if (insertBeforeKey) {
+            const foundIndex = currentColumns.findIndex(
+                (c) => c.key === insertBeforeKey,
+            );
+            if (foundIndex >= 0) {
+                index = foundIndex;
+            }
+        }
+        this.state.update((s) => {
+            s.columns.splice(index, 0, ...newColumns);
+        });
+        return newColumns;
+    };
+
+    onDeleteColumns = (columnKeys: (keyof any | string)[]) => {
+        this.onUpdateRows((rows) => {
+            return rows.map((row) => {
+                const newRow = { ...row };
+                for (const key of columnKeys) {
+                    delete newRow[key];
+                }
+                return newRow;
+            });
+        });
+        this.state.update((s) => {
+            s.columns = s.columns.filter((c) => !columnKeys.includes(c.key));
+        });
+    };
+
+    private getJsonContent = () => {
+        const { rows } = this.state.get();
+        return JSON.stringify(removeIdColumn(rows), null, 4);
+    };
+
+    private getCsvContent = () => {
+        const {
+            rows,
+            csvDelimiter: csvDelimiter,
+            csvWithColumns,
+        } = this.state.get();
+        const columns = this.state.get().columns;
+        return rowsToCsvText(rows, columns, csvWithColumns, csvDelimiter);
+    };
+
+    private getContentToSave = () => {
+        const editor = this.props.model.state.get().editor;
+        switch (editor) {
+            case "grid-csv":
+                return this.getCsvContent();
+            case "grid-json":
+            default:
+                return this.getJsonContent();
+        }
+    };
+
+    onDataChanged = () => {
+        const content = this.getContentToSave();
+        this.changedContent = content;
+        this.props.model.changeContent(content, true);
+    };
+
+    onGetOptions: TOnGetFilterOptions = (
+        columns: Column[],
+        filters: TFilter[],
+        columnKey: string,
+        search?: string,
+    ) => {
+        const uniqueValues = new Set<any>();
+        filterRows(
+            this.state.get().rows,
+            columns,
+            search,
+            filters?.filter((f) => f.columnKey !== columnKey),
+        ).forEach((i) => uniqueValues.add(i[columnKey]));
+        const options = Array.from(uniqueValues);
+        options.sort(defaultCompare());
+        return options.map((i) => ({
+            value: i,
+            label:
+                i === undefined
+                    ? "(undefined)"
+                    : i === null
+                      ? "(null)"
+                      : i?.toString(),
+            italic: i === undefined || i === null,
+        }));
+    };
+
+    onUpdateRows = (updateFunc: (rows: any[]) => any[]) => {
+        const rows = this.state.get().rows;
+        const updatedRows = updateFunc(rows);
+        if (updatedRows !== rows) {
+            this.state.update((s) => {
+                s.rows = updatedRows;
+            });
+            this.onDataChanged();
+        }
+    };
+
+    get recordsCount() {
+        const rows = this.state.get().rows.length;
+        const visibleRows = this.gridRef?.data.rows.length ?? rows;
+        return visibleRows === rows
+            ? `${rows} rows`
+            : `${visibleRows} of ${rows} rows`;
+    }
+
+    setDelimiter = (delimiter: string) => {
+        this.state.update((s) => {
+            s.csvDelimiter = delimiter;
+        });
+    };
+
+    toggleWithColumns = () => {
+        this.state.update((s) => {
+            s.csvWithColumns = !s.csvWithColumns;
+        });
+    };
+
+    pageFocused = (page?: PageModel) => {
+        if (
+            page === this.props.model ||
+            pagesModel.activePage === this.props.model
+        ) {
+            Promise.resolve().then(() => {
+                this.gridRef?.renderModel?.restoreScroll();
+            });
+        }
+    };
+}

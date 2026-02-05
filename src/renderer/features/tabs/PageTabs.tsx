@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 
-import { pagesModel } from "../../model/pages-model";
+import { pagesModel } from "../../store";
 import {
     ArrowLeftIcon,
     ArrowRightIcon,
