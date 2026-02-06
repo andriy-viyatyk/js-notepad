@@ -12,12 +12,13 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-004 | Implement Testing Infrastructure | Medium | [Details](./US-004-testing/) |
+| US-007 | About Page and Version Check | Medium | [Details](./US-007-about-version/) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-006 | Create Image View Editor | Image viewer for binary images + SVG preview as content-view |
 | US-003 | ContentPageModel Extraction | Closed - architecture review concluded existing design is correct |
 | US-002 | Editor Registry Pattern | Declarative editor registration in `register-editors.ts` |
 | US-001 | Fix Circular Dependencies | Direct imports instead of barrel exports |

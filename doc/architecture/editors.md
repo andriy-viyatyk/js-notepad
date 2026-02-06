@@ -21,6 +21,7 @@ Views of text-based content that share `TextFileModel` for state management.
 | **grid-json** | Tabular JSON viewer/editor |
 | **grid-csv** | CSV viewer/editor |
 | **md-view** | Rendered markdown preview |
+| **svg-view** | Rendered SVG preview |
 
 **Characteristics:**
 - Rendered inside `TextPageView` via `ActiveEditor` component
@@ -36,7 +37,7 @@ Standalone editors with their own PageModel for non-text file formats.
 | Editor | Description |
 |--------|-------------|
 | **pdf-view** | PDF viewer (read-only) |
-| *(future)* | Image viewer, etc. |
+| **image-view** | Image viewer (PNG, JPG, GIF, WEBP, BMP, ICO) |
 
 **Characteristics:**
 - Rendered instead of `TextPageView` by `RenderEditor`
@@ -48,7 +49,7 @@ Standalone editors with their own PageModel for non-text file formats.
 
 ```
 RenderEditor
-├── [page-editor] → AsyncEditor → PdfViewer (own PageModel)
+├── [page-editor] → AsyncEditor → PdfViewer / ImageViewer (own PageModel)
 └── [content-view] → TextPageView
                          ├── TextToolbar
                          ├── ActiveEditor → Monaco / Grid / Markdown
@@ -64,6 +65,8 @@ RenderEditor
 | **Grid JSON** | `.json`, `*.grid.json` | Tabular JSON viewer/editor |
 | **Grid CSV** | `.csv`, `*.grid.csv` | CSV viewer/editor |
 | **Markdown** | `.md`, `.markdown` | Rendered markdown preview |
+| **Image** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer |
+| **SVG** | `.svg` | SVG preview (content-view, Monaco default) |
 | **PDF** | `.pdf` | PDF viewer (read-only) |
 | **Compare** | (triggered) | Side-by-side diff view |
 
@@ -113,6 +116,7 @@ interface EditorModule {
 PageModel (abstract)
 ├── TextFileModel         # Content views (Monaco, Grid, Markdown)
 ├── PdfViewerModel        # PDF viewer (page-editor)
+├── ImageViewerModel      # Image viewer (page-editor)
 └── [Future page-editors...]
 
 TComponentModel (for view-specific state)

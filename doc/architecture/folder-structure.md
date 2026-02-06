@@ -95,6 +95,9 @@ js-notepad/
 │   ├── pdf/                # PDF viewer
 │   │   ├── PdfViewer.tsx
 │   │   └── index.ts
+│   ├── image/              # Image viewer
+│   │   ├── ImageViewer.tsx
+│   │   └── index.ts
 │   ├── compare/            # Diff editor
 │   │   ├── CompareEditor.tsx
 │   │   └── index.ts

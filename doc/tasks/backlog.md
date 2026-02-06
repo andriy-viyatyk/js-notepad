@@ -175,7 +175,6 @@ Categorized bookmarks with tags.
 
 | Idea | Description | Complexity |
 |------|-------------|------------|
-| Image Viewer | View common image formats | Low |
 | Settings UI | Visual settings editor | Medium |
 | Plugin System | Load external editor plugins | Very High |
 
@@ -185,7 +184,7 @@ Categorized bookmarks with tags.
 
 | Idea | Description | Complexity |
 |------|-------------|------------|
-| Testing Infrastructure | Vitest setup with component tests | Medium |
+| Testing Infrastructure | Vitest setup with component tests. Postponed until core features stabilize to avoid test rewrites during refactoring. | Medium |
 | Storybook | Component development environment | Medium |
 | CI/CD Pipeline | Automated builds and releases | Medium |
 | Performance Monitoring | Track bundle size, startup time | Low |

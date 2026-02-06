@@ -49,6 +49,7 @@ This step-by-step approach ensures user understands what's happening and can rev
 | Learn folder structure        | [/doc/architecture/folder-structure.md](doc/architecture/folder-structure.md) |
 | Add a new editor              | [/doc/standards/editor-guide.md](doc/standards/editor-guide.md) |
 | Add a UI component            | [/doc/standards/component-guide.md](doc/standards/component-guide.md) |
+| Build complex components      | [/doc/standards/model-view-pattern.md](doc/standards/model-view-pattern.md) |
 | Understand state management   | [/doc/architecture/state-management.md](doc/architecture/state-management.md) |
 | Work with scripting system    | [/doc/architecture/scripting.md](doc/architecture/scripting.md) |
 | Check coding style            | [/doc/standards/coding-style.md](doc/standards/coding-style.md) |

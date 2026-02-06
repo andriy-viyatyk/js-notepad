@@ -146,15 +146,43 @@ class EditorRegistry {
     /**
      * Get available editor switch options for a language (used in UI).
      * Returns an empty options array if only one editor is available.
+     * Optionally accepts filePath to also include extension-based alternatives.
      */
-    getSwitchOptions(languageId: string): SwitchOptions {
+    getSwitchOptions(languageId: string, filePath?: string): SwitchOptions {
         const alternatives = this.getAlternatives(languageId);
         const options: PageEditor[] = alternatives.map(e => e.id);
+
+        // Also include editors that match by file extension (for content-views like svg-view)
+        if (filePath) {
+            const lowerPath = filePath.toLowerCase();
+            for (const editor of this.editors.values()) {
+                // Only include content-view editors (not page-editors)
+                if (editor.category !== "content-view") continue;
+                if (options.includes(editor.id)) continue;
+
+                // Check if this editor matches by extension
+                if (editor.extensions) {
+                    for (const ext of editor.extensions) {
+                        if (ext !== "*" && lowerPath.endsWith(ext.toLowerCase())) {
+                            options.push(editor.id);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         // Ensure monaco is always first if not present
         if (!options.includes("monaco")) {
             options.unshift("monaco");
         }
+
+        // Sort so monaco comes first
+        options.sort((a, b) => {
+            if (a === "monaco") return -1;
+            if (b === "monaco") return 1;
+            return 0;
+        });
 
         const getOptionLabel = (option: PageEditor) => {
             if (!option || option === "monaco") {

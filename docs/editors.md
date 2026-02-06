@@ -74,6 +74,31 @@ For `.pdf` files:
 - Search within PDF
 - Read-only view
 
+## Image Viewer
+
+For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`):
+
+1. Open an image file
+2. Automatically opens in Image Viewer
+
+**Features:**
+- Zoom in/out with mouse wheel or toolbar buttons
+- Pan image by dragging when zoomed in
+- Fit to window (default view)
+- Click zoom percentage to reset zoom
+
+## SVG Preview
+
+For `.svg` files:
+
+1. Open an SVG file (opens in text editor by default)
+2. Click "Preview" in the toolbar to see rendered SVG
+
+**Features:**
+- Same zoom/pan controls as Image Viewer
+- Shows live preview of unsaved changes
+- Switch between text editor and preview anytime
+
 ## Compare Mode
 
 Compare two files side-by-side:
@@ -96,7 +121,9 @@ Some files support multiple editors:
 | `.json` | Text, Grid |
 | `.csv` | Text, Grid |
 | `.md` | Text, Preview |
+| `.svg` | Text, Preview |
 | `.pdf` | PDF only |
+| Images | Image Viewer only |
 | Other | Text only |
 
 Use the buttons in the toolbar to switch between available editors.

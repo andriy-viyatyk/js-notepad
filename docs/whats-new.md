@@ -8,6 +8,21 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.5 (Upcoming)
 
+### New Features
+
+- **Image Viewer**: View binary images directly in the application
+  - Supported formats: PNG, JPG, GIF, WEBP, BMP, ICO
+  - Zoom with mouse wheel or +/- buttons
+  - Pan by dragging when zoomed in
+  - Click zoom indicator to reset to fit view
+  - Automatic fit-to-window on open
+
+- **SVG Preview**: Preview SVG files as rendered graphics
+  - Open SVG in Monaco text editor by default
+  - Switch to "Preview" mode using toolbar button
+  - Same zoom/pan controls as Image Viewer
+  - Shows live preview of unsaved changes
+
 ### Improvements
 
 - **Application Structure Refactoring**: Major reorganization of codebase for better maintainability

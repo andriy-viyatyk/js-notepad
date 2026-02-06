@@ -103,6 +103,10 @@ const PageTabRoot = styled.div({
         "&.withIcon": {
             width: 16,
             margin: "0 2px 0 4px",
+            "& svg": {
+                width: 16,
+                height: 16,
+            }
         },
     },
 });
