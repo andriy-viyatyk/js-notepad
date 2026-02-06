@@ -6,13 +6,12 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-001 | Fix Circular Dependencies | Medium | [Details](./US-001-circular-deps/) |
+| - | - | - | - |
 
 ## Planned (Next)
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-002 | Editor Registry Pattern | High | [Details](./US-002-editor-registry/) |
 | US-003 | ContentPageModel Extraction | Medium | [Details](./US-003-content-page-model/) |
 | US-004 | Implement Testing Infrastructure | Medium | [Details](./US-004-testing/) |
 
@@ -20,6 +19,8 @@ Current work in progress and planned tasks.
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-002 | Editor Registry Pattern | Declarative editor registration in `register-editors.ts` |
+| US-001 | Fix Circular Dependencies | Direct imports instead of barrel exports |
 | US-005 | Create User Documentation | Completed - see `/docs/` folder |
 
 ## How to Work on Tasks
@@ -40,14 +41,15 @@ Current work in progress and planned tasks.
 ### Completing a Task
 
 1. Verify all acceptance criteria are met
-2. Run the completion checklist:
+2. Run the documentation checklist:
    - [ ] Update architecture docs (if structure changed)
-   - [ ] Update standards docs (if new patterns)
-   - [ ] Update user docs (if user-facing)
-   - [ ] Update CLAUDE.md (if significant)
-   - [ ] Add to changelog/what's new
-3. Move task to completed (or delete folder)
-4. Remove from this file
+   - [ ] Update standards docs (if new patterns established)
+   - [ ] Update user docs in `/docs/` (if user-facing changes)
+   - [ ] Update CLAUDE.md (if significant patterns or key files changed)
+   - [ ] Update `/docs/whats-new.md` (for notable features/changes)
+3. Update this file: move task to "Recently Completed" section
+4. **Ask user for confirmation** before deleting the task folder
+5. Delete task folder after user confirms
 
 ## Creating New Tasks
 

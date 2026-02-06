@@ -23,13 +23,15 @@ The editor system handles different file types with specialized viewers/editors.
 When a file is opened:
 
 ```
-File Path → resolveEditor() → Editor Type → Load Module → Render
+File Path → editorRegistry.resolve() → EditorDefinition → loadModule() → Render
 ```
 
-Resolution priority:
-1. Filename pattern (e.g., `*.grid.json`)
-2. File extension (e.g., `.pdf`)
-3. Default to text editor
+Resolution priority (higher priority wins):
+1. Filename patterns (e.g., `*.grid.json`) - priority 10
+2. File extensions (e.g., `.pdf`) - priority 100
+3. Default to monaco text editor - priority 0
+
+All editor registration is in `/editors/register-editors.ts`.
 
 ## Editor Structure
 
@@ -159,21 +161,33 @@ export default myEditorModule;
 export { MyEditor, MyPageModel };
 ```
 
-### Step 5: Register in RenderEditor
+### Step 5: Register in EditorRegistry
+
+Add registration in `/editors/register-editors.ts`:
 
 ```typescript
-// app/RenderEditor.tsx
-const getMyModule = async () =>
-    (await import("../editors/myeditor")).default;
-
-// In switch statement:
-case "myType":
-  return <AsyncEditor getEditorModule={getMyModule} model={model} />;
+editorRegistry.register({
+    id: "my-editor",           // Must match PageEditor type
+    name: "My Editor",         // Display name in UI
+    pageType: "myType",        // PageType this editor creates
+    extensions: [".myext"],    // File extensions to handle
+    languageIds: ["mylang"],   // Monaco language IDs (for editor switching)
+    priority: 50,              // Higher = preferred when multiple match
+    loadModule: async () => {
+        const module = await import("./myeditor");
+        return module.default;
+    },
+});
 ```
 
-### Step 6: Update page-factory.ts
+### Step 6: Add Types (if new)
 
-Add handling for the new page type.
+Add to `/shared/types.ts`:
+
+```typescript
+export type PageType = 'textFile' | 'pdfFile' | 'myType';
+export type PageEditor = 'monaco' | 'grid-json' | ... | 'my-editor';
+```
 
 ## Editor Switching
 
@@ -181,7 +195,7 @@ Some editors support switching views (e.g., JSON → Grid view):
 
 ```typescript
 // In TextToolbar.tsx
-const switchOptions = getLanguageSwitchOptions(language);
+const switchOptions = editorRegistry.getSwitchOptions(language);
 
 // Available editors for language
 if (switchOptions.options.length > 1) {
@@ -191,18 +205,16 @@ if (switchOptions.options.length > 1) {
 
 The `page.editor` property controls which editor renders the content.
 
-## Future: Editor Registry
-
-Currently editor resolution uses functions. Future improvement will use a declarative registry:
+## EditorRegistry API
 
 ```typescript
-editorRegistry.register({
-  id: 'myeditor',
-  name: 'My Editor',
-  extensions: ['.myext'],
-  priority: 10,
-  loadModule: () => import('./myeditor'),
-});
+editorRegistry.register(definition)              // Register an editor
+editorRegistry.getById(id)                       // Get editor by ID
+editorRegistry.resolve(filePath)                 // Resolve editor for file
+editorRegistry.resolveId(filePath)               // Resolve just the editor ID
+editorRegistry.getAlternatives(languageId)       // Get editors for language
+editorRegistry.validateForLanguage(editor, lang) // Validate editor/language
+editorRegistry.getSwitchOptions(languageId)      // Get UI switch options
 ```
 
-See `/doc/tasks/` for the Editor Registry task.
+For complete guide, see [Editor Creation Guide](/doc/standards/editor-guide.md).

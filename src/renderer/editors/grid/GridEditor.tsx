@@ -17,7 +17,7 @@ import {
     GridPageProps,
 } from "./GridPageModel";
 import { showCsvOptions } from "./components/CsvOptions";
-import { pagesModel } from "../../store";
+import { pagesModel } from "../../store/pages-store";
 
 const GridPageRoot = styled.div({
     flex: "1 1 auto",

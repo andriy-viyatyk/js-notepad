@@ -1,16 +1,18 @@
-import { ReactNode } from "react";
 import { TextFileModel } from "./TextPageModel";
 import { AsyncEditor } from "../../app/AsyncEditor";
 import { TextEditor } from "./TextEditor";
+import { editorRegistry } from "../registry";
+import { PageEditor } from "../../../shared/types";
 
 interface ActiveEditorProps {
     model: TextFileModel;
 }
 
-const getGridJsonModule = async () =>
-    (await import("../grid/GridEditor")).default;
-const getMdViewModule = async () =>
-    (await import("../markdown/MarkdownView")).default;
+const getEditorModule = (editor: PageEditor) => async () => {
+    const def = editorRegistry.getById(editor);
+    if (!def) throw new Error(`Editor "${editor}" not registered`);
+    return def.loadModule();
+};
 
 export function ActiveEditor({ model }: ActiveEditorProps) {
     const { editor, encripted } = model.state.use((s) => ({
@@ -18,35 +20,22 @@ export function ActiveEditor({ model }: ActiveEditorProps) {
         encripted: s.encripted,
     }));
 
+    // Always show text editor for encrypted content
     if (encripted) {
         return <TextEditor model={model} />;
     }
 
-    let editorComponent: ReactNode = null;
-    switch (editor) {
-        case "grid-json":
-        case "grid-csv":
-            editorComponent = (
-                <AsyncEditor
-                    key={editor}
-                    getEditorModule={getGridJsonModule}
-                    model={model}
-                />
-            );
-            break;
-        case "md-view":
-            editorComponent = (
-                <AsyncEditor
-                    key={editor}
-                    getEditorModule={getMdViewModule}
-                    model={model}
-                />
-            );
-            break;
-        default:
-            editorComponent = <TextEditor model={model} />;
-            break;
+    // Use registry to load alternative editors
+    if (editor && editor !== "monaco") {
+        return (
+            <AsyncEditor
+                key={editor}
+                getEditorModule={getEditorModule(editor)}
+                model={model}
+            />
+        );
     }
 
-    return editorComponent;
+    // Default to Monaco text editor
+    return <TextEditor model={model} />;
 }

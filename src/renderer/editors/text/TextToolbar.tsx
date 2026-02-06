@@ -5,7 +5,7 @@ import { CompareIcon, RunAllIcon, RunIcon } from "../../theme/icons";
 import { SwitchButtons } from "../../components/form/SwitchButtons";
 import { FlexSpace } from "../../components/layout/Elements";
 import styled from "@emotion/styled";
-import { getLanguageSwitchOptions } from "../registry";
+import { editorRegistry } from "../registry";
 import { pagesModel } from "../../store";
 
 const EditorToolbarRoot = styled.div({
@@ -32,7 +32,7 @@ export function TextToolbar({ model, setEditorToolbarRefFirst, setEditorToolbarR
     }));
 
     const switchOptions = useMemo(() => {
-        return getLanguageSwitchOptions(language || "plaintext");
+        return editorRegistry.getSwitchOptions(language || "plaintext");
     }, [language]);
 
 

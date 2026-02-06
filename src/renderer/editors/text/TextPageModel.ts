@@ -13,7 +13,7 @@ import { TextEditorModel } from "./TextEditor";
 import { debounce } from "../../../shared/utils";
 import { decryptText, encryptText, isEncrypted } from "../../core/services/encryption";
 import { alertWarning } from "../../features/dialogs/alerts/AlertsBar";
-import { resolveEditor } from "../registry";
+import { editorRegistry } from "../registry";
 
 export interface TextFilePageModelState extends IPage {
     content: string;
@@ -522,7 +522,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
 }
 
 export function newTextFileModel(filePath?: string): TextFileModel {
-    const editor = resolveEditor(filePath);
+    const editor = editorRegistry.resolveId(filePath);
     const state = {
         ...getDefaultTextFilePageModelState(),
         ...(filePath ? { filePath } : {}),

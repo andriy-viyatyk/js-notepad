@@ -9,7 +9,7 @@ import { useEffect, useMemo } from "react";
 import { Minimap } from "../../components/layout/Minimap";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { PageModel } from "../base";
-import { pagesModel } from "../../store";
+import { pagesModel } from "../../store/pages-store";
 const path = require("path");
 const url = require("url");
 

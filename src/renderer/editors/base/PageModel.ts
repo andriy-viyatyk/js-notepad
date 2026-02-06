@@ -1,7 +1,7 @@
 import { TDialogModel } from "../../core/state/model";
 import { uuid } from "../../core/utils/node-utils";
 import { IPage } from "../../../shared/types";
-import { validateEditorForLanguage } from "../registry";
+import { editorRegistry } from "../registry";
 
 export const getDefaultPageModelState = (): IPage => ({
     id: uuid(),
@@ -52,7 +52,7 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
     changeLanguage = (language: string | undefined) => {
         this.state.update((s) => {
             s.language = language;
-            s.editor = validateEditorForLanguage(s.editor, language || "");
+            s.editor = editorRegistry.validateForLanguage(s.editor, language || "");
         });
     };
 }

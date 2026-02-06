@@ -1,4 +1,4 @@
-import { IPage, PageType } from "../../shared/types";
+import { IPage, PageEditor, PageType } from "../../shared/types";
 import { PageModel } from "./base";
 
 export type FileEditorPage<T extends PageModel = PageModel> = React.ComponentType<{
@@ -16,3 +16,15 @@ export interface EditorPageModule {
 }
 
 export type EditorModule = EditorPageModule & EditorModelCreations;
+
+export interface EditorDefinition {
+    id: PageEditor;
+    name: string;
+    pageType: PageType;
+    extensions?: string[];
+    filenamePatterns?: RegExp[];
+    languageIds?: string[];
+    priority: number;
+    alternativeEditors?: PageEditor[];
+    loadModule: () => Promise<EditorModule>;
+}

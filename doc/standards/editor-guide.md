@@ -192,43 +192,60 @@ export { MyEditor, MyPageModel };
 export type { MyPageModelState } from './MyPageModel';
 ```
 
-### Step 6: Register in Application
+### Step 6: Register Your Editor
 
-#### 6a. Add PageType (if new type)
+All editor registration happens in `/editors/register-editors.ts`. This is the only file you need to modify to add a new editor.
+
+#### 6a. Add PageType and PageEditor (if new)
 
 ```typescript
 // /shared/types.ts
 export type PageType = 'textFile' | 'pdfFile' | 'myType';
+export type PageEditor = 'monaco' | 'grid-json' | 'grid-csv' | 'md-view' | 'pdf-view' | 'my-editor';
 ```
 
-#### 6b. Update RenderEditor
+#### 6b. Register in EditorRegistry
 
 ```typescript
-// /app/RenderEditor.tsx
-const getMyModule = async () =>
-    (await import('../editors/myeditor')).default;
+// /editors/register-editors.ts
+import { editorRegistry } from "./registry";
 
-// In switch statement:
-case 'myType':
-  return <AsyncEditor getEditorModule={getMyModule} model={model} />;
+editorRegistry.register({
+    id: "my-editor",           // Must match PageEditor type
+    name: "My Editor",         // Display name in UI
+    pageType: "myType",        // PageType this editor creates
+    extensions: [".myext"],    // File extensions to handle
+    // OR use filenamePatterns for complex matching:
+    // filenamePatterns: [/\.special\.json$/i],
+    languageIds: ["mylang"],   // Monaco language IDs (for editor switching)
+    priority: 50,              // Higher = preferred when multiple match
+    loadModule: async () => {
+        const module = await import("./myeditor");
+        return module.default;
+    },
+});
 ```
 
-#### 6c. Update page-factory.ts
+#### Registration Options
 
-```typescript
-// /store/page-factory.ts
-export async function newPageModel(filePath?: string): Promise<PageModel> {
-  const ext = filePath ? path.extname(filePath).toLowerCase() : '';
+| Property | Description |
+|----------|-------------|
+| `id` | Unique editor ID (must be in `PageEditor` type) |
+| `name` | Display name shown in UI |
+| `pageType` | The `PageType` this editor works with |
+| `extensions` | Array of file extensions (e.g., `[".pdf"]`) |
+| `filenamePatterns` | Array of RegExp for filename matching |
+| `languageIds` | Monaco language IDs for editor switching |
+| `priority` | Resolution priority (0=lowest, 100=highest) |
+| `alternativeEditors` | Other editors this can switch to |
+| `loadModule` | Async function returning `EditorModule` |
 
-  // Add your extension handling
-  if (ext === '.myext') {
-    const module = await import('../editors/myeditor');
-    return module.default.newPageModel(filePath);
-  }
+#### Priority Guidelines
 
-  // ... existing code
-}
-```
+- `0` - Fallback editors (monaco text editor)
+- `5-10` - Alternative views (markdown preview, grid view)
+- `50` - Standard editors for specific file types
+- `100` - Exclusive editors (PDF viewer)
 
 ### Step 7: Add Toolbar (Optional)
 
@@ -266,13 +283,12 @@ Then use in your editor or integrate with EditorToolbar.
 - [ ] PageModel implements `restore()`
 - [ ] PageModel implements `getRestoreData()`
 - [ ] EditorModule exports all required functions
-- [ ] Registered in RenderEditor
-- [ ] Registered in page-factory
-- [ ] PageType added to shared/types (if new)
-- [ ] Async import used (code splitting)
+- [ ] Registered in `register-editors.ts`
+- [ ] PageType added to `shared/types.ts` (if new page type)
+- [ ] PageEditor added to `shared/types.ts` (if new editor)
+- [ ] Async import used in `loadModule` (code splitting)
 - [ ] Error states handled
 - [ ] Loading states handled
-- [ ] Exported from editors/index.ts
 
 ## Examples
 

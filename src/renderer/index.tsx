@@ -5,6 +5,7 @@ import { Dialogs } from "./features/dialogs/Dialogs";
 import { Poppers } from "./features/dialogs/poppers/Poppers";
 import { MainPage } from "./app/MainPage";
 import "./setup/configure-monaco";
+import "./editors/register-editors";
 import { GlobalStyles } from "./theme/GlobalStyles";
 import { EventHandler } from "./app/EventHandler";
 

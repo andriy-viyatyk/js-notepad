@@ -1,9 +1,13 @@
 import { PageModel } from "../editors/base";
 import { TextPageView, TextFileModel } from "../editors/text";
+import { editorRegistry } from "../editors/registry";
 import { AsyncEditor } from "./AsyncEditor";
 
-const getPdfModule = async () =>
-    (await import("../editors/pdf/PdfViewer")).default;
+const getPdfModule = async () => {
+    const def = editorRegistry.getById("pdf-view");
+    if (!def) throw new Error("PDF editor not registered");
+    return def.loadModule();
+};
 
 export function RenderEditor({ model }: { model: PageModel }) {
     const { type } = model.state.use((s) => ({

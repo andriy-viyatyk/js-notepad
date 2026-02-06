@@ -4,7 +4,8 @@ import { TComponentModel } from "../../core/state/model";
 import { parseObject } from "../../core/utils/parse-utils";
 import { CellFocus, Column, TFilter } from "../../components/data-grid/AVGrid/avGridTypes";
 import { AVGridModel } from "../../components/data-grid/AVGrid/model/AVGridModel";
-import { filesModel, pagesModel } from "../../store";
+import { filesModel } from "../../store/files-store";
+import { pagesModel } from "../../store/pages-store";
 import { TextFileModel } from "../text";
 import { resolveState } from "../../core/utils/utils";
 import {

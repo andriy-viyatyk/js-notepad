@@ -15,6 +15,13 @@ Release notes and changelog for js-notepad.
   - All editors now in unified `/editors` folder
   - Better separation of concerns
 
+- **Editor Registry Pattern**: New declarative system for editor registration
+  - Single place to register editors (`register-editors.ts`)
+  - Adding new editors now requires only one file change
+  - Automatic file type detection by extension or filename patterns
+  - Priority-based editor resolution
+  - See [Editor Guide](/doc/standards/editor-guide.md) for details
+
 ### Documentation
 
 - New developer documentation structure
@@ -71,6 +78,5 @@ See [GitHub Issues](https://github.com/andriy-viyatyk/js-notepad/issues) for pla
 
 ### Coming Soon
 
-- Editor Registry Pattern for easier editor extensions
 - Testing infrastructure
 - Keyboard shortcut customization

@@ -7,6 +7,40 @@
 3. **Check active tasks:** Review [/doc/tasks/active.md](doc/tasks/active.md)
 4. **Follow standards:** Use [/doc/standards/](doc/standards/) when writing code
 
+## Task Workflow (IMPORTANT)
+
+When user says "let's work on tasks" or similar:
+
+### If no task is currently "In Progress":
+1. **Ask before starting**: Say "The next task is '[Task Title]'. Do you want to proceed with this task, or would you like to reprioritize and pick a different one?"
+2. Wait for user confirmation
+
+### When starting a new task (not already in progress):
+1. **Review first, don't implement immediately**
+2. Read the task documentation and provide a summary of:
+   - What we're going to do (main points)
+   - Key files involved
+   - Any concerns or decisions needed
+3. **Wait for user approval** before implementing
+4. User will say either:
+   - "Let's implement it fully" - proceed with full implementation
+   - "Let's implement subtask X" - implement only that part
+   - Discuss concerns first
+
+### During implementation:
+- Update task progress checklist
+- Ask for clarification when uncertain
+- Do NOT commit automatically - wait for user to request commits
+
+### Completing a task:
+1. Verify all acceptance criteria are met
+2. Update documentation (see checklist in [/doc/tasks/active.md](doc/tasks/active.md)):
+   - Architecture docs, standards docs, user docs, CLAUDE.md, what's new
+3. Move task to "Recently Completed" in active.md
+4. **Ask user for confirmation** before deleting the task folder
+
+This step-by-step approach ensures user understands what's happening and can review changes properly.
+
 ## Documentation Map
 
 | Need to...                    | Read...                                                |
@@ -125,6 +159,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | File operations          | `/src/renderer/store/files-store.ts`              |
 | Script execution         | `/src/renderer/core/services/scripting/ScriptRunner.ts` |
 | Monaco setup             | `/src/renderer/setup/configure-monaco.ts`         |
+| Editor registry          | `/src/renderer/editors/registry.ts`               |
+| Editor registration      | `/src/renderer/editors/register-editors.ts`       |
 | Text editor model        | `/src/renderer/editors/text/TextPageModel.ts`     |
 | Grid editor model        | `/src/renderer/editors/grid/GridPageModel.ts`     |
 | Base virtualization      | `/src/renderer/components/virtualization/RenderGrid.tsx` |
