@@ -7,6 +7,55 @@ The editor system handles different file types with specialized viewers/editors.
 - Renders a specific UI for the file type
 - Can be loaded asynchronously for code splitting
 
+## Editor Categories
+
+Editors are divided into two categories based on how they integrate with the application:
+
+### Content Views (`category: "content-view"`)
+
+Views of text-based content that share `TextFileModel` for state management.
+
+| Editor | Description |
+|--------|-------------|
+| **monaco** | Monaco text editor (default) |
+| **grid-json** | Tabular JSON viewer/editor |
+| **grid-csv** | CSV viewer/editor |
+| **md-view** | Rendered markdown preview |
+
+**Characteristics:**
+- Rendered inside `TextPageView` via `ActiveEditor` component
+- Share toolbar, script panel, footer, and encryption panel
+- Can switch between each other (e.g., JSON text → Grid view)
+- Use `TextFileModel` - no separate PageModel needed
+- `alternativeEditors` field defines switching options
+
+### Page Editors (`category: "page-editor"`)
+
+Standalone editors with their own PageModel for non-text file formats.
+
+| Editor | Description |
+|--------|-------------|
+| **pdf-view** | PDF viewer (read-only) |
+| *(future)* | Image viewer, etc. |
+
+**Characteristics:**
+- Rendered instead of `TextPageView` by `RenderEditor`
+- Have their own PageModel subclass (e.g., `PdfViewerModel`)
+- Handle their own UI entirely (no shared toolbar/script panel)
+- Each has a unique `pageType` (e.g., "pdfFile")
+
+### Architecture Diagram
+
+```
+RenderEditor
+├── [page-editor] → AsyncEditor → PdfViewer (own PageModel)
+└── [content-view] → TextPageView
+                         ├── TextToolbar
+                         ├── ActiveEditor → Monaco / Grid / Markdown
+                         ├── ScriptPanel
+                         └── TextFooter
+```
+
 ## Editor Types
 
 | Editor | File Types | Description |
@@ -62,11 +111,18 @@ interface EditorModule {
 
 ```
 PageModel (abstract)
-├── TextFileModel         # Text editor with Monaco
-├── GridPageModel         # Grid editor for JSON/CSV
-├── PdfViewerModel        # PDF viewer (read-only)
-└── [Future models...]
+├── TextFileModel         # Content views (Monaco, Grid, Markdown)
+├── PdfViewerModel        # PDF viewer (page-editor)
+└── [Future page-editors...]
+
+TComponentModel (for view-specific state)
+├── GridPageModel         # Grid view state (columns, filters, etc.)
+├── MarkdownViewModel     # Markdown view state (scroll position)
+└── [Future view models...]
 ```
+
+Note: Content views like Grid and Markdown use `TextFileModel` for content management,
+but may have their own `TComponentModel` for view-specific state (not page state).
 
 ### PageModel Base
 
@@ -166,16 +222,37 @@ export { MyEditor, MyPageModel };
 Add registration in `/editors/register-editors.ts`:
 
 ```typescript
+// For a standalone page editor (like PDF, Image viewer):
 editorRegistry.register({
     id: "my-editor",           // Must match PageEditor type
     name: "My Editor",         // Display name in UI
     pageType: "myType",        // PageType this editor creates
+    category: "page-editor",   // Standalone editor with own PageModel
     extensions: [".myext"],    // File extensions to handle
-    languageIds: ["mylang"],   // Monaco language IDs (for editor switching)
     priority: 50,              // Higher = preferred when multiple match
     loadModule: async () => {
         const module = await import("./myeditor");
         return module.default;
+    },
+});
+
+// For a content view (alternative view of text content):
+editorRegistry.register({
+    id: "my-view",
+    name: "My View",
+    pageType: "textFile",      // Uses TextFileModel
+    category: "content-view",  // Rendered inside TextPageView
+    languageIds: ["mylang"],   // Monaco language IDs (for view switching)
+    priority: 10,
+    alternativeEditors: ["monaco"],
+    loadModule: async () => {
+        const module = await import("./myview");
+        return {
+            Editor: module.MyView,
+            newPageModel: textEditorModule.newPageModel,  // Reuse text model
+            newEmptyPageModel: textEditorModule.newEmptyPageModel,
+            newPageModelFromState: textEditorModule.newPageModelFromState,
+        };
     },
 });
 ```

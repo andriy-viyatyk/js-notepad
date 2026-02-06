@@ -70,7 +70,6 @@ js-notepad/
 ├── editors/                # Editor Implementations
 │   ├── base/               # Shared editor infrastructure
 │   │   ├── PageModel.ts
-│   │   ├── ContentPageModel.ts
 │   │   ├── EditorToolbar.tsx
 │   │   ├── LanguageIcon.tsx
 │   │   └── index.ts

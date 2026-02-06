@@ -12,13 +12,13 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-003 | ContentPageModel Extraction | Medium | [Details](./US-003-content-page-model/) |
 | US-004 | Implement Testing Infrastructure | Medium | [Details](./US-004-testing/) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-003 | ContentPageModel Extraction | Closed - architecture review concluded existing design is correct |
 | US-002 | Editor Registry Pattern | Declarative editor registration in `register-editors.ts` |
 | US-001 | Fix Circular Dependencies | Direct imports instead of barrel exports |
 | US-005 | Create User Documentation | Completed - see `/docs/` folder |

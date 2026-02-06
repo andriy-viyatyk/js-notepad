@@ -138,7 +138,7 @@ Chat-like notes with categories/tags, search, navigation panel.
 
 **Tasks:**
 - [ ] Create `editors/tools/notebook/` structure
-- [ ] Create `NotebookPageModel` extending ContentPageModel
+- [ ] Create `NotebookPageModel` extending PageModel
 - [ ] Create `NotebookEditor.tsx` component
 - [ ] Register for `*.note.json` files
 - [ ] Implement note CRUD operations
@@ -151,7 +151,7 @@ Multiple categorized todo lists.
 
 **Tasks:**
 - [ ] Create `editors/tools/todo/` structure
-- [ ] Create `TodoPageModel` extending ContentPageModel
+- [ ] Create `TodoPageModel` extending PageModel
 - [ ] Create `TodoEditor.tsx` component
 - [ ] Register for `*.todo.json` files
 - [ ] Implement todo list management
@@ -162,7 +162,7 @@ Categorized bookmarks with tags.
 
 **Tasks:**
 - [ ] Create `editors/tools/bookmarks/` structure
-- [ ] Create `BookmarkPageModel` extending ContentPageModel
+- [ ] Create `BookmarkPageModel` extending PageModel
 - [ ] Create `BookmarkEditor.tsx` component
 - [ ] Register for `*.link.json` files
 - [ ] Implement bookmark management with categories

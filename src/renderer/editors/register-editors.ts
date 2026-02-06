@@ -27,6 +27,7 @@ editorRegistry.register({
     id: "monaco",
     name: "Text Editor",
     pageType: "textFile",
+    category: "content-view",
     extensions: ["*"],
     languageIds: ["*"],
     priority: 0, // Lowest - fallback for all text files
@@ -39,6 +40,7 @@ editorRegistry.register({
     id: "grid-json",
     name: "Grid",
     pageType: "textFile",
+    category: "content-view",
     filenamePatterns: [/\.grid\.json$/i],
     languageIds: ["json"],
     priority: 10,
@@ -59,6 +61,7 @@ editorRegistry.register({
     id: "grid-csv",
     name: "Grid",
     pageType: "textFile",
+    category: "content-view",
     filenamePatterns: [/\.grid\.csv$/i],
     languageIds: ["csv"],
     priority: 10,
@@ -79,6 +82,7 @@ editorRegistry.register({
     id: "md-view",
     name: "Preview",
     pageType: "textFile",
+    category: "content-view",
     languageIds: ["markdown"],
     priority: 5,
     alternativeEditors: ["monaco"],
@@ -93,11 +97,12 @@ editorRegistry.register({
     },
 });
 
-// Register PDF viewer
+// Register PDF viewer (standalone page editor)
 editorRegistry.register({
     id: "pdf-view",
     name: "PDF Viewer",
     pageType: "pdfFile",
+    category: "page-editor",
     extensions: [".pdf"],
     priority: 100, // Highest - exclusive for PDF files
     loadModule: async () => {
