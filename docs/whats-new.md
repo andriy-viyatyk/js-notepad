@@ -6,7 +6,7 @@ Release notes and changelog for js-notepad.
 
 ---
 
-## Version 1.0.4
+## Version 1.0.5 (Upcoming)
 
 ### Improvements
 
@@ -21,6 +21,15 @@ Release notes and changelog for js-notepad.
 - Architecture documentation
 - Coding standards and guides
 - Task tracking system
+- User documentation with guides
+
+---
+
+## Version 1.0.4
+
+### Improvements
+
+- File operations improvements
 
 ---
 
@@ -64,5 +73,4 @@ See [GitHub Issues](https://github.com/andriy-viyatyk/js-notepad/issues) for pla
 
 - Editor Registry Pattern for easier editor extensions
 - Testing infrastructure
-- Improved documentation
 - Keyboard shortcut customization
