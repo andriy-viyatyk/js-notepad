@@ -35,12 +35,30 @@
 
 ---
 
+## Documentation
+
+* **[User Guide](docs/index.md)** - Getting started, features, keyboard shortcuts
+* **[Scripting Guide](docs/scripting.md)** - JavaScript execution and the `page` API
+
+---
+
 ## Contributing & Feedback
 
-Contributions, bug reports, and feature requests are more than welcome! 
+Contributions, bug reports, and feature requests are more than welcome!
 
 * **Found a bug?** Please [open an issue](https://github.com/andriy-viyatyk/js-notepad/issues) with a description and steps to reproduce.
 * **Want to contribute?** Feel free to fork the repository and submit a pull request. Whether it's a new "Alternative Editor," a bug fix, or a typo in the documentation, every bit helps!
 * **Ideas?** If you have a "cool idea" for a tool that should be built into JS-Notepad, jump into the [discussions](https://github.com/andriy-viyatyk/js-notepad/discussions) and let's talk about it.
+
+### For Contributors
+
+This project is developed with **Claude AI** assistance. Before contributing, please review:
+
+* **[CONTRIBUTING.md](CONTRIBUTING.md)** - Setup guide and coding standards
+* **[Developer Docs](doc/README.md)** - Architecture and standards
+* **[Active Tasks](doc/tasks/active.md)** - Current work in progress
+* **[CLAUDE.md](CLAUDE.md)** - Project context for AI-assisted development
+
 ---
+
 Licensed under the MIT License.
