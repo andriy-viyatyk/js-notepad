@@ -1,4 +1,5 @@
 import { IPage } from "../../shared/types";
+import { UpdateCheckResult } from "../api-param-types";
 import { EventApi, EventEndpoint, EventObject } from "../api-types";
 
 class RendererEventObject<T> implements EventObject<T> {
@@ -76,6 +77,10 @@ class RendererEvents implements EventApi {
 
     [EventEndpoint.eZoomChanged] = new RendererEventObject<number>(
         EventEndpoint.eZoomChanged
+    );
+
+    [EventEndpoint.eUpdateAvailable] = new RendererEventObject<UpdateCheckResult>(
+        EventEndpoint.eUpdateAvailable
     );
 }
 

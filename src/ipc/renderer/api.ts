@@ -3,7 +3,9 @@ import {
     CommonFolder,
     OpenFileDialogParams,
     OpenFolderDialogParams,
+    RuntimeVersions,
     SaveFileDialogParams,
+    UpdateCheckResult,
 } from "../api-param-types";
 import { Api, Endpoint } from "../api-types";
 
@@ -147,6 +149,18 @@ class ApiCalls implements Api {
 
     getFileIcon = async (filePath: string) => {
         return executeOnce<string>(Endpoint.getFileIcon, filePath);
+    }
+
+    checkForUpdates = async (force?: boolean) => {
+        return executeOnce<UpdateCheckResult>(Endpoint.checkForUpdates, force);
+    }
+
+    getAppVersion = async () => {
+        return executeOnce<string>(Endpoint.getAppVersion);
+    }
+
+    getRuntimeVersions = async () => {
+        return executeOnce<RuntimeVersions>(Endpoint.getRuntimeVersions);
     }
 }
 

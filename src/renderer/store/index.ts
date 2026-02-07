@@ -4,6 +4,7 @@ export { filesModel } from './files-store';
 // Pages management
 export { PagesModel, pagesModel } from './pages-store';
 export { newPageModel, newEmptyPageModel, newPageModelFromState } from './page-factory';
+export { showAboutPage } from './page-actions';
 
 // Settings
 export { appSettings } from './app-settings';

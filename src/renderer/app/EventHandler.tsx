@@ -1,22 +1,31 @@
 import { useEffect } from "react";
 import { TModel, useModel } from "../core/state/model";
 import { TComponentState } from "../core/state/state";
+import { SubscriptionObject } from "../core/state/events";
 import { showAppPopupMenu } from "../features/dialogs/poppers/showPopupMenu";
 import { parseObject } from "../core/utils/parse-utils";
-import { filesModel } from "../store";
+import { filesModel, showAboutPage } from "../store";
 import { api } from "../../ipc/renderer/api";
-import { alertError } from "../features/dialogs/alerts/AlertsBar";
+import { alertError, alertInfo } from "../features/dialogs/alerts/AlertsBar";
 import { scriptRunner } from "../core/services/scripting/ScriptRunner";
 import { nodeUtils } from "../core/utils/node-utils";
-import { RendererEvent } from "../../ipc/api-types";
+import { EventEndpoint, RendererEvent } from "../../ipc/api-types";
+import rendererEvents from "../../ipc/renderer/renderer-events";
+import { UpdateCheckResult } from "../../ipc/api-param-types";
 
 class EventHandlerModel extends TModel<null> {
+    private updateSubscription: SubscriptionObject | null = null;
+
     init = () => {
         document.addEventListener("contextmenu", this.handleContextMenu);
         document.addEventListener("dragover", this.handleDragOver);
         document.addEventListener("drop", this.captureDrop, true);
         document.addEventListener("drop", this.handleDrop);
         window.addEventListener("unhandledrejection", this.handleUnhandledRejection);
+
+        this.updateSubscription = rendererEvents[EventEndpoint.eUpdateAvailable].subscribe(
+            this.handleUpdateAvailable
+        );
     }
 
     dispose = () => {
@@ -25,6 +34,17 @@ class EventHandlerModel extends TModel<null> {
         document.removeEventListener("drop", this.captureDrop, true);
         document.removeEventListener("drop", this.handleDrop);
         window.removeEventListener("unhandledrejection", this.handleUnhandledRejection);
+
+        this.updateSubscription?.unsubscribe();
+    }
+
+    private handleUpdateAvailable = async (result: UpdateCheckResult) => {
+        if (result.updateAvailable && result.releaseInfo) {
+            const closeResult = await alertInfo(`New version ${result.releaseInfo.version} is available! Click to open About page.`);
+            if (closeResult === 'clicked') {
+                showAboutPage();
+            }
+        }
     }
 
     private handleContextMenu = (e: PointerEvent) => {

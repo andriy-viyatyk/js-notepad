@@ -34,3 +34,25 @@ export type CommonFolder =
     | "music"
     | "videos"
     | "downloads";
+
+export interface ReleaseInfo {
+    tagName: string;
+    version: string;
+    htmlUrl: string;
+    publishedAt: string;
+    body: string;
+}
+
+export interface UpdateCheckResult {
+    currentVersion: string;
+    latestVersion: string | null;
+    updateAvailable: boolean;
+    releaseInfo: ReleaseInfo | null;
+    error?: string;
+}
+
+export interface RuntimeVersions {
+    electron: string;
+    node: string;
+    chrome: string;
+}

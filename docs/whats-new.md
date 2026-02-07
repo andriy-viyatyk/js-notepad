@@ -10,6 +10,18 @@ Release notes and changelog for js-notepad.
 
 ### New Features
 
+- **About Page**: View application and system information
+  - Access via Info button in the sidebar menu
+  - Shows app version, Electron, Node.js, and Chromium versions
+  - "Check for Updates" button to manually check for new versions
+  - Links to GitHub repository, downloads, and issue tracker
+
+- **Automatic Update Check**: Get notified when new versions are available
+  - Checks GitHub Releases automatically on startup (once per 24 hours)
+  - Shows notification when a new version is available
+  - Click notification to open About page for download link
+  - No automatic downloads - you stay in control
+
 - **Image Viewer**: View binary images directly in the application
   - Supported formats: PNG, JPG, GIF, WEBP, BMP, ICO
   - Zoom with mouse wheel or +/- buttons

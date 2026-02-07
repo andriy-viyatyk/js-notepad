@@ -31,6 +31,7 @@ const AlertItemRoot = styled.div<{top: number, right: number}>(props => ({
     display: 'flex',
     flexDirection: 'row',
     columnGap: 8,
+    cursor: 'pointer',
     '& .icon': {
         display: 'flex',
         alignItems: 'center',
@@ -155,11 +156,16 @@ export const AlertItem = forwardRef<HTMLDivElement, AlertItemProps>(
             };
         }, [autoClose, onClose]);
 
+        const handleClick = () => {
+            data.onClose('clicked');
+        };
+
         return (
             <AlertItemRoot
                 ref={ref}
                 top={top}
                 right={right}
+                onClick={handleClick}
                 className={clsx(
                     {
                         errorItem: data.type === 'error',

@@ -144,3 +144,16 @@ editorRegistry.register({
         };
     },
 });
+
+// Register About page (standalone page editor)
+editorRegistry.register({
+    id: "about-view",
+    name: "About",
+    pageType: "aboutPage",
+    category: "page-editor",
+    priority: 100,
+    loadModule: async () => {
+        const module = await import("./about/AboutPage");
+        return module.default;
+    },
+});

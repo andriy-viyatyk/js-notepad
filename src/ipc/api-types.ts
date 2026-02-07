@@ -3,7 +3,9 @@ import {
     CommonFolder,
     OpenFileDialogParams,
     OpenFolderDialogParams,
+    RuntimeVersions,
     SaveFileDialogParams,
+    UpdateCheckResult,
 } from "./api-param-types";
 
 export enum Endpoint {
@@ -31,6 +33,9 @@ export enum Endpoint {
     addDragEvent = "addDragEvent",
     getFileIcon = "getFileIcon",
     resetZoom = "resetZoom",
+    checkForUpdates = "checkForUpdates",
+    getAppVersion = "getAppVersion",
+    getRuntimeVersions = "getRuntimeVersions",
 }
 
 export type Api = {
@@ -64,6 +69,9 @@ export type Api = {
     [Endpoint.addDragEvent]: (event: PageDragData) => Promise<void>;
     [Endpoint.getFileIcon]: (filePath: string) => Promise<string>;
     [Endpoint.resetZoom]: () => Promise<void>;
+    [Endpoint.checkForUpdates]: (force?: boolean) => Promise<UpdateCheckResult>;
+    [Endpoint.getAppVersion]: () => Promise<string>;
+    [Endpoint.getRuntimeVersions]: () => Promise<RuntimeVersions>;
 };
 
 export enum EventEndpoint {
@@ -75,6 +83,7 @@ export enum EventEndpoint {
     eMovePageIn = "eMovePageIn",
     eMovePageOut = "eMovePageOut",
     eZoomChanged = "eZoomChanged",
+    eUpdateAvailable = "eUpdateAvailable",
 }
 
 export interface EventSubscription {
@@ -95,6 +104,7 @@ export type EventApi = {
     [EventEndpoint.eMovePageIn]: EventObject<{ page: Partial<IPage>; targetPageId: string | undefined }>;
     [EventEndpoint.eMovePageOut]: EventObject<string>;
     [EventEndpoint.eZoomChanged]: EventObject<number>;
+    [EventEndpoint.eUpdateAvailable]: EventObject<UpdateCheckResult>;
 };
 
 export enum RendererEvent {

@@ -185,7 +185,7 @@ export const JsNotepadIcon = createIconWithViewBox("2 2 20 20")(
             fill="none"
         />
 
-        <rect x="9" y="8" width="6" height="8" stroke="currentColor" rx="0.5" />
+        <rect x="9" y="8" width="6" height="8" stroke="currentColor" rx="0.5" fill="none" />
     </g>,
 );
 

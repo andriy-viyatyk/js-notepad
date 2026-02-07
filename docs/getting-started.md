@@ -53,6 +53,20 @@ To manually change the language:
 - Click the language icon button on the left side of the tab
 - Select the desired language from the dropdown list
 
+## Checking for Updates
+
+js-notepad automatically checks for updates once every 24 hours. When a new version is available, you'll see a notification.
+
+To manually check for updates:
+1. Click the app button (js-notepad icon) in the top-left corner to open the sidebar menu
+2. Click the Info button (ℹ) to open the About page
+3. Click "Check for Updates"
+
+The About page also shows:
+- Current application version
+- Electron, Node.js, and Chromium versions
+- Links to download the latest version and report issues
+
 ## Next Steps
 
 - Learn about [different editors](./editors.md)

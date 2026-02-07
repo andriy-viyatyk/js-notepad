@@ -5,12 +5,13 @@ import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { Button } from "../../components/basic/Button";
 import { List, ListOptionRenderer } from "../../components/form/List";
 import { api } from "../../../ipc/renderer/api";
-import { pagesModel, appSettings, menuFolders, recentFiles } from "../../store";
+import { pagesModel, appSettings, menuFolders, recentFiles, showAboutPage } from "../../store";
 import type { MenuFolder } from "../../store";
 import color from "../../theme/color";
 import {
     ArrowRightIcon,
     EmptyIcon,
+    InfoIcon,
     NewWindowIcon,
     OpenFileIcon,
     SettingsIcon,
@@ -169,6 +170,11 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
             pagesModel.openFile(filePath);
             this.props.onClose?.();
         }
+    };
+
+    openAbout = () => {
+        this.props.onClose?.();
+        showAboutPage();
     };
 
     setLeftItem = (item: MenuFolder) => {
@@ -403,6 +409,15 @@ export function MenuBar(props: MenuBarProps) {
                             <NewWindowIcon />
                         </Button>
                         <FlexSpace />
+                        <Button
+                            size="medium"
+                            type="icon"
+                            background="dark"
+                            onClick={model.openAbout}
+                            title="About"
+                        >
+                            <InfoIcon />
+                        </Button>
                         <Button
                             size="medium"
                             type="icon"

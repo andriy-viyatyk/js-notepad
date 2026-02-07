@@ -104,22 +104,54 @@ return <Button onClick={() => doSomething()} />;
 
 ## Styling with Emotion
 
-### Prefer styled Components
+### Single Styled Root with Nested Class-Based Styles
+
+For components with multiple child elements, create **one styled component** for the root element and style all children using nested class selectors. This keeps styles organized and easier to read.
 
 ```typescript
-import styled from '@emotion/styled';
-
-const Container = styled.div({
+// GOOD - single styled root with nested classes
+const MyComponentRoot = styled.div({
   display: 'flex',
   flexDirection: 'column',
   padding: 16,
+
+  "& .header": {
+    fontSize: 18,
+    fontWeight: 600,
+    marginBottom: 8,
+  },
+
+  "& .content": {
+    flex: 1,
+    overflow: "auto",
+  },
+
+  "& .button": {
+    padding: "8px 16px",
+    cursor: "pointer",
+    "&:hover": {
+      opacity: 0.9,
+    },
+    "&.primary": {
+      backgroundColor: color.background.selection,
+    },
+  },
 });
 
-// With props
-const Button = styled.button<{ primary?: boolean }>(({ primary }) => ({
-  backgroundColor: primary ? 'blue' : 'gray',
-  color: 'white',
-}));
+function MyComponent() {
+  return (
+    <MyComponentRoot>
+      <div className="header">Title</div>
+      <div className="content">...</div>
+      <button className="button primary">Click</button>
+    </MyComponentRoot>
+  );
+}
+
+// BAD - multiple styled components (harder to read)
+const Header = styled.div({ fontSize: 18, fontWeight: 600 });
+const Content = styled.div({ flex: 1, overflow: "auto" });
+const Button = styled.button({ padding: "8px 16px" });
 ```
 
 ### Use Theme Colors

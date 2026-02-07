@@ -3,12 +3,13 @@ import { Api, Endpoint, EventEndpoint } from "../api-types";
 import { getAssetPath, getAppRootPath } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
 import { getFileToOpen, windowReady } from "./window-handlers";
-import { OpenFileDialogParams, SaveFileDialogParams } from "../api-param-types";
+import { OpenFileDialogParams, RuntimeVersions, SaveFileDialogParams, UpdateCheckResult } from "../api-param-types";
 import { openWindows } from "../../main/open-windows";
 import { initRendererEvents } from "./renderer-events";
 import { WindowPages } from "../../shared/types";
 import { dragModel } from "../../main/drag-model";
 import { fileIconCache } from "../../main/fileIconCache";
+import { versionService } from "../../main/version-service";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -129,6 +130,18 @@ class Controller implements MainApi {
     getFileIcon = async (event: IpcMainEvent, filePath: string): Promise<string> => {
         return fileIconCache.getFileIcon(filePath);
     }
+
+    checkForUpdates = async (event: IpcMainEvent, force?: boolean): Promise<UpdateCheckResult> => {
+        return versionService.checkForUpdates(force);
+    }
+
+    getAppVersion = async (event: IpcMainEvent): Promise<string> => {
+        return versionService.getAppVersion();
+    }
+
+    getRuntimeVersions = async (event: IpcMainEvent): Promise<RuntimeVersions> => {
+        return versionService.getRuntimeVersions();
+    }
 }
 
 const controllerInstance = new Controller();
@@ -171,6 +184,9 @@ const init = () => {
     bindEndpoint(Endpoint.showWindowPage, controllerInstance.showWindowPage);
     bindEndpoint(Endpoint.addDragEvent, controllerInstance.addDragEvent);
     bindEndpoint(Endpoint.getFileIcon, controllerInstance.getFileIcon);
+    bindEndpoint(Endpoint.checkForUpdates, controllerInstance.checkForUpdates);
+    bindEndpoint(Endpoint.getAppVersion, controllerInstance.getAppVersion);
+    bindEndpoint(Endpoint.getRuntimeVersions, controllerInstance.getRuntimeVersions);
 
     initRendererEvents();
 }

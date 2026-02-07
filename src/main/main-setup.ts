@@ -7,6 +7,7 @@ import { getAssetPath, isValidFilePath } from "./utils";
 import { pathToFileURL } from "node:url";
 import { openWindows } from "./open-windows";
 import { setupTray } from "./tray-setup";
+import { versionService } from "./version-service";
 
 export function setupMainProcess() {
     protocol.registerSchemesAsPrivileged([
@@ -93,6 +94,11 @@ export function setupMainProcess() {
         registerAssetProtocol(fileAccessPersistPartition);
         openWindows.restoreState();
         setupTray();
+
+        // Check for updates after a short delay to not slow down startup
+        setTimeout(() => {
+            versionService.checkForUpdates();
+        }, 5000);
     });
 
     app.on("window-all-closed", () => {
