@@ -26,15 +26,19 @@ export function TextToolbar({ model, setEditorToolbarRefFirst, setEditorToolbarR
         hasSelection: s.hasSelection,
     }));
 
-    const { language, editor, filePath } = model.state.use((s) => ({
+    const { language, editor, filePath, title } = model.state.use((s) => ({
         language: s.language,
         editor: s.editor,
         filePath: s.filePath,
+        title: s.title,
     }));
 
+    // Use filePath if available, otherwise use title (which represents the intended filename)
+    const fileName = filePath || title;
+
     const switchOptions = useMemo(() => {
-        return editorRegistry.getSwitchOptions(language || "plaintext", filePath);
-    }, [language, filePath]);
+        return editorRegistry.getSwitchOptions(language || "plaintext", fileName);
+    }, [language, fileName]);
 
 
     if (isTextFileModel(model)) {

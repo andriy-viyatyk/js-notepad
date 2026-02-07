@@ -1,7 +1,36 @@
 import { editorRegistry } from "./registry";
 import { EditorModule } from "./types";
 
-// Text editor module wrapper (synchronous import since it's the default)
+// =============================================================================
+// Helper functions for common patterns
+// =============================================================================
+
+/** Check if file matches any of the given extensions */
+const matchesExtension = (fileName: string, extensions: string[]): boolean => {
+    const lower = fileName.toLowerCase();
+    return extensions.some((ext) => lower.endsWith(ext));
+};
+
+/** Check if file matches a pattern */
+const matchesPattern = (fileName: string, pattern: RegExp): boolean => {
+    return pattern.test(fileName.toLowerCase());
+};
+
+// Patterns for specialized JSON editors (excluded from grid-json)
+const SPECIALIZED_JSON_PATTERNS = [
+    /\.note\.json$/i,
+    // /\.todo\.json$/i,  // TODO: uncomment when todo editor is implemented
+];
+
+const isSpecializedJson = (fileName?: string): boolean => {
+    if (!fileName) return false;
+    return SPECIALIZED_JSON_PATTERNS.some((p) => p.test(fileName));
+};
+
+// =============================================================================
+// Text Editor Module (shared by content-view editors)
+// =============================================================================
+
 const textEditorModule: EditorModule = {
     get Editor() {
         // Lazy access to avoid circular dependency
@@ -22,29 +51,40 @@ const textEditorModule: EditorModule = {
     },
 };
 
-// Register monaco (default text editor)
+// =============================================================================
+// Editor Registrations
+// =============================================================================
+
+// Monaco (default text editor - fallback for all text files)
 editorRegistry.register({
     id: "monaco",
     name: "Text Editor",
     pageType: "textFile",
     category: "content-view",
-    extensions: ["*"],
-    languageIds: ["*"],
-    priority: 0, // Lowest - fallback for all text files
-    alternativeEditors: ["grid-json", "grid-csv", "md-view", "svg-view"],
+    acceptFile: () => 0, // Lowest priority - fallback for all files
+    validForLanguage: () => true, // Valid for all languages
+    switchOption: () => 0, // Always available as first option
     loadModule: async () => textEditorModule,
 });
 
-// Register grid-json editor
+// Grid JSON editor
 editorRegistry.register({
     id: "grid-json",
     name: "Grid",
     pageType: "textFile",
     category: "content-view",
-    filenamePatterns: [/\.grid\.json$/i],
-    languageIds: ["json"],
-    priority: 10,
-    alternativeEditors: ["monaco"],
+    acceptFile: (fileName) => {
+        // High priority for .grid.json files
+        if (matchesPattern(fileName, /\.grid\.json$/i)) return 20;
+        return -1;
+    },
+    validForLanguage: (languageId) => languageId === "json",
+    switchOption: (languageId, fileName) => {
+        if (languageId !== "json") return -1;
+        // Exclude for specialized JSON editors
+        if (isSpecializedJson(fileName)) return -1;
+        return 10;
+    },
     loadModule: async () => {
         const module = await import("./grid/GridEditor");
         return {
@@ -56,16 +96,22 @@ editorRegistry.register({
     },
 });
 
-// Register grid-csv editor
+// Grid CSV editor
 editorRegistry.register({
     id: "grid-csv",
     name: "Grid",
     pageType: "textFile",
     category: "content-view",
-    filenamePatterns: [/\.grid\.csv$/i],
-    languageIds: ["csv"],
-    priority: 10,
-    alternativeEditors: ["monaco"],
+    acceptFile: (fileName) => {
+        // High priority for .grid.csv files
+        if (matchesPattern(fileName, /\.grid\.csv$/i)) return 20;
+        return -1;
+    },
+    validForLanguage: (languageId) => languageId === "csv",
+    switchOption: (languageId) => {
+        if (languageId !== "csv") return -1;
+        return 10;
+    },
     loadModule: async () => {
         const module = await import("./grid/GridEditor");
         return {
@@ -77,15 +123,17 @@ editorRegistry.register({
     },
 });
 
-// Register markdown view
+// Markdown preview
 editorRegistry.register({
     id: "md-view",
     name: "Preview",
     pageType: "textFile",
     category: "content-view",
-    languageIds: ["markdown"],
-    priority: 5,
-    alternativeEditors: ["monaco"],
+    validForLanguage: (languageId) => languageId === "markdown",
+    switchOption: (languageId) => {
+        if (languageId !== "markdown") return -1;
+        return 10;
+    },
     loadModule: async () => {
         const module = await import("./markdown/MarkdownView");
         return {
@@ -97,43 +145,85 @@ editorRegistry.register({
     },
 });
 
-// Register PDF viewer (standalone page editor)
+// PDF viewer (standalone page editor)
 editorRegistry.register({
     id: "pdf-view",
     name: "PDF Viewer",
     pageType: "pdfFile",
     category: "page-editor",
-    extensions: [".pdf"],
-    priority: 100, // Highest - exclusive for PDF files
+    acceptFile: (fileName) => {
+        if (matchesExtension(fileName, [".pdf"])) return 100;
+        return -1;
+    },
     loadModule: async () => {
         const module = await import("./pdf/PdfViewer");
         return module.default;
     },
 });
 
-// Register Image viewer (standalone page editor for binary images)
+// Image viewer (standalone page editor for binary images)
 editorRegistry.register({
     id: "image-view",
     name: "Image Viewer",
     pageType: "imageFile",
     category: "page-editor",
-    extensions: [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico"], // No .svg - handled as text
-    priority: 100, // Highest - exclusive for binary image files
+    acceptFile: (fileName) => {
+        const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico"];
+        if (matchesExtension(fileName, imageExtensions)) return 100;
+        return -1;
+    },
     loadModule: async () => {
         const module = await import("./image/ImageViewer");
         return module.default;
     },
 });
 
-// Register SVG view (content-view for SVG files - preview mode)
+// Notebook editor (content-view for .note.json files)
+editorRegistry.register({
+    id: "notebook-view",
+    name: "Notebook",
+    pageType: "textFile",
+    category: "content-view",
+    acceptFile: (fileName) => {
+        // High priority for .note.json files - opens in notebook by default
+        if (matchesPattern(fileName, /\.note\.json$/i)) return 20;
+        return -1;
+    },
+    validForLanguage: (languageId) => languageId === "json",
+    switchOption: (languageId, fileName) => {
+        // Only show for .note.json files
+        if (languageId !== "json") return -1;
+        if (!fileName || !matchesPattern(fileName, /\.note\.json$/i)) return -1;
+        return 10;
+    },
+    loadModule: async () => {
+        const module = await import("./notebook/NotebookEditor");
+        return {
+            Editor: module.NotebookEditor,
+            newPageModel: textEditorModule.newPageModel,
+            newEmptyPageModel: textEditorModule.newEmptyPageModel,
+            newPageModelFromState: textEditorModule.newPageModelFromState,
+        };
+    },
+});
+
+// SVG preview (content-view for SVG files)
 editorRegistry.register({
     id: "svg-view",
     name: "Preview",
     pageType: "textFile",
     category: "content-view",
-    extensions: [".svg"],
-    priority: -1, // Lower than Monaco (0) so Monaco opens by default
-    alternativeEditors: ["monaco"],
+    acceptFile: (fileName) => {
+        // Lower than monaco so monaco opens by default
+        if (matchesExtension(fileName, [".svg"])) return -1;
+        return -1;
+    },
+    validForLanguage: (languageId) => languageId === "xml",
+    switchOption: (_languageId, fileName) => {
+        // Only show for .svg files
+        if (fileName && matchesExtension(fileName, [".svg"])) return 10;
+        return -1;
+    },
     loadModule: async () => {
         const module = await import("./svg/SvgView");
         return {
@@ -145,13 +235,12 @@ editorRegistry.register({
     },
 });
 
-// Register About page (standalone page editor)
+// About page (standalone page editor - no file acceptance)
 editorRegistry.register({
     id: "about-view",
     name: "About",
     pageType: "aboutPage",
     category: "page-editor",
-    priority: 100,
     loadModule: async () => {
         const module = await import("./about/AboutPage");
         return module.default;

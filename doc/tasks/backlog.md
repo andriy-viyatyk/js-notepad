@@ -132,19 +132,6 @@ Ideas and future tasks not yet planned for implementation.
 
 **Goal:** Editors for structured data files.
 
-#### Notebook Editor (`*.note.json`)
-
-Chat-like notes with categories/tags, search, navigation panel.
-
-**Tasks:**
-- [ ] Create `editors/tools/notebook/` structure
-- [ ] Create `NotebookPageModel` extending PageModel
-- [ ] Create `NotebookEditor.tsx` component
-- [ ] Register for `*.note.json` files
-- [ ] Implement note CRUD operations
-- [ ] Add categories/tags support
-- [ ] Add search functionality
-
 #### ToDo Editor (`*.todo.json`)
 
 Multiple categorized todo lists.

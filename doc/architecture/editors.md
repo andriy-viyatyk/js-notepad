@@ -28,7 +28,7 @@ Views of text-based content that share `TextFileModel` for state management.
 - Share toolbar, script panel, footer, and encryption panel
 - Can switch between each other (e.g., JSON text → Grid view)
 - Use `TextFileModel` - no separate PageModel needed
-- `alternativeEditors` field defines switching options
+- `switchOption()` function controls when editor appears in switch dropdown
 
 ### Page Editors (`category: "page-editor"`)
 
@@ -223,7 +223,7 @@ export { MyEditor, MyPageModel };
 
 ### Step 5: Register in EditorRegistry
 
-Add registration in `/editors/register-editors.ts`:
+Add registration in `/editors/register-editors.ts`. Editors use function-based matching for full control:
 
 ```typescript
 // For a standalone page editor (like PDF, Image viewer):
@@ -232,8 +232,11 @@ editorRegistry.register({
     name: "My Editor",         // Display name in UI
     pageType: "myType",        // PageType this editor creates
     category: "page-editor",   // Standalone editor with own PageModel
-    extensions: [".myext"],    // File extensions to handle
-    priority: 50,              // Higher = preferred when multiple match
+    acceptFile: (fileName) => {
+        // Return priority >= 0 if editor can open file, -1 otherwise
+        if (fileName.toLowerCase().endsWith(".myext")) return 50;
+        return -1;
+    },
     loadModule: async () => {
         const module = await import("./myeditor");
         return module.default;
@@ -246,9 +249,12 @@ editorRegistry.register({
     name: "My View",
     pageType: "textFile",      // Uses TextFileModel
     category: "content-view",  // Rendered inside TextPageView
-    languageIds: ["mylang"],   // Monaco language IDs (for view switching)
-    priority: 10,
-    alternativeEditors: ["monaco"],
+    validForLanguage: (languageId) => languageId === "mylang",
+    switchOption: (languageId) => {
+        // Return priority >= 0 to show in switch dropdown, -1 to hide
+        if (languageId !== "mylang") return -1;
+        return 10;
+    },
     loadModule: async () => {
         const module = await import("./myview");
         return {
@@ -291,11 +297,11 @@ The `page.editor` property controls which editor renders the content.
 ```typescript
 editorRegistry.register(definition)              // Register an editor
 editorRegistry.getById(id)                       // Get editor by ID
-editorRegistry.resolve(filePath)                 // Resolve editor for file
+editorRegistry.getAll()                          // Get all registered editors
+editorRegistry.resolve(filePath)                 // Resolve editor for file (calls acceptFile)
 editorRegistry.resolveId(filePath)               // Resolve just the editor ID
-editorRegistry.getAlternatives(languageId)       // Get editors for language
-editorRegistry.validateForLanguage(editor, lang) // Validate editor/language
-editorRegistry.getSwitchOptions(languageId)      // Get UI switch options
+editorRegistry.validateForLanguage(editor, lang) // Validate editor/language (calls validForLanguage)
+editorRegistry.getSwitchOptions(lang, filePath)  // Get UI switch options (calls switchOption)
 ```
 
 For complete guide, see [Editor Creation Guide](/doc/standards/editor-guide.md).

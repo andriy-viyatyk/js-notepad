@@ -35,12 +35,31 @@ export interface EditorDefinition {
     pageType: PageType;
     /** Distinguishes standalone page editors from content views */
     category: EditorCategory;
-    extensions?: string[];
-    filenamePatterns?: RegExp[];
-    /** Language IDs this editor supports (for content-view switching) */
-    languageIds?: string[];
-    priority: number;
-    /** Alternative editors for switching (only applies to content-view) */
-    alternativeEditors?: PageEditor[];
+
+    /**
+     * Determines if this editor can open a file.
+     * @param fileName - The file path/name to check
+     * @returns Priority (>= 0) if editor accepts this file, -1 if not applicable.
+     *          Higher priority wins when multiple editors match.
+     */
+    acceptFile?(fileName: string): number;
+
+    /**
+     * Checks if this editor is valid for a given language.
+     * Used when language changes to validate current editor selection.
+     * @param languageId - The Monaco language ID
+     * @returns true if editor supports this language, false otherwise
+     */
+    validForLanguage?(languageId: string): boolean;
+
+    /**
+     * Determines if this editor should appear in the view switch dropdown.
+     * @param languageId - Current language ID
+     * @param fileName - Optional file path for context
+     * @returns Priority (>= 0) to include in switch options, -1 to exclude.
+     *          Lower priority appears first in the list (monaco should be 0).
+     */
+    switchOption?(languageId: string, fileName?: string): number;
+
     loadModule: () => Promise<EditorModule>;
 }

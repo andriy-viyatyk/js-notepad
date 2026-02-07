@@ -42,40 +42,21 @@ class EditorRegistry {
 
     /**
      * Resolve the best matching editor for a file path.
-     * Returns the full EditorDefinition or undefined if no match.
+     * Queries each editor's acceptFile() and returns the one with highest priority.
      */
     resolve(filePath?: string): EditorDefinition | undefined {
         if (!filePath) {
             return undefined;
         }
 
-        const lowerPath = filePath.toLowerCase();
         let bestMatch: EditorDefinition | undefined;
         let bestPriority = -1;
 
         for (const editor of this.editors.values()) {
-            // Check filename patterns first (most specific)
-            if (editor.filenamePatterns) {
-                for (const pattern of editor.filenamePatterns) {
-                    if (pattern.test(lowerPath)) {
-                        if (editor.priority > bestPriority) {
-                            bestMatch = editor;
-                            bestPriority = editor.priority;
-                        }
-                    }
-                }
-            }
-
-            // Check extensions
-            if (editor.extensions) {
-                for (const ext of editor.extensions) {
-                    if (ext === "*" || lowerPath.endsWith(ext.toLowerCase())) {
-                        if (editor.priority > bestPriority) {
-                            bestMatch = editor;
-                            bestPriority = editor.priority;
-                        }
-                    }
-                }
+            const priority = editor.acceptFile?.(filePath) ?? -1;
+            if (priority > bestPriority) {
+                bestMatch = editor;
+                bestPriority = priority;
             }
         }
 
@@ -91,42 +72,6 @@ class EditorRegistry {
     }
 
     /**
-     * Resolve the best matching editor for a language ID.
-     */
-    resolveByLanguage(languageId: string): EditorDefinition | undefined {
-        let bestMatch: EditorDefinition | undefined;
-        let bestPriority = -1;
-
-        for (const editor of this.editors.values()) {
-            if (editor.languageIds?.includes(languageId)) {
-                if (editor.priority > bestPriority) {
-                    bestMatch = editor;
-                    bestPriority = editor.priority;
-                }
-            }
-        }
-
-        return bestMatch;
-    }
-
-    /**
-     * Get all editors that support a given language ID.
-     * Returns editors sorted by priority (lowest first).
-     */
-    getAlternatives(languageId: string): EditorDefinition[] {
-        const alternatives: EditorDefinition[] = [];
-
-        for (const editor of this.editors.values()) {
-            if (editor.languageIds?.includes(languageId)) {
-                alternatives.push(editor);
-            }
-        }
-
-        // Sort by priority (lower priority first, so monaco comes first as the default)
-        return alternatives.sort((a, b) => a.priority - b.priority);
-    }
-
-    /**
      * Validate that an editor is compatible with a language.
      * Returns "monaco" if the editor doesn't support the language.
      */
@@ -136,7 +81,7 @@ class EditorRegistry {
         }
 
         const editorDef = this.getById(editor);
-        if (editorDef?.languageIds && !editorDef.languageIds.includes(languageId)) {
+        if (editorDef?.validForLanguage?.(languageId) === false) {
             return "monaco";
         }
 
@@ -145,44 +90,23 @@ class EditorRegistry {
 
     /**
      * Get available editor switch options for a language (used in UI).
+     * Queries each editor's switchOption() and returns sorted list.
      * Returns an empty options array if only one editor is available.
-     * Optionally accepts filePath to also include extension-based alternatives.
      */
     getSwitchOptions(languageId: string, filePath?: string): SwitchOptions {
-        const alternatives = this.getAlternatives(languageId);
-        const options: PageEditor[] = alternatives.map(e => e.id);
+        const results: { id: PageEditor; priority: number }[] = [];
 
-        // Also include editors that match by file extension (for content-views like svg-view)
-        if (filePath) {
-            const lowerPath = filePath.toLowerCase();
-            for (const editor of this.editors.values()) {
-                // Only include content-view editors (not page-editors)
-                if (editor.category !== "content-view") continue;
-                if (options.includes(editor.id)) continue;
-
-                // Check if this editor matches by extension
-                if (editor.extensions) {
-                    for (const ext of editor.extensions) {
-                        if (ext !== "*" && lowerPath.endsWith(ext.toLowerCase())) {
-                            options.push(editor.id);
-                            break;
-                        }
-                    }
-                }
+        for (const editor of this.editors.values()) {
+            const priority = editor.switchOption?.(languageId, filePath) ?? -1;
+            if (priority >= 0) {
+                results.push({ id: editor.id, priority });
             }
         }
 
-        // Ensure monaco is always first if not present
-        if (!options.includes("monaco")) {
-            options.unshift("monaco");
-        }
+        // Sort by priority (lower first, so monaco at 0 comes first)
+        results.sort((a, b) => a.priority - b.priority);
 
-        // Sort so monaco comes first
-        options.sort((a, b) => {
-            if (a === "monaco") return -1;
-            if (b === "monaco") return 1;
-            return 0;
-        });
+        const options = results.map((r) => r.id);
 
         const getOptionLabel = (option: PageEditor) => {
             if (!option || option === "monaco") {

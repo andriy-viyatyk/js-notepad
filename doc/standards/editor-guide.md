@@ -206,22 +206,51 @@ export type PageEditor = 'monaco' | 'grid-json' | 'grid-csv' | 'md-view' | 'pdf-
 
 #### 6b. Register in EditorRegistry
 
+Editors use function-based matching for full control over when they apply:
+
 ```typescript
 // /editors/register-editors.ts
 import { editorRegistry } from "./registry";
 
+// For a standalone page editor (like PDF, Image viewer):
 editorRegistry.register({
     id: "my-editor",           // Must match PageEditor type
     name: "My Editor",         // Display name in UI
     pageType: "myType",        // PageType this editor creates
-    extensions: [".myext"],    // File extensions to handle
-    // OR use filenamePatterns for complex matching:
-    // filenamePatterns: [/\.special\.json$/i],
-    languageIds: ["mylang"],   // Monaco language IDs (for editor switching)
-    priority: 50,              // Higher = preferred when multiple match
+    category: "page-editor",   // Standalone editor with own PageModel
+    acceptFile: (fileName) => {
+        // Return priority >= 0 if this editor can open the file
+        // Higher priority wins when multiple editors match
+        if (fileName.toLowerCase().endsWith(".myext")) return 50;
+        return -1;  // -1 means not applicable
+    },
     loadModule: async () => {
         const module = await import("./myeditor");
         return module.default;
+    },
+});
+
+// For a content view (alternative view of text content):
+editorRegistry.register({
+    id: "my-view",
+    name: "My View",
+    pageType: "textFile",      // Uses TextFileModel
+    category: "content-view",  // Rendered inside TextPageView
+    validForLanguage: (languageId) => languageId === "mylang",
+    switchOption: (languageId, fileName) => {
+        // Return priority >= 0 to show in view switch dropdown
+        // Lower priority appears first (monaco should be 0)
+        if (languageId !== "mylang") return -1;
+        return 10;
+    },
+    loadModule: async () => {
+        const module = await import("./myview");
+        return {
+            Editor: module.MyView,
+            newPageModel: textEditorModule.newPageModel,  // Reuse text model
+            newEmptyPageModel: textEditorModule.newEmptyPageModel,
+            newPageModelFromState: textEditorModule.newPageModelFromState,
+        };
     },
 });
 ```
@@ -233,19 +262,19 @@ editorRegistry.register({
 | `id` | Unique editor ID (must be in `PageEditor` type) |
 | `name` | Display name shown in UI |
 | `pageType` | The `PageType` this editor works with |
-| `extensions` | Array of file extensions (e.g., `[".pdf"]`) |
-| `filenamePatterns` | Array of RegExp for filename matching |
-| `languageIds` | Monaco language IDs for editor switching |
-| `priority` | Resolution priority (0=lowest, 100=highest) |
-| `alternativeEditors` | Other editors this can switch to |
+| `category` | `"page-editor"` or `"content-view"` |
+| `acceptFile(fileName)` | Returns priority >= 0 if editor can open file, -1 otherwise |
+| `validForLanguage(languageId)` | Returns true if editor is valid for the language |
+| `switchOption(languageId, fileName)` | Returns priority >= 0 to show in switch dropdown, -1 to hide |
 | `loadModule` | Async function returning `EditorModule` |
 
 #### Priority Guidelines
 
 - `0` - Fallback editors (monaco text editor)
-- `5-10` - Alternative views (markdown preview, grid view)
+- `10` - Alternative views (markdown preview, grid view)
+- `20` - Specialized text editors (e.g., *.grid.json opens in grid)
 - `50` - Standard editors for specific file types
-- `100` - Exclusive editors (PDF viewer)
+- `100` - Exclusive editors (PDF viewer, image viewer)
 
 ### Step 7: Add Toolbar (Optional)
 

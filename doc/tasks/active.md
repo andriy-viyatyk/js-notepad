@@ -6,7 +6,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| - | - | - | - |
+| US-009 | Notebook Editor | Medium | [README](./US-009-notebook-editor/README.md) |
 
 ## Planned (Next)
 
