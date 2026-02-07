@@ -87,24 +87,16 @@ export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewMod
         this.imageRef = ref;
     };
 
-    get canDrag(): boolean {
-        const { scale, fitScale } = this.state.get();
-        return scale > fitScale;
-    }
-
     get zoomPercent(): number {
         return Math.round(this.state.get().scale * 100);
     }
 
     getImageStyle(): React.CSSProperties {
-        const { scale, translateX, translateY, isDragging, fitScale } = this.state.get();
+        const { scale, translateX, translateY, isDragging } = this.state.get();
 
-        // When image fits in viewport, don't allow translation offset
-        const effectiveTranslateX = scale > fitScale ? translateX : 0;
-        const effectiveTranslateY = scale > fitScale ? translateY : 0;
-
+        // Always allow translation - helps when fit calculation isn't accurate (e.g., SVGs with viewBox)
         return {
-            transform: `translate(${effectiveTranslateX}px, ${effectiveTranslateY}px) scale(${scale})`,
+            transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
             transition: isDragging ? "none" : "transform 0.1s ease-out",
         };
     }
@@ -206,10 +198,9 @@ export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewMod
         this.zoomAtPoint(newScale, e.clientX, e.clientY);
     };
 
-    // Mouse drag for panning (only when zoomed beyond fit)
+    // Mouse drag for panning
     handleMouseDown = (e: React.MouseEvent) => {
         if (e.button !== 0) return; // Only left click
-        if (!this.canDrag) return; // Don't allow drag when image fits in viewport
 
         const { translateX, translateY } = this.state.get();
         this.state.update((s) => {
@@ -339,13 +330,12 @@ export function BaseImageView({ src, alt = "Image" }: BaseImageViewProps) {
     }, [src]);
 
     const imageStyle = viewModel.getImageStyle();
-    const canDrag = viewModel.canDrag;
     const zoomPercent = viewModel.zoomPercent;
 
     return (
         <BaseImageViewRoot
             ref={viewModel.setContainerRef}
-            className={`${state.isDragging ? "dragging" : ""} ${canDrag ? "can-drag" : ""}`}
+            className={`${state.isDragging ? "dragging" : ""} can-drag`}
             onMouseDown={viewModel.handleMouseDown}
             onMouseMove={viewModel.handleMouseMove}
             onMouseUp={viewModel.handleMouseUp}
