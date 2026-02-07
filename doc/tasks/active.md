@@ -18,6 +18,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-008 | TypeScript and Dependencies Upgrade | TypeScript 4.5→5.4, @types/node 16→20, fixed vite compatibility |
 | US-007 | About Page and Version Check | About page with version info + auto update check via GitHub API |
 | US-006 | Create Image View Editor | Image viewer for binary images + SVG preview as content-view |
 | US-003 | ContentPageModel Extraction | Closed - architecture review concluded existing design is correct |
