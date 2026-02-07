@@ -9,134 +9,278 @@
 
 ## Summary
 
-Create a Notebook Editor for `*.note.json` files - a chat-like notes interface with categories/tags, search, and navigation panel.
+Create a Notebook Editor for `*.note.json` files - a structured notes interface with categories, tags, search, and navigation panel. Each note contains a mini version of js-notepad page with Monaco editor support.
 
 ## Why
 
 - Provide structured note-taking capability within js-notepad
-- Chat-like format is intuitive for quick notes and thoughts
 - Categories and tags help organize notes
 - Search enables finding notes quickly
 - First "tool editor" - establishes pattern for other structured data editors (Todo, Bookmarks)
+- Each note can contain code with syntax highlighting and execution capability
 
-## Acceptance Criteria
+## Data Model
 
-- [ ] `*.note.json` files open in Notebook Editor by default
-- [ ] Editor switch shows only "JSON" and "Notebook" for `.note.json` files (no "Grid")
-- [ ] Regular `.json` files still show "JSON" and "Grid" as before
-- [ ] Can create new notes with timestamp
-- [ ] Can edit and delete existing notes
-- [ ] Can assign categories/tags to notes
-- [ ] Can search notes by content and tags
-- [ ] Navigation panel shows note list with filtering
-- [ ] Changes tracked as dirty (unsaved) state
-- [ ] File saves as valid JSON
-- [ ] Documentation updated
-- [ ] No regressions in existing functionality
+### Note Item
 
-## Technical Approach
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique GUID (auto-generated) |
+| `title` | string | User-typed title for the note |
+| `category` | string | Hierarchical category separated by "/" (e.g., "work/projects/alpha") |
+| `tags` | string[] | Array of tags. Two formats: simple ("secret") or categorized with ":" ("env:dev", "env:prod") |
+| `content` | object | Mimics TextPageModel state (language, content, editor, etc.) - mini notepad page data |
+| `comment` | string | Optional comment field (useful for JSON content which doesn't support comments) |
+| `createdDate` | string | ISO date string |
+| `updatedDate` | string | ISO date string |
 
-### Phase 1: Editor Registration Redesign ✅ COMPLETED
-
-Refactored editor registration from declarative to function-based approach:
-
-**Old approach (removed):**
-```typescript
-extensions: [".myext"],
-filenamePatterns: [/\.note\.json$/i],
-languageIds: ["json"],
-priority: 10,
-alternativeEditors: ["monaco"],
-```
-
-**New approach:**
-```typescript
-acceptFile: (fileName) => { /* return priority or -1 */ },
-validForLanguage: (languageId) => { /* return boolean */ },
-switchOption: (languageId, fileName) => { /* return priority or -1 */ },
-```
-
-Grid-json now excludes `.note.json` files via `SPECIALIZED_JSON_PATTERNS` in register-editors.ts.
-
-### Phase 2: Minimal Notebook Editor
-
-Create empty `NotebookEditor` that just renders "Notebook Editor" placeholder text:
-- `NotebookEditor.tsx` - Placeholder component
-- Register in `register-editors.ts` with function-based matching
-- Reuse `textEditorModule` for model (content-view pattern)
-
-### Phases 3+: Port Notebook Functionality
-
-User has existing Electron app with notebook implementation to port/adapt.
-
-**TODO:** Add details after user provides more context about:
-- Existing implementation to port from
-- Specific changes/improvements to make during porting
-
-## File Format (Tentative)
+### File Format (`.note.json`)
 
 ```json
 {
-  "version": 1,
-  "categories": ["work", "personal", "ideas"],
   "notes": [
     {
-      "id": "uuid",
-      "content": "Note text here",
-      "category": "work",
-      "tags": ["important", "todo"],
-      "created": "2026-02-07T10:30:00Z",
-      "updated": "2026-02-07T10:30:00Z"
+      "id": "uuid-string",
+      "title": "My Note",
+      "category": "work/projects",
+      "tags": ["important", "env:dev"],
+      "content": {
+        "language": "json",
+        "content": "{ \"key\": \"value\" }",
+        "editor": "monaco"
+      },
+      "comment": "Optional comment here",
+      "createdDate": "2026-02-07T10:30:00Z",
+      "updatedDate": "2026-02-07T10:30:00Z"
     }
-  ]
+  ],
+  "state": {
+    "<item.id>": {
+      "editor": "grid-json",
+      "gridColumns": [...]
+    }
+  }
 }
 ```
 
-## Files to Create/Modify
+The `state` map stores per-item UI state:
+- Selected editor ("monaco" or "grid-json")
+- Grid column order and widths
+- Other UI preferences
 
-### Phase 1: Registry Redesign ✅
-- `src/renderer/editors/types.ts` - New function-based EditorDefinition
-- `src/renderer/editors/registry.ts` - Simplified methods using new functions
-- `src/renderer/editors/register-editors.ts` - All editors converted to function-based
+## UI Design
 
-### Phase 2: Minimal Editor
-- `src/renderer/editors/notebook/` - New folder
-  - `NotebookEditor.tsx` - Placeholder component
-  - `index.ts` - Exports
-- `src/renderer/editors/register-editors.ts` - Add notebook editor registration
+### Layout
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [Toolbar: Search] [Add New] [Selected: category/tag label]  │
+├──────────────┬──────────────────────────────────────────────┤
+│              │                                              │
+│  Left Panel  │           Center Area                        │
+│              │        (Virtualized Grid)                    │
+│  Categories  │                                              │
+│     OR       │  ┌────────────────────────────────────────┐  │
+│    Tags      │  │ Note Item                              │  │
+│              │  │ [category] [tags] [title] [del] [exp]  │  │
+│  (switch/    │  │ ┌──────────────────────────────────┐   │  │
+│  collapsible)│  │ │ Monaco Editor (mini)             │   │  │
+│              │  │ │ [language] [editor switch]       │   │  │
+│              │  │ └──────────────────────────────────┘   │  │
+│              │  │ [+ add comment]                        │  │
+│              │  └────────────────────────────────────────┘  │
+│              │                                              │
+├──────────────┴──────────────────────────────────────────────┤
+│ [Footer: Total: X | Filtered: Y | Selected: Z]              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Left Panel
+
+- Dynamically gathers categories and tags from all notes
+- Switch between Categories view OR Tags view (not both simultaneously)
+- Could use collapsible panels where only one is expanded
+- Selection filters the notes list in center area
+- Categories displayed as tree structure based on "/" hierarchy
+- Tags with ":" categorization (e.g., "env:dev", "env:prod") grouped under category
+
+### Center Area (Notes List)
+
+- Uses existing `RenderGrid` component (virtualized, handles many items)
+- New items added to TOP of list (avoids scroll jump issues during height recalculation)
+- Item height is dynamic with maxHeight limit
+- Single-line notes show minimal height
+
+### Single Note Item
+
+**Header:**
+- Category (interactive - editable via popper/dropdown)
+- Tags (interactive - editable via popper/dropdown)
+- Title (editable input)
+- Delete button
+- Expand button (expands to full editor area via React portal)
+
+**Content:**
+- Mini version of js-notepad page
+- Monaco editor with language selection
+- Editor switch (limited set - no nested notebook editor)
+- Grid editor available for JSON/CSV
+- Execute button works for JavaScript
+
+**Comment (optional):**
+- Not rendered if empty
+- Small semi-transparent button to add comment when needed
+- Simple input or multiline textarea
+
+**Metadata:**
+- createdDate/updatedDate shown only on hover
+
+### Toolbar Integration
+
+NotebookEditor adds to TextPageView toolbar (similar to GridEditor):
+- Search field
+- Add new item button
+- Label showing selected category/tag filter
+
+### Footer Integration
+
+Status label showing: "Total: X | Filtered: Y | Selected: Z"
+
+## Acceptance Criteria
+
+- [x] `*.note.json` files open in Notebook Editor by default
+- [x] Editor switch shows only "JSON" and "Notebook" for `.note.json` files (no "Grid")
+- [x] Regular `.json` files still show "JSON" and "Grid" as before
+- [x] Can create new notes with auto-generated ID and timestamps
+- [x] Can edit note title, category, tags, content, and comment
+- [x] Can delete notes
+- [ ] Categories collected dynamically and displayed in left panel
+- [ ] Tags collected dynamically and displayed in left panel
+- [ ] Can filter notes by category or tag selection
+- [ ] Search functionality works
+- [ ] Notes list is virtualized (RenderGrid)
+- [x] New items appear at top of list
+- [ ] Item height adjusts dynamically
+- [ ] Expand button shows note in full editor area (portal)
+- [x] Mini Monaco editor works with language selection
+- [x] Editor switch works (monaco, grid-json for JSON)
+- [x] Execute button works for JavaScript content
+- [ ] Comment field can be added/edited
+- [x] Hover shows date metadata
+- [x] Changes tracked as dirty (unsaved) state
+- [x] File saves as valid JSON
+- [ ] Per-item state (editor, grid columns) persisted in `state` map
+- [ ] Documentation updated
+- [ ] No regressions in existing functionality
+
+## Completed Work
+
+### Editor Registration Redesign ✅
+
+Refactored editor registration from declarative to function-based approach:
+- `acceptFile()`, `validForLanguage()`, `switchOption()` functions
+- Grid-json excludes `.note.json` via `SPECIALIZED_JSON_PATTERNS`
+- Updated documentation (editor-guide.md, editors.md)
+
+### Model/View Structure ✅
+
+Split NotebookEditor into Model and View following GridEditor pattern:
+
+**Files created:**
+- `notebookTypes.ts` - Type definitions (NoteItem, NoteContent, NotebookData, etc.)
+- `NotebookEditorModel.ts` - Model class with state management
+- `NotebookEditor.tsx` - View component with toolbar integration
+- `index.ts` - Exports
+
+**Features implemented:**
+- Data loading from page content (JSON parsing)
+- Data serialization back to page content (with 4-space indent)
+- Debounced save (300ms) to avoid frequent serialization
+- `skipNextContentUpdate` flag to prevent reload cycle
+- `lastSerializedData` tracking to avoid saving unchanged data
+- Error display for invalid JSON
+- "Add Note" button in toolbar via portal
+- New notes added at top with UUID, timestamps, default content
+
+### Two-Panel Layout ✅
+
+- Left panel for categories (placeholder for now)
+- Center panel for notes list
+- Resizable splitter between panels
+- Scrollable notes area
+
+### Note Item Editor ✅
+
+Created full note item component with mini-editor functionality:
+
+**Files created in `note-editor/` subfolder:**
+- `NoteItemEditModel.ts` - Adapter providing TextFileModel-like interface for notes
+- `NoteEditorModel` - Monaco editor state (selection, focus)
+- `MiniTextEditor.tsx` - Simplified Monaco (no line numbers, no minimap, minimal chrome)
+- `NoteItemToolbar.tsx` - Language selector + editor switch + run buttons
+- `NoteItemActiveEditor.tsx` - Loads Monaco or alternative editors via registry
+- `index.ts` - Exports
+
+**NoteItem features:**
+- Language selector with popup menu (same as PageTab)
+- Editor switch buttons (Monaco, Grid, Markdown, SVG depending on language)
+- Run Script button for JavaScript notes
+- Title editing
+- Content editing syncs to notebook state
+- Alternative editors (Grid, Markdown, SVG) work via adapter pattern
+- Delete note functionality
+
+**Styling:**
+- Minimalistic design - no borders by default
+- First toolbar (category, tags, date, actions) hidden, visible on hover
+- Second toolbar: language icon always visible, extras (editor switch) on hover
+- Content area border appears on hover/focus
+- Comment section: shows text if present, "add comment" button on hover
+- Compact layout with minimal padding
 
 ## Implementation Progress
 
-### Phase 1: Editor Registration Redesign ✅
-- [x] Refactor EditorDefinition to use function-based matching
-- [x] Update registry.ts to use acceptFile, validForLanguage, switchOption
-- [x] Convert all existing editors to new approach
-- [x] Add SPECIALIZED_JSON_PATTERNS to exclude .note.json from grid-json
-- [x] Update documentation (editor-guide.md, editors.md)
-- [x] Test: regular `.json` shows "JSON" + "Grid"
-- [x] Test: verified existing functionality works
+- [x] Refactor EditorDefinition to function-based matching
+- [x] Register notebook-view editor with SPECIALIZED_JSON_PATTERNS
+- [x] Create notebookTypes.ts with type definitions
+- [x] Create NotebookEditorModel.ts with state and data loading
+- [x] Update NotebookEditor.tsx to use model pattern
+- [x] Add "Add Note" toolbar button
+- [x] Handle external file changes (file monitor)
+- [x] Prevent spurious "modified" state on editor switch
+- [x] Two-panel layout with resizable splitter
+- [x] NoteItemEditModel adapter (TextFileModel-like interface)
+- [x] MiniTextEditor with simplified Monaco options
+- [x] NoteItemToolbar with language selector and editor switch
+- [x] NoteItemActiveEditor for loading alternative editors
+- [x] Delete note functionality
+- [x] Title editing
+- [x] Minimalistic styling with hover states
 
-### Phase 2: Minimal Editor
-- [ ] Create placeholder `NotebookEditor.tsx`
-- [ ] Create `index.ts` exports
-- [ ] Register in `register-editors.ts`
-- [ ] Add "notebook-view" to PageEditor type in shared/types.ts
-- [ ] Test: `.note.json` shows "JSON" + "Notebook"
+## Remaining Work
 
-### Phase 3+: Port Functionality
-- [ ] TBD - awaiting user input on existing implementation
+- [ ] Categories panel implementation (dynamic collection, tree view)
+- [ ] Tags panel implementation (dynamic collection, grouped view)
+- [ ] Filter notes by category/tag selection
+- [ ] Search functionality
+- [ ] Virtualized notes list (RenderGrid integration)
+- [ ] Dynamic item height
+- [ ] Expand note to full editor (portal)
+- [ ] Comment editing UI
+- [ ] Per-item state persistence in `state` map
+- [ ] Documentation updates
 
-## Notes
+## Design Decisions
 
-### Design Decisions
 - Reuse `TextFileModel` for page model (content is JSON text, same save/load logic)
 - Notebook editor is a "content-view" like grid/markdown (not a "page-editor" like PDF)
-- Chat-like format: newest notes at bottom, input at bottom
+- New items at top to avoid scroll jump issues during dynamic height recalculation
 - Grid-json exclusion via SPECIALIZED_JSON_PATTERNS is explicit and maintainable
-
-### 2026-02-07
-- Completed Phase 1: Editor registration redesigned to function-based approach
-- This enables notebook editor to exclude grid-json from switch options
+- Per-item state stored in file to persist editor preferences and grid column config
+- No nested notebook editor in note content (prevent recursion)
+- Debounced serialization prevents performance issues on rapid updates
+- NoteItemEditModel adapter pattern allows reusing existing editors without modification
+- Monaco padding uses `lineDecorationsWidth` for left padding (native padding only supports top/bottom)
 
 ## Related
 
