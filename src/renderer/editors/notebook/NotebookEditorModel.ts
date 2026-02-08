@@ -197,4 +197,59 @@ export class NotebookEditorModel extends TComponentModel<
             }
         });
     };
+
+    // =========================================================================
+    // Note height persistence (prevents scroll jumping on virtualized remount)
+    // =========================================================================
+
+    getNoteHeight = (id: string): number | undefined => {
+        const noteState = this.state.get().data.state[id];
+        return noteState?.contentHeight;
+    };
+
+    setNoteHeight = (id: string, height: number) => {
+        const currentHeight = this.getNoteHeight(id);
+        // Only update if height actually changed
+        if (currentHeight === height) {
+            return;
+        }
+        this.state.update((s) => {
+            if (!s.data.state[id]) {
+                s.data.state[id] = {};
+            }
+            s.data.state[id].contentHeight = height;
+        });
+    };
+
+    // =========================================================================
+    // Generic state storage (for nested editors like GridEditor)
+    // =========================================================================
+
+    /**
+     * Get stored state for a note item by name.
+     * Used by EditorStateStorageContext to provide storage for nested editors.
+     */
+    getNoteState = (id: string, name: string): string | undefined => {
+        const noteState = this.state.get().data.state[id];
+        const value = noteState?.[name];
+        return typeof value === "string" ? value : undefined;
+    };
+
+    /**
+     * Set state for a note item by name.
+     * Used by EditorStateStorageContext to provide storage for nested editors.
+     */
+    setNoteState = (id: string, name: string, value: string) => {
+        const currentValue = this.getNoteState(id, name);
+        // Only update if value actually changed
+        if (currentValue === value) {
+            return;
+        }
+        this.state.update((s) => {
+            if (!s.data.state[id]) {
+                s.data.state[id] = {};
+            }
+            s.data.state[id][name] = value;
+        });
+    };
 }

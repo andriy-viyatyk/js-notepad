@@ -37,6 +37,7 @@ export function NoteItemActiveEditor({ model }: NoteItemActiveEditorProps) {
                 key={editor}
                 getEditorModule={getEditorModule(editor)}
                 model={model as unknown as TextFileModel}
+                cacheKey={editor}
             />
         );
     }

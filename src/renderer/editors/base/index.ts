@@ -5,3 +5,9 @@ export { LanguageIcon } from './LanguageIcon';
 export type { LanguageIconProps } from './LanguageIcon';
 export { EditorConfigProvider, useEditorConfig } from './EditorConfigContext';
 export type { EditorConfig } from './EditorConfigContext';
+export {
+    EditorStateStorageProvider,
+    useEditorStateStorage,
+    useObjectStateStorage,
+} from './EditorStateStorageContext';
+export type { EditorStateStorage } from './EditorStateStorageContext';

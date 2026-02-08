@@ -11,15 +11,19 @@ import * as monaco from "monaco-editor";
 // Editor Model (for Monaco)
 // =============================================================================
 
-export const defaultNoteEditorState = {
-    hasSelection: false,
-    contentHeight: 100,  // Monaco content height for auto-sizing
-};
-
-export type NoteEditorState = typeof defaultNoteEditorState;
+// Default height for new notes (before Monaco reports actual height)
+const DEFAULT_CONTENT_HEIGHT = 100;
 
 // Minimum height constraint for Monaco editor
 const MIN_EDITOR_HEIGHT = 50;
+
+// Tolerance for height changes to prevent Monaco oscillation (Monaco can fluctuate by ~8px)
+const HEIGHT_TOLERANCE = 10;
+
+export type NoteEditorState = {
+    hasSelection: boolean;
+    contentHeight: number;
+};
 
 /**
  * Simplified TextEditorModel for note items.
@@ -31,8 +35,11 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
     private selectionListenerDisposable: monaco.IDisposable | null = null;
     private contentSizeDisposable: monaco.IDisposable | null = null;
 
-    constructor(editModel: NoteItemEditModel) {
-        super(new TComponentState(defaultNoteEditorState));
+    constructor(editModel: NoteItemEditModel, initialHeight?: number) {
+        super(new TComponentState<NoteEditorState>({
+            hasSelection: false,
+            contentHeight: initialHeight ?? DEFAULT_CONTENT_HEIGHT,
+        }));
         this.editModel = editModel;
     }
 
@@ -73,11 +80,17 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
 
     private updateContentHeight = (height: number) => {
         // Ensure minimum height (max is applied by MiniTextEditor via context)
-        const clampedHeight = Math.max(MIN_EDITOR_HEIGHT, height);
-        if (this.state.get().contentHeight !== clampedHeight) {
+        // Round to avoid subpixel differences triggering unnecessary updates
+        const clampedHeight = Math.round(Math.max(MIN_EDITOR_HEIGHT, height));
+        const currentHeight = this.state.get().contentHeight;
+        // Use tolerance to prevent oscillation (Monaco can fluctuate by a few pixels)
+        const heightDiff = Math.abs(currentHeight - clampedHeight);
+        if (heightDiff > HEIGHT_TOLERANCE) {
             this.state.update((s) => {
                 s.contentHeight = clampedHeight;
             });
+            // Persist to notebook model (prevents scroll jumping on remount)
+            this.editModel.persistContentHeight(clampedHeight);
         }
     };
 
@@ -145,8 +158,18 @@ export class NoteItemEditModel {
             editor: (note.content.editor as PageEditor) || "monaco",
         });
 
-        this.editor = new NoteEditorModel(this);
+        // Get stored height from notebook model (prevents scroll jumping on remount)
+        const storedHeight = notebookModel.getNoteHeight(note.id);
+        this.editor = new NoteEditorModel(this, storedHeight);
     }
+
+    // =========================================================================
+    // Height persistence (prevents scroll jumping on virtualized remount)
+    // =========================================================================
+
+    persistContentHeight = (height: number) => {
+        this.notebookModel.setNoteHeight(this.noteId, height);
+    };
 
     // =========================================================================
     // Ref setters (for portal targets)

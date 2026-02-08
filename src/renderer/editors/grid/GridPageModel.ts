@@ -4,7 +4,6 @@ import { TComponentModel } from "../../core/state/model";
 import { parseObject } from "../../core/utils/parse-utils";
 import { CellFocus, Column, TFilter } from "../../components/data-grid/AVGrid/avGridTypes";
 import { AVGridModel } from "../../components/data-grid/AVGrid/model/AVGridModel";
-import { filesModel } from "../../store/files-store";
 import { pagesModel } from "../../store/pages-store";
 import { TextFileModel } from "../text";
 import { resolveState } from "../../core/utils/utils";
@@ -23,10 +22,14 @@ import {
     rowsToCsvText,
 } from "../../components/data-grid/AVGrid/avGridUtils";
 import { TOnGetFilterOptions } from "../../components/data-grid/AVGrid/filters/useFilters";
-import { PageModel } from "../base";
+import { PageModel, EditorStateStorage } from "../base";
 
 export interface GridPageProps {
     model: TextFileModel;
+    /** Disable auto-focus when the grid mounts (used in embedded contexts) */
+    disableAutoFocus?: boolean;
+    /** Custom state storage implementation (default: file-based cache) */
+    stateStorage?: EditorStateStorage;
 }
 
 export const defaultGridPageState = {
@@ -54,6 +57,9 @@ export class GridPageModel extends TComponentModel<
     private stateChangeSubscription: (() => void) | undefined = undefined;
 
     saveState = async () => {
+        const storage = this.props.stateStorage;
+        if (!storage) return;
+
         const state = this.state.get();
         const columns = state.columns;
         const stateToSave = {
@@ -73,20 +79,16 @@ export class GridPageModel extends TComponentModel<
             csvDelimiter: state.csvDelimiter,
             csvWithColumns: state.csvWithColumns,
         };
-        await filesModel.saveCacheFile(
-            this.props.model.id,
-            JSON.stringify(stateToSave),
-            this.name,
-        );
+        await storage.setState(this.props.model.id, this.name, JSON.stringify(stateToSave));
     };
 
     saveStateDebounced = debounce(this.saveState, 300);
 
     restoreState = async () => {
-        const data = await filesModel.getCacheFile(
-            this.props.model.id,
-            this.name,
-        );
+        const storage = this.props.stateStorage;
+        if (!storage) return;
+
+        const data = await storage.getState(this.props.model.id, this.name);
         const savedState = parseObject(data) || {};
         if (Array.isArray(savedState.columns)) {
             this.state.update((s) => {
@@ -283,9 +285,11 @@ export class GridPageModel extends TComponentModel<
         } else {
             this.initEmptyPage();
         }
-        Promise.resolve().then(() => {
-            this.gridRef?.focusGrid();
-        });
+        if (!this.props.disableAutoFocus) {
+            Promise.resolve().then(() => {
+                this.gridRef?.focusGrid();
+            });
+        }
     };
 
     private updateGridDataFromContent = (content: string) => {

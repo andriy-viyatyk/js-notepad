@@ -28,6 +28,13 @@ export interface EditorConfig {
      * Could be made configurable in app settings in the future.
      */
     hideMinimap?: boolean;
+
+    /**
+     * Disable auto-focus behavior when the editor mounts.
+     * Used when embedding editors in containers where auto-focus
+     * would be disruptive (e.g., multiple editors in a virtualized list).
+     */
+    disableAutoFocus?: boolean;
 }
 
 // =============================================================================

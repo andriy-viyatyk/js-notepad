@@ -32,6 +32,7 @@ export function ActiveEditor({ model }: ActiveEditorProps) {
                 key={editor}
                 getEditorModule={getEditorModule(editor)}
                 model={model}
+                cacheKey={editor}
             />
         );
     }

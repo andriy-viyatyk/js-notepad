@@ -6,6 +6,8 @@ import RenderGridModel, {
 } from "./RenderGridModel";
 import { RenderCellParams } from "./types";
 import RenderGrid from "./RenderGrid";
+import { debounce } from "../../../../shared/utils";
+import { memorize } from "../../../core/utils/memorize";
 
 export interface RenderFlexCellParams extends RenderCellParams {
     maxRowHeight?: number;
@@ -28,7 +30,6 @@ function FlexCell({
         const updateHeight = () => {
             if (ref.current) {
                 const innerHeight = ref.current.clientHeight;
-                console.log("Measured cell height:", innerHeight);
                 p.setRowHeight(p.row, innerHeight);
             }
         };
@@ -64,6 +65,8 @@ export interface RenderFlexGridProps
     minRowHeight?: number;
     maxRowHeight?: number;
     renderCell: RenderFlexCellFunc;
+    /** Optional function to provide initial row heights before measurement */
+    getInitialRowHeight?: (row: number) => number | undefined;
 }
 
 const defaultRenderFlexGridState = {
@@ -72,16 +75,35 @@ const defaultRenderFlexGridState = {
 
 type RenderFlexGridState = typeof defaultRenderFlexGridState;
 
+// Debounce delay for row height updates (ms)
+const ROW_HEIGHT_DEBOUNCE_MS = 50;
+
 class RenderFlexGridModel extends TComponentModel<
     RenderFlexGridState,
     RenderFlexGridProps
 > {
+    /** Committed row heights (only updated after debounce settles) */
     rowHeights: number[] = [];
+    /** Pending row heights (updated immediately, committed after debounce) */
+    private pendingHeights: number[] = [];
     gridModel: RenderGridModel | null = null;
     private lastRowHeight = 0;
 
+    /** Per-row debounced update function */
+    private getRowUpdater = memorize((row: number) =>
+        debounce(() => this.commitRowHeight(row), ROW_HEIGHT_DEBOUNCE_MS)
+    );
+
     setGridModel = (model: RenderGridModel) => {
         this.gridModel = model;
+    };
+
+    // Called by TComponentModel on every render
+    setProps = () => {
+        // Initialize rowHeight function on first render to include getInitialRowHeight
+        if (this.state.get().rowHeight === undefined) {
+            this.updateRowHeight();
+        }
     };
 
     get defaultFlexRowHeight() {
@@ -102,24 +124,46 @@ class RenderFlexGridModel extends TComponentModel<
             applyHeight,
             this.props.minRowHeight || 24
         );
-        if (this.rowHeights[row] === applyHeight) {
+
+        // Skip if no change needed
+        if (this.pendingHeights[row] === applyHeight) {
             return;
         }
-        this.lastRowHeight = applyHeight;
-        this.rowHeights[row] = applyHeight;
+
+        // Store in pending, not committed (prevents intermediate values from causing jumps)
+        this.pendingHeights[row] = applyHeight;
+        // Schedule debounced commit
+        this.getRowUpdater(row)();
+    };
+
+    /** Commit pending height to the actual rowHeights array */
+    private commitRowHeight = (row: number) => {
+        const height = this.pendingHeights[row];
+        if (height === undefined || this.rowHeights[row] === height) {
+            return;
+        }
+        this.lastRowHeight = height;
+        this.rowHeights[row] = height;
         this.updateRowHeight(row);
     };
 
     private readonly updateRowHeight = (updatedRow?: number) => {
-        setTimeout(() => {
-            this.state.update((s) => {
-                s.rowHeight = (row: number) =>
-                    this.rowHeights[row] ?? (this.lastRowHeight || this.defaultFlexRowHeight);
-            });
-            if (updatedRow !== undefined) {
-                this.gridModel?.update({ rows: [updatedRow] });
-            }
-        }, 0);
+        this.state.update((s) => {
+            s.rowHeight = (row: number) => {
+                // Priority: committed height > initial height > lastRowHeight > default
+                if (this.rowHeights[row] !== undefined) {
+                    return this.rowHeights[row];
+                }
+                const initialHeight = this.props.getInitialRowHeight?.(row);
+                if (initialHeight !== undefined) {
+                    return initialHeight;
+                }
+                return this.lastRowHeight || this.defaultFlexRowHeight;
+            };
+        });
+        if (updatedRow !== undefined) {
+            this.gridModel?.update({ rows: [updatedRow] });
+        }
     };
 }
 
@@ -132,6 +176,7 @@ export const RenderFlexGrid = forwardRef<RenderGridModel, RenderFlexGridProps>(
         );
         const state = model.state.use();
         const { renderCell, maxRowHeight, ...restProps } = props;
+
 
         const renderFlexCell = useCallback(
             (p: RenderCellParams) => {

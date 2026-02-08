@@ -11,19 +11,42 @@ const ProgressRoot = styled.div({
     justifyContent: "center",
 });
 
+// Module cache to avoid reloading and prevent height jumps during editor switches
+const moduleCache = new Map<string, EditorPageModule>();
+
 export interface AsyncEditorProps {
     getEditorModule: () => Promise<EditorPageModule>;
     model: PageModel;
+    /** Unique identifier for caching the loaded module (e.g., editor type) */
+    cacheKey?: string;
 }
 
-export function AsyncEditor({ getEditorModule, model }: AsyncEditorProps) {
+export function AsyncEditor({ getEditorModule, model, cacheKey }: AsyncEditorProps) {
+    // Check cache first for instant render (only if cacheKey provided)
+    const cachedModule = cacheKey ? moduleCache.get(cacheKey) : undefined;
     const [EditorModule, setEditorModule] = useState<EditorPageModule | null>(
-        null
+        cachedModule ?? null
     );
 
     useEffect(() => {
-        getEditorModule().then(setEditorModule);
-    }, [getEditorModule]);
+        // Skip if already cached
+        if (cacheKey) {
+            const cached = moduleCache.get(cacheKey);
+            if (cached) {
+                if (EditorModule !== cached) {
+                    setEditorModule(cached);
+                }
+                return;
+            }
+        }
+
+        getEditorModule().then((module) => {
+            if (cacheKey) {
+                moduleCache.set(cacheKey, module);
+            }
+            setEditorModule(module);
+        });
+    }, [getEditorModule, cacheKey]);
 
     if (!EditorModule) {
         return (

@@ -18,7 +18,7 @@ import {
 } from "./GridPageModel";
 import { showCsvOptions } from "./components/CsvOptions";
 import { pagesModel } from "../../store/pages-store";
-import { useEditorConfig } from "../base";
+import { useEditorConfig, useEditorStateStorage } from "../base";
 
 const GridPageRoot = styled.div<{ fitContent?: boolean }>(({ fitContent }) => ({
     flex: "1 1 auto",
@@ -45,8 +45,14 @@ const SearchFieldRoot = styled(TextField)({
 export function GridEditor(props: GridPageProps) {
     const { model } = props;
     const editorConfig = useEditorConfig();
+    const stateStorage = useEditorStateStorage();
+    const mergedProps: GridPageProps = {
+        ...props,
+        disableAutoFocus: editorConfig.disableAutoFocus,
+        stateStorage,
+    };
     const pageModel = useComponentModel(
-        props,
+        mergedProps,
         GridPageModel,
         defaultGridPageState
     );

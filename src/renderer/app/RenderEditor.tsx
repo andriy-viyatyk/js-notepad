@@ -31,7 +31,7 @@ export function RenderEditor({ model }: { model: PageModel }) {
 
     if (pageEditor) {
         // Standalone page editor (PDF, Image, etc.)
-        return <AsyncEditor getEditorModule={getPageEditorModule(type)} model={model} />;
+        return <AsyncEditor getEditorModule={getPageEditorModule(type)} model={model} cacheKey={type} />;
     }
 
     // Default: content view inside TextPageView

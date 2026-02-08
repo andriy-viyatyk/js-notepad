@@ -35,6 +35,10 @@ export interface NoteItem {
 export interface NoteItemState {
     editor?: string;
     gridColumns?: unknown[];
+    /** Content height for virtualization (prevents scroll jumping on remount) */
+    contentHeight?: number;
+    /** Allow arbitrary string keys for editor-specific state (e.g., "grid-page") */
+    [key: string]: unknown;
 }
 
 // =============================================================================

@@ -8,7 +8,7 @@ import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import color from "../../theme/color";
 import { CircleIcon, DeleteIcon, WindowMaximizeIcon } from "../../theme/icons";
 import { Button } from "../../components/basic/Button";
-import { EditorConfigProvider } from "../base";
+import { EditorConfigProvider, EditorStateStorageProvider, useObjectStateStorage } from "../base";
 
 // Max height for editors embedded in note items
 const NOTE_EDITOR_MAX_HEIGHT = 400;
@@ -41,22 +41,38 @@ const NoteItemRoot = styled.div({
     backgroundColor: color.background.default,
     padding: "8px 48px 8px 24px",  // Extra left padding for dot, right for scroll area
 
-    // Note indicator dot - absolute positioned
+    // Note indicator dot with vertical line - absolute positioned
     "& .note-indicator": {
         position: "absolute",
         left: 4,
         top: 12,
+        bottom: 8,
+        width: 16,
         color: color.text.light,
         transition: "color 0.15s ease",
         "& svg": {
             width: 16,
             height: 16,
         },
+        // Vertical line under the dot (centered)
+        "&::after": {
+            content: "''",
+            position: "absolute",
+            left: "50%",
+            top: 16, // Start right below the 16px icon
+            bottom: 0,
+            width: 1,
+            backgroundColor: color.background.light, // Same as content-area border on hover
+            transition: "background-color 0.15s ease",
+        },
     },
 
-    // Active state - blue dot
+    // Active state - blue dot and line
     "&:focus-within .note-indicator": {
         color: color.misc.blue,
+        "&::after": {
+            backgroundColor: color.misc.blue,
+        },
     },
 
     // First toolbar - items hidden by default
@@ -210,6 +226,12 @@ export function NoteItemView({
         return new NoteItemEditModel(notebookModel, note);
     }, [note.id]); // Only recreate if note id changes
 
+    // Create state storage backed by notebook's data.state
+    const stateStorage = useObjectStateStorage(
+        notebookModel.getNoteState,
+        notebookModel.setNoteState
+    );
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -289,9 +311,11 @@ export function NoteItemView({
 
             {/* Content area - Monaco or alternative editor */}
             <div className="content-area">
-                <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true }}>
-                    <NoteItemActiveEditor model={editModel} />
-                </EditorConfigProvider>
+                <EditorStateStorageProvider storage={stateStorage}>
+                    <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true, disableAutoFocus: true }}>
+                        <NoteItemActiveEditor model={editModel} />
+                    </EditorConfigProvider>
+                </EditorStateStorageProvider>
             </div>
 
             {/* Comment section - always show if has comment, show add button on hover */}

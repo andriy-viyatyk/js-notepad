@@ -136,6 +136,16 @@ export function NotebookEditor(props: NotebookEditorProps) {
         [notes, pageModel]
     );
 
+    // Provide stored heights to RenderFlexGrid for initial row sizing
+    const getInitialRowHeight = useCallback(
+        (row: number) => {
+            const note = notes[row];
+            if (!note) return undefined;
+            return pageModel.getNoteHeight(note.id);
+        },
+        [notes, pageModel]
+    );
+
     if (pageState.error) {
         return (
             <NotebookEditorRoot>
@@ -194,6 +204,7 @@ export function NotebookEditor(props: NotebookEditorProps) {
                             fitToWidth
                             minRowHeight={100}
                             maxRowHeight={600}
+                            getInitialRowHeight={getInitialRowHeight}
                         />
                     )}
                 </div>

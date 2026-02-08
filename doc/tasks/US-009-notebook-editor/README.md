@@ -169,7 +169,7 @@ Status label showing: "Total: X | Filtered: Y | Selected: Z"
 - [x] Hover shows date metadata
 - [x] Changes tracked as dirty (unsaved) state
 - [x] File saves as valid JSON
-- [ ] Per-item state (editor, grid columns) persisted in `state` map
+- [x] Per-item state (editor, grid columns) persisted in `state` map
 - [ ] Documentation updated
 - [ ] No regressions in existing functionality
 
@@ -255,16 +255,30 @@ Created general-purpose editor configuration context in `editors/base/`:
 - `maxEditorHeight` - Maximum height constraint for editors
 - `minEditorHeight` - Minimum height constraint for editors
 - `hideMinimap` - Whether to hide minimap in Monaco/Markdown editors
+- `disableAutoFocus` - Prevents auto-focus when editors mount (fixes scroll jumping)
 
 **Usage in NoteItem:**
 - Wraps `NoteItemActiveEditor` with `EditorConfigProvider`
-- Sets `maxEditorHeight: 400` and `hideMinimap: true`
+- Sets `maxEditorHeight: 400`, `hideMinimap: true`, `disableAutoFocus: true`
 - Editors read config via `useEditorConfig()` hook
 
 **Editors updated:**
 - `MiniTextEditor` - Uses maxEditorHeight and hideMinimap
-- `GridEditor` - Uses maxEditorHeight for growToHeight
+- `GridEditor` - Uses maxEditorHeight for growToHeight, disableAutoFocus to prevent focus stealing
 - `MarkdownView` - Uses maxEditorHeight and hideMinimap
+
+### GridEditor Scroll Jumping Fix ✅
+
+**Problem:** When scrolling notes list, items with GridEditor caused visual "jumping" when scrolled into view.
+
+**Root cause:** `GridPageModel.loadGridData()` called `focusGrid()` whenever data loaded. When virtualization remounted a NoteItem with GridEditor, it would auto-focus - stealing focus and causing scroll position changes.
+
+**Fix:**
+- Added `disableAutoFocus` property to `EditorConfig` interface
+- Added `disableAutoFocus` prop to `GridPageProps` interface
+- `GridPageModel.loadGridData()` now checks `disableAutoFocus` before calling `focusGrid()`
+- `GridEditor` passes `disableAutoFocus` from context to model props
+- `NoteItem` sets `disableAutoFocus: true` in EditorConfigProvider
 
 ### Note Item Visual Improvements ✅
 
@@ -272,6 +286,46 @@ Created general-purpose editor configuration context in `editors/base/`:
 - Dot turns blue on focus-within state
 - Fixed width overflow with `box-sizing: border-box`
 - Added padding for scroll area (right) and dot space (left)
+
+### EditorStateStorageContext ✅
+
+Created context for nested editor state storage in `editors/base/`:
+
+**File:** `EditorStateStorageContext.tsx`
+
+**Problem solved:** GridEditor stores state (column widths, focus, filters) in cache files using page ID. When embedded in NotebookEditor, it used note ID, creating orphan cache files that were never cleaned up.
+
+**Solution:** Context-based state storage that allows different implementations:
+- Default: file-based storage via `filesModel` (for standalone pages)
+- Notebook: stores in `data.state[noteId]` map (persisted in notebook file)
+
+**Interface:**
+```typescript
+interface EditorStateStorage {
+    getState: (id: string, name: string) => Promise<string | undefined>;
+    setState: (id: string, name: string, state: string) => Promise<void>;
+}
+```
+
+**Files modified:**
+- `GridPageModel.ts` - Uses `stateStorage` prop instead of direct `filesModel` calls
+- `GridEditor.tsx` - Gets storage via `useEditorStateStorage()` hook
+- `NotebookEditorModel.ts` - Added `getNoteState`/`setNoteState` methods
+- `NoteItem.tsx` - Wraps content with `EditorStateStorageProvider`
+- `notebookTypes.ts` - Added index signature to `NoteItemState` for arbitrary keys
+
+**Result:** Grid state stored in notebook file:
+```json
+{
+  "notes": [...],
+  "state": {
+    "<note.id>": {
+      "contentHeight": 385,
+      "grid-page": "{\"columns\":[...],\"focus\":{...}}"
+    }
+  }
+}
+```
 
 ## Implementation Progress
 
@@ -296,6 +350,8 @@ Created general-purpose editor configuration context in `editors/base/`:
 - [x] EditorConfigContext for passing config to nested editors
 - [x] Minimap hidden in embedded editors
 - [x] Note item visual indicator (dot with focus state)
+- [x] Fix scroll jumping with embedded GridEditor (disableAutoFocus)
+- [x] EditorStateStorageContext for nested editor state persistence
 
 ## Remaining Work
 
@@ -305,8 +361,11 @@ Created general-purpose editor configuration context in `editors/base/`:
 - [ ] Search functionality
 - [ ] Expand note to full editor (portal)
 - [ ] Comment editing UI
-- [ ] Per-item state persistence in `state` map
 - [ ] Documentation updates
+
+## Known Issues
+
+(None currently)
 
 ## Design Decisions
 
