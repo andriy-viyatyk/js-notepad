@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { RefObject, useEffect, useMemo } from "react";
+import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { NoteItem as NoteItemType } from "./notebookTypes";
 import { NotebookEditorModel } from "./NotebookEditorModel";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
@@ -232,6 +232,48 @@ export function NoteItemView({
         notebookModel.setNoteState
     );
 
+    // Internal ref for wheel event handling
+    const noteItemRef = useRef<HTMLDivElement>(null);
+
+    // Merge refs for both cellRef (RenderFlexGrid) and noteItemRef (wheel handling)
+    const setRefs = useCallback((element: HTMLDivElement | null) => {
+        noteItemRef.current = element;
+        if (cellRef) {
+            (cellRef as React.MutableRefObject<HTMLDivElement | null>).current = element;
+        }
+    }, [cellRef]);
+
+    // Capture wheel events to prevent nested editors from stealing scroll
+    // when the note item is not focused
+    useEffect(() => {
+        const element = noteItemRef.current;
+        if (!element) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            // Check if this note item or any child has focus
+            const hasFocus = element.contains(document.activeElement);
+
+            if (!hasFocus) {
+                // Stop the event from reaching nested editors (Monaco, Grid)
+                e.stopPropagation();
+
+                // Find the notebook's scroll container and scroll it manually
+                const scrollContainer = element.closest("#avg-container");
+                if (scrollContainer) {
+                    scrollContainer.scrollTop += e.deltaY;
+                    scrollContainer.scrollLeft += e.deltaX;
+                }
+            }
+        };
+
+        // Use capture phase to intercept BEFORE event reaches nested editors
+        element.addEventListener("wheel", handleWheel, { capture: true, passive: true });
+
+        return () => {
+            element.removeEventListener("wheel", handleWheel, { capture: true });
+        };
+    }, []);
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -258,7 +300,7 @@ export function NoteItemView({
     };
 
     return (
-        <NoteItemRoot ref={cellRef} tabIndex={0}>
+        <NoteItemRoot ref={setRefs} tabIndex={0}>
             {/* Note indicator dot */}
             <div className="note-indicator">
                 <CircleIcon />

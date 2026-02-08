@@ -287,6 +287,42 @@ Created general-purpose editor configuration context in `editors/base/`:
 - Fixed width overflow with `box-sizing: border-box`
 - Added padding for scroll area (right) and dot space (left)
 
+### Wheel Scroll Capture ✅
+
+Implemented wheel event capture to prevent nested editors (Monaco, GridEditor) from stealing scroll when note items are not focused:
+
+**Problem:** When scrolling the notebook list with mouse wheel over a note item containing Monaco or GridEditor, the nested editor would capture the wheel event and scroll internally instead of allowing the notebook list to scroll.
+
+**Solution:** Added wheel event listener in capture phase on NoteItem:
+- Checks if note item or any child has focus
+- If no focus, stops event propagation to nested editors
+- Manually scrolls the parent container (`#avg-container`)
+
+**Key code in `NoteItem.tsx`:**
+```typescript
+useEffect(() => {
+    const element = noteItemRef.current;
+    if (!element) return;
+
+    const handleWheel = (e: WheelEvent) => {
+        const hasFocus = element.contains(document.activeElement);
+        if (!hasFocus) {
+            e.stopPropagation();
+            const scrollContainer = element.closest("#avg-container");
+            if (scrollContainer) {
+                scrollContainer.scrollTop += e.deltaY;
+                scrollContainer.scrollLeft += e.deltaX;
+            }
+        }
+    };
+
+    element.addEventListener("wheel", handleWheel, { capture: true, passive: true });
+    return () => element.removeEventListener("wheel", handleWheel, { capture: true });
+}, []);
+```
+
+**Result:** Scrolling over unfocused note items scrolls the notebook list. Click inside a note to focus it, then wheel scrolls the editor content.
+
 ### EditorStateStorageContext ✅
 
 Created context for nested editor state storage in `editors/base/`:
@@ -352,6 +388,7 @@ interface EditorStateStorage {
 - [x] Note item visual indicator (dot with focus state)
 - [x] Fix scroll jumping with embedded GridEditor (disableAutoFocus)
 - [x] EditorStateStorageContext for nested editor state persistence
+- [x] Wheel scroll capture (prevents nested editors from stealing scroll)
 
 ## Remaining Work
 
