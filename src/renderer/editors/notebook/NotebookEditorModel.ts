@@ -1,5 +1,6 @@
 import { debounce } from "../../../shared/utils";
 import { TComponentModel } from "../../core/state/model";
+import RenderGridModel from "../../components/virtualization/RenderGrid/RenderGridModel";
 import { uuid } from "../../core/utils/node-utils";
 import { NoteItem, NotebookData, NotebookEditorProps } from "./notebookTypes";
 
@@ -27,6 +28,12 @@ export class NotebookEditorModel extends TComponentModel<
     private stateChangeSubscription: (() => void) | undefined;
     /** Flag to skip reloading content that we just serialized ourselves */
     private skipNextContentUpdate = false;
+    /** Grid model ref for virtualized list updates */
+    gridModel: RenderGridModel | null = null;
+
+    setGridModel = (model: RenderGridModel | null) => {
+        this.gridModel = model;
+    };
 
     private onDataChanged = () => {
         const data = this.state.get().data;

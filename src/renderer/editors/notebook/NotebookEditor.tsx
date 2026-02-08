@@ -1,8 +1,13 @@
 import styled from "@emotion/styled";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../../components/basic/Button";
 import { Splitter } from "../../components/layout/Splitter";
+import {
+    RenderFlexCellParams,
+    RenderFlexGrid,
+} from "../../components/virtualization/RenderGrid/RenderFlexGrid";
+import { Percent } from "../../components/virtualization/RenderGrid/types";
 import { useComponentModel } from "../../core/state/model";
 import color from "../../theme/color";
 import { PlusIcon } from "../../theme/icons";
@@ -48,12 +53,22 @@ const NotebookEditorRoot = styled.div({
         flex: 1,
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
+        position: "relative",
+    },
+    "& .empty-state": {
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
         alignItems: "center",
+        justifyContent: "center",
         gap: 16,
         padding: 16,
         color: color.text.light,
         fontSize: 14,
-        overflow: "auto",
+    },
+    "& .notes-grid": {
+        flex: 1,
     },
     "& .title": {
         fontSize: 24,
@@ -74,6 +89,8 @@ const NotebookEditorRoot = styled.div({
 // Component
 // =============================================================================
 
+const getColumnWidth = () => "100%" as Percent;
+
 export function NotebookEditor(props: NotebookEditorProps) {
     const { model } = props;
     const pageModel = useComponentModel(
@@ -83,6 +100,7 @@ export function NotebookEditor(props: NotebookEditorProps) {
     );
     const state = model.state.use();
     const pageState = pageModel.state.use();
+    const notes = pageState.data.notes;
 
     useEffect(() => {
         pageModel.init();
@@ -92,6 +110,31 @@ export function NotebookEditor(props: NotebookEditorProps) {
     useEffect(() => {
         pageModel.updateContent(state.content || "");
     }, [state.content]);
+
+    // Re-render all grid cells when notes array changes
+    // (handles add, delete, reorder, external data reload)
+    useEffect(() => {
+        pageModel.gridModel?.update({ all: true });
+    }, [notes]);
+
+    const renderNoteCell = useCallback(
+        (p: RenderFlexCellParams) => {
+            const note = notes[p.row];
+            if (!note) return null;
+            return (
+                <NoteItemView
+                    note={note}
+                    notebookModel={pageModel}
+                    onDelete={pageModel.deleteNote}
+                    onExpand={pageModel.expandNote}
+                    onAddComment={pageModel.addComment}
+                    onTitleChange={pageModel.updateNoteTitle}
+                    cellRef={p.ref}
+                />
+            );
+        },
+        [notes, pageModel]
+    );
 
     if (pageState.error) {
         return (
@@ -132,26 +175,26 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     borderSized="right"
                 />
                 <div className="center-panel">
-                    {pageState.data.notes.length === 0 ? (
-                        <>
+                    {notes.length === 0 ? (
+                        <div className="empty-state">
                             <div className="title">Notes</div>
                             <div className="subtitle">No notes yet</div>
                             <div className="subtitle">
                                 Click "Add Note" to create your first note
                             </div>
-                        </>
+                        </div>
                     ) : (
-                        pageState.data.notes.map((note) => (
-                            <NoteItemView
-                                key={note.id}
-                                note={note}
-                                notebookModel={pageModel}
-                                onDelete={pageModel.deleteNote}
-                                onExpand={pageModel.expandNote}
-                                onAddComment={pageModel.addComment}
-                                onTitleChange={pageModel.updateNoteTitle}
-                            />
-                        ))
+                        <RenderFlexGrid
+                            ref={pageModel.setGridModel}
+                            className="notes-grid"
+                            columnCount={1}
+                            rowCount={notes.length}
+                            columnWidth={getColumnWidth}
+                            renderCell={renderNoteCell}
+                            fitToWidth
+                            minRowHeight={100}
+                            maxRowHeight={600}
+                        />
                     )}
                 </div>
             </NotebookEditorRoot>

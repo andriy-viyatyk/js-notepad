@@ -8,7 +8,7 @@ import { CheckedIcon, UncheckedIcon } from "../../theme/icons";
 import { useEffect, useMemo } from "react";
 import { Minimap } from "../../components/layout/Minimap";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
-import { PageModel } from "../base";
+import { PageModel, useEditorConfig } from "../base";
 import { pagesModel } from "../../store/pages-store";
 const path = require("path");
 const url = require("url");
@@ -31,6 +31,11 @@ const MdViewRoot = styled.div({
         "&::-webkit-scrollbar": {
             display: "none",
         },
+    },
+    // Show scrollbar when minimap is hidden
+    "&.show-scrollbar .md-scroll-container::-webkit-scrollbar": {
+        display: "block",
+        width: 8,
     },
     "& > *": {
         maxWidth: "100%",
@@ -210,6 +215,7 @@ class MarkdownViewModel extends TComponentModel<MarkdownViewState, MarkdownViewP
 
 export function MarkdownView(props: MarkdownViewProps) {
     const { model } = props;
+    const editorConfig = useEditorConfig();
     const pageModel = useComponentModel(props, MarkdownViewModel, defaultMarkdownViewState);
     const pageState = pageModel.state.use();
     const { content, filePath } = model.state.use((s) => ({
@@ -231,8 +237,15 @@ export function MarkdownView(props: MarkdownViewProps) {
         };
     }, []);
 
+    // Apply max height constraint from context (e.g., when embedded in notebook)
+    const rootStyle = editorConfig.maxEditorHeight
+        ? { maxHeight: editorConfig.maxEditorHeight }
+        : undefined;
+
+    const showMinimap = !editorConfig.hideMinimap;
+
     return (
-        <MdViewRoot>
+        <MdViewRoot style={rootStyle} className={showMinimap ? undefined : "show-scrollbar"}>
             <div
                 className="md-scroll-container"
                 ref={pageModel.setContainer}
@@ -246,10 +259,12 @@ export function MarkdownView(props: MarkdownViewProps) {
                     {content}
                 </ReactMarkdown>
             </div>
-            <Minimap
-                scrollContainer={pageState.container}
-                className="md-minimap"
-            />
+            {showMinimap && (
+                <Minimap
+                    scrollContainer={pageState.container}
+                    className="md-minimap"
+                />
+            )}
         </MdViewRoot>
     );
 }

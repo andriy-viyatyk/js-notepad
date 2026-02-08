@@ -1,18 +1,14 @@
 import { Editor } from "@monaco-editor/react";
 import styled from "@emotion/styled";
 import { NoteItemEditModel } from "./NoteItemEditModel";
+import { useEditorConfig } from "../../base";
 
 // =============================================================================
 // Styles
 // =============================================================================
 
 const MiniTextEditorRoot = styled.div({
-    flex: "1 1 auto",
     position: "relative",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-    minHeight: 100,
 });
 
 // =============================================================================
@@ -28,17 +24,28 @@ interface MiniTextEditorProps {
  * - No line numbers
  * - No minimap
  * - Minimal chrome
+ * - Auto-resizes based on content
  */
 export function MiniTextEditor({ model }: MiniTextEditorProps) {
     const editorModel = model.editor;
+    const editorConfig = useEditorConfig();
     const { content, language } = model.state.use((s) => ({
         content: s.content,
         language: s.language,
     }));
+    const { contentHeight: rawContentHeight } = editorModel.state.use((s) => ({
+        contentHeight: s.contentHeight,
+    }));
+
+    // Apply max height from context
+    const contentHeight = editorConfig.maxEditorHeight
+        ? Math.min(rawContentHeight, editorConfig.maxEditorHeight)
+        : rawContentHeight;
 
     return (
-        <MiniTextEditorRoot>
+        <MiniTextEditorRoot style={{ height: contentHeight }}>
             <Editor
+                height={contentHeight}
                 value={content}
                 language={language}
                 onMount={editorModel.handleEditorDidMount}
@@ -51,8 +58,8 @@ export function MiniTextEditor({ model }: MiniTextEditorProps) {
                     lineDecorationsWidth: 4,  // Left padding
                     glyphMargin: false,
 
-                    // Disable minimap
-                    minimap: { enabled: false },
+                    // Minimap controlled by context
+                    minimap: { enabled: !editorConfig.hideMinimap },
 
                     // Disable overview ruler
                     overviewRulerLanes: 0,
@@ -79,6 +86,9 @@ export function MiniTextEditor({ model }: MiniTextEditorProps) {
 
                     // Auto layout
                     automaticLayout: true,
+
+                    // Don't add extra space after last line
+                    scrollBeyondLastLine: false,
 
                     // Padding (top/bottom only, left is via lineDecorationsWidth)
                     padding: { top: 4, bottom: 4 },

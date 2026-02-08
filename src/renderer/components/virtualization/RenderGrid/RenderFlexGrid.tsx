@@ -28,6 +28,7 @@ function FlexCell({
         const updateHeight = () => {
             if (ref.current) {
                 const innerHeight = ref.current.clientHeight;
+                console.log("Measured cell height:", innerHeight);
                 p.setRowHeight(p.row, innerHeight);
             }
         };

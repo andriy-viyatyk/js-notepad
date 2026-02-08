@@ -18,14 +18,15 @@ import {
 } from "./GridPageModel";
 import { showCsvOptions } from "./components/CsvOptions";
 import { pagesModel } from "../../store/pages-store";
+import { useEditorConfig } from "../base";
 
-const GridPageRoot = styled.div({
+const GridPageRoot = styled.div<{ fitContent?: boolean }>(({ fitContent }) => ({
     flex: "1 1 auto",
     display: "flex",
     flexDirection: "column",
-    height: 200,
+    height: fitContent ? "fit-content" : 200,
     position: "relative",
-});
+}));
 
 const ErrorRoot = styled.div({
     whiteSpace: "pre",
@@ -43,6 +44,7 @@ const SearchFieldRoot = styled(TextField)({
 
 export function GridEditor(props: GridPageProps) {
     const { model } = props;
+    const editorConfig = useEditorConfig();
     const pageModel = useComponentModel(
         props,
         GridPageModel,
@@ -140,7 +142,7 @@ export function GridEditor(props: GridPageProps) {
                     </>,
                     model.editorToolbarRefFirst
                 )}
-            <GridPageRoot>
+            <GridPageRoot fitContent={editorConfig.maxEditorHeight !== undefined}>
                 <FiltersProvider
                     filters={pageState.filters}
                     setFilters={pageModel.setFilters}
@@ -167,6 +169,7 @@ export function GridEditor(props: GridPageProps) {
                         onDeleteRows={pageModel.onDeleteRows}
                         onDeleteColumns={pageModel.onDeleteColumns}
                         onDataChanged={pageModel.onDataChanged}
+                        growToHeight={editorConfig.maxEditorHeight}
                     />
                 </FiltersProvider>
             </GridPageRoot>

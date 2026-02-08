@@ -1,13 +1,17 @@
 import styled from "@emotion/styled";
-import { useEffect, useMemo } from "react";
+import { RefObject, useEffect, useMemo } from "react";
 import { NoteItem as NoteItemType } from "./notebookTypes";
 import { NotebookEditorModel } from "./NotebookEditorModel";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
 import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
 import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import color from "../../theme/color";
-import { DeleteIcon, WindowMaximizeIcon } from "../../theme/icons";
+import { CircleIcon, DeleteIcon, WindowMaximizeIcon } from "../../theme/icons";
 import { Button } from "../../components/basic/Button";
+import { EditorConfigProvider } from "../base";
+
+// Max height for editors embedded in note items
+const NOTE_EDITOR_MAX_HEIGHT = 400;
 
 // =============================================================================
 // Types
@@ -20,6 +24,8 @@ interface NoteItemViewProps {
     onExpand?: (id: string) => void;
     onAddComment?: (id: string) => void;
     onTitleChange?: (id: string, title: string) => void;
+    /** Ref for RenderFlexGrid height detection */
+    cellRef?: RefObject<HTMLDivElement>;
 }
 
 // =============================================================================
@@ -27,13 +33,31 @@ interface NoteItemViewProps {
 // =============================================================================
 
 const NoteItemRoot = styled.div({
-    width: 800,
-    height: 500,
-    flexShrink: 0,
+    width: "100%",
+    height: "fit-content",
+    boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
     backgroundColor: color.background.default,
-    overflow: "hidden",
+    padding: "8px 48px 8px 24px",  // Extra left padding for dot, right for scroll area
+
+    // Note indicator dot - absolute positioned
+    "& .note-indicator": {
+        position: "absolute",
+        left: 4,
+        top: 12,
+        color: color.text.light,
+        transition: "color 0.15s ease",
+        "& svg": {
+            width: 16,
+            height: 16,
+        },
+    },
+
+    // Active state - blue dot
+    "&:focus-within .note-indicator": {
+        color: color.misc.blue,
+    },
 
     // First toolbar - items hidden by default
     "& .toolbar-hover": {
@@ -136,12 +160,8 @@ const NoteItemRoot = styled.div({
         },
     },
 
-    // Content area
+    // Content area - height controlled by editor inside
     "& .content-area": {
-        flex: 1,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
         border: "1px solid transparent",
         borderRadius: 2,
         margin: "0 4px",
@@ -183,6 +203,7 @@ export function NoteItemView({
     onExpand,
     onAddComment,
     onTitleChange,
+    cellRef,
 }: NoteItemViewProps) {
     // Create edit model for this note
     const editModel = useMemo(() => {
@@ -215,7 +236,12 @@ export function NoteItemView({
     };
 
     return (
-        <NoteItemRoot tabIndex={0}>
+        <NoteItemRoot ref={cellRef} tabIndex={0}>
+            {/* Note indicator dot */}
+            <div className="note-indicator">
+                <CircleIcon />
+            </div>
+
             {/* First toolbar - items visible on hover/focus */}
             <div className="toolbar-hover">
                 <div className="toolbar-hover-content">
@@ -263,7 +289,9 @@ export function NoteItemView({
 
             {/* Content area - Monaco or alternative editor */}
             <div className="content-area">
-                <NoteItemActiveEditor model={editModel} />
+                <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true }}>
+                    <NoteItemActiveEditor model={editModel} />
+                </EditorConfigProvider>
             </div>
 
             {/* Comment section - always show if has comment, show add button on hover */}

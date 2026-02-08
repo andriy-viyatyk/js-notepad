@@ -13,9 +13,13 @@ import * as monaco from "monaco-editor";
 
 export const defaultNoteEditorState = {
     hasSelection: false,
+    contentHeight: 100,  // Monaco content height for auto-sizing
 };
 
 export type NoteEditorState = typeof defaultNoteEditorState;
+
+// Minimum height constraint for Monaco editor
+const MIN_EDITOR_HEIGHT = 50;
 
 /**
  * Simplified TextEditorModel for note items.
@@ -25,6 +29,7 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
     private editModel: NoteItemEditModel;
     editorRef: monaco.editor.IStandaloneCodeEditor | null = null;
     private selectionListenerDisposable: monaco.IDisposable | null = null;
+    private contentSizeDisposable: monaco.IDisposable | null = null;
 
     constructor(editModel: NoteItemEditModel) {
         super(new TComponentState(defaultNoteEditorState));
@@ -34,6 +39,9 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
     handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
         this.editorRef = editor;
         this.setupSelectionListener(editor);
+        this.setupContentSizeListener(editor);
+        // Get initial content height
+        this.updateContentHeight(editor.getContentHeight());
     };
 
     handleEditorChange = (value: string | undefined) => {
@@ -57,6 +65,22 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
         });
     };
 
+    private setupContentSizeListener = (editor: monaco.editor.IStandaloneCodeEditor) => {
+        this.contentSizeDisposable = editor.onDidContentSizeChange((e) => {
+            this.updateContentHeight(e.contentHeight);
+        });
+    };
+
+    private updateContentHeight = (height: number) => {
+        // Ensure minimum height (max is applied by MiniTextEditor via context)
+        const clampedHeight = Math.max(MIN_EDITOR_HEIGHT, height);
+        if (this.state.get().contentHeight !== clampedHeight) {
+            this.state.update((s) => {
+                s.contentHeight = clampedHeight;
+            });
+        }
+    };
+
     getSelectedText = (): string => {
         if (!this.editorRef) return "";
         const selection = this.editorRef.getSelection();
@@ -67,6 +91,8 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
     onDispose = () => {
         this.selectionListenerDisposable?.dispose();
         this.selectionListenerDisposable = null;
+        this.contentSizeDisposable?.dispose();
+        this.contentSizeDisposable = null;
         this.editorRef = null;
     };
 }
@@ -180,9 +206,10 @@ export class NoteItemEditModel {
             script = this.editor.getSelectedText() || content;
         }
         if (language === "javascript") {
-            // Run script with a pseudo page context
-            // Note: Scripts in notes don't have access to grouped pages
-            await scriptRunner.runWithResult(this.id, script, this as any);
+            // Get the notebook page model for script context
+            // page.content will be notebook's JSON, output grouped with notebook
+            const notebookPageModel = this.notebookModel.props.model;
+            await scriptRunner.runWithResult(notebookPageModel.id, script, notebookPageModel);
         }
     };
 

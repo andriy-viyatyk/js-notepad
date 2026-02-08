@@ -158,9 +158,9 @@ Status label showing: "Total: X | Filtered: Y | Selected: Z"
 - [ ] Tags collected dynamically and displayed in left panel
 - [ ] Can filter notes by category or tag selection
 - [ ] Search functionality works
-- [ ] Notes list is virtualized (RenderGrid)
+- [x] Notes list is virtualized (RenderFlexGrid)
 - [x] New items appear at top of list
-- [ ] Item height adjusts dynamically
+- [x] Item height adjusts dynamically
 - [ ] Expand button shows note in full editor area (portal)
 - [x] Mini Monaco editor works with language selection
 - [x] Editor switch works (monaco, grid-json for JSON)
@@ -238,6 +238,41 @@ Created full note item component with mini-editor functionality:
 - Comment section: shows text if present, "add comment" button on hover
 - Compact layout with minimal padding
 
+### Virtualized Notes List ✅
+
+Integrated RenderFlexGrid for virtualized rendering of note items:
+- Dynamic row heights via cellRef measurement
+- Monaco editor tracks content height via `onDidContentSizeChange`
+- Max editor height (400px) limits individual note content areas
+
+### EditorConfigContext ✅
+
+Created general-purpose editor configuration context in `editors/base/`:
+
+**File:** `EditorConfigContext.tsx`
+
+**Properties:**
+- `maxEditorHeight` - Maximum height constraint for editors
+- `minEditorHeight` - Minimum height constraint for editors
+- `hideMinimap` - Whether to hide minimap in Monaco/Markdown editors
+
+**Usage in NoteItem:**
+- Wraps `NoteItemActiveEditor` with `EditorConfigProvider`
+- Sets `maxEditorHeight: 400` and `hideMinimap: true`
+- Editors read config via `useEditorConfig()` hook
+
+**Editors updated:**
+- `MiniTextEditor` - Uses maxEditorHeight and hideMinimap
+- `GridEditor` - Uses maxEditorHeight for growToHeight
+- `MarkdownView` - Uses maxEditorHeight and hideMinimap
+
+### Note Item Visual Improvements ✅
+
+- Added dot indicator (CircleIcon) to mark note item start
+- Dot turns blue on focus-within state
+- Fixed width overflow with `box-sizing: border-box`
+- Added padding for scroll area (right) and dot space (left)
+
 ## Implementation Progress
 
 - [x] Refactor EditorDefinition to function-based matching
@@ -256,6 +291,11 @@ Created full note item component with mini-editor functionality:
 - [x] Delete note functionality
 - [x] Title editing
 - [x] Minimalistic styling with hover states
+- [x] Virtualized notes list (RenderFlexGrid)
+- [x] Dynamic item height with maxHeight constraint
+- [x] EditorConfigContext for passing config to nested editors
+- [x] Minimap hidden in embedded editors
+- [x] Note item visual indicator (dot with focus state)
 
 ## Remaining Work
 
@@ -263,8 +303,6 @@ Created full note item component with mini-editor functionality:
 - [ ] Tags panel implementation (dynamic collection, grouped view)
 - [ ] Filter notes by category/tag selection
 - [ ] Search functionality
-- [ ] Virtualized notes list (RenderGrid integration)
-- [ ] Dynamic item height
 - [ ] Expand note to full editor (portal)
 - [ ] Comment editing UI
 - [ ] Per-item state persistence in `state` map
@@ -281,6 +319,8 @@ Created full note item component with mini-editor functionality:
 - Debounced serialization prevents performance issues on rapid updates
 - NoteItemEditModel adapter pattern allows reusing existing editors without modification
 - Monaco padding uses `lineDecorationsWidth` for left padding (native padding only supports top/bottom)
+- EditorConfigContext in `editors/base` provides general-purpose config passing to nested editors
+- `hideMinimap` is a specific property (not generic "compact") to allow future user settings
 
 ## Related
 
