@@ -647,6 +647,15 @@ export const ChevronRightIcon = createIcon(16)(
     />,
 );
 
+export const ChevronLeftIcon = createIcon(16)(
+    <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M10.8243 3.16272C11.0586 3.37968 11.0586 3.73143 10.8243 3.94839L6.44853 8L10.8243 12.0516C11.0586 12.2686 11.0586 12.6203 10.8243 12.8373C10.59 13.0542 10.2101 13.0542 9.97574 12.8373L5.17574 8.39284C4.94142 8.17588 4.94142 7.82412 5.17574 7.60716L9.97574 3.16272C10.2101 2.94576 10.59 2.94576 10.8243 3.16272Z"
+        fill="currentColor"
+    />,
+);
+
 export const RefreshIcon = createIcon(24)(
     <>
         <path

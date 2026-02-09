@@ -3,6 +3,8 @@ import { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Breadcrumb } from "../../components/basic/Breadcrumb";
 import { Button } from "../../components/basic/Button";
+import { TagsList } from "../../components/basic/TagsList";
+import { TextField } from "../../components/basic/TextField";
 import { CollapsiblePanel, CollapsiblePanelStack } from "../../components/layout/CollapsiblePanelStack";
 import { Splitter } from "../../components/layout/Splitter";
 import { CategoryTree, CategoryTreeItem } from "../../components/TreeView";
@@ -14,7 +16,7 @@ import { Percent } from "../../components/virtualization/RenderGrid/types";
 import { useComponentModel } from "../../core/state/model";
 import { splitWithSeparators } from "../../core/utils/utils";
 import color from "../../theme/color";
-import { PlusIcon } from "../../theme/icons";
+import { CloseIcon, PlusIcon } from "../../theme/icons";
 import {
     defaultNotebookEditorState,
     NotebookEditorModel,
@@ -49,6 +51,12 @@ const NotebookEditorRoot = styled.div({
         display: "flex",
         overflow: "hidden",
         fontSize: 13,
+    },
+    "& .tags-list-container": {
+        flex: 1,
+        display: "flex",
+        overflow: "hidden",
+        width: "100%",
     },
     "& .category-label-name": {
         flex: "1 1 auto",
@@ -99,6 +107,12 @@ const NotebookEditorRoot = styled.div({
     },
 });
 
+const SearchField = styled(TextField)({
+    "& input": {
+        color: color.misc.blue,
+    },
+});
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -141,16 +155,18 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     key={note.id}
                     note={note}
                     notebookModel={pageModel}
+                    categories={pageState.categories}
                     onDelete={pageModel.deleteNote}
                     onExpand={pageModel.expandNote}
                     onAddComment={pageModel.addComment}
                     onCommentChange={pageModel.updateNoteComment}
                     onTitleChange={pageModel.updateNoteTitle}
+                    onCategoryChange={pageModel.updateNoteCategory}
                     cellRef={p.ref}
                 />
             );
         },
-        [notes, pageModel]
+        [notes, pageModel, pageState.categories]
     );
 
     // Provide stored heights to RenderFlexGrid for initial row sizing
@@ -192,23 +208,53 @@ export function NotebookEditor(props: NotebookEditorProps) {
         <>
             {Boolean(model.editorToolbarRefFirst) &&
                 createPortal(
-                    <Breadcrumb
-                        rootLabel="Categories"
-                        value={pageState.selectedCategory}
-                        onChange={pageModel.setSelectedCategory}
-                    />,
+                    pageState.expandedPanel === "tags" ? (
+                        <Breadcrumb
+                            rootLabel="Tags"
+                            value={pageState.selectedTag}
+                            onChange={pageModel.setSelectedTag}
+                            separators=":"
+                            trailingParentSeparator
+                        />
+                    ) : (
+                        <Breadcrumb
+                            rootLabel="Categories"
+                            value={pageState.selectedCategory}
+                            onChange={pageModel.setSelectedCategory}
+                        />
+                    ),
                     model.editorToolbarRefFirst
                 )}
             {Boolean(model.editorToolbarRefLast) &&
                 createPortal(
-                    <Button
-                        size="small"
-                        type="flat"
-                        title="Add Note"
-                        onClick={pageModel.addNote}
-                    >
-                        <PlusIcon /> Add Note&nbsp;
-                    </Button>,
+                    <>
+                        <Button
+                            size="small"
+                            type="flat"
+                            title="Add Note"
+                            onClick={pageModel.addNote}
+                        >
+                            <PlusIcon /> Add Note&nbsp;
+                        </Button>
+                        <SearchField
+                            value={pageState.searchText}
+                            onChange={pageModel.setSearchText}
+                            placeholder="Search..."
+                            endButtons={
+                                pageState.searchText ? [
+                                    <Button
+                                        key="clear"
+                                        size="small"
+                                        type="flat"
+                                        title="Clear search"
+                                        onClick={pageModel.clearSearch}
+                                    >
+                                        <CloseIcon />
+                                    </Button>,
+                                ] : undefined
+                            }
+                        />
+                    </>,
                     model.editorToolbarRefLast
                 )}
             <NotebookEditorRoot>
@@ -219,7 +265,14 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     setActivePanel={pageModel.setExpandedPanel}
                 >
                     <CollapsiblePanel id="tags" title="Tags">
-                        <div className="left-panel-content">(tags will be here)</div>
+                        <div className="tags-list-container">
+                            <TagsList
+                                tags={pageState.tags}
+                                value={pageState.selectedTag}
+                                onChange={pageModel.setSelectedTag}
+                                getCount={pageModel.getTagSize}
+                            />
+                        </div>
                     </CollapsiblePanel>
                     <CollapsiblePanel id="categories" title="Categories">
                         <div className="category-tree-container">

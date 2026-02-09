@@ -41,6 +41,11 @@ export interface BreadcrumbProps {
     onChange: (value: string) => void;
     /** Path separators (default: "/\\") */
     separators?: string;
+    /**
+     * When true, append separator when clicking non-leaf segments.
+     * Useful for tags where "release:" (parent) differs from "release" (simple tag).
+     */
+    trailingParentSeparator?: boolean;
     className?: string;
 }
 
@@ -50,8 +55,12 @@ export function Breadcrumb(props: BreadcrumbProps) {
         value,
         onChange,
         separators = "/\\",
+        trailingParentSeparator = false,
         className,
     } = props;
+
+    // Use first separator character for joining paths
+    const joinSeparator = separators[0];
 
     const segments = useMemo(() => {
         if (!value) return [];
@@ -65,11 +74,16 @@ export function Breadcrumb(props: BreadcrumbProps) {
                 onChange("");
             } else {
                 // Build path up to clicked segment
-                const path = segments.slice(0, index + 1).join("/");
-                onChange(path);
+                const path = segments.slice(0, index + 1).join(joinSeparator);
+                // Add trailing separator for non-leaf clicks if enabled
+                const isLeaf = index === segments.length - 1;
+                const finalPath = !isLeaf && trailingParentSeparator
+                    ? path + joinSeparator
+                    : path;
+                onChange(finalPath);
             }
         },
-        [segments, onChange]
+        [segments, onChange, joinSeparator, trailingParentSeparator]
     );
 
     return (

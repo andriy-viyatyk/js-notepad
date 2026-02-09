@@ -155,9 +155,9 @@ Status label showing: "Total: X | Filtered: Y | Selected: Z"
 - [x] Can edit note title, category, tags, content, and comment
 - [x] Can delete notes
 - [x] Categories collected dynamically and displayed in left panel
-- [ ] Tags collected dynamically and displayed in left panel
-- [x] Can filter notes by category or tag selection (category implemented)
-- [ ] Search functionality works
+- [x] Tags collected dynamically and displayed in left panel
+- [x] Can filter notes by category or tag selection
+- [x] Search functionality works
 - [x] Notes list is virtualized (RenderFlexGrid)
 - [x] New items appear at top of list
 - [x] Item height adjusts dynamically
@@ -448,12 +448,75 @@ Implemented category tree panel with filtering and breadcrumb navigation:
 
 ## Remaining Work
 
-- [ ] Tags panel implementation (dynamic collection, grouped view)
-- [ ] Filter notes by tag selection
-- [ ] Search functionality
 - [ ] Expand note to full editor (portal)
-- [ ] Comment editing UI
 - [ ] Documentation updates
+
+### Tags Panel & Filtering ✅
+
+Implemented tags panel with hierarchical grouping and filtering:
+
+**New Component:**
+
+1. **TagsList** (`components/basic/TagsList.tsx`):
+   - Displays tags with optional hierarchical grouping (using `:` separator)
+   - Simple tags (e.g., "dev", "urgent") shown at top level
+   - Categorized tags (e.g., "release:1.0.1") grouped under parent
+   - Drill-down navigation with back button
+   - "All" option to clear filter
+   - Note counts per tag
+   - Syncs with external value changes (e.g., from Breadcrumb)
+
+**NotebookEditorModel additions:**
+- `tags` state - list of unique tags from notes
+- `tagsSize` state - note count per tag (including parent tags like "release:")
+- `selectedTag` state - current tag filter
+- `loadTags()` - extracts tags and counts from notes
+- `setSelectedTag()` - updates filter and refreshes
+- `getTagSize()` - for displaying tag counts
+
+**Breadcrumb enhancements:**
+- `trailingParentSeparator` prop - appends separator for non-leaf clicks
+- Fixes navigation between "release" (simple tag) and "release:" (parent category)
+
+**Filtering behavior:**
+- Filters by EITHER category OR tag based on which panel is expanded
+- Switching panels triggers filter refresh
+- Breadcrumb updates to show current filter context
+
+### Search Functionality ✅
+
+Implemented search field with multi-word AND filtering:
+
+**Features:**
+- TextField in toolbar (after "Add Note" button)
+- Clear button appears when search has text
+- Searches across: category, tags, title
+- Multiple words use AND condition (all words must match)
+- Works additively with category/tag filters
+
+**NotebookEditorModel additions:**
+- `searchText` state
+- `setSearchText()` and `clearSearch()` methods
+- Updated `applyFilters()` to include search filtering
+
+**Example matching:**
+- Note with category "project/notes", tags ["done"], title "Important"
+- Search "project done" → matches (both words found)
+- Search "project prod" → no match ("prod" not found)
+
+### Bug Fix: Note title/comment input not working ✅
+
+**Issue:** Typing in title input or comment field didn't update the value.
+
+**Root cause:** `filteredNotes` stored separately in state became stale after note property updates. The note update methods updated `data.notes` but `filteredNotes` still held old object references. Controlled inputs showed old values.
+
+**Fix:** Added `applyFilters()` calls after all note property update methods:
+- `updateNoteContent`
+- `updateNoteLanguage`
+- `updateNoteEditor`
+- `updateNoteTitle`
+- `addComment`
+- `updateNoteComment`
 
 ### Delete Note Confirmation ✅
 

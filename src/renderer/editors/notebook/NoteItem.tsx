@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NoteItem as NoteItemType } from "./notebookTypes";
 import { NotebookEditorModel } from "./NotebookEditorModel";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
@@ -8,6 +8,7 @@ import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import color from "../../theme/color";
 import { CircleIcon, DeleteIcon, WindowMaximizeIcon } from "../../theme/icons";
 import { Button } from "../../components/basic/Button";
+import { PathInput } from "../../components/basic/PathInput";
 import { TextAreaField } from "../../components/basic/TextAreaField";
 import { EditorConfigProvider, EditorStateStorageProvider, useObjectStateStorage } from "../base";
 
@@ -21,11 +22,14 @@ const NOTE_EDITOR_MAX_HEIGHT = 400;
 interface NoteItemViewProps {
     note: NoteItemType;
     notebookModel: NotebookEditorModel;
+    /** Available categories for autocomplete */
+    categories: string[];
     onDelete?: (id: string) => void;
     onExpand?: (id: string) => void;
     onAddComment?: (id: string) => void;
     onCommentChange?: (id: string, comment: string) => void;
     onTitleChange?: (id: string, title: string) => void;
+    onCategoryChange?: (id: string, category: string) => void;
     /** Ref for RenderFlexGrid height detection */
     cellRef?: RefObject<HTMLDivElement>;
 }
@@ -43,6 +47,7 @@ const NoteItemRoot = styled.div({
     backgroundColor: color.background.default,
     padding: "8px 48px 8px 24px",  // Extra left padding for dot, right for deactivation area
     position: "relative",
+    outline: "none", // Remove default focus outline (we use blue dot indicator instead)
 
     // Note indicator dot with vertical line - absolute positioned
     "& .note-indicator": {
@@ -138,7 +143,17 @@ const NoteItemRoot = styled.div({
         borderRadius: 3,
         cursor: "pointer",
         "&:hover": {
-            backgroundColor: color.background.selection,
+            color: color.text.dark,
+        },
+    },
+
+    // Category PathInput styling
+    "& .path-input": {
+        "& .path-input-field": {
+            padding: "2px 6px",
+            fontSize: 12,
+            minWidth: 100,
+            maxWidth: 200,
         },
     },
 
@@ -258,13 +273,19 @@ const NoteItemRoot = styled.div({
 export function NoteItemView({
     note,
     notebookModel,
+    categories,
     onDelete,
     onExpand,
     onAddComment,
     onCommentChange,
     onTitleChange,
+    onCategoryChange,
     cellRef,
 }: NoteItemViewProps) {
+    // Category editing state
+    const [editingCategory, setEditingCategory] = useState(false);
+    const [categoryValue, setCategoryValue] = useState(note.category);
+
     // Create edit model for this note
     const editModel = useMemo(() => {
         return new NoteItemEditModel(notebookModel, note);
@@ -333,6 +354,13 @@ export function NoteItemView({
         editModel.syncFromNote(note);
     }, [note.content.content, note.content.language, note.content.editor]);
 
+    // Sync category value when note category changes externally
+    useEffect(() => {
+        if (!editingCategory) {
+            setCategoryValue(note.category);
+        }
+    }, [note.category, editingCategory]);
+
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString(undefined, {
@@ -348,6 +376,26 @@ export function NoteItemView({
 
     const handleCommentChange = (value: string) => {
         onCommentChange?.(note.id, value);
+    };
+
+    const handleCategoryClick = () => {
+        setCategoryValue(note.category);
+        setEditingCategory(true);
+    };
+
+    const handleCategoryChange = (value: string) => {
+        setCategoryValue(value);
+    };
+
+    const handleCategoryBlur = (finalValue?: string) => {
+        setEditingCategory(false);
+        // Use finalValue if provided (from selection), otherwise use current state
+        const valueToSave = finalValue ?? categoryValue;
+        if (valueToSave !== note.category) {
+            onCategoryChange?.(note.id, valueToSave);
+        }
+        // Focus note item to maintain active state after category edit
+        noteItemRef.current?.focus();
     };
 
     const handleDeactivate = () => {
@@ -380,9 +428,20 @@ export function NoteItemView({
             {/* First toolbar - items visible on hover/focus */}
             <div className="toolbar-hover">
                 <div className="toolbar-hover-content">
-                    <span className="category">
-                        {note.category || "No category"}
-                    </span>
+                    {editingCategory ? (
+                        <PathInput
+                            value={categoryValue}
+                            onChange={handleCategoryChange}
+                            onBlur={handleCategoryBlur}
+                            paths={categories}
+                            placeholder="category..."
+                            autoFocus
+                        />
+                    ) : (
+                        <span className="category" onClick={handleCategoryClick}>
+                            {note.category || "No category"}
+                        </span>
+                    )}
                     {note.tags.map((tag: string) => (
                         <span key={tag} className="tag">
                             {tag}

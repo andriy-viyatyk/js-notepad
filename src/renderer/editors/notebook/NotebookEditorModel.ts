@@ -21,10 +21,13 @@ export const defaultNotebookEditorState = {
     // Category tree
     categories: [] as string[],
     categoriesSize: {} as { [key: string]: number },
+    // Tags list
+    tags: [] as string[],
+    tagsSize: {} as { [key: string]: number },
     // Filtering
     selectedCategory: "" as string, // empty means "All"
-    // selectedTag: "" as string,   // future: tag filtering
-    // searchText: "" as string,    // future: text search
+    selectedTag: "" as string,      // empty means no tag filter
+    searchText: "" as string,       // search across category, tags, title
     filteredNotes: [] as NoteItem[],
 };
 
@@ -105,8 +108,9 @@ export class NotebookEditorModel extends TComponentModel<
             });
             // Mark loaded data as already serialized so we don't save it back
             this.lastSerializedData = this.state.get().data;
-            // Build category tree and apply filters
+            // Build category tree, tags list and apply filters
             this.loadCategories();
+            this.loadTags();
             this.applyFilters();
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
@@ -143,6 +147,7 @@ export class NotebookEditorModel extends TComponentModel<
             s.data.notes.unshift(newNote);
         });
         this.loadCategories();
+        this.loadTags();
         this.applyFilters();
     };
 
@@ -156,6 +161,8 @@ export class NotebookEditorModel extends TComponentModel<
         this.state.update((s) => {
             s.expandedPanel = panel as ExpandedPanel;
         });
+        // Re-apply filters when switching panels (filtering is panel-specific)
+        this.applyFilters();
     };
 
     // =========================================================================
@@ -212,38 +219,125 @@ export class NotebookEditorModel extends TComponentModel<
     };
 
     // =========================================================================
+    // Tag management
+    // =========================================================================
+
+    /**
+     * Extract all unique tags from notes and calculate counts.
+     * For categorized tags like "release:1.0.1":
+     * - Parent "release:" gets sum of all "release:*" tags
+     * - Child "release:1.0.1" gets its own count
+     */
+    loadTags = () => {
+        const notes = this.state.get().data.notes;
+        const tagsSet = new Set<string>();
+        const tagsSize: { [key: string]: number } = {};
+        const separator = ":";
+
+        // Total count for "All" (empty string key)
+        tagsSize[""] = notes.length;
+
+        notes.forEach((note) => {
+            note.tags?.forEach((tag) => {
+                tagsSet.add(tag);
+
+                // Count for the exact tag
+                tagsSize[tag] = (tagsSize[tag] || 0) + 1;
+
+                // If categorized tag, also count towards parent
+                const sepIndex = tag.indexOf(separator);
+                if (sepIndex > 0 && sepIndex < tag.length - 1) {
+                    // Has separator with content on both sides (e.g., "release:1.0.1")
+                    const parentTag = tag.slice(0, sepIndex) + separator;
+                    tagsSize[parentTag] = (tagsSize[parentTag] || 0) + 1;
+                }
+            });
+        });
+
+        this.state.update((s) => {
+            s.tags = Array.from(tagsSet);
+            s.tagsSize = tagsSize;
+        });
+    };
+
+    setSelectedTag = (tag: string) => {
+        this.state.update((s) => {
+            s.selectedTag = tag;
+        });
+        this.applyFilters();
+    };
+
+    getTagSize = (tag: string): number | undefined => {
+        return this.state.get().tagsSize[tag];
+    };
+
+    // =========================================================================
+    // Search
+    // =========================================================================
+
+    setSearchText = (text: string) => {
+        this.state.update((s) => {
+            s.searchText = text;
+        });
+        this.applyFilters();
+    };
+
+    clearSearch = () => {
+        this.setSearchText("");
+    };
+
+    // =========================================================================
     // Filtering
     // =========================================================================
 
     /**
      * Apply all active filters and update filteredNotes state.
-     * Currently filters by: selectedCategory
-     * Future: selectedTag, searchText
+     * Filters by EITHER selectedCategory OR selectedTag based on which panel is expanded.
+     * Search text filtering is applied additionally (AND condition).
      */
     applyFilters = () => {
-        const { data, selectedCategory } = this.state.get();
+        const { data, selectedCategory, selectedTag, expandedPanel, searchText } = this.state.get();
         let filtered = data.notes;
 
-        // Filter by category
-        if (selectedCategory) {
+        // Filter by category (only when categories panel is expanded)
+        if (expandedPanel === "categories" && selectedCategory) {
             filtered = filtered.filter(
                 (note) => note.category?.startsWith(selectedCategory)
             );
         }
 
-        // Future: Filter by tag
-        // if (selectedTag) {
-        //     filtered = filtered.filter(note => note.tags?.includes(selectedTag));
-        // }
+        // Filter by tag (only when tags panel is expanded)
+        if (expandedPanel === "tags" && selectedTag) {
+            const separator = ":";
+            if (selectedTag.endsWith(separator)) {
+                // Parent tag selected (e.g., "release:") - match all tags starting with it
+                filtered = filtered.filter((note) =>
+                    note.tags?.some((tag) => tag.startsWith(selectedTag) || tag === selectedTag)
+                );
+            } else {
+                // Exact tag match (simple tag or specific subcategory)
+                filtered = filtered.filter((note) =>
+                    note.tags?.includes(selectedTag)
+                );
+            }
+        }
 
-        // Future: Filter by search text
-        // if (searchText) {
-        //     const search = searchText.toLowerCase();
-        //     filtered = filtered.filter(note =>
-        //         note.title?.toLowerCase().includes(search) ||
-        //         note.content.content?.toLowerCase().includes(search)
-        //     );
-        // }
+        // Filter by search text (applied additionally to category/tag filter)
+        // Multiple words use AND condition - all words must be found across searchable fields
+        if (searchText.trim()) {
+            const searchWords = searchText.toLowerCase().trim().split(/\s+/);
+            filtered = filtered.filter((note) => {
+                // Build searchable text from category, tags, and title
+                const searchableText = [
+                    note.category || "",
+                    note.title || "",
+                    ...(note.tags || []),
+                ].join(" ").toLowerCase();
+
+                // All search words must be found (AND condition)
+                return searchWords.every((word) => searchableText.includes(word));
+            });
+        }
 
         this.state.update((s) => {
             s.filteredNotes = filtered;
@@ -270,6 +364,7 @@ export class NotebookEditorModel extends TComponentModel<
             delete s.data.state[id];
         });
         this.loadCategories();
+        this.loadTags();
         this.applyFilters();
     };
 
@@ -287,6 +382,7 @@ export class NotebookEditorModel extends TComponentModel<
                 note.updatedDate = new Date().toISOString();
             }
         });
+        this.applyFilters();
     };
 
     updateNoteComment = (id: string, comment: string) => {
@@ -297,6 +393,7 @@ export class NotebookEditorModel extends TComponentModel<
                 note.updatedDate = new Date().toISOString();
             }
         });
+        this.applyFilters();
     };
 
     // =========================================================================
@@ -315,6 +412,8 @@ export class NotebookEditorModel extends TComponentModel<
                 note.updatedDate = new Date().toISOString();
             }
         });
+        // Re-apply filters to sync filteredNotes with updated data.notes
+        this.applyFilters();
     };
 
     updateNoteLanguage = (id: string, language: string) => {
@@ -325,6 +424,7 @@ export class NotebookEditorModel extends TComponentModel<
                 note.updatedDate = new Date().toISOString();
             }
         });
+        this.applyFilters();
     };
 
     updateNoteEditor = (id: string, editor: string) => {
@@ -335,6 +435,7 @@ export class NotebookEditorModel extends TComponentModel<
                 note.updatedDate = new Date().toISOString();
             }
         });
+        this.applyFilters();
     };
 
     updateNoteTitle = (id: string, title: string) => {
@@ -345,6 +446,21 @@ export class NotebookEditorModel extends TComponentModel<
                 note.updatedDate = new Date().toISOString();
             }
         });
+        this.applyFilters();
+    };
+
+    updateNoteCategory = (id: string, category: string) => {
+        this.state.update((s) => {
+            const note = s.data.notes.find((n) => n.id === id);
+            if (note) {
+                note.category = category;
+                note.updatedDate = new Date().toISOString();
+            }
+        });
+        // Reload categories (new category might have been created)
+        this.loadCategories();
+        // Re-apply filters (note might need to be filtered out)
+        this.applyFilters();
     };
 
     // =========================================================================
