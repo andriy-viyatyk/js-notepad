@@ -25,7 +25,12 @@ function FlexCell({
     };
 }) {
     const ref = useRef<HTMLDivElement | null>(null);
+    // Track which element the observer is watching
+    const observedElementRef = useRef<HTMLDivElement | null>(null);
+    // Store observer instance for re-attachment
+    const observerRef = useRef<ResizeObserver | null>(null);
 
+    // Create observer once per row - this effect handles initial setup and cleanup
     useEffect(() => {
         const updateHeight = () => {
             if (ref.current) {
@@ -35,16 +40,36 @@ function FlexCell({
         };
 
         const observer = new ResizeObserver(updateHeight);
+        observerRef.current = observer;
 
         if (ref.current) {
             observer.observe(ref.current);
+            observedElementRef.current = ref.current;
             updateHeight();
         }
 
         return () => {
             observer.disconnect();
+            observerRef.current = null;
+            observedElementRef.current = null;
         };
     }, [p.row, p.setRowHeight]);
+
+    // Detect when ref.current changes (React reuses component but renders different content)
+    // This effect runs after every render to check if we need to re-attach the observer
+    useEffect(() => {
+        if (ref.current && ref.current !== observedElementRef.current && observerRef.current) {
+            // Element changed - unobserve old, observe new
+            if (observedElementRef.current) {
+                observerRef.current.unobserve(observedElementRef.current);
+            }
+            observerRef.current.observe(ref.current);
+            observedElementRef.current = ref.current;
+            // Measure new element immediately
+            const innerHeight = ref.current.clientHeight;
+            p.setRowHeight(p.row, innerHeight);
+        }
+    });
 
     const {key, ...restP} = p;
     const newP = { ...restP, ref };
@@ -117,13 +142,7 @@ class RenderFlexGridModel extends TComponentModel<
         if (height === 0) {
             return;
         }
-        let applyHeight = this.props.maxRowHeight
-            ? Math.min(height, this.props.maxRowHeight)
-            : height;
-        applyHeight = Math.max(
-            applyHeight,
-            this.props.minRowHeight || 24
-        );
+        const applyHeight = this.clampHeight(height);
 
         // Skip if no change needed
         if (this.pendingHeights[row] === applyHeight) {
@@ -147,6 +166,15 @@ class RenderFlexGridModel extends TComponentModel<
         this.updateRowHeight(row);
     };
 
+    /** Apply min/max clamping to a height value */
+    private clampHeight = (height: number): number => {
+        let clamped = this.props.maxRowHeight
+            ? Math.min(height, this.props.maxRowHeight)
+            : height;
+        clamped = Math.max(clamped, this.props.minRowHeight || 24);
+        return clamped;
+    };
+
     private readonly updateRowHeight = (updatedRow?: number) => {
         this.state.update((s) => {
             s.rowHeight = (row: number) => {
@@ -156,7 +184,8 @@ class RenderFlexGridModel extends TComponentModel<
                 }
                 const initialHeight = this.props.getInitialRowHeight?.(row);
                 if (initialHeight !== undefined) {
-                    return initialHeight;
+                    // Apply same min/max clamping as setRowHeight
+                    return this.clampHeight(initialHeight);
                 }
                 return this.lastRowHeight || this.defaultFlexRowHeight;
             };

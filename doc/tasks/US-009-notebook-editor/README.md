@@ -389,6 +389,9 @@ interface EditorStateStorage {
 - [x] Fix scroll jumping with embedded GridEditor (disableAutoFocus)
 - [x] EditorStateStorageContext for nested editor state persistence
 - [x] Wheel scroll capture (prevents nested editors from stealing scroll)
+- [x] Delete note confirmation dialog
+- [x] Fix: New note height not updating (key prop on NoteItemView/Editor)
+- [x] Fix: Scroll area height incorrect on file load (clamp initial heights)
 
 ## Remaining Work
 
@@ -399,6 +402,29 @@ interface EditorStateStorage {
 - [ ] Expand note to full editor (portal)
 - [ ] Comment editing UI
 - [ ] Documentation updates
+
+### Delete Note Confirmation ✅
+
+Added confirmation dialog when deleting notes:
+- Uses existing `showConfirmationDialog` utility
+- Shows note title in confirmation message
+- Buttons: "Delete" and "Cancel"
+
+### Virtualized List Bug Fixes ✅
+
+**Issue 1: New note height not updating**
+When adding a new note to a virtualized list, the height stayed fixed instead of adapting to content.
+
+**Root cause:** React component reuse - when a new note was added at position 0, React reused the existing FlexCell component. Monaco Editor's `onMount` callback only fires on initial mount, so the new note's editor never registered its height change listeners.
+
+**Fix:** Added `key={note.id}` to NoteItemView and `key={model.id}` to Monaco Editor to force remounts when note changes.
+
+**Issue 2: Incorrect scroll area height on file load**
+When opening a notebook file, the scroll indicator showed incorrect size (too large). Height would recalculate as items were scrolled into view.
+
+**Root cause:** Stored heights in notebook JSON were not clamped to `maxRowHeight`. Heights were stored as raw Monaco content heights (e.g., 5507px), but RenderFlexGrid has `maxRowHeight={800}`. When calculating scroll area, unclamped stored heights were used, causing mismatch.
+
+**Fix:** Added `clampHeight()` helper to `RenderFlexGridModel` and applied same min/max clamping to initial heights from `getInitialRowHeight` callback, matching the clamping already applied in `setRowHeight()`.
 
 ## Known Issues
 

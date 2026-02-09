@@ -22,7 +22,8 @@ export interface NoteItem {
     category: string;
     tags: string[];
     content: NoteContent;
-    comment: string;
+    /** Optional comment field - undefined shows "Add comment" button, string shows TextAreaField */
+    comment?: string;
     createdDate: string;
     updatedDate: string;
 }

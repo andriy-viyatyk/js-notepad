@@ -2,16 +2,20 @@ import { debounce } from "../../../shared/utils";
 import { TComponentModel } from "../../core/state/model";
 import RenderGridModel from "../../components/virtualization/RenderGrid/RenderGridModel";
 import { uuid } from "../../core/utils/node-utils";
+import { showConfirmationDialog } from "../../features/dialogs/ConfirmationDialog";
 import { NoteItem, NotebookData, NotebookEditorProps } from "./notebookTypes";
 
 // =============================================================================
 // State
 // =============================================================================
 
+export type ExpandedPanel = "tags" | "categories";
+
 export const defaultNotebookEditorState = {
     data: { notes: [], state: {} } as NotebookData,
     error: undefined as string | undefined,
     leftPanelWidth: 200,
+    expandedPanel: "categories" as ExpandedPanel,
 };
 
 export type NotebookEditorState = typeof defaultNotebookEditorState;
@@ -115,7 +119,7 @@ export class NotebookEditorModel extends TComponentModel<
                 content: "",
                 editor: "monaco",
             },
-            comment: "",
+            // comment is undefined by default, shows "Add comment" button
             createdDate: now,
             updatedDate: now,
         };
@@ -132,7 +136,26 @@ export class NotebookEditorModel extends TComponentModel<
         });
     };
 
-    deleteNote = (id: string) => {
+    setExpandedPanel = (panel: string) => {
+        this.state.update((s) => {
+            s.expandedPanel = panel as ExpandedPanel;
+        });
+    };
+
+    deleteNote = async (id: string) => {
+        const note = this.getNote(id);
+        const noteTitle = note?.title || "this note";
+
+        const result = await showConfirmationDialog({
+            title: "Delete Note",
+            message: `Are you sure you want to delete "${noteTitle}"?`,
+            buttons: ["Delete", "Cancel"],
+        });
+
+        if (result !== "Delete") {
+            return;
+        }
+
         this.state.update((s) => {
             s.data.notes = s.data.notes.filter((note) => note.id !== id);
             // Also clean up any state for this note
@@ -146,8 +169,24 @@ export class NotebookEditorModel extends TComponentModel<
     };
 
     addComment = (id: string) => {
-        // TODO: Implement add comment dialog/input
-        console.log("Add comment to note:", id);
+        // Initialize comment field with empty string so it shows the TextAreaField
+        this.state.update((s) => {
+            const note = s.data.notes.find((n) => n.id === id);
+            if (note && note.comment === undefined) {
+                note.comment = "";
+                note.updatedDate = new Date().toISOString();
+            }
+        });
+    };
+
+    updateNoteComment = (id: string, comment: string) => {
+        this.state.update((s) => {
+            const note = s.data.notes.find((n) => n.id === id);
+            if (note) {
+                note.comment = comment;
+                note.updatedDate = new Date().toISOString();
+            }
+        });
     };
 
     // =========================================================================
@@ -203,8 +242,7 @@ export class NotebookEditorModel extends TComponentModel<
     // =========================================================================
 
     getNoteHeight = (id: string): number | undefined => {
-        const noteState = this.state.get().data.state[id];
-        return noteState?.contentHeight;
+        return this.state.get().data.state[id]?.contentHeight;
     };
 
     setNoteHeight = (id: string, height: number) => {

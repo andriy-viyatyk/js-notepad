@@ -97,18 +97,32 @@ const RenderGridStyled = styled(RenderGrid)(
             backgroundColor: color.grid.selectionColor.selected,
             pointerEvents: "none",
         },
+        // Selection border - gray when not focused, blue when focused
         "& .data-cell.inSelectionTop:not(.focused)::before": {
-            borderTop: `1px solid ${color.grid.selectionColor.border}`,
+            borderTop: `1px solid ${color.border.default}`,
         },
         "& .data-cell.inSelectionBottom:not(.focused)::before": {
-            borderBottom: `1px solid ${color.grid.selectionColor.border}`,
+            borderBottom: `1px solid ${color.border.default}`,
         },
         "& .data-cell.inSelectionLeft:not(.focused)::before": {
-            borderLeft: `1px solid ${color.grid.selectionColor.border}`,
+            borderLeft: `1px solid ${color.border.default}`,
         },
         "& .data-cell.inSelectionRight:not(.focused)::before": {
+            borderRight: `1px solid ${color.border.default}`,
+        },
+        "&:focus-within .data-cell.inSelectionTop:not(.focused)::before": {
+            borderTop: `1px solid ${color.grid.selectionColor.border}`,
+        },
+        "&:focus-within .data-cell.inSelectionBottom:not(.focused)::before": {
+            borderBottom: `1px solid ${color.grid.selectionColor.border}`,
+        },
+        "&:focus-within .data-cell.inSelectionLeft:not(.focused)::before": {
+            borderLeft: `1px solid ${color.grid.selectionColor.border}`,
+        },
+        "&:focus-within .data-cell.inSelectionRight:not(.focused)::before": {
             borderRight: `1px solid ${color.grid.selectionColor.border}`,
         },
+        // Focused cell border - gray when grid not focused, blue when focused
         "& .data-cell.focused::before": {
             content: "''",
             position: "absolute",
@@ -118,6 +132,9 @@ const RenderGridStyled = styled(RenderGrid)(
             right: 0,
             backgroundColor: color.grid.selectionColor.selected,
             pointerEvents: "none",
+            border: `1px solid ${color.border.default}`,
+        },
+        "&:focus-within .data-cell.focused::before": {
             border: `1px solid ${color.grid.selectionColor.border}`,
         },
         "& .cell-check-icon": {

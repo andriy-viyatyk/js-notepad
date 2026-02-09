@@ -8,6 +8,7 @@ import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import color from "../../theme/color";
 import { CircleIcon, DeleteIcon, WindowMaximizeIcon } from "../../theme/icons";
 import { Button } from "../../components/basic/Button";
+import { TextAreaField } from "../../components/basic/TextAreaField";
 import { EditorConfigProvider, EditorStateStorageProvider, useObjectStateStorage } from "../base";
 
 // Max height for editors embedded in note items
@@ -23,6 +24,7 @@ interface NoteItemViewProps {
     onDelete?: (id: string) => void;
     onExpand?: (id: string) => void;
     onAddComment?: (id: string) => void;
+    onCommentChange?: (id: string, comment: string) => void;
     onTitleChange?: (id: string, title: string) => void;
     /** Ref for RenderFlexGrid height detection */
     cellRef?: RefObject<HTMLDivElement>;
@@ -39,7 +41,8 @@ const NoteItemRoot = styled.div({
     display: "flex",
     flexDirection: "column",
     backgroundColor: color.background.default,
-    padding: "8px 48px 8px 24px",  // Extra left padding for dot, right for scroll area
+    padding: "8px 48px 8px 24px",  // Extra left padding for dot, right for deactivation area
+    position: "relative",
 
     // Note indicator dot with vertical line - absolute positioned
     "& .note-indicator": {
@@ -163,7 +166,7 @@ const NoteItemRoot = styled.div({
         flex: 1,
         border: "none",
         background: "transparent",
-        color: color.text.default,
+        color: color.text.strong,
         fontSize: 14,
         fontWeight: 500,
         outline: "none",
@@ -178,10 +181,30 @@ const NoteItemRoot = styled.div({
 
     // Content area - height controlled by editor inside
     "& .content-area": {
+        position: "relative",
         border: "1px solid transparent",
         borderRadius: 2,
         margin: "0 4px",
         transition: "border-color 0.15s ease",
+        // Semi-transparent overlay when note is not focused
+        "&::before": {
+            content: "''",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: color.background.default,
+            opacity: 0.5,
+            pointerEvents: "none",
+            zIndex: 1,
+            transition: "opacity 0.15s ease",
+        },
+    },
+
+    // Remove overlay when note item is focused
+    "&:focus-within .content-area::before": {
+        opacity: 0,
     },
 
     // Comment section
@@ -191,9 +214,19 @@ const NoteItemRoot = styled.div({
         flexShrink: 0,
     },
 
-    "& .comment-text": {
+    "& .comment-field": {
+        maxHeight: 160, // ~8 lines of text
+        overflowY: "auto",
+        fontSize: 12,
         color: color.text.light,
         fontStyle: "italic",
+        backgroundColor: "transparent",
+        border: "none",
+        borderRadius: 0,
+        padding: "4px 0",
+        "&:focus": {
+            borderColor: "transparent",
+        },
     },
 
     "& .add-comment-btn": {
@@ -205,6 +238,16 @@ const NoteItemRoot = styled.div({
         "&:hover": {
             opacity: 1,
         },
+    },
+
+    // Right-side deactivation area - clicking here unfocuses the note item
+    "& .deactivation-area": {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 48,
+        cursor: "default",
     },
 });
 
@@ -218,6 +261,7 @@ export function NoteItemView({
     onDelete,
     onExpand,
     onAddComment,
+    onCommentChange,
     onTitleChange,
     cellRef,
 }: NoteItemViewProps) {
@@ -254,10 +298,12 @@ export function NoteItemView({
             const hasFocus = element.contains(document.activeElement);
 
             if (!hasFocus) {
+                // Prevent default scroll behavior on nested scrollable elements (e.g., Markdown view)
+                e.preventDefault();
                 // Stop the event from reaching nested editors (Monaco, Grid)
                 e.stopPropagation();
 
-                // Find the notebook's scroll container and scroll it manually
+                // Find the notebook's scroll container and scroll it
                 const scrollContainer = element.closest("#avg-container");
                 if (scrollContainer) {
                     scrollContainer.scrollTop += e.deltaY;
@@ -267,7 +313,8 @@ export function NoteItemView({
         };
 
         // Use capture phase to intercept BEFORE event reaches nested editors
-        element.addEventListener("wheel", handleWheel, { capture: true, passive: true });
+        // Note: passive: false is required to allow preventDefault()
+        element.addEventListener("wheel", handleWheel, { capture: true, passive: false });
 
         return () => {
             element.removeEventListener("wheel", handleWheel, { capture: true });
@@ -299,8 +346,32 @@ export function NoteItemView({
         onTitleChange?.(note.id, e.target.value);
     };
 
+    const handleCommentChange = (value: string) => {
+        onCommentChange?.(note.id, value);
+    };
+
+    const handleDeactivate = () => {
+        // Focus the scroll container instead of just blurring
+        // This ensures keyboard shortcuts (like Ctrl+S) continue to work
+        const element = noteItemRef.current;
+        if (element) {
+            const scrollContainer = element.closest("#avg-container") as HTMLElement;
+            if (scrollContainer) {
+                scrollContainer.focus();
+                return;
+            }
+        }
+        // Fallback: blur active element
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+    };
+
     return (
         <NoteItemRoot ref={setRefs} tabIndex={0}>
+            {/* Right-side area to deactivate note item */}
+            <div className="deactivation-area" onClick={handleDeactivate} />
+
             {/* Note indicator dot */}
             <div className="note-indicator">
                 <CircleIcon />
@@ -344,7 +415,7 @@ export function NoteItemView({
                     <input
                         className="title-input"
                         type="text"
-                        placeholder="Untitled note"
+                        placeholder="note title..."
                         value={note.title}
                         onChange={handleTitleChange}
                     />
@@ -362,8 +433,13 @@ export function NoteItemView({
 
             {/* Comment section - always show if has comment, show add button on hover */}
             <div className="comment-section">
-                {note.comment ? (
-                    <span className="comment-text">{note.comment}</span>
+                {note.comment !== undefined ? (
+                    <TextAreaField
+                        className="comment-field"
+                        value={note.comment}
+                        onChange={handleCommentChange}
+                        placeholder="Add a comment..."
+                    />
                 ) : (
                     <span
                         className="add-comment-btn"

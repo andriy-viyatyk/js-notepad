@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../../components/basic/Button";
+import { CollapsiblePanel, CollapsiblePanelStack } from "../../components/layout/CollapsiblePanelStack";
 import { Splitter } from "../../components/layout/Splitter";
 import {
     RenderFlexCellParams,
@@ -35,16 +36,7 @@ const NotebookEditorRoot = styled.div({
         minWidth: 100,
         maxWidth: "80%",
     },
-    "& .panel-header": {
-        padding: "8px 12px",
-        fontSize: 12,
-        fontWeight: 500,
-        color: color.text.light,
-        borderBottom: `1px solid ${color.background.light}`,
-    },
-    "& .panel-content": {
-        flex: 1,
-        overflow: "auto",
+    "& .left-panel-content": {
         padding: 8,
         color: color.text.light,
         fontSize: 13,
@@ -123,11 +115,13 @@ export function NotebookEditor(props: NotebookEditorProps) {
             if (!note) return null;
             return (
                 <NoteItemView
+                    key={note.id}
                     note={note}
                     notebookModel={pageModel}
                     onDelete={pageModel.deleteNote}
                     onExpand={pageModel.expandNote}
                     onAddComment={pageModel.addComment}
+                    onCommentChange={pageModel.updateNoteComment}
                     onTitleChange={pageModel.updateNoteTitle}
                     cellRef={p.ref}
                 />
@@ -169,15 +163,19 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     model.editorToolbarRefLast
                 )}
             <NotebookEditorRoot>
-                <div
+                <CollapsiblePanelStack
                     className="left-panel"
                     style={{ width: pageState.leftPanelWidth }}
+                    activePanel={pageState.expandedPanel}
+                    setActivePanel={pageModel.setExpandedPanel}
                 >
-                    <div className="panel-header">Categories</div>
-                    <div className="panel-content">
-                        (categories will be here)
-                    </div>
-                </div>
+                    <CollapsiblePanel id="tags" title="Tags">
+                        <div className="left-panel-content">(tags will be here)</div>
+                    </CollapsiblePanel>
+                    <CollapsiblePanel id="categories" title="Categories">
+                        <div className="left-panel-content">(categories will be here)</div>
+                    </CollapsiblePanel>
+                </CollapsiblePanelStack>
                 <Splitter
                     type="vertical"
                     initialWidth={pageState.leftPanelWidth}
@@ -203,7 +201,7 @@ export function NotebookEditor(props: NotebookEditorProps) {
                             renderCell={renderNoteCell}
                             fitToWidth
                             minRowHeight={100}
-                            maxRowHeight={600}
+                            maxRowHeight={800}
                             getInitialRowHeight={getInitialRowHeight}
                         />
                     )}

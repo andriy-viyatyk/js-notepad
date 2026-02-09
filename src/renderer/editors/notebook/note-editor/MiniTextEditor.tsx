@@ -45,6 +45,7 @@ export function MiniTextEditor({ model }: MiniTextEditorProps) {
     return (
         <MiniTextEditorRoot style={{ height: contentHeight }}>
             <Editor
+                key={model.id}  // Force remount when note changes (ensures onMount is called)
                 height={contentHeight}
                 value={content}
                 language={language}

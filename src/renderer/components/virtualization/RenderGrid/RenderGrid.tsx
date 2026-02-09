@@ -88,6 +88,7 @@ const RenderGrid = React.forwardRef<RenderGridModel, RenderGridProps>(function R
             <div
                 id="avg-container"
                 ref={model.containerRef.ref as RefType<HTMLDivElement>}
+                tabIndex={-1}
                 style={{
                     width: props.growToWidth ? 'unset' : size.width,
                     height: props.growToHeight ? 'unset' : size.height,
@@ -95,6 +96,7 @@ const RenderGrid = React.forwardRef<RenderGridModel, RenderGridProps>(function R
                     maxWidth: props.growToWidth ?? 'unset',
                     overflowY: 'auto',
                     overflowX: model.props.fitToWidth ? 'hidden' : 'auto',
+                    outline: 'none',
                     ...model.blockStyles?.container,
                 }}
                 onScroll={model.onScroll}
