@@ -154,9 +154,9 @@ Status label showing: "Total: X | Filtered: Y | Selected: Z"
 - [x] Can create new notes with auto-generated ID and timestamps
 - [x] Can edit note title, category, tags, content, and comment
 - [x] Can delete notes
-- [ ] Categories collected dynamically and displayed in left panel
+- [x] Categories collected dynamically and displayed in left panel
 - [ ] Tags collected dynamically and displayed in left panel
-- [ ] Can filter notes by category or tag selection
+- [x] Can filter notes by category or tag selection (category implemented)
 - [ ] Search functionality works
 - [x] Notes list is virtualized (RenderFlexGrid)
 - [x] New items appear at top of list
@@ -392,12 +392,64 @@ interface EditorStateStorage {
 - [x] Delete note confirmation dialog
 - [x] Fix: New note height not updating (key prop on NoteItemView/Editor)
 - [x] Fix: Scroll area height incorrect on file load (clamp initial heights)
+- [x] TreeView component with virtualization
+- [x] CategoryTree component for hierarchical category display
+- [x] Breadcrumb component for navigation
+- [x] Categories panel with note counts
+- [x] Filter notes by category selection
+- [x] Breadcrumb navigation in toolbar
+- [x] New notes inherit selected category
+
+### Categories Panel & Filtering ✅
+
+Implemented category tree panel with filtering and breadcrumb navigation:
+
+**New Components:**
+
+1. **TreeView** (`components/TreeView/`):
+   - Virtualized tree component using RenderGrid
+   - Supports expand/collapse, selection, drag & drop
+   - `rootCollapsible` prop to disable root collapsing
+   - `refreshKey` prop to trigger re-render on external state changes
+   - Files: `TreeView.tsx`, `TreeView.model.ts`, `index.ts`
+
+2. **CategoryTree** (`components/TreeView/CategoryTree.tsx`):
+   - Builds tree structure from flat category paths
+   - Auto-creates hierarchy from paths like "project/settings/dev"
+   - Sorts categories alphabetically
+
+3. **Breadcrumb** (`components/basic/Breadcrumb.tsx`):
+   - Reusable breadcrumb navigation component
+   - Props: `rootLabel`, `value`, `onChange`, `separators`
+   - Clickable segments for quick navigation
+   - Current segment highlighted in blue
+
+**NotebookEditorModel additions:**
+- `categories` state - list of unique categories from notes
+- `categoriesSize` state - note count per category (including parent paths)
+- `selectedCategory` state - current filter
+- `filteredNotes` state - notes matching current filters
+- `loadCategories()` - extracts categories and counts from notes
+- `applyFilters()` - filters notes by selected category
+- `setSelectedCategory()` - updates filter and refreshes
+- `getCategoryItemSelected()` - for tree selection highlight
+- `getCategorySize()` - for displaying note counts
+
+**UI Features:**
+- Left panel with collapsible Categories and Tags sections
+- CategoryTree shows all categories with note counts
+- Selecting category filters the notes list
+- New notes inherit selected category
+- Breadcrumb in header shows current category path
+- Clicking breadcrumb segments navigates up hierarchy
+
+**Utilities added:**
+- `splitWithSeparators()` in `core/utils/utils.ts` - splits string by multiple separators
 
 ## Remaining Work
 
-- [ ] Categories panel implementation (dynamic collection, tree view)
 - [ ] Tags panel implementation (dynamic collection, grouped view)
-- [ ] Filter notes by category/tag selection
+- [ ] Filter notes by tag selection
 - [ ] Search functionality
 - [ ] Expand note to full editor (portal)
 - [ ] Comment editing UI

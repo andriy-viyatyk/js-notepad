@@ -2,7 +2,9 @@ import { debounce } from "../../../shared/utils";
 import { TComponentModel } from "../../core/state/model";
 import RenderGridModel from "../../components/virtualization/RenderGrid/RenderGridModel";
 import { uuid } from "../../core/utils/node-utils";
+import { splitWithSeparators } from "../../core/utils/utils";
 import { showConfirmationDialog } from "../../features/dialogs/ConfirmationDialog";
+import { CategoryTreeItem } from "../../components/TreeView";
 import { NoteItem, NotebookData, NotebookEditorProps } from "./notebookTypes";
 
 // =============================================================================
@@ -16,6 +18,14 @@ export const defaultNotebookEditorState = {
     error: undefined as string | undefined,
     leftPanelWidth: 200,
     expandedPanel: "categories" as ExpandedPanel,
+    // Category tree
+    categories: [] as string[],
+    categoriesSize: {} as { [key: string]: number },
+    // Filtering
+    selectedCategory: "" as string, // empty means "All"
+    // selectedTag: "" as string,   // future: tag filtering
+    // searchText: "" as string,    // future: text search
+    filteredNotes: [] as NoteItem[],
 };
 
 export type NotebookEditorState = typeof defaultNotebookEditorState;
@@ -95,6 +105,9 @@ export class NotebookEditorModel extends TComponentModel<
             });
             // Mark loaded data as already serialized so we don't save it back
             this.lastSerializedData = this.state.get().data;
+            // Build category tree and apply filters
+            this.loadCategories();
+            this.applyFilters();
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
             this.state.update((s) => {
@@ -109,10 +122,11 @@ export class NotebookEditorModel extends TComponentModel<
 
     addNote = () => {
         const now = new Date().toISOString();
+        const { selectedCategory } = this.state.get();
         const newNote: NoteItem = {
             id: uuid(),
             title: "",
-            category: "",
+            category: selectedCategory,
             tags: [],
             content: {
                 language: "plaintext",
@@ -128,6 +142,8 @@ export class NotebookEditorModel extends TComponentModel<
         this.state.update((s) => {
             s.data.notes.unshift(newNote);
         });
+        this.loadCategories();
+        this.applyFilters();
     };
 
     setLeftPanelWidth = (width: number) => {
@@ -139,6 +155,98 @@ export class NotebookEditorModel extends TComponentModel<
     setExpandedPanel = (panel: string) => {
         this.state.update((s) => {
             s.expandedPanel = panel as ExpandedPanel;
+        });
+    };
+
+    // =========================================================================
+    // Category management
+    // =========================================================================
+
+    /**
+     * Extract all categories from notes and calculate how many notes per category.
+     * This includes parent categories (e.g., "project" gets count from "project/settings").
+     */
+    loadCategories = () => {
+        const notes = this.state.get().data.notes;
+        const categoriesSet = new Set<string>();
+        const categoriesSize: { [key: string]: number } = {};
+
+        notes.forEach((note) => {
+            if (note.category) {
+                categoriesSet.add(note.category);
+                // Count for each level of the category path
+                const categoryPath = splitWithSeparators(note.category, "/\\");
+                while (categoryPath.length) {
+                    const subCategory = categoryPath.join("/");
+                    categoriesSize[subCategory] = (categoriesSize[subCategory] || 0) + 1;
+                    categoryPath.pop();
+                }
+            }
+            // Count for "All" (root)
+            categoriesSize[""] = (categoriesSize[""] || 0) + 1;
+        });
+
+        this.state.update((s) => {
+            s.categories = Array.from(categoriesSet);
+            s.categoriesSize = categoriesSize;
+        });
+    };
+
+    categoryItemClick = (item: CategoryTreeItem) => {
+        this.setSelectedCategory(item.category);
+    };
+
+    setSelectedCategory = (category: string) => {
+        this.state.update((s) => {
+            s.selectedCategory = category;
+        });
+        this.applyFilters();
+    };
+
+    getCategoryItemSelected = (item: CategoryTreeItem): boolean => {
+        return item.category === this.state.get().selectedCategory;
+    };
+
+    getCategorySize = (category: string): number | undefined => {
+        return this.state.get().categoriesSize[category];
+    };
+
+    // =========================================================================
+    // Filtering
+    // =========================================================================
+
+    /**
+     * Apply all active filters and update filteredNotes state.
+     * Currently filters by: selectedCategory
+     * Future: selectedTag, searchText
+     */
+    applyFilters = () => {
+        const { data, selectedCategory } = this.state.get();
+        let filtered = data.notes;
+
+        // Filter by category
+        if (selectedCategory) {
+            filtered = filtered.filter(
+                (note) => note.category?.startsWith(selectedCategory)
+            );
+        }
+
+        // Future: Filter by tag
+        // if (selectedTag) {
+        //     filtered = filtered.filter(note => note.tags?.includes(selectedTag));
+        // }
+
+        // Future: Filter by search text
+        // if (searchText) {
+        //     const search = searchText.toLowerCase();
+        //     filtered = filtered.filter(note =>
+        //         note.title?.toLowerCase().includes(search) ||
+        //         note.content.content?.toLowerCase().includes(search)
+        //     );
+        // }
+
+        this.state.update((s) => {
+            s.filteredNotes = filtered;
         });
     };
 
@@ -161,6 +269,8 @@ export class NotebookEditorModel extends TComponentModel<
             // Also clean up any state for this note
             delete s.data.state[id];
         });
+        this.loadCategories();
+        this.applyFilters();
     };
 
     expandNote = (id: string) => {

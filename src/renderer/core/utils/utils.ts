@@ -18,3 +18,17 @@ export const range = (from: number, to: number) => from <= to
 export function toClipboard(text: string): void {
     navigator.clipboard.writeText(text);
 }
+
+export function splitWithSeparators(text: string, separators: string, withTrim = true): string[] {
+    // Escape special regex characters in the separators string
+    const escapedSeparators = separators.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // Create a character class regex from the separators
+    const regex = new RegExp(`[${escapedSeparators}]`);
+
+    let res = text.split(regex);
+    if (withTrim) {
+        res = res.map(part => part.trim()).filter(part => part);
+    }
+    return res;
+}

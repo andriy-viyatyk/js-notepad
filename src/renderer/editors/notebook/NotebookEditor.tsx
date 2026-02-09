@@ -1,15 +1,18 @@
 import styled from "@emotion/styled";
 import { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Breadcrumb } from "../../components/basic/Breadcrumb";
 import { Button } from "../../components/basic/Button";
 import { CollapsiblePanel, CollapsiblePanelStack } from "../../components/layout/CollapsiblePanelStack";
 import { Splitter } from "../../components/layout/Splitter";
+import { CategoryTree, CategoryTreeItem } from "../../components/TreeView";
 import {
     RenderFlexCellParams,
     RenderFlexGrid,
 } from "../../components/virtualization/RenderGrid/RenderFlexGrid";
 import { Percent } from "../../components/virtualization/RenderGrid/types";
 import { useComponentModel } from "../../core/state/model";
+import { splitWithSeparators } from "../../core/utils/utils";
 import color from "../../theme/color";
 import { PlusIcon } from "../../theme/icons";
 import {
@@ -40,6 +43,25 @@ const NotebookEditorRoot = styled.div({
         padding: 8,
         color: color.text.light,
         fontSize: 13,
+    },
+    "& .category-tree-container": {
+        flex: 1,
+        display: "flex",
+        overflow: "hidden",
+        fontSize: 13,
+    },
+    "& .category-label-name": {
+        flex: "1 1 auto",
+    },
+    "& .category-label-size": {
+        margin: "0 4px",
+        fontSize: 12,
+    },
+    "& .tree-cell": {
+        color: color.text.light,
+        "&.selected": {
+            color: color.misc.blue,
+        },
     },
     "& .center-panel": {
         flex: 1,
@@ -92,7 +114,8 @@ export function NotebookEditor(props: NotebookEditorProps) {
     );
     const state = model.state.use();
     const pageState = pageModel.state.use();
-    const notes = pageState.data.notes;
+    const allNotes = pageState.data.notes;
+    const notes = pageState.filteredNotes;
 
     useEffect(() => {
         pageModel.init();
@@ -140,6 +163,23 @@ export function NotebookEditor(props: NotebookEditorProps) {
         [notes, pageModel]
     );
 
+    // Category tree label with note count
+    const getTreeItemLabel = useCallback(
+        (item: CategoryTreeItem) => {
+            const name = splitWithSeparators(item.category, "/\\").pop() || "";
+            const size = pageModel.getCategorySize(item.category);
+            return (
+                <>
+                    <span className="category-label-name">{name || "All"}</span>
+                    {size !== undefined && (
+                        <span className="category-label-size">{size}</span>
+                    )}
+                </>
+            );
+        },
+        [pageModel, pageState.categoriesSize]
+    );
+
     if (pageState.error) {
         return (
             <NotebookEditorRoot>
@@ -150,6 +190,15 @@ export function NotebookEditor(props: NotebookEditorProps) {
 
     return (
         <>
+            {Boolean(model.editorToolbarRefFirst) &&
+                createPortal(
+                    <Breadcrumb
+                        rootLabel="Categories"
+                        value={pageState.selectedCategory}
+                        onChange={pageModel.setSelectedCategory}
+                    />,
+                    model.editorToolbarRefFirst
+                )}
             {Boolean(model.editorToolbarRefLast) &&
                 createPortal(
                     <Button
@@ -173,7 +222,18 @@ export function NotebookEditor(props: NotebookEditorProps) {
                         <div className="left-panel-content">(tags will be here)</div>
                     </CollapsiblePanel>
                     <CollapsiblePanel id="categories" title="Categories">
-                        <div className="left-panel-content">(categories will be here)</div>
+                        <div className="category-tree-container">
+                            <CategoryTree
+                                categories={pageState.categories}
+                                separators="/\"
+                                rootLabel="All"
+                                rootCollapsible={false}
+                                onItemClick={pageModel.categoryItemClick}
+                                getSelected={pageModel.getCategoryItemSelected}
+                                getLabel={getTreeItemLabel}
+                                refreshKey={pageState.selectedCategory}
+                            />
+                        </div>
                     </CollapsiblePanel>
                 </CollapsiblePanelStack>
                 <Splitter
@@ -183,13 +243,17 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     borderSized="right"
                 />
                 <div className="center-panel">
-                    {notes.length === 0 ? (
+                    {allNotes.length === 0 ? (
                         <div className="empty-state">
                             <div className="title">Notes</div>
                             <div className="subtitle">No notes yet</div>
                             <div className="subtitle">
                                 Click "Add Note" to create your first note
                             </div>
+                        </div>
+                    ) : notes.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="subtitle">No notes match the current filter</div>
                         </div>
                     ) : (
                         <RenderFlexGrid

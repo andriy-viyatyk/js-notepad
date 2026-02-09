@@ -88,7 +88,10 @@ const PanelStackRoot = styled.div({
 
     "& .panel-content": {
         flex: 1,
+        display: "flex",
+        flexDirection: "column",
         overflow: "auto",
+        backgroundColor: color.background.default,
     },
 });
 
