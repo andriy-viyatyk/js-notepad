@@ -399,6 +399,12 @@ interface EditorStateStorage {
 - [x] Filter notes by category selection
 - [x] Breadcrumb navigation in toolbar
 - [x] New notes inherit selected category
+- [x] Inline tag editing (add, remove, edit) on note items
+- [x] PathInput `maxDepth` prop for limiting suggestion depth
+- [x] PathInput Escape cancellation (no save on Escape)
+- [x] Fix: PathInput double onBlur on Enter commit
+- [x] Search text highlighting in note items (category, tags, title/comment tint)
+- [x] NoteItemView model-view refactor (`NoteItemViewModel` + `NoteItemView`)
 
 ### Categories Panel & Filtering ✅
 
@@ -540,6 +546,65 @@ When opening a notebook file, the scroll indicator showed incorrect size (too la
 **Root cause:** Stored heights in notebook JSON were not clamped to `maxRowHeight`. Heights were stored as raw Monaco content heights (e.g., 5507px), but RenderFlexGrid has `maxRowHeight={800}`. When calculating scroll area, unclamped stored heights were used, causing mismatch.
 
 **Fix:** Added `clampHeight()` helper to `RenderFlexGridModel` and applied same min/max clamping to initial heights from `getInitialRowHeight` callback, matching the clamping already applied in `setRowHeight()`.
+
+### Inline Tag Editing ✅
+
+Implemented add, remove, and edit functionality for tags on individual note items:
+
+**NoteItem UI changes:**
+- Tags displayed in a `row-reverse` flex container (overflow clips from left, keeping rightmost tags visible)
+- Each tag shows a small `×` delete button on hover
+- `[+]` button at the end of tags row opens PathInput for adding new tags
+- Click on existing tag opens PathInput for inline editing
+- Tags rendered in natural array order with `+` button at the end
+
+**NotebookEditorModel additions:**
+- `addNoteTag(id, tag)` - appends tag to note's tags array
+- `removeNoteTag(id, tagIndex)` - removes tag by index
+- `updateNoteTag(id, tagIndex, newTag)` - replaces tag at index
+- All methods reload tags list and re-apply filters
+
+**PathInput enhancements:**
+- `maxDepth` prop - limits suggestion popup depth (used with `maxDepth={1}` and `separator=":"` for tags)
+- Escape cancellation - pressing Escape twice calls `onBlur()` with `undefined` (signals cancel, no save)
+- `escapeCancelled` flag prevents double `onBlur` calls (same pattern as existing `selectionMade`)
+- `selectionMade` flag now also set on direct Enter commit (prevents duplicate `onBlur` from `handleBlur` timeout)
+
+**NoteItem callback props added:**
+- `tags: string[]` - available tags for PathInput autocomplete
+- `onTagAdd(id, tag)` - add new tag
+- `onTagRemove(id, tagIndex)` - remove tag by index
+- `onTagUpdate(id, tagIndex, newTag)` - edit existing tag
+
+**Category editing fix:**
+- `handleCategoryBlur` now respects `undefined` finalValue as cancel (same Escape behavior as tags)
+
+### Search Text Highlighting ✅
+
+Added search text highlighting to note items when user types in the search field:
+
+- **Category badge:** Matching text highlighted in blue using `highlightText()` from `useHighlightedText`
+- **Tag badges:** Matching text highlighted in blue
+- **Title input:** Text turns blue when it contains a search match (inputs can't render ReactNode, so uses color tint)
+- **Comment field:** Text turns blue when it contains a search match
+- **Toolbar visibility:** First toolbar (category, tags, date) becomes visible for all notes when searching (`&.searching` CSS class)
+- Wrapped note list with `HighlightedTextProvider` in `NotebookEditor.tsx`
+
+### NoteItemView Model-View Refactor ✅
+
+Migrated `NoteItemView` to the model-view pattern (see `doc/standards/model-view-pattern.md`):
+
+- **`NoteItemViewModel.ts`** — model class with all state, handlers, and logic
+  - 6 state fields (was 6 `useState` hooks)
+  - 14 handler methods (was plain functions)
+  - Lazy `editModel` getter (was `useMemo`)
+  - `noteItemRef` + `setRefs` (was `useRef` + `useCallback`)
+  - Wheel event lifecycle in `init()`/`dispose()`
+  - `searchText` property set by view from React context
+- **`NoteItemView.tsx`** — view component (renamed from `NoteItem.tsx`)
+  - Only React hooks that must stay in the view: `useHighlightedText`, `useObjectStateStorage`
+  - Lifecycle `useEffect` calls model `init()`/`dispose()`/`syncEditModel()`/`syncCategoryValue()`
+  - Pure rendering with model bindings
 
 ## Known Issues
 

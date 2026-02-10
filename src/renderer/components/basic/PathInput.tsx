@@ -85,6 +85,10 @@ export interface PathInputProps {
     onBlur?: (finalValue?: string) => void;
     /** Auto-focus input on mount with caret at end */
     autoFocus?: boolean;
+    /** Maximum depth of suggestions to show. When set, suggestions are hidden once
+     *  the input already contains this many separator-delimited segments.
+     *  E.g., maxDepth=1 with separator=":" hides popup after "parent:child" level. */
+    maxDepth?: number;
 }
 
 interface Suggestion {
@@ -117,8 +121,9 @@ class PathInputModel extends TComponentModel<PathInputState, PathInputProps> {
     private cachedSuggestions: Suggestion[] = [];
     private cachedSuggestionsKey = "";
 
-    // Flag to prevent double onBlur calls when selection is made via click
+    // Flags to prevent double onBlur calls
     private selectionMade = false;
+    private escapeCancelled = false;
 
     setInputRef = (ref: HTMLInputElement | null) => {
         this.inputRef = ref;
@@ -130,11 +135,26 @@ class PathInputModel extends TComponentModel<PathInputState, PathInputProps> {
     }
 
     get suggestions(): Suggestion[] {
-        const { value, paths } = this.props;
-        const key = `${value}|${paths.join(",")}|${this.separator}`;
+        const { value, paths, maxDepth } = this.props;
+        const key = `${value}|${paths.join(",")}|${this.separator}|${maxDepth}`;
 
         if (key !== this.cachedSuggestionsKey) {
             this.cachedSuggestionsKey = key;
+
+            // When maxDepth is set, hide suggestions once input has enough segments
+            if (maxDepth !== undefined && value) {
+                const segmentCount = value.split(this.separator).length;
+                // If value ends with separator, next segment hasn't started yet
+                const effectiveDepth = value.endsWith(this.separator)
+                    ? segmentCount - 1
+                    : segmentCount;
+                if (effectiveDepth > maxDepth) {
+                    this.cachedSuggestions = [];
+                    this.state.update((s) => { s.highlightedIndex = -1; });
+                    return this.cachedSuggestions;
+                }
+            }
+
             this.cachedSuggestions = this.getSuggestions(value, paths, this.separator);
 
             // Reset highlighted index when suggestions change (no selection)
@@ -193,10 +213,11 @@ class PathInputModel extends TComponentModel<PathInputState, PathInputProps> {
                 });
                 e.preventDefault();
             } else if (e.key === "Escape") {
-                // Second Escape - blur input and exit edit mode
+                // Second Escape - cancel and exit edit mode
                 e.preventDefault();
+                this.escapeCancelled = true;
                 this.inputRef?.blur();
-                this.props.onBlur?.(value);
+                this.props.onBlur?.();
             }
             return;
         }
@@ -231,6 +252,7 @@ class PathInputModel extends TComponentModel<PathInputState, PathInputProps> {
                     this.selectSuggestion(suggestions[highlightedIndex]);
                 } else if (value !== "" && !value.endsWith(this.separator)) {
                     // No selection and input has value without trailing separator - apply input
+                    this.selectionMade = true;
                     this.state.update((s) => {
                         s.open = false;
                     });
@@ -276,9 +298,10 @@ class PathInputModel extends TComponentModel<PathInputState, PathInputProps> {
     handleBlur = () => {
         // Small delay to allow click on suggestion to fire first
         setTimeout(() => {
-            // Skip if selection was already made (onBlur was called from selectSuggestion)
-            if (this.selectionMade) {
+            // Skip if selection or escape already handled (onBlur was called from those handlers)
+            if (this.selectionMade || this.escapeCancelled) {
                 this.selectionMade = false;
+                this.escapeCancelled = false;
                 return;
             }
             if (!this.inputRef?.contains(document.activeElement)) {

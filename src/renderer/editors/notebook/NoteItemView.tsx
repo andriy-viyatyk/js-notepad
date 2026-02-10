@@ -1,44 +1,26 @@
 import styled from "@emotion/styled";
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NoteItem as NoteItemType } from "./notebookTypes";
-import { NotebookEditorModel } from "./NotebookEditorModel";
-import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
-import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
-import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
+import clsx from "clsx";
+import { useEffect } from "react";
+import { useComponentModel } from "../../core/state/model";
 import color from "../../theme/color";
-import { CircleIcon, DeleteIcon, WindowMaximizeIcon } from "../../theme/icons";
+import { CircleIcon, CloseIcon, DeleteIcon, PlusIcon, WindowMaximizeIcon } from "../../theme/icons";
 import { Button } from "../../components/basic/Button";
 import { PathInput } from "../../components/basic/PathInput";
 import { TextAreaField } from "../../components/basic/TextAreaField";
+import { highlightText, useHighlightedText } from "../../components/basic/useHighlightedText";
 import { EditorConfigProvider, EditorStateStorageProvider, useObjectStateStorage } from "../base";
+import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
+import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
+import { NoteItemViewProps, NoteItemViewModel, defaultNoteItemViewState } from "./NoteItemViewModel";
 
 // Max height for editors embedded in note items
 const NOTE_EDITOR_MAX_HEIGHT = 400;
 
 // =============================================================================
-// Types
-// =============================================================================
-
-interface NoteItemViewProps {
-    note: NoteItemType;
-    notebookModel: NotebookEditorModel;
-    /** Available categories for autocomplete */
-    categories: string[];
-    onDelete?: (id: string) => void;
-    onExpand?: (id: string) => void;
-    onAddComment?: (id: string) => void;
-    onCommentChange?: (id: string, comment: string) => void;
-    onTitleChange?: (id: string, title: string) => void;
-    onCategoryChange?: (id: string, category: string) => void;
-    /** Ref for RenderFlexGrid height detection */
-    cellRef?: RefObject<HTMLDivElement>;
-}
-
-// =============================================================================
 // Styles
 // =============================================================================
 
-const NoteItemRoot = styled.div({
+const NoteItemViewRoot = styled.div({
     width: "100%",
     height: "fit-content",
     boxSizing: "border-box",
@@ -120,6 +102,11 @@ const NoteItemRoot = styled.div({
         transition: "opacity 0.15s ease",
     },
 
+    // Show toolbar when searching (search text is active)
+    "&.searching .toolbar-hover-content": {
+        opacity: 1,
+    },
+
     // Hover/focus states - show hidden elements
     "&:hover, &:focus-within": {
         "& .toolbar-hover-content": {
@@ -157,13 +144,77 @@ const NoteItemRoot = styled.div({
         },
     },
 
+    // Tags container - shrinks and overflows to the left when space is limited
+    "& .tags-container": {
+        display: "flex",
+        flexDirection: "row-reverse", // Lays out right-to-left; overflow clips from left
+        alignItems: "center",
+        gap: 4,
+        minWidth: 0,        // Allow shrinking
+        overflow: "hidden",
+        flexShrink: 1,
+    },
+
     "& .tag": {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
         padding: "2px 6px",
         backgroundColor: color.background.dark,
         borderRadius: 3,
         cursor: "pointer",
+        whiteSpace: "nowrap",
+        flexShrink: 0,     // Tags don't shrink individually
         "&:hover": {
             backgroundColor: color.background.light,
+        },
+        "& .tag-delete": {
+            display: "inline-flex",
+            alignItems: "center",
+            opacity: 0,
+            cursor: "pointer",
+            marginLeft: 2,
+            marginRight: -3,
+            "& svg": {
+                width: 12,
+                height: 12,
+            },
+            "&:hover": {
+                color: color.text.strong,
+            },
+        },
+        "&:hover .tag-delete": {
+            opacity: 1,
+        },
+    },
+
+    "& .tag-add-btn": {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2px 4px",
+        borderRadius: 2,
+        cursor: "pointer",
+        flexShrink: 0,
+        color: color.text.light,
+        backgroundColor: color.background.dark,
+        "& svg": {
+            width: 12,
+            height: 12,
+        },
+        "&:hover": {
+            backgroundColor: color.background.light,
+            color: color.text.default,
+        },
+    },
+
+    // Tag PathInput styling
+    "& .tag-path-input": {
+        "& .path-input-field": {
+            padding: "2px 6px",
+            fontSize: 12,
+            minWidth: 80,
+            maxWidth: 160,
         },
     },
 
@@ -174,6 +225,14 @@ const NoteItemRoot = styled.div({
     "& .date": {
         color: color.text.light,
         fontSize: 11,
+    },
+
+    // Search match tint for input fields
+    "& .title-input.search-match": {
+        color: color.misc.blue,
+    },
+    "& .comment-field.search-match": {
+        color: color.misc.blue,
     },
 
     // Title input
@@ -270,155 +329,48 @@ const NoteItemRoot = styled.div({
 // Component
 // =============================================================================
 
-export function NoteItemView({
-    note,
-    notebookModel,
-    categories,
-    onDelete,
-    onExpand,
-    onAddComment,
-    onCommentChange,
-    onTitleChange,
-    onCategoryChange,
-    cellRef,
-}: NoteItemViewProps) {
-    // Category editing state
-    const [editingCategory, setEditingCategory] = useState(false);
-    const [categoryValue, setCategoryValue] = useState(note.category);
+export function NoteItemView(props: NoteItemViewProps) {
+    const { note, notebookModel } = props;
 
-    // Create edit model for this note
-    const editModel = useMemo(() => {
-        return new NoteItemEditModel(notebookModel, note);
-    }, [note.id]); // Only recreate if note id changes
+    const model = useComponentModel(props, NoteItemViewModel, defaultNoteItemViewState);
+    const {
+        editingCategory,
+        categoryValue,
+        addingTag,
+        newTagValue,
+        editingTagIndex,
+        editingTagValue,
+    } = model.state.use();
 
-    // Create state storage backed by notebook's data.state
+    // React hooks that must stay in the view
+    const searchText = useHighlightedText();
+    model.searchText = searchText;
+
     const stateStorage = useObjectStateStorage(
         notebookModel.getNoteState,
         notebookModel.setNoteState
     );
 
-    // Internal ref for wheel event handling
-    const noteItemRef = useRef<HTMLDivElement>(null);
-
-    // Merge refs for both cellRef (RenderFlexGrid) and noteItemRef (wheel handling)
-    const setRefs = useCallback((element: HTMLDivElement | null) => {
-        noteItemRef.current = element;
-        if (cellRef) {
-            (cellRef as React.MutableRefObject<HTMLDivElement | null>).current = element;
-        }
-    }, [cellRef]);
-
-    // Capture wheel events to prevent nested editors from stealing scroll
-    // when the note item is not focused
+    // Lifecycle
     useEffect(() => {
-        const element = noteItemRef.current;
-        if (!element) return;
-
-        const handleWheel = (e: WheelEvent) => {
-            // Check if this note item or any child has focus
-            const hasFocus = element.contains(document.activeElement);
-
-            if (!hasFocus) {
-                // Prevent default scroll behavior on nested scrollable elements (e.g., Markdown view)
-                e.preventDefault();
-                // Stop the event from reaching nested editors (Monaco, Grid)
-                e.stopPropagation();
-
-                // Find the notebook's scroll container and scroll it
-                const scrollContainer = element.closest("#avg-container");
-                if (scrollContainer) {
-                    scrollContainer.scrollTop += e.deltaY;
-                    scrollContainer.scrollLeft += e.deltaX;
-                }
-            }
-        };
-
-        // Use capture phase to intercept BEFORE event reaches nested editors
-        // Note: passive: false is required to allow preventDefault()
-        element.addEventListener("wheel", handleWheel, { capture: true, passive: false });
-
-        return () => {
-            element.removeEventListener("wheel", handleWheel, { capture: true });
-        };
+        model.init();
+        return () => model.dispose();
     }, []);
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            editModel.dispose();
-        };
-    }, [editModel]);
 
     // Sync edit model when note data changes externally
     useEffect(() => {
-        editModel.syncFromNote(note);
+        model.syncEditModel();
     }, [note.content.content, note.content.language, note.content.editor]);
 
     // Sync category value when note category changes externally
     useEffect(() => {
-        if (!editingCategory) {
-            setCategoryValue(note.category);
-        }
+        model.syncCategoryValue();
     }, [note.category, editingCategory]);
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-    };
-
-    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onTitleChange?.(note.id, e.target.value);
-    };
-
-    const handleCommentChange = (value: string) => {
-        onCommentChange?.(note.id, value);
-    };
-
-    const handleCategoryClick = () => {
-        setCategoryValue(note.category);
-        setEditingCategory(true);
-    };
-
-    const handleCategoryChange = (value: string) => {
-        setCategoryValue(value);
-    };
-
-    const handleCategoryBlur = (finalValue?: string) => {
-        setEditingCategory(false);
-        // Use finalValue if provided (from selection), otherwise use current state
-        const valueToSave = finalValue ?? categoryValue;
-        if (valueToSave !== note.category) {
-            onCategoryChange?.(note.id, valueToSave);
-        }
-        // Focus note item to maintain active state after category edit
-        noteItemRef.current?.focus();
-    };
-
-    const handleDeactivate = () => {
-        // Focus the scroll container instead of just blurring
-        // This ensures keyboard shortcuts (like Ctrl+S) continue to work
-        const element = noteItemRef.current;
-        if (element) {
-            const scrollContainer = element.closest("#avg-container") as HTMLElement;
-            if (scrollContainer) {
-                scrollContainer.focus();
-                return;
-            }
-        }
-        // Fallback: blur active element
-        if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-        }
-    };
-
     return (
-        <NoteItemRoot ref={setRefs} tabIndex={0}>
+        <NoteItemViewRoot ref={model.setRefs} tabIndex={0} className={clsx(searchText && "searching")}>
             {/* Right-side area to deactivate note item */}
-            <div className="deactivation-area" onClick={handleDeactivate} />
+            <div className="deactivation-area" onClick={model.handleDeactivate} />
 
             {/* Note indicator dot */}
             <div className="note-indicator">
@@ -431,29 +383,69 @@ export function NoteItemView({
                     {editingCategory ? (
                         <PathInput
                             value={categoryValue}
-                            onChange={handleCategoryChange}
-                            onBlur={handleCategoryBlur}
-                            paths={categories}
+                            onChange={model.handleCategoryChange}
+                            onBlur={model.handleCategoryBlur}
+                            paths={props.categories}
                             placeholder="category..."
                             autoFocus
                         />
                     ) : (
-                        <span className="category" onClick={handleCategoryClick}>
-                            {note.category || "No category"}
+                        <span className="category" title="Category" onClick={model.handleCategoryClick}>
+                            {note.category ? highlightText(searchText, note.category) : "No category"}
                         </span>
                     )}
-                    {note.tags.map((tag: string) => (
-                        <span key={tag} className="tag">
-                            {tag}
-                        </span>
-                    ))}
+                    <div className="tags-container">
+                        {/* Render in reverse DOM order because row-reverse flips layout.
+                            Visual result: [tag0] [tag1] ... [tagN] [+button] */}
+                        {addingTag ? (
+                            <PathInput
+                                className="tag-path-input"
+                                value={newTagValue}
+                                onChange={model.handleNewTagChange}
+                                onBlur={model.handleNewTagBlur}
+                                paths={props.tags}
+                                separator=":"
+                                maxDepth={1}
+                                placeholder="tag..."
+                                autoFocus
+                            />
+                        ) : (
+                            <span className="tag-add-btn" title="Add tag" onClick={model.handleAddTagClick}>
+                                <PlusIcon />
+                            </span>
+                        )}
+                        {[...note.tags].reverse().map((tag: string, reverseIndex: number) => {
+                            const index = note.tags.length - 1 - reverseIndex;
+                            return editingTagIndex === index ? (
+                                <PathInput
+                                    key={index}
+                                    className="tag-path-input"
+                                    value={editingTagValue}
+                                    onChange={model.handleTagEditChange}
+                                    onBlur={model.handleTagEditBlur}
+                                    paths={props.tags}
+                                    separator=":"
+                                    maxDepth={1}
+                                    placeholder="tag..."
+                                    autoFocus
+                                />
+                            ) : (
+                                <span key={index} className="tag" onClick={() => model.handleTagClick(index)}>
+                                    {highlightText(searchText, tag)}
+                                    <span className="tag-delete" onClick={(e) => model.handleTagDelete(e, index)}>
+                                        <CloseIcon />
+                                    </span>
+                                </span>
+                            );
+                        })}
+                    </div>
                     <div className="spacer" />
-                    <span className="date">{formatDate(note.updatedDate)}</span>
+                    <span className="date">{model.formatDate(note.updatedDate)}</span>
                     <Button
                         size="small"
                         type="flat"
                         title="Expand"
-                        onClick={() => onExpand?.(note.id)}
+                        onClick={() => props.onExpand?.(note.id)}
                     >
                         <WindowMaximizeIcon />
                     </Button>
@@ -461,7 +453,7 @@ export function NoteItemView({
                         size="small"
                         type="flat"
                         title="Delete"
-                        onClick={() => onDelete?.(note.id)}
+                        onClick={() => props.onDelete?.(note.id)}
                     >
                         <DeleteIcon />
                     </Button>
@@ -470,13 +462,13 @@ export function NoteItemView({
 
             {/* Second toolbar - language | title | extras */}
             <div className="toolbar-main">
-                <NoteItemToolbar model={editModel}>
+                <NoteItemToolbar model={model.editModel}>
                     <input
-                        className="title-input"
+                        className={clsx("title-input", model.hasSearchMatch(note.title) && "search-match")}
                         type="text"
                         placeholder="note title..."
                         value={note.title}
-                        onChange={handleTitleChange}
+                        onChange={model.handleTitleChange}
                     />
                 </NoteItemToolbar>
             </div>
@@ -485,7 +477,7 @@ export function NoteItemView({
             <div className="content-area">
                 <EditorStateStorageProvider storage={stateStorage}>
                     <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true, disableAutoFocus: true }}>
-                        <NoteItemActiveEditor model={editModel} />
+                        <NoteItemActiveEditor model={model.editModel} />
                     </EditorConfigProvider>
                 </EditorStateStorageProvider>
             </div>
@@ -494,20 +486,20 @@ export function NoteItemView({
             <div className="comment-section">
                 {note.comment !== undefined ? (
                     <TextAreaField
-                        className="comment-field"
+                        className={clsx("comment-field", model.hasSearchMatch(note.comment || "") && "search-match")}
                         value={note.comment}
-                        onChange={handleCommentChange}
+                        onChange={model.handleCommentChange}
                         placeholder="Add a comment..."
                     />
                 ) : (
                     <span
                         className="add-comment-btn"
-                        onClick={() => onAddComment?.(note.id)}
+                        onClick={() => props.onAddComment?.(note.id)}
                     >
                         + Add comment
                     </span>
                 )}
             </div>
-        </NoteItemRoot>
+        </NoteItemViewRoot>
     );
 }

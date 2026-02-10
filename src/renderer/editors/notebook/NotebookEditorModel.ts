@@ -126,12 +126,31 @@ export class NotebookEditorModel extends TComponentModel<
 
     addNote = () => {
         const now = new Date().toISOString();
-        const { selectedCategory } = this.state.get();
+        const { expandedPanel, selectedCategory, selectedTag, searchText } = this.state.get();
+
+        // Initialize based on current filter context
+        let category = "";
+        let tags: string[] = [];
+        let title = "";
+
+        if (expandedPanel === "categories" && selectedCategory) {
+            // Filter by category → assign category only
+            category = selectedCategory;
+        } else if (expandedPanel === "tags" && selectedTag) {
+            // Filter by tag → assign tag only
+            tags = [selectedTag];
+        }
+
+        // If search text present → use as title
+        if (searchText.trim()) {
+            title = searchText.trim();
+        }
+
         const newNote: NoteItem = {
             id: uuid(),
-            title: "",
-            category: selectedCategory,
-            tags: [],
+            title,
+            category,
+            tags,
             content: {
                 language: "plaintext",
                 content: "",
@@ -460,6 +479,42 @@ export class NotebookEditorModel extends TComponentModel<
         // Reload categories (new category might have been created)
         this.loadCategories();
         // Re-apply filters (note might need to be filtered out)
+        this.applyFilters();
+    };
+
+    addNoteTag = (id: string, tag: string) => {
+        this.state.update((s) => {
+            const note = s.data.notes.find((n) => n.id === id);
+            if (note) {
+                note.tags = [...note.tags, tag];
+                note.updatedDate = new Date().toISOString();
+            }
+        });
+        this.loadTags();
+        this.applyFilters();
+    };
+
+    removeNoteTag = (id: string, tagIndex: number) => {
+        this.state.update((s) => {
+            const note = s.data.notes.find((n) => n.id === id);
+            if (note) {
+                note.tags = note.tags.filter((_, i) => i !== tagIndex);
+                note.updatedDate = new Date().toISOString();
+            }
+        });
+        this.loadTags();
+        this.applyFilters();
+    };
+
+    updateNoteTag = (id: string, tagIndex: number, newTag: string) => {
+        this.state.update((s) => {
+            const note = s.data.notes.find((n) => n.id === id);
+            if (note && tagIndex >= 0 && tagIndex < note.tags.length) {
+                note.tags[tagIndex] = newTag;
+                note.updatedDate = new Date().toISOString();
+            }
+        });
+        this.loadTags();
         this.applyFilters();
     };
 

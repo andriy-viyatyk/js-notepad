@@ -5,6 +5,7 @@ import { Breadcrumb } from "../../components/basic/Breadcrumb";
 import { Button } from "../../components/basic/Button";
 import { TagsList } from "../../components/basic/TagsList";
 import { TextField } from "../../components/basic/TextField";
+import { HighlightedTextProvider } from "../../components/basic/useHighlightedText";
 import { CollapsiblePanel, CollapsiblePanelStack } from "../../components/layout/CollapsiblePanelStack";
 import { Splitter } from "../../components/layout/Splitter";
 import { CategoryTree, CategoryTreeItem } from "../../components/TreeView";
@@ -21,7 +22,7 @@ import {
     defaultNotebookEditorState,
     NotebookEditorModel,
 } from "./NotebookEditorModel";
-import { NoteItemView } from "./NoteItem";
+import { NoteItemView } from "./NoteItemView";
 import { NotebookEditorProps } from "./notebookTypes";
 
 // =============================================================================
@@ -156,17 +157,21 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     note={note}
                     notebookModel={pageModel}
                     categories={pageState.categories}
+                    tags={pageState.tags}
                     onDelete={pageModel.deleteNote}
                     onExpand={pageModel.expandNote}
                     onAddComment={pageModel.addComment}
                     onCommentChange={pageModel.updateNoteComment}
                     onTitleChange={pageModel.updateNoteTitle}
                     onCategoryChange={pageModel.updateNoteCategory}
+                    onTagAdd={pageModel.addNoteTag}
+                    onTagRemove={pageModel.removeNoteTag}
+                    onTagUpdate={pageModel.updateNoteTag}
                     cellRef={p.ref}
                 />
             );
         },
-        [notes, pageModel, pageState.categories]
+        [notes, pageModel, pageState.categories, pageState.tags]
     );
 
     // Provide stored heights to RenderFlexGrid for initial row sizing
@@ -245,7 +250,7 @@ export function NotebookEditor(props: NotebookEditorProps) {
                                     <Button
                                         key="clear"
                                         size="small"
-                                        type="flat"
+                                        type="icon"
                                         title="Clear search"
                                         onClick={pageModel.clearSearch}
                                     >
@@ -295,34 +300,36 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     onChangeWidth={pageModel.setLeftPanelWidth}
                     borderSized="right"
                 />
-                <div className="center-panel">
-                    {allNotes.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="title">Notes</div>
-                            <div className="subtitle">No notes yet</div>
-                            <div className="subtitle">
-                                Click "Add Note" to create your first note
+                <HighlightedTextProvider value={pageState.searchText}>
+                    <div className="center-panel">
+                        {allNotes.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="title">Notes</div>
+                                <div className="subtitle">No notes yet</div>
+                                <div className="subtitle">
+                                    Click "Add Note" to create your first note
+                                </div>
                             </div>
-                        </div>
-                    ) : notes.length === 0 ? (
-                        <div className="empty-state">
-                            <div className="subtitle">No notes match the current filter</div>
-                        </div>
-                    ) : (
-                        <RenderFlexGrid
-                            ref={pageModel.setGridModel}
-                            className="notes-grid"
-                            columnCount={1}
-                            rowCount={notes.length}
-                            columnWidth={getColumnWidth}
-                            renderCell={renderNoteCell}
-                            fitToWidth
-                            minRowHeight={100}
-                            maxRowHeight={800}
-                            getInitialRowHeight={getInitialRowHeight}
-                        />
-                    )}
-                </div>
+                        ) : notes.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="subtitle">No notes match the current filter</div>
+                            </div>
+                        ) : (
+                            <RenderFlexGrid
+                                ref={pageModel.setGridModel}
+                                className="notes-grid"
+                                columnCount={1}
+                                rowCount={notes.length}
+                                columnWidth={getColumnWidth}
+                                renderCell={renderNoteCell}
+                                fitToWidth
+                                minRowHeight={100}
+                                maxRowHeight={800}
+                                getInitialRowHeight={getInitialRowHeight}
+                            />
+                        )}
+                    </div>
+                </HighlightedTextProvider>
             </NotebookEditorRoot>
         </>
     );
