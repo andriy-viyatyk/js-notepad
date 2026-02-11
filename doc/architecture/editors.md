@@ -22,6 +22,7 @@ Views of text-based content that share `TextFileModel` for state management.
 | **grid-csv** | CSV viewer/editor |
 | **md-view** | Rendered markdown preview |
 | **svg-view** | Rendered SVG preview |
+| **notebook-view** | Structured notes editor for `.note.json` files |
 
 **Characteristics:**
 - Rendered inside `TextPageView` via `ActiveEditor` component
@@ -52,9 +53,10 @@ RenderEditor
 ├── [page-editor] → AsyncEditor → PdfViewer / ImageViewer (own PageModel)
 └── [content-view] → TextPageView
                          ├── TextToolbar
-                         ├── ActiveEditor → Monaco / Grid / Markdown
+                         ├── ActiveEditor → Monaco / Grid / Markdown / Notebook
                          ├── ScriptPanel
-                         └── TextFooter
+                         ├── TextFooter
+                         └── EditorOverlay (portal target for expanded note)
 ```
 
 ## Editor Types
@@ -68,6 +70,7 @@ RenderEditor
 | **Image** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer |
 | **SVG** | `.svg` | SVG preview (content-view, Monaco default) |
 | **PDF** | `.pdf` | PDF viewer (read-only) |
+| **Notebook** | `*.note.json` | Structured notes with categories, tags, search |
 | **Compare** | (triggered) | Side-by-side diff view |
 
 ## Editor Resolution
@@ -122,6 +125,7 @@ PageModel (abstract)
 TComponentModel (for view-specific state)
 ├── GridPageModel         # Grid view state (columns, filters, etc.)
 ├── MarkdownViewModel     # Markdown view state (scroll position)
+├── NotebookEditorModel   # Notebook state (notes, categories, tags, filters)
 └── [Future view models...]
 ```
 

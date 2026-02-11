@@ -324,3 +324,4 @@ Then use in your editor or integrate with EditorToolbar.
 - **Simple viewer**: See `/editors/pdf/` - read-only PDF viewer
 - **Complex editor**: See `/editors/text/` - full text editor
 - **Grid view**: See `/editors/grid/` - tabular data editor
+- **Structured content-view**: See `/editors/notebook/` - complex content-view with own model, sub-editors, virtualized list, portal overlay, and drag-and-drop

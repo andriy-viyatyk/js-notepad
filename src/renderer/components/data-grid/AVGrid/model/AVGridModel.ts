@@ -30,6 +30,8 @@ export interface AVGridProps<R> {
     getRowKey: (row: R) => string;
     rowHeight?: number;
     searchString?: string;
+    /** External highlight text (highlight-only, no row filtering) */
+    highlightString?: string;
     filters?: TFilter[];
     readonly?: boolean;
     disableFiltering?: boolean;

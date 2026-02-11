@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import clsx from "clsx";
 import { useEffect } from "react";
+import { useDrag } from "react-dnd";
 import { useComponentModel } from "../../core/state/model";
 import color from "../../theme/color";
 import { CircleIcon, CloseIcon, DeleteIcon, PlusIcon, WindowMaximizeIcon } from "../../theme/icons";
@@ -12,6 +13,7 @@ import { EditorConfigProvider, EditorStateStorageProvider, useObjectStateStorage
 import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
 import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import { NoteItemViewProps, NoteItemViewModel, defaultNoteItemViewState } from "./NoteItemViewModel";
+import { NOTE_DRAG } from "./notebookTypes";
 
 // Max height for editors embedded in note items
 const NOTE_EDITOR_MAX_HEIGHT = 400;
@@ -31,6 +33,11 @@ const NoteItemViewRoot = styled.div({
     position: "relative",
     outline: "none", // Remove default focus outline (we use blue dot indicator instead)
 
+    // Dragging state
+    "&.dragging": {
+        opacity: 0.5,
+    },
+
     // Note indicator dot with vertical line - absolute positioned
     "& .note-indicator": {
         position: "absolute",
@@ -39,6 +46,7 @@ const NoteItemViewRoot = styled.div({
         bottom: 8,
         width: 16,
         color: color.text.light,
+        cursor: "grab",
         transition: "color 0.15s ease",
         "& svg": {
             width: 16,
@@ -346,6 +354,15 @@ export function NoteItemView(props: NoteItemViewProps) {
     const searchText = useHighlightedText();
     model.searchText = searchText;
 
+    // Drag handle on note indicator
+    const [{ isDragging }, drag] = useDrag({
+        type: NOTE_DRAG,
+        item: { type: NOTE_DRAG, noteId: note.id },
+        collect: (monitor) => ({
+            isDragging: monitor.isDragging(),
+        }),
+    });
+
     const stateStorage = useObjectStateStorage(
         notebookModel.getNoteState,
         notebookModel.setNoteState
@@ -368,12 +385,12 @@ export function NoteItemView(props: NoteItemViewProps) {
     }, [note.category, editingCategory]);
 
     return (
-        <NoteItemViewRoot ref={model.setRefs} tabIndex={0} className={clsx(searchText && "searching")}>
+        <NoteItemViewRoot ref={model.setRefs} tabIndex={0} className={clsx(searchText && "searching", isDragging && "dragging")}>
             {/* Right-side area to deactivate note item */}
             <div className="deactivation-area" onClick={model.handleDeactivate} />
 
-            {/* Note indicator dot */}
-            <div className="note-indicator">
+            {/* Note indicator dot (drag handle) */}
+            <div className="note-indicator" ref={(node) => { drag(node); }}>
                 <CircleIcon />
             </div>
 
@@ -476,7 +493,7 @@ export function NoteItemView(props: NoteItemViewProps) {
             {/* Content area - Monaco or alternative editor */}
             <div className="content-area">
                 <EditorStateStorageProvider storage={stateStorage}>
-                    <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true, disableAutoFocus: true }}>
+                    <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true, disableAutoFocus: true, highlightText: searchText }}>
                         <NoteItemActiveEditor model={model.editModel} />
                     </EditorConfigProvider>
                 </EditorStateStorageProvider>
@@ -489,6 +506,7 @@ export function NoteItemView(props: NoteItemViewProps) {
                         className={clsx("comment-field", model.hasSearchMatch(note.comment || "") && "search-match")}
                         value={note.comment}
                         onChange={model.handleCommentChange}
+                        onBlur={model.handleCommentBlur}
                         placeholder="Add a comment..."
                     />
                 ) : (

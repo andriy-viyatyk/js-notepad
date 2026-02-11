@@ -1,5 +1,6 @@
 import { Editor } from "@monaco-editor/react";
 import styled from "@emotion/styled";
+import { useEffect } from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import { useEditorConfig } from "../../base";
 
@@ -41,6 +42,11 @@ export function MiniTextEditor({ model }: MiniTextEditorProps) {
     const contentHeight = editorConfig.maxEditorHeight
         ? Math.min(rawContentHeight, editorConfig.maxEditorHeight)
         : rawContentHeight;
+
+    // Apply external search highlighting decorations
+    useEffect(() => {
+        editorModel.setHighlightText(editorConfig.highlightText);
+    }, [editorConfig.highlightText]);
 
     return (
         <MiniTextEditorRoot style={{ height: contentHeight }}>

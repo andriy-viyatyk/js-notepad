@@ -8,7 +8,20 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.6 (Upcoming)
 
-*No changes yet*
+### New Features
+
+- **Notebook Editor**: A structured notes editor for `.note.json` files
+  - Create and organize notes with categories and tags
+  - Each note contains its own code editor (Monaco, Grid, Markdown, SVG)
+  - Hierarchical category tree with drag-and-drop organization
+  - Tag system with categorized tags (e.g., "env:dev", "env:prod")
+  - Full-text search across note titles, categories, tags, and content
+  - Search highlighting in all editor types (Monaco, Grid, Markdown)
+  - Expand any note to full editor size for detailed work
+  - Run JavaScript scripts directly from notes
+  - Comments on individual notes
+  - Virtualized list for smooth scrolling with many notes
+  - See [Notebook Editor](./notebook.md) for full documentation
 
 ---
 

@@ -22,6 +22,7 @@ js-notepad is a Windows Notepad replacement designed for developers. It combines
 
 - [Getting Started](./getting-started.md) - Installation and first steps
 - [Editors](./editors.md) - Different view modes
+- [Notebook Editor](./notebook.md) - Structured notes with categories and tags
 - [Scripting](./scripting.md) - JavaScript execution
 - [Keyboard Shortcuts](./shortcuts.md) - Quick reference
 
@@ -37,6 +38,7 @@ js-notepad is a Windows Notepad replacement designed for developers. It combines
 ### For Developers
 - Run JavaScript to transform content
 - JSON/CSV grid view with filtering
+- Notebook editor for structured notes
 - Markdown preview
 - File comparison (diff view)
 - Full Node.js access in scripts

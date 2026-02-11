@@ -40,6 +40,10 @@ export interface TreeViewProps<T extends TreeItem = TreeItem> {
     onItemClick?: (item: T) => void;
     dropTypes?: DragType[];
     onDrop?: (dropItem: T, dragItem: DragItem) => void;
+    /** Drag type for making tree cells draggable */
+    dragType?: DragType;
+    /** Get drag item data for a tree node. Return null to prevent dragging. */
+    getDragItem?: (item: T) => DragItem | null;
     /** Whether root element can be collapsed. Default: true */
     rootCollapsible?: boolean;
     /** Change this value to trigger a grid refresh (e.g., when external selection state changes) */

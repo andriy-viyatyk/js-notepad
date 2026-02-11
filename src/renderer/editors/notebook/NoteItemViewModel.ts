@@ -110,12 +110,11 @@ export class NoteItemViewModel extends TComponentModel<NoteItemViewState, NoteIt
     // =========================================================================
 
     formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
+        const d = new Date(dateStr);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
     };
 
     hasSearchMatch = (text: string) => {
@@ -134,6 +133,13 @@ export class NoteItemViewModel extends TComponentModel<NoteItemViewState, NoteIt
 
     handleCommentChange = (value: string) => {
         this.props.onCommentChange?.(this.props.note.id, value);
+    };
+
+    handleCommentBlur = () => {
+        // If comment is empty, remove it so "+ Add comment" button reappears
+        if (this.props.note.comment !== undefined && this.props.note.comment.trim() === "") {
+            this.props.notebookModel.removeComment(this.props.note.id);
+        }
     };
 
     // =========================================================================

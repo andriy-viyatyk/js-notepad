@@ -17,6 +17,17 @@ const TextPageViewRoot = styled.div({
     height: 200,
     rowGap: 2,
     position: "relative",
+    "& .editor-overlay": {
+        position: "absolute",
+        inset: 0,
+        zIndex: 5,
+        backgroundColor: color.background.default,
+        display: "flex",
+        flexDirection: "column",
+        "&:empty": {
+            display: "none",
+        },
+    },
     "& .footer-bar": {
         paddingRight: 8,
         "& .footer-label": {
@@ -64,6 +75,10 @@ export function TextPageView({ model }: TextPageViewProps) {
             <PageToolbar borderTop className="footer-bar">
                 <TextFooter model={model} />
             </PageToolbar>
+            <div
+                ref={model.setEditorOverlayRef}
+                className="editor-overlay"
+            />
             {showEncryptionPanel && (
                 <EncryptionPanel
                     model={model}

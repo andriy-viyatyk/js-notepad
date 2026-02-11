@@ -34,6 +34,7 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
     editorRef: monaco.editor.IStandaloneCodeEditor | null = null;
     private selectionListenerDisposable: monaco.IDisposable | null = null;
     private contentSizeDisposable: monaco.IDisposable | null = null;
+    private highlightDecorations: monaco.editor.IEditorDecorationsCollection | null = null;
 
     constructor(editModel: NoteItemEditModel, initialHeight?: number) {
         super(new TComponentState<NoteEditorState>({
@@ -91,6 +92,44 @@ export class NoteEditorModel extends TModel<NoteEditorState> {
             });
             // Persist to notebook model (prevents scroll jumping on remount)
             this.editModel.persistContentHeight(clampedHeight);
+        }
+    };
+
+    /**
+     * Apply find-match decorations for external search highlighting.
+     * Splits search text into words and highlights each independently.
+     */
+    setHighlightText = (text: string | undefined) => {
+        const editor = this.editorRef;
+        const model = editor?.getModel();
+        if (!editor || !model) {
+            return;
+        }
+
+        if (!text?.trim()) {
+            // Clear decorations
+            this.highlightDecorations?.clear();
+            return;
+        }
+
+        // Split into words (same logic as notebook search)
+        const words = text.toLowerCase().trim().split(/\s+/);
+        const decorations: monaco.editor.IModelDeltaDecoration[] = [];
+
+        for (const word of words) {
+            const matches = model.findMatches(word, false, false, false, null, false);
+            for (const match of matches) {
+                decorations.push({
+                    range: match.range,
+                    options: { className: "findMatch" },
+                });
+            }
+        }
+
+        if (this.highlightDecorations) {
+            this.highlightDecorations.set(decorations);
+        } else {
+            this.highlightDecorations = editor.createDecorationsCollection(decorations);
         }
     };
 

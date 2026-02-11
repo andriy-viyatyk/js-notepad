@@ -35,6 +35,13 @@ export interface EditorConfig {
      * would be disruptive (e.g., multiple editors in a virtualized list).
      */
     disableAutoFocus?: boolean;
+
+    /**
+     * External search text to highlight in editor content.
+     * Used by notebook editor to highlight search matches inside nested editors.
+     * Each editor implements highlighting differently (grid, monaco, markdown).
+     */
+    highlightText?: string;
 }
 
 // =============================================================================

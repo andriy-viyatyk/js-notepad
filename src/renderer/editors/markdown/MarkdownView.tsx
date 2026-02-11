@@ -10,6 +10,7 @@ import { Minimap } from "../../components/layout/Minimap";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { PageModel, useEditorConfig } from "../base";
 import { pagesModel } from "../../store/pages-store";
+import { createRehypeHighlight } from "./rehypeHighlight";
 const path = require("path");
 const url = require("url");
 
@@ -228,6 +229,15 @@ export function MarkdownView(props: MarkdownViewProps) {
         [filePath],
     );
 
+    // Rehype plugin for external search text highlighting
+    const rehypePlugins = useMemo(() => {
+        const plugins: any[] = [rehypeRaw];
+        if (editorConfig.highlightText) {
+            plugins.push(createRehypeHighlight(editorConfig.highlightText));
+        }
+        return plugins;
+    }, [editorConfig.highlightText]);
+
     useEffect(() => {
         const focusSubscription = pagesModel.onFocus.subscribe(
             pageModel.pageFocused,
@@ -253,7 +263,7 @@ export function MarkdownView(props: MarkdownViewProps) {
             >
                 <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
+                    rehypePlugins={rehypePlugins}
                     components={components}
                 >
                     {content}

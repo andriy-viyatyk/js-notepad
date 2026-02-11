@@ -281,7 +281,9 @@ function AVGridComponent<R = any>(
     }
 
     return (
-        <HighlightedTextProvider value={model.props.searchString}>
+        <HighlightedTextProvider value={
+            [model.props.searchString, model.props.highlightString].filter(Boolean).join(" ") || undefined
+        }>
             <AVGridProvider value={model}>
                 <RenderGridStyled
                     ref={model.setRenderModel}

@@ -166,6 +166,7 @@ export function GridEditor(props: GridPageProps) {
                         focus={pageState.focus}
                         setFocus={pageModel.setFocus}
                         searchString={pageState.search}
+                        highlightString={editorConfig.highlightText}
                         filters={pageState.filters}
                         onVisibleRowsChanged={onVisibleRowsChanged}
                         editRow={pageModel.editRow}

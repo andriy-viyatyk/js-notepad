@@ -23,7 +23,8 @@ import {
     NotebookEditorModel,
 } from "./NotebookEditorModel";
 import { NoteItemView } from "./NoteItemView";
-import { NotebookEditorProps } from "./notebookTypes";
+import { ExpandedNoteView } from "./ExpandedNoteView";
+import { NotebookEditorProps, NOTE_DRAG, CATEGORY_DRAG } from "./notebookTypes";
 
 // =============================================================================
 // Styles
@@ -290,6 +291,10 @@ export function NotebookEditor(props: NotebookEditorProps) {
                                 getSelected={pageModel.getCategoryItemSelected}
                                 getLabel={getTreeItemLabel}
                                 refreshKey={pageState.selectedCategory}
+                                dropTypes={[NOTE_DRAG, CATEGORY_DRAG]}
+                                onDrop={pageModel.categoryDrop}
+                                dragType={CATEGORY_DRAG}
+                                getDragItem={pageModel.getCategoryDragItem}
                             />
                         </div>
                     </CollapsiblePanel>
@@ -331,6 +336,29 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     </div>
                 </HighlightedTextProvider>
             </NotebookEditorRoot>
+            {Boolean(model.editorFooterRefLast) &&
+                createPortal(
+                    <span>
+                        {notes.length === allNotes.length
+                            ? `${allNotes.length} notes`
+                            : `${notes.length} of ${allNotes.length} notes`}
+                    </span>,
+                    model.editorFooterRefLast
+                )}
+            {Boolean(model.editorOverlayRef) && pageState.expandedNoteId && (() => {
+                const expandedNote = allNotes.find(n => n.id === pageState.expandedNoteId);
+                if (!expandedNote) return null;
+                return createPortal(
+                    <ExpandedNoteView
+                        note={expandedNote}
+                        notebookModel={pageModel}
+                        categories={pageState.categories}
+                        tags={pageState.tags}
+                        onCollapse={pageModel.collapseNote}
+                    />,
+                    model.editorOverlayRef!
+                );
+            })()}
         </>
     );
 }

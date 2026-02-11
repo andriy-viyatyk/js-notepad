@@ -112,6 +112,24 @@ Compare two files side-by-side:
 - Inline diff highlighting
 - Navigate between changes
 
+## Notebook Editor
+
+For `.note.json` files — a structured notes interface:
+
+1. Create a file with the `.note.json` extension
+2. Click "Add Note" to create your first note
+
+**Features:**
+- Categories and tags for organizing notes
+- Each note has its own code editor (Monaco, Grid, Markdown, SVG)
+- Full-text search with highlighting across all content
+- Drag-and-drop to reorganize categories
+- Expand notes to full editor size
+- Run JavaScript from individual notes
+- Optional comments on each note
+
+See [Notebook Editor](./notebook.md) for detailed documentation.
+
 ## Switching Editors
 
 Some files support multiple editors:
@@ -119,6 +137,7 @@ Some files support multiple editors:
 | File Type | Available Editors |
 |-----------|-------------------|
 | `.json` | Text, Grid |
+| `.note.json` | Text, Notebook |
 | `.csv` | Text, Grid |
 | `.md` | Text, Preview |
 | `.svg` | Text, Preview |

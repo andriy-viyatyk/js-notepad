@@ -4,8 +4,44 @@ import RenderGridModel from "../../components/virtualization/RenderGrid/RenderGr
 import { uuid } from "../../core/utils/node-utils";
 import { splitWithSeparators } from "../../core/utils/utils";
 import { showConfirmationDialog } from "../../features/dialogs/ConfirmationDialog";
-import { CategoryTreeItem } from "../../components/TreeView";
-import { NoteItem, NotebookData, NotebookEditorProps } from "./notebookTypes";
+import { CategoryTreeItem, DragItem } from "../../components/TreeView";
+import { NoteItem, NotebookData, NotebookEditorProps, NOTE_DRAG, CATEGORY_DRAG } from "./notebookTypes";
+
+// =============================================================================
+// Content Search Helper
+// =============================================================================
+
+/**
+ * Extract searchable text from note content.
+ * - grid-json: parse JSON array of flat objects, extract string/number values
+ * - other editors: return raw content text
+ */
+function getContentSearchText(note: NoteItem): string {
+    const { content } = note;
+    if (!content.content) return "";
+
+    // Grid JSON: parse and extract flat object values (string/number only)
+    if (content.editor === "grid-json" && content.language === "json") {
+        try {
+            const parsed = JSON.parse(content.content);
+            if (!Array.isArray(parsed)) return content.content;
+            const parts: string[] = [];
+            for (const row of parsed) {
+                if (typeof row !== "object" || row === null) continue;
+                for (const val of Object.values(row)) {
+                    if (typeof val === "string" || typeof val === "number") {
+                        parts.push(String(val));
+                    }
+                }
+            }
+            return parts.join(" ");
+        } catch {
+            return content.content;
+        }
+    }
+
+    return content.content;
+}
 
 // =============================================================================
 // State
@@ -29,6 +65,7 @@ export const defaultNotebookEditorState = {
     selectedTag: "" as string,      // empty means no tag filter
     searchText: "" as string,       // search across category, tags, title
     filteredNotes: [] as NoteItem[],
+    expandedNoteId: "" as string, // empty = no note expanded
 };
 
 export type NotebookEditorState = typeof defaultNotebookEditorState;
@@ -47,6 +84,8 @@ export class NotebookEditorModel extends TComponentModel<
     private skipNextContentUpdate = false;
     /** Grid model ref for virtualized list updates */
     gridModel: RenderGridModel | null = null;
+    /** Previous filter state for incremental search optimization */
+    private lastFilterState = { searchText: "", selectedCategory: "", selectedTag: "", expandedPanel: "" };
 
     setGridModel = (model: RenderGridModel | null) => {
         this.gridModel = model;
@@ -315,29 +354,46 @@ export class NotebookEditorModel extends TComponentModel<
      * Search text filtering is applied additionally (AND condition).
      */
     applyFilters = () => {
-        const { data, selectedCategory, selectedTag, expandedPanel, searchText } = this.state.get();
-        let filtered = data.notes;
+        const { data, selectedCategory, selectedTag, expandedPanel, searchText, filteredNotes } = this.state.get();
+        const last = this.lastFilterState;
 
-        // Filter by category (only when categories panel is expanded)
-        if (expandedPanel === "categories" && selectedCategory) {
-            filtered = filtered.filter(
-                (note) => note.category?.startsWith(selectedCategory)
-            );
-        }
+        // Optimization: if only search text grew (user typing), filter from previous results
+        const searchExtended = searchText.startsWith(last.searchText) && last.searchText !== "";
+        const categoryTagUnchanged =
+            selectedCategory === last.selectedCategory &&
+            selectedTag === last.selectedTag &&
+            expandedPanel === last.expandedPanel;
 
-        // Filter by tag (only when tags panel is expanded)
-        if (expandedPanel === "tags" && selectedTag) {
-            const separator = ":";
-            if (selectedTag.endsWith(separator)) {
-                // Parent tag selected (e.g., "release:") - match all tags starting with it
-                filtered = filtered.filter((note) =>
-                    note.tags?.some((tag) => tag.startsWith(selectedTag) || tag === selectedTag)
+        let filtered: NoteItem[];
+
+        if (searchExtended && categoryTagUnchanged) {
+            // Previous filteredNotes already have category/tag + old search applied.
+            // Since new search is a superset, we can filter from the smaller set.
+            filtered = filteredNotes;
+        } else {
+            filtered = data.notes;
+
+            // Filter by category (only when categories panel is expanded)
+            if (expandedPanel === "categories" && selectedCategory) {
+                filtered = filtered.filter(
+                    (note) => note.category?.startsWith(selectedCategory)
                 );
-            } else {
-                // Exact tag match (simple tag or specific subcategory)
-                filtered = filtered.filter((note) =>
-                    note.tags?.includes(selectedTag)
-                );
+            }
+
+            // Filter by tag (only when tags panel is expanded)
+            if (expandedPanel === "tags" && selectedTag) {
+                const separator = ":";
+                if (selectedTag.endsWith(separator)) {
+                    // Parent tag selected (e.g., "release:") - match all tags starting with it
+                    filtered = filtered.filter((note) =>
+                        note.tags?.some((tag) => tag.startsWith(selectedTag) || tag === selectedTag)
+                    );
+                } else {
+                    // Exact tag match (simple tag or specific subcategory)
+                    filtered = filtered.filter((note) =>
+                        note.tags?.includes(selectedTag)
+                    );
+                }
             }
         }
 
@@ -346,17 +402,22 @@ export class NotebookEditorModel extends TComponentModel<
         if (searchText.trim()) {
             const searchWords = searchText.toLowerCase().trim().split(/\s+/);
             filtered = filtered.filter((note) => {
-                // Build searchable text from category, tags, and title
+                // Build searchable text from metadata: category, tags, title, comment
                 const searchableText = [
                     note.category || "",
                     note.title || "",
+                    note.comment || "",
                     ...(note.tags || []),
+                    getContentSearchText(note),
                 ].join(" ").toLowerCase();
 
                 // All search words must be found (AND condition)
                 return searchWords.every((word) => searchableText.includes(word));
             });
         }
+
+        // Save filter state for next incremental optimization
+        this.lastFilterState = { searchText, selectedCategory, selectedTag, expandedPanel };
 
         this.state.update((s) => {
             s.filteredNotes = filtered;
@@ -388,8 +449,15 @@ export class NotebookEditorModel extends TComponentModel<
     };
 
     expandNote = (id: string) => {
-        // TODO: Implement expand functionality (portal to full editor)
-        console.log("Expand note:", id);
+        this.state.update((s) => {
+            s.expandedNoteId = id;
+        });
+    };
+
+    collapseNote = () => {
+        this.state.update((s) => {
+            s.expandedNoteId = "";
+        });
     };
 
     addComment = (id: string) => {
@@ -410,6 +478,16 @@ export class NotebookEditorModel extends TComponentModel<
             if (note) {
                 note.comment = comment;
                 note.updatedDate = new Date().toISOString();
+            }
+        });
+        this.applyFilters();
+    };
+
+    removeComment = (id: string) => {
+        this.state.update((s) => {
+            const note = s.data.notes.find((n) => n.id === id);
+            if (note) {
+                note.comment = undefined;
             }
         });
         this.applyFilters();
@@ -515,6 +593,87 @@ export class NotebookEditorModel extends TComponentModel<
             }
         });
         this.loadTags();
+        this.applyFilters();
+    };
+
+    // =========================================================================
+    // Drag-and-drop
+    // =========================================================================
+
+    /**
+     * Handle drop onto a category tree node.
+     * Dispatches based on drag item type (note or category).
+     */
+    categoryDrop = (dropItem: CategoryTreeItem, dragItem: DragItem) => {
+        if (dragItem.type === NOTE_DRAG) {
+            // Dropping a note onto a category → change note's category
+            this.updateNoteCategory(dragItem.noteId, dropItem.category);
+        } else if (dragItem.type === CATEGORY_DRAG) {
+            // Dropping a category onto another → reparent
+            this.moveCategory(dragItem.category, dropItem.category);
+        }
+    };
+
+    /**
+     * Get drag item for a category tree node.
+     * Returns null for root category (not draggable).
+     */
+    getCategoryDragItem = (item: CategoryTreeItem): DragItem | null => {
+        if (!item.category) return null; // Root "All" is not draggable
+        return { type: CATEGORY_DRAG, category: item.category };
+    };
+
+    /**
+     * Move all notes from one category to become a child of another category.
+     * E.g., moving "work" into "personal" renames "work" → "personal/work",
+     * and "work/tasks" → "personal/work/tasks".
+     */
+    moveCategory = async (fromCategory: string, toCategory: string) => {
+        // Can't move root
+        if (!fromCategory) return;
+        // Can't move to self
+        if (fromCategory === toCategory) return;
+        // Can't move to own descendant (circular)
+        if (toCategory.startsWith(fromCategory + "/")) return;
+
+        // Compute new category path: target/leafName
+        const leafName = fromCategory.split("/").pop() || "";
+        const newCategory = toCategory ? `${toCategory}/${leafName}` : leafName;
+
+        // No-op if already at this path
+        if (newCategory === fromCategory) return;
+
+        // Count affected notes
+        const notes = this.state.get().data.notes;
+        const count = notes.filter(
+            (n) => n.category === fromCategory || n.category.startsWith(fromCategory + "/")
+        ).length;
+
+        const result = await showConfirmationDialog({
+            title: "Move Category",
+            message: `Move ${count} note${count !== 1 ? "s" : ""} from "${fromCategory}" to "${newCategory}"?`,
+            buttons: ["Move", "Cancel"],
+        });
+
+        if (result !== "Move") return;
+
+        this.state.update((s) => {
+            for (const note of s.data.notes) {
+                if (note.category === fromCategory) {
+                    note.category = newCategory;
+                } else if (note.category.startsWith(fromCategory + "/")) {
+                    note.category = newCategory + note.category.slice(fromCategory.length);
+                }
+            }
+            // Follow the moved category if it was selected
+            const sel = s.selectedCategory;
+            if (sel === fromCategory) {
+                s.selectedCategory = newCategory;
+            } else if (sel.startsWith(fromCategory + "/")) {
+                s.selectedCategory = newCategory + sel.slice(fromCategory.length);
+            }
+        });
+        this.loadCategories();
         this.applyFilters();
     };
 

@@ -71,6 +71,8 @@ js-notepad/
 │   ├── base/               # Shared editor infrastructure
 │   │   ├── PageModel.ts
 │   │   ├── EditorToolbar.tsx
+│   │   ├── EditorConfigContext.tsx
+│   │   ├── EditorStateStorageContext.tsx
 │   │   ├── LanguageIcon.tsx
 │   │   └── index.ts
 │   ├── text/               # Monaco text editor
@@ -98,6 +100,15 @@ js-notepad/
 │   ├── image/              # Image viewer
 │   │   ├── ImageViewer.tsx
 │   │   └── index.ts
+│   ├── notebook/           # Notebook editor (.note.json)
+│   │   ├── NotebookEditor.tsx
+│   │   ├── NotebookEditorModel.ts
+│   │   ├── NoteItemView.tsx
+│   │   ├── NoteItemViewModel.ts
+│   │   ├── ExpandedNoteView.tsx
+│   │   ├── notebookTypes.ts
+│   │   ├── note-editor/    # Note item sub-editor
+│   │   └── index.ts
 │   ├── compare/            # Diff editor
 │   │   ├── CompareEditor.tsx
 │   │   └── index.ts
@@ -110,6 +121,10 @@ js-notepad/
 │   │   ├── Button.tsx
 │   │   ├── Input.tsx
 │   │   ├── TextField.tsx
+│   │   ├── TextAreaField.tsx
+│   │   ├── PathInput.tsx
+│   │   ├── Breadcrumb.tsx
+│   │   ├── TagsList.tsx
 │   │   ├── Chip.tsx
 │   │   ├── Tooltip.tsx
 │   │   ├── CircularProgress.tsx
@@ -121,7 +136,13 @@ js-notepad/
 │   │   └── index.ts
 │   ├── layout/             # Layout helpers
 │   │   ├── Splitter.tsx
+│   │   ├── CollapsiblePanelStack.tsx
 │   │   ├── Elements.tsx
+│   │   └── index.ts
+│   ├── TreeView/           # Virtualized tree component
+│   │   ├── TreeView.tsx
+│   │   ├── TreeView.model.ts
+│   │   ├── CategoryTree.tsx
 │   │   └── index.ts
 │   ├── overlay/            # Floating UI
 │   │   ├── Popper.tsx

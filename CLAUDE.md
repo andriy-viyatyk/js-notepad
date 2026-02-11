@@ -100,7 +100,7 @@ npm run lint    # Run ESLint
     /app             # Application shell
     /core            # State primitives, services, utilities
     /store           # Zustand stores (pages, files, settings)
-    /editors         # ALL editors (text, grid, markdown, pdf, compare)
+    /editors         # ALL editors (text, grid, markdown, pdf, compare, notebook)
     /components      # Reusable UI components
     /features        # App features (tabs, sidebar, dialogs)
     /theme           # Styling
@@ -164,5 +164,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Editor registration      | `/src/renderer/editors/register-editors.ts`       |
 | Text editor model        | `/src/renderer/editors/text/TextPageModel.ts`     |
 | Grid editor model        | `/src/renderer/editors/grid/GridPageModel.ts`     |
+| Notebook editor model    | `/src/renderer/editors/notebook/NotebookEditorModel.ts` |
+| Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Base virtualization      | `/src/renderer/components/virtualization/RenderGrid.tsx` |
 | Advanced grid            | `/src/renderer/components/data-grid/AVGrid.tsx`   |

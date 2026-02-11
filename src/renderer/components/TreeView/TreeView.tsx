@@ -1,7 +1,7 @@
 import { CSSProperties, useCallback } from "react";
 import styled from "@emotion/styled";
 import clsx from "clsx";
-import { useDrop } from "react-dnd";
+import { useDrag, useDrop } from "react-dnd";
 
 import { useComponentModel } from "../../core/state/model";
 import RenderGrid from "../virtualization/RenderGrid/RenderGrid";
@@ -44,6 +44,9 @@ const TreeViewRoot = styled.div({
         },
         "&.dragOver": {
             backgroundColor: color.background.selection,
+        },
+        "&.dragging": {
+            opacity: 0.5,
         },
     },
 
@@ -100,10 +103,22 @@ function TreeCell<T extends TreeItem = TreeItem>({
         }),
     });
 
+    const [{ isDragging }, drag] = useDrag({
+        type: model.props.dragType || "__NONE__",
+        item: () => model.props.getDragItem?.(item.item),
+        collect: (monitor) => ({
+            isDragging: monitor.isDragging(),
+        }),
+        canDrag: () => {
+            if (!model.props.dragType || !model.props.getDragItem) return false;
+            return model.props.getDragItem(item.item) !== null;
+        },
+    });
+
     return (
         <div
             ref={(node) => {
-                drop(node);
+                drag(drop(node));
             }}
             style={style}
             onClick={() => {
@@ -113,6 +128,7 @@ function TreeCell<T extends TreeItem = TreeItem>({
             className={clsx("tree-cell", {
                 selected: model.props.getSelected?.(item.item),
                 dragOver: isOver,
+                dragging: isDragging,
             })}
         >
             {levels.map((l) => (
