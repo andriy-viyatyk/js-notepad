@@ -10,6 +10,11 @@ const extraLanguages: MonacoLanguage[] = [
         "aliases": ['CSV', 'csv', 'TSV', 'tsv'],
         "extensions": [".csv", ".tsv"],
         "id": "csv"
+    },
+    {
+        "aliases": ['Mermaid', 'mermaid'],
+        "extensions": [".mmd", ".mermaid"],
+        "id": "mermaid"
     }
 ];
 

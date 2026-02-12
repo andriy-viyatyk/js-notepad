@@ -10,6 +10,21 @@ Release notes and changelog for js-notepad.
 
 ### New Features
 
+- **Mermaid Diagram Viewer**: Preview `.mmd` and `.mermaid` files as rendered diagrams
+  - Supports all Mermaid diagram types (flowchart, sequence, class, state, ER, Gantt, pie, git graph)
+  - Switch between text editor and diagram preview using toolbar button
+  - Light/dark theme toggle for diagram rendering
+  - Copy diagram to clipboard as image
+  - Zoom, pan, and keyboard shortcuts (reuses Image Viewer controls)
+  - Live preview of unsaved changes with debounced re-rendering
+  - Mermaid syntax highlighting in Monaco editor
+
+- **Copy Image to Clipboard**: Copy displayed images to clipboard as PNG
+  - Copy button in Image Viewer toolbar and SVG Preview toolbar
+  - Ctrl+C keyboard shortcut when image is focused
+  - Works with all image formats (PNG, JPG, GIF, BMP, WebP) and SVG preview
+  - Paste into external apps (Teams, Word, Outlook, etc.)
+
 - **Notebook Editor**: A structured notes editor for `.note.json` files
   - Create and organize notes with categories and tags
   - Each note contains its own code editor (Monaco, Grid, Markdown, SVG)

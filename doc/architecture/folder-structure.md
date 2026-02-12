@@ -109,6 +109,9 @@ js-notepad/
 │   │   ├── notebookTypes.ts
 │   │   ├── note-editor/    # Note item sub-editor
 │   │   └── index.ts
+│   ├── mermaid/            # Mermaid diagram preview
+│   │   ├── MermaidView.tsx
+│   │   └── index.ts
 │   ├── compare/            # Diff editor
 │   │   ├── CompareEditor.tsx
 │   │   └── index.ts

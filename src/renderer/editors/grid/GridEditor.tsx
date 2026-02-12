@@ -19,6 +19,7 @@ import {
 import { showCsvOptions } from "./components/CsvOptions";
 import { pagesModel } from "../../store/pages-store";
 import { useEditorConfig, useEditorStateStorage } from "../base";
+import { EditorError } from "../base/EditorError";
 
 const GridPageRoot = styled.div<{ fitContent?: boolean }>(({ fitContent }) => ({
     flex: "1 1 auto",
@@ -28,13 +29,6 @@ const GridPageRoot = styled.div<{ fitContent?: boolean }>(({ fitContent }) => ({
     position: "relative",
 }));
 
-const ErrorRoot = styled.div({
-    whiteSpace: "pre",
-    margin: "auto",
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: color.misc.yellow,
-});
 
 const SearchFieldRoot = styled(TextField)({
     "& input": {
@@ -84,7 +78,7 @@ export function GridEditor(props: GridPageProps) {
     }, []);
 
     if (pageState.error) {
-        return <ErrorRoot>{pageState.error}</ErrorRoot>;
+        return <EditorError>{pageState.error}</EditorError>;
     }
 
     return (

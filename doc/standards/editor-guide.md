@@ -322,6 +322,7 @@ Then use in your editor or integrate with EditorToolbar.
 ## Examples
 
 - **Simple viewer**: See `/editors/pdf/` - read-only PDF viewer
+- **Simple content-view**: See `/editors/mermaid/` - diagram preview with light/dark toggle, reuses BaseImageView
 - **Complex editor**: See `/editors/text/` - full text editor
 - **Grid view**: See `/editors/grid/` - tabular data editor
 - **Structured content-view**: See `/editors/notebook/` - complex content-view with own model, sub-editors, virtualized list, portal overlay, and drag-and-drop

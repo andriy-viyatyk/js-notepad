@@ -125,7 +125,7 @@ class ColumnsOptionsModel extends TPopperModel<ColumnsOptionsState, undefined> {
     rowIndex = 0;
 
     prepareEditColumns = () => {
-        const columns = this.gridModel?.data.columns || [];
+        const columns = this.gridModel?.props.columns || [];
         this.state.update((s) => {
             s.rows = columns.map((col) => ({
                 idx: (this.rowIndex++).toString(),

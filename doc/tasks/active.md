@@ -6,20 +6,19 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| (none) | | | |
 
 ## Planned (Next)
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-010 | Copy Image to Clipboard | Low | [README](./US-010-copy-image-to-clipboard/README.md) |
-| US-011 | Mermaid Diagram Viewer | Low | [README](./US-011-mermaid-diagram-viewer/README.md) |
 | US-012 | Markdown View Enhancements | Low | [README](./US-012-markdown-view-enhancements/README.md) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-011 | Mermaid Diagram Viewer | .mmd/.mermaid preview with light/dark toggle, copy to clipboard, syntax highlighting |
+| US-010 | Copy Image to Clipboard | Copy button in Image Viewer header and SVG View toolbar, Ctrl+C shortcut |
 | US-009 | Notebook Editor | Structured notes editor with categories, tags, search, drag-and-drop, expand-to-overlay |
 | US-008 | TypeScript and Dependencies Upgrade | TypeScript 4.5→5.4, @types/node 16→20, fixed vite compatibility |
 | US-007 | About Page and Version Check | About page with version info + auto update check via GitHub API |

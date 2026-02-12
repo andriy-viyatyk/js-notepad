@@ -68,6 +68,7 @@ export class GridPageModel extends TComponentModel<
                 name: c.name,
                 width: c.width,
                 dataType: c.dataType,
+                hidden: c.hidden,
             })),
             focus: {
                 rowIndex: state.focus?.selection?.rowEnd,
@@ -111,6 +112,7 @@ export class GridPageModel extends TComponentModel<
                             ...existingColumn,
                             width: c.width,
                             dataType: c.dataType,
+                            hidden: c.hidden,
                         };
                     }),
                     ...other,

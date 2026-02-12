@@ -1,9 +1,15 @@
+import { useRef } from "react";
 import { IPage, PageType } from "../../../shared/types";
 import { getDefaultPageModelState, PageModel } from "../base";
+import { PageToolbar } from "../base/EditorToolbar";
 import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
 import { FileIcon } from "../../features/sidebar/FileIcon";
+import { Button } from "../../components/basic/Button";
+import { FlexSpace } from "../../components/layout/Elements";
+import { CopyIcon } from "../../theme/icons";
 import { BaseImageView } from "./BaseImageView";
+import type { BaseImageViewRef } from "./BaseImageView";
 const path = require("path");
 
 // ============================================================================
@@ -50,10 +56,26 @@ interface ImageViewerProps {
 
 function ImageViewer({ model }: ImageViewerProps) {
     const filePath = model.state.use((s) => s.filePath);
+    const imageRef = useRef<BaseImageViewRef>(null);
     const src = `safe-file://${filePath?.replace(/\\/g, "/") || ""}`;
     const alt = filePath ? path.basename(filePath) : "Image";
 
-    return <BaseImageView src={src} alt={alt} />;
+    return (
+        <>
+            <PageToolbar borderBottom>
+                <FlexSpace />
+                <Button
+                    type="icon"
+                    size="small"
+                    title="Copy Image to Clipboard (Ctrl+C)"
+                    onClick={() => imageRef.current?.copyToClipboard()}
+                >
+                    <CopyIcon />
+                </Button>
+            </PageToolbar>
+            <BaseImageView ref={imageRef} src={src} alt={alt} />
+        </>
+    );
 }
 
 // ============================================================================

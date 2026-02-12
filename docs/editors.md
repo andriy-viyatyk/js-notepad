@@ -99,6 +99,21 @@ For `.svg` files:
 - Shows live preview of unsaved changes
 - Switch between text editor and preview anytime
 
+## Mermaid Diagram Viewer
+
+For `.mmd` and `.mermaid` files:
+
+1. Open a Mermaid file (opens in text editor with syntax highlighting)
+2. Click "Mermaid" in the toolbar to see the rendered diagram
+
+**Features:**
+- Supports all Mermaid diagram types (flowchart, sequence, class, state, ER, Gantt, pie, git graph)
+- Same zoom/pan controls as Image Viewer
+- Light/dark theme toggle (dark by default, light for copying into documents)
+- Copy diagram to clipboard as image
+- Live preview of unsaved changes
+- Debounced re-rendering for smooth editing
+
 ## Compare Mode
 
 Compare two files side-by-side:
@@ -141,6 +156,7 @@ Some files support multiple editors:
 | `.csv` | Text, Grid |
 | `.md` | Text, Preview |
 | `.svg` | Text, Preview |
+| `.mmd` | Text, Mermaid |
 | `.pdf` | PDF only |
 | Images | Image Viewer only |
 | Other | Text only |

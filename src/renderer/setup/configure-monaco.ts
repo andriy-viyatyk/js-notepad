@@ -5,6 +5,7 @@ import { languages } from "monaco-editor";
 import color from "../theme/color";
 import { defineRegLanguage } from "./monaco-languages/reg";
 import { defineCSVLanguage } from "./monaco-languages/csv";
+import { defineMermaidLanguage } from "./monaco-languages/mermaid";
 
 loader.config({ monaco });
 
@@ -31,6 +32,28 @@ function defineMonacoTheme(monaco: Monaco, themeName: string) {
             { token: "function.sql", foreground: "dcdcaa" },
             { token: "predefined.function.sql", foreground: "dcdcaa" },
             { token: "type.function.sql", foreground: "dcdcaa" },
+
+            // Mermaid colors
+            { token: "type.diagram.mermaid", foreground: "569cd6", fontStyle: "bold" },
+            { token: "keyword.block.mermaid", foreground: "c586c0" },
+            { token: "keyword.sequence.mermaid", foreground: "c586c0" },
+            { token: "keyword.common.mermaid", foreground: "c586c0" },
+            { token: "keyword.directive.mermaid", foreground: "c586c0" },
+            { token: "operator.arrow.mermaid", foreground: "d4d4d4" },
+            { token: "string.mermaid", foreground: "ce9178" },
+            { token: "string.link.mermaid", foreground: "ce9178" },
+            { token: "comment.mermaid", foreground: "6a9955" },
+            { token: "constant.direction.mermaid", foreground: "4ec9b0" },
+            { token: "constant.numeric.mermaid", foreground: "b5cea8" },
+            { token: "constant.date.mermaid", foreground: "b5cea8" },
+            { token: "constant.color.mermaid", foreground: "b5cea8" },
+            { token: "constant.theme.mermaid", foreground: "4ec9b0" },
+            { token: "metatag.mermaid", foreground: "6a9955", fontStyle: "italic" },
+            { token: "identifier.mermaid", foreground: "9cdcfe" },
+            { token: "bracket.mermaid", foreground: "ffd700" },
+            { token: "bracket.round.mermaid", foreground: "ffd700" },
+            { token: "bracket.square.mermaid", foreground: "ffd700" },
+            { token: "bracket.mixed.mermaid", foreground: "ffd700" },
 
             // CSV Rainbow colors
             { token: "csv.column0", foreground: "20b2aa" },
@@ -175,6 +198,7 @@ export async function initMonaco() {
 
     defineRegLanguage(monaco);
     defineCSVLanguage(monaco);
+    defineMermaidLanguage(monaco);
 
     await loadEditorTypes(monaco);
 

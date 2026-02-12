@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { useEffect } from "react";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import color from "../../theme/color";
 
@@ -231,6 +231,29 @@ export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewMod
         this.resetView();
     };
 
+    // Copy image to clipboard as PNG
+    copyToClipboard = async () => {
+        const image = this.imageRef;
+        if (!image) return;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.drawImage(image, 0, 0);
+
+        const blob = await new Promise<Blob | null>((resolve) =>
+            canvas.toBlob(resolve, "image/png")
+        );
+        if (!blob) return;
+
+        await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+        ]);
+    };
+
     // Keyboard shortcuts
     handleKeyDown = (e: React.KeyboardEvent) => {
         if (!this.containerRef) return;
@@ -254,6 +277,12 @@ export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewMod
             case "0":
                 e.preventDefault();
                 this.resetView();
+                break;
+            case "c":
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    this.copyToClipboard();
+                }
                 break;
         }
     };
@@ -292,15 +321,23 @@ export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewMod
 // BaseImageView Component - reusable image viewer with zoom/pan
 // ============================================================================
 
+export interface BaseImageViewRef {
+    copyToClipboard: () => Promise<void>;
+}
+
 export interface BaseImageViewProps {
     src: string;
     alt?: string;
 }
 
-export function BaseImageView({ src, alt = "Image" }: BaseImageViewProps) {
+export const BaseImageView = forwardRef<BaseImageViewRef, BaseImageViewProps>(function BaseImageView({ src, alt = "Image" }, ref) {
     const viewModel = useComponentModel({}, ImageViewModel, defaultImageViewState);
     // Subscribe to full state - all properties affect rendering
     const state = viewModel.state.use();
+
+    useImperativeHandle(ref, () => ({
+        copyToClipboard: viewModel.copyToClipboard,
+    }), [viewModel]);
 
     // Initialize and cleanup
     useEffect(() => {
@@ -361,4 +398,4 @@ export function BaseImageView({ src, alt = "Image" }: BaseImageViewProps) {
             </div>
         </BaseImageViewRoot>
     );
-}
+});

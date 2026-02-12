@@ -29,6 +29,7 @@ import {
     LiquidIcon,
     LuaIcon,
     MarkdownIcon,
+    MermaidIcon,
     PascalIcon,
     PerlIcon,
     PhpIcon,
@@ -94,6 +95,7 @@ const languageIconMap: { [key: string]: SvgIconComponent } = {
     yaml: YamlIcon,
     json: JsonIcon,
     csv: CsvIcon,
+    mermaid: MermaidIcon,
 };
 
 export interface LanguageIconProps extends SvgIconProps {

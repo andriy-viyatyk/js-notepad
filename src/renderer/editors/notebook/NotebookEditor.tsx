@@ -25,6 +25,7 @@ import {
 import { NoteItemView } from "./NoteItemView";
 import { ExpandedNoteView } from "./ExpandedNoteView";
 import { NotebookEditorProps, NOTE_DRAG, CATEGORY_DRAG } from "./notebookTypes";
+import { EditorError } from "../base/EditorError";
 
 // =============================================================================
 // Styles
@@ -100,12 +101,6 @@ const NotebookEditorRoot = styled.div({
     },
     "& .subtitle": {
         color: color.text.light,
-    },
-    "& .error": {
-        whiteSpace: "pre-wrap",
-        margin: "auto",
-        padding: 24,
-        color: color.misc.yellow,
     },
 });
 
@@ -205,7 +200,7 @@ export function NotebookEditor(props: NotebookEditorProps) {
     if (pageState.error) {
         return (
             <NotebookEditorRoot>
-                <div className="error">{pageState.error}</div>
+                <EditorError>{pageState.error}</EditorError>
             </NotebookEditorRoot>
         );
     }

@@ -22,6 +22,7 @@ Views of text-based content that share `TextFileModel` for state management.
 | **grid-csv** | CSV viewer/editor |
 | **md-view** | Rendered markdown preview |
 | **svg-view** | Rendered SVG preview |
+| **mermaid-view** | Rendered Mermaid diagram preview |
 | **notebook-view** | Structured notes editor for `.note.json` files |
 
 **Characteristics:**
@@ -69,6 +70,7 @@ RenderEditor
 | **Markdown** | `.md`, `.markdown` | Rendered markdown preview |
 | **Image** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer |
 | **SVG** | `.svg` | SVG preview (content-view, Monaco default) |
+| **Mermaid** | `.mmd`, `.mermaid` | Mermaid diagram preview with light/dark toggle |
 | **PDF** | `.pdf` | PDF viewer (read-only) |
 | **Notebook** | `*.note.json` | Structured notes with categories, tags, search |
 | **Compare** | (triggered) | Side-by-side diff view |

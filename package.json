@@ -60,6 +60,7 @@
     "immer": "^11.0.1",
     "jschardet": "^3.1.4",
     "json5": "^2.2.3",
+    "mermaid": "^11.12.2",
     "monaco-editor": "^0.52.2",
     "react": "^19.2.0",
     "react-dnd": "^16.0.1",
