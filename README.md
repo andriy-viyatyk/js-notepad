@@ -33,6 +33,21 @@
 | **Installer** | [![Download MSI](https://img.shields.io/badge/Download-Installer%20(.msi)-blue?style=for-the-badge&logo=windows)](https://github.com/andriy-viyatyk/js-notepad/releases/latest/download/js-notepad.msi) |
 | **Portable** | [![Download ZIP](https://img.shields.io/badge/Download-Portable%20(.zip)-orange?style=for-the-badge&logo=windows)](https://github.com/andriy-viyatyk/js-notepad/releases/latest) |
 
+## Editors
+
+| Editor | File Types | Description |
+| :--- | :--- | :--- |
+| **Text Editor** | all files | Monaco-powered editor with syntax highlighting for 50+ languages |
+| **JSON Grid** | `.json` | Sortable, filterable table view for JSON arrays |
+| **CSV Grid** | `.csv`, `.tsv` | Spreadsheet-like view with auto-detected delimiters |
+| **Markdown Preview** | `.md` | Rendered markdown with live updates |
+| **Mermaid Diagrams** | `.mmd`, `.mermaid` | Rendered diagram preview with light/dark toggle |
+| **SVG Preview** | `.svg` | Rendered SVG with zoom and pan |
+| **Image Viewer** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer with zoom and pan |
+| **PDF Viewer** | `.pdf` | Integrated pdf.js document viewer |
+| **Notebook** | `.note.json` | Structured notes with categories, tags, and search |
+| **Compare** | any two files | Side-by-side diff view |
+
 ---
 
 ## Documentation
