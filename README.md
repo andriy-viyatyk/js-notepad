@@ -43,6 +43,7 @@
 | **Markdown Preview** | `.md` | Rendered markdown with live updates |
 | **Mermaid Diagrams** | `.mmd`, `.mermaid` | Rendered diagram preview with light/dark toggle |
 | **SVG Preview** | `.svg` | Rendered SVG with zoom and pan |
+| **HTML Preview** | `.html` | Sandboxed rendered preview with script support |
 | **Image Viewer** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer with zoom and pan |
 | **PDF Viewer** | `.pdf` | Integrated pdf.js document viewer |
 | **Notebook** | `.note.json` | Structured notes with categories, tags, and search |

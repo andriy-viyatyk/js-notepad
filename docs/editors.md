@@ -117,6 +117,19 @@ For `.mmd` and `.mermaid` files:
 - Live preview of unsaved changes
 - Debounced re-rendering for smooth editing
 
+## HTML Preview
+
+For `.html` files:
+
+1. Open an HTML file (opens in text editor by default)
+2. Click "Preview" in the toolbar to see rendered HTML
+
+**Features:**
+- Live preview of unsaved changes
+- JavaScript execution supported (scripts in the HTML will run)
+- Sandboxed rendering — preview is isolated from the application
+- Switch between text editor and preview anytime
+
 ## Compare Mode
 
 Compare two files side-by-side:
@@ -159,6 +172,7 @@ Some files support multiple editors:
 | `.csv` | Text, Grid |
 | `.md` | Text, Preview |
 | `.svg` | Text, Preview |
+| `.html` | Text, Preview |
 | `.mmd` | Text, Mermaid |
 | `.pdf` | PDF only |
 | Images | Image Viewer only |

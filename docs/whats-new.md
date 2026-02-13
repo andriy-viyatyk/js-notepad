@@ -8,7 +8,9 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.8 (Upcoming)
 
-*No changes yet.*
+### New Features
+
+- **HTML Preview** — Switch to "Preview" for HTML files to see rendered output in a sandboxed iframe. Supports JavaScript execution, live updates, and works with unsaved content.
 
 ---
 

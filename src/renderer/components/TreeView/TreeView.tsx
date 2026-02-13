@@ -44,6 +44,7 @@ const TreeViewRoot = styled.div({
         },
         "&.dragOver": {
             backgroundColor: color.background.selection,
+            color: color.text.dark,
         },
         "&.dragging": {
             opacity: 0.5,

@@ -235,6 +235,28 @@ editorRegistry.register({
     },
 });
 
+// HTML preview (content-view for HTML files)
+editorRegistry.register({
+    id: "html-view",
+    name: "Preview",
+    pageType: "textFile",
+    category: "content-view",
+    validForLanguage: (languageId) => languageId === "html",
+    switchOption: (languageId) => {
+        if (languageId !== "html") return -1;
+        return 10;
+    },
+    loadModule: async () => {
+        const module = await import("./html/HtmlView");
+        return {
+            Editor: module.HtmlView,
+            newPageModel: textEditorModule.newPageModel,
+            newEmptyPageModel: textEditorModule.newEmptyPageModel,
+            newPageModelFromState: textEditorModule.newPageModelFromState,
+        };
+    },
+});
+
 // Mermaid diagram preview (content-view for .mmd files)
 editorRegistry.register({
     id: "mermaid-view",
