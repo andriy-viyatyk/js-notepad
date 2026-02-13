@@ -1,3 +1,7 @@
+// Color palette based on VSCode's Red theme.
+// Copyright (c) Microsoft Corporation. Licensed under MIT.
+// https://github.com/microsoft/vscode/blob/main/LICENSE.txt
+
 import { ThemeDefinition } from "./types";
 
 // Red palette reference (VSCode built-in):

@@ -1,3 +1,7 @@
+// Color palette based on VSCode's Solarized Dark theme.
+// Copyright (c) Microsoft Corporation. Licensed under MIT.
+// https://github.com/microsoft/vscode/blob/main/LICENSE.txt
+
 import { ThemeDefinition } from "./types";
 
 // Solarized Dark palette reference:
