@@ -154,17 +154,28 @@ const Content = styled.div({ flex: 1, overflow: "auto" });
 const Button = styled.button({ padding: "8px 16px" });
 ```
 
-### Use Theme Colors
+### Use Theme Colors — No Hardcoded Colors
+
+All colors must come from the `color` object. Never use hex codes, `rgb()`/`rgba()`, or CSS named colors in styled components or inline styles.
 
 ```typescript
 import color from '../../theme/color';
 
+// GOOD - uses theme tokens
 const Header = styled.div({
   backgroundColor: color.background.default,
   color: color.text.default,
   borderBottom: `1px solid ${color.border.default}`,
 });
+
+// BAD - hardcoded colors break theming
+const Header = styled.div({
+  backgroundColor: '#1f1f1f',
+  color: 'rgba(204, 204, 204, 1)',
+});
 ```
+
+If a needed color doesn't exist in `color`, add it to `color.ts` and all theme definitions in `src/renderer/theme/themes/`.
 
 ## File Organization
 

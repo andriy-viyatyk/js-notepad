@@ -10,3 +10,14 @@ export async function showAboutPage(): Promise<void> {
         pagesModel.addPage(model);
     }
 }
+
+/**
+ * Opens the Settings page. If already open, activates it.
+ */
+export async function showSettingsPage(): Promise<void> {
+    const settingsModule = await import("../editors/settings/SettingsPage");
+    const model = await settingsModule.default.newEmptyPageModel("settingsPage");
+    if (model) {
+        pagesModel.addPage(model);
+    }
+}

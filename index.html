@@ -11,6 +11,26 @@
       background-color: #1f1f1f;
     }
   </style>
+  <script>
+    // Apply saved theme background before first paint to avoid flash.
+    // Runs synchronously in <head> before React loads.
+    try {
+      const p = require("path");
+      const f = require("fs");
+      const sp = p.join(process.env.APPDATA, "js-notepad", "data", "appSettings.json");
+      const raw = f.readFileSync(sp, "utf-8").replace(/^\s*\/\/.*$/gm, "");
+      const t = JSON.parse(raw).theme;
+      if (t) {
+        // Theme definition files map --color-bg-default to the editor background.
+        // We inline a minimal lookup to avoid importing the full theme module.
+        const bgs = {
+          "default-dark": "#1f1f1f", "solarized-dark": "#002b36", "monokai": "#272822",
+          "abyss": "#000c18", "red": "#390000", "tomorrow-night-blue": "#002451"
+        };
+        if (bgs[t]) document.querySelector("style").textContent = "body{background-color:" + bgs[t] + "}";
+      }
+    } catch (e) { /* use default */ }
+  </script>
 </head>
 
 <body>

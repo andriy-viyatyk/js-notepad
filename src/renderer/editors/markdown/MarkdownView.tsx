@@ -178,7 +178,7 @@ const MdViewRoot = styled.div({
     "& code": {
         display: "inline-block",
         fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-        backgroundColor: "rgba(101, 108, 118, 0.2)",
+        backgroundColor: color.background.light,
         padding: ".2em .4em",
         borderRadius: 6,
         fontSize: "85%",
@@ -189,13 +189,13 @@ const MdViewRoot = styled.div({
         boxSizing: "content-box",
     },
     "& a": {
-        color: "#4493f8",
+        color: color.misc.blue,
         textDecoration: "none",
         "&:hover": {
             textDecoration: "underline",
         },
         "& strong": {
-            color: "#4493f8",
+            color: color.misc.blue,
         },
     },
 

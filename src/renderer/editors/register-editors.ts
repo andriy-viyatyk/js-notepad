@@ -290,3 +290,15 @@ editorRegistry.register({
         return module.default;
     },
 });
+
+// Settings page (standalone page editor - no file acceptance)
+editorRegistry.register({
+    id: "settings-view",
+    name: "Settings",
+    pageType: "settingsPage",
+    category: "page-editor",
+    loadModule: async () => {
+        const module = await import("./settings/SettingsPage");
+        return module.default;
+    },
+});

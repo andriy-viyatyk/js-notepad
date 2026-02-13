@@ -5,7 +5,7 @@ import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { Button } from "../../components/basic/Button";
 import { List, ListOptionRenderer } from "../../components/form/List";
 import { api } from "../../../ipc/renderer/api";
-import { pagesModel, appSettings, menuFolders, recentFiles, showAboutPage } from "../../store";
+import { pagesModel, menuFolders, recentFiles, showAboutPage, showSettingsPage } from "../../store";
 import type { MenuFolder } from "../../store";
 import color from "../../theme/color";
 import {
@@ -165,11 +165,8 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
     };
 
     openSettings = () => {
-        const filePath = appSettings.settingsFilePath;
-        if (filePath) {
-            pagesModel.openFile(filePath);
-            this.props.onClose?.();
-        }
+        showSettingsPage();
+        this.props.onClose?.();
     };
 
     openAbout = () => {

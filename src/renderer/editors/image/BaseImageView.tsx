@@ -15,7 +15,7 @@ export const BaseImageViewRoot = styled.div({
     height: "100%",
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "#1e1e1e",
+    backgroundColor: color.background.default,
     outline: "none",
     "& img": {
         transformOrigin: "center center",
@@ -28,14 +28,14 @@ export const BaseImageViewRoot = styled.div({
         bottom: 12,
         right: 12,
         padding: "4px 8px",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        backgroundColor: color.background.overlay,
         color: color.text.default,
         borderRadius: 4,
         fontSize: 12,
         fontFamily: "monospace",
         cursor: "pointer",
         "&:hover": {
-            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            backgroundColor: color.background.overlayHover,
         },
     },
     "&.dragging": {

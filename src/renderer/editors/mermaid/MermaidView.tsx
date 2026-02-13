@@ -34,7 +34,7 @@ const MermaidViewRoot = styled.div({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        backgroundColor: color.background.overlay,
         zIndex: 1,
     },
 });

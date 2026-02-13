@@ -10,6 +10,14 @@ Release notes and changelog for js-notepad.
 
 ### New Features
 
+- **Application Theming** — Switch between 6 dark color themes via the new Settings page
+  - Available themes: Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue
+  - Settings page with visual theme previews (access via toolbar Settings button)
+  - Monaco editor theme updates automatically with app theme
+  - Theme preference persists across sessions
+  - Flash-free startup — correct theme applied before first paint
+  - "View Settings File" button for raw JSON access
+
 - **HTML Preview** — Switch to "Preview" for HTML files to see rendered output in a sandboxed iframe. Supports JavaScript execution, live updates, and works with unsaved content.
 
 ---

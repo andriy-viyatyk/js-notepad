@@ -4,19 +4,22 @@ import { TGlobalState } from "../core/state/state";
 import { parseJSON5 } from "../core/utils/parse-utils";
 import { filesModel } from "./files-store";
 import { FileWatcher } from "../core/services/file-watcher";
+import { applyTheme } from "../theme/themes";
 
 const settingsFileName = "appSettings.json";
 
-export type AppSettingsKey = "tab-recent-languages";
+export type AppSettingsKey = "tab-recent-languages" | "theme";
 
 const settingsComments: Record<AppSettingsKey, string> = {
     "tab-recent-languages":
         "Recently selected languages.\nMore recent languages will appear on top of 'change language' menu.",
+    "theme": "Application color theme.\nAvailable themes: default-dark, solarized-dark, monokai, abyss, red, tomorrow-night-blue",
 };
 
 const defaultAppSettingsState = {
     settings: {
-        "tab-recent-languages": ["plaintext"],
+        "tab-recent-languages": ["plaintext"] as string[],
+        "theme": "default-dark",
     },
 };
 
@@ -30,25 +33,25 @@ class AppSettings extends TModel<AppSettingsState> {
         this.init();
     }
 
-    get = (
-        key: AppSettingsKey
-    ): AppSettingsState["settings"][AppSettingsKey] => {
+    get = <K extends AppSettingsKey>(
+        key: K
+    ): AppSettingsState["settings"][K] => {
         return this.state.get().settings[key];
     };
 
-    set = (
-        key: AppSettingsKey,
-        value: AppSettingsState["settings"][AppSettingsKey]
+    set = <K extends AppSettingsKey>(
+        key: K,
+        value: AppSettingsState["settings"][K]
     ): void => {
         this.state.update((s) => {
-            s.settings[key] = value;
+            (s.settings[key] as AppSettingsState["settings"][K]) = value;
         });
         this.saveSettingsDebounced();
     };
 
-    use = (
-        key: AppSettingsKey
-    ): AppSettingsState["settings"][AppSettingsKey] => {
+    use = <K extends AppSettingsKey>(
+        key: K
+    ): AppSettingsState["settings"][K] => {
         return this.state.use((s) => s.settings[key]);
     };
 
@@ -79,6 +82,8 @@ class AppSettings extends TModel<AppSettingsState> {
             this.state.update((s) => {
                 s.settings = newSettings;
             });
+
+            applyTheme(newSettings["theme"]);
         }
     };
 

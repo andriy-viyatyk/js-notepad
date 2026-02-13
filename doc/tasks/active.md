@@ -16,6 +16,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-014 | Application Theming | CSS Custom Properties theming with 6 dark themes, Settings page with theme selector, Monaco integration |
 | US-013 | Create HTML Viewer | Sandboxed iframe preview for HTML files with script execution support |
 | US-012 | Markdown View Enhancements | Code block syntax highlighting, copy-to-clipboard button, inline Mermaid diagrams, shared render-mermaid module |
 | US-011 | Mermaid Diagram Viewer | .mmd/.mermaid preview with light/dark toggle, copy to clipboard, syntax highlighting |

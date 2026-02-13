@@ -97,6 +97,16 @@ See [scripting.md](./scripting.md) for details.
 - Grouped pages for script output
 - Script Panel for ad-hoc scripts on any file
 
+### 4. Theming System
+
+- CSS Custom Properties approach — `color.ts` returns `var()` references, theme definitions set actual values on `:root`
+- 55+ component files import `color` unchanged — zero migration needed when adding themes
+- Theme definitions in `src/renderer/theme/themes/` (one file per theme)
+- Monaco editor has separate theme integration via `onMonacoThemeChange` callback
+- Startup: synchronous `fs.readFileSync` in `themes/index.ts` + inline `<script>` in `index.html` for flash-free startup
+- Theme preference persisted in `appSettings.json`
+- Settings page (`src/renderer/editors/settings/SettingsPage.tsx`) provides visual theme selector
+
 ## Design Principles
 
 ### 1. Core First

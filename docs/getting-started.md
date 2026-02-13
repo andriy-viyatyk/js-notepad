@@ -67,6 +67,20 @@ The About page also shows:
 - Electron, Node.js, and Chromium versions
 - Links to download the latest version and report issues
 
+## Changing the Theme
+
+js-notepad includes 6 dark color themes inspired by VSCode:
+
+1. Click the app button (js-notepad icon) in the top-left corner to open the sidebar menu
+2. Click the Settings button (gear icon) to open the Settings page
+3. Click a theme card to switch instantly
+
+**Available themes:** Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue
+
+Your theme preference is saved automatically and applied on next launch.
+
+The Settings page also has a "View Settings File" button to open the raw `appSettings.json` for manual editing.
+
 ## Next Steps
 
 - Learn about [different editors](./editors.md)

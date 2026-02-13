@@ -149,6 +149,7 @@ page.grouped.editor = "grid-json";
 - **Functional components** with hooks
 - **Direct imports** preferred over barrel imports (avoid circular deps)
 - **Meaningful names** - descriptive, no abbreviations
+- **No hardcoded colors** - All colors must come from `import color from "../../theme/color"`. Never use hex codes, `rgb()`/`rgba()`, or named colors directly in styled components or inline styles. If a needed color doesn't exist in `color`, add it to `color.ts` and all theme definitions in `/src/renderer/theme/themes/`.
 
 See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete standards.
 
@@ -168,3 +169,6 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Base virtualization      | `/src/renderer/components/virtualization/RenderGrid.tsx` |
 | Advanced grid            | `/src/renderer/components/data-grid/AVGrid.tsx`   |
+| Color tokens             | `/src/renderer/theme/color.ts`                    |
+| Theme definitions        | `/src/renderer/theme/themes/`                     |
+| App settings             | `/src/renderer/store/app-settings.ts`             |

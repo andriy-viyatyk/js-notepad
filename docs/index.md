@@ -34,6 +34,7 @@ js-notepad is a Windows Notepad replacement designed for developers. It combines
 - Find and replace
 - Multiple tabs
 - Recent files
+- 6 dark color themes (Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue)
 
 ### For Developers
 - Run JavaScript to transform content
