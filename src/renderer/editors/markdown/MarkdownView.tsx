@@ -11,6 +11,7 @@ import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { PageModel, useEditorConfig } from "../base";
 import { pagesModel } from "../../store/pages-store";
 import { createRehypeHighlight } from "./rehypeHighlight";
+import { CodeBlock, PreBlock } from "./CodeBlock";
 const path = require("path");
 const url = require("url");
 
@@ -24,11 +25,13 @@ const MdViewRoot = styled.div({
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        padding: "0 16px",
+        padding: "0 24px",
         overflowY: "auto",
         overflowX: "hidden",
-        fontFamily: "Arial",
-        fontSize: 15,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
+        fontSize: 16,
+        lineHeight: 1.5,
+        wordWrap: "break-word",
         "&::-webkit-scrollbar": {
             display: "none",
         },
@@ -43,69 +46,238 @@ const MdViewRoot = styled.div({
         wordWrap: "break-word",
         overflowWrap: "break-word",
     },
+
+    // Code block wrapper (from PreBlock component)
+    "& .code-block-wrapper": {
+        position: "relative",
+        width: "fit-content",
+        maxWidth: "100%",
+        "& .copy-btn": {
+            position: "absolute",
+            top: 6,
+            right: 6,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 4,
+            color: color.text.light,
+            backgroundColor: color.background.light,
+            border: `1px solid ${color.border.default}`,
+            borderRadius: 4,
+            cursor: "pointer",
+            opacity: 0,
+            transition: "opacity 0.2s ease",
+            "& svg": {
+                transition: "transform 0.15s ease-out",
+            },
+            "&:hover": {
+                opacity: 1,
+            },
+            "&.copied svg": {
+                transform: "scale(0.65)",
+                transition: "transform 0.1s ease-in",
+            },
+            "&.copied": {
+                opacity: 1,
+            },
+        },
+        "&:hover .copy-btn": {
+            opacity: 0.5,
+        },
+        "&:hover .copy-btn:hover": {
+            opacity: 1,
+        },
+        "&:hover .copy-btn.copied": {
+            opacity: 1,
+        },
+    },
+
+    // Mermaid diagrams rendered from ```mermaid code blocks
+    "& .mermaid-diagram": {
+        position: "relative",
+        margin: "1em 0",
+        textAlign: "center",
+        "& img": {
+            maxWidth: "100%",
+            height: "auto",
+        },
+        "& .copy-btn": {
+            position: "absolute",
+            top: -10,
+            right: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 4,
+            color: color.text.light,
+            backgroundColor: color.background.light,
+            border: `1px solid ${color.border.default}`,
+            borderRadius: 4,
+            cursor: "pointer",
+            opacity: 0,
+            transition: "opacity 0.2s ease",
+            "& svg": {
+                transition: "transform 0.15s ease-out",
+            },
+            "&:hover": {
+                opacity: 1,
+            },
+            "&.copied svg": {
+                transform: "scale(0.65)",
+                transition: "transform 0.1s ease-in",
+            },
+            "&.copied": {
+                opacity: 1,
+            },
+        },
+        "&:hover .copy-btn": {
+            opacity: 0.5,
+        },
+        "&:hover .copy-btn:hover": {
+            opacity: 1,
+        },
+        "&:hover .copy-btn.copied": {
+            opacity: 1,
+        },
+    },
+    "& .mermaid-diagram.mermaid-loading": {
+        padding: "2em",
+        color: color.text.light,
+        fontSize: 13,
+    },
+    "& .mermaid-error": {
+        margin: "1em 0",
+        padding: "1em",
+        backgroundColor: color.background.dark,
+        borderRadius: 6,
+        color: color.misc.red,
+        fontSize: 13,
+    },
+
+    // Code blocks
     "& pre": {
         maxWidth: "100%",
         whiteSpace: "pre-wrap",
         wordWrap: "break-word",
-        padding: "8px 16px",
-        backgroundColor: color.background.light,
-        borderRadius: 4,
+        padding: 16,
+        backgroundColor: color.background.dark,
+        borderRadius: 6,
+        fontSize: "85%",
+        lineHeight: 1.45,
         width: "fit-content",
     },
+    // Code inside pre — reset inline code styles
+    "& pre code": {
+        display: "inline",
+        padding: 0,
+        backgroundColor: "transparent",
+        borderRadius: 0,
+        fontSize: "inherit",
+    },
+    // Inline code
     "& code": {
         display: "inline-block",
-        fontFamily: "monospace",
-        backgroundColor: color.background.light,
-        padding: "2px 4px",
-        borderRadius: 4,
+        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+        backgroundColor: "rgba(101, 108, 118, 0.2)",
+        padding: ".2em .4em",
+        borderRadius: 6,
+        fontSize: "85%",
     },
     "& img": {
         maxWidth: "100%",
         height: "auto",
+        boxSizing: "content-box",
     },
     "& a": {
-        color: color.misc.blue,
+        color: "#4493f8",
+        textDecoration: "none",
+        "&:hover": {
+            textDecoration: "underline",
+        },
         "& strong": {
-            color: color.misc.blue,
+            color: "#4493f8",
         },
     },
-    "& h1, & h2": {
-        borderBottom: `1px solid ${color.border.default}`,
-        marginBlockStart: 0,
-        marginBlockEnd: 0,
-        paddingBlockStart: "0.67em",
-        paddingBlockEnd: "0.3em",
+
+    // Headings
+    "& h1, & h2, & h3, & h4, & h5, & h6": {
+        marginTop: "1.5rem",
+        marginBottom: "1rem",
+        fontWeight: 600,
+        lineHeight: 1.25,
     },
-    "& h3, & h4, & h5, & h6": {
-        marginBlockStart: 0,
-        marginBlockEnd: 0,
-        paddingBlockStart: "0.67em",
-        paddingBlockEnd: "0.3em",
+    "& h1": {
+        paddingBottom: ".3em",
+        fontSize: "2em",
+        borderBottom: `1px solid ${color.border.default}`,
+    },
+    "& h2": {
+        paddingBottom: ".3em",
+        fontSize: "1.5em",
+        borderBottom: `1px solid ${color.border.default}`,
+    },
+    "& h3": {
+        fontSize: "1.25em",
+    },
+    "& h4": {
+        fontSize: "1em",
+    },
+    "& h5": {
+        fontSize: ".875em",
+    },
+    "& h6": {
+        fontSize: ".85em",
+        color: color.text.light,
+    },
+
+    // Lists
+    "& ul, & ol": {
+        paddingLeft: "2em",
+    },
+    "& li + li": {
+        marginTop: ".25em",
     },
     "& li": {
-        marginBlockStart: 4,
-        marginBlockEnd: 4,
-        lineHeight: 1.4,
+        lineHeight: 1.5,
     },
+    // Nested list styles
+    "& ol ol, & ul ol": {
+        listStyleType: "lower-roman",
+    },
+    "& ul ul ol, & ul ol ol, & ol ul ol, & ol ol ol": {
+        listStyleType: "lower-alpha",
+    },
+
+    // Tables
     "& table": {
+        borderSpacing: 0,
         borderCollapse: "collapse",
-        width: "100%",
+        width: "max-content",
+        maxWidth: "100%",
+        overflow: "auto",
         marginTop: "1em",
         marginBottom: "1em",
     },
     "& th, & td": {
         border: `1px solid ${color.border.default}`,
-        padding: "8px 12px",
+        padding: "6px 13px",
         textAlign: "left",
     },
     "& th": {
-        backgroundColor: color.background.light,
-        fontWeight: "bold",
+        fontWeight: 600,
     },
+    "& tr": {
+        borderTop: `1px solid ${color.border.default}`,
+    },
+    "& tr:nth-of-type(2n)": {
+        backgroundColor: color.background.dark,
+    },
+
     "& blockquote": {
-        borderLeft: `4px solid ${color.border.default}`,
+        margin: 0,
+        borderLeft: `.25em solid ${color.border.default}`,
         color: color.text.light,
-        paddingLeft: 16,
+        padding: "0 1em",
     },
     "& b, & strong": {
         color: color.text.strong,
@@ -119,18 +291,61 @@ const MdViewRoot = styled.div({
         },
     },
     "& hr": {
-        border: "none",
-        borderBottom: `1px solid ${color.border.default}`,
-        width: "100%",
-        marginBlockStart: "0.8em",
-        marginBlockEnd: "0.8em",
+        height: ".25em",
+        padding: 0,
+        margin: "1.5rem 0",
+        backgroundColor: color.border.default,
+        border: 0,
     },
     "& sup": {
         marginLeft: 3,
     },
     "& p": {
-        lineHeight: 1.4,
-        marginBottom: "1.25rem",
+        marginTop: 0,
+        marginBottom: 10,
+        lineHeight: 1.5,
+    },
+
+    // Compact mode — reduced font size and spacing for embedded views
+    "&.compact .md-scroll-container": {
+        fontSize: 15,
+        padding: "0 8px",
+        lineHeight: 1.25,
+    },
+    "&.compact h1, &.compact h2, &.compact h3, &.compact h4, &.compact h5, &.compact h6": {
+        marginTop: ".4rem",
+        marginBottom: ".25rem",
+        lineHeight: 1.15,
+    },
+    "&.compact h1": { fontSize: "1.5em" },
+    "&.compact h2": { fontSize: "1.25em" },
+    "&.compact h3": { fontSize: "1.1em" },
+    "&.compact pre": {
+        padding: "6px 10px",
+        lineHeight: 1.3,
+    },
+    "&.compact th, &.compact td": {
+        padding: "3px 6px",
+    },
+    "&.compact hr": {
+        margin: ".4rem 0",
+    },
+    "&.compact p": {
+        marginBottom: 3,
+        lineHeight: 1.25,
+    },
+    "&.compact li": {
+        lineHeight: 1.25,
+    },
+    "&.compact li + li": {
+        marginTop: ".1em",
+    },
+    "&.compact ul, &.compact ol": {
+        marginTop: 2,
+        marginBottom: 2,
+    },
+    "&.compact blockquote": {
+        padding: "0 .75em",
     },
 });
 
@@ -159,6 +374,8 @@ function resolveRelatedLink(currentFilePath?: string, link?: string) {
 }
 
 const getComponents = (filePath: string): Components => ({
+    code: CodeBlock as any,
+    pre: PreBlock,
     input: ({ node, ...props }) => {
         if (props.type === "checkbox") {
             return props.checked ? (
@@ -253,9 +470,10 @@ export function MarkdownView(props: MarkdownViewProps) {
         : undefined;
 
     const showMinimap = !editorConfig.hideMinimap;
+    const compact = editorConfig.compact;
 
     return (
-        <MdViewRoot style={rootStyle} className={showMinimap ? undefined : "show-scrollbar"}>
+        <MdViewRoot style={rootStyle} className={`${showMinimap ? "" : "show-scrollbar"} ${compact ? "compact" : ""}`}>
             <div
                 className="md-scroll-container"
                 ref={pageModel.setContainer}

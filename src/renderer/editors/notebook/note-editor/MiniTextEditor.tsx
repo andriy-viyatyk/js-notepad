@@ -10,6 +10,11 @@ import { useEditorConfig } from "../../base";
 
 const MiniTextEditorRoot = styled.div({
     position: "relative",
+
+    "&.fill-container": {
+        flex: "1 1 auto",
+        overflow: "hidden",
+    },
 });
 
 // =============================================================================
@@ -38,10 +43,14 @@ export function MiniTextEditor({ model }: MiniTextEditorProps) {
         contentHeight: s.contentHeight,
     }));
 
-    // Apply max height from context
-    const contentHeight = editorConfig.maxEditorHeight
-        ? Math.min(rawContentHeight, editorConfig.maxEditorHeight)
-        : rawContentHeight;
+    const fillContainer = editorConfig.fillContainer;
+
+    // Apply max height from context (only in content-sized mode)
+    const contentHeight = fillContainer
+        ? undefined
+        : editorConfig.maxEditorHeight
+            ? Math.min(rawContentHeight, editorConfig.maxEditorHeight)
+            : rawContentHeight;
 
     // Apply external search highlighting decorations
     useEffect(() => {
@@ -49,10 +58,13 @@ export function MiniTextEditor({ model }: MiniTextEditorProps) {
     }, [editorConfig.highlightText]);
 
     return (
-        <MiniTextEditorRoot style={{ height: contentHeight }}>
+        <MiniTextEditorRoot
+            className={fillContainer ? "fill-container" : undefined}
+            style={fillContainer ? undefined : { height: contentHeight }}
+        >
             <Editor
                 key={model.id}  // Force remount when note changes (ensures onMount is called)
-                height={contentHeight}
+                height={fillContainer ? "100%" : contentHeight}
                 value={content}
                 language={language}
                 onMount={editorModel.handleEditorDidMount}

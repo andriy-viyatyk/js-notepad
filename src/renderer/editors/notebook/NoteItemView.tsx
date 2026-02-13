@@ -47,7 +47,7 @@ const NoteItemViewRoot = styled.div({
         width: 16,
         color: color.text.light,
         cursor: "grab",
-        transition: "color 0.15s ease",
+        transition: "color 0.5s ease",
         "& svg": {
             width: 16,
             height: 16,
@@ -61,7 +61,7 @@ const NoteItemViewRoot = styled.div({
             bottom: 0,
             width: 1,
             backgroundColor: color.background.light, // Same as content-area border on hover
-            transition: "background-color 0.15s ease",
+            transition: "background-color 0.5s ease",
         },
     },
 
@@ -107,7 +107,7 @@ const NoteItemViewRoot = styled.div({
         alignItems: "center",
         gap: 4,
         opacity: 0,
-        transition: "opacity 0.15s ease",
+        transition: "opacity 0.5s ease",
     },
 
     // Show toolbar when searching (search text is active)
@@ -115,8 +115,18 @@ const NoteItemViewRoot = styled.div({
         opacity: 1,
     },
 
-    // Hover/focus states - show hidden elements
-    "&:hover, &:focus-within": {
+    // Switch active button: gray by default, blue only when focused
+    "& .switch-button.active": {
+        backgroundColor: color.background.light,
+        color: color.text.default,
+    },
+    "&:focus-within .switch-button.active": {
+        color: color.text.selection,
+        backgroundColor: color.background.selection,
+    },
+
+    // Hover/focus states - show hidden elements (exclude deactivation area from hover)
+    "&:hover:not(:has(.deactivation-area:hover)), &:focus-within": {
         "& .toolbar-hover-content": {
             opacity: 1,
         },
@@ -267,7 +277,7 @@ const NoteItemViewRoot = styled.div({
         border: "1px solid transparent",
         borderRadius: 2,
         margin: "0 4px",
-        transition: "border-color 0.15s ease",
+        transition: "border-color 0.5s ease",
         // Semi-transparent overlay when note is not focused
         "&::before": {
             content: "''",
@@ -280,7 +290,7 @@ const NoteItemViewRoot = styled.div({
             opacity: 0.5,
             pointerEvents: "none",
             zIndex: 1,
-            transition: "opacity 0.15s ease",
+            transition: "opacity 0.5s ease",
         },
     },
 
@@ -316,7 +326,7 @@ const NoteItemViewRoot = styled.div({
         fontSize: 11,
         cursor: "pointer",
         color: color.text.light,
-        transition: "opacity 0.15s ease",
+        transition: "opacity 0.5s ease",
         "&:hover": {
             opacity: 1,
         },
@@ -493,7 +503,7 @@ export function NoteItemView(props: NoteItemViewProps) {
             {/* Content area - Monaco or alternative editor */}
             <div className="content-area">
                 <EditorStateStorageProvider storage={stateStorage}>
-                    <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true, disableAutoFocus: true, highlightText: searchText }}>
+                    <EditorConfigProvider config={{ maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT, hideMinimap: true, disableAutoFocus: true, highlightText: searchText, compact: true }}>
                         <NoteItemActiveEditor model={model.editModel} />
                     </EditorConfigProvider>
                 </EditorStateStorageProvider>

@@ -5,25 +5,26 @@ import color from "../../theme/color";
 
 const SwitchButtonsRoot = styled.div({
     display: "flex",
+    borderRadius: 4,
+    border: `1px solid ${color.border.default}`,
+    overflow: "hidden",
     "& .switch-button": {
-        backgroundColor: color.background.dark,
+        backgroundColor: "transparent",
         padding: "3px 8px",
         color: color.text.light,
-        borderWidth: 1,
-        borderStyle: "outset",
-        borderColor: color.border.default,
+        border: "none",
+        borderRight: `1px solid ${color.border.default}`,
         cursor: "pointer",
-        "&.active": {
-            borderStyle: "inset",
-            color: color.text.dark,
-        },
-        "&:first-of-type": {
-            borderTopLeftRadius: 4,
-            borderBottomLeftRadius: 4,
-        },
         "&:last-of-type": {
-            borderTopRightRadius: 4,
-            borderBottomRightRadius: 4,
+            borderRight: "none",
+        },
+        "&:hover:not(.active)": {
+            color: color.text.default,
+            backgroundColor: color.background.light,
+        },
+        "&.active": {
+            color: color.text.selection,
+            backgroundColor: color.background.selection,
         },
     }
 });

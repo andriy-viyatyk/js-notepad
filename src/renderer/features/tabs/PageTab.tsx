@@ -481,7 +481,7 @@ export function PageTab(props: PageTabProps) {
                         >
                             <LanguageIcon
                                 language={language}
-                                getIcon={model.getIcon}
+                                fileName={title}
                             />
                         </Button>
                     )}

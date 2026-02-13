@@ -6,9 +6,36 @@ Release notes and changelog for js-notepad.
 
 ---
 
-## Version 1.0.7 (Upcoming)
+## Version 1.0.8 (Upcoming)
 
 *No changes yet.*
+
+---
+
+## Version 1.0.7
+
+### New Features
+
+- **Markdown View Enhancements**
+  - Syntax highlighting in fenced code blocks using Monaco's `colorize()` API
+  - Supports all Monaco languages with alias resolution (e.g., `ts`, `js`, `py`, `bash`)
+  - Copy-to-clipboard button on code block hover
+  - Inline Mermaid diagram rendering for ` ```mermaid ` code blocks
+  - Mermaid diagrams use dark theme with text contrast fix for readable labels
+  - Shared rendering pipeline with standalone Mermaid viewer (`.mmd` files)
+  - Compact mode font size increase for better readability in notebook notes
+
+### Improvements
+
+- Distinctive file icons for `.note.json` (notebook) and `.grid.json`/`.grid.csv` (grid) files in tabs and sidebar
+- Restyled editor switch buttons with modern look and hover effects
+- Notebook editor: smoother transitions, improved focus indication
+- Expanded note editor now properly fills available space
+- Disabled browser spellcheck in editor windows
+
+### Bug Fixes
+
+- Fixed notebook editor overwriting raw content when JSON has parse errors
 
 ---
 

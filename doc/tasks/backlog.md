@@ -6,30 +6,6 @@ Ideas and future tasks not yet planned for implementation.
 
 ## Architecture Improvements
 
-### Page Grouping Store Separation
-
-**Goal:** Extract page grouping logic from pages-store to dedicated store.
-
-**Current State:**
-- `pages-store.ts` contains both page collection management AND grouping logic
-- Grouping: `groupPages()`, `ungroupPages()`, `getGroupedPage()`, `requireGroupedText()`
-
-**Target State:**
-- `pages-store.ts` - Page collection (open, close, reorder)
-- `page-grouping.ts` - Split view logic
-
-**Tasks:**
-- [ ] Create `store/page-grouping.ts`
-- [ ] Extract grouping state and methods
-- [ ] Update pages-store to remove grouping
-- [ ] Update ScriptContext, ScriptRunner to use new store
-- [ ] Update TextToolbar compare mode
-- [ ] Update Pages.tsx rendering
-
-**Complexity:** Medium
-
----
-
 ### Script Service Enhancements
 
 **Goal:** Expand scripting with hooks and toolbar builder API.
@@ -155,6 +131,86 @@ Categorized bookmarks with tags.
 - [ ] Implement bookmark management with categories
 
 **Complexity:** High (each)
+
+---
+
+### Hex Editor
+
+**Goal:** Open and view/edit binary files (`.bin`, `.dat`, `.wasm`, `.exe`, `.dll`, etc.) in hex format.
+
+Developers frequently need to inspect binary data — file headers, protocols, WASM modules. A hex view with offset columns, hex bytes, and ASCII representation. Could build on top of existing virtualization for large files.
+
+**Complexity:** Medium-High
+
+---
+
+### Log Viewer
+
+**Goal:** Specialized viewer for `.log` files with live tail, line filtering, regex search, and severity-level coloring.
+
+Developers deal with logs daily and plain text editors don't help. A dedicated view with real-time filtering, severity highlighting (ERROR/WARN/INFO/DEBUG), and follow-tail mode would be very useful.
+
+**Complexity:** Medium
+
+---
+
+### REST Client
+
+**Goal:** Lightweight API testing tool using `.http` file format (same as VS Code REST Client extension).
+
+Note: js-notepad already supports a basic REST workflow — create a JS file, write `const resp = await fetch(...); return await resp.json()` and execute it. A dedicated REST editor would add a more visual experience with request/response panels, headers UI, and history. Discussable whether the added value justifies the effort.
+
+**Complexity:** High
+
+---
+
+### Regex Tester
+
+**Goal:** Interactive regex testing tool with live match highlighting and capture group display.
+
+Note: Users can already test regex via scripting (`page.content.match(/.../g)`), but a dedicated tool with visual highlighting of matches, named groups, and replace preview would be more convenient. Discussable.
+
+**Complexity:** Medium
+
+---
+
+### JWT Decoder
+
+**Goal:** Paste or open a JWT token, see decoded header and payload with expiration check.
+
+Note: Already achievable via script panel (`page.content.split(".").slice(0,2).map(atob)`), but a dedicated viewer with formatted JSON output, expiration status, and signature info could be more convenient. Discussable — low effort but also low differentiation.
+
+**Complexity:** Low
+
+---
+
+### Color Palette Editor
+
+**Goal:** Create and edit color palettes with a palette generator for background/foreground combinations.
+
+Good candidate for a tool editor. Could generate proper color schemes for web apps — complementary, analogous, triadic palettes. Display swatches, convert between hex/rgb/hsl, check contrast ratios (WCAG), and export as CSS variables or JSON.
+
+**Complexity:** Medium-High
+
+---
+
+### Certificate Viewer
+
+**Goal:** Open `.pem`, `.crt`, `.cer` files and display parsed certificate details (issuer, subject, expiry, chain).
+
+DevOps and backend developers deal with certificates frequently and usually resort to `openssl` CLI commands. A visual viewer would be more convenient.
+
+**Complexity:** Low-Medium | **Priority:** Very Low
+
+---
+
+### Font Preview
+
+**Goal:** Open `.ttf`, `.woff`, `.woff2` font files and preview glyphs at different sizes with customizable sample text.
+
+Frontend developers occasionally need to inspect fonts. Could show glyph table, character set coverage, and font metadata.
+
+**Complexity:** Low-Medium | **Priority:** Low
 
 ---
 

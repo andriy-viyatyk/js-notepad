@@ -93,6 +93,8 @@ js-notepad/
 │   │   └── index.ts
 │   ├── markdown/           # Markdown preview
 │   │   ├── MarkdownView.tsx
+│   │   ├── CodeBlock.tsx       # Code block syntax highlighting + inline Mermaid
+│   │   ├── rehypeHighlight.ts  # Rehype plugin for search text highlighting
 │   │   └── index.ts
 │   ├── pdf/                # PDF viewer
 │   │   ├── PdfViewer.tsx
@@ -111,6 +113,7 @@ js-notepad/
 │   │   └── index.ts
 │   ├── mermaid/            # Mermaid diagram preview
 │   │   ├── MermaidView.tsx
+│   │   ├── render-mermaid.ts   # Shared rendering utilities (used by Markdown too)
 │   │   └── index.ts
 │   ├── compare/            # Diff editor
 │   │   ├── CompareEditor.tsx

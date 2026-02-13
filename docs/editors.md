@@ -58,8 +58,11 @@ For `.md` files:
 
 **Features:**
 - GitHub-flavored Markdown
-- Syntax highlighting in code blocks
+- Syntax highlighting in code blocks using Monaco's colorize API (supports all Monaco languages including aliases like `ts`, `js`, `py`, `bash`)
+- Copy-to-clipboard button on code block hover
+- Inline Mermaid diagram rendering — ` ```mermaid ` code blocks render as SVG diagrams
 - Live preview updates
+- Minimap navigation
 
 ## PDF Viewer
 

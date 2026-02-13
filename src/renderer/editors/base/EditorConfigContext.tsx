@@ -30,11 +30,23 @@ export interface EditorConfig {
     hideMinimap?: boolean;
 
     /**
+     * When true, the editor fills its container instead of sizing to content.
+     * Used in expanded note view where the container has a fixed layout.
+     */
+    fillContainer?: boolean;
+
+    /**
      * Disable auto-focus behavior when the editor mounts.
      * Used when embedding editors in containers where auto-focus
      * would be disruptive (e.g., multiple editors in a virtualized list).
      */
     disableAutoFocus?: boolean;
+
+    /**
+     * Use compact styling with reduced font size and spacing.
+     * Used when embedding editors in tight spaces (e.g., non-expanded note items).
+     */
+    compact?: boolean;
 
     /**
      * External search text to highlight in editor content.

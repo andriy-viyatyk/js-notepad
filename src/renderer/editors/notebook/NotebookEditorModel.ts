@@ -92,7 +92,9 @@ export class NotebookEditorModel extends TComponentModel<
     };
 
     private onDataChanged = () => {
-        const data = this.state.get().data;
+        const { data, error } = this.state.get();
+        // Don't serialize when there's a parse error - preserves the user's raw content
+        if (error) return;
         if (data !== this.lastSerializedData) {
             this.lastSerializedData = data;
             this.skipNextContentUpdate = true;

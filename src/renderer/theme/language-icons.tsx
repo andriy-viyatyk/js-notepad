@@ -488,3 +488,32 @@ export const MermaidIcon = createIconWithViewBox("0 0 32 32")(
         <rect x="19" y="21" width="9" height="7" rx="2" fill="#FF3670" opacity="0.7" />
     </g>
 );
+
+export const NotebookIcon = createIconWithViewBox("0 0 32 32")(
+    <g>
+        {/* Page/book shape */}
+        <rect x="7" y="4" width="18" height="24" rx="2" fill="#4DD0E1" />
+        {/* Spine line */}
+        <rect x="11" y="4" width="1.5" height="24" fill="#2BACBE" />
+        {/* Text lines */}
+        <rect x="15" y="9" width="7" height="1.5" rx="0.5" fill="#fff" opacity="0.9" />
+        <rect x="15" y="14" width="5" height="1.5" rx="0.5" fill="#fff" opacity="0.7" />
+        <rect x="15" y="19" width="7" height="1.5" rx="0.5" fill="#fff" opacity="0.7" />
+        <rect x="15" y="24" width="4" height="1.5" rx="0.5" fill="#fff" opacity="0.5" />
+    </g>
+);
+
+export const GridIcon = createIconWithViewBox("0 0 32 32")(
+    <g>
+        {/* Grid cells - 3x3 */}
+        <rect x="4" y="5" width="7" height="6" rx="1" fill="#4DD0E1" />
+        <rect x="12.5" y="5" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.85" />
+        <rect x="21" y="5" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.7" />
+        <rect x="4" y="13" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.85" />
+        <rect x="12.5" y="13" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.7" />
+        <rect x="21" y="13" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.55" />
+        <rect x="4" y="21" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.7" />
+        <rect x="12.5" y="21" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.55" />
+        <rect x="21" y="21" width="7" height="6" rx="1" fill="#4DD0E1" opacity="0.4" />
+    </g>
+);

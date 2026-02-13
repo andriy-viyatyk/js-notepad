@@ -453,7 +453,7 @@ export function ExpandedNoteView({
             {/* Content area - full height, no max constraint */}
             <div className="expanded-content">
                 <EditorStateStorageProvider storage={stateStorage}>
-                    <EditorConfigProvider config={{ hideMinimap: false, disableAutoFocus: false }}>
+                    <EditorConfigProvider config={{ hideMinimap: false, disableAutoFocus: false, fillContainer: true }}>
                         <NoteItemActiveEditor model={editModel} />
                     </EditorConfigProvider>
                 </EditorStateStorageProvider>

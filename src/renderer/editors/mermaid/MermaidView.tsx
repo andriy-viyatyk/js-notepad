@@ -9,6 +9,7 @@ import { CopyIcon, SunIcon, MoonIcon } from "../../theme/icons";
 import { CircularProgress } from "../../components/basic/CircularProgress";
 import { EditorError } from "../base/EditorError";
 import color from "../../theme/color";
+import { renderMermaid } from "./render-mermaid";
 
 // ============================================================================
 // Styled Components
@@ -37,44 +38,6 @@ const MermaidViewRoot = styled.div({
         zIndex: 1,
     },
 });
-
-// ============================================================================
-// Mermaid rendering (dynamic import)
-// ============================================================================
-
-let renderCounter = 0;
-
-/** Convert raw SVG string to a data URL, optionally injecting a background rect */
-function svgToDataUrl(svg: string, backgroundColor?: string): string {
-    const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
-    const root = doc.documentElement;
-    if (backgroundColor) {
-        const bg = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
-        bg.setAttribute("width", "100%");
-        bg.setAttribute("height", "100%");
-        bg.setAttribute("fill", backgroundColor);
-        root.insertBefore(bg, root.firstChild);
-    }
-    return `data:image/svg+xml,${encodeURIComponent(
-        new XMLSerializer().serializeToString(doc)
-    )}`;
-}
-
-async function renderMermaid(
-    content: string,
-    lightMode: boolean
-): Promise<string> {
-    const mermaid = (await import("mermaid")).default;
-    mermaid.initialize({
-        startOnLoad: false,
-        theme: lightMode ? "default" : "neutral",
-        securityLevel: "loose",
-    });
-
-    const id = `mermaid-render-${++renderCounter}`;
-    const { svg } = await mermaid.render(id, content);
-    return svgToDataUrl(svg, lightMode ? "white" : undefined);
-}
 
 // ============================================================================
 // MermaidView Component - content-view for Mermaid diagrams

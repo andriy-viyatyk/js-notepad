@@ -1,5 +1,8 @@
-import { ReactNode, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { SvgIconComponent, SvgIconProps } from "../../theme/icons";
+import { api } from "../../../ipc/renderer/api";
+import { TModel } from "../../core/state/model";
+import { TGlobalState } from "../../core/state/state";
 import {
     getLanguageByExtension,
     getLanguageById,
@@ -19,6 +22,7 @@ import {
     FshartIcon,
     GoIcon,
     GraphqlIcon,
+    GridIcon,
     HclIcon,
     HtmlIcon,
     JavaIcon,
@@ -30,6 +34,7 @@ import {
     LuaIcon,
     MarkdownIcon,
     MermaidIcon,
+    NotebookIcon,
     PascalIcon,
     PerlIcon,
     PhpIcon,
@@ -50,7 +55,13 @@ import {
     YamlIcon,
 } from "../../theme/language-icons";
 
-const languageIconMap: { [key: string]: SvgIconComponent } = {
+const path = require("path");
+
+// =============================================================================
+// Language → Icon mapping
+// =============================================================================
+
+export const languageIconMap: { [key: string]: SvgIconComponent } = {
     bat: WindowsIcon,
     c: CIcon,
     csharp: CSharpIcon,
@@ -98,13 +109,81 @@ const languageIconMap: { [key: string]: SvgIconComponent } = {
     mermaid: MermaidIcon,
 };
 
-export interface LanguageIconProps extends SvgIconProps {
-    language?: string;
-    ext?: string;
-    getIcon?: () => ReactNode;
+// =============================================================================
+// Compound file extension → Icon mapping (overrides language icons)
+// =============================================================================
+
+const filePatternIcons: Array<{ pattern: RegExp; icon: SvgIconComponent }> = [
+    { pattern: /\.note\.json$/i, icon: NotebookIcon },
+    { pattern: /\.grid\.json$/i, icon: GridIcon },
+    { pattern: /\.grid\.csv$/i, icon: GridIcon },
+];
+
+function getFilePatternIcon(fileName: string): SvgIconComponent | undefined {
+    for (const { pattern, icon } of filePatternIcons) {
+        if (pattern.test(fileName)) return icon;
+    }
+    return undefined;
 }
 
-export function LanguageIcon({ language, ext, getIcon, ...props }: LanguageIconProps) {
+// =============================================================================
+// System file icon cache (fetched from Windows via IPC)
+// =============================================================================
+
+const defaultSystemIconState = {
+    iconCache: new Map<string, string>(),
+};
+
+type SystemIconState = typeof defaultSystemIconState;
+
+class SystemIconModel extends TModel<SystemIconState> {
+    constructor() {
+        super(new TGlobalState(defaultSystemIconState));
+    }
+
+    prepareIcon = async (fileName: string) => {
+        const ext = path.extname(fileName).toLowerCase();
+        if (!ext || this.state.get().iconCache.has(ext)) return;
+
+        const iconDataUrl = await api.getFileIcon(fileName);
+        const newMap = new Map(this.state.get().iconCache);
+        newMap.set(ext, iconDataUrl);
+        this.state.update((s) => {
+            s.iconCache = newMap;
+        });
+    };
+}
+
+const systemIconModel = new SystemIconModel();
+
+// =============================================================================
+// FileTypeIcon — unified icon component
+// =============================================================================
+
+export interface FileTypeIconProps extends SvgIconProps {
+    /** Monaco language ID (e.g., "json", "javascript"). */
+    language?: string;
+    /** File name or page title (e.g., "test.note.json"). */
+    fileName?: string;
+}
+
+/**
+ * Unified file type icon component.
+ *
+ * Resolution order:
+ * 1. Determine language from `language` prop or file extension
+ * 2. Get icon from language map
+ * 3. Check compound file extension patterns (overrides language icon)
+ * 4. Fall back to Windows system icon (async)
+ * 5. Fall back to DefaultIcon
+ */
+export function FileTypeIcon({ language, fileName, ...props }: FileTypeIconProps) {
+    const ext = useMemo(
+        () => (fileName ? path.extname(fileName).toLowerCase() : ""),
+        [fileName],
+    );
+
+    // Step 1: Determine language
     const lang = useMemo(() => {
         return (
             getLanguageById(language || "") ||
@@ -112,10 +191,39 @@ export function LanguageIcon({ language, ext, getIcon, ...props }: LanguageIconP
         );
     }, [language, ext]);
 
-    if (getIcon) {
-        return <>{getIcon()}</>;
+    // Step 2: Language icon
+    const langIcon = lang ? languageIconMap[lang.id] : undefined;
+
+    // Step 3: Compound extension override
+    const patternIcon = fileName ? getFilePatternIcon(fileName) : undefined;
+
+    const resolvedIcon = patternIcon || langIcon;
+
+    // Step 4: System icon fallback (async) — only fetch if no static icon found
+    useEffect(() => {
+        if (!resolvedIcon && fileName && ext) {
+            systemIconModel.prepareIcon(fileName);
+        }
+    }, [resolvedIcon, fileName, ext]);
+
+    const iconCache = systemIconModel.state.use((s) => s.iconCache);
+
+    if (resolvedIcon) {
+        const Icon = resolvedIcon;
+        return <Icon {...props} />;
     }
 
-    const Icon = languageIconMap[lang?.id || ""] || DefaultIcon;
-    return <Icon {...props} />;
+    // Step 4 result: system icon
+    const systemIconUrl = ext ? iconCache.get(ext) : undefined;
+    if (systemIconUrl) {
+        const { width = 14, height = 14 } = props;
+        return <img src={systemIconUrl} style={{ width, height }} />;
+    }
+
+    // Step 5: Default
+    return <DefaultIcon {...props} />;
 }
+
+// Backward-compatible alias for language menu items (language-only, no fileName)
+export { FileTypeIcon as LanguageIcon };
+export type { FileTypeIconProps as LanguageIconProps };
