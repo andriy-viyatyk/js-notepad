@@ -922,3 +922,25 @@ export const ClearListIcon = createIcon(24)(
         />
     </>,
 );
+
+export const NavPanelIcon = createIcon(24)(
+    <>
+        <rect
+            x="3"
+            y="3"
+            width="18"
+            height="18"
+            rx="2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+        <line x1="9" y1="3" x2="9" y2="21" stroke="currentColor" strokeWidth="1.5" />
+        <path
+            d="M12 8H18M13 12H18M13 16H17"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+        />
+    </>,
+);

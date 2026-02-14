@@ -69,10 +69,13 @@ const TreeViewRoot = styled.div({
     "& .empty-button": {
         width: 22,
         height: 22,
+        flexShrink: 0,
     },
 
     "& .label-icon": {
-        display: "contents",
+        display: "flex",
+        alignItems: "center",
+        flexShrink: 0,
         "& :last-child": {
             marginRight: 4,
         },
@@ -125,6 +128,9 @@ function TreeCell<T extends TreeItem = TreeItem>({
             onClick={() => {
                 model.props.onItemClick?.(item.item);
                 model.gridRef?.update({ all: true });
+            }}
+            onContextMenu={(e) => {
+                model.props.onItemContextMenu?.(item.item, e);
             }}
             className={clsx("tree-cell", {
                 selected: model.props.getSelected?.(item.item),

@@ -163,37 +163,39 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         this.restore();
     };
 
-    canClose = async (): Promise<boolean> => {
-        const { modified, title, temp } = this.state.get();
-
+    confirmRelease = async (): Promise<boolean> => {
         if (this.skipSave) {
             return true;
         }
 
-        let result = true;
-        if (modified && !temp) {
-            pagesModel.showPage(this.state.get().id);
-            const confirmBt = await showConfirmationDialog({
-                title: "Unsaved Changes",
-                message: `Do you want to save the changes you made to "${title}"?`,
-                buttons: ["Save", "Don't Save", "Cancel"],
-            });
-
-            switch (confirmBt) {
-                case "Save":
-                    result = await this.saveFile();
-                    break;
-                case "Don't Save":
-                    result = true;
-                    break;
-                default:
-                    result = false;
-                    break;
-            }
+        const { modified, title, temp } = this.state.get();
+        if (!modified || temp) {
+            return true;
         }
 
+        pagesModel.showPage(this.state.get().id);
+        const confirmBt = await showConfirmationDialog({
+            title: "Unsaved Changes",
+            message: `Do you want to save the changes you made to "${title}"?`,
+            buttons: ["Save", "Don't Save", "Cancel"],
+        });
+
+        switch (confirmBt) {
+            case "Save":
+                return await this.saveFile();
+            case "Don't Save":
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    canClose = async (): Promise<boolean> => {
+        const result = await this.confirmRelease();
         if (result) {
-            await this.dispose();
+            if (!this.skipSave) {
+                await this.dispose();
+            }
         } else {
             pagesModel.focusPage(this as unknown as PageModel);
         }

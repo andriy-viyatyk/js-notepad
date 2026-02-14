@@ -7,6 +7,7 @@ Current work in progress and planned tasks.
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
 
+
 ## Planned (Next)
 
 | ID | Title | Priority | Link |
@@ -16,6 +17,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-015 | Document Navigation Panel | Folder-based nav tree from markdown links, in-tab navigation with auto-preview, pages-store lifecycle refactoring, global keyboard shortcuts fix |
 | US-014 | Application Theming | CSS Custom Properties theming with 6 dark themes, Settings page with theme selector, Monaco integration |
 | US-013 | Create HTML Viewer | Sandboxed iframe preview for HTML files with script execution support |
 | US-012 | Markdown View Enhancements | Code block syntax highlighting, copy-to-clipboard button, inline Mermaid diagrams, shared render-mermaid module |

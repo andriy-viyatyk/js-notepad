@@ -5,7 +5,7 @@
 1. **Read this file completely** - essential context for all tasks
 2. **For new features:** Read [/doc/architecture/overview.md](doc/architecture/overview.md)
 3. **Check active tasks:** Review [/doc/tasks/active.md](doc/tasks/active.md)
-4. **Follow standards:** Use [/doc/standards/](doc/standards/) when writing code
+4. **Follow standards:** Use [/doc/standards/coding-style.md](doc/standards/coding-style.md) when writing code
 
 ## Task Workflow (IMPORTANT)
 
@@ -55,6 +55,7 @@ This step-by-step approach ensures user understands what's happening and can rev
 | Check coding style            | [/doc/standards/coding-style.md](doc/standards/coding-style.md) |
 | See current tasks             | [/doc/tasks/active.md](doc/tasks/active.md) |
 | See future ideas              | [/doc/tasks/backlog.md](doc/tasks/backlog.md) |
+| User documentation            | [/docs/index.md](docs/index.md) |
 
 ## Project Overview
 

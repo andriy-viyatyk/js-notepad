@@ -125,6 +125,8 @@ class MainPageModel extends TComponentModel<MainPageState, undefined> {
                 });
             },
         );
+
+        window.addEventListener("keydown", this.handleKeyDown);
     };
 
     destroy = () => {
@@ -132,6 +134,7 @@ class MainPageModel extends TComponentModel<MainPageState, undefined> {
         this.maximizeSubscription = null;
         this.zoomSubscription?.unsubscribe();
         this.zoomSubscription = null;
+        window.removeEventListener("keydown", this.handleKeyDown);
     };
 
     minimizeWindow = () => {
@@ -150,7 +153,7 @@ class MainPageModel extends TComponentModel<MainPageState, undefined> {
         api.closeWindow();
     };
 
-    handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    handleKeyDown = (e: KeyboardEvent) => {
         switch (e.code) {
             case "Tab":
                 {
@@ -258,7 +261,7 @@ export function MainPage() {
     }, []);
 
     return (
-        <AppRoot onKeyDown={model.handleKeyDown} onWheel={model.handleWheel}>
+        <AppRoot onWheel={model.handleWheel}>
             <div className="app-header">
                 <Button
                     onClick={model.toggleMenuBar}

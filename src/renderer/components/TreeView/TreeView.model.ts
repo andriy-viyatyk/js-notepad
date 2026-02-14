@@ -38,6 +38,7 @@ export interface TreeViewProps<T extends TreeItem = TreeItem> {
     getId: (item: T) => string;
     getSelected?: (item: T) => boolean;
     onItemClick?: (item: T) => void;
+    onItemContextMenu?: (item: T, e: React.MouseEvent) => void;
     dropTypes?: DragType[];
     onDrop?: (dropItem: T, dragItem: DragItem) => void;
     /** Drag type for making tree cells draggable */
@@ -48,6 +49,8 @@ export interface TreeViewProps<T extends TreeItem = TreeItem> {
     rootCollapsible?: boolean;
     /** Change this value to trigger a grid refresh (e.g., when external selection state changes) */
     refreshKey?: string | number;
+    /** Expand all nodes by default. Default: false (only first 2 levels expanded) */
+    defaultExpandAll?: boolean;
 }
 
 export function treeItemForEach<T extends TreeItem = TreeItem>(
@@ -69,14 +72,15 @@ function buildTreeViewItem<T extends TreeItem = TreeItem>(
     level: number,
     parent?: TreeViewItem<T>,
     getExpanded?: (i: T) => boolean | undefined,
+    defaultExpandAll?: boolean,
 ): TreeViewItem<T> {
     const expandedGet = getExpanded?.(root);
-    const expanded = expandedGet === undefined ? level < 2 : expandedGet;
+    const expanded = expandedGet === undefined ? (defaultExpandAll || level < 2) : expandedGet;
     const item: TreeViewItem<T> = { item: root, level, expanded, parent };
 
     if (root.items) {
         item.items = root.items.map((i) =>
-            buildTreeViewItem(i, level + 1, item, getExpanded),
+            buildTreeViewItem(i, level + 1, item, getExpanded, defaultExpandAll),
         );
     }
 
@@ -133,7 +137,7 @@ export class TreeViewModel<
         const map = Object.keys(currentMap).length > 0 ? currentMap : this.expandMap;
 
         const getExpanded = (i: T) => map[this.props.getId(i)];
-        const item = buildTreeViewItem(root, 0, undefined, getExpanded);
+        const item = buildTreeViewItem(root, 0, undefined, getExpanded, this.props.defaultExpandAll);
 
         this.state.set((s) => ({
             ...s,

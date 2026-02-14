@@ -17,6 +17,13 @@ import { recentFiles } from "./recent-files";
 import { debounce } from "../../shared/utils";
 import { newEmptyPageModel, newPageModel, newPageModelFromState } from "./page-factory";
 import { uuid } from "../core/utils/node-utils";
+import { alertError } from "../features/dialogs/alerts/AlertsBar";
+import { getNavPanel, removeNavPanel, transferNavPanel } from "../features/navigation/nav-panel-store";
+import { editorRegistry } from "../editors/registry";
+import { getLanguageByExtension } from "./language-mapping";
+
+const path = require("path");
+const fs = require("fs");
 
 const defaultOpenFilesState = {
     pages: [] as PageModel[],
@@ -30,6 +37,7 @@ type OpenFilesState = typeof defaultOpenFilesState;
 export class PagesModel extends TModel<OpenFilesState> {
     onShow = new Subscription<PageModel>();
     onFocus = new Subscription<PageModel>();
+    private pageSubscriptions = new Map<string, () => void>();
 
     addPage = (page: PageModel): PageModel => {
         const pageId = page.state.get().id;
@@ -39,7 +47,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             return existingPage;
         }
 
-        this.initPage(page);
+        this.attachPage(page);
 
         this.state.update((s) => {
             s.pages.push(page);
@@ -50,36 +58,133 @@ export class PagesModel extends TModel<OpenFilesState> {
         return page;
     };
 
-    private initPage = (page: PageModel) => {
-        const res = new Promise((resolve) => {
-            const unsubscribe = page.state.subscribe(() => {
-                this.saveStateDebounced();
+    attachPage = (page: PageModel) => {
+        const pageId = page.id;
+        const unsubscribe = page.state.subscribe(() => {
+            this.saveStateDebounced();
+        });
+        this.pageSubscriptions.set(pageId, unsubscribe);
+        page.onClose = () => {
+            this.detachPage(page);
+            this.removePage(page);
+        };
+    };
+
+    detachPage = (page: PageModel) => {
+        const pageId = page.id;
+        const unsubscribe = this.pageSubscriptions.get(pageId);
+        if (unsubscribe) {
+            unsubscribe();
+            this.pageSubscriptions.delete(pageId);
+        }
+        page.onClose = undefined;
+    };
+
+    removePage = (page: PageModel) => {
+        const isActivePage = this.activePage === page;
+        this.state.update((s) => {
+            s.pages = s.pages.filter((p) => p !== page);
+            s.ordered = s.ordered.filter((p) => p !== page);
+        });
+        this.fixGrouping();
+        this.saveState();
+        removeNavPanel(page.id);
+        if (isActivePage) {
+            const ordered = this.state.get().ordered;
+            if (ordered.length) {
+                this.onShow.send(ordered[ordered.length - 1]);
+                this.onFocus.send(ordered[ordered.length - 1]);
+            }
+        }
+        this.checkEmptyPage();
+    };
+
+    createPageFromFile = async (filePath: string): Promise<PageModel> => {
+        const pageModel = await newPageModel(filePath);
+        pageModel.state.update((s) => {
+            s.language = "";
+        });
+        await pageModel.restore();
+        return pageModel;
+    };
+
+    replacePage = (oldModel: PageModel, newModel: PageModel) => {
+        const state = this.state.get();
+        const rightId = state.leftRight.get(oldModel.id);
+        const leftId = state.rightLeft.get(oldModel.id);
+
+        this.state.update((s) => {
+            const pIdx = s.pages.indexOf(oldModel);
+            if (pIdx !== -1) s.pages[pIdx] = newModel;
+            const oIdx = s.ordered.indexOf(oldModel);
+            if (oIdx !== -1) s.ordered[oIdx] = newModel;
+        });
+
+        if (rightId) {
+            this.ungroup(oldModel.id);
+            this.group(newModel.id, rightId);
+        } else if (leftId) {
+            this.ungroup(oldModel.id);
+            this.group(leftId, newModel.id);
+        }
+
+        this.saveState();
+    };
+
+    navigatePageTo = async (pageId: string, newFilePath: string): Promise<boolean> => {
+        const oldModel = this.findPage(pageId);
+        if (!oldModel) return false;
+
+        const released = await oldModel.confirmRelease();
+        if (!released) return false;
+        await oldModel.dispose();
+        this.detachPage(oldModel);
+
+        let newModel: PageModel;
+        if (!fs.existsSync(newFilePath)) {
+            alertError(`File not found: ${path.basename(newFilePath)}`);
+            newModel = newTextFileModel("");
+            newModel.state.update((s) => {
+                s.title = path.basename(newFilePath);
             });
-            page.onClose = (res) => {
-                const isActivePage = this.activePage === page;
-                this.state.update((s) => {
-                    s.pages = s.pages.filter((p) => p !== page);
-                    s.ordered = s.ordered.filter((p) => p !== page);
+            await newModel.restore();
+        } else {
+            try {
+                newModel = await this.createPageFromFile(newFilePath);
+            } catch (err) {
+                alertError(`Failed to open ${path.basename(newFilePath)}: ${(err as Error).message}`);
+                newModel = newTextFileModel("");
+                await newModel.restore();
+            }
+        }
+
+        // Auto-select preview editor for navigated files
+        if (newModel.state.get().type === "textFile") {
+            const ext = path.extname(newFilePath).toLowerCase();
+            const lang = getLanguageByExtension(ext);
+            const languageId = lang?.id || "plaintext";
+            const switchOpts = editorRegistry.getSwitchOptions(languageId, newFilePath);
+            if (switchOpts.options.length > 1) {
+                const previewEditor = switchOpts.options[switchOpts.options.length - 1];
+                newModel.state.update((s) => {
+                    s.editor = previewEditor;
                 });
-                unsubscribe();
-                this.fixGrouping();
-                this.saveState();
-                resolve(res);
-                if (isActivePage) {
-                    const ordered = this.state.get().ordered;
-                    if (ordered.length) {
-                        this.onShow.send(ordered[ordered.length - 1]);
-                        this.onFocus.send(ordered[ordered.length - 1]);
-                    }
-                }
-            };
-        });
+            }
+        }
 
-        res.then(() => {
-            this.checkEmptyPage();
-        });
+        this.attachPage(newModel);
+        this.replacePage(oldModel, newModel);
+        this.onShow.send(newModel);
+        this.onFocus.send(newModel);
 
-        return res;
+        // Transfer nav panel from old page to new page and update current file
+        transferNavPanel(oldModel.id, newModel.id);
+        const navPanel = getNavPanel(newModel.id);
+        if (navPanel) {
+            navPanel.setCurrentFilePath(newFilePath);
+        }
+
+        return true;
     };
 
     showPage = (pageId?: string) => {
@@ -94,13 +199,6 @@ export class PagesModel extends TModel<OpenFilesState> {
             this.onShow.send(page);
             this.onFocus.send(page);
         }
-    };
-
-    closePage = (pageId: string) => {
-        const page = this.state
-            .get()
-            .pages.find((p) => p.state.get().id === pageId);
-        page?.close(undefined);
     };
 
     closeToTheRight = async (pageId: string) => {
@@ -256,7 +354,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         const models = (await Promise.all(modelsPromise))
             .filter((model) => model) as PageModel[];
 
-        models.forEach((model) => this.initPage(model));
+        models.forEach((model) => this.attachPage(model));
         const activeModel = models.find(
             (m) => m.state.get().id === data.activePageId
         );
@@ -334,12 +432,8 @@ export class PagesModel extends TModel<OpenFilesState> {
             return;
         }
 
-        const pageModel = await newPageModel(filePath);
-        pageModel.state.update((s) => {
-            s.language = "";
-        });
-        await pageModel.restore();
-        this.addPage(pageModel as unknown as PageModel);
+        const pageModel = await this.createPageFromFile(filePath);
+        this.addPage(pageModel);
         recentFiles.add(filePath);
 
         this.closeFirstPageIfEmpty();
@@ -349,25 +443,16 @@ export class PagesModel extends TModel<OpenFilesState> {
         if (!params) return;
         const { firstPath, secondPath } = params;
         if (!firstPath || !secondPath) return;
-        // Implement the logic to open a diff view between firstPath and secondPath
         let existingFirst = this.state.get().pages.find((p) => p.state.get().filePath === firstPath);
         let existingSecond = this.state.get().pages.find((p) => p.state.get().filePath === secondPath);
 
         if (!existingFirst) {
-            existingFirst = await newPageModel(firstPath);
-            existingFirst.state.update((s) => {
-                s.language = "";
-            });
-            await existingFirst.restore();
-            this.addPage(existingFirst as unknown as PageModel);
+            existingFirst = await this.createPageFromFile(firstPath);
+            this.addPage(existingFirst);
         }
         if (!existingSecond) {
-            existingSecond = await newPageModel(secondPath);
-            existingSecond.state.update((s) => {
-                s.language = "";
-            });
-            await existingSecond.restore();
-            this.addPage(existingSecond as unknown as PageModel);
+            existingSecond = await this.createPageFromFile(secondPath);
+            this.addPage(existingSecond);
         }
 
         this.groupTabs(existingFirst.id, existingSecond.id);
@@ -429,7 +514,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             this.addPage(pageModel);
             this.closeFirstPageIfEmpty();
         } else {
-            this.initPage(pageModel);
+            this.attachPage(pageModel);
             this.state.update((s) => {
                 s.pages.splice(targetIndex, 0, pageModel);
                 s.ordered.push(pageModel);

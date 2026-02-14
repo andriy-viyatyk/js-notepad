@@ -8,18 +8,29 @@ import color from "../theme/color";
 import { RenderEditor } from "./RenderEditor";
 import { CompareEditor } from "../editors/compare";
 import { isTextFileModel } from "../editors/text";
+import { getNavPanel, NavPanelModel, navPanelVersion } from "../features/navigation/nav-panel-store";
+import { NavigationPanel } from "../features/navigation/NavigationPanel";
+
+const navPanelContainerStyles = {
+    "& .nav-panel-container": {
+        flexShrink: 0,
+        overflow: "hidden",
+        height: "100%",
+    },
+} as const;
 
 const SinglePageRoot = styled.div(
     {
         flex: "1 1 auto",
         position: "relative",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",
         overflow: "hidden",
         height: "100%",
         "&:not(.isActive)": {
             display: "none",
         },
+        ...navPanelContainerStyles,
     },
     { label: "SinglePageRoot" },
 );
@@ -35,10 +46,11 @@ const GroupedPagesRoot = styled.div(
         },
         "& .page-container": {
             display: "flex",
-            flexDirection: "column",
+            flexDirection: "row",
             position: "relative",
             overflow: "hidden",
             width: "50%",
+            ...navPanelContainerStyles,
         },
         "& .page-spliter": {
             backgroundColor: color.background.dark,
@@ -50,6 +62,43 @@ const GroupedPagesRoot = styled.div(
     },
     { label: "GroupedPagesRoot" },
 );
+
+const PageEditorContainer = styled.div(
+    {
+        flex: "1 1 auto",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        minWidth: 100,
+    },
+    { label: "PageEditorContainer" },
+);
+
+function NavPanelWrapper({ pageId }: { pageId: string }) {
+    // Subscribe to version counter to re-render when panels are added/removed
+    navPanelVersion.use();
+    const panel = getNavPanel(pageId);
+    if (!panel) return null;
+    return <NavPanelContent model={panel} pageId={pageId} />;
+}
+
+function NavPanelContent({ model, pageId }: { model: NavPanelModel; pageId: string }) {
+    const { open, width, tree } = model.state.use();
+    if (!open || !tree) return null;
+
+    return (
+        <>
+            <div className="nav-panel-container" style={{ width }}>
+                <NavigationPanel model={model} pageId={pageId} />
+            </div>
+            <Splitter
+                type="vertical"
+                initialWidth={width}
+                onChangeWidth={model.setWidth}
+            />
+        </>
+    );
+}
 
 function RenderGroupedPages({
     model,
@@ -127,7 +176,10 @@ function RenderGroupedPages({
                 id={`editor-container-${model.id}`}
                 className={clsx({ isActive })}
             >
-                <RenderEditor key={`render-editor-${model.id}`} model={model} />
+                <NavPanelWrapper pageId={model.id} />
+                <PageEditorContainer>
+                    <RenderEditor key={`render-editor-${model.id}`} model={model} />
+                </PageEditorContainer>
             </SinglePageRoot>
         );
     }
@@ -167,7 +219,10 @@ function RenderGroupedPages({
                     flexShrink: 0,
                 }}
             >
-                <RenderEditor key={`render-editor-${model.id}`} model={model} />
+                <NavPanelWrapper pageId={model.id} />
+                <PageEditorContainer>
+                    <RenderEditor key={`render-editor-${model.id}`} model={model} />
+                </PageEditorContainer>
             </div>
             <Splitter
                 type="vertical"
@@ -181,12 +236,13 @@ function RenderGroupedPages({
                 className="page-container"
                 style={{ flex: "1 1 auto" }}
             >
-                {groupedModel && (
+                <NavPanelWrapper pageId={groupedModel.id} />
+                <PageEditorContainer>
                     <RenderEditor
                         key={`render-editor-${groupedModel.id}`}
                         model={groupedModel}
                     />
-                )}
+                </PageEditorContainer>
             </div>
         </GroupedPagesRoot>
     );

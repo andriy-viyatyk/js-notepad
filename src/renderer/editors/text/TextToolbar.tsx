@@ -1,12 +1,13 @@
 import { ReactNode, useMemo } from "react";
 import { isTextFileModel, TextFileModel } from "./TextPageModel";
 import { Button } from "../../components/basic/Button";
-import { CompareIcon, RunAllIcon, RunIcon } from "../../theme/icons";
+import { CompareIcon, NavPanelIcon, RunAllIcon, RunIcon } from "../../theme/icons";
 import { SwitchButtons } from "../../components/form/SwitchButtons";
 import { FlexSpace } from "../../components/layout/Elements";
 import styled from "@emotion/styled";
 import { editorRegistry } from "../registry";
 import { pagesModel } from "../../store";
+import { getNavPanel, getOrCreateNavPanel } from "../../features/navigation/nav-panel-store";
 
 const EditorToolbarRoot = styled.div({
     display: "flex",
@@ -40,6 +41,27 @@ export function TextToolbar({ model, setEditorToolbarRefFirst, setEditorToolbarR
         return editorRegistry.getSwitchOptions(language || "plaintext", fileName);
     }, [language, fileName]);
 
+
+    if (filePath && language === "markdown") {
+        actions.push(
+            <Button
+                key="nav-panel"
+                type="icon"
+                size="small"
+                title="Document Navigation"
+                onClick={() => {
+                    const existing = getNavPanel(model.id);
+                    if (existing) {
+                        existing.toggle();
+                    } else {
+                        getOrCreateNavPanel(model.id, filePath);
+                    }
+                }}
+            >
+                <NavPanelIcon />
+            </Button>
+        );
+    }
 
     if (isTextFileModel(model)) {
         const leftGrouped = pagesModel.getLeftGroupedPage(model.id);

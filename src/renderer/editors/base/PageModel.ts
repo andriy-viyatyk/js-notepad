@@ -26,6 +26,14 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
         return this.state.get().type;
     }
 
+    async confirmRelease(): Promise<boolean> {
+        return true;
+    }
+
+    async dispose(): Promise<void> {
+        // Override in subclasses if needed
+    }
+
     async restore(): Promise<void> {
         // Override in subclasses if needed
     }

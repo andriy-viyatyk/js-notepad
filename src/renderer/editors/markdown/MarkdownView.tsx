@@ -14,8 +14,7 @@ import { createRehypeHighlight } from "./rehypeHighlight";
 import { CodeBlock, createPreBlock } from "./CodeBlock";
 import { isCurrentThemeDark } from "../../theme/themes";
 import { appSettings } from "../../store/app-settings";
-const path = require("path");
-const url = require("url");
+import { resolveRelatedLink } from "../../core/utils/path-utils";
 
 const MdViewRoot = styled.div({
     flex: "1 1 auto",
@@ -350,30 +349,6 @@ const MdViewRoot = styled.div({
         padding: "0 .75em",
     },
 });
-
-function resolveRelatedLink(currentFilePath?: string, link?: string) {
-    if (!currentFilePath || !link) return link || "";
-
-    const lowerLink = link.toLowerCase();
-    if (
-        lowerLink.startsWith("http://") ||
-        lowerLink.startsWith("https://") ||
-        lowerLink.startsWith("file://") ||
-        lowerLink.startsWith("mailto:") ||
-        lowerLink.startsWith("#")
-    ) {
-        return link;
-    }
-
-    try {
-        const currentDir = path.dirname(currentFilePath);
-        const absolutePath = path.resolve(currentDir, link);
-        const fileUrl = url.pathToFileURL(absolutePath).href;
-        return fileUrl;
-    } catch {
-        return link;
-    }
-}
 
 const getComponents = (filePath: string, mermaidLightMode: boolean): Components => ({
     code: CodeBlock as any,
