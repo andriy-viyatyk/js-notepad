@@ -47,11 +47,20 @@ const SettingsPageRoot = styled.div({
         marginBottom: 12,
     },
 
+    "& .theme-section-label": {
+        fontSize: 11,
+        fontWeight: 600,
+        color: color.text.light,
+        textTransform: "uppercase" as const,
+        letterSpacing: 0.5,
+        marginBottom: 8,
+    },
+
     "& .theme-grid": {
         display: "flex",
         flexWrap: "wrap",
         gap: 10,
-        marginBottom: 8,
+        marginBottom: 16,
     },
 
     "& .theme-card": {
@@ -196,6 +205,8 @@ interface SettingsPageProps {
 function SettingsPage({ model }: SettingsPageProps) {
     const currentThemeId = appSettings.use("theme");
     const themes = getAvailableThemes();
+    const darkThemes = themes.filter((t) => t.isDark);
+    const lightThemes = themes.filter((t) => !t.isDark);
 
     const handleThemeChange = (themeId: string) => {
         applyTheme(themeId);
@@ -209,29 +220,38 @@ function SettingsPage({ model }: SettingsPageProps) {
         }
     };
 
+    const renderThemeGrid = (sectionThemes: typeof themes) => (
+        <div className="theme-grid">
+            {sectionThemes.map((theme) => (
+                <div
+                    key={theme.id}
+                    className={`theme-card${currentThemeId === theme.id ? " active" : ""}`}
+                    onClick={() => handleThemeChange(theme.id)}
+                >
+                    <ThemePreview
+                        bgDefault={theme.colors["--color-bg-default"]}
+                        bgDark={theme.colors["--color-bg-dark"]}
+                        textDefault={theme.colors["--color-text-default"]}
+                        accentColor={theme.colors["--color-misc-blue"]}
+                    />
+                    <span className="theme-name">{theme.name}</span>
+                </div>
+            ))}
+        </div>
+    );
+
     return (
         <SettingsPageRoot>
             <div className="settings-card">
                 <h1 className="settings-title">Settings</h1>
 
                 <div className="section-label">Theme</div>
-                <div className="theme-grid">
-                    {themes.map((theme) => (
-                        <div
-                            key={theme.id}
-                            className={`theme-card${currentThemeId === theme.id ? " active" : ""}`}
-                            onClick={() => handleThemeChange(theme.id)}
-                        >
-                            <ThemePreview
-                                bgDefault={theme.colors["--color-bg-default"]}
-                                bgDark={theme.colors["--color-bg-dark"]}
-                                textDefault={theme.colors["--color-text-default"]}
-                                accentColor={theme.colors["--color-misc-blue"]}
-                            />
-                            <span className="theme-name">{theme.name}</span>
-                        </div>
-                    ))}
-                </div>
+
+                <div className="theme-section-label">Dark</div>
+                {renderThemeGrid(darkThemes)}
+
+                <div className="theme-section-label">Light</div>
+                {renderThemeGrid(lightThemes)}
 
                 <hr className="divider" />
 

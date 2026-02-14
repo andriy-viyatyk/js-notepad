@@ -54,6 +54,8 @@
 | `Ctrl++` | Zoom in |
 | `Ctrl+-` | Zoom out |
 | `Ctrl+0` | Reset zoom |
+| `Ctrl+Alt+]` | Next theme |
+| `Ctrl+Alt+[` | Previous theme |
 
 ## Code
 

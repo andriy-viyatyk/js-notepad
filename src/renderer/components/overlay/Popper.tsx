@@ -222,13 +222,24 @@ export const Popper = forwardRef(function PopperComponent(
         [onClose, open, internalRef, allowClickInClass],
     );
 
+    const handleKeyDown = useCallback(
+        (event: KeyboardEvent) => {
+            if (open && event.key === "Escape") {
+                onClose?.();
+            }
+        },
+        [onClose, open],
+    );
+
     useEffect(() => {
         document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleKeyDown);
 
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [handleClickOutside]);
+    }, [handleClickOutside, handleKeyDown]);
 
     function onPointerDown(event: React.PointerEvent<SVGSVGElement>) {
         if (event.pointerType === "mouse" && event.buttons !== 1) {

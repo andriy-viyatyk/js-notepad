@@ -25,7 +25,8 @@
         // We inline a minimal lookup to avoid importing the full theme module.
         const bgs = {
           "default-dark": "#1f1f1f", "solarized-dark": "#002b36", "monokai": "#272822",
-          "abyss": "#000c18", "red": "#390000", "tomorrow-night-blue": "#002451"
+          "abyss": "#000c18", "red": "#390000", "tomorrow-night-blue": "#002451",
+          "light-modern": "#FFFFFF", "solarized-light": "#FDF6E3", "quiet-light": "#F5F5F5"
         };
         if (bgs[t]) document.querySelector("style").textContent = "body{background-color:" + bgs[t] + "}";
       }

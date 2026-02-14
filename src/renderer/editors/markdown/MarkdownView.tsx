@@ -11,7 +11,9 @@ import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { PageModel, useEditorConfig } from "../base";
 import { pagesModel } from "../../store/pages-store";
 import { createRehypeHighlight } from "./rehypeHighlight";
-import { CodeBlock, PreBlock } from "./CodeBlock";
+import { CodeBlock, createPreBlock } from "./CodeBlock";
+import { isCurrentThemeDark } from "../../theme/themes";
+import { appSettings } from "../../store/app-settings";
 const path = require("path");
 const url = require("url");
 
@@ -373,9 +375,9 @@ function resolveRelatedLink(currentFilePath?: string, link?: string) {
     }
 }
 
-const getComponents = (filePath: string): Components => ({
+const getComponents = (filePath: string, mermaidLightMode: boolean): Components => ({
     code: CodeBlock as any,
-    pre: PreBlock,
+    pre: createPreBlock(mermaidLightMode),
     input: ({ node, ...props }) => {
         if (props.type === "checkbox") {
             return props.checked ? (
@@ -441,9 +443,14 @@ export function MarkdownView(props: MarkdownViewProps) {
         filePath: s.filePath,
     }));
 
+    // Subscribe to theme changes — only affects mermaid diagram rendering
+    const themeId = appSettings.use("theme");
+    const mermaidLightMode = !isCurrentThemeDark();
+    const hasMermaid = content.includes("```mermaid");
+
     const components = useMemo(
-        () => getComponents(filePath || ""),
-        [filePath],
+        () => getComponents(filePath || "", mermaidLightMode),
+        [filePath, hasMermaid ? mermaidLightMode : 0],
     );
 
     // Rehype plugin for external search text highlighting

@@ -4,6 +4,12 @@ import { recentFiles, pagesModel } from "../../store";
 import { FileListItem, FileList, FileListRef } from "./FileList";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 import { api } from "../../../ipc/renderer/api";
+import {
+    FolderOpenIcon,
+    NewWindowIcon,
+    OpenFileIcon,
+    RemoveIcon,
+} from "../../theme/icons";
 
 interface RecentFileListProps {
     onClose?: () => void;
@@ -37,6 +43,7 @@ export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
             const menuItems: MenuItem[] = [
                 {
                     label: "Open",
+                    icon: <OpenFileIcon />,
                     onClick: () => {
                         pagesModel.openFile(item.filePath);
                         props.onClose?.();
@@ -44,15 +51,18 @@ export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
                 },
                 {
                     label: "Open in New Window",
+                    icon: <NewWindowIcon />,
                     onClick: () => pagesModel.openPathInNewWindow(item.filePath),
                     invisible: item.isFolder,
                 },
                 {
                     label: "Show in File Explorer",
+                    icon: <FolderOpenIcon />,
                     onClick: () => { api.showItemInFolder(item.filePath); },
                 },
                 {
                     label: "Remove from Recent",
+                    icon: <RemoveIcon />,
                     onClick: async () => {
                         await recentFiles.remove(item.filePath);
                     },

@@ -9,6 +9,7 @@ import { CopyIcon, SunIcon, MoonIcon } from "../../theme/icons";
 import { CircularProgress } from "../../components/basic/CircularProgress";
 import { EditorError } from "../base/EditorError";
 import color from "../../theme/color";
+import { isCurrentThemeDark } from "../../theme/themes";
 import { renderMermaid } from "./render-mermaid";
 
 // ============================================================================
@@ -53,7 +54,7 @@ function MermaidView({ model }: MermaidViewProps) {
     const [svgUrl, setSvgUrl] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
-    const [lightMode, setLightMode] = useState(false);
+    const [lightMode, setLightMode] = useState(() => !isCurrentThemeDark());
 
     useEffect(() => {
         setLoading(true);

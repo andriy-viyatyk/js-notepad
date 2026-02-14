@@ -13,6 +13,7 @@ import { ThemeDefinition } from "./types";
 export const solarizedDark: ThemeDefinition = {
     id: "solarized-dark",
     name: "Solarized Dark",
+    isDark: true,
     colors: {
         // background
         "--color-bg-default": "#002b36",

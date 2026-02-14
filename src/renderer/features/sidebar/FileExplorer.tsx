@@ -9,6 +9,15 @@ import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { showInputDialog } from "../dialogs/InputDialog";
 import { alertWarning } from "../dialogs/alerts/AlertsBar";
+import {
+    DeleteIcon,
+    FolderOpenIcon,
+    NewFileIcon,
+    NewFolderIcon,
+    NewWindowIcon,
+    OpenFileIcon,
+    RenameIcon,
+} from "../../theme/icons";
 import { showConfirmationDialog } from "../dialogs/ConfirmationDialog";
 const path = require("path");
 const fs = require("fs");
@@ -134,15 +143,18 @@ class FileExplorerModel extends TComponentModel<
         const menuItems: MenuItem[] = [
             {
                 label: "Open",
+                icon: <OpenFileIcon />,
                 onClick: () => this.onItemClick(item),
             },
             {
                 label: "Open in New Window",
+                icon: <NewWindowIcon />,
                 onClick: () => pagesModel.openPathInNewWindow(item.filePath),
                 invisible: item.isFolder,
             },
             {
                 label: "Show in File Explorer",
+                icon: <FolderOpenIcon />,
                 onClick: () => {
                     if (item.isFolder) {
                         api.showFolder(item.filePath);
@@ -154,10 +166,12 @@ class FileExplorerModel extends TComponentModel<
             {
                 startGroup: true,
                 label: "Rename",
+                icon: <RenameIcon />,
                 onClick: () => this.renameItem(item),
             },
             {
                 label: "Delete",
+                icon: <DeleteIcon />,
                 onClick: () => this.deleteItem(item),
             }
         ];
@@ -171,10 +185,12 @@ class FileExplorerModel extends TComponentModel<
             e.nativeEvent.menuItems.push(
                 {
                     label: "Create New File",
+                    icon: <NewFileIcon />,
                     onClick: this.createNewFile,
                 },
                 {
                     label: "Create New Folder",
+                    icon: <NewFolderIcon />,
                     onClick: this.createNewFolder,
                 }
             );

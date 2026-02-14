@@ -13,6 +13,7 @@ import { ThemeDefinition } from "./types";
 export const tomorrowNightBlue: ThemeDefinition = {
     id: "tomorrow-night-blue",
     name: "Tomorrow Night Blue",
+    isDark: true,
     colors: {
         // background
         "--color-bg-default": "#002451",

@@ -13,6 +13,7 @@ import { ThemeDefinition } from "./types";
 export const monokai: ThemeDefinition = {
     id: "monokai",
     name: "Monokai",
+    isDark: true,
     colors: {
         // background
         "--color-bg-default": "#272822",

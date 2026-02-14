@@ -14,6 +14,7 @@ import { ThemeDefinition } from "./types";
 export const red: ThemeDefinition = {
     id: "red",
     name: "Red",
+    isDark: true,
     colors: {
         // background
         "--color-bg-default": "#390000",

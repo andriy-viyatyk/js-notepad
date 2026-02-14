@@ -10,10 +10,14 @@ import type { MenuFolder } from "../../store";
 import color from "../../theme/color";
 import {
     ArrowRightIcon,
+    ClearListIcon,
     EmptyIcon,
+    FolderOpenIcon,
+    FolderPlusIcon,
     InfoIcon,
     NewWindowIcon,
     OpenFileIcon,
+    RemoveIcon,
     SettingsIcon,
 } from "../../theme/icons";
 import { OpenTabsList } from "./OpenTabsList";
@@ -220,6 +224,7 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
             return [
                 {
                     label: "Clear Recent Files",
+                    icon: <ClearListIcon />,
                     onClick: async () => {
                         await recentFiles.clear();
                     },
@@ -230,12 +235,14 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
         const menuItems: MenuItem[] = [
             {
                 label: "Remove Folder",
+                icon: <RemoveIcon />,
                 onClick: () => {
                     menuFolders.deleteFolder(folder.id);
                 },
             },
             {
                 label: "Open Folder in Explorer",
+                icon: <FolderOpenIcon />,
                 onClick: () => {
                     if (folder.path) {
                         api.showFolder(folder.path);
@@ -261,6 +268,7 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
             e.nativeEvent.menuItems = [
                 {
                     label: "Add Folder",
+                    icon: <FolderPlusIcon />,
                     onClick: () => {
                         this.addFolder();
                     },

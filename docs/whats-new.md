@@ -10,15 +10,23 @@ Release notes and changelog for js-notepad.
 
 ### New Features
 
-- **Application Theming** — Switch between 6 dark color themes via the new Settings page
-  - Available themes: Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue
-  - Settings page with visual theme previews (access via toolbar Settings button)
+- **Application Theming** — Switch between 9 color themes (6 dark, 3 light) via the new Settings page
+  - Dark themes: Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue
+  - Light themes: Light Modern, Solarized Light, Quiet Light
+  - Settings page with visual theme previews, separated by dark/light sections
   - Monaco editor theme updates automatically with app theme
   - Theme preference persists across sessions
   - Flash-free startup — correct theme applied before first paint
+  - Cycle themes with `Ctrl+Alt+]` / `Ctrl+Alt+[`
   - "View Settings File" button for raw JSON access
 
 - **HTML Preview** — Switch to "Preview" for HTML files to see rendered output in a sandboxed iframe. Supports JavaScript execution, live updates, and works with unsaved content.
+
+- **Quick Add Page Menu** — The "+" button in the tab bar now has a dropdown arrow for quickly creating pre-configured editor pages:
+  - Script (JS) — new JavaScript file ready for scripting
+  - Grid (JSON) — new `.grid.json` file with Grid editor active
+  - Grid (CSV) — new `.grid.csv` file with Grid editor active
+  - Notebook — new `.note.json` file with Notebook editor active
 
 ---
 

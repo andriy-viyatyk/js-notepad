@@ -13,6 +13,7 @@ import { ThemeDefinition } from "./types";
 export const abyss: ThemeDefinition = {
     id: "abyss",
     name: "Abyss",
+    isDark: true,
     colors: {
         // background
         "--color-bg-default": "#000c18",

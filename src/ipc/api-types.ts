@@ -36,6 +36,7 @@ export enum Endpoint {
     checkForUpdates = "checkForUpdates",
     getAppVersion = "getAppVersion",
     getRuntimeVersions = "getRuntimeVersions",
+    setNativeTheme = "setNativeTheme",
 }
 
 export type Api = {
@@ -72,6 +73,7 @@ export type Api = {
     [Endpoint.checkForUpdates]: (force?: boolean) => Promise<UpdateCheckResult>;
     [Endpoint.getAppVersion]: () => Promise<string>;
     [Endpoint.getRuntimeVersions]: () => Promise<RuntimeVersions>;
+    [Endpoint.setNativeTheme]: (mode: "light" | "dark") => Promise<void>;
 };
 
 export enum EventEndpoint {

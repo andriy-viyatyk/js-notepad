@@ -1,3 +1,4 @@
+import { api } from "../../../ipc/renderer/api";
 import { ThemeDefinition } from "./types";
 import { defaultDark } from "./default-dark";
 import { solarizedDark } from "./solarized-dark";
@@ -5,6 +6,9 @@ import { monokai } from "./monokai";
 import { abyss } from "./abyss";
 import { red } from "./red";
 import { tomorrowNightBlue } from "./tomorrow-night-blue";
+import { lightModern } from "./light-modern";
+import { solarizedLight } from "./solarized-light";
+import { quietLight } from "./quiet-light";
 
 const themes: ThemeDefinition[] = [
     defaultDark,
@@ -13,6 +17,9 @@ const themes: ThemeDefinition[] = [
     abyss,
     red,
     tomorrowNightBlue,
+    lightModern,
+    solarizedLight,
+    quietLight,
 ];
 
 // Read saved theme synchronously at startup to avoid flash of wrong theme.
@@ -65,6 +72,9 @@ export function applyTheme(themeId: string): void {
 
     currentThemeId = theme.id;
 
+    // Set Chromium's native theme (affects native tooltips, scrollbars, etc.)
+    api.setNativeTheme(theme.isDark ? "dark" : "light").catch(() => {});
+
     if (monacoThemeCallback) {
         monacoThemeCallback(theme);
     }
@@ -73,6 +83,18 @@ export function applyTheme(themeId: string): void {
 export function getResolvedColor(cssVar: string): string {
     const theme = getThemeById(currentThemeId);
     return theme?.colors[cssVar] ?? "";
+}
+
+export function cycleTheme(direction: 1 | -1): void {
+    const currentIndex = themes.findIndex((t) => t.id === currentThemeId);
+    const nextIndex =
+        (currentIndex + direction + themes.length) % themes.length;
+    applyTheme(themes[nextIndex].id);
+}
+
+export function isCurrentThemeDark(): boolean {
+    const theme = getThemeById(currentThemeId);
+    return theme?.isDark ?? true;
 }
 
 export function onMonacoThemeChange(callback: MonacoThemeCallback): void {

@@ -38,6 +38,9 @@ const PopupMenuRoot = styled(PopperRoot)<{
             "&.hovered": {
                 backgroundColor: color.background.selection,
                 color: color.text.selection,
+                "& .menu-item-label .menu-item-hotkey": {
+                    color: "inherit",
+                },
             },
             "&.disabled": {
                 color: color.text.light,

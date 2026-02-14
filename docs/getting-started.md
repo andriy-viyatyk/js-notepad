@@ -30,6 +30,11 @@ When you first open js-notepad, you'll see:
 
 ### Creating a New File
 - Press `Ctrl+N` or click the + button in the tab bar
+- Click the dropdown arrow (▾) next to the + button to create a page with a specific editor:
+  - **Script (JS)** — JavaScript file for scripting
+  - **Grid (JSON)** — Grid editor for JSON data
+  - **Grid (CSV)** — Grid editor for CSV data
+  - **Notebook** — Notebook editor for structured notes
 
 ### Opening Files
 - Press `Ctrl+O` to open file dialog
@@ -69,13 +74,16 @@ The About page also shows:
 
 ## Changing the Theme
 
-js-notepad includes 6 dark color themes inspired by VSCode:
+js-notepad includes 9 color themes (6 dark, 3 light) inspired by VSCode:
 
 1. Click the app button (js-notepad icon) in the top-left corner to open the sidebar menu
 2. Click the Settings button (gear icon) to open the Settings page
 3. Click a theme card to switch instantly
 
-**Available themes:** Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue
+**Dark themes:** Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue
+**Light themes:** Light Modern, Solarized Light, Quiet Light
+
+You can also cycle through themes with `Ctrl+Alt+]` (next) and `Ctrl+Alt+[` (previous).
 
 Your theme preference is saved automatically and applied on next launch.
 

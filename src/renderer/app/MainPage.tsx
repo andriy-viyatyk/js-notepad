@@ -20,6 +20,8 @@ import { pagesModel, filesModel } from "../store";
 import { MenuBar } from "../features/sidebar/MenuBar";
 import { parseObject } from "../core/utils/parse-utils";
 import clsx from "clsx";
+import { cycleTheme, getCurrentThemeId } from "../theme/themes";
+import { appSettings } from "../store/app-settings";
 
 const AppRoot = styled.div({
     backgroundColor: color.background.default,
@@ -188,6 +190,17 @@ class MainPageModel extends TComponentModel<MainPageState, undefined> {
                     if (e.ctrlKey) {
                         e.preventDefault();
                         pagesModel.openFileWithDialog();
+                    }
+                }
+                break;
+            case "BracketRight":
+            case "BracketLeft":
+                {
+                    if (e.ctrlKey && e.altKey) {
+                        e.preventDefault();
+                        const direction = e.code === "BracketRight" ? 1 : -1;
+                        cycleTheme(direction);
+                        appSettings.set("theme", getCurrentThemeId());
                     }
                 }
                 break;

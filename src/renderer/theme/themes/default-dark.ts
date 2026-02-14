@@ -63,6 +63,7 @@ import { ThemeDefinition } from "./types";
 export const defaultDark: ThemeDefinition = {
     id: "default-dark",
     name: "Default Dark",
+    isDark: true,
     colors: {
         // background
         "--color-bg-default": "#1f1f1f",

@@ -162,6 +162,10 @@ class ApiCalls implements Api {
     getRuntimeVersions = async () => {
         return executeOnce<RuntimeVersions>(Endpoint.getRuntimeVersions);
     }
+
+    setNativeTheme = async (mode: "light" | "dark") => {
+        return executeOnce<void>(Endpoint.setNativeTheme, mode);
+    }
 }
 
 export const api = new ApiCalls();

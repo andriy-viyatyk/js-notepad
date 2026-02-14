@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, IpcMainEvent, shell } from "electron";
+import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell } from "electron";
 import { Api, Endpoint, EventEndpoint } from "../api-types";
 import { getAssetPath, getAppRootPath } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
@@ -142,6 +142,10 @@ class Controller implements MainApi {
     getRuntimeVersions = async (event: IpcMainEvent): Promise<RuntimeVersions> => {
         return versionService.getRuntimeVersions();
     }
+
+    setNativeTheme = async (event: IpcMainEvent, mode: "light" | "dark"): Promise<void> => {
+        nativeTheme.themeSource = mode;
+    }
 }
 
 const controllerInstance = new Controller();
@@ -187,6 +191,7 @@ const init = () => {
     bindEndpoint(Endpoint.checkForUpdates, controllerInstance.checkForUpdates);
     bindEndpoint(Endpoint.getAppVersion, controllerInstance.getAppVersion);
     bindEndpoint(Endpoint.getRuntimeVersions, controllerInstance.getRuntimeVersions);
+    bindEndpoint(Endpoint.setNativeTheme, controllerInstance.setNativeTheme);
 
     initRendererEvents();
 }

@@ -708,3 +708,217 @@ export const CompareIcon = createIcon(32)(
         <rect fill="none" width="32" height="32" />
     </g>,
 );
+
+export const SaveIcon = createIcon(24)(
+    <path
+        d="M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H14L19 8V19C19 20.1046 18.1046 21 17 21Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+    />,
+);
+
+export const DuplicateIcon = createIcon(24)(
+    <>
+        <rect
+            x="8"
+            y="8"
+            width="12"
+            height="12"
+            rx="2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+        <path
+            d="M16 8V6C16 4.89543 15.1046 4 14 4H6C4.89543 4 4 4.89543 4 6V14C4 15.1046 4.89543 16 6 16H8"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+    </>,
+);
+
+export const RenameIcon = createIcon(24)(
+    <path
+        d="M17 3L21 7L8 20H4V16L17 3Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+    />,
+);
+
+export const FolderOpenIcon = createIcon(24)(
+    <>
+        <path
+            d="M2 7V5C2 3.89543 2.89543 3 4 3H9L11 5H20C21.1046 5 22 5.89543 22 7V9"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+        />
+        <path
+            d="M2 10H20C21.1046 10 22 10.8954 22 12V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V10Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+    </>,
+);
+
+export const LockIcon = createIcon(24)(
+    <>
+        <rect
+            x="5"
+            y="11"
+            width="14"
+            height="10"
+            rx="2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+        <path
+            d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            fill="none"
+        />
+    </>,
+);
+
+export const UnlockIcon = createIcon(24)(
+    <>
+        <rect
+            x="5"
+            y="11"
+            width="14"
+            height="10"
+            rx="2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+        <path
+            d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            fill="none"
+        />
+    </>,
+);
+
+export const KeyOffIcon = createIcon(24)(
+    <>
+        <circle
+            cx="8"
+            cy="15"
+            r="5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+        <path
+            d="M12 11L21 4M18 3L21 4L20 7"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+        />
+        <line
+            x1="3"
+            y1="3"
+            x2="21"
+            y2="21"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+        />
+    </>,
+);
+
+export const NewFileIcon = createIcon(24)(
+    <>
+        <path
+            d="M14 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V8L14 3Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+        />
+        <path
+            d="M12 10V16M9 13H15"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+        />
+    </>,
+);
+
+export const NewFolderIcon = createIcon(24)(
+    <>
+        <path
+            d="M22 19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V5C2 3.89543 2.89543 3 4 3H9L11 5H20C21.1046 5 22 5.89543 22 7V19Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+        />
+        <path
+            d="M12 10V16M9 13H15"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+        />
+    </>,
+);
+
+export const FolderPlusIcon = createIcon(24)(
+    <>
+        <path
+            d="M22 19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V5C2 3.89543 2.89543 3 4 3H9L11 5H20C21.1046 5 22 5.89543 22 7V19Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+        />
+    </>,
+);
+
+export const RemoveIcon = createIcon(24)(
+    <path
+        d="M18 6L6 18M6 6L18 18"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    />,
+);
+
+export const ClearListIcon = createIcon(24)(
+    <>
+        <path
+            d="M4 6H20M4 12H14M4 18H10"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+        />
+        <path
+            d="M21 15L15 21M15 15L21 21"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+        />
+    </>,
+);

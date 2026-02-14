@@ -231,9 +231,10 @@ export function NotebookEditor(props: NotebookEditorProps) {
                     <>
                         <Button
                             size="small"
-                            type="flat"
+                            type="raised"
                             title="Add Note"
                             onClick={pageModel.addNote}
+                            style={{ borderColor: color.border.active }}
                         >
                             <PlusIcon /> Add Note&nbsp;
                         </Button>

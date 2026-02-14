@@ -179,3 +179,5 @@ Some files support multiple editors:
 | Other | Text only |
 
 Use the buttons in the toolbar to switch between available editors.
+
+**Quick Add:** Click the dropdown arrow (▾) next to the + button in the tab bar to create a new page with a specific editor already active (Script, Grid JSON, Grid CSV, or Notebook).

@@ -13,7 +13,7 @@ export type AppSettingsKey = "tab-recent-languages" | "theme";
 const settingsComments: Record<AppSettingsKey, string> = {
     "tab-recent-languages":
         "Recently selected languages.\nMore recent languages will appear on top of 'change language' menu.",
-    "theme": "Application color theme.\nAvailable themes: default-dark, solarized-dark, monokai, abyss, red, tomorrow-night-blue",
+    "theme": "Application color theme.\nAvailable themes: default-dark, solarized-dark, monokai, abyss, red, tomorrow-night-blue, light-modern, solarized-light, quiet-light",
 };
 
 const defaultAppSettingsState = {
@@ -27,6 +27,7 @@ type AppSettingsState = typeof defaultAppSettingsState;
 
 class AppSettings extends TModel<AppSettingsState> {
     private fileWatcher: FileWatcher | undefined;
+    private skipNextFileChange = false;
 
     constructor() {
         super(new TGlobalState(defaultAppSettingsState));
@@ -69,6 +70,10 @@ class AppSettings extends TModel<AppSettingsState> {
     };
 
     private fileChanged = () => {
+        if (this.skipNextFileChange) {
+            this.skipNextFileChange = false;
+            return;
+        }
         this.loadSettings();
     };
 
@@ -88,6 +93,7 @@ class AppSettings extends TModel<AppSettingsState> {
     };
 
     private saveSettings = () => {
+        this.skipNextFileChange = true;
         const content = JSON.stringify(this.state.get().settings, null, 4);
         const lines = content.split("\n");
 

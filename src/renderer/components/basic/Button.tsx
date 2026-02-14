@@ -20,6 +20,7 @@ const ButtonRoot = styled.button({
     cursor: 'pointer',
     textWrap: 'nowrap',
     position: 'relative',
+    outline: 'none',
     "&.light": {
         color: color.text.light,
         "&:hover:not(.disabled)": {

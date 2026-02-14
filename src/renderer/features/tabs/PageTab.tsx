@@ -5,7 +5,19 @@ import color from "../../theme/color";
 import { pagesModel, filesModel, appSettings } from "../../store";
 import { PageModel } from "../../editors/base";
 import { Button } from "../../components/basic/Button";
-import { CircleIcon, CloseIcon, GroupIcon } from "../../theme/icons";
+import {
+    CircleIcon,
+    CloseIcon,
+    CopyIcon,
+    DuplicateIcon,
+    FolderOpenIcon,
+    GroupIcon,
+    KeyOffIcon,
+    LockIcon,
+    RenameIcon,
+    SaveIcon,
+    UnlockIcon,
+} from "../../theme/icons";
 import { LanguageIcon } from "../../editors/base/LanguageIcon";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { MenuItem } from "../../components/overlay/PopupMenu";
@@ -207,6 +219,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
                 {
                     label: "Duplicate Tab",
+                    icon: <DuplicateIcon />,
                     onClick: () => {
                         pagesModel.duplicatePage(this.props.model.id);
                     },
@@ -214,6 +227,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 {
                     startGroup: true,
                     label: "Save",
+                    icon: <SaveIcon />,
                     onClick: () => {
                         if (this.props.model instanceof TextFileModel) {
                             this.props.model.saveFile(false);
@@ -223,6 +237,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
                 {
                     label: "Save As...",
+                    icon: <SaveIcon />,
                     onClick: () => {
                         if (this.props.model instanceof TextFileModel) {
                             this.props.model.saveFile(true);
@@ -232,11 +247,13 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
                 {
                     label: "Rename",
+                    icon: <RenameIcon />,
                     onClick: this.renameTab,
                     disabled: !isTextFileModel(this.props.model),
                 },
                 {
                     label: "Show in File Explorer",
+                    icon: <FolderOpenIcon />,
                     onClick: () => {
                         api.showItemInFolder(
                             (this.props.model.state.get() as any).filePath
@@ -246,6 +263,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
                 {
                     label: "Copy File Path",
+                    icon: <CopyIcon />,
                     onClick: () => {
                         navigator.clipboard.writeText(
                             (this.props.model.state.get() as any).filePath
@@ -255,6 +273,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
                 {
                     label: "Decrypt",
+                    icon: <UnlockIcon />,
                     onClick: () => {
                         if (isTextFileModel(this.props.model)) {
                             this.props.model.showEncryptionDialog();
@@ -272,6 +291,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                         !this.props.model.withEncription
                             ? "Encrypt"
                             : "Change Password",
+                    icon: <LockIcon />,
                     onClick: () => {
                         if (isTextFileModel(this.props.model)) {
                             this.props.model.showEncryptionDialog();
@@ -283,6 +303,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
                 {
                     label: "Make Unencrypted",
+                    icon: <KeyOffIcon />,
                     onClick: () => {
                         if (isTextFileModel(this.props.model)) {
                             this.props.model.makeUnencrypted();

@@ -94,7 +94,7 @@ async function copyImageToClipboard(img: HTMLImageElement) {
 }
 
 // Inline Mermaid diagram renderer for markdown code blocks
-function MermaidBlock({ code }: { code: string }) {
+function MermaidBlock({ code, lightMode }: { code: string; lightMode: boolean }) {
     const imgRef = useRef<HTMLImageElement>(null);
     const [svgUrl, setSvgUrl] = useState<string | null>(null);
     const [error, setError] = useState("");
@@ -102,7 +102,7 @@ function MermaidBlock({ code }: { code: string }) {
 
     useEffect(() => {
         let cancelled = false;
-        renderMermaidSvg(code, false)
+        renderMermaidSvg(code, lightMode)
             .then((svg) => {
                 if (!cancelled) {
                     setSvgUrl(svgToDataUrl(svg, undefined, true));
@@ -116,7 +116,7 @@ function MermaidBlock({ code }: { code: string }) {
                 }
             });
         return () => { cancelled = true; };
-    }, [code]);
+    }, [code, lightMode]);
 
     const handleCopy = useCallback(() => {
         if (!imgRef.current) return;
@@ -147,25 +147,27 @@ function MermaidBlock({ code }: { code: string }) {
     );
 }
 
-// Pre block wrapper — routes mermaid blocks to MermaidBlock,
-// regular code blocks get a copy-to-clipboard button
-export function PreBlock({ children, node, ...props }: any) {
-    // Detect mermaid code block from AST node
-    const codeNode = node?.children?.[0];
-    const codeClassName = codeNode?.properties?.className;
-    const isMermaid = Array.isArray(codeClassName)
-        ? codeClassName.some((c: string) => isMermaidLanguage(c))
-        : isMermaidLanguage(codeClassName);
+// Creates a PreBlock component with the given mermaid light mode.
+// Called from MarkdownView to capture the current theme mode via closure.
+export function createPreBlock(mermaidLightMode: boolean) {
+    return function PreBlock({ children, node, ...props }: any) {
+        // Detect mermaid code block from AST node
+        const codeNode = node?.children?.[0];
+        const codeClassName = codeNode?.properties?.className;
+        const isMermaid = Array.isArray(codeClassName)
+            ? codeClassName.some((c: string) => isMermaidLanguage(c))
+            : isMermaidLanguage(codeClassName);
 
-    if (isMermaid) {
-        const code = codeNode?.children
-            ?.map((c: any) => c.value || "")
-            .join("")
-            .replace(/\n$/, "") || "";
-        return <MermaidBlock code={code} />;
-    }
+        if (isMermaid) {
+            const code = codeNode?.children
+                ?.map((c: any) => c.value || "")
+                .join("")
+                .replace(/\n$/, "") || "";
+            return <MermaidBlock code={code} lightMode={mermaidLightMode} />;
+        }
 
-    return <CodePreBlock {...props}>{children}</CodePreBlock>;
+        return <CodePreBlock {...props}>{children}</CodePreBlock>;
+    };
 }
 
 // Code pre block with copy-to-clipboard button

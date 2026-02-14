@@ -10,7 +10,7 @@ import {
     TextFileModel,
 } from "../editors/text";
 import { openFilesNameTemplate } from "../../shared/constants";
-import { IPage, PageDragData, WindowState } from "../../shared/types";
+import { IPage, PageDragData, PageEditor, WindowState } from "../../shared/types";
 import { filesModel } from "./files-store";
 import { PageModel } from "../editors/base";
 import { recentFiles } from "./recent-files";
@@ -90,6 +90,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             this.state.update((s) => {
                 s.ordered = [...s.ordered.filter((p) => p !== page), page];
             });
+            this.saveStateDebounced();
             this.onShow.send(page);
             this.onFocus.send(page);
         }
@@ -165,6 +166,17 @@ export class PagesModel extends TModel<OpenFilesState> {
         const emptyFile = newTextFileModel("");
         emptyFile.restore();
         return this.addPage(emptyFile as unknown as PageModel);
+    };
+
+    addEditorPage = (editor: PageEditor, language: string, title: string): PageModel => {
+        const page = newTextFileModel("");
+        page.state.update((s) => {
+            s.title = title;
+            s.language = language;
+            s.editor = editor;
+        });
+        page.restore();
+        return this.addPage(page as unknown as PageModel);
     };
 
     checkEmptyPage = () => {

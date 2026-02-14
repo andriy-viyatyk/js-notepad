@@ -4,12 +4,17 @@ import { pagesModel } from "../../store";
 import {
     ArrowLeftIcon,
     ArrowRightIcon,
+    ChevronDownIcon,
     PlusIcon,
 } from "../../theme/icons";
+import { GridIcon, JavascriptIcon, NotebookIcon } from "../../theme/language-icons";
 import { Button } from "../../components/basic/Button";
+import { WithPopupMenu } from "../../components/overlay/WithPopupMenu";
+import { MenuItem } from "../../components/overlay/PopupMenu";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { minTabWidth, PageTab } from "./PageTab";
+import color from "../../theme/color";
 
 const PageTabsRoot = styled.div({
     display: "flex",
@@ -31,11 +36,39 @@ const PageTabsRoot = styled.div({
             display: "none",
         },
     },
-    "& button.add-page-button": {
-        padding: "0 2px",
+    "& .add-page-split": {
+        display: "flex",
+        alignItems: "center",
         flexShrink: 0,
         height: 26,
         marginLeft: 2,
+        "& button": {
+            height: 26,
+            borderRadius: 0,
+        },
+        "& button.add-page-main": {
+            borderRadius: "4px 0 0 4px",
+            padding: "0 3px",
+        },
+        "& button.add-page-dropdown": {
+            borderRadius: "0 4px 4px 0",
+            padding: "0 1px",
+            minWidth: 14,
+            "& svg": {
+                width: 13,
+                height: 13,
+                opacity: 0.5,
+            },
+            "&:hover svg": {
+                opacity: 1,
+            },
+        },
+        "& .split-divider": {
+            width: 1,
+            height: 16,
+            backgroundColor: color.border.default,
+            flexShrink: 0,
+        },
     },
 });
 
@@ -124,6 +157,29 @@ export function PageTabs(props: object) {
         return model.destroy;
     }, []);
 
+    const addPageMenuItems = useMemo((): MenuItem[] => [
+        {
+            label: "Script (JS)",
+            icon: <JavascriptIcon />,
+            onClick: () => pagesModel.addEditorPage("monaco", "javascript", "untitled.js"),
+        },
+        {
+            label: "Grid (JSON)",
+            icon: <GridIcon />,
+            onClick: () => pagesModel.addEditorPage("grid-json", "json", "untitled.grid.json"),
+        },
+        {
+            label: "Grid (CSV)",
+            icon: <GridIcon />,
+            onClick: () => pagesModel.addEditorPage("grid-csv", "csv", "untitled.grid.csv"),
+        },
+        {
+            label: "Notebook",
+            icon: <NotebookIcon />,
+            onClick: () => pagesModel.addEditorPage("notebook-view", "json", "untitled.note.json"),
+        },
+    ], []);
+
     useEffect(() => {
         model.checkScrollButtons();
         model.scrollToActive();
@@ -157,15 +213,31 @@ export function PageTabs(props: object) {
                     <ArrowRightIcon />
                 </Button>
             )}
-            <Button
-                size="medium"
-                onClick={() => pagesModel.addEmptyPage()}
-                title="Add Page (Ctrl+N)"
-                className="add-page-button"
-                background="dark"
-            >
-                <PlusIcon />
-            </Button>
+            <div className="add-page-split">
+                <Button
+                    size="medium"
+                    onClick={() => pagesModel.addEmptyPage()}
+                    title="Add Page (Ctrl+N)"
+                    className="add-page-main"
+                    background="dark"
+                >
+                    <PlusIcon />
+                </Button>
+                <div className="split-divider" />
+                <WithPopupMenu items={addPageMenuItems}>
+                    {(setOpen) => (
+                        <Button
+                            size="medium"
+                            onClick={(e) => setOpen(e.currentTarget)}
+                            title="New editor page"
+                            className="add-page-dropdown"
+                            background="dark"
+                        >
+                            <ChevronDownIcon />
+                        </Button>
+                    )}
+                </WithPopupMenu>
+            </div>
         </PageTabsRoot>
     );
 }

@@ -60,6 +60,13 @@ function RenderGroupedPages({
     groupedModel?: PageModel;
     isActive: boolean;
 }) {
+    // Defer rendering until this page is activated for the first time.
+    // Once rendered, keep in DOM (with display:none) to preserve state.
+    const hasBeenActiveRef = useRef(isActive);
+    if (isActive) {
+        hasBeenActiveRef.current = true;
+    }
+
     const [leftWidth, setLeftWidth] = useState<CSSProperties["width"]>("50%");
     const widthK = useRef<number>(0.5);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -109,6 +116,10 @@ function RenderGroupedPages({
             widthK.current = 0.5;
         }
     }, []);
+
+    if (!hasBeenActiveRef.current) {
+        return null;
+    }
 
     if (!groupedModel) {
         return (
