@@ -21,10 +21,11 @@ npm start
 
 ## First Launch
 
-When you first open js-notepad, you'll see:
-- An empty text editor
+When you first open js-notepad, you'll see a clean, simple interface:
 - Tab bar at the top
-- Sidebar on the left
+- An empty text editor
+
+The application looks like a simple notepad by default. To access additional features (recent files, folder bookmarks, settings, about), click the **js-notepad icon** at the top-left corner of the tab bar — a sidebar slides in from the left. Click anywhere outside the sidebar to dismiss it.
 
 ## Basic Operations
 
@@ -92,5 +93,8 @@ The Settings page also has a "View Settings File" button to open the raw `appSet
 ## Next Steps
 
 - Learn about [different editors](./editors.md)
-- Set up [keyboard shortcuts](./shortcuts.md)
+- Explore the [Grid Editor](./grid-editor.md) for JSON/CSV data
 - Try [JavaScript scripting](./scripting.md)
+- Learn about [tabs, sidebar, and navigation](./tabs-and-navigation.md)
+- Protect files with [encryption](./encryption.md)
+- See all [keyboard shortcuts](./shortcuts.md)

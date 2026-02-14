@@ -79,6 +79,34 @@ Ideas and future tasks not yet planned for implementation.
 
 ---
 
+### Undo/Redo for TextPageModel
+
+**Goal:** Implement undo/redo at the TextPageModel level so all editors (Grid, Notebook, Markdown, etc.) inherit undo/redo support, similar to how VS Code provides undo/redo for custom editors via its text document model.
+
+**Current State:**
+- Only Monaco editor has undo/redo (via its own internal history)
+- When switching from Monaco to Grid editor, Monaco unmounts and its undo/redo history is lost
+- Grid editor, Notebook editor, and other editors have no undo/redo support
+
+**Target State:**
+- TextPageModel maintains an undo/redo history stack tracking content changes
+- All editors that modify content through TextPageModel automatically get undo/redo
+- `Ctrl+Z` / `Ctrl+Shift+Z` work in Grid editor, Notebook editor, etc.
+- History survives editor switches (e.g., Monaco → Grid → Monaco)
+
+**Tasks:**
+- [ ] Design undo/redo history model in TextPageModel (operation stack with content snapshots or diffs)
+- [ ] Implement `undo()` and `redo()` methods on TextPageModel
+- [ ] Add global keyboard handler for `Ctrl+Z` / `Ctrl+Shift+Z` when non-Monaco editors are active
+- [ ] Integrate with Grid editor data changes
+- [ ] Integrate with Notebook editor changes
+- [ ] Handle history limits (max stack size) to prevent memory issues
+- [ ] Preserve Monaco's own undo/redo when Monaco is active (avoid double-handling)
+
+**Complexity:** High
+
+---
+
 ### Compare Editor Model
 
 **Goal:** Make compare editor a standalone editor with its own model.

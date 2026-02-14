@@ -2,164 +2,132 @@
 
 # Editors
 
-js-notepad includes multiple editors for different file types.
+js-notepad includes multiple editors for different file types. Some files support switching between editors using toolbar buttons.
 
 ## Text Editor (Default)
 
-The default Monaco-based text editor with:
-- Syntax highlighting for 50+ languages
-- IntelliSense and auto-completion
-- Find and replace
-- Multi-cursor editing
-- Code folding
+The default editor for all text files, powered by Monaco (the same engine as VS Code):
 
-## JSON Grid View
+- **Syntax highlighting** for 50+ languages
+- **IntelliSense** and auto-completion
+- **Find and replace** (`Ctrl+F` / `Ctrl+H`)
+- **Multi-cursor editing** (`Alt+Click`, `Ctrl+D`, `Ctrl+Alt+Up/Down`)
+- **Code folding** — collapse and expand code blocks
+- **Column selection** — `Shift+Alt+Arrow` keys for rectangular selection
+- **Minimap** — code overview on the right side
+- **Delete line** — `Ctrl+Y` deletes the entire current line
 
-For `.json` files, switch to Grid view for tabular data:
+The text editor also provides a **Script Panel** for running JavaScript against any file's content. See [Scripting](./scripting.md) for details.
 
-1. Open a JSON file with array of objects
-2. Click "Grid" in the toolbar (or use the editor switch)
-3. View data in a sortable, filterable grid
+## Grid Editor
 
-**Features:**
+A spreadsheet-like interface for JSON and CSV data with sorting, filtering, cell editing, and full keyboard navigation.
+
+**Supported formats:**
+- JSON files containing an array of objects
+- CSV files (auto-detects delimiter)
+- Files with `.grid.json` or `.grid.csv` extensions open directly in Grid view
+
+**Key features:**
 - Click column headers to sort
-- Filter data with the filter row
-- Copy/paste to Excel
-- Edit cells directly
+- Filter rows by column values
+- Copy/paste to and from Excel (`Ctrl+C` / `Ctrl+V`)
+- Edit cells directly (Enter/F2 to edit, Escape to cancel)
+- Insert and delete rows (`Ctrl+Insert` / `Ctrl+Delete`)
+- Insert and delete columns (`Ctrl+Shift+Insert` / `Ctrl+Shift+Delete`)
+- Copy with headers (`Ctrl+Shift+C`)
+- Copy as JSON or HTML table
+- Column management (show/hide, reorder, resize)
+- Full keyboard navigation
 
-**Supported JSON format:**
-```json
-[
-  { "name": "Alice", "age": 30 },
-  { "name": "Bob", "age": 25 }
-]
-```
-
-## CSV Grid View
-
-For `.csv` files:
-
-1. Open a CSV file
-2. Click "Grid" in the toolbar
-3. View and edit as a spreadsheet
-
-**Features:**
-- Auto-detects delimiter (comma, semicolon, tab)
-- Header row detection
-- Same grid features as JSON
+See **[Grid Editor](./grid-editor.md)** for complete documentation including all keyboard shortcuts.
 
 ## Markdown Preview
 
-For `.md` files:
+For `.md` and `.markdown` files — click **Preview** in the toolbar:
 
-1. Open a Markdown file
-2. Click "Preview" in the toolbar
-3. See rendered Markdown
-
-**Features:**
-- GitHub-flavored Markdown
-- Syntax highlighting in code blocks using Monaco's colorize API (supports all Monaco languages including aliases like `ts`, `js`, `py`, `bash`)
-- Copy-to-clipboard button on code block hover
-- Inline Mermaid diagram rendering — ` ```mermaid ` code blocks render as SVG diagrams
-- Live preview updates
-- Minimap navigation
+- **GitHub-flavored Markdown** rendering
+- **Syntax highlighting** in fenced code blocks using Monaco's colorize API (supports all Monaco languages including aliases like `ts`, `js`, `py`, `bash`)
+- **Copy-to-clipboard** button on code block hover
+- **Inline Mermaid diagrams** — ` ```mermaid ` code blocks render as SVG diagrams
+- **Live preview** updates as you type
+- **Minimap** navigation on the right side
 
 ## PDF Viewer
 
-For `.pdf` files:
+For `.pdf` files — opens automatically:
 
-1. Open a PDF file
-2. Automatically opens in PDF viewer
-
-**Features:**
-- Page navigation
-- Zoom controls
-- Search within PDF
+- Page navigation (scroll or page controls)
+- Zoom controls (in/out, fit to page)
+- Text search within PDF
 - Read-only view
 
 ## Image Viewer
 
-For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`):
+For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — opens automatically:
 
-1. Open an image file
-2. Automatically opens in Image Viewer
-
-**Features:**
-- Zoom in/out with mouse wheel or toolbar buttons
-- Pan image by dragging when zoomed in
-- Fit to window (default view)
-- Click zoom percentage to reset zoom
+- **Zoom** with mouse wheel or toolbar +/- buttons
+- **Pan** by dragging when zoomed in
+- **Fit to window** (default view)
+- **Reset zoom** — click the zoom percentage indicator
+- **Copy to clipboard** — `Ctrl+C` or toolbar button (copies as PNG)
 
 ## SVG Preview
 
-For `.svg` files:
+For `.svg` files — opens in text editor by default, click **Preview** in the toolbar:
 
-1. Open an SVG file (opens in text editor by default)
-2. Click "Preview" in the toolbar to see rendered SVG
-
-**Features:**
-- Same zoom/pan controls as Image Viewer
-- Shows live preview of unsaved changes
+- Same zoom/pan/copy controls as Image Viewer
+- **Live preview** of unsaved changes
 - Switch between text editor and preview anytime
 
 ## Mermaid Diagram Viewer
 
-For `.mmd` and `.mermaid` files:
+For `.mmd` and `.mermaid` files — click **Mermaid** in the toolbar:
 
-1. Open a Mermaid file (opens in text editor with syntax highlighting)
-2. Click "Mermaid" in the toolbar to see the rendered diagram
-
-**Features:**
 - Supports all Mermaid diagram types (flowchart, sequence, class, state, ER, Gantt, pie, git graph)
 - Same zoom/pan controls as Image Viewer
-- Light/dark theme toggle (dark by default, light for copying into documents)
-- Copy diagram to clipboard as image
-- Live preview of unsaved changes
-- Debounced re-rendering for smooth editing
+- **Light/dark theme toggle** (dark by default, light for copying into documents)
+- **Copy diagram** to clipboard as image
+- **Live preview** with debounced re-rendering
+- Mermaid syntax highlighting in the text editor
 
 ## HTML Preview
 
-For `.html` files:
+For `.html` files — click **Preview** in the toolbar:
 
-1. Open an HTML file (opens in text editor by default)
-2. Click "Preview" in the toolbar to see rendered HTML
-
-**Features:**
-- Live preview of unsaved changes
-- JavaScript execution supported (scripts in the HTML will run)
-- Sandboxed rendering — preview is isolated from the application
+- **Live preview** of unsaved changes
+- **JavaScript execution** — scripts in the HTML run in the preview
+- **Sandboxed rendering** — preview is isolated from the application
 - Switch between text editor and preview anytime
 
 ## Compare Mode
 
-Compare two files side-by-side:
+Compare two files side-by-side using Monaco's built-in diff viewer:
 
-1. Open two files
-2. Drag one tab next to another to group them
-3. Click the Compare button in the toolbar
+1. Open two text files
+2. Hold `Ctrl` and click the second file's tab to group them side-by-side
+3. Click the **Compare** button in the toolbar
 
 **Features:**
 - Side-by-side diff view
-- Inline diff highlighting
+- Inline diff highlighting (additions, deletions, modifications)
 - Navigate between changes
+
+See [Tabs & Navigation](./tabs-and-navigation.md) for more on tab grouping.
 
 ## Notebook Editor
 
 For `.note.json` files — a structured notes interface:
 
-1. Create a file with the `.note.json` extension
-2. Click "Add Note" to create your first note
-
-**Features:**
-- Categories and tags for organizing notes
+- **Categories** and **tags** for organizing notes
 - Each note has its own code editor (Monaco, Grid, Markdown, SVG)
-- Full-text search with highlighting across all content
-- Drag-and-drop to reorganize categories
-- Expand notes to full editor size
-- Run JavaScript from individual notes
-- Optional comments on each note
+- **Full-text search** with highlighting across all content
+- **Drag-and-drop** to reorganize categories
+- **Expand** notes to full editor size
+- **Run JavaScript** from individual notes
+- Optional **comments** on each note
 
-See [Notebook Editor](./notebook.md) for detailed documentation.
+See **[Notebook Editor](./notebook.md)** for detailed documentation.
 
 ## Switching Editors
 
@@ -180,4 +148,4 @@ Some files support multiple editors:
 
 Use the buttons in the toolbar to switch between available editors.
 
-**Quick Add:** Click the dropdown arrow (▾) next to the + button in the tab bar to create a new page with a specific editor already active (Script, Grid JSON, Grid CSV, or Notebook).
+**Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page with a specific editor: Script (JS), Grid (JSON), Grid (CSV), or Notebook.

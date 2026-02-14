@@ -9,8 +9,8 @@ js-notepad is a Windows Notepad replacement designed for developers. It combines
 - **Monaco Editor** - The same editor that powers VS Code
 - **Syntax Highlighting** - 50+ programming languages
 - **JavaScript Execution** - Run scripts to transform content
-- **Multiple Editors** - Grid view for JSON/CSV, Markdown preview, PDF viewer
-- **Tab Management** - Multiple files with drag-and-drop
+- **Multiple Editors** - Grid view for JSON/CSV, Markdown preview, PDF viewer, and more
+- **Tab Management** - Multiple files with drag-and-drop, grouping, and compare
 
 ## Quick Start
 
@@ -21,27 +21,32 @@ js-notepad is a Windows Notepad replacement designed for developers. It combines
 ## Documentation
 
 - [Getting Started](./getting-started.md) - Installation and first steps
-- [Editors](./editors.md) - Different view modes
+- [Editors](./editors.md) - Overview of all editor types
+- [Grid Editor](./grid-editor.md) - Spreadsheet-like data editor for JSON/CSV
 - [Notebook Editor](./notebook.md) - Structured notes with categories and tags
-- [Scripting](./scripting.md) - JavaScript execution
-- [Keyboard Shortcuts](./shortcuts.md) - Quick reference
+- [Scripting](./scripting.md) - JavaScript execution and content transformation
+- [Tabs & Navigation](./tabs-and-navigation.md) - Tab management, grouping, sidebar, and session restore
+- [Encryption](./encryption.md) - Password-based file encryption
+- [Keyboard Shortcuts](./shortcuts.md) - Complete shortcut reference
 
 ## Key Features
 
 ### For All Users
 - Fast, lightweight text editor
-- Syntax highlighting
+- Syntax highlighting for 50+ languages
 - Find and replace
-- Multiple tabs
-- Recent files
+- Multiple tabs with session restore
+- Recent files and folder bookmarks
+- Drag-and-drop file opening
 - 9 color themes — 6 dark + 3 light (Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue, Light Modern, Solarized Light, Quiet Light)
 
 ### For Developers
 - Run JavaScript to transform content
-- JSON/CSV grid view with filtering
+- JSON/CSV grid view with sorting, filtering, and full keyboard navigation
 - Notebook editor for structured notes
-- Markdown preview
+- Markdown preview with syntax highlighting and Mermaid diagrams
 - File comparison (diff view)
+- File encryption
 - Full Node.js access in scripts
 
 ## Getting Help
