@@ -9,6 +9,7 @@ export interface IPage {
     language?: string,
     filePath?: string,
     editor?: PageEditor,
+    hasNavPanel?: boolean,
 }
 
 export interface WindowState {

@@ -1,4 +1,4 @@
-import { CSSProperties, useCallback } from "react";
+import { CSSProperties, Ref, useCallback, useImperativeHandle } from "react";
 import styled from "@emotion/styled";
 import clsx from "clsx";
 import { useDrag, useDrop } from "react-dnd";
@@ -13,6 +13,7 @@ import {
     TreeViewItem,
     TreeViewModel,
     TreeViewProps,
+    TreeViewRef,
     TreeViewState,
 } from "./TreeView.model";
 import color from "../../theme/color";
@@ -129,6 +130,9 @@ function TreeCell<T extends TreeItem = TreeItem>({
                 model.props.onItemClick?.(item.item);
                 model.gridRef?.update({ all: true });
             }}
+            onDoubleClick={() => {
+                model.props.onItemDoubleClick?.(item.item);
+            }}
             onContextMenu={(e) => {
                 model.props.onItemContextMenu?.(item.item, e);
             }}
@@ -141,10 +145,10 @@ function TreeCell<T extends TreeItem = TreeItem>({
             {levels.map((l) => (
                 <div key={l} className="level-shift" />
             ))}
-            {item.level === 0 && model.props.rootCollapsible === false ? (
-                // Root item with collapsing disabled - keep spacing
-                <div className="empty-button expand-button" />
-            ) : item.items?.length ? (
+            {item.level === 0 && !model.props.rootCollapsible ? (
+                // Root item with collapsing disabled - no spacing
+                <></>
+            ) : item.items?.length || model.props.getHasChildren?.(item.item) ? (
                 <Button
                     type="icon"
                     size="small"
@@ -166,14 +170,27 @@ function TreeCell<T extends TreeItem = TreeItem>({
 }
 
 export function TreeView<T extends TreeItem = TreeItem>(
-    props: TreeViewProps<T>,
+    props: TreeViewProps<T> & { ref?: Ref<TreeViewRef> },
 ) {
+    const { ref, ...treeProps } = props;
     const model = useComponentModel(
-        props,
+        treeProps as TreeViewProps<T>,
         TreeViewModel as unknown as TreeViewModel<T>,
         defaultTreeViewState as TreeViewState<T>,
     );
     const state = model.state.use();
+
+    useImperativeHandle(ref, () => ({
+        getExpandMap: model.getExpandMap,
+        expandAll: model.expandAll,
+        collapseAll: model.collapseAll,
+        toggleItem: model.toggleItemById,
+        getScrollTop: () => model.gridRef?.containerRef.current?.scrollTop ?? 0,
+        setScrollTop: (value: number) => {
+            const container = model.gridRef?.containerRef.current;
+            if (container) container.scrollTop = value;
+        },
+    }), [model]);
 
     const renderCell = useCallback(
         (p: RenderCellParams) => {

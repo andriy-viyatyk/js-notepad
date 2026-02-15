@@ -1,9 +1,14 @@
 import styled from "@emotion/styled";
 import { IPage, PageType } from "../../../shared/types";
 import { getDefaultPageModelState, PageModel } from "../base";
+import { PageToolbar } from "../base/EditorToolbar";
 import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
 import { FileIcon } from "../../features/sidebar/FileIcon";
+import { Button } from "../../components/basic/Button";
+import { FlexSpace } from "../../components/layout/Elements";
+import { NavPanelIcon } from "../../theme/icons";
+import { NavPanelModel } from "../../features/navigation/nav-panel-store";
 const path = require("path");
 
 const PdfViewerRoot = styled.div({
@@ -24,11 +29,8 @@ const getDefaultPdfViewerModelState = (): PdfViewerModelState => ({
 class PdfViewerModel extends PageModel<PdfViewerModelState, void> {
     noLanguage = true;
 
-    getRestoreData() {
-        return JSON.parse(JSON.stringify(this.state.get()));
-    }
-
     async restore() {
+        await super.restore();
         const filePath = this.state.get().filePath;
         if (filePath) {
             this.state.update((s) => {
@@ -55,13 +57,39 @@ function PdfViewer({ model }: PdfViewerProps) {
     const viewerUrl = `app-asset://pdfjs/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
 
     return (
-        <PdfViewerRoot>
-            <object
-                data={viewerUrl}
-                style={{ width: "100%", height: "100%", border: "none" }}
-                type="text/html"
-            />
-        </PdfViewerRoot>
+        <>
+            <PageToolbar borderBottom>
+                {filePath && (
+                    <Button
+                        type="icon"
+                        size="small"
+                        title="File Explorer"
+                        onClick={() => {
+                            if (model.navPanel) {
+                                model.navPanel.toggle();
+                            } else {
+                                const navPanel = new NavPanelModel(path.dirname(filePath), filePath);
+                                navPanel.id = model.id;
+                                model.navPanel = navPanel;
+                                model.state.update((s) => {
+                                    s.hasNavPanel = true;
+                                });
+                            }
+                        }}
+                    >
+                        <NavPanelIcon />
+                    </Button>
+                )}
+                <FlexSpace />
+            </PageToolbar>
+            <PdfViewerRoot>
+                <object
+                    data={viewerUrl}
+                    style={{ width: "100%", height: "100%", border: "none" }}
+                    type="text/html"
+                />
+            </PdfViewerRoot>
+        </>
     );
 }
 

@@ -132,17 +132,22 @@ The right panel shows the contents of the selected folder:
 
 Click anywhere outside the sidebar, or press **Escape** to close it.
 
-## Document Navigation Panel
+## File Explorer Panel
 
-For markdown and documentation files, the **Navigation** button in the toolbar opens a document navigation panel:
+Any saved file can open a **File Explorer** panel alongside the editor. Click the File Explorer button in the toolbar to toggle it.
 
-- **Link tree** — Scans the current markdown file for links to other `.md` files, then recursively builds a folder/file tree
+- **Tree-based browser** — Shows all files and folders in the same directory as the current file
 - **In-place navigation** — Click any file to load it in the same tab (no new tabs created)
 - **Auto-preview** — Navigated files switch to preview mode automatically (Markdown preview, SVG view, etc.)
-- **All file types** — Works with PDF, images, and other file types linked from markdown
+- **All editor types** — Available for text files, markdown, images, PDFs, and more
+- **Navigate up** — Click the up arrow button in the panel header to move the root to the parent folder
+- **Make root** — Right-click any folder and choose "Make Root" to focus the tree on that folder, or double-click a folder to do the same
+- **Collapse all** — Click the collapse button in the panel header to collapse all expanded folders at once
+- **File operations** — Right-click for: create files/folders, rename, delete, copy path, show in explorer, open in new tab
+- **Search** — Press Ctrl+F within the panel to search files by name
+- **Lazy loading** — Folders load their contents on expand, keeping large directories fast
 - **Resizable** — Drag the panel border to resize
-- **Context menu** — Right-click items for: Open in New Tab, Show in File Explorer, Copy File Path
-- **Refresh** — Click the refresh button to rebuild the tree
+- **Persistent state** — Expanded folders, panel width, and scroll position survive app restarts and in-tab navigation
 
 ## Session Restore
 

@@ -7,7 +7,8 @@ import { EditorModule } from "../types";
 import { FileIcon } from "../../features/sidebar/FileIcon";
 import { Button } from "../../components/basic/Button";
 import { FlexSpace } from "../../components/layout/Elements";
-import { CopyIcon } from "../../theme/icons";
+import { CopyIcon, NavPanelIcon } from "../../theme/icons";
+import { NavPanelModel } from "../../features/navigation/nav-panel-store";
 import { BaseImageView } from "./BaseImageView";
 import type { BaseImageViewRef } from "./BaseImageView";
 const path = require("path");
@@ -26,11 +27,8 @@ const getDefaultImageViewerModelState = (): ImageViewerModelState => ({
 class ImageViewerModel extends PageModel<ImageViewerModelState, void> {
     noLanguage = true;
 
-    getRestoreData() {
-        return JSON.parse(JSON.stringify(this.state.get()));
-    }
-
     async restore() {
+        await super.restore();
         const filePath = this.state.get().filePath;
         if (filePath) {
             this.state.update((s) => {
@@ -63,6 +61,27 @@ function ImageViewer({ model }: ImageViewerProps) {
     return (
         <>
             <PageToolbar borderBottom>
+                {filePath && (
+                    <Button
+                        type="icon"
+                        size="small"
+                        title="File Explorer"
+                        onClick={() => {
+                            if (model.navPanel) {
+                                model.navPanel.toggle();
+                            } else {
+                                const navPanel = new NavPanelModel(path.dirname(filePath), filePath);
+                                navPanel.id = model.id;
+                                model.navPanel = navPanel;
+                                model.state.update((s) => {
+                                    s.hasNavPanel = true;
+                                });
+                            }
+                        }}
+                    >
+                        <NavPanelIcon />
+                    </Button>
+                )}
                 <FlexSpace />
                 <Button
                     type="icon"

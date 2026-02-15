@@ -10,16 +10,20 @@ Release notes and changelog for js-notepad.
 
 ### New Features
 
-- **Document Navigation Panel** — Browse related project documentation within a single tab
-  - Click the navigation button in the toolbar to build a link tree from the current markdown file
-  - Recursively scans linked `.md` files for deeper links, organized as a folder/file tree
+- **File Explorer Panel** — Browse files alongside any open document
+  - Click the File Explorer button in the toolbar to open a tree-based file browser
+  - Available for all file types: text, markdown, images, PDFs
+  - Shows all files and folders in the same directory as the current file
   - Click any file to navigate in-place — content replaces in the same tab (no new tabs)
   - Navigated files auto-switch to preview mode (Markdown preview, SVG view, Mermaid diagram, etc.)
-  - Works with all file types including PDF and images
-  - Resizable panel with splitter
-  - Context menu: Open in New Tab, Show in File Explorer, Copy File Path
-  - Folder icons for directory nodes, file-type icons for files
-  - Refresh button to rebuild the tree
+  - Full file operations via context menu: create files/folders, rename, delete
+  - Open in New Tab, Show in File Explorer, Copy File Path
+  - Navigate up to parent folder or make any subfolder the new root (context menu or double-click)
+  - Collapse all expanded folders with a single click
+  - Search files with Ctrl+F within the panel
+  - Lazy-loading folder expansion for large directories
+  - Resizable panel with splitter, state persists across app restarts
+  - Scroll position preserved when navigating between files
 
 - **Application Theming** — Switch between 9 color themes (6 dark, 3 light) via the new Settings page
   - Dark themes: Default Dark, Solarized Dark, Monokai, Abyss, Red, Tomorrow Night Blue
@@ -34,6 +38,11 @@ Release notes and changelog for js-notepad.
 - **HTML Preview** — Switch to "Preview" for HTML files to see rendered output in a sandboxed iframe. Supports JavaScript execution, live updates, and works with unsaved content.
 
 ### Improvements
+
+- **Sidebar File Explorer** — Linked folders now display as a tree view instead of a flat file list
+  - Expand/collapse folders to browse nested directories
+  - Folder expansion state persists when switching between linked folders
+  - Same file operations and search as the in-tab File Explorer panel
 
 - **Keyboard Shortcuts** — `Ctrl+Tab`, `Ctrl+W`, `Ctrl+N`, `Ctrl+O` now work reliably regardless of which editor type is active (previously failed when focus was in preview editors like Markdown, PDF, or Image viewers)
 

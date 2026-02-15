@@ -31,6 +31,22 @@ export const defaultTreeViewState: TreeViewState = {
     rows: [],
 };
 
+/** Ref interface exposing TreeView imperative methods */
+export interface TreeViewRef {
+    /** Get current expansion state as a map of item IDs to expanded booleans */
+    getExpandMap(): Record<string, boolean>;
+    /** Expand all tree nodes */
+    expandAll(): void;
+    /** Collapse all tree nodes (except root if rootCollapsible is false) */
+    collapseAll(): void;
+    /** Toggle expansion of a specific item by its ID */
+    toggleItem(id: string): void;
+    /** Get current vertical scroll position */
+    getScrollTop(): number;
+    /** Set vertical scroll position */
+    setScrollTop(value: number): void;
+}
+
 export interface TreeViewProps<T extends TreeItem = TreeItem> {
     root: T;
     getLabel: (item: T) => React.ReactNode;
@@ -45,12 +61,20 @@ export interface TreeViewProps<T extends TreeItem = TreeItem> {
     dragType?: DragType;
     /** Get drag item data for a tree node. Return null to prevent dragging. */
     getDragItem?: (item: T) => DragItem | null;
-    /** Whether root element can be collapsed. Default: true */
+    /** Whether root element can be collapsed. Default: false */
     rootCollapsible?: boolean;
     /** Change this value to trigger a grid refresh (e.g., when external selection state changes) */
     refreshKey?: string | number;
     /** Expand all nodes by default. Default: false (only first 2 levels expanded) */
     defaultExpandAll?: boolean;
+    /** Initial expansion state to restore from cache. Keys are item IDs, values are expanded booleans. */
+    initialExpandMap?: Record<string, boolean>;
+    /** Called when user double-clicks a tree item */
+    onItemDoubleClick?: (item: T) => void;
+    /** Called when a tree node is expanded or collapsed */
+    onExpandChange?: (id: string, expanded: boolean) => void;
+    /** Return true if an item should show an expand arrow even when its children aren't loaded yet (lazy loading) */
+    getHasChildren?: (item: T) => boolean;
 }
 
 export function treeItemForEach<T extends TreeItem = TreeItem>(
@@ -132,9 +156,13 @@ export class TreeViewModel<
     };
 
     rebuildTreeView = (root: T) => {
-        // Preserve existing expand state, or use stored expandMap
+        // Preserve existing expand state, or use stored expandMap, or use initialExpandMap from props
         const currentMap = this.buildExpandMap();
-        const map = Object.keys(currentMap).length > 0 ? currentMap : this.expandMap;
+        const map = Object.keys(currentMap).length > 0
+            ? currentMap
+            : Object.keys(this.expandMap).length > 0
+                ? this.expandMap
+                : this.props.initialExpandMap ?? {};
 
         const getExpanded = (i: T) => map[this.props.getId(i)];
         const item = buildTreeViewItem(root, 0, undefined, getExpanded, this.props.defaultExpandAll);
@@ -175,12 +203,24 @@ export class TreeViewModel<
         }
     };
 
+    /** Toggle expansion of a specific item found by its ID */
+    toggleItemById = (id: string) => {
+        const root = this.state.get().item;
+        if (!root) return;
+        let target: TreeViewItem<T> | undefined;
+        this.forEach(root, (i) => {
+            if (this.props.getId(i.item) === id) target = i;
+        });
+        if (target) this.toggleExpanded(target);
+    };
+
     toggleExpanded = (item: TreeViewItem<T>) => {
         const root = this.state.get().item;
         if (root) {
+            const newExpanded = !item.expanded;
             const newItem = this.mapItem(root, (i) => {
                 return this.props.getId(i.item) === this.props.getId(item.item)
-                    ? { ...i, expanded: !i.expanded }
+                    ? { ...i, expanded: newExpanded }
                     : i;
             });
 
@@ -193,6 +233,49 @@ export class TreeViewModel<
             this.gridRef?.update({ all: true });
 
             // Save expand state
+            this.expandMap = this.buildExpandMap();
+
+            // Notify parent of expansion change
+            this.props.onExpandChange?.(this.props.getId(item.item), newExpanded);
+        }
+    };
+
+    /** Get current expansion state as a map of item IDs to expanded booleans */
+    getExpandMap = (): Record<string, boolean> => {
+        const map: Record<string, boolean> = {};
+        const stateItem = this.state.get().item;
+        if (stateItem) {
+            this.forEach(stateItem, (i) => {
+                const expanded = i.expanded;
+                if (expanded !== undefined) {
+                    map[this.props.getId(i.item)] = expanded;
+                }
+            });
+        }
+        return map;
+    };
+
+    /** Expand all tree nodes */
+    expandAll = () => {
+        const root = this.state.get().item;
+        if (root) {
+            const newItem = this.mapItem(root, (i) => ({ ...i, expanded: true }));
+            this.state.set((s) => ({ ...s, item: newItem, rows: buildRows(newItem) }));
+            this.gridRef?.update({ all: true });
+            this.expandMap = this.buildExpandMap();
+        }
+    };
+
+    /** Collapse all tree nodes (except root if rootCollapsible is false) */
+    collapseAll = () => {
+        const root = this.state.get().item;
+        if (root) {
+            const newItem = this.mapItem(root, (i) => ({
+                ...i,
+                expanded: i.level === 0 && !this.props.rootCollapsible ? true : false,
+            }));
+            this.state.set((s) => ({ ...s, item: newItem, rows: buildRows(newItem) }));
+            this.gridRef?.update({ all: true });
             this.expandMap = this.buildExpandMap();
         }
     };

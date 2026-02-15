@@ -1,15 +1,12 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import styled from "@emotion/styled";
 import { NavPanelModel } from "./nav-panel-store";
-import { NavTreeItem } from "../../core/utils/nav-tree";
-import { TreeView } from "../../components/TreeView/TreeView";
-import { FileTypeIcon } from "../../editors/base/LanguageIcon";
+import { FileExplorer, FileExplorerRef } from "../../components/file-explorer";
+import { MenuItem } from "../../components/overlay/PopupMenu";
 import { Button } from "../../components/basic/Button";
-import { CloseIcon, CopyIcon, FolderOpenIcon, OpenFileIcon, RefreshIcon } from "../../theme/icons";
-import { FolderIcon } from "../sidebar/FileIcon";
+import { ArrowUpIcon, CloseIcon, CollapseAllIcon, RefreshIcon } from "../../theme/icons";
 import color from "../../theme/color";
 import { pagesModel } from "../../store";
-import { api } from "../../../ipc/renderer/api";
 
 const path = require("path");
 
@@ -25,7 +22,7 @@ const NavigationPanelRoot = styled.div({
         flexDirection: "row",
         alignItems: "center",
         gap: 4,
-        padding: "4px 4px 4px 8px",
+        padding: "4px 4px 4px 4px",
         borderBottom: `1px solid ${color.border.light}`,
         flexShrink: 0,
     },
@@ -39,21 +36,6 @@ const NavigationPanelRoot = styled.div({
         whiteSpace: "nowrap",
         color: color.text.light,
     },
-
-    "& .nav-tree": {
-        flex: "1 1 auto",
-        overflow: "hidden",
-    },
-
-    "& .nav-item-missing": {
-        opacity: 0.4,
-    },
-
-    "& .nav-item-label": {
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        fontSize: 13,
-    },
 });
 
 interface NavigationPanelProps {
@@ -62,60 +44,109 @@ interface NavigationPanelProps {
 }
 
 export function NavigationPanel({ model, pageId }: NavigationPanelProps) {
-    const { tree, currentFilePath } = model.state.use();
+    const { rootFilePath, currentFilePath } = model.state.use();
+    const fileExplorerRef = useRef<FileExplorerRef>(null);
 
-    const handleItemClick = useCallback((item: NavTreeItem) => {
-        if (item.isFolder) return;
-        if (!item.exists) return;
-        if (item.filePath.toLowerCase() === currentFilePath?.toLowerCase()) return;
+    const parentPath = path.dirname(rootFilePath);
+    const canNavigateUp = parentPath !== rootFilePath;
 
-        pagesModel.navigatePageTo(pageId, item.filePath);
-    }, [pageId, currentFilePath]);
+    const handleFileClick = useCallback((filePath: string) => {
+        if (filePath.toLowerCase() === currentFilePath?.toLowerCase()) return;
+        // Save scroll position before navigation triggers remount
+        model.scrollTop = fileExplorerRef.current?.getScrollTop() ?? 0;
+        pagesModel.navigatePageTo(pageId, filePath);
+    }, [pageId, currentFilePath, model]);
 
-    const handleItemContextMenu = useCallback((item: NavTreeItem, e: React.MouseEvent) => {
-        if (!e.nativeEvent.menuItems) {
-            e.nativeEvent.menuItems = [];
+    // Restore scroll position after remount (navigation transfers NavPanelModel)
+    useEffect(() => {
+        if (model.scrollTop > 0) {
+            const saved = model.scrollTop;
+            model.scrollTop = 0;
+            // Tree rebuild is deferred via setTimeout(0) in TreeViewModel.setProps,
+            // so we retry until the container is scrollable and scroll takes effect.
+            const tryRestore = (retries: number) => {
+                fileExplorerRef.current?.setScrollTop(saved);
+                const actual = fileExplorerRef.current?.getScrollTop() ?? 0;
+                if (actual === 0 && retries > 0) {
+                    requestAnimationFrame(() => tryRestore(retries - 1));
+                }
+            };
+            requestAnimationFrame(() => tryRestore(10));
         }
-        e.nativeEvent.menuItems.push(
-            {
-                label: "Open in New Tab",
-                icon: <OpenFileIcon />,
-                onClick: () => pagesModel.openFile(item.filePath),
-                disabled: !item.exists,
-                invisible: item.isFolder,
-            },
-            {
-                label: "Show in File Explorer",
-                icon: <FolderOpenIcon />,
-                onClick: () => {
-                    if (item.isFolder) {
-                        api.showFolder(item.filePath);
-                    } else {
-                        api.showItemInFolder(item.filePath);
-                    }
-                },
-            },
-            {
-                label: "Copy File Path",
-                icon: <CopyIcon />,
-                onClick: () => navigator.clipboard.writeText(item.filePath),
-            },
-        );
     }, []);
 
-    if (!tree) return null;
+    const handleRefresh = useCallback(() => {
+        fileExplorerRef.current?.refresh();
+    }, []);
+
+    const handleCollapseAll = useCallback(() => {
+        fileExplorerRef.current?.collapseAll();
+    }, []);
+
+    const handleNavigateUp = useCallback(() => {
+        if (!canNavigateUp) return;
+        const currentState = fileExplorerRef.current?.getState();
+        const expandedPaths = [...(currentState?.expandedPaths ?? [])];
+        // Add old root to expanded paths so it stays expanded as a subfolder
+        const rootLower = rootFilePath.toLowerCase();
+        if (!expandedPaths.some(p => p.toLowerCase() === rootLower)) {
+            expandedPaths.push(rootFilePath);
+        }
+        model.fileExplorerState = { expandedPaths };
+        model.state.update((s) => {
+            s.rootFilePath = parentPath;
+        });
+    }, [canNavigateUp, rootFilePath, parentPath, model]);
+
+    const handleMakeRoot = useCallback((folderPath: string) => {
+        if (folderPath.toLowerCase() === rootFilePath.toLowerCase()) return;
+        const currentState = fileExplorerRef.current?.getState();
+        const folderLower = folderPath.toLowerCase() + path.sep;
+        const expandedPaths = (currentState?.expandedPaths ?? [])
+            .filter(p => p.toLowerCase().startsWith(folderLower));
+        model.fileExplorerState = { expandedPaths };
+        model.state.update((s) => {
+            s.rootFilePath = folderPath;
+        });
+    }, [rootFilePath, model]);
+
+    const getExtraMenuItems = useCallback((filePath: string, isFolder: boolean): MenuItem[] => {
+        if (!isFolder || filePath.toLowerCase() === rootFilePath.toLowerCase()) return [];
+        return [{
+            startGroup: true,
+            label: "Make Root",
+            onClick: () => handleMakeRoot(filePath),
+        }];
+    }, [rootFilePath, handleMakeRoot]);
 
     return (
         <NavigationPanelRoot>
             <div className="nav-header">
-                <span className="nav-header-title" title={tree.filePath}>
-                    {tree.label}
+                <Button
+                    type="icon"
+                    size="small"
+                    title={canNavigateUp ? `Up to ${path.basename(parentPath)}` : "Already at root"}
+                    onClick={handleNavigateUp}
+                    disabled={!canNavigateUp}
+                >
+                    <ArrowUpIcon width={14} height={14} />
+                </Button>
+                <span className="nav-header-title" title={rootFilePath}>
+                    {path.basename(rootFilePath)}
                 </span>
                 <Button
                     type="icon"
                     size="small"
+                    title="Collapse All"
+                    onClick={handleCollapseAll}
+                >
+                    <CollapseAllIcon width={14} height={14} />
+                </Button>
+                <Button
+                    type="icon"
+                    size="small"
                     title="Refresh"
-                    onClick={model.buildTree}
+                    onClick={handleRefresh}
                 >
                     <RefreshIcon width={14} height={14} />
                 </Button>
@@ -128,41 +159,20 @@ export function NavigationPanel({ model, pageId }: NavigationPanelProps) {
                     <CloseIcon width={14} height={14} />
                 </Button>
             </div>
-            <div className="nav-tree">
-                <TreeView<NavTreeItem>
-                    root={tree}
-                    getId={getItemId}
-                    getLabel={(item) => (
-                        <span
-                            className={item.exists || item.isFolder ? "nav-item-label" : "nav-item-label nav-item-missing"}
-                            title={item.filePath}
-                        >
-                            {item.label}
-                        </span>
-                    )}
-                    getIcon={(item) => (
-                        item.isFolder ? <FolderIcon /> : (
-                            <FileTypeIcon
-                                fileName={path.basename(item.filePath)}
-                                width={16}
-                                height={16}
-                            />
-                        )
-                    )}
-                    getSelected={(item) =>
-                        item.filePath.toLowerCase() === currentFilePath?.toLowerCase()
-                    }
-                    onItemClick={handleItemClick}
-                    onItemContextMenu={handleItemContextMenu}
-                    rootCollapsible={false}
-                    defaultExpandAll
-                    refreshKey={currentFilePath}
-                />
-            </div>
+            <FileExplorer
+                ref={fileExplorerRef}
+                key={rootFilePath}
+                id={`nav-${pageId}`}
+                rootPath={rootFilePath}
+                selectedFilePath={currentFilePath}
+                onFileClick={handleFileClick}
+                onFolderDoubleClick={handleMakeRoot}
+                enableFileOperations
+                showOpenInNewTab
+                initialState={model.fileExplorerState}
+                onStateChange={model.setFileExplorerState}
+                getExtraMenuItems={getExtraMenuItems}
+            />
         </NavigationPanelRoot>
     );
-}
-
-function getItemId(item: NavTreeItem): string {
-    return item.filePath;
 }

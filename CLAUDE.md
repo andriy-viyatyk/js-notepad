@@ -1,5 +1,15 @@
 # js-notepad Project Guidelines
 
+## English Correction (MANDATORY)
+
+The user is learning English. For EVERY user message, BEFORE responding to the task:
+1. Check spelling, grammar, tenses (have/had, do/did), and sentence structure ("I can ask?" → "Can I ask?")
+2. Print the corrected sentence with **bold** on every corrected word/part
+3. Do NOT explain corrections — just show the fixed sentence
+4. Do NOT beautify or rephrase — only fix actual errors
+5. If the message has no mistakes — print a 👍 emoji
+6. Then proceed with the task as usual
+
 ## Quick Start for Claude
 
 1. **Read this file completely** - essential context for all tasks
@@ -35,7 +45,8 @@ When user says "let's work on tasks" or similar:
 ### Completing a task:
 1. Verify all acceptance criteria are met
 2. Update documentation (see checklist in [/doc/tasks/active.md](doc/tasks/active.md)):
-   - Architecture docs, standards docs, user docs, CLAUDE.md, what's new
+   - Architecture docs, standards docs, CLAUDE.md, what's new
+   - **Review and update user guidance docs** in `/docs/` — check all pages that describe affected features, update text to match the new behavior
 3. Move task to "Recently Completed" in active.md
 4. **Ask user for confirmation** before deleting the task folder
 

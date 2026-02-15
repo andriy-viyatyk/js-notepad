@@ -108,6 +108,9 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             restored,
             ...pageData
         } = this.state.get();
+        if (this.navPanel) {
+            pageData.hasNavPanel = true;
+        }
         return pageData;
     }
 
@@ -140,13 +143,15 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         return text;
     };
 
-    saveState = async (): Promise<void> => {
+    async saveState(): Promise<void> {
         if (!this.modificationSaved) {
             await this.doSaveModifications();
         }
-    };
+        await super.saveState();
+    }
 
     applyRestoreData = (data: Partial<TextFilePageModelState>): void => {
+        this.needsNavPanelRestore = !!data.hasNavPanel;
         this.state.update((s) => {
             s.id = data.id || s.id;
             s.type = data.type || s.type;
@@ -202,13 +207,13 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
         return result;
     };
 
-    dispose = async (): Promise<void> => {
+    async dispose(): Promise<void> {
         this.fileWatcher?.dispose();
         this.fileWatcher = null;
         this.editor.onDispose();
         this.script.dispose();
-        await filesModel.deleteCacheFiles(this.state.get().id);
-    };
+        await super.dispose();
+    }
 
     saveFile = async (saveAs?: boolean): Promise<boolean> => {
         const { filePath, title, id } = this.state.get();
@@ -317,6 +322,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             });
         }
         await this.script.restore(id);
+        await super.restore();
         this.state.update((s) => {
             s.restored = true;
         });

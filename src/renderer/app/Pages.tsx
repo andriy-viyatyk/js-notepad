@@ -8,7 +8,7 @@ import color from "../theme/color";
 import { RenderEditor } from "./RenderEditor";
 import { CompareEditor } from "../editors/compare";
 import { isTextFileModel } from "../editors/text";
-import { getNavPanel, NavPanelModel, navPanelVersion } from "../features/navigation/nav-panel-store";
+import { NavPanelModel } from "../features/navigation/nav-panel-store";
 import { NavigationPanel } from "../features/navigation/NavigationPanel";
 
 const navPanelContainerStyles = {
@@ -74,17 +74,17 @@ const PageEditorContainer = styled.div(
     { label: "PageEditorContainer" },
 );
 
-function NavPanelWrapper({ pageId }: { pageId: string }) {
-    // Subscribe to version counter to re-render when panels are added/removed
-    navPanelVersion.use();
-    const panel = getNavPanel(pageId);
+function NavPanelWrapper({ model }: { model: PageModel }) {
+    // Subscribe to hasNavPanel state to re-render when NavPanel is created
+    const hasNavPanel = model.state.use((s) => s.hasNavPanel);
+    const panel = hasNavPanel ? model.navPanel : null;
     if (!panel) return null;
-    return <NavPanelContent model={panel} pageId={pageId} />;
+    return <NavPanelContent model={panel} pageId={model.id} />;
 }
 
 function NavPanelContent({ model, pageId }: { model: NavPanelModel; pageId: string }) {
-    const { open, width, tree } = model.state.use();
-    if (!open || !tree) return null;
+    const { open, width } = model.state.use();
+    if (!open) return null;
 
     return (
         <>
@@ -176,7 +176,7 @@ function RenderGroupedPages({
                 id={`editor-container-${model.id}`}
                 className={clsx({ isActive })}
             >
-                <NavPanelWrapper pageId={model.id} />
+                <NavPanelWrapper model={model} />
                 <PageEditorContainer>
                     <RenderEditor key={`render-editor-${model.id}`} model={model} />
                 </PageEditorContainer>
@@ -219,7 +219,7 @@ function RenderGroupedPages({
                     flexShrink: 0,
                 }}
             >
-                <NavPanelWrapper pageId={model.id} />
+                <NavPanelWrapper model={model} />
                 <PageEditorContainer>
                     <RenderEditor key={`render-editor-${model.id}`} model={model} />
                 </PageEditorContainer>
@@ -236,7 +236,7 @@ function RenderGroupedPages({
                 className="page-container"
                 style={{ flex: "1 1 auto" }}
             >
-                <NavPanelWrapper pageId={groupedModel.id} />
+                <NavPanelWrapper model={groupedModel} />
                 <PageEditorContainer>
                     <RenderEditor
                         key={`render-editor-${groupedModel.id}`}

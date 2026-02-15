@@ -51,7 +51,6 @@ js-notepad/
 │   │   ├── node-utils.ts
 │   │   ├── parse-utils.ts
 │   │   ├── path-utils.ts       # Link resolution utilities
-│   │   ├── nav-tree.ts         # Navigation tree builder
 │   │   ├── obj-path.ts
 │   │   ├── memorize.ts
 │   │   ├── utils.ts
@@ -172,12 +171,11 @@ js-notepad/
 │   │   └── index.ts
 │   ├── sidebar/            # Sidebar/menu
 │   │   ├── MenuBar.tsx
-│   │   ├── FileExplorer.tsx
-│   │   ├── FileList.tsx
+│   │   ├── FileList.tsx      # Used by RecentFileList
 │   │   ├── RecentFileList.tsx
 │   │   ├── OpenTabsList.tsx
 │   │   └── index.ts
-│   ├── navigation/         # Document navigation panel
+│   ├── navigation/         # File explorer panel (in-tab)
 │   │   ├── NavigationPanel.tsx
 │   │   └── nav-panel-store.ts
 │   ├── dialogs/            # Application dialogs

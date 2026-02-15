@@ -222,6 +222,65 @@ Good candidate for a tool editor. Could generate proper color schemes for web ap
 
 ---
 
+### System Information Editor (`*.sys.json`)
+
+**Goal:** A diagnostic editor that scans and displays comprehensive Windows system information — running processes, services, startup apps, scheduled tasks, network connections, and more — to help investigate system issues like malware, performance problems, or network connectivity.
+
+**Motivation:**
+- Investigating system issues (suspicious processes, high CPU usage, unexpected network activity) currently requires manual PowerShell/Task Manager work
+- Network diagnostics (e.g., detecting a network adapter running at lower speed than expected) require separate tools
+- Having a persistent `.sys.json` file allows comparing scans over time to detect new/removed processes or services — critical for identifying malware or unwanted software
+
+**Core Features:**
+
+1. **File-based persistence** — opens/saves `*.sys.json` files containing last scan data
+2. **Refresh/Scan button** — collects system information by spawning PowerShell processes
+3. **Diff highlighting** — after a new scan, highlights what's NEW and what's REMOVED compared to the previous scan stored in the file
+4. **Executable path resolution** — every process/service is matched to its real executable path on disk so the user knows where it comes from
+
+**Data to Collect (via PowerShell):**
+
+| Category | Description |
+|----------|-------------|
+| Running Processes | Name, PID, executable path, CPU %, memory usage, start time, command line arguments |
+| Services (all) | Name, display name, status (running/stopped), startup type, executable path |
+| Startup Applications | Name, command, location (registry key or startup folder), publisher |
+| Scheduled Tasks | Name, status, next run time, last run result, action (executable + args), trigger type |
+| Active Network Connections | Local/remote address:port, protocol (TCP/UDP), state, owning process name + PID |
+| Network Adapters | Name, speed, status, link speed vs max speed, IP configuration, DNS servers |
+| Installed Software | Name, version, publisher, install date, install location |
+| System Overview | OS version, uptime, CPU model, RAM total/available, disk usage |
+
+**Additional Detail Drill-Down (not stored in scan file):**
+- Per-process: open handles, loaded DLLs, digital signature / publisher info
+- Per-service: dependencies, recovery actions, associated registry entries
+- Per-startup item: file properties (signed?, when modified?, file size)
+- Per-network connection: DNS reverse lookup of remote IPs, geolocation hints
+- Windows Registry queries for known autorun locations
+
+**System Monitoring:**
+- Network adapter speed monitoring (detect when adapter negotiates lower speed than expected)
+- CPU usage anomaly summary
+- Disk I/O summary
+
+**UI Concept:**
+- Tabbed or accordion sections for each category (Processes, Services, Startup, Tasks, Network, etc.)
+- Summary bar showing counts and key stats
+- Diff indicators: green for new entries, red/strikethrough for removed entries since last scan
+- Search/filter within each section
+- Click on an item to see additional details (fetched on demand, not stored)
+
+**Technical Notes:**
+- Register for `*.sys.json` file pattern in EditorRegistry
+- Data collection runs in main process (spawn PowerShell with appropriate commands)
+- IPC channel for renderer to request scans and receive results
+- Consider scan progress indicator since full system scan may take several seconds
+- Store scan timestamp and machine identifier in the JSON file
+
+**Complexity:** High
+
+---
+
 ### Certificate Viewer
 
 **Goal:** Open `.pem`, `.crt`, `.cer` files and display parsed certificate details (issuer, subject, expiry, chain).

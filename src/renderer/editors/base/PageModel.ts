@@ -2,6 +2,8 @@ import { TDialogModel } from "../../core/state/model";
 import { uuid } from "../../core/utils/node-utils";
 import { IPage } from "../../../shared/types";
 import { editorRegistry } from "../registry";
+import { NavPanelModel } from "../../features/navigation/nav-panel-store";
+import { filesModel } from "../../store/files-store";
 
 export const getDefaultPageModelState = (): IPage => ({
     id: uuid(),
@@ -17,6 +19,9 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
     skipSave = false;
     getIcon?: () => React.ReactNode;
     noLanguage = false;
+    navPanel: NavPanelModel | null = null;
+    /** Flag for restore(): NavPanel needs to be created from cache */
+    protected needsNavPanelRestore = false;
 
     get id() {
         return this.state.get().id;
@@ -31,22 +36,40 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
     }
 
     async dispose(): Promise<void> {
-        // Override in subclasses if needed
+        this.navPanel?.dispose();
+        await filesModel.deleteCacheFiles(this.state.get().id);
     }
 
     async restore(): Promise<void> {
-        // Override in subclasses if needed
+        // Restore NavPanel from cache if page had one.
+        // needsNavPanelRestore: set by applyRestoreData (app startup path)
+        // hasNavPanel on state: set by newPageModelFromState (drag/drop path)
+        if (this.needsNavPanelRestore || this.state.get().hasNavPanel) {
+            this.needsNavPanelRestore = false;
+            const navPanel = new NavPanelModel("");
+            await navPanel.restore(this.id);
+            this.navPanel = navPanel;
+            // Set hasNavPanel AFTER navPanel object is ready, so React sees both together
+            this.state.update((s) => {
+                s.hasNavPanel = true;
+            });
+        }
     }
 
     getRestoreData(): Partial<T> {
-        return JSON.parse(JSON.stringify(this.state.get()));
+        const data = JSON.parse(JSON.stringify(this.state.get()));
+        if (this.navPanel) {
+            data.hasNavPanel = true;
+        }
+        return data;
     }
 
-    saveState(): Promise<void> {
-        return Promise.resolve();
+    async saveState(): Promise<void> {
+        await this.navPanel?.flushSave();
     }
 
     applyRestoreData(data: Partial<T>): void {
+        this.needsNavPanelRestore = !!data.hasNavPanel;
         this.state.update((s) => {
             s.id = data.id || s.id;
             s.type = data.type || s.type;

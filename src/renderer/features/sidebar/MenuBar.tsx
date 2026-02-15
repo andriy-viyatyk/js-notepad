@@ -23,7 +23,7 @@ import {
 import { OpenTabsList } from "./OpenTabsList";
 import { FlexSpace } from "../../components/layout/Elements";
 import { RecentFileList } from "./RecentFileList";
-import { FileExplorer } from "./FileExplorer";
+import { FileExplorer, FileExplorerRef, FileExplorerSavedState } from "../../components/file-explorer";
 import { FileListRef } from "./FileList";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 import { FolderIcon } from "./FileIcon";
@@ -290,6 +290,8 @@ export function MenuBar(props: MenuBarProps) {
     const [isAnimating, setIsAnimating] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const fileListRef = useRef<FileListRef>(null);
+    const fileExplorerRef = useRef<FileExplorerRef>(null);
+    const expandStateMap = useRef(new Map<string, FileExplorerSavedState>());
     const fileFolders = menuFolders.state.use((s) => s.folders);
 
     const allFolders = useMemo(() => {
@@ -307,9 +309,9 @@ export function MenuBar(props: MenuBarProps) {
         if (e.key === "Escape") {
             props.onClose?.();
         } else if (e.ctrlKey && e.code === "KeyF") {
-            // Trigger search on FileExplorer or RecentFileList
             if (state.leftItemId !== openTabsId) {
                 e.preventDefault();
+                fileExplorerRef.current?.showSearch();
                 fileListRef.current?.showSearch();
             }
         }
@@ -318,6 +320,7 @@ export function MenuBar(props: MenuBarProps) {
     useEffect(() => {
         if (props.open) {
             model.init();
+            fileExplorerRef.current?.refresh();
             const timer = setTimeout(() => setIsAnimating(true), 10);
             contentRef.current?.focus();
             return () => clearTimeout(timer);
@@ -363,11 +366,18 @@ export function MenuBar(props: MenuBarProps) {
                 if (folder?.path) {
                     return (
                         <FileExplorer
-                            ref={fileListRef}
+                            ref={fileExplorerRef}
                             key={folder.id}
-                            basePath={folder.path}
-                            onClose={props.onClose}
-                            menuOpen={props.open}
+                            id={`sidebar-${folder.id}`}
+                            rootPath={folder.path}
+                            enableFileOperations
+                            showOpenInNewTab={false}
+                            initialState={expandStateMap.current.get(folder.id!)}
+                            onStateChange={(s) => expandStateMap.current.set(folder.id!, s)}
+                            onFileClick={(filePath) => {
+                                pagesModel.openFile(filePath);
+                                props.onClose?.();
+                            }}
                         />
                     );
                 }

@@ -7,7 +7,9 @@ import { FlexSpace } from "../../components/layout/Elements";
 import styled from "@emotion/styled";
 import { editorRegistry } from "../registry";
 import { pagesModel } from "../../store";
-import { getNavPanel, getOrCreateNavPanel } from "../../features/navigation/nav-panel-store";
+import { NavPanelModel } from "../../features/navigation/nav-panel-store";
+
+const path = require("path");
 
 const EditorToolbarRoot = styled.div({
     display: "flex",
@@ -42,19 +44,23 @@ export function TextToolbar({ model, setEditorToolbarRefFirst, setEditorToolbarR
     }, [language, fileName]);
 
 
-    if (filePath && language === "markdown") {
+    if (filePath) {
         actions.push(
             <Button
                 key="nav-panel"
                 type="icon"
                 size="small"
-                title="Document Navigation"
+                title="File Explorer"
                 onClick={() => {
-                    const existing = getNavPanel(model.id);
-                    if (existing) {
-                        existing.toggle();
+                    if (model.navPanel) {
+                        model.navPanel.toggle();
                     } else {
-                        getOrCreateNavPanel(model.id, filePath);
+                        const navPanel = new NavPanelModel(path.dirname(filePath), filePath);
+                        navPanel.id = model.id;
+                        model.navPanel = navPanel;
+                        model.state.update((s) => {
+                            s.hasNavPanel = true;
+                        });
                     }
                 }}
             >
@@ -117,9 +123,15 @@ export function TextToolbar({ model, setEditorToolbarRefFirst, setEditorToolbarR
     actions.push(<FlexSpace key="flex-space" />);
 
     if (editor && editor !== "monaco") {
+        // NavPanel button (index 0) should appear before the editor toolbar portal,
+        // so extract it, unshift the portal, then unshift NavPanel back to front.
+        const navBtn = filePath ? actions.shift() : null;
         actions.unshift(
             <EditorToolbarRoot key="editor-toolbar-first" ref={setEditorToolbarRefFirst} />
         );
+        if (navBtn) {
+            actions.unshift(navBtn);
+        }
         actions.push(
             <EditorToolbarRoot key="editor-toolbar-last" ref={setEditorToolbarRefLast} />,
         )

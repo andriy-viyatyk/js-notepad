@@ -18,7 +18,6 @@ import { debounce } from "../../shared/utils";
 import { newEmptyPageModel, newPageModel, newPageModelFromState } from "./page-factory";
 import { uuid } from "../core/utils/node-utils";
 import { alertError } from "../features/dialogs/alerts/AlertsBar";
-import { getNavPanel, removeNavPanel, transferNavPanel } from "../features/navigation/nav-panel-store";
 import { editorRegistry } from "../editors/registry";
 import { getLanguageByExtension } from "./language-mapping";
 
@@ -88,7 +87,6 @@ export class PagesModel extends TModel<OpenFilesState> {
         });
         this.fixGrouping();
         this.saveState();
-        removeNavPanel(page.id);
         if (isActivePage) {
             const ordered = this.state.get().ordered;
             if (ordered.length) {
@@ -137,6 +135,11 @@ export class PagesModel extends TModel<OpenFilesState> {
 
         const released = await oldModel.confirmRelease();
         if (!released) return false;
+
+        // Detach NavPanel from old model before dispose (so it survives cache cleanup)
+        const navPanel = oldModel.navPanel;
+        oldModel.navPanel = null;
+
         await oldModel.dispose();
         this.detachPage(oldModel);
 
@@ -177,11 +180,14 @@ export class PagesModel extends TModel<OpenFilesState> {
         this.onShow.send(newModel);
         this.onFocus.send(newModel);
 
-        // Transfer nav panel from old page to new page and update current file
-        transferNavPanel(oldModel.id, newModel.id);
-        const navPanel = getNavPanel(newModel.id);
+        // Transfer NavPanel from old page to new page
         if (navPanel) {
+            newModel.navPanel = navPanel;
+            newModel.state.update((s) => {
+                s.hasNavPanel = true;
+            });
             navPanel.setCurrentFilePath(newFilePath);
+            navPanel.updateId(newModel.id);
         }
 
         return true;

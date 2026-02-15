@@ -17,6 +17,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-016 | Reusable File Explorer Component | Tree-based FileExplorer replacing flat lists in sidebar and NavigationPanel, lazy loading, search, file operations, state persistence, navigate up/make root, collapse all |
 | US-015 | Document Navigation Panel | Folder-based nav tree from markdown links, in-tab navigation with auto-preview, pages-store lifecycle refactoring, global keyboard shortcuts fix |
 | US-014 | Application Theming | CSS Custom Properties theming with 6 dark themes, Settings page with theme selector, Monaco integration |
 | US-013 | Create HTML Viewer | Sandboxed iframe preview for HTML files with script execution support |
@@ -53,7 +54,7 @@ Current work in progress and planned tasks.
 2. Run the documentation checklist:
    - [ ] Update architecture docs (if structure changed)
    - [ ] Update standards docs (if new patterns established)
-   - [ ] Update user docs in `/docs/` (if user-facing changes)
+   - [ ] Review and update user guidance docs in `/docs/` — check all pages that describe affected features, update text/screenshots to match the new behavior
    - [ ] Update CLAUDE.md (if significant patterns or key files changed)
    - [ ] Update `/docs/whats-new.md` (for notable features/changes)
 3. Update this file: move task to "Recently Completed" section

@@ -923,6 +923,15 @@ export const ClearListIcon = createIcon(24)(
     </>,
 );
 
+export const CollapseAllIcon = createIcon(16)(
+    <>
+        <path d="M3 1.5L6.5 4.5L3 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M7 4.5H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+        <path d="M3 8.5L6.5 11.5L3 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M7 11.5H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </>,
+);
+
 export const NavPanelIcon = createIcon(24)(
     <>
         <rect
