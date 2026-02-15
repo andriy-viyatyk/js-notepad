@@ -10,26 +10,21 @@ import { LanguageIcon } from "../../editors/base/LanguageIcon";
 
 const OpenTabsListRoot = styled(List)({
     "& .list-item": {
-        boxSizing: "border-box",
-        borderRadius: 4,
-        border: `1px solid transparent`,
         "& svg": {
             width: 16,
             height: 16,
         },
         "&:hover": {
-            backgroundColor: color.background.dark,
-            borderColor: color.border.default,
+            backgroundColor: color.background.default,
         },
         "&.selected": {
             backgroundColor: color.background.default,
-            borderColor: color.border.default,
         },
         "&.window-item": {
             textAlign: "center",
             cursor: "default",
             "&:hover": {
-                borderColor: "transparent",
+                backgroundColor: "transparent",
             }
         },
     },
@@ -139,9 +134,8 @@ export function OpenTabsList(props: OpenTabsListProps) {
             getSelected={getSelected}
             getOptionClass={getOptionClass}
             selectedIcon={<span />}
-            rowHeight={28}
+            rowHeight={22}
             onClick={onClick}
-            itemMarginY={1}
             getTooltip={getTooltip}
         />
     );

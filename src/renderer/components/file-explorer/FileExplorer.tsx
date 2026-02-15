@@ -99,7 +99,10 @@ export function FileExplorer(props: FileExplorerProps & { ref?: React.Ref<FileEx
                 model.hideSearch();
                 rootRef.current?.focus();
             },
-            collapseAll: () => treeViewRef.current?.collapseAll(),
+            collapseAll: () => {
+                treeViewRef.current?.collapseAll();
+                explorerProps.onStateChange?.({ expandedPaths: [] });
+            },
             getState: model.getState,
             getScrollTop: () => treeViewRef.current?.getScrollTop() ?? 0,
             setScrollTop: (value: number) => treeViewRef.current?.setScrollTop(value),

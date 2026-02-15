@@ -59,7 +59,7 @@ const MenuBarRoot = styled("div")({
             display: "flex",
             alignItems: "center",
             columnGap: 4,
-            marginBottom: 8,
+            marginBottom: 4,
         },
         "& .menu-bar-panel": {
             flex: "1 1 auto",
@@ -72,12 +72,8 @@ const MenuBarRoot = styled("div")({
             width: 40,
             flex: "1 1 40%",
             "& .list-item": {
-                boxSizing: "border-box",
-                borderRadius: 4,
-                border: `1px solid transparent`,
                 "&:hover": {
-                    backgroundColor: color.background.dark,
-                    borderColor: color.border.default,
+                    backgroundColor: color.background.default,
                 },
                 "& .selected-icon": {
                     color: color.text.light,
@@ -85,7 +81,6 @@ const MenuBarRoot = styled("div")({
             },
             "& .list-item.selected": {
                 backgroundColor: color.background.default,
-                borderColor: color.border.default,
             },
             "& .add-folder-button": {
                 fontSize: 13,
@@ -452,8 +447,7 @@ export function MenuBar(props: MenuBarProps) {
                         selectedIcon={
                             <ArrowRightIcon className="selected-icon" />
                         }
-                        rowHeight={28}
-                        itemMarginY={1}
+                        rowHeight={22}
                         getContextMenu={model.getMenuFolderContextMenu}
                         onContextMenu={model.onLeftPanelContextMenu}
                         getTooltip={model.getFolderTooltip}

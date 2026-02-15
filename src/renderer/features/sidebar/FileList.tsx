@@ -25,21 +25,16 @@ const FileListWrapper = styled("div")({
 
 const FileListStyled = styled(List)({
     "& .list-item": {
-        boxSizing: "border-box",
-        borderRadius: 4,
-        border: `1px solid transparent`,
         userSelect: "none",
         "& svg": {
             width: 16,
             height: 16,
         },
         "&:hover": {
-            backgroundColor: color.background.dark,
-            borderColor: color.border.default,
+            backgroundColor: color.background.default,
         },
         "&.selected": {
             backgroundColor: color.background.default,
-            borderColor: color.border.default,
         },
     },
 });
@@ -168,9 +163,8 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                         getLabel={searchText ? getFileLabelHighlighted : getFileLabel}
                         getIcon={getFileIcon}
                         selectedIcon={<span />}
-                        rowHeight={28}
+                        rowHeight={22}
                         onClick={props.onClick}
-                        itemMarginY={1}
                         getTooltip={getTooltip}
                         getContextMenu={props.getContextMenu}
                         onContextMenu={props.onContextMenu}
