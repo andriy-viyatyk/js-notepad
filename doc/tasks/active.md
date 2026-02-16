@@ -12,6 +12,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
+| US-018 | Implement Grouping for Pinned Tabs | High | [README](US-018-grouping-for-pinned-tabs/README.md) |
 
 ## Recently Completed
 
