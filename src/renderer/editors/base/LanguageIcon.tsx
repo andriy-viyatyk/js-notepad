@@ -107,6 +107,7 @@ export const languageIconMap: { [key: string]: SvgIconComponent } = {
     json: JsonIcon,
     csv: CsvIcon,
     mermaid: MermaidIcon,
+    plaintext: DefaultIcon,
 };
 
 // =============================================================================

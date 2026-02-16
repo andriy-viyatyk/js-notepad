@@ -213,11 +213,6 @@ editorRegistry.register({
     name: "Preview",
     pageType: "textFile",
     category: "content-view",
-    acceptFile: (fileName) => {
-        // Lower than monaco so monaco opens by default
-        if (matchesExtension(fileName, [".svg"])) return -1;
-        return -1;
-    },
     validForLanguage: (languageId) => languageId === "xml",
     switchOption: (_languageId, fileName) => {
         // Only show for .svg files

@@ -158,13 +158,20 @@ export class TreeViewModel<
     rebuildTreeView = (root: T) => {
         // Preserve existing expand state, or use stored expandMap, or use initialExpandMap from props
         const currentMap = this.buildExpandMap();
-        const map = Object.keys(currentMap).length > 0
+        const isRebuild = Object.keys(currentMap).length > 0;
+        const map = isRebuild
             ? currentMap
             : Object.keys(this.expandMap).length > 0
                 ? this.expandMap
                 : this.props.initialExpandMap ?? {};
 
-        const getExpanded = (i: T) => map[this.props.getId(i)];
+        // During rebuild, items not in the map (e.g. newly created folders) should
+        // default to collapsed instead of using the level < 2 auto-expand fallback.
+        const getExpanded = (i: T) => {
+            const id = this.props.getId(i);
+            if (id in map) return map[id];
+            return isRebuild ? false : undefined;
+        };
         const item = buildTreeViewItem(root, 0, undefined, getExpanded, this.props.defaultExpandAll);
 
         this.state.set((s) => ({

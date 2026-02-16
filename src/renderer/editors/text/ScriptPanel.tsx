@@ -21,7 +21,8 @@ const ScriptPanelRoot = styled.div({
     flexDirection: "column",
     overflow: "hidden",
     "& .splitter": {
-        backgroundColor: color.background.dark,
+        borderTop: "none",
+        borderBottom: `1px solid ${color.border.light}`,
     },
     "& .page-toolbar": {
         marginBottom: 2,
@@ -172,7 +173,7 @@ export function ScriptPanel({ model }: ScriptPanelProps) {
                 borderSized="top"
                 onChangeHeight={scriptModel.setHeight}
             />
-            <PageToolbar borderTop>
+            <PageToolbar>
                 <Button
                     title={state.hasSelection ? "Run Selected Script (F5)" : "Run Script (F5)"}
                     type="icon"

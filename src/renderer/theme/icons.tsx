@@ -932,6 +932,18 @@ export const CollapseAllIcon = createIcon(16)(
     </>,
 );
 
+export const CompactViewIcon = createIcon(24)(
+    <>
+        <path d="M4,7 h16 M4,11 h16 M4,15 h16 M4,19 h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </>,
+);
+
+export const NormalViewIcon = createIcon(24)(
+    <>
+        <path d="M4,4 h16 M4,10 h16 M4,16 h16 M4,22 h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </>,
+);
+
 export const NavPanelIcon = createIcon(24)(
     <>
         <rect

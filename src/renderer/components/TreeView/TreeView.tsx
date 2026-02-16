@@ -65,6 +65,9 @@ const TreeViewRoot = styled.div({
         height: "100%",
         flexShrink: 0,
         borderLeft: `1px solid ${color.border.light}`,
+        "&:first-of-type": {
+            borderLeft: "none",
+        },
     },
 
     "& .empty-button": {

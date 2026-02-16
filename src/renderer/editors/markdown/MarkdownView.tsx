@@ -4,8 +4,9 @@ import rehypeRaw from "rehype-raw";
 import styled from "@emotion/styled";
 import { TextFileModel } from "../text";
 import color from "../../theme/color";
-import { CheckedIcon, UncheckedIcon } from "../../theme/icons";
+import { CheckedIcon, CompactViewIcon, NormalViewIcon, UncheckedIcon } from "../../theme/icons";
 import { useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Minimap } from "../../components/layout/Minimap";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { PageModel, useEditorConfig } from "../base";
@@ -15,6 +16,7 @@ import { CodeBlock, createPreBlock } from "./CodeBlock";
 import { isCurrentThemeDark } from "../../theme/themes";
 import { appSettings } from "../../store/app-settings";
 import { resolveRelatedLink } from "../../core/utils/path-utils";
+import { Button } from "../../components/basic/Button";
 
 const MdViewRoot = styled.div({
     flex: "1 1 auto",
@@ -309,18 +311,18 @@ const MdViewRoot = styled.div({
 
     // Compact mode — reduced font size and spacing for embedded views
     "&.compact .md-scroll-container": {
-        fontSize: 15,
+        fontSize: 14,
         padding: "0 8px",
-        lineHeight: 1.25,
+        lineHeight: 1.2,
     },
     "&.compact h1, &.compact h2, &.compact h3, &.compact h4, &.compact h5, &.compact h6": {
         marginTop: ".4rem",
         marginBottom: ".25rem",
-        lineHeight: 1.15,
+        lineHeight: 1.1,
     },
-    "&.compact h1": { fontSize: "1.5em" },
-    "&.compact h2": { fontSize: "1.25em" },
-    "&.compact h3": { fontSize: "1.1em" },
+    "&.compact h1": { fontSize: "1.4em" },
+    "&.compact h2": { fontSize: "1.2em" },
+    "&.compact h3": { fontSize: "1.05em" },
     "&.compact pre": {
         padding: "6px 10px",
         lineHeight: 1.3,
@@ -378,6 +380,7 @@ export interface MarkdownViewProps {
 
 const defaultMarkdownViewState = {
     container: null as HTMLDivElement | null,
+    compactMode: false,
 };
 
 type MarkdownViewState = typeof defaultMarkdownViewState;
@@ -405,6 +408,12 @@ class MarkdownViewModel extends TComponentModel<MarkdownViewState, MarkdownViewP
 
     containerScroll = (e: React.UIEvent<HTMLDivElement>) => {
         this.containerSrollTop = e.currentTarget?.scrollTop ?? 0;
+    };
+
+    toggleCompact = () => {
+        this.state.update((s) => {
+            s.compactMode = !s.compactMode;
+        });
     };
 }
 
@@ -452,30 +461,44 @@ export function MarkdownView(props: MarkdownViewProps) {
         : undefined;
 
     const showMinimap = !editorConfig.hideMinimap;
-    const compact = editorConfig.compact;
+    const compact = editorConfig.compact || pageState.compactMode;
 
     return (
-        <MdViewRoot style={rootStyle} className={`${showMinimap ? "" : "show-scrollbar"} ${compact ? "compact" : ""}`}>
-            <div
-                className="md-scroll-container"
-                ref={pageModel.setContainer}
-                onScroll={pageModel.containerScroll}
-            >
-                <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={rehypePlugins}
-                    components={components}
+        <>
+            {Boolean(model.editorToolbarRefLast) &&
+                createPortal(
+                    <Button
+                        size="small"
+                        type="icon"
+                        title={pageState.compactMode ? "Normal View" : "Compact View"}
+                        onClick={pageModel.toggleCompact}
+                    >
+                        {pageState.compactMode ? <NormalViewIcon /> : <CompactViewIcon />}
+                    </Button>,
+                    model.editorToolbarRefLast,
+                )}
+            <MdViewRoot style={rootStyle} className={`${showMinimap ? "" : "show-scrollbar"} ${compact ? "compact" : ""}`}>
+                <div
+                    className="md-scroll-container"
+                    ref={pageModel.setContainer}
+                    onScroll={pageModel.containerScroll}
                 >
-                    {content}
-                </ReactMarkdown>
-            </div>
-            {showMinimap && (
-                <Minimap
-                    scrollContainer={pageState.container}
-                    className="md-minimap"
-                />
-            )}
-        </MdViewRoot>
+                    <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={rehypePlugins}
+                        components={components}
+                    >
+                        {content}
+                    </ReactMarkdown>
+                </div>
+                {showMinimap && (
+                    <Minimap
+                        scrollContainer={pageState.container}
+                        className="md-minimap"
+                    />
+                )}
+            </MdViewRoot>
+        </>
     );
 }
 

@@ -166,9 +166,8 @@ export class PagesModel extends TModel<OpenFilesState> {
             const ext = path.extname(newFilePath).toLowerCase();
             const lang = getLanguageByExtension(ext);
             const languageId = lang?.id || "plaintext";
-            const switchOpts = editorRegistry.getSwitchOptions(languageId, newFilePath);
-            if (switchOpts.options.length > 1) {
-                const previewEditor = switchOpts.options[switchOpts.options.length - 1];
+            const previewEditor = editorRegistry.getPreviewEditor(languageId, newFilePath);
+            if (previewEditor) {
                 newModel.state.update((s) => {
                     s.editor = previewEditor;
                 });
@@ -323,6 +322,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         const model: PageModel | null = await newEmptyPageModel(data.type);
         if (model) {
             model.applyRestoreData(data);
+            await model.restore();
         }
         return model;
     };

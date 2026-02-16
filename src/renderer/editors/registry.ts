@@ -89,6 +89,29 @@ class EditorRegistry {
     }
 
     /**
+     * Get the preferred preview editor for a file in navigation context.
+     * Like getSwitchOptions but skips editors whose acceptFile() returns -1
+     * (e.g., grid-json for non-.grid.json files).
+     * Returns undefined if no preview editor should be auto-selected.
+     */
+    getPreviewEditor(languageId: string, filePath: string): PageEditor | undefined {
+        const results: { id: PageEditor; priority: number }[] = [];
+
+        for (const editor of this.editors.values()) {
+            if (editor.id === "monaco") continue;
+            const priority = editor.switchOption?.(languageId, filePath) ?? -1;
+            if (priority < 0) continue;
+            // Skip if acceptFile explicitly rejects this file
+            if (editor.acceptFile && editor.acceptFile(filePath) < 0) continue;
+            results.push({ id: editor.id, priority });
+        }
+
+        if (results.length === 0) return undefined;
+        results.sort((a, b) => a.priority - b.priority);
+        return results[results.length - 1].id;
+    }
+
+    /**
      * Get available editor switch options for a language (used in UI).
      * Queries each editor's switchOption() and returns sorted list.
      * Returns an empty options array if only one editor is available.

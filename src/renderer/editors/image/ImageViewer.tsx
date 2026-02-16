@@ -72,6 +72,7 @@ function ImageViewer({ model }: ImageViewerProps) {
                             } else {
                                 const navPanel = new NavPanelModel(path.dirname(filePath), filePath);
                                 navPanel.id = model.id;
+                                navPanel.flushSave();
                                 model.navPanel = navPanel;
                                 model.state.update((s) => {
                                     s.hasNavPanel = true;

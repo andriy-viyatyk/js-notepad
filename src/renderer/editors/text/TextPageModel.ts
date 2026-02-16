@@ -165,7 +165,6 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             s.temp =
                 !s.filePath && (data.temp !== undefined ? data.temp : s.temp);
         });
-        this.restore();
     };
 
     confirmRelease = async (): Promise<boolean> => {

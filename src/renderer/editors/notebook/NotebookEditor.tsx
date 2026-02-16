@@ -54,6 +54,7 @@ const NotebookEditorRoot = styled.div({
         display: "flex",
         overflow: "hidden",
         fontSize: 13,
+        paddingLeft: 4,
     },
     "& .tags-list-container": {
         flex: 1,
