@@ -136,7 +136,8 @@ export class PagesModel extends TModel<OpenFilesState> {
         const released = await oldModel.confirmRelease();
         if (!released) return false;
 
-        // Detach NavPanel from old model before dispose (so it survives cache cleanup)
+        // Preserve pinned state and NavPanel across navigation
+        const wasPinned = oldModel.state.get().pinned;
         const navPanel = oldModel.navPanel;
         oldModel.navPanel = null;
 
@@ -172,6 +173,13 @@ export class PagesModel extends TModel<OpenFilesState> {
                     s.editor = previewEditor;
                 });
             }
+        }
+
+        // Restore pinned state on the new model
+        if (wasPinned) {
+            newModel.state.update((s) => {
+                s.pinned = true;
+            });
         }
 
         this.attachPage(newModel);
@@ -213,7 +221,9 @@ export class PagesModel extends TModel<OpenFilesState> {
             if (pages[i].state.get().id === pageId) {
                 break;
             }
-            pagesToClose.push(pages[i]);
+            if (!pages[i].state.get().pinned) {
+                pagesToClose.push(pages[i]);
+            }
         }
         for (const page of pagesToClose) {
             const closed = await page.close(undefined);
@@ -227,7 +237,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         const { pages } = this.state.get();
         const pagesToClose = [];
         for (let i = pages.length - 1; i >= 0; i--) {
-            if (pages[i].state.get().id !== pageId) {
+            if (pages[i].state.get().id !== pageId && !pages[i].state.get().pinned) {
                 pagesToClose.push(pages[i]);
             }
         }
@@ -393,6 +403,10 @@ export class PagesModel extends TModel<OpenFilesState> {
     moveTabByIndex = (fromIndex: number, toIndex: number) => {
         if (fromIndex === -1 || toIndex === -1) return;
         const { pages } = this.state.get();
+        // Enforce pinned/unpinned boundary — cannot drag across sections
+        const fromPinned = pages[fromIndex].state.get().pinned;
+        const toPinned = pages[toIndex].state.get().pinned;
+        if (fromPinned !== toPinned) return;
         const newPages = [...pages];
         const [movedPage] = newPages.splice(fromIndex, 1);
         newPages.splice(toIndex, 0, movedPage);
@@ -402,6 +416,67 @@ export class PagesModel extends TModel<OpenFilesState> {
         this.fixGrouping();
         this.saveStateDebounced();
         this.onFocus.send(movedPage);
+    };
+
+    pinTab = (pageId: string) => {
+        const { pages } = this.state.get();
+        const pageIndex = pages.findIndex((p) => p.id === pageId);
+        if (pageIndex === -1) return;
+        const page = pages[pageIndex];
+        if (page.state.get().pinned) return;
+
+        // Ungroup if grouped (must happen before pinning)
+        if (this.isGrouped(pageId)) {
+            this.ungroup(pageId);
+            this.fixCompareMode();
+        }
+
+        // Calculate target BEFORE changing state (insert after existing pinned tabs)
+        const pinnedCount = pages.filter((p) => p.state.get().pinned).length;
+
+        page.state.update((s) => {
+            s.pinned = true;
+        });
+
+        // Re-read pageIndex since ungroup doesn't change pages array
+        if (pageIndex !== pinnedCount) {
+            const newPages = [...pages];
+            const [movedPage] = newPages.splice(pageIndex, 1);
+            newPages.splice(pinnedCount, 0, movedPage);
+            this.state.update((s) => {
+                s.pages = newPages;
+            });
+        }
+
+        this.saveStateDebounced();
+    };
+
+    unpinTab = (pageId: string) => {
+        const { pages } = this.state.get();
+        const pageIndex = pages.findIndex((p) => p.id === pageId);
+        if (pageIndex === -1) return;
+        const page = pages[pageIndex];
+        if (!page.state.get().pinned) return;
+
+        // Calculate target BEFORE changing state (insert after remaining pinned tabs)
+        const remainingPinned = pages.filter(
+            (p) => p.state.get().pinned && p !== page
+        ).length;
+
+        page.state.update((s) => {
+            s.pinned = false;
+        });
+
+        if (pageIndex !== remainingPinned) {
+            const newPages = [...pages];
+            const [movedPage] = newPages.splice(pageIndex, 1);
+            newPages.splice(remainingPinned, 0, movedPage);
+            this.state.update((s) => {
+                s.pages = newPages;
+            });
+        }
+
+        this.saveStateDebounced();
     };
 
     showNext = () => {
@@ -490,6 +565,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             const firstPage = pages[0];
             const firstPageState = firstPage.state.get();
             if (
+                !firstPageState.pinned &&
                 !firstPageState.modified &&
                 !(firstPageState as any).content &&
                 !firstPageState.filePath &&
@@ -686,6 +762,10 @@ export class PagesModel extends TModel<OpenFilesState> {
         if (idx1 === -1 || idx2 === -1 || idx1 === idx2) {
             return;
         }
+        // Cannot group pinned tabs
+        if (state.pages[idx1].state.get().pinned || state.pages[idx2].state.get().pinned) {
+            return;
+        }
         const doMove = Math.abs(idx1 - idx2) !== 1;
         if (idx1 < idx2) {
             doMove && this.moveTabByIndex(idx2, idx1 + 1);
@@ -745,6 +825,7 @@ export class PagesModel extends TModel<OpenFilesState> {
 
         const pageData: Partial<IPage> = page.getRestoreData();
         pageData.id = uuid();
+        pageData.hasNavPanel = false;
         const newPage = await this.restoreModel(pageData);
         if (newPage) {
             this.addPage(newPage);

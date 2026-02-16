@@ -8,7 +8,19 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.9 (Upcoming)
 
-*Development in progress*
+### New Features
+
+- **Pinned Tabs** — Keep important tabs compact and always visible
+  - Right-click a tab → "Pin Tab" to pin it; "Unpin Tab" to unpin
+  - Pinned tabs display as compact icon-only tabs at the left of the tab bar
+  - Stay fixed in place when scrolling through other tabs (sticky positioning)
+  - Cannot be closed, dragged to another window, or grouped
+  - Can be reordered among other pinned tabs by dragging
+  - Show language icon, encryption icon, and modification dot
+  - Navigate to other files via File Explorer panel while staying pinned
+  - Pinned state persists across app restarts
+  - Windows with pinned tabs are preserved on close (reopenable from sidebar)
+  - "Close Other Tabs" and "Close Tabs to the Right" skip pinned tabs
 
 ---
 

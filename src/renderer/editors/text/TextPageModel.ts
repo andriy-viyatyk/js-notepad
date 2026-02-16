@@ -164,6 +164,7 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             s.compareMode = data.compareMode || s.compareMode;
             s.temp =
                 !s.filePath && (data.temp !== undefined ? data.temp : s.temp);
+            s.pinned = data.pinned ?? s.pinned;
         });
     };
 

@@ -13,6 +13,7 @@ export const getDefaultPageModelState = (): IPage => ({
     language: undefined,
     filePath: undefined,
     editor: undefined,
+    pinned: false,
 });
 
 export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T, R> {
@@ -77,6 +78,7 @@ export class PageModel<T extends IPage = IPage, R = any> extends TDialogModel<T,
             s.modified = data.modified || s.modified;
             s.filePath = data.filePath || s.filePath;
             s.editor = data.editor || s.editor;
+            s.pinned = data.pinned ?? false;
         });
     }
 

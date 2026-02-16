@@ -13,8 +13,9 @@ import { WithPopupMenu } from "../../components/overlay/WithPopupMenu";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { useEffect, useMemo } from "react";
-import { minTabWidth, PageTab } from "./PageTab";
+import { minTabWidth, PageTab, pinnedTabWidth, pinnedTabEncryptedWidth } from "./PageTab";
 import color from "../../theme/color";
+import { isTextFileModel } from "../../editors/text";
 
 const PageTabsRoot = styled.div({
     display: "flex",
@@ -200,9 +201,22 @@ export function PageTabs(props: object) {
                 className="tabs-wrapper"
                 ref={model.setScrollingDiv}
             >
-                {state.pages?.map((page) => (
-                    <PageTab key={page.state.get().id} model={page} />
-                ))}
+                {state.pages?.map((page) => {
+                    const pageState = page.state.get();
+                    let pinnedLeft: number | undefined;
+                    if (pageState.pinned) {
+                        pinnedLeft = 0;
+                        for (const p of state.pages) {
+                            if (p === page) break;
+                            const ps = p.state.get();
+                            if (ps.pinned) {
+                                const isEnc = isTextFileModel(p) && (p.encripted || p.decripted);
+                                pinnedLeft += (isEnc ? pinnedTabEncryptedWidth : pinnedTabWidth) + 2; // 2 = column gap
+                            }
+                        }
+                    }
+                    return <PageTab key={pageState.id} model={page} pinnedLeft={pinnedLeft} />;
+                })}
             </div>
             {tabsState.showScrollButtons && (
                 <Button

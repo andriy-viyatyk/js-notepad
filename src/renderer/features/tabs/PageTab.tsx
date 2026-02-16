@@ -36,6 +36,10 @@ import { parseObject } from "../../core/utils/parse-utils";
 import { showInputDialog } from "../dialogs/InputDialog";
 
 export const minTabWidth = 80;
+const ICON_SLOT = 20; // padding(2) + icon(16) + padding(2)
+const TAB_PADDING = 4; // 2px left + 2px right
+export const pinnedTabWidth = 2 * ICON_SLOT + TAB_PADDING; // language + modified dot
+export const pinnedTabEncryptedWidth = 3 * ICON_SLOT + TAB_PADDING; // language + encryption + modified dot
 
 const PageTabRoot = styled.div({
     display: "flex",
@@ -121,10 +125,42 @@ const PageTabRoot = styled.div({
             }
         },
     },
+    "&:not(.isActive) > button": {
+        cursor: "default",
+    },
+    "&.pinned": {
+        width: pinnedTabWidth,
+        minWidth: pinnedTabWidth,
+        flexShrink: 0,
+        position: "sticky",
+        zIndex: 1,
+        backgroundColor: color.background.dark,
+        "&.isActive, &.isDraggOver": {
+            backgroundColor: color.background.default,
+        },
+        "& .title-label": {
+            flex: "0 0 auto",
+        },
+        "& .close-button": {
+            visibility: "visible",
+            pointerEvents: "none",
+        },
+        "& .close-icon": {
+            display: "none",
+        },
+    },
+    "&.pinned.modified .modified-icon": {
+        display: "inline-block",
+    },
+    "&.pinned-encrypted": {
+        width: pinnedTabEncryptedWidth,
+        minWidth: pinnedTabEncryptedWidth,
+    },
 });
 
 interface PageTabProps {
     model: PageModel;
+    pinnedLeft?: number;
 }
 
 class PageTabModel extends TComponentModel<null, PageTabProps> {
@@ -182,24 +218,43 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
         if (!e.nativeEvent.menuItems) {
             e.nativeEvent.menuItems = [];
         }
-        e.nativeEvent.menuItems.push(
-            ...[
-                {
-                    label: "Close Tab",
-                    onClick: () => {
-                        this.props.model.close(undefined);
-                    },
-                    startGroup: true,
+        const isPinned = this.props.model.state.get().pinned;
+        const pinUnpinItem: MenuItem = {
+            label: isPinned ? "Unpin Tab" : "Pin Tab",
+            onClick: () => {
+                const pageId = this.props.model.state.get().id;
+                if (isPinned) {
+                    pagesModel.unpinTab(pageId);
+                } else {
+                    pagesModel.pinTab(pageId);
+                }
+            },
+        };
+        const menuItems: MenuItem[] = [];
+        if (isPinned) {
+            menuItems.push(pinUnpinItem);
+        }
+        if (!isPinned) {
+            menuItems.push({
+                label: "Close Tab",
+                onClick: () => {
+                    this.props.model.close(undefined);
                 },
-                {
-                    label: "Close Other Tabs",
-                    disabled: pagesModel.state.get().pages.length <= 1,
-                    onClick: () => {
-                        pagesModel.closeOtherPages(
-                            this.props.model.state.get().id
-                        );
-                    },
-                },
+                startGroup: !isPinned && menuItems.length > 0,
+            });
+        }
+        menuItems.push({
+            label: "Close Other Tabs",
+            disabled: pagesModel.state.get().pages.length <= 1,
+            onClick: () => {
+                pagesModel.closeOtherPages(
+                    this.props.model.state.get().id
+                );
+            },
+            startGroup: isPinned,
+        });
+        if (!isPinned) {
+            menuItems.push(
                 {
                     label: "Close Tabs to the Right",
                     disabled: pagesModel.isLastPage(
@@ -225,96 +280,103 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                     },
                 },
                 {
-                    startGroup: true,
-                    label: "Save",
-                    icon: <SaveIcon />,
-                    onClick: () => {
-                        if (this.props.model instanceof TextFileModel) {
-                            this.props.model.saveFile(false);
-                        }
-                    },
-                    disabled: !(this.props.model instanceof TextFileModel),
-                },
-                {
-                    label: "Save As...",
-                    icon: <SaveIcon />,
-                    onClick: () => {
-                        if (this.props.model instanceof TextFileModel) {
-                            this.props.model.saveFile(true);
-                        }
-                    },
-                    disabled: !(this.props.model instanceof TextFileModel),
-                },
-                {
-                    label: "Rename",
-                    icon: <RenameIcon />,
-                    onClick: this.renameTab,
-                    disabled: !isTextFileModel(this.props.model),
-                },
-                {
-                    label: "Show in File Explorer",
-                    icon: <FolderOpenIcon />,
-                    onClick: () => {
-                        api.showItemInFolder(
-                            (this.props.model.state.get() as any).filePath
-                        );
-                    },
-                    disabled: !(this.props.model.state.get() as any).filePath,
-                },
-                {
-                    label: "Copy File Path",
-                    icon: <CopyIcon />,
-                    onClick: () => {
-                        navigator.clipboard.writeText(
-                            (this.props.model.state.get() as any).filePath
-                        );
-                    },
-                    disabled: !(this.props.model.state.get() as any).filePath,
-                },
-                {
-                    label: "Decrypt",
-                    icon: <UnlockIcon />,
-                    onClick: () => {
-                        if (isTextFileModel(this.props.model)) {
-                            this.props.model.showEncryptionDialog();
-                        }
-                    },
-                    disabled: !(
-                        isTextFileModel(this.props.model) &&
-                        this.props.model.encripted
-                    ),
+                    ...pinUnpinItem,
                     startGroup: true,
                 },
-                {
-                    label:
-                        isTextFileModel(this.props.model) &&
-                        !this.props.model.withEncription
-                            ? "Encrypt"
-                            : "Change Password",
-                    icon: <LockIcon />,
-                    onClick: () => {
-                        if (isTextFileModel(this.props.model)) {
-                            this.props.model.showEncryptionDialog();
-                        }
-                    },
-                    disabled:
-                        !isTextFileModel(this.props.model) ||
-                        this.props.model.encripted,
+            );
+        }
+        menuItems.push(
+            {
+                startGroup: true,
+                label: "Save",
+                icon: <SaveIcon />,
+                onClick: () => {
+                    if (this.props.model instanceof TextFileModel) {
+                        this.props.model.saveFile(false);
+                    }
                 },
-                {
-                    label: "Make Unencrypted",
-                    icon: <KeyOffIcon />,
-                    onClick: () => {
-                        if (isTextFileModel(this.props.model)) {
-                            this.props.model.makeUnencrypted();
-                        }
-                    },
-                    disabled:
-                        !isTextFileModel(this.props.model) ||
-                        !this.props.model.decripted,
+                disabled: !(this.props.model instanceof TextFileModel),
+            },
+            {
+                label: "Save As...",
+                icon: <SaveIcon />,
+                onClick: () => {
+                    if (this.props.model instanceof TextFileModel) {
+                        this.props.model.saveFile(true);
+                    }
                 },
-            ]
+                disabled: !(this.props.model instanceof TextFileModel),
+            },
+            {
+                label: "Rename",
+                icon: <RenameIcon />,
+                onClick: this.renameTab,
+                disabled: !isTextFileModel(this.props.model),
+            },
+            {
+                label: "Show in File Explorer",
+                icon: <FolderOpenIcon />,
+                onClick: () => {
+                    api.showItemInFolder(
+                        (this.props.model.state.get() as any).filePath
+                    );
+                },
+                disabled: !(this.props.model.state.get() as any).filePath,
+            },
+            {
+                label: "Copy File Path",
+                icon: <CopyIcon />,
+                onClick: () => {
+                    navigator.clipboard.writeText(
+                        (this.props.model.state.get() as any).filePath
+                    );
+                },
+                disabled: !(this.props.model.state.get() as any).filePath,
+            },
+            {
+                label: "Decrypt",
+                icon: <UnlockIcon />,
+                onClick: () => {
+                    if (isTextFileModel(this.props.model)) {
+                        this.props.model.showEncryptionDialog();
+                    }
+                },
+                disabled: !(
+                    isTextFileModel(this.props.model) &&
+                    this.props.model.encripted
+                ),
+                startGroup: true,
+            },
+            {
+                label:
+                    isTextFileModel(this.props.model) &&
+                    !this.props.model.withEncription
+                        ? "Encrypt"
+                        : "Change Password",
+                icon: <LockIcon />,
+                onClick: () => {
+                    if (isTextFileModel(this.props.model)) {
+                        this.props.model.showEncryptionDialog();
+                    }
+                },
+                disabled:
+                    !isTextFileModel(this.props.model) ||
+                    this.props.model.encripted,
+            },
+            {
+                label: "Make Unencrypted",
+                icon: <KeyOffIcon />,
+                onClick: () => {
+                    if (isTextFileModel(this.props.model)) {
+                        this.props.model.makeUnencrypted();
+                    }
+                },
+                disabled:
+                    !isTextFileModel(this.props.model) ||
+                    !this.props.model.decripted,
+            },
         );
+        e.nativeEvent.menuItems.push(...menuItems);
     };
 
     private getDragData = (drop = false): PageDragData => {
@@ -417,7 +479,7 @@ export function PageTab(props: PageTabProps) {
     tabModel.isGrouped = pagesModel.isGrouped(model.id);
     tabModel.isActive =
         pagesModel.activePage === model || pagesModel.groupedPage === model;
-    const { title, modified, language, id, filePath, deleted, temp } =
+    const { title, modified, language, id, filePath, deleted, temp, pinned } =
         model.state.use((s) => ({
             title: s.title,
             modified: s.modified,
@@ -428,6 +490,7 @@ export function PageTab(props: PageTabProps) {
             password: (s as any).password,
             encripted: (s as any).encripted ?? false,
             temp: (s as any).temp ?? false,
+            pinned: s.pinned ?? false,
         }));
 
     const [{ isDragging }, drag] = useDrag({
@@ -459,6 +522,7 @@ export function PageTab(props: PageTabProps) {
 
     const encripted = isTextFileModel(model) && model.encripted;
     const decripted = isTextFileModel(model) && model.decripted;
+    const isPinnedEncrypted = pinned && (encripted || decripted);
 
     return (
         <PageTabRoot
@@ -472,13 +536,16 @@ export function PageTab(props: PageTabProps) {
                 isDraggOver: isOver,
                 temp,
                 deleted,
+                pinned,
+                "pinned-encrypted": isPinnedEncrypted,
             })}
+            style={pinned && props.pinnedLeft !== undefined ? { left: props.pinnedLeft } : undefined}
             onClick={tabModel.handleClick}
             onContextMenu={tabModel.handleContextMenu}
-            draggable
-            onDragStart={tabModel.handleDragStart}
-            onDragEnd={tabModel.handleDragEnd}
-            onDrop={tabModel.handleDrop}
+            draggable={!pinned}
+            onDragStart={pinned ? undefined : tabModel.handleDragStart}
+            onDragEnd={pinned ? undefined : tabModel.handleDragEnd}
+            onDrop={pinned ? undefined : tabModel.handleDrop}
         >
             {model.noLanguage ? (
                 <span
@@ -496,7 +563,9 @@ export function PageTab(props: PageTabProps) {
                             type="icon"
                             onClick={(e) => {
                                 pagesModel.showPage(model.state.get().id);
-                                setOpen(e.currentTarget);
+                                if (tabModel.isActive) {
+                                    setOpen(e.currentTarget);
+                                }
                             }}
                             title={language}
                         >
@@ -518,7 +587,7 @@ export function PageTab(props: PageTabProps) {
                         {encripted ? "🔒" : "🔓"}
                     </span>
                 )}
-                {title}
+                {!pinned && title}
             </span>
             {Boolean(filePath) && !isDragging && (
                 <Tooltip

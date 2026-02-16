@@ -17,6 +17,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-017 | Pinning Page Tabs | Compact icon-only pinned tabs with sticky positioning, drag constraints, window persistence, navigation preservation |
 | US-016 | Reusable File Explorer Component | Tree-based FileExplorer replacing flat lists in sidebar and NavigationPanel, lazy loading, search, file operations, state persistence, navigate up/make root, collapse all |
 | US-015 | Document Navigation Panel | Folder-based nav tree from markdown links, in-tab navigation with auto-preview, pages-store lifecycle refactoring, global keyboard shortcuts fix |
 | US-014 | Application Theming | CSS Custom Properties theming with 6 dark themes, Settings page with theme selector, Monaco integration |

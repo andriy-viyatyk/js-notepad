@@ -10,6 +10,7 @@ export interface IPage {
     filePath?: string,
     editor?: PageEditor,
     hasNavPanel?: boolean,
+    pinned?: boolean,
 }
 
 export interface WindowState {

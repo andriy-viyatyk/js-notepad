@@ -40,17 +40,36 @@ If a file has unsaved changes, you'll be prompted to save before closing.
 - **Move between windows** — drag a tab from one js-notepad window and drop it into another window's tab bar
 - **Open in New Window** — right-click a tab and select "Open in New Window"
 
+### Pinning Tabs
+
+Pin tabs to keep them compact and always visible at the left side of the tab bar.
+
+- **Pin a tab** — right-click a tab → **Pin Tab**
+- **Unpin a tab** — right-click a pinned tab → **Unpin Tab**
+
+**Pinned tab behavior:**
+
+- Displayed as compact icon-only tabs (no title text) at the left of the tab bar
+- Stay fixed in place when scrolling through other tabs
+- Cannot be closed, dragged to another window, or grouped with other tabs
+- Can be reordered among other pinned tabs by dragging
+- Show language icon, encryption icon (if applicable), and modification indicator
+- Content can be replaced via the File Explorer panel (in-tab navigation)
+- Pinned state is preserved across app restarts
+- A window with pinned tabs is preserved on close (can be reopened from "Open Tabs" in sidebar)
+
 ### Tab Context Menu
 
 Right-click any tab to access these options:
 
 | Action | Description |
 |--------|-------------|
-| Close Tab | Close this tab |
-| Close Other Tabs | Close all tabs except this one |
-| Close Tabs to the Right | Close all tabs after this one |
-| Open in New Window | Move this tab to a new window |
-| Duplicate Tab | Create a copy of this tab |
+| Close Tab | Close this tab (not available for pinned tabs) |
+| Close Other Tabs | Close all tabs except this one (skips pinned tabs) |
+| Close Tabs to the Right | Close all tabs after this one (skips pinned tabs; not available for pinned tabs) |
+| Open in New Window | Move this tab to a new window (not available for pinned tabs) |
+| Duplicate Tab | Create a copy of this tab grouped side-by-side (not available for pinned tabs) |
+| Pin Tab / Unpin Tab | Pin or unpin the tab |
 | Save | Save the file |
 | Save As... | Save with a new name |
 | Rename | Rename the file/tab |
