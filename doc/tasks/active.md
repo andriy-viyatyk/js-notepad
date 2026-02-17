@@ -12,6 +12,8 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
+| US-021 | Browser Editor | Medium | [README](US-021-browser-editor/README.md) |
+| US-022 | ToDo Editor | Medium | [README](US-022-todo-editor/README.md) |
 
 ## Recently Completed
 

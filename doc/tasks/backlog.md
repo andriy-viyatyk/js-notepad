@@ -136,16 +136,7 @@ Ideas and future tasks not yet planned for implementation.
 
 **Goal:** Editors for structured data files.
 
-#### ToDo Editor (`*.todo.json`)
-
-Multiple categorized todo lists.
-
-**Tasks:**
-- [ ] Create `editors/tools/todo/` structure
-- [ ] Create `TodoPageModel` extending PageModel
-- [ ] Create `TodoEditor.tsx` component
-- [ ] Register for `*.todo.json` files
-- [ ] Implement todo list management
+> ToDo Editor moved to active tasks: US-022
 
 #### Bookmarks Editor (`*.link.json`)
 
