@@ -840,6 +840,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         const pageData: Partial<IPage> = page.getRestoreData();
         pageData.id = uuid();
         pageData.hasNavPanel = false;
+        pageData.pinned = false;
         const newPage = await this.restoreModel(pageData);
         if (newPage) {
             this.addPage(newPage);

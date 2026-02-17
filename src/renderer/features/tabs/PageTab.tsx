@@ -275,19 +275,22 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                         api.addDragEvent(this.getDragData());
                     },
                 },
-                {
-                    label: "Duplicate Tab",
-                    icon: <DuplicateIcon />,
-                    onClick: () => {
-                        pagesModel.duplicatePage(this.props.model.id);
-                    },
-                },
-                {
-                    ...pinUnpinItem,
-                    startGroup: true,
-                },
             );
         }
+        menuItems.push(
+            {
+                label: "Duplicate Tab",
+                icon: <DuplicateIcon />,
+                onClick: () => {
+                    pagesModel.duplicatePage(this.props.model.id);
+                },
+                startGroup: isPinned,
+            },
+            {
+                ...pinUnpinItem,
+                startGroup: !isPinned,
+            },
+        );
         menuItems.push(
             {
                 startGroup: true,
