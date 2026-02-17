@@ -107,29 +107,6 @@ Ideas and future tasks not yet planned for implementation.
 
 ---
 
-### Compare Editor Model
-
-**Goal:** Make compare editor a standalone editor with its own model.
-
-**Current State:**
-- `CompareEditor.tsx` shares model with text pages
-- Compare mode is a flag on TextFileModel
-
-**Target State:**
-- `ComparePageModel` - dedicated model for compare sessions
-- Compare editor registered in EditorRegistry
-
-**Tasks:**
-- [ ] Create `editors/compare/ComparePageModel.ts`
-- [ ] Define state: `leftPageId`, `rightPageId`, `diffMode`
-- [ ] Handle compare session lifecycle
-- [ ] Register in EditorRegistry (after US-002)
-- [ ] Update toolbar compare button logic
-
-**Complexity:** Medium
-
----
-
 ## New Features
 
 ### Tool Editors Infrastructure

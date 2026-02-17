@@ -14,6 +14,7 @@ Current work in progress and planned tasks.
 |----|-------|----------|------|
 | US-021 | Browser Editor | Medium | [README](US-021-browser-editor/README.md) |
 | US-022 | ToDo Editor | Medium | [README](US-022-todo-editor/README.md) |
+| US-023 | NavigationPanel File Content Search | Medium | [README](US-023-navigation-panel-search/README.md) |
 
 ## Recently Completed
 
