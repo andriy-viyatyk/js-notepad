@@ -1,5 +1,8 @@
 import styled from "@emotion/styled";
+import { useMemo } from "react";
 import { TextFileModel } from "../text/TextPageModel";
+
+const navigationBlockerScript = `<script>document.addEventListener("click",function(e){var a=e.target.closest("a");if(a&&a.href){e.preventDefault();}},true);</script>`;
 
 // ============================================================================
 // HtmlView Component - content-view for HTML files
@@ -29,12 +32,16 @@ const HtmlViewRoot = styled.div({
  */
 function HtmlView({ model }: HtmlViewProps) {
     const content = model.state.use((s) => s.content);
+    const safeSrcDoc = useMemo(
+        () => content + navigationBlockerScript,
+        [content],
+    );
 
     return (
         <HtmlViewRoot>
             <iframe
                 className="html-preview-iframe"
-                srcDoc={content}
+                srcDoc={safeSrcDoc}
                 sandbox="allow-scripts"
                 title="HTML Preview"
             />

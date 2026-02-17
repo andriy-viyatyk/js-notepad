@@ -70,6 +70,9 @@ const color = {
         border: "var(--color-warning-border)",
         textHover: "var(--color-warning-text-hover)",
     },
+    highlight: {
+        activeMatch: "var(--color-highlight-active-match)",
+    },
     minimapSlider: {
         background: "var(--color-minimap-bg)",
         hoverBackground: "var(--color-minimap-hover-bg)",

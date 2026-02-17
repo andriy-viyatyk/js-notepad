@@ -134,6 +134,9 @@ export const defaultDark: ThemeDefinition = {
         "--color-warning-border": "#000000",
         "--color-warning-text-hover": "#cca700",
 
+        // highlight
+        "--color-highlight-active-match": "rgba(255, 200, 0, 0.35)",
+
         // minimap slider
         "--color-minimap-bg": "rgba(121, 121, 121, 0.2)",
         "--color-minimap-hover-bg": "rgba(100, 100, 100, 0.35)",

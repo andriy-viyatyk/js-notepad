@@ -85,6 +85,9 @@ export const red: ThemeDefinition = {
         "--color-warning-border": "#300000",
         "--color-warning-text-hover": "#e8c87c",
 
+        // highlight
+        "--color-highlight-active-match": "rgba(255, 200, 0, 0.35)",
+
         // minimap slider
         "--color-minimap-bg": "rgba(200, 100, 100, 0.15)",
         "--color-minimap-hover-bg": "rgba(200, 100, 100, 0.3)",

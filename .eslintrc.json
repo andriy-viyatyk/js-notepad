@@ -17,6 +17,6 @@
     "@typescript-eslint/no-empty-interface": "off",
     "@typescript-eslint/no-var-requires": "off",
     "no-useless-escape": "off",
-    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-empty-function": "off"
   }
 }

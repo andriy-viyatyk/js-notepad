@@ -77,6 +77,18 @@ const MenuBarRoot = styled("div")({
                 },
                 "& .selected-icon": {
                     color: color.text.light,
+                    width: 16,
+                    height: 16,
+                    marginRight: 6,
+                },
+                "& .selected-icon-button": {
+                    display: "inline-flex",
+                    alignItems: "center",
+                    borderRadius: 3,
+                    cursor: "pointer",
+                    "&:hover": {
+                        backgroundColor: color.background.light,
+                    },
                 },
             },
             "& .list-item.selected": {
@@ -99,6 +111,11 @@ const MenuBarRoot = styled("div")({
             flexShrink: 0,
             flexGrow: 0,
             width: 6,
+            backgroundColor: color.background.dark,
+            borderRight: "none",
+            "&:hover": {
+                backgroundColor: color.background.default,
+            },
         },
     },
     "&.open .menu-bar-content": {
@@ -258,6 +275,13 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
         }
     };
 
+    openFolderInTab = (folder: MenuFolder) => {
+        if (folder.path) {
+            pagesModel.addEmptyPageWithNavPanel(folder.path);
+            this.props.onClose?.();
+        }
+    };
+
     onLeftPanelContextMenu = (e: React.MouseEvent) => {
         if (e.nativeEvent.menuItems === undefined) {
             e.nativeEvent.menuItems = [
@@ -337,6 +361,7 @@ export function MenuBar(props: MenuBarProps) {
                     icon={model.getFolderIcon(row)}
                     label={model.getFolderLabel(row)}
                     selectedIcon={selectedIcon}
+                    onSelectedIconClick={isStaticFolder(row) ? undefined : model.openFolderInTab}
                     itemMarginY={itemMarginY}
                     getTooltip={getTooltip}
                     getContextMenu={getContextMenu}

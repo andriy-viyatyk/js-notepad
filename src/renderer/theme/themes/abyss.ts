@@ -84,6 +84,9 @@ export const abyss: ThemeDefinition = {
         "--color-warning-border": "#000c18",
         "--color-warning-text-hover": "#ddbb88",
 
+        // highlight
+        "--color-highlight-active-match": "rgba(255, 200, 0, 0.3)",
+
         // minimap slider
         "--color-minimap-bg": "rgba(31, 34, 48, 0.4)",
         "--color-minimap-hover-bg": "rgba(59, 63, 81, 0.53)",

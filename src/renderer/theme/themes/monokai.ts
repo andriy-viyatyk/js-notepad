@@ -84,6 +84,9 @@ export const monokai: ThemeDefinition = {
         "--color-warning-border": "#272822",
         "--color-warning-text-hover": "#fd971f",
 
+        // highlight
+        "--color-highlight-active-match": "rgba(230, 219, 116, 0.35)",
+
         // minimap slider
         "--color-minimap-bg": "rgba(121, 121, 121, 0.2)",
         "--color-minimap-hover-bg": "rgba(121, 121, 121, 0.35)",

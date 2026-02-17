@@ -5,7 +5,7 @@ import styled from "@emotion/styled";
 import { TextFileModel } from "../text";
 import color from "../../theme/color";
 import { CheckedIcon, CompactViewIcon, NormalViewIcon, UncheckedIcon } from "../../theme/icons";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Minimap } from "../../components/layout/Minimap";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
@@ -17,12 +17,14 @@ import { isCurrentThemeDark } from "../../theme/themes";
 import { appSettings } from "../../store/app-settings";
 import { resolveRelatedLink } from "../../core/utils/path-utils";
 import { Button } from "../../components/basic/Button";
+import { MarkdownSearchBar } from "./MarkdownSearchBar";
 
 const MdViewRoot = styled.div({
     flex: "1 1 auto",
     display: "flex",
     flexDirection: "row",
     overflow: "hidden",
+    outline: "none",
     "& .md-scroll-container": {
         flex: "1 1 auto",
         display: "flex",
@@ -381,6 +383,10 @@ export interface MarkdownViewProps {
 const defaultMarkdownViewState = {
     container: null as HTMLDivElement | null,
     compactMode: false,
+    searchVisible: false,
+    searchText: "",
+    currentMatchIndex: 0,
+    totalMatches: 0,
 };
 
 type MarkdownViewState = typeof defaultMarkdownViewState;
@@ -415,6 +421,124 @@ class MarkdownViewModel extends TComponentModel<MarkdownViewState, MarkdownViewP
             s.compactMode = !s.compactMode;
         });
     };
+
+    // --- Search ---
+
+    openSearch = () => {
+        this.state.update((s) => {
+            s.searchVisible = true;
+        });
+    };
+
+    closeSearch = () => {
+        this.state.update((s) => {
+            s.searchVisible = false;
+            s.searchText = "";
+            s.currentMatchIndex = 0;
+            s.totalMatches = 0;
+        });
+        this.clearActiveMatchClass();
+    };
+
+    setSearchText = (text: string) => {
+        this.state.update((s) => {
+            s.searchText = text;
+            s.currentMatchIndex = 0;
+        });
+    };
+
+    nextMatch = () => {
+        const { totalMatches, currentMatchIndex } = this.state.get();
+        if (totalMatches === 0) return;
+        const newIndex = (currentMatchIndex + 1) % totalMatches;
+        this.state.update((s) => {
+            s.currentMatchIndex = newIndex;
+        });
+        this.navigateToMatch(newIndex);
+    };
+
+    prevMatch = () => {
+        const { totalMatches, currentMatchIndex } = this.state.get();
+        if (totalMatches === 0) return;
+        const newIndex = (currentMatchIndex - 1 + totalMatches) % totalMatches;
+        this.state.update((s) => {
+            s.currentMatchIndex = newIndex;
+        });
+        this.navigateToMatch(newIndex);
+    };
+
+    private navigateToMatch(index: number) {
+        const container = this.state.get().container;
+        if (!container) return;
+        const spans = container.querySelectorAll(".highlighted-text");
+        this.applyActiveMatchClass(spans, index);
+        this.scrollToActiveMatch();
+    }
+
+    /** Called after render to update match count and highlight the active match */
+    updateMatchNavigation = () => {
+        const { container, searchText, searchVisible } = this.state.get();
+        if (!container || !searchText || !searchVisible) {
+            if (this.state.get().totalMatches !== 0) {
+                this.state.update((s) => { s.totalMatches = 0; });
+            }
+            return;
+        }
+
+        const spans = container.querySelectorAll(".highlighted-text");
+        const total = spans.length;
+        const { totalMatches, currentMatchIndex } = this.state.get();
+
+        // Clamp index if matches changed
+        let index = currentMatchIndex;
+        if (total > 0 && index >= total) {
+            index = 0;
+        }
+
+        if (total !== totalMatches || index !== currentMatchIndex) {
+            this.state.update((s) => {
+                s.totalMatches = total;
+                s.currentMatchIndex = index;
+            });
+        }
+
+        this.applyActiveMatchClass(spans, index);
+        if (total > 0) {
+            this.scrollToActiveMatch();
+        }
+    };
+
+    private clearActiveMatchClass() {
+        const container = this.state.get().container;
+        if (!container) return;
+        const active = container.querySelector(".highlighted-text-active");
+        if (active) active.classList.remove("highlighted-text-active");
+    }
+
+    private applyActiveMatchClass(spans: NodeListOf<Element>, index: number) {
+        // Remove old active class
+        const container = this.state.get().container;
+        if (!container) return;
+        const oldActive = container.querySelector(".highlighted-text-active");
+        if (oldActive) oldActive.classList.remove("highlighted-text-active");
+
+        // Apply to current
+        if (spans.length > 0 && index < spans.length) {
+            spans[index].classList.add("highlighted-text-active");
+        }
+    }
+
+    private scrollToActiveMatch() {
+        // Use microtask so the DOM class is applied first
+        Promise.resolve().then(() => {
+            const container = this.state.get().container;
+            if (!container) return;
+            const active = container.querySelector(".highlighted-text-active");
+            if (active) {
+                active.scrollIntoView({ block: "center", behavior: "smooth" });
+            }
+        });
+    }
 }
 
 export function MarkdownView(props: MarkdownViewProps) {
@@ -437,14 +561,28 @@ export function MarkdownView(props: MarkdownViewProps) {
         [filePath, hasMermaid ? mermaidLightMode : 0],
     );
 
-    // Rehype plugin for external search text highlighting
+    // Determine effective highlight text: own search takes priority, then external
+    const highlightText = pageState.searchVisible && pageState.searchText
+        ? pageState.searchText
+        : editorConfig.highlightText || "";
+
+    // Rehype plugin for search text highlighting
     const rehypePlugins = useMemo(() => {
         const plugins: any[] = [rehypeRaw];
-        if (editorConfig.highlightText) {
-            plugins.push(createRehypeHighlight(editorConfig.highlightText));
+        if (highlightText) {
+            plugins.push(createRehypeHighlight(highlightText));
         }
         return plugins;
-    }, [editorConfig.highlightText]);
+    }, [highlightText]);
+
+    // Update match navigation after content renders with highlights
+    useEffect(() => {
+        if (pageState.searchVisible && pageState.searchText) {
+            // Defer to after React renders the highlighted spans
+            const timer = setTimeout(() => pageModel.updateMatchNavigation(), 0);
+            return () => clearTimeout(timer);
+        }
+    }, [pageState.searchText, pageState.searchVisible, content]);
 
     useEffect(() => {
         const focusSubscription = pagesModel.onFocus.subscribe(
@@ -455,6 +593,23 @@ export function MarkdownView(props: MarkdownViewProps) {
         };
     }, []);
 
+    // Keyboard handler for search shortcuts
+    const onKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === "f" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            pageModel.openSearch();
+        } else if (e.key === "Escape" && pageState.searchVisible) {
+            e.preventDefault();
+            pageModel.closeSearch();
+        } else if (e.key === "F3" && e.shiftKey) {
+            e.preventDefault();
+            pageModel.prevMatch();
+        } else if (e.key === "F3") {
+            e.preventDefault();
+            pageModel.nextMatch();
+        }
+    }, [pageState.searchVisible]);
+
     // Apply max height constraint from context (e.g., when embedded in notebook)
     const rootStyle = editorConfig.maxEditorHeight
         ? { maxHeight: editorConfig.maxEditorHeight }
@@ -462,6 +617,9 @@ export function MarkdownView(props: MarkdownViewProps) {
 
     const showMinimap = !editorConfig.hideMinimap;
     const compact = editorConfig.compact || pageState.compactMode;
+
+    // Only show own search bar when not embedded with external highlight
+    const showSearchBar = pageState.searchVisible && !editorConfig.highlightText;
 
     return (
         <>
@@ -477,7 +635,23 @@ export function MarkdownView(props: MarkdownViewProps) {
                     </Button>,
                     model.editorToolbarRefLast,
                 )}
-            <MdViewRoot style={rootStyle} className={`${showMinimap ? "" : "show-scrollbar"} ${compact ? "compact" : ""}`}>
+            <MdViewRoot
+                style={rootStyle}
+                className={`${showMinimap ? "" : "show-scrollbar"} ${compact ? "compact" : ""}`}
+                onKeyDown={onKeyDown}
+                tabIndex={-1}
+            >
+                {showSearchBar && (
+                    <MarkdownSearchBar
+                        searchText={pageState.searchText}
+                        currentMatch={pageState.currentMatchIndex}
+                        totalMatches={pageState.totalMatches}
+                        onSearchTextChange={pageModel.setSearchText}
+                        onNext={pageModel.nextMatch}
+                        onPrev={pageModel.prevMatch}
+                        onClose={pageModel.closeSearch}
+                    />
+                )}
                 <div
                     className="md-scroll-container"
                     ref={pageModel.setContainer}

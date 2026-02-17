@@ -51,7 +51,8 @@ Pin tabs to keep them compact and always visible at the left side of the tab bar
 
 - Displayed as compact icon-only tabs (no title text) at the left of the tab bar
 - Stay fixed in place when scrolling through other tabs
-- Cannot be closed, dragged to another window, or grouped with other tabs
+- Cannot be closed or dragged to another window
+- Can be grouped with other tabs for side-by-side view (including script output)
 - Can be reordered among other pinned tabs by dragging
 - Show language icon, encryption icon (if applicable), and modification indicator
 - Content can be replaced via the File Explorer panel (in-tab navigation)
@@ -68,7 +69,7 @@ Right-click any tab to access these options:
 | Close Other Tabs | Close all tabs except this one (skips pinned tabs) |
 | Close Tabs to the Right | Close all tabs after this one (skips pinned tabs; not available for pinned tabs) |
 | Open in New Window | Move this tab to a new window (not available for pinned tabs) |
-| Duplicate Tab | Create a copy of this tab grouped side-by-side (not available for pinned tabs) |
+| Duplicate Tab | Create a copy of this tab grouped side-by-side |
 | Pin Tab / Unpin Tab | Pin or unpin the tab |
 | Save | Save the file |
 | Save As... | Save with a new name |
@@ -114,6 +115,10 @@ The left side shows your folder shortcuts:
 - **Custom Folders** — Your bookmarked filesystem folders
 
 Click a folder in the left panel to see its contents in the right panel.
+
+**Open Folder in New Tab:**
+- When a custom folder is selected, click the chevron (▶) icon to open a new tab with the File Explorer panel showing that folder's contents
+- This gives you a full-width file browser alongside an editor, without keeping the sidebar open
 
 **Managing Custom Folders:**
 - Right-click in the left panel to add or remove folder shortcuts

@@ -83,6 +83,9 @@ export const quietLight: ThemeDefinition = {
         "--color-warning-border": "#F5F5F5",
         "--color-warning-text-hover": "#A87300",
 
+        // highlight
+        "--color-highlight-active-match": "rgba(255, 200, 0, 0.4)",
+
         // minimap slider
         "--color-minimap-bg": "rgba(100, 100, 100, 0.2)",
         "--color-minimap-hover-bg": "rgba(100, 100, 100, 0.3)",

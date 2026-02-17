@@ -20,6 +20,7 @@ import { uuid } from "../core/utils/node-utils";
 import { alertError } from "../features/dialogs/alerts/AlertsBar";
 import { editorRegistry } from "../editors/registry";
 import { getLanguageByExtension } from "./language-mapping";
+import { NavPanelModel } from "../features/navigation/nav-panel-store";
 
 const path = require("path");
 const fs = require("fs");
@@ -281,6 +282,18 @@ export class PagesModel extends TModel<OpenFilesState> {
         return this.addPage(emptyFile as unknown as PageModel);
     };
 
+    addEmptyPageWithNavPanel = (folderPath: string): PageModel => {
+        const page = this.addEmptyPage();
+        const navPanel = new NavPanelModel(folderPath);
+        navPanel.id = page.state.get().id;
+        navPanel.flushSave();
+        page.navPanel = navPanel;
+        page.state.update((s) => {
+            s.hasNavPanel = true;
+        });
+        return page;
+    };
+
     addEditorPage = (editor: PageEditor, language: string, title: string): PageModel => {
         const page = newTextFileModel("");
         page.state.update((s) => {
@@ -425,12 +438,6 @@ export class PagesModel extends TModel<OpenFilesState> {
         const page = pages[pageIndex];
         if (page.state.get().pinned) return;
 
-        // Ungroup if grouped (must happen before pinning)
-        if (this.isGrouped(pageId)) {
-            this.ungroup(pageId);
-            this.fixCompareMode();
-        }
-
         // Calculate target BEFORE changing state (insert after existing pinned tabs)
         const pinnedCount = pages.filter((p) => p.state.get().pinned).length;
 
@@ -438,7 +445,6 @@ export class PagesModel extends TModel<OpenFilesState> {
             s.pinned = true;
         });
 
-        // Re-read pageIndex since ungroup doesn't change pages array
         if (pageIndex !== pinnedCount) {
             const newPages = [...pages];
             const [movedPage] = newPages.splice(pageIndex, 1);
@@ -448,6 +454,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             });
         }
 
+        // Note: No need to call fixGrouping() - grouping is position-independent
         this.saveStateDebounced();
     };
 
@@ -536,7 +543,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             this.addPage(existingSecond);
         }
 
-        this.groupTabs(existingFirst.id, existingSecond.id);
+        this.groupTabs(existingFirst.id, existingSecond.id, true);
         this.fixCompareMode();
         if (isTextFileModel(existingFirst) && isTextFileModel(existingSecond)) {
             existingFirst.state.update((s) => {
@@ -673,22 +680,19 @@ export class PagesModel extends TModel<OpenFilesState> {
         const state = this.state.get();
         const toSwap: Array<[string, string]> = [];
         const toRemove = new Set<string>();
-        const allIds = new Set<string>();
+        const allIds = new Set<string>(state.pages.map(p => p.id));
+
+        // Check for swapped adjacent pairs (left/right reversed)
         for (let i = 0; i < state.pages.length - 1; i++) {
             const leftPageId = state.pages[i].id;
-            allIds.add(leftPageId);
             const rightPageId = state.pages[i + 1].id;
-            const groupedWith = state.leftRight.get(leftPageId);
             const groupedSwap = state.rightLeft.get(leftPageId);
             if (rightPageId === groupedSwap) {
                 toSwap.push([leftPageId, rightPageId]);
-            } else if (groupedWith && groupedWith !== rightPageId) {
-                toRemove.add(leftPageId);
             }
         }
-        const lastPageId = state.pages[state.pages.length - 1]?.id;
-        Boolean(lastPageId) && allIds.add(lastPageId);
 
+        // Remove groupings where one or both pages no longer exist
         for (const leftId of state.leftRight.keys()) {
             if (!allIds.has(leftId)) {
                 toRemove.add(leftId);
@@ -755,24 +759,34 @@ export class PagesModel extends TModel<OpenFilesState> {
         return undefined;
     };
 
-    groupTabs = (pageId1: string, pageId2: string) => {
+    groupTabs = (pageId1: string, pageId2: string, enforceAdjacency = false) => {
         const state = this.state.get();
         const idx1 = state.pages.findIndex((p) => p.id === pageId1);
         const idx2 = state.pages.findIndex((p) => p.id === pageId2);
         if (idx1 === -1 || idx2 === -1 || idx1 === idx2) {
             return;
         }
-        // Cannot group pinned tabs
-        if (state.pages[idx1].state.get().pinned || state.pages[idx2].state.get().pinned) {
-            return;
-        }
-        const doMove = Math.abs(idx1 - idx2) !== 1;
-        if (idx1 < idx2) {
-            doMove && this.moveTabByIndex(idx2, idx1 + 1);
-            this.group(pageId1, pageId2);
+
+        const isPinned1 = state.pages[idx1].state.get().pinned;
+        const isPinned2 = state.pages[idx2].state.get().pinned;
+
+        // Only enforce adjacency for unpinned-unpinned if explicitly requested
+        if (enforceAdjacency && !isPinned1 && !isPinned2) {
+            const doMove = Math.abs(idx1 - idx2) !== 1;
+            if (idx1 < idx2) {
+                doMove && this.moveTabByIndex(idx2, idx1 + 1);
+                this.group(pageId1, pageId2);
+            } else {
+                doMove && this.moveTabByIndex(idx2, idx1 - 1);
+                this.group(pageId2, pageId1);
+            }
         } else {
-            doMove && this.moveTabByIndex(idx2, idx1 - 1);
-            this.group(pageId2, pageId1);
+            // Non-adjacent grouping: just create the relationship
+            if (idx1 < idx2) {
+                this.group(pageId1, pageId2);
+            } else {
+                this.group(pageId2, pageId1);
+            }
         }
     };
 
@@ -785,7 +799,7 @@ export class PagesModel extends TModel<OpenFilesState> {
 
         if (!groupedPage) {
             groupedPage = this.addEmptyPage() as unknown as PageModel;
-            this.groupTabs(pageId, groupedPage.state.get().id);
+            this.groupTabs(pageId, groupedPage.state.get().id, false);
             groupedPage.changeLanguage(suggestedLanguage);
         }
 
@@ -830,7 +844,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         if (newPage) {
             this.addPage(newPage);
         }
-        this.groupTabs(pageId, pageData.id);
+        this.groupTabs(pageId, pageData.id, false);
     };
 }
 

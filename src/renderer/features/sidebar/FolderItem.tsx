@@ -42,6 +42,7 @@ export interface FolderItemProps {
     icon: React.ReactNode;
     label: React.ReactNode;
     selectedIcon?: React.ReactNode;
+    onSelectedIconClick?: (folder: MenuFolder, e: React.MouseEvent) => void;
     itemMarginY?: number;
     getTooltip?: (folder: MenuFolder, index?: number) => string | undefined;
     getContextMenu?: (folder: MenuFolder, index?: number) => MenuItem[] | undefined;
@@ -59,6 +60,7 @@ export function FolderItem(props: FolderItemProps) {
         icon,
         label,
         selectedIcon,
+        onSelectedIconClick,
         itemMarginY,
         getTooltip,
         getContextMenu,
@@ -98,6 +100,14 @@ export function FolderItem(props: FolderItemProps) {
             onClick(folder, index, e);
         },
         [onClick, folder, index]
+    );
+
+    const handleSelectedIconClick = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            onSelectedIconClick?.(folder, e);
+        },
+        [onSelectedIconClick, folder]
     );
 
     const handleContextMenu = useCallback(
@@ -151,7 +161,17 @@ export function FolderItem(props: FolderItemProps) {
         >
             {Boolean(icon) && icon}
             <OverflowTooltipText className="item-text">{label}</OverflowTooltipText>
-            {selected && selectedIcon}
+            {selected && selectedIcon && (
+                onSelectedIconClick ? (
+                    <span
+                        className="selected-icon-button"
+                        onClick={handleSelectedIconClick}
+                        title="Open folder in new tab"
+                    >
+                        {selectedIcon}
+                    </span>
+                ) : selectedIcon
+            )}
             {Boolean(tooltip) && (
                 <Tooltip id={id} delayShow={1500}>
                     {tooltip}

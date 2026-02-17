@@ -12,12 +12,14 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-018 | Implement Grouping for Pinned Tabs | High | [README](US-018-grouping-for-pinned-tabs/README.md) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-020 | Markdown View Search | Ctrl+F search in Markdown Preview with match highlighting, F3/Shift+F3 navigation, match counter, active match background |
+| US-019 | Open User Folder in Tab | Chevron on sidebar folders opens new tab with NavPanel, hover+tooltip for discoverability, built-in items unchanged |
+| US-018 | Implement Grouping for Pinned Tabs | Non-adjacent grouping for pinned+unpinned tabs, script execution works in pinned tabs, grouping preserved through pin/unpin |
 | US-017 | Pinning Page Tabs | Compact icon-only pinned tabs with sticky positioning, drag constraints, window persistence, navigation preservation |
 | US-016 | Reusable File Explorer Component | Tree-based FileExplorer replacing flat lists in sidebar and NavigationPanel, lazy loading, search, file operations, state persistence, navigate up/make root, collapse all |
 | US-015 | Document Navigation Panel | Folder-based nav tree from markdown links, in-tab navigation with auto-preview, pages-store lifecycle refactoring, global keyboard shortcuts fix |

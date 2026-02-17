@@ -70,6 +70,9 @@ const PageTabRoot = styled.div({
     "&.deleted .title-label": {
         color: color.misc.red,
     },
+    "&.deleted .modified-icon": {
+        color: color.misc.red,
+    },
     "& .close-button": {
         flexShrink: 0,
         visibility: "hidden",
@@ -455,7 +458,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
         if (e.ctrlKey) {
             const activeId = pagesModel.activePage?.state.get().id;
             if (activeId !== thisPageId) {
-                pagesModel.groupTabs(activeId, thisPageId);
+                pagesModel.groupTabs(activeId, thisPageId, true);
             }
         }
 
@@ -562,6 +565,10 @@ export function PageTab(props: PageTabProps) {
                             size="small"
                             type="icon"
                             onClick={(e) => {
+                                if (!tabModel.isActive && e.ctrlKey) {
+                                    tabModel.handleClick(e);
+                                    return;
+                                }
                                 pagesModel.showPage(model.state.get().id);
                                 if (tabModel.isActive) {
                                     setOpen(e.currentTarget);

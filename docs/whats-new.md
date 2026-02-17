@@ -8,7 +8,29 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.10 (Upcoming)
 
-*Development in progress*
+### New Features
+
+- **Open Folder in New Tab** — Click the chevron icon on a selected sidebar folder to open a new tab with the File Explorer panel showing that folder's contents
+
+- **Markdown Search** — Press `Ctrl+F` in Markdown Preview to search text
+  - All matches highlighted with match counter ("3 of 17")
+  - Navigate matches with `F3` / `Shift+F3` or arrow buttons
+  - Active match highlighted with background color and scrolled into view
+  - `Esc` or close button to dismiss
+
+### Improvements
+
+- **Pinned Tab Grouping** — Pinned tabs can now be grouped with other tabs for side-by-side view
+  - Script execution works in pinned tabs (output goes to grouped tab as expected)
+  - Duplicate Tab works for pinned tabs
+  - Grouping is preserved when pinning/unpinning a tab
+  - Ctrl+Click grouping between pinned and unpinned tabs works
+
+- **Deleted File Indicator for Pinned Tabs** — The modification dot on pinned tabs now turns red when the file has been deleted from disk, matching the red title shown on normal tabs
+
+### Bug Fixes
+
+- **HTML Preview navigation crash** — Fixed an issue where clicking links in the HTML Preview editor could crash the application in production builds. Links in HTML Preview are now blocked from navigating.
 
 ---
 
@@ -20,7 +42,7 @@ Release notes and changelog for js-notepad.
   - Right-click a tab → "Pin Tab" to pin it; "Unpin Tab" to unpin
   - Pinned tabs display as compact icon-only tabs at the left of the tab bar
   - Stay fixed in place when scrolling through other tabs (sticky positioning)
-  - Cannot be closed, dragged to another window, or grouped
+  - Cannot be closed or dragged to another window
   - Can be reordered among other pinned tabs by dragging
   - Show language icon, encryption icon, and modification dot
   - Navigate to other files via File Explorer panel while staying pinned

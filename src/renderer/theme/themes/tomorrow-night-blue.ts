@@ -84,6 +84,9 @@ export const tomorrowNightBlue: ThemeDefinition = {
         "--color-warning-border": "#002451",
         "--color-warning-text-hover": "#ffeead",
 
+        // highlight
+        "--color-highlight-active-match": "rgba(255, 238, 173, 0.35)",
+
         // minimap slider
         "--color-minimap-bg": "rgba(187, 218, 255, 0.15)",
         "--color-minimap-hover-bg": "rgba(187, 218, 255, 0.3)",

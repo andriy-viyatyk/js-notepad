@@ -84,6 +84,9 @@ export const solarizedLight: ThemeDefinition = {
         "--color-warning-border": "#FDF6E3",
         "--color-warning-text-hover": "#a07800",
 
+        // highlight
+        "--color-highlight-active-match": "rgba(181, 137, 0, 0.3)",
+
         // minimap slider
         "--color-minimap-bg": "rgba(101, 123, 131, 0.15)",
         "--color-minimap-hover-bg": "rgba(101, 123, 131, 0.25)",

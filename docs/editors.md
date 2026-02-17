@@ -47,6 +47,7 @@ See **[Grid Editor](./grid-editor.md)** for complete documentation including all
 For `.md` and `.markdown` files — click **Preview** in the toolbar:
 
 - **GitHub-flavored Markdown** rendering
+- **Text search** — press `Ctrl+F` to find text, `F3`/`Shift+F3` to navigate matches, `Esc` to close
 - **Syntax highlighting** in fenced code blocks using Monaco's colorize API (supports all Monaco languages including aliases like `ts`, `js`, `py`, `bash`)
 - **Copy-to-clipboard** button on code block hover
 - **Inline Mermaid diagrams** — ` ```mermaid ` code blocks render as SVG diagrams

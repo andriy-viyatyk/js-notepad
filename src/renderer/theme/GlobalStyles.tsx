@@ -106,6 +106,12 @@ function buildGlobalStyles() {
             color: ${color.misc.blue};
         }
 
+        .highlighted-text-active {
+            color: ${color.misc.blue};
+            background-color: ${color.highlight.activeMatch};
+            border-radius: 2px;
+        }
+
         .monaco-editor.no-user-select {
             outline: none;
         }
