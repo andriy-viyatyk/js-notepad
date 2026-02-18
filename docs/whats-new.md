@@ -8,7 +8,29 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.11 (Upcoming)
 
-*Coming soon...*
+### New Features
+
+- **Todo Editor** — A structured task list editor for `.todo.json` files
+  - Organize tasks into multiple named lists (e.g., "Project A", "Personal")
+  - **Tags** — define colored tags and assign one tag per item (e.g., "bug", "feature", "critical")
+  - **Tag filtering** — click a tag in the left panel to filter; combines with list filter and search (AND logic)
+  - **Tag management** — add, rename, delete tags; assign colors from a predefined palette
+  - Each list shows undone/total count badges
+  - Quick-add input — type and press Enter to create new items
+  - Checkbox toggle to mark items done/undone
+  - Undone items first, done items sorted by completion date (newest first)
+  - Drag-to-reorder undone items via drag handle (warnings when reorder isn't possible)
+  - Optional multiline comments on any item
+  - Hover to see created and done dates
+  - Toolbar search with live filtering and highlighted matches
+  - Inline editing of titles and comments for both done and undone items
+  - Add, rename, and delete lists (with confirmation dialogs)
+  - Resizable left panel with splitter
+  - Virtualized item list for smooth scrolling
+  - Can switch to Monaco for raw JSON editing
+  - Distinctive file icon for `.todo.json` files
+
+- **Quick Add: Todo** — The dropdown menu next to the "+" tab button now includes a "Todo" option to create a new `.todo.json` file
 
 ---
 
@@ -105,6 +127,7 @@ Release notes and changelog for js-notepad.
   - Grid (JSON) — new `.grid.json` file with Grid editor active
   - Grid (CSV) — new `.grid.csv` file with Grid editor active
   - Notebook — new `.note.json` file with Notebook editor active
+  - Todo — new `.todo.json` file with Todo editor active
 
 ---
 

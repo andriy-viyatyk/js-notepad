@@ -116,6 +116,26 @@ Compare two files side-by-side using Monaco's built-in diff viewer:
 
 See [Tabs & Navigation](./tabs-and-navigation.md) for more on tab grouping.
 
+## Todo Editor
+
+For `.todo.json` files — a structured task list interface:
+
+- **Multiple lists** — organize tasks into named lists (e.g., "Project A", "Personal")
+- **Tags** — define colored tags and assign one tag per item for categorization (e.g., "bug", "feature")
+- **Tag filtering** — click a tag in the left panel to filter items; combines with list filter and search
+- **Item counts** — each list shows undone/total count badges
+- **Quick add** — type and press Enter to add new items
+- **Checkbox toggle** — mark items done/undone with a click
+- **Sorting** — undone items first, then done items sorted by completion date
+- **Drag-to-reorder** — reorder undone items via drag handle (select a specific list first)
+- **Optional comments** — add multiline comments to any item
+- **Dates** — hover to see created/done dates
+- **Search** — toolbar search filters items with highlighted matches
+- **Inline editing** — edit titles and comments for both done and undone items
+- **List management** — add, rename, and delete lists
+- **Tag management** — add, rename, delete tags; assign colors from a predefined palette
+- Can switch to Monaco for raw JSON editing
+
 ## Notebook Editor
 
 For `.note.json` files — a structured notes interface:
@@ -138,6 +158,7 @@ Some files support multiple editors:
 |-----------|-------------------|
 | `.json` | Text, Grid |
 | `.note.json` | Text, Notebook |
+| `.todo.json` | Text, ToDo |
 | `.csv` | Text, Grid |
 | `.md` | Text, Preview |
 | `.svg` | Text, Preview |
@@ -149,4 +170,4 @@ Some files support multiple editors:
 
 Use the buttons in the toolbar to switch between available editors.
 
-**Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page with a specific editor: Script (JS), Grid (JSON), Grid (CSV), or Notebook.
+**Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page with a specific editor: Script (JS), Grid (JSON), Grid (CSV), Notebook, or Todo.

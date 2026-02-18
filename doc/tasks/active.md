@@ -9,17 +9,15 @@ Current work in progress and planned tasks.
 
 
 ## Planned (Next)
-
-| ID | Title | Priority | Link |
-|----|-------|----------|------|
 | US-021 | Browser Editor | Medium | [README](US-021-browser-editor/README.md) |
-| US-022 | ToDo Editor | Medium | [README](US-022-todo-editor/README.md) |
 | US-023 | NavigationPanel File Content Search | Medium | [README](US-023-navigation-panel-search/README.md) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-024 | ToDo List Enhancement — Tags | Colored tags with filtering, tag assignment on items, predefined color palette, drag-drop warnings |
+| US-022 | ToDo Editor | Structured task list editor for `.todo.json` files with multiple lists, drag-to-reorder, search, comments, virtualized grid |
 | US-020 | Markdown View Search | Ctrl+F search in Markdown Preview with match highlighting, F3/Shift+F3 navigation, match counter, active match background |
 | US-019 | Open User Folder in Tab | Chevron on sidebar folders opens new tab with NavPanel, hover+tooltip for discoverability, built-in items unchanged |
 | US-018 | Implement Grouping for Pinned Tabs | Non-adjacent grouping for pinned+unpinned tabs, script execution works in pinned tabs, grouping preserved through pin/unpin |

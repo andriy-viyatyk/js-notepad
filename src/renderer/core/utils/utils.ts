@@ -19,6 +19,15 @@ export function toClipboard(text: string): void {
     navigator.clipboard.writeText(text);
 }
 
+/** Format an ISO date string as YYYY-MM-DD */
+export function formatDate(isoString: string): string {
+    const d = new Date(isoString);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
 export function splitWithSeparators(text: string, separators: string, withTrim = true): string[] {
     // Escape special regex characters in the separators string
     const escapedSeparators = separators.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

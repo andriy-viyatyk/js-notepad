@@ -21,8 +21,10 @@ export function resolveRelatedLink(currentFilePath?: string, link?: string): str
     }
 
     try {
+        // Decode URL-encoded characters (e.g. %5C for backslashes from markdown parsers)
+        const decoded = decodeURIComponent(link);
         const currentDir = path.dirname(currentFilePath);
-        const absolutePath = path.resolve(currentDir, link);
+        const absolutePath = path.resolve(currentDir, decoded);
         const fileUrl = url.pathToFileURL(absolutePath).href;
         return fileUrl;
     } catch {

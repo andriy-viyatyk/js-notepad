@@ -1,5 +1,6 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
+import { formatDate } from "../../core/utils/utils";
 import { NoteItem } from "./notebookTypes";
 import { NotebookEditorModel } from "./NotebookEditorModel";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
@@ -109,13 +110,7 @@ export class NoteItemViewModel extends TComponentModel<NoteItemViewState, NoteIt
     // Utility
     // =========================================================================
 
-    formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    };
+    formatDate = formatDate;
 
     hasSearchMatch = (text: string) => {
         if (!this.searchText || !text) return false;

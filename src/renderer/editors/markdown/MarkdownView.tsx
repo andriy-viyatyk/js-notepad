@@ -4,7 +4,7 @@ import rehypeRaw from "rehype-raw";
 import styled from "@emotion/styled";
 import { TextFileModel } from "../text";
 import color from "../../theme/color";
-import { CheckedIcon, CompactViewIcon, NormalViewIcon, UncheckedIcon } from "../../theme/icons";
+import { CheckedIcon, CompactViewIcon, CopyIcon, NormalViewIcon, UncheckedIcon } from "../../theme/icons";
 import { useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Minimap } from "../../components/layout/Minimap";
@@ -610,6 +610,23 @@ export function MarkdownView(props: MarkdownViewProps) {
         }
     }, [pageState.searchVisible]);
 
+    const onContextMenu = useCallback((e: React.MouseEvent) => {
+        const anchor = (e.target as HTMLElement).closest("a");
+        if (anchor) {
+            const href = anchor.getAttribute("href");
+            if (href) {
+                if (!e.nativeEvent.menuItems) {
+                    e.nativeEvent.menuItems = [];
+                }
+                e.nativeEvent.menuItems.push({
+                    label: "Copy Link",
+                    icon: <CopyIcon />,
+                    onClick: () => navigator.clipboard.writeText(href),
+                });
+            }
+        }
+    }, []);
+
     // Apply max height constraint from context (e.g., when embedded in notebook)
     const rootStyle = editorConfig.maxEditorHeight
         ? { maxHeight: editorConfig.maxEditorHeight }
@@ -639,6 +656,7 @@ export function MarkdownView(props: MarkdownViewProps) {
                 style={rootStyle}
                 className={`${showMinimap ? "" : "show-scrollbar"} ${compact ? "compact" : ""}`}
                 onKeyDown={onKeyDown}
+                onContextMenu={onContextMenu}
                 tabIndex={-1}
             >
                 {showSearchBar && (
@@ -661,6 +679,9 @@ export function MarkdownView(props: MarkdownViewProps) {
                         remarkPlugins={[remarkGfm]}
                         rehypePlugins={rehypePlugins}
                         components={components}
+                        urlTransform={(url) => {
+                            try { return decodeURIComponent(url); } catch { return url; }
+                        }}
                     >
                         {content}
                     </ReactMarkdown>

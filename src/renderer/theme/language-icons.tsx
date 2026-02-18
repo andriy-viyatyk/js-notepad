@@ -503,6 +503,21 @@ export const NotebookIcon = createIconWithViewBox("0 0 32 32")(
     </g>
 );
 
+export const TodoIcon = createIconWithViewBox("0 0 32 32")(
+    <g>
+        {/* Checkboxes */}
+        <rect x="4" y="5" width="6" height="6" rx="1.5" fill="#4DD0E1" />
+        <rect x="4" y="14" width="6" height="6" rx="1.5" fill="#4DD0E1" opacity="0.7" />
+        <rect x="4" y="23" width="6" height="6" rx="1.5" fill="#4DD0E1" opacity="0.5" />
+        {/* Checkmark in first box */}
+        <path d="M5.5 8L7 9.5L9.5 6.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        {/* Text lines */}
+        <rect x="13" y="7" width="14" height="1.5" rx="0.5" fill="#4DD0E1" opacity="0.9" />
+        <rect x="13" y="16" width="11" height="1.5" rx="0.5" fill="#4DD0E1" opacity="0.7" />
+        <rect x="13" y="25" width="13" height="1.5" rx="0.5" fill="#4DD0E1" opacity="0.5" />
+    </g>
+);
+
 export const GridIcon = createIconWithViewBox("0 0 32 32")(
     <g>
         {/* Grid cells - 3x3 */}

@@ -275,17 +275,23 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
             alertWarning(err.message || "Failed to rename file.");
             return false;
         }
+        await this.applyRenamedPath(newPath);
+        return true;
+    };
+
+    /** Update filePath, title, FileWatcher and recent-files after a rename on disk. */
+    applyRenamedPath = async (newPath: string) => {
+        const oldPath = this.state.get().filePath;
         this.state.update((s) => {
             s.filePath = newPath;
-            s.title = newName;
+            s.title = path.basename(newPath);
         });
         this.fileWatcher?.dispose();
         this.fileWatcher = new FileWatcher(newPath, this.onFileChanged);
-        if (newPath !== filePath) {
-            await recentFiles.remove(filePath);
+        if (oldPath && newPath !== oldPath) {
+            await recentFiles.remove(oldPath);
             recentFiles.add(newPath);
         }
-        return true;
     };
 
     async restore() {

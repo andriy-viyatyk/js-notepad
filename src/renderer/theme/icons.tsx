@@ -374,6 +374,17 @@ export const WarningIcon = createIcon(24)(
     </>,
 );
 
+export const DragHandleIcon = createIcon(24)(
+    <>
+        <circle cx="9" cy="6" r="1.5" fill="currentColor" />
+        <circle cx="15" cy="6" r="1.5" fill="currentColor" />
+        <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="9" cy="18" r="1.5" fill="currentColor" />
+        <circle cx="15" cy="18" r="1.5" fill="currentColor" />
+    </>,
+);
+
 export const ResizeHandleIcon = createIcon(24)(
     <path
         d="M21 15L15 21M21 8L8 21"
@@ -487,9 +498,11 @@ export const SettingsIcon = createIcon(24)(
 export const CheckedIcon = createIcon(16)(
     <>
         <rect
-            width="16"
-            height="16"
-            rx="4"
+            x="0.75"
+            y="0.75"
+            width="14.5"
+            height="14.5"
+            rx="3.25"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.5"
@@ -507,9 +520,11 @@ export const CheckedIcon = createIcon(16)(
 
 export const UncheckedIcon = createIcon(16)(
     <rect
-        width="16"
-        height="16"
-        rx="4"
+        x="0.75"
+        y="0.75"
+        width="14.5"
+        height="14.5"
+        rx="3.25"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"

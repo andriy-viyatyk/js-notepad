@@ -3,6 +3,7 @@ import { MenuItem } from "../overlay/PopupMenu";
 import { TreeViewRef } from "../TreeView";
 import { FileTreeItem, FileSortType, buildFileTree, loadFolderChildren, filterTreeShallow, filterTreeDeep } from "./file-tree-builder";
 import { pagesModel } from "../../store";
+import { TextFileModel } from "../../editors/text/TextPageModel";
 import { api } from "../../../ipc/renderer/api";
 import { showInputDialog } from "../../features/dialogs/InputDialog";
 import { showConfirmationDialog } from "../../features/dialogs/ConfirmationDialog";
@@ -551,6 +552,14 @@ export class FileExplorerModel extends TComponentModel<FileExplorerState, FileEx
             } catch (err: any) {
                 alertWarning(err.message || `Failed to rename ${item.isFolder ? "folder" : "file"}.`);
                 return;
+            }
+            if (!item.isFolder) {
+                const page = pagesModel.state.get().pages.find(
+                    (p) => p.state.get().filePath === item.filePath,
+                );
+                if (page instanceof TextFileModel) {
+                    await page.applyRenamedPath(newPath);
+                }
             }
             this.buildTree();
         }

@@ -11,6 +11,7 @@ import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
 import { NoteItem } from "./notebookTypes";
 import { NotebookEditorModel } from "./NotebookEditorModel";
+import { formatDate } from "../../core/utils/utils";
 
 // =============================================================================
 // Styles
@@ -296,14 +297,6 @@ export function ExpandedNoteView({
         notebookModel.getNoteState,
         notebookModel.setNoteState
     );
-
-    const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    };
 
     // Handle Escape key to collapse
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {

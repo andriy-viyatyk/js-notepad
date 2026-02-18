@@ -7,7 +7,7 @@ import {
     ChevronDownIcon,
     PlusIcon,
 } from "../../theme/icons";
-import { GridIcon, JavascriptIcon, NotebookIcon } from "../../theme/language-icons";
+import { GridIcon, JavascriptIcon, NotebookIcon, TodoIcon } from "../../theme/language-icons";
 import { Button } from "../../components/basic/Button";
 import { WithPopupMenu } from "../../components/overlay/WithPopupMenu";
 import { MenuItem } from "../../components/overlay/PopupMenu";
@@ -178,6 +178,11 @@ export function PageTabs(props: object) {
             label: "Notebook",
             icon: <NotebookIcon />,
             onClick: () => pagesModel.addEditorPage("notebook-view", "json", "untitled.note.json"),
+        },
+        {
+            label: "Todo",
+            icon: <TodoIcon />,
+            onClick: () => pagesModel.addEditorPage("todo-view", "json", "untitled.todo.json"),
         },
     ], []);
 

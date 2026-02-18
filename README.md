@@ -47,6 +47,7 @@
 | **Image Viewer** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer with zoom and pan |
 | **PDF Viewer** | `.pdf` | Integrated pdf.js document viewer |
 | **Notebook** | `.note.json` | Structured notes with categories, tags, and search |
+| **Todo** | `.todo.json` | Task lists with multiple lists, drag-to-reorder, and search |
 | **Compare** | any two files | Side-by-side diff view |
 
 ---

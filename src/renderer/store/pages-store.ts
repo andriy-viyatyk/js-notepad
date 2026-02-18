@@ -10,7 +10,7 @@ import {
     TextFileModel,
 } from "../editors/text";
 import { openFilesNameTemplate } from "../../shared/constants";
-import { IPage, PageDragData, PageEditor, WindowState } from "../../shared/types";
+import { IPage, PageEditor, WindowState } from "../../shared/types";
 import { filesModel } from "./files-store";
 import { PageModel } from "../editors/base";
 import { recentFiles } from "./recent-files";
@@ -811,24 +811,7 @@ export class PagesModel extends TModel<OpenFilesState> {
             return;
         }
 
-        const page = this.state.get().pages.find((p) => {
-            const pState = p.state.get();
-            return (
-                (pState as any).filePath === filePath
-            );
-        });
-
-        if (page) {
-            const pageData: Partial<IPage> = page.getRestoreData();
-
-            const dragData: PageDragData = {
-                sourceWindowIndex: filesModel.windowIndex,
-                page: pageData,
-            };
-            api.addDragEvent(dragData);
-        } else {
-            api.openNewWindow(filePath);
-        }
+        api.openNewWindow(filePath);
     }
 
     duplicatePage = async (pageId: string) => {

@@ -19,7 +19,7 @@ const matchesPattern = (fileName: string, pattern: RegExp): boolean => {
 // Patterns for specialized JSON editors (excluded from grid-json)
 const SPECIALIZED_JSON_PATTERNS = [
     /\.note\.json$/i,
-    // /\.todo\.json$/i,  // TODO: uncomment when todo editor is implemented
+    /\.todo\.json$/i,
 ];
 
 const isSpecializedJson = (fileName?: string): boolean => {
@@ -267,6 +267,33 @@ editorRegistry.register({
         const module = await import("./mermaid/MermaidView");
         return {
             Editor: module.MermaidView,
+            newPageModel: textEditorModule.newPageModel,
+            newEmptyPageModel: textEditorModule.newEmptyPageModel,
+            newPageModelFromState: textEditorModule.newPageModelFromState,
+        };
+    },
+});
+
+// Todo editor (content-view for .todo.json files)
+editorRegistry.register({
+    id: "todo-view",
+    name: "ToDo",
+    pageType: "textFile",
+    category: "content-view",
+    acceptFile: (fileName) => {
+        if (matchesPattern(fileName, /\.todo\.json$/i)) return 20;
+        return -1;
+    },
+    validForLanguage: (languageId) => languageId === "json",
+    switchOption: (languageId, fileName) => {
+        if (languageId !== "json") return -1;
+        if (!fileName || !matchesPattern(fileName, /\.todo\.json$/i)) return -1;
+        return 10;
+    },
+    loadModule: async () => {
+        const module = await import("./todo/TodoEditor");
+        return {
+            Editor: module.TodoEditor,
             newPageModel: textEditorModule.newPageModel,
             newEmptyPageModel: textEditorModule.newEmptyPageModel,
             newPageModelFromState: textEditorModule.newPageModelFromState,
