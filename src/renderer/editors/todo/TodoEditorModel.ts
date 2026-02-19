@@ -161,6 +161,10 @@ export class TodoEditorModel extends TComponentModel<
             this.state.update((s) => {
                 s.data = { lists, tags, items, state: itemState };
                 s.error = undefined;
+                // Auto-select when there is exactly one list
+                if (lists.length === 1 && !s.selectedList) {
+                    s.selectedList = lists[0];
+                }
             });
             this.lastSerializedData = this.state.get().data;
             this.loadListCounts();

@@ -152,6 +152,12 @@ const PageTabRoot = styled.div({
             display: "none",
         },
     },
+    "&.pinned.grouped .close-button": {
+        pointerEvents: "auto",
+    },
+    "&.pinned.grouped .close-icon": {
+        display: "inline-block",
+    },
     "&.pinned.modified .modified-icon": {
         display: "inline-block",
     },
@@ -277,20 +283,20 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 },
             );
         }
-        menuItems.push(
-            {
-                label: "Duplicate Tab",
-                icon: <DuplicateIcon />,
-                onClick: () => {
-                    pagesModel.duplicatePage(this.props.model.id);
-                },
-                startGroup: isPinned,
+        menuItems.push({
+            label: "Duplicate Tab",
+            icon: <DuplicateIcon />,
+            onClick: () => {
+                pagesModel.duplicatePage(this.props.model.id);
             },
-            {
+            startGroup: isPinned,
+        });
+        if (!isPinned) {
+            menuItems.push({
                 ...pinUnpinItem,
-                startGroup: !isPinned,
-            },
-        );
+                startGroup: true,
+            });
+        }
         menuItems.push(
             {
                 startGroup: true,
@@ -543,6 +549,7 @@ export function PageTab(props: PageTabProps) {
                 temp,
                 deleted,
                 pinned,
+                grouped: tabModel.isGrouped,
                 "pinned-encrypted": isPinnedEncrypted,
             })}
             style={pinned && props.pinnedLeft !== undefined ? { left: props.pinnedLeft } : undefined}

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { VirtualElement } from '@floating-ui/react/dist/floating-ui.react';
 
@@ -15,14 +15,24 @@ const defaultOffset = [-4, 4] as [number, number];
 export function WithPopupMenu(props: WithPopupMenuProps) {
     const { children, items, offset, ...popperProps } = props;
     const [el, setElement] = useState<TargetElement>(null);
+    const previousFocusRef = useRef<Element | null>(null);
+
+    const openMenu = useCallback((target: TargetElement) => {
+        previousFocusRef.current = document.activeElement;
+        setElement(target);
+    }, []);
 
     const onPopupClose = useCallback(() => {
         setElement(null);
+        if (previousFocusRef.current instanceof HTMLElement) {
+            previousFocusRef.current.focus();
+        }
+        previousFocusRef.current = null;
     }, []);
 
     return children ? (
         <>
-            {children(setElement)}
+            {children(openMenu)}
             {ReactDOM.createPortal(
                 <PopupMenu
                     open={Boolean(el)}
