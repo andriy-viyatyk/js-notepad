@@ -1,7 +1,7 @@
 {
   "name": "js-notepad",
   "productName": "js-notepad",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "JS Notepad",
   "main": ".vite/build/main.js",
   "scripts": {

@@ -12,7 +12,10 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-021 | Browser Editor | Medium | [README](US-021-browser-editor/README.md) |
+| US-025 | Basic Browser Editor | Medium | [README](US-025-basic-browser-editor/README.md) |
+| US-026 | Browser Internal Tabs | Medium | [README](US-026-browser-internal-tabs/README.md) |
+| US-027 | Browser Profiles, Incognito & Downloads | Medium | [README](US-027-browser-profiles-downloads/README.md) |
+| US-028 | Browser Bookmarks (Links Editor Integration) | Low | [README](US-028-browser-bookmarks/README.md) |
 
 ## Recently Completed
 
