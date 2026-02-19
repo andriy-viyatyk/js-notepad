@@ -139,6 +139,14 @@ All navigation keys (except Tab) support **Shift** to extend selection.
 |----------|--------|
 | `Escape` | Collapse expanded note / cancel editing |
 
+## File Explorer Panel
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+F` | Search files by name |
+| `Ctrl+Shift+F` | Search in file contents |
+| `Escape` | Close search panel |
+
 ## Sidebar
 
 | Shortcut | Action |

@@ -5,21 +5,26 @@ import { parseJSON5 } from "../core/utils/parse-utils";
 import { filesModel } from "./files-store";
 import { FileWatcher } from "../core/services/file-watcher";
 import { applyTheme } from "../theme/themes";
+import { defaultSearchableExtensions, defaultMaxFileSize } from "../../ipc/search-ipc";
 
 const settingsFileName = "appSettings.json";
 
-export type AppSettingsKey = "tab-recent-languages" | "theme";
+export type AppSettingsKey = "tab-recent-languages" | "theme" | "search-extensions" | "search-max-file-size";
 
 const settingsComments: Record<AppSettingsKey, string> = {
     "tab-recent-languages":
         "Recently selected languages.\nMore recent languages will appear on top of 'change language' menu.",
     "theme": "Application color theme.\nAvailable themes: default-dark, solarized-dark, monokai, abyss, red, tomorrow-night-blue, light-modern, solarized-light, quiet-light",
+    "search-extensions": "File extensions to include in file content search.\nAdd or remove extensions to customize which files are searchable.",
+    "search-max-file-size": "Maximum file size (in bytes) for file content search.\nFiles larger than this are skipped. Default: 1048576 (1 MB).",
 };
 
 const defaultAppSettingsState = {
     settings: {
         "tab-recent-languages": ["plaintext"] as string[],
         "theme": "default-dark",
+        "search-extensions": defaultSearchableExtensions as string[],
+        "search-max-file-size": defaultMaxFileSize,
     },
 };
 

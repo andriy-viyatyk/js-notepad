@@ -136,6 +136,42 @@ function filterChildrenDeep(
     return result;
 }
 
+/**
+ * Filter tree to keep only files whose paths are in the given set,
+ * plus their ancestor folders. Used for external content-search filtering.
+ */
+export function filterTreeByPaths(
+    root: FileTreeItem,
+    filterPaths: Set<string>,
+): FileTreeItem {
+    return {
+        ...root,
+        items: filterChildrenByPaths(root.items, filterPaths),
+    };
+}
+
+function filterChildrenByPaths(
+    items: FileTreeItem[] | undefined,
+    filterPaths: Set<string>,
+): FileTreeItem[] {
+    if (!items) return [];
+
+    const result: FileTreeItem[] = [];
+    for (const item of items) {
+        if (item.isFolder) {
+            const filteredChildren = filterChildrenByPaths(item.items, filterPaths);
+            if (filteredChildren.length > 0) {
+                result.push({ ...item, items: filteredChildren });
+            }
+        } else {
+            if (filterPaths.has(item.filePath)) {
+                result.push(item);
+            }
+        }
+    }
+    return result;
+}
+
 function readDirectoryItems(
     dirPath: string,
     sortType: FileSortType,

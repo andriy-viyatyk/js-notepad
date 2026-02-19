@@ -130,7 +130,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         this.saveState();
     };
 
-    navigatePageTo = async (pageId: string, newFilePath: string): Promise<boolean> => {
+    navigatePageTo = async (pageId: string, newFilePath: string, options?: { revealLine?: number; highlightText?: string; forceTextEditor?: boolean }): Promise<boolean> => {
         const oldModel = this.findPage(pageId);
         if (!oldModel) return false;
 
@@ -163,16 +163,26 @@ export class PagesModel extends TModel<OpenFilesState> {
             }
         }
 
-        // Auto-select preview editor for navigated files
+        // Auto-select preview editor for navigated files (skip when forceTextEditor,
+        // revealLine, or highlightText is set so the text editor stays active)
         if (newModel.state.get().type === "textFile") {
-            const ext = path.extname(newFilePath).toLowerCase();
-            const lang = getLanguageByExtension(ext);
-            const languageId = lang?.id || "plaintext";
-            const previewEditor = editorRegistry.getPreviewEditor(languageId, newFilePath);
-            if (previewEditor) {
-                newModel.state.update((s) => {
-                    s.editor = previewEditor;
-                });
+            if (options?.forceTextEditor || options?.revealLine || options?.highlightText) {
+                if (options.revealLine) {
+                    (newModel as TextFileModel).editor.revealLine(options.revealLine);
+                }
+                if (options.highlightText) {
+                    (newModel as TextFileModel).editor.setHighlightText(options.highlightText);
+                }
+            } else {
+                const ext = path.extname(newFilePath).toLowerCase();
+                const lang = getLanguageByExtension(ext);
+                const languageId = lang?.id || "plaintext";
+                const previewEditor = editorRegistry.getPreviewEditor(languageId, newFilePath);
+                if (previewEditor) {
+                    newModel.state.update((s) => {
+                        s.editor = previewEditor;
+                    });
+                }
             }
         }
 

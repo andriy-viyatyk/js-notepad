@@ -28,6 +28,10 @@ export class TextEditorModel extends TModel<TextEditorState> {
     editorRef = null as monaco.editor.IStandaloneCodeEditor | null;
     private wheelListenerCleanup: (() => void) | null = null;
     private selectionListenerDisposable: monaco.IDisposable | null = null;
+    /** Set before mount to scroll Monaco to a specific line after it initializes */
+    pendingRevealLine: number | null = null;
+    private highlightDecorations: monaco.editor.IEditorDecorationsCollection | null = null;
+    private pendingHighlightText: string | undefined = undefined;
 
     constructor(pageModel: TextFileModel) {
         super(new TComponentState(defaultTextEditorState));
@@ -39,6 +43,18 @@ export class TextEditorModel extends TModel<TextEditorState> {
         this.focusEditor();
         this.setupWheelZoom(editor);
         this.setupSelectionListener(editor);
+
+        if (this.pendingRevealLine) {
+            const line = this.pendingRevealLine;
+            this.pendingRevealLine = null;
+            editor.revealLineInCenter(line);
+            editor.setPosition({ lineNumber: line, column: 1 });
+        }
+
+        if (this.pendingHighlightText) {
+            this.setHighlightText(this.pendingHighlightText);
+            this.pendingHighlightText = undefined;
+        }
     };
 
     handleEditorChange = (value: string | undefined) => {
@@ -47,6 +63,46 @@ export class TextEditorModel extends TModel<TextEditorState> {
 
     focusEditor = () => {
         this.editorRef?.focus();
+    };
+
+    /**
+     * Apply find-match decorations for search highlighting.
+     * Stores as pending if editor is not yet mounted.
+     */
+    setHighlightText = (text: string | undefined) => {
+        const editor = this.editorRef;
+        const model = editor?.getModel();
+        if (!editor || !model) {
+            this.pendingHighlightText = text;
+            return;
+        }
+
+        if (!text?.trim()) {
+            this.highlightDecorations?.clear();
+            return;
+        }
+
+        const matches = model.findMatches(text, false, false, false, null, false);
+        const decorations: monaco.editor.IModelDeltaDecoration[] = matches.map(match => ({
+            range: match.range,
+            options: { className: "findMatch" },
+        }));
+
+        if (this.highlightDecorations) {
+            this.highlightDecorations.set(decorations);
+        } else {
+            this.highlightDecorations = editor.createDecorationsCollection(decorations);
+        }
+    };
+
+    revealLine = (lineNumber: number) => {
+        if (this.editorRef) {
+            this.editorRef.revealLineInCenter(lineNumber);
+            this.editorRef.setPosition({ lineNumber, column: 1 });
+            this.editorRef.focus();
+        } else {
+            this.pendingRevealLine = lineNumber;
+        }
     };
 
     setupSelectionListener = (editor: monaco.editor.IStandaloneCodeEditor) => {
@@ -107,6 +163,8 @@ export class TextEditorModel extends TModel<TextEditorState> {
     };
 
     onDispose = () => {
+        this.highlightDecorations?.clear();
+        this.highlightDecorations = null;
         this.selectionListenerDisposable?.dispose();
         this.selectionListenerDisposable = null;
         this.wheelListenerCleanup?.();

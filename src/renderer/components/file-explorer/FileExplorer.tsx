@@ -123,6 +123,7 @@ export function FileExplorer(props: FileExplorerProps & { ref?: React.Ref<FileEx
 
     const searchable = props.searchable !== false;
     const isDeepSearch = state.searchText.length >= 3;
+    const hasFilterPaths = !!props.filterPaths?.size;
     const defaultCollapsed = props.defaultCollapsed !== false;
 
     const getLabel = useCallback((item: FileTreeItem) => (
@@ -222,7 +223,7 @@ export function FileExplorer(props: FileExplorerProps & { ref?: React.Ref<FileEx
                     onItemContextMenu={model.onItemContextMenu}
                     onExpandChange={model.onExpandChange}
                     rootCollapsible={false}
-                    defaultExpandAll={isDeepSearch || !defaultCollapsed}
+                    defaultExpandAll={isDeepSearch || hasFilterPaths || !defaultCollapsed}
                     initialExpandMap={model.initialExpandMap}
                     refreshKey={`${props.selectedFilePath || ""}-${state.searchText}`}
                 />

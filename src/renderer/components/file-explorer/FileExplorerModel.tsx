@@ -1,7 +1,7 @@
 import { TComponentModel } from "../../core/state/model";
 import { MenuItem } from "../overlay/PopupMenu";
 import { TreeViewRef } from "../TreeView";
-import { FileTreeItem, FileSortType, buildFileTree, loadFolderChildren, filterTreeShallow, filterTreeDeep } from "./file-tree-builder";
+import { FileTreeItem, FileSortType, buildFileTree, loadFolderChildren, filterTreeShallow, filterTreeDeep, filterTreeByPaths } from "./file-tree-builder";
 import { pagesModel } from "../../store";
 import { TextFileModel } from "../../editors/text/TextPageModel";
 import { api } from "../../../ipc/renderer/api";
@@ -43,6 +43,8 @@ export interface FileExplorerProps {
     showOpenInNewTab?: boolean;
     initialState?: FileExplorerSavedState;
     onStateChange?: (state: FileExplorerSavedState) => void;
+    /** External filter: show only files whose paths are in this set (+ ancestor folders) */
+    filterPaths?: Set<string>;
 }
 
 export const defaultFileExplorerState = {
@@ -59,6 +61,7 @@ export type FileExplorerState = typeof defaultFileExplorerState;
 export class FileExplorerModel extends TComponentModel<FileExplorerState, FileExplorerProps> {
     treeViewRef: TreeViewRef | null = null;
     savedExpandMap: Record<string, boolean> | null = null;
+    savedFilterExpandMap: Record<string, boolean> | null = null;
     initialExpandMap: Record<string, boolean> | undefined = undefined;
 
     setProps = () => {
@@ -76,16 +79,35 @@ export class FileExplorerModel extends TComponentModel<FileExplorerState, FileEx
             if (this.props.initialState?.expandedPaths?.length) {
                 this.loadChildrenForExpandedPaths(this.props.initialState.expandedPaths);
             }
+
+            // Apply external filter on first mount (e.g. remount after navigation with active search)
+            if (this.props.filterPaths?.size) {
+                this.ensureParentDirsLoaded(this.props.filterPaths);
+                this.initialExpandMap = undefined; // expand all when filtered
+                const tree = this.state.get().tree;
+                if (tree) {
+                    const displayTree = this.computeDisplayTree(tree, "");
+                    this.state.update((s) => {
+                        s.displayTree = displayTree;
+                    });
+                }
+            }
+
             // Build a complete expansion map so every folder has an explicit entry,
             // preventing TreeView's `level < 2` fallback from expanding folders.
             // When restoring saved state, merge collapsed defaults with saved expanded paths.
             const tree = this.state.get().tree;
-            if (tree && (this.initialExpandMap || this.props.defaultCollapsed !== false)) {
+            if (tree && !this.props.filterPaths?.size && (this.initialExpandMap || this.props.defaultCollapsed !== false)) {
                 const collapsedMap = this.buildAllCollapsedMap(tree);
                 this.initialExpandMap = { ...collapsedMap, ...(this.initialExpandMap ?? {}) };
             }
-        } else if (this.oldProps?.rootPath !== this.props.rootPath) {
-            this.buildTree();
+        } else {
+            if (this.oldProps?.rootPath !== this.props.rootPath) {
+                this.buildTree();
+            }
+            if (this.props.filterPaths !== this.oldProps?.filterPaths) {
+                this.applyFilterPaths();
+            }
         }
     };
 
@@ -205,6 +227,72 @@ export class FileExplorerModel extends TComponentModel<FileExplorerState, FileEx
         return node;
     };
 
+    private applyFilterPaths = () => {
+        const { filterPaths } = this.props;
+        const wasFiltered = !!this.oldProps?.filterPaths?.size;
+        const isFiltered = !!filterPaths?.size;
+
+        if (isFiltered && !wasFiltered) {
+            // Entering filtered mode — save expansion state
+            this.savedFilterExpandMap = this.treeViewRef?.getExpandMap() ?? {};
+        }
+
+        if (isFiltered) {
+            // Load parent directories so the tree has nodes for matching files
+            this.ensureParentDirsLoaded(filterPaths);
+            this.initialExpandMap = undefined; // expand all
+        }
+
+        if (!isFiltered && wasFiltered) {
+            // Leaving filtered mode — restore expansion state
+            this.initialExpandMap = this.savedFilterExpandMap ?? undefined;
+            this.savedFilterExpandMap = null;
+        }
+
+        const { tree, searchText } = this.state.get();
+        const displayTree = this.computeDisplayTree(tree, searchText);
+        this.state.update((s) => {
+            s.displayTree = displayTree;
+            s.treeViewKey++;
+        });
+    };
+
+    private ensureParentDirsLoaded = (filterPaths: Set<string>) => {
+        let { tree } = this.state.get();
+        if (!tree) return;
+
+        const rootPath = this.props.rootPath;
+        const dirsToLoad = new Set<string>();
+
+        for (const filePath of filterPaths) {
+            let dir = path.dirname(filePath);
+            while (dir.length > rootPath.length && dir.startsWith(rootPath)) {
+                dirsToLoad.add(dir);
+                dir = path.dirname(dir);
+            }
+        }
+
+        if (dirsToLoad.size === 0) return;
+
+        const sorted = [...dirsToLoad].sort((a, b) => a.length - b.length);
+        let changed = false;
+
+        for (const folderPath of sorted) {
+            const node = this.findNode(tree, folderPath);
+            if (node && node.isFolder && node.items === undefined) {
+                const children = loadFolderChildren(folderPath, this.props.sortType);
+                tree = this.updateNodeInTree(tree, folderPath, children);
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            this.state.update((s) => {
+                s.tree = tree;
+            });
+        }
+    };
+
     buildTree = () => {
         const { rootPath, sortType } = this.props;
         if (!rootPath) {
@@ -302,17 +390,30 @@ export class FileExplorerModel extends TComponentModel<FileExplorerState, FileEx
         tree: FileTreeItem | null,
         searchText: string,
     ): FileTreeItem | null => {
-        if (!tree || !searchText) return tree;
+        if (!tree) return tree;
 
-        const words = searchText.toLowerCase().split(" ").filter((s) => s);
-        if (words.length === 0) return tree;
+        let result = tree;
 
-        if (searchText.length >= 3) {
-            return filterTreeDeep(tree, words);
-        } else {
-            const expandedPaths = this.getExpandedPaths();
-            return filterTreeShallow(tree, words, expandedPaths);
+        // Apply external path filter first (content search results)
+        const { filterPaths } = this.props;
+        if (filterPaths?.size) {
+            result = filterTreeByPaths(result, filterPaths);
         }
+
+        // Then apply filename search on top
+        if (searchText) {
+            const words = searchText.toLowerCase().split(" ").filter((s) => s);
+            if (words.length > 0) {
+                if (searchText.length >= 3) {
+                    result = filterTreeDeep(result, words);
+                } else {
+                    const expandedPaths = this.getExpandedPaths();
+                    result = filterTreeShallow(result, words, expandedPaths);
+                }
+            }
+        }
+
+        return result;
     };
 
     private getExpandedPaths = (): Set<string> => {

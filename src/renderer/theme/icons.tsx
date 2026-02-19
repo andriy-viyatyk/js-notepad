@@ -248,6 +248,26 @@ export const ArrowUpIcon = createIcon(24)(
     />,
 );
 
+export const FolderUpIcon = createIcon(24)(
+    <>
+        <path
+            d="M3 12v8a1 1 0 001 1h16a1 1 0 001-1v-6a1 1 0 00-1-1h-7l-2-2H4a1 1 0 00-1 1z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            fill="none"
+        />
+        <path
+            d="M12 17V5M9 8l3-3 3 3"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+        />
+    </>,
+);
+
 export const ArrowDownIcon = createIcon(24)(
     <path
         d="M19 9L12 15L5 9"
@@ -979,4 +999,25 @@ export const NavPanelIcon = createIcon(24)(
             strokeLinecap="round"
         />
     </>,
+);
+
+export const SearchIcon = createIcon(16)(
+    <>
+        <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </>,
+);
+
+export const CaseSensitiveIcon = createIcon(16)(
+    <text
+        x="8"
+        y="12"
+        textAnchor="middle"
+        fill="currentColor"
+        fontSize="12"
+        fontWeight="bold"
+        fontFamily="monospace"
+    >
+        Aa
+    </text>,
 );

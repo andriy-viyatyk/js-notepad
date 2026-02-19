@@ -8,7 +8,17 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.12 (Upcoming)
 
-*Coming soon*
+### New Features
+
+- **Search in Files** — Press `Ctrl+Shift+F` in the File Explorer panel to search file contents across the entire folder tree
+  - Results streamed incrementally as files are scanned (search runs in the main process — no UI freezes)
+  - Results panel below the file tree, grouped by file with matched lines and highlighted text
+  - Click a result to open the file in Monaco editor at the matched line with search text highlighted
+  - File tree filters to show only files with matches during active search
+  - Include/exclude glob patterns for targeted searching
+  - Default excludes: `node_modules`, `.git`, and other common non-source directories
+  - While the search panel is open, file tree clicks activate Monaco editor instead of preview mode
+  - Configurable searchable file extensions in Settings → File Search
 
 ---
 

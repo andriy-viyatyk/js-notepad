@@ -23,7 +23,7 @@ const TextAreaRoot = styled.div(
         outline: "none",
         boxSizing: "border-box",
         whiteSpace: "pre-wrap",
-        "&:focus": {
+        "&:focus[contenteditable='plaintext-only']": {
             borderColor: color.misc.blue,
         },
         // Placeholder styling

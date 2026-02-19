@@ -168,7 +168,15 @@ Any saved file can open a **File Explorer** panel alongside the editor. Click th
 - **Make root** — Right-click any folder and choose "Make Root" to focus the tree on that folder, or double-click a folder to do the same
 - **Collapse all** — Click the collapse button in the panel header to collapse all expanded folders at once
 - **File operations** — Right-click for: create files/folders, rename, delete, copy path, show in explorer, open in new tab
-- **Search** — Press Ctrl+F within the panel to search files by name
+- **Search files by name** — Press Ctrl+F within the panel to search files by name
+- **Search in files** — Press Ctrl+Shift+F to search file contents across the entire folder tree
+  - Results appear in a split panel below the file tree, grouped by file with matched lines
+  - Matched text is highlighted in results; clicking a result opens the file at that line in Monaco editor
+  - The file tree filters to show only files with matches while a search is active
+  - Include/exclude glob patterns for fine-grained control (toggle with the filter button)
+  - Search text is highlighted in the Monaco editor when navigating results
+  - While the search panel is open, clicking files in the tree activates Monaco editor instead of preview mode
+  - Configurable file extensions in Settings → File Search
 - **Lazy loading** — Folders load their contents on expand, keeping large directories fast
 - **Resizable** — Drag the panel border to resize
 - **Persistent state** — Expanded folders, panel width, and scroll position survive app restarts and in-tab navigation

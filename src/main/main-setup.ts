@@ -8,6 +8,7 @@ import { pathToFileURL } from "node:url";
 import { openWindows } from "./open-windows";
 import { setupTray } from "./tray-setup";
 import { versionService } from "./version-service";
+import { initSearchHandlers } from "./search-service";
 
 export function setupMainProcess() {
     protocol.registerSchemesAsPrivileged([
@@ -32,6 +33,7 @@ export function setupMainProcess() {
     ]);
 
     controller.init();
+    initSearchHandlers();
 
     function registerAssetProtocol(partition: string) {
         const customSession = session.fromPartition(partition);

@@ -13,12 +13,12 @@ Current work in progress and planned tasks.
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
 | US-021 | Browser Editor | Medium | [README](US-021-browser-editor/README.md) |
-| US-023 | NavigationPanel File Content Search | Medium | [README](US-023-navigation-panel-search/README.md) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-023 | NavigationPanel File Content Search | VS Code-style file content search with streaming results, include/exclude patterns, FileExplorer filtering, Monaco highlighting, configurable extensions in Settings |
 | US-024 | ToDo List Enhancement — Tags | Colored tags with filtering, tag assignment on items, predefined color palette, drag-drop warnings |
 | US-022 | ToDo Editor | Structured task list editor for `.todo.json` files with multiple lists, drag-to-reorder, search, comments, virtualized grid |
 | US-020 | Markdown View Search | Ctrl+F search in Markdown Preview with match highlighting, F3/Shift+F3 navigation, match counter, active match background |

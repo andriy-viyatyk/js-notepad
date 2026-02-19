@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import styled from "@emotion/styled";
 import { IPage, PageType } from "../../../shared/types";
 import { getDefaultPageModelState, PageModel } from "../base";
@@ -7,6 +8,7 @@ import color from "../../theme/color";
 import { appSettings } from "../../store/app-settings";
 import { pagesModel } from "../../store/pages-store";
 import { applyTheme, getAvailableThemes } from "../../theme/themes";
+import { TextAreaField, TextAreaFieldRef } from "../../components/basic/TextAreaField";
 
 // ============================================================================
 // Styled Component
@@ -126,6 +128,19 @@ const SettingsPageRoot = styled.div({
         margin: "20px 0",
     },
 
+    "& .section-hint": {
+        fontSize: 11,
+        color: color.text.light,
+        marginBottom: 8,
+    },
+
+    "& .extensions-field": {
+        fontSize: 12,
+        lineHeight: 1.5,
+        maxHeight: 200,
+        overflowY: "auto",
+    },
+
     "& .link-button": {
         padding: "6px 12px",
         fontSize: 12,
@@ -204,14 +219,27 @@ interface SettingsPageProps {
 
 function SettingsPage({ model }: SettingsPageProps) {
     const currentThemeId = appSettings.use("theme");
+    const searchExtensions = appSettings.use("search-extensions");
     const themes = getAvailableThemes();
     const darkThemes = themes.filter((t) => t.isDark);
     const lightThemes = themes.filter((t) => !t.isDark);
+
+    const extensionsText = searchExtensions.join(", ");
+    const extensionsRef = useRef<TextAreaFieldRef>(null);
 
     const handleThemeChange = (themeId: string) => {
         applyTheme(themeId);
         appSettings.set("theme", themeId);
     };
+
+    const handleExtensionsBlur = useCallback(() => {
+        const value = extensionsRef.current?.getText() ?? "";
+        const extensions = value
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+        appSettings.set("search-extensions", extensions);
+    }, []);
 
     const handleOpenSettingsFile = () => {
         const filePath = appSettings.settingsFilePath;
@@ -252,6 +280,20 @@ function SettingsPage({ model }: SettingsPageProps) {
 
                 <div className="theme-section-label">Light</div>
                 {renderThemeGrid(lightThemes)}
+
+                <hr className="divider" />
+
+                <div className="section-label">File Search</div>
+                <div className="section-hint">
+                    File extensions included in content search (comma-separated)
+                </div>
+                <TextAreaField
+                    ref={extensionsRef}
+                    className="extensions-field"
+                    singleLine
+                    value={extensionsText}
+                    onBlur={handleExtensionsBlur}
+                />
 
                 <hr className="divider" />
 

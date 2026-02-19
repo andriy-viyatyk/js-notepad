@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { clsx } from "clsx";
+import { useEffect, useRef } from "react";
 import { TextFileModel } from "./TextPageModel";
 import { PageToolbar } from "../base/EditorToolbar";
 import { TextToolbar } from "./TextToolbar";
@@ -9,6 +10,8 @@ import color from "../../theme/color";
 import { EncryptionPanel } from "./EncryptionPanel";
 import { ActiveEditor } from "./ActiveEditor";
 import { FlexSpace } from "../../components/layout/Elements";
+import { pagesModel } from "../../store/pages-store";
+import { PageModel } from "../base";
 
 const TextPageViewRoot = styled.div({
     flex: "1 1 auto",
@@ -17,6 +20,7 @@ const TextPageViewRoot = styled.div({
     height: 200,
     rowGap: 2,
     position: "relative",
+    outline: "none",
     "& .editor-overlay": {
         position: "absolute",
         inset: 0,
@@ -56,9 +60,24 @@ export function TextPageView({ model }: TextPageViewProps) {
         showEncryptionPanel: s.showEncryptionPanel,
         restored: s.restored,
     }));
+    const rootRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const subscription = pagesModel.onFocus.subscribe((pageModel) => {
+            if (pageModel !== (model as PageModel)) return;
+            setTimeout(() => {
+                const root = rootRef.current;
+                if (root && !root.contains(document.activeElement)) {
+                    root.focus();
+                }
+            }, 200);
+        });
+        return () => subscription.unsubscribe();
+    }, [model]);
 
     return (
         <TextPageViewRoot
+            ref={rootRef}
             className={clsx("file-page")}
             onKeyDown={model.handleKeyDown}
             tabIndex={0}

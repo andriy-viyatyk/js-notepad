@@ -32,6 +32,11 @@ interface SplitterProps extends React.HTMLAttributes<HTMLDivElement> {
     initialHeight?: number;
     onChangeWidth?: (width: number) => void;
     onChangeHeight?: (height: number) => void;
+    /**
+     * Which border of the panel controlled by onChangeWidth/onChangeHeight the splitter sits on.
+     * Example: if the splitter is below a panel whose height is tracked, use "bottom".
+     * "right"/"bottom" → drag right/down increases size; "left"/"top" → drag right/down decreases size.
+     */
     borderSized?: "right" | "left" | "top" | "bottom";
     className?: string;
 }

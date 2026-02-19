@@ -1,8 +1,9 @@
 import styled from "@emotion/styled";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../../components/basic/Button";
 import { TextField } from "../../components/basic/TextField";
+import { TextAreaField, TextAreaFieldRef } from "../../components/basic/TextAreaField";
 import { HighlightedTextProvider } from "../../components/basic/useHighlightedText";
 import { Splitter } from "../../components/layout/Splitter";
 import {
@@ -53,11 +54,10 @@ const TodoEditorRoot = styled.div({
     "& .quick-add-input": {
         flex: "1 1 auto",
         minWidth: 0,
-        "& input": {
-            backgroundColor: color.background.default,
-            "&:focus": {
-                backgroundColor: color.background.dark,
-            },
+        fontSize: 13,
+        backgroundColor: color.background.default,
+        "&:focus": {
+            backgroundColor: color.background.dark,
         },
     },
     "& .items-grid": {
@@ -122,7 +122,7 @@ export function TodoEditor(props: TodoEditorProps) {
     const allItems = pageState.data.items;
     const tags = pageState.data.tags;
     const items = pageState.filteredItems;
-    const [quickAddText, setQuickAddText] = useState("");
+    const quickAddRef = useRef<TextAreaFieldRef>(null);
 
     useEffect(() => {
         pageModel.init();
@@ -173,16 +173,17 @@ export function TodoEditor(props: TodoEditorProps) {
 
     // Quick add
     const handleQuickAdd = useCallback(() => {
-        const trimmed = quickAddText.trim();
+        const trimmed = quickAddRef.current?.getText()?.trim();
         if (trimmed) {
             pageModel.addItem(trimmed);
-            setQuickAddText("");
+            quickAddRef.current?.clear();
         }
-    }, [quickAddText, pageModel]);
+    }, [pageModel]);
 
     const handleQuickAddKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
             if (e.key === "Enter") {
+                e.preventDefault();
                 handleQuickAdd();
             }
         },
@@ -277,26 +278,24 @@ export function TodoEditor(props: TodoEditorProps) {
                     <div className="center-panel">
                         {/* Quick-add input */}
                         <div className="quick-add-row">
-                            <TextField
+                            <TextAreaField
+                                ref={quickAddRef}
                                 className="quick-add-input"
-                                value={quickAddText}
-                                onChange={setQuickAddText}
+                                singleLine
                                 onKeyDown={handleQuickAddKeyDown}
                                 placeholder={
                                     isQuickAddDisabled
                                         ? "Select a list to add items..."
                                         : "Add new todo item..."
                                 }
-                                disabled={isQuickAddDisabled}
+                                readonly={isQuickAddDisabled}
                             />
                             <Button
                                 size="small"
                                 type="icon"
                                 title="Add item"
                                 onClick={handleQuickAdd}
-                                disabled={
-                                    isQuickAddDisabled || !quickAddText.trim()
-                                }
+                                disabled={isQuickAddDisabled}
                             >
                                 <PlusIcon />
                             </Button>

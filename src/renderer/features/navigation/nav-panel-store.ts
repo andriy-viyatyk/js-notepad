@@ -3,6 +3,7 @@ import { FileExplorerSavedState } from "../../components/file-explorer";
 import { filesModel } from "../../store/files-store";
 import { parseObject } from "../../core/utils/parse-utils";
 import { debounce } from "../../../shared/utils";
+import { NavigationSearchModel } from "./NavigationSearchModel";
 
 export interface NavPanelState {
     open: boolean;
@@ -32,6 +33,8 @@ export class NavPanelModel {
     fileExplorerState: FileExplorerSavedState | undefined = undefined;
     /** Scroll position to restore after navigation (not persisted to disk) */
     scrollTop = 0;
+    /** Search model — not persisted, survives navigation transfers */
+    searchModel: NavigationSearchModel;
 
     constructor(rootFilePath: string, currentFilePath?: string) {
         this.state = new TComponentState<NavPanelState>({
@@ -40,6 +43,9 @@ export class NavPanelModel {
             rootFilePath,
             currentFilePath: currentFilePath || rootFilePath,
         });
+        this.searchModel = new NavigationSearchModel(
+            () => this.state.get().rootFilePath
+        );
         this.unsubscribe = this.state.subscribe(this.saveStateDebounced);
     }
 
@@ -94,6 +100,7 @@ export class NavPanelModel {
 
     dispose = () => {
         this.unsubscribe?.();
+        this.searchModel.dispose();
     };
 
     setFileExplorerState = (explorerState: FileExplorerSavedState) => {
@@ -123,5 +130,15 @@ export class NavPanelModel {
         this.state.update((s) => {
             s.open = false;
         });
+    };
+
+    /** Open the panel and its search bar */
+    openSearch = () => {
+        this.state.update((s) => {
+            s.open = true;
+        });
+        if (!this.searchModel.state.get().searchOpen) {
+            this.searchModel.toggleSearchOpen();
+        }
     };
 }

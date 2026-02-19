@@ -14,6 +14,7 @@ import { debounce } from "../../../shared/utils";
 import { decryptText, encryptText, isEncrypted } from "../../core/services/encryption";
 import { alertWarning } from "../../features/dialogs/alerts/AlertsBar";
 import { editorRegistry } from "../registry";
+import { NavPanelModel } from "../../features/navigation/nav-panel-store";
 
 export interface TextFilePageModelState extends IPage {
     content: string;
@@ -407,6 +408,28 @@ export class TextFileModel extends PageModel<TextFilePageModelState, void> {
                 this.runScript();
             }
         }
+
+        if (e.ctrlKey && e.shiftKey && e.code === "KeyF") {
+            e.preventDefault();
+            this.openSearchInNavPanel();
+        }
+    };
+
+    openSearchInNavPanel = () => {
+        const { filePath } = this.state.get();
+        if (!this.navPanel && !filePath) return;
+
+        if (!this.navPanel) {
+            const navPanel = new NavPanelModel(path.dirname(filePath), filePath);
+            navPanel.id = this.id;
+            navPanel.flushSave();
+            this.navPanel = navPanel;
+            this.state.update((s) => {
+                s.hasNavPanel = true;
+            });
+        }
+
+        this.navPanel.openSearch();
     };
 
     runScript = async (all?: boolean) => {
