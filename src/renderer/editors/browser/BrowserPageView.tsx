@@ -14,6 +14,7 @@ import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
 import color from "../../theme/color";
 import { Button } from "../../components/basic/Button";
+import { TextField } from "../../components/basic/TextField";
 import {
     ArrowLeftIcon,
     ArrowRightIcon,
@@ -35,6 +36,11 @@ import {
 } from "../../../ipc/browser-ipc";
 import { Splitter } from "../../components/layout/Splitter";
 import { BrowserTabsPanel } from "./BrowserTabsPanel";
+import { showAppPopupMenu } from "../../features/dialogs/poppers/showPopupMenu";
+import { MenuItem } from "../../components/overlay/PopupMenu";
+import { pagesModel } from "../../store/pages-store";
+import { newTextFileModel } from "../text/TextPageModel";
+import type { ImageViewerModelState } from "../image/ImageViewer";
 
 const BROWSER_PARTITION = "persist:browser-default";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,18 +66,6 @@ const BrowserPageViewRoot = styled.div({
 
     "& .url-bar": {
         flex: 1,
-        height: 24,
-        border: `1px solid ${color.border.default}`,
-        borderRadius: 4,
-        padding: "0 8px",
-        fontSize: 13,
-        backgroundColor: color.background.default,
-        color: color.text.default,
-        outline: "none",
-        fontFamily: "inherit",
-        "&:focus": {
-            borderColor: color.border.active,
-        },
     },
 
     "& .loading-bar": {
@@ -109,8 +103,13 @@ const BrowserPageViewRoot = styled.div({
         "& webview": {
             flex: "1 1 auto",
             border: "none",
-            backgroundColor: "#ffffff",
         },
+    },
+
+    "& .webview-click-overlay": {
+        position: "absolute",
+        inset: 0,
+        zIndex: 1,
     },
 
     "& .tabs-panel": {
@@ -227,6 +226,12 @@ function BrowserWebviewItem({
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 ref={webviewRef as any}
                 src={initialUrl.current}
+                style={{
+                    backgroundColor:
+                        !tab.url || tab.url === "about:blank"
+                            ? color.background.default
+                            : "#ffffff",
+                }}
                 partition={BROWSER_PARTITION}
                 preload={WEBVIEW_PRELOAD_URL}
                 // Allow popups so setWindowOpenHandler fires for target="_blank" links.
@@ -265,6 +270,9 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
     const webviewRefs = useRef<Map<string, Electron.WebviewTag>>(new Map());
     /** Tracks which internal tabs have fired dom-ready (safe to call loadURL). */
     const webviewReady = useRef<Set<string>>(new Set());
+    /** When true, a transparent overlay covers the webview area so clicks
+     *  fire on the renderer DOM and dismiss the open popup menu. */
+    const [popupOpen, setPopupOpen] = useState(false);
 
     // Keep urlInput in sync when URL changes externally (navigation, tab switch)
     useEffect(() => {
@@ -275,7 +283,7 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
     useEffect(() => {
         const pageTabId = model.id;
 
-        const onBrowserEvent = (
+        const onBrowserEvent = async (
             _event: Electron.IpcRendererEvent,
             browserEvent: BrowserEvent,
         ) => {
@@ -337,6 +345,238 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
                     }
                     break;
                 }
+                case "context-menu": {
+                    const webview = webviewRefs.current.get(internalTabId);
+                    if (!webview) break;
+
+                    // params.x/y from the webview context-menu event are
+                    // already in the host window's coordinate space.
+                    const menuX = data.x || 0;
+                    const menuY = data.y || 0;
+
+                    // Probe whether the click target is inside an SVG element.
+                    // Uses webview-relative coordinates for elementFromPoint.
+                    const wvRect = webview.getBoundingClientRect();
+                    const probeX = menuX - wvRect.left;
+                    const probeY = menuY - wvRect.top;
+                    const svgSource: string | null = await webview.executeJavaScript(`
+                        (() => {
+                            const el = document.elementFromPoint(${probeX}, ${probeY});
+                            const svg = el?.closest('svg');
+                            if (!svg) return null;
+
+                            // Clone so we don't mutate the live DOM
+                            const clone = svg.cloneNode(true);
+
+                            // Add xmlns if missing (required for standalone SVG)
+                            if (!clone.getAttribute('xmlns')) {
+                                clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                            }
+
+                            // Add viewBox if missing — use getBBox() for the coordinate space
+                            if (!clone.getAttribute('viewBox')) {
+                                try {
+                                    const bb = svg.getBBox();
+                                    if (bb.width > 0 && bb.height > 0) {
+                                        clone.setAttribute('viewBox',
+                                            bb.x + ' ' + bb.y + ' ' + bb.width + ' ' + bb.height);
+                                    }
+                                } catch (e) {}
+                            }
+
+                            // Set width/height if missing so it has intrinsic size
+                            if (!clone.getAttribute('width') && !clone.getAttribute('height')) {
+                                const vb = clone.getAttribute('viewBox');
+                                if (vb) {
+                                    const parts = vb.split(/[\\s,]+/);
+                                    if (parts.length === 4) {
+                                        clone.setAttribute('width', parts[2]);
+                                        clone.setAttribute('height', parts[3]);
+                                    }
+                                }
+                            }
+
+                            // Strip HTML comments (framework artifacts like Vue's <!--[-->)
+                            let html = clone.outerHTML;
+                            html = html.replace(/<!--[\\s\\S]*?-->/g, '');
+                            return html;
+                        })()
+                    `);
+
+                    const items: MenuItem[] = [];
+
+                    // Link items
+                    if (data.linkURL) {
+                        const linkURL = data.linkURL;
+                        items.push({
+                            label: "Open Link in New Tab",
+                            onClick: () => model.addTab(linkURL),
+                        });
+                        items.push({
+                            label: "Copy Link Address",
+                            onClick: () => navigator.clipboard.writeText(linkURL),
+                        });
+                    }
+
+                    // Image items
+                    if (data.srcURL && data.mediaType === "image") {
+                        const srcURL = data.srcURL;
+                        items.push({
+                            label: "Open Image in New Tab",
+                            startGroup: items.length > 0,
+                            onClick: async () => {
+                                const imgModule = await import("../image/ImageViewer");
+                                const imgModel = await imgModule.default.newEmptyPageModel("imageFile");
+                                if (imgModel) {
+                                    imgModel.state.update((s: ImageViewerModelState) => {
+                                        s.title = srcURL.split("/").pop()?.split("?")[0] || "Image";
+                                        s.url = srcURL;
+                                    });
+                                    await imgModel.restore();
+                                    pagesModel.addPage(imgModel);
+                                }
+                            },
+                        });
+                        items.push({
+                            label: "Copy Image Address",
+                            onClick: () => navigator.clipboard.writeText(srcURL),
+                        });
+                    }
+
+                    // Selection items
+                    if (data.selectionText) {
+                        const selectionText = data.selectionText;
+                        items.push({
+                            label: "Copy",
+                            startGroup: items.length > 0,
+                            onClick: () => {
+                                navigator.clipboard.writeText(selectionText);
+                                webview.focus();
+                            },
+                        });
+                    }
+
+                    // Editable field items
+                    if (data.isEditable) {
+                        if (data.editFlags?.canCut) {
+                            items.push({
+                                label: "Cut",
+                                startGroup: !data.selectionText && items.length > 0,
+                                onClick: () => {
+                                    webview.focus();
+                                    webview.cut();
+                                },
+                            });
+                        }
+                        if (!data.selectionText && data.editFlags?.canCopy) {
+                            items.push({
+                                label: "Copy",
+                                onClick: () => {
+                                    webview.focus();
+                                    webview.copy();
+                                },
+                            });
+                        }
+                        if (data.editFlags?.canPaste) {
+                            items.push({
+                                label: "Paste",
+                                onClick: () => {
+                                    webview.focus();
+                                    webview.paste();
+                                },
+                            });
+                        }
+                    }
+
+                    // Navigation items
+                    const state = model.state.get();
+                    const tab = state.tabs.find((t) => t.id === internalTabId);
+                    items.push({
+                        label: "Back",
+                        startGroup: true,
+                        disabled: !tab?.canGoBack,
+                        onClick: () => webview.goBack(),
+                    });
+                    items.push({
+                        label: "Forward",
+                        disabled: !tab?.canGoForward,
+                        onClick: () => webview.goForward(),
+                    });
+                    items.push({
+                        label: "Reload",
+                        onClick: () => webview.reload(),
+                    });
+
+                    // View Source (raw HTML from server)
+                    const pageUrl = tab?.url || "";
+                    items.push({
+                        label: "View Source",
+                        startGroup: true,
+                        disabled: !pageUrl || pageUrl === "about:blank",
+                        onClick: async () => {
+                            const resp = await webview.executeJavaScript(
+                                `fetch(location.href).then(r => r.text())`,
+                            );
+                            const page = newTextFileModel();
+                            page.state.update((s) => {
+                                s.title = "Source: " + (tab?.pageTitle || pageUrl);
+                                s.language = "html";
+                                s.content = resp;
+                            });
+                            page.restore();
+                            pagesModel.addPage(page as unknown as PageModel);
+                        },
+                    });
+
+                    // View actual DOM (live rendered DOM)
+                    items.push({
+                        label: "View Actual DOM",
+                        onClick: async () => {
+                            const html = await webview.executeJavaScript(
+                                "document.documentElement.outerHTML",
+                            );
+                            const page = newTextFileModel();
+                            page.state.update((s) => {
+                                s.title = "DOM: " + (tab?.pageTitle || pageUrl);
+                                s.language = "html";
+                                s.content = html;
+                            });
+                            page.restore();
+                            pagesModel.addPage(page as unknown as PageModel);
+                        },
+                    });
+
+                    // SVG item — only when right-click target is inside an <svg>
+                    if (svgSource) {
+                        items.push({
+                            label: "Open SVG in Editor",
+                            onClick: () => {
+                                const page = newTextFileModel();
+                                page.state.update((s) => {
+                                    s.title = "untitled.svg";
+                                    s.language = "xml";
+                                    s.content = svgSource;
+                                });
+                                page.restore();
+                                pagesModel.addPage(page as unknown as PageModel);
+                            },
+                        });
+                    }
+
+                    // Inspect Element — probeX/probeY are already webview-relative
+                    items.push({
+                        label: "Inspect Element",
+                        onClick: () => webview.inspectElement(probeX, probeY),
+                    });
+
+                    setPopupOpen(true);
+                    showAppPopupMenu(menuX, menuY, items, {
+                        skipInspect: true,
+                    }).then(() => {
+                        setPopupOpen(false);
+                    });
+                    break;
+                }
             }
         };
 
@@ -373,6 +613,31 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
             }
         },
         [model, urlInput, url],
+    );
+
+    const handleNavigate = useCallback(() => {
+        model.navigate(urlInput);
+        urlInputRef.current?.blur();
+    }, [model, urlInput]);
+
+    const handleUrlContextMenu = useCallback(
+        (e: React.MouseEvent) => {
+            if (!e.nativeEvent.menuItems) {
+                e.nativeEvent.menuItems = [];
+            }
+            e.nativeEvent.menuItems.push({
+                label: "Paste and Go",
+                startGroup: true,
+                onClick: async () => {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        setUrlInput(text);
+                        model.navigate(text);
+                    }
+                },
+            });
+        },
+        [model],
     );
 
     const handleUrlFocus = useCallback(() => {
@@ -489,24 +754,27 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
                     >
                         {loading ? <StopIcon /> : <RefreshIcon />}
                     </Button>
-                    <input
+                    <TextField
                         ref={urlInputRef}
                         className="url-bar"
                         value={urlInput}
-                        onChange={(e) => setUrlInput(e.target.value)}
+                        onChange={setUrlInput}
                         onKeyDown={handleUrlKeyDown}
                         onFocus={handleUrlFocus}
+                        onContextMenu={handleUrlContextMenu}
                         placeholder="Enter URL or search term..."
-                        spellCheck={false}
+                        endButtons={[
+                            <Button
+                                key="go"
+                                size="small"
+                                type="icon"
+                                title="Navigate"
+                                onClick={handleNavigate}
+                            >
+                                <ArrowRightIcon />
+                            </Button>,
+                        ]}
                     />
-                    <Button
-                        type="icon"
-                        size="small"
-                        title="Open DevTools"
-                        onClick={handleOpenDevTools}
-                    >
-                        <SettingsIcon />
-                    </Button>
                     <Button
                         type="icon"
                         size="small"
@@ -514,6 +782,14 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
                         onClick={handleNewTab}
                     >
                         <PlusIcon />
+                    </Button>
+                    <Button
+                        type="icon"
+                        size="small"
+                        title="Open DevTools"
+                        onClick={handleOpenDevTools}
+                    >
+                        <SettingsIcon />
                     </Button>
                 </div>
             </PageToolbar>
@@ -551,6 +827,7 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
                             webviewReady={webviewReady}
                         />
                     ))}
+                    {popupOpen && <div className="webview-click-overlay" />}
                 </div>
             </div>
         </BrowserPageViewRoot>

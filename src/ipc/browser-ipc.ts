@@ -42,7 +42,8 @@ export type BrowserEventType =
     | "did-start-loading"
     | "did-stop-loading"
     | "did-start-navigation"
-    | "new-window";
+    | "new-window"
+    | "context-menu";
 
 export interface BrowserEventData {
     url?: string;
@@ -53,4 +54,13 @@ export interface BrowserEventData {
     isMainFrame?: boolean;
     blocked?: boolean;
     disposition?: string;
+    /** Context menu fields (from Electron's context-menu event params) */
+    linkURL?: string;
+    srcURL?: string;
+    mediaType?: string;
+    selectionText?: string;
+    isEditable?: boolean;
+    editFlags?: { canCopy: boolean; canPaste: boolean; canCut: boolean };
+    x?: number;
+    y?: number;
 }

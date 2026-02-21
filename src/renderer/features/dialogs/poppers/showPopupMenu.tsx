@@ -2,7 +2,7 @@ import ReactDOM from "react-dom";
 import { useMemo } from "react";
 
 import { TPopperModel } from "./types";
-import { showPopper } from "./Poppers";
+import { closePopper, showPopper } from "./Poppers";
 import { VirtualElement } from "@floating-ui/react";
 import { MenuItem, PopupMenu } from "../../../components/overlay/PopupMenu";
 import { PopperProps } from "../../../components/overlay/Popper";
@@ -16,6 +16,7 @@ const defaultAppPopupMenuState = {
     y: 0,
     items: [] as MenuItem[],
     poperProps: undefined as PopperProps | undefined,
+    skipInspect: false,
 };
 
 type AppPopupMenuState = typeof defaultAppPopupMenuState;
@@ -100,15 +101,17 @@ class AppPopupMenuModel extends TPopperModel<AppPopupMenuState, void> {
                 });
             }
 
-            s.items.push({
-                label: "Inspect",
-                startGroup: s.items.length > 0,
-                onClick: () => {
-                    const { x, y } = this.state.get();
-                    api.inspectElement(x, y);
-                },
-                icon: <CursorIcon />,
-            });
+            if (!s.skipInspect) {
+                s.items.push({
+                    label: "Inspect",
+                    startGroup: s.items.length > 0,
+                    onClick: () => {
+                        const { x, y } = this.state.get();
+                        api.inspectElement(x, y);
+                    },
+                    icon: <CursorIcon />,
+                });
+            }
 
             const anyIcon = s.items.some((item) => Boolean(item.icon));
             if (anyIcon) {
@@ -160,18 +163,36 @@ function AppPopupMenu({ model }: ViewPropsRO<AppPopupMenuModel>) {
 
 Views.registerView(showAppPopupMenuId, AppPopupMenu as DefaultView);
 
+export interface ShowAppPopupMenuOptions {
+    popperProps?: PopperProps;
+    /** Skip the default "Inspect" menu item (e.g. when the caller provides its own). */
+    skipInspect?: boolean;
+}
+
 export const showAppPopupMenu = async (
     x: number,
     y: number,
     items: MenuItem[],
-    poperProps?: PopperProps
+    options?: ShowAppPopupMenuOptions | PopperProps
 ) => {
+    // Close any existing popup menu before showing a new one.
+    // This handles cases where the close-on-click-outside doesn't fire
+    // (e.g. right-click inside a webview goes through IPC, not DOM).
+    closePopper(showAppPopupMenuId);
+
+    // Support both legacy PopperProps and new options object
+    const opts: ShowAppPopupMenuOptions =
+        options && "skipInspect" in options
+            ? options
+            : { popperProps: options as PopperProps | undefined };
+
     const state = new TComponentState(defaultAppPopupMenuState);
     state.update((s) => {
         s.x = x;
         s.y = y;
         s.items = items;
-        s.poperProps = poperProps;
+        s.poperProps = opts.popperProps;
+        s.skipInspect = opts.skipInspect || false;
     });
     const model = new AppPopupMenuModel(state);
     await model.addDefaultMenus();

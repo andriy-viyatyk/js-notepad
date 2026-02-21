@@ -132,6 +132,21 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         }
     });
 
+    // Intercept right-click context menu — relay params to renderer
+    on("context-menu", (event: Electron.Event, params: Electron.ContextMenuParams) => {
+        event.preventDefault();
+        sendEvent(sender, tabId, internalTabId, "context-menu", {
+            linkURL: params.linkURL || undefined,
+            srcURL: params.srcURL || undefined,
+            mediaType: params.mediaType !== "none" ? params.mediaType : undefined,
+            selectionText: params.selectionText || undefined,
+            isEditable: params.isEditable || undefined,
+            editFlags: params.editFlags,
+            x: params.x,
+            y: params.y,
+        });
+    });
+
     // Intercept window.open / target="_blank" — deny the popup and relay URL
     wc.setWindowOpenHandler(({ url, disposition }) => {
         sendEvent(sender, tabId, internalTabId, "new-window", {

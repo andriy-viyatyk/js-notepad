@@ -17,7 +17,10 @@ const path = require("path");
 // ImageViewerModel (Page Model) - manages page state and lifecycle
 // ============================================================================
 
-interface ImageViewerModelState extends IPage {}
+interface ImageViewerModelState extends IPage {
+    /** External image URL (e.g. from a browser webview). When set, used instead of filePath. */
+    url?: string;
+}
 
 const getDefaultImageViewerModelState = (): ImageViewerModelState => ({
     ...getDefaultPageModelState(),
@@ -38,8 +41,9 @@ class ImageViewerModel extends PageModel<ImageViewerModelState, void> {
     }
 
     getIcon = () => {
+        const filePath = this.state.get().filePath;
         return (
-            <FileIcon path={this.state.get().filePath} width={12} height={12} />
+            <FileIcon path={filePath || "image.png"} width={12} height={12} />
         );
     };
 }
@@ -54,8 +58,9 @@ interface ImageViewerProps {
 
 function ImageViewer({ model }: ImageViewerProps) {
     const filePath = model.state.use((s) => s.filePath);
+    const url = model.state.use((s) => s.url);
     const imageRef = useRef<BaseImageViewRef>(null);
-    const src = `safe-file://${filePath?.replace(/\\/g, "/") || ""}`;
+    const src = url || `safe-file://${filePath?.replace(/\\/g, "/") || ""}`;
     const alt = filePath ? path.basename(filePath) : "Image";
 
     return (
