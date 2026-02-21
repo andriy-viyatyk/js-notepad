@@ -59,6 +59,7 @@ This step-by-step approach ensures user understands what's happening and can rev
 | Understand architecture       | [/doc/architecture/overview.md](doc/architecture/overview.md) |
 | Learn folder structure        | [/doc/architecture/folder-structure.md](doc/architecture/folder-structure.md) |
 | Add a new editor              | [/doc/standards/editor-guide.md](doc/standards/editor-guide.md) |
+| Modify the browser editor     | [/doc/architecture/browser-editor.md](doc/architecture/browser-editor.md) |
 | Add a UI component            | [/doc/standards/component-guide.md](doc/standards/component-guide.md) |
 | Build complex components      | [/doc/standards/model-view-pattern.md](doc/standards/model-view-pattern.md) |
 | Understand state management   | [/doc/architecture/state-management.md](doc/architecture/state-management.md) |

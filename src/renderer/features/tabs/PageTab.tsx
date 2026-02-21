@@ -120,11 +120,11 @@ const PageTabRoot = styled.div({
         height: 14,
         flexShrink: 0,
         "&.withIcon": {
-            width: 16,
+            width: 15,
             margin: "0 2px 0 4px",
-            "& svg": {
-                width: 16,
-                height: 16,
+            "& svg, & img": {
+                width: 15,
+                height: 15,
             }
         },
     },
@@ -503,6 +503,8 @@ export function PageTab(props: PageTabProps) {
             encripted: (s as any).encripted ?? false,
             temp: (s as any).temp ?? false,
             pinned: s.pinned ?? false,
+            // Trigger re-render when favicon changes (for browser tabs with dynamic icons)
+            _iconHint: (s as any).favicon ?? "",
         }));
 
     const [{ isDragging }, drag] = useDrag({

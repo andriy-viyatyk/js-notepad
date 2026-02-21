@@ -11,7 +11,7 @@ Each open file appears as a tab in the tab bar. Tabs show the file name, a langu
 | Action | How |
 |--------|-----|
 | New empty tab | `Ctrl+N` or click the **+** button |
-| New with specific editor | Click the dropdown arrow (&#9662;) next to **+** — choose Script (JS), Grid (JSON), Grid (CSV), or Notebook |
+| New with specific editor | Click the dropdown arrow (&#9662;) next to **+** — choose Script (JS), Grid (JSON), Grid (CSV), Notebook, Todo, or Browser |
 | Open a file | `Ctrl+O`, or drag a file onto the window |
 
 ### Closing Tabs

@@ -301,6 +301,18 @@ editorRegistry.register({
     },
 });
 
+// Browser (standalone page editor - no file acceptance)
+editorRegistry.register({
+    id: "browser-view",
+    name: "Browser",
+    pageType: "browserPage",
+    category: "page-editor",
+    loadModule: async () => {
+        const module = await import("./browser/BrowserPageView");
+        return module.default;
+    },
+});
+
 // About page (standalone page editor - no file acceptance)
 editorRegistry.register({
     id: "about-view",

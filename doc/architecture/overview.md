@@ -149,5 +149,6 @@ Every editor follows the same pattern:
 
 - [Folder Structure](./folder-structure.md) - Detailed folder organization
 - [Editors](./editors.md) - Editor system architecture
+- [Browser Editor](./browser-editor.md) - Multi-process browser editor architecture
 - [State Management](./state-management.md) - State patterns
 - [Scripting](./scripting.md) - Script execution system

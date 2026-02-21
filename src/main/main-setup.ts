@@ -9,6 +9,7 @@ import { openWindows } from "./open-windows";
 import { setupTray } from "./tray-setup";
 import { versionService } from "./version-service";
 import { initSearchHandlers } from "./search-service";
+import { initBrowserHandlers } from "./browser-service";
 
 export function setupMainProcess() {
     protocol.registerSchemesAsPrivileged([
@@ -34,6 +35,7 @@ export function setupMainProcess() {
 
     controller.init();
     initSearchHandlers();
+    initBrowserHandlers();
 
     function registerAssetProtocol(partition: string) {
         const customSession = session.fromPartition(partition);

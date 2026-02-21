@@ -21,3 +21,15 @@ export async function showSettingsPage(): Promise<void> {
         pagesModel.addPage(model);
     }
 }
+
+/**
+ * Opens a new Browser page.
+ */
+export async function showBrowserPage(): Promise<void> {
+    const browserModule = await import("../editors/browser/BrowserPageView");
+    const model = await browserModule.default.newEmptyPageModel("browserPage");
+    if (model) {
+        await model.restore();
+        pagesModel.addPage(model);
+    }
+}

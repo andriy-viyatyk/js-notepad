@@ -3,6 +3,8 @@ import {
     IpcRendererEvent,
     webUtils,
 } from "electron";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { Endpoint, EventEndpoint } from "./ipc/api-types";
 
 const electronHandler = {
@@ -37,6 +39,12 @@ const electronHandler = {
 };
 
 window.electron = electronHandler;
+
+// Expose webview preload path for browser tabs.
+// __dirname points to the build output directory where both preload files live.
+(window as any).webviewPreloadUrl = pathToFileURL(
+    path.join(__dirname, "preload-webview.js"),
+).toString();
 
 window.MonacoEnvironment = {
   getWorkerUrl: function (_moduleId, label) {

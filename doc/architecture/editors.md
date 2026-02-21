@@ -40,6 +40,7 @@ Standalone editors with their own PageModel for non-text file formats.
 |--------|-------------|
 | **pdf-view** | PDF viewer (read-only) |
 | **image-view** | Image viewer (PNG, JPG, GIF, WEBP, BMP, ICO) |
+| **browser-view** | In-app web browser ([architecture](./browser-editor.md)) |
 
 **Characteristics:**
 - Rendered instead of `TextPageView` by `RenderEditor`
@@ -122,6 +123,7 @@ PageModel (abstract)
 ├── TextFileModel         # Content views (Monaco, Grid, Markdown)
 ├── PdfViewerModel        # PDF viewer (page-editor)
 ├── ImageViewerModel      # Image viewer (page-editor)
+├── BrowserPageModel      # Browser editor (page-editor, multi-process)
 └── [Future page-editors...]
 
 TComponentModel (for view-specific state)

@@ -1008,6 +1008,45 @@ export const SearchIcon = createIcon(16)(
     </>,
 );
 
+export const GlobeIcon = createIcon(24)(
+    <>
+        <circle
+            cx="12"
+            cy="12"
+            r="9"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+        <ellipse
+            cx="12"
+            cy="12"
+            rx="4"
+            ry="9"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+        />
+        <path
+            d="M3.5 9H20.5M3.5 15H20.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            fill="none"
+        />
+    </>,
+);
+
+export const StopIcon = createIcon(24)(
+    <path
+        d="M6 6H18V18H6V6Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        fill="currentColor"
+    />,
+);
+
 export const CaseSensitiveIcon = createIcon(16)(
     <text
         x="8"

@@ -46,6 +46,7 @@ js-notepad is a Windows Notepad replacement designed for developers. It combines
 - JSON/CSV grid view with sorting, filtering, and full keyboard navigation
 - Notebook editor for structured notes
 - Todo editor for file-based task tracking
+- Built-in web browser for documentation and API reference
 - Markdown preview with syntax highlighting and Mermaid diagrams
 - File comparison (diff view)
 - File encryption

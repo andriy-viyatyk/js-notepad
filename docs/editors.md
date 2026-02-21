@@ -101,6 +101,26 @@ For `.html` files — click **Preview** in the toolbar:
 - **Sandboxed rendering** — preview is isolated from the application
 - Switch between text editor and preview anytime
 
+## Browser
+
+A built-in web browser for viewing documentation, APIs, and web resources without leaving js-notepad.
+
+**Opening:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar → **Browser**.
+
+**Features:**
+- **URL bar** — type a URL and press Enter to navigate; type a search term to search Google
+- **Navigation** — Back, Forward, Reload/Stop buttons in the toolbar
+- **Page title** — shown in the js-notepad tab
+- **Favicon** — website icon displayed in the tab
+- **Loading indicator** — animated bar below the toolbar while a page is loading
+- **Find in page** — `Ctrl+F` to search text within the web page
+- **Focus URL bar** — `Ctrl+L` to quickly jump to the URL bar
+- **DevTools** — click the gear icon to open the webview's developer tools
+- **Session restore** — the current URL is saved and restored when you reopen the app
+- **Isolated storage** — cookies and site data are kept separate from the main application
+
+**Security:** Navigation to local file protocols (`file://`, `app-asset://`) is blocked.
+
 ## Compare Mode
 
 Compare two files side-by-side using Monaco's built-in diff viewer:
@@ -170,4 +190,4 @@ Some files support multiple editors:
 
 Use the buttons in the toolbar to switch between available editors.
 
-**Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page with a specific editor: Script (JS), Grid (JSON), Grid (CSV), Notebook, or Todo.
+**Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page with a specific editor: Script (JS), Grid (JSON), Grid (CSV), Notebook, Todo, or Browser.

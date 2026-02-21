@@ -12,7 +12,6 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-025 | Basic Browser Editor | Medium | [README](US-025-basic-browser-editor/README.md) |
 | US-026 | Browser Internal Tabs | Medium | [README](US-026-browser-internal-tabs/README.md) |
 | US-027 | Browser Profiles, Incognito & Downloads | Medium | [README](US-027-browser-profiles-downloads/README.md) |
 | US-028 | Browser Bookmarks (Links Editor Integration) | Low | [README](US-028-browser-bookmarks/README.md) |
@@ -21,6 +20,7 @@ Current work in progress and planned tasks.
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-025 | Basic Browser Editor | Built-in web browser as page-editor using webview, multi-process architecture (renderer + main + guest preload), favicon/title detection, session restore, protocol blocking |
 | US-023 | NavigationPanel File Content Search | VS Code-style file content search with streaming results, include/exclude patterns, FileExplorer filtering, Monaco highlighting, configurable extensions in Settings |
 | US-024 | ToDo List Enhancement — Tags | Colored tags with filtering, tag assignment on items, predefined color palette, drag-drop warnings |
 | US-022 | ToDo Editor | Structured task list editor for `.todo.json` files with multiple lists, drag-to-reorder, search, comments, virtualized grid |

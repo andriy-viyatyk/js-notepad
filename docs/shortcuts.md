@@ -133,6 +133,15 @@ All navigation keys (except Tab) support **Shift** to extend selection.
 | `Ctrl+C` | Copy image to clipboard (as PNG) |
 | Drag | Pan when zoomed in |
 
+## Browser
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+L` | Focus URL bar |
+| `Ctrl+F` | Find in page |
+| `Enter` | Navigate to URL (when URL bar is focused) |
+| `Escape` | Revert URL bar to current URL |
+
 ## Notebook Editor
 
 | Shortcut | Action |

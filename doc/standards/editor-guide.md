@@ -327,3 +327,4 @@ Then use in your editor or integrate with EditorToolbar.
 - **Complex editor**: See `/editors/text/` - full text editor
 - **Grid view**: See `/editors/grid/` - tabular data editor
 - **Structured content-view**: See `/editors/notebook/` - complex content-view with own model, sub-editors, virtualized list, portal overlay, and drag-and-drop
+- **Multi-process editor**: See `/editors/browser/` - webview-based browser spanning three processes ([architecture doc](../architecture/browser-editor.md))

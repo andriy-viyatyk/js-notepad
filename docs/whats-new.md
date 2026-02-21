@@ -8,6 +8,21 @@ Release notes and changelog for js-notepad.
 
 ## Version 1.0.13 (Upcoming)
 
+### New Features
+
+- **Browser Editor** — Browse the web directly in a js-notepad tab
+  - Open via the dropdown arrow next to the **+** button → **Browser**
+  - URL bar with Enter to navigate; plain text searches Google automatically
+  - Back, Forward, Reload/Stop navigation buttons
+  - Page title and favicon displayed in the tab
+  - Loading indicator bar below the toolbar
+  - Find in page with `Ctrl+F`
+  - Focus URL bar with `Ctrl+L`
+  - DevTools access via gear icon in toolbar
+  - Session restore — current URL persisted across app restarts
+  - Isolated storage — cookies and site data separated from the main application
+  - Security: navigation to `file://` and `app-asset://` protocols is blocked
+
 ---
 
 ## Version 1.0.12

@@ -518,6 +518,14 @@ export const TodoIcon = createIconWithViewBox("0 0 32 32")(
     </g>
 );
 
+export const BrowserIcon = createIconWithViewBox("0 0 32 32")(
+    <g>
+        <circle cx="16" cy="16" r="12" stroke="#4DD0E1" strokeWidth="2" fill="none" />
+        <ellipse cx="16" cy="16" rx="5" ry="12" stroke="#4DD0E1" strokeWidth="1.5" fill="none" opacity="0.8" />
+        <path d="M4.5 12H27.5M4.5 20H27.5" stroke="#4DD0E1" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
+    </g>,
+);
+
 export const GridIcon = createIconWithViewBox("0 0 32 32")(
     <g>
         {/* Grid cells - 3x3 */}
