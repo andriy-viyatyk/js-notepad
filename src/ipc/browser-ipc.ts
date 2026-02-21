@@ -14,6 +14,8 @@ export const BrowserChannel = {
     // Renderer → Main
     register: "browser:register",
     unregister: "browser:unregister",
+    /** Clear all storage data + cache for a given partition. Returns when done. */
+    clearProfileData: "browser:clear-profile-data",
 
     // Main → Renderer
     event: "browser:event",

@@ -5,14 +5,17 @@ import {
     ArrowLeftIcon,
     ArrowRightIcon,
     ChevronDownIcon,
+    GlobeIcon,
     PlusIcon,
 } from "../../theme/icons";
-import { BrowserIcon, GridIcon, JavascriptIcon, NotebookIcon, TodoIcon } from "../../theme/language-icons";
+import { IncognitoIcon, GridIcon, JavascriptIcon, NotebookIcon, TodoIcon } from "../../theme/language-icons";
+import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
 import { Button } from "../../components/basic/Button";
 import { WithPopupMenu } from "../../components/overlay/WithPopupMenu";
 import { MenuItem } from "../../components/overlay/PopupMenu";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { useEffect, useMemo } from "react";
+import { appSettings } from "../../store/app-settings";
 import { minTabWidth, PageTab, pinnedTabWidth, pinnedTabEncryptedWidth } from "./PageTab";
 import color from "../../theme/color";
 import { isTextFileModel } from "../../editors/text";
@@ -158,41 +161,79 @@ export function PageTabs(props: object) {
         return model.destroy;
     }, []);
 
-    const addPageMenuItems = useMemo((): MenuItem[] => [
-        {
-            label: "Script (JS)",
-            icon: <JavascriptIcon />,
-            onClick: () => pagesModel.addEditorPage("monaco", "javascript", "untitled.js"),
-        },
-        {
-            label: "Grid (JSON)",
-            icon: <GridIcon />,
-            onClick: () => pagesModel.addEditorPage("grid-json", "json", "untitled.grid.json"),
-        },
-        {
-            label: "Grid (CSV)",
-            icon: <GridIcon />,
-            onClick: () => pagesModel.addEditorPage("grid-csv", "csv", "untitled.grid.csv"),
-        },
-        {
-            label: "Notebook",
-            icon: <NotebookIcon />,
-            onClick: () => pagesModel.addEditorPage("notebook-view", "json", "untitled.note.json"),
-        },
-        {
-            label: "Todo",
-            icon: <TodoIcon />,
-            onClick: () => pagesModel.addEditorPage("todo-view", "json", "untitled.todo.json"),
-        },
-        {
-            label: "Browser",
-            icon: <BrowserIcon />,
-            onClick: async () => {
-                const { showBrowserPage } = await import("../../store/page-actions");
-                showBrowserPage();
+    const browserProfiles = appSettings.use("browser-profiles");
+    const defaultProfileName = appSettings.use("browser-default-profile");
+    const defaultBrowserColor = browserProfiles.find((p) => p.name === defaultProfileName)?.color || DEFAULT_BROWSER_COLOR;
+
+    const addPageMenuItems = useMemo((): MenuItem[] => {
+        const browserProfileSubmenu: MenuItem[] = [
+            {
+                label: "Incognito",
+                icon: <IncognitoIcon />,
+                onClick: async () => {
+                    const { showBrowserPage } = await import("../../store/page-actions");
+                    showBrowserPage({ incognito: true });
+                },
             },
-        },
-    ], []);
+            ...browserProfiles.map((profile) => ({
+                label: profile.name,
+                icon: <GlobeIcon color={profile.color} />,
+                onClick: async () => {
+                    const { showBrowserPage } = await import("../../store/page-actions");
+                    showBrowserPage({ profileName: profile.name });
+                },
+            })),
+            {
+                label: "Manage profiles...",
+                startGroup: true,
+                onClick: async () => {
+                    const { showSettingsPage } = await import("../../store/page-actions");
+                    showSettingsPage();
+                },
+            },
+        ];
+
+        return [
+            {
+                label: "Script (JS)",
+                icon: <JavascriptIcon />,
+                onClick: () => pagesModel.addEditorPage("monaco", "javascript", "untitled.js"),
+            },
+            {
+                label: "Grid (JSON)",
+                icon: <GridIcon />,
+                onClick: () => pagesModel.addEditorPage("grid-json", "json", "untitled.grid.json"),
+            },
+            {
+                label: "Grid (CSV)",
+                icon: <GridIcon />,
+                onClick: () => pagesModel.addEditorPage("grid-csv", "csv", "untitled.grid.csv"),
+            },
+            {
+                label: "Notebook",
+                icon: <NotebookIcon />,
+                onClick: () => pagesModel.addEditorPage("notebook-view", "json", "untitled.note.json"),
+            },
+            {
+                label: "Todo",
+                icon: <TodoIcon />,
+                onClick: () => pagesModel.addEditorPage("todo-view", "json", "untitled.todo.json"),
+            },
+            {
+                label: "Browser",
+                icon: <GlobeIcon color={defaultBrowserColor} />,
+                onClick: async () => {
+                    const { showBrowserPage } = await import("../../store/page-actions");
+                    showBrowserPage();
+                },
+            },
+            {
+                label: "Browser profile...",
+                icon: <GlobeIcon color={defaultBrowserColor} />,
+                items: browserProfileSubmenu,
+            },
+        ];
+    }, [browserProfiles, defaultBrowserColor]);
 
     useEffect(() => {
         model.checkScrollButtons();

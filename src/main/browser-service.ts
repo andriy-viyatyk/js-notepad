@@ -10,7 +10,7 @@
  * Registration key is `${tabId}/${internalTabId}` to support multiple
  * internal browser tabs per js-notepad page tab.
  */
-import { ipcMain, IpcMainEvent, webContents, WebContents } from "electron";
+import { ipcMain, IpcMainEvent, session, webContents, WebContents } from "electron";
 import {
     BrowserChannel,
     BrowserRegisterRequest,
@@ -206,5 +206,11 @@ export function initBrowserHandlers(): void {
 
     ipcMain.on(BrowserChannel.unregister, (_event, key: string) => {
         unregisterWebview(key);
+    });
+
+    ipcMain.handle(BrowserChannel.clearProfileData, async (_event, partition: string) => {
+        const ses = session.fromPartition(partition);
+        await ses.clearStorageData();
+        await ses.clearCache();
     });
 }

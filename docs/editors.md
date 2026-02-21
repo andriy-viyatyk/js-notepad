@@ -117,6 +117,18 @@ A built-in web browser for viewing documentation, APIs, and web resources withou
   - Close button on each tab (visible when panel is wide enough)
   - Right-click tab for context menu: Close Tab, Close Other Tabs, Close Tabs Below
   - Resizable tabs panel with splitter
+- **Browser Profiles** — isolated browsing sessions with separate cookies, storage, and cache
+  - Create named profiles with custom colors in **Settings → Browser Profiles**
+  - Open a profiled browser via &#9662; → **Browser profile...** submenu
+  - Set a default profile — the **Browser** quick-add item uses it
+  - Profile color is shown on the page tab icon (tinted globe)
+  - Change profile color by clicking the color dot in Settings
+  - Clear browsing data per profile via the "clear data" button in Settings
+  - Deleting a profile shows a confirmation dialog and also clears all data from disk
+- **Incognito mode** — ephemeral browsing with no persistent data
+  - Open via &#9662; → **Browser profile...** → **Incognito**
+  - Incognito icon on the page tab and inside the URL bar
+  - All data is automatically discarded when the tab closes
 - **Context menu** — right-click in the web page for contextual actions:
   - On a link: "Open Link in New Tab", "Copy Link Address"
   - On an image: "Open Image in New Tab" (opens in Image Viewer), "Copy Image Address"
@@ -127,13 +139,13 @@ A built-in web browser for viewing documentation, APIs, and web resources withou
 - **View Source** — view the raw HTML as fetched from the server
 - **View Actual DOM** — view the live rendered DOM (post-JavaScript execution)
 - **Page title** — shown in the js-notepad tab (reflects the active internal tab)
-- **Favicon** — website icon displayed in the js-notepad tab and internal tabs
+- **Favicon** — website icon displayed in internal tabs panel
 - **Loading indicator** — animated bar below the toolbar while a page is loading
 - **Find in page** — `Ctrl+F` to search text within the web page
 - **Focus URL bar** — `Ctrl+L` to quickly jump to the URL bar
 - **DevTools** — click the gear icon to open the webview's developer tools
-- **Session restore** — all internal tabs and their URLs are saved and restored when you reopen the app
-- **Isolated storage** — cookies and site data are kept separate from the main application
+- **Session restore** — all internal tabs, URLs, and profile selection saved and restored across app restarts
+- **Isolated storage** — each profile has its own cookies, storage, and cache, separated from the main application
 
 **Security:** Navigation to local file protocols (`file://`, `app-asset://`) is blocked.
 
@@ -206,4 +218,4 @@ Some files support multiple editors:
 
 Use the buttons in the toolbar to switch between available editors.
 
-**Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page with a specific editor: Script (JS), Grid (JSON), Grid (CSV), Notebook, Todo, or Browser.
+**Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page with a specific editor: Script (JS), Grid (JSON), Grid (CSV), Notebook, Todo, Browser, or Browser profile (with Incognito and named profiles).

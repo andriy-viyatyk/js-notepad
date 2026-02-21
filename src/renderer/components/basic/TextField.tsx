@@ -36,6 +36,7 @@ const TextFieldRoot = styled(Input)({
 });
 
 export interface TextFieldProps extends FieldProps<string>, Omit<InputProps, 'value' | 'onChange'> {
+    startButtons?: ReactNode[];
     endButtons?: ReactNode[];
     endButtonsWidth?: number;
     label?: string;
@@ -57,6 +58,7 @@ export const TextField = forwardRef(function TextFieldComponent(props: Readonly<
         value,
         onChange,
         className,
+        startButtons,
         endButtons,
         label,
         labelLeft,
@@ -75,11 +77,19 @@ export const TextField = forwardRef(function TextFieldComponent(props: Readonly<
         ? endButtons.length * (buttonWidth + buttonSpacing) + 1
         : undefined;
 
-    const startAddornment = innerLabel ? (
-        <span className='inner-label'>{innerLabel}</span>
+    const startButtonsWidth = startButtons?.length
+        ? startButtons.length * (buttonWidth + buttonSpacing) + 1
+        : 0;
+    const innerLabelWidth = innerLabel ? innerLabel.length * 8 + 12 : 0;
+
+    const startAddornment = (startButtons?.length || innerLabel) ? (
+        <>
+            {startButtons}
+            {innerLabel && <span className='inner-label'>{innerLabel}</span>}
+        </>
     ) : undefined;
 
-    const addornmentStartWidth = innerLabel ? innerLabel.length * 8 + 12 : undefined;
+    const addornmentStartWidth = (startButtonsWidth + innerLabelWidth) || undefined;
 
     const width = useMemo(() => {
         if (adjustWithCharWidth && typeof value === 'string') {

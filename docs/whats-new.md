@@ -32,8 +32,21 @@ Release notes and changelog for js-notepad.
     - Navigation: Back, Forward, Reload
     - Developer: View Source (raw server HTML), View Actual DOM (live rendered DOM), Inspect Element
   - **URL bar** with navigate button and "Paste and Go" in right-click menu
+  - **Browser Profiles** — isolated browsing sessions with separate cookies, storage, and cache
+    - Create named profiles with custom colors in **Settings → Browser Profiles**
+    - Each profile gets its own Electron session partition
+    - Open a profiled browser via the **+** dropdown → **Browser profile...** submenu
+    - Set a default profile — the **Browser** quick-add item uses it
+    - Profile color shown on the page tab icon (tinted globe)
+    - Change profile color by clicking the color dot in Settings
+    - Clear browsing data per profile ("clear data" button)
+    - Delete a profile with confirmation (also clears all data from disk)
+  - **Incognito mode** — ephemeral browsing with no persistent data
+    - Open via **+** dropdown → **Browser profile...** → **Incognito**
+    - Incognito icon on page tab and inside the URL bar
+    - Data is automatically discarded when the tab closes
   - DevTools access via gear icon in toolbar
-  - Session restore — all internal tabs and URLs persisted across app restarts
+  - Session restore — all internal tabs, URLs, and profile selection persisted across app restarts
   - Isolated storage — cookies and site data separated from the main application
   - Security: navigation to `file://` and `app-asset://` protocols is blocked
 

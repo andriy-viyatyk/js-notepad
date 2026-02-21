@@ -213,7 +213,45 @@ The main preload (`src/preload.ts`) exposes the path to the webview preload:
 
 ## Session Restore
 
-`getRestoreData()` saves all internal tabs with their actual current URLs (from `currentUrls` map, which tracks post-redirect URLs). `applyRestoreData()` restores them with fresh internal tab IDs (since IDs are ephemeral). The active tab is identified by index position during restore.
+`getRestoreData()` saves all internal tabs with their actual current URLs (from `currentUrls` map, which tracks post-redirect URLs). `applyRestoreData()` restores them with fresh internal tab IDs (since IDs are ephemeral). The active tab is identified by index position during restore. Profile name and incognito flag are also saved/restored.
+
+## Profiles & Incognito
+
+Each browser page is bound to a **profile** that determines its Electron session partition. All internal tabs within the same browser page share the same profile.
+
+### Partition Mapping
+
+| Mode | Partition String | Persistence |
+|------|-----------------|-------------|
+| Default profile | `persist:browser-default` | Persists across restarts |
+| Named profile "work" | `persist:browser-work` | Persists across restarts |
+| Incognito | `browser-incognito-<uuid>` | Cleared when page closes |
+
+`getPartitionString()` in `BrowserPageModel.ts` computes the partition. `BrowserPageModel.partition` is a **getter** (not a stored field) because the profile state may be set after model construction in `showBrowserPage()`. Each incognito model has a stable `incognitoId` (random UUID generated once per instance) to keep the partition consistent across getter calls.
+
+### Profile Settings
+
+Profiles are stored in app settings as `BrowserProfile[]` (`{ name, color }`). A separate `browser-default-profile` setting tracks which profile the "Browser" quick-add menu item uses. Colors come from the `TAG_COLORS` palette in `palette-colors.ts`, and the built-in default uses `DEFAULT_BROWSER_COLOR` (cyan `#4DD0E1`).
+
+### Page Tab Icons
+
+| Mode | Icon |
+|------|------|
+| Default profile (no name) | GlobeIcon tinted with `DEFAULT_BROWSER_COLOR` or default profile's color |
+| Named profile | GlobeIcon tinted with the profile's color |
+| Incognito | IncognitoIcon |
+
+The `resolvedColor` getter on `BrowserPageModel` resolves the color chain: explicit profile → default profile setting → `DEFAULT_BROWSER_COLOR`.
+
+### Incognito Indicator
+
+Incognito pages show an `IncognitoIcon` inside the URL bar's left edge, using the `startButtons` prop on `TextField`.
+
+### Clear Profile Data
+
+The renderer can clear all browsing data for a partition via `ipcRenderer.invoke(BrowserChannel.clearProfileData, partition)`. The main process handler calls `session.fromPartition(partition).clearStorageData()` + `clearCache()`. This is used in two places:
+- "Clear data" button on each profile row in Settings
+- Profile deletion (confirmation dialog, then clear + remove from settings)
 
 ## Common Pitfalls
 

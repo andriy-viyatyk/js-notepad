@@ -23,6 +23,7 @@ import {
     SettingsIcon,
     StopIcon,
 } from "../../theme/icons";
+import { IncognitoIcon } from "../../theme/language-icons";
 import {
     BrowserPageModel,
     BrowserPageState,
@@ -42,7 +43,6 @@ import { pagesModel } from "../../store/pages-store";
 import { newTextFileModel } from "../text/TextPageModel";
 import type { ImageViewerModelState } from "../image/ImageViewer";
 
-const BROWSER_PARTITION = "persist:browser-default";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WEBVIEW_PRELOAD_URL = (window as any).webviewPreloadUrl as string;
 
@@ -132,6 +132,8 @@ interface BrowserWebviewItemProps {
     model: BrowserPageModel;
     tab: BrowserTabData;
     isActive: boolean;
+    /** Electron session partition string for this browser page. */
+    partition: string;
     /** Map from internalTabId → webview ref, kept in parent for toolbar operations */
     webviewRefs: React.RefObject<Map<string, Electron.WebviewTag>>;
     /** Set of internalTabIds whose webview has fired dom-ready */
@@ -142,6 +144,7 @@ function BrowserWebviewItem({
     model,
     tab,
     isActive,
+    partition,
     webviewRefs,
     webviewReady,
 }: BrowserWebviewItemProps) {
@@ -232,7 +235,7 @@ function BrowserWebviewItem({
                             ? color.background.default
                             : "#ffffff",
                 }}
-                partition={BROWSER_PARTITION}
+                partition={partition}
                 preload={WEBVIEW_PRELOAD_URL}
                 // Allow popups so setWindowOpenHandler fires for target="_blank" links.
                 // The main process handler denies the popup and relays the URL as a
@@ -763,6 +766,9 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
                         onFocus={handleUrlFocus}
                         onContextMenu={handleUrlContextMenu}
                         placeholder="Enter URL or search term..."
+                        startButtons={model.state.get().isIncognito ? [
+                            <IncognitoIcon key="incognito" color={color.icon.light} />,
+                        ] : undefined}
                         endButtons={[
                             <Button
                                 key="go"
@@ -823,6 +829,7 @@ function BrowserPageView({ model }: BrowserPageViewProps) {
                             model={model}
                             tab={tab}
                             isActive={tab.id === activeTabId}
+                            partition={model.partition}
                             webviewRefs={webviewRefs}
                             webviewReady={webviewReady}
                         />

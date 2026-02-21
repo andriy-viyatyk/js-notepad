@@ -9,14 +9,21 @@ import { defaultSearchableExtensions, defaultMaxFileSize } from "../../ipc/searc
 
 const settingsFileName = "appSettings.json";
 
-export type AppSettingsKey = "tab-recent-languages" | "theme" | "search-extensions" | "search-max-file-size";
+export interface BrowserProfile {
+    name: string;
+    color: string;
+}
 
-const settingsComments: Record<AppSettingsKey, string> = {
+export type AppSettingsKey = "tab-recent-languages" | "theme" | "search-extensions" | "search-max-file-size" | "browser-profiles" | "browser-default-profile";
+
+const settingsComments: Partial<Record<AppSettingsKey, string>> = {
     "tab-recent-languages":
         "Recently selected languages.\nMore recent languages will appear on top of 'change language' menu.",
     "theme": "Application color theme.\nAvailable themes: default-dark, solarized-dark, monokai, abyss, red, tomorrow-night-blue, light-modern, solarized-light, quiet-light",
     "search-extensions": "File extensions to include in file content search.\nAdd or remove extensions to customize which files are searchable.",
     "search-max-file-size": "Maximum file size (in bytes) for file content search.\nFiles larger than this are skipped. Default: 1048576 (1 MB).",
+    "browser-profiles": "Browser profiles for isolated browsing sessions.\nEach profile has its own cookies, storage, and cache.",
+    "browser-default-profile": "Default browser profile name used when opening a new browser tab.\nEmpty string means the built-in default profile.",
 };
 
 const defaultAppSettingsState = {
@@ -25,6 +32,8 @@ const defaultAppSettingsState = {
         "theme": "default-dark",
         "search-extensions": defaultSearchableExtensions as string[],
         "search-max-file-size": defaultMaxFileSize,
+        "browser-profiles": [] as BrowserProfile[],
+        "browser-default-profile": "",
     },
 };
 
@@ -114,6 +123,7 @@ class AppSettings extends TModel<AppSettingsState> {
                 // Check if trimmed line starts with "key":
                 if (trimmedLine.startsWith(`"${key}":`)) {
                     const comment = settingsComments[key];
+                    if (!comment) break;
                     // Get the indentation from the original line
                     const indent = line.substring(
                         0,

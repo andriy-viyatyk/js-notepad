@@ -12,13 +12,14 @@ Current work in progress and planned tasks.
 
 | ID | Title | Priority | Link |
 |----|-------|----------|------|
-| US-027 | Browser Profiles, Incognito & Downloads | Medium | [README](US-027-browser-profiles-downloads/README.md) |
 | US-028 | Browser Bookmarks (Links Editor Integration) | Low | [README](US-028-browser-bookmarks/README.md) |
+| US-030 | Download Manager | Medium | [README](US-030-download-manager/README.md) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-027 | Browser Profiles & Incognito Mode | Named browser profiles with isolated sessions (cookies/storage/cache per profile), incognito mode (ephemeral partition), profile management in Settings (add/remove/color/default/clear data), incognito icon in URL bar, profile-colored globe icons on page tabs, quick-add submenu for profiles |
 | US-029 | Browser Web Page Context Menu | Contextual right-click menu for webview content (links, images, text, SVG), View Source/Actual DOM, Open Image/SVG in editor, URL bar with navigate button and Paste and Go, dynamic webview background |
 | US-026 | Browser Internal Tabs | Multi-tab browsing within a browser page, left-side tabs panel, target="_blank"/window.open() open new internal tabs, tab context menu (close/close others/close below), resizable panel, session restore for all tabs |
 | US-025 | Basic Browser Editor | Built-in web browser as page-editor using webview, multi-process architecture (renderer + main + guest preload), favicon/title detection, session restore, protocol blocking |

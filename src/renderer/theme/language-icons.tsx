@@ -526,6 +526,23 @@ export const BrowserIcon = createIconWithViewBox("0 0 32 32")(
     </g>,
 );
 
+
+/** Incognito (spy hat + glasses) icon using currentColor. */
+export const IncognitoIcon = createIconWithViewBox("0 0 32 32")(
+    <g>
+        {/* Hat brim */}
+        <path d="M6 17h20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+        {/* Hat top */}
+        <path d="M10 17V12a6 6 0 0 1 12 0v5" stroke="currentColor" strokeWidth="2" fill="none" />
+        {/* Left lens */}
+        <circle cx="11.5" cy="22" r="3.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        {/* Right lens */}
+        <circle cx="20.5" cy="22" r="3.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        {/* Bridge */}
+        <path d="M15 22h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </g>,
+);
+
 export const GridIcon = createIconWithViewBox("0 0 32 32")(
     <g>
         {/* Grid cells - 3x3 */}

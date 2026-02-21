@@ -2,7 +2,10 @@ import { createElement, ReactNode } from "react";
 import { IPage } from "../../../shared/types";
 import { getDefaultPageModelState, PageModel } from "../base";
 import { TComponentState } from "../../core/state/state";
+import { IncognitoIcon } from "../../theme/language-icons";
 import { GlobeIcon } from "../../theme/icons";
+import { appSettings, BrowserProfile } from "../../store/app-settings";
+import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
 
 /** State for a single internal browser tab. */
 export interface BrowserTabData {
@@ -29,6 +32,10 @@ export interface BrowserPageState extends IPage {
     activeTabId: string;
     /** Width of the right-side tabs panel. */
     tabsPanelWidth: number;
+    /** Profile name ("" for default). */
+    profileName: string;
+    /** Whether this is an incognito session. */
+    isIncognito: boolean;
 }
 
 const DEFAULT_URL = "about:blank";
@@ -67,12 +74,31 @@ export const getDefaultBrowserPageState = (): BrowserPageState => {
         tabs: [tab],
         activeTabId: tab.id,
         tabsPanelWidth: 120,
+        profileName: "",
+        isIncognito: false,
     };
 };
+
+/** Compute the Electron session partition string for a browser page. */
+export function getPartitionString(profileName: string, isIncognito: boolean, incognitoId?: string): string {
+    if (isIncognito) {
+        return `browser-incognito-${incognitoId || crypto.randomUUID()}`;
+    }
+    return `persist:browser-${profileName || "default"}`;
+}
 
 export class BrowserPageModel extends PageModel<BrowserPageState, void> {
     noLanguage = true;
     skipSave = true;
+
+    /** Stable random ID for incognito partitions (generated once per model instance). */
+    private incognitoId = crypto.randomUUID();
+
+    /** Electron session partition string, derived from profile state. */
+    get partition(): string {
+        const s = this.state.get();
+        return getPartitionString(s.profileName, s.isIncognito, this.incognitoId);
+    }
 
     /** Per-tab actual current URL (may differ from state after redirects). Keyed by internalTabId. */
     currentUrls = new Map<string, string>();
@@ -99,6 +125,8 @@ export class BrowserPageModel extends PageModel<BrowserPageState, void> {
         data.activeTabId = s.activeTabId;
         data.tabsPanelWidth = s.tabsPanelWidth;
         data.pageTitle = s.pageTitle;
+        data.profileName = s.profileName;
+        data.isIncognito = s.isIncognito;
         // Top-level url = active tab's actual URL
         const activeTab = s.tabs.find((t) => t.id === s.activeTabId);
         data.url = activeTab
@@ -135,16 +163,34 @@ export class BrowserPageModel extends PageModel<BrowserPageState, void> {
                 if (data.pageTitle) s.pageTitle = data.pageTitle;
             }
             if (data.tabsPanelWidth) s.tabsPanelWidth = data.tabsPanelWidth;
+            if (data.profileName !== undefined) s.profileName = data.profileName;
+            if (data.isIncognito !== undefined) s.isIncognito = data.isIncognito;
         });
     }
 
     getIcon = (): ReactNode => {
-        const favicon = this.state.get().favicon;
-        if (favicon) {
-            return createElement("img", { src: favicon, alt: "" });
+        const s = this.state.get();
+        if (s.isIncognito) {
+            return createElement(IncognitoIcon);
         }
-        return createElement(GlobeIcon);
+        return createElement(GlobeIcon, { color: this.resolvedColor });
     };
+
+    /** Resolved icon color: profile color for named profiles, default browser color otherwise. */
+    get resolvedColor(): string {
+        const profileName = this.state.get().profileName;
+        if (profileName) {
+            const profiles = appSettings.get("browser-profiles");
+            return profiles.find((p: BrowserProfile) => p.name === profileName)?.color || DEFAULT_BROWSER_COLOR;
+        }
+        // No explicit profile — resolve from the default profile setting
+        const defaultName = appSettings.get("browser-default-profile");
+        if (defaultName) {
+            const profiles = appSettings.get("browser-profiles");
+            return profiles.find((p: BrowserProfile) => p.name === defaultName)?.color || DEFAULT_BROWSER_COLOR;
+        }
+        return DEFAULT_BROWSER_COLOR;
+    }
 
     cacheFavicon = (url: string, favicon: string) => {
         try {

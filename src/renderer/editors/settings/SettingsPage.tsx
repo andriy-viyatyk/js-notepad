@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import { IPage, PageType } from "../../../shared/types";
 import { getDefaultPageModelState, PageModel } from "../base";
@@ -9,6 +9,13 @@ import { appSettings } from "../../store/app-settings";
 import { pagesModel } from "../../store/pages-store";
 import { applyTheme, getAvailableThemes } from "../../theme/themes";
 import { TextAreaField, TextAreaFieldRef } from "../../components/basic/TextAreaField";
+import { DEFAULT_BROWSER_COLOR, TAG_COLORS } from "../../theme/palette-colors";
+import { WithPopupMenu } from "../../components/overlay/WithPopupMenu";
+import { MenuItem } from "../../components/overlay/PopupMenu";
+import { showConfirmationDialog } from "../../features/dialogs/ConfirmationDialog";
+import { getPartitionString } from "../browser/BrowserPageModel";
+const { ipcRenderer } = require("electron");
+import { BrowserChannel } from "../../../ipc/browser-ipc";
 
 // ============================================================================
 // Styled Component
@@ -19,7 +26,6 @@ const SettingsPageRoot = styled.div({
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
     padding: 32,
     overflow: "auto",
     fontFamily: "Arial, sans-serif",
@@ -30,6 +36,7 @@ const SettingsPageRoot = styled.div({
         maxWidth: 500,
         width: "100%",
         padding: 32,
+        margin: "auto 0",
         backgroundColor: color.background.light,
         borderRadius: 8,
     },
@@ -153,6 +160,174 @@ const SettingsPageRoot = styled.div({
             backgroundColor: color.background.dark,
         },
     },
+
+    "& .profile-list": {
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        marginBottom: 12,
+    },
+
+    "& .profile-row": {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 8px",
+        borderRadius: 4,
+        backgroundColor: color.background.dark,
+
+        "&:hover .profile-remove, &:hover .profile-clear-data": {
+            opacity: 1,
+        },
+    },
+
+    "& .profile-color-dot": {
+        width: 12,
+        height: 12,
+        borderRadius: "50%",
+        flexShrink: 0,
+        border: `1px solid ${color.border.default}`,
+        "&.clickable": {
+            cursor: "pointer",
+            "&:hover": {
+                outline: `2px solid ${color.border.active}`,
+                outlineOffset: 1,
+            },
+        },
+    },
+
+    "& .profile-name": {
+        fontSize: 13,
+        color: color.text.default,
+        flex: 1,
+    },
+
+    "& .profile-default-badge": {
+        fontSize: 10,
+        color: color.text.light,
+        textTransform: "uppercase" as const,
+        letterSpacing: 0.5,
+        padding: "1px 6px",
+        border: `1px solid ${color.border.default}`,
+        borderRadius: 3,
+    },
+
+    "& .profile-set-default": {
+        fontSize: 11,
+        color: color.misc.blue,
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: "2px 4px",
+        "&:hover": {
+            textDecoration: "underline",
+        },
+    },
+
+    "& .profile-clear-data": {
+        fontSize: 11,
+        color: color.text.light,
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: "2px 4px",
+        opacity: 0,
+        transition: "opacity 0.15s",
+        "&:hover": {
+            color: color.text.default,
+        },
+    },
+
+    "& .profile-cleared": {
+        fontSize: 11,
+        color: color.misc.green,
+        padding: "2px 4px",
+    },
+
+    "& .profile-remove": {
+        fontSize: 14,
+        color: color.text.light,
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: "0 4px",
+        opacity: 0,
+        transition: "opacity 0.15s",
+        "&:hover": {
+            color: color.text.default,
+        },
+    },
+
+    "& .profile-add-form": {
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+    },
+
+    "& .profile-add-row": {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+    },
+
+    "& .profile-name-input": {
+        flex: 1,
+        fontSize: 13,
+        padding: "4px 8px",
+        backgroundColor: color.background.dark,
+        border: `1px solid ${color.border.default}`,
+        borderRadius: 4,
+        color: color.text.default,
+        outline: "none",
+        "&:focus": {
+            borderColor: color.border.active,
+        },
+    },
+
+    "& .profile-add-button": {
+        fontSize: 12,
+        padding: "4px 12px",
+        color: color.text.default,
+        backgroundColor: color.background.dark,
+        border: `1px solid ${color.border.default}`,
+        borderRadius: 4,
+        cursor: "pointer",
+        "&:hover": {
+            borderColor: color.text.light,
+        },
+        "&:disabled": {
+            opacity: 0.4,
+            cursor: "default",
+        },
+    },
+
+    "& .color-palette": {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6,
+    },
+
+    "& .color-swatch": {
+        width: 18,
+        height: 18,
+        borderRadius: "50%",
+        cursor: "pointer",
+        border: "2px solid transparent",
+        transition: "border-color 0.15s",
+        "&:hover": {
+            borderColor: color.text.light,
+        },
+        "&.selected": {
+            borderColor: color.text.default,
+        },
+    },
+
+    "& .profile-empty": {
+        fontSize: 12,
+        color: color.text.light,
+        fontStyle: "italic",
+        marginBottom: 8,
+    },
 });
 
 // ============================================================================
@@ -207,6 +382,181 @@ class SettingsPageModel extends PageModel<SettingsPageModelState, void> {
             s.title = "Settings";
         });
     }
+}
+
+// ============================================================================
+// Browser Profiles Section
+// ============================================================================
+
+function clearPartitionData(partition: string): Promise<void> {
+    return ipcRenderer.invoke(BrowserChannel.clearProfileData, partition);
+}
+
+function BrowserProfilesSection() {
+    const profiles = appSettings.use("browser-profiles");
+    const defaultProfile = appSettings.use("browser-default-profile");
+    const [newName, setNewName] = useState("");
+    const [newColor, setNewColor] = useState(TAG_COLORS[0].hex);
+    const [clearedProfile, setClearedProfile] = useState<string | null>(null);
+
+    const handleAddProfile = () => {
+        const trimmed = newName.trim();
+        if (!trimmed) return;
+        const exists = profiles.some((p) => p.name.toLowerCase() === trimmed.toLowerCase());
+        if (exists) return;
+        appSettings.set("browser-profiles", [...profiles, { name: trimmed, color: newColor }]);
+        setNewName("");
+        setNewColor(TAG_COLORS[(profiles.length + 1) % TAG_COLORS.length].hex);
+    };
+
+    const handleRemoveProfile = async (name: string) => {
+        const result = await showConfirmationDialog({
+            title: "Delete Profile",
+            message: `Delete profile "${name}"? All browsing data (cookies, storage, cache) for this profile will be permanently removed.`,
+            buttons: ["Delete", "Cancel"],
+        });
+        if (result !== "Delete") return;
+        const partition = getPartitionString(name, false);
+        await clearPartitionData(partition);
+        appSettings.set("browser-profiles", profiles.filter((p) => p.name !== name));
+        if (defaultProfile === name) {
+            appSettings.set("browser-default-profile", "");
+        }
+    };
+
+    const handleClearData = async (profileName: string) => {
+        const label = profileName || "Default";
+        const result = await showConfirmationDialog({
+            title: "Clear Profile Data",
+            message: `Clear all browsing data (cookies, storage, cache) for the "${label}" profile?`,
+            buttons: ["Clear", "Cancel"],
+        });
+        if (result !== "Clear") return;
+        const partition = getPartitionString(profileName, false);
+        await clearPartitionData(partition);
+        setClearedProfile(profileName);
+        setTimeout(() => setClearedProfile((prev) => prev === profileName ? null : prev), 2000);
+    };
+
+    const handleSetDefault = (name: string) => {
+        appSettings.set("browser-default-profile", defaultProfile === name ? "" : name);
+    };
+
+    const handleColorChange = (name: string, newColor: string) => {
+        appSettings.set("browser-profiles", profiles.map((p) =>
+            p.name === name ? { ...p, color: newColor } : p,
+        ));
+    };
+
+    const getColorMenuItems = (profileName: string, currentColor: string): MenuItem[] =>
+        TAG_COLORS.map((c) => ({
+            label: c.name,
+            icon: <span style={{
+                display: "inline-block",
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: c.hex,
+            }} />,
+            onClick: () => handleColorChange(profileName, c.hex),
+            selected: currentColor === c.hex,
+        }));
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleAddProfile();
+        }
+    };
+
+    const canAdd = newName.trim().length > 0
+        && !profiles.some((p) => p.name.toLowerCase() === newName.trim().toLowerCase());
+
+    return (
+        <>
+            <div className="section-label">Browser Profiles</div>
+            <div className="section-hint">
+                Isolated browsing sessions with separate cookies, storage, and cache
+            </div>
+
+            <div className="profile-list">
+                <div className="profile-row">
+                    <span className="profile-color-dot" style={{ backgroundColor: DEFAULT_BROWSER_COLOR }} />
+                    <span className="profile-name">Default</span>
+                    {defaultProfile === "" ? (
+                        <span className="profile-default-badge">default</span>
+                    ) : (
+                        <button className="profile-set-default" onClick={() => handleSetDefault("")}>
+                            set default
+                        </button>
+                    )}
+                    {clearedProfile === "" && (
+                        <span className="profile-cleared">Cleared</span>
+                    )}
+                    <button className="profile-clear-data" onClick={() => handleClearData("")}>
+                        clear data
+                    </button>
+                </div>
+                {profiles.map((profile) => (
+                    <div key={profile.name} className="profile-row">
+                        <WithPopupMenu items={getColorMenuItems(profile.name, profile.color)}>
+                            {(openMenu) => (
+                                <span
+                                    className="profile-color-dot clickable"
+                                    style={{ backgroundColor: profile.color }}
+                                    title="Change color"
+                                    onClick={(e) => openMenu(e.currentTarget)}
+                                />
+                            )}
+                        </WithPopupMenu>
+                        <span className="profile-name">{profile.name}</span>
+                        {defaultProfile === profile.name ? (
+                            <span className="profile-default-badge">default</span>
+                        ) : (
+                            <button className="profile-set-default" onClick={() => handleSetDefault(profile.name)}>
+                                set default
+                            </button>
+                        )}
+                        {clearedProfile === profile.name && (
+                            <span className="profile-cleared">Cleared</span>
+                        )}
+                        <button className="profile-clear-data" onClick={() => handleClearData(profile.name)}>
+                            clear data
+                        </button>
+                        <button className="profile-remove" onClick={() => handleRemoveProfile(profile.name)}>
+                            ×
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            <div className="profile-add-form">
+                <div className="profile-add-row">
+                    <input
+                        className="profile-name-input"
+                        placeholder="Profile name"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                    />
+                    <button className="profile-add-button" disabled={!canAdd} onClick={handleAddProfile}>
+                        Add
+                    </button>
+                </div>
+                <div className="section-hint">Profile color:</div>
+                <div className="color-palette">
+                    {TAG_COLORS.map((c) => (
+                        <span
+                            key={c.hex}
+                            className={`color-swatch${newColor === c.hex ? " selected" : ""}`}
+                            style={{ backgroundColor: c.hex }}
+                            title={c.name}
+                            onClick={() => setNewColor(c.hex)}
+                        />
+                    ))}
+                </div>
+            </div>
+        </>
+    );
 }
 
 // ============================================================================
@@ -280,6 +630,10 @@ function SettingsPage({ model }: SettingsPageProps) {
 
                 <div className="theme-section-label">Light</div>
                 {renderThemeGrid(lightThemes)}
+
+                <hr className="divider" />
+
+                <BrowserProfilesSection />
 
                 <hr className="divider" />
 
