@@ -14,12 +14,18 @@ Release notes and changelog for js-notepad.
   - Open via the dropdown arrow next to the **+** button → **Browser**
   - URL bar with Enter to navigate; plain text searches Google automatically
   - Back, Forward, Reload/Stop navigation buttons
-  - Page title and favicon displayed in the tab
+  - **Internal tabs** — multiple browser tabs within a single js-notepad tab
+    - Left-side tabs panel with favicon and title
+    - `target="_blank"` links and `window.open()` open as new internal tabs
+    - New tab button, close button (width-dependent visibility)
+    - Tab context menu: Close Tab, Close Other Tabs, Close Tabs Below
+    - Resizable tabs panel with splitter
+  - Page title and favicon displayed in the js-notepad tab
   - Loading indicator bar below the toolbar
   - Find in page with `Ctrl+F`
   - Focus URL bar with `Ctrl+L`
   - DevTools access via gear icon in toolbar
-  - Session restore — current URL persisted across app restarts
+  - Session restore — all internal tabs and URLs persisted across app restarts
   - Isolated storage — cookies and site data separated from the main application
   - Security: navigation to `file://` and `app-asset://` protocols is blocked
 

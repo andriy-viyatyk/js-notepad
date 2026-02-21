@@ -22,12 +22,14 @@ export const BrowserChannel = {
 // Renderer → Main: register a webview
 export interface BrowserRegisterRequest {
     tabId: string;
+    internalTabId: string;
     webContentsId: number;
 }
 
 // Main → Renderer: event payload
 export interface BrowserEvent {
     tabId: string;
+    internalTabId: string;
     type: BrowserEventType;
     data: BrowserEventData;
 }
@@ -39,7 +41,8 @@ export type BrowserEventType =
     | "page-favicon-updated"
     | "did-start-loading"
     | "did-stop-loading"
-    | "did-start-navigation";
+    | "did-start-navigation"
+    | "new-window";
 
 export interface BrowserEventData {
     url?: string;
@@ -49,4 +52,5 @@ export interface BrowserEventData {
     canGoForward?: boolean;
     isMainFrame?: boolean;
     blocked?: boolean;
+    disposition?: string;
 }

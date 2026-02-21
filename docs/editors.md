@@ -110,13 +110,19 @@ A built-in web browser for viewing documentation, APIs, and web resources withou
 **Features:**
 - **URL bar** — type a URL and press Enter to navigate; type a search term to search Google
 - **Navigation** — Back, Forward, Reload/Stop buttons in the toolbar
-- **Page title** — shown in the js-notepad tab
-- **Favicon** — website icon displayed in the tab
+- **Internal tabs** — multiple browser tabs within a single js-notepad tab, shown on a left-side panel
+  - Clicking `target="_blank"` links or `window.open()` opens a new internal tab
+  - New tab button at the bottom of the tabs panel
+  - Close button on each tab (visible when panel is wide enough)
+  - Right-click tab for context menu: Close Tab, Close Other Tabs, Close Tabs Below
+  - Resizable tabs panel with splitter
+- **Page title** — shown in the js-notepad tab (reflects the active internal tab)
+- **Favicon** — website icon displayed in the js-notepad tab and internal tabs
 - **Loading indicator** — animated bar below the toolbar while a page is loading
 - **Find in page** — `Ctrl+F` to search text within the web page
 - **Focus URL bar** — `Ctrl+L` to quickly jump to the URL bar
 - **DevTools** — click the gear icon to open the webview's developer tools
-- **Session restore** — the current URL is saved and restored when you reopen the app
+- **Session restore** — all internal tabs and their URLs are saved and restored when you reopen the app
 - **Isolated storage** — cookies and site data are kept separate from the main application
 
 **Security:** Navigation to local file protocols (`file://`, `app-asset://`) is blocked.

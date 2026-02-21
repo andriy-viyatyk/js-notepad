@@ -2,15 +2,15 @@
 
 ## Status
 
-**Status:** Planned
+**Status:** Done
 **Priority:** Medium
-**Started:** —
-**Completed:** —
+**Started:** 2026-02-20
+**Completed:** 2026-02-21
 **Depends on:** US-025 (Basic Browser Editor)
 
 ## Summary
 
-Add multi-tab browsing within a single Browser editor page. Each browser page (js-notepad tab) gets its own set of internal browser tabs displayed on a right-side panel. Handle `new-window` events from websites by opening internal tabs, and `window.open()` by opening new js-notepad browser pages.
+Add multi-tab browsing within a single Browser editor page. Each browser page (js-notepad tab) gets its own set of internal browser tabs displayed on a left-side panel. Handle `new-window` events from websites by opening internal tabs.
 
 ## Why
 
@@ -23,85 +23,97 @@ Add multi-tab browsing within a single Browser editor page. Each browser page (j
 
 ### Three Levels of Browser Tab Grouping
 
-1. **Internal browser tabs** — Multiple tabs within a single Browser editor page, shown on right panel
+1. **Internal browser tabs** — Multiple tabs within a single Browser editor page, shown on left panel
 2. **js-notepad tabs** — Multiple Browser editor pages as separate js-notepad tabs
 3. **js-notepad windows** — Browser editor pages across separate js-notepad windows
 
-### New Window Handling Strategy
+### New Window Handling (Implemented)
 
 | Source | Behavior |
 |--------|----------|
-| `target="_blank"` link click | Open as new internal tab in same browser page |
-| `window.open()` from JavaScript | Open as new internal tab in same browser page |
-| Popup with features (`toolbar=no`, explicit dimensions) | Open as internal tab with URL bar hidden |
-| User action: "Open in New Tab" (js-notepad level) | Open as new js-notepad tab with new Browser editor |
+| `target="_blank"` link click | Opens as new internal tab in same browser page |
+| `window.open()` from JavaScript | Opens as new internal tab in same browser page |
 
-### Popup Windows
+Both are intercepted via `setWindowOpenHandler()` in the main process (`browser-service.ts`), which denies the popup and relays the URL as a `"new-window"` event. Requires `allowpopups="true"` on the `<webview>` element.
 
-Websites use `window.open()` with features like `width=`, `height=`, `toolbar=no` for popups (OAuth, payment, previews). These will be rendered as internal tabs with a "popup" flag that hides the URL bar. Parent↔child messaging via `window.opener` is limited across webviews — most popup use cases (OAuth, payment forms, preview windows) work without it. Advanced messaging support can be added later if needed.
+### Deferred: Popup Windows
+
+Popup handling with `isPopup` flag (hiding URL bar for `toolbar=no` / explicit dimensions) was deferred. May be reimplemented as real popup windows with proper dimensions in the future.
 
 ## Acceptance Criteria
 
-- [ ] Right-side panel showing internal browser tabs (tab title, close button, favicon)
-- [ ] New tab button in the tabs panel
-- [ ] Close tab, switch between tabs
-- [ ] Active tab's webview is visible; inactive tabs' webviews are hidden (not destroyed)
-- [ ] `target="_blank"` links open as new internal tab
-- [ ] `window.open()` calls open as new internal tab
-- [ ] Popup windows (with `toolbar=no` or explicit dimensions) open as internal tab with URL bar hidden
-- [ ] Tab panel is collapsible/resizable
-- [ ] Session restore preserves all internal tabs and their URLs
-- [ ] Documentation updated
-- [ ] No regressions in existing functionality
+- [x] Left-side panel showing internal browser tabs (tab title, close button, favicon)
+- [x] New tab button in the tabs panel
+- [x] Close tab, switch between tabs
+- [x] Active tab's webview is visible; inactive tabs' webviews are hidden (not destroyed)
+- [x] `target="_blank"` links open as new internal tab
+- [x] `window.open()` calls open as new internal tab
+- [ ] ~~Popup windows (with `toolbar=no` or explicit dimensions) open as internal tab with URL bar hidden~~ — deferred, may implement as real popup windows in the future
+- [x] Tab panel is collapsible/resizable
+- [x] Session restore preserves all internal tabs and their URLs
+- [x] Documentation updated
+- [x] No regressions in existing functionality
 
-## Files to Modify
+## Files Modified
 
 ### New Files
 
-- `src/renderer/editors/browser/BrowserTabsPanel.tsx` — Right-side panel showing internal browser tabs
-- `src/renderer/editors/browser/BrowserTab.ts` — State for a single internal browser tab (url, title, favicon, loading, isPopup)
+- `src/renderer/editors/browser/BrowserTabsPanel.tsx` — Left-side panel showing internal browser tabs with context menu
 
 ### Modified Files
 
-- `src/renderer/editors/browser/BrowserPageModel.ts` — Add multi-tab state management (tabs array, activeTabId, add/remove/switch tabs)
-- `src/renderer/editors/browser/BrowserPageView.tsx` — Add tabs panel, manage multiple webview elements
-- `src/renderer/editors/browser/BrowserToolbar.tsx` — Show active tab's navigation state; adapt for popup mode (hidden URL bar)
+- `src/renderer/editors/browser/BrowserPageModel.ts` — Added `BrowserTabData` interface, multi-tab state (tabs array, activeTabId), tab management methods (addTab, closeTab, closeOtherTabs, closeTabsBelow, switchTab), multi-tab session restore
+- `src/renderer/editors/browser/BrowserPageView.tsx` — Added multi-webview rendering (BrowserWebviewItem), tabs panel, dom-ready gating, new-window event handling, `allowpopups` attribute
+
+### Not Created (Changed from Plan)
+
+- `BrowserTab.ts` — `BrowserTabData` interface placed in `BrowserPageModel.ts` instead
+- `BrowserToolbar.tsx` — Toolbar remained inline in `BrowserPageView.tsx`
 
 ## Implementation Progress
 
 ### Phase 1: Tab State Management
-- [ ] Define `BrowserTab` interface (id, url, title, favicon, loading, canGoBack, canGoForward, isPopup)
-- [ ] Extend `BrowserPageModel` with tabs array, activeTabId, tab management methods
-- [ ] Add/remove/switch tab logic
-- [ ] Update `getRestoreData()` / `restore()` for multi-tab session restore
+- [x] Define `BrowserTabData` interface (id, url, pageTitle, favicon, loading, canGoBack, canGoForward)
+- [x] Extend `BrowserPageModel` with tabs array, activeTabId, tab management methods
+- [x] Add/remove/switch tab logic (addTab, closeTab, closeOtherTabs, closeTabsBelow, switchTab)
+- [x] Update `getRestoreData()` / `applyRestoreData()` for multi-tab session restore
 
 ### Phase 2: Multi-Webview Rendering
-- [ ] Render multiple `<webview>` elements (one per tab)
-- [ ] Show active tab's webview, hide others (CSS visibility or display)
-- [ ] Wire each webview's events to its tab state
-- [ ] Handle `new-window` events → create new internal tab
-- [ ] Detect popup features → set `isPopup` flag, hide URL bar
+- [x] Render multiple `<webview>` elements (one per tab)
+- [x] Show active tab's webview, hide others (CSS display)
+- [x] Wire each webview's events to its tab state via internalTabId routing
+- [x] Handle `new-window` events → create new internal tab
+- [x] dom-ready gating for loadURL() via webviewReady Set
+- [ ] ~~Detect popup features → set `isPopup` flag, hide URL bar~~ — deferred
 
 ### Phase 3: Tabs Panel UI
-- [ ] Create `BrowserTabsPanel` component on right side
-- [ ] Tab items with favicon, title, close button
-- [ ] New tab button
-- [ ] Active tab highlighting
-- [ ] Resizable panel with splitter
-- [ ] Tab panel visibility toggle
+- [x] Create `BrowserTabsPanel` component on left side
+- [x] Tab items with favicon, title, close button (width-dependent visibility)
+- [x] New tab button
+- [x] Active tab highlighting
+- [x] Resizable panel with splitter
+- [x] Compact mode (icon-only) at narrow widths
 
 ### Phase 4: Polish
-- [ ] Tab reordering (drag and drop)
-- [ ] Tab context menu (Close, Close Others, Duplicate)
-- [ ] Limit on number of internal tabs (performance consideration)
-- [ ] Update user documentation
+- [x] Tab context menu (Close Tab, Close Other Tabs, Close Tabs Below)
+- [x] Fixed tab height consistency (28px with border-box sizing)
+- [x] White webview background for proper website rendering
+- [x] Update user documentation
 
 ## Notes
 
 ### 2026-02-19
 - Split from original US-021. This task adds the multi-tab layer on top of US-025's single-webview foundation.
 - Each internal tab has its own webview instance. Hidden webviews stay in DOM but are not visible — this preserves their state and avoids re-navigation on tab switch.
-- The `allowpopups` webview attribute may be useful for popup handling, but intercepting via `new-window` event gives more control.
+
+### 2026-02-20
+- `allowpopups="true"` is required on `<webview>` for `setWindowOpenHandler` to fire on `target="_blank"` links.
+- Needed `webviewReady` ref (Set) to prevent calling `loadURL()` before dom-ready — crashes the app otherwise.
+- Must NOT include `tab.url` in IPC registration effect dependencies — causes cleanup/re-register on every navigation, clearing webviewReady state.
+- Emotion `&` selector always refers to root styled component class, not current nested selector — hover-reveal rules must be at parent level.
+- Webview needs explicit `backgroundColor: "#ffffff"` — sites without their own background inherit app's dark theme.
+- Tabs panel changed from right-side to left-side during implementation.
+- isPopup flag deferred — may implement as real popup windows with proper dimensions in the future.
 
 ## Related
 
