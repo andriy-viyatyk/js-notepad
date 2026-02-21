@@ -20,11 +20,19 @@ Add a custom context menu for the browser editor's web page content. Right-click
 
 - [x] Right-click on a link shows: "Open Link in New Tab", "Copy Link Address"
 - [x] Right-click on selected text shows: "Copy"
-- [x] Right-click on an image shows: "Copy Image Address"
-- [x] Right-click anywhere shows: "Back", "Forward", "Reload", "Inspect Element"
+- [x] Right-click on an image shows: "Open Image in New Tab", "Copy Image Address"
+- [x] Right-click on an SVG element shows: "Open SVG in Editor"
+- [x] Right-click on editable fields shows: "Cut", "Copy", "Paste"
+- [x] Right-click anywhere shows: "Back", "Forward", "Reload", "View Source", "View Actual DOM", "Inspect Element"
 - [x] "Open Link in New Tab" opens the link as a new internal browser tab
+- [x] "Open Image in New Tab" opens the image in the Image Viewer editor
+- [x] "Open SVG in Editor" opens SVG source in text editor with XML syntax (auto-fixes xmlns, viewBox, dimensions)
+- [x] "View Source" opens raw server HTML in a new text tab
+- [x] "View Actual DOM" opens live rendered DOM in a new text tab
 - [x] "Inspect Element" opens DevTools focused on the clicked element
 - [x] Context menu items are contextual (link items only show when right-clicking a link, etc.)
+- [x] URL bar uses TextField with navigate button; "Paste and Go" in URL bar context menu
+- [x] Dynamic webview background (theme color for blank tabs, white for navigated pages)
 - [x] Documentation updated
 - [x] No regressions in existing functionality
 
@@ -53,8 +61,9 @@ The webview's context menu is intercepted at the webContents level in the main p
 
 - `src/main/browser-service.ts` — Added `context-menu` event listener on webContents
 - `src/ipc/browser-ipc.ts` — Added `"context-menu"` to BrowserEventType, extended BrowserEventData with context menu fields
-- `src/renderer/editors/browser/BrowserPageView.tsx` — Handle `"context-menu"` event, build and show contextual menu
-- `src/renderer/features/dialogs/poppers/showPopupMenu.tsx` — Added `closePopper()` call before showing new menu to prevent stacking
+- `src/renderer/editors/browser/BrowserPageView.tsx` — Handle `"context-menu"` event, build and show contextual menu; TextField URL bar with navigate button; "Paste and Go" context menu; dynamic webview background; transparent overlay for popup dismissal
+- `src/renderer/features/dialogs/poppers/showPopupMenu.tsx` — Added `closePopper()` call before showing new menu to prevent stacking; added `skipInspect` option to `ShowAppPopupMenuOptions`
+- `src/renderer/editors/image/ImageViewer.tsx` — Added `url` field to `ImageViewerModelState` for loading images from external URLs (browser webview)
 
 ## Implementation Progress
 
@@ -69,17 +78,30 @@ The webview's context menu is intercepted at the webContents level in the main p
 
 ### Phase 3: Menu Actions — Done
 - [x] "Open Link in New Tab" — `model.addTab(linkURL)`
-- [x] "Copy Link Address" — clipboard write
-- [x] "Copy" — `webview.copy()`
-- [x] "Copy Image Address" — clipboard write
-- [x] "Cut" / "Paste" — `webview.cut()` / `webview.paste()` (for editable fields)
+- [x] "Copy Link Address" — `navigator.clipboard.writeText(linkURL)`
+- [x] "Open Image in New Tab" — dynamic import of ImageViewer, create model with `url` field
+- [x] "Copy Image Address" — `navigator.clipboard.writeText(srcURL)`
+- [x] "Copy" (selection) — `navigator.clipboard.writeText(selectionText)` + `webview.focus()`
+- [x] "Cut" / "Copy" / "Paste" (editable) — `webview.cut/copy/paste()` with `webview.focus()`
 - [x] "Back" / "Forward" / "Reload" — webview navigation (with disabled state)
-- [x] "Inspect Element" — `webview.inspectElement(x, y)` with webview-relative coordinates
+- [x] "View Source" — `fetch(location.href).then(r => r.text())` via `executeJavaScript`, opens in text tab with HTML language
+- [x] "View Actual DOM" — `document.documentElement.outerHTML` via `executeJavaScript`, opens in text tab with HTML language
+- [x] "Open SVG in Editor" — SVG probe via `elementFromPoint()` + `closest('svg')`, auto-fixes xmlns/viewBox/dimensions, strips HTML comments
+- [x] "Inspect Element" — `webview.inspectElement(probeX, probeY)` with webview-relative coordinates
+
+### Phase 4: URL Bar & UI Improvements — Done
+- [x] Replaced `<input>` with `TextField` component with `endButtons` navigate button
+- [x] "Paste and Go" in URL bar right-click menu via `e.nativeEvent.menuItems`
+- [x] Dynamic webview background: `color.background.default` for `about:blank`, `#ffffff` for navigated pages
+- [x] `skipInspect` option for `showAppPopupMenu` to suppress default "Inspect" item
 
 ### Bug Fixes During Implementation
-- **Popup position offset**: `params.x/y` are already in host window coordinate space, not webview-relative. Used `data.x/y` directly for popup position; subtract webview rect only for `inspectElement`.
+- **Popup position offset**: `params.x/y` are already in host window coordinate space, not webview-relative. Used `data.x/y` directly for popup position; subtract webview rect only for `inspectElement` and `elementFromPoint`.
 - **Stacking popup menus**: Webview right-clicks go through IPC (not DOM), so Popper's click-outside handler doesn't fire. Fixed by calling `closePopper()` at the start of `showAppPopupMenu()`.
 - **Left-click in webview doesn't dismiss popup**: Webview clicks don't bubble to renderer DOM. Fixed with a transparent overlay that covers the webview area while a popup is open, so clicks reach the renderer's `document` and trigger Popper's dismiss handler.
+- **Copy not working from context menu**: `webview.copy()` failed because webview lost focus when popup appeared. Fixed by using `navigator.clipboard.writeText(selectionText)` directly.
+- **SVG missing attributes for standalone rendering**: Extracted SVGs missing xmlns, viewBox, or dimensions wouldn't render properly. Auto-fixed in extraction script using `getBBox()` and attribute injection.
+- **FileIcon crash with undefined filePath**: `path.basename(undefined)` threw in ImageViewer. Fixed with `filePath || "image.png"` fallback.
 
 ## Notes
 
