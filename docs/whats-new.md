@@ -24,6 +24,14 @@ Release notes and changelog for js-notepad.
   - Loading indicator bar below the toolbar
   - Find in page with `Ctrl+F`
   - Focus URL bar with `Ctrl+L`
+  - **Context menu** — right-click in the web page for contextual actions
+    - On links: Open Link in New Tab, Copy Link Address
+    - On images: Open Image in New Tab (opens in Image Viewer), Copy Image Address
+    - On selected text: Copy; on editable fields: Cut, Copy, Paste
+    - On SVG elements: Open SVG in Editor (with auto-fixed xmlns/viewBox for standalone rendering)
+    - Navigation: Back, Forward, Reload
+    - Developer: View Source (raw server HTML), View Actual DOM (live rendered DOM), Inspect Element
+  - **URL bar** with navigate button and "Paste and Go" in right-click menu
   - DevTools access via gear icon in toolbar
   - Session restore — all internal tabs and URLs persisted across app restarts
   - Isolated storage — cookies and site data separated from the main application

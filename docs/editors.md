@@ -108,7 +108,8 @@ A built-in web browser for viewing documentation, APIs, and web resources withou
 **Opening:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar → **Browser**.
 
 **Features:**
-- **URL bar** — type a URL and press Enter to navigate; type a search term to search Google
+- **URL bar** — type a URL and press Enter to navigate; type a search term to search Google; navigate button at the end of the input
+- **Paste and Go** — right-click the URL bar for a "Paste and Go" option that pastes clipboard text and navigates immediately
 - **Navigation** — Back, Forward, Reload/Stop buttons in the toolbar
 - **Internal tabs** — multiple browser tabs within a single js-notepad tab, shown on a left-side panel
   - Clicking `target="_blank"` links or `window.open()` opens a new internal tab
@@ -116,6 +117,15 @@ A built-in web browser for viewing documentation, APIs, and web resources withou
   - Close button on each tab (visible when panel is wide enough)
   - Right-click tab for context menu: Close Tab, Close Other Tabs, Close Tabs Below
   - Resizable tabs panel with splitter
+- **Context menu** — right-click in the web page for contextual actions:
+  - On a link: "Open Link in New Tab", "Copy Link Address"
+  - On an image: "Open Image in New Tab" (opens in Image Viewer), "Copy Image Address"
+  - On selected text: "Copy"
+  - On an editable field: "Cut", "Copy", "Paste"
+  - On an SVG element: "Open SVG in Editor" (opens in text editor with XML syntax)
+  - Always available: "Back", "Forward", "Reload", "View Source", "View Actual DOM", "Inspect Element"
+- **View Source** — view the raw HTML as fetched from the server
+- **View Actual DOM** — view the live rendered DOM (post-JavaScript execution)
 - **Page title** — shown in the js-notepad tab (reflects the active internal tab)
 - **Favicon** — website icon displayed in the js-notepad tab and internal tabs
 - **Loading indicator** — animated bar below the toolbar while a page is loading

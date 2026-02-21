@@ -14,12 +14,12 @@ Current work in progress and planned tasks.
 |----|-------|----------|------|
 | US-027 | Browser Profiles, Incognito & Downloads | Medium | [README](US-027-browser-profiles-downloads/README.md) |
 | US-028 | Browser Bookmarks (Links Editor Integration) | Low | [README](US-028-browser-bookmarks/README.md) |
-| US-029 | Browser Web Page Context Menu | Medium | [README](US-029-browser-context-menu/README.md) |
 
 ## Recently Completed
 
 | ID | Title | Notes |
 |----|-------|-------|
+| US-029 | Browser Web Page Context Menu | Contextual right-click menu for webview content (links, images, text, SVG), View Source/Actual DOM, Open Image/SVG in editor, URL bar with navigate button and Paste and Go, dynamic webview background |
 | US-026 | Browser Internal Tabs | Multi-tab browsing within a browser page, left-side tabs panel, target="_blank"/window.open() open new internal tabs, tab context menu (close/close others/close below), resizable panel, session restore for all tabs |
 | US-025 | Basic Browser Editor | Built-in web browser as page-editor using webview, multi-process architecture (renderer + main + guest preload), favicon/title detection, session restore, protocol blocking |
 | US-023 | NavigationPanel File Content Search | VS Code-style file content search with streaming results, include/exclude patterns, FileExplorer filtering, Monaco highlighting, configurable extensions in Settings |

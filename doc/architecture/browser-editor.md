@@ -112,6 +112,44 @@ did-start-navigation    →   Check protocol →   If blocked: wc.stop()
                                                 → webview.goBack()
 ```
 
+## Context Menu
+
+The webview's right-click context menu is intercepted in the main process and relayed to the renderer for display as the app's popup menu.
+
+### Flow
+
+```
+Main Process                          IPC                       Renderer
+─────────────                    ──────────────          ────────────────────────
+webContents                      BrowserChannel          BrowserPageView
+  context-menu event         →     .event            →     onBrowserEvent handler
+  event.preventDefault()           type: "context-menu"     → SVG probe (elementFromPoint)
+  params: linkURL, srcURL,         data: x, y, linkURL,    → Build MenuItem[] based on context
+    selectionText, isEditable,       srcURL, selectionText, → showAppPopupMenu(x, y, items)
+    editFlags, x, y                  isEditable, editFlags
+```
+
+### Context-Sensitive Items
+
+The renderer builds the menu dynamically based on `params` fields from the `context-menu` event:
+
+| Condition | Menu Items |
+|-----------|------------|
+| `linkURL` present | Open Link in New Tab, Copy Link Address |
+| `srcURL` + `mediaType === "image"` | Open Image in New Tab, Copy Image Address |
+| `selectionText` present | Copy (uses `navigator.clipboard.writeText`) |
+| `isEditable` | Cut, Copy, Paste (uses `webview.cut/copy/paste()` with `webview.focus()`) |
+| SVG probe finds `<svg>` ancestor | Open SVG in Editor |
+| Always | Back, Forward, Reload, View Source, View Actual DOM, Inspect Element |
+
+### Key Implementation Details
+
+- **Coordinates:** `params.x/y` are in host window coordinate space (used for popup position). For `webview.inspectElement()` and `elementFromPoint()`, subtract the webview's bounding rect to get webview-relative coordinates.
+- **SVG extraction:** Uses `webview.executeJavaScript()` to probe the click target with `elementFromPoint()` + `closest('svg')`. The SVG is cloned and auto-fixed (xmlns, viewBox from `getBBox()`, width/height, HTML comment stripping).
+- **Copy for selections:** Uses `navigator.clipboard.writeText(selectionText)` instead of `webview.copy()` because the webview loses focus when the popup menu opens.
+- **Popup dismissal:** Webview clicks don't bubble to the renderer DOM. A transparent overlay (`webview-click-overlay`) is rendered over the webview area while a popup menu is open, allowing clicks to reach the renderer's `document` and trigger the popup's dismiss handler.
+- **skipInspect:** The browser context menu provides its own "Inspect Element" item, so `showAppPopupMenu` is called with `{ skipInspect: true }` to suppress the app's default "Inspect" item.
+
 ## Key Files
 
 | File | Process | Purpose |
@@ -193,6 +231,6 @@ The main preload (`src/preload.ts`) exposes the path to the webview preload:
 
 7. **Registration/unregistration lifecycle.** The webview registers with the main process on `dom-ready` (when `getWebContentsId()` is available) and unregisters on cleanup. The main process also cleans up if the webContents or sender is destroyed.
 
-8. **Webview background color.** Sites that don't set an explicit background rely on the browser default (white). Since the app uses a dark theme, the webview inherits dark backgrounds. Set `backgroundColor: "#ffffff"` on the webview element CSS to fix this.
+8. **Webview background color.** Sites that don't set an explicit background rely on the browser default (white). The webview uses dynamic background: `color.background.default` for blank/new tabs (matching the app theme), switching to `#ffffff` once the user navigates to a real page.
 
 9. **Emotion `&` selector in nested rules.** In Emotion's object syntax, `&` always resolves to the root styled component's class. Inside nested selectors like `"& .tab-close"`, a child rule `".tab-item:hover &"` would generate `.tab-item:hover .ROOT` — not `.tab-item:hover .tab-close`. Always define hover-reveal rules at the parent level: `"& .tab-item": { "&:hover .tab-close": { opacity: 1 } }`.

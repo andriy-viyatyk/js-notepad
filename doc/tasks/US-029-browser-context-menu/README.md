@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** In Progress
+**Status:** Completed
 **Priority:** Medium
 
 ## Summary
@@ -25,8 +25,8 @@ Add a custom context menu for the browser editor's web page content. Right-click
 - [x] "Open Link in New Tab" opens the link as a new internal browser tab
 - [x] "Inspect Element" opens DevTools focused on the clicked element
 - [x] Context menu items are contextual (link items only show when right-clicking a link, etc.)
-- [ ] Documentation updated
-- [ ] No regressions in existing functionality
+- [x] Documentation updated
+- [x] No regressions in existing functionality
 
 ## Technical Approach
 
