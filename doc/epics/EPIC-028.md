@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Implementation phase planned (2026-05-20). Strangler fig migration; 13 tasks queued (US-547–US-559).
+**Status:** Implementation phase in progress. Strangler fig migration; 30 tasks queued (US-547–US-559, US-560–US-576). US-547 / US-548 / US-549 / US-552 / US-552-B / US-553 complete; remainder placeholders.
 **Created:** 2026-05-19
 
 ## Overview
@@ -165,18 +165,38 @@ The implementation runs in **four phases across 13 tasks**. Each task ends with 
 |------|-------|-------|
 | **US-550** | MCP + scripting facades partial | `mcp-handler.ts` adopts MI1–MI5 (drop `type`, route through `getTextFileHost`). `page.asX()` gains `force?: boolean` per SF1. `PageWrapper.type` retires per SF5. `acquireViewModel*` partial retirement (full retirement falls out as editors migrate). |
 
-### Phase C — Per-editor migrations, risk-first (8 tasks)
+### Phase C — Per-editor migrations, risk-first (one task per editor)
+
+**2026-05-22 — bundled tasks split.** US-554 (Preview group), US-556 (Todo + RestClient), and US-558 (No-host group) originally bundled multiple editors per task. After US-552 (Grid) and US-553 (LogView) demonstrated the per-editor scope of ~20+ files and ~2k lines each — with editor-specific design concerns surfacing during investigation that wouldn't have caught inside a bundle — the bundles were split into **one task per editor**. The original numbers carry the first editor of each bundle (Markdown / Todo / Browser); the rest take new sequential numbers (US-560 → US-576). US-564 / US-565 are added for the design-phase-skipped Graph / Draw walkthroughs (27 / 28), which were always going to need first-principles investigation during implementation. **Total Phase C: 26 tasks.**
 
 | Task | Title | Walkthrough | Notes |
 |------|-------|-------------|-------|
 | **US-551** | Monaco / Text | 20 | Sets the template. Most complex text-bearing editor. `TextFileModel` relocates to content-host folder. Deletes `TextEditorView`, `TextToolbar`, `TextFooter`, `ActiveEditor`, `ContentViewModel*`. |
-| **US-552** | Grid | 21 | Three registry ids (`grid-json` / `grid-csv` / `grid-jsonl`) collapse to one `GridEditor` class with `format` discriminator. Per-editor cache file folds into `EditorDescriptor.state`. |
-| **US-553** | LogView | 23 | Final `acquireViewModelSync` machinery retirement across codebase. `LogViewEditor` IS the page mainEditor with TextFileModel content host. |
-| **US-554** | Preview group — Markdown / SVG / HTML / Mermaid | 22 | Four sibling content-views as four `EditorModel` subclasses. Stresses Tier 5 template on near-empty state slices. |
+| **US-552** | Grid | 21 | Three registry ids (`grid-json` / `grid-csv` / `grid-jsonl`) collapse to one `GridEditor` class with `format` discriminator. Per-editor cache file folds into `EditorDescriptor.state`. **Done.** |
+| **US-552-B** | Host-managed editor view state | (cross-cutting) | Generic `getEditorState` / `setEditorState` on `IContentHost`; `editorSettings: Record<string, unknown>` on `TextFileModel.state`; Grid retrofit as first consumer. Walkthrough concerns amended with HS1 addendum. **Done.** |
+| **US-553** | LogView | 23 | Fifth and final text-bearing editor under Tier 5 template. Retires `acquireViewModelSync("log-view")` machinery (legacy NoteItemEditModel consumer survives until US-557). `forceScrollVersion` → `LogQueueEvent.scrollToBottom`. `itemsState` stays transient — not persisted — per HS1 size carve-out. **Done.** |
+| **US-554** | Markdown | 22 | Richest of the four preview editors — search machinery + compact-mode + scroll. PV9 view container ref. |
+| **US-560** | Svg | 22 | Near-empty state slice. Baseline exercise of Tier 5 template on a light editor. |
+| **US-561** | Html | 22 | Near-empty state slice. Preserves today's sandbox / load behavior. |
+| **US-562** | Mermaid | 22 | Async render pipeline — `renderDebounced` + `renderMermaid()`. PV4 — `lightMode` persistence (initial value from theme; persisted in HS1). |
+| **US-564** | Graph | 27 *(SKIPPED in design)* | First-principles investigation during implementation. Structurally similar to walked Tier 5 text-bearing editors. |
+| **US-565** | Draw | 28 *(SKIPPED in design)* | First-principles investigation during implementation. Structurally similar to walked Tier 5 text-bearing editors. |
 | **US-555** | Link | 24 | First sidebar-owning Tier-5 editor. Exercises `beforeNavigateAway` + `onMainEditorChanged` hooks deferred from walkthrough 03. CategoryEditor view rewire lands here. |
-| **US-556** | Todo + RestClient | 25 + 26 | Two non-sidebar-owning editors. RestClient introduces "split-cache-file consolidation by scale" pattern (RC7). |
-| **US-557** | Notebook | 29 | Most complex editor — embedded editors with note-level switching. Second consumer of `EditorConstructorArgs.initialHost` (NB7). |
-| **US-558** | No-host group — Browser + Compare + Explorer + 9 misc | 30 | Browser (page-mainEditor with embedded LinkEditor), Compare (React component, not an EditorModel — CK2), Explorer (secondary-only EditorModel), plus umbrella migration of 9 deferred no-host editors (PDF, image, archive, video, settings, about, mcp-inspector, storybook, category). |
+| **US-556** | Todo | 25 | Non-sidebar-owning Tier 5 editor. |
+| **US-563** | Rest Client | 26 | Non-sidebar-owning Tier 5 editor. Introduces "split-cache-file consolidation by scale" pattern (RC7). |
+| **US-557** | Notebook | 29 | Most complex text-bearing editor — embedded editors with note-level switching. Second consumer of `EditorConstructorArgs.initialHost` (NB7). Retires the last `acquireViewModelSync` callsite. |
+| **US-558** | Browser | 30 §1 | Page-mainEditor with NO `CONTENT_HOST_TRAIT` but embeds a full `LinkEditor` for the bookmarks drawer. NH1–NH10. Second instance of an editor embedding another EditorModel after Notebook NB7. |
+| **US-566** | Compare | 30 §2 | NOT an `EditorModel` — plain React component composed over two grouped pages' `TextFileModel` hosts. CP1–CP5. Placement resolved in walkthrough 06 / CK1–CK10. |
+| **US-567** | Explorer | 30 §3 | Secondary-only `EditorModel` — not in `editorRegistry`. EX1–EX10. Second consumer of LK8 / LK9 hooks (different membership pattern from Link). |
+| **US-568** | PDF | 30 (closure) | First-principles investigation. No host. |
+| **US-569** | Image | 30 (closure) | First-principles investigation. No host. |
+| **US-570** | Archive | 30 (closure) | First-principles investigation. No host + sidebar panel. |
+| **US-571** | Video | 30 (closure) | First-principles investigation. No host. |
+| **US-572** | Settings | 30 (closure) | First-principles investigation. No host. |
+| **US-573** | About | 30 (closure) | First-principles investigation. No host. |
+| **US-574** | MCP Inspector | 30 (closure) | First-principles investigation. No host. |
+| **US-575** | Storybook | 30 (closure) | First-principles investigation. No host. |
+| **US-576** | Category | 30 (closure) | First-principles investigation. No host. |
 
 ### Phase D — Cleanup (1 task)
 
@@ -198,25 +218,53 @@ The initial C1–C9 entries moved to concerns.md during their walkthroughs and a
 
 ## Linked Tasks
 
-Listed in implementation order. Each is a placeholder until its own deep-investigation pass produces a full task document.
+Listed in implementation order. Each is a placeholder until its own deep-investigation pass produces a full task document. Tasks marked **Done** have shipped; the implementation order remains the dashboard order regardless of US number.
 
-| ID | Title | Phase | Walkthrough(s) |
-|----|-------|-------|----------------|
-| US-547 | Foundation primitives | A | foundation mockups |
-| US-548 | PageModel adapter layer | A | 01–07 |
-| US-549 | Shared chrome (PageToolbar + TextChrome) | A | 09, 10 |
-| US-550 | MCP + scripting facades partial | B | 12, 13 |
-| US-551 | Monaco / Text editor | C | 20 |
-| US-552 | Grid editor | C | 21 |
-| US-553 | LogView editor | C | 23 |
-| US-554 | Preview group (Markdown / SVG / HTML / Mermaid) | C | 22 |
-| US-555 | Link editor | C | 24 |
-| US-556 | Todo + RestClient editors | C | 25, 26 |
-| US-557 | Notebook editor | C | 29 |
-| US-558 | No-host group (Browser + Compare + Explorer + 9 misc) | C | 30 |
-| US-559 | Strangler-fig retirement | D | cleanup |
+| ID | Title | Phase | Walkthrough(s) | Status |
+|----|-------|-------|----------------|--------|
+| US-547 | Foundation primitives | A | foundation mockups | Done |
+| US-548 | PageModel adapter layer | A | 01–07 | Done |
+| US-549 | Shared chrome (PageToolbar + TextChrome) | A | 09, 10 | Done |
+| US-550 | MCP + scripting facades partial | B | 12, 13 | |
+| US-551 | Monaco / Text editor | C | 20 | |
+| US-552 | Grid editor | C | 21 | Done |
+| US-552-B | Host-managed editor view state | C | (cross-cutting) | Done |
+| US-553 | LogView editor | C | 23 | Done |
+| US-554 | Markdown editor | C | 22 | |
+| US-560 | Svg editor | C | 22 | |
+| US-561 | Html editor | C | 22 | |
+| US-562 | Mermaid editor | C | 22 | |
+| US-564 | Graph editor | C | 27 *(skipped in design)* | |
+| US-565 | Draw editor | C | 28 *(skipped in design)* | |
+| US-555 | Link editor | C | 24 | |
+| US-556 | Todo editor | C | 25 | |
+| US-563 | Rest Client editor | C | 26 | |
+| US-557 | Notebook editor | C | 29 | |
+| US-558 | Browser editor | C | 30 §1 | |
+| US-566 | Compare editor | C | 30 §2 | |
+| US-567 | Explorer editor | C | 30 §3 | |
+| US-568 | PDF editor | C | 30 (closure) | |
+| US-569 | Image editor | C | 30 (closure) | |
+| US-570 | Archive editor | C | 30 (closure) | |
+| US-571 | Video editor | C | 30 (closure) | |
+| US-572 | Settings editor | C | 30 (closure) | |
+| US-573 | About editor | C | 30 (closure) | |
+| US-574 | MCP Inspector editor | C | 30 (closure) | |
+| US-575 | Storybook editor | C | 30 (closure) | |
+| US-576 | Category editor | C | 30 (closure) | |
+| US-559 | Strangler-fig retirement | D | cleanup | |
 
 ## Notes
+
+### 2026-05-22 — Phase C tasks split into one task per editor
+- After completing US-552 (Grid) and US-553 (LogView), per-editor scope settled at ~20+ files and ~2k lines per migration, with editor-specific design concerns (e.g. LogView's HS1 size carve-out for `itemsState`) emerging during investigation that would have been missed inside a bundled task.
+- **Split decisions:**
+  - **US-554 (Preview group, 4 editors)** → US-554 (Markdown) + US-560 (Svg) + US-561 (Html) + US-562 (Mermaid)
+  - **US-556 (Todo + RestClient)** → US-556 (Todo) + US-563 (Rest Client)
+  - **US-558 (No-host group, 12 editors)** → US-558 (Browser) + US-566 (Compare) + US-567 (Explorer) + US-568–US-576 (PDF / Image / Archive / Video / Settings / About / MCP Inspector / Storybook / Category)
+- **Skipped-in-design walkthroughs promoted to placeholder tasks:** US-564 (Graph, walkthrough 27) and US-565 (Draw, walkthrough 28). Both still need first-principles investigation during implementation, matching their `[~] SKIPPED` design-phase status.
+- **Numbering policy:** the original bundle's number carries the first editor (alphabetical or walkthrough order within bundle); the rest get sequential new numbers US-560 → US-576. No retroactive rename of cross-references in completed task docs or source comments — those were written when the bundles existed; the dashboard is the canonical current state.
+- **Phase C task count:** 8 → 26 (5 done / 21 placeholder).
 
 ### 2026-05-20 — implementation plan landed
 - Migration style chosen: **strangler fig** (new architecture coexists with legacy via `LegacyEditorAdapter`; per-editor migrations remove adapter incrementally; final cleanup deletes legacy code path).
