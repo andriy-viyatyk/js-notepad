@@ -747,6 +747,8 @@ Pattern now standardized across **six of nine** Tier 5 editors. Today's two impl
 
 Rejected (b) keep no-persistence — would be silent today-bug carried forward into EPIC-028; user-visible regression on every restart.
 
+**Amended 2026-05-21 by HS1.** Folds into `host.editorSettings["note-view"]` (final Notebook editor id pending — `note-view` per registry; finalize in implementation), not `EditorDescriptor.state`. `leftPanelWidth` + `expandedPanel` + `selectedCategory/Tag` ride the host slot — survive Notebook↔Monaco switches AND app restarts. NoteItemEditModel (NB6) gains its own IContentHost implementation per NB8 (`notebook.data.state[noteId].editorSettings` backing) for per-note embedded-editor view state — same template, different storage backing (notebook JSON, not host descriptor). Implementation of the cross-cutting contract pinned by `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
+
 ### NB4 — Three-site lifecycle split
 
 **RESOLVED 2026-05-20** — Option (a) confirmed. Today's `onInit` (5 statements: state subscribe + initial loadData) splits cleanly into `restore()` (initial parse + state subscribe) + `adoptHost()` (host content subscription) + `dispose()` (flush + unsubscribe + host dispose).

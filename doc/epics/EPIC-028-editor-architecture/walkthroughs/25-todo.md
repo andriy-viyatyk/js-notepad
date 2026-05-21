@@ -701,6 +701,8 @@ Under EPIC-028 with EditorDescriptor.state riding the per-window descriptor save
 
 Rejected (b) — duplicates the today-pattern that GR4 + LV3 + LK3 eliminated for the same reasons. Rejected (c) — premature splitting. **Fourth instance of "per-editor cache file → descriptor.state" pattern (Grid GR4 → Log View LV3 → Link LK3 → Todo TD3).** Pattern is now firmly standardized across half of Tier 5. No mockup change required.
 
+**Amended 2026-05-21 by HS1.** Folds into `host.editorSettings["todo-view"]`, not `EditorDescriptor.state`. `leftPanelWidth` + `selectedList` + `selectedTag` ride the host slot — survive Todo↔Monaco switches (user toggles to raw JSON to verify item shape, switches back; selected list stays put) AND app restarts. Implementation pinned by `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
+
 ### TD4 — JSON parse/serialize lifecycle hooks under EPIC-028
 
 Today's `TodoViewModel` lifecycle:

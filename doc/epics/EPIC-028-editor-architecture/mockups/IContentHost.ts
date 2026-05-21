@@ -114,6 +114,59 @@ export interface IContentHost {
      *
      *  NoteItemEditModel may implement its own subset (walkthrough 29). */
     handleKeyDown?(e: React.KeyboardEvent): void;
+
+    // ---------------------------------------------------------------------
+    // Editor-keyed view-state slot (HS1 — 2026-05-21)
+    //
+    // Each text-bearing editor (Monaco / Grid / Markdown / Mermaid / LogView /
+    // Link / Todo / RestClient / Notebook) carries view-config state on top
+    // of the host's content — column widths / filter chips / search query /
+    // selected category / panel width / lightMode toggle / etc. The host's
+    // identity outlives any single editor instance (transfers via
+    // CONTENT_HOST_TRAIT.extractContentHost on switch), so the host is the
+    // natural carrier for view state that must survive cross-switch.
+    //
+    // The slot is keyed by `editorId` (the registry id — "grid-json",
+    // "md-view", etc.). Each editor declares its own settings interface and
+    // reads/writes its own slot via these two methods. The host treats the
+    // value as opaque `unknown`.
+    //
+    // Backing:
+    //   - TextFileModel: stores on `state.editorSettings: Record<string,
+    //     unknown>`; rides the host descriptor → `openFiles.txt` for
+    //     cross-restart survival. Mockup at `TextFileModel.ts`.
+    //   - NoteItemEditModel: stores on `notebook.data.state[noteId]
+    //     .editorSettings` (per NB8 — per-note JSON-file backing). Same
+    //     template, different storage backing. Lands in walkthrough 29.
+    //
+    // Lifecycle hook (editor side):
+    //   - In `adoptHost(host)`: read saved slot via
+    //     `host.getEditorState<XxxViewSettings>(this.editorId)`; seed editor
+    //     state field-by-field with `=== undefined` guards.
+    //   - Subscribe to editor state; project the persisted fields and write
+    //     back via `host.setEditorState<XxxViewSettings>(this.editorId, …)`.
+    //   - Tear down the subscription in `CONTENT_HOST_TRAIT.extractContentHost`
+    //     (switch-out) and in `dispose()` (page close).
+    //   - Drop the same fields from `getRestoreData()` — editor descriptor
+    //     collapses to identity-only (title / modified / secondaryEditor).
+    //
+    // Concerns log:
+    //   - HS1 (2026-05-21) — this contract. Supersedes GR4 + GR6 + PV2 +
+    //     PV6 + LV3 + LK3 + TD3 + RC3 + NB3.
+    // ---------------------------------------------------------------------
+
+    /** Read this editor's view-state slot. Sync — backed by host state, no
+     *  I/O. Returns undefined when the host hasn't seen this editor before
+     *  (first activation; no slot written yet). Caller is responsible for
+     *  validating the shape and falling back to defaults on missing fields. */
+    getEditorState<T>(editorId: string): T | undefined;
+
+    /** Persist this editor's view-state slot. Sync. Stored on the host's
+     *  persistent state; survives editor switches (host outlives the editor)
+     *  AND app restarts (host descriptor rides `openFiles.txt`). Slot is
+     *  keyed by `editorId`; each editor owns its own slot independent of
+     *  siblings. Value is opaque to the host (treated as `unknown`). */
+    setEditorState<T>(editorId: string, value: T): void;
 }
 
 // -----------------------------------------------------------------------------

@@ -26,6 +26,13 @@ export interface TextFileEditorModelState extends IEditorState {
     temp: boolean;
     /** Editor detected from content (e.g., "notebook-view" when JSON has "type": "note-editor") */
     detectedContentEditor?: EditorView;
+    /** HS1 — editor-keyed view-state slot map. Each text-bearing editor that
+     *  wraps this host reads + writes its own slot via
+     *  `getEditorState<XxxSettings>(this.editorId)` /
+     *  `setEditorState<XxxSettings>(this.editorId, value)` from IContentHost.
+     *  Survives in-session editor switches (host outlives the editor) AND
+     *  app restarts (rides host descriptor → `openFiles.txt`). */
+    editorSettings?: Record<string, unknown>;
 }
 
 export const getDefaultTextFileEditorModelState = (): TextFileEditorModelState => ({
@@ -253,6 +260,7 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
             s.editor = data.editor || s.editor;
             s.temp =
                 !s.filePath && (data.temp !== undefined ? data.temp : s.temp);
+            if (data.editorSettings !== undefined) s.editorSettings = data.editorSettings;
         });
     };
 
@@ -279,6 +287,7 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
         };
         if (s.secondaryEditor !== undefined) metadata.secondaryEditor = s.secondaryEditor;
         if (s.sourceLink !== undefined) metadata.sourceLink = s.sourceLink;
+        if (s.editorSettings !== undefined) metadata.editorSettings = s.editorSettings;
         return {
             kind: "textFile",
             state: metadata,
@@ -291,6 +300,22 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
      *  consumption arrives in US-559 when submodels accept the storage handle. */
     setStorage(_storage: V4EditorStateStorage): void {
         void _storage;
+    }
+
+    /** HS1 — read editor-keyed view-state slot. Sync. */
+    getEditorState<T>(editorId: string): T | undefined {
+        return this.state.get().editorSettings?.[editorId] as T | undefined;
+    }
+
+    /** HS1 — write editor-keyed view-state slot. Sync. The shallow rebuild
+     *  preserves immutability assumptions for downstream subscribers. */
+    setEditorState<T>(editorId: string, value: T): void {
+        this.state.update((s) => {
+            s.editorSettings = {
+                ...(s.editorSettings ?? {}),
+                [editorId]: value as unknown,
+            };
+        });
     }
 
     /** Static factory: rebuild a TextFileModel from a HostDescriptor.

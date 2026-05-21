@@ -674,6 +674,8 @@ Under EPIC-028 with EditorDescriptor.state riding the per-window descriptor save
 
 Rejected (b) — duplicates the today-pattern that GR4 + LV3 + LK3 + TD3 eliminated for the same reasons. Rejected (c) — premature splitting. **Fifth instance of "per-editor cache file → descriptor.state" pattern (Grid GR4 → Log View LV3 → Link LK3 → Todo TD3 → Rest Client RC3).** Pattern is now standardized across **five of seven** persisted-Tier-5 editors. No mockup change required.
 
+**Amended 2026-05-21 by HS1.** Folds into `host.editorSettings["rest-client"]`, not `EditorDescriptor.state`. `leftPanelWidth` + `selectedRequestId` ride the host slot — survive RestClient↔Monaco switches (user toggles to raw JSON to fix syntax, switches back; selected request stays put) AND app restarts. RC7's `<host.id>:rest-client-responses` bulk-response cache file stays untouched — MB-scale payload, separate cache by design. Implementation pinned by `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
+
 ### RC4 — JSON parse/serialize lifecycle hooks under EPIC-028
 
 Today's `RestClientViewModel` lifecycle:

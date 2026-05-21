@@ -18,7 +18,7 @@ Overview of all active and planned epics and tasks.
   - **Phase C — Per-editor migrations (risk-first)**
   - [ ] [US-551: Monaco / Text editor migration](tasks/US-551-monaco-editor-migration/README.md) — walkthrough 20; native `MonacoEditor` v4 class + `<MonacoBody>`; `CONTENT_HOST_TRAIT` on adapter + cross-camp switch; `TextEditorFacade` queue-backed (async)
   - [ ] [US-552: Grid editor migration](tasks/US-552-grid-editor-migration/README.md) — walkthrough 21 (3 registry ids → 1 class with `format`)
-  - [ ] [US-552-B: Host-managed editor view state](tasks/US-552-B-host-managed-editor-view-state/README.md) — *(cross-cutting; pending detailed investigation)* generic `getEditorState` / `setEditorState` on `IContentHost` so editor view state (Grid columns / Link sort / Todo filters / RestClient history) survives in-session editor swaps. Retrofits Grid as the first consumer; amends walkthrough 21 / GR4.
+  - [ ] [US-552-B: Host-managed editor view state](tasks/US-552-B-host-managed-editor-view-state/README.md) — *(cross-cutting; investigation complete 2026-05-21, ready for implementation)* generic `getEditorState` / `setEditorState` on `IContentHost`; `editorSettings: Record<string, unknown>` on `TextFileModel.state`; retrofit Grid as first consumer. Mockups + walkthrough concerns (GR4 / GR6 / PV2 / PV6 / LV3 / LK3 / TD3 / RC3 / NB3) amended with HS1 addendum so downstream editor migrations (US-553 → US-557) land in the corrected design.
   - [ ] US-553: LogView editor — walkthrough 23 (final `acquireViewModelSync` retirement)
   - [ ] US-554: Preview group — Markdown / SVG / HTML / Mermaid — walkthrough 22
   - [ ] US-555: Link editor — walkthrough 24 (first sidebar-owning; `beforeNavigateAway` + `onMainEditorChanged`)

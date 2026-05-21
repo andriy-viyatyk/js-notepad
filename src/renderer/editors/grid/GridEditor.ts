@@ -52,6 +52,23 @@ export type GridQueueEvent =
 
 export type GridQueueRequest = never;
 
+/**
+ * HS1 — Grid's editor-keyed view-state slot shape. Lives on
+ * `host.editorSettings[this.editorId]` so it survives Grid↔Monaco switches
+ * (host outlives the editor) AND app restarts (host descriptor rides
+ * `openFiles.txt`). Seeded into editor state by `adoptHost`; mirrored back
+ * by a `state.subscribe` mirror set up in the same call.
+ */
+interface GridViewSettings {
+    columns: Column[];
+    filters: TFilter[];
+    search: string;
+    sortColumn: TSortColumn | undefined;
+    csvDelimiter: string;
+    csvWithColumns: boolean;
+    focus: CellFocus | undefined;
+}
+
 export interface GridEditorState extends EditorStateBase {
     // Structural — persisted via getRestoreData.
     columns: Column[];
@@ -97,7 +114,16 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
     private _hostContentUnsub: (() => void) | null = null;
     private _hostEncryptionUnsub: (() => void) | null = null;
     private _csvOptionsUnsub: (() => void) | null = null;
+    private _settingsUnsub: (() => void) | null = null;
     private _pendingHost: HostDescriptor | undefined = undefined;
+    /** HS1 — pre-US-552-B descriptors carried Grid view-config directly on
+     *  `EditorDescriptor.state` (per GR4's original resolution). One-shot
+     *  legacy promotion: applyRestoreData stashes the legacy fields here;
+     *  adoptHost promotes them into `host.editorSettings[this.editorId]`
+     *  if the host slot is still empty. After the first save post-US-552-B,
+     *  the descriptor no longer carries the legacy fields and the host slot
+     *  becomes the single source of truth. */
+    private _pendingLegacySettings: GridViewSettings | null = null;
 
     /** Re-entry guard — set to the content we just serialized so the
      *  host-content subscription's reparse handler skips its own echo. */
@@ -124,10 +150,12 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
                 this._hostContentUnsub?.();
                 this._hostEncryptionUnsub?.();
                 this._csvOptionsUnsub?.();
+                this._settingsUnsub?.();
                 this._hostStateUnsub = null;
                 this._hostContentUnsub = null;
                 this._hostEncryptionUnsub = null;
                 this._csvOptionsUnsub = null;
+                this._settingsUnsub = null;
                 this._host = null;
                 return host as unknown as IContentHost;
             },
@@ -170,18 +198,14 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
         return {
             editorId: this.editorId,
             id: s.id,
+            // HS1 — descriptor collapses to identity-only. View-config
+            // (columns / filters / sortColumn / search / focus / csv options)
+            // rides `host.editorSettings[this.editorId]` via the host
+            // descriptor; rows + error stripped (view-derived per GR8 / MO5).
             state: {
                 title: s.title,
                 modified: s.modified,
                 secondaryEditor: s.secondaryEditor,
-                columns: s.columns,
-                focus: s.focus,
-                search: s.search,
-                filters: s.filters,
-                sortColumn: s.sortColumn,
-                csvDelimiter: s.csvDelimiter,
-                csvWithColumns: s.csvWithColumns,
-                // rows + error stripped — view-derived (GR8 / MO5).
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -192,14 +216,34 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
             if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
-            if (data.columns !== undefined) cur.columns = data.columns;
-            if (data.focus !== undefined) cur.focus = data.focus;
-            if (data.search !== undefined) cur.search = data.search;
-            if (data.filters !== undefined) cur.filters = data.filters;
-            if (data.sortColumn !== undefined) cur.sortColumn = data.sortColumn;
-            if (data.csvDelimiter !== undefined) cur.csvDelimiter = data.csvDelimiter;
-            if (data.csvWithColumns !== undefined) cur.csvWithColumns = data.csvWithColumns;
+            // NOTE: columns / filters / sortColumn / search / focus /
+            // csvDelimiter / csvWithColumns no longer applied here — they
+            // arrive from host.getEditorState in adoptHost. Legacy descriptors
+            // that still carry them are picked up below for one-shot
+            // promotion into the host slot.
         });
+
+        // HS1 — one-shot legacy promotion for pre-US-552-B sessions.
+        const hasLegacy =
+            data.columns !== undefined ||
+            data.filters !== undefined ||
+            data.search !== undefined ||
+            data.sortColumn !== undefined ||
+            data.csvDelimiter !== undefined ||
+            data.csvWithColumns !== undefined ||
+            data.focus !== undefined;
+        if (hasLegacy) {
+            this._pendingLegacySettings = {
+                columns: data.columns ?? [],
+                filters: data.filters ?? [],
+                search: data.search ?? "",
+                sortColumn: data.sortColumn,
+                csvDelimiter: data.csvDelimiter ?? ",",
+                csvWithColumns: data.csvWithColumns ?? false,
+                focus: data.focus,
+            };
+        }
+
         if (data.host) this._pendingHost = data.host;
     }
 
@@ -295,6 +339,7 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
         this._hostContentUnsub?.();
         this._hostEncryptionUnsub?.();
         this._csvOptionsUnsub?.();
+        this._settingsUnsub?.();
 
         // descriptorChanged forwarder — host metadata changes ride the
         // page-level persistence debounce.
@@ -340,6 +385,56 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
             });
         }
 
+        // HS1 — promote pre-US-552-B legacy descriptor fields into the
+        // host slot if it's still empty (one-shot per restore). Pre-empts
+        // the seed read below; the seed then picks up the promoted values.
+        if (
+            this._pendingLegacySettings &&
+            host.getEditorState<GridViewSettings>(this.editorId) === undefined
+        ) {
+            host.setEditorState<GridViewSettings>(
+                this.editorId,
+                this._pendingLegacySettings,
+            );
+        }
+        this._pendingLegacySettings = null;
+
+        // HS1 — seed editor state from the host slot (sync, no flicker).
+        // Field-by-field with `=== undefined` guards so future shape evolution
+        // safely falls back to defaults on missing fields.
+        const saved = host.getEditorState<GridViewSettings>(this.editorId);
+        if (saved) {
+            this.state.update((s) => {
+                if (saved.columns !== undefined) s.columns = saved.columns;
+                if (saved.filters !== undefined) s.filters = saved.filters;
+                if (saved.search !== undefined) s.search = saved.search;
+                if (saved.sortColumn !== undefined) s.sortColumn = saved.sortColumn;
+                if (saved.csvDelimiter !== undefined) s.csvDelimiter = saved.csvDelimiter;
+                if (saved.csvWithColumns !== undefined) {
+                    s.csvWithColumns = saved.csvWithColumns;
+                }
+                if (saved.focus !== undefined) s.focus = saved.focus;
+            });
+        }
+
+        // HS1 — mirror editor state changes back to the host slot. Full-state
+        // subscription is fine — each fire writes one small object into
+        // `host.state.editorSettings`; downstream `descriptorChanged` debounces
+        // at 500ms per P3, so disk-write rate is unchanged.
+        this._settingsUnsub = this.state.subscribe(() => {
+            if (!this._host) return;
+            const s = this.state.get();
+            this._host.setEditorState<GridViewSettings>(this.editorId, {
+                columns: s.columns,
+                filters: s.filters,
+                search: s.search,
+                sortColumn: s.sortColumn,
+                csvDelimiter: s.csvDelimiter,
+                csvWithColumns: s.csvWithColumns,
+                focus: s.focus,
+            });
+        });
+
         const { filePath, title } = host.state.get();
         this.state.update((s) => {
             s.title = title || (filePath ? fpBasename(filePath) : s.title || "untitled");
@@ -359,7 +454,13 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
     // ── Row parsing ─────────────────────────────────────────────────────
 
     /** Initial / explicit reparse. Handles encryption gate (G17), empty-page
-     *  bootstrap (initEmptyPage), and parse-error display via state.error. */
+     *  bootstrap (initEmptyPage), and parse-error display via state.error.
+     *
+     *  HS1 — preserves existing column customization (order, width, type,
+     *  filter, hidden state) when `state.columns` is already populated.
+     *  Cross-switch saved columns flow in via `adoptHost`'s seed-from-slot;
+     *  this method must NOT clobber them. Columns auto-derive only on first
+     *  bootstrap (empty editor state) or when explicitly reset. */
     reparseRows(content: string): void {
         // G17 — encrypted content gate. Surface a clear message via the
         // same channel <EditorError> renders for parse failures.
@@ -376,11 +477,14 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
         }
         const parsed = this.parseContent(content);
         if (parsed && Array.isArray(parsed)) {
+            const hasSavedColumns = this.state.get().columns.length > 0;
             const data = getGridDataWithColumns(parsed);
             this._maxRowId = data.rows.length;
             this.state.update((s) => {
                 s.rows = data.rows;
-                s.columns = data.columns;
+                if (!hasSavedColumns) {
+                    s.columns = data.columns;
+                }
             });
         } else {
             this.state.update((s) => {
@@ -635,10 +739,12 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
         this._hostContentUnsub?.();
         this._hostEncryptionUnsub?.();
         this._csvOptionsUnsub?.();
+        this._settingsUnsub?.();
         this._hostStateUnsub = null;
         this._hostContentUnsub = null;
         this._hostEncryptionUnsub = null;
         this._csvOptionsUnsub = null;
+        this._settingsUnsub = null;
         if (this._host) {
             await this._host.dispose();
             this._host = null;

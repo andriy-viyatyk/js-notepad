@@ -74,4 +74,31 @@ export interface IContentHost {
      *  class. `TextFileModel` will delegate Ctrl+S / Ctrl+Shift+S / F5 / F2
      *  to its actions submodel; `NoteItemEditModel` may implement a subset. */
     handleKeyDown?(e: React.KeyboardEvent): void;
+
+    /**
+     * Read this editor's view-state slot (HS1 — 2026-05-21). Sync; backed
+     * by host state, no I/O. Returns undefined when the host hasn't seen
+     * this editor before (first activation; no slot written yet). Caller
+     * validates the shape and falls back to defaults on missing fields.
+     *
+     * Slot is keyed by `editorId` (the registry id — "grid-json", "md-view",
+     * etc.). Each editor declares its own settings interface and owns its
+     * own slot independent of siblings.
+     *
+     * Used by every text-bearing editor's `adoptHost` seed step to restore
+     * cross-switch view-config (Grid columns, Link sort, Markdown compactMode,
+     * etc.) — see `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
+     */
+    getEditorState<T>(editorId: string): T | undefined;
+
+    /**
+     * Persist this editor's view-state slot (HS1 — 2026-05-21). Sync.
+     * Stored on the host's persistent state; survives editor switches
+     * (host outlives the editor) AND app restarts (rides host descriptor
+     * in `openFiles.txt`).
+     *
+     * Editor side calls this from a `state.subscribe` mirror set up in
+     * `adoptHost` so every view-config change propagates to the slot.
+     */
+    setEditorState<T>(editorId: string, value: T): void;
 }

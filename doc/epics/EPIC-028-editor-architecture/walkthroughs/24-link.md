@@ -798,6 +798,8 @@ Under EPIC-028 with EditorDescriptor.state riding the per-window descriptor save
 
 Rejected (b) — duplicates the today-pattern that GR4 + LV3 eliminated for the same reasons. Rejected (c) — premature splitting. **Third instance of "per-editor cache file → descriptor.state" pattern (Grid GR4 → Log View LV3 → Link LK3).** No mockup change required.
 
+**Amended 2026-05-21 by HS1.** Folds into `host.editorSettings["link-view"]`, not `EditorDescriptor.state`. `leftPanelWidth` + `expandedPanel` + `selectedCategory/Tag/Hostname` ride the host slot — survive Link↔Monaco switches (user toggles to raw JSON, switches back; selected category stays put) AND app restarts (same descriptor save path). The `selectionRestored` one-shot flag still retires, just via the host-slot seed in `adoptHost` instead of a separate cache-restore step. Implementation pinned by `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
+
 ### LK4 — JSON parse/serialize lifecycle hooks under EPIC-028
 
 Today's `LinkViewModel` lifecycle:

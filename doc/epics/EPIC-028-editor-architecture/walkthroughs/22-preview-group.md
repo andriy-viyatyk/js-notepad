@@ -697,6 +697,8 @@ After EPIC-028 the editor state replaces the VM state. Three candidates for what
 
 **RESOLVED 2026-05-20** — Option (a) confirmed. Persist `compactMode` only. `compactMode` is the only field with a clear "user-set, sticky" character. Search state is conceptually open-find / type / close-find — a transient gesture; persisting it surprises the user on next open (search bar pops open with a stale query). View-derived (`currentMatchIndex`, `totalMatches`) are recomputed by `MarkdownBlock`'s match-counting on every render, so they're view-derived state in the MO5 sense (ride `editor.state` for reactivity, strip from descriptor). Rejected (b) sticky search text — feature not requested; YAGNI. Rejected (c) drop user toggle — `editorConfig.compact` is the embedded-in-notebook context override (today read in `MarkdownView.tsx:83`); the user-toggleable `compactMode` is a *separate, additive* override (today line 83 ORs them). Both still need to exist. No mockup change required.
 
+**Amended 2026-05-21 by HS1.** `compactMode` rides `host.editorSettings["md-view"]`, not the editor descriptor. Same persistence story but it ALSO survives Markdown↔Monaco switches (the user toggles compact, switches to Monaco to verify raw markdown, switches back — compact stays). Implementation pinned by `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
+
 ### PV3 — Markdown search state location after VM dissolves: editor.state, view-local React state, or hybrid?
 
 Today: ViewModel holds `searchVisible` / `searchText` / `currentMatchIndex` / `totalMatches`. View bridges via `onMatchCountChange` callback + reads `vm.state.use`. `MarkdownBlock` (the renderer) owns the DOM-level match-counting + scroll-to-match.
@@ -764,6 +766,8 @@ Three candidates:
 **RESOLVED 2026-05-20** — Option (b) confirmed. Per-editor `lightMode` PERSISTS. Light/dark for a diagram is a meaningful per-diagram preference (a user might want a dark-themed app but a printable light-mode diagram for sharing). Initial value defaults from theme (preserves today's behavior on first-open); `applyRestoreData` overrides with saved value if present. Rejected (a) re-init from theme — surprises users who deliberately set light mode on a specific diagram. Rejected (c) global setting — over-globalizes; no evidence per-page is wrong; can be added later if a user asks.
 
 This decision adds `lightMode: boolean` to `MermaidEditorState`'s persisted slice (PV2 / Mermaid row). No mockup change required.
+
+**Amended 2026-05-21 by HS1.** `lightMode` rides `host.editorSettings["mermaid-view"]`, not the editor descriptor. Same first-construct default behavior (`isCurrentThemeDark()`); same per-diagram user-choice preservation; ALSO survives Mermaid↔Monaco switches (toggle lightMode, switch to Monaco to copy the source, switch back — lightMode preserved). Implementation pinned by `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
 
 ### PV7 — SVG / HTML editor state shape: extend `EditorStateBase` with zero fields, or use it directly?
 

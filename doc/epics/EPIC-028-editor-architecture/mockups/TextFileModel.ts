@@ -46,6 +46,17 @@ export interface TextFileHostState extends IContentHostState {
     password?: string;
     temp: boolean;
     restored: boolean;
+
+    /** HS1 — editor-keyed view-state slot map. Each text-bearing editor that
+     *  wraps this host (Monaco / Grid / Markdown / Mermaid / Link / Todo /
+     *  RestClient / Notebook / LogView) reads + writes its own slot via
+     *  `getEditorState<XxxSettings>(this.editorId)` /
+     *  `setEditorState<XxxSettings>(this.editorId, value)` from IContentHost.
+     *  Survives in-session editor switches (host outlives the editor) AND
+     *  app restarts (rides host descriptor → `openFiles.txt`). Values are
+     *  opaque to the host; each editor owns its own settings shape. */
+    editorSettings?: Record<string, unknown>;
+
     // NOTE: removed from today's state
     //   - `editor` (which view to render — moved to whoever wraps this host)
     //   - `detectedContentEditor` (machinery deleted; replaced by a registry
@@ -120,6 +131,20 @@ export class TextFileModel implements IContentHost {
 
     changeLanguage(language: string | undefined): void {
         this.state.update((s) => { s.language = language; });
+    }
+
+    // -------------------------------------------------------------------------
+    // Editor-keyed view-state slot (HS1)
+    // -------------------------------------------------------------------------
+
+    getEditorState<T>(editorId: string): T | undefined {
+        return this.state.get().editorSettings?.[editorId] as T | undefined;
+    }
+
+    setEditorState<T>(editorId: string, value: T): void {
+        this.state.update((s) => {
+            s.editorSettings = { ...(s.editorSettings ?? {}), [editorId]: value };
+        });
     }
 
     async dispose(): Promise<void> {
@@ -215,5 +240,13 @@ export class TextFileModel implements IContentHost {
 //   - io, encryption, script, actions submodels (with adapter cleanup)
 //   - stateStorage
 //   - saveFile, renameFile, restore, dispose, getRestoreData, applyRestoreData
+//
+// ADDED (HS1, 2026-05-21):
+//   - editorSettings?: Record<string, unknown> on state — editor-keyed
+//      view-state slot map; rides host descriptor for cross-restart survival;
+//      outlives the editor for cross-switch survival.
+//   - getEditorState<T>(editorId) / setEditorState<T>(editorId, value) —
+//      the IContentHost slot accessors. Sync. Used by every text-bearing
+//      editor's adoptHost seed + state-subscription mirror pattern.
 //
 // =============================================================================

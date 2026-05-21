@@ -740,6 +740,8 @@ Under EPIC-028 with EditorDescriptor.state riding the per-window descriptor save
 
 Rejected (b) separate cache file — duplicates the today-pattern that GR4 eliminated for similar reasons. Rejected (c) hybrid — premature optimization; nothing observed argues for the cap. Second instance of the "per-editor cache file → descriptor.state" consolidation pattern (Grid GR4 → Log View LV3). No mockup change required.
 
+**Amended 2026-05-21 by HS1.** `itemsState` folds into `host.editorSettings["log-view"]`, not `EditorDescriptor.state`. LogView pages (well-known mcp-ui-log) rarely switch in practice — but the canonical pattern applies for uniformity with the other Tier 5 editors. Same window-level 500ms debounce; same drag-atomicity guarantee (host descriptor is the same payload). Implementation pinned by `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
+
 ### LV4 — JSONL parse/serialize lifecycle hooks under EPIC-028
 
 Today's `LogViewModel` lifecycle:
