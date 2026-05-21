@@ -7,7 +7,7 @@ import type { EditorModel as V4EditorModel } from "../../editors/base/v4/EditorM
 import { deriveEditorId } from "../../editors/base/v4/LegacyEditorAdapter";
 import { editorRegistry as legacyRegistry } from "../../editors/registry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
-import type { GridViewModel } from "../../editors/grid/GridViewModel";
+import { GridEditor } from "../../editors/grid/GridEditor";
 import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel";
 import type { TodoViewModel } from "../../editors/todo/TodoViewModel";
 import type { LinkViewModel } from "../../editors/link-editor/LinkViewModel";
@@ -173,13 +173,14 @@ export class PageWrapper {
     async asGrid(force = false): Promise<GridEditorFacade> {
         const targetId = this.resolveGridEditorId();
         await this.ensureEditor(targetId, "Grid", "asGrid", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asGrid(): page lost its text host during switch");
+        // EPIC-028 / US-552 — Grid is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a GridEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof GridEditor)) {
+            throw new Error("asGrid(): page is not a GridEditor after switch");
         }
-        const vm = await model.acquireViewModel(targetId) as GridViewModel;
-        this.releaseList.push(() => model.releaseViewModel(targetId));
-        return new GridEditorFacade(vm);
+        return new GridEditorFacade(v4);
     }
 
     private resolveGridEditorId(): EditorView {

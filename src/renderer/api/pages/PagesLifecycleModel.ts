@@ -11,6 +11,7 @@ import {
     TextFileModel,
 } from "../../editors/text";
 import { MonacoEditor, defaultMonacoEditorState } from "../../editors/monaco/MonacoEditor";
+import { GridEditor, defaultGridEditorState, type GridEditorId } from "../../editors/grid";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -52,6 +53,7 @@ function normalizeLinksTitle(title?: string): string {
 export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
     const targetEditorId = deriveEditorId(legacy.state.get());
     const isTextFile = (legacy as unknown as { type?: string }).type === "textFile";
+
     if (targetEditorId === "monaco" && isTextFile) {
         const id = legacy.state.get().id || crypto.randomUUID();
         const monaco = new MonacoEditor(
@@ -60,6 +62,39 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         monaco.adoptHost(legacy as TextFileModel);
         return monaco;
     }
+
+    if (
+        isTextFile &&
+        (targetEditorId === "grid-json" ||
+            targetEditorId === "grid-csv" ||
+            targetEditorId === "grid-jsonl")
+    ) {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const grid = new GridEditor(
+            new TComponentState({ ...defaultGridEditorState, id }),
+            targetEditorId as GridEditorId,
+        );
+        grid.adoptHost(legacy as TextFileModel);
+        // adoptHost only wires subscriptions — open-file callers have
+        // already invoked legacy.restore(), so we trigger the CSV-delimiter
+        // bootstrap and the initial row parse inline (mirrors what
+        // GridEditor.restore() does on the session-restore path).
+        const content = (legacy as TextFileModel).state.get().content ?? "";
+        if (targetEditorId === "grid-csv") {
+            const s = grid.state.get();
+            if (!s.csvDelimiter || s.csvDelimiter === ",") {
+                const detected = GridEditor.detectCsvDelimiter(content);
+                if (detected !== s.csvDelimiter) {
+                    grid.state.update((x) => {
+                        x.csvDelimiter = detected;
+                    });
+                }
+            }
+        }
+        grid.reparseRows(content);
+        return grid;
+    }
+
     return new LegacyEditorAdapter(legacy, targetEditorId);
 }
 

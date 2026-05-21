@@ -98,17 +98,13 @@ editorRegistry.register({
         return 10;
     },
     loadModule: async () => {
-        const [module, { createGridViewModel }] = await Promise.all([
-            import("./grid/GridEditor"),
-            import("./grid/GridViewModel"),
-        ]);
-        return {
-            Editor: module.GridEditor,
-            createViewModel: createGridViewModel,
-            newEditorModel: textEditorModule.newEditorModel,
-            newEmptyEditorModel: textEditorModule.newEmptyEditorModel,
-            newEditorModelFromState: textEditorModule.newEditorModelFromState,
-        };
+        // EPIC-028 / US-552 — Grid migrated to a native v4 module. The
+        // legacy `Editor` slot is unreachable (v4 Grid renders through the
+        // native module's Component), but the `newEditorModel*` factories
+        // are still consumed by the open-file flow to construct the
+        // underlying TextFileModel host that v4 GridEditor wraps. Delegate
+        // to `textEditorModule` so both stay live.
+        return textEditorModule;
     },
 });
 
@@ -129,17 +125,8 @@ editorRegistry.register({
         return 10;
     },
     loadModule: async () => {
-        const [module, { createGridViewModel }] = await Promise.all([
-            import("./grid/GridEditor"),
-            import("./grid/GridViewModel"),
-        ]);
-        return {
-            Editor: module.GridEditor,
-            createViewModel: createGridViewModel,
-            newEditorModel: textEditorModule.newEditorModel,
-            newEmptyEditorModel: textEditorModule.newEmptyEditorModel,
-            newEditorModelFromState: textEditorModule.newEditorModelFromState,
-        };
+        // EPIC-028 / US-552 — see grid-json above.
+        return textEditorModule;
     },
 });
 
@@ -159,17 +146,8 @@ editorRegistry.register({
         return 10;
     },
     loadModule: async () => {
-        const [module, { createGridViewModel }] = await Promise.all([
-            import("./grid/GridEditor"),
-            import("./grid/GridViewModel"),
-        ]);
-        return {
-            Editor: module.GridEditor,
-            createViewModel: createGridViewModel,
-            newEditorModel: textEditorModule.newEditorModel,
-            newEmptyEditorModel: textEditorModule.newEmptyEditorModel,
-            newEditorModelFromState: textEditorModule.newEditorModelFromState,
-        };
+        // EPIC-028 / US-552 — see grid-json above.
+        return textEditorModule;
     },
 });
 
@@ -739,9 +717,9 @@ import { editorRegistry as v4EditorRegistry } from "./base/v4/editorRegistry";
 import { LegacyEditorAdapter } from "./base/v4/LegacyEditorAdapter";
 
 const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
-    "grid-json",
-    "grid-csv",
-    "grid-jsonl",
+    // grid-json / grid-csv / grid-jsonl removed — US-552 ships native v4 modules
+    // for them; the bare-adapter bridge is overridden by the native registrations
+    // below.
     "md-view",
     "mermaid-view",
     "svg-view",
@@ -822,5 +800,59 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { monacoModule } = await import("./monaco");
         return monacoModule;
+    },
+});
+
+// US-552 — replace the legacy bare-adapter mirrors for grid-json / grid-csv /
+// grid-jsonl with native v4 modules. `v4EditorRegistry.register` overwrites
+// by id, so these supersede the bare-adapter stubs the mirror loop wrote.
+// `accepts` delegates to the legacy registry def's `acceptFile` / `switchOption`
+// to avoid duplicating extension/language rules.
+function makeGridAccepts(id: "grid-json" | "grid-csv" | "grid-jsonl") {
+    return (input: { fileName?: string; language?: string }) => {
+        const legacy = editorRegistry.getById(id);
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    };
+}
+
+v4EditorRegistry.register({
+    id: "grid-json",
+    name: "Grid (JSON)",
+    hasContentHost: true,
+    accepts: makeGridAccepts("grid-json"),
+    loadModule: async () => {
+        const { gridJsonModule } = await import("./grid");
+        return gridJsonModule;
+    },
+});
+
+v4EditorRegistry.register({
+    id: "grid-csv",
+    name: "Grid (CSV)",
+    hasContentHost: true,
+    accepts: makeGridAccepts("grid-csv"),
+    loadModule: async () => {
+        const { gridCsvModule } = await import("./grid");
+        return gridCsvModule;
+    },
+});
+
+v4EditorRegistry.register({
+    id: "grid-jsonl",
+    name: "Grid (JSONL)",
+    hasContentHost: true,
+    accepts: makeGridAccepts("grid-jsonl"),
+    loadModule: async () => {
+        const { gridJsonlModule } = await import("./grid");
+        return gridJsonlModule;
     },
 });

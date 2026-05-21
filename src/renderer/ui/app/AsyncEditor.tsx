@@ -15,30 +15,34 @@ export interface AsyncEditorProps {
     cacheKey?: string;
 }
 
+interface LoadState {
+    cacheKey: string | undefined;
+    module: EditorViewModule;
+}
+
 export function AsyncEditor({ getEditorModule, model, cacheKey }: AsyncEditorProps) {
-    // Check cache first for instant render (only if cacheKey provided)
+    // Fast path — synchronously read from the module cache. Guarantees the
+    // module always matches the current `cacheKey`, with no stale-render
+    // window during editor switches (grid-json → monaco etc.).
     const cachedModule = cacheKey ? moduleCache.get(cacheKey) : undefined;
-    const [EditorModule, setEditorModule] = useState<EditorViewModule | null>(
-        cachedModule ?? null
+    // Slow path — when `cacheKey` is uncached (cold module after app restart)
+    // or absent, track the most-recently-loaded module ALONG WITH the key it
+    // was loaded for. If `cacheKey` has since changed, the stored module is
+    // ignored — render the spinner until the effect loads the new one.
+    const [loaded, setLoaded] = useState<LoadState | null>(
+        cachedModule ? { cacheKey, module: cachedModule } : null,
     );
+    const loadedModule =
+        loaded && loaded.cacheKey === cacheKey ? loaded.module : null;
+    const EditorModule = cachedModule ?? loadedModule;
 
     useEffect(() => {
-        // Skip if already cached
-        if (cacheKey) {
-            const cached = moduleCache.get(cacheKey);
-            if (cached) {
-                if (EditorModule !== cached) {
-                    setEditorModule(cached);
-                }
-                return;
-            }
-        }
-
+        if (cacheKey && moduleCache.has(cacheKey)) return;
         getEditorModule().then((module) => {
             if (cacheKey) {
                 moduleCache.set(cacheKey, module);
             }
-            setEditorModule(module);
+            setLoaded({ cacheKey, module });
         });
     }, [getEditorModule, cacheKey]);
 

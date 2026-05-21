@@ -4,6 +4,7 @@ import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
 import type { TextFileModel } from "../../text/TextEditorModel";
 import { PageToolbar } from "./PageToolbar";
+import { LegacyEditorAdapter } from "./LegacyEditorAdapter";
 import { EditorToolbar } from "../EditorToolbar";
 import { Panel } from "../../../uikit/Panel/Panel";
 import { Spacer } from "../../../uikit/Spacer/Spacer";
@@ -39,12 +40,23 @@ interface TextChromeProps {
     /** Editor-specific toolbar buttons. Render inside `<PageToolbar>` between
      *  text-host buttons (Compare/Run) and the auto-inserted spacer. */
     toolbarContributions?: ReactNode;
+    /** Right-side toolbar contributions. Forwarded to `<PageToolbar>` so they
+     *  render AFTER the auto-spacer and BEFORE the switch widget — useful for
+     *  controls that should sit on the right of the row (e.g. Grid's search
+     *  input). */
+    rightToolbarContributions?: ReactNode;
     /** Editor-specific footer status. Render in the footer row before the
      *  encoding label. Ignored in the NoteItemEditModel branch. */
     footerContributions?: ReactNode;
 }
 
-export function TextChrome({ model, children, toolbarContributions, footerContributions }: TextChromeProps) {
+export function TextChrome({
+    model,
+    children,
+    toolbarContributions,
+    rightToolbarContributions,
+    footerContributions,
+}: TextChromeProps) {
     const host = model.contentHost as IContentHost | null;
     const rootRef = useRef<HTMLDivElement>(null);
 
@@ -104,7 +116,12 @@ export function TextChrome({ model, children, toolbarContributions, footerContri
             tabIndex={0}
             onKeyDown={handleRootKeyDown}
         >
-            <PageToolbar name="text-chrome-top" model={model} borderBottom>
+            <PageToolbar
+                name="text-chrome-top"
+                model={model}
+                borderBottom
+                rightContributions={rightToolbarContributions}
+            >
                 {textHost && <CompareButton model={model} />}
                 {textHost && <RunButtons model={model} host={textHost} />}
                 {toolbarContributions}
@@ -246,12 +263,16 @@ function EncodingLabel({ host }: { host: TextFileModel }) {
  * consumer to inline composition; US-559 deletes the refs entirely.
  */
 function ToolbarPortalSlots({ model, host }: { model: EditorModel; host: TextFileModel | null }) {
-    void model;
+    // US-552 / G8 — v4-native editors (MonacoEditor, GridEditor, …) compose
+    // their toolbar contributions inline; skip the portal slots so the DOM
+    // doesn't carry empty placeholder divs.
+    const isLegacy = model instanceof LegacyEditorAdapter;
     // Subscribe so the slots mount when the user switches editor.
     const editor = useSyncExternalStore<string | undefined>(
         host ? (cb) => host.state.subscribe(cb) : () => () => undefined,
         host ? () => host.state.get().editor : () => undefined,
     );
+    if (!isLegacy) return null;
     if (!host) return null;
     if (!editor || editor === "monaco") return null;
     return (
@@ -282,12 +303,14 @@ function FooterContributionSlot({
     // is hidden via the global CSS rule `[data-type="divider"]:has(+
     // .footer-portal-target:empty)` when the portal target is empty, so the
     // legacy "no visible double divider" behavior survives.
-    void model; // reserved for future per-editor `footerContributions` routing
+    // US-552 / G8 — only legacy adapter pages still need the portal-target
+    // div; v4-native editors compose `footerContributions` inline.
+    const isLegacy = model instanceof LegacyEditorAdapter;
     const editor = useSyncExternalStore<string | undefined>(
         (cb) => host.state.subscribe(cb),
         () => host.state.get().editor,
     );
-    const alternative = editor && editor !== "monaco";
+    const alternative = isLegacy && editor && editor !== "monaco";
     if (!alternative && !contributions) return null;
     return (
         <>

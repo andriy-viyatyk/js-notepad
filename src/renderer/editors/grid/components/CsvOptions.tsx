@@ -11,11 +11,11 @@ import { Input } from "../../../uikit/Input";
 import { Text } from "../../../uikit/Text";
 import { TPopperModel } from "../../../ui/dialogs/poppers/types";
 import { showPopper } from "../../../ui/dialogs/poppers/Poppers";
-import { GridViewModel } from "../GridViewModel";
+import type { GridEditor } from "../GridEditor";
 
 class CsvOptionsModel extends TPopperModel<null, void> {
     el = undefined as Element | undefined;
-    gridModel: GridViewModel | undefined = undefined;
+    gridModel: GridEditor | undefined = undefined;
 }
 
 const defaultOffset = [0, 2] as [number, number];
@@ -98,7 +98,7 @@ export function CsvOptions({ model }: ViewPropsRO<CsvOptionsModel>) {
 
 Views.registerView(showCsvOptionsId, CsvOptions as DefaultView);
 
-export const showCsvOptions = async (el: Element, gridModel: GridViewModel) => {
+export const showCsvOptions = async (el: Element, gridModel: GridEditor) => {
     const model = new CsvOptionsModel(new TComponentState(null));
     model.el = el;
     model.gridModel = gridModel;
