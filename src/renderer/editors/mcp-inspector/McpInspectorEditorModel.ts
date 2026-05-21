@@ -9,7 +9,6 @@ import {
     McpTransportType,
 } from "./McpConnectionManager";
 import { mcpConnectionStore, SavedMcpConnection } from "./McpConnectionStore";
-import { editorRegistry } from "../registry";
 import { pagesModel } from "../../api/pages";
 import type { McpRequestEntry } from "../log-view/logTypes";
 
@@ -699,7 +698,6 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     /** Open a new one-time log page with all collected history entries. */
     showHistory = async (): Promise<void> => {
         if (this._history.length === 0) return;
-        await editorRegistry.loadViewModelFactory("log-view");
         const content = this._history.map((e) => JSON.stringify(e)).join("\n");
         pagesModel.addEditorPage("log-view", "jsonl", "MCP Inspector History", content);
     };

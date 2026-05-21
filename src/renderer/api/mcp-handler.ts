@@ -5,7 +5,7 @@ import { pagesModel } from "./pages";
 import { editorRegistry } from "../editors/registry";
 import { MCP_EXECUTE, MCP_RESULT } from "../../shared/constants";
 import { app } from "./app";
-import type { LogViewModel } from "../editors/log-view/LogViewModel";
+import { LogViewEditor } from "../editors/log-view";
 import type { LogEntry, McpRequestEntry } from "../editors/log-view/logTypes";
 import { csvToRecords } from "../core/utils/csv-utils";
 
@@ -225,14 +225,13 @@ function setPageContent(params: any): McpResponse {
 
 const MCP_UI_LOG_ID = "mcp-ui-log";
 
-async function getOrCreateMcpLogViewModel(): Promise<LogViewModel> {
+async function getOrCreateMcpLogViewEditor(): Promise<LogViewEditor> {
     const page = await pagesModel.requireWellKnownPage(MCP_UI_LOG_ID);
-    const textHost = pagesModel.getTextFileHost(page.id);
-    if (!textHost) throw new Error("MCP log page is not a TextFileModel");
-    // US-553: replace with `instanceof LogViewEditorModel` (MI4) once LogView migrates to v4.
-    const vm = textHost.acquireViewModelSync("log-view") as LogViewModel | undefined;
-    if (!vm) throw new Error("Log view module not loaded");
-    return vm;
+    const editor = page.mainEditorV4;
+    if (!(editor instanceof LogViewEditor)) {
+        throw new Error("MCP log page is not a LogViewEditor");
+    }
+    return editor;
 }
 
 // ── MCP Request Log ───────────────────────────────────────────────
@@ -263,29 +262,22 @@ function logIncomingRequest(
 
     // If the live request log page is open, push the entry to it
     const logPage = pagesModel.findPage("mcp-server-log");
-    const logHost = logPage ? pagesModel.getTextFileHost(logPage.id) : null;
-    if (logHost) {
-        // US-553: replace with `instanceof LogViewEditorModel` (MI4) once LogView migrates to v4.
-        const vm = logHost.acquireViewModelSync("log-view") as LogViewModel | undefined;
-        if (vm) vm.addEntry("output.mcp-request", requestHistory[requestHistory.length - 1]);
+    const logEditor = logPage?.mainEditorV4;
+    if (logEditor instanceof LogViewEditor) {
+        logEditor.addEntry("output.mcp-request", requestHistory[requestHistory.length - 1]);
     }
 }
 
 /** Show the MCP server request log page (creates if needed, backfills history). */
 export async function showMcpRequestLog(): Promise<void> {
     const page = await pagesModel.requireWellKnownPage("mcp-server-log");
-    const textHost = pagesModel.getTextFileHost(page.id);
-    if (!textHost) return;
-
-    // US-553: replace with `instanceof LogViewEditorModel` (MI4) once LogView migrates to v4.
-    const vm = textHost.acquireViewModelSync("log-view") as LogViewModel | undefined;
-    if (!vm) return;
+    const editor = page.mainEditorV4;
+    if (!(editor instanceof LogViewEditor)) return;
 
     // Backfill history if the page was just created (empty)
-    const state = vm.state.get();
-    if (state.entries.length === 0 && requestHistory.length > 0) {
+    if (editor.entryCount === 0 && requestHistory.length > 0) {
         for (const entry of requestHistory) {
-            vm.addEntry("output.mcp-request", entry);
+            editor.addEntry("output.mcp-request", entry);
         }
     }
 }
@@ -298,7 +290,7 @@ async function handleUiPush(params: any): Promise<McpResponse> {
         return { error: { code: -32602, message: "Missing or invalid 'entries' parameter" } };
     }
 
-    const vm = await getOrCreateMcpLogViewModel();
+    const editor = await getOrCreateMcpLogViewEditor();
     const dialogPromises: Promise<LogEntry>[] = [];
 
     for (const raw of entries) {
@@ -365,7 +357,7 @@ async function handleUiPush(params: any): Promise<McpResponse> {
             if (spec.required === "items" && !Array.isArray(fields.items)) {
                 return { error: { code: -32602, message: `${type} 'items' must be an array. Correct usage: ${spec.usage}` } };
             }
-            dialogPromises.push(vm.addDialogEntry(type, fields));
+            dialogPromises.push(editor.addDialogEntry(type, fields));
         } else if (type === "output.grid") {
             // MCP sends: { content: string, contentType?: "csv" | "json", title? }
             // Parse content to data[] before storing in the entry
@@ -390,7 +382,7 @@ async function handleUiPush(params: any): Promise<McpResponse> {
                 }
             }
             const { content: _, contentType: _ct, ...rest } = fields;
-            vm.addEntry(type, { ...rest, data });
+            editor.addEntry(type, { ...rest, data });
         } else if (typeof type === "string" && type.startsWith("output.")) {
             // Output entry — normalize "content" → "text" for text-based output types
             // (common LLM mistake: sending { content: "..." } instead of { text: "..." })
@@ -398,10 +390,10 @@ async function handleUiPush(params: any): Promise<McpResponse> {
                 fields.text = fields.content;
                 delete fields.content;
             }
-            vm.addEntry(type, fields);
+            editor.addEntry(type, fields);
         } else {
             // Log entry — pass text only
-            vm.addEntry(type, fields.text ?? "");
+            editor.addEntry(type, fields.text ?? "");
         }
     }
 

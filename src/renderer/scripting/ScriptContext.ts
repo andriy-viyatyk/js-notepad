@@ -5,8 +5,7 @@ import { PageWrapper } from "./api-wrapper/PageWrapper";
 import { UiFacade } from "./api-wrapper/UiFacade";
 import { styledText } from "./api-wrapper/StyledTextBuilder";
 import { resolveLibraryModule } from "./library-require";
-import { isTextFileModel } from "../editors/text/TextEditorModel";
-import type { LogViewModel } from "../editors/log-view/LogViewModel";
+import { LogViewEditor } from "../editors/log-view";
 import React from "react";
 import { fpResolve } from "../core/utils/file-path";
 import { createIoNamespace } from "./api-wrapper/IoNamespace";
@@ -205,67 +204,73 @@ function formatLogTitle(): string {
 
 function initializeUiFacade(
     page: EditorModel | undefined,
-    releaseList: Array<() => void>,
+    _releaseList: Array<() => void>,
     outputFlags: ScriptOutputFlags,
     isMcp = false,
 ): { facade: UiFacade; pageId: string } {
-    let logEditor: EditorModel;
+    let logEditor: LogViewEditor;
     let logPageId: string;
     let isExisting = false;
 
     if (isMcp) {
         const existing = pagesModel.findPage("mcp-ui-log");
-        if (existing?.mainEditor) {
-            logEditor = existing.mainEditor;
+        if (existing?.mainEditorV4 instanceof LogViewEditor) {
+            logEditor = existing.mainEditorV4;
             logPageId = existing.id;
             isExisting = true;
         } else {
             const newPage = pagesModel.addEditorPage("log-view", "jsonl", "MCP Log");
-            logEditor = newPage.mainEditor!;
+            const editor = newPage.mainEditorV4;
+            if (!(editor instanceof LogViewEditor)) {
+                throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
+            }
+            logEditor = editor;
             logPageId = newPage.id;
         }
     } else if (page) {
         const pageId = page.page?.id ?? page.id;
         const grouped = pagesModel.getGroupedPage(pageId);
-        if (grouped?.mainEditor && grouped.mainEditor.state.get().editor === "log-view") {
-            logEditor = grouped.mainEditor;
+        if (grouped?.mainEditorV4 instanceof LogViewEditor) {
+            logEditor = grouped.mainEditorV4;
             logPageId = grouped.id;
             isExisting = true;
         } else {
             const newPage = pagesModel.addEditorPage("log-view", "jsonl", formatLogTitle());
-            logEditor = newPage.mainEditor!;
+            const editor = newPage.mainEditorV4;
+            if (!(editor instanceof LogViewEditor)) {
+                throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
+            }
+            logEditor = editor;
             logPageId = newPage.id;
             pagesModel.groupTabs(pageId, logPageId, false);
         }
     } else {
         const newPage = pagesModel.addEditorPage("log-view", "jsonl", formatLogTitle());
-        logEditor = newPage.mainEditor!;
+        const editor = newPage.mainEditorV4;
+        if (!(editor instanceof LogViewEditor)) {
+            throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
+        }
+        logEditor = editor;
         logPageId = newPage.id;
     }
 
-    if (!isTextFileModel(logEditor)) {
-        throw new Error("Log view page is not a text file model. This is an internal error.");
-    }
-    const vm = logEditor.acquireViewModelSync("log-view") as LogViewModel;
-    if (!vm) {
-        throw new Error("Log view module not pre-loaded. This is an internal error.");
-    }
-    releaseList.push(() => logEditor.releaseViewModel("log-view"));
+    // SF2 + LV9 — acquireViewModelSync + releaseList.push retire entirely
+    // for log-view. The editor IS the consumable surface directly.
 
     outputFlags.groupedContentWritten = true;
 
     if (isExisting) {
-        vm.addEntry("log.info", "");
+        logEditor.addEntry("log.info", "");
     }
 
     if (isMcp) {
-        vm.addEntry("log.info", "Agent started script");
+        logEditor.addEntry("log.info", "Agent started script");
     } else {
         const title = page?.title ?? "untitled";
-        vm.addEntry("log.info", `Script ${title} started`);
+        logEditor.addEntry("log.info", `Script ${title} started`);
     }
 
-    return { facade: new UiFacade(vm), pageId: logPageId };
+    return { facade: new UiFacade(logEditor), pageId: logPageId };
 }
 
 // =============================================================================

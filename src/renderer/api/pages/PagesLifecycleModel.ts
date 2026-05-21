@@ -12,6 +12,7 @@ import {
 } from "../../editors/text";
 import { MonacoEditor, defaultMonacoEditorState } from "../../editors/monaco/MonacoEditor";
 import { GridEditor, defaultGridEditorState, type GridEditorId } from "../../editors/grid";
+import { LogViewEditor, defaultLogViewEditorState } from "../../editors/log-view";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -93,6 +94,20 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         }
         grid.reparseRows(content);
         return grid;
+    }
+
+    // EPIC-028 / US-553 — LogView migrated to native v4 module. Construct
+    // LogViewEditor over the legacy TextFileModel host and trigger the
+    // initial JSONL parse inline (mirrors GridEditor's open-file branch).
+    if (isTextFile && targetEditorId === "log-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const logView = new LogViewEditor(
+            new TComponentState({ ...defaultLogViewEditorState, id }),
+        );
+        logView.adoptHost(legacy as TextFileModel);
+        const content = (legacy as TextFileModel).state.get().content ?? "";
+        logView.loadContent(content);
+        return logView;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);

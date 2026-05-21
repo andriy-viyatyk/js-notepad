@@ -173,17 +173,12 @@ editorRegistry.register({
         return /\"type\"\s*:\s*\"log\./.test(content);
     },
     loadModule: async () => {
-        const [module, { createLogViewModel }] = await Promise.all([
-            import("./log-view/LogViewEditor"),
-            import("./log-view/LogViewModel"),
-        ]);
-        return {
-            Editor: module.LogViewEditor,
-            createViewModel: createLogViewModel,
-            newEditorModel: textEditorModule.newEditorModel,
-            newEmptyEditorModel: textEditorModule.newEmptyEditorModel,
-            newEditorModelFromState: textEditorModule.newEditorModelFromState,
-        };
+        // EPIC-028 / US-553 — LogView migrated to a native v4 module. The
+        // legacy Editor + createViewModel slots are unused; the
+        // newEditorModel* factories are still consumed by the open-file flow
+        // to construct the underlying TextFileModel host that v4 LogViewEditor
+        // wraps. Delegate to textEditorModule (mirrors US-552 Grid pattern).
+        return textEditorModule;
     },
 });
 
@@ -717,9 +712,8 @@ import { editorRegistry as v4EditorRegistry } from "./base/v4/editorRegistry";
 import { LegacyEditorAdapter } from "./base/v4/LegacyEditorAdapter";
 
 const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
-    // grid-json / grid-csv / grid-jsonl removed — US-552 ships native v4 modules
-    // for them; the bare-adapter bridge is overridden by the native registrations
-    // below.
+    // grid-* removed — US-552 ships native v4 modules.
+    // log-view removed — US-553 ships native v4 module.
     "md-view",
     "mermaid-view",
     "svg-view",
@@ -727,7 +721,6 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     "notebook-view",
     "todo-view",
     "link-view",
-    "log-view",
     "rest-client",
     "graph-view",
     "draw-view",
@@ -854,5 +847,39 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { gridJsonlModule } = await import("./grid");
         return gridJsonlModule;
+    },
+});
+
+// US-553 — replace the legacy bare-adapter mirror for log-view with a native v4
+// module. `v4EditorRegistry.register` overwrites by id, so this supersedes the
+// bare-adapter stub the mirror loop wrote. `accepts` delegates to the legacy
+// registry def's `acceptFile` / `switchOption` / `isEditorContent` to avoid
+// duplicating extension/language/content-peek rules.
+v4EditorRegistry.register({
+    id: "log-view",
+    name: "Log View",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("log-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        // Content-peek fallback (LV10) — for `.jsonl` files without the
+        // `.log` prefix but with log-shaped content.
+        if (input.language === "jsonl" && input.host) {
+            const content = (input.host.state.get() as { content?: string }).content ?? "";
+            if (legacy.isEditorContent?.(input.language, content)) return 60;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { logViewModule } = await import("./log-view");
+        return logViewModule;
     },
 });

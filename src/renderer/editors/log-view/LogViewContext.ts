@@ -1,11 +1,17 @@
 import { createContext, useContext } from "react";
-import { LogViewModel } from "./LogViewModel";
+import type { LogViewEditor } from "./LogViewEditor";
 
-const LogViewContext = createContext<LogViewModel | null>(null);
+/**
+ * Context exposes the active `LogViewEditor` (US-553 — formerly `LogViewModel`).
+ * The hook name stays `useLogViewModel` for consumer simplicity; the type
+ * change propagates automatically to every descendant view.
+ */
+
+const LogViewContext = createContext<LogViewEditor | null>(null);
 
 export const LogViewProvider = LogViewContext.Provider;
 
-export function useLogViewModel(): LogViewModel {
+export function useLogViewModel(): LogViewEditor {
     const vm = useContext(LogViewContext);
     if (!vm) throw new Error("LogViewContext not provided");
     return vm;

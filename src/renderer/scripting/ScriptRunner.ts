@@ -1,6 +1,5 @@
 import { EditorModel } from "../editors/base";
 import { pagesModel } from "../api/pages";
-import { editorRegistry } from "../editors/registry";
 import type { ConsoleLogEntry, ScriptOutputFlags } from "./ScriptContext";
 import { settings } from "../api/settings";
 import { convertToText } from "./script-utils";
@@ -104,9 +103,6 @@ class ScriptRunner extends ScriptRunnerBase {
         this.handlePromiseException += 1;
         let scriptContext: import("./ScriptContext").ScriptContext | undefined;
         try {
-            // Pre-load log-view module so UiFacade can create VM synchronously
-            await editorRegistry.loadViewModelFactory("log-view");
-
             const contextModule = await import("./ScriptContext");
             const libraryPath = settings.get("script-library.path") as string | undefined;
             scriptContext = new contextModule.ScriptContext(page, consoleLogs, libraryPath);

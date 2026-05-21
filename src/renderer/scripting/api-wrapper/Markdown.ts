@@ -1,4 +1,4 @@
-import type { LogViewModel } from "../../editors/log-view/LogViewModel";
+import type { LogViewEditor } from "../../editors/log-view";
 import type { StyledText, MarkdownOutputEntry } from "../../editors/log-view/logTypes";
 import { pagesModel } from "../../api/pages";
 
@@ -12,7 +12,7 @@ export class Markdown {
 
     constructor(
         private readonly entryId: string,
-        private readonly vm: LogViewModel,
+        private readonly vm: LogViewEditor,
         initial: { text: string; title?: StyledText },
     ) {
         this._text = initial.text;

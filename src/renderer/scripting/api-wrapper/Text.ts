@@ -1,4 +1,4 @@
-import type { LogViewModel } from "../../editors/log-view/LogViewModel";
+import type { LogViewEditor } from "../../editors/log-view";
 import type { StyledText, TextOutputEntry } from "../../editors/log-view/logTypes";
 import { pagesModel } from "../../api/pages";
 
@@ -16,7 +16,7 @@ export class Text {
 
     constructor(
         private readonly entryId: string,
-        private readonly vm: LogViewModel,
+        private readonly vm: LogViewEditor,
         initial: { text: string; language?: string; title?: StyledText; wordWrap?: boolean; lineNumbers?: boolean; minimap?: boolean },
     ) {
         this._text = initial.text;

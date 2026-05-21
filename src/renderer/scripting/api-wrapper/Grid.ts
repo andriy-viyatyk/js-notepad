@@ -1,4 +1,4 @@
-import type { LogViewModel } from "../../editors/log-view/LogViewModel";
+import type { LogViewEditor } from "../../editors/log-view";
 import type { StyledText, GridOutputEntry } from "../../editors/log-view/logTypes";
 import type { GridColumn } from "../../editors/grid/utils/grid-utils";
 import { pagesModel } from "../../api/pages";
@@ -14,7 +14,7 @@ export class Grid {
 
     constructor(
         private readonly entryId: string,
-        private readonly vm: LogViewModel,
+        private readonly vm: LogViewEditor,
         initial: { data: any[]; columns?: (string | GridColumn)[]; title?: StyledText },
     ) {
         this._data = initial.data;

@@ -1,4 +1,4 @@
-import type { LogViewModel } from "../../editors/log-view/LogViewModel";
+import type { LogViewEditor } from "../../editors/log-view";
 import type { StyledText, ProgressOutputEntry } from "../../editors/log-view/logTypes";
 
 /**
@@ -13,7 +13,7 @@ export class Progress {
 
     constructor(
         private readonly entryId: string,
-        private readonly vm: LogViewModel,
+        private readonly vm: LogViewEditor,
         initial: { label?: StyledText; value?: number; max?: number },
     ) {
         this._label = initial.label;

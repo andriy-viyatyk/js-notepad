@@ -1,7 +1,7 @@
 import { RefObject, useCallback } from "react";
 import { LogEntry } from "./logTypes";
 import { LogEntryContent } from "./LogEntryContent";
-import { LogViewModel } from "./LogViewModel";
+import type { LogViewEditor } from "./LogViewEditor";
 import { Panel, Text } from "../../uikit";
 
 // =============================================================================
@@ -32,7 +32,7 @@ function formatTimestamp(ts: number): string {
 // =============================================================================
 
 interface LogEntryWrapperProps {
-    vm: LogViewModel;
+    vm: LogViewEditor;
     index: number;
     cellRef?: RefObject<HTMLDivElement>;
     showTimestamp?: boolean;
