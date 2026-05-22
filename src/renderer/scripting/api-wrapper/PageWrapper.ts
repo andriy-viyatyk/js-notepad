@@ -15,7 +15,7 @@ import { MarkdownEditor } from "../../editors/markdown";
 import { SvgEditor } from "../../editors/svg";
 import { HtmlEditor } from "../../editors/html";
 import { MermaidEditor } from "../../editors/mermaid";
-import type { GraphViewModel } from "../../editors/graph/GraphViewModel";
+import { GraphEditor } from "../../editors/graph";
 import type { DrawViewModel } from "../../editors/draw/DrawViewModel";
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
 import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpInspectorEditorModel";
@@ -279,13 +279,14 @@ export class PageWrapper {
 
     async asGraph(force = false): Promise<GraphEditorFacade> {
         await this.ensureEditor("graph-view", "Graph", "asGraph", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asGraph(): page lost its text host during switch");
+        // EPIC-028 / US-564 — Graph is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a GraphEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof GraphEditor)) {
+            throw new Error("asGraph(): page is not a GraphEditor after switch");
         }
-        const vm = await model.acquireViewModel("graph-view") as GraphViewModel;
-        this.releaseList.push(() => model.releaseViewModel("graph-view"));
-        return new GraphEditorFacade(vm);
+        return new GraphEditorFacade(v4);
     }
 
     async asDraw(force = false): Promise<DrawEditorFacade> {

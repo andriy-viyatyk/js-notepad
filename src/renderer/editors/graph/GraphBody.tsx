@@ -1,11 +1,9 @@
-import { createPortal } from "react-dom";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { IconButton, Input, Spinner, Text } from "../../uikit";
 import { highlight } from "../../uikit/shared/highlight";
-import { TextFileModel } from "../text/TextEditorModel";
 import { EditorError } from "../base/EditorError";
-import { useContentViewModel } from "../base/useContentViewModel";
-import { GraphViewModel, GraphViewState, SearchResult, defaultGraphViewState } from "./GraphViewModel";
+import type { GraphEditor } from "./GraphEditor";
+import type { SearchResult } from "./GraphSearchModel";
 import { GraphTooltip } from "./GraphTooltip";
 import { buildSelectionMenu, SelectionMenuActions, SelectionMenuInfo } from "./GraphContextMenu";
 import { showAppPopupMenu } from "../../ui/dialogs/poppers/showPopupMenu";
@@ -13,11 +11,19 @@ import { GraphDetailPanel } from "./GraphDetailPanel";
 import { GraphTuningSliders } from "./GraphTuningSliders";
 import { GraphExpansionSettings } from "./GraphExpansionSettings";
 import { GraphLegendPanel } from "./GraphLegendPanel";
-import { CloseIcon, SettingsIcon, RefreshIcon, ExpandAllIcon, GraphGroupIcon, CopyIcon } from "../../theme/icons";
-import { DrawIcon } from "../../theme/language-icons";
-import { pagesModel } from "../../api/pages";
+import { CloseIcon, SettingsIcon, RefreshIcon, ExpandAllIcon, GraphGroupIcon } from "../../theme/icons";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import color from "../../theme/color";
+
+/**
+ * EPIC-028 / US-564 — Graph editor body. Reads `editor.state.use(...)`
+ * reactively from a `GraphEditor`. Renders canvas + in-canvas overlay
+ * toolbar + GraphTooltip + GraphDetailPanel + GraphLegendPanel. The canvas
+ * element is forwarded to the view shell's open-draw / copy-image toolbar
+ * buttons via the `canvasRefSetter` callback prop (GR2 — view-local bridge,
+ * mirrors SV2 from Svg / MR2 from Mermaid). Page-top toolbar + footer rows
+ * live in `index.tsx` as `<TextChrome>` contributions.
+ */
 
 // ============================================================================
 // Constants
@@ -219,18 +225,17 @@ function GraphSearchResults({ results, searchQuery, selectedIndex, onSelect }: G
 }
 
 // ============================================================================
-// GraphView Component
+// GraphBody Component
 // ============================================================================
 
-interface GraphViewProps {
-    model: TextFileModel;
+interface GraphBodyProps {
+    model: GraphEditor;
+    /** Callback receiving the canvas element. The view shell holds the ref
+     *  and shares it with `<GraphToolbarBits>` (open-draw + copy-image buttons). */
+    canvasRefSetter?: (canvas: HTMLCanvasElement | null) => void;
 }
 
-const noopUnsubscribe = () => () => {};
-const getDefaultState = () => defaultGraphViewState;
-
-function GraphView({ model }: GraphViewProps) {
-    const vm = useContentViewModel<GraphViewModel>(model, "graph-view");
+export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [toolbarPanel, setToolbarPanel] = useState<ToolbarPanel>("closed");
@@ -243,26 +248,30 @@ function GraphView({ model }: GraphViewProps) {
     const panelExpandedRef = useRef(false);
     const popupClosedAtRef = useRef(0);
 
+    // PV8 — focus queue drain. <TextChrome>'s root-focus puts focus on the
+    // outer panel; the canvas grabs focus naturally on click.
+    editor.typedQueue.use(() => {
+        // no-op
+    });
+
     const toggleSettings = useCallback(() => {
         setToolbarPanel((prev) => prev === "settings" ? "closed" : "settings");
     }, []);
 
+    // GR3 — wire onDoubleClickNode for GraphDetailPanel expand integration.
     useEffect(() => {
-        if (!vm) return;
-        vm.onDoubleClickNode = () => setExpandRequest((n) => n + 1);
-        return () => { vm.onDoubleClickNode = null; };
-    }, [vm]);
+        editor.onDoubleClickNode = () => setExpandRequest((n) => n + 1);
+        return () => { editor.onDoubleClickNode = null; };
+    }, [editor]);
 
-    const pageState: GraphViewState = useSyncExternalStore(
-        vm ? (cb) => vm.state.subscribe(cb) : noopUnsubscribe,
-        vm ? () => vm.state.get() : getDefaultState,
-    );
+    // Reactive read of all view-derived state.
+    const pageState = editor.state.use((s) => s);
 
     useEffect(() => {
-        vm?.refreshColors();
+        editor.refreshColors();
     });
 
-    const { searchQuery, searchInfo, searchResults, tooltip, selectedNodes, linkedNodes, statusHint, groupingEnabled } = pageState;
+    const { searchQuery, searchInfo, searchResults, tooltip, selectedNodes, linkedNodes, groupingEnabled } = pageState;
 
     useEffect(() => {
         if (searchResults && searchResults.length > 0) {
@@ -274,15 +283,15 @@ function GraphView({ model }: GraphViewProps) {
     }, [searchResults, searchQuery]);
 
     const onSearchChange = useCallback((value: string) => {
-        vm?.setSearchQuery(value);
-    }, [vm]);
+        editor.setSearchQuery(value);
+    }, [editor]);
 
     const onSelectResult = useCallback((nodeId: string) => {
-        vm?.revealAndSelectNode(nodeId);
-    }, [vm]);
+        editor.revealAndSelectNode(nodeId);
+    }, [editor]);
 
     const onSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-        const results = vm?.state.get().searchResults;
+        const results = editor.state.get().searchResults;
         const count = results?.length ?? 0;
 
         if (e.key === "ArrowDown" && count > 0) {
@@ -302,47 +311,47 @@ function GraphView({ model }: GraphViewProps) {
             if (toolbarPanel !== "closed") {
                 setToolbarPanel("closed");
             } else {
-                vm?.setSearchQuery("");
+                editor.setSearchQuery("");
                 if (inputRef.current) inputRef.current.value = "";
                 inputRef.current?.blur();
             }
         }
-    }, [vm, selectedResultIndex, toolbarPanel, onSelectResult]);
+    }, [editor, selectedResultIndex, toolbarPanel, onSelectResult]);
 
     const onSearchClear = useCallback(() => {
-        vm?.setSearchQuery("");
+        editor.setSearchQuery("");
         if (inputRef.current) inputRef.current.value = "";
         inputRef.current?.focus();
-    }, [vm]);
+    }, [editor]);
 
     const onSearchFocus = useCallback(() => {
-        const results = vm?.state.get().searchResults;
+        const results = editor.state.get().searchResults;
         if (results && results.length > 0) {
             setToolbarPanel("results");
         }
-    }, [vm]);
+    }, [editor]);
 
     const onRevealHidden = useCallback(() => {
-        vm?.revealHiddenMatches();
-    }, [vm]);
+        editor.revealHiddenMatches();
+    }, [editor]);
 
     const handleExpandAll = useCallback(async () => {
-        if (!vm) return;
-        if (vm.totalNodeCount > 1000) {
+        if (editor.totalNodeCount > 1000) {
             const result = await showConfirmationDialog({
                 title: "Expand All Nodes",
-                message: `This graph has ${vm.totalNodeCount} nodes. Expanding all may cause performance issues. Continue?`,
+                message: `This graph has ${editor.totalNodeCount} nodes. Expanding all may cause performance issues. Continue?`,
             });
             if (result !== "Yes") return;
         }
-        vm.expandAll();
-    }, [vm]);
+        editor.expandAll();
+    }, [editor]);
 
     const canvasElRef = useRef<HTMLCanvasElement | null>(null);
     const canvasRef = useCallback((el: HTMLCanvasElement | null) => {
         canvasElRef.current = el;
-        vm?.renderer.setCanvas(el);
-    }, [vm]);
+        editor.renderer.setCanvas(el);
+        canvasRefSetter?.(el);
+    }, [editor, canvasRefSetter]);
 
     const onPanelDirtyChange = useCallback((dirty: boolean) => {
         panelDirtyRef.current = dirty;
@@ -354,37 +363,36 @@ function GraphView({ model }: GraphViewProps) {
 
     const onMouseDownCapture = useCallback((e: React.MouseEvent) => {
         if (e.target === e.currentTarget) return;
-        if (vm?.isPopupOpen) {
+        if (editor.isPopupOpen) {
             popupClosedAtRef.current = Date.now();
         }
         document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-    }, [vm]);
+    }, [editor]);
 
     useEffect(() => {
-        if (!vm) return;
         const activeRef = { current: false };
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key !== "Shift" || activeRef.current) return;
-            const selectedIds = vm.renderer.selectedIds;
+            const selectedIds = editor.renderer.selectedIds;
             if (selectedIds.size === 0) return;
             activeRef.current = true;
             const ids = new Set(selectedIds);
-            const cm = vm.connectivityModel;
+            const cm = editor.connectivityModel;
             for (const nodeId of selectedIds) {
                 for (const id of cm.getProcessedNeighborIds(nodeId)) ids.add(id);
                 for (const id of cm.getRealNeighborIds(nodeId)) ids.add(id);
             }
-            vm.renderer.setAltKeyHighlight(ids);
+            editor.renderer.setAltKeyHighlight(ids);
         };
         const onKeyUp = (e: KeyboardEvent) => {
             if (e.key !== "Shift" || !activeRef.current) return;
             activeRef.current = false;
-            vm.renderer.setAltKeyHighlight(null);
+            editor.renderer.setAltKeyHighlight(null);
         };
         const onBlur = () => {
             if (!activeRef.current) return;
             activeRef.current = false;
-            vm.renderer.setAltKeyHighlight(null);
+            editor.renderer.setAltKeyHighlight(null);
         };
         document.addEventListener("keydown", onKeyDown);
         document.addEventListener("keyup", onKeyUp);
@@ -394,7 +402,7 @@ function GraphView({ model }: GraphViewProps) {
             document.removeEventListener("keyup", onKeyUp);
             window.removeEventListener("blur", onBlur);
         };
-    }, [vm]);
+    }, [editor]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -403,44 +411,41 @@ function GraphView({ model }: GraphViewProps) {
                 inputRef.current?.focus();
                 inputRef.current?.select();
             }
-            if (e.ctrlKey && e.key === "a" && vm) {
+            if (e.ctrlKey && e.key === "a") {
                 e.preventDefault();
-                const allIds = vm.renderer.getNodes().map(n => n.id);
-                vm.renderer.selectNode("");
-                vm.renderer.addToSelection(allIds);
+                const allIds = editor.renderer.getNodes().map(n => n.id);
+                editor.renderer.selectNode("");
+                editor.renderer.addToSelection(allIds);
             }
         };
         document.addEventListener("keydown", onKeyDown);
         return () => document.removeEventListener("keydown", onKeyDown);
-    }, [vm]);
+    }, [editor]);
 
     const onSelectionClick = useCallback(async (e: React.MouseEvent) => {
-        if (!vm) return;
         const count = selectedNodes.length;
         if (count === 0) return;
         const hasGroups = selectedNodes.some(n => n.isGroup);
         const hasNonGroups = selectedNodes.some(n => !n.isGroup);
         const info: SelectionMenuInfo = { count, hasGroups, hasNonGroups };
         const actions: SelectionMenuActions = {
-            selectChildren: () => vm.selectChildren(),
-            selectMembers: () => vm.selectMembers(),
-            selectMembersDeep: () => vm.selectMembersDeep(),
-            highlight: () => vm.highlightSelection(),
-            copyMarkdown: () => vm.copySelectedMarkdown(),
-            openMarkdown: () => vm.openSelectedMarkdown(),
-            openGrid: () => vm.openSelectedGrid(),
-            extract: () => vm.extractSelected(false),
-            extractWithChildren: () => vm.extractSelected(true),
-            deleteNodes: () => vm.deleteSelectedNodes(),
-            groupSelected: () => vm.groupSelectedNodes(),
+            selectChildren: () => editor.selectChildren(),
+            selectMembers: () => editor.selectMembers(),
+            selectMembersDeep: () => editor.selectMembersDeep(),
+            highlight: () => editor.highlightSelection(),
+            copyMarkdown: () => editor.copySelectedMarkdown(),
+            openMarkdown: () => editor.openSelectedMarkdown(),
+            openGrid: () => editor.openSelectedGrid(),
+            extract: () => editor.extractSelected(false),
+            extractWithChildren: () => editor.extractSelected(true),
+            deleteNodes: () => editor.deleteSelectedNodes(),
+            groupSelected: () => editor.groupSelectedNodes(),
         };
         const rect = (e.target as HTMLElement).getBoundingClientRect();
-        vm.isPopupOpen = true;
+        editor.isPopupOpen = true;
         await showAppPopupMenu(rect.left, rect.bottom + 2, buildSelectionMenu(info, actions, groupingEnabled));
-        vm.isPopupOpen = false;
-    }, [vm, selectedNodes, groupingEnabled]);
-
-    if (!vm) return null;
+        editor.isPopupOpen = false;
+    }, [editor, selectedNodes, groupingEnabled]);
 
     const { error, loading } = pageState;
     const isExpanded = toolbarPanel !== "closed";
@@ -479,21 +484,21 @@ function GraphView({ model }: GraphViewProps) {
                             if (panelDirtyRef.current) return;
                             if (Date.now() - popupClosedAtRef.current < 300) return;
                             if (isExpanded || panelExpandedRef.current) {
-                                if (!isExpanded && panelExpandedRef.current && vm.renderer.hasNodeAt(e)) {
-                                    vm.renderer.onClick(e);
+                                if (!isExpanded && panelExpandedRef.current && editor.renderer.hasNodeAt(e)) {
+                                    editor.renderer.onClick(e);
                                     return;
                                 }
                                 setToolbarPanel("closed");
                                 setCollapseRequest((n) => n + 1);
                                 return;
                             }
-                            vm.renderer.onClick(e);
+                            editor.renderer.onClick(e);
                         }}
-                        onDoubleClick={(e) => { if (panelDirtyRef.current) return; vm.renderer.onDblClick(e); }}
-                        onContextMenu={(e) => { if (panelDirtyRef.current) return; setToolbarPanel("closed"); vm.renderer.onContextMenu(e); }}
-                        onMouseMove={vm.renderer.onMouseMove}
+                        onDoubleClick={(e) => { if (panelDirtyRef.current) return; editor.renderer.onDblClick(e); }}
+                        onContextMenu={(e) => { if (panelDirtyRef.current) return; setToolbarPanel("closed"); editor.renderer.onContextMenu(e); }}
+                        onMouseMove={editor.renderer.onMouseMove}
                     />
-                    {vm.isEmpty && (
+                    {editor.isEmpty && (
                         <div style={emptyHintStyle}>
                             Right-click → Add Node to start building the graph
                         </div>
@@ -523,18 +528,18 @@ function GraphView({ model }: GraphViewProps) {
                                 size="sm"
                                 icon={<GraphGroupIcon />}
                                 strikethrough={groupingEnabled}
-                                disabled={!vm.hasGroups}
-                                onClick={() => vm.toggleGrouping()}
+                                disabled={!editor.hasGroups}
+                                onClick={() => editor.toggleGrouping()}
                                 title={groupingEnabled ? "Disable grouping" : "Enable grouping"}
                             />
                             <IconButton
                                 name="graph-reset-view"
                                 size="sm"
                                 icon={<RefreshIcon />}
-                                onClick={() => vm.resetView()}
+                                onClick={() => editor.resetView()}
                                 title="Reset view"
                             />
-                            {vm.hasVisibilityFilter && (
+                            {editor.hasVisibilityFilter && (
                                 <IconButton
                                     name="graph-expand-all"
                                     size="sm"
@@ -598,8 +603,8 @@ function GraphView({ model }: GraphViewProps) {
                                         Results{resultCount > 0 ? ` (${resultCount})` : ""}
                                     </button>
                                 </div>
-                                {toolbarPanel === "settings" && <GraphTuningSliders editor={vm} />}
-                                {toolbarPanel === "expansion" && <GraphExpansionSettings editor={vm} />}
+                                {toolbarPanel === "settings" && <GraphTuningSliders editor={editor} />}
+                                {toolbarPanel === "expansion" && <GraphExpansionSettings editor={editor} />}
                                 {toolbarPanel === "results" && (
                                     <>
                                         {searchResults && searchResults.length > 0 ? (
@@ -622,7 +627,7 @@ function GraphView({ model }: GraphViewProps) {
                                                         [+{searchInfo.hidden} hidden]
                                                     </Text>
                                                 )}
-                                                <Text variant="link" onClick={() => vm.selectSearchResults()}>
+                                                <Text variant="link" onClick={() => editor.selectSearchResults()}>
                                                     [{selectedNodes.length > 0 ? "add to selection" : "select all"}]
                                                 </Text>
                                             </div>
@@ -635,80 +640,31 @@ function GraphView({ model }: GraphViewProps) {
                     {tooltip && (
                         <GraphTooltip
                             node={tooltip.node} x={tooltip.x} y={tooltip.y} isRoot={tooltip.isRoot}
-                            onMouseEnter={() => vm.setTooltipHovered(true)}
-                            onMouseLeave={() => vm.setTooltipHovered(false)}
+                            onMouseEnter={() => editor.setTooltipHovered(true)}
+                            onMouseLeave={() => editor.setTooltipHovered(false)}
                         />
                     )}
                     <GraphDetailPanel
                         nodes={selectedNodes.filter((n) => !n.isGroup)}
                         linkedNodes={linkedNodes}
-                        onUpdateProps={(nodeId, props) => vm.updateNodeProps(nodeId, props)}
-                        onBatchUpdateProps={(nodeIds, props) => vm.batchUpdateNodeProps(nodeIds, props)}
-                        onRenameNode={(oldId, newId) => vm.renameNode(oldId, newId)}
-                        onApplyLinks={(nodeId, rows, origIds) => vm.applyLinkedNodesUpdate(nodeId, rows, origIds)}
-                        onApplyProperties={(nodeId, propsToSet, keysToRemove) => vm.applyPropertiesUpdate(nodeId, propsToSet, keysToRemove)}
-                        onBatchApplyProperties={(nodeIds, propsToSet, keysToRemove) => vm.batchApplyPropertiesUpdate(nodeIds, propsToSet, keysToRemove)}
+                        onUpdateProps={(nodeId, props) => editor.updateNodeProps(nodeId, props)}
+                        onBatchUpdateProps={(nodeIds, props) => editor.batchUpdateNodeProps(nodeIds, props)}
+                        onRenameNode={(oldId, newId) => editor.renameNode(oldId, newId)}
+                        onApplyLinks={(nodeId, rows, origIds) => editor.applyLinkedNodesUpdate(nodeId, rows, origIds)}
+                        onApplyProperties={(nodeId, propsToSet, keysToRemove) => editor.applyPropertiesUpdate(nodeId, propsToSet, keysToRemove)}
+                        onBatchApplyProperties={(nodeIds, propsToSet, keysToRemove) => editor.batchApplyPropertiesUpdate(nodeIds, propsToSet, keysToRemove)}
                         onPanelDirtyChange={onPanelDirtyChange}
                         onPanelExpandedChange={onPanelExpandedChange}
-                        onHighlightSet={(ids) => vm.setHighlightSet(ids)}
-                        onExternalHover={(id) => vm.setExternalHover(id)}
-                        onExpandNode={(id) => vm.expandNode(id)}
+                        onHighlightSet={(ids) => editor.setHighlightSet(ids)}
+                        onExternalHover={(id) => editor.setExternalHover(id)}
+                        onExpandNode={(id) => editor.expandNode(id)}
                         containerRef={containerRef}
                         expandRequest={expandRequest}
                         collapseRequest={collapseRequest}
                     />
-                    <GraphLegendPanel editor={vm} />
+                    <GraphLegendPanel editor={editor} />
                 </>
             )}
-            {Boolean(model.editorToolbarRefLast) &&
-                createPortal(
-                    <>
-                        <IconButton
-                            name="graph-open-in-draw"
-                            size="sm"
-                            icon={<DrawIcon />}
-                            title="Open in Drawing Editor"
-                            onClick={async () => {
-                                const canvas = canvasElRef.current;
-                                if (!canvas) return;
-                                const dataUrl = canvas.toDataURL("image/png");
-                                const { buildExcalidrawJsonWithImage } = await import("../draw/drawExport");
-                                const json = buildExcalidrawJsonWithImage(dataUrl, "image/png", canvas.width, canvas.height);
-                                const title = model.state.get().title.replace(/\.fg\.json$/i, "") + ".excalidraw";
-                                pagesModel.addEditorPage("draw-view", "json", title, json);
-                            }}
-                        />
-                        <IconButton
-                            name="graph-copy-image"
-                            size="sm"
-                            icon={<CopyIcon />}
-                            title="Copy Image to Clipboard"
-                            onClick={() => {
-                                const canvas = canvasElRef.current;
-                                if (!canvas) return;
-                                canvas.toBlob((blob) => {
-                                    if (blob) {
-                                        navigator.clipboard.write([
-                                            new ClipboardItem({ "image/png": blob }),
-                                        ]);
-                                    }
-                                }, "image/png");
-                            }}
-                        />
-                    </>,
-                    model.editorToolbarRefLast!,
-                )}
-            {Boolean(model.editorFooterRefLast) &&
-                createPortal(
-                    <>
-                        {statusHint && <span style={{ fontStyle: "italic", color: color.warning.text, marginRight: 12 }}>{statusHint}</span>}
-                        <span>{vm.recordsCount}</span>
-                    </>,
-                    model.editorFooterRefLast,
-                )}
         </div>
     );
 }
-
-export { GraphView };
-export type { GraphViewProps };

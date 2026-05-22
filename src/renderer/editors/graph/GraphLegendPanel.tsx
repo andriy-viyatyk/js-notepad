@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Input, Panel } from "../../uikit";
 import color from "../../theme/color";
-import { GraphViewModel } from "./GraphViewModel";
+import type { GraphEditor } from "./GraphEditor";
+import type { GraphViewModel } from "./GraphViewModel";
 import { NodeShape } from "./types";
 import { ShapeIcon, LevelIcon } from "./GraphIcons";
 
@@ -13,6 +14,12 @@ const ALL_SHAPES: NodeShape[] = ["circle", "square", "diamond", "triangle", "sta
 const ALL_LEVELS = [1, 2, 3, 4, 5];
 type LegendTab = "level" | "shape" | "selection";
 type SelectionFilter = "" | "selected" | "not-selected" | "selected-with-children";
+
+/** Either the new v4 `GraphEditor` or the legacy `GraphViewModel`. Both expose
+ *  the same surface this panel consumes (state.subscribe, state.get,
+ *  renderer.selectedIds, connectivityModel.*, getLegendDescriptions, etc.).
+ *  Type-only imports avoid runtime coupling. */
+type GraphLegendHost = GraphEditor | GraphViewModel;
 
 // =============================================================================
 // Inline styles
@@ -134,10 +141,10 @@ const searchNoticeStyle: React.CSSProperties = {
 // =============================================================================
 
 interface GraphLegendPanelProps {
-    vm: GraphViewModel;
+    editor: GraphLegendHost;
 }
 
-export function GraphLegendPanel({ vm }: GraphLegendPanelProps) {
+export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
     const [expanded, setExpanded] = useState(false);
     const [hovered, setHovered] = useState(false);
     const [focusWithin, setFocusWithin] = useState(false);
@@ -148,74 +155,74 @@ export function GraphLegendPanel({ vm }: GraphLegendPanelProps) {
     const [descriptions, setDescriptions] = useState<Record<string, Record<string, string>>>({ levels: {}, shapes: {} });
 
     const selectedKey = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().selectedNodes.map((n) => n.id).join(","),
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().selectedNodes.map((n) => n.id).join(","),
     );
     const searchQuery = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().searchQuery,
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().searchQuery,
     );
     const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
     useEffect(() => {
-        vm.onHighlightSelection = () => {
+        editor.onHighlightSelection = () => {
             setExpanded(true);
             setActiveTab("selection");
             setSelectionFilter("selected");
         };
-        return () => { vm.onHighlightSelection = null; };
-    }, [vm]);
+        return () => { editor.onHighlightSelection = null; };
+    }, [editor]);
 
     useEffect(() => {
-        const legend = vm.getLegendDescriptions();
+        const legend = editor.getLegendDescriptions();
         setDescriptions({
             levels: { ...legend.levels },
             shapes: { ...legend.shapes },
         });
-    }, [vm]);
+    }, [editor]);
 
     const { hasRoot, hasGroup } = useMemo(() => {
-        const info = vm.getPresentLevelsAndShapes();
+        const info = editor.getPresentLevelsAndShapes();
         return { hasRoot: info.hasRoot, hasGroup: info.hasGroup };
-    }, [vm]);
+    }, [editor]);
 
     useEffect(() => {
         if (!expanded) {
-            vm.setLegendHighlight(null);
+            editor.setLegendHighlight(null);
             return;
         }
 
         if (activeTab === "selection") {
             if (!selectionFilter) {
-                vm.setLegendHighlight(null);
+                editor.setLegendHighlight(null);
                 return;
             }
-            const selectedIds = vm.renderer.selectedIds;
+            const selectedIds = editor.renderer.selectedIds;
             if (selectedIds.size === 0) {
-                vm.setLegendHighlight(null);
+                editor.setLegendHighlight(null);
                 return;
             }
             if (selectionFilter === "selected") {
-                vm.setLegendHighlight(new Set(selectedIds));
+                editor.setLegendHighlight(new Set(selectedIds));
             } else if (selectionFilter === "selected-with-children") {
                 const ids = new Set(selectedIds);
-                const cm = vm.connectivityModel;
+                const cm = editor.connectivityModel;
                 for (const nodeId of selectedIds) {
                     for (const id of cm.getProcessedNeighborIds(nodeId)) ids.add(id);
                     for (const id of cm.getRealNeighborIds(nodeId)) ids.add(id);
                 }
-                vm.setLegendHighlight(ids);
+                editor.setLegendHighlight(ids);
             } else {
-                const allIds = new Set(vm.renderer.getNodes().map((n) => n.id));
+                const allIds = new Set(editor.renderer.getNodes().map((n) => n.id));
                 for (const id of selectedIds) allIds.delete(id);
-                vm.setLegendHighlight(allIds.size > 0 ? allIds : new Set());
+                editor.setLegendHighlight(allIds.size > 0 ? allIds : new Set());
             }
             return;
         }
 
         const checked = activeTab === "level" ? checkedLevels : checkedShapes;
         if (checked.size === 0) {
-            vm.setLegendHighlight(null);
+            editor.setLegendHighlight(null);
             return;
         }
 
@@ -228,8 +235,8 @@ export function GraphLegendPanel({ vm }: GraphLegendPanelProps) {
                 else if (key === "group") includeGroup = true;
                 else levelNums.add(Number(key));
             }
-            const ids = vm.getNodeIdsByLegendFilter({ levels: levelNums.size > 0 ? levelNums : undefined, includeRoot, includeGroup });
-            vm.setLegendHighlight(ids.size > 0 ? ids : new Set());
+            const ids = editor.getNodeIdsByLegendFilter({ levels: levelNums.size > 0 ? levelNums : undefined, includeRoot, includeGroup });
+            editor.setLegendHighlight(ids.size > 0 ? ids : new Set());
         } else {
             const shapeNames = new Set<string>();
             let includeRoot = false;
@@ -239,10 +246,10 @@ export function GraphLegendPanel({ vm }: GraphLegendPanelProps) {
                 else if (key === "group") includeGroup = true;
                 else shapeNames.add(key);
             }
-            const ids = vm.getNodeIdsByLegendFilter({ shapes: shapeNames.size > 0 ? shapeNames : undefined, includeRoot, includeGroup });
-            vm.setLegendHighlight(ids.size > 0 ? ids : new Set());
+            const ids = editor.getNodeIdsByLegendFilter({ shapes: shapeNames.size > 0 ? shapeNames : undefined, includeRoot, includeGroup });
+            editor.setLegendHighlight(ids.size > 0 ? ids : new Set());
         }
-    }, [vm, expanded, activeTab, checkedLevels, checkedShapes, selectionFilter, selectedKey]);
+    }, [editor, expanded, activeTab, checkedLevels, checkedShapes, selectionFilter, selectedKey]);
 
     const toggleCheck = useCallback((tab: LegendTab, key: string) => {
         const setter = tab === "level" ? setCheckedLevels : setCheckedShapes;
@@ -265,10 +272,10 @@ export function GraphLegendPanel({ vm }: GraphLegendPanelProps) {
         const existing = debounceTimers.current.get(timerKey);
         if (existing) clearTimeout(existing);
         debounceTimers.current.set(timerKey, setTimeout(() => {
-            vm.setLegendDescription(tab, key, value);
+            editor.setLegendDescription(tab, key, value);
             debounceTimers.current.delete(timerKey);
         }, 300));
-    }, [vm]);
+    }, [editor]);
 
     useEffect(() => () => {
         for (const timer of debounceTimers.current.values()) clearTimeout(timer);
@@ -304,7 +311,7 @@ export function GraphLegendPanel({ vm }: GraphLegendPanelProps) {
                     {searchQuery ? (
                         <div style={searchNoticeStyle}>
                             <span>Search highlighting is active</span>
-                            <Button size="sm" variant="ghost" onClick={() => vm.setSearchQuery("")}>Clear search</Button>
+                            <Button size="sm" variant="ghost" onClick={() => editor.setSearchQuery("")}>Clear search</Button>
                         </div>
                     ) : (
                         <>

@@ -1,11 +1,19 @@
 import { useState, useCallback } from "react";
 import { Button, Panel, Slider } from "../../uikit";
-import { GraphViewModel } from "./GraphViewModel";
-import { ForceGraphRenderer } from "./ForceGraphRenderer";
+import { ForceGraphRenderer, ForceParams } from "./ForceGraphRenderer";
 import color from "../../theme/color";
 
+/** Narrow structural interface — satisfied by both `GraphEditor` (new, US-564)
+ *  and legacy `GraphViewModel` (preserved per GR1). Only the surface this
+ *  panel actually consumes. */
+interface GraphTuningHost {
+    readonly renderer: { readonly forceParams: ForceParams };
+    updateForceParams(params: Partial<ForceParams>): void;
+    resetForceParams(): void;
+}
+
 interface GraphTuningSlidersProps {
-    vm: GraphViewModel;
+    editor: GraphTuningHost;
 }
 
 const defaults = ForceGraphRenderer.defaultForceParams;
@@ -31,9 +39,9 @@ const valueStyle: React.CSSProperties = {
     flexShrink: 0,
 };
 
-function GraphTuningSliders({ vm }: GraphTuningSlidersProps) {
+function GraphTuningSliders({ editor }: GraphTuningSlidersProps) {
     const [values, setValues] = useState(() => {
-        const current = vm.renderer.forceParams;
+        const current = editor.renderer.forceParams;
         return {
             charge: current.charge,
             linkDistance: current.linkDistance,
@@ -43,8 +51,8 @@ function GraphTuningSliders({ vm }: GraphTuningSlidersProps) {
 
     const onChange = useCallback((key: keyof typeof values, value: number) => {
         setValues((prev) => ({ ...prev, [key]: value }));
-        vm.updateForceParams({ [key]: value });
-    }, [vm]);
+        editor.updateForceParams({ [key]: value });
+    }, [editor]);
 
     const onReset = useCallback(() => {
         setValues({
@@ -52,8 +60,8 @@ function GraphTuningSliders({ vm }: GraphTuningSlidersProps) {
             linkDistance: defaults.linkDistance,
             collide: defaults.collide,
         });
-        vm.resetForceParams();
-    }, [vm]);
+        editor.resetForceParams();
+    }, [editor]);
 
     return (
         <Panel name="graph-tuning" direction="column" gap="xs" paddingX="md" paddingY="sm" borderTop>

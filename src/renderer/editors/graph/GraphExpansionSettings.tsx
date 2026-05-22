@@ -1,12 +1,21 @@
 import { useState, useCallback, useMemo } from "react";
 import { Input, Panel, Select } from "../../uikit";
 import type { IListBoxItem } from "../../uikit";
-import { GraphViewModel } from "./GraphViewModel";
-import { nodeLabel } from "./types";
+import { GraphNode, GraphOptions, nodeLabel } from "./types";
 import color from "../../theme/color";
 
+/** Narrow structural interface — satisfied by both `GraphEditor` (new, US-564)
+ *  and legacy `GraphViewModel` (preserved per GR1). Only the surface this
+ *  panel actually consumes. */
+interface GraphExpansionHost {
+    getExpansionOptions(): { rootNode?: string; expandDepth?: number; maxVisible?: number };
+    getAllNodes(): GraphNode[];
+    setRootNode(nodeId: string | undefined): void;
+    updateExpansionOptions(patch: Partial<Pick<GraphOptions, "expandDepth" | "maxVisible">>): void;
+}
+
 interface GraphExpansionSettingsProps {
-    vm: GraphViewModel;
+    editor: GraphExpansionHost;
 }
 
 /** Sentinel value representing "auto" root selection (no explicit rootNode). */
@@ -27,21 +36,21 @@ const noteStyle: React.CSSProperties = {
     color: color.warning.text,
 };
 
-function GraphExpansionSettings({ vm }: GraphExpansionSettingsProps) {
-    const opts = vm.getExpansionOptions();
+function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
+    const opts = editor.getExpansionOptions();
 
     const [rootNode, setRootNode] = useState(opts.rootNode ?? "");
     const [expandDepthStr, setExpandDepthStr] = useState(opts.expandDepth !== undefined ? String(opts.expandDepth) : "");
     const [maxVisibleStr, setMaxVisibleStr] = useState(opts.maxVisible !== undefined ? String(opts.maxVisible) : "");
 
     const items = useMemo<IListBoxItem[]>(() => {
-        const nodes = vm.getAllNodes();
+        const nodes = editor.getAllNodes();
         const sorted = [...nodes].sort((a, b) => nodeLabel(a).localeCompare(nodeLabel(b)));
         return [
             { value: AUTO_ROOT, label: "(auto — lowest level)" },
             ...sorted.map((n) => ({ value: n.id, label: nodeLabel(n) })),
         ];
-    }, [vm]);
+    }, [editor]);
 
     const selectedValue = rootNode || AUTO_ROOT;
     const selectedItem = items.find((i) => i.value === selectedValue) ?? null;
@@ -50,38 +59,38 @@ function GraphExpansionSettings({ vm }: GraphExpansionSettingsProps) {
         const value = String(item.value);
         const nodeId = value === AUTO_ROOT ? undefined : value;
         setRootNode(nodeId ?? "");
-        vm.setRootNode(nodeId);
-    }, [vm]);
+        editor.setRootNode(nodeId);
+    }, [editor]);
 
     const commitExpandDepth = useCallback(() => {
         const trimmed = expandDepthStr.trim();
         if (!trimmed) {
-            vm.updateExpansionOptions({ expandDepth: undefined });
+            editor.updateExpansionOptions({ expandDepth: undefined });
         } else {
             const num = parseInt(trimmed, 10);
             if (!isNaN(num) && num >= 1) {
                 setExpandDepthStr(String(num));
-                vm.updateExpansionOptions({ expandDepth: num });
+                editor.updateExpansionOptions({ expandDepth: num });
             } else {
                 setExpandDepthStr(opts.expandDepth !== undefined ? String(opts.expandDepth) : "");
             }
         }
-    }, [vm, expandDepthStr, opts.expandDepth]);
+    }, [editor, expandDepthStr, opts.expandDepth]);
 
     const commitMaxVisible = useCallback(() => {
         const trimmed = maxVisibleStr.trim();
         if (!trimmed) {
-            vm.updateExpansionOptions({ maxVisible: undefined });
+            editor.updateExpansionOptions({ maxVisible: undefined });
         } else {
             const num = parseInt(trimmed, 10);
             if (!isNaN(num) && num >= 10) {
                 setMaxVisibleStr(String(num));
-                vm.updateExpansionOptions({ maxVisible: num });
+                editor.updateExpansionOptions({ maxVisible: num });
             } else {
                 setMaxVisibleStr(opts.maxVisible !== undefined ? String(opts.maxVisible) : "");
             }
         }
-    }, [vm, maxVisibleStr, opts.maxVisible]);
+    }, [editor, maxVisibleStr, opts.maxVisible]);
 
     const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, commit: () => void) => {
         if (e.key === "Enter") {

@@ -1,100 +1,100 @@
-import type { GraphViewModel } from "../../editors/graph/GraphViewModel";
+import type { GraphEditor } from "../../editors/graph";
 import type { GraphNode } from "../../editors/graph/types";
 import { linkIds } from "../../editors/graph/types";
 import { matchNodeSearch } from "../../editors/graph/GraphSearchModel";
 
 /**
- * Safe facade around GraphViewModel for script access.
+ * Safe facade around GraphEditor for script access.
  * Implements the IGraphEditor interface from api/types/graph-editor.d.ts.
  *
  * Primarily designed for AI agent usage via MCP (execute_script).
  * Focuses on read/query operations — editing is done via page.content JSON.
  */
 export class GraphEditorFacade {
-    constructor(private readonly vm: GraphViewModel) {}
+    constructor(private readonly editor: GraphEditor) {}
 
     // ── Data Access ──────────────────────────────────────────────────
 
     get nodes(): GraphNode[] {
-        return (this.vm.dataModel.sourceData?.nodes ?? []).map(n => this.vm.dataModel.cleanNode(n));
+        return (this.editor.dataModel.sourceData?.nodes ?? []).map(n => this.editor.dataModel.cleanNode(n));
     }
 
     get links(): Array<{ source: string; target: string }> {
-        return (this.vm.dataModel.sourceData?.links ?? []).map(l => {
+        return (this.editor.dataModel.sourceData?.links ?? []).map(l => {
             const { source, target } = linkIds(l);
             return { source, target };
         });
     }
 
     get nodeCount(): number {
-        return this.vm.dataModel.sourceData?.nodes.length ?? 0;
+        return this.editor.dataModel.sourceData?.nodes.length ?? 0;
     }
 
     get linkCount(): number {
-        return this.vm.dataModel.sourceData?.links.length ?? 0;
+        return this.editor.dataModel.sourceData?.links.length ?? 0;
     }
 
     getNode(id: string): GraphNode | undefined {
-        const node = this.vm.dataModel.sourceData?.nodes.find(n => n.id === id);
-        return node ? this.vm.dataModel.cleanNode(node) : undefined;
+        const node = this.editor.dataModel.sourceData?.nodes.find(n => n.id === id);
+        return node ? this.editor.dataModel.cleanNode(node) : undefined;
     }
 
     // ── Selection ────────────────────────────────────────────────────
 
     get selectedIds(): string[] {
-        return [...this.vm.renderer.selectedIds];
+        return [...this.editor.renderer.selectedIds];
     }
 
     get selectedNodes(): GraphNode[] {
-        const ids = this.vm.renderer.selectedIds;
-        return (this.vm.dataModel.sourceData?.nodes ?? [])
+        const ids = this.editor.renderer.selectedIds;
+        return (this.editor.dataModel.sourceData?.nodes ?? [])
             .filter(n => ids.has(n.id))
-            .map(n => this.vm.dataModel.cleanNode(n));
+            .map(n => this.editor.dataModel.cleanNode(n));
     }
 
     select(ids: string[]): void {
-        this.vm.renderer.selectNode("");
+        this.editor.renderer.selectNode("");
         if (ids.length > 0) {
-            this.vm.renderer.addToSelection(ids);
+            this.editor.renderer.addToSelection(ids);
         }
     }
 
     addToSelection(ids: string[]): void {
-        this.vm.renderer.addToSelection(ids);
+        this.editor.renderer.addToSelection(ids);
     }
 
     clearSelection(): void {
-        this.vm.renderer.selectNode("");
+        this.editor.renderer.selectNode("");
     }
 
     // ── Relationships ────────────────────────────────────────────────
 
     getNeighborIds(nodeId: string): string[] {
-        return [...this.vm.connectivityModel.getRealNeighborIds(nodeId)];
+        return [...this.editor.connectivityModel.getRealNeighborIds(nodeId)];
     }
 
     getVisualNeighborIds(nodeId: string): string[] {
-        return [...this.vm.connectivityModel.getProcessedNeighborIds(nodeId)];
+        return [...this.editor.connectivityModel.getProcessedNeighborIds(nodeId)];
     }
 
     getGroupOf(nodeId: string): string | undefined {
-        return this.vm.groupModel.getGroupOf(nodeId);
+        return this.editor.groupModel.getGroupOf(nodeId);
     }
 
     getGroupMembers(groupId: string): string[] {
-        return [...this.vm.groupModel.getMembers(groupId)];
+        return [...this.editor.groupModel.getMembers(groupId)];
     }
 
     getGroupMembersDeep(groupId: string): string[] {
-        return [...this.vm.connectivityModel.getAllRealMembers(groupId)];
+        return [...this.editor.connectivityModel.getAllRealMembers(groupId)];
     }
 
     getGroupChain(nodeId: string): string[] {
-        return this.vm.connectivityModel.getGroupChain(nodeId);
+        return this.editor.connectivityModel.getGroupChain(nodeId);
     }
 
     isGroup(nodeId: string): boolean {
-        return this.vm.groupModel.isGroup(nodeId);
+        return this.editor.groupModel.isGroup(nodeId);
     }
 
     // ── Search ───────────────────────────────────────────────────────
@@ -107,8 +107,8 @@ export class GraphEditorFacade {
         if (!trimmed) return [];
 
         const words = trimmed.split(/\s+/).filter(Boolean);
-        const allNodes = this.vm.dataModel.sourceData?.nodes ?? [];
-        const visibleIds = new Set(this.vm.renderer.getNodes().map(n => n.id));
+        const allNodes = this.editor.dataModel.sourceData?.nodes ?? [];
+        const visibleIds = new Set(this.editor.renderer.getNodes().map(n => n.id));
 
         const results: Array<{
             nodeId: string; label: string; visible: boolean;
@@ -138,8 +138,8 @@ export class GraphEditorFacade {
 
     bfs(startId: string, maxDepth?: number, visual = false): Array<{ id: string; depth: number }> {
         const getNeighbors = visual
-            ? (id: string) => this.vm.connectivityModel.getProcessedNeighborIds(id)
-            : (id: string) => this.vm.connectivityModel.getRealNeighborIds(id);
+            ? (id: string) => this.editor.connectivityModel.getProcessedNeighborIds(id)
+            : (id: string) => this.editor.connectivityModel.getRealNeighborIds(id);
 
         const visited = new Map<string, number>(); // id → depth
         const queue: Array<{ id: string; depth: number }> = [{ id: startId, depth: 0 }];
@@ -166,10 +166,10 @@ export class GraphEditorFacade {
     // ── Analysis ─────────────────────────────────────────────────────
 
     getComponents(): Array<{ nodeCount: number; rootId: string; nodeIds: string[] }> {
-        const allNodes = this.vm.dataModel.sourceData?.nodes ?? [];
+        const allNodes = this.editor.dataModel.sourceData?.nodes ?? [];
         const visited = new Set<string>();
         const components: Array<{ nodeCount: number; rootId: string; nodeIds: string[] }> = [];
-        const graphRootId = this.vm.dataModel.sourceData?.options?.rootNode;
+        const graphRootId = this.editor.dataModel.sourceData?.options?.rootNode;
 
         // Skip group nodes — they are structural, not data nodes
         const nonGroupNodes = allNodes.filter(n => !n.isGroup);
@@ -185,7 +185,7 @@ export class GraphEditorFacade {
             while (queue.length > 0) {
                 const id = queue.shift()!;
                 component.push(id);
-                for (const neighborId of this.vm.connectivityModel.getRealNeighborIds(id)) {
+                for (const neighborId of this.editor.connectivityModel.getRealNeighborIds(id)) {
                     if (!visited.has(neighborId)) {
                         visited.add(neighborId);
                         queue.push(neighborId);
@@ -200,7 +200,7 @@ export class GraphEditorFacade {
             } else {
                 let maxDegree = 0;
                 for (const id of component) {
-                    const degree = this.vm.connectivityModel.getRealNeighborIds(id).size;
+                    const degree = this.editor.connectivityModel.getRealNeighborIds(id).size;
                     if (degree > maxDegree) {
                         maxDegree = degree;
                         rootId = id;
@@ -219,10 +219,10 @@ export class GraphEditorFacade {
     // ── Options ──────────────────────────────────────────────────────
 
     get rootNodeId(): string {
-        return this.vm.dataModel.sourceData?.options?.rootNode ?? "";
+        return this.editor.dataModel.sourceData?.options?.rootNode ?? "";
     }
 
     get groupingEnabled(): boolean {
-        return this.vm.groupingEnabled;
+        return this.editor.groupingEnabled;
     }
 }

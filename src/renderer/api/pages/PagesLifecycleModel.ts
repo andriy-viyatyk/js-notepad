@@ -17,6 +17,7 @@ import { MarkdownEditor, defaultMarkdownEditorState } from "../../editors/markdo
 import { SvgEditor, defaultSvgEditorState } from "../../editors/svg";
 import { HtmlEditor, defaultHtmlEditorState } from "../../editors/html";
 import { MermaidEditor, defaultMermaidEditorState } from "../../editors/mermaid";
+import { GraphEditor, defaultGraphEditorState } from "../../editors/graph";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -164,6 +165,19 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         );
         mermaid.adoptHost(legacy as TextFileModel);
         return mermaid;
+    }
+
+    // EPIC-028 / US-564 — Graph migrated to native v4 module. Construct
+    // GraphEditor over the legacy TextFileModel host. The initial
+    // parseContent() call kicks off inside adoptHost (mirrors today's
+    // GraphViewModel.onInit → parseContent behavior).
+    if (isTextFile && targetEditorId === "graph-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const graph = new GraphEditor(
+            new TComponentState({ ...defaultGraphEditorState, id }),
+        );
+        graph.adoptHost(legacy as TextFileModel);
+        return graph;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);
