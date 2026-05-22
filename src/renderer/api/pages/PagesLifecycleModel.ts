@@ -15,6 +15,7 @@ import { GridEditor, defaultGridEditorState, type GridEditorId } from "../../edi
 import { LogViewEditor, defaultLogViewEditorState } from "../../editors/log-view";
 import { MarkdownEditor, defaultMarkdownEditorState } from "../../editors/markdown";
 import { SvgEditor, defaultSvgEditorState } from "../../editors/svg";
+import { HtmlEditor, defaultHtmlEditorState } from "../../editors/html";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -136,6 +137,19 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         );
         svg.adoptHost(legacy as TextFileModel);
         return svg;
+    }
+
+    // EPIC-028 / US-561 — Html migrated to native v4 module. Construct
+    // HtmlEditor over the legacy TextFileModel host. No initial parse step —
+    // the body reads host.state.content via state.use() and the iframe
+    // re-renders on every srcDoc prop change.
+    if (isTextFile && targetEditorId === "html-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const html = new HtmlEditor(
+            new TComponentState({ ...defaultHtmlEditorState, id }),
+        );
+        html.adoptHost(legacy as TextFileModel);
+        return html;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);

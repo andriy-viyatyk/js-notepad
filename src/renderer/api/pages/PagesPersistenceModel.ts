@@ -71,13 +71,16 @@ export class PagesPersistenceModel {
      * restore (`restoreV4`), IPC `movePageIn`, and `duplicatePage` (walkthrough
      * 05 / M2 + walkthrough 04 / C5 / P5).
      *
-     * EPIC-028 / US-551 + US-552: descriptors with a `host` field and an
-     * editorId of `monaco` / `grid-json` / `grid-csv` / `grid-jsonl` restore
-     * through the native v4 path (editorRegistry.createEditor → applyRestoreData
-     * → restore). Legacy-shaped descriptors (no host field, or non-v4-native
-     * editorId) still take the LegacyEditorAdapter path. Pre-migration sessions
-     * with an unsupported shape restore as legacy adapter and rewrite as
-     * v4-native on the next save.
+     * EPIC-028: descriptors with a `host` field restore through the native v4
+     * path (`editorRegistry.createEditor` → `applyRestoreData` → `restore`).
+     * `host` is the reliable discriminator — every v4-native editor writes
+     * `host: this._host?.getDescriptor()`, while `LegacyEditorAdapter`
+     * explicitly writes `host: undefined`. Falling through on this means every
+     * future per-editor migration is auto-included without touching this file.
+     *
+     * Legacy-shaped descriptors (no host field) take the LegacyEditorAdapter
+     * path. Pre-migration sessions with an unsupported shape restore as legacy
+     * adapter and rewrite as v4-native on the next save.
      */
     restorePage = async (desc: PageDescriptor): Promise<PageModel | null> => {
         const page = new PageModel(desc.id);
@@ -86,12 +89,7 @@ export class PagesPersistenceModel {
         const editors = await Promise.all(
             desc.editors.map(async (d) => {
                 try {
-                    const isV4NativeId =
-                        d.editorId === "monaco" ||
-                        d.editorId === "grid-json" ||
-                        d.editorId === "grid-csv" ||
-                        d.editorId === "grid-jsonl";
-                    if (isV4NativeId && d.host) {
+                    if (d.host) {
                         const { editorRegistry: v4Registry } = await import(
                             "../../editors/base/v4"
                         );

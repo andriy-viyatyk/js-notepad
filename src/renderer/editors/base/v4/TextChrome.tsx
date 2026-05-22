@@ -120,13 +120,17 @@ export function TextChrome({
                 name="text-chrome-top"
                 model={model}
                 borderBottom
-                rightContributions={rightToolbarContributions}
+                rightContributions={
+                    <>
+                        {textHost && <ShowResourcesButton host={textHost} />}
+                        {rightToolbarContributions}
+                    </>
+                }
             >
                 {textHost && <CompareButton model={model} />}
                 {textHost && <RunButtons model={model} host={textHost} />}
                 {toolbarContributions}
                 <ToolbarPortalSlots model={model} host={textHost} />
-                {textHost && <ShowResourcesButton host={textHost} />}
             </PageToolbar>
             {children}
             {textHost?.script && <ScriptPanel model={textHost} />}

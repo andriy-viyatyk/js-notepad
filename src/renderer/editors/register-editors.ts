@@ -330,6 +330,12 @@ editorRegistry.register({
         return 10;
     },
     loadModule: async () => {
+        // EPIC-028 / US-561 — Html migrated to native v4 module
+        // (`htmlModule` in `./html/index.tsx`). Legacy HtmlView + HtmlViewModel
+        // are PRESERVED here because notebook per-note dispatch
+        // (`NoteItemActiveEditor` → `AsyncEditor` → `module.Editor`) still
+        // consumes them. Page-level pages take the v4 path via
+        // `wrapLegacyForPage`. Full retirement in US-557 (Notebook) / US-559.
         const [module, { createHtmlViewModel }] = await Promise.all([
             import("./html/HtmlView"),
             import("./html/HtmlViewModel"),
@@ -728,8 +734,8 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // log-view removed — US-553 ships native v4 module.
     // md-view removed — US-554 ships native v4 module.
     // svg-view removed — US-560 ships native v4 module.
+    // html-view removed — US-561 ships native v4 module.
     "mermaid-view",
-    "html-view",
     "notebook-view",
     "todo-view",
     "link-view",
@@ -948,5 +954,33 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { svgModule } = await import("./svg");
         return svgModule;
+    },
+});
+
+// US-561 — replace the legacy bare-adapter mirror for html-view with a native
+// v4 module. `v4EditorRegistry.register` overwrites by id, so this supersedes
+// the bare-adapter stub the mirror loop wrote. `accepts` delegates to the
+// legacy registry def's `acceptFile` / `switchOption` to avoid duplicating
+// language rules.
+v4EditorRegistry.register({
+    id: "html-view",
+    name: "Preview",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("html-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { htmlModule } = await import("./html");
+        return htmlModule;
     },
 });

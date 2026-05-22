@@ -1,16 +1,16 @@
-import type { HtmlViewModel } from "../../editors/html/HtmlViewModel";
+import type { HtmlEditor } from "../../editors/html";
 
 /**
- * Safe facade around HtmlViewModel for script access.
+ * Safe facade around HtmlEditor for script access.
  * Implements the IHtmlEditor interface from api/types/html-editor.d.ts.
  *
- * - Minimal read-only facade for now
- * - Can be extended with copyToClipboard, saveToFile, etc.
+ * - Minimal read-only facade — exposes the raw HTML source from the host.
+ * - Stays sync; no queue.execute requests.
  */
 export class HtmlEditorFacade {
-    constructor(private readonly vm: HtmlViewModel) {}
+    constructor(private readonly editor: HtmlEditor) {}
 
     get html(): string {
-        return this.vm.pageModel.state.get().content;
+        return this.editor.host?.state.get().content ?? "";
     }
 }

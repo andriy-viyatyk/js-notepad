@@ -13,7 +13,7 @@ import type { TodoViewModel } from "../../editors/todo/TodoViewModel";
 import type { LinkViewModel } from "../../editors/link-editor/LinkViewModel";
 import { MarkdownEditor } from "../../editors/markdown";
 import { SvgEditor } from "../../editors/svg";
-import type { HtmlViewModel } from "../../editors/html/HtmlViewModel";
+import { HtmlEditor } from "../../editors/html";
 import type { MermaidViewModel } from "../../editors/mermaid/MermaidViewModel";
 import type { GraphViewModel } from "../../editors/graph/GraphViewModel";
 import type { DrawViewModel } from "../../editors/draw/DrawViewModel";
@@ -255,13 +255,14 @@ export class PageWrapper {
 
     async asHtml(force = false): Promise<HtmlEditorFacade> {
         await this.ensureEditor("html-view", "HTML", "asHtml", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asHtml(): page lost its text host during switch");
+        // EPIC-028 / US-561 — Html is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS an HtmlEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof HtmlEditor)) {
+            throw new Error("asHtml(): page is not an HtmlEditor after switch");
         }
-        const vm = await model.acquireViewModel("html-view") as HtmlViewModel;
-        this.releaseList.push(() => model.releaseViewModel("html-view"));
-        return new HtmlEditorFacade(vm);
+        return new HtmlEditorFacade(v4);
     }
 
     async asMermaid(force = false): Promise<MermaidEditorFacade> {
