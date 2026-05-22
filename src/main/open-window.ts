@@ -1,5 +1,6 @@
 import { BrowserWindow, screen } from "electron";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { EventEndpoint } from "../ipc/api-types";
 import { electronStore } from "./e-store";
@@ -166,10 +167,7 @@ export class OpenWindow {
 
                 event.preventDefault();
 
-                let filePath = uri.pathname;
-                if (filePath.startsWith("/") && process.platform === "win32") {
-                    filePath = filePath.slice(1).replaceAll("/", "\\");
-                }
+                const filePath = fileURLToPath(url);
                 this.send(EventEndpoint.eOpenFile, filePath);
                 return;
             }

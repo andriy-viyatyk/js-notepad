@@ -72,6 +72,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-391: PowerShell shortcut (Ctrl+\`) — open shell at cwd
 - **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
 - *(no epic)*
+  - [x] US-577: Decode percent-encoded `file://` paths in `will-navigate` (Cyrillic/Unicode filenames in Markdown links)
   - [ ] US-347: CategoryView / CategoryEditor Breadcrumb
   - [ ] US-453: Storybook property editor — fix scroll when prop list exceeds panel height
   - [ ] [US-454: DrawIO Viewer — read-only viewer for `.drawio` files](tasks/US-454-drawio-viewer/README.md)
