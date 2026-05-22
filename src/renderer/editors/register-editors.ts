@@ -362,6 +362,12 @@ editorRegistry.register({
         return 10;
     },
     loadModule: async () => {
+        // EPIC-028 / US-562 — Mermaid migrated to native v4 module
+        // (`mermaidModule` in `./mermaid/index.tsx`). Legacy MermaidView +
+        // MermaidViewModel are PRESERVED here because notebook per-note
+        // dispatch (`NoteItemActiveEditor` → `AsyncEditor` → `module.Editor`)
+        // still consumes them. Page-level pages take the v4 path via
+        // `wrapLegacyForPage`. Full retirement in US-557 (Notebook) / US-559.
         const [module, { createMermaidViewModel }] = await Promise.all([
             import("./mermaid/MermaidView"),
             import("./mermaid/MermaidViewModel"),
@@ -735,7 +741,7 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // md-view removed — US-554 ships native v4 module.
     // svg-view removed — US-560 ships native v4 module.
     // html-view removed — US-561 ships native v4 module.
-    "mermaid-view",
+    // mermaid-view removed — US-562 ships native v4 module.
     "notebook-view",
     "todo-view",
     "link-view",
@@ -982,5 +988,33 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { htmlModule } = await import("./html");
         return htmlModule;
+    },
+});
+
+// US-562 — replace the legacy bare-adapter mirror for mermaid-view with a
+// native v4 module. `v4EditorRegistry.register` overwrites by id, so this
+// supersedes the bare-adapter stub the mirror loop wrote. `accepts` delegates
+// to the legacy registry def's `acceptFile` / `switchOption` to avoid
+// duplicating extension/language rules.
+v4EditorRegistry.register({
+    id: "mermaid-view",
+    name: "Mermaid",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("mermaid-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { mermaidModule } = await import("./mermaid");
+        return mermaidModule;
     },
 });

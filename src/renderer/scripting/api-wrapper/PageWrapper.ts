@@ -14,7 +14,7 @@ import type { LinkViewModel } from "../../editors/link-editor/LinkViewModel";
 import { MarkdownEditor } from "../../editors/markdown";
 import { SvgEditor } from "../../editors/svg";
 import { HtmlEditor } from "../../editors/html";
-import type { MermaidViewModel } from "../../editors/mermaid/MermaidViewModel";
+import { MermaidEditor } from "../../editors/mermaid";
 import type { GraphViewModel } from "../../editors/graph/GraphViewModel";
 import type { DrawViewModel } from "../../editors/draw/DrawViewModel";
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
@@ -267,13 +267,14 @@ export class PageWrapper {
 
     async asMermaid(force = false): Promise<MermaidEditorFacade> {
         await this.ensureEditor("mermaid-view", "Mermaid", "asMermaid", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asMermaid(): page lost its text host during switch");
+        // EPIC-028 / US-562 — Mermaid is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a MermaidEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof MermaidEditor)) {
+            throw new Error("asMermaid(): page is not a MermaidEditor after switch");
         }
-        const vm = await model.acquireViewModel("mermaid-view") as MermaidViewModel;
-        this.releaseList.push(() => model.releaseViewModel("mermaid-view"));
-        return new MermaidEditorFacade(vm);
+        return new MermaidEditorFacade(v4);
     }
 
     async asGraph(force = false): Promise<GraphEditorFacade> {

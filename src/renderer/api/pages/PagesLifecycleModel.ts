@@ -16,6 +16,7 @@ import { LogViewEditor, defaultLogViewEditorState } from "../../editors/log-view
 import { MarkdownEditor, defaultMarkdownEditorState } from "../../editors/markdown";
 import { SvgEditor, defaultSvgEditorState } from "../../editors/svg";
 import { HtmlEditor, defaultHtmlEditorState } from "../../editors/html";
+import { MermaidEditor, defaultMermaidEditorState } from "../../editors/mermaid";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -150,6 +151,19 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         );
         html.adoptHost(legacy as TextFileModel);
         return html;
+    }
+
+    // EPIC-028 / US-562 — Mermaid migrated to native v4 module. Construct
+    // MermaidEditor over the legacy TextFileModel host. The initial
+    // renderDebounced() call kicks off inside adoptHost (mirrors today's
+    // MermaidViewModel.onInit → renderDebounced behavior).
+    if (isTextFile && targetEditorId === "mermaid-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const mermaid = new MermaidEditor(
+            new TComponentState({ ...defaultMermaidEditorState, id }),
+        );
+        mermaid.adoptHost(legacy as TextFileModel);
+        return mermaid;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);
