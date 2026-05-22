@@ -1,28 +1,28 @@
-import type { DrawViewModel } from "../../editors/draw/DrawViewModel";
+import type { DrawEditor } from "../../editors/draw";
 
 /**
- * Safe facade around DrawViewModel for script access.
+ * Safe facade around DrawEditor for script access.
  * Implements the IDrawEditor interface from api/types/draw-editor.d.ts.
  *
  * All heavy imports (Excalidraw, drawExport) are dynamic to keep the
  * scripting bundle small — Excalidraw is only loaded when actually needed.
  */
 export class DrawEditorFacade {
-    constructor(private readonly vm: DrawViewModel) {}
+    constructor(private readonly editor: DrawEditor) {}
 
     get elementCount(): number {
-        return this.vm.elements.length;
+        return this.editor.elements.length;
     }
 
     get editorIsMounted(): boolean {
-        return this.vm.excalidrawApi !== null;
+        return this.editor.excalidrawApi !== null;
     }
 
     async addImage(
         dataUrl: string,
         options?: { x?: number; y?: number; maxDimension?: number },
     ): Promise<void> {
-        const api = this.vm.excalidrawApi;
+        const api = this.editor.excalidrawApi;
         if (!api) {
             throw new Error(
                 "addImage() requires the drawing editor to be mounted. " +
@@ -66,9 +66,9 @@ export class DrawEditorFacade {
     async exportAsSvg(): Promise<string> {
         const { exportSceneAsSvgText } = await import("../../editors/draw/drawExport");
         return exportSceneAsSvgText({
-            elements: this.vm.elements,
-            appState: this.vm.appState,
-            files: this.vm.files,
+            elements: this.editor.elements,
+            appState: this.editor.appState,
+            files: this.editor.files,
         });
     }
 
@@ -76,9 +76,9 @@ export class DrawEditorFacade {
         const { exportSceneAsPngBlob } = await import("../../editors/draw/drawExport");
         const blob = await exportSceneAsPngBlob(
             {
-                elements: this.vm.elements,
-                appState: this.vm.appState,
-                files: this.vm.files,
+                elements: this.editor.elements,
+                appState: this.editor.appState,
+                files: this.editor.files,
             },
             options?.scale,
         );

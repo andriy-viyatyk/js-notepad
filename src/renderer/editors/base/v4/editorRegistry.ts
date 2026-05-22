@@ -104,7 +104,14 @@ class EditorRegistry {
         // doesn't carry it. Fall through structurally so hosts that surface
         // it participate, others don't. (C1 — switch via `instanceof` once
         // TextFileModel lands in v4 during US-551.)
-        const fileName = (host as unknown as { filePath?: string }).filePath;
+        //
+        // For untitled pages created via `addEditorPage("draw-view", "json",
+        // "untitled.excalidraw")` (tool-menu / sidebar entries) `filePath` is
+        // undefined but `title` carries the meaningful extension. Falling
+        // back to the title lets `acceptFile` / `switchOption` recognize the
+        // file shape and surface the editor in the switch widget.
+        const fileName = (host as unknown as { filePath?: string }).filePath
+            ?? (host.state.get() as { title?: string }).title;
         for (const def of this.definitions.values()) {
             if (!def.hasContentHost) continue;
             const p = def.accepts({ host, language, fileName });

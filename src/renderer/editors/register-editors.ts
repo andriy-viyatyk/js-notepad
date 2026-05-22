@@ -552,6 +552,12 @@ editorRegistry.register({
         return /^\s*\{\s*"type"\s*:\s*"excalidraw"/.test(content);
     },
     loadModule: async () => {
+        // EPIC-028 / US-565 — Draw migrated to native v4 module
+        // (`drawModule` in `./draw/index.tsx`). Legacy DrawView +
+        // DrawViewModel are PRESERVED here because notebook per-note
+        // dispatch (`NoteItemActiveEditor` → `AsyncEditor` → `module.Editor`)
+        // still consumes them. Page-level pages take the v4 path via
+        // `wrapLegacyForPage`. Full retirement in US-557 (Notebook) / US-559.
         const [module, { createDrawViewModel }] = await Promise.all([
             import("./draw/DrawView"),
             import("./draw/DrawViewModel"),
@@ -749,11 +755,11 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // html-view removed — US-561 ships native v4 module.
     // mermaid-view removed — US-562 ships native v4 module.
     // graph-view removed — US-564 ships native v4 module.
+    // draw-view removed — US-565 ships native v4 module.
     "notebook-view",
     "todo-view",
     "link-view",
     "rest-client",
-    "draw-view",
 ]);
 
 for (const legacyDef of editorRegistry.getAll()) {
@@ -1050,5 +1056,33 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { graphModule } = await import("./graph");
         return graphModule;
+    },
+});
+
+// US-565 — replace the legacy bare-adapter mirror for draw-view with a
+// native v4 module. `v4EditorRegistry.register` overwrites by id, so this
+// supersedes the bare-adapter stub the mirror loop wrote. `accepts` delegates
+// to the legacy registry def's `acceptFile` / `switchOption` to avoid
+// duplicating extension/language rules.
+v4EditorRegistry.register({
+    id: "draw-view",
+    name: "Drawing",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("draw-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { drawModule } = await import("./draw");
+        return drawModule;
     },
 });

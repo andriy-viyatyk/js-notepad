@@ -16,7 +16,7 @@ import { SvgEditor } from "../../editors/svg";
 import { HtmlEditor } from "../../editors/html";
 import { MermaidEditor } from "../../editors/mermaid";
 import { GraphEditor } from "../../editors/graph";
-import type { DrawViewModel } from "../../editors/draw/DrawViewModel";
+import { DrawEditor } from "../../editors/draw";
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
 import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpInspectorEditorModel";
 import { TextEditorFacade } from "./TextEditorFacade";
@@ -291,13 +291,14 @@ export class PageWrapper {
 
     async asDraw(force = false): Promise<DrawEditorFacade> {
         await this.ensureEditor("draw-view", "Draw", "asDraw", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asDraw(): page lost its text host during switch");
+        // EPIC-028 / US-565 — Draw is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a DrawEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof DrawEditor)) {
+            throw new Error("asDraw(): page is not a DrawEditor after switch");
         }
-        const vm = await model.acquireViewModel("draw-view") as DrawViewModel;
-        this.releaseList.push(() => model.releaseViewModel("draw-view"));
-        return new DrawEditorFacade(vm);
+        return new DrawEditorFacade(v4);
     }
 
     async asBrowser(): Promise<BrowserEditorFacade> {
