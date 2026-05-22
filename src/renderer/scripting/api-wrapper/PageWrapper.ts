@@ -11,7 +11,7 @@ import { GridEditor } from "../../editors/grid/GridEditor";
 import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel";
 import type { TodoViewModel } from "../../editors/todo/TodoViewModel";
 import type { LinkViewModel } from "../../editors/link-editor/LinkViewModel";
-import type { MarkdownViewModel } from "../../editors/markdown/MarkdownViewModel";
+import { MarkdownEditor } from "../../editors/markdown";
 import type { SvgViewModel } from "../../editors/svg/SvgViewModel";
 import type { HtmlViewModel } from "../../editors/html/HtmlViewModel";
 import type { MermaidViewModel } from "../../editors/mermaid/MermaidViewModel";
@@ -231,13 +231,14 @@ export class PageWrapper {
 
     async asMarkdown(force = false): Promise<MarkdownEditorFacade> {
         await this.ensureEditor("md-view", "Markdown", "asMarkdown", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asMarkdown(): page lost its text host during switch");
+        // EPIC-028 / US-554 — Markdown is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a MarkdownEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof MarkdownEditor)) {
+            throw new Error("asMarkdown(): page is not a MarkdownEditor after switch");
         }
-        const vm = await model.acquireViewModel("md-view") as MarkdownViewModel;
-        this.releaseList.push(() => model.releaseViewModel("md-view"));
-        return new MarkdownEditorFacade(vm);
+        return new MarkdownEditorFacade(v4);
     }
 
     async asSvg(force = false): Promise<SvgEditorFacade> {

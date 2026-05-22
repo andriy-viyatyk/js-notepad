@@ -194,6 +194,12 @@ editorRegistry.register({
         return 10;
     },
     loadModule: async () => {
+        // EPIC-028 / US-554 — Markdown migrated to a native v4 module for
+        // PAGE-level rendering (`markdownModule` in the v4 block below). The
+        // legacy `Editor` + `createViewModel` slots are still consumed by the
+        // NOTEBOOK per-note dispatch (`NoteItemActiveEditor` → `AsyncEditor`)
+        // until US-557 migrates Notebook to the v4 host-transfer model. Keep
+        // the legacy MarkdownView + MarkdownViewModel alive for that path.
         const [module, { createMarkdownViewModel }] = await Promise.all([
             import("./markdown/MarkdownView"),
             import("./markdown/MarkdownViewModel"),
@@ -714,7 +720,7 @@ import { LegacyEditorAdapter } from "./base/v4/LegacyEditorAdapter";
 const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // grid-* removed — US-552 ships native v4 modules.
     // log-view removed — US-553 ships native v4 module.
-    "md-view",
+    // md-view removed — US-554 ships native v4 module.
     "mermaid-view",
     "svg-view",
     "html-view",
@@ -881,5 +887,32 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { logViewModule } = await import("./log-view");
         return logViewModule;
+    },
+});
+
+// US-554 — replace the legacy bare-adapter mirror for md-view with a native v4
+// module. `v4EditorRegistry.register` overwrites by id, so this supersedes the
+// bare-adapter stub the mirror loop wrote. `accepts` delegates to the legacy
+// registry def's `switchOption` to avoid duplicating language rules.
+v4EditorRegistry.register({
+    id: "md-view",
+    name: "Preview",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("md-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { markdownModule } = await import("./markdown");
+        return markdownModule;
     },
 });

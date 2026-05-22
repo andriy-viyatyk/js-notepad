@@ -13,6 +13,7 @@ import {
 import { MonacoEditor, defaultMonacoEditorState } from "../../editors/monaco/MonacoEditor";
 import { GridEditor, defaultGridEditorState, type GridEditorId } from "../../editors/grid";
 import { LogViewEditor, defaultLogViewEditorState } from "../../editors/log-view";
+import { MarkdownEditor, defaultMarkdownEditorState } from "../../editors/markdown";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -108,6 +109,19 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         const content = (legacy as TextFileModel).state.get().content ?? "";
         logView.loadContent(content);
         return logView;
+    }
+
+    // EPIC-028 / US-554 — Markdown migrated to native v4 module. Construct
+    // MarkdownEditor over the legacy TextFileModel host. No initial parse
+    // step — the body reads host.state.content via state.use() and
+    // MarkdownBlock re-renders on every content change via React props.
+    if (isTextFile && targetEditorId === "md-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const markdown = new MarkdownEditor(
+            new TComponentState({ ...defaultMarkdownEditorState, id }),
+        );
+        markdown.adoptHost(legacy as TextFileModel);
+        return markdown;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);
