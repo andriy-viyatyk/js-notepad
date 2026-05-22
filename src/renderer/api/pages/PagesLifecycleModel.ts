@@ -14,6 +14,7 @@ import { MonacoEditor, defaultMonacoEditorState } from "../../editors/monaco/Mon
 import { GridEditor, defaultGridEditorState, type GridEditorId } from "../../editors/grid";
 import { LogViewEditor, defaultLogViewEditorState } from "../../editors/log-view";
 import { MarkdownEditor, defaultMarkdownEditorState } from "../../editors/markdown";
+import { SvgEditor, defaultSvgEditorState } from "../../editors/svg";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -122,6 +123,19 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         );
         markdown.adoptHost(legacy as TextFileModel);
         return markdown;
+    }
+
+    // EPIC-028 / US-560 — Svg migrated to native v4 module. Construct
+    // SvgEditor over the legacy TextFileModel host. No initial parse step —
+    // the body reads host.state.content via state.use() and BaseImageView
+    // re-renders on every src prop change.
+    if (isTextFile && targetEditorId === "svg-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const svg = new SvgEditor(
+            new TComponentState({ ...defaultSvgEditorState, id }),
+        );
+        svg.adoptHost(legacy as TextFileModel);
+        return svg;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);

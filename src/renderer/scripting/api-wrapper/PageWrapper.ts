@@ -12,7 +12,7 @@ import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel
 import type { TodoViewModel } from "../../editors/todo/TodoViewModel";
 import type { LinkViewModel } from "../../editors/link-editor/LinkViewModel";
 import { MarkdownEditor } from "../../editors/markdown";
-import type { SvgViewModel } from "../../editors/svg/SvgViewModel";
+import { SvgEditor } from "../../editors/svg";
 import type { HtmlViewModel } from "../../editors/html/HtmlViewModel";
 import type { MermaidViewModel } from "../../editors/mermaid/MermaidViewModel";
 import type { GraphViewModel } from "../../editors/graph/GraphViewModel";
@@ -243,13 +243,14 @@ export class PageWrapper {
 
     async asSvg(force = false): Promise<SvgEditorFacade> {
         await this.ensureEditor("svg-view", "SVG", "asSvg", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asSvg(): page lost its text host during switch");
+        // EPIC-028 / US-560 — Svg is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a SvgEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof SvgEditor)) {
+            throw new Error("asSvg(): page is not a SvgEditor after switch");
         }
-        const vm = await model.acquireViewModel("svg-view") as SvgViewModel;
-        this.releaseList.push(() => model.releaseViewModel("svg-view"));
-        return new SvgEditorFacade(vm);
+        return new SvgEditorFacade(v4);
     }
 
     async asHtml(force = false): Promise<HtmlEditorFacade> {

@@ -1,16 +1,16 @@
-import type { SvgViewModel } from "../../editors/svg/SvgViewModel";
+import type { SvgEditor } from "../../editors/svg";
 
 /**
- * Safe facade around SvgViewModel for script access.
+ * Safe facade around SvgEditor for script access.
  * Implements the ISvgEditor interface from api/types/svg-editor.d.ts.
  *
- * - Minimal read-only facade for now
- * - Can be extended with copyToClipboard, saveToFile, etc.
+ * - Minimal read-only facade — exposes the raw SVG source from the host.
+ * - Stays sync; no queue.execute requests.
  */
 export class SvgEditorFacade {
-    constructor(private readonly vm: SvgViewModel) {}
+    constructor(private readonly editor: SvgEditor) {}
 
     get svg(): string {
-        return this.vm.pageModel.state.get().content;
+        return this.editor.host?.state.get().content ?? "";
     }
 }
