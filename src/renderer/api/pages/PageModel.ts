@@ -171,11 +171,14 @@ export class PageModel {
     }
 
     /** Editors that currently contribute panels (subset of `editors[]`).
-     *  Returns unwrapped legacy editors for backward compat. */
+     *  Returns unwrapped legacy editors for backward compat. v4-native
+     *  editors (US-555 Link, future US-556 Todo, etc.) pass through directly
+     *  so their panel state lives on the v4 editor (not the host), and the
+     *  secondary-editor wrapper receives the v4 instance for `instanceof` checks. */
     get panelEditors(): EditorModel[] {
         return this.editors
             .filter((e) => e.contributesPanels())
-            .map((e) => unwrapAdapter(e))
+            .map((e) => e instanceof LegacyEditorAdapter ? e.legacy : (e as unknown as EditorModel))
             .filter((e): e is EditorModel => e !== null);
     }
 

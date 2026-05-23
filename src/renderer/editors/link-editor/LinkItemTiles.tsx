@@ -4,8 +4,7 @@ import { CopyIcon, DeleteIcon, OpenFileIcon, PinFilledIcon, PinIcon, RenameIcon 
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
 import type { ILink } from "../../api/types/io.tree";
-import { LinkItem, LinkViewMode } from "./linkTypes";
-import { LinkViewModel } from "./LinkViewModel";
+import { LinkItem, LinkViewMode, LinkSource } from "./linkTypes";
 import { LinksTiles } from "./LinksTiles";
 import { getHostname, requestFaviconSave } from "../../components/tree-provider/favicon-cache";
 
@@ -17,7 +16,7 @@ const { clipboard } = require("electron");
 
 interface LinkItemTilesProps {
     links: LinkItem[];
-    model: LinkViewModel;
+    model: LinkSource;
     viewMode: Exclude<LinkViewMode, "list">;
     selectedLinkId: string;
     pinnedLinkIds: Set<string>;

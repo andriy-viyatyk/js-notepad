@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import { Panel, Splitter } from "../../uikit";
-import { LinkEditor } from "../link-editor/LinkEditor";
+import { LinkEditor } from "../link-editor/LinkView";
 import { BrowserBookmarks } from "./BrowserBookmarks";
 
 // =============================================================================

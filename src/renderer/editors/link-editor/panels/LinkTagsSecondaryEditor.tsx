@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import type { SecondaryEditorProps } from "../../../ui/navigation/secondary-editor-registry";
-import type { TextFileModel } from "../../text/TextEditorModel";
-import { useContentViewModel } from "../../base/useContentViewModel";
 import { useOptionalState } from "../../../core/state/state";
-import type { LinkViewModel } from "../LinkViewModel";
 import type { ILink } from "../../../api/types/io.tree";
 import { LinkTagsPanel } from "./LinkTagsPanel";
 import { LinksList } from "../LinksList";
@@ -12,41 +9,40 @@ import { RenderGridModel } from "../../../uikit/RenderGrid";
 import { Panel, Splitter } from "../../../uikit";
 import { app } from "../../../api/app";
 import { createLinkData } from "../../../../shared/link-data";
+import { LinkEditor } from "../LinkEditor";
 
 // =============================================================================
 // LinkTagsNavigationPanel — Tags panel with resizable bottom links list
 // =============================================================================
 
 interface LinkTagsNavigationPanelProps {
-    vm: LinkViewModel;
+    editor: LinkEditor;
     pageId?: string;
 }
 
-function LinkTagsNavigationPanel({ vm, pageId }: LinkTagsNavigationPanelProps) {
+function LinkTagsNavigationPanel({ editor, pageId }: LinkTagsNavigationPanelProps) {
     const rootRef = useRef<HTMLDivElement>(null);
     const gridRef = useRef<RenderGridModel>(null);
     const [bottomHeight, setBottomHeight] = useState<number | undefined>(undefined);
 
     const selectedTag = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().selectedTag,
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().selectedTag,
     );
 
-    // Subscribe to data.links version so tagItems recalculates on link changes
     const links = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().data.links,
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().data.links,
     );
 
-    // Subscribe to selectedLinkId as a primitive (guaranteed re-render on change)
     const selectedLinkId = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().selectedLinkId,
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().selectedLinkId,
     );
 
     const allTags = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().tags,
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().tags,
     );
 
     const handleToggleTag = useCallback((item: ILink, tag: string) => {
@@ -55,22 +51,20 @@ function LinkTagsNavigationPanel({ vm, pageId }: LinkTagsNavigationPanelProps) {
         const tags = current.includes(tag)
             ? current.filter((t) => t !== tag)
             : [...current, tag];
-        vm.updateLink(item.id, { tags });
-    }, [vm]);
+        editor.updateLink(item.id, { tags });
+    }, [editor]);
 
-    // Get items for the selected tag — all links, no audio filter.
-    // Empty selectedTag = "All" — show all non-directory links (same as main LinksEditor).
     const tagItems = useMemo(() => {
         if (selectedTag) {
-            return vm.treeProvider.getTagItems!(selectedTag)
-                .filter((item) => !item.isDirectory);
+            return editor.treeProvider?.getTagItems!(selectedTag)
+                .filter((item) => !item.isDirectory) ?? [];
         }
         return links.filter((item) => !item.isDirectory);
-    }, [vm, selectedTag, links]);
+    }, [editor, selectedTag, links]);
 
     const handleSelect = useCallback((item: ILink) => {
-        if (item.id) vm.selectLink(item.id);
-        const navUrl = vm.treeProvider.getNavigationUrl(item);
+        if (item.id) editor.selectLink(item.id);
+        const navUrl = editor.treeProvider?.getNavigationUrl(item) ?? item.href;
         app.events.openRawLink.sendAsync(
             createLinkData(navUrl, {
                 target: item.target || undefined,
@@ -79,9 +73,8 @@ function LinkTagsNavigationPanel({ vm, pageId }: LinkTagsNavigationPanelProps) {
                 ...(pageId ? { pageId, fallbackTarget: "monaco", title: item.title } : undefined),
             }),
         );
-    }, [vm, selectedTag, pageId]);
+    }, [editor, selectedTag, pageId]);
 
-    // Initialize bottom height to 50% of container, clamp to 80% max
     const handleChangeHeight = useCallback((h: number) => {
         const container = rootRef.current;
         if (container) {
@@ -92,8 +85,6 @@ function LinkTagsNavigationPanel({ vm, pageId }: LinkTagsNavigationPanelProps) {
         }
     }, []);
 
-    // Initialize bottom height to 50% of container after it finishes expanding.
-    // The panel has an expand animation, so we debounce ResizeObserver to capture the final size.
     useEffect(() => {
         if (bottomHeight !== undefined || !rootRef.current) return;
         const el = rootRef.current;
@@ -112,7 +103,6 @@ function LinkTagsNavigationPanel({ vm, pageId }: LinkTagsNavigationPanelProps) {
         return () => { clearTimeout(timer); observer.disconnect(); };
     }, [bottomHeight]);
 
-    // Scroll selected item into view when selection changes (e.g., player auto-advances)
     useEffect(() => {
         if (!selectedLinkId || !gridRef.current) return;
         const row = tagItems.findIndex((item) => (item.id ?? item.href) === selectedLinkId);
@@ -135,7 +125,7 @@ function LinkTagsNavigationPanel({ vm, pageId }: LinkTagsNavigationPanelProps) {
                 overflow="hidden"
                 minHeight={40}
             >
-                <LinkTagsPanel vm={vm} />
+                <LinkTagsPanel vm={editor} />
             </Panel>
             {tagItems.length > 0 && (
                 <>
@@ -171,22 +161,23 @@ function LinkTagsNavigationPanel({ vm, pageId }: LinkTagsNavigationPanelProps) {
 }
 
 // =============================================================================
-// Secondary Editor wrapper
+// Secondary Editor wrapper (US-555 — v4 LinkEditor only)
 // =============================================================================
 
 export default function LinkTagsSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
-    const vm = useContentViewModel<LinkViewModel>(model as TextFileModel, "link-view");
-    const mainEditorId = useOptionalState(model.page?.state, (s) => s.mainEditorId, null);
-    const isMainEditor = mainEditorId === model.id;
-
-    if (!vm) return null;
+    if (!(model instanceof LinkEditor)) {
+        return null;
+    }
+    const editor = model;
+    const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);
+    const isMainEditor = mainEditorId === editor.id;
 
     return (
         <>
             {headerRef && createPortal(<>Tags</>, headerRef)}
             {isMainEditor
-                ? <LinkTagsPanel vm={vm} />
-                : <LinkTagsNavigationPanel vm={vm} pageId={model.page?.id} />
+                ? <LinkTagsPanel vm={editor} />
+                : <LinkTagsNavigationPanel editor={editor} pageId={editor.page?.id} />
             }
         </>
     );

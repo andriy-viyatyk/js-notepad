@@ -19,6 +19,7 @@ import { HtmlEditor, defaultHtmlEditorState } from "../../editors/html";
 import { MermaidEditor, defaultMermaidEditorState } from "../../editors/mermaid";
 import { GraphEditor, defaultGraphEditorState } from "../../editors/graph";
 import { DrawEditor, defaultDrawEditorState } from "../../editors/draw";
+import { LinkEditor, defaultLinkEditorState } from "../../editors/link-editor";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -192,6 +193,23 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         );
         draw.adoptHost(legacy as TextFileModel);
         return draw;
+    }
+
+    // EPIC-028 / US-555 — Link migrated to native v4 module. Construct
+    // LinkEditor over the legacy TextFileModel host. The initial loadData()
+    // call kicks off inline (mirrors today's LinkViewModel.onInit → loadData
+    // behavior). First sidebar-owning v4 editor: registers
+    // `link-category` / `link-tags` / `link-hostnames` panel ids via LK6 once
+    // the page's NavPanel opens.
+    if (isTextFile && targetEditorId === "link-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const link = new LinkEditor(
+            new TComponentState({ ...defaultLinkEditorState, id }),
+        );
+        link.adoptHost(legacy as TextFileModel);
+        const content = (legacy as TextFileModel).state.get().content ?? "";
+        link.loadData(content);
+        return link;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);
@@ -453,13 +471,16 @@ export class PagesLifecycleModel {
             s.title = normalizedTitle;
             s.language = "json";
             s.editor = editorRegistry.validateForLanguage("link-view", "json");
-            s.secondaryEditor = ["link-category"];
         });
         editorModel.restore();
         editorModel.changeContent(content);
 
         const page = new PageModel();
         const adapter = wrap(editorModel);
+        // EPIC-028 / US-555: `secondaryEditor` now lives on the v4 editor's
+        // own state (not the host). Set it on the wrapped v4 LinkEditor so
+        // the page-level visibility criterion keeps it in `editors[]`.
+        adapter.secondaryEditor = ["link-category"];
         page.addSecondaryEditor(adapter);
         page.ensurePageNavigatorModel();
         page.expandPanel("link-category");

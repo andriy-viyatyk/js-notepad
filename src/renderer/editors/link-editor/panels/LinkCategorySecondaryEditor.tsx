@@ -1,76 +1,53 @@
-import React, { useCallback, useEffect, useSyncExternalStore } from "react";
+import React, { useCallback, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import type { SecondaryEditorProps } from "../../../ui/navigation/secondary-editor-registry";
-import type { TextFileModel } from "../../text/TextEditorModel";
-import { useContentViewModel } from "../../base/useContentViewModel";
-import type { LinkViewModel } from "../LinkViewModel";
+import { useOptionalState } from "../../../core/state/state";
 import { LinkCategoryPanel } from "./LinkCategoryPanel";
-import { TOneState, useOptionalState } from "../../../core/state/state";
-import type { NavigationState } from "../../../api/pages/PageModel";
 import { IconButton, Spacer } from "../../../uikit";
 import { SaveIcon, SwapIcon } from "../../../theme/icons";
+import { LinkEditor } from "../LinkEditor";
 
+/**
+ * EPIC-028 / US-555 — secondary-editor wrapper for the Categories sidebar
+ * panel. `model` is always a v4 LinkEditor instance (legacy adapter path
+ * retired by `wrapLegacyForPage` link-view branch).
+ *
+ * Today's duck-typed `(m as any).treeProvider = …` block retires — v4
+ * LinkEditor exposes `treeProvider` / `selectByHref` / `selectionState` as
+ * typed class members (LK9).
+ *
+ * Today's `updatePanels` useEffect (watching tags.length to add/drop
+ * `link-tags` from the panel list) retires — v4 LinkEditor handles this
+ * via `onMainEditorChanged` (LK8) + a tags-slice subscription inside
+ * `adoptHost`.
+ */
 export default function LinkCategorySecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
-    const vm = useContentViewModel<LinkViewModel>(model as TextFileModel, "link-view");
-    // Subscribe to mainEditorId so we re-render on promote/demote toggle
-    const mainEditorId = useOptionalState(model.page?.state, (s) => s.mainEditorId, null);
-    const isMainEditor = mainEditorId === model.id;
+    if (!(model instanceof LinkEditor)) {
+        return null;
+    }
+    const editor = model;
 
+    // Subscribe to mainEditorId so we re-render on promote/demote toggle.
+    const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);
+    const isMainEditor = mainEditorId === editor.id;
+
+    // Track host modified flag for the Save button (only visible in
+    // standalone-secondary mode when modifications are pending).
+    const host = editor.host;
     const modified = useSyncExternalStore(
-        (cb) => model.state.subscribe(cb),
-        () => model.state.get().modified,
+        host ? (cb) => host.state.subscribe(cb) : () => () => undefined,
+        host ? () => host.state.get().modified : () => false,
     );
 
     const handleSave = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        (model as TextFileModel).saveFile();
-    }, [model]);
+        editor.host?.saveFile();
+    }, [editor]);
 
     const handleToggleMainEditor = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        model.page?.promoteSecondaryToMain(model);
-    }, [model]);
-
-    // Expose treeProvider, selectionState, and selectByHref on the model (duck-typing)
-    // so that CategoryEditor can find it via findTreeProviderHost()
-    // and VideoEditorModel can update link selection on track navigation.
-    useEffect(() => {
-        if (!vm || isMainEditor) return;
-        const m = model as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-        m.treeProvider = vm.treeProvider;
-        if (!m.selectionState) {
-            m.selectionState = new TOneState<NavigationState>({ selectedHref: null });
-        }
-        m.selectByHref = (href: string) => {
-            const link = vm.state.get().data.links.find((l) => l.href === href);
-            if (link?.id) vm.selectLink(link.id);
-        };
-        return () => {
-            m.treeProvider = null;
-            m.selectByHref = null;
-        };
-    }, [vm, model, isMainEditor]);
-
-    // Dynamically register panels in standalone secondary mode (main editor is NOT Links).
-    // Links: always visible. Tags: visible if any tags exist. Hostnames: hidden.
-    // When LinksEditor IS the main editor, LinkEditor.tsx handles panel registration (all 3 always).
-    useEffect(() => {
-        if (!vm || isMainEditor) return;
-        const updatePanels = () => {
-            const hasTags = vm.state.get().tags.length > 0;
-            const panels = ["link-category"];
-            if (hasTags) panels.push("link-tags");
-            const current = model.state.get().secondaryEditor;
-            if (JSON.stringify(current) !== JSON.stringify(panels)) {
-                model.secondaryEditor = panels;
-            }
-        };
-        updatePanels();
-        const unsub = vm.state.subscribe(updatePanels);
-        return () => unsub();
-    }, [vm, model, isMainEditor]);
-
-    if (!vm) return null;
+        editor.page?.promoteSecondaryToMain(editor);
+    }, [editor]);
 
     const headerContent = (
         <>
@@ -98,7 +75,12 @@ export default function LinkCategorySecondaryEditor({ model, headerRef }: Second
     return (
         <>
             {headerRef && createPortal(headerContent, headerRef)}
-            <LinkCategoryPanel vm={vm} useOpenRawLink={!isMainEditor} categoriesOnly={isMainEditor} pageId={isMainEditor ? undefined : model.page?.id} />
+            <LinkCategoryPanel
+                vm={editor}
+                useOpenRawLink={!isMainEditor}
+                categoriesOnly={isMainEditor}
+                pageId={isMainEditor ? undefined : editor.page?.id}
+            />
         </>
     );
 }

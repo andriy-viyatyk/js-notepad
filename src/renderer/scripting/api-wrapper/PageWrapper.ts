@@ -10,7 +10,7 @@ import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel";
 import type { TodoViewModel } from "../../editors/todo/TodoViewModel";
-import type { LinkViewModel } from "../../editors/link-editor/LinkViewModel";
+import { LinkEditor } from "../../editors/link-editor";
 import { MarkdownEditor } from "../../editors/markdown";
 import { SvgEditor } from "../../editors/svg";
 import { HtmlEditor } from "../../editors/html";
@@ -220,13 +220,14 @@ export class PageWrapper {
 
     async asLink(force = false): Promise<LinkEditorFacade> {
         await this.ensureEditor("link-view", "Link", "asLink", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asLink(): page lost its text host during switch");
+        // EPIC-028 / US-555 — Link is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a LinkEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof LinkEditor)) {
+            throw new Error("asLink(): page is not a LinkEditor after switch");
         }
-        const vm = await model.acquireViewModel("link-view") as LinkViewModel;
-        this.releaseList.push(() => model.releaseViewModel("link-view"));
-        return new LinkEditorFacade(vm);
+        return new LinkEditorFacade(v4);
     }
 
     async asMarkdown(force = false): Promise<MarkdownEditorFacade> {

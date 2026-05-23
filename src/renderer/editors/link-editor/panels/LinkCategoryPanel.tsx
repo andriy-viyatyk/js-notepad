@@ -7,7 +7,7 @@ import type { ContextMenuEvent } from "../../../api/events/events";
 import { createLinkData } from "../../../../shared/link-data";
 import type { ILink } from "../../../api/types/io.tree";
 import color from "../../../theme/color";
-import type { LinkViewModel } from "../LinkViewModel";
+import type { LinkSource } from "../linkTypes";
 import { LinkTooltipContent } from "../LinkTooltip";
 
 // =============================================================================
@@ -15,7 +15,7 @@ import { LinkTooltipContent } from "../LinkTooltip";
 // =============================================================================
 
 interface LinkCategoryPanelProps {
-    vm: LinkViewModel;
+    vm: LinkSource;
     /** When true, category clicks go through openRawLink pipeline (Context B).
      *  When false, category clicks filter content directly (Context A). */
     useOpenRawLink: boolean;

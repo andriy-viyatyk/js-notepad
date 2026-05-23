@@ -8,11 +8,12 @@ import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
 import { getHostname } from "../../components/tree-provider/favicon-cache";
 import { fpBasename } from "../../core/utils/file-path";
-import type { LinkViewModel } from "./LinkViewModel";
-import type { LinkItem } from "./linkTypes";
+import type { ILinkSource, LinkItem } from "./linkTypes";
 
 /**
- * ITreeProvider implementation that wraps LinkViewModel state.
+ * ITreeProvider implementation that wraps a `LinkSource` (legacy
+ * `LinkViewModel` for embed paths, or v4 `LinkEditor` for page-level Link
+ * pages — US-555 / LK12).
  *
  * Exposes link collection data (categories, tags, hostnames, pinning)
  * through the standard tree provider interface so that CategoryView
@@ -32,7 +33,7 @@ export class LinkTreeProvider implements ITreeProvider {
     readonly pinnable = true;
 
     constructor(
-        private readonly vm: LinkViewModel,
+        private readonly source: ILinkSource,
         sourceUrl: string,
     ) {
         this.sourceUrl = sourceUrl;
@@ -44,7 +45,7 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     async list(categoryPath: string): Promise<ILink[]> {
-        const links = this.vm.state.get().data.links;
+        const links = this.source.state.get().data.links;
         const prefix = categoryPath ? categoryPath + "/" : "";
         const subCategories = new Map<string, number>();
         // Track which sub-categories have deeper sub-categories
@@ -93,7 +94,7 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     async stat(path: string): Promise<ITreeStat> {
-        const { categoriesSize, data } = this.vm.state.get();
+        const { categoriesSize, data } = this.source.state.get();
         if (path in categoriesSize) {
             return { exists: true, isDirectory: true };
         }
@@ -128,7 +129,7 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     async addItem(item: Partial<ILink> & { href: string }): Promise<ILink> {
-        const newLink = this.vm.addLink({
+        const newLink = this.source.addLink({
             title: item.title,
             href: item.href,
             category: item.category,
@@ -139,31 +140,31 @@ export class LinkTreeProvider implements ITreeProvider {
     }
 
     async updateItem(href: string, changes: Partial<ILink>): Promise<ILink> {
-        const link = this.vm.state.get().data.links.find(l => l.href === href);
+        const link = this.source.state.get().data.links.find(l => l.href === href);
         if (!link) throw new Error(`Link not found: ${href}`);
-        this.vm.updateLink(link.id, {
+        this.source.updateLink(link.id, {
             title: changes.title,
             href: changes.href,
             category: changes.category,
             tags: changes.tags,
             imgSrc: changes.imgSrc,
         });
-        const updated = this.vm.getLinkById(link.id)!;
+        const updated = this.source.getLinkById(link.id)!;
         return this.linkToItem(updated);
     }
 
     async deleteItem(href: string): Promise<void> {
-        const link = this.vm.state.get().data.links.find(l => l.href === href);
+        const link = this.source.state.get().data.links.find(l => l.href === href);
         if (link) {
-            await this.vm.deleteLink(link.id, true);
+            await this.source.deleteLink(link.id, true);
         }
     }
 
     async moveToCategory(hrefs: string[], targetCategory: string): Promise<void> {
         for (const href of hrefs) {
-            const link = this.vm.state.get().data.links.find(l => l.href === href);
+            const link = this.source.state.get().data.links.find(l => l.href === href);
             if (link) {
-                this.vm.moveLinkToCategory(link.id, targetCategory);
+                this.source.moveLinkToCategory(link.id, targetCategory);
             }
         }
     }
@@ -175,14 +176,14 @@ export class LinkTreeProvider implements ITreeProvider {
      * Example: renameCategoryPath("A/B", "C") → "A/B"→"C/B", "A/B/D"→"C/B/D"
      */
     async renameCategoryPath(sourcePath: string, targetCategory: string): Promise<void> {
-        const { links } = this.vm.state.get().data;
+        const { links } = this.source.state.get().data;
         const nameStart = sourcePath.lastIndexOf("/") + 1;
         const prefix = sourcePath + "/";
         for (const l of links) {
             if (l.category === sourcePath || l.category?.startsWith(prefix)) {
                 const suffix = l.category.slice(nameStart);
                 const newCategory = targetCategory ? targetCategory + "/" + suffix : suffix;
-                this.vm.moveLinkToCategory(l.id, newCategory);
+                this.source.moveLinkToCategory(l.id, newCategory);
             }
         }
     }
@@ -192,12 +193,12 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     getTags(): ITreeTagInfo[] {
-        const { tags, tagsSize } = this.vm.state.get();
+        const { tags, tagsSize } = this.source.state.get();
         return tags.map(t => ({ name: t, count: tagsSize[t] || 0 }));
     }
 
     getTagItems(tag: string): ILink[] {
-        const links = this.vm.state.get().data.links;
+        const links = this.source.state.get().data.links;
 
         // Empty tag = "All" — return all items (no filter)
         if (!tag) return links.map(l => this.linkToItem(l));
@@ -218,12 +219,12 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     getHostnames(): ITreeTagInfo[] {
-        const { hostnames, hostnamesSize } = this.vm.state.get();
+        const { hostnames, hostnamesSize } = this.source.state.get();
         return hostnames.map(h => ({ name: h, count: hostnamesSize[h] || 0 }));
     }
 
     getHostnameItems(hostname: string): ILink[] {
-        const links = this.vm.state.get().data.links;
+        const links = this.source.state.get().data.links;
         return links
             .filter(l => getHostname(l.href) === hostname)
             .map(l => this.linkToItem(l));
@@ -234,17 +235,17 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     pin(href: string): void {
-        const link = this.vm.state.get().data.links.find(l => l.href === href);
-        if (link) this.vm.pinLink(link.id);
+        const link = this.source.state.get().data.links.find(l => l.href === href);
+        if (link) this.source.pinLink(link.id);
     }
 
     unpin(href: string): void {
-        const link = this.vm.state.get().data.links.find(l => l.href === href);
-        if (link) this.vm.unpinLink(link.id);
+        const link = this.source.state.get().data.links.find(l => l.href === href);
+        if (link) this.source.unpinLink(link.id);
     }
 
     getPinnedItems(): ILink[] {
-        return this.vm.getPinnedLinks().map(l => this.linkToItem(l));
+        return this.source.getPinnedLinks().map(l => this.linkToItem(l));
     }
 
     // =========================================================================
@@ -252,7 +253,7 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     watch(callback: () => void): ISubscriptionObject {
-        const unsub = this.vm.state.subscribe(callback);
+        const unsub = this.source.state.subscribe(callback);
         return { unsubscribe: unsub };
     }
 

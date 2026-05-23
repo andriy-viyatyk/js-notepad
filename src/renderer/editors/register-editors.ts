@@ -476,8 +476,15 @@ editorRegistry.register({
         return /"type"\s*:\s*"link-editor"/.test(content) && content.includes('"links"');
     },
     loadModule: async () => {
+        // EPIC-028 / US-555 — Link migrated to native v4 module
+        // (`linkModule` in `./link-editor/index.tsx`). Legacy LinkView +
+        // LinkViewModel are PRESERVED here because Browser bookmarks
+        // (BlankPageLinks + BookmarksDrawer via BrowserBookmarks.acquireViewModel)
+        // and notebook per-note dispatch still consume them. Page-level pages
+        // take the v4 path via `wrapLegacyForPage`. Full retirement in
+        // US-557 (Notebook) / US-558 (Browser) / US-559.
         const [module, { createLinkViewModel }] = await Promise.all([
-            import("./link-editor/LinkEditor"),
+            import("./link-editor/LinkView"),
             import("./link-editor/LinkViewModel"),
         ]);
         return {
@@ -756,9 +763,9 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // mermaid-view removed — US-562 ships native v4 module.
     // graph-view removed — US-564 ships native v4 module.
     // draw-view removed — US-565 ships native v4 module.
+    // link-view removed — US-555 ships native v4 module.
     "notebook-view",
     "todo-view",
-    "link-view",
     "rest-client",
 ]);
 
@@ -1084,5 +1091,39 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { drawModule } = await import("./draw");
         return drawModule;
+    },
+});
+
+// US-555 — replace the legacy bare-adapter mirror for link-view with a
+// native v4 module. `v4EditorRegistry.register` overwrites by id, so this
+// supersedes the bare-adapter stub the mirror loop wrote. `accepts` delegates
+// to the legacy registry def's `acceptFile` / `switchOption` / `isEditorContent`
+// to avoid duplicating extension/language/content-peek rules.
+v4EditorRegistry.register({
+    id: "link-view",
+    name: "Links",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("link-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        // Content-peek fallback (LK10) — for `.json` files without the
+        // `.link.json` extension but with link-editor-shaped content.
+        if (input.language === "json" && input.host) {
+            const content = (input.host.state.get() as { content?: string }).content ?? "";
+            if (legacy.isEditorContent?.(input.language, content)) return 60;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { linkModule } = await import("./link-editor");
+        return linkModule;
     },
 });

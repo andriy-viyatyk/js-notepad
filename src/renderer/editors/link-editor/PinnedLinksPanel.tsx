@@ -5,8 +5,7 @@ import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } fro
 import { CopyIcon, DeleteIcon, OpenFileIcon, PinFilledIcon, RenameIcon } from "../../theme/icons";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
-import { LinkItem } from "./linkTypes";
-import { LinkViewModel } from "./LinkViewModel";
+import { LinkItem, LinkSource } from "./linkTypes";
 import { LinkTooltipContent } from "./LinkTooltip";
 import { TreeProviderItemIcon } from "../../components/tree-provider/TreeProviderItemIcon";
 import { getHostname, requestFaviconSave, useFavicons } from "../../components/tree-provider/favicon-cache";
@@ -24,7 +23,7 @@ interface PinnedItemProps {
     link: LinkItem;
     index: number;
     isSelected: boolean;
-    model: LinkViewModel;
+    model: LinkSource;
     onOpenLink: (link: LinkItem) => void;
     onContextMenu: (e: React.MouseEvent, link: LinkItem) => void;
 }
@@ -158,7 +157,7 @@ function PinnedItem({ link, index, isSelected, model, onOpenLink, onContextMenu 
 
 interface PinnedLinksPanelProps {
     pinnedLinks: LinkItem[];
-    model: LinkViewModel;
+    model: LinkSource;
     selectedLinkId?: string;
     /** Fixed pixel width applied to the panel root. */
     width?: number;

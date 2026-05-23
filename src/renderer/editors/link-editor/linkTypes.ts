@@ -46,6 +46,61 @@ export interface LinkEditorData {
 }
 
 // =============================================================================
+// Source interface (EPIC-028 / US-555 / LK12)
+// =============================================================================
+
+/**
+ * Slice of state read by LinkTreeProvider. Both the legacy `LinkViewModel`
+ * (used by browser-embed + notebook-embed) and the v4 `LinkEditor` class
+ * (used by page-level Link pages) satisfy this shape — their full state
+ * types are wider, but only these fields are consumed by the provider.
+ */
+export interface ILinkSourceSnapshot {
+    data: LinkEditorData;
+    categories: string[];
+    categoriesSize: Record<string, number>;
+    tags: string[];
+    tagsSize: Record<string, number>;
+    hostnames: string[];
+    hostnamesSize: Record<string, number>;
+}
+
+/**
+ * Structural source interface for `LinkTreeProvider`. Implemented by:
+ *   - Legacy `LinkViewModel` (browser-embed + notebook-embed).
+ *   - v4 `LinkEditor` (page-level Link pages — US-555).
+ *
+ * `state` is typed as a STRUCTURAL SUBSET (`get` + `subscribe` only) rather
+ * than `IState<ILinkSourceSnapshot>` because `IState<T>` is invariant in T
+ * (`update`'s mapped callback puts T in both covariant + contravariant
+ * positions). The subset exposes exactly what `LinkTreeProvider` reads.
+ */
+export interface ILinkSource {
+    readonly state: {
+        get(): ILinkSourceSnapshot;
+        subscribe(listener: () => void): () => void;
+    };
+    addLink(link?: Partial<LinkItem>): LinkItem;
+    getLinkById(id: string): LinkItem | undefined;
+    updateLink(id: string, updates: Partial<Omit<LinkItem, "id">>): void;
+    deleteLink(id: string, skipConfirm?: boolean): Promise<void>;
+    moveLinkToCategory(linkId: string, category: string): void;
+    pinLink(id: string): void;
+    unpinLink(id: string): void;
+    getPinnedLinks(): LinkItem[];
+}
+
+/**
+ * Union type covering both link sources. Used by panel components (which
+ * accept either legacy LinkViewModel or v4 LinkEditor — LK13). Method
+ * signatures are identical on both classes; TS structural typing keeps
+ * panel call sites unchanged.
+ */
+export type LinkSource =
+    | import("./LinkViewModel").LinkViewModel
+    | import("./LinkEditor").LinkEditor;
+
+// =============================================================================
 // Component Props
 // =============================================================================
 

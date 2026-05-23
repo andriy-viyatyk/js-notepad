@@ -1,19 +1,20 @@
 import { createPortal } from "react-dom";
 import type { SecondaryEditorProps } from "../../../ui/navigation/secondary-editor-registry";
-import type { TextFileModel } from "../../text/TextEditorModel";
-import { useContentViewModel } from "../../base/useContentViewModel";
-import type { LinkViewModel } from "../LinkViewModel";
 import { LinkHostnamesPanel } from "./LinkHostnamesPanel";
+import { LinkEditor } from "../LinkEditor";
 
+/**
+ * EPIC-028 / US-555 — secondary-editor wrapper for the Hostnames sidebar
+ * panel. `model` is always a v4 LinkEditor instance.
+ */
 export default function LinkHostnamesSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
-    const vm = useContentViewModel<LinkViewModel>(model as TextFileModel, "link-view");
-
-    if (!vm) return null;
-
+    if (!(model instanceof LinkEditor)) {
+        return null;
+    }
     return (
         <>
             {headerRef && createPortal(<>Hostnames</>, headerRef)}
-            <LinkHostnamesPanel vm={vm} />
+            <LinkHostnamesPanel vm={model} />
         </>
     );
 }

@@ -1,13 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { CategoryList, Panel } from "../../../uikit";
-import type { LinkViewModel } from "../LinkViewModel";
+import type { LinkSource } from "../linkTypes";
 
 // =============================================================================
 // Component
 // =============================================================================
 
 interface LinkHostnamesPanelProps {
-    vm: LinkViewModel;
+    vm: LinkSource;
 }
 
 export function LinkHostnamesPanel({ vm }: LinkHostnamesPanelProps) {
