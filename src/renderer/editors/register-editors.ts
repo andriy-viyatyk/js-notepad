@@ -37,10 +37,17 @@ const isSpecializedJson = (fileName?: string): boolean => {
 // =============================================================================
 
 const textEditorModule: EditorModule = {
-    get Editor() {
-        // Lazy access to avoid circular dependency
-        return require("./text/TextEditorView").TextEditorView;
-    },
+    // EPIC-028 / US-557 — the original lazy `require("./text/TextEditorView")`
+    // getter failed at runtime under Vite (the bundler can't resolve the
+    // relative CJS path inside renderer_init's module graph) and crashed the
+    // per-note dispatch path for any note whose preferred editor still
+    // delegates to this module (grid-* and log-view post US-552 / US-553).
+    // Static import works — `TextEditorView` is already in Vite's graph via
+    // `RenderEditor.tsx`, so this adds nothing new and avoids the runtime
+    // CJS resolution. The "circular dependency" the original comment guarded
+    // against no longer exists post-US-548 (LegacyEditorAdapter lives in
+    // base/v4, not in the text editor folder).
+    Editor: TextEditorView,
     newEditorModel: async (filePath?: string) => {
         const { newTextFileModel } = await import("./text/TextEditorModel");
         return newTextFileModel(filePath);
@@ -71,8 +78,6 @@ editorRegistry.register({
     switchOption: () => 0, // Always available as first option
     loadModule: async () => {
         const { createTextViewModel } = await import("./text/TextEditor");
-        // Object.create preserves the lazy `get Editor()` getter on the prototype
-        // (spread would call the getter eagerly, triggering require() too early)
         const module: EditorModule = Object.create(textEditorModule);
         module.createViewModel = createTextViewModel;
         return module;
@@ -271,8 +276,15 @@ editorRegistry.register({
         return /"type"\s*:\s*"note-editor"/.test(content) && content.includes('"notes"');
     },
     loadModule: async () => {
+        // EPIC-028 / US-557 — Notebook migrated to native v4 module
+        // (`notebookModule` in `./notebook/index.tsx`). Legacy NotebookView +
+        // NotebookViewModel are PRESERVED here for the LegacyEditorAdapter
+        // safety-net path. Page-level pages take the v4 path via
+        // `wrapLegacyForPage` in `PagesLifecycleModel.ts`. Inner per-note
+        // dispatch (NoteItemActiveEditor → AsyncEditor → legacy XxxView)
+        // still uses this path indirectly via NoteItemEditModel.acquireViewModel.
         const [module, { createNotebookViewModel }] = await Promise.all([
-            import("./notebook/NotebookEditor"),
+            import("./notebook/NotebookView"),
             import("./notebook/NotebookViewModel"),
         ]);
         return {
@@ -766,6 +778,7 @@ secondaryEditorRegistry.register({
 
 import { editorRegistry as v4EditorRegistry } from "./base/v4/editorRegistry";
 import { LegacyEditorAdapter } from "./base/v4/LegacyEditorAdapter";
+import { TextEditorView } from "./text/TextEditorView";
 
 const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // grid-* removed — US-552 ships native v4 modules.
@@ -779,7 +792,9 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // link-view removed — US-555 ships native v4 module.
     // todo-view removed — US-556 ships native v4 module.
     // rest-client removed — US-563 ships native v4 module.
-    "notebook-view",
+    // notebook-view removed — US-557 ships native v4 module.
+    // All Tier-5 text content-views migrated. Set retained (empty) so the
+    // mirror loop machinery stays in place for the no-host group (US-558+).
 ]);
 
 for (const legacyDef of editorRegistry.getAll()) {
@@ -1206,5 +1221,39 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { restClientModule } = await import("./rest-client");
         return restClientModule;
+    },
+});
+
+// US-557 — replace the legacy bare-adapter mirror for notebook-view with a
+// native v4 module. `v4EditorRegistry.register` overwrites by id, so this
+// supersedes the bare-adapter stub the mirror loop wrote. `accepts` delegates
+// to the legacy registry def's `acceptFile` / `switchOption` / `isEditorContent`
+// to avoid duplicating extension/language/content-peek rules.
+v4EditorRegistry.register({
+    id: "notebook-view",
+    name: "Notebook",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("notebook-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        // Content-peek fallback (NB10) — for `.json` files without the
+        // `.note.json` extension but with notebook-shaped content.
+        if (input.language === "json" && input.host) {
+            const content = (input.host.state.get() as { content?: string }).content ?? "";
+            if (legacy.isEditorContent?.(input.language, content)) return 60;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { notebookModule } = await import("./notebook");
+        return notebookModule;
     },
 });

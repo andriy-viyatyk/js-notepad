@@ -11,8 +11,7 @@ import { CircleIcon, CloseIcon, PlusIcon, WindowRestoreIcon } from "../../theme/
 import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
 import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
-import { NoteItem } from "./notebookTypes";
-import { NotebookViewModel } from "./NotebookViewModel";
+import { NoteItem, NotebookSource } from "./notebookTypes";
 import { formatDate } from "../../core/utils/utils";
 
 // =============================================================================
@@ -75,7 +74,7 @@ const tagAddBtnStyle: React.CSSProperties = {
 
 interface ExpandedNoteViewProps {
     note: NoteItem;
-    notebookModel: NotebookViewModel;
+    notebookModel: NotebookSource;
     categories: string[];
     tags: string[];
     onCollapse: () => void;

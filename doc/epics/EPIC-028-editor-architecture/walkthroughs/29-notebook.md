@@ -763,6 +763,10 @@ Pattern fully solidified. With five instances, host-side `bySelf` parameter (opt
 
 ### NB6 — NoteItemEditModel decomposition (resolves C4)
 
+> **AMENDED 2026-05-24 — outer-only US-557 defers NB6 to US-579.** US-557's investigation pass surfaced that inner per-note migration requires (1) widening `adoptHost(host: TextFileModel)` → `adoptHost(host: IContentHost)` across 12 Tier-5 modules, (2) auditing each editor for TextFileModel-only method calls (`host.script`, `host.io.saveState`, `host.confirmRelease`, `host.setEditorOverlayRef`, `host.pipe`, etc.) and either no-op'ing them in the per-note path or implementing equivalents, and (3) adding an `EditorModule.Body` slot so embedded editors render without TextChrome. Under US-557 outer-only scope, NoteItemEditModel keeps its `_vmHost: ContentViewModelHost` field and `acquireViewModel*` methods verbatim; `ContentViewModelHost.ts` stays alive; `NoteEditorModel` Monaco-specific sub-class stays alive. The decomposition lands in [US-579 — Notebook inner per-note migration](../../../tasks/US-579-notebook-inner-per-note-migration/README.md), positioned in EPIC-028 Phase D before US-559.
+>
+> Original NB6 resolution kept for reference below:
+
 **RESOLVED 2026-05-20** — Option (a) confirmed. NoteItemEditModel becomes a **lightweight transient IContentHost** (lifetime tied to React mount via NoteItemViewModel.dispose). The content-view-model machinery (`_vmHost: ContentViewModelHost` field + `acquireViewModel` / `releaseViewModel` / `prepareViewModel` methods) **completely retires** — these were the last consumers of the old subsystem.
 
 Specifically:
@@ -784,6 +788,10 @@ After NB6, NoteItemEditModel is **~70 LOC** (down from today's ~375 LOC) — str
 Rejected (b) keep `_vmHost` ref-counting — nothing references it post-EPIC-028; embedded editors are standalone EditorModels, not ref-counted view-models; (c) split NoteItemEditModel into separate host + adapter classes — adds complexity for no observable benefit; the adapter IS the host, one class is the simplest representation.
 
 ### NB7 — Per-note embedded EditorModel + per-note switch widget (resolves C5)
+
+> **AMENDED 2026-05-24 — outer-only US-557 defers NB7 to US-579.** US-557 outer-only keeps today's per-note dispatch (`NoteItemActiveEditor` → `AsyncEditor` → legacy `XxxView` via legacy `editorRegistry`) verbatim. The `EditorConstructorArgs.initialHost` primitive proposed below does NOT land under US-557 — US-579's investigation pass will revisit whether to use `EditorConstructorArgs.initialHost` (walkthrough proposal) or to extend the existing `adoptHost(host)` pattern that `wrapLegacyForPage` already establishes (US-557 NB-IMPL2 recommendation). The per-note three-phase switch + the new `EditorModule.Body` slot land under US-579.
+>
+> Original NB7 resolution kept for reference below:
 
 **RESOLVED 2026-05-20** — Option (a) confirmed. Each NoteItemView holds a `embeddedEditor: EditorModel` instance (Monaco / Grid / Markdown / Mermaid / SVG / Html / etc.) wrapping the per-note NoteItemEditModel. Per-note switch widget (NoteItemView-local) reads `embeddedEditor.findCompatibleEditors()` for the option list and on user click triggers per-note three-phase switch (`createEditor → switchFrom → restore` then replace the embedded editor in NoteItemViewModel state).
 
@@ -852,6 +860,21 @@ If all NB1–NB10 land at recommendation (a), the next walkthrough is 30 — No-
 ---
 
 ## Migration scope
+
+> **AMENDED 2026-05-24 — US-557 outer-only scope splits this section.** US-557 ships only the outer NotebookEditor (page-level). The inner per-note dispatch / NoteItemEditModel decomposition / ContentViewModelHost deletion / NoteEditorModel sub-class deletion / preserved-sibling retirement all land under [US-579](../../../tasks/US-579-notebook-inner-per-note-migration/README.md) (Phase D, before US-559). Under US-557 outer-only:
+>
+> **US-557 New files (outer-only):**
+> - `src/renderer/editors/notebook/NotebookEditor.ts` — v4 class with TextFileModel host
+> - `src/renderer/editors/notebook/NotebookBody.tsx` — v4 view body (no chrome)
+> - `src/renderer/editors/notebook/index.tsx` — `notebookModule: EditorModule` + TextChrome wrapper
+>
+> **US-557 Renamed:** `NotebookEditor.tsx` → `NotebookView.tsx` (legacy view preserved; matches the established preserved-sibling pattern from US-554 onward).
+>
+> **US-557 NOT deleted (preserved until US-579 / US-559):** `NotebookViewModel.ts`, `ContentViewModelHost.ts`, `NoteEditorModel` sub-class, portal refs on NoteItemEditModel, compatibility properties on NoteItemEditModel, `acquireViewModel*` methods on NoteItemEditModel, `_vmHost: ContentViewModelHost` field.
+>
+> **US-557 Modified (outer-only):** `notebookTypes.ts` (add `NotebookSource` union), `NoteItemViewModel.ts` (one-line type widening), `note-editor/NoteItemEditModel.ts` (one-line type widening — `notebookModel: NotebookViewModel` → `NotebookSource`), `register-editors.ts` (remove `notebook-view` from `TEXT_CONTENT_VIEW_BRIDGE_IDS`; add native v4 register block; update legacy `loadModule` to import `./notebook/NotebookView`), `PagesLifecycleModel.ts` (add `notebook-view` branch in `wrapLegacyForPage`).
+>
+> **Original walkthrough scope (now US-579's territory) kept for reference below:**
 
 Real-code only. No new framework primitive.
 

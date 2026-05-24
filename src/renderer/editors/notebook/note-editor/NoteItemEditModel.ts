@@ -2,8 +2,7 @@ import { ReactNode } from "react";
 import { TComponentState } from "../../../core/state/state";
 import { TModel } from "../../../core/state/model";
 import { EditorView } from "../../../../shared/types";
-import { NoteItem } from "../notebookTypes";
-import { NotebookViewModel } from "../NotebookViewModel";
+import { NoteItem, NotebookSource } from "../notebookTypes";
 import { scriptRunner } from "../../../scripting/ScriptRunner";
 import { isScriptLanguage } from "../../../scripting/transpile";
 import { ContentViewModelHost } from "../../base/ContentViewModelHost";
@@ -176,7 +175,7 @@ export class NoteItemEditModel implements IContentHost {
     readonly id: string;
     readonly type = "textFile" as const;
 
-    private notebookModel: NotebookViewModel;
+    private notebookModel: NotebookSource;
     private noteId: string;
     private _vmHost = new ContentViewModelHost();
 
@@ -194,7 +193,7 @@ export class NoteItemEditModel implements IContentHost {
     editorToolbarRefLast: HTMLDivElement | null = null;
     editorFooterRefLast: HTMLDivElement | null = null;
 
-    constructor(notebookModel: NotebookViewModel, note: NoteItem) {
+    constructor(notebookModel: NotebookSource, note: NoteItem) {
         this.notebookModel = notebookModel;
         this.noteId = note.id;
         this.id = note.id;

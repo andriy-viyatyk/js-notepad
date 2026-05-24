@@ -22,6 +22,7 @@ import { DrawEditor, defaultDrawEditorState } from "../../editors/draw";
 import { LinkEditor, defaultLinkEditorState } from "../../editors/link-editor";
 import { TodoEditor, defaultTodoEditorState } from "../../editors/todo";
 import { RestClientEditor, defaultRestClientEditorState } from "../../editors/rest-client";
+import { NotebookEditor, defaultNotebookEditorState } from "../../editors/notebook";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -246,6 +247,24 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         const content = (legacy as TextFileModel).state.get().content ?? "";
         rest.loadData(content);
         return rest;
+    }
+
+    // EPIC-028 / US-557 — Notebook migrated to native v4 module. Construct
+    // NotebookEditor over the legacy TextFileModel host. The initial loadData()
+    // call kicks off inline (mirrors today's NotebookViewModel.onInit →
+    // loadData behavior). Non-sidebar-owning Tier-5 editor — no panel
+    // registration here. Inner per-note dispatch (NoteItemEditModel +
+    // acquireViewModel) stays on the legacy content-view path per US-557
+    // outer-only scope (NB-IMPL1); inner migration moves to US-579.
+    if (isTextFile && targetEditorId === "notebook-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const notebook = new NotebookEditor(
+            new TComponentState({ ...defaultNotebookEditorState, id }),
+        );
+        notebook.adoptHost(legacy as TextFileModel);
+        const content = (legacy as TextFileModel).state.get().content ?? "";
+        notebook.loadData(content);
+        return notebook;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);

@@ -1,4 +1,19 @@
 import { TextFileModel } from "../text/TextEditorModel";
+import type { NotebookViewModel } from "./NotebookViewModel";
+import type { NotebookEditor } from "./NotebookEditor";
+
+// =============================================================================
+// Dual-source typing (EPIC-028 / US-557 NB-IMPL3)
+// =============================================================================
+
+/**
+ * Dual-source typing for NoteItemView + NoteItemEditModel during US-557
+ * outer-only migration. Both NotebookViewModel (legacy) and NotebookEditor
+ * (v4) expose identical setter/getter signatures consumed by NoteItemView /
+ * NoteItemViewModel / NoteItemEditModel. The structural union lets all three
+ * compile against either source without explicit interface plumbing.
+ */
+export type NotebookSource = NotebookViewModel | NotebookEditor;
 
 // =============================================================================
 // Note Content
