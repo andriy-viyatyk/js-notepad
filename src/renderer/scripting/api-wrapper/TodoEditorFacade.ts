@@ -1,8 +1,8 @@
-import type { TodoViewModel } from "../../editors/todo/TodoViewModel";
+import type { TodoEditor } from "../../editors/todo";
 import type { TodoItem, TodoTag } from "../../editors/todo/todoTypes";
 
 /**
- * Safe facade around TodoViewModel for script access.
+ * Safe facade around v4 TodoEditor for script access.
  * Implements the ITodoEditor interface from api/types/todo-editor.d.ts.
  *
  * - Items are read-only snapshots (ITodoItem projection of TodoItem)
@@ -10,66 +10,66 @@ import type { TodoItem, TodoTag } from "../../editors/todo/todoTypes";
  * - Delete operations skip confirmation dialogs
  */
 export class TodoEditorFacade {
-    constructor(private readonly vm: TodoViewModel) {}
+    constructor(private readonly editor: TodoEditor) {}
 
     get items(): Array<{ readonly id: string; readonly title: string; readonly completed: boolean; readonly list: string; readonly tag: string }> {
-        return this.vm.state.get().data.items.map(mapItem);
+        return this.editor.state.get().data.items.map(mapItem);
     }
 
     get lists(): string[] {
-        return this.vm.state.get().data.lists;
+        return this.editor.state.get().data.lists;
     }
 
     get tags(): Array<{ readonly name: string; readonly color: string }> {
-        return this.vm.state.get().data.tags.map(mapTag);
+        return this.editor.state.get().data.tags.map(mapTag);
     }
 
     addItem(title: string): void {
-        this.vm.addItem(title);
+        this.editor.addItem(title);
     }
 
     toggleItem(id: string): void {
-        this.vm.toggleItem(id);
+        this.editor.toggleItem(id);
     }
 
     deleteItem(id: string): void {
-        this.vm.deleteItem(id, true);
+        this.editor.deleteItem(id, true);
     }
 
     updateItemTitle(id: string, title: string): void {
-        this.vm.updateItemTitle(id, title);
+        this.editor.updateItemTitle(id, title);
     }
 
     addList(name: string): boolean {
-        return this.vm.addList(name);
+        return this.editor.addList(name);
     }
 
     renameList(oldName: string, newName: string): boolean {
-        return this.vm.renameList(oldName, newName);
+        return this.editor.renameList(oldName, newName);
     }
 
     deleteList(name: string): void {
-        this.vm.deleteList(name, true);
+        this.editor.deleteList(name, true);
     }
 
     addTag(name: string): boolean {
-        return this.vm.addTag(name);
+        return this.editor.addTag(name);
     }
 
     selectList(name: string): void {
-        this.vm.setSelectedList(name);
+        this.editor.setSelectedList(name);
     }
 
     selectTag(name: string): void {
-        this.vm.setSelectedTag(name);
+        this.editor.setSelectedTag(name);
     }
 
     setSearch(text: string): void {
-        this.vm.setSearchText(text);
+        this.editor.setSearchText(text);
     }
 
     clearSearch(): void {
-        this.vm.clearSearch();
+        this.editor.clearSearch();
     }
 }
 

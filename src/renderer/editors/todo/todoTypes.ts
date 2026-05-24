@@ -65,3 +65,21 @@ export interface TodoEditorProps {
     model: TextFileModel;
 }
 
+// =============================================================================
+// Dual-source typing (TD13 — US-556)
+// =============================================================================
+
+// Type-only imports keep this file free of runtime cycles between
+// TodoViewModel and TodoEditor.
+import type { TodoViewModel } from "./TodoViewModel";
+import type { TodoEditor } from "./TodoEditor";
+
+/**
+ * Dual-source typing for shared components. Both the legacy `TodoViewModel`
+ * (consumed by the legacy `loadModule.Editor` path for future notebook embed)
+ * and the v4 `TodoEditor` (consumed by the v4 native module for page-level
+ * pages) expose identical setter/getter signatures — components don't care
+ * which they receive.
+ */
+export type TodoSource = TodoViewModel | TodoEditor;
+

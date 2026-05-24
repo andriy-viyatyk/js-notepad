@@ -404,8 +404,14 @@ editorRegistry.register({
         return /"type"\s*:\s*"todo-editor"/.test(content) && content.includes('"items"');
     },
     loadModule: async () => {
+        // EPIC-028 / US-556 — Todo migrated to native v4 module
+        // (`todoModule` in `./todo/index.tsx`). Legacy TodoView +
+        // TodoViewModel are PRESERVED here for future notebook per-note
+        // dispatch (`NoteItemActiveEditor` → `AsyncEditor` → `module.Editor`).
+        // Page-level pages take the v4 path via `wrapLegacyForPage` in
+        // `PagesLifecycleModel.ts`.
         const [module, { createTodoViewModel }] = await Promise.all([
-            import("./todo/TodoEditor"),
+            import("./todo/TodoView"),
             import("./todo/TodoViewModel"),
         ]);
         return {
@@ -764,8 +770,8 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // graph-view removed — US-564 ships native v4 module.
     // draw-view removed — US-565 ships native v4 module.
     // link-view removed — US-555 ships native v4 module.
+    // todo-view removed — US-556 ships native v4 module.
     "notebook-view",
-    "todo-view",
     "rest-client",
 ]);
 
@@ -1125,5 +1131,39 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { linkModule } = await import("./link-editor");
         return linkModule;
+    },
+});
+
+// US-556 — replace the legacy bare-adapter mirror for todo-view with a
+// native v4 module. `v4EditorRegistry.register` overwrites by id, so this
+// supersedes the bare-adapter stub the mirror loop wrote. `accepts` delegates
+// to the legacy registry def's `acceptFile` / `switchOption` / `isEditorContent`
+// to avoid duplicating extension/language/content-peek rules.
+v4EditorRegistry.register({
+    id: "todo-view",
+    name: "ToDo",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("todo-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        // Content-peek fallback (TD10) — for `.json` files without the
+        // `.todo.json` extension but with todo-editor-shaped content.
+        if (input.language === "json" && input.host) {
+            const content = (input.host.state.get() as { content?: string }).content ?? "";
+            if (legacy.isEditorContent?.(input.language, content)) return 60;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { todoModule } = await import("./todo");
+        return todoModule;
     },
 });

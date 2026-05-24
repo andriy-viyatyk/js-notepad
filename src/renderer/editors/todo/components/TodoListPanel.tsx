@@ -7,8 +7,7 @@ import { IconButton } from "../../../uikit/IconButton/IconButton";
 import { WithMenu } from "../../../uikit/Menu/WithMenu";
 import { Dot } from "../../../uikit/Dot/Dot";
 import type { MenuItem } from "../../../uikit/Menu/types";
-import { TodoViewModel } from "../TodoViewModel";
-import { ListCount, TodoTag } from "../todoTypes";
+import type { ListCount, TodoSource, TodoTag } from "../todoTypes";
 import { TAG_COLORS } from "../todoColors";
 
 const SECTION_LABEL_STYLE: React.CSSProperties = {
@@ -34,7 +33,7 @@ const COUNT_STYLE: React.CSSProperties = {
 };
 
 interface TodoListPanelProps {
-    pageModel: TodoViewModel;
+    pageModel: TodoSource;
     lists: string[];
     selectedList: string;
     listCounts: { [listName: string]: ListCount };
@@ -210,13 +209,15 @@ export function TodoListPanel({ pageModel, lists, selectedList, listCounts, tags
                 shrink={false}
                 background="default"
             >
-                <Input
-                    name="todo-new-list"
-                    value={newListName}
-                    onChange={setNewListName}
-                    onKeyDown={handleAddListKeyDown}
-                    placeholder="New list..."
-                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <Input
+                        name="todo-new-list"
+                        value={newListName}
+                        onChange={setNewListName}
+                        onKeyDown={handleAddListKeyDown}
+                        placeholder="New list..."
+                    />
+                </div>
                 <IconButton
                     name="todo-add-list"
                     size="sm"
@@ -358,13 +359,15 @@ export function TodoListPanel({ pageModel, lists, selectedList, listCounts, tags
                 shrink={false}
                 background="default"
             >
-                <Input
-                    name="todo-new-tag"
-                    value={newTagName}
-                    onChange={setNewTagName}
-                    onKeyDown={handleAddTagKeyDown}
-                    placeholder="New tag..."
-                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <Input
+                        name="todo-new-tag"
+                        value={newTagName}
+                        onChange={setNewTagName}
+                        onKeyDown={handleAddTagKeyDown}
+                        placeholder="New tag..."
+                    />
+                </div>
                 <IconButton
                     name="todo-add-tag"
                     size="sm"

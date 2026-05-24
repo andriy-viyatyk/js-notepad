@@ -9,7 +9,7 @@ import { editorRegistry as legacyRegistry } from "../../editors/registry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel";
-import type { TodoViewModel } from "../../editors/todo/TodoViewModel";
+import { TodoEditor } from "../../editors/todo";
 import { LinkEditor } from "../../editors/link-editor";
 import { MarkdownEditor } from "../../editors/markdown";
 import { SvgEditor } from "../../editors/svg";
@@ -209,13 +209,14 @@ export class PageWrapper {
 
     async asTodo(force = false): Promise<TodoEditorFacade> {
         await this.ensureEditor("todo-view", "Todo", "asTodo", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asTodo(): page lost its text host during switch");
+        // EPIC-028 / US-556 — Todo is v4-native. After ensureEditor, the
+        // page's mainEditorV4 IS a TodoEditor; the facade wraps it directly.
+        // No acquireViewModel round-trip.
+        const v4 = this.v4;
+        if (!(v4 instanceof TodoEditor)) {
+            throw new Error("asTodo(): page is not a TodoEditor after switch");
         }
-        const vm = await model.acquireViewModel("todo-view") as TodoViewModel;
-        this.releaseList.push(() => model.releaseViewModel("todo-view"));
-        return new TodoEditorFacade(vm);
+        return new TodoEditorFacade(v4);
     }
 
     async asLink(force = false): Promise<LinkEditorFacade> {

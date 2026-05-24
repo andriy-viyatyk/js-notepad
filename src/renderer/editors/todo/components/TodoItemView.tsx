@@ -9,13 +9,12 @@ import { WithMenu } from "../../../uikit/Menu/WithMenu";
 import { Dot } from "../../../uikit/Dot/Dot";
 import type { MenuItem } from "../../../uikit/Menu/types";
 import { formatDate } from "../../../core/utils/utils";
-import { TodoItem, TodoTag } from "../todoTypes";
-import { TodoViewModel } from "../TodoViewModel";
+import type { TodoItem, TodoSource, TodoTag } from "../todoTypes";
 
 interface TodoItemViewProps {
     item: TodoItem;
     tags: TodoTag[];
-    pageModel: TodoViewModel;
+    pageModel: TodoSource;
     cellRef?: React.RefObject<HTMLDivElement>;
 }
 
