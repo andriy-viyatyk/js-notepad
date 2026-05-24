@@ -446,8 +446,15 @@ editorRegistry.register({
         return /"type"\s*:\s*"rest-client"/.test(content) && content.includes('"requests"');
     },
     loadModule: async () => {
+        // EPIC-028 / US-563 — Rest Client migrated to native v4 module
+        // (`restClientModule` in `./rest-client/index.tsx`). Legacy
+        // RestClientView + RestClientViewModel are PRESERVED here for future
+        // notebook per-note dispatch parity with the other preserved editors
+        // (US-554 / US-555 / US-556 / US-560 / US-561 / US-562 / US-564 /
+        // US-565 retrospective pattern). Page-level pages take the v4 path
+        // via `wrapLegacyForPage` in `PagesLifecycleModel.ts`.
         const [module, { createRestClientViewModel }] = await Promise.all([
-            import("./rest-client/RestClientEditor"),
+            import("./rest-client/RestClientView"),
             import("./rest-client/RestClientViewModel"),
         ]);
         return {
@@ -771,8 +778,8 @@ const TEXT_CONTENT_VIEW_BRIDGE_IDS = new Set([
     // draw-view removed — US-565 ships native v4 module.
     // link-view removed — US-555 ships native v4 module.
     // todo-view removed — US-556 ships native v4 module.
+    // rest-client removed — US-563 ships native v4 module.
     "notebook-view",
-    "rest-client",
 ]);
 
 for (const legacyDef of editorRegistry.getAll()) {
@@ -1165,5 +1172,39 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { todoModule } = await import("./todo");
         return todoModule;
+    },
+});
+
+// US-563 — replace the legacy bare-adapter mirror for rest-client with a
+// native v4 module. `v4EditorRegistry.register` overwrites by id, so this
+// supersedes the bare-adapter stub the mirror loop wrote. `accepts` delegates
+// to the legacy registry def's `acceptFile` / `switchOption` / `isEditorContent`
+// to avoid duplicating extension/language/content-peek rules.
+v4EditorRegistry.register({
+    id: "rest-client",
+    name: "Rest Client",
+    hasContentHost: true,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("rest-client");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        if (input.language) {
+            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        // Content-peek fallback (RC10) — for `.json` files without the
+        // `.rest.json` extension but with rest-client-shaped content.
+        if (input.language === "json" && input.host) {
+            const content = (input.host.state.get() as { content?: string }).content ?? "";
+            if (legacy.isEditorContent?.(input.language, content)) return 60;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { restClientModule } = await import("./rest-client");
+        return restClientModule;
     },
 });

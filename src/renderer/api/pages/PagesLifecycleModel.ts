@@ -21,6 +21,7 @@ import { GraphEditor, defaultGraphEditorState } from "../../editors/graph";
 import { DrawEditor, defaultDrawEditorState } from "../../editors/draw";
 import { LinkEditor, defaultLinkEditorState } from "../../editors/link-editor";
 import { TodoEditor, defaultTodoEditorState } from "../../editors/todo";
+import { RestClientEditor, defaultRestClientEditorState } from "../../editors/rest-client";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -226,6 +227,25 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         const content = (legacy as TextFileModel).state.get().content ?? "";
         todo.loadData(content);
         return todo;
+    }
+
+    // EPIC-028 / US-563 — Rest Client migrated to native v4 module. Construct
+    // RestClientEditor over the legacy TextFileModel host. The initial
+    // loadData() call kicks off inline (mirrors today's
+    // RestClientViewModel.onInit → loadData behavior). The async
+    // restoreResponseCache() fires-and-forgets inside adoptHost (RC18) so the
+    // response cache restores for both descriptor-replay (restore()) AND
+    // legacy-host adoption (this branch). Non-sidebar-owning Tier-5 editor —
+    // no panel registration here.
+    if (isTextFile && targetEditorId === "rest-client") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const rest = new RestClientEditor(
+            new TComponentState({ ...defaultRestClientEditorState, id }),
+        );
+        rest.adoptHost(legacy as TextFileModel);
+        const content = (legacy as TextFileModel).state.get().content ?? "";
+        rest.loadData(content);
+        return rest;
     }
 
     return new LegacyEditorAdapter(legacy, targetEditorId);

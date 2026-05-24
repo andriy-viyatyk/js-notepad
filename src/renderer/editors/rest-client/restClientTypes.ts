@@ -66,3 +66,29 @@ export function createDefaultRequest(name?: string, collection?: string): RestRe
         formDataEntries: [],
     };
 }
+
+// =============================================================================
+// US-563 — Dual-source typing (RC13) + minimal view-state interface for shared
+// components. RestClientSource lets RequestBuilder / RequestTree / SplitDetailPanel
+// compile against both the legacy RestClientViewModel (kept alive for future
+// notebook-embed per RC12) and the new v4 RestClientEditor — method signatures
+// are identical on both classes.
+// =============================================================================
+
+import type { RestClientViewModel } from "./RestClientViewModel";
+import type { RestClientEditor } from "./RestClientEditor";
+
+/** Dual-source typing for shared components — legacy VM AND v4 editor share
+ *  identical setter/getter signatures. Components don't care which they receive. */
+export type RestClientSource = RestClientViewModel | RestClientEditor;
+
+/** Minimal state surface read by RequestBuilder + SplitDetailPanel. Both the
+ *  legacy RestClientEditorState and the v4 RestClientEditorState satisfy it
+ *  (extra fields on the v4 state — id/title/modified/secondaryEditor from
+ *  EditorStateBase — are ignored by the shared components). */
+export interface RestClientViewState {
+    response: RestResponse | null;
+    responseTime: number;
+    executing: boolean;
+    headersJsonInvalid: boolean;
+}

@@ -16,8 +16,8 @@ import type { MenuItem } from "../../uikit";
 import { LanguageIcon } from "../../components/icons/LanguageIcon";
 import { CloseIcon, CopyIcon, FolderOpenIcon } from "../../theme/icons";
 import { app } from "../../api/app";
-import { RestClientViewModel, RestClientEditorState } from "./RestClientViewModel";
 import { BodyType, RAW_LANGUAGES, RestRequest } from "./restClientTypes";
+import type { RestClientSource, RestClientViewState } from "./restClientTypes";
 import { HTTP_METHODS, COMMON_HEADERS, METHOD_COLORS } from "./httpConstants";
 import { KeyValueEditor } from "./KeyValueEditor";
 
@@ -43,9 +43,9 @@ const BODY_EDITOR_OPTIONS: any = {
 };
 
 interface RequestBuilderProps {
-    vm: RestClientViewModel;
+    vm: RestClientSource;
     request: RestRequest;
-    state: RestClientEditorState;
+    state: RestClientViewState;
 }
 
 export function RequestBuilder({ vm, request, state }: RequestBuilderProps) {
@@ -431,7 +431,7 @@ export function RequestBuilder({ vm, request, state }: RequestBuilderProps) {
 }
 
 function BodyContent({ vm, request, onMonacoChange }: {
-    vm: RestClientViewModel;
+    vm: RestClientSource;
     request: RestRequest;
     onMonacoChange: (value: string | undefined) => void;
 }) {
@@ -539,7 +539,7 @@ function BodyContent({ vm, request, onMonacoChange }: {
     );
 }
 
-function FormDataEditor({ vm, request }: { vm: RestClientViewModel; request: RestRequest }) {
+function FormDataEditor({ vm, request }: { vm: RestClientSource; request: RestRequest }) {
     const handleBrowse = useCallback(async (index: number) => {
         const result = await app.fs.showOpenDialog();
         if (result?.[0]) {

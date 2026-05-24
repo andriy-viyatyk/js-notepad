@@ -22,6 +22,13 @@ const Root = styled.div(
         display: "flex",
         flexDirection: "column",
         flex: "1 1 auto",
+        // Without `min-width: 0` the flex item defaults to `min-width: auto`
+        // (= min-content), so a Tree with wide TreeItem labels pushes its
+        // own box wider than the parent — bleeding past sidebar panels and
+        // covering adjacent splitters. Setting it to 0 lets the Tree shrink
+        // to the parent's available width; per-row overflow is handled by
+        // each TreeItem's own truncate / wrap rules.
+        minWidth: 0,
         outline: "none",
         "&[data-disabled]": { opacity: 0.6, pointerEvents: "none" },
     },

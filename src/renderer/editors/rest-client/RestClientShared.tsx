@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
     IconButton,
     Panel,
@@ -15,19 +15,26 @@ import type { MenuItem, TreeItemRenderContext } from "../../uikit";
 import universalColors from "../../theme/universal-colors";
 import { CopyIcon, DeleteIcon, PlusIcon } from "../../theme/icons";
 import { app } from "../../api/app";
-import { EditorError } from "../base/EditorError";
-import { useContentViewModel } from "../base/useContentViewModel";
-import { RestClientViewModel, RestClientEditorState, defaultRestClientEditorState } from "./RestClientViewModel";
-import { RestClientData, RestRequest } from "./restClientTypes";
 import { RequestBuilder } from "./RequestBuilder";
 import { ResponseViewer, getResponseSize } from "./ResponseViewer";
 import { METHOD_COLORS } from "./httpConstants";
-import { IContentHost } from "../base/IContentHost";
 import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../core/traits";
-import { TraitSet, traited, type Traited } from "../../core/traits/traits";
+import { TraitSet, type Traited } from "../../core/traits/traits";
 import { LINK } from "../link-editor/linkTraits";
+import { RestClientData, RestRequest } from "./restClientTypes";
+import type { RestClientSource, RestClientViewState } from "./restClientTypes";
 
-interface RequestTreeItem {
+/**
+ * Shared tree + split-detail components between the legacy `RestClientView.tsx`
+ * (registry `loadModule.Editor` — kept alive for future notebook-embed parity
+ * with US-554/555/556/560/561/562/564/565 preservation pattern) and the v4
+ * `RestClientBody.tsx`. Extracted under US-563 Phase 5b so both consumers can
+ * share ~600 LOC of tree + detail UI without duplication. Prop types use
+ * `RestClientSource` (legacy VM or v4 editor) so method calls compile
+ * identically against both classes.
+ */
+
+export interface RequestTreeItem {
     id: string;
     items?: RequestTreeItem[];
     request?: RestRequest;
@@ -36,9 +43,9 @@ interface RequestTreeItem {
     collectionName?: string;
 }
 
-const EMPTY_LABEL = "(empty)";
+export const EMPTY_LABEL = "(empty)";
 
-const requestTreeItemTraits = new TraitSet().add(TREE_ITEM_KEY, {
+export const requestTreeItemTraits = new TraitSet().add(TREE_ITEM_KEY, {
     value: (item: unknown) => (item as RequestTreeItem).id,
     label: (item: unknown) => {
         const r = item as RequestTreeItem;
@@ -48,9 +55,9 @@ const requestTreeItemTraits = new TraitSet().add(TREE_ITEM_KEY, {
     },
 });
 
-const getRequestTreeChildren = (item: RequestTreeItem) => item.items;
+export const getRequestTreeChildren = (item: RequestTreeItem) => item.items;
 
-function buildGroupedTree(requests: RestRequest[]): RequestTreeItem[] {
+export function buildGroupedTree(requests: RestRequest[]): RequestTreeItem[] {
     const collectionOrder: string[] = [];
     const groups = new Map<string, RequestTreeItem[]>();
 
@@ -71,116 +78,28 @@ function buildGroupedTree(requests: RestRequest[]): RequestTreeItem[] {
     }));
 }
 
-const noopUnsubscribe = () => () => {};
-const getDefaultState = () => defaultRestClientEditorState;
-
-export function RestClientEditor({ model }: { model: IContentHost }) {
-    const vm = useContentViewModel<RestClientViewModel>(model, "rest-client");
-
-    const state: RestClientEditorState = useSyncExternalStore(
-        vm ? (cb) => vm.state.subscribe(cb) : noopUnsubscribe,
-        vm ? () => vm.state.get() : getDefaultState,
-    );
-
-    const [leftPanelWidth, setLeftPanelWidth] = useState(state.leftPanelWidth);
-    const handleLeftPanelWidthChange = useMemo(() => (width: number) => {
-        const clamped = Math.max(150, Math.min(500, width));
-        setLeftPanelWidth(clamped);
-        vm?.setLeftPanelWidth(clamped);
-    }, [vm]);
-
-    const rootItem = useMemo<RequestTreeItem>(
-        () => ({
-            id: "__root__",
-            isRoot: true,
-            items: buildGroupedTree(state.data.requests),
-        }),
-        [state.data.requests],
-    );
-
-    const tItems = useMemo(
-        () => traited([rootItem], requestTreeItemTraits),
-        [rootItem],
-    );
-
-    if (!vm) return null;
-
-    if (state.error) {
-        return <EditorError>{state.error}</EditorError>;
-    }
-
-    const selectedRequest = vm.selectedRequest;
-
-    return (
-        <Panel
-            name="rest-client-root"
-            direction="row"
-            flex={1}
-            height={0}
-            overflow="hidden"
-        >
-            <Panel
-                name="rest-left-panel"
-                direction="column"
-                overflow="hidden"
-                background="default"
-                width={leftPanelWidth}
-                minWidth={150}
-                maxWidth="80%"
-                shrink={false}
-            >
-                <Panel
-                    name="rest-left-tree"
-                    flex={1}
-                    overflow="auto"
-                    minHeight={0}
-                >
-                    <RequestTree vm={vm} items={tItems} selectedId={state.selectedRequestId} />
-                </Panel>
-            </Panel>
-            <Splitter
-                name="rest-left-splitter"
-                orientation="vertical"
-                value={leftPanelWidth}
-                onChange={handleLeftPanelWidthChange}
-                side="before"
-                border="after"
-                min={150}
-                max={500}
-            />
-            <Panel
-                name="rest-right-panel"
-                direction="column"
-                flex={1}
-                width={0}
-                overflow="hidden"
-            >
-                {selectedRequest ? (
-                    <SplitDetailPanel vm={vm} request={selectedRequest} state={state} />
-                ) : (
-                    <Panel
-                        name="rest-empty"
-                        flex={1}
-                        align="center"
-                        justify="center"
-                        padding="lg"
-                    >
-                        <Text color="light" italic align="center">
-                            {state.data.requests.length === 0
-                                ? "No requests yet. Click + to add one."
-                                : "Select a request from the list."}
-                        </Text>
-                    </Panel>
-                )}
-            </Panel>
-        </Panel>
-    );
+export function getStatusColor(status: number): string {
+    if (status === 0) return universalColors.http.serverError;
+    if (status < 300) return universalColors.http.success;
+    if (status < 400) return universalColors.http.redirect;
+    if (status < 500) return universalColors.http.clientError;
+    return universalColors.http.serverError;
 }
 
-function SplitDetailPanel({ vm, request, state }: {
-    vm: RestClientViewModel;
+/** Show context menu using showAppPopupMenu (lazy import to avoid circular deps). */
+async function showContextMenu(e: React.MouseEvent, items: MenuItem[]) {
+    const { showAppPopupMenu } = await import("../../ui/dialogs/poppers/showPopupMenu");
+    showAppPopupMenu(e.clientX, e.clientY, items);
+}
+
+// =============================================================================
+// SplitDetailPanel
+// =============================================================================
+
+export function SplitDetailPanel({ vm, request, state }: {
+    vm: RestClientSource;
     request: RestRequest;
-    state: RestClientEditorState;
+    state: RestClientViewState;
 }) {
     const detailRef = useRef<HTMLDivElement>(null);
     const responsePaneRef = useRef<HTMLDivElement>(null);
@@ -428,16 +347,12 @@ function SplitDetailPanel({ vm, request, state }: {
     );
 }
 
-function getStatusColor(status: number): string {
-    if (status === 0) return universalColors.http.serverError;
-    if (status < 300) return universalColors.http.success;
-    if (status < 400) return universalColors.http.redirect;
-    if (status < 500) return universalColors.http.clientError;
-    return universalColors.http.serverError;
-}
+// =============================================================================
+// RequestTree
+// =============================================================================
 
-function RequestTree({ vm, items, selectedId }: {
-    vm: RestClientViewModel;
+export function RequestTree({ vm, items, selectedId }: {
+    vm: RestClientSource;
     items: Traited<unknown[]>;
     selectedId: string;
 }) {
@@ -699,10 +614,3 @@ function RequestTree({ vm, items, selectedId }: {
         />
     );
 }
-
-/** Show context menu using showAppPopupMenu (lazy import to avoid circular deps). */
-async function showContextMenu(e: React.MouseEvent, items: MenuItem[]) {
-    const { showAppPopupMenu } = await import("../../ui/dialogs/poppers/showPopupMenu");
-    showAppPopupMenu(e.clientX, e.clientY, items);
-}
-
