@@ -476,9 +476,17 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
             return;
         }
         const parsed = this.parseContent(content);
-        if (parsed && Array.isArray(parsed)) {
+        // A single JSON object renders as a one-row grid (wrap into array).
+        // Primitives and null fall through to the empty branch.
+        let rowsInput: unknown[] | null = null;
+        if (Array.isArray(parsed)) {
+            rowsInput = parsed;
+        } else if (parsed && typeof parsed === "object") {
+            rowsInput = [parsed];
+        }
+        if (rowsInput) {
             const hasSavedColumns = this.state.get().columns.length > 0;
-            const data = getGridDataWithColumns(parsed);
+            const data = getGridDataWithColumns(rowsInput);
             this._maxRowId = data.rows.length;
             this.state.update((s) => {
                 s.rows = data.rows;
