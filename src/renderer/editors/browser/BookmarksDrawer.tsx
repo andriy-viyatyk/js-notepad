@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import { Panel, Splitter } from "../../uikit";
-import { LinkEditor } from "../link-editor/LinkView";
+import { LinkBody } from "../link-editor/LinkBody";
+import {
+    LinkActionBits,
+    LinkBreadcrumbBits,
+    LinkFooterBits,
+} from "../link-editor";
 import { BrowserBookmarks } from "./BrowserBookmarks";
 
 // =============================================================================
@@ -36,6 +41,11 @@ interface BookmarksDrawerProps {
     onClose: () => void;
 }
 
+/**
+ * EPIC-028 / US-558 — bookmarks drawer renders a chrome-less embedded
+ * LinkEditor via `<LinkBody>` plus reused toolbar bits (NH5 / BR-IMPL3).
+ * Drawer owns its own slim toolbar layout — no portal refs, no `swapLayout`.
+ */
 export function BookmarksDrawer({
     open,
     bookmarks,
@@ -63,10 +73,6 @@ export function BookmarksDrawer({
             setIsAnimating(false);
         }
     }, [open]);
-
-    const [toolbarFirstRef, setToolbarFirstRef] = useState<HTMLDivElement | null>(null);
-    const [toolbarLastRef, setToolbarLastRef] = useState<HTMLDivElement | null>(null);
-    const [footerLastRef, setFooterLastRef] = useState<HTMLDivElement | null>(null);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
@@ -114,26 +120,12 @@ export function BookmarksDrawer({
                         background="dark" borderBottom
                         shrink={false} minHeight={32}
                     >
-                        <Panel
-                            name="bookmarks-toolbar-first"
-                            ref={setToolbarFirstRef}
-                            direction="row" align="center" gap="xs"
-                        />
+                        <LinkBreadcrumbBits model={bookmarks.linkEditor} />
                         <Panel flex={1} />
-                        <Panel
-                            name="bookmarks-toolbar-last"
-                            ref={setToolbarLastRef}
-                            direction="row" align="center" gap="xs"
-                        />
+                        <LinkActionBits model={bookmarks.linkEditor} />
                     </Panel>
                     <Panel name="bookmarks-editor-host" flex={1} overflow="hidden">
-                        <LinkEditor
-                            model={bookmarks.textModel}
-                            swapLayout
-                            toolbarRefFirst={toolbarFirstRef}
-                            toolbarRefLast={toolbarLastRef}
-                            footerRefLast={footerLastRef}
-                        />
+                        <LinkBody model={bookmarks.linkEditor} />
                     </Panel>
                     <Panel
                         name="bookmarks-footer"
@@ -142,11 +134,7 @@ export function BookmarksDrawer({
                         background="dark" borderTop
                         shrink={false} minHeight={22}
                     >
-                        <Panel
-                            name="bookmarks-footer-last"
-                            ref={setFooterLastRef}
-                            direction="row" align="center" gap="xs"
-                        />
+                        <LinkFooterBits model={bookmarks.linkEditor} />
                     </Panel>
                 </Panel>
             </div>

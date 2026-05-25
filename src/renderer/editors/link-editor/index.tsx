@@ -68,7 +68,7 @@ const VIEW_MODE_ORDER: LinkViewMode[] = [
 // Toolbar bits — left (breadcrumb)
 // =============================================================================
 
-function LinkBreadcrumbBits({ model: editor }: { model: LinkEditor }) {
+export function LinkBreadcrumbBits({ model: editor }: { model: LinkEditor }) {
     const { expandedPanel, selectedCategory, selectedTag, selectedHostname } =
         editor.state.use((s) => ({
             expandedPanel: s.expandedPanel,
@@ -113,7 +113,7 @@ function LinkBreadcrumbBits({ model: editor }: { model: LinkEditor }) {
 // Toolbar bits — right (actions + search)
 // =============================================================================
 
-function LinkActionBits({ model: editor }: { model: LinkEditor }) {
+export function LinkActionBits({ model: editor }: { model: LinkEditor }) {
     const { searchText } = editor.state.use((s) => ({ searchText: s.searchText }));
     const viewMode = editor.getViewMode();
 
@@ -180,7 +180,7 @@ function LinkActionBits({ model: editor }: { model: LinkEditor }) {
 // Footer bits — link count
 // =============================================================================
 
-function LinkFooterBits({ model: editor }: { model: LinkEditor }) {
+export function LinkFooterBits({ model: editor }: { model: LinkEditor }) {
     const { filteredCount, totalCount } = editor.state.use((s) => ({
         filteredCount: s.filteredLinks.length,
         totalCount: s.data.links.length,

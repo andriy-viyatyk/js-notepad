@@ -201,18 +201,24 @@ class BrowserEditorModel extends EditorModel<BrowserEditorState, void, BrowserQu
 
 **No `traits.set(CONTENT_HOST_TRAIT, ...)` closure** — Browser is no-host. The base class `contentHost` getter returns `null` (B2 default from walkthrough 08 / 09). The `findCompatibleEditors()` registry probe returns `[]` (no host to peek at) — switch widget is hidden per PT10. Browser is end-of-the-line for the switch protocol.
 
-### Embedded-LinkEditor lifecycle (the NB7-derived pattern)
+### Embedded-LinkEditor lifecycle (construct-then-adoptHost — US-558 amendment)
 
-Today's `BrowserBookmarks` collapses to a thin handle:
+Today's `BrowserBookmarks` keeps its name (the proposed `BrowserBookmarksHandle` rename retired during implementation — see BR-IMPL26). The class body changes to embed a v4 LinkEditor via construct-then-adoptHost:
 
 ```typescript
-class BrowserBookmarksHandle {
-    readonly linkEditor: LinkEditor;       // top-level LinkEditor instance
-    readonly textFileHost: TextFileModel;  // bookmarks file host
+class BrowserBookmarks {
+    readonly textFileHost: TextFileModel;
+    readonly linkEditor: LinkEditor;
 
     constructor(filePath: string) {
-        this.textFileHost = new TextFileModel({ filePath, language: "json" });
-        this.linkEditor = new LinkEditor(/* initialHost */ this.textFileHost);
+        const state = { ...getDefaultTextFileEditorModelState(), filePath, language: "json", editor: "link-view" };
+        this.textFileHost = new TextFileModel(new TComponentState(state));
+        this.textFileHost.skipSave = true;
+        // LinkEditor is constructed empty; the host adoption (in init) wires
+        // up subscriptions and seeds HS1 settings.
+        this.linkEditor = new LinkEditor(
+            new TComponentState({ ...defaultLinkEditorState, id: crypto.randomUUID() }),
+        );
     }
 
     async init(options?: { silent?: boolean }): Promise<boolean> {
@@ -221,31 +227,38 @@ class BrowserBookmarksHandle {
             if (options?.silent) return false;
             const password = await ui.password({ mode: "decrypt" });
             if (!password) return false;
-            const ok = await this.textFileHost.decrypt(password);
-            if (!ok) return false;
+            if (!(await this.textFileHost.decrypt(password))) return false;
         }
-        await this.linkEditor.restore();   // LinkEditor adopts the already-restored host (no re-read)
+        // Construct-then-adoptHost (BR-IMPL2) — matches the existing Tier-5
+        // wrapLegacyForPage pattern (Todo / RestClient / Notebook). LinkEditor
+        // adopts the already-restored host (no re-read) and parses content
+        // inline via loadData.
+        this.linkEditor.adoptHost(this.textFileHost);
+        this.linkEditor.loadData(this.textFileHost.state.get().content ?? "");
         return true;
     }
 
     async dispose(): Promise<void> {
+        // LinkEditor.dispose disposes its host internally — no double-dispose.
         await this.linkEditor.dispose();
-        await this.textFileHost.dispose();
     }
 
     findByUrl(url: string): LinkItem | undefined {
-        return this.linkEditor.state.get().data.links.find(l => l.href === url);
+        return this.linkEditor.state.get().data.links.find((l) => l.href === url);
     }
 }
 ```
 
-Three reuses of EPIC-028 patterns: (a) `EditorConstructorArgs.initialHost` from walkthrough 04 / P6 → NB7 is the canonical injection mechanism — same shape used by per-note editors in Notebook; (b) LinkEditor's three-phase lifecycle exactly as walkthrough 24 / LK4 — Browser's bookmarks initialization just calls `restore()` on the already-constructed LinkEditor with an initial host; (c) the **embedded editor is a fully-formed `LinkEditor`**, not a separate copy of LinkEditor's internals — Browser inherits LinkEditor's traits (drag accept, etc.) and methods (`selectByHref`, etc.) without re-implementation.
+Three reuses of EPIC-028 patterns: (a) **construct-then-adoptHost** matches the Tier-5 `wrapLegacyForPage` pattern (Todo / RestClient / Notebook); the proposed `EditorConstructorArgs.initialHost` primitive does NOT land under US-558 — it was deferred along with NB7 into US-579 (see NH4 amendment); (b) LinkEditor's `adoptHost` + `loadData` parallel its `restore()` chain — just bypassing the host-construction-from-pendingHost branch since we own the already-restored host; (c) the **embedded editor is a fully-formed `LinkEditor`**, not a separate copy of LinkEditor's internals — Browser inherits LinkEditor's traits (drag accept, etc.), methods (`selectByHref`, etc.), and callback fields (`onLinkOpen`, `onGetLinkMenuItems`) without re-implementation.
 
 ### Embedded view (replacing portal refs)
 
-`BookmarksDrawer.tsx` simplifies to:
+`BookmarksDrawer.tsx` simplifies to (per US-558 amendment — chrome-less `<LinkBody>` + reused toolbar bits):
 
 ```tsx
+import { LinkBody } from "../link-editor/LinkBody";
+import { LinkActionBits, LinkBreadcrumbBits, LinkFooterBits } from "../link-editor";
+
 function BookmarksDrawer({ open, bookmarks, width, onChangeWidth, onClose }: BookmarksDrawerProps) {
     if (!open) return null;
     return (
@@ -254,8 +267,17 @@ function BookmarksDrawer({ open, bookmarks, width, onChangeWidth, onClose }: Boo
             <Splitter ... />
             <div data-bookmarks-panel-wrap style={{ width }}>
                 <Panel name="bookmarks-panel" direction="column" height="100%">
-                    {/* LinkEditor renders its own toolbar + body via the EPIC-028 view shape */}
-                    <bookmarks.linkEditor.View />
+                    <Panel name="bookmarks-toolbar" direction="row" align="center" gap="xs">
+                        <LinkBreadcrumbBits model={bookmarks.linkEditor} />
+                        <Panel flex={1} />
+                        <LinkActionBits model={bookmarks.linkEditor} />
+                    </Panel>
+                    <Panel name="bookmarks-editor-host" flex={1} overflow="hidden">
+                        <LinkBody model={bookmarks.linkEditor} />
+                    </Panel>
+                    <Panel name="bookmarks-footer" direction="row" align="center">
+                        <LinkFooterBits model={bookmarks.linkEditor} />
+                    </Panel>
                 </Panel>
             </div>
         </BookmarksDrawerRoot>
@@ -263,7 +285,7 @@ function BookmarksDrawer({ open, bookmarks, width, onChangeWidth, onClose }: Boo
 }
 ```
 
-**No more portal-ref props.** LinkEditor composes its own toolbar + footer per walkthrough 09 / 10's inline composition. The `swapLayout` prop also retires — LinkEditor's TextFileModel host is hidden behind the LinkEditor's own surface; there is no second editor to swap to inside the drawer.
+**No more portal-ref props.** The `swapLayout` prop also retires — LinkEditor's TextFileModel host is hidden behind the LinkEditor's own surface; there is no second editor to swap to inside the drawer. (Note: the original code block used `<bookmarks.linkEditor.View />` — that API does not exist on v4 EditorModel; the actual surface is `<LinkBody>` plus reused toolbar bits exported from `link-editor/index.tsx`. See NH5 amendment.)
 
 ### Lifecycle hooks table (Browser)
 
@@ -395,6 +417,8 @@ Candidate shapes:
 
 **RESOLVED 2026-05-20** — Options (a) + (c) confirmed. Keep the 10-field boundary today's code already enforces, AND extend with `bookmarksWidth` because it's structurally identical to `tabsPanelWidth` (silent today-bug — **fifth instance** of `leftPanelWidth`-equivalent incidental fix after LK2 / TD2 / RC2 / NB2). Rejected (b) — `pageMuted` is a transient gesture meant to silence one specific browsing session; persisting it would surprise users who don't realize they muted the browser at last close. Rejected isolated (a) — leaving `bookmarksWidth` un-persisted matches the pattern of incidental fixes carried by the prior four walkthroughs; the descriptor consolidation gets it for free.
 
+**Amended 2026-05-25 (US-558 implementation):** Sixth instance — Markdown's `compactMode` (MK) landed between NH3's original drafting and US-558 implementation, so the running series is now LK2 → TD2 → RC2 → NB2 → MK → NH3 (bookmarksWidth). The promotion landed verbatim per option (a)+(c).
+
 ### NH4 — Bookmarks `acquireViewModel("link-view")` retirement
 
 Today's `BrowserBookmarks.init()` calls `this.textModel.acquireViewModel("link-view")` to get a shared LinkViewModel. Under SF2 + LV9 + NB6 the `acquireViewModel` machinery is fully retired (interface declaration deleted; both implementations deleted).
@@ -409,6 +433,22 @@ Candidate shapes:
 
 **RESOLVED 2026-05-20** — Option (a) confirmed. Exact match for NB7's resolution. The `EditorConstructorArgs.initialHost` pathway is **already the canonical injection mechanism** per walkthrough 29 / NB7 ("supersedes C4's tentative `setContentHost()` separate-call shape"). Browser is the **second consumer** of `initialHost` after Notebook — confirms the property NB7 established (host adoption at construction, not post-construction). With NH4 resolved, the `acquireViewModel` / `releaseViewModel` / `prepareViewModel` / `acquireViewModelSync` quartet is now **fully retired across the entire codebase** — Browser's `BrowserBookmarks.init()` was the final remaining external consumer outside of NoteItemEditModel (which dropped it in NB6). Rejected (b) — loses the unified LinkEditor abstraction; would create a parallel data layer that diverges over time. Rejected (c) — speculative; today only Browser embeds LinkEditor, so a service locator is YAGNI machinery.
 
+**Amended 2026-05-25 (US-558 implementation):** The "second consumer of `EditorConstructorArgs.initialHost` after NB7" framing is superseded. NB7 was **deferred to US-579** under the outer-only scope of US-557, so the `initialHost` primitive does NOT exist when US-558 lands — US-558 is the **first** would-be consumer. Per BR-IMPL2, US-558 uses **construct-then-adoptHost** instead (matches the existing Tier-5 `wrapLegacyForPage` pattern from Todo / RestClient / Notebook):
+
+```typescript
+this.textFileHost = new TextFileModel(new TComponentState(state));
+this.linkEditor = new LinkEditor(
+    new TComponentState({ ...defaultLinkEditorState, id: crypto.randomUUID() }),
+);
+// init():
+await this.textFileHost.restore();
+// ... encryption handling ...
+this.linkEditor.adoptHost(this.textFileHost);
+this.linkEditor.loadData(this.textFileHost.state.get().content ?? "");
+```
+
+The NH4 invariants still hold — `acquireViewModel`'s **external direct** consumers are fully retired (the `useContentViewModel` indirection in preserved legacy views like `LinkView.tsx` / `NotebookView.tsx` stays alive until US-559). NoteItemEditModel's own LEGACY `IContentHost` impl retires under US-579 alongside the rest of the inner per-note migration.
+
 ### NH5 — `<LinkEditor model={textModel} swapLayout toolbar/footerRefXxx>` retirement
 
 Today's `BookmarksDrawer.tsx` invokes LinkEditor with the legacy portal-ref props (`toolbarRefFirst`, `toolbarRefLast`, `footerRefLast`) and a `swapLayout` flag. All three retire per walkthrough 09 / 10's inline composition + walkthrough 10's `<TextChrome>` dissolution.
@@ -422,6 +462,13 @@ Candidate shapes:
 (c) **Replace `swapLayout` with an explicit `embedded?: boolean` prop on `<LinkEditor>` View** that toggles the layout** — similar to today's behavior but typed.
 
 **RESOLVED 2026-05-20** — Option (a) confirmed. Symmetric with NB7's per-note rendering pattern (`<embeddedEditor.View />`). The embedded LinkEditor inside Browser is no different from an embedded Monaco inside Notebook. Drawer-specific UI (the close button, the splitter, the slide-in animation) stays in `BookmarksDrawer.tsx` as plain JSX; the LinkEditor body is the only piece that renders LinkEditor-specific chrome. Rejected (b) — adds machinery for one consumer. Rejected (c) — Browser's drawer doesn't need a separate layout; the standard LinkEditor layout fits the drawer's body slot directly.
+
+**Amended 2026-05-25 (US-558 implementation):** The proposed `<bookmarks.linkEditor.View />` API does not exist — v4 `EditorModel` subclasses don't expose a `View` member. The actual v4 surface is `linkModule.Component` (from `link-editor/index.tsx`), which wraps `<LinkBody>` in `<TextChrome>`. Browser's drawer + the `BlankPageLinks` blank-tab overlay both want a **chrome-less** embed (TextChrome would add NavPanel button / script panel / encoding label — irrelevant inside Browser). Per BR-IMPL3 / BR-IMPL4 the resolution is:
+
+- Drawer + BlankPageLinks render `<LinkBody model={bookmarks.linkEditor} />` directly.
+- The three LinkEditor toolbar bits (`LinkBreadcrumbBits`, `LinkActionBits`, `LinkFooterBits`) get **exported** from `link-editor/index.tsx` so the drawer can compose them inline inside its own slim toolbar layout. BlankPageLinks renders only `LinkBreadcrumbBits` (today's CSS-hide behavior for `.link-btn-add` / `.link-btn-browser-selector` becomes "don't render" instead of "render hidden").
+
+The "embedded editor is a fully-formed LinkEditor" claim still holds — the SAME instance backs both the drawer and the blank-page overlay (BR-IMPL5), so state stays consistent across the two surfaces.
 
 ### NH6 — Sub-model preservation (webview / urlBar / bookmarksUI / target)
 

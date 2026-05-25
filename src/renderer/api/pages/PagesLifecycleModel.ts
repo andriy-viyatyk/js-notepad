@@ -23,6 +23,7 @@ import { LinkEditor, defaultLinkEditorState } from "../../editors/link-editor";
 import { TodoEditor, defaultTodoEditorState } from "../../editors/todo";
 import { RestClientEditor, defaultRestClientEditorState } from "../../editors/rest-client";
 import { NotebookEditor, defaultNotebookEditorState } from "../../editors/notebook";
+import { BrowserEditor } from "../../editors/browser";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -1033,11 +1034,11 @@ export class PagesLifecycleModel {
             }
         }
 
-        const browserModule = await import(
-            "../../editors/browser/BrowserEditorView"
-        );
-        const model =
-            await browserModule.default.newEmptyEditorModel("browserPage");
+        // EPIC-028 / US-558 — v4 native Browser construction. `browserModule`
+        // provides `createEditor()` returning a v4 EditorModel; pass directly
+        // to `addPage` without LegacyEditorAdapter wrapping.
+        const { browserModule } = await import("../../editors/browser");
+        const model = browserModule.createEditor();
         if (model) {
             if (options?.profileName || options?.incognito || options?.tor) {
                 model.state.update((s) => {
@@ -1059,7 +1060,7 @@ export class PagesLifecycleModel {
                 });
             }
             await model.restore();
-            this.addPage(wrap(model));
+            this.addPage(model);
 
             if (options?.tor) {
                 (model as unknown as { initTorProxy: () => void }).initTorProxy();
@@ -1135,15 +1136,9 @@ export class PagesLifecycleModel {
         const activeIndex = activePage ? pages.indexOf(activePage) : -1;
 
         const matchesBrowser = (page: PageModel) => {
-            const editor = page.mainEditor;
-            if (!editor) return false;
-            const pageState = editor.state.get() as {
-                type?: string;
-                isIncognito?: boolean;
-                isTor?: boolean;
-                profileName?: string;
-            };
-            if (pageState.type !== "browserPage") return false;
+            const editor = page.mainEditorV4;
+            if (!(editor instanceof BrowserEditor)) return false;
+            const pageState = editor.state.get();
             if (options?.incognito) return !!pageState.isIncognito;
             if (options?.external) {
                 return !pageState.isIncognito && !pageState.isTor;
@@ -1162,17 +1157,15 @@ export class PagesLifecycleModel {
 
         const addTabToPage = (index: number) => {
             const page = pages[index];
-            const adapter = page.mainEditor as LegacyEditorAdapter | null;
-            const editor = adapter?.legacy as unknown as {
-                state: { get(): { tabs?: { url?: string }[] } };
-                navigate: (u: string) => void;
-                addTab: (u: string) => void;
-            } | undefined;
-            const tabs = editor?.state.get().tabs;
+            // EPIC-028 / US-558 — Browser is a v4 native editor; access directly
+            // via mainEditorV4 (no LegacyEditorAdapter unwrap).
+            const editor = page.mainEditorV4;
+            if (!(editor instanceof BrowserEditor)) return;
+            const tabs = editor.state.get().tabs;
             if (tabs?.length === 1 && tabs[0].url === "about:blank") {
-                editor!.navigate(url);
+                editor.navigate(url);
             } else {
-                editor?.addTab(url);
+                editor.addTab(url);
             }
             this.model.navigation.showPage(page.id);
         };

@@ -1,0 +1,33 @@
+import { TComponentState } from "../../core/state/state";
+import { BrowserEditor } from "./BrowserEditor";
+import { getDefaultBrowserPageState } from "./BrowserEditorModel";
+import { BrowserEditorView } from "./BrowserView";
+import type { EditorModule } from "../base/v4/editorRegistry";
+import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+
+/**
+ * EPIC-028 / US-558 — native Browser editor module. Registered with the v4
+ * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
+ * the page's `mainEditorV4` is a v4-native BrowserEditor instance.
+ *
+ * Browser is NO-HOST (no `CONTENT_HOST_TRAIT`) — `Component` is the full
+ * browser view (URL bar + tabs panel + webview area + bookmarks drawer +
+ * find bar). No `<TextChrome>` wrap (text-bearing chrome is irrelevant).
+ *
+ * `accepts: () => -1` — Browser never opens files; only via explicit user
+ * gesture through `PagesLifecycleModel.showBrowserPage`.
+ */
+
+function BrowserEditorComponent({ model }: { model: V4EditorModel }) {
+    return <BrowserEditorView model={model as BrowserEditor} />;
+}
+
+export const browserModule: EditorModule = {
+    createEditor: () =>
+        new BrowserEditor(new TComponentState(getDefaultBrowserPageState())),
+    Component: BrowserEditorComponent,
+};
+
+export { BrowserEditor };
+export type { BrowserQueueEvent } from "./BrowserEditor";
+export type { BrowserEditorState, BrowserTabData } from "./BrowserEditorModel";

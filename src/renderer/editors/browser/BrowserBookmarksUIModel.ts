@@ -27,7 +27,7 @@ export class BrowserBookmarksUIModel {
     /** Per-tab tracked images for bookmark image discovery. */
     trackedImagesRef = new Map<string, TrackedImageLevel[]>();
 
-    /** Cleanup function for linkModel state subscription. */
+    /** Cleanup function for linkEditor state subscription. */
     private bookmarksSub: (() => void) | null = null;
     /** Cleanup function for model state subscription (urlInput tracking). */
     private urlTrackingSub: (() => void) | null = null;
@@ -121,13 +121,13 @@ export class BrowserBookmarksUIModel {
     // Bookmark Tracking (isBookmarked state)
     // =====================================================================
 
-    /** Subscribe to linkModel state changes to track whether current URL is bookmarked. */
+    /** Subscribe to linkEditor state changes to track whether current URL is bookmarked. */
     private startBookmarkTracking = (bm: BrowserBookmarks) => {
         // Clean up previous subscriptions
         this.dispose();
 
-        // Track changes in the link model (add/remove/edit bookmarks)
-        this.bookmarksSub = bm.linkModel.state.subscribe(() => {
+        // Track changes in the link editor (add/remove/edit bookmarks)
+        this.bookmarksSub = bm.linkEditor.state.subscribe(() => {
             this.updateIsBookmarked();
         });
 
@@ -261,7 +261,7 @@ export class BrowserBookmarksUIModel {
         await app.events.browser.onBookmark.sendAsync(bookmarkEvent);
 
         // Show dialog with (possibly modified) event data
-        const bmState = bm.linkModel.state.get();
+        const bmState = bm.linkEditor.state.get();
         const result = await showEditLinkDialog({
             title: isEdit ? "Edit Bookmark" : "Add Bookmark",
             link: {
@@ -279,9 +279,9 @@ export class BrowserBookmarksUIModel {
         if (!result) return;
 
         if (params.existingLink) {
-            bm.linkModel.updateLink(params.existingLink.id, result);
+            bm.linkEditor.updateLink(params.existingLink.id, result);
         } else {
-            bm.linkModel.addLink(result);
+            bm.linkEditor.addLink(result);
         }
     };
 

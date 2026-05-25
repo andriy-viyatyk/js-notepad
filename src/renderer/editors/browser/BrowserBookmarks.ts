@@ -2,24 +2,33 @@ const fs = require("fs");
 import { debounce } from "../../../shared/utils";
 import { TComponentState } from "../../core/state/state";
 import { TextFileModel, getDefaultTextFileEditorModelState } from "../text/TextEditorModel";
-import { LinkViewModel } from "../link-editor/LinkViewModel";
+import { LinkEditor, defaultLinkEditorState } from "../link-editor";
 import { LinkItem } from "../link-editor/linkTypes";
 import { EditorView } from "../../../shared/types";
 import { shell } from "../../api/shell";
 import { ui } from "../../api/ui";
 
 /**
- * Wraps TextFileModel + LinkViewModel for browser bookmarks.
- * Stored on BrowserEditorModel.bookmarks (null until lazily initialized).
+ * EPIC-028 / US-558 — wraps `TextFileModel` (bookmarks file host) + v4
+ * `LinkEditor` (data layer) for browser bookmarks. Stored on
+ * `BrowserEditor.bookmarks` (null until lazily initialized).
  *
- * The LinkViewModel is acquired through the host's ContentViewModelHost so that
- * BookmarksDrawer's LinkEditor (which also calls acquireViewModel) shares
- * the same cached instance via ref-counting.
+ * Pattern (BR-IMPL2 — construct-then-adoptHost):
+ *   - Construct `TextFileModel(state)` + `LinkEditor(defaultLinkEditorState)`.
+ *   - On `init()`: `textFileHost.restore()` → handle encryption →
+ *     `linkEditor.adoptHost(textFileHost)` → `linkEditor.loadData(content)`.
+ *   - On `dispose()`: `await linkEditor.dispose()` (LinkEditor disposes the
+ *     host internally — see `LinkEditor.dispose`).
+ *
+ * Retires today's `textFileHost.acquireViewModel("link-view")` ref-counted
+ * pathway (NH4 — final external consumer of the legacy view-model
+ * machinery). The `useContentViewModel` indirection in preserved legacy
+ * views (`LinkView.tsx`, `NotebookView.tsx`, ...) stays alive until US-559.
  */
 export class BrowserBookmarks {
-    textModel: TextFileModel;
-    linkModel!: LinkViewModel;
-    private saveDebounced = debounce(() => this.textModel.saveFile(), 300);
+    readonly textFileHost: TextFileModel;
+    readonly linkEditor: LinkEditor;
+    private saveDebounced = debounce(() => this.textFileHost.saveFile(), 300);
 
     constructor(filePath: string) {
         const state = {
@@ -28,34 +37,49 @@ export class BrowserBookmarks {
             language: "json",
             editor: "link-view" as EditorView,
         };
-        this.textModel = new TextFileModel(new TComponentState(state));
+        this.textFileHost = new TextFileModel(new TComponentState(state));
         // TextFileModel creates sub-models (script, editor) we don't need,
         // but they are lightweight and won't cause issues.
-        this.textModel.skipSave = true;
+        this.textFileHost.skipSave = true;
+        // LinkEditor is constructed empty; the host adoption (in `init`)
+        // wires up subscriptions and seeds HS1 settings.
+        this.linkEditor = new LinkEditor(
+            new TComponentState({
+                ...defaultLinkEditorState,
+                id: crypto.randomUUID(),
+            }),
+        );
     }
 
     /**
-     * Initialize bookmarks: load file, handle encryption, acquire LinkViewModel.
+     * Initialize bookmarks: restore host, handle encryption, adopt host into LinkEditor.
      * @param options.silent When true, skip password dialog for encrypted files (return false instead).
      */
     async init(options?: { silent?: boolean }): Promise<boolean> {
-        await this.textModel.restore();
+        await this.textFileHost.restore();
 
         // If the bookmarks file is encrypted, prompt for password (unless silent)
-        if (shell.encryption.isEncrypted(this.textModel.state.get().content || "")) {
+        if (shell.encryption.isEncrypted(this.textFileHost.state.get().content || "")) {
             if (options?.silent) return false; // silent mode — don't prompt
             const password = await ui.password({ mode: "decrypt" });
             if (!password) return false; // user cancelled
-            const ok = await this.textModel.decrypt(password);
+            const ok = await this.textFileHost.decrypt(password);
             if (!ok) return false; // wrong password
         }
 
-        // Acquire via host so LinkEditor shares the same instance (ref-counted)
-        this.linkModel = await this.textModel.acquireViewModel("link-view") as LinkViewModel;
+        // BR-IMPL2 — construct-then-adoptHost. Mirrors the wrapLegacyForPage
+        // pattern from Todo / Rest Client / Notebook. LinkEditor adopts the
+        // already-restored host (no re-read) and parses the initial content
+        // inline via loadData.
+        this.linkEditor.adoptHost(this.textFileHost);
+        this.linkEditor.loadData(this.textFileHost.state.get().content ?? "");
 
-        // Auto-save to disk when modified by user
-        this.textModel.state.subscribe(() => {
-            if (this.textModel.state.get().modified) {
+        // Auto-save to disk when modified by user. LinkEditor's
+        // onDataChangedDebounced writes serialized state back to
+        // host.changeContent which flips host.state.modified — that's the
+        // trigger we watch here.
+        this.textFileHost.state.subscribe(() => {
+            if (this.textFileHost.state.get().modified) {
                 this.saveDebounced();
             }
         });
@@ -63,13 +87,15 @@ export class BrowserBookmarks {
     }
 
     async dispose(): Promise<void> {
-        this.textModel.releaseViewModel("link-view");
-        await this.textModel.dispose();
+        // LinkEditor.dispose flushes its debounced save, tears down host
+        // subscriptions, and disposes the TextFileModel host. Single-owner
+        // lifecycle — no ref-counting needed.
+        await this.linkEditor.dispose();
     }
 
     /** Check if a URL exists in the bookmarks. */
     findByUrl(url: string): LinkItem | undefined {
-        return this.linkModel.state.get().data.links.find(
+        return this.linkEditor.state.get().data.links.find(
             (link) => link.href === url,
         );
     }

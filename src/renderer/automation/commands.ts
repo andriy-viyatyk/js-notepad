@@ -9,6 +9,7 @@ const { ipcRenderer } = require("electron"); // eslint-disable-line @typescript-
 import { pagesModel } from "../api/pages";
 import { settings } from "../api/settings";
 import { BrowserChannel } from "../../ipc/browser-ipc";
+import { BrowserEditor } from "../editors/browser";
 import { pressKey, typeText } from "./input";
 import { callOnRef } from "./ref";
 import { buildSnapshot, detectOverlay } from "./snapshot";
@@ -32,33 +33,30 @@ async function getTarget(): Promise<IBrowserTarget | McpResponse> {
     const activePage = pagesModel.activePage;
 
     // Prefer active page if it's a browser
-    let browserPage = (activePage?.mainEditor?.type === "browserPage") ? activePage : null;
+    let browserPage = (activePage?.mainEditorV4 instanceof BrowserEditor) ? activePage : null;
 
     // Fallback to first browser page
     if (!browserPage) {
-        browserPage = pages.find(p => p.mainEditor?.type === "browserPage") ?? null;
+        browserPage = pages.find((p) => p.mainEditorV4 instanceof BrowserEditor) ?? null;
     }
-    if (!browserPage?.mainEditor) {
+    const browserEditor = browserPage?.mainEditorV4;
+    if (!(browserEditor instanceof BrowserEditor)) {
         return { error: { code: -32602, message: "No browser page open. Use the 'open_url' tool to open a browser page." } };
     }
 
     // Ensure the browser page is active (webview needs display != none for focus/input)
     if (browserPage !== activePage) {
-        pagesModel.showPage(browserPage.id);
+        pagesModel.showPage(browserPage!.id);
     }
 
-    const { BrowserEditorModel } = await import("../editors/browser/BrowserEditorModel");
-    if (browserPage.mainEditor instanceof BrowserEditorModel) {
-        const state = browserPage.mainEditor.state.get();
-        if (state.isIncognito) {
-            return { error: { code: -32602, message: "Active browser page is in incognito mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
-        }
-        if (state.isTor) {
-            return { error: { code: -32602, message: "Active browser page is in Tor mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
-        }
-        return browserPage.mainEditor.target;
+    const state = browserEditor.state.get();
+    if (state.isIncognito) {
+        return { error: { code: -32602, message: "Active browser page is in incognito mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
     }
-    return { error: { code: -32602, message: "No browser page open. Use the 'open_url' tool to open a browser page." } };
+    if (state.isTor) {
+        return { error: { code: -32602, message: "Active browser page is in Tor mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
+    }
+    return browserEditor.target;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

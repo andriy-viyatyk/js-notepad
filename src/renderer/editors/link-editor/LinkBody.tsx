@@ -174,7 +174,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
                         setActivePanel={model.setExpandedPanel}
                     >
                         <CollapsiblePanel id="categories" name="categories" title="Categories">
-                            <LinkCategoryPanel vm={model} useOpenRawLink={false} categoriesOnly={false} />
+                            <LinkCategoryPanel vm={model} useOpenRawLink={false} />
                         </CollapsiblePanel>
                         <CollapsiblePanel id="tags" name="tags" title="Tags">
                             <LinkTagsPanel vm={model} />

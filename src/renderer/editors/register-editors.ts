@@ -684,7 +684,11 @@ editorRegistry.register({
     editorType: "browserPage",
     category: "standalone",
     loadModule: async () => {
-        const module = await import("./browser/BrowserEditorView");
+        // EPIC-028 / US-558 — Browser migrated to native v4 module
+        // (`browserModule` in `./browser/index.tsx`). Legacy BrowserView is
+        // PRESERVED here for the LegacyEditorAdapter safety-net path; the
+        // `showBrowserPage` entry point takes the v4 path directly.
+        const module = await import("./browser/BrowserView");
         return module.default;
     },
 });
@@ -1255,5 +1259,20 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { notebookModule } = await import("./notebook");
         return notebookModule;
+    },
+});
+
+// US-558 — replace the legacy bare-adapter mirror for browser-view with a
+// native v4 module. Browser is NO-HOST (no `CONTENT_HOST_TRAIT`); the
+// `accepts` predicate returns -1 (never matches files — opens only via the
+// explicit `pagesModel.lifecycle.showBrowserPage` user gesture).
+v4EditorRegistry.register({
+    id: "browser-view",
+    name: "Browser",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { browserModule } = await import("./browser");
+        return browserModule;
     },
 });

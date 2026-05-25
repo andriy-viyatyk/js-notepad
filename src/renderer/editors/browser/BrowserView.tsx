@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 const { ipcRenderer } = require("electron");
 import styled from "@emotion/styled";
 import { IEditorState, EditorType } from "../../../shared/types";
@@ -36,7 +36,8 @@ import {
 import { BrowserTabsPanel } from "./BrowserTabsPanel";
 import { UrlSuggestionsDropdown } from "./UrlSuggestionsDropdown";
 import { BookmarksDrawer } from "./BookmarksDrawer";
-import { LinkEditor } from "../link-editor/LinkView";
+import { LinkBody } from "../link-editor/LinkBody";
+import { LinkBreadcrumbBits } from "../link-editor";
 import { BrowserBookmarks } from "./BrowserBookmarks";
 import { DownloadButton } from "./DownloadButton";
 import { FindBar } from "../shared/FindBar";
@@ -104,8 +105,6 @@ const BrowserRoot = styled(Panel)({
         top: 0, right: 0, bottom: 0, left: 0,
         zIndex: 1,
     },
-    "[data-blank-toolbar] .link-btn-add": { display: "none" },
-    "[data-blank-toolbar] .link-btn-browser-selector": { display: "none" },
 });
 
 // ============================================================================
@@ -204,7 +203,7 @@ function BrowserWebviewItem({
                                 return;
                             }
                             if (model.bookmarks) {
-                                const links = model.bookmarks!.linkModel.state.get().data.links;
+                                const links = model.bookmarks!.linkEditor.state.get().data.links;
                                 const hasLink = links.some((l: { href: string }) => getHostname(l.href) === hostname);
                                 if (hasLink) saveFavicon(hostname, faviconUrl);
                             }
@@ -275,10 +274,13 @@ interface BlankPageLinksProps {
     bookmarks: BrowserBookmarks;
 }
 
+/**
+ * EPIC-028 / US-558 — blank-page links renders the chrome-less embedded
+ * LinkEditor via `<LinkBody>` plus only the breadcrumb (NH5 / BR-IMPL3 /
+ * BR-IMPL4). Add Link button + view-mode menu omitted (today these were
+ * CSS-hidden via `data-blank-toolbar` selectors — now simply not rendered).
+ */
 function BlankPageLinks({ bookmarks }: BlankPageLinksProps) {
-    const [toolbarFirstRef, setToolbarFirstRef] = useState<HTMLDivElement | null>(null);
-    const [toolbarLastRef, setToolbarLastRef] = useState<HTMLDivElement | null>(null);
-
     return (
         <Panel
             name="blank-page"
@@ -290,26 +292,12 @@ function BlankPageLinks({ bookmarks }: BlankPageLinksProps) {
                 direction="row" align="center" gap="xs"
                 paddingX="md" paddingY="xs" background="dark" borderBottom
                 shrink={false} minHeight={32}
-                data-blank-toolbar=""
             >
-                <Panel
-                    name="blank-toolbar-first"
-                    ref={setToolbarFirstRef}
-                    direction="row" align="center" gap="xs"
-                />
+                <LinkBreadcrumbBits model={bookmarks.linkEditor} />
                 <Panel flex={1} />
-                <Panel
-                    name="blank-toolbar-last"
-                    ref={setToolbarLastRef}
-                    direction="row" align="center" gap="xs"
-                />
             </Panel>
             <Panel flex={1} overflow="hidden">
-                <LinkEditor
-                    model={bookmarks.textModel}
-                    toolbarRefFirst={toolbarFirstRef}
-                    toolbarRefLast={toolbarLastRef}
-                />
+                <LinkBody model={bookmarks.linkEditor} />
             </Panel>
         </Panel>
     );
@@ -720,12 +708,17 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
 // EditorModule
 // ============================================================================
 
+// EPIC-028 / US-558 — legacy EditorModule shape preserved for the
+// LegacyEditorAdapter safety-net path (US-559 retires this block). The
+// `as unknown as EditorModel` casts bridge the v4 BrowserEditor class to
+// the legacy EditorModel typing the legacy module factories expect; the
+// runtime instance is the same v4 class either way.
 const browserEditorModule: EditorModule = {
     Editor: BrowserEditorView as any,
     newEditorModel: async () => {
         return new BrowserEditorModel(
             new TComponentState(getDefaultBrowserPageState()),
-        );
+        ) as unknown as EditorModel;
     },
     newEmptyEditorModel: async (
         editorType: EditorType,
@@ -734,7 +727,7 @@ const browserEditorModule: EditorModule = {
         const model = new BrowserEditorModel(
             new TComponentState(getDefaultBrowserPageState()),
         );
-        return model;
+        return model as unknown as EditorModel;
     },
     newEditorModelFromState: async (
         state: Partial<IEditorState>,
@@ -743,7 +736,7 @@ const browserEditorModule: EditorModule = {
             ...getDefaultBrowserPageState(),
             ...(state as Partial<BrowserEditorState>),
         };
-        return new BrowserEditorModel(new TComponentState(initialState));
+        return new BrowserEditorModel(new TComponentState(initialState)) as unknown as EditorModel;
     },
 };
 
