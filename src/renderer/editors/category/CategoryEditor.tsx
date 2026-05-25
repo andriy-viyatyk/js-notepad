@@ -15,10 +15,16 @@ import type { EditorModel } from "../base";
 import type { CategoryEditorModel } from "./CategoryEditorModel";
 import type { EditorModule } from "../types";
 import type { EditorType, IEditorState } from "../../../shared/types";
+import { LinkEditor } from "../link-editor/LinkEditor";
+import { ExplorerEditor } from "../explorer";
 import { folderViewModeService } from "./FolderViewModeService";
 
 // =============================================================================
-// ITreeProviderHost — duck-type for secondary editors that expose a tree provider
+// ITreeProviderHost — typed accessor for secondary editors that expose a tree
+// provider. EPIC-028 / US-567 / EX-IMPL2 — partial `instanceof` chain.
+// Migrated editors (LinkEditor + ExplorerEditor) match by `instanceof`; legacy
+// Archive still uses the duck-type fallback. US-570 (Archive migration) drops
+// the fallback by adding `instanceof ArchiveEditor`.
 // =============================================================================
 
 interface ITreeProviderHost {
@@ -27,6 +33,9 @@ interface ITreeProviderHost {
 }
 
 function isTreeProviderHost(editor: EditorModel): editor is EditorModel & ITreeProviderHost {
+    if (editor instanceof LinkEditor) return true;
+    if (editor instanceof ExplorerEditor) return true;
+    // Legacy Archive — duck-typed fallback until US-570 lands.
     return "treeProvider" in editor && "selectionState" in editor;
 }
 

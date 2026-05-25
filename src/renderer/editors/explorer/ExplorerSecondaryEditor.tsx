@@ -8,7 +8,7 @@ import { createLinkData } from "../../../shared/link-data";
 import { app } from "../../api/app";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryEditorProps } from "../../ui/navigation/secondary-editor-registry";
-import type { ExplorerEditorModel } from "./ExplorerEditorModel";
+import type { ExplorerEditor } from "./ExplorerEditorModel";
 import { IconButton } from "../../uikit/IconButton";
 import { Spacer } from "../../uikit/Spacer";
 import {
@@ -21,7 +21,7 @@ import {
 import { fpBasename, fpDirname } from "../../core/utils/file-path";
 
 export default function ExplorerSecondaryEditor({ model: rawModel, headerRef }: SecondaryEditorProps) {
-    const model = rawModel as ExplorerEditorModel;
+    const model = rawModel as ExplorerEditor;
     const { rootPath } = model.state.use();
     const treeProviderRef = useRef<TreeProviderViewRef>(null);
 

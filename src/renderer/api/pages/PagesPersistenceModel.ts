@@ -11,6 +11,12 @@ import { debounce } from "../../../shared/utils";
 import { LegacyEditorAdapter, deriveEditorId } from "../../editors/base/v4";
 import type { EditorModel as LegacyEditorModel } from "../../editors/base/EditorModel";
 import { wrapLegacyForPage } from "./PagesLifecycleModel";
+import {
+    ExplorerEditor,
+    getDefaultExplorerEditorState,
+    type ExplorerEditorState,
+} from "../../editors/explorer";
+import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { fs as appFs } from "../fs";
 import { app } from "../app";
@@ -97,6 +103,26 @@ export class PagesPersistenceModel {
                         editor.applyRestoreData(d as unknown as Parameters<typeof editor.applyRestoreData>[0]);
                         await editor.restore();
                         return editor;
+                    }
+                    // EPIC-028 / US-567 — Explorer is v4-native but NOT in
+                    // `editorRegistry`; construct directly. Match on both the
+                    // new editorId discriminator ("explorer", post-US-567 saves)
+                    // and the legacy state.type ("fileExplorer", pre-US-567
+                    // saves where deriveEditorId fell back to "monaco" because
+                    // Explorer had no legacy registry entry).
+                    if (
+                        d.editorId === "explorer"
+                        || (d.state as { type?: string }).type === "fileExplorer"
+                    ) {
+                        const explorerState = new TComponentState({
+                            ...getDefaultExplorerEditorState(),
+                            ...(d.state as Partial<ExplorerEditorState>),
+                            id: d.id,
+                        });
+                        const explorer = new ExplorerEditor(explorerState);
+                        explorer.applyRestoreData(d.state as unknown as Parameters<typeof explorer.applyRestoreData>[0]);
+                        await explorer.restore();
+                        return explorer;
                     }
                     const legacyState = {
                         ...(d.state as Partial<IEditorState>),
@@ -320,6 +346,24 @@ export class PagesPersistenceModel {
                 continue;
             }
             try {
+                // EPIC-028 / US-567 — Explorer is v4-native but NOT in
+                // `editorRegistry`; construct directly without a
+                // LegacyEditorAdapter wrap. Covers the pre-v3 rootPath
+                // migration path (which synthesizes a `fileExplorer` descriptor
+                // at line ~299) AND any v3 session that persisted Explorer in
+                // the sidebar cache file.
+                if (desc.pageState.type === "fileExplorer") {
+                    const explorerState = new TComponentState({
+                        ...getDefaultExplorerEditorState(),
+                        ...(desc.pageState as Partial<ExplorerEditorState>),
+                        id: desc.pageState.id ?? crypto.randomUUID(),
+                    });
+                    const explorer = new ExplorerEditor(explorerState);
+                    explorer.applyRestoreData(desc.pageState as unknown as Parameters<typeof explorer.applyRestoreData>[0]);
+                    await explorer.restore();
+                    page.attach(explorer);
+                    continue;
+                }
                 const legacy = await this.restoreLegacyEditor(desc.pageState);
                 if (!legacy) continue;
                 const adapter = new LegacyEditorAdapter(

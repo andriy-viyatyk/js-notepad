@@ -24,6 +24,7 @@ import { TodoEditor, defaultTodoEditorState } from "../../editors/todo";
 import { RestClientEditor, defaultRestClientEditorState } from "../../editors/rest-client";
 import { NotebookEditor, defaultNotebookEditorState } from "../../editors/notebook";
 import { BrowserEditor } from "../../editors/browser";
+import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
@@ -329,8 +330,15 @@ export class PagesLifecycleModel {
             state = { ...state, type: PagesLifecycleModel.PAGE_TYPE_MIGRATIONS[state.type] };
         }
         if (state.type === "fileExplorer") {
-            const { ExplorerEditorModel } = await import("../../editors/explorer");
-            return new ExplorerEditorModel();
+            // EPIC-028 / US-567 — Explorer migrated to v4-native EditorModel.
+            // Construction sites are `PagesPersistenceModel.restorePage`,
+            // `restoreSidebarLegacy`, `PagesLifecycleModel.addEmptyPageWithNavPanel`,
+            // and `PageModel.toggleNavigator`. This legacy factory branch must
+            // never be hit post-migration.
+            throw new Error(
+                "newEditorModelFromState: Explorer migrated to v4-native (US-567). "
+                + "Construct via `new ExplorerEditor(state)` directly.",
+            );
         }
         const editors = editorRegistry.getAll();
         const editorDef = editors.find((e) => e.editorType === state.type);
@@ -419,7 +427,17 @@ export class PagesLifecycleModel {
 
     addEmptyPageWithNavPanel = async (folderPath: string): Promise<PageModel> => {
         const page = new PageModel();
-        await page.createExplorer(folderPath);
+        // EPIC-028 / US-567 / EX10 — inline Explorer construction; replaces
+        // the deleted `PageModel.createExplorer` helper. Order matters:
+        // `page.attach()` BEFORE `explorer.restore()` so the slice subscription
+        // is wired before `restore()` mutates `secondaryEditor`.
+        const state = new TComponentState({
+            ...getDefaultExplorerEditorState(),
+            rootPath: folderPath,
+        });
+        const explorer = new ExplorerEditor(state);
+        page.attach(explorer);
+        await explorer.restore();
         page.ensurePageNavigatorModel();
         return this.addPage(null, page);
     };

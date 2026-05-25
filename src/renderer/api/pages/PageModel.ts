@@ -1,6 +1,7 @@
-import { TOneState } from "../../core/state/state";
+import { TComponentState, TOneState } from "../../core/state/state";
 import { LegacyEditorAdapter, type EditorModel as V4EditorModel } from "../../editors/base/v4";
 import type { EditorModel as LegacyEditorModel } from "../../editors/base/EditorModel";
+import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { PageDescriptor } from "../../../shared/persistence-v4";
 import { PageNavigatorModel } from "../../ui/navigation/PageNavigatorModel";
 import type { IContentPipe } from "../types/io.pipe";
@@ -481,22 +482,14 @@ export class PageModel {
 
     // ── Explorer helpers ─────────────────────────────────────────────
 
-    /** Find the ExplorerEditorModel in editors[] (unwrapped legacy), if any. */
+    /** Find the Explorer in editors[] (unwrapped from `LegacyEditorAdapter`
+     *  if present — Explorer is v4-native post-US-567 so the unwrap is usually
+     *  a passthrough). */
     findExplorer(): EditorModel | undefined {
-        const adapter = this.editors.find(
+        const editor = this.editors.find(
             (m) => (m.state.get() as { type?: string }).type === "fileExplorer",
         );
-        return unwrapAdapter(adapter ?? null) ?? undefined;
-    }
-
-    /** Create and add an ExplorerEditorModel with the given rootPath. */
-    async createExplorer(rootPath: string): Promise<EditorModel> {
-        const { ExplorerEditorModel } = await import("../../editors/explorer");
-        const { deriveEditorId } = await import("../../editors/base/v4");
-        const legacy = new ExplorerEditorModel(rootPath);
-        const adapter = new LegacyEditorAdapter(legacy, deriveEditorId(legacy.state.get()));
-        this.attach(adapter);
-        return legacy as unknown as EditorModel;
+        return unwrapAdapter(editor ?? null) ?? undefined;
     }
 
     // ── PageNavigatorModel ───────────────────────────────────────────
@@ -534,7 +527,17 @@ export class PageModel {
         }
         if (!rootPath) return;
 
-        await this.createExplorer(rootPath);
+        // EPIC-028 / US-567 / EX10 — inline Explorer construction; replaces
+        // the deleted `createExplorer` helper. Same attach-before-restore
+        // ordering as `PagesLifecycleModel.addEmptyPageWithNavPanel`.
+        const state = new TComponentState({
+            ...getDefaultExplorerEditorState(),
+            rootPath,
+        });
+        const explorer = new ExplorerEditor(state);
+        this.attach(explorer);
+        await explorer.restore();
+
         this.ensurePageNavigatorModel();
         pageNavigatorToggled.send({ pageId: this.id, isOpen: true });
     }

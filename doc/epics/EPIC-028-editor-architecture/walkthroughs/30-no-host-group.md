@@ -1014,6 +1014,16 @@ Candidate shapes:
 
 **RESOLVED 2026-05-20** — Options (a) + (c) confirmed. Drop the no-op `beforeNavigateAway` override (base class default suffices); document Explorer as the **second consumer of the LK8 hook** (the second instance of `onMainEditorChanged` after Link, confirming the hook is generic), but NOT the LK7 hook (`beforeNavigateAway` doesn't apply because Explorer isn't a sidebar-OWNING mainEditor — it's a sidebar-ONLY EditorModel that doesn't toggle between mainEditor and panel-only roles). **Reframes walkthrough 24's "LK7 + LK8 recipe" as two separable hooks.** Rejected isolated (b) — explicit no-op is noise.
 
+**Amended 2026-05-25 (US-567 investigation):** The "drop the override — base class default suffices" claim is **incorrect**. The v4 base `beforeNavigateAway` at `src/renderer/editors/base/v4/EditorModel.ts:151–153` is:
+
+```typescript
+beforeNavigateAway(_newModel: EditorModel): void {
+    this.secondaryEditor = undefined;
+}
+```
+
+The base default **clears** `secondaryEditor`, which triggers the slice subscription on `PageModel` → visibility-criterion detach + dispose. Dropping Explorer's override would silently dispose Explorer on every main-editor navigation. Per EX-IMPL1 in `doc/tasks/US-567-explorer-editor-migration/README.md`, the resolution flips to **keep the explicit no-op override** with an explanatory comment ("Explorer ALWAYS survives navigation"). The EX5 reframing of LK7 + LK8 as separable hooks still stands — Explorer is the second LK8 consumer but NOT a LK7 consumer (LK7 is sidebar-OWNING-mainEditor-specific). Only the "base default suffices" sub-claim was wrong.
+
 ### EX6 — `setPage` override — fits unified-array N1 lifecycle
 
 Today's `ExplorerEditorModel.setPage(page)`:
@@ -1192,7 +1202,7 @@ Final outcomes by concern:
 | EX2 | (a) — constructor flips to `(state)` per EPIC-028 factory convention | none |
 | EX3 | (c) — drop underscore-prefix; typed nested shape in `EditorDescriptor.state`; drops two `as any` casts | none |
 | EX4 | (a) — persistence shape ≠ runtime shape; `getRestoreData()` is typed bridge | none |
-| EX5 | (a) + (c) — drop no-op `beforeNavigateAway` override (base default suffices); reframe LK7 + LK8 as SEPARABLE hooks; Explorer is second consumer of LK8 but NOT LK7 | none |
+| EX5 | (c) — reframe LK7 + LK8 as SEPARABLE hooks; Explorer is second consumer of LK8 but NOT LK7. **(a) DROPPED 2026-05-25** — base default actually CLEARS `secondaryEditor`; Explorer keeps the no-op override (see EX-IMPL1) | none |
 | EX6 | (a) — `setPage` override fits N1 slice-subscribe lifecycle verbatim | none |
 | EX7 | (b) — keep today's sidebar-wide close-button gesture (different from N4's per-panel close affordance) | none |
 | EX8 | (a) — `treeProvider` typed `instanceof` chain over `LinkEditor → ArchiveEditor → ExplorerEditor`; confirms LK9's recipe across three architectural shapes | none |
