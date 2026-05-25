@@ -253,7 +253,15 @@ editorRegistry.register({
         return -1;
     },
     loadModule: async () => {
-        const module = await import("./image/ImageViewer");
+        // EPIC-028 / US-569 — Image migrated to native v4 module
+        // (`imageModule` in `./image/index.tsx`). Legacy `imageEditorModule`
+        // is PRESERVED in `ImageView.tsx` for the LegacyEditorAdapter
+        // safety-net path used by the file-open flow AND by
+        // `PagesLifecycleModel.openImageInNewTab`; `wrapLegacyForPage`'s
+        // `instanceof V4EditorModel` early-return (US-568 PD-IMPL16)
+        // detects the returned v4 ImageEditor and skips the adapter wrap.
+        // US-559 retires this loadModule entirely.
+        const module = await import("./image/ImageView");
         return module.default;
     },
 });
@@ -1309,5 +1317,34 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { pdfModule } = await import("./pdf");
         return pdfModule;
+    },
+});
+
+// US-569 — replace the legacy bare-adapter mirror for image-view with a
+// native v4 module. Image is NO-HOST (no `CONTENT_HOST_TRAIT`); the
+// `accepts` predicate delegates to the legacy registry's `acceptFile`
+// (returns 100 for image extensions) for forward-compatibility with a
+// v4 file-open flow under US-559. `hasContentHost: false` keeps Image
+// out of the switch widget. Today's `PagesLifecycleModel.openFile` still
+// uses the LEGACY registry's `resolve` + `module.newEditorModel(filePath)`
+// path; `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return
+// (US-568 PD-IMPL16) ensures the returned v4 ImageEditor reaches
+// `editors[]` unwrapped.
+v4EditorRegistry.register({
+    id: "image-view",
+    name: "Image Viewer",
+    hasContentHost: false,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("image-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { imageModule } = await import("./image");
+        return imageModule;
     },
 });

@@ -41,7 +41,6 @@ interface PageSidebarSavedState {
  * (not in `editorRegistry`).
  *
  * Append to this set as each no-host migration lands:
- *   - US-569 Image → "image-view"
  *   - US-571 Video → "video-view"
  *   - US-572 Settings → "settings-view"
  *   - US-573 About → "about-view"
@@ -53,8 +52,9 @@ interface PageSidebarSavedState {
  * the generic restore path.
  */
 const V4_NO_HOST_EDITOR_IDS = new Set([
-    "browser-view", // US-558 (retroactive — see PD-IMPL11)
-    "pdf-view",     // US-568 (this PR)
+    "browser-view", // US-558 (retroactive — see US-568 PD-IMPL11)
+    "pdf-view",     // US-568
+    "image-view",   // US-569 (this PR)
 ]);
 
 /**

@@ -1131,7 +1131,17 @@ export class PagesLifecycleModel {
     };
 
     openImageInNewTab = async (imageUrl: string): Promise<void> => {
-        const imgModule = await import("../../editors/image/ImageViewer");
+        // EPIC-028 / US-569 — Image migrated to native v4 module. Import
+        // path resolves to `editors/image/index.tsx` (post-migration; the
+        // legacy file `ImageViewer.tsx` was renamed to `ImageView.tsx`
+        // and is no longer imported directly). `imgModule.default` is
+        // the preserved legacy `imageEditorModule` (constructs v4
+        // ImageEditor cast as legacy). `imgModule.ImageEditorModel` is
+        // the v4 ImageEditor class re-exported under the compatibility
+        // alias for the `instanceof` check below. `wrap(imgModel)`
+        // early-returns the v4 instance (US-568 PD-IMPL16) — no adapter
+        // wrap.
+        const imgModule = await import("../../editors/image");
         const imgModel =
             await imgModule.default.newEmptyEditorModel("imageFile");
         if (imgModel) {
