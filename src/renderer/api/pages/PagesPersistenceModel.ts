@@ -32,6 +32,32 @@ interface PageSidebarSavedState {
 }
 
 /**
+ * EPIC-028 / US-568 / PD-IMPL11 — editorIds of v4-native NO-HOST editors
+ * that restore via the canonical `editorRegistry.createEditor` path
+ * (rather than the legacy fallback that wraps in `LegacyEditorAdapter`).
+ *
+ * v4-with-host editors take the `if (d.host)` branch in `restorePage` and
+ * don't need to be listed here. Explorer has its own explicit branch
+ * (not in `editorRegistry`).
+ *
+ * Append to this set as each no-host migration lands:
+ *   - US-569 Image → "image-view"
+ *   - US-571 Video → "video-view"
+ *   - US-572 Settings → "settings-view"
+ *   - US-573 About → "about-view"
+ *   - US-574 MCP Inspector → "mcp-view"
+ *   - US-575 Storybook → "storybook-view"
+ *   - US-576 Category → "category-view"
+ *
+ * US-559 deletes the legacy fallback entirely and folds this set into
+ * the generic restore path.
+ */
+const V4_NO_HOST_EDITOR_IDS = new Set([
+    "browser-view", // US-558 (retroactive — see PD-IMPL11)
+    "pdf-view",     // US-568 (this PR)
+]);
+
+/**
  * PagesPersistenceModel — Load/save window state to storage.
  *
  * EPIC-028 / US-548: writes v4 (`schemaVersion: 4` + unified `editors[]` +
@@ -123,6 +149,35 @@ export class PagesPersistenceModel {
                         explorer.applyRestoreData(d.state as unknown as Parameters<typeof explorer.applyRestoreData>[0]);
                         await explorer.restore();
                         return explorer;
+                    }
+                    // EPIC-028 / US-568 / PD-IMPL11 — generic v4-native
+                    // no-host restore branch. Closes US-558's
+                    // adapter-wrap-on-restore blocker for Browser AND
+                    // establishes the path every subsequent no-host
+                    // migration (US-569+) uses by registering in
+                    // V4_NO_HOST_EDITOR_IDS. Editors not in the set fall
+                    // through to the legacy fallback (truly-legacy editors
+                    // like Archive, Image pre-US-569, Video pre-US-571,
+                    // etc.).
+                    if (V4_NO_HOST_EDITOR_IDS.has(d.editorId)) {
+                        const { editorRegistry: v4Registry } = await import(
+                            "../../editors/base/v4"
+                        );
+                        const editor = await v4Registry.createEditor(d.editorId, d.id);
+                        // Seed editor state from the descriptor before
+                        // applyRestoreData (mirrors Explorer pattern above).
+                        // For no-host editors, the persisted state lives
+                        // entirely in `d.state` (no host descriptor to
+                        // absorb fields).
+                        editor.state.update((s) => {
+                            Object.assign(s as object, d.state);
+                            (s as { id: string }).id = d.id;
+                        });
+                        editor.applyRestoreData(
+                            d.state as unknown as Parameters<typeof editor.applyRestoreData>[0],
+                        );
+                        await editor.restore();
+                        return editor;
                     }
                     const legacyState = {
                         ...(d.state as Partial<IEditorState>),

@@ -1,5 +1,5 @@
 import type { PagesModel } from "./PagesModel";
-import type { EditorModel as V4EditorModel } from "../../editors/base/v4";
+import { EditorModel as V4EditorModel } from "../../editors/base/v4";
 import { LegacyEditorAdapter, deriveEditorId } from "../../editors/base/v4";
 import type { EditorModel as LegacyEditorModel } from "../../editors/base/EditorModel";
 import { IEditorState, EditorView, EditorType, PageDescriptor } from "../../../shared/types";
@@ -64,6 +64,19 @@ function normalizeLinksTitle(title?: string): string {
  *  native Monaco — the next save then writes the v4-native shape.
  */
 export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
+    // EPIC-028 / US-568 / PD-IMPL16 — if the "legacy" module factory
+    // returned a v4-native editor (post-migration standalone editors use
+    // `as unknown as EditorModel` casts in their preserved EditorModule
+    // shims — `BrowserView.tsx`, `PdfView.tsx`, future Image/Video/etc.),
+    // return it directly without adapter wrap. `createEditorFromFile`
+    // already called `editor.restore()` before this function — v4 editors
+    // expose the same surface as legacy editors for that call. Closes the
+    // open-file gap so US-559 can delete `LegacyEditorAdapter` cleanly.
+    // Benefits Browser retroactively (closes US-558 limitation).
+    if (legacy instanceof V4EditorModel) {
+        return legacy as unknown as V4EditorModel;
+    }
+
     const targetEditorId = deriveEditorId(legacy.state.get());
     const isTextFile = (legacy as unknown as { type?: string }).type === "textFile";
 

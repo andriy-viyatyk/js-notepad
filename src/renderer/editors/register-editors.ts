@@ -230,7 +230,13 @@ editorRegistry.register({
         return -1;
     },
     loadModule: async () => {
-        const module = await import("./pdf/PdfViewer");
+        // EPIC-028 / US-568 — PDF migrated to native v4 module (`pdfModule`
+        // in `./pdf/index.tsx`). Legacy `pdfEditorModule` is PRESERVED in
+        // `PdfView.tsx` for the LegacyEditorAdapter safety-net path used by
+        // the file-open flow; `wrapLegacyForPage`'s `instanceof V4EditorModel`
+        // early-return (PD-IMPL16) detects the returned v4 PdfEditor and
+        // skips the adapter wrap. US-559 retires this loadModule entirely.
+        const module = await import("./pdf/PdfView");
         return module.default;
     },
 });
@@ -1274,5 +1280,34 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { browserModule } = await import("./browser");
         return browserModule;
+    },
+});
+
+// US-568 — replace the legacy bare-adapter mirror for pdf-view with a
+// native v4 module. PDF is NO-HOST (no `CONTENT_HOST_TRAIT`); the
+// `accepts` predicate delegates to the legacy registry's `acceptFile`
+// (returns 100 for `.pdf` files) for forward-compatibility with a v4
+// file-open flow under US-559. `hasContentHost: false` keeps PDF out of
+// the switch widget. Today's `PagesLifecycleModel.openFile` still uses
+// the LEGACY registry's `resolve` + `module.newEditorModel(filePath)`
+// path; `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return
+// (PD-IMPL16) ensures the returned v4 PdfEditor reaches `editors[]`
+// unwrapped.
+v4EditorRegistry.register({
+    id: "pdf-view",
+    name: "PDF Viewer",
+    hasContentHost: false,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("pdf-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { pdfModule } = await import("./pdf");
+        return pdfModule;
     },
 });
