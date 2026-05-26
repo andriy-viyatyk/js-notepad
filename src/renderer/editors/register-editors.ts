@@ -1348,3 +1348,32 @@ v4EditorRegistry.register({
         return imageModule;
     },
 });
+
+// US-570 — replace the legacy bare-adapter mirror for archive-view with a
+// native v4 module. Archive is NO-HOST (no `CONTENT_HOST_TRAIT`) AND
+// sidebar-owning (contributes the `"archive-tree"` panel). The `accepts`
+// predicate delegates to the legacy registry's `acceptFile` (returns 100 for
+// archive extensions). `hasContentHost: false` keeps Archive out of the switch
+// widget. Today's `_openZipArchive` / `openFile` still construct via the LEGACY
+// registry's `module.newEditorModel` (which now returns a v4 ArchiveEditor cast
+// as legacy via `ArchiveEditorView`'s preserved module); `wrapLegacyForPage`'s
+// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) skips the adapter
+// wrap. The `archive-tree` secondary-editor registration is unchanged.
+v4EditorRegistry.register({
+    id: "archive-view",
+    name: "Archive",
+    hasContentHost: false,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("archive-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { archiveModule } = await import("./archive");
+        return archiveModule;
+    },
+});

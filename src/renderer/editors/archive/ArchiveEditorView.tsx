@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { TreeProviderView, TreeProviderViewRef } from "../../components/tree-provider";
 import { PageToolbar } from "../base/v4";
-import { EditorToolbar } from "../base/EditorToolbar";
+import { TComponentState } from "../../core/state/state";
 import { Panel } from "../../uikit/Panel";
 import { IconButton } from "../../uikit/IconButton";
 import { Text } from "../../uikit/Text";
@@ -10,12 +10,19 @@ import {
     RefreshIcon,
 } from "../../theme/icons";
 import { app } from "../../api/app";
-import { pagesModel } from "../../api/pages";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
-import type { ArchiveEditorModel } from "./ArchiveEditorModel";
+import type { EditorModel } from "../base";
+import { EditorModule } from "../types";
+import type { EditorType, IEditorState } from "../../../shared/types";
+import type { RestoreData } from "../base/v4/EditorModel";
+import {
+    ArchiveEditor,
+    getDefaultArchiveEditorState,
+    type ArchiveEditorState,
+} from "./ArchiveEditor";
 
-export function ArchiveEditorView({ model }: { model: ArchiveEditorModel }) {
+export function ArchiveEditorView({ model }: { model: ArchiveEditor }) {
     const provider = model.treeProvider;
     const pageId = model.page?.id ?? model.id;
     const treeRef = useRef<TreeProviderViewRef>(null);
@@ -32,8 +39,6 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditorModel }) {
     const handleRefresh = useCallback(() => {
         treeRef.current?.refresh();
     }, []);
-
-    const v4Main = pagesModel.findPage(model.id)?.mainEditorV4 ?? null;
 
     if (!provider) {
         return (
@@ -57,8 +62,11 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditorModel }) {
             overflow="hidden"
             background="default"
         >
-            {(() => {
-                const rightActions = (
+            <PageToolbar
+                name="archive-toolbar"
+                model={model}
+                borderBottom
+                rightContributions={
                     <>
                         <IconButton
                             name="archive-collapse-all"
@@ -75,18 +83,8 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditorModel }) {
                             onClick={handleRefresh}
                         />
                     </>
-                );
-                return v4Main ? (
-                    <PageToolbar
-                        name="archive-toolbar"
-                        model={v4Main}
-                        borderBottom
-                        rightContributions={rightActions}
-                    />
-                ) : (
-                    <EditorToolbar borderBottom>{rightActions}</EditorToolbar>
-                );
-            })()}
+                }
+            />
             <TreeProviderView
                 ref={treeRef}
                 provider={provider}
@@ -96,3 +94,47 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditorModel }) {
         </Panel>
     );
 }
+
+// ============================================================================
+// EditorModule
+// ============================================================================
+// EPIC-028 / US-570 — legacy EditorModule shape preserved for the
+// LegacyEditorAdapter safety-net path used by `PagesLifecycleModel.openFile`
+// (file-open flow) AND by `PagesLifecycleModel._openZipArchive` (dedicated
+// archive-open path). The `as unknown as EditorModel` casts bridge the v4
+// ArchiveEditor class to the legacy EditorModel typing the legacy module
+// factories expect; the runtime instance is the v4 class either way. Mirrors
+// the US-569 Image pattern at `image/ImageView.tsx`. `wrapLegacyForPage`'s
+// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) detects the v4
+// instance and skips the adapter wrap. US-559 retires this block entirely.
+
+function makeArchiveEditor(): ArchiveEditor {
+    return new ArchiveEditor(new TComponentState(getDefaultArchiveEditorState()));
+}
+
+const archiveEditorModule: EditorModule = {
+    Editor: ArchiveEditorView as unknown as EditorModule["Editor"],
+    newEditorModel: async (filePath?: string) => {
+        const model = makeArchiveEditor();
+        if (filePath) await model.initFromArchive(filePath);
+        return model as unknown as EditorModel;
+    },
+    newEmptyEditorModel: async (editorType: EditorType) => {
+        if (editorType !== "archiveFile") return null;
+        return makeArchiveEditor() as unknown as EditorModel;
+    },
+    newEditorModelFromState: async (state: Partial<IEditorState>) => {
+        const model = new ArchiveEditor(
+            new TComponentState({
+                ...getDefaultArchiveEditorState(),
+                ...(state as Partial<ArchiveEditorState>),
+            }),
+        );
+        model.applyRestoreData(state as RestoreData<ArchiveEditorState>);
+        return model as unknown as EditorModel;
+    },
+};
+
+export default archiveEditorModule;
+export { ArchiveEditor };
+export type { ArchiveEditorState };

@@ -6,13 +6,13 @@ import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryEditorProps } from "../../ui/navigation/secondary-editor-registry";
-import type { ArchiveEditorModel } from "./ArchiveEditorModel";
+import type { ArchiveEditor } from "./ArchiveEditor";
 import { IconButton } from "../../uikit/IconButton";
 import { Spacer } from "../../uikit/Spacer";
 import { CloseIcon } from "../../theme/icons";
 
 export default function ArchiveSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
-    const archiveModel = model as ArchiveEditorModel;
+    const archiveModel = model as ArchiveEditor;
     const provider = archiveModel.treeProvider;
     const treeProviderRef = useRef<TreeProviderViewRef>(null);
 

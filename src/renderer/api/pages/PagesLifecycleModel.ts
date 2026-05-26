@@ -651,13 +651,14 @@ export class PagesLifecycleModel {
 
         const page = new PageModel();
         const adapter = wrap(legacy);
+        // EPIC-028 / US-570 / AR-IMPL7 — `attach` calls the v4 ArchiveEditor's
+        // `setPage`, which publishes `secondaryEditor = ["archive-tree"]`; the
+        // trailing `version++` in `attach` forces the navigator render. The
+        // former manual panel-publish line (legacy compat-shim trigger) is no
+        // longer needed.
         page.attach(adapter);
         page.setMainEditorId(adapter.id);
         page.ensurePageNavigatorModel();
-
-        // Trigger the legacy editor's secondaryEditor setter so it registers
-        // its panel via the compat shim on PageModel.
-        (legacy as unknown as { secondaryEditor: string[] }).secondaryEditor = ["archive-tree"];
 
         this.addPage(adapter, page);
         this.model.closeFirstPageIfEmpty();

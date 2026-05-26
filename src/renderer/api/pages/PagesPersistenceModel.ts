@@ -54,7 +54,8 @@ interface PageSidebarSavedState {
 const V4_NO_HOST_EDITOR_IDS = new Set([
     "browser-view", // US-558 (retroactive — see US-568 PD-IMPL11)
     "pdf-view",     // US-568
-    "image-view",   // US-569 (this PR)
+    "image-view",   // US-569
+    "archive-view", // US-570 (this PR — first no-host sidebar-owning editor)
 ]);
 
 /**

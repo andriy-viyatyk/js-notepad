@@ -237,6 +237,32 @@ export abstract class EditorModel<
         return null;
     }
 
+    // ── Navigation-source accessor (sidebar-owning navigation survival) ───
+
+    /** Resolve the navigation `sourceLink.sourceId` set by `navigatePageTo`,
+     *  used by sidebar-owning editors (Archive / Link) to decide whether to
+     *  survive a main-editor swap. `navigatePageTo` writes `sourceLink` onto
+     *  the legacy editor's state BEFORE wrap, so the location depends on the
+     *  new main editor's topology:
+     *
+     *   - v4-native text editors (Monaco, Grid, …) adopt that state as their
+     *     content host — `sourceLink` is on `contentHost.state`, NOT the
+     *     editor's own state (which is a fresh editor-shaped state).
+     *   - no-host editors (PDF, Image, Browser, Archive) and legacy non-text
+     *     adapters (Player) keep `sourceLink` on the editor's OWN state, and
+     *     have no content host.
+     *
+     *  Check own state first, then fall back to the content host, so neither
+     *  topology is missed. (Reading only one location was the cause of the
+     *  panel-disappears-on-navigate bug for Archive→text and Link→player.) */
+    getNavigationSourceId(): string | undefined {
+        const own = (this.state.get() as { sourceLink?: { sourceId?: string } })
+            .sourceLink?.sourceId;
+        if (own) return own;
+        return (this.contentHost?.state.get() as { sourceLink?: { sourceId?: string } } | undefined)
+            ?.sourceLink?.sourceId;
+    }
+
     // ── Navigator-target accessor (walkthrough 09 / PT5 / B3) ─────────────
 
     /** What the page-level NavPanel button should toggle when clicked.

@@ -177,10 +177,19 @@ export class PageModel {
      *  so their panel state lives on the v4 editor (not the host), and the
      *  secondary-editor wrapper receives the v4 instance for `instanceof` checks. */
     get panelEditors(): EditorModel[] {
-        return this.editors
+        const editors = this.editors
             .filter((e) => e.contributesPanels())
             .map((e) => e instanceof LegacyEditorAdapter ? e.legacy : (e as unknown as EditorModel))
             .filter((e): e is EditorModel => e !== null);
+        // Explorer panel always renders first (original design). The Explorer
+        // editor is lazily attached AFTER content editors when the user toggles
+        // the navigator, so it would otherwise sort last. Stable-sort the
+        // explorer-contributing editor to the front; Array.sort is stable, so
+        // all other editors keep their attach order.
+        const explorerRank = (e: EditorModel) =>
+            ((e.state.get() as { secondaryEditor?: string[] }).secondaryEditor ?? [])
+                .includes("explorer") ? 0 : 1;
+        return editors.sort((a, b) => explorerRank(a) - explorerRank(b));
     }
 
     /** v4 surface of the panel editors. */

@@ -450,12 +450,14 @@ export class LinkEditor
 
     /** Check if a model was opened via this LinkEditor's own UI (own-id
      *  links, or standalone-secondary panel clicks emitting `link-category`
-     *  / `link-tag`). Reads `sourceLink.sourceId` from the new model's
-     *  content host (where `navigatePageTo` writes it). */
+     *  / `link-tag`). Reads `sourceLink.sourceId` via
+     *  `EditorModel.getNavigationSourceId`, which checks both the editor's own
+     *  state AND its content host — so links opening in a no-host / legacy
+     *  non-text editor (e.g. the audio/video player, where `sourceLink` lives
+     *  on the editor's own state and there is no content host) keep the Link
+     *  panels instead of dropping them. */
     private _isOpenedFromMe(model: V4EditorModel): boolean {
-        const host = (model as { contentHost?: IContentHost | null }).contentHost;
-        const sourceLink = (host?.state.get() as { sourceLink?: { sourceId?: string } } | undefined)?.sourceLink;
-        const sourceId = sourceLink?.sourceId;
+        const sourceId = model.getNavigationSourceId();
         if (!sourceId) return false;
         if (sourceId === this.id) return true;
         return sourceId === "link-category" || sourceId === "link-tag";
