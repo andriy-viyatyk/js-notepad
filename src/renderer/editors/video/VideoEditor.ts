@@ -1,18 +1,18 @@
-import React, { createElement, ReactNode } from "react";
-import { IEditorState, EditorType } from "../../../shared/types";
-import { getDefaultEditorModelState, EditorModel } from "../base";
-import { EditorToolbar } from "../base/EditorToolbar";
+import { createElement } from "react";
 import { TComponentState } from "../../core/state/state";
-import { EditorModule } from "../types";
-import { Button, IconButton, Panel, Text, Textarea } from "../../uikit";
-import color from "../../theme/color";
-import { PlayerIcon, VlcIcon, NavPanelIcon } from "../../theme/icons";
+import {
+    EditorModel as V4EditorModel,
+    type EditorStateBase,
+    type RestoreData,
+} from "../base/v4/EditorModel";
+import type { EditorDescriptor } from "../../../shared/persistence-v4";
+import type { IContentPipe } from "../../api/types/io.pipe";
+import { PlayerIcon } from "../../theme/icons";
 import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
 import type { ParsedHttpRequest } from "../../core/utils/curl-parser";
 import { parseHttpRequest } from "../../core/utils/curl-parser";
 import { detectVideoFormat, isAudioFile } from "./video-types";
 import type { VideoFormat, PlayerState } from "./video-types";
-import { VPlayer } from "./VPlayer";
 import { api } from "../../../ipc/renderer/api";
 import { settings } from "../../api/settings";
 import { ui } from "../../api/ui";
@@ -21,9 +21,32 @@ import { createLinkData } from "../../../shared/link-data";
 import { fpDirname } from "../../core/utils/file-path";
 import type { ITreeProvider, ILink } from "../../api/types/io.tree";
 
+/**
+ * EPIC-028 / US-571 — native v4 Video/Audio player. NO-HOST editor (no
+ * `CONTENT_HOST_TRAIT`) — Video owns its state directly and resolves its own
+ * streaming-server URLs rather than reading content through a `pipe`.
+ *
+ * Closest siblings: PdfEditor (US-568) / ImageEditor (US-569) — same no-host
+ * page-mainEditor shape. Differences:
+ *   - Module-scoped `sessionMuted` shared across player instances in the window.
+ *   - A local streaming-server session lifecycle (created on submit/open,
+ *     deleted in dispose via `api.deleteVideoStreamSessionsByPage`).
+ *   - VLC integration (`openInVlc`).
+ *   - A `playNext`/shuffle "next track" feature that reads sibling tree
+ *     providers from `page.secondaryEditors[]` (duck-typed — those panels are
+ *     contributed by the v4 Explorer/Link/Archive editors, US-567/US-570).
+ *   - Uses `PageToolbar` with the `noSpacer` prop (VD-IMPL4) — the nav button
+ *     is auto-rendered via the `getNavigatorTarget()` override below.
+ *
+ * Design rationale: doc/tasks/US-571-video-editor-migration/README.md.
+ */
+
 // ── State ────────────────────────────────────────────────────────────────────
 
-export interface VideoEditorState extends IEditorState {
+export interface VideoEditorState extends EditorStateBase {
+    /** Discriminator — preserved for `deriveEditorId` and pre-US-571 saved
+     *  descriptors (VD-IMPL3). `deriveEditorId({type:"videoPage"})` === "video-view". */
+    type: "videoPage";
     /** Raw video URL as entered by user (file path or HTTP URL). */
     url: string;
     /** Raw text as typed by user (may be a cURL command). */
@@ -32,25 +55,27 @@ export interface VideoEditorState extends IEditorState {
     format: VideoFormat;
     /** Current player lifecycle state. */
     playerState: PlayerState;
-    /** Whether the player is muted. Used by PageTab for the mute button. */
+    /** Whether the player is muted. Consumed by PageTab for the mute button. */
     pageMuted: boolean;
-    /** Parsed HTTP request from cURL input. Null for plain URLs. Set in US-414. */
+    /** Parsed HTTP request from cURL input. Null for plain URLs. */
     parsedRequest: ParsedHttpRequest | null;
     /**
      * Resolved streaming server URL ready for VPlayer to play.
      * Empty string while being resolved or when no video is loaded.
-     * Transient — not persisted across app restarts.
+     * Transient — not persisted across app restarts (VD-IMPL5).
      */
     streamUrl: string;
 }
 
-/** Last mute state within this window session — remembered across video player instances. */
+/** Last mute state within this window session — remembered across video player
+ *  instances. Module-scoped (preserved from legacy `VideoPlayerEditor.tsx:48`). */
 let sessionMuted = false;
 
-const getDefaultVideoEditorState = (): VideoEditorState => ({
-    ...getDefaultEditorModelState(),
-    type: "videoPage" as const,
+export const getDefaultVideoEditorState = (): VideoEditorState => ({
+    id: crypto.randomUUID(),
     title: "Video Player",
+    modified: false,
+    type: "videoPage",
     editor: "video-view",
     url: "",
     inputText: "",
@@ -63,13 +88,18 @@ const getDefaultVideoEditorState = (): VideoEditorState => ({
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
-export class VideoEditorModel extends EditorModel<VideoEditorState, void> {
+export class VideoEditor extends V4EditorModel<VideoEditorState> {
+    /** v4 editor identity. Matches the legacy registry id so v4
+     *  EditorDescriptor.editorId and pre-US-571 saved descriptors agree. */
+    readonly editorId = "video-view";
+
     noLanguage = true;
     skipSave = true;
 
-    getIcon = (): ReactNode => {
-        return createElement(PlayerIcon, { color: DEFAULT_BROWSER_COLOR });
-    };
+    constructor(state: TComponentState<VideoEditorState>) {
+        super(state);
+        this.getIcon = () => createElement(PlayerIcon, { color: DEFAULT_BROWSER_COLOR });
+    }
 
     /** Update raw input text as user types. */
     setInputText = (text: string) => {
@@ -133,6 +163,7 @@ export class VideoEditorModel extends EditorModel<VideoEditorState, void> {
 
     /** Called after model creation when opening a file — resolves stream URL for immediate playback. */
     async restore(): Promise<void> {
+        await super.restore();
         const { url, format, parsedRequest, playerState } = this.state.get();
         if (url && playerState === "loading") {
             const streamUrl = await this.resolveStreamUrl(url, format, parsedRequest);
@@ -144,8 +175,9 @@ export class VideoEditorModel extends EditorModel<VideoEditorState, void> {
         }
     }
 
-    /** Called by VPlayer (US-413) when player state changes. */
-    onPlayerStateChange = (playerState: PlayerState, _error?: unknown) => {
+    /** Called by VPlayer (US-413) when player state changes. (VPlayer's
+     *  `onStateChange` may pass an error arg; it's unused here.) */
+    onPlayerStateChange = (playerState: PlayerState) => {
         this.state.update((s) => { s.playerState = playerState; });
     };
 
@@ -334,7 +366,7 @@ export class VideoEditorModel extends EditorModel<VideoEditorState, void> {
             }
         }
 
-        const nextIndex = bag.shift()!;
+        const nextIndex = bag.shift() ?? 0;
         page.setTransient(key, bag);
         return nextIndex;
     }
@@ -375,7 +407,15 @@ export class VideoEditorModel extends EditorModel<VideoEditorState, void> {
         }
     };
 
-    applyRestoreData(data: Partial<VideoEditorState>): void {
+    /** Surface the "File Explorer" nav button through PageToolbar's
+     *  NavPanelButton (VD-IMPL4). Returning `{ pipe: null, filePath }` gates on
+     *  `canOpenNavigator(null, filePath)` — equivalent to the legacy
+     *  `(canOpenNavigator(...) || filePath)` inline gate. */
+    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
+        return { pipe: null, filePath: this.state.get().filePath ?? null };
+    }
+
+    applyRestoreData(data: RestoreData<VideoEditorState>): void {
         super.applyRestoreData(data);
         const fields: (keyof VideoEditorState)[] = [
             "url", "inputText", "format", "playerState", "pageMuted", "parsedRequest",
@@ -383,7 +423,8 @@ export class VideoEditorModel extends EditorModel<VideoEditorState, void> {
         this.state.update((s) => {
             for (const key of fields) {
                 if (key in data) {
-                    (s as unknown as Record<string, unknown>)[key] = data[key as keyof VideoEditorState];
+                    (s as unknown as Record<string, unknown>)[key] =
+                        (data as unknown as Record<string, unknown>)[key as string];
                 }
             }
             // Don't restore transient states — reset to stopped
@@ -392,151 +433,25 @@ export class VideoEditorModel extends EditorModel<VideoEditorState, void> {
             }
         });
     }
-}
 
-// ── Inline-style constants ───────────────────────────────────────────────────
-
-const stateBadgeStyle: React.CSSProperties = {
-    position: "absolute",
-    bottom: 24,
-    left: "50%",
-    transform: "translateX(-50%)",
-    padding: "4px 12px",
-    borderRadius: 4,
-    background: color.background.light,
-    color: color.text.light,
-    fontSize: 12,
-    pointerEvents: "none",
-};
-
-const vlcButtonContainerStyle: React.CSSProperties = {
-    position: "absolute",
-    bottom: 60,
-    left: "50%",
-    transform: "translateX(-50%)",
-};
-
-// ── Component ────────────────────────────────────────────────────────────────
-
-interface VideoPlayerEditorProps {
-    model: VideoEditorModel;
-}
-
-function VideoPlayerEditor({ model }: VideoPlayerEditorProps) {
-    const url = model.state.use((s) => s.url);
-    const streamUrl = model.state.use((s) => s.streamUrl);
-    const inputText = model.state.use((s) => s.inputText);
-    const format = model.state.use((s) => s.format);
-    const muted = model.state.use((s) => s.pageMuted);
-    const filePath = model.state.use((s) => s.filePath);
-    const parsedRequest = model.state.use((s) => s.parsedRequest);
-    const playerState = model.state.use((s) => s.playerState);
-    const shuffle = settings.use("audio-shuffle") === true;
-    const canPlayNext = model.canPlayNext;
-    const showBadge = playerState !== "playing" && playerState !== "paused" && playerState !== "stopped";
-    const showVlcButton = url && !["loading", "playing", "stopped"].includes(playerState);
-
-    return (
-        <Panel name="video-player" direction="column" height="100%" background="dark" overflow="hidden">
-            <EditorToolbar borderBottom>
-                {(model.page?.canOpenNavigator(null, filePath) || filePath) && (
-                    <IconButton
-                        name="video-nav-panel"
-                        size="sm"
-                        icon={<NavPanelIcon />}
-                        title="File Explorer"
-                        onClick={() => model.page?.toggleNavigator(null, filePath)}
-                    />
-                )}
-                <Panel
-                    direction="column"
-                    flex={1}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && e.ctrlKey) {
-                            e.preventDefault();
-                            model.submitUrl(inputText);
-                        }
-                    }}
-                >
-                    <Textarea
-                        name="video-url-input"
-                        value={inputText}
-                        onChange={model.setInputText}
-                        placeholder="Enter video URL or paste cURL command... (Ctrl+Enter to play)"
-                        minHeight={28}
-                        maxHeight={72}
-                        size="sm"
-                    />
-                </Panel>
-            </EditorToolbar>
-            <Panel name="video-player-area" direction="column" flex={1} align="center" justify="center" position="relative" overflow="hidden">
-                {url && (
-                    <VPlayer
-                        src={streamUrl}
-                        format={format}
-                        muted={muted}
-                        parsedRequest={parsedRequest}
-                        sourceUrl={url}
-                        onStateChange={model.onPlayerStateChange}
-                        onMutedChange={model.onMutedChange}
-                        onEnded={() => model.playNext()}
-                        hasNext={canPlayNext}
-                        shuffle={shuffle}
-                        onNext={() => model.playNext()}
-                        onToggleShuffle={model.toggleShuffle}
-                    />
-                )}
-                {!url && (
-                    <Text size="md" color="light">Enter a video URL above to start playing</Text>
-                )}
-                {showBadge && (
-                    <div style={stateBadgeStyle}>{playerState}</div>
-                )}
-                {showVlcButton && (
-                    <div style={vlcButtonContainerStyle}>
-                        <Button name="video-open-vlc" variant="link" icon={<VlcIcon />} onClick={model.openInVlc}>
-                            Open in VLC
-                        </Button>
-                    </div>
-                )}
-            </Panel>
-        </Panel>
-    );
-}
-
-// ── Editor Module ────────────────────────────────────────────────────────────
-
-const videoEditorModule: EditorModule = {
-    Editor: VideoPlayerEditor,
-    newEditorModel: async (filePath?: string) => {
-        const initialState = getDefaultVideoEditorState();
-        if (filePath) {
-            initialState.filePath = filePath;
-            initialState.inputText = filePath;
-            initialState.url = filePath;
-            initialState.format = detectVideoFormat(filePath);
-            initialState.playerState = "loading";
-        }
-        return new VideoEditorModel(new TComponentState(initialState));
-    },
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType === "videoPage") {
-            return new VideoEditorModel(
-                new TComponentState(getDefaultVideoEditorState()),
-            );
-        }
-        return null;
-    },
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const initialState: VideoEditorState = {
-            ...getDefaultVideoEditorState(),
-            ...state,
-            streamUrl: "", // always reset — streaming sessions are ephemeral
+    getRestoreData(): EditorDescriptor {
+        const s = this.state.get();
+        // streamUrl is transient (ephemeral streaming session) — never persist.
+        // Reset transient playback state so the descriptor never carries
+        // "loading"/"playing" (mirrors applyRestoreData + the legacy
+        // newEditorModelFromState `streamUrl: ""` reset).
+        const playerState =
+            s.playerState === "loading" || s.playerState === "playing"
+                ? "stopped"
+                : s.playerState;
+        return {
+            editorId: this.editorId,
+            id: s.id,
+            state: {
+                ...s,
+                playerState,
+                streamUrl: "",
+            } as unknown as Record<string, unknown>,
         };
-        return new VideoEditorModel(new TComponentState(initialState));
-    },
-};
-
-export default videoEditorModule;
-export { VideoPlayerEditor };
-export type { VideoPlayerEditorProps };
+    }
+}

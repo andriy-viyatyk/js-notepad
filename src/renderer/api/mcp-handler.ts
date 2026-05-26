@@ -159,6 +159,7 @@ function createPage(params: any): McpResponse {
             "pdf-view": 'Use execute_script with: await app.pages.openFile("/path/to/file.pdf")',
             "image-view": 'Use execute_script with: await app.pages.openFile("/path/to/image.png")',
             "archive-view": 'Use execute_script with: await app.pages.openFile("/path/to/archive.zip")',
+            "video-view": 'Use execute_script with: await app.pages.openFile("/path/to/video.mp4")',
             "mcp-view": "Use execute_script with: await app.pages.showMcpInspectorPage() "
                 + "or await app.pages.showMcpInspectorPage({ url: \"http://host:port/mcp\" })",
             "about-view": "Use execute_script with: await app.pages.showAboutPage()",

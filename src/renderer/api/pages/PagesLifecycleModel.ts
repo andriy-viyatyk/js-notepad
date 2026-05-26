@@ -1124,7 +1124,12 @@ export class PagesLifecycleModel {
     };
 
     showVideoPlayerPage = async (): Promise<void> => {
-        const videoModule = await import("../../editors/video/VideoPlayerEditor");
+        // EPIC-028 / US-571 — Video migrated to native v4 module. Import path
+        // resolves to `editors/video/index.tsx`. `videoModule.default` is the
+        // preserved legacy `videoEditorModule` (constructs v4 VideoEditor cast
+        // as legacy). `wrap(model)` early-returns the v4 instance (US-568
+        // PD-IMPL16).
+        const videoModule = await import("../../editors/video");
         const model = await videoModule.default.newEmptyEditorModel("videoPage");
         if (model) {
             this.addPage(wrap(model));

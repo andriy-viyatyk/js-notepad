@@ -31,16 +31,21 @@ interface PageToolbarProps {
      *  switch widget. Useful for editors whose action buttons sit on the
      *  right side of the row (e.g. ImageViewer's Save / Copy / Draw). */
     rightContributions?: ReactNode;
+    /** Suppress the auto-inserted `<Spacer />`. For editors whose children
+     *  should fill the row (e.g. Video's flex URL/cURL textarea — US-571 /
+     *  VD-IMPL4). Default false — the spacer pushes `rightContributions` + the
+     *  switch widget to the right edge. */
+    noSpacer?: boolean;
     borderTop?: boolean;
     borderBottom?: boolean;
 }
 
-export function PageToolbar({ name, model, children, rightContributions, borderTop, borderBottom }: PageToolbarProps) {
+export function PageToolbar({ name, model, children, rightContributions, noSpacer, borderTop, borderBottom }: PageToolbarProps) {
     return (
         <EditorToolbar name={name} borderTop={borderTop} borderBottom={borderBottom}>
             <NavPanelButton model={model} />
             {children}
-            <Spacer />
+            {!noSpacer && <Spacer />}
             {rightContributions}
             <SwitchWidget model={model} />
         </EditorToolbar>

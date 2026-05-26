@@ -662,7 +662,14 @@ editorRegistry.register({
         return -1;
     },
     loadModule: async () => {
-        const module = await import("./video/VideoPlayerEditor");
+        // EPIC-028 / US-571 — Video migrated to native v4 module
+        // (`videoModule` in `./video/index.tsx`). Legacy `videoEditorModule`
+        // is PRESERVED in `VideoView.tsx` for the file-open + tool-launcher +
+        // LegacyEditorAdapter safety-net paths; `wrapLegacyForPage`'s
+        // `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) detects
+        // the returned v4 VideoEditor and skips the adapter wrap. US-559
+        // retires this loadModule entirely.
+        const module = await import("./video/VideoView");
         return module.default;
     },
 });
@@ -1375,5 +1382,33 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { archiveModule } = await import("./archive");
         return archiveModule;
+    },
+});
+
+// US-571 — replace the legacy bare-adapter mirror for video-view with a
+// native v4 module. Video is NO-HOST (no `CONTENT_HOST_TRAIT`). The `accepts`
+// predicate delegates to the legacy registry's `acceptFile` (returns 100 for
+// video/audio extensions). `hasContentHost: false` keeps Video out of the
+// switch widget. Today's `showVideoPlayerPage` / `openFile` still construct via
+// the LEGACY registry's `module.newEditorModel` (which now returns a v4
+// VideoEditor cast as legacy via `VideoView`'s preserved module);
+// `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return (US-568
+// PD-IMPL16) skips the adapter wrap.
+v4EditorRegistry.register({
+    id: "video-view",
+    name: "Video Player",
+    hasContentHost: false,
+    accepts: (input) => {
+        const legacy = editorRegistry.getById("video-view");
+        if (!legacy) return -1;
+        if (input.fileName) {
+            const p = legacy.acceptFile?.(input.fileName) ?? -1;
+            if (p >= 0) return p;
+        }
+        return -1;
+    },
+    loadModule: async () => {
+        const { videoModule } = await import("./video");
+        return videoModule;
     },
 });
