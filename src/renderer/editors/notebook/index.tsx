@@ -20,9 +20,10 @@ import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
  *   - `rightToolbarContributions`    — Add Note button + Search input (+ clear)
  *   - `footerContributions`          — notes count: "<filtered> of <total>"
  *
- * Outer-only scope: NotebookBody composes the existing NoteItemView and
- * ExpandedNoteView (the per-note dispatch path stays on the legacy
- * acquireViewModel machinery until US-579).
+ * NotebookBody composes NoteItemView + ExpandedNoteView. The per-note dispatch
+ * (US-579) embeds v4 editors per note via `NoteItemActiveEditor` → the module's
+ * `Body` slot (monaco notes keep `MiniTextEditor`); the legacy `acquireViewModel`
+ * machinery is no longer used for notes.
  */
 
 interface NotebookContributionProps {

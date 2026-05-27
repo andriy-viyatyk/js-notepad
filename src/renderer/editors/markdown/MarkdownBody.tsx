@@ -109,6 +109,12 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         }
     }, [model, pageState.searchVisible]);
 
+    // US-579 — embedded (notebook collapsed-note) context: `maxEditorHeight`
+    // is set and there's no flex parent, so `flex={1} height={0}` would
+    // collapse to 0. Content-size instead (cap at maxEditorHeight, scroll
+    // beyond). At page level / expanded note (no maxEditorHeight) keep the
+    // flex-fill layout.
+    const embedded = editorConfig.maxEditorHeight !== undefined;
     const showMinimap = !editorConfig.hideMinimap;
     // PV2 — editorConfig.compact (notebook-embedded context override) OR
     // pageState.compactMode (per-page user toggle). Both still exist.
@@ -128,8 +134,8 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         <Panel
             name="markdown-view-root"
             direction="row"
-            flex={1}
-            height={0}
+            flex={embedded ? undefined : 1}
+            height={embedded ? undefined : 0}
             overflow="hidden"
             maxHeight={editorConfig.maxEditorHeight}
             tabIndex={-1}
@@ -155,8 +161,9 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
                 <Panel
                     name="markdown-scroll"
                     direction="column"
-                    flex={1}
-                    height={0}
+                    flex={embedded ? undefined : 1}
+                    height={embedded ? undefined : 0}
+                    maxHeight={embedded ? editorConfig.maxEditorHeight : undefined}
                     overflowY="auto"
                     overflowX="hidden"
                     scrollbar={showMinimap ? "hidden" : "auto"}

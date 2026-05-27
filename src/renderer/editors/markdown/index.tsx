@@ -39,10 +39,16 @@ function MarkdownEditorView({ model }: { model: V4EditorModel }) {
     );
 }
 
+// US-579 — chrome-free Body for notebook per-note embedding.
+function MarkdownEmbeddedBody({ model }: { model: V4EditorModel }) {
+    return <MarkdownBody model={model as MarkdownEditor} />;
+}
+
 export const markdownModule: EditorModule = {
     createEditor: () =>
         new MarkdownEditor(new TComponentState({ ...defaultMarkdownEditorState })),
     Component: MarkdownEditorView,
+    Body: MarkdownEmbeddedBody,
 };
 
 export { MarkdownEditor, defaultMarkdownEditorState };

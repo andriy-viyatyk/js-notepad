@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { HtmlEditor } from "./HtmlEditor";
+import { useEditorConfig } from "../base";
 
 /**
  * EPIC-028 / US-561 — Html preview body. Reads host content via state.use,
@@ -41,12 +42,21 @@ export function HtmlBody({ model }: HtmlBodyProps) {
         [content],
     );
 
+    // US-579 — embedded (notebook collapsed-note) context: the iframe has no
+    // flex parent, so `flex: 1` collapses to 0. Give it a definite box of
+    // maxEditorHeight. At page / expanded note (no maxEditorHeight) keep flex.
+    const maxH = useEditorConfig().maxEditorHeight;
+
     return (
         <iframe
             srcDoc={safeSrcDoc}
             sandbox="allow-scripts"
             title="HTML Preview"
-            style={{ flex: 1, border: "none" }}
+            style={
+                maxH !== undefined
+                    ? { height: maxH, width: "100%", border: "none" }
+                    : { flex: 1, border: "none" }
+            }
         />
     );
 }

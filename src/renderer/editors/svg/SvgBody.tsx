@@ -1,6 +1,7 @@
 import type { SvgEditor } from "./SvgEditor";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import { BaseImageView } from "../shared/BaseImageView";
+import { useEditorConfig } from "../base";
 
 /**
  * EPIC-028 / US-560 — Svg preview body. Reads host content via state.use,
@@ -37,5 +38,15 @@ export function SvgBody({ model, imageRefSetter }: SvgBodyProps) {
     // Build data URL from SVG content (matches today's SvgView.tsx behavior).
     const src = `data:image/svg+xml,${encodeURIComponent(content)}`;
 
-    return <BaseImageView ref={imageRefSetter} src={src} alt="SVG Preview" />;
+    const image = <BaseImageView ref={imageRefSetter} src={src} alt="SVG Preview" />;
+
+    // US-579 — embedded (notebook collapsed-note) context: BaseImageView is
+    // height:100%/flex, so it needs a definite-height parent. Give it a box of
+    // maxEditorHeight. At page / expanded note (no maxEditorHeight) the flex
+    // parent (TextChrome / fillContainer) provides height.
+    const maxH = useEditorConfig().maxEditorHeight;
+    if (maxH !== undefined) {
+        return <div style={{ height: maxH }}>{image}</div>;
+    }
+    return image;
 }

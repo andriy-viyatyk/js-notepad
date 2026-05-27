@@ -132,11 +132,19 @@ function GridFooterBits({
     );
 }
 
+// US-579 — chrome-free Body for notebook per-note embedding. The footer
+// record-count / columns-popover ref bridge is page-chrome only, so the
+// embedded Body renders GridBody with no ref + no visible-rows callback.
+function GridEmbeddedBody({ model }: { model: V4EditorModel }) {
+    return <GridBody model={model as GridEditor} />;
+}
+
 function makeModule(id: GridEditorId): EditorModule {
     return {
         createEditor: () =>
             new GridEditor(new TComponentState({ ...defaultGridEditorState }), id),
         Component: GridEditorView,
+        Body: GridEmbeddedBody,
     };
 }
 

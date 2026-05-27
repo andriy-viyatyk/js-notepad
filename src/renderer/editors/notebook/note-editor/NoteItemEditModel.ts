@@ -5,10 +5,8 @@ import { EditorView } from "../../../../shared/types";
 import { NoteItem, NotebookSource } from "../notebookTypes";
 import { scriptRunner } from "../../../scripting/ScriptRunner";
 import { isScriptLanguage } from "../../../scripting/transpile";
-import { ContentViewModelHost } from "../../base/ContentViewModelHost";
-import type { IContentHost } from "../../base/IContentHost";
-import type { ContentViewModel } from "../../base/ContentViewModel";
 import type { EditorStateStorage } from "../../base/EditorStateStorageContext";
+import type { HostDescriptor } from "../../../../shared/persistence-v4";
 import * as monaco from "monaco-editor";
 
 // =============================================================================
@@ -161,25 +159,40 @@ export interface NoteItemEditState {
     content: string;
     language: string;
     editor: EditorView;
+    // EPIC-028 / US-579 — fields read by embedded v4 editors during
+    // adoptHost / restore. The v4 editors (Grid / Markdown / Svg / Html /
+    // Mermaid) program against the concrete TextFileModel state shape, so
+    // NoteItemEditModel duck-types that surface (and keeps `type="textFile"`)
+    // to satisfy their `isLegacyTextFileHost` guard and state reads.
+    id: string;
+    title: string;
+    filePath?: string;
+    encrypted: boolean;
+    restored: boolean;
+    temp: boolean;
 }
 
 // =============================================================================
-// Edit Model (TextFileModel adapter)
+// Edit Model (TextFileModel-duck-typed content host)
 // =============================================================================
 
 /**
- * Adapter that provides IContentHost interface for note items.
- * Allows existing content-view editors (Grid, Markdown, SVG) to work with notes.
+ * Per-note content host. Wrapped by an embedded v4 EditorModel (Grid /
+ * Markdown / Svg / Html / Mermaid) one-per-note, or driven directly by
+ * `MiniTextEditor` for the monaco view (US-579 / IPM6 A1). Duck-types the
+ * `TextFileModel` surface the embedded editors call (`type`, `setPage`,
+ * `io.saveState`, `confirmRelease`, `pipe`, `getEditorState`/`setEditorState`)
+ * — NOT a v4 EditorModel itself. Per-note state (Grid columns, etc.) persists
+ * inside the notebook JSON (`data.state[noteId]`, NB8), not a cache file.
  */
-export class NoteItemEditModel implements IContentHost {
+export class NoteItemEditModel {
     readonly id: string;
     readonly type = "textFile" as const;
 
     private notebookModel: NotebookSource;
     private noteId: string;
-    private _vmHost = new ContentViewModelHost();
 
-    // IContentHost reactive state
+    // Reactive content state
     state: TComponentState<NoteItemEditState>;
 
     // Sub-model for Monaco editor
@@ -198,11 +211,20 @@ export class NoteItemEditModel implements IContentHost {
         this.noteId = note.id;
         this.id = note.id;
 
-        // Initialize state from note
+        // Initialize state from note. `restored: true` makes the embedded
+        // editor's `restore()` skip its `host.restore()` branch (NoteItemEditModel
+        // has no restore()); `id`/`title`/`encrypted`/`temp` give the embedded
+        // editors safe values to read.
         this.state = new TComponentState<NoteItemEditState>({
             content: note.content.content,
             language: note.content.language,
             editor: (note.content.editor as EditorView) || "monaco",
+            id: note.id,
+            title: note.title || "Note",
+            filePath: undefined,
+            encrypted: false,
+            restored: true,
+            temp: false,
         });
 
         // State storage backed by notebook's per-note state
@@ -316,23 +338,58 @@ export class NoteItemEditModel implements IContentHost {
     };
 
     // =========================================================================
-    // IContentHost — view model management
+    // EPIC-028 / US-579 — TextFileModel-duck-typed host surface
+    //
+    // The embedded v4 editors (Grid / Markdown / Svg / Html / Mermaid) call
+    // these on their `_host`. They are never reached in ways that need real
+    // behavior here: the embedded editor is not a page mainEditor, so its
+    // saveState / setPage / getNavigatorTarget paths don't fire. Implemented
+    // as safe no-ops so any defensive call can't throw.
     // =========================================================================
 
-    acquireViewModel(editorId: EditorView): Promise<ContentViewModel<any>> {
-        return this._vmHost.acquire(editorId, this);
+    /** Per-note editor view-state slot (HS1). Backed by the notebook JSON
+     *  (`data.state[noteId]["editorSettings:<editorId>"]`, NB8) so Grid columns
+     *  etc. survive notebook reopen + cross-window transfer. Stored as a
+     *  stringified value via the existing `getNoteState`/`setNoteState`. */
+    getEditorState<T>(editorId: string): T | undefined {
+        const raw = this.notebookModel.getNoteState(this.noteId, `editorSettings:${editorId}`);
+        if (!raw) return undefined;
+        try {
+            return JSON.parse(raw) as T;
+        } catch {
+            return undefined;
+        }
     }
 
-    releaseViewModel(editorId: EditorView): void {
-        this._vmHost.release(editorId);
+    setEditorState<T>(editorId: string, value: T): void {
+        this.notebookModel.setNoteState(
+            this.noteId,
+            `editorSettings:${editorId}`,
+            JSON.stringify(value),
+        );
     }
 
-    acquireViewModelSync(editorId: EditorView): ContentViewModel<any> | undefined {
-        return this._vmHost.acquireSync(editorId, this);
-    }
+    /** No-op — the embedded editor is owned by the note view, not a PageModel. */
+    setPage = (): void => {};
 
-    async prepareViewModel(editorId: EditorView): Promise<void> {
-        await this._vmHost.prepare(editorId);
+    /** No-op — the note's content cache lives in the notebook JSON, not a
+     *  per-editor cache file. */
+    setStorage = (): void => {};
+
+    /** The note never blocks its own release; the notebook owns lifecycle. */
+    confirmRelease = async (): Promise<boolean> => true;
+
+    /** Notebook notes have no file pipe. */
+    pipe = null;
+
+    /** Notebook notes have no I/O of their own — content propagates to the
+     *  notebook synchronously via `updateNoteContent`. */
+    io = { saveState: async (): Promise<void> => {} };
+
+    /** Minimal descriptor for interface completeness — embedded note editors
+     *  are never persisted independently of the notebook. */
+    getDescriptor(): HostDescriptor {
+        return { kind: "noteItem", state: { noteId: this.noteId } } as unknown as HostDescriptor;
     }
 
     // =========================================================================
@@ -340,7 +397,6 @@ export class NoteItemEditModel implements IContentHost {
     // =========================================================================
 
     dispose = () => {
-        this._vmHost.disposeAll();
         this.editor.onDispose();
     };
 

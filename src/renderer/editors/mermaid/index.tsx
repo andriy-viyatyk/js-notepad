@@ -100,10 +100,18 @@ function MermaidEditorView({ model }: { model: V4EditorModel }) {
     );
 }
 
+// US-579 — chrome-free Body for notebook per-note embedding. The theme/
+// open-draw/copy toolbar buttons are page-chrome only, so the embedded Body
+// passes a no-op imageRefSetter (no toolbar bridge needed).
+function MermaidEmbeddedBody({ model }: { model: V4EditorModel }) {
+    return <MermaidBody model={model as MermaidEditor} imageRefSetter={() => {}} />;
+}
+
 export const mermaidModule: EditorModule = {
     createEditor: () =>
         new MermaidEditor(new TComponentState({ ...defaultMermaidEditorState })),
     Component: MermaidEditorView,
+    Body: MermaidEmbeddedBody,
 };
 
 export { MermaidEditor, defaultMermaidEditorState };

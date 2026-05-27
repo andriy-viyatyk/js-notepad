@@ -1,6 +1,7 @@
 import type { MermaidEditor } from "./MermaidEditor";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import { BaseImageView } from "../shared/BaseImageView";
+import { useEditorConfig } from "../base";
 import { Panel, Text, Spinner } from "../../uikit";
 
 /**
@@ -36,14 +37,20 @@ export function MermaidBody({ model, imageRefSetter }: MermaidBodyProps) {
         // no-op
     });
 
+    // US-579 — embedded (notebook collapsed-note) context: no flex parent, so
+    // give the preview a definite box (maxEditorHeight). At page / expanded
+    // note (no maxEditorHeight) keep the flex-fill layout.
+    const maxH = useEditorConfig().maxEditorHeight;
+    const embedded = maxH !== undefined;
+
     return (
         <Panel
             name="mermaid-root"
             direction="column"
-            flex
+            flex={embedded ? undefined : true}
             overflow="hidden"
             position="relative"
-            height={0}
+            height={embedded ? maxH : 0}
         >
             {error && (
                 <Panel flex align="center" justify="center" padding="xxxl">

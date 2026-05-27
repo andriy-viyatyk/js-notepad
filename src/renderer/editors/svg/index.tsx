@@ -77,10 +77,18 @@ function SvgEditorView({ model }: { model: V4EditorModel }) {
     );
 }
 
+// US-579 — chrome-free Body for notebook per-note embedding. The copy/open-draw
+// toolbar buttons are page-chrome only, so the embedded Body passes a no-op
+// imageRefSetter (no toolbar bridge needed).
+function SvgEmbeddedBody({ model }: { model: V4EditorModel }) {
+    return <SvgBody model={model as SvgEditor} imageRefSetter={() => {}} />;
+}
+
 export const svgModule: EditorModule = {
     createEditor: () =>
         new SvgEditor(new TComponentState({ ...defaultSvgEditorState })),
     Component: SvgEditorView,
+    Body: SvgEmbeddedBody,
 };
 
 export { SvgEditor, defaultSvgEditorState };

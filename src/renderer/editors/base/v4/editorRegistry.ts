@@ -31,8 +31,14 @@ export interface AcceptanceInput {
 export interface EditorModule {
     /** Factory for a new editor instance. */
     createEditor(): EditorModel;
-    /** The React component that renders this editor. */
+    /** The React component that renders this editor (with chrome). */
     Component: React.ComponentType<{ model: EditorModel }>;
+    /** Chrome-free body — the editor content WITHOUT `<TextChrome>`. Supplied
+     *  by editors that can be embedded inside another editor (EPIC-028 / US-579
+     *  — notebook per-note dispatch renders `module.Body` so each note's editor
+     *  has no page chrome). Only the language-gated embeddable editors (Grid,
+     *  Markdown, Svg, Html, Mermaid) provide it. */
+    Body?: React.ComponentType<{ model: EditorModel }>;
 }
 
 export interface EditorDefinition {
@@ -139,6 +145,14 @@ class EditorRegistry {
             editor.state.update((s) => { s.id = instanceId; });
         }
         return editor;
+    }
+
+    /** Public module accessor — loads (and caches) the module for an id so
+     *  callers can read `module.Body` / `module.createEditor` directly. Used by
+     *  the notebook per-note dispatch (US-579) to mount an embedded editor's
+     *  chrome-free Body. */
+    getModule(id: string): Promise<EditorModule> {
+        return this.loadModule(id);
     }
 
     private async loadModule(id: string): Promise<EditorModule> {

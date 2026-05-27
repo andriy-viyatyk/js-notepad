@@ -1,44 +1,100 @@
+import { ComponentType, useEffect, useState } from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import { MiniTextEditor } from "./MiniTextEditor";
-import { AsyncEditor } from "../../../ui/app/AsyncEditor";
-import { editorRegistry } from "../../registry";
+import { editorRegistry as v4EditorRegistry } from "../../base/v4/editorRegistry";
+import { CONTENT_HOST_TRAIT } from "../../base/v4/editor-traits";
+import type { EditorModel as V4EditorModel } from "../../base/v4/EditorModel";
 import { EditorView } from "../../../../shared/types";
 
 // =============================================================================
-// Component
+// Component (EPIC-028 / US-579 — per-note v4 editor embedding)
 // =============================================================================
 
 interface NoteItemActiveEditorProps {
     model: NoteItemEditModel;
 }
 
-const getEditorModule = (editor: EditorView) => async () => {
-    const def = editorRegistry.getById(editor);
-    if (!def) throw new Error(`Editor "${editor}" not registered`);
-    return def.loadModule();
-};
-
 /**
  * Renders the active editor for a note item.
- * Uses MiniTextEditor for Monaco, or loads alternative editors via registry.
+ *  - `monaco` → `MiniTextEditor` (note-specific content-sized Monaco; IPM6 A1).
+ *  - any language-gated editor (grid-json / grid-csv / grid-jsonl / md-view /
+ *    svg-view / html-view / mermaid-view) → an embedded v4 `EditorModel`
+ *    wrapping this `NoteItemEditModel` as its content host, rendered chrome-free
+ *    via the module's `Body` slot.
+ *
+ * Extension-gated editors (Todo / Link / RestClient / Graph / Draw / Log /
+ * Notebook) never reach here — the toolbar's `getSwitchOptions(language,
+ * undefined)` only offers language-gated editors.
  */
 export function NoteItemActiveEditor({ model }: NoteItemActiveEditorProps) {
-    const { editor } = model.state.use((s) => ({
-        editor: s.editor,
-    }));
+    const { editor } = model.state.use((s) => ({ editor: s.editor }));
 
-    // Use registry to load alternative editors (Grid, Markdown, SVG)
-    if (editor && editor !== "monaco") {
-        return (
-            <AsyncEditor
-                key={editor}
-                getEditorModule={getEditorModule(editor)}
-                model={model}
-                cacheKey={editor}
-            />
-        );
+    if (!editor || editor === "monaco") {
+        return <MiniTextEditor model={model} />;
     }
 
-    // Default to Mini Monaco editor
-    return <MiniTextEditor model={model} />;
+    // `key={editor}` remounts on view switch — old editor disposes (host
+    // detached) in cleanup, new editor adopts the same host fresh.
+    return <EmbeddedNoteEditor host={model} editorId={editor} key={editor} />;
+}
+
+// Minimal structural type for the host-adopting v4 editors. Each subclass
+// declares `adoptHost(host: TextFileModel)`; the base does not, and the note
+// host is a TextFileModel-duck-type (passed structurally).
+type AdoptingEditor = V4EditorModel & { adoptHost(host: unknown): void };
+
+/** Detach the note host from the editor (so `editor.dispose()` won't dispose
+ *  the host — the note view owns the host lifecycle), then dispose the editor. */
+function detachAndDispose(editor: V4EditorModel): void {
+    try {
+        editor.traits.get(CONTENT_HOST_TRAIT)?.extractContentHost();
+    } catch {
+        // Already extracted (or never adopted) — ignore.
+    }
+    void editor.dispose();
+}
+
+interface EmbeddedNoteEditorProps {
+    host: NoteItemEditModel;
+    editorId: EditorView;
+}
+
+function EmbeddedNoteEditor({ host, editorId }: EmbeddedNoteEditorProps) {
+    const [entry, setEntry] = useState<{
+        editor: V4EditorModel;
+        Body: ComponentType<{ model: V4EditorModel }>;
+    } | null>(null);
+
+    useEffect(() => {
+        let alive = true;
+        let created: V4EditorModel | null = null;
+        (async () => {
+            const module = await v4EditorRegistry.getModule(editorId);
+            if (!module.Body) {
+                throw new Error(`Editor "${editorId}" is not embeddable (no Body slot)`);
+            }
+            const editor = module.createEditor();
+            // Inject the note host, then realize. `restore()` skips host
+            // construction (host already set) and host.restore() (the note
+            // host's state.restored is true), running only adopt + initial
+            // content parse.
+            (editor as AdoptingEditor).adoptHost(host);
+            await editor.restore();
+            created = editor;
+            if (alive) {
+                setEntry({ editor, Body: module.Body });
+            } else {
+                detachAndDispose(editor);
+            }
+        })();
+        return () => {
+            alive = false;
+            setEntry(null);
+            if (created) detachAndDispose(created);
+        };
+    }, [editorId, host]);
+
+    if (!entry) return null;
+    const { editor, Body } = entry;
+    return <Body model={editor} />;
 }

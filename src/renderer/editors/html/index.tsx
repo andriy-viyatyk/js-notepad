@@ -24,10 +24,16 @@ function HtmlEditorView({ model }: { model: V4EditorModel }) {
     );
 }
 
+// US-579 — chrome-free Body for notebook per-note embedding.
+function HtmlEmbeddedBody({ model }: { model: V4EditorModel }) {
+    return <HtmlBody model={model as HtmlEditor} />;
+}
+
 export const htmlModule: EditorModule = {
     createEditor: () =>
         new HtmlEditor(new TComponentState({ ...defaultHtmlEditorState })),
     Component: HtmlEditorView,
+    Body: HtmlEmbeddedBody,
 };
 
 export { HtmlEditor, defaultHtmlEditorState };
