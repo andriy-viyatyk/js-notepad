@@ -5,7 +5,7 @@ import { Panel } from "../../../uikit/Panel";
 import { SegmentedControl, type ISegment } from "../../../uikit/SegmentedControl";
 import { WithMenu, type MenuItem } from "../../../uikit/Menu";
 import { RunAllIcon, RunIcon } from "../../../theme/icons";
-import { editorRegistry } from "../../registry";
+import { editorRegistry } from "../../base/v4/editorRegistry";
 import { LanguageIcon } from "../../../components/icons/LanguageIcon";
 import { monacoLanguages } from "../../../core/utils/monaco-languages";
 import { settings } from "../../../api/settings";

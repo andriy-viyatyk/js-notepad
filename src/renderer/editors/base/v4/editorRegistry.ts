@@ -41,16 +41,39 @@ export interface EditorModule {
     Body?: React.ComponentType<{ model: EditorModel }>;
 }
 
+/**
+ * Granular file/language/content matching rules for an editor (EPIC-028 /
+ * US-581). Populated from [`editor-matchers.ts`](./editor-matchers.ts). Drives
+ * the registry's `resolve` / `getSwitchOptions` / `getPreviewEditor` /
+ * `validateForLanguage` / `detectContentEditor` — the distinct priority scales
+ * (file resolution with monaco as the 0 floor; switch offering with monaco
+ * first) that a single `accepts()` predicate can't express. Editors with no
+ * file/switch/content rules (pure standalone pages) omit `match` entirely.
+ */
+export interface EditorMatcher {
+    /** File-open resolution priority for this file name (highest wins;
+     *  monaco is the 0 floor). */
+    acceptFile?(fileName: string): number;
+    /** Switch-widget offer priority for this language/file (ascending sort;
+     *  monaco = 0 first). */
+    switchOption?(language: string, fileName?: string): number;
+    /** Whether this editor is valid for a language (checked on language change). */
+    validForLanguage?(language: string): boolean;
+    /** Content-marker detection (fast regex, no JSON parse) — the "open as X?"
+     *  suggestion for structured content. */
+    detectsContent?(language: string, content: string): boolean;
+}
+
 export interface EditorDefinition {
     id: string;
     name: string;
 
     /** Single acceptance predicate. Returns priority (higher wins) or -1 if
      *  not applicable. The page evaluates this against the current host (for
-     *  switch UI); the registry evaluates it against file metadata (for
-     *  open-file flow). Content-based detection is absorbed: editors peek
-     *  at `host.state.get().content` when they recognize their format by
-     *  marker. */
+     *  switch UI via `findEditorsAccepting`); the registry evaluates it against
+     *  file metadata (for `resolveForFile`). Content-based detection is
+     *  absorbed: editors peek at `host.state.get().content` when they recognize
+     *  their format by marker. Built from `match` via `makeAccepts`. */
     accepts(input: AcceptanceInput): number;
 
     /** Whether this editor wraps an `IContentHost`. Drives the open-file
@@ -60,6 +83,11 @@ export interface EditorDefinition {
      *  Could be derived from trait introspection at module-load; kept
      *  explicit during the inert phase for clarity. */
     readonly hasContentHost: boolean;
+
+    /** Granular matching rules (US-581). Absent for pure standalone editors
+     *  (browser / settings / about / mcp / storybook) that never match a file
+     *  and never appear in the switch widget. */
+    match?: EditorMatcher;
 
     loadModule(): Promise<EditorModule>;
 }
@@ -124,6 +152,100 @@ class EditorRegistry {
             if (p >= 0) out.push({ id: def.id, p });
         }
         return out.sort((a, b) => b.p - a.p).map((x) => x.id);
+    }
+
+    // =========================================================================
+    // File / language / content matching (EPIC-028 / US-581 — replaces the
+    // legacy `editors/registry.ts` surface; backed by `def.match`)
+    // =========================================================================
+
+    /** Resolve the best editor DEFINITION for opening a file, by file-acceptance
+     *  priority (highest wins; monaco is the 0 floor). Returns undefined when no
+     *  file name is given. Mirrors the legacy registry's `resolve`. */
+    resolve(fileName?: string): EditorDefinition | undefined {
+        if (!fileName) return undefined;
+        let best: EditorDefinition | undefined;
+        let bestPriority = -1;
+        for (const def of this.definitions.values()) {
+            const p = def.match?.acceptFile?.(fileName) ?? -1;
+            if (p > bestPriority) {
+                best = def;
+                bestPriority = p;
+            }
+        }
+        return best;
+    }
+
+    /** Resolve just the editor id for a file path. Mirrors legacy `resolveId`. */
+    resolveId(fileName?: string): string | undefined {
+        return this.resolve(fileName)?.id;
+    }
+
+    /** Editor switch options for a language/file — the switch widget + notebook
+     *  note toolbar. Editors whose `match.switchOption` ≥ 0, sorted ascending
+     *  (monaco = 0 first), labelled by editor name. Empty list when ≤ 1 option
+     *  applies. Mirrors the legacy `getSwitchOptions`. */
+    getSwitchOptions(
+        language: string,
+        fileName?: string,
+    ): { options: string[]; getOptionLabel: (option: string) => string } {
+        const results: { id: string; priority: number }[] = [];
+        for (const def of this.definitions.values()) {
+            const p = def.match?.switchOption?.(language, fileName) ?? -1;
+            if (p >= 0) results.push({ id: def.id, priority: p });
+        }
+        // Ascending so monaco (priority 0) leads.
+        results.sort((a, b) => a.priority - b.priority);
+        const options = results.map((r) => r.id);
+        const getOptionLabel = (option: string) => {
+            if (!option || option === "monaco") return language.toUpperCase();
+            return this.definitions.get(option)?.name ?? language.toUpperCase();
+        };
+        return { options: options.length > 1 ? options : [], getOptionLabel };
+    }
+
+    /** Preferred preview editor for a file in navigation context: the best
+     *  non-monaco editor whose `switchOption` ≥ 0 and whose `acceptFile` (if
+     *  present) doesn't reject the file. Mirrors the legacy `getPreviewEditor`. */
+    getPreviewEditor(language: string, fileName: string): string | undefined {
+        const results: { id: string; priority: number }[] = [];
+        for (const def of this.definitions.values()) {
+            if (def.id === "monaco") continue;
+            const p = def.match?.switchOption?.(language, fileName) ?? -1;
+            if (p < 0) continue;
+            const acceptFile = def.match?.acceptFile;
+            if (acceptFile && acceptFile(fileName) < 0) continue;
+            results.push({ id: def.id, priority: p });
+        }
+        if (results.length === 0) return undefined;
+        results.sort((a, b) => a.priority - b.priority);
+        return results[results.length - 1].id;
+    }
+
+    /** Validate an editor against a language; falls back to "monaco" if the
+     *  editor doesn't support it. Mirrors the legacy `validateForLanguage`. */
+    validateForLanguage(editor: string | undefined, language: string): string | undefined {
+        if (!editor || editor === "monaco") return editor;
+        const def = this.definitions.get(editor);
+        if (def?.match?.validForLanguage?.(language) === false) return "monaco";
+        return editor;
+    }
+
+    /** Detect a structured-content editor for a host's current content (the
+     *  "open as X?" suggestion). First `match.detectsContent` match wins.
+     *  Robust to unloaded content — empty content matches nothing, so an early
+     *  call before the host finishes loading simply yields no suggestion and
+     *  re-runs once content arrives. Mirrors the legacy `detectContentEditor`,
+     *  now host-driven (US-581 / C581-3). */
+    detectContentEditor(host: IContentHost): string | undefined {
+        const s = host.state.get() as { content?: string; language?: string };
+        const content = s.content ?? "";
+        if (!content) return undefined;
+        const language = s.language ?? "";
+        for (const def of this.definitions.values()) {
+            if (def.match?.detectsContent?.(language, content)) return def.id;
+        }
+        return undefined;
     }
 
     /** Instantiate a new editor by id. Lazy-loads the module on first use.

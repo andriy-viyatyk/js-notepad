@@ -1,7 +1,7 @@
 import { TDialogModel } from "../../core/state/model";
 
 import { IEditorState } from "../../../shared/types";
-import { editorRegistry } from "../registry";
+import { editorRegistry } from "./v4/editorRegistry";
 import { fs } from "../../api/fs";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import { createPipeFromDescriptor } from "../../content/registry";
@@ -162,7 +162,7 @@ export class EditorModel<T extends IEditorState = IEditorState, R = any> extends
     changeLanguage = (language: string | undefined) => {
         this.state.update((s) => {
             s.language = language;
-            s.editor = editorRegistry.validateForLanguage(s.editor, language || "");
+            s.editor = editorRegistry.validateForLanguage(s.editor, language || "") as IEditorState["editor"];
         });
     };
 }

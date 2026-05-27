@@ -4,11 +4,12 @@ import { fs as appFs } from "../../api/fs";
 import { getDefaultEditorModelState, EditorModel } from "../base/EditorModel";
 import { IEditorState, EditorView } from "../../../shared/types";
 import { ScriptPanelModel } from "./ScriptPanel";
-import { editorRegistry } from "../registry";
+import { editorRegistry } from "../base/v4/editorRegistry";
 import { TextFileEncryptionModel } from "./TextFileEncryptionModel";
 import { TextFileIOModel } from "./TextFileIOModel";
 import { TextFileActionsModel } from "./TextFileActionsModel";
 import type { IContentHost } from "../base/IContentHost";
+import type { IContentHost as V4ContentHost } from "../base/v4/IContentHost";
 import type { EditorStateStorage } from "../base/EditorStateStorageContext";
 import type { EditorStateStorage as V4EditorStateStorage } from "../base/v4/EditorStateStorage";
 import type { HostDescriptor } from "../../../shared/persistence-v4";
@@ -134,10 +135,12 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
 
     /** Run content detection immediately and update state if changed. */
     private detectContentEditor = () => {
-        const { content, language } = this.state.get();
-        const detected = editorRegistry.detectContentEditor(language || "", content);
+        // US-581 — v4 registry, host-driven detection. The host's content is
+        // read inside `detectContentEditor`; empty/unloaded content yields no
+        // suggestion (robust to early calls).
+        const detected = editorRegistry.detectContentEditor(this as unknown as V4ContentHost);
         if (detected !== this.state.get().detectedContentEditor) {
-            this.state.update((s) => { s.detectedContentEditor = detected; });
+            this.state.update((s) => { s.detectedContentEditor = detected as EditorView | undefined; });
         }
     };
 
@@ -217,7 +220,7 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
 
     changeEditor = (editor: EditorView) => {
         const language = this.state.get().language ?? "";
-        const validated = editorRegistry.validateForLanguage(editor, language);
+        const validated = editorRegistry.validateForLanguage(editor, language) as EditorView | undefined;
         this.state.update((s) => {
             s.editor = validated;
         });
@@ -389,7 +392,7 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
 }
 
 export function newTextFileModel(filePath?: string): TextFileModel {
-    const editor = editorRegistry.resolveId(filePath);
+    const editor = editorRegistry.resolveId(filePath) as EditorView | undefined;
     const state = {
         ...getDefaultTextFileEditorModelState(),
         ...(filePath ? { filePath } : {}),

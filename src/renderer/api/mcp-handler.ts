@@ -2,7 +2,7 @@
 const { ipcRenderer } = require("electron");
 import { scriptRunner } from "../scripting/ScriptRunner";
 import { pagesModel } from "./pages";
-import { editorRegistry } from "../editors/registry";
+import { editorRegistry } from "../editors/base/v4/editorRegistry";
 import { MCP_EXECUTE, MCP_RESULT } from "../../shared/constants";
 import { app } from "./app";
 import { LogViewEditor } from "../editors/log-view";
@@ -153,7 +153,7 @@ function createPage(params: any): McpResponse {
         return { error: { code: -32602, message: `Unknown editor '${editor}'. Valid editors: ${all.join(", ")}` } };
     }
 
-    if (editorDef.category === "standalone") {
+    if (!editorDef.hasContentHost) {
         const hints: Record<string, string> = {
             "browser-view": "Use the open_url tool to open a URL in the built-in browser.",
             "pdf-view": 'Use execute_script with: await app.pages.openFile("/path/to/file.pdf")',

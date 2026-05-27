@@ -1,12 +1,4 @@
 /**
- * Editor category distinguishes between two types of editors:
- * - "standalone": Standalone editors with their own page model (e.g., PDF viewer, Image viewer).
- * - "content-view": Views of text-based content (e.g., Monaco, Grid, Markdown preview).
- *   Content views can switch between each other (e.g., JSON text → Grid view).
- */
-export type EditorCategory = "standalone" | "content-view";
-
-/**
  * Read-only information about a registered editor.
  */
 export interface IEditorInfo {
@@ -14,8 +6,6 @@ export interface IEditorInfo {
     readonly id: string;
     /** Human-readable editor name (e.g. "Text Editor", "JSON Grid"). */
     readonly name: string;
-    /** Whether this is a standalone page editor or a content view. */
-    readonly category: EditorCategory;
 }
 
 /**

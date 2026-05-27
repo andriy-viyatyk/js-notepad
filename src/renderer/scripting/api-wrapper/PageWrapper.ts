@@ -5,7 +5,7 @@ import { app } from "../../api/app";
 import { EditorView } from "../../../shared/types";
 import type { EditorModel as V4EditorModel } from "../../editors/base/v4/EditorModel";
 import { deriveEditorId } from "../../editors/base/v4/LegacyEditorAdapter";
-import { editorRegistry as legacyRegistry } from "../../editors/registry";
+import { editorRegistry as v4EditorRegistry } from "../../editors/base/v4/editorRegistry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel";
@@ -359,7 +359,7 @@ export class PageWrapper {
         const v4 = this.v4;
         if (v4) return v4.findCompatibleEditors();
         const s = this.model.state.get() as { language?: string; filePath?: string };
-        return legacyRegistry.getSwitchOptions(s.language ?? "", s.filePath).options;
+        return v4EditorRegistry.getSwitchOptions(s.language ?? "", s.filePath).options;
     }
 
     async runScript(): Promise<string> {

@@ -5,8 +5,7 @@ import { IconButton } from "../../../uikit/IconButton/IconButton";
 import { SegmentedControl, type ISegment } from "../../../uikit/SegmentedControl/SegmentedControl";
 import { Spacer } from "../../../uikit/Spacer/Spacer";
 import { NavPanelIcon } from "../../../theme/icons";
-import { editorRegistry as legacyRegistry } from "../../registry";
-import type { EditorView } from "../../../../shared/types";
+import { editorRegistry } from "./editorRegistry";
 import { LegacyEditorAdapter } from "./LegacyEditorAdapter";
 
 /**
@@ -83,7 +82,7 @@ function SwitchWidget({ model }: { model: EditorModel }) {
     if (options.length < 2 || !options.includes(model.editorId)) return null;
     const items: ISegment[] = options.map((id) => ({
         value: id,
-        label: legacyRegistry.getById(id as EditorView)?.name ?? id,
+        label: editorRegistry.getById(id)?.name ?? id,
     }));
     return (
         <SegmentedControl

@@ -810,6 +810,7 @@ secondaryEditorRegistry.register({
 // US-559 deletes the bridge.
 
 import { editorRegistry as v4EditorRegistry } from "./base/v4/editorRegistry";
+import { EDITOR_MATCHERS, makeAccepts } from "./base/v4/editor-matchers";
 import { LegacyEditorAdapter } from "./base/v4/LegacyEditorAdapter";
 import { TextEditorView } from "./text/TextEditorView";
 
@@ -888,44 +889,31 @@ v4EditorRegistry.register({
     id: "monaco",
     name: "Text Editor",
     hasContentHost: true,
+    // Explicit accepts (NOT makeAccepts): monaco is the universal text fallback
+    // and the page-switch floor — walkthrough 20 §accepts. Its number outranks
+    // content editors so it leads `findEditorsAccepting`; specific viewers
+    // outrank it in view mode. `match` carries the separate file-resolution
+    // floor (0) + switch-first (0) priorities for the registry's resolve /
+    // getSwitchOptions / validateForLanguage.
     accepts: (input) => {
-        // Universal text fallback — walkthrough 20 §accepts. Monaco's number is
-        // the floor; specific viewers outrank it in view mode.
         if (input.mode === "view") return 10;
         return 50;
     },
+    match: EDITOR_MATCHERS["monaco"],
     loadModule: async () => {
         const { monacoModule } = await import("./monaco");
         return monacoModule;
     },
 });
 
-// US-552 — replace the legacy bare-adapter mirrors for grid-json / grid-csv /
-// grid-jsonl with native v4 modules. `v4EditorRegistry.register` overwrites
-// by id, so these supersede the bare-adapter stubs the mirror loop wrote.
-// `accepts` delegates to the legacy registry def's `acceptFile` / `switchOption`
-// to avoid duplicating extension/language rules.
-function makeGridAccepts(id: "grid-json" | "grid-csv" | "grid-jsonl") {
-    return (input: { fileName?: string; language?: string }) => {
-        const legacy = editorRegistry.getById(id);
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    };
-}
-
+// US-552 — native v4 grid modules. US-581: matching rules are self-contained
+// in `EDITOR_MATCHERS` (no legacy-registry delegation).
 v4EditorRegistry.register({
     id: "grid-json",
     name: "Grid (JSON)",
     hasContentHost: true,
-    accepts: makeGridAccepts("grid-json"),
+    accepts: makeAccepts(EDITOR_MATCHERS["grid-json"]),
+    match: EDITOR_MATCHERS["grid-json"],
     loadModule: async () => {
         const { gridJsonModule } = await import("./grid");
         return gridJsonModule;
@@ -936,7 +924,8 @@ v4EditorRegistry.register({
     id: "grid-csv",
     name: "Grid (CSV)",
     hasContentHost: true,
-    accepts: makeGridAccepts("grid-csv"),
+    accepts: makeAccepts(EDITOR_MATCHERS["grid-csv"]),
+    match: EDITOR_MATCHERS["grid-csv"],
     loadModule: async () => {
         const { gridCsvModule } = await import("./grid");
         return gridCsvModule;
@@ -947,7 +936,8 @@ v4EditorRegistry.register({
     id: "grid-jsonl",
     name: "Grid (JSONL)",
     hasContentHost: true,
-    accepts: makeGridAccepts("grid-jsonl"),
+    accepts: makeAccepts(EDITOR_MATCHERS["grid-jsonl"]),
+    match: EDITOR_MATCHERS["grid-jsonl"],
     loadModule: async () => {
         const { gridJsonlModule } = await import("./grid");
         return gridJsonlModule;
@@ -963,25 +953,8 @@ v4EditorRegistry.register({
     id: "log-view",
     name: "Log View",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("log-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        // Content-peek fallback (LV10) — for `.jsonl` files without the
-        // `.log` prefix but with log-shaped content.
-        if (input.language === "jsonl" && input.host) {
-            const content = (input.host.state.get() as { content?: string }).content ?? "";
-            if (legacy.isEditorContent?.(input.language, content)) return 60;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["log-view"]),
+    match: EDITOR_MATCHERS["log-view"],
     loadModule: async () => {
         const { logViewModule } = await import("./log-view");
         return logViewModule;
@@ -996,19 +969,8 @@ v4EditorRegistry.register({
     id: "md-view",
     name: "Preview",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("md-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["md-view"]),
+    match: EDITOR_MATCHERS["md-view"],
     loadModule: async () => {
         const { markdownModule } = await import("./markdown");
         return markdownModule;
@@ -1024,19 +986,8 @@ v4EditorRegistry.register({
     id: "svg-view",
     name: "Preview",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("svg-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["svg-view"]),
+    match: EDITOR_MATCHERS["svg-view"],
     loadModule: async () => {
         const { svgModule } = await import("./svg");
         return svgModule;
@@ -1052,19 +1003,8 @@ v4EditorRegistry.register({
     id: "html-view",
     name: "Preview",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("html-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["html-view"]),
+    match: EDITOR_MATCHERS["html-view"],
     loadModule: async () => {
         const { htmlModule } = await import("./html");
         return htmlModule;
@@ -1080,19 +1020,8 @@ v4EditorRegistry.register({
     id: "mermaid-view",
     name: "Mermaid",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("mermaid-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["mermaid-view"]),
+    match: EDITOR_MATCHERS["mermaid-view"],
     loadModule: async () => {
         const { mermaidModule } = await import("./mermaid");
         return mermaidModule;
@@ -1108,19 +1037,8 @@ v4EditorRegistry.register({
     id: "graph-view",
     name: "Graph",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("graph-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["graph-view"]),
+    match: EDITOR_MATCHERS["graph-view"],
     loadModule: async () => {
         const { graphModule } = await import("./graph");
         return graphModule;
@@ -1136,19 +1054,8 @@ v4EditorRegistry.register({
     id: "draw-view",
     name: "Drawing",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("draw-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["draw-view"]),
+    match: EDITOR_MATCHERS["draw-view"],
     loadModule: async () => {
         const { drawModule } = await import("./draw");
         return drawModule;
@@ -1164,25 +1071,8 @@ v4EditorRegistry.register({
     id: "link-view",
     name: "Links",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("link-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        // Content-peek fallback (LK10) — for `.json` files without the
-        // `.link.json` extension but with link-editor-shaped content.
-        if (input.language === "json" && input.host) {
-            const content = (input.host.state.get() as { content?: string }).content ?? "";
-            if (legacy.isEditorContent?.(input.language, content)) return 60;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["link-view"]),
+    match: EDITOR_MATCHERS["link-view"],
     loadModule: async () => {
         const { linkModule } = await import("./link-editor");
         return linkModule;
@@ -1198,25 +1088,8 @@ v4EditorRegistry.register({
     id: "todo-view",
     name: "ToDo",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("todo-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        // Content-peek fallback (TD10) — for `.json` files without the
-        // `.todo.json` extension but with todo-editor-shaped content.
-        if (input.language === "json" && input.host) {
-            const content = (input.host.state.get() as { content?: string }).content ?? "";
-            if (legacy.isEditorContent?.(input.language, content)) return 60;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["todo-view"]),
+    match: EDITOR_MATCHERS["todo-view"],
     loadModule: async () => {
         const { todoModule } = await import("./todo");
         return todoModule;
@@ -1232,25 +1105,8 @@ v4EditorRegistry.register({
     id: "rest-client",
     name: "Rest Client",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("rest-client");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        // Content-peek fallback (RC10) — for `.json` files without the
-        // `.rest.json` extension but with rest-client-shaped content.
-        if (input.language === "json" && input.host) {
-            const content = (input.host.state.get() as { content?: string }).content ?? "";
-            if (legacy.isEditorContent?.(input.language, content)) return 60;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["rest-client"]),
+    match: EDITOR_MATCHERS["rest-client"],
     loadModule: async () => {
         const { restClientModule } = await import("./rest-client");
         return restClientModule;
@@ -1266,25 +1122,8 @@ v4EditorRegistry.register({
     id: "notebook-view",
     name: "Notebook",
     hasContentHost: true,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("notebook-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        if (input.language) {
-            const p = legacy.switchOption?.(input.language, input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        // Content-peek fallback (NB10) — for `.json` files without the
-        // `.note.json` extension but with notebook-shaped content.
-        if (input.language === "json" && input.host) {
-            const content = (input.host.state.get() as { content?: string }).content ?? "";
-            if (legacy.isEditorContent?.(input.language, content)) return 60;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["notebook-view"]),
+    match: EDITOR_MATCHERS["notebook-view"],
     loadModule: async () => {
         const { notebookModule } = await import("./notebook");
         return notebookModule;
@@ -1320,15 +1159,8 @@ v4EditorRegistry.register({
     id: "pdf-view",
     name: "PDF Viewer",
     hasContentHost: false,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("pdf-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["pdf-view"]),
+    match: EDITOR_MATCHERS["pdf-view"],
     loadModule: async () => {
         const { pdfModule } = await import("./pdf");
         return pdfModule;
@@ -1349,15 +1181,8 @@ v4EditorRegistry.register({
     id: "image-view",
     name: "Image Viewer",
     hasContentHost: false,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("image-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["image-view"]),
+    match: EDITOR_MATCHERS["image-view"],
     loadModule: async () => {
         const { imageModule } = await import("./image");
         return imageModule;
@@ -1378,15 +1203,8 @@ v4EditorRegistry.register({
     id: "archive-view",
     name: "Archive",
     hasContentHost: false,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("archive-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["archive-view"]),
+    match: EDITOR_MATCHERS["archive-view"],
     loadModule: async () => {
         const { archiveModule } = await import("./archive");
         return archiveModule;
@@ -1406,15 +1224,8 @@ v4EditorRegistry.register({
     id: "video-view",
     name: "Video Player",
     hasContentHost: false,
-    accepts: (input) => {
-        const legacy = editorRegistry.getById("video-view");
-        if (!legacy) return -1;
-        if (input.fileName) {
-            const p = legacy.acceptFile?.(input.fileName) ?? -1;
-            if (p >= 0) return p;
-        }
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["video-view"]),
+    match: EDITOR_MATCHERS["video-view"],
     loadModule: async () => {
         const { videoModule } = await import("./video");
         return videoModule;
@@ -1516,10 +1327,8 @@ v4EditorRegistry.register({
     id: "category-view",
     name: "Folder View",
     hasContentHost: false,
-    accepts: (input) => {
-        if (input.fileName?.startsWith("tree-category://")) return 200;
-        return -1;
-    },
+    accepts: makeAccepts(EDITOR_MATCHERS["category-view"]),
+    match: EDITOR_MATCHERS["category-view"],
     loadModule: async () => {
         const { categoryModule } = await import("./category");
         return categoryModule;

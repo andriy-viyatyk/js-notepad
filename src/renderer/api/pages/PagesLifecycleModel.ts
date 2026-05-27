@@ -31,6 +31,7 @@ import { recent } from "../recent";
 import { ui } from "../ui";
 import { settings } from "../settings";
 import { editorRegistry } from "../../editors/registry";
+import { editorRegistry as editorRegistryV4 } from "../../editors/base/v4/editorRegistry";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { PageModel } from "./PageModel";
 
@@ -466,13 +467,13 @@ export class PagesLifecycleModel {
                 `addEditorPage() expects positional arguments: (editor, language, title, content?). Got ${typeof editor} for editor. Example: addEditorPage("monaco", "plaintext", "My Page", "content")`,
             );
         }
-        const editorDef = editorRegistry.getById(editor);
+        const editorDef = editorRegistryV4.getById(editor);
         if (!editorDef && editor !== "monaco") {
             throw new Error(
-                `Editor '${editor}' is not registered. Available editors: ${editorRegistry.getAll().map((e) => e.id).join(", ")}`,
+                `Editor '${editor}' is not registered. Available editors: ${editorRegistryV4.getAll().map((e) => e.id).join(", ")}`,
             );
         }
-        if (editorDef?.category === "standalone") {
+        if (editorDef && !editorDef.hasContentHost) {
             throw new Error(
                 `Cannot create '${editor}' with addEditorPage() — it is a standalone editor that requires a specialized model. Use the dedicated method instead (e.g., showBrowserPage(), showAboutPage(), openFile()).`,
             );
@@ -481,7 +482,7 @@ export class PagesLifecycleModel {
         editorModel.state.update((s) => {
             s.title = title;
             s.language = language;
-            s.editor = editorRegistry.validateForLanguage(editor, language);
+            s.editor = editorRegistryV4.validateForLanguage(editor, language) as EditorView;
         });
         if (content) {
             editorModel.changeContent(content);
@@ -506,10 +507,10 @@ export class PagesLifecycleModel {
             s.id = id;
             s.title = def.title;
             s.language = def.language;
-            s.editor = editorRegistry.validateForLanguage(
+            s.editor = editorRegistryV4.validateForLanguage(
                 def.editor as EditorView,
                 def.language,
-            );
+            ) as EditorView;
         });
         editorModel.restore();
         const page = new PageModel(id);
@@ -557,7 +558,7 @@ export class PagesLifecycleModel {
         editorModel.state.update((s) => {
             s.title = normalizedTitle;
             s.language = "json";
-            s.editor = editorRegistry.validateForLanguage("link-view", "json");
+            s.editor = editorRegistryV4.validateForLanguage("link-view", "json") as EditorView;
         });
         editorModel.restore();
         editorModel.changeContent(content);
@@ -808,13 +809,13 @@ export class PagesLifecycleModel {
             const ext = fpExtname(newFilePath).toLowerCase();
             const lang = getLanguageByExtension(ext);
             const languageId = lang?.id || "plaintext";
-            const previewEditor = editorRegistry.getPreviewEditor(
+            const previewEditor = editorRegistryV4.getPreviewEditor(
                 languageId,
                 newFilePath,
             );
             if (previewEditor) {
                 legacy.state.update((s) => {
-                    s.editor = previewEditor;
+                    s.editor = previewEditor as EditorView;
                 });
             }
         }

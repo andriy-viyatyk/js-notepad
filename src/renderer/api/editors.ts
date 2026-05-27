@@ -1,8 +1,11 @@
-import { editorRegistry } from "../editors/registry";
+import { editorRegistry } from "../editors/base/v4/editorRegistry";
 import type { IEditorInfo, IEditorRegistry, ISwitchOptions } from "./types/editors";
 
-function toEditorInfo(def: { id: string; name: string; category: string }): IEditorInfo {
-    return { id: def.id, name: def.name, category: def.category as IEditorInfo["category"] };
+// EPIC-028 / US-581 — `app.editors` sources from the native v4 registry.
+// `category` was dropped (redundant with the registry's internal
+// `hasContentHost`; see US-581 C581-4), so `IEditorInfo` is now `{ id, name }`.
+function toEditorInfo(def: { id: string; name: string }): IEditorInfo {
+    return { id: def.id, name: def.name };
 }
 
 class Editors implements IEditorRegistry {
@@ -11,7 +14,7 @@ class Editors implements IEditorRegistry {
     }
 
     getById(id: string): IEditorInfo | undefined {
-        const def = editorRegistry.getById(id as any);
+        const def = editorRegistry.getById(id);
         return def ? toEditorInfo(def) : undefined;
     }
 
