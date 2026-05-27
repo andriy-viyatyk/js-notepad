@@ -1,6 +1,10 @@
 import { createElement, ReactNode } from "react";
-import { IEditorState } from "../../../shared/types";
-import { getDefaultEditorModelState, EditorModel } from "../base";
+import {
+    EditorModel as V4EditorModel,
+    type EditorStateBase,
+    type RestoreData,
+} from "../base/v4/EditorModel";
+import type { EditorDescriptor } from "../../../shared/persistence-v4";
 import { TComponentState, TOneState } from "../../core/state/state";
 import { McpIcon } from "../../theme/icons";
 import {
@@ -164,7 +168,11 @@ const getDefaultPromptsPanelState = (): McpPromptsPanelState => ({
 
 export type McpPanelId = "info" | "tools" | "resources" | "prompts" | "history";
 
-export interface McpInspectorEditorState extends IEditorState {
+export interface McpInspectorEditorState extends EditorStateBase {
+    /** Discriminator — preserved for `deriveEditorId` and pre-US-574 saved
+     *  descriptors. `deriveEditorId({type:"mcpInspectorPage"})` === "mcp-view". */
+    type: "mcpInspectorPage";
+
     // Connection config
     url: string;
     transportType: McpTransportType;
@@ -192,9 +200,10 @@ export interface McpInspectorEditorState extends IEditorState {
 }
 
 export const getDefaultMcpInspectorEditorState = (): McpInspectorEditorState => ({
-    ...getDefaultEditorModelState(),
-    type: "mcpInspectorPage",
+    id: crypto.randomUUID(),
     title: "MCP Inspector",
+    modified: false,
+    type: "mcpInspectorPage",
     editor: "mcp-view",
 
     url: "",
@@ -223,7 +232,11 @@ export const getDefaultMcpInspectorEditorState = (): McpInspectorEditorState => 
 // Model
 // ============================================================================
 
-export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState, void> {
+export class McpInspectorEditorModel extends V4EditorModel<McpInspectorEditorState> {
+    /** v4 editor identity. Matches the legacy registry id so v4
+     *  EditorDescriptor.editorId and pre-US-574 saved descriptors agree. */
+    readonly editorId = "mcp-view";
+
     noLanguage = true;
     skipSave = true;
 
@@ -707,24 +720,37 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     };
 
     // -- Lifecycle ------------------------------------------------------------
+    // No `restore()` override — the v4 base no-op suffices. MCP must NOT
+    // auto-connect on restore (connection is user-initiated).
 
-    async restore(): Promise<void> {
-        await super.restore();
-    }
-
-    getRestoreData(): Partial<McpInspectorEditorState> {
-        const data = super.getRestoreData() as Partial<McpInspectorEditorState>;
+    getRestoreData(): EditorDescriptor {
         const s = this.state.get();
-        data.url = s.url;
-        data.transportType = s.transportType;
-        data.command = s.command;
-        data.args = s.args;
-        data.connectionName = s.connectionName;
-        data.activePanel = s.activePanel;
-        return data;
+        // Persist only the connection config; reset all transient runtime state
+        // so a session that quit while connected restores disconnected rather
+        // than showing a stale "connected" header with a dead socket. The three
+        // sub-state stores and `_history` live outside `state` and are excluded
+        // automatically.
+        return {
+            editorId: this.editorId,
+            id: s.id,
+            state: {
+                ...s,
+                connectionStatus: "disconnected",
+                errorMessage: "",
+                serverName: "",
+                serverTitle: "",
+                serverVersion: "",
+                serverDescription: "",
+                serverWebsiteUrl: "",
+                instructions: "",
+                hasTools: false,
+                hasResources: false,
+                hasPrompts: false,
+            } as unknown as Record<string, unknown>,
+        };
     }
 
-    applyRestoreData(data: Partial<McpInspectorEditorState>): void {
+    applyRestoreData(data: RestoreData<McpInspectorEditorState>): void {
         super.applyRestoreData(data);
         this.state.update((s) => {
             if (data.url !== undefined) s.url = data.url;

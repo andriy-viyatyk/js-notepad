@@ -41,9 +41,6 @@ interface PageSidebarSavedState {
  * (not in `editorRegistry`).
  *
  * Append to this set as each no-host migration lands:
- *   - US-572 Settings → "settings-view"
- *   - US-573 About → "about-view"
- *   - US-574 MCP Inspector → "mcp-view"
  *   - US-575 Storybook → "storybook-view"
  *   - US-576 Category → "category-view"
  *
@@ -57,7 +54,8 @@ const V4_NO_HOST_EDITOR_IDS = new Set([
     "archive-view", // US-570 (first no-host sidebar-owning editor)
     "video-view",   // US-571
     "settings-view", // US-572
-    "about-view",    // US-573 (this PR)
+    "about-view",    // US-573
+    "mcp-view",      // US-574 (this PR)
 ]);
 
 /**

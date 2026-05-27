@@ -1099,9 +1099,12 @@ export class PagesLifecycleModel {
     };
 
     showMcpInspectorPage = async (options?: { url?: string }): Promise<void> => {
-        const mcpModule = await import(
-            "../../editors/mcp-inspector/McpInspectorView"
-        );
+        // EPIC-028 / US-574 — MCP Inspector migrated to native v4 module. Import
+        // path resolves to `editors/mcp-inspector/index.tsx`. `mcpModule.default`
+        // is the preserved legacy module (constructs a v4 McpInspectorEditorModel
+        // cast as legacy). `wrap(model)` early-returns the v4 instance (US-568
+        // PD-IMPL16).
+        const mcpModule = await import("../../editors/mcp-inspector");
         const model =
             await mcpModule.default.newEmptyEditorModel("mcpInspectorPage");
         if (model) {

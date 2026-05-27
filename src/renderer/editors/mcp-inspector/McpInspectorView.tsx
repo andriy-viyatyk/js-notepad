@@ -15,6 +15,7 @@ import { EditorToolbar } from "../base/EditorToolbar";
 import { IEditorState, EditorType } from "../../../shared/types";
 import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
+import type { EditorModel } from "../base";
 import {
     McpInspectorEditorModel,
     McpInspectorEditorState,
@@ -435,18 +436,28 @@ function HistoryPanel({ model }: { model: McpInspectorEditorModel }) {
     );
 }
 
+// EPIC-028 / US-574 — legacy EditorModule shape preserved for the
+// `showMcpInspectorPage` launcher and the LegacyEditorAdapter safety-net path.
+// The `as unknown as EditorModel` casts bridge the v4 McpInspectorEditorModel
+// (now a v4 EditorModel subclass) to the legacy EditorModel typing the legacy
+// module factories expect; the runtime instance is the v4 class either way.
+// `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return (US-568
+// PD-IMPL16) detects the v4 instance and skips the adapter wrap. US-559 retires
+// this block entirely.
 const mcpInspectorEditorModule: EditorModule = {
-    Editor: McpInspectorView,
+    Editor: McpInspectorView as unknown as EditorModule["Editor"],
 
     newEditorModel: async () => {
-        return new McpInspectorEditorModel(new TComponentState(getDefaultMcpInspectorEditorState()));
+        return new McpInspectorEditorModel(
+            new TComponentState(getDefaultMcpInspectorEditorState()),
+        ) as unknown as EditorModel;
     },
 
     newEmptyEditorModel: async (editorType: EditorType) => {
         if (editorType !== "mcpInspectorPage") return null;
         return new McpInspectorEditorModel(
             new TComponentState(getDefaultMcpInspectorEditorState()),
-        );
+        ) as unknown as EditorModel;
     },
 
     newEditorModelFromState: async (state: Partial<IEditorState>) => {
@@ -454,8 +465,12 @@ const mcpInspectorEditorModule: EditorModule = {
             ...getDefaultMcpInspectorEditorState(),
             ...(state as Partial<McpInspectorEditorState>),
         };
-        return new McpInspectorEditorModel(new TComponentState(sx));
+        return new McpInspectorEditorModel(
+            new TComponentState(sx),
+        ) as unknown as EditorModel;
     },
 };
 
 export default mcpInspectorEditorModule;
+
+export { McpInspectorView };

@@ -1461,3 +1461,24 @@ v4EditorRegistry.register({
         return aboutModule;
     },
 });
+
+// US-574 — replace the legacy bare-adapter mirror for mcp-view with a native v4
+// module. MCP Inspector is NO-HOST (no `CONTENT_HOST_TRAIT`) AND standalone (no
+// file acceptance) — `accepts` always returns -1 (opened only via the
+// `showMcpInspectorPage` launcher, never via `openFile`; not a singleton — each
+// call creates a fresh page). `hasContentHost: false` keeps it out of the switch
+// widget. The `showMcpInspectorPage` launcher constructs via the LEGACY
+// registry's `module.newEmptyEditorModel` (which now returns a v4
+// McpInspectorEditorModel cast as legacy via `McpInspectorView`'s preserved
+// module); `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return (US-568
+// PD-IMPL16) skips the adapter wrap.
+v4EditorRegistry.register({
+    id: "mcp-view",
+    name: "MCP Inspector",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { mcpModule } = await import("./mcp-inspector");
+        return mcpModule;
+    },
+});
