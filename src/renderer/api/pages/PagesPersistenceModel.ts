@@ -55,7 +55,8 @@ const V4_NO_HOST_EDITOR_IDS = new Set([
     "pdf-view",     // US-568
     "image-view",   // US-569
     "archive-view", // US-570 (first no-host sidebar-owning editor)
-    "video-view",   // US-571 (this PR)
+    "video-view",   // US-571
+    "settings-view", // US-572 (this PR)
 ]);
 
 /**

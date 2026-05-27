@@ -1034,9 +1034,7 @@ export class PagesLifecycleModel {
     };
 
     showSettingsPage = async (): Promise<void> => {
-        const settingsModule = await import(
-            "../../editors/settings/SettingsPage"
-        );
+        const settingsModule = await import("../../editors/settings");
         const model =
             await settingsModule.default.newEmptyEditorModel("settingsPage");
         if (model) {

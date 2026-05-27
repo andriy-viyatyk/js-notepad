@@ -733,7 +733,11 @@ editorRegistry.register({
     editorType: "settingsPage",
     category: "standalone",
     loadModule: async () => {
-        const module = await import("./settings/SettingsPage");
+        // EPIC-028 / US-572 — Settings migrated to native v4 module
+        // (`settingsModule` in `./settings/index.tsx`). Legacy SettingsView is
+        // PRESERVED here for the LegacyEditorAdapter safety-net path; the
+        // `showSettingsPage` entry point takes the v4 path directly.
+        const module = await import("./settings/SettingsView");
         return module.default;
     },
 });
@@ -1410,5 +1414,26 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { videoModule } = await import("./video");
         return videoModule;
+    },
+});
+
+// US-572 — replace the legacy bare-adapter mirror for settings-view with a
+// native v4 module. Settings is NO-HOST (no `CONTENT_HOST_TRAIT`) AND
+// standalone (no file acceptance) — `accepts` always returns -1 (Settings is
+// opened only via the `showSettingsPage` menu action, never via `openFile`).
+// `hasContentHost: false` keeps Settings out of the switch widget. The
+// `showSettingsPage` launcher constructs via the LEGACY registry's
+// `module.newEmptyEditorModel` (which now returns a v4 SettingsEditor cast as
+// legacy via `SettingsView`'s preserved module); `wrapLegacyForPage`'s
+// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) skips the adapter
+// wrap.
+v4EditorRegistry.register({
+    id: "settings-view",
+    name: "Settings",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { settingsModule } = await import("./settings");
+        return settingsModule;
     },
 });

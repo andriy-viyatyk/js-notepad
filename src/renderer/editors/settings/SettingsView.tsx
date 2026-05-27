@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IEditorState, EditorType } from "../../../shared/types";
-import { getDefaultEditorModelState, EditorModel } from "../base";
+import type { EditorModel } from "../base";
 import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
+import {
+    SettingsEditor,
+    getDefaultSettingsEditorState,
+    type SettingsEditorState,
+} from "./SettingsEditor";
 import color from "../../theme/color";
 import { settings } from "../../api/settings";
 import { app } from "../../api/app";
@@ -66,36 +71,6 @@ function ThemePreview({ bgDefault, bgDark, textDefault, accentColor }: ThemePrev
             </div>
         </div>
     );
-}
-
-// ============================================================================
-// SettingsEditorModel (Page Model)
-// ============================================================================
-
-export const SETTINGS_PAGE_ID = "settings-page";
-
-interface SettingsEditorModelState extends IEditorState {}
-
-const getDefaultSettingsPageModelState = (): SettingsEditorModelState => ({
-    ...getDefaultEditorModelState(),
-    id: SETTINGS_PAGE_ID,
-    type: "settingsPage",
-    title: "Settings",
-});
-
-class SettingsEditorModel extends EditorModel<SettingsEditorModelState, void> {
-    noLanguage = true;
-    skipSave = true;
-
-    getRestoreData() {
-        return JSON.parse(JSON.stringify(this.state.get()));
-    }
-
-    async restore() {
-        this.state.update((s) => {
-            s.title = "Settings";
-        });
-    }
 }
 
 // ============================================================================
@@ -1040,14 +1015,14 @@ function VideoPlayerSection() {
 }
 
 // ============================================================================
-// SettingsPage Component
+// SettingsView Component
 // ============================================================================
 
 interface SettingsEditorProps {
-    model: SettingsEditorModel;
+    model: SettingsEditor;
 }
 
-function SettingsPage(_props: SettingsEditorProps) {
+function SettingsView(_props: SettingsEditorProps) {
     const currentThemeId = settings.use("theme");
     const searchExtensions = settings.use("search-extensions");
     const themes = getAvailableThemes();
@@ -1205,28 +1180,38 @@ function SettingsPage(_props: SettingsEditorProps) {
 // ============================================================================
 // Editor Module
 // ============================================================================
+// EPIC-028 / US-572 — legacy EditorModule shape preserved for the
+// `showSettingsPage` menu launcher and the LegacyEditorAdapter safety-net path.
+// The `as unknown as EditorModel` casts bridge the v4 SettingsEditor class to
+// the legacy EditorModel typing the legacy module factories expect; the runtime
+// instance is the v4 class either way. `wrapLegacyForPage`'s
+// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) detects the v4
+// instance and skips the adapter wrap. US-559 retires this block entirely.
 
 const settingsEditorModule: EditorModule = {
-    Editor: SettingsPage,
-    newEditorModel: async () => {
-        return new SettingsEditorModel(new TComponentState(getDefaultSettingsPageModelState()));
+    Editor: SettingsView as unknown as EditorModule["Editor"],
+    newEditorModel: async () =>
+        new SettingsEditor(
+            new TComponentState(getDefaultSettingsEditorState()),
+        ) as unknown as EditorModel,
+    newEmptyEditorModel: async (editorType: EditorType) => {
+        if (editorType !== "settingsPage") return null;
+        return new SettingsEditor(
+            new TComponentState(getDefaultSettingsEditorState()),
+        ) as unknown as EditorModel;
     },
-    newEmptyEditorModel: async (editorType: EditorType): Promise<EditorModel | null> => {
-        if (editorType === "settingsPage") {
-            return new SettingsEditorModel(new TComponentState(getDefaultSettingsPageModelState()));
-        }
-        return null;
-    },
-    newEditorModelFromState: async (state: Partial<IEditorState>): Promise<EditorModel> => {
-        const initialState: SettingsEditorModelState = {
-            ...getDefaultSettingsPageModelState(),
-            ...state,
+    newEditorModelFromState: async (state: Partial<IEditorState>) => {
+        const initialState: SettingsEditorState = {
+            ...getDefaultSettingsEditorState(),
+            ...(state as Partial<SettingsEditorState>),
         };
-        return new SettingsEditorModel(new TComponentState(initialState));
+        return new SettingsEditor(
+            new TComponentState(initialState),
+        ) as unknown as EditorModel;
     },
 };
 
 export default settingsEditorModule;
 
-export { SettingsPage, SettingsEditorModel };
-export type { SettingsEditorProps, SettingsEditorModelState };
+export { SettingsView };
+export type { SettingsEditorProps };
