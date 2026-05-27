@@ -1025,7 +1025,7 @@ export class PagesLifecycleModel {
     // ── Page-actions (from old page-actions.ts) ──────────────────────
 
     showAboutPage = async (): Promise<void> => {
-        const aboutModule = await import("../../editors/about/AboutPage");
+        const aboutModule = await import("../../editors/about");
         const model = await aboutModule.default.newEmptyEditorModel("aboutPage");
         if (model) {
             const page = new PageModel(aboutModule.ABOUT_PAGE_ID);

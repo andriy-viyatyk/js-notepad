@@ -721,7 +721,11 @@ editorRegistry.register({
     editorType: "aboutPage",
     category: "standalone",
     loadModule: async () => {
-        const module = await import("./about/AboutPage");
+        // EPIC-028 / US-573 — About migrated to native v4 module
+        // (`aboutModule` in `./about/index.tsx`). Legacy AboutView is PRESERVED
+        // here for the LegacyEditorAdapter safety-net path; the `showAboutPage`
+        // entry point takes the v4 path directly.
+        const module = await import("./about/AboutView");
         return module.default;
     },
 });
@@ -1435,5 +1439,25 @@ v4EditorRegistry.register({
     loadModule: async () => {
         const { settingsModule } = await import("./settings");
         return settingsModule;
+    },
+});
+
+// US-573 — replace the legacy bare-adapter mirror for about-view with a native
+// v4 module. About is NO-HOST (no `CONTENT_HOST_TRAIT`) AND standalone (no file
+// acceptance) — `accepts` always returns -1 (opened only via the
+// `showAboutPage` menu action, never via `openFile`). `hasContentHost: false`
+// keeps About out of the switch widget. The `showAboutPage` launcher
+// constructs via the LEGACY registry's `module.newEmptyEditorModel` (which now
+// returns a v4 AboutEditor cast as legacy via `AboutView`'s preserved module);
+// `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return (US-568
+// PD-IMPL16) skips the adapter wrap.
+v4EditorRegistry.register({
+    id: "about-view",
+    name: "About",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { aboutModule } = await import("./about");
+        return aboutModule;
     },
 });

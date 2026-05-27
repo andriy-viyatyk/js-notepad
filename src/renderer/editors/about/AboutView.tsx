@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { IEditorState, EditorType } from "../../../shared/types";
-import { getDefaultEditorModelState, EditorModel } from "../base";
+import type { EditorModel } from "../base";
 import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
+import {
+    AboutEditor,
+    getDefaultAboutEditorState,
+    type AboutEditorState,
+} from "./AboutEditor";
 import { PersephoneIcon } from "../../theme/icons";
 import { Panel, Text, Button, Divider } from "../../uikit";
 import { app } from "../../api/app";
@@ -13,41 +18,11 @@ import { EventEndpoint } from "../../../ipc/api-types";
 import type { UpdateCheckResult } from "../../../ipc/api-param-types";
 
 // ============================================================================
-// AboutEditorModel (Page Model)
-// ============================================================================
-
-export const ABOUT_PAGE_ID = "about-page";
-
-interface AboutEditorModelState extends IEditorState {}
-
-const getDefaultAboutPageModelState = (): AboutEditorModelState => ({
-    ...getDefaultEditorModelState(),
-    id: ABOUT_PAGE_ID,
-    type: "aboutPage",
-    title: "About",
-});
-
-class AboutEditorModel extends EditorModel<AboutEditorModelState, void> {
-    noLanguage = true;
-    skipSave = true;
-
-    getRestoreData() {
-        return JSON.parse(JSON.stringify(this.state.get()));
-    }
-
-    async restore() {
-        this.state.update((s) => {
-            s.title = "About";
-        });
-    }
-}
-
-// ============================================================================
-// AboutPage Component
+// AboutView Component
 // ============================================================================
 
 interface AboutEditorProps {
-    model: AboutEditorModel;
+    model: AboutEditor;
 }
 
 function mapUpdateResult(result: UpdateCheckResult): IUpdateInfo {
@@ -64,7 +39,7 @@ function mapUpdateResult(result: UpdateCheckResult): IUpdateInfo {
     };
 }
 
-function AboutPage(_props: AboutEditorProps) {
+function AboutView(_props: AboutEditorProps) {
     const [runtimeVersions, setRuntimeVersions] = useState<IRuntimeVersions | null>(null);
     const [updateResult, setUpdateResult] = useState<IUpdateInfo | null>(null);
     const [checking, setChecking] = useState(false);
@@ -201,29 +176,38 @@ function AboutPage(_props: AboutEditorProps) {
 // ============================================================================
 // Editor Module
 // ============================================================================
+// EPIC-028 / US-573 — legacy EditorModule shape preserved for the
+// `showAboutPage` menu launcher and the LegacyEditorAdapter safety-net path.
+// The `as unknown as EditorModel` casts bridge the v4 AboutEditor class to the
+// legacy EditorModel typing the legacy module factories expect; the runtime
+// instance is the v4 class either way. `wrapLegacyForPage`'s
+// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) detects the v4
+// instance and skips the adapter wrap. US-559 retires this block entirely.
 
 const aboutEditorModule: EditorModule = {
-    Editor: AboutPage,
-    newEditorModel: async () => {
-        return new AboutEditorModel(new TComponentState(getDefaultAboutPageModelState()));
+    Editor: AboutView as unknown as EditorModule["Editor"],
+    newEditorModel: async () =>
+        new AboutEditor(
+            new TComponentState(getDefaultAboutEditorState()),
+        ) as unknown as EditorModel,
+    newEmptyEditorModel: async (editorType: EditorType) => {
+        if (editorType !== "aboutPage") return null;
+        return new AboutEditor(
+            new TComponentState(getDefaultAboutEditorState()),
+        ) as unknown as EditorModel;
     },
-    newEmptyEditorModel: async (editorType: EditorType): Promise<EditorModel | null> => {
-        if (editorType === "aboutPage") {
-            return new AboutEditorModel(new TComponentState(getDefaultAboutPageModelState()));
-        }
-        return null;
-    },
-    newEditorModelFromState: async (state: Partial<IEditorState>): Promise<EditorModel> => {
-        const initialState: AboutEditorModelState = {
-            ...getDefaultAboutPageModelState(),
-            ...state,
+    newEditorModelFromState: async (state: Partial<IEditorState>) => {
+        const initialState: AboutEditorState = {
+            ...getDefaultAboutEditorState(),
+            ...(state as Partial<AboutEditorState>),
         };
-        return new AboutEditorModel(new TComponentState(initialState));
+        return new AboutEditor(
+            new TComponentState(initialState),
+        ) as unknown as EditorModel;
     },
 };
 
 export default aboutEditorModule;
 
-// Named exports
-export { AboutPage, AboutEditorModel };
-export type { AboutEditorProps, AboutEditorModelState };
+export { AboutView };
+export type { AboutEditorProps };
