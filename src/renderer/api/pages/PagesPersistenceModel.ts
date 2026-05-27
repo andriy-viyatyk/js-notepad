@@ -40,8 +40,7 @@ interface PageSidebarSavedState {
  * don't need to be listed here. Explorer has its own explicit branch
  * (not in `editorRegistry`).
  *
- * Append to this set as each no-host migration lands:
- *   - US-576 Category → "category-view"
+ * US-576 (Category) was the last no-host editor — the set is now complete.
  *
  * US-559 deletes the legacy fallback entirely and folds this set into
  * the generic restore path.
@@ -55,7 +54,8 @@ const V4_NO_HOST_EDITOR_IDS = new Set([
     "settings-view", // US-572
     "about-view",    // US-573
     "mcp-view",      // US-574
-    "storybook-view", // US-575 (this PR)
+    "storybook-view", // US-575
+    "category-view",  // US-576 (this PR — last no-host editor; closes walkthrough 30)
 ]);
 
 /**

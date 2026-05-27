@@ -1502,3 +1502,26 @@ v4EditorRegistry.register({
         return storybookModule;
     },
 });
+
+// EPIC-028 / US-576 — replace the legacy bare-adapter mirror for category-view
+// with a native v4 module. Category is NO-HOST (no `CONTENT_HOST_TRAIT`) and a
+// tree-provider CONSUMER (reads a sibling host's provider from
+// `page.panelEditors`). `hasContentHost: false` keeps it out of the switch
+// widget. Opened via `tree-category://` links (target="category-view"); the
+// legacy registry's `module.newEditorModel(filePath)` decodes the link and
+// returns a v4 CategoryEditorModel cast as legacy. `wrapLegacyForPage`'s
+// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) skips the adapter.
+// Last no-host editor — closes the walkthrough-30 group.
+v4EditorRegistry.register({
+    id: "category-view",
+    name: "Folder View",
+    hasContentHost: false,
+    accepts: (input) => {
+        if (input.fileName?.startsWith("tree-category://")) return 200;
+        return -1;
+    },
+    loadModule: async () => {
+        const { categoryModule } = await import("./category");
+        return categoryModule;
+    },
+});

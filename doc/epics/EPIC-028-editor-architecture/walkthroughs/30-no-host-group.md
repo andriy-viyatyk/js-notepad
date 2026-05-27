@@ -1242,7 +1242,7 @@ Per user direction (2026-05-20): the other nine no-host editors are deferred for
 | About | `src/renderer/editors/about/` | Same singleton-id shape as Settings. |
 | MCP Inspector | `src/renderer/editors/mcp-inspector/` | No-host EditorModel; has its own state shape (request/response inspector). |
 | Storybook | `src/renderer/editors/storybook/` | Singleton-id no-host EditorModel; dev-only surface. |
-| Category | `src/renderer/editors/category/` | Aggregator editor — composes links from multiple `LinkEditor` siblings into one category-tree view; potentially has `treeProvider` (EX8 chain candidate). |
+| Category | `src/renderer/editors/category/` | No-host EditorModel — **consumes** a sibling tree-provider host (Link / Explorer / Archive) found in `page.panelEditors` and renders a `CategoryView`. Owns NO `treeProvider`; the sole EX8-chain **consumer**, not a member. Migration realizes walkthrough 03 / N5 (view subscribes to `page.state` via `useOptionalState`; model-side `onSecondaryEditorsChanged` / `_providerVersion` deleted). **AMENDED 2026-05-27 (US-576 CT-IMPL6)** — the earlier "aggregator … potentially has `treeProvider` (EX8 chain candidate)" wording was incorrect; corrected per first-principles investigation. See US-576. |
 
 Each will read its source end-to-end during implementation; if its concerns mirror the standardized set (no-host EditorModel with `editorId` + `accepts()` + `getRestoreData()` returning `EditorDescriptor`), it lands without new walkthrough doc. If it surfaces novel concerns, they're logged in `concerns.md` at PR time per the established pattern from walkthroughs 27 / 28.
 
