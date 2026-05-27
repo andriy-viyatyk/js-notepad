@@ -1482,3 +1482,23 @@ v4EditorRegistry.register({
         return mcpModule;
     },
 });
+
+// US-575 — replace the legacy bare-adapter mirror for storybook-view with a
+// native v4 module. Storybook is NO-HOST (no CONTENT_HOST_TRAIT) AND standalone
+// (no file acceptance) — `accepts` always returns -1 (opened only via
+// showStorybookPage, never via openFile). `hasContentHost: false` keeps it out
+// of the switch widget. The `showStorybookPage` launcher constructs via the
+// LEGACY registry's `module.newEmptyEditorModel` (now a v4 StorybookEditorModel
+// cast as legacy via `StorybookEditorView`'s preserved module);
+// `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return (US-568 PD-IMPL16)
+// skips the adapter wrap.
+v4EditorRegistry.register({
+    id: "storybook-view",
+    name: "Storybook",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { storybookModule } = await import("./storybook");
+        return storybookModule;
+    },
+});

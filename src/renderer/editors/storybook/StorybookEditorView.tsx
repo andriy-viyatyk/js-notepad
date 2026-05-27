@@ -1,5 +1,6 @@
 import React from "react";
-import { EditorType } from "../../../shared/types";
+import { EditorType, IEditorState } from "../../../shared/types";
+import type { EditorModel } from "../base";
 import { TComponentState } from "../../core/state/state";
 import { EditorModule } from "../types";
 import { Panel } from "../../uikit/Panel/Panel";
@@ -79,26 +80,42 @@ function StorybookEditorView({ model }: { model: StorybookEditorModel }) {
     );
 }
 
-const storybookEditorModule: EditorModule = {
-    Editor: StorybookEditorView as any,
+// ============================================================================
+// Editor Module
+// ============================================================================
+// EPIC-028 / US-575 — legacy EditorModule shape preserved for the
+// `showStorybookPage` launcher and the LegacyEditorAdapter safety-net path. The
+// `as unknown as EditorModel` casts bridge the v4 StorybookEditorModel class to
+// the legacy EditorModel typing the legacy module factories expect; the runtime
+// instance is the v4 class either way. `wrapLegacyForPage`'s
+// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) detects the v4
+// instance and skips the adapter wrap. US-559 retires this block entirely.
 
-    newEditorModel: async () => {
-        return new StorybookEditorModel(new TComponentState(getDefaultStorybookEditorState()));
-    },
+const storybookEditorModule: EditorModule = {
+    Editor: StorybookEditorView as unknown as EditorModule["Editor"],
+
+    newEditorModel: async () =>
+        new StorybookEditorModel(
+            new TComponentState(getDefaultStorybookEditorState()),
+        ) as unknown as EditorModel,
 
     newEmptyEditorModel: async (editorType: EditorType) => {
         if (editorType !== "storybookPage") return null;
-        return new StorybookEditorModel(new TComponentState(getDefaultStorybookEditorState()));
+        return new StorybookEditorModel(
+            new TComponentState(getDefaultStorybookEditorState()),
+        ) as unknown as EditorModel;
     },
 
-    newEditorModelFromState: async (state) => {
+    newEditorModelFromState: async (state: Partial<IEditorState>) => {
         const s: StorybookEditorState = {
             ...getDefaultStorybookEditorState(),
             ...(state as Partial<StorybookEditorState>),
         };
-        return new StorybookEditorModel(new TComponentState(s));
+        return new StorybookEditorModel(
+            new TComponentState(s),
+        ) as unknown as EditorModel;
     },
 };
 
 export default storybookEditorModule;
-export { STORYBOOK_PAGE_ID };
+export { StorybookEditorView, STORYBOOK_PAGE_ID };

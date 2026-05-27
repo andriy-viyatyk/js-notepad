@@ -1116,7 +1116,12 @@ export class PagesLifecycleModel {
     };
 
     showStorybookPage = async (): Promise<void> => {
-        const storybookModule = await import("../../editors/storybook/StorybookEditorView");
+        // EPIC-028 / US-575 — Storybook migrated to native v4 module. Import path
+        // resolves to `editors/storybook/index.tsx`. `storybookModule.default` is
+        // the preserved legacy `storybookEditorModule` (constructs a v4
+        // StorybookEditorModel cast as legacy). `wrap(model)` early-returns the v4
+        // instance (US-568 PD-IMPL16) — no adapter wrap.
+        const storybookModule = await import("../../editors/storybook");
         const model = await storybookModule.default.newEmptyEditorModel("storybookPage");
         if (model) {
             const page = new PageModel(storybookModule.STORYBOOK_PAGE_ID);

@@ -41,7 +41,6 @@ interface PageSidebarSavedState {
  * (not in `editorRegistry`).
  *
  * Append to this set as each no-host migration lands:
- *   - US-575 Storybook → "storybook-view"
  *   - US-576 Category → "category-view"
  *
  * US-559 deletes the legacy fallback entirely and folds this set into
@@ -55,7 +54,8 @@ const V4_NO_HOST_EDITOR_IDS = new Set([
     "video-view",   // US-571
     "settings-view", // US-572
     "about-view",    // US-573
-    "mcp-view",      // US-574 (this PR)
+    "mcp-view",      // US-574
+    "storybook-view", // US-575 (this PR)
 ]);
 
 /**
