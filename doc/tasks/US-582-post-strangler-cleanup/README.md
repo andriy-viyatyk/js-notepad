@@ -509,13 +509,52 @@ npm run lint 2>&1 | Select-String 'error' | Measure-Object         # expect ≤ 
 
 ## Implementation log
 
-- [ ] Commit A — Phases 1 + 2 + 5 (V4-prefix + structural renames + type alias rename)
-- [ ] Commit B — Phases 4a + 4b + 4c + 4d (folder move + IContentHost reconciliation)
-- [ ] Commit C — Phases 3 + 6 (EPIC-028 / US-5XX / strangler / concern-ID comment strip)
-- [ ] Verification: tsc baseline 19 holds; eslint baseline 17 holds
+- [x] Commit A — Phases 1 + 2 + 5 (V4-prefix + structural renames + type alias rename) — `b8499a5` 80 files +865/−402
+- [x] Commit B — Phases 4a + 4b + 4c + 4d (folder move + IContentHost reconciliation) — `81cbeac` 78 files +295/−334
+- [x] Commit C — Phases 3 + 6 (EPIC-028 / US-5XX / strangler / concern-ID comment strip) — `5fb3a13` 141 files +140/−1926
+- [x] Verification: tsc baseline 19 holds at every commit
 - [ ] User-driven smoke test across all 22 editor types
 - [ ] Dashboard entry moved to `tasks/completed.md` reference on epic close
 
 ## What landed
 
-*(To be filled in after implementation.)*
+**Three commits on `upcoming-v4.0.1`:**
+
+| Commit | Title | Files | Diff |
+|---|---|---|---|
+| `b8499a5` | US-582 Commit A: V4-prefix removal + structural renames | 80 | +865/−402 |
+| `81cbeac` | US-582 Commit B: Promote editors/base/v4/* to editors/base/* | 78 | +295/−334 |
+| `5fb3a13` | US-582 Commit C: Strip EPIC-028 / US-5XX / strangler narrative | 141 | +140/−1926 |
+| **Total** | | **~250 unique files** | **+1300/−2662 = net −1362 LOC** |
+
+**Acceptance criteria result:**
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | `as V4EditorModel` / `as V4EditorModelType` aliases | 0 ✓ |
+| 2 | `V4` / `v4` identifier prefixes | 0 ✓ |
+| 3 | `editors/base/v4/` directory | deleted ✓ |
+| 4 | `EPIC-028` mentions in `src/` | 0 ✓ |
+| 5 | `US-5\d\d` references in source comments | 0 ✓ |
+| 6 | `(XX-N)` concern-ID anchors | 0 ✓ |
+| 7 | `strangler` mentions in `src/` | 0 ✓ |
+| 8 | `tsc --noEmit` | 19 (baseline, unchanged) ✓ |
+| 9 | `npm run lint` | 47 (baseline at `f5d1178` — task doc's "17" estimate was wrong; verified by `git checkout f5d1178 && npm run lint` returns same count) ✓ |
+| 10 | App runs (manual smoke test) | **pending user verification** |
+| 11 | No deleted comment caused regression | Commit C diff reviewable |
+| 12 | `mainEditor` getter semantics preserved | tsc-verified; **pending user verification** |
+| 13 | README + dashboard updated | ✓ (this section) |
+
+**CL1 amendment** — the task doc claimed `unwrapAdapter` was a passthrough. Wrong: it unwraps a v4 editor's `contentHost` to the `TextFileModel` host so legacy field readers (tab strip, OpenTabsList, PageTabs) keep working. Implementation kept both getters and renamed:
+- `unwrapAdapter` → `unwrapToHost` (describes what it actually does)
+- `mainEditorV4` → `mainEditorInstance` (raw v4, no host unwrap)
+- `mainEditor` (returns `EditorOrHost`, unwraps to host) — preserved name
+
+**Bonus cleanup** (beyond the original scope, surfaced during implementation):
+- Deleted dead `panelEditorsV4` and `secondaryEditors` getters from PageModel (both were vestigial cast-to-union wrappers).
+- `findExplorer` dropped its now-vestigial `unwrapAdapter` call (Explorer is no-host; unwrap was always a passthrough).
+- Stripped references to deleted classes the original scope didn't catch: `LegacyEditorAdapter`, `ContentViewModel(Host)`, `TextEditorView`, `TextViewModel`, `deriveEditorId` — 5 distinct dead-pointer types.
+
+**Two follow-ups discovered (out of scope; flagged for future):**
+- `LegacyEditorModel` local union alias was the same shape as the canonical `EditorOrHost` — collapsed to one. PageModel `secondaryEditors` getter was a compat shim — deleted (one caller, `VideoEditor.ts`, updated).
+- The 47-error lint baseline includes 30 `import/no-unresolved` errors from `doc/epics/EPIC-028-editor-architecture/mockups/*` referencing source paths the strangler retirement moved. The mockups are frozen design-history artifacts; should be either deleted or updated as part of the deferred docs-update follow-on task.
