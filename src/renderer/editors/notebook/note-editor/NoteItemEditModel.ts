@@ -5,7 +5,7 @@ import { EditorView } from "../../../../shared/types";
 import { NoteItem, NotebookSource } from "../notebookTypes";
 import { scriptRunner } from "../../../scripting/ScriptRunner";
 import { isScriptLanguage } from "../../../scripting/transpile";
-import type { EditorStateStorage } from "../../base/EditorStateStorageContext";
+import type { EditorStateStorage } from "../../base/EditorStateStorage";
 import type { HostDescriptor } from "../../../../shared/persistence-v4";
 import * as monaco from "monaco-editor";
 

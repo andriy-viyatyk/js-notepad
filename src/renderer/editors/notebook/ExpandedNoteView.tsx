@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { EditorConfigProvider, EditorStateStorageProvider, useObjectStateStorage } from "../base";
+import { EditorConfigProvider } from "../base";
 import { IconButton } from "../../uikit/IconButton";
 import { Input } from "../../uikit/Input";
 import { Panel } from "../../uikit/Panel";
@@ -125,11 +125,6 @@ export function ExpandedNoteView({
             setCategoryValue(note.category);
         }
     }, [note.category, editingCategory]);
-
-    const stateStorage = useObjectStateStorage(
-        notebookModel.getNoteState,
-        notebookModel.setNoteState
-    );
 
     // Handle Escape key to collapse
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -336,18 +331,16 @@ export function ExpandedNoteView({
                 overflow="hidden"
                 position="relative"
             >
-                <EditorStateStorageProvider storage={stateStorage}>
-                    <EditorConfigProvider
-                        config={{
-                            hideMinimap: false,
-                            disableAutoFocus: false,
-                            fillContainer: true,
-                            highlightText: searchText,
-                        }}
-                    >
-                        <NoteItemActiveEditor model={editModel} />
-                    </EditorConfigProvider>
-                </EditorStateStorageProvider>
+                <EditorConfigProvider
+                    config={{
+                        hideMinimap: false,
+                        disableAutoFocus: false,
+                        fillContainer: true,
+                        highlightText: searchText,
+                    }}
+                >
+                    <NoteItemActiveEditor model={editModel} />
+                </EditorConfigProvider>
             </Panel>
 
             {/* Comment section */}

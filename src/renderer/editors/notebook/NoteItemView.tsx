@@ -9,7 +9,7 @@ import { Panel } from "../../uikit/Panel";
 import { PathInput } from "../../uikit/PathInput";
 import { Textarea } from "../../uikit/Textarea";
 import { highlight, useHighlightedText } from "../../uikit/shared/highlight";
-import { EditorConfigProvider, EditorStateStorageProvider, useObjectStateStorage } from "../base";
+import { EditorConfigProvider } from "../base";
 import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
 import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import { NoteItemViewProps, NoteItemViewModel, defaultNoteItemViewState } from "./NoteItemViewModel";
@@ -139,11 +139,6 @@ export function NoteItemView(props: NoteItemViewProps) {
     const handleDragEnd = useCallback(() => {
         setIsDragging(false);
     }, []);
-
-    const stateStorage = useObjectStateStorage(
-        notebookModel.getNoteState,
-        notebookModel.setNoteState
-    );
 
     const active = isFocused; // alias for blue indicator
     const showToolbar = isHovered || isFocused || isSearching;
@@ -347,19 +342,17 @@ export function NoteItemView(props: NoteItemViewProps) {
                         transition: "opacity 0.5s ease",
                     }}
                 />
-                <EditorStateStorageProvider storage={stateStorage}>
-                    <EditorConfigProvider
-                        config={{
-                            maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT,
-                            hideMinimap: true,
-                            disableAutoFocus: true,
-                            highlightText: searchText,
-                            compact: true,
-                        }}
-                    >
-                        <NoteItemActiveEditor model={model.editModel} />
-                    </EditorConfigProvider>
-                </EditorStateStorageProvider>
+                <EditorConfigProvider
+                    config={{
+                        maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT,
+                        hideMinimap: true,
+                        disableAutoFocus: true,
+                        highlightText: searchText,
+                        compact: true,
+                    }}
+                >
+                    <NoteItemActiveEditor model={model.editModel} />
+                </EditorConfigProvider>
             </div>
 
             {/* Comment section — always show if has comment, show add button on hover */}

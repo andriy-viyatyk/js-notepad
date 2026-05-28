@@ -958,7 +958,8 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
 
     /**
      * Get stored state for a note item by name.
-     * Used by EditorStateStorageContext to provide storage for nested editors.
+     * Consumed by `NoteItemEditModel.stateStorage` so nested editors read/write
+     * a per-note slot in `data.state`.
      */
     getNoteState = (id: string, name: string): string | undefined => {
         const noteState = this.state.get().data.state[id];
@@ -968,7 +969,8 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
 
     /**
      * Set state for a note item by name.
-     * Used by EditorStateStorageContext to provide storage for nested editors.
+     * Consumed by `NoteItemEditModel.stateStorage` so nested editors read/write
+     * a per-note slot in `data.state`.
      */
     setNoteState = (id: string, name: string, value: string) => {
         const currentValue = this.getNoteState(id, name);

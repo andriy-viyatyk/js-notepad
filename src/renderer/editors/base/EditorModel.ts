@@ -8,7 +8,6 @@ import { ComponentQueue, ComponentQueueEvent } from "../../core/state/ComponentQ
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence-v4";
 import type { IContentHost } from "./IContentHost";
 import type { IContentPipe } from "../../api/types/io.pipe";
-import type { EditorStateStorage } from "./EditorStateStorage";
 import type { PageModel } from "../../api/pages/PageModel";
 import type { IEditorState } from "../../../shared/types";
 
@@ -56,14 +55,6 @@ export abstract class EditorModel<
      *  `state` mutations; subclasses with extra reactive surfaces (host,
      *  pipe) forward those onto this Subscription too. */
     readonly descriptorChanged = new Subscription<void>();
-
-    /** Cache-storage scoped to this editor's id. Submodels (host, script,
-     *  view-state) write under `<this.id>-<name>` via this handle. Id read
-     *  lazily so switchFrom-copied ids start using the new value automatically. */
-    readonly stateStorage: EditorStateStorage = {
-        getState: (name: string) => appFs.getCacheFile(this.id, name),
-        setState: (name: string, state: string) => appFs.saveCacheFile(this.id, state, name),
-    };
 
     /** Set when attached to a `PageModel`. Type imported as type-only to
      *  avoid a runtime circular dep. */

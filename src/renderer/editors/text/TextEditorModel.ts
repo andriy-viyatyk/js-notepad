@@ -10,7 +10,6 @@ import { TextFileEncryptionModel } from "./TextFileEncryptionModel";
 import { TextFileIOModel } from "./TextFileIOModel";
 import { TextFileActionsModel } from "./TextFileActionsModel";
 import type { IContentHost } from "../base/IContentHost";
-import type { EditorStateStorage as ContextEditorStateStorage } from "../base/EditorStateStorageContext";
 import type { EditorStateStorage } from "../base/EditorStateStorage";
 import type { HostDescriptor } from "../../../shared/persistence-v4";
 import type { IContentPipe } from "../../api/types/io.pipe";
@@ -130,7 +129,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     // IContentHost storage hookup (cache-file passthrough).
     // =========================================================================
 
-    readonly stateStorage: ContextEditorStateStorage = {
+    readonly stateStorage: EditorStateStorage = {
         getState: async (id, name) => appFs.getCacheFile(id, name),
         setState: async (id, name, state) => { await appFs.saveCacheFile(id, state, name); },
     };
@@ -311,13 +310,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         };
     }
 
-    /** v4 IContentHost storage hookup. Submodels write via appFs.getCacheFile /
-     *  saveCacheFile keyed by `state.id`. */
-    setStorage(_storage: EditorStateStorage): void {
-        void _storage;
-    }
-
-    /** HS1 — read editor-keyed view-state slot. Sync. */
+    /** Read editor-keyed view-state slot. Sync. */
     getEditorState<T>(editorId: string): T | undefined {
         return this.state.get().editorSettings?.[editorId] as T | undefined;
     }

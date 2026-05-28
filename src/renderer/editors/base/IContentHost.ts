@@ -1,6 +1,5 @@
 import type React from "react";
 import type { IState } from "../../core/state/state";
-import type { EditorStateStorage } from "./EditorStateStorage";
 import type { HostDescriptor } from "../../../shared/persistence-v4";
 
 /** Minimal reactive state every host exposes. */
@@ -24,14 +23,6 @@ export interface IContentHost {
     changeContent(content: string, byUser?: boolean): void;
 
     changeLanguage(language: string | undefined): void;
-
-    /**
-     * Receive the cache-storage handle from the wrapping editor. Called when
-     * the editor adopts this host (initial open, switchFrom, setContentHost).
-     * Hosts that don't need persistent cache (e.g., `NoteItemEditModel`) may
-     * ignore the call.
-     */
-    setStorage(storage: EditorStateStorage): void;
 
     /** Release host-owned resources. Called by the owning editor's dispose()
      *  ONLY IF the host was not extracted. A switched-out host is owned by

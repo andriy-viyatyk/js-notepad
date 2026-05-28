@@ -31,12 +31,6 @@ export { LanguageIcon } from '../../components/icons/LanguageIcon';
 export type { LanguageIconProps } from '../../components/icons/LanguageIcon';
 export { EditorConfigProvider, useEditorConfig } from './EditorConfigContext';
 export type { EditorConfig } from './EditorConfigContext';
-export {
-    EditorStateStorageProvider,
-    useEditorStateStorage,
-    useObjectStateStorage,
-} from './EditorStateStorageContext';
-
 export type { IContentHost, IContentHostState } from './IContentHost';
 export type { EditorStateStorage } from './EditorStateStorage';
 export type { IPageHost } from './IPageHost';
