@@ -4,8 +4,8 @@ import {
     getDefaultCategoryEditorModelState,
 } from "./CategoryEditorModel";
 import { CategoryEditor } from "./CategoryEditor";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-576 — native Category (Folder View) editor module. Registered

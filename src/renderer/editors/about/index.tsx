@@ -1,8 +1,8 @@
 import { TComponentState } from "../../core/state/state";
 import { AboutEditor, getDefaultAboutEditorState } from "./AboutEditor";
 import { AboutView } from "./AboutView";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-573 — native About editor module. Registered with the v4

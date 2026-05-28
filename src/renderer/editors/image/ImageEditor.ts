@@ -4,7 +4,7 @@ import {
     EditorModel,
     type EditorStateBase,
     type RestoreData,
-} from "../base/v4/EditorModel";
+} from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence-v4";
 import { FileIcon } from "../../components/icons/FileIcon";
 import { fpBasename, fpExtname } from "../../core/utils/file-path";

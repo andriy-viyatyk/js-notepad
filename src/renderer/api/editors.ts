@@ -1,4 +1,4 @@
-import { editorRegistry } from "../editors/base/v4/editorRegistry";
+import { editorRegistry } from "../editors/base/editorRegistry";
 import type { IEditorInfo, IEditorRegistry, ISwitchOptions } from "./types/editors";
 
 // EPIC-028 / US-581 — `app.editors` sources from the native v4 registry.

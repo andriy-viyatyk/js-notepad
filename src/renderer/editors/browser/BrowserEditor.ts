@@ -4,7 +4,7 @@ import { TComponentState } from "../../core/state/state";
 import {
     EditorModel,
     type RestoreData,
-} from "../base/v4/EditorModel";
+} from "../base/EditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor } from "../../../shared/persistence-v4";
 import { globalKeyDown, windowClosing, SubscriptionObject } from "../../core/state/events";

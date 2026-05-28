@@ -1,5 +1,5 @@
 import { app } from "../api/app";
-import { editorRegistry } from "../editors/base/v4/editorRegistry";
+import { editorRegistry } from "../editors/base/editorRegistry";
 import { isArchivePath, parseArchivePath } from "../core/utils/file-path";
 import { createPipeFromDescriptor } from "./registry";
 import { resolveUrlToPipeDescriptor, isHttpUrl } from "./link-utils";

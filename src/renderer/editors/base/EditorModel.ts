@@ -1,16 +1,16 @@
 import type React from "react";
-import { TDialogModel } from "../../../core/state/model";
-import type { IState } from "../../../core/state/state";
-import { TraitSet } from "../../../core/traits/traits";
-import { Subscription } from "../../../core/state/events";
-import { fs as appFs } from "../../../api/fs";
-import { ComponentQueue, ComponentQueueEvent } from "../../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../../shared/persistence-v4";
+import { TDialogModel } from "../../core/state/model";
+import type { IState } from "../../core/state/state";
+import { TraitSet } from "../../core/traits/traits";
+import { Subscription } from "../../core/state/events";
+import { fs as appFs } from "../../api/fs";
+import { ComponentQueue, ComponentQueueEvent } from "../../core/state/ComponentQueue";
+import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence-v4";
 import type { IContentHost } from "./IContentHost";
-import type { IContentPipe } from "../../../api/types/io.pipe";
+import type { IContentPipe } from "../../api/types/io.pipe";
 import type { EditorStateStorage } from "./EditorStateStorage";
-import type { PageModel } from "../../../api/pages/PageModel";
-import type { IEditorState } from "../../../../shared/types";
+import type { PageModel } from "../../api/pages/PageModel";
+import type { IEditorState } from "../../../shared/types";
 
 /**
  * v4 editor base class. Coexists with the legacy [`../EditorModel.ts`](../EditorModel.ts)

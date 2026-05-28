@@ -112,7 +112,7 @@ export class PagesPersistenceModel {
                 try {
                     if (d.host) {
                         const { editorRegistry: v4Registry } = await import(
-                            "../../editors/base/v4"
+                            "../../editors/base"
                         );
                         const editor = await v4Registry.createEditor(d.editorId, d.id);
                         editor.applyRestoreData(d as unknown as Parameters<typeof editor.applyRestoreData>[0]);
@@ -135,7 +135,7 @@ export class PagesPersistenceModel {
                     }
                     if (NO_HOST_EDITOR_IDS.has(d.editorId)) {
                         const { editorRegistry: v4Registry } = await import(
-                            "../../editors/base/v4"
+                            "../../editors/base"
                         );
                         const editor = await v4Registry.createEditor(d.editorId, d.id);
                         editor.state.update((s) => {

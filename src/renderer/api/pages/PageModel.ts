@@ -1,5 +1,5 @@
 import { TComponentState, TOneState } from "../../core/state/state";
-import { type EditorModel } from "../../editors/base/v4";
+import { type EditorModel } from "../../editors/base";
 import type { EditorOrHost } from "../../editors/base";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { PageDescriptor } from "../../../shared/persistence-v4";
@@ -396,7 +396,7 @@ export class PageModel {
         const oldEditor = this.mainEditorInstance;
         if (!oldEditor) return;
         if (oldEditor.editorId === newEditorId) return;
-        const { editorRegistry } = await import("../../editors/base/v4");
+        const { editorRegistry } = await import("../../editors/base");
         const def = editorRegistry.getById(newEditorId);
         if (!def) {
             throw new Error(`No editor registered for id: ${newEditorId}`);

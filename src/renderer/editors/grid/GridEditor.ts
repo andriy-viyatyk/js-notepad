@@ -4,15 +4,15 @@ import {
     EditorModel,
     type EditorStateBase,
     type RestoreData,
-} from "../base/v4/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/v4/editor-traits";
-import type { IContentHost } from "../base/v4/IContentHost";
+} from "../base/EditorModel";
+import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
+import type { IContentHost } from "../base/IContentHost";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence-v4";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { PageModel } from "../../api/pages/PageModel";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry as v4Registry } from "../base/v4/editorRegistry";
+import { editorRegistry as v4Registry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 import {

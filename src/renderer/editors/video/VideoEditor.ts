@@ -4,7 +4,7 @@ import {
     EditorModel,
     type EditorStateBase,
     type RestoreData,
-} from "../base/v4/EditorModel";
+} from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence-v4";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import { PlayerIcon } from "../../theme/icons";

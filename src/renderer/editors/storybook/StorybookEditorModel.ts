@@ -1,7 +1,7 @@
 import {
     EditorModel,
     type EditorStateBase,
-} from "../base/v4/EditorModel";
+} from "../base/EditorModel";
 import { ALL_STORIES, findStory } from "./storyRegistry";
 import { Story, PropDef } from "./storyTypes";
 

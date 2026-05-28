@@ -4,15 +4,14 @@ import { shell } from "../../api/shell";
 import { fs as appFs } from "../../api/fs";
 import { IEditorState, EditorView } from "../../../shared/types";
 import { ScriptPanelModel } from "./ScriptPanel";
-import { editorRegistry } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import { editorRegistry } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 import { TextFileEncryptionModel } from "./TextFileEncryptionModel";
 import { TextFileIOModel } from "./TextFileIOModel";
 import { TextFileActionsModel } from "./TextFileActionsModel";
 import type { IContentHost } from "../base/IContentHost";
-import type { IContentHost as V4ContentHost } from "../base/v4/IContentHost";
-import type { EditorStateStorage } from "../base/EditorStateStorageContext";
-import type { EditorStateStorage as V4EditorStateStorage } from "../base/v4/EditorStateStorage";
+import type { EditorStateStorage as ContextEditorStateStorage } from "../base/EditorStateStorageContext";
+import type { EditorStateStorage } from "../base/EditorStateStorage";
 import type { HostDescriptor } from "../../../shared/persistence-v4";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { PageModel } from "../../api/pages/PageModel";
@@ -142,7 +141,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     // IContentHost storage hookup (cache-file passthrough).
     // =========================================================================
 
-    readonly stateStorage: EditorStateStorage = {
+    readonly stateStorage: ContextEditorStateStorage = {
         getState: async (id, name) => appFs.getCacheFile(id, name),
         setState: async (id, name, state) => { await appFs.saveCacheFile(id, state, name); },
     };
@@ -196,7 +195,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         // US-581 — v4 registry, host-driven detection. The host's content is
         // read inside `detectContentEditor`; empty/unloaded content yields no
         // suggestion (robust to early calls).
-        const detected = editorRegistry.detectContentEditor(this as unknown as V4ContentHost);
+        const detected = editorRegistry.detectContentEditor(this as unknown as IContentHost);
         if (detected !== this.state.get().detectedContentEditor) {
             this.state.update((s) => { s.detectedContentEditor = detected as EditorView | undefined; });
         }
@@ -342,7 +341,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
 
     /** v4 IContentHost storage hookup. Submodels write via appFs.getCacheFile /
      *  saveCacheFile keyed by `state.id`. */
-    setStorage(_storage: V4EditorStateStorage): void {
+    setStorage(_storage: EditorStateStorage): void {
         void _storage;
     }
 

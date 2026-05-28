@@ -1,14 +1,14 @@
 import { useCallback, useRef, useState } from "react";
 import { TComponentState } from "../../core/state/state";
-import { TextChrome } from "../base/v4/TextChrome";
+import { TextChrome } from "../base/TextChrome";
 import { Input } from "../../uikit/Input";
 import { IconButton } from "../../uikit/IconButton";
 import { Button } from "../../uikit/Button";
 import { CloseIcon, ColumnsIcon } from "../../theme/icons";
 import { showColumnsOptions } from "./components/ColumnsOptions";
 import { showCsvOptions } from "./components/CsvOptions";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 import { GridEditor, defaultGridEditorState } from "./GridEditor";
 import { GridBody, getVisibleRowsLabel } from "./GridBody";
 import type { AVGridModel } from "../../uikit";

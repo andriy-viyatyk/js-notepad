@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import type { EditorModel } from "./EditorModel";
-import { EditorToolbar } from "../EditorToolbar";
-import { IconButton } from "../../../uikit/IconButton/IconButton";
-import { SegmentedControl, type ISegment } from "../../../uikit/SegmentedControl/SegmentedControl";
-import { Spacer } from "../../../uikit/Spacer/Spacer";
-import { NavPanelIcon } from "../../../theme/icons";
+import { EditorToolbar } from "./EditorToolbar";
+import { IconButton } from "../../uikit/IconButton/IconButton";
+import { SegmentedControl, type ISegment } from "../../uikit/SegmentedControl/SegmentedControl";
+import { Spacer } from "../../uikit/Spacer/Spacer";
+import { NavPanelIcon } from "../../theme/icons";
 import { editorRegistry } from "./editorRegistry";
 
 /**

@@ -1,8 +1,8 @@
 import { TComponentState } from "../../core/state/state";
 import { SettingsEditor, getDefaultSettingsEditorState } from "./SettingsEditor";
 import { SettingsView } from "./SettingsView";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-572 — native Settings editor module. Registered with the v4

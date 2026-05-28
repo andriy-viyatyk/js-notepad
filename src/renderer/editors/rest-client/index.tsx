@@ -1,9 +1,9 @@
 import { TComponentState } from "../../core/state/state";
 import { RestClientEditor, defaultRestClientEditorState } from "./RestClientEditor";
 import { RestClientBody } from "./RestClientBody";
-import { TextChrome } from "../base/v4/TextChrome";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import { TextChrome } from "../base/TextChrome";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-563 — native Rest Client editor module. Registered with the v4

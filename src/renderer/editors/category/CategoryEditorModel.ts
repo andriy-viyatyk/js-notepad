@@ -3,7 +3,7 @@ import { TComponentState } from "../../core/state/state";
 import {
     EditorModel,
     type EditorStateBase,
-} from "../base/v4/EditorModel";
+} from "../base/EditorModel";
 import { FolderIcon } from "../../components/icons/FileIcon";
 import { fpBasename } from "../../core/utils/file-path";
 import {

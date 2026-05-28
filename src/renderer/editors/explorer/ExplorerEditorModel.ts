@@ -3,7 +3,7 @@ import {
     EditorModel,
     type EditorStateBase,
     type RestoreData,
-} from "../base/v4/EditorModel";
+} from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence-v4";
 import type { ITreeProvider } from "../../api/types/io.tree";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";

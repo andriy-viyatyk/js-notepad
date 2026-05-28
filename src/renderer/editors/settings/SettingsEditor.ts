@@ -1,7 +1,7 @@
 import {
     EditorModel,
     type EditorStateBase,
-} from "../base/v4/EditorModel";
+} from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-572 — native v4 Settings page. NO-HOST editor (no

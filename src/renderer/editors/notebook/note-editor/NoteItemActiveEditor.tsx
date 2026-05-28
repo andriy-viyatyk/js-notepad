@@ -1,9 +1,9 @@
 import { ComponentType, useEffect, useState } from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import { MiniTextEditor } from "./MiniTextEditor";
-import { editorRegistry as v4EditorRegistry } from "../../base/v4/editorRegistry";
-import { CONTENT_HOST_TRAIT } from "../../base/v4/editor-traits";
-import type { EditorModel } from "../../base/v4/EditorModel";
+import { editorRegistry as v4EditorRegistry } from "../../base/editorRegistry";
+import { CONTENT_HOST_TRAIT } from "../../base/editor-traits";
+import type { EditorModel } from "../../base/EditorModel";
 import { EditorView } from "../../../../shared/types";
 
 // =============================================================================

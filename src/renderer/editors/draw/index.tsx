@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { TComponentState } from "../../core/state/state";
 import { DrawEditor, defaultDrawEditorState } from "./DrawEditor";
 import { DrawBody } from "./DrawBody";
-import { TextChrome } from "../base/v4/TextChrome";
+import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit/IconButton";
 import { WithMenu } from "../../uikit/Menu";
 import type { MenuItem } from "../../uikit/Menu";
@@ -14,8 +14,8 @@ import { fs } from "../../api/fs";
 import { api } from "../../../ipc/renderer/api";
 import { pagesModel } from "../../api/pages";
 import { fpBasename } from "../../core/utils/file-path";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-565 — native Drawing editor module. Registered with the v4

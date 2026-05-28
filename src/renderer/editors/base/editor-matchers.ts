@@ -1,5 +1,5 @@
 import type { AcceptanceInput, EditorMatcher } from "./editorRegistry";
-import { isArchiveFile } from "../../../core/utils/file-path";
+import { isArchiveFile } from "../../core/utils/file-path";
 
 /**
  * EPIC-028 / US-581 — native v4 editor matching rules.

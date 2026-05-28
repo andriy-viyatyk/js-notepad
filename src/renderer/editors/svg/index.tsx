@@ -2,15 +2,15 @@ import { useRef } from "react";
 import { TComponentState } from "../../core/state/state";
 import { SvgEditor, defaultSvgEditorState } from "./SvgEditor";
 import { SvgBody } from "./SvgBody";
-import { TextChrome } from "../base/v4/TextChrome";
+import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
 import { CopyIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-560 — native SVG preview editor module. Registered with the

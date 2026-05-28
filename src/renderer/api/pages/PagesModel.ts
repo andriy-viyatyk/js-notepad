@@ -1,7 +1,7 @@
 import { Subscription } from "../../core/state/events";
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
-import type { EditorModel } from "../../editors/base/v4";
+import type { EditorModel } from "../../editors/base";
 import { EditorView, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
 import type { ILink } from "../types/io.tree";

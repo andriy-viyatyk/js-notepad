@@ -1,7 +1,7 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { CategoryView } from "../../components/tree-provider/CategoryView";
 import type { CategoryViewMode } from "../../components/tree-provider/CategoryViewModel";
-import { PageToolbar } from "../base/v4";
+import { PageToolbar } from "../base";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { app } from "../../api/app";

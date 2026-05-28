@@ -1,4 +1,4 @@
-import { TraitKey } from "../../../core/traits/traits";
+import { TraitKey } from "../../core/traits/traits";
 import type { IContentHost } from "./IContentHost";
 
 /**

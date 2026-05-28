@@ -1,7 +1,7 @@
-export { EditorModel } from "./v4/EditorModel";
-export type { EditorStateBase, RestoreData } from "./v4/EditorModel";
+export { EditorModel } from "./EditorModel";
+export type { EditorStateBase, RestoreData } from "./EditorModel";
 
-import type { EditorModel } from "./v4/EditorModel";
+import type { EditorModel } from "./EditorModel";
 import type { TextFileModel } from "../text/TextEditorModel";
 
 /** Union returned by `PageModel.mainEditor` — either an `EditorModel` (the
@@ -11,6 +11,8 @@ export type EditorOrHost = EditorModel | TextFileModel;
 
 import type { IEditorState } from "../../../shared/types";
 
+/** Default `IEditorState` factory consumed by preserved standalone shim files
+ *  for their state defaults. */
 export function getDefaultEditorModelState(): IEditorState {
     return {
         id: crypto.randomUUID(),
@@ -34,6 +36,13 @@ export {
     useEditorStateStorage,
     useObjectStateStorage,
 } from './EditorStateStorageContext';
-export type { EditorStateStorage } from './EditorStateStorageContext';
 
 export type { IContentHost, IContentHostState } from './IContentHost';
+export type { EditorStateStorage } from './EditorStateStorage';
+export type { IPageHost } from './IPageHost';
+export { CONTENT_HOST_TRAIT } from './editor-traits';
+export type { IContentHostTrait } from './editor-traits';
+export { editorRegistry } from './editorRegistry';
+export type { EditorDefinition, EditorModule, AcceptanceInput } from './editorRegistry';
+export { PageToolbar } from './PageToolbar';
+export { TextChrome } from './TextChrome';

@@ -1,5 +1,5 @@
-import { editorRegistry as v4EditorRegistry } from "./base/v4/editorRegistry";
-import { EDITOR_MATCHERS, makeAccepts } from "./base/v4/editor-matchers";
+import { editorRegistry as v4EditorRegistry } from "./base/editorRegistry";
+import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { secondaryEditorRegistry } from "../ui/navigation/secondary-editor-registry";
 
 /**

@@ -4,8 +4,8 @@ import {
     getDefaultStorybookEditorState,
 } from "./StorybookEditorModel";
 import { StorybookEditorView } from "./StorybookEditorView";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-575 — native Storybook editor module. Registered with the v4

@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { TreeProviderView, TreeProviderViewRef } from "../../components/tree-provider";
-import { PageToolbar } from "../base/v4";
+import { PageToolbar } from "../base";
 import { TComponentState } from "../../core/state/state";
 import { Panel } from "../../uikit/Panel";
 import { IconButton } from "../../uikit/IconButton";
@@ -15,7 +15,7 @@ import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { EditorModel } from "../base";
 import { EditorModule } from "../types";
 import type { EditorType, IEditorState } from "../../../shared/types";
-import type { RestoreData } from "../base/v4/EditorModel";
+import type { RestoreData } from "../base/EditorModel";
 import {
     ArchiveEditor,
     getDefaultArchiveEditorState,

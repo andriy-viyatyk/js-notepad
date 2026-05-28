@@ -1,7 +1,7 @@
 import { IEditorState, EditorType } from "../../../shared/types";
 import type { EditorModel } from "../base";
 import { EditorModule } from "../types";
-import { PageToolbar } from "../base/v4";
+import { PageToolbar } from "../base";
 import { TComponentState } from "../../core/state/state";
 import { IconButton } from "../../uikit";
 import { CopyIcon, SaveIcon } from "../../theme/icons";

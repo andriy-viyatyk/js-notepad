@@ -1,5 +1,5 @@
 import type { PagesModel } from "./PagesModel";
-import { EditorModel } from "../../editors/base/v4";
+import { EditorModel } from "../../editors/base";
 import type { EditorOrHost } from "../../editors/base";
 import { IEditorState, EditorView, EditorType, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
@@ -29,7 +29,7 @@ import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
 import { ui } from "../ui";
 import { settings } from "../settings";
-import { editorRegistry as editorRegistryV4 } from "../../editors/base/v4/editorRegistry";
+import { editorRegistry as editorRegistryV4 } from "../../editors/base/editorRegistry";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { PageModel } from "./PageModel";
 

@@ -2,20 +2,20 @@ import { ReactNode, useEffect, useRef } from "react";
 import type React from "react";
 import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
-import type { TextFileModel } from "../../text/TextEditorModel";
+import type { TextFileModel } from "../text/TextEditorModel";
 import { PageToolbar } from "./PageToolbar";
-import { EditorToolbar } from "../EditorToolbar";
-import { Panel } from "../../../uikit/Panel/Panel";
-import { Spacer } from "../../../uikit/Spacer/Spacer";
-import { Divider } from "../../../uikit/Divider/Divider";
-import { IconButton } from "../../../uikit/IconButton/IconButton";
-import { Button } from "../../../uikit/Button/Button";
-import { CompareIcon, RunAllIcon, RunIcon, WebScraperIcon } from "../../../theme/icons";
-import { pagesModel } from "../../../api/pages";
-import { ui } from "../../../api/ui";
-import { isScriptLanguage } from "../../../scripting/transpile";
-import { ScriptPanel } from "../../text/ScriptPanel";
-import color from "../../../theme/color";
+import { EditorToolbar } from "./EditorToolbar";
+import { Panel } from "../../uikit/Panel/Panel";
+import { Spacer } from "../../uikit/Spacer/Spacer";
+import { Divider } from "../../uikit/Divider/Divider";
+import { IconButton } from "../../uikit/IconButton/IconButton";
+import { Button } from "../../uikit/Button/Button";
+import { CompareIcon, RunAllIcon, RunIcon, WebScraperIcon } from "../../theme/icons";
+import { pagesModel } from "../../api/pages";
+import { ui } from "../../api/ui";
+import { isScriptLanguage } from "../../scripting/transpile";
+import { ScriptPanel } from "../text/ScriptPanel";
+import color from "../../theme/color";
 
 /**
  * Host-aware chrome wrapper for text-bearing v4 editors (EPIC-028 / US-549,
@@ -257,7 +257,7 @@ function isTextFileHost(host: IContentHost): boolean {
 }
 
 async function showHtmlResources(host: TextFileModel) {
-    const { extractHtmlResources } = await import("../../../core/utils/html-resources");
+    const { extractHtmlResources } = await import("../../core/utils/html-resources");
     const { content, filePath, title } = host.state.get();
     const baseUrl = filePath
         ? "file:///" + filePath.replace(/\\/g, "/").replace(/\/[^/]*$/, "/")

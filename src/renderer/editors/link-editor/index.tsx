@@ -16,12 +16,12 @@ import {
     ViewPortraitBigIcon,
     ViewPortraitIcon,
 } from "../../theme/icons";
-import { TextChrome } from "../base/v4/TextChrome";
+import { TextChrome } from "../base/TextChrome";
 import { LinkEditor, defaultLinkEditorState } from "./LinkEditor";
 import { LinkBody } from "./LinkBody";
 import type { LinkViewMode } from "./linkTypes";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-555 — native Link editor module. Registered with the v4

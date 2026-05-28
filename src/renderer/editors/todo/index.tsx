@@ -1,12 +1,12 @@
 import { TComponentState } from "../../core/state/state";
 import { TodoEditor, defaultTodoEditorState } from "./TodoEditor";
 import { TodoBody } from "./TodoBody";
-import { TextChrome } from "../base/v4/TextChrome";
+import { TextChrome } from "../base/TextChrome";
 import { Input } from "../../uikit/Input/Input";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { CloseIcon } from "../../theme/icons";
-import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel } from "../base/v4/EditorModel";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
 /**
  * EPIC-028 / US-556 — native Todo editor module. Registered with the v4
