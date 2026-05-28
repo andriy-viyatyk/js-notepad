@@ -1,9 +1,9 @@
-import { EditorModel } from "../../editors/base";
+import { EditorOrHost } from "../../editors/base";
 import { isTextFileModel } from "../../editors/text/TextEditorModel";
 import { pagesModel } from "../../api/pages";
 import { app } from "../../api/app";
 import { EditorView } from "../../../shared/types";
-import type { EditorModel as V4EditorModel } from "../../editors/base/v4/EditorModel";
+import type { EditorModel } from "../../editors/base/v4/EditorModel";
 import { editorRegistry as v4EditorRegistry } from "../../editors/base/v4/editorRegistry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
@@ -59,7 +59,7 @@ import type { ScriptOutputFlags } from "../ScriptContext";
  */
 export class PageWrapper {
     constructor(
-        private readonly model: EditorModel,
+        private readonly model: EditorOrHost,
         private readonly releaseList: Array<() => void>,
         private readonly outputFlags?: ScriptOutputFlags,
     ) {}
@@ -69,10 +69,10 @@ export class PageWrapper {
      * for the page that owns `this.model`. Returns null when the page can't
      * be resolved (detached editor); callers fall back to legacy state reads.
      */
-    private get v4(): V4EditorModel | null {
+    private get v4(): EditorModel | null {
         const pageId = this.model.page?.id;
         if (!pageId) return null;
-        return pagesModel.findPage(pageId)?.mainEditorV4 ?? null;
+        return pagesModel.findPage(pageId)?.mainEditorInstance ?? null;
     }
 
     private currentEditorId(): string {
@@ -168,7 +168,7 @@ export class PageWrapper {
     async asText(force = false): Promise<TextEditorFacade> {
         await this.ensureEditor("monaco", "Monaco", "asText", force);
         // EPIC-028 / US-551 — Monaco is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a MonacoEditor; the facade wraps it directly
+        // page's mainEditorInstance IS a MonacoEditor; the facade wraps it directly
         // and routes view-context queries through its ComponentQueue.
         const v4 = this.v4;
         if (!(v4 instanceof MonacoEditor)) {
@@ -181,7 +181,7 @@ export class PageWrapper {
         const targetId = this.resolveGridEditorId();
         await this.ensureEditor(targetId, "Grid", "asGrid", force);
         // EPIC-028 / US-552 — Grid is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a GridEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a GridEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof GridEditor)) {
@@ -206,7 +206,7 @@ export class PageWrapper {
     async asNotebook(force = false): Promise<NotebookEditorFacade> {
         await this.ensureEditor("notebook-view", "Notebook", "asNotebook", force);
         // EPIC-028 / US-559 — Notebook is v4-native (US-557). After ensureEditor,
-        // the page's mainEditorV4 IS a NotebookEditor; the facade wraps it
+        // the page's mainEditorInstance IS a NotebookEditor; the facade wraps it
         // directly. No acquireViewModel round-trip (the last `acquireViewModel`
         // consumer retired).
         const v4 = this.v4;
@@ -219,7 +219,7 @@ export class PageWrapper {
     async asTodo(force = false): Promise<TodoEditorFacade> {
         await this.ensureEditor("todo-view", "Todo", "asTodo", force);
         // EPIC-028 / US-556 — Todo is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a TodoEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a TodoEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof TodoEditor)) {
@@ -231,7 +231,7 @@ export class PageWrapper {
     async asLink(force = false): Promise<LinkEditorFacade> {
         await this.ensureEditor("link-view", "Link", "asLink", force);
         // EPIC-028 / US-555 — Link is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a LinkEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a LinkEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof LinkEditor)) {
@@ -243,7 +243,7 @@ export class PageWrapper {
     async asMarkdown(force = false): Promise<MarkdownEditorFacade> {
         await this.ensureEditor("md-view", "Markdown", "asMarkdown", force);
         // EPIC-028 / US-554 — Markdown is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a MarkdownEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a MarkdownEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof MarkdownEditor)) {
@@ -255,7 +255,7 @@ export class PageWrapper {
     async asSvg(force = false): Promise<SvgEditorFacade> {
         await this.ensureEditor("svg-view", "SVG", "asSvg", force);
         // EPIC-028 / US-560 — Svg is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a SvgEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a SvgEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof SvgEditor)) {
@@ -267,7 +267,7 @@ export class PageWrapper {
     async asHtml(force = false): Promise<HtmlEditorFacade> {
         await this.ensureEditor("html-view", "HTML", "asHtml", force);
         // EPIC-028 / US-561 — Html is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS an HtmlEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS an HtmlEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof HtmlEditor)) {
@@ -279,7 +279,7 @@ export class PageWrapper {
     async asMermaid(force = false): Promise<MermaidEditorFacade> {
         await this.ensureEditor("mermaid-view", "Mermaid", "asMermaid", force);
         // EPIC-028 / US-562 — Mermaid is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a MermaidEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a MermaidEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof MermaidEditor)) {
@@ -291,7 +291,7 @@ export class PageWrapper {
     async asGraph(force = false): Promise<GraphEditorFacade> {
         await this.ensureEditor("graph-view", "Graph", "asGraph", force);
         // EPIC-028 / US-564 — Graph is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a GraphEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a GraphEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof GraphEditor)) {
@@ -303,7 +303,7 @@ export class PageWrapper {
     async asDraw(force = false): Promise<DrawEditorFacade> {
         await this.ensureEditor("draw-view", "Draw", "asDraw", force);
         // EPIC-028 / US-565 — Draw is v4-native. After ensureEditor, the
-        // page's mainEditorV4 IS a DrawEditor; the facade wraps it directly.
+        // page's mainEditorInstance IS a DrawEditor; the facade wraps it directly.
         // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof DrawEditor)) {
@@ -384,7 +384,7 @@ export class PageWrapper {
 
 class GroupedPageWrapper extends PageWrapper {
     constructor(
-        model: EditorModel,
+        model: EditorOrHost,
         releaseList: Array<() => void>,
         private readonly flags?: ScriptOutputFlags,
     ) {

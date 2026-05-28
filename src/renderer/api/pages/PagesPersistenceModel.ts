@@ -33,7 +33,7 @@ import { PageModel } from "./PageModel";
  * descriptor). v4-with-host editors take the `if (d.host)` branch; Explorer
  * is constructed directly (not in `editorRegistry`).
  */
-const V4_NO_HOST_EDITOR_IDS = new Set([
+const NO_HOST_EDITOR_IDS = new Set([
     "browser-view",   // US-558
     "pdf-view",       // US-568
     "image-view",     // US-569
@@ -97,7 +97,7 @@ export class PagesPersistenceModel {
      *      the `TextFileModel` content host.
      *   2. Explorer special-case (Explorer is v4-native but NOT in
      *      `editorRegistry`).
-     *   3. No-host v4 editor (in `V4_NO_HOST_EDITOR_IDS`) — construct via
+     *   3. No-host v4 editor (in `NO_HOST_EDITOR_IDS`) — construct via
      *      v4 registry + seed state from descriptor.
      *
      * Anything else skipped with a warning — descriptors not matching any
@@ -133,7 +133,7 @@ export class PagesPersistenceModel {
                         await explorer.restore();
                         return explorer;
                     }
-                    if (V4_NO_HOST_EDITOR_IDS.has(d.editorId)) {
+                    if (NO_HOST_EDITOR_IDS.has(d.editorId)) {
                         const { editorRegistry: v4Registry } = await import(
                             "../../editors/base/v4"
                         );
@@ -150,7 +150,7 @@ export class PagesPersistenceModel {
                     }
                     console.warn(
                         `[restore] unrecognized editor descriptor for "${d.editorId}" in page ${desc.id}: ` +
-                        `no host field, not in V4_NO_HOST_EDITOR_IDS, not Explorer.`,
+                        `no host field, not in NO_HOST_EDITOR_IDS, not Explorer.`,
                     );
                     return null;
                 } catch (err) {

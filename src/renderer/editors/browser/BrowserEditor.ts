@@ -2,7 +2,7 @@ import { createElement, ReactNode } from "react";
 const { ipcRenderer } = require("electron");
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type RestoreData,
 } from "../base/v4/EditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
@@ -46,7 +46,7 @@ import {
  * construct-then-adoptHost (BR-IMPL2). The walkthrough's proposed
  * `EditorConstructorArgs.initialHost` primitive was deferred with NB7 →
  * US-579; US-558 is the first would-be consumer and uses the existing
- * `wrapLegacyForPage` precedent instead.
+ * `attachEditorToPage` precedent instead.
  *
  * Design rationale: doc/tasks/US-558-browser-editor-migration/README.md.
  */
@@ -54,7 +54,7 @@ import {
 export type BrowserQueueEvent = { type: "focus" };
 export type BrowserQueueRequest = never;
 
-export class BrowserEditor extends V4EditorModel<
+export class BrowserEditor extends EditorModel<
     BrowserEditorState,
     void,
     BrowserQueueEvent

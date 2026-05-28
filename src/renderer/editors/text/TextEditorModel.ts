@@ -5,7 +5,7 @@ import { fs as appFs } from "../../api/fs";
 import { IEditorState, EditorView } from "../../../shared/types";
 import { ScriptPanelModel } from "./ScriptPanel";
 import { editorRegistry } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 import { TextFileEncryptionModel } from "./TextFileEncryptionModel";
 import { TextFileIOModel } from "./TextFileIOModel";
 import { TextFileActionsModel } from "./TextFileActionsModel";
@@ -150,22 +150,22 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     // =========================================================================
     // Editor-targeted view commands — route via the wrapping v4 editor.
     // (EPIC-028 / US-559). Legacy `_vmHost`-based plumbing retired; calls
-    // delegate to `page.mainEditorV4` which exposes queue-backed helpers
+    // delegate to `page.mainEditorInstance` which exposes queue-backed helpers
     // for text-bearing editors (MonacoEditor: revealLine / setHighlightText /
     // focus / getSelectedText). Non-text editors fall through as no-ops.
     // =========================================================================
 
     focusEditor(): void {
-        this.page?.mainEditorV4?.focus();
+        this.page?.mainEditorInstance?.focus();
     }
 
     revealLine(lineNumber: number): void {
-        const editor = this.page?.mainEditorV4 as unknown as { revealLine?: (n: number) => void } | undefined;
+        const editor = this.page?.mainEditorInstance as unknown as { revealLine?: (n: number) => void } | undefined;
         editor?.revealLine?.(lineNumber);
     }
 
     setHighlightText(text: string | undefined): void {
-        const editor = this.page?.mainEditorV4 as unknown as { setHighlightText?: (t: string | undefined) => void } | undefined;
+        const editor = this.page?.mainEditorInstance as unknown as { setHighlightText?: (t: string | undefined) => void } | undefined;
         editor?.setHighlightText?.(text);
     }
 

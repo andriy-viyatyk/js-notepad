@@ -1,4 +1,4 @@
-import { EditorModel } from "../editors/base";
+import { EditorOrHost } from "../editors/base";
 import { pagesModel } from "../api/pages";
 import { AppWrapper } from "./api-wrapper/AppWrapper";
 import { PageWrapper } from "./api-wrapper/PageWrapper";
@@ -70,7 +70,7 @@ export class ScriptContext {
     // Stack-based ui getter
     private previousUiDescriptor: PropertyDescriptor | undefined;
 
-    constructor(page?: EditorModel, consoleLogs?: ConsoleLogEntry[], libraryPath?: string) {
+    constructor(page?: EditorOrHost, consoleLogs?: ConsoleLogEntry[], libraryPath?: string) {
         this.app = new AppWrapper(this.releaseList);
         this.page = page ? new PageWrapper(page, this.releaseList, this.outputFlags) : undefined;
         this.preventOutput = () => { this.outputFlags.outputPrevented = true; };
@@ -203,7 +203,7 @@ function formatLogTitle(): string {
 }
 
 function initializeUiFacade(
-    page: EditorModel | undefined,
+    page: EditorOrHost | undefined,
     _releaseList: Array<() => void>,
     outputFlags: ScriptOutputFlags,
     isMcp = false,
@@ -214,13 +214,13 @@ function initializeUiFacade(
 
     if (isMcp) {
         const existing = pagesModel.findPage("mcp-ui-log");
-        if (existing?.mainEditorV4 instanceof LogViewEditor) {
-            logEditor = existing.mainEditorV4;
+        if (existing?.mainEditorInstance instanceof LogViewEditor) {
+            logEditor = existing.mainEditorInstance;
             logPageId = existing.id;
             isExisting = true;
         } else {
             const newPage = pagesModel.addEditorPage("log-view", "jsonl", "MCP Log");
-            const editor = newPage.mainEditorV4;
+            const editor = newPage.mainEditorInstance;
             if (!(editor instanceof LogViewEditor)) {
                 throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
             }
@@ -230,13 +230,13 @@ function initializeUiFacade(
     } else if (page) {
         const pageId = page.page?.id ?? page.id;
         const grouped = pagesModel.getGroupedPage(pageId);
-        if (grouped?.mainEditorV4 instanceof LogViewEditor) {
-            logEditor = grouped.mainEditorV4;
+        if (grouped?.mainEditorInstance instanceof LogViewEditor) {
+            logEditor = grouped.mainEditorInstance;
             logPageId = grouped.id;
             isExisting = true;
         } else {
             const newPage = pagesModel.addEditorPage("log-view", "jsonl", formatLogTitle());
-            const editor = newPage.mainEditorV4;
+            const editor = newPage.mainEditorInstance;
             if (!(editor instanceof LogViewEditor)) {
                 throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
             }
@@ -246,7 +246,7 @@ function initializeUiFacade(
         }
     } else {
         const newPage = pagesModel.addEditorPage("log-view", "jsonl", formatLogTitle());
-        const editor = newPage.mainEditorV4;
+        const editor = newPage.mainEditorInstance;
         if (!(editor instanceof LogViewEditor)) {
             throw new Error("Log view page is not a LogViewEditor. This is an internal error.");
         }

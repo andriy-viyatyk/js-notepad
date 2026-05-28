@@ -156,8 +156,8 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
 // `newEditorModelByTarget` → this module's `newEditorModel`). The
 // `as unknown as EditorModel` casts bridge the v4 CategoryEditorModel class to
 // the legacy EditorModel typing the legacy factories expect; the runtime
-// instance is the v4 class either way. `wrapLegacyForPage`'s
-// `instanceof V4EditorModel` early-return (US-568 PD-IMPL16) detects the v4
+// instance is the v4 class either way. `attachEditorToPage`'s
+// `instanceof EditorModel` early-return (US-568 PD-IMPL16) detects the v4
 // instance and skips the adapter wrap. US-559 retires this block entirely.
 
 const categoryEditorModule: EditorModule = {
@@ -182,7 +182,7 @@ const categoryEditorModule: EditorModule = {
 
     // Seed state via the constructor — the v4 base `applyRestoreData` is a no-op
     // (the legacy path used it to set filePath). Dead on the v4 restore path
-    // (`category-view` ∈ V4_NO_HOST_EDITOR_IDS → generic Object.assign branch);
+    // (`category-view` ∈ NO_HOST_EDITOR_IDS → generic Object.assign branch);
     // kept correct for contract completeness.
     newEditorModelFromState: async (state: Partial<IEditorState>) => {
         const { CategoryEditorModel, getDefaultCategoryEditorModelState } =

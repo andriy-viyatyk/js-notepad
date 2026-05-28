@@ -1,6 +1,6 @@
 import { TComponentState, TOneState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -115,7 +115,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
 }
 
 export class LinkEditor
-    extends V4EditorModel<LinkEditorState, void, LinkQueueEvent>
+    extends EditorModel<LinkEditorState, void, LinkQueueEvent>
     implements ILinkSource
 {
     readonly editorId = "link-view";
@@ -267,7 +267,7 @@ export class LinkEditor
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -309,7 +309,7 @@ export class LinkEditor
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh LinkEditor over a
+     *  `attachEditorToPage` when constructing a fresh LinkEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;
@@ -369,7 +369,7 @@ export class LinkEditor
         // reshape the panel list to keep `link-tags` registration accurate.
         this._tagsSliceUnsub = this.state.subscribe(
             () => {
-                if (this.page?.mainEditorV4 === this) return; // main; LK6 handles
+                if (this.page?.mainEditorInstance === this) return; // main; LK6 handles
                 if (!this.contributesPanels()) return; // already detached
                 const hasTags = this.state.get().tags.length > 0;
                 this.secondaryEditor = hasTags ? ["link-category", "link-tags"] : ["link-category"];
@@ -404,7 +404,7 @@ export class LinkEditor
      *  paths can call `setSidebarPanels(false)` without affecting the
      *  surviving secondaryEditor entry. */
     setSidebarPanels(open: boolean): void {
-        if (this.page?.mainEditorV4 !== this) return; // demote-safe no-op
+        if (this.page?.mainEditorInstance !== this) return; // demote-safe no-op
         if (open) {
             this.secondaryEditor = LINK_PANELS;
             const reverseMap: Record<string, string> = {
@@ -425,7 +425,7 @@ export class LinkEditor
      *  External navigation (Explorer click, Tab switch, etc.) → unload so
      *  stale Categories/Tags/Hostnames panels don't leak into the new file's
      *  PageNavigator. Mirrors `ArchiveEditorModel.beforeNavigateAway`. */
-    beforeNavigateAway(newModel: V4EditorModel): void {
+    beforeNavigateAway(newModel: EditorModel): void {
         if (this._isOpenedFromMe(newModel)) {
             return;
         }
@@ -436,7 +436,7 @@ export class LinkEditor
      *  (drops `link-hostnames` to match today's
      *  LinkCategorySecondaryEditor.updatePanels behavior). Also evicts
      *  defensively if the new main wasn't opened from us. */
-    onMainEditorChanged(newMainEditor: V4EditorModel | null): void {
+    onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (newMainEditor === this) return;
         if (newMainEditor === null) return;
         if (!this.contributesPanels()) return;
@@ -456,7 +456,7 @@ export class LinkEditor
      *  non-text editor (e.g. the audio/video player, where `sourceLink` lives
      *  on the editor's own state and there is no content host) keep the Link
      *  panels instead of dropping them. */
-    private _isOpenedFromMe(model: V4EditorModel): boolean {
+    private _isOpenedFromMe(model: EditorModel): boolean {
         const sourceId = model.getNavigationSourceId();
         if (!sourceId) return false;
         if (sourceId === this.id) return true;

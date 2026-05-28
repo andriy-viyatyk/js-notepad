@@ -1,7 +1,7 @@
 import React from "react";
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
 } from "../base/v4/EditorModel";
 import { FolderIcon } from "../../components/icons/FileIcon";
@@ -44,7 +44,7 @@ export function getDefaultCategoryEditorModelState(): CategoryEditorModelState {
     };
 }
 
-export class CategoryEditorModel extends V4EditorModel<CategoryEditorModelState> {
+export class CategoryEditorModel extends EditorModel<CategoryEditorModelState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  `EditorDescriptor.editorId` and pre-US-576 saved descriptors
      *  (`deriveEditorId({type:"categoryPage"}) === "category-view"`) agree. */

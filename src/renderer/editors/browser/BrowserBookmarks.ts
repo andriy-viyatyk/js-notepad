@@ -67,7 +67,7 @@ export class BrowserBookmarks {
             if (!ok) return false; // wrong password
         }
 
-        // BR-IMPL2 — construct-then-adoptHost. Mirrors the wrapLegacyForPage
+        // BR-IMPL2 — construct-then-adoptHost. Mirrors the attachEditorToPage
         // pattern from Todo / Rest Client / Notebook. LinkEditor adopts the
         // already-restored host (no re-read) and parses the initial content
         // inline via loadData.

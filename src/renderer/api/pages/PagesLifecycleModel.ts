@@ -1,14 +1,6 @@
 import type { PagesModel } from "./PagesModel";
-import { EditorModel as V4EditorModel } from "../../editors/base/v4";
-
-/**
- * Post-US-559 type alias for the editor factories below. The legacy
- * `EditorModel` base was deleted; the factories return either a fresh
- * `TextFileModel` host (text-bearing target) or a v4 `EditorModel` (no-host
- * target). `wrapLegacyForPage` dispatches on the runtime shape via
- * `instanceof V4EditorModel` (false for TextFileModel host).
- */
-type LegacyEditorModel = V4EditorModel | TextFileModel;
+import { EditorModel } from "../../editors/base/v4";
+import type { EditorOrHost } from "../../editors/base";
 import { IEditorState, EditorView, EditorType, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
 import type { ILinkData } from "../../../shared/link-data";
@@ -70,7 +62,7 @@ function normalizeLinksTitle(title?: string): string {
  *  (PagesPersistenceModel.restoreV3) can auto-promote pre-US-551 sessions to
  *  native Monaco — the next save then writes the v4-native shape.
  */
-export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
+export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
     // EPIC-028 / US-568 / PD-IMPL16 — if the "legacy" module factory
     // returned a v4-native editor (post-migration standalone editors use
     // `as unknown as EditorModel` casts in their preserved EditorModule
@@ -80,8 +72,8 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
     // expose the same surface as legacy editors for that call. Closes the
     // open-file gap so US-559 can delete `LegacyEditorAdapter` cleanly.
     // Benefits Browser retroactively (closes US-558 limitation).
-    if (legacy instanceof V4EditorModel) {
-        return legacy as unknown as V4EditorModel;
+    if (legacy instanceof EditorModel) {
+        return legacy as unknown as EditorModel;
     }
 
     // EPIC-028 / US-559 — post-strangler: the only non-v4 input here is a
@@ -303,12 +295,12 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
     // Reaching this throw means a caller passed a legacy editor whose target
     // id is unknown — fix the caller (likely a missed migration).
     throw new Error(
-        `wrapLegacyForPage: no v4 mapping for editor id "${targetEditorId}" (type "${legacyState.type ?? "?"}").`,
+        `attachEditorToPage: no v4 mapping for editor id "${targetEditorId}" (type "${legacyState.type ?? "?"}").`,
     );
 }
 
 /** Module-private alias preserved for the existing call sites below. */
-const wrap = wrapLegacyForPage;
+const wrap = attachEditorToPage;
 
 /**
  * PagesLifecycleModel — Page creation, opening, closing, and navigation.
@@ -342,15 +334,15 @@ export class PagesLifecycleModel {
     // ── Editor factory helpers ──────────────────────────────────────────
     // Post-US-559: legacy `editorRegistry` deleted. File-resolution goes
     // through the v4 registry. Text-bearing editors construct a fresh
-    // TextFileModel host; `wrapLegacyForPage` then wraps it in the right
+    // TextFileModel host; `attachEditorToPage` then wraps it in the right
     // v4 editor (MonacoEditor / GridEditor / …). No-host editors dispatch
     // to their preserved standalone shim files (`PdfView.tsx` / `ImageView.tsx`
     // / `ArchiveEditorView.tsx` / `VideoView.tsx` / `CategoryEditor.tsx`),
     // whose `newEditorModel(filePath)` factories build a v4 editor cast as
-    // legacy — `wrapLegacyForPage`'s v4 early-return then forwards it
+    // legacy — `attachEditorToPage`'s v4 early-return then forwards it
     // unwrapped.
 
-    private newEditorModel = async (filePath?: string): Promise<LegacyEditorModel> => {
+    private newEditorModel = async (filePath?: string): Promise<EditorOrHost> => {
         const targetId = editorRegistryV4.resolveId(filePath) ?? "monaco";
         return this.buildEditorById(targetId, filePath);
     };
@@ -358,7 +350,7 @@ export class PagesLifecycleModel {
     private newEditorModelByTarget = async (
         filePath: string,
         target: string,
-    ): Promise<LegacyEditorModel> => {
+    ): Promise<EditorOrHost> => {
         return this.buildEditorById(target, filePath);
     };
 
@@ -368,14 +360,14 @@ export class PagesLifecycleModel {
     private buildEditorById = async (
         editorId: string,
         filePath?: string,
-    ): Promise<LegacyEditorModel> => {
+    ): Promise<EditorOrHost> => {
         const def = editorRegistryV4.getById(editorId);
         if (!def || def.hasContentHost) {
             // Text-bearing or unknown — build a TextFileModel host.
-            // `wrapLegacyForPage` picks the v4 editor class based on
+            // `attachEditorToPage` picks the v4 editor class based on
             // state.editor (set by `getPreviewEditor` in navigatePageTo,
             // or by `resolveId` for fresh file opens).
-            return newTextFileModel(filePath) as unknown as LegacyEditorModel;
+            return newTextFileModel(filePath) as unknown as EditorOrHost;
         }
         switch (editorId) {
             case "pdf-view": {
@@ -400,7 +392,7 @@ export class PagesLifecycleModel {
             }
             default:
                 // Unknown no-host id — fall back to Monaco text host.
-                return newTextFileModel(filePath) as unknown as LegacyEditorModel;
+                return newTextFileModel(filePath) as unknown as EditorOrHost;
         }
     };
 
@@ -411,7 +403,7 @@ export class PagesLifecycleModel {
         pipe?: IContentPipe,
         target?: string,
         title?: string,
-    ): Promise<LegacyEditorModel> => {
+    ): Promise<EditorOrHost> => {
         const editor = target
             ? await this.newEditorModelByTarget(filePath, target)
             : await this.newEditorModel(filePath);
@@ -433,7 +425,7 @@ export class PagesLifecycleModel {
      * @param existingPage — optional pre-created PageModel
      */
     addPage = (
-        editor: V4EditorModel | null,
+        editor: EditorModel | null,
         existingPage?: PageModel,
     ): PageModel => {
         const page = existingPage ?? new PageModel();
@@ -780,7 +772,7 @@ export class PagesLifecycleModel {
 
         // Build legacy editor (with adapter wrap deferred until after the
         // post-restore mutations that need the underlying TextFileModel API).
-        let legacy: LegacyEditorModel;
+        let legacy: EditorOrHost;
         const isVirtualPath = newFilePath.includes("://") || newFilePath.startsWith("data:");
         if (!isVirtualPath && !(await appFs.exists(newFilePath))) {
             ui.notify(
@@ -920,7 +912,7 @@ export class PagesLifecycleModel {
             : -1;
 
         if (targetIndex === -1) {
-            this.addPage(page.mainEditorV4, page);
+            this.addPage(page.mainEditorInstance, page);
             this.model.closeFirstPageIfEmpty();
         } else {
             this.model.attachPage(page);
@@ -1212,7 +1204,7 @@ export class PagesLifecycleModel {
         const activeIndex = activePage ? pages.indexOf(activePage) : -1;
 
         const matchesBrowser = (page: PageModel) => {
-            const editor = page.mainEditorV4;
+            const editor = page.mainEditorInstance;
             if (!(editor instanceof BrowserEditor)) return false;
             const pageState = editor.state.get();
             if (options?.incognito) return !!pageState.isIncognito;
@@ -1234,8 +1226,8 @@ export class PagesLifecycleModel {
         const addTabToPage = (index: number) => {
             const page = pages[index];
             // EPIC-028 / US-558 — Browser is a v4 native editor; access directly
-            // via mainEditorV4 (no LegacyEditorAdapter unwrap).
-            const editor = page.mainEditorV4;
+            // via mainEditorInstance (no LegacyEditorAdapter unwrap).
+            const editor = page.mainEditorInstance;
             if (!(editor instanceof BrowserEditor)) return;
             const tabs = editor.state.get().tabs;
             if (tabs?.length === 1 && tabs[0].url === "about:blank") {

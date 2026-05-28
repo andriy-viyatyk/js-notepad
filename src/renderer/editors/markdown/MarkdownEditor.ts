@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -65,7 +65,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class MarkdownEditor extends V4EditorModel<MarkdownEditorState, void, MarkdownQueueEvent> {
+export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, MarkdownQueueEvent> {
     readonly editorId = "md-view";
 
     private _host: TextFileModel | null = null;
@@ -164,7 +164,7 @@ export class MarkdownEditor extends V4EditorModel<MarkdownEditorState, void, Mar
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -206,7 +206,7 @@ export class MarkdownEditor extends V4EditorModel<MarkdownEditorState, void, Mar
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh MarkdownEditor over a
+     *  `attachEditorToPage` when constructing a fresh MarkdownEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { EditorModel as LegacyEditorModel } from "../../editors/base";
+import { EditorOrHost } from "../../editors/base";
 import { editorRegistry as v4EditorRegistry } from "../../editors/base/v4";
-import type { EditorModel as V4EditorModel } from "../../editors/base/v4/EditorModel";
+import type { EditorModel } from "../../editors/base/v4/EditorModel";
 import { AsyncEditor } from "./AsyncEditor";
 import type { EditorViewModule, FileEditorComponent } from "../../editors/types";
 
@@ -12,8 +12,8 @@ import type { EditorViewModule, FileEditorComponent } from "../../editors/types"
  * v4-native EditorModel mounted via its module's `Component`. The legacy
  * `LegacyAdapterEditor` branch + the `TextEditorView` fallback are gone.
  */
-export function RenderEditor({ model }: { model: V4EditorModel }) {
-    return <V4NativeEditor model={model} />;
+export function RenderEditor({ model }: { model: EditorModel }) {
+    return <NativeEditor model={model} />;
 }
 
 const getV4EditorModule = (editorId: string) => async (): Promise<EditorViewModule> => {
@@ -28,13 +28,13 @@ const getV4EditorModule = (editorId: string) => async (): Promise<EditorViewModu
     };
 };
 
-function V4NativeEditor({ model }: { model: V4EditorModel }) {
+function NativeEditor({ model }: { model: EditorModel }) {
     const editorId = model.editorId;
     const loader = useMemo(() => getV4EditorModule(editorId), [editorId]);
     return (
         <AsyncEditor
             getEditorModule={loader}
-            model={model as unknown as LegacyEditorModel}
+            model={model as unknown as EditorOrHost}
             cacheKey={`v4:${editorId}`}
         />
     );

@@ -2,18 +2,18 @@ import { TComponentState } from "../../core/state/state";
 import { AboutEditor, getDefaultAboutEditorState } from "./AboutEditor";
 import { AboutView } from "./AboutView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-573 — native About editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native AboutEditor instance.
+ * the page's `mainEditorInstance` is a v4-native AboutEditor instance.
  *
  * About is NO-HOST (no `CONTENT_HOST_TRAIT`) and standalone (no file
  * acceptance) — `Component` is the full About page. No `<TextChrome>` wrap.
  */
 
-function AboutEditorComponent({ model }: { model: V4EditorModel }) {
+function AboutEditorComponent({ model }: { model: EditorModel }) {
     return <AboutView model={model as AboutEditor} />;
 }
 

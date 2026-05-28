@@ -1,6 +1,6 @@
 import { TComponentState, TOneState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -44,7 +44,7 @@ export function getDefaultExplorerEditorState(): ExplorerEditorState {
     };
 }
 
-export class ExplorerEditor extends V4EditorModel<ExplorerEditorState> {
+export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     /** v4 editor identity. Deliberately equal to the secondary-editor
      *  registration id so persistence (`EditorDescriptor.editorId`) reads the
      *  same string as the panel-component lookup. Explorer is NOT in
@@ -162,12 +162,12 @@ export class ExplorerEditor extends V4EditorModel<ExplorerEditorState> {
      *  Explorer stays attached when the main editor changes. **EX-IMPL1**
      *  amends walkthrough 30 §3 EX5 (a)'s "drop the override" claim — base
      *  default does NOT suffice. */
-    beforeNavigateAway(_newModel: V4EditorModel): void {
+    beforeNavigateAway(_newModel: EditorModel): void {
         // No-op: Explorer always stays.
     }
 
     /** React to main editor changes — highlight and reveal file if within root. */
-    onMainEditorChanged(newMainEditor: V4EditorModel | null): void {
+    onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (!newMainEditor) {
             this._selectAndReveal(null);
             return;

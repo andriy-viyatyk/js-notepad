@@ -1,10 +1,10 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { secondaryEditorRegistry, type SecondaryEditorProps } from "./secondary-editor-registry";
-import type { EditorModel } from "../../editors/base";
+import type { EditorOrHost } from "../../editors/base";
 import color from "../../theme/color";
 
 interface LazySecondaryEditorProps {
-    model: EditorModel;
+    model: EditorOrHost;
     editorId: string;
     headerRef: HTMLDivElement | null;
 }

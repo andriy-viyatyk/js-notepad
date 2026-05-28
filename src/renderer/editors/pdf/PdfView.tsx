@@ -49,7 +49,7 @@ export function PdfView({ model }: PdfViewProps) {
 // PdfEditor class to the legacy EditorModel typing the legacy module
 // factories expect; the runtime instance is the v4 class either way.
 // Mirrors the US-558 Browser pattern at `browser/BrowserView.tsx`.
-// `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return (PD-IMPL16)
+// `attachEditorToPage`'s `instanceof EditorModel` early-return (PD-IMPL16)
 // detects the v4 instance and skips the adapter wrap. US-559 retires this
 // block entirely.
 

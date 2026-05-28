@@ -78,7 +78,7 @@ async function executeScript(params: any): Promise<McpResponse> {
 function getPages(): any[] {
     const pages = pagesModel.state.get().pages;
     return pages.map((p) => {
-        const editorV4 = p.mainEditorV4;
+        const editorV4 = p.mainEditorInstance;
         const editorState = p.mainEditor?.state.get() as
             | { language?: string; filePath?: string }
             | undefined;
@@ -123,7 +123,7 @@ function getActivePage(): any {
     const page = pagesModel.activePage;
     if (!page) return null;
 
-    const editorV4 = page.mainEditorV4;
+    const editorV4 = page.mainEditorInstance;
     const editorState = page.mainEditor?.state.get() as
         | { language?: string; filePath?: string }
         | undefined;
@@ -180,7 +180,7 @@ function createPage(params: any): McpResponse {
 
     const page = pagesModel.addEditorPage(editor, language, title, content || undefined);
 
-    const editorV4 = page.mainEditorV4;
+    const editorV4 = page.mainEditorInstance;
     const editorState = page.mainEditor?.state.get() as { language?: string } | undefined;
     const textHost = pagesModel.getTextFileHost(page.id);
     return {
@@ -229,7 +229,7 @@ const MCP_UI_LOG_ID = "mcp-ui-log";
 
 async function getOrCreateMcpLogViewEditor(): Promise<LogViewEditor> {
     const page = await pagesModel.requireWellKnownPage(MCP_UI_LOG_ID);
-    const editor = page.mainEditorV4;
+    const editor = page.mainEditorInstance;
     if (!(editor instanceof LogViewEditor)) {
         throw new Error("MCP log page is not a LogViewEditor");
     }
@@ -264,7 +264,7 @@ function logIncomingRequest(
 
     // If the live request log page is open, push the entry to it
     const logPage = pagesModel.findPage("mcp-server-log");
-    const logEditor = logPage?.mainEditorV4;
+    const logEditor = logPage?.mainEditorInstance;
     if (logEditor instanceof LogViewEditor) {
         logEditor.addEntry("output.mcp-request", requestHistory[requestHistory.length - 1]);
     }
@@ -273,7 +273,7 @@ function logIncomingRequest(
 /** Show the MCP server request log page (creates if needed, backfills history). */
 export async function showMcpRequestLog(): Promise<void> {
     const page = await pagesModel.requireWellKnownPage("mcp-server-log");
-    const editor = page.mainEditorV4;
+    const editor = page.mainEditorInstance;
     if (!(editor instanceof LogViewEditor)) return;
 
     // Backfill history if the page was just created (empty)

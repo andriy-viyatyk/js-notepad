@@ -3,7 +3,7 @@ import { NoteItemEditModel } from "./NoteItemEditModel";
 import { MiniTextEditor } from "./MiniTextEditor";
 import { editorRegistry as v4EditorRegistry } from "../../base/v4/editorRegistry";
 import { CONTENT_HOST_TRAIT } from "../../base/v4/editor-traits";
-import type { EditorModel as V4EditorModel } from "../../base/v4/EditorModel";
+import type { EditorModel } from "../../base/v4/EditorModel";
 import { EditorView } from "../../../../shared/types";
 
 // =============================================================================
@@ -41,11 +41,11 @@ export function NoteItemActiveEditor({ model }: NoteItemActiveEditorProps) {
 // Minimal structural type for the host-adopting v4 editors. Each subclass
 // declares `adoptHost(host: TextFileModel)`; the base does not, and the note
 // host is a TextFileModel-duck-type (passed structurally).
-type AdoptingEditor = V4EditorModel & { adoptHost(host: unknown): void };
+type AdoptingEditor = EditorModel & { adoptHost(host: unknown): void };
 
 /** Detach the note host from the editor (so `editor.dispose()` won't dispose
  *  the host — the note view owns the host lifecycle), then dispose the editor. */
-function detachAndDispose(editor: V4EditorModel): void {
+function detachAndDispose(editor: EditorModel): void {
     try {
         editor.traits.get(CONTENT_HOST_TRAIT)?.extractContentHost();
     } catch {
@@ -61,13 +61,13 @@ interface EmbeddedNoteEditorProps {
 
 function EmbeddedNoteEditor({ host, editorId }: EmbeddedNoteEditorProps) {
     const [entry, setEntry] = useState<{
-        editor: V4EditorModel;
-        Body: ComponentType<{ model: V4EditorModel }>;
+        editor: EditorModel;
+        Body: ComponentType<{ model: EditorModel }>;
     } | null>(null);
 
     useEffect(() => {
         let alive = true;
-        let created: V4EditorModel | null = null;
+        let created: EditorModel | null = null;
         (async () => {
             const module = await v4EditorRegistry.getModule(editorId);
             if (!module.Body) {

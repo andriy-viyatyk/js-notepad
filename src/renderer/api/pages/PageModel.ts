@@ -1,15 +1,6 @@
 import { TComponentState, TOneState } from "../../core/state/state";
-import { type EditorModel as V4EditorModel } from "../../editors/base/v4";
-import type { TextFileModel } from "../../editors/text/TextEditorModel";
-
-/**
- * Post-US-559 type alias used in `mainEditor` return signature. The legacy
- * `EditorModel` base was deleted; `mainEditor` returns either the v4 editor
- * itself (no-host editors) or its content host (TextFileModel for text-bearing
- * editors). Modeled as the explicit union — callers narrow via `isTextFileModel`
- * or by reading state fields duck-typed across both branches.
- */
-type LegacyEditorModel = V4EditorModel | TextFileModel;
+import { type EditorModel } from "../../editors/base/v4";
+import type { EditorOrHost } from "../../editors/base";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { PageDescriptor } from "../../../shared/persistence-v4";
 import { PageNavigatorModel } from "../../ui/navigation/PageNavigatorModel";
@@ -18,28 +9,16 @@ import { fs } from "../fs";
 import { pageNavigatorToggled, panelExpanded } from "../../core/state/events";
 import { fpDirname } from "../../core/utils/file-path";
 
-/**
- * Surface returned by `PageModel.mainEditor`. Post-US-559: returns the
- * TextFileModel content host for text-bearing v4 editors, or the v4 editor
- * itself for no-host editors. Legacy `EditorModel` typing kept as an alias
- * so consumers that do `instanceof TextFileModel` keep working — Phase 3b
- * folds the legacy base into TextFileModel and retypes consumers.
- */
-type EditorModel = LegacyEditorModel;
-
-function unwrapAdapter(editor: V4EditorModel | null): LegacyEditorModel | null {
+/** Unwrap a text-bearing editor to its TextFileModel host, so legacy consumers
+ *  (tab strip, OpenTabsList, PageTabs) see `filePath` / `language` / `encrypted`
+ *  on the host directly. Non-text-bearing editors are returned as-is. */
+function unwrapToHost(editor: EditorModel | null): EditorOrHost | null {
     if (!editor) return null;
-    // For text-bearing editors the content host IS a TextFileModel — return
-    // it so legacy consumers (tab strip, OpenTabsList, PageTabs) see
-    // filePath / language / encrypted / etc.
     const host = (editor as { contentHost?: { type?: string } | null }).contentHost;
     if (host && host.type === "textFile") {
-        return host as unknown as LegacyEditorModel;
+        return host as unknown as EditorOrHost;
     }
-    // No content host (or non-textFile host) — return the v4 editor cast as
-    // legacy. Consumers reading legacy-shape fields will see undefined; their
-    // per-editor migrations replaced those reads with v4-aware paths.
-    return editor as unknown as LegacyEditorModel;
+    return editor;
 }
 
 export interface NavigationState {
@@ -101,7 +80,7 @@ export class PageModel {
      * One of these may also be the main editor (flagged by `_mainEditorId`).
      * Holds v4 EditorModel instances (LegacyEditorAdapter or future natives).
      */
-    readonly editors: V4EditorModel[] = [];
+    readonly editors: EditorModel[] = [];
 
     /**
      * Which editor in `editors[]` is the main (content area). Null = no main;
@@ -149,62 +128,46 @@ export class PageModel {
 
     // ── Derived getters ───────────────────────────────────────────────
 
-    /** Returns the unwrapped legacy editor (auto-unwraps LegacyEditorAdapter)
-     *  so existing `editor instanceof X` call sites keep working. v4-aware
-     *  callers access the adapter via `mainEditorV4` or by iterating `editors[]`. */
-    get mainEditor(): EditorModel | null {
-        return unwrapAdapter(this.mainEditorV4);
+    /** Main editor with content-host unwrap: text-bearing editors return their
+     *  `TextFileModel` host so consumers reading `filePath` / `language` /
+     *  `encrypted` / `modified` (tab strip, OpenTabsList) work uniformly with
+     *  no-host editors that return the editor instance itself.
+     *  Use `mainEditorInstance` when an `instanceof EditorModel` check or
+     *  access to v4-specific fields (`editorId`, `contentHost`) is needed. */
+    get mainEditor(): EditorOrHost | null {
+        return unwrapToHost(this.mainEditorInstance);
     }
 
-    /** Legacy setter retained for backward compat. Prefer `setMainEditor`.
-     *  Direct assignment skips lifecycle; used during restore. */
-    set mainEditor(editor: V4EditorModel | EditorModel | null) {
-        const v4 = editor && !(editor as V4EditorModel).editorId
-            // Bare legacy editor — caller should wrap. Best-effort: reject.
-            ? null
-            : (editor as V4EditorModel | null);
-        if (v4 && !this.editors.includes(v4)) {
-            this.attach(v4);
+    set mainEditor(editor: EditorModel | null) {
+        if (editor && !this.editors.includes(editor)) {
+            this.attach(editor);
         }
-        this._mainEditorId = v4?.id ?? null;
-        this.state.update((s) => { s.mainEditorId = v4?.id ?? null; });
+        this._mainEditorId = editor?.id ?? null;
+        this.state.update((s) => { s.mainEditorId = editor?.id ?? null; });
     }
 
-    /** v4 surface of the main editor. Returns the adapter (or future v4-native). */
-    get mainEditorV4(): V4EditorModel | null {
+    /** Raw v4 editor instance (no host unwrap). Used by callers that need
+     *  `instanceof` checks against concrete editor classes or access to
+     *  v4-specific fields like `editorId` and `contentHost`. */
+    get mainEditorInstance(): EditorModel | null {
         if (!this._mainEditorId) return null;
         return this.editors.find((e) => e.id === this._mainEditorId) ?? null;
     }
 
-    /** Editors that currently contribute panels (subset of `editors[]`).
-     *  Returns v4 editors cast as the legacy alias. All sidebar-owning
-     *  editors (US-555 Link, US-570 Archive, US-567 Explorer, US-576 Category)
-     *  are v4-native, so their panel state lives on the v4 editor and
-     *  `instanceof` checks resolve against the v4 class. */
+    /** Editors that currently contribute panels (subset of `editors[]`). All
+     *  sidebar-owning editors (Link, Archive, Explorer, Category) live on the
+     *  v4 editor; `instanceof` checks resolve against the concrete class. */
     get panelEditors(): EditorModel[] {
-        const editors = this.editors
-            .filter((e) => e.contributesPanels())
-            .map((e) => e as unknown as EditorModel);
-        // Explorer panel always renders first (original design). The Explorer
-        // editor is lazily attached AFTER content editors when the user toggles
-        // the navigator, so it would otherwise sort last. Stable-sort the
-        // explorer-contributing editor to the front; Array.sort is stable, so
-        // all other editors keep their attach order.
+        const editors = this.editors.filter((e) => e.contributesPanels());
+        // Explorer panel always renders first. The Explorer editor is lazily
+        // attached AFTER content editors when the user toggles the navigator,
+        // so it would otherwise sort last. Stable-sort the explorer-contributing
+        // editor to the front; Array.sort is stable, so other editors keep
+        // their attach order.
         const explorerRank = (e: EditorModel) =>
             ((e.state.get() as { secondaryEditor?: string[] }).secondaryEditor ?? [])
                 .includes("explorer") ? 0 : 1;
         return editors.sort((a, b) => explorerRank(a) - explorerRank(b));
-    }
-
-    /** v4 surface of the panel editors. */
-    get panelEditorsV4(): V4EditorModel[] {
-        return this.editors.filter((e) => e.contributesPanels());
-    }
-
-    /** Compat shim — legacy code reads `page.secondaryEditors`. Returns the
-     *  same set as `panelEditors` (unwrapped). Retired in US-559. */
-    get secondaryEditors(): EditorModel[] {
-        return this.panelEditors;
     }
 
     // ── Pinned (reactive) ────────────────────────────────────────────
@@ -221,7 +184,7 @@ export class PageModel {
 
     /** Display title — delegates to mainEditor, or "Empty" for empty pages. */
     get title(): string {
-        return this.mainEditorV4?.title ?? "Empty";
+        return this.mainEditorInstance?.title ?? "Empty";
     }
 
     /** Aggregate modified flag: true if any editor in `editors[]` is modified. */
@@ -242,7 +205,7 @@ export class PageModel {
      *  via the TOneState selector overload. The handler fires only when the
      *  panel list reference changes; visibility criterion enforced in
      *  `onEditorPanelsChanged`. */
-    attach(editor: V4EditorModel): void {
+    attach(editor: EditorModel): void {
         if (this.editors.includes(editor)) return;
         this.editors.push(editor);
         editor.setPage(this);
@@ -265,7 +228,7 @@ export class PageModel {
 
     /** Remove an editor from `editors[]`. Does NOT dispose — caller decides.
      *  Used by visibility-criterion auto-detach and explicit user actions. */
-    detach(editor: V4EditorModel): void {
+    detach(editor: EditorModel): void {
         const idx = this.editors.indexOf(editor);
         if (idx < 0) return;
         this.editors.splice(idx, 1);
@@ -313,7 +276,7 @@ export class PageModel {
             this.state.update((s) => { s.version++; });
             return;
         }
-        if (editor) this.attach(editor as V4EditorModel);
+        if (editor) this.attach(editor as EditorModel);
     }
 
     /** Compat shim — detach without disposing. Retired in US-559. */
@@ -322,7 +285,7 @@ export class PageModel {
         const id = editor?.state?.get?.()?.id ?? editor?.id;
         const target = id ? this.editors.find((e) => e.id === id) : undefined;
         if (target) this.detach(target);
-        else if (editor) this.detach(editor as V4EditorModel);
+        else if (editor) this.detach(editor as EditorModel);
     }
 
     /** Compat shim — detach + dispose. Used when the user explicitly closes a panel. */
@@ -334,8 +297,8 @@ export class PageModel {
             this.detach(target);
             await target.dispose();
         } else if (editor) {
-            this.detach(editor as V4EditorModel);
-            await (editor as V4EditorModel).dispose();
+            this.detach(editor as EditorModel);
+            await (editor as EditorModel).dispose();
         }
     }
 
@@ -349,7 +312,7 @@ export class PageModel {
      * `secondaryEditor` slice changes (panel list flips). Bumps version and
      * enforces the visibility criterion.
      */
-    onEditorPanelsChanged(editor: V4EditorModel): void {
+    onEditorPanelsChanged(editor: EditorModel): void {
         this.state.update((s) => {
             s.version++;
             s.hasSidebar = this.hasSidebar;
@@ -375,8 +338,8 @@ export class PageModel {
      *  - compare-mode cleanup (CK7): exits compare for the pair if new main's host
      *    isn't TextFileModel.
      */
-    async setMainEditor(newEditor: V4EditorModel | null): Promise<void> {
-        const oldMain = this.mainEditorV4;
+    async setMainEditor(newEditor: EditorModel | null): Promise<void> {
+        const oldMain = this.mainEditorInstance;
         if (oldMain && newEditor && oldMain !== newEditor) {
             oldMain.beforeNavigateAway(newEditor);
         }
@@ -386,7 +349,7 @@ export class PageModel {
         this._mainEditorId = newEditor?.id ?? null;
         this.state.update((s) => { s.mainEditorId = this._mainEditorId; });
 
-        let editorToDispose: V4EditorModel | null = null;
+        let editorToDispose: EditorModel | null = null;
         const idTransferred = !!(oldMain && newEditor && oldMain.id === newEditor.id);
         if (oldMain && oldMain !== newEditor && !oldMain.contributesPanels()) {
             this.detach(oldMain);
@@ -430,7 +393,7 @@ export class PageModel {
      * replace this with `createEditor → switchFrom → restore`.
      */
     async switchMainEditor(newEditorId: string): Promise<void> {
-        const oldEditor = this.mainEditorV4;
+        const oldEditor = this.mainEditorInstance;
         if (!oldEditor) return;
         if (oldEditor.editorId === newEditorId) return;
         const { editorRegistry } = await import("../../editors/base/v4");
@@ -450,7 +413,7 @@ export class PageModel {
      * wasn't opened from its archive.
      */
     notifyMainEditorChanged(): void {
-        const main = this.mainEditorV4;
+        const main = this.mainEditorInstance;
         for (const editor of [...this.editors]) {
             if (editor === main) continue;
             editor.onMainEditorChanged(main);
@@ -499,10 +462,9 @@ export class PageModel {
      *  if present — Explorer is v4-native post-US-567 so the unwrap is usually
      *  a passthrough). */
     findExplorer(): EditorModel | undefined {
-        const editor = this.editors.find(
+        return this.editors.find(
             (m) => (m.state.get() as { type?: string }).type === "fileExplorer",
         );
-        return unwrapAdapter(editor ?? null) ?? undefined;
     }
 
     // ── PageNavigatorModel ───────────────────────────────────────────

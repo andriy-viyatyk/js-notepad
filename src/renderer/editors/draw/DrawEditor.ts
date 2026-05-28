@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -65,7 +65,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class DrawEditor extends V4EditorModel<DrawEditorState, void, DrawQueueEvent> {
+export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEvent> {
     readonly editorId = "draw-view";
 
     // ── Payload fields (relocated from legacy DrawViewModel) ────────────
@@ -182,7 +182,7 @@ export class DrawEditor extends V4EditorModel<DrawEditorState, void, DrawQueueEv
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -223,7 +223,7 @@ export class DrawEditor extends V4EditorModel<DrawEditorState, void, DrawQueueEv
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh DrawEditor over a
+     *  `attachEditorToPage` when constructing a fresh DrawEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;

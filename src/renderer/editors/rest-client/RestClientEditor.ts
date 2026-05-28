@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -123,7 +123,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class RestClientEditor extends V4EditorModel<RestClientEditorState, void, RestClientQueueEvent> {
+export class RestClientEditor extends EditorModel<RestClientEditorState, void, RestClientQueueEvent> {
     readonly editorId = "rest-client";
 
     private static readonly responseCacheName = "rest-client-responses";
@@ -238,7 +238,7 @@ export class RestClientEditor extends V4EditorModel<RestClientEditorState, void,
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -280,7 +280,7 @@ export class RestClientEditor extends V4EditorModel<RestClientEditorState, void,
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh RestClientEditor over a
+     *  `attachEditorToPage` when constructing a fresh RestClientEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;
@@ -334,7 +334,7 @@ export class RestClientEditor extends V4EditorModel<RestClientEditorState, void,
 
         // RC18 — fire-and-forget async restore of the response cache. Hits
         // both the descriptor-replay path (restore() → adoptHost) AND the
-        // legacy-host adoption path (wrapLegacyForPage → adoptHost). Same
+        // legacy-host adoption path (attachEditorToPage → adoptHost). Same
         // fire-and-forget shape as today's loadData → restoreResponseCache
         // call site.
         void this.restoreResponseCache();

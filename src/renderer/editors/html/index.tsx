@@ -3,19 +3,19 @@ import { HtmlEditor, defaultHtmlEditorState } from "./HtmlEditor";
 import { HtmlBody } from "./HtmlBody";
 import { TextChrome } from "../base/v4/TextChrome";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-561 — native HTML preview editor module. Registered with the
  * v4 `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorV4` is a v4-native HtmlEditor instance.
+ * when the page's `mainEditorInstance` is a v4-native HtmlEditor instance.
  *
  * No toolbar contributions — Html has no preview-side buttons today (vs Svg's
  * open-draw + copy or Markdown's compact toggle). `<TextChrome>` mounts with
  * the default auto-spacer + switch widget only.
  */
 
-function HtmlEditorView({ model }: { model: V4EditorModel }) {
+function HtmlEditorView({ model }: { model: EditorModel }) {
     const html = model as HtmlEditor;
     return (
         <TextChrome model={model}>
@@ -25,7 +25,7 @@ function HtmlEditorView({ model }: { model: V4EditorModel }) {
 }
 
 // US-579 — chrome-free Body for notebook per-note embedding.
-function HtmlEmbeddedBody({ model }: { model: V4EditorModel }) {
+function HtmlEmbeddedBody({ model }: { model: EditorModel }) {
     return <HtmlBody model={model as HtmlEditor} />;
 }
 

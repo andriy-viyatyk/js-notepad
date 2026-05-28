@@ -1,6 +1,6 @@
 import { createElement, ReactNode } from "react";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -232,7 +232,7 @@ export const getDefaultMcpInspectorEditorState = (): McpInspectorEditorState => 
 // Model
 // ============================================================================
 
-export class McpInspectorEditorModel extends V4EditorModel<McpInspectorEditorState> {
+export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  EditorDescriptor.editorId and pre-US-574 saved descriptors agree. */
     readonly editorId = "mcp-view";

@@ -2,12 +2,12 @@ import { TComponentState } from "../../core/state/state";
 import { ArchiveEditor, getDefaultArchiveEditorState } from "./ArchiveEditor";
 import { ArchiveEditorView } from "./ArchiveEditorView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-570 — native Archive editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native ArchiveEditor instance.
+ * the page's `mainEditorInstance` is a v4-native ArchiveEditor instance.
  *
  * Archive is NO-HOST (no `CONTENT_HOST_TRAIT`) and sidebar-owning. `Component`
  * is the page-main tree view (`ArchiveEditorView`); the sidebar panel
@@ -15,7 +15,7 @@ import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
  * secondaryEditorRegistry. No `<TextChrome>` wrap.
  */
 
-function ArchiveEditorComponent({ model }: { model: V4EditorModel }) {
+function ArchiveEditorComponent({ model }: { model: EditorModel }) {
     return <ArchiveEditorView model={model as ArchiveEditor} />;
 }
 

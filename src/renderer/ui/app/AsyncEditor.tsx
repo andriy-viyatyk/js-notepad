@@ -1,5 +1,5 @@
 import { EditorViewModule } from "../../editors/types";
-import { EditorModel } from "../../editors/base";
+import { EditorOrHost } from "../../editors/base";
 import type { IContentHost } from "../../editors/base/IContentHost";
 import { useEffect, useState } from "react";
 import { Panel, Spinner } from "../../uikit";
@@ -10,7 +10,7 @@ const moduleCache = new Map<string, EditorViewModule>();
 
 export interface AsyncEditorProps {
     getEditorModule: () => Promise<EditorViewModule>;
-    model: EditorModel | IContentHost;
+    model: EditorOrHost | IContentHost;
     /** Unique identifier for caching the loaded module (e.g., editor type) */
     cacheKey?: string;
 }

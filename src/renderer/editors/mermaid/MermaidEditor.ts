@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -65,7 +65,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class MermaidEditor extends V4EditorModel<MermaidEditorState, void, MermaidQueueEvent> {
+export class MermaidEditor extends EditorModel<MermaidEditorState, void, MermaidQueueEvent> {
     readonly editorId = "mermaid-view";
 
     private _host: TextFileModel | null = null;
@@ -175,7 +175,7 @@ export class MermaidEditor extends V4EditorModel<MermaidEditorState, void, Merma
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -217,7 +217,7 @@ export class MermaidEditor extends V4EditorModel<MermaidEditorState, void, Merma
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh MermaidEditor over a
+     *  `attachEditorToPage` when constructing a fresh MermaidEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;

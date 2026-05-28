@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -147,7 +147,7 @@ function getContentSearchText(note: NoteItem): string {
 // Editor class
 // =============================================================================
 
-export class NotebookEditor extends V4EditorModel<NotebookEditorState, void, NotebookQueueEvent> {
+export class NotebookEditor extends EditorModel<NotebookEditorState, void, NotebookQueueEvent> {
     readonly editorId = "notebook-view";
 
     private _host: TextFileModel | null = null;
@@ -274,7 +274,7 @@ export class NotebookEditor extends V4EditorModel<NotebookEditorState, void, Not
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -321,7 +321,7 @@ export class NotebookEditor extends V4EditorModel<NotebookEditorState, void, Not
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh NotebookEditor over a
+     *  `attachEditorToPage` when constructing a fresh NotebookEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;

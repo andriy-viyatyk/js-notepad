@@ -95,7 +95,7 @@ function PageContent({ pageId }: { pageId: string }) {
     // US-551 — pass the v4 surface so RenderEditor can distinguish
     // LegacyEditorAdapter from v4-native editors (MonacoEditor). The auto-
     // unwrapping `mainEditor` getter loses the adapter signal.
-    const editor = page.mainEditorV4;
+    const editor = page.mainEditorInstance;
 
     const compareInfo = pagesModel.query.isInCompareMode(pageId);
 

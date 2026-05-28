@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -71,7 +71,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class LogViewEditor extends V4EditorModel<LogViewEditorState, void, LogQueueEvent> {
+export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueueEvent> {
     readonly editorId = "log-view";
 
     private _host: TextFileModel | null = null;
@@ -171,7 +171,7 @@ export class LogViewEditor extends V4EditorModel<LogViewEditorState, void, LogQu
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -216,7 +216,7 @@ export class LogViewEditor extends V4EditorModel<LogViewEditorState, void, LogQu
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh LogViewEditor over a
+     *  `attachEditorToPage` when constructing a fresh LogViewEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;

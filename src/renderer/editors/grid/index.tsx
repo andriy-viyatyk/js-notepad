@@ -8,7 +8,7 @@ import { CloseIcon, ColumnsIcon } from "../../theme/icons";
 import { showColumnsOptions } from "./components/ColumnsOptions";
 import { showCsvOptions } from "./components/CsvOptions";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 import { GridEditor, defaultGridEditorState } from "./GridEditor";
 import { GridBody, getVisibleRowsLabel } from "./GridBody";
 import type { AVGridModel } from "../../uikit";
@@ -20,7 +20,7 @@ import type { GridEditorId } from "./util";
  * derives from the id. The Component slot is shared across all three.
  */
 
-function GridEditorView({ model }: { model: V4EditorModel }) {
+function GridEditorView({ model }: { model: EditorModel }) {
     const editor = model as GridEditor;
     // Shared mutable holder for the AVGridModel ref — GridBody forwards it
     // here so GridToolbarBits / GridFooterBits can read it for the columns
@@ -135,7 +135,7 @@ function GridFooterBits({
 // US-579 — chrome-free Body for notebook per-note embedding. The footer
 // record-count / columns-popover ref bridge is page-chrome only, so the
 // embedded Body renders GridBody with no ref + no visible-rows callback.
-function GridEmbeddedBody({ model }: { model: V4EditorModel }) {
+function GridEmbeddedBody({ model }: { model: EditorModel }) {
     return <GridBody model={model as GridEditor} />;
 }
 

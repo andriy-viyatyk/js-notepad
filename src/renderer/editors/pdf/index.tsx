@@ -2,19 +2,19 @@ import { TComponentState } from "../../core/state/state";
 import { PdfEditor, getDefaultPdfEditorState } from "./PdfEditor";
 import { PdfView } from "./PdfView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-568 — native PDF editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorV4` is a v4-native PdfEditor instance.
+ * when the page's `mainEditorInstance` is a v4-native PdfEditor instance.
  *
  * PDF is NO-HOST (no `CONTENT_HOST_TRAIT`) — `Component` is the full PDF
  * viewer (toolbar + pdf.js `<object>` mount). No `<TextChrome>` wrap
  * (text-bearing chrome is irrelevant).
  */
 
-function PdfEditorComponent({ model }: { model: V4EditorModel }) {
+function PdfEditorComponent({ model }: { model: EditorModel }) {
     return <PdfView model={model as PdfEditor} />;
 }
 

@@ -1,7 +1,7 @@
 import { createElement, ReactNode } from "react";
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -70,7 +70,7 @@ export function getDefaultImageEditorState(): ImageEditorState {
     };
 }
 
-export class ImageEditor extends V4EditorModel<ImageEditorState> {
+export class ImageEditor extends EditorModel<ImageEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  EditorDescriptor.editorId and pre-US-569 saved descriptors
      *  (deriveEditorId({type:"imageFile"}) === "image-view") agree. */

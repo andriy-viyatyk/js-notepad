@@ -198,11 +198,12 @@ The implementation runs in **four phases across 13 tasks**. Each task ends with 
 | **US-575** | Storybook | 30 (closure) | First-principles investigation. No host. |
 | **US-576** | Category | 30 (closure) | First-principles investigation. No host. |
 
-### Phase D — Cleanup (1 task)
+### Phase D — Cleanup (2 tasks)
 
 | Task | Title | Scope |
 |------|-------|-------|
 | **US-559** | Strangler-fig retirement | Delete `LegacyEditorAdapter`; drop dual-read persistence (v4-only — detect-and-skip old session data on first launch); delete `ContentViewModel` / `ContentViewModelHost` / `useContentViewModel` (whatever's left after editor migrations); delete `compareModeChanged` Subscription, `pagesModel.rerender`, dead `fixCompareMode`; delete `EditorView` union from `src/shared/types.ts`; architecture docs refresh; bump major version; release notes for breaking change. |
+| **US-582** | Post-strangler cleanup — drop V4 prefix, fold v4/ folder up, strip EPIC-028 narrative | Erase the strangler-fig migration's naming and commentary residue across ~135 source files. Drop `as V4EditorModel` import aliases (54 files); promote `editors/base/v4/*` → `editors/base/*` (10 files moved, ~125 import paths updated); strip `EPIC-028` / `US-5XX` / `strangler` / concern-ID-anchor comments across 109+ files. Plus structural renames: `wrapLegacyForPage` → `attachEditorToPage`, `mainEditor` + `mainEditorV4` fold-up, `EditorModel` type alias → `EditorOrHost`. Three-commit reviewability split. Zero behavioral change. |
 
 ### Per-task investigation
 
@@ -253,6 +254,7 @@ Listed in implementation order. Each is a placeholder until its own deep-investi
 | US-575 | Storybook editor | C | 30 (closure) | |
 | US-576 | Category editor | C | 30 (closure) | |
 | US-559 | Strangler-fig retirement | D | cleanup | |
+| US-582 | Post-strangler cleanup — drop V4 prefix, fold v4/ folder up, strip EPIC-028 narrative | D | cleanup | |
 
 ## Notes
 

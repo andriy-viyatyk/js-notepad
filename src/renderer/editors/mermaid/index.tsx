@@ -10,12 +10,12 @@ import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-562 — native Mermaid preview editor module. Registered with
  * the v4 `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorV4` is a v4-native MermaidEditor instance.
+ * when the page's `mainEditorInstance` is a v4-native MermaidEditor instance.
  *
  * Three toolbar bits (mirrors today's MermaidView.tsx portal content):
  *   - theme toggle (sun/moon icon) — calls model.toggleLightMode
@@ -79,7 +79,7 @@ function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
     );
 }
 
-function MermaidEditorView({ model }: { model: V4EditorModel }) {
+function MermaidEditorView({ model }: { model: EditorModel }) {
     const mermaid = model as MermaidEditor;
     // MR2 — view-local imageRef bridges the BaseImageView imperative handle
     // to the toolbar's copy button (mirrors SV2 from Svg). Held by the view
@@ -103,7 +103,7 @@ function MermaidEditorView({ model }: { model: V4EditorModel }) {
 // US-579 — chrome-free Body for notebook per-note embedding. The theme/
 // open-draw/copy toolbar buttons are page-chrome only, so the embedded Body
 // passes a no-op imageRefSetter (no toolbar bridge needed).
-function MermaidEmbeddedBody({ model }: { model: V4EditorModel }) {
+function MermaidEmbeddedBody({ model }: { model: EditorModel }) {
     return <MermaidBody model={model as MermaidEditor} imageRefSetter={() => {}} />;
 }
 

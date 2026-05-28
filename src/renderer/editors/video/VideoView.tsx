@@ -122,7 +122,7 @@ export function VideoView({ model }: VideoViewProps) {
 // safety-net path. The `as unknown as EditorModel` casts bridge the v4
 // VideoEditor class to the legacy EditorModel typing the legacy module
 // factories expect; the runtime instance is the v4 class either way.
-// `wrapLegacyForPage`'s `instanceof V4EditorModel` early-return (US-568
+// `attachEditorToPage`'s `instanceof EditorModel` early-return (US-568
 // PD-IMPL16) detects the v4 instance and skips the adapter wrap. US-559 retires
 // this block entirely.
 

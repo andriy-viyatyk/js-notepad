@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -33,7 +33,7 @@ import type { ITreeProvider, ILink } from "../../api/types/io.tree";
  *     deleted in dispose via `api.deleteVideoStreamSessionsByPage`).
  *   - VLC integration (`openInVlc`).
  *   - A `playNext`/shuffle "next track" feature that reads sibling tree
- *     providers from `page.secondaryEditors[]` (duck-typed — those panels are
+ *     providers from `page.panelEditors[]` (duck-typed — those panels are
  *     contributed by the v4 Explorer/Link/Archive editors, US-567/US-570).
  *   - Uses `PageToolbar` with the `noSpacer` prop (VD-IMPL4) — the nav button
  *     is auto-rendered via the `getNavigatorTarget()` override below.
@@ -88,7 +88,7 @@ export const getDefaultVideoEditorState = (): VideoEditorState => ({
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
-export class VideoEditor extends V4EditorModel<VideoEditorState> {
+export class VideoEditor extends EditorModel<VideoEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  EditorDescriptor.editorId and pre-US-571 saved descriptors agree. */
     readonly editorId = "video-view";
@@ -214,7 +214,7 @@ export class VideoEditor extends V4EditorModel<VideoEditorState> {
 
     /**
      * Find the ITreeProvider that provided the currently playing track.
-     * Scans page.secondaryEditors[] matching sourceLink.sourceId.
+     * Scans page.panelEditors[] matching sourceLink.sourceId.
      */
     private findSourceProvider(): ITreeProvider | null {
         const page = this.page;
@@ -222,7 +222,7 @@ export class VideoEditor extends V4EditorModel<VideoEditorState> {
         const sourceId = this.state.get().sourceLink?.sourceId;
         if (!sourceId) return null;
 
-        for (const editor of page.secondaryEditors) {
+        for (const editor of page.panelEditors) {
             if (!("treeProvider" in editor)) continue;
             const tp = (editor as any).treeProvider as ITreeProvider | null; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (sourceId === "explorer" && tp?.type === "file") return tp;
@@ -304,7 +304,7 @@ export class VideoEditor extends V4EditorModel<VideoEditorState> {
         // completes, otherwise the openRawLink pipeline's synchronous state changes
         // cause React to batch-render with a stale selectedLinkId snapshot.
         if (this.page) {
-            for (const editor of this.page.secondaryEditors) {
+            for (const editor of this.page.panelEditors) {
                 if (!("treeProvider" in editor)) continue;
                 const tp = (editor as any).treeProvider; // eslint-disable-line @typescript-eslint/no-explicit-any
                 if (sourceId === "explorer" && tp?.type === "file" && "selectionState" in editor) {
@@ -332,7 +332,7 @@ export class VideoEditor extends V4EditorModel<VideoEditorState> {
             // render before we trigger another state update for selection.
             requestAnimationFrame(() => {
                 if (!page) return;
-                for (const editor of page.secondaryEditors) {
+                for (const editor of page.panelEditors) {
                     if (!("treeProvider" in editor) || !("selectByHref" in editor)) continue;
                     const tp = (editor as any).treeProvider; // eslint-disable-line @typescript-eslint/no-explicit-any
                     if ((sourceId === "link-category" || sourceId === "link-tag") && tp?.type === "link") {

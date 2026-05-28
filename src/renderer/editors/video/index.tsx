@@ -2,18 +2,18 @@ import { TComponentState } from "../../core/state/state";
 import { VideoEditor, getDefaultVideoEditorState } from "./VideoEditor";
 import { VideoView } from "./VideoView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-571 — native Video editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native VideoEditor instance.
+ * the page's `mainEditorInstance` is a v4-native VideoEditor instance.
  *
  * Video is NO-HOST (no `CONTENT_HOST_TRAIT`) — `Component` is the full player
  * (PageToolbar + VPlayer). No `<TextChrome>` wrap.
  */
 
-function VideoEditorComponent({ model }: { model: V4EditorModel }) {
+function VideoEditorComponent({ model }: { model: EditorModel }) {
     return <VideoView model={model as VideoEditor} />;
 }
 

@@ -33,13 +33,13 @@ async function getTarget(): Promise<IBrowserTarget | McpResponse> {
     const activePage = pagesModel.activePage;
 
     // Prefer active page if it's a browser
-    let browserPage = (activePage?.mainEditorV4 instanceof BrowserEditor) ? activePage : null;
+    let browserPage = (activePage?.mainEditorInstance instanceof BrowserEditor) ? activePage : null;
 
     // Fallback to first browser page
     if (!browserPage) {
-        browserPage = pages.find((p) => p.mainEditorV4 instanceof BrowserEditor) ?? null;
+        browserPage = pages.find((p) => p.mainEditorInstance instanceof BrowserEditor) ?? null;
     }
-    const browserEditor = browserPage?.mainEditorV4;
+    const browserEditor = browserPage?.mainEditorInstance;
     if (!(browserEditor instanceof BrowserEditor)) {
         return { error: { code: -32602, message: "No browser page open. Use the 'open_url' tool to open a browser page." } };
     }

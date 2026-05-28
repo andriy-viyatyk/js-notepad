@@ -6,12 +6,12 @@ import { Input } from "../../uikit/Input/Input";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { CloseIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-556 — native Todo editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native TodoEditor instance.
+ * the page's `mainEditorInstance` is a v4-native TodoEditor instance.
  *
  * Right-toolbar bits (TD17 — relocates legacy TodoView's portal search input):
  *   - search Input (with clear button when text is present)
@@ -63,7 +63,7 @@ function TodoFooterBits({ model: editor }: TodoToolbarBitsProps) {
     );
 }
 
-function TodoEditorView({ model }: { model: V4EditorModel }) {
+function TodoEditorView({ model }: { model: EditorModel }) {
     const todo = model as TodoEditor;
     return (
         <TextChrome

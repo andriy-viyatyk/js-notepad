@@ -2,19 +2,19 @@ import { TComponentState } from "../../core/state/state";
 import { ImageEditor, getDefaultImageEditorState } from "./ImageEditor";
 import { ImageView } from "./ImageView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-569 — native Image editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorV4` is a v4-native ImageEditor instance.
+ * when the page's `mainEditorInstance` is a v4-native ImageEditor instance.
  *
  * Image is NO-HOST (no `CONTENT_HOST_TRAIT`) — `Component` is the full
  * Image viewer (toolbar + BaseImageView zoom/pan host). No `<TextChrome>`
  * wrap (text-bearing chrome is irrelevant).
  */
 
-function ImageEditorComponent({ model }: { model: V4EditorModel }) {
+function ImageEditorComponent({ model }: { model: EditorModel }) {
     return <ImageView model={model as ImageEditor} />;
 }
 

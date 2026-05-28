@@ -10,12 +10,12 @@ import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-560 — native SVG preview editor module. Registered with the
  * v4 `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorV4` is a v4-native SvgEditor instance.
+ * when the page's `mainEditorInstance` is a v4-native SvgEditor instance.
  */
 
 interface SvgToolbarBitsProps {
@@ -56,7 +56,7 @@ function SvgToolbarBits({ model, imageRef }: SvgToolbarBitsProps) {
     );
 }
 
-function SvgEditorView({ model }: { model: V4EditorModel }) {
+function SvgEditorView({ model }: { model: EditorModel }) {
     const svg = model as SvgEditor;
     // SV2 — view-local imageRef bridges the BaseImageView imperative handle
     // to the toolbar's copy button. Held by the view (NOT the editor) because
@@ -80,7 +80,7 @@ function SvgEditorView({ model }: { model: V4EditorModel }) {
 // US-579 — chrome-free Body for notebook per-note embedding. The copy/open-draw
 // toolbar buttons are page-chrome only, so the embedded Body passes a no-op
 // imageRefSetter (no toolbar bridge needed).
-function SvgEmbeddedBody({ model }: { model: V4EditorModel }) {
+function SvgEmbeddedBody({ model }: { model: EditorModel }) {
     return <SvgBody model={model as SvgEditor} imageRefSetter={() => {}} />;
 }
 

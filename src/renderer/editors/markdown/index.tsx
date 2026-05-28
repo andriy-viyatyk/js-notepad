@@ -5,12 +5,12 @@ import { TextChrome } from "../base/v4/TextChrome";
 import { IconButton } from "../../uikit";
 import { CompactViewIcon, NormalViewIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-554 — native Markdown preview editor module. Registered with
  * the v4 `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorV4` is a v4-native MarkdownEditor instance.
+ * when the page's `mainEditorInstance` is a v4-native MarkdownEditor instance.
  */
 
 function MarkdownToolbarBits({ model }: { model: MarkdownEditor }) {
@@ -27,7 +27,7 @@ function MarkdownToolbarBits({ model }: { model: MarkdownEditor }) {
     );
 }
 
-function MarkdownEditorView({ model }: { model: V4EditorModel }) {
+function MarkdownEditorView({ model }: { model: EditorModel }) {
     const md = model as MarkdownEditor;
     return (
         <TextChrome
@@ -40,7 +40,7 @@ function MarkdownEditorView({ model }: { model: V4EditorModel }) {
 }
 
 // US-579 — chrome-free Body for notebook per-note embedding.
-function MarkdownEmbeddedBody({ model }: { model: V4EditorModel }) {
+function MarkdownEmbeddedBody({ model }: { model: EditorModel }) {
     return <MarkdownBody model={model as MarkdownEditor} />;
 }
 

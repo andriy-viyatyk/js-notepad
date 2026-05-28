@@ -1,5 +1,5 @@
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
 } from "../base/v4/EditorModel";
 
@@ -34,7 +34,7 @@ export const getDefaultAboutEditorState = (): AboutEditorState => ({
     editor: "about-view",
 });
 
-export class AboutEditor extends V4EditorModel<AboutEditorState> {
+export class AboutEditor extends EditorModel<AboutEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  EditorDescriptor.editorId and pre-US-573 saved descriptors agree. */
     readonly editorId = "about-view";

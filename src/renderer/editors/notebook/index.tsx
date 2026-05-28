@@ -8,12 +8,12 @@ import { IconButton } from "../../uikit/IconButton";
 import { Input } from "../../uikit/Input";
 import { CloseIcon, PlusIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-557 — native Notebook editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native NotebookEditor instance.
+ * the page's `mainEditorInstance` is a v4-native NotebookEditor instance.
  *
  * Contribution slots (NB-IMPL8 — replaces today's four portal targets):
  *   - `toolbarContributions` (left)  — Breadcrumb (tags or categories)
@@ -108,7 +108,7 @@ function NotebookFooterBits({ model: editor }: NotebookContributionProps) {
     );
 }
 
-function NotebookEditorView({ model }: { model: V4EditorModel }) {
+function NotebookEditorView({ model }: { model: EditorModel }) {
     const notebook = model as NotebookEditor;
     return (
         <TextChrome

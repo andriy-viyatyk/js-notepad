@@ -10,7 +10,7 @@ import { LinkEditor } from "../LinkEditor";
 /**
  * EPIC-028 / US-555 — secondary-editor wrapper for the Categories sidebar
  * panel. `model` is always a v4 LinkEditor instance (legacy adapter path
- * retired by `wrapLegacyForPage` link-view branch).
+ * retired by `attachEditorToPage` link-view branch).
  *
  * Today's duck-typed `(m as any).treeProvider = …` block retires — v4
  * LinkEditor exposes `treeProvider` / `selectByHref` / `selectionState` as

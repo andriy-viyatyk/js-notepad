@@ -21,12 +21,12 @@ import { LinkEditor, defaultLinkEditorState } from "./LinkEditor";
 import { LinkBody } from "./LinkBody";
 import type { LinkViewMode } from "./linkTypes";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-555 — native Link editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native LinkEditor instance.
+ * the page's `mainEditorInstance` is a v4-native LinkEditor instance.
  *
  * Toolbar composition (replaces today's three portals):
  *   - `toolbarContributions` (left of spacer): Breadcrumb (categories / tags /
@@ -198,7 +198,7 @@ export function LinkFooterBits({ model: editor }: { model: LinkEditor }) {
 // Module
 // =============================================================================
 
-function LinkEditorView({ model }: { model: V4EditorModel }) {
+function LinkEditorView({ model }: { model: EditorModel }) {
     const linkEditor = model as LinkEditor;
     return (
         <TextChrome

@@ -1,6 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -81,7 +81,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class TodoEditor extends V4EditorModel<TodoEditorState, void, TodoQueueEvent> {
+export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEvent> {
     readonly editorId = "todo-view";
 
     private _host: TextFileModel | null = null;
@@ -192,7 +192,7 @@ export class TodoEditor extends V4EditorModel<TodoEditorState, void, TodoQueueEv
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -234,7 +234,7 @@ export class TodoEditor extends V4EditorModel<TodoEditorState, void, TodoQueueEv
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` when constructing a fresh TodoEditor over a
+     *  `attachEditorToPage` when constructing a fresh TodoEditor over a
      *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;

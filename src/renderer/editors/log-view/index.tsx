@@ -5,12 +5,12 @@ import { TextChrome } from "../base/v4/TextChrome";
 import { IconButton } from "../../uikit";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-553 — native Log View editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native LogViewEditor instance.
+ * the page's `mainEditorInstance` is a v4-native LogViewEditor instance.
  */
 
 function TimestampIcon({ active }: { active: boolean }) {
@@ -76,7 +76,7 @@ function LogToolbarBits({ model }: { model: LogViewEditor }) {
     );
 }
 
-function LogViewEditorView({ model }: { model: V4EditorModel }) {
+function LogViewEditorView({ model }: { model: EditorModel }) {
     const logEditor = model as LogViewEditor;
     return (
         <TextChrome

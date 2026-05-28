@@ -77,7 +77,7 @@ export class PagesQueryModel {
      */
     getTextFileHost = (pageId: string): TextFileModel | null => {
         const page = this.findPage(pageId);
-        const main = page?.mainEditorV4;
+        const main = page?.mainEditorInstance;
         if (!main) return null;
         const host = main.contentHost as unknown as { type?: string } | null;
         if (host && host.type === "textFile") {

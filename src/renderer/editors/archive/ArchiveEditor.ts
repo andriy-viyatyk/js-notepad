@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { TComponentState, TOneState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -44,7 +44,7 @@ export function getDefaultArchiveEditorState(): ArchiveEditorState {
     return { ...defaultArchiveEditorState, id: crypto.randomUUID() };
 }
 
-export class ArchiveEditor extends V4EditorModel<ArchiveEditorState> {
+export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  EditorDescriptor.editorId and pre-US-570 saved descriptors
      *  (deriveEditorId({type:"archiveFile"}) === "archive-view") agree. */
@@ -110,7 +110,7 @@ export class ArchiveEditor extends V4EditorModel<ArchiveEditorState> {
      * (contrast Explorer EX-IMPL1) — the v4 base default would unconditionally
      * clear `secondaryEditor` and drop Archive's panel on every navigation.
      */
-    beforeNavigateAway(newModel: V4EditorModel): void {
+    beforeNavigateAway(newModel: EditorModel): void {
         if (this._isOpenedFromThisArchive(newModel)) return;
         this.secondaryEditor = undefined;
     }
@@ -120,7 +120,7 @@ export class ArchiveEditor extends V4EditorModel<ArchiveEditorState> {
      * If the new main editor was NOT opened from this archive, remove self from
      * the sidebar; otherwise highlight + reveal the navigated entry.
      */
-    onMainEditorChanged(newMainEditor: V4EditorModel | null): void {
+    onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (!newMainEditor || newMainEditor === this) return;
         if (this._isOpenedFromThisArchive(newMainEditor)) {
             const url = (newMainEditor.state.get() as { sourceLink?: { url?: string } })
@@ -149,7 +149,7 @@ export class ArchiveEditor extends V4EditorModel<ArchiveEditorState> {
      *  source id from both the editor's own state and its content host (see
      *  `EditorModel.getNavigationSourceId`) so navigation into a v4-native text
      *  editor (e.g. Monaco) keeps the Archive panel instead of dropping it. */
-    private _isOpenedFromThisArchive(model: V4EditorModel): boolean {
+    private _isOpenedFromThisArchive(model: EditorModel): boolean {
         return model.getNavigationSourceId() === this.id;
     }
 

@@ -9,13 +9,13 @@ import { DrawIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage } from "../draw/drawExport";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 import color from "../../theme/color";
 
 /**
  * EPIC-028 / US-564 — native Graph editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native GraphEditor instance.
+ * the page's `mainEditorInstance` is a v4-native GraphEditor instance.
  *
  * Right-toolbar bits (relocates legacy GraphView's portal toolbar buttons):
  *   - open-in-draw — converts canvas to dataURL → opens in Draw editor
@@ -92,7 +92,7 @@ function GraphFooterBits({ model: editor }: { model: GraphEditor }) {
     );
 }
 
-function GraphEditorView({ model }: { model: V4EditorModel }) {
+function GraphEditorView({ model }: { model: EditorModel }) {
     const graph = model as GraphEditor;
     // GR2 — view-local canvasRef bridges the canvas element to the toolbar's
     // open-draw / copy-image buttons (mirrors SV2 from Svg / MR2 from Mermaid).

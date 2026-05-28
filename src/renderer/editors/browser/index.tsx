@@ -3,12 +3,12 @@ import { BrowserEditor } from "./BrowserEditor";
 import { getDefaultBrowserPageState } from "./BrowserEditorModel";
 import { BrowserEditorView } from "./BrowserView";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-558 — native Browser editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native BrowserEditor instance.
+ * the page's `mainEditorInstance` is a v4-native BrowserEditor instance.
  *
  * Browser is NO-HOST (no `CONTENT_HOST_TRAIT`) — `Component` is the full
  * browser view (URL bar + tabs panel + webview area + bookmarks drawer +
@@ -18,7 +18,7 @@ import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
  * gesture through `PagesLifecycleModel.showBrowserPage`.
  */
 
-function BrowserEditorComponent({ model }: { model: V4EditorModel }) {
+function BrowserEditorComponent({ model }: { model: EditorModel }) {
     return <BrowserEditorView model={model as BrowserEditor} />;
 }
 

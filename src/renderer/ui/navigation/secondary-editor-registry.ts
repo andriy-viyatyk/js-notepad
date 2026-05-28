@@ -1,9 +1,9 @@
 import type React from "react";
-import type { EditorModel } from "../../editors/base";
+import type { EditorOrHost } from "../../editors/base";
 
 /** Props passed to secondary editor sidebar components. */
 export interface SecondaryEditorProps {
-    model: EditorModel;
+    model: EditorOrHost;
     /** Portal target for the panel header. Render title, buttons, etc. into this element via createPortal. */
     headerRef: HTMLDivElement | null;
 }

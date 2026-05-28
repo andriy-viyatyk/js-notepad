@@ -5,12 +5,12 @@ import {
 } from "./CategoryEditorModel";
 import { CategoryEditor } from "./CategoryEditor";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-576 — native Category (Folder View) editor module. Registered
  * with the v4 `editorRegistry` in `register-editors.ts`; consumed by
- * `RenderEditor` when the page's `mainEditorV4` is a v4-native
+ * `RenderEditor` when the page's `mainEditorInstance` is a v4-native
  * CategoryEditorModel instance.
  *
  * Category is NO-HOST (no `CONTENT_HOST_TRAIT`) and a tree-provider CONSUMER —
@@ -18,7 +18,7 @@ import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
  * `treeProvider` and contributes no panel. No `<TextChrome>` wrap.
  */
 
-function CategoryEditorComponent({ model }: { model: V4EditorModel }) {
+function CategoryEditorComponent({ model }: { model: EditorModel }) {
     return <CategoryEditor model={model as CategoryEditorModel} />;
 }
 

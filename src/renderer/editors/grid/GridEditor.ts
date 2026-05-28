@@ -1,7 +1,7 @@
 import { SetStateAction } from "react";
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -105,7 +105,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEvent> {
+export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEvent> {
     readonly editorId: GridEditorId;
     readonly format: GridFormat;
 
@@ -249,7 +249,7 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
 
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: V4EditorModel): void {
+    switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
         if (!trait) {
             throw new Error(
@@ -331,7 +331,7 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
     }
 
     /** Adopt a host without going through `switchFrom`. Used by
-     *  `wrapLegacyForPage` in PagesLifecycleModel when constructing a fresh
+     *  `attachEditorToPage` in PagesLifecycleModel when constructing a fresh
      *  GridEditor over a freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
         this._host = host;
@@ -764,7 +764,7 @@ export class GridEditor extends V4EditorModel<GridEditorState, void, GridQueueEv
 
     /** Heuristic CSV delimiter detection from the first 5 lines. Shared by
      *  `restore()` (session-restore path), `switchFrom()` (switch-in path),
-     *  and the open-file flow (`PagesLifecycleModel.wrapLegacyForPage`). */
+     *  and the open-file flow (`PagesLifecycleModel.attachEditorToPage`). */
     static detectCsvDelimiter(content: string): string {
         const firstLine = content.split("\n").slice(0, 5).join("") || "";
         const delimiters = [",", ";", "\t", "|"];

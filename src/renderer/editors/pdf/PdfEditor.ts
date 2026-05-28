@@ -1,7 +1,7 @@
 import { createElement, ReactNode } from "react";
 import { TComponentState } from "../../core/state/state";
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
     type RestoreData,
 } from "../base/v4/EditorModel";
@@ -56,7 +56,7 @@ export function getDefaultPdfEditorState(): PdfEditorState {
     };
 }
 
-export class PdfEditor extends V4EditorModel<PdfEditorState> {
+export class PdfEditor extends EditorModel<PdfEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  `EditorDescriptor.editorId` and pre-US-568 saved descriptors
      *  (`deriveEditorId({type:"pdfFile"}) === "pdf-view"`) agree. */

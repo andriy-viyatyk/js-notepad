@@ -15,12 +15,12 @@ import { api } from "../../../ipc/renderer/api";
 import { pagesModel } from "../../api/pages";
 import { fpBasename } from "../../core/utils/file-path";
 import type { EditorModule } from "../base/v4/editorRegistry";
-import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
+import type { EditorModel } from "../base/v4/EditorModel";
 
 /**
  * EPIC-028 / US-565 — native Drawing editor module. Registered with the v4
  * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorV4` is a v4-native DrawEditor instance.
+ * the page's `mainEditorInstance` is a v4-native DrawEditor instance.
  *
  * Right-toolbar bits (relocates legacy DrawView's portal toolbar buttons):
  *   - theme toggle — sun/moon icon, calls editor.toggleDarkMode
@@ -220,7 +220,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
     );
 }
 
-function DrawEditorView({ model }: { model: V4EditorModel }) {
+function DrawEditorView({ model }: { model: EditorModel }) {
     const draw = model as DrawEditor;
     return (
         <TextChrome

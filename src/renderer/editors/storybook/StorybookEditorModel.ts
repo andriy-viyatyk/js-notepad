@@ -1,5 +1,5 @@
 import {
-    EditorModel as V4EditorModel,
+    EditorModel,
     type EditorStateBase,
 } from "../base/v4/EditorModel";
 import { ALL_STORIES, findStory } from "./storyRegistry";
@@ -62,7 +62,7 @@ export function buildInitialProps(story: Story): Record<string, unknown> {
     return out;
 }
 
-export class StorybookEditorModel extends V4EditorModel<StorybookEditorState> {
+export class StorybookEditorModel extends EditorModel<StorybookEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
      *  EditorDescriptor.editorId and pre-US-575 saved descriptors agree. */
     readonly editorId = "storybook-view";

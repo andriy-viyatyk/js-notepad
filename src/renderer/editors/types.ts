@@ -1,15 +1,15 @@
 import { IEditorState, EditorView, EditorType } from "../../shared/types";
-import { EditorModel } from "./base";
+import { EditorOrHost } from "./base";
 import type { IContentHost } from "./base/IContentHost";
 
-export type FileEditorComponent<T extends EditorModel | IContentHost = EditorModel | IContentHost> = React.ComponentType<{
+export type FileEditorComponent<T extends EditorOrHost | IContentHost = EditorOrHost | IContentHost> = React.ComponentType<{
     model: T;
 }>;
 
 export interface EditorModelCreations {
-    newEditorModel(filePath?: string): Promise<EditorModel>;
-    newEmptyEditorModel(editorType: EditorType): Promise<EditorModel | null>;
-    newEditorModelFromState(state: Partial<IEditorState>): Promise<EditorModel>;
+    newEditorModel(filePath?: string): Promise<EditorOrHost>;
+    newEmptyEditorModel(editorType: EditorType): Promise<EditorOrHost | null>;
+    newEditorModelFromState(state: Partial<IEditorState>): Promise<EditorOrHost>;
 }
 
 export interface EditorViewModule {
