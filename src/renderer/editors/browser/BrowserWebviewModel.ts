@@ -7,9 +7,6 @@ import {
 import { showAppPopupMenu } from "../../ui/dialogs/poppers/showPopupMenu";
 import type { MenuItem } from "../../uikit";
 import { pagesModel } from "../../api/pages";
-import { newTextFileModel } from "../text/TextEditorModel";
-import { EditorModel } from "../base";
-import { LegacyEditorAdapter, deriveEditorId } from "../base/v4";
 import { ui } from "../../api/ui";
 
 import { globalPopupRateLimiter } from "../../../ipc/popup-rate-limiter";
@@ -459,14 +456,9 @@ export class BrowserWebviewModel {
                 const resp = await webview.executeJavaScript(
                     `fetch(location.href).then(r => r.text())`,
                 );
-                const page = newTextFileModel();
-                page.state.update((s) => {
-                    s.title = "Source: " + (tab?.pageTitle || pageUrl);
-                    s.language = "html";
-                    s.content = resp;
-                });
-                page.restore();
-                pagesModel.addPage(new LegacyEditorAdapter(page as unknown as EditorModel, deriveEditorId(page.state.get())));
+                // EPIC-028 / US-559 — v4 Monaco page via shared lifecycle helper
+                // (replaces the legacy `newTextFileModel + LegacyEditorAdapter` pattern).
+                pagesModel.addEditorPage("monaco", "html", "Source: " + (tab?.pageTitle || pageUrl), resp);
             },
         });
 
@@ -479,14 +471,7 @@ export class BrowserWebviewModel {
                     BrowserChannel.collectDom,
                     regKey,
                 );
-                const page = newTextFileModel();
-                page.state.update((s) => {
-                    s.title = "DOM: " + (tab?.pageTitle || pageUrl);
-                    s.language = "html";
-                    s.content = html;
-                });
-                page.restore();
-                pagesModel.addPage(new LegacyEditorAdapter(page as unknown as EditorModel, deriveEditorId(page.state.get())));
+                pagesModel.addEditorPage("monaco", "html", "DOM: " + (tab?.pageTitle || pageUrl), html);
             },
         });
 
@@ -501,14 +486,7 @@ export class BrowserWebviewModel {
             items.push({
                 label: "Open SVG in Editor",
                 onClick: () => {
-                    const page = newTextFileModel();
-                    page.state.update((s) => {
-                        s.title = "untitled.svg";
-                        s.language = "xml";
-                        s.content = svgSource;
-                    });
-                    page.restore();
-                    pagesModel.addPage(new LegacyEditorAdapter(page as unknown as EditorModel, deriveEditorId(page.state.get())));
+                    pagesModel.addEditorPage("monaco", "xml", "untitled.svg", svgSource);
                 },
             });
         }
@@ -554,14 +532,8 @@ export class BrowserWebviewModel {
                     const resp = await webview.executeJavaScript(
                         `fetch(location.href).then(r => r.text())`,
                     );
-                    const page = newTextFileModel();
-                    page.state.update((s) => {
-                        s.title = "Source: " + (tab?.pageTitle || pageUrl);
-                        s.language = "html";
-                        s.content = resp;
-                    });
-                    page.restore();
-                    pagesModel.addPage(new LegacyEditorAdapter(page as unknown as EditorModel, deriveEditorId(page.state.get())));
+                    // EPIC-028 / US-559 — v4 Monaco page via shared lifecycle helper.
+                    pagesModel.addEditorPage("monaco", "html", "Source: " + (tab?.pageTitle || pageUrl), resp);
                 },
             },
             {
@@ -572,14 +544,7 @@ export class BrowserWebviewModel {
                         BrowserChannel.collectDom,
                         regKey,
                     );
-                    const page = newTextFileModel();
-                    page.state.update((s) => {
-                        s.title = "DOM: " + (tab?.pageTitle || pageUrl);
-                        s.language = "html";
-                        s.content = html;
-                    });
-                    page.restore();
-                    pagesModel.addPage(new LegacyEditorAdapter(page as unknown as EditorModel, deriveEditorId(page.state.get())));
+                    pagesModel.addEditorPage("monaco", "html", "DOM: " + (tab?.pageTitle || pageUrl), html);
                 },
             },
             {

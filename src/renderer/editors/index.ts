@@ -18,6 +18,3 @@ export * from './pdf';
 
 // Compare Editor
 export * from './compare';
-
-// Editor Registry
-export * from './registry';

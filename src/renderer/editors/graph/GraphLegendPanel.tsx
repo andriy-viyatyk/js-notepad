@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { Button, Input, Panel } from "../../uikit";
 import color from "../../theme/color";
 import type { GraphEditor } from "./GraphEditor";
-import type { GraphViewModel } from "./GraphViewModel";
 import { NodeShape } from "./types";
 import { ShapeIcon, LevelIcon } from "./GraphIcons";
 
@@ -15,11 +14,9 @@ const ALL_LEVELS = [1, 2, 3, 4, 5];
 type LegendTab = "level" | "shape" | "selection";
 type SelectionFilter = "" | "selected" | "not-selected" | "selected-with-children";
 
-/** Either the new v4 `GraphEditor` or the legacy `GraphViewModel`. Both expose
- *  the same surface this panel consumes (state.subscribe, state.get,
- *  renderer.selectedIds, connectivityModel.*, getLegendDescriptions, etc.).
- *  Type-only imports avoid runtime coupling. */
-type GraphLegendHost = GraphEditor | GraphViewModel;
+/** Host type for this panel. Post-US-559 the legacy `GraphViewModel` is
+ *  retired; the alias resolves to the v4 `GraphEditor` only. */
+type GraphLegendHost = GraphEditor;
 
 // =============================================================================
 // Inline styles

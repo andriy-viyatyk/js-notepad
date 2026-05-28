@@ -1,7 +1,14 @@
 import type { PagesModel } from "./PagesModel";
 import { EditorModel as V4EditorModel } from "../../editors/base/v4";
-import { LegacyEditorAdapter, deriveEditorId } from "../../editors/base/v4";
-import type { EditorModel as LegacyEditorModel } from "../../editors/base/EditorModel";
+
+/**
+ * Post-US-559 type alias for the editor factories below. The legacy
+ * `EditorModel` base was deleted; the factories return either a fresh
+ * `TextFileModel` host (text-bearing target) or a v4 `EditorModel` (no-host
+ * target). `wrapLegacyForPage` dispatches on the runtime shape via
+ * `instanceof V4EditorModel` (false for TextFileModel host).
+ */
+type LegacyEditorModel = V4EditorModel | TextFileModel;
 import { IEditorState, EditorView, EditorType, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
 import type { ILinkData } from "../../../shared/link-data";
@@ -30,7 +37,6 @@ import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
 import { ui } from "../ui";
 import { settings } from "../settings";
-import { editorRegistry } from "../../editors/registry";
 import { editorRegistry as editorRegistryV4 } from "../../editors/base/v4/editorRegistry";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { PageModel } from "./PageModel";
@@ -78,8 +84,17 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         return legacy as unknown as V4EditorModel;
     }
 
-    const targetEditorId = deriveEditorId(legacy.state.get());
-    const isTextFile = (legacy as unknown as { type?: string }).type === "textFile";
+    // EPIC-028 / US-559 — post-strangler: the only non-v4 input here is a
+    // TextFileModel produced by `newTextFileModel(...)` or
+    // `createEditorFromFile(...)`. Derive the target editor id from its
+    // `state.editor` discriminator (legacy `deriveEditorId` retired with
+    // `LegacyEditorAdapter`).
+    const legacyState = legacy.state.get() as { type?: string; editor?: string };
+    const targetEditorId =
+        legacyState.type === "textFile" && legacyState.editor
+            ? legacyState.editor
+            : "monaco";
+    const isTextFile = legacyState.type === "textFile";
 
     if (targetEditorId === "monaco" && isTextFile) {
         const id = legacy.state.get().id || crypto.randomUUID();
@@ -283,7 +298,13 @@ export function wrapLegacyForPage(legacy: LegacyEditorModel): V4EditorModel {
         return notebook;
     }
 
-    return new LegacyEditorAdapter(legacy, targetEditorId);
+    // EPIC-028 / US-559 — no LegacyEditorAdapter fallback. Every editor is
+    // v4-native (handled above by id-specific branches or the v4 early-return).
+    // Reaching this throw means a caller passed a legacy editor whose target
+    // id is unknown — fix the caller (likely a missed migration).
+    throw new Error(
+        `wrapLegacyForPage: no v4 mapping for editor id "${targetEditorId}" (type "${legacyState.type ?? "?"}").`,
+    );
 }
 
 /** Module-private alias preserved for the existing call sites below. */
@@ -318,52 +339,69 @@ export class PagesLifecycleModel {
         return new ContentPipe(new FileProvider(path));
     }
 
-    // ── Editor factory helpers (legacy — produce LegacyEditorModel) ────
+    // ── Editor factory helpers ──────────────────────────────────────────
+    // Post-US-559: legacy `editorRegistry` deleted. File-resolution goes
+    // through the v4 registry. Text-bearing editors construct a fresh
+    // TextFileModel host; `wrapLegacyForPage` then wraps it in the right
+    // v4 editor (MonacoEditor / GridEditor / …). No-host editors dispatch
+    // to their preserved standalone shim files (`PdfView.tsx` / `ImageView.tsx`
+    // / `ArchiveEditorView.tsx` / `VideoView.tsx` / `CategoryEditor.tsx`),
+    // whose `newEditorModel(filePath)` factories build a v4 editor cast as
+    // legacy — `wrapLegacyForPage`'s v4 early-return then forwards it
+    // unwrapped.
 
     private newEditorModel = async (filePath?: string): Promise<LegacyEditorModel> => {
-        const editorDef = editorRegistry.resolve(filePath);
-        if (editorDef) {
-            const module = await editorDef.loadModule();
-            return module.newEditorModel(filePath);
-        }
-        const def = editorRegistry.getById("monaco");
-        if (!def) throw new Error("Monaco editor not registered");
-        const module = await def.loadModule();
-        return module.newEditorModel(filePath);
+        const targetId = editorRegistryV4.resolveId(filePath) ?? "monaco";
+        return this.buildEditorById(targetId, filePath);
     };
 
-    /** Legacy page type migration: maps old renamed page types to current names. */
-    private static PAGE_TYPE_MIGRATIONS: Record<string, EditorType> = {
-        mcpBrowserPage: "mcpInspectorPage",
-    };
-
-    newEditorModelFromState = async (
-        state: Partial<IEditorState>,
+    private newEditorModelByTarget = async (
+        filePath: string,
+        target: string,
     ): Promise<LegacyEditorModel> => {
-        if (state.type && PagesLifecycleModel.PAGE_TYPE_MIGRATIONS[state.type]) {
-            state = { ...state, type: PagesLifecycleModel.PAGE_TYPE_MIGRATIONS[state.type] };
+        return this.buildEditorById(target, filePath);
+    };
+
+    /** Construct a (possibly v4-cast-as-legacy) editor for an editor id +
+     *  optional file path. Text-bearing editors get a fresh TextFileModel
+     *  host; no-host editors go through their preserved standalone shim. */
+    private buildEditorById = async (
+        editorId: string,
+        filePath?: string,
+    ): Promise<LegacyEditorModel> => {
+        const def = editorRegistryV4.getById(editorId);
+        if (!def || def.hasContentHost) {
+            // Text-bearing or unknown — build a TextFileModel host.
+            // `wrapLegacyForPage` picks the v4 editor class based on
+            // state.editor (set by `getPreviewEditor` in navigatePageTo,
+            // or by `resolveId` for fresh file opens).
+            return newTextFileModel(filePath) as unknown as LegacyEditorModel;
         }
-        if (state.type === "fileExplorer") {
-            // EPIC-028 / US-567 — Explorer migrated to v4-native EditorModel.
-            // Construction sites are `PagesPersistenceModel.restorePage`,
-            // `restoreSidebarLegacy`, `PagesLifecycleModel.addEmptyPageWithNavPanel`,
-            // and `PageModel.toggleNavigator`. This legacy factory branch must
-            // never be hit post-migration.
-            throw new Error(
-                "newEditorModelFromState: Explorer migrated to v4-native (US-567). "
-                + "Construct via `new ExplorerEditor(state)` directly.",
-            );
+        switch (editorId) {
+            case "pdf-view": {
+                const mod = await import("../../editors/pdf/PdfView");
+                return mod.default.newEditorModel(filePath);
+            }
+            case "image-view": {
+                const mod = await import("../../editors/image/ImageView");
+                return mod.default.newEditorModel(filePath);
+            }
+            case "archive-view": {
+                const mod = await import("../../editors/archive/ArchiveEditorView");
+                return mod.default.newEditorModel(filePath);
+            }
+            case "video-view": {
+                const mod = await import("../../editors/video/VideoView");
+                return mod.default.newEditorModel(filePath);
+            }
+            case "category-view": {
+                const mod = await import("../../editors/category/CategoryEditor");
+                return mod.default.newEditorModel(filePath);
+            }
+            default:
+                // Unknown no-host id — fall back to Monaco text host.
+                return newTextFileModel(filePath) as unknown as LegacyEditorModel;
         }
-        const editors = editorRegistry.getAll();
-        const editorDef = editors.find((e) => e.editorType === state.type);
-        if (editorDef) {
-            const module = await editorDef.loadModule();
-            return module.newEditorModelFromState(state);
-        }
-        const def = editorRegistry.getById("monaco");
-        if (!def) throw new Error("Monaco editor not registered");
-        const module = await def.loadModule();
-        return module.newEditorModelFromState(state);
     };
 
     // ── Core page operations ─────────────────────────────────────────
@@ -386,18 +424,6 @@ export class PagesLifecycleModel {
         });
         await editor.restore();
         return editor;
-    };
-
-    private newEditorModelByTarget = async (
-        filePath: string,
-        target: string,
-    ): Promise<LegacyEditorModel> => {
-        const editorDef = editorRegistry.getById(target as EditorView);
-        if (editorDef) {
-            const module = await editorDef.loadModule();
-            return module.newEditorModel(filePath);
-        }
-        return this.newEditorModel(filePath);
     };
 
     /**
@@ -501,7 +527,6 @@ export class PagesLifecycleModel {
         const def = getWellKnownPageDef(id);
         if (!def) throw new Error(`Unknown well-known page ID: "${id}"`);
 
-        await editorRegistry.loadViewModelFactory(def.editor as EditorView);
         const editorModel = newTextFileModel("");
         editorModel.state.update((s) => {
             s.id = id;
@@ -645,10 +670,7 @@ export class PagesLifecycleModel {
             return existing;
         }
 
-        const editorDef = editorRegistry.getById("archive-view");
-        if (!editorDef) throw new Error("archive-view editor not registered");
-        const module = await editorDef.loadModule();
-        const legacy = await module.newEditorModel(filePath);
+        const legacy = await this.buildEditorById("archive-view", filePath);
 
         const page = new PageModel();
         const adapter = wrap(legacy);

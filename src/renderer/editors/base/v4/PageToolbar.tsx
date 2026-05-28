@@ -6,7 +6,6 @@ import { SegmentedControl, type ISegment } from "../../../uikit/SegmentedControl
 import { Spacer } from "../../../uikit/Spacer/Spacer";
 import { NavPanelIcon } from "../../../theme/icons";
 import { editorRegistry } from "./editorRegistry";
-import { LegacyEditorAdapter } from "./LegacyEditorAdapter";
 
 /**
  * Page-level toolbar host (EPIC-028 / US-549 / walkthrough 09).
@@ -96,24 +95,9 @@ function SwitchWidget({ model }: { model: EditorModel }) {
 }
 
 function onSwitch(model: EditorModel, newEditorId: string) {
-    // EPIC-028 / US-551 switch routing:
-    //   - legacy adapter → monaco (native v4): page.switchMainEditor creates
-    //     a MonacoEditor and extracts the legacy TextFileModel as its host.
-    //   - legacy adapter → other content-view (still legacy): keep today's
-    //     host-preserving in-place `legacy.changeEditor(view)` path — no
-    //     editor swap, just `state.editor` mutation.
-    //   - v4-native (MonacoEditor) → any target: always route through
-    //     page.switchMainEditor. The bare-adapter factory in
-    //     register-editors.ts wraps the extracted host in a LegacyEditorAdapter
-    //     when the target is still a legacy content-view.
-    if (model instanceof LegacyEditorAdapter) {
-        if (newEditorId === "monaco") {
-            void model.page?.switchMainEditor(newEditorId);
-            return;
-        }
-        const legacy = model.legacy as unknown as { changeEditor?: (v: string) => void };
-        legacy.changeEditor?.(newEditorId);
-        return;
-    }
+    // EPIC-028 / US-559 — every page editor is v4-native; switch always goes
+    // through `page.switchMainEditor`, which builds the target editor via
+    // `editorRegistry.createEditor` + `switchFrom` (CONTENT_HOST_TRAIT extract
+    // → adopt → restore).
     void model.page?.switchMainEditor(newEditorId);
 }

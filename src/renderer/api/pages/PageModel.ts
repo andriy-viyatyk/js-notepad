@@ -1,6 +1,15 @@
 import { TComponentState, TOneState } from "../../core/state/state";
-import { LegacyEditorAdapter, type EditorModel as V4EditorModel } from "../../editors/base/v4";
-import type { EditorModel as LegacyEditorModel } from "../../editors/base/EditorModel";
+import { type EditorModel as V4EditorModel } from "../../editors/base/v4";
+import type { TextFileModel } from "../../editors/text/TextEditorModel";
+
+/**
+ * Post-US-559 type alias used in `mainEditor` return signature. The legacy
+ * `EditorModel` base was deleted; `mainEditor` returns either the v4 editor
+ * itself (no-host editors) or its content host (TextFileModel for text-bearing
+ * editors). Modeled as the explicit union — callers narrow via `isTextFileModel`
+ * or by reading state fields duck-typed across both branches.
+ */
+type LegacyEditorModel = V4EditorModel | TextFileModel;
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { PageDescriptor } from "../../../shared/persistence-v4";
 import { PageNavigatorModel } from "../../ui/navigation/PageNavigatorModel";
@@ -10,30 +19,26 @@ import { pageNavigatorToggled, panelExpanded } from "../../core/state/events";
 import { fpDirname } from "../../core/utils/file-path";
 
 /**
- * Surface returned by `PageModel.mainEditor`. During the strangler-fig period
- * (US-548 through US-559), `mainEditor` unwraps the LegacyEditorAdapter and
- * returns the underlying legacy `EditorModel` so existing call sites that do
- * `editor instanceof TextFileModel` / `instanceof BrowserEditorModel` / etc.
- * keep working at runtime. v4-aware callers (PageModel internals, PagesModel
- * persistence) iterate `page.editors[]` directly to access adapters.
+ * Surface returned by `PageModel.mainEditor`. Post-US-559: returns the
+ * TextFileModel content host for text-bearing v4 editors, or the v4 editor
+ * itself for no-host editors. Legacy `EditorModel` typing kept as an alias
+ * so consumers that do `instanceof TextFileModel` keep working — Phase 3b
+ * folds the legacy base into TextFileModel and retypes consumers.
  */
 type EditorModel = LegacyEditorModel;
 
 function unwrapAdapter(editor: V4EditorModel | null): LegacyEditorModel | null {
     if (!editor) return null;
-    if (editor instanceof LegacyEditorAdapter) return editor.legacy;
-    // US-551 — v4-native editors (e.g., MonacoEditor) expose `contentHost`.
-    // For text-bearing editors the host IS a legacy TextFileModel, so legacy
-    // consumers (tab strip, OpenTabsList, PageTabs) read its state directly
-    // and see filePath / language / encrypted / etc.
+    // For text-bearing editors the content host IS a TextFileModel — return
+    // it so legacy consumers (tab strip, OpenTabsList, PageTabs) see
+    // filePath / language / encrypted / etc.
     const host = (editor as { contentHost?: { type?: string } | null }).contentHost;
     if (host && host.type === "textFile") {
         return host as unknown as LegacyEditorModel;
     }
-    // No content host (or non-textFile host) — fall back to the v4 editor
-    // itself cast as a legacy editor. Consumers reading legacy fields will
-    // see undefined; per-editor migrations US-552+ retire those readers
-    // before introducing non-text-bearing native editors.
+    // No content host (or non-textFile host) — return the v4 editor cast as
+    // legacy. Consumers reading legacy-shape fields will see undefined; their
+    // per-editor migrations replaced those reads with v4-aware paths.
     return editor as unknown as LegacyEditorModel;
 }
 
@@ -172,15 +177,14 @@ export class PageModel {
     }
 
     /** Editors that currently contribute panels (subset of `editors[]`).
-     *  Returns unwrapped legacy editors for backward compat. v4-native
-     *  editors (US-555 Link, future US-556 Todo, etc.) pass through directly
-     *  so their panel state lives on the v4 editor (not the host), and the
-     *  secondary-editor wrapper receives the v4 instance for `instanceof` checks. */
+     *  Returns v4 editors cast as the legacy alias. All sidebar-owning
+     *  editors (US-555 Link, US-570 Archive, US-567 Explorer, US-576 Category)
+     *  are v4-native, so their panel state lives on the v4 editor and
+     *  `instanceof` checks resolve against the v4 class. */
     get panelEditors(): EditorModel[] {
         const editors = this.editors
             .filter((e) => e.contributesPanels())
-            .map((e) => e instanceof LegacyEditorAdapter ? e.legacy : (e as unknown as EditorModel))
-            .filter((e): e is EditorModel => e !== null);
+            .map((e) => e as unknown as EditorModel);
         // Explorer panel always renders first (original design). The Explorer
         // editor is lazily attached AFTER content editors when the user toggles
         // the navigator, so it would otherwise sort last. Stable-sort the

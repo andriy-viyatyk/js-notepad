@@ -1,10 +1,9 @@
-import { ReactNode, useEffect, useRef, useSyncExternalStore } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import type React from "react";
 import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
 import type { TextFileModel } from "../../text/TextEditorModel";
 import { PageToolbar } from "./PageToolbar";
-import { LegacyEditorAdapter } from "./LegacyEditorAdapter";
 import { EditorToolbar } from "../EditorToolbar";
 import { Panel } from "../../../uikit/Panel/Panel";
 import { Spacer } from "../../../uikit/Spacer/Spacer";
@@ -19,19 +18,15 @@ import { ScriptPanel } from "../../text/ScriptPanel";
 import color from "../../../theme/color";
 
 /**
- * Host-aware chrome wrapper for text-bearing editors (EPIC-028 / US-549 /
- * walkthrough 10).
+ * Host-aware chrome wrapper for text-bearing v4 editors (EPIC-028 / US-549,
+ * US-559 cleanup). Owns the page-toolbar row, script-panel mount, footer
+ * row, overlay, and focus subscription. Editor-specific contributions are
+ * composed inline by the editor's `Body` component.
  *
- * For US-549 only the `TextFileModel` branch is exercised — adapter-wrapped
- * text editors render the full chrome (top `<PageToolbar>` with Compare /
- * Run / Show-resources, body slot, ScriptPanel, footer row, overlay div).
- * The `NoteItemEditModel` branch activates during US-557 (Notebook
- * migration); per-note chrome stays in `NoteItemToolbar.tsx` until then.
- *
- * Owns focus subscription (200ms refocus on page activation) and
- * onKeyDown delegation to `host.handleKeyDown`. Replaces the
- * `TextEditorView` + `TextToolbar` + `TextFooter` triad — those files are
- * deleted by this task.
+ * Post-US-559: legacy portal-slot machinery (`ToolbarPortalSlots` /
+ * `FooterContributionSlot` portal branch) deleted — every text-bearing
+ * editor is a v4-native EditorModel composing its toolbar/footer
+ * contributions inline (no `editorToolbarRefFirst/Last` portals).
  */
 
 interface TextChromeProps {
@@ -130,7 +125,6 @@ export function TextChrome({
                 {textHost && <CompareButton model={model} />}
                 {textHost && <RunButtons model={model} host={textHost} />}
                 {toolbarContributions}
-                <ToolbarPortalSlots model={model} host={textHost} />
             </PageToolbar>
             {children}
             {textHost?.script && <ScriptPanel model={textHost} />}
@@ -138,11 +132,7 @@ export function TextChrome({
                 <EditorToolbar name="text-chrome-footer" borderTop>
                     <ScriptToggleButton host={textHost} />
                     <Spacer />
-                    <FooterContributionSlot
-                        host={textHost}
-                        model={model}
-                        contributions={footerContributions}
-                    />
+                    {footerContributions}
                     <Divider orientation="vertical" />
                     <EncodingLabel host={textHost} />
                 </EditorToolbar>
@@ -255,89 +245,6 @@ function EncodingLabel({ host }: { host: TextFileModel }) {
         </span>
     );
 }
-
-/**
- * Renders the two portal-target divs (`editorToolbarRefFirst` /
- * `editorToolbarRefLast`) only when an alternative (non-Monaco) editor is
- * active. Wires callback refs that forward the DOM node to the host's
- * `setEditorToolbarRefFirst` / `setEditorToolbarRefLast` setters so existing
- * `createPortal(...)` consumers in the 10 portaling editor views (Grid,
- * Markdown, Mermaid, SVG, Todo, Link, LogView, Draw, Graph, Notebook)
- * continue to work unchanged. Per-editor migrations US-551+ rewrite each
- * consumer to inline composition; US-559 deletes the refs entirely.
- */
-function ToolbarPortalSlots({ model, host }: { model: EditorModel; host: TextFileModel | null }) {
-    // US-552 / G8 — v4-native editors (MonacoEditor, GridEditor, …) compose
-    // their toolbar contributions inline; skip the portal slots so the DOM
-    // doesn't carry empty placeholder divs.
-    const isLegacy = model instanceof LegacyEditorAdapter;
-    // Subscribe so the slots mount when the user switches editor.
-    const editor = useSyncExternalStore<string | undefined>(
-        host ? (cb) => host.state.subscribe(cb) : () => () => undefined,
-        host ? () => host.state.get().editor : () => undefined,
-    );
-    if (!isLegacy) return null;
-    if (!host) return null;
-    if (!editor || editor === "monaco") return null;
-    return (
-        <>
-            <div
-                ref={(node) => host.setEditorToolbarRefFirst(node)}
-                style={portalSlotStyle}
-            />
-            <div
-                ref={(node) => host.setEditorToolbarRefLast(node)}
-                style={portalSlotStyle}
-            />
-        </>
-    );
-}
-
-function FooterContributionSlot({
-    host,
-    model,
-    contributions,
-}: {
-    host: TextFileModel;
-    model: EditorModel;
-    contributions: ReactNode;
-}) {
-    // Mirror today's TextFooter behavior: render the editor-portal slot only
-    // when an alternative (non-Monaco) editor is active. The leading Divider
-    // is hidden via the global CSS rule `[data-type="divider"]:has(+
-    // .footer-portal-target:empty)` when the portal target is empty, so the
-    // legacy "no visible double divider" behavior survives.
-    // US-552 / G8 — only legacy adapter pages still need the portal-target
-    // div; v4-native editors compose `footerContributions` inline.
-    const isLegacy = model instanceof LegacyEditorAdapter;
-    const editor = useSyncExternalStore<string | undefined>(
-        (cb) => host.state.subscribe(cb),
-        () => host.state.get().editor,
-    );
-    const alternative = isLegacy && editor && editor !== "monaco";
-    if (!alternative && !contributions) return null;
-    return (
-        <>
-            {contributions}
-            {alternative && (
-                <>
-                    <Divider orientation="vertical" />
-                    <div
-                        ref={(node) => host.setFooterRefLast(node)}
-                        className="footer-portal-target"
-                        style={portalSlotStyle}
-                    />
-                </>
-            )}
-        </>
-    );
-}
-
-const portalSlotStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-};
 
 // ── Helpers ────────────────────────────────────────────────────────────
 

@@ -128,16 +128,9 @@ export const notebookModule: EditorModule = {
     Component: NotebookEditorView,
 };
 
-// Legacy barrel re-exports preserved for backwards-compatibility with
-// consumers that import from "./notebook" (NotebookViewModel + types).
+// Barrel re-exports for consumers that import from "./notebook".
 export { NotebookEditor, defaultNotebookEditorState };
 export type { NotebookEditorState, NotebookQueueEvent } from "./NotebookEditor";
-export {
-    NotebookViewModel,
-    createNotebookViewModel,
-    defaultNotebookViewState,
-} from "./NotebookViewModel";
-export type { NotebookViewState } from "./NotebookViewModel";
 export type {
     NoteContent,
     NoteItem,

@@ -4,11 +4,10 @@ import { pagesModel } from "../../api/pages";
 import { app } from "../../api/app";
 import { EditorView } from "../../../shared/types";
 import type { EditorModel as V4EditorModel } from "../../editors/base/v4/EditorModel";
-import { deriveEditorId } from "../../editors/base/v4/LegacyEditorAdapter";
 import { editorRegistry as v4EditorRegistry } from "../../editors/base/v4/editorRegistry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
-import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel";
+import { NotebookEditor } from "../../editors/notebook";
 import { TodoEditor } from "../../editors/todo";
 import { LinkEditor } from "../../editors/link-editor";
 import { MarkdownEditor } from "../../editors/markdown";
@@ -77,7 +76,15 @@ export class PageWrapper {
     }
 
     private currentEditorId(): string {
-        return this.v4?.editorId ?? deriveEditorId(this.model.state.get());
+        // Post-US-559: legacy adapter gone; v4-aware path always populated when
+        // the page has a main editor. Fallback reads `state.editor` from the
+        // unwrapped host (TextFileModel) when present; otherwise defaults to
+        // "monaco" (detached-model edge case).
+        return (
+            this.v4?.editorId
+            ?? (this.model.state.get() as { editor?: string }).editor
+            ?? "monaco"
+        );
     }
 
     // ── IPageInfo readonly properties ─────────────────────────────────
@@ -198,13 +205,15 @@ export class PageWrapper {
 
     async asNotebook(force = false): Promise<NotebookEditorFacade> {
         await this.ensureEditor("notebook-view", "Notebook", "asNotebook", force);
-        const model = this.model;
-        if (!isTextFileModel(model)) {
-            throw new Error("asNotebook(): page lost its text host during switch");
+        // EPIC-028 / US-559 — Notebook is v4-native (US-557). After ensureEditor,
+        // the page's mainEditorV4 IS a NotebookEditor; the facade wraps it
+        // directly. No acquireViewModel round-trip (the last `acquireViewModel`
+        // consumer retired).
+        const v4 = this.v4;
+        if (!(v4 instanceof NotebookEditor)) {
+            throw new Error("asNotebook(): page is not a NotebookEditor after switch");
         }
-        const vm = await model.acquireViewModel("notebook-view") as NotebookViewModel;
-        this.releaseList.push(() => model.releaseViewModel("notebook-view"));
-        return new NotebookEditorFacade(vm);
+        return new NotebookEditorFacade(v4);
     }
 
     async asTodo(force = false): Promise<TodoEditorFacade> {

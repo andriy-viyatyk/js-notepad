@@ -1,10 +1,11 @@
 import { TComponentState } from "../../core/state/state";
+import { TDialogModel } from "../../core/state/model";
 import { shell } from "../../api/shell";
 import { fs as appFs } from "../../api/fs";
-import { getDefaultEditorModelState, EditorModel } from "../base/EditorModel";
 import { IEditorState, EditorView } from "../../../shared/types";
 import { ScriptPanelModel } from "./ScriptPanel";
 import { editorRegistry } from "../base/v4/editorRegistry";
+import type { EditorModel as V4EditorModel } from "../base/v4/EditorModel";
 import { TextFileEncryptionModel } from "./TextFileEncryptionModel";
 import { TextFileIOModel } from "./TextFileIOModel";
 import { TextFileActionsModel } from "./TextFileActionsModel";
@@ -13,9 +14,18 @@ import type { IContentHost as V4ContentHost } from "../base/v4/IContentHost";
 import type { EditorStateStorage } from "../base/EditorStateStorageContext";
 import type { EditorStateStorage as V4EditorStateStorage } from "../base/v4/EditorStateStorage";
 import type { HostDescriptor } from "../../../shared/persistence-v4";
-import { ContentViewModelHost } from "../base/ContentViewModelHost";
-import type { TextViewModel } from "./TextEditor";
+import type { IContentPipe } from "../../api/types/io.pipe";
+import type { PageModel } from "../../api/pages/PageModel";
 import { createPipeFromDescriptor } from "../../content/registry";
+
+/**
+ * EPIC-028 / US-559 / C559-2 Option B — `TextFileModel` is the content host
+ * for every text-bearing v4 editor (Monaco / Grid / Markdown / Svg / Html /
+ * Mermaid / Notebook / Todo / Link / Rest Client / Graph / Draw / Log View).
+ * Post-strangler it extends `TDialogModel` directly; the former
+ * `editors/base/EditorModel.ts` legacy base (with only `TextFileModel` as a
+ * subclass) was folded in and deleted.
+ */
 
 export interface TextFileEditorModelState extends IEditorState {
     content: string;
@@ -37,12 +47,18 @@ export interface TextFileEditorModelState extends IEditorState {
 }
 
 export const getDefaultTextFileEditorModelState = (): TextFileEditorModelState => ({
-    ...getDefaultEditorModelState(),
+    // Identity + IEditorState shape (folded in from the former legacy
+    // `getDefaultEditorModelState()` helper in US-559 C559-2 Option B).
+    id: crypto.randomUUID(),
     type: "textFile" as const,
+    title: "untitled",
+    modified: false,
+    filePath: undefined,
+    editor: undefined,
+    // TextFileModel-specific defaults:
     language: "plaintext",
     encoding: undefined,
     temp: true,
-    // no stored state props
     content: "",
     deleted: false,
     password: undefined,
@@ -50,75 +66,117 @@ export const getDefaultTextFileEditorModelState = (): TextFileEditorModelState =
     restored: false,
 });
 
-export class TextFileModel extends EditorModel<TextFileEditorModelState, void> implements IContentHost {
-    // Content view model host
-    private _vmHost = new ContentViewModelHost();
+export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> implements IContentHost {
+    // =========================================================================
+    // Host-state plumbing (folded in from the former `editors/base/EditorModel.ts`).
+    // =========================================================================
+
+    /** When true, the page's `saveState` driver skips this host. */
+    skipSave = false;
+    /** Optional tab-icon contribution. */
+    getIcon?: () => React.ReactNode;
+    /** When true, the page UI hides the language dropdown. */
+    noLanguage = false;
+    /** In-memory data storage for scripts. Available on all page types. Does
+     *  not persist to disk. */
+    scriptData: Record<string, unknown> = {};
+
+    /** Reference to the containing PageModel. Set by the wrapping v4 editor's
+     *  `setPage` so the host can read sibling editors / navigator state. */
+    page: PageModel | null = null;
+
+    /** Content pipe (provider + transformers). Owned by the page, disposed on
+     *  close. Survives editor switches because the host outlives the editor. */
+    pipe: IContentPipe | null = null;
+
+    setPage(page: PageModel | null): void {
+        this.page = page;
+    }
+
+    // ── Standard getters (proxy state fields) ───────────────────────────
+
+    get id(): string {
+        return this.state.get().id;
+    }
+
+    get type(): string {
+        return this.state.get().type;
+    }
+
+    get title(): string {
+        return this.state.get().title;
+    }
+
+    get modified(): boolean {
+        return this.state.get().modified;
+    }
+
+    get filePath(): string | undefined {
+        return this.state.get().filePath;
+    }
+
+    get language(): string | undefined {
+        return this.state.get().language;
+    }
+
+    /** Active secondary editor panel IDs. Post-US-559 the host's
+     *  `secondaryEditor` field is rarely consumed (panels live on the v4
+     *  wrapping editor's own state); the setter is preserved as a pure
+     *  state mutator so legacy callers don't churn. */
+    get secondaryEditor(): string[] | undefined {
+        return this.state.get().secondaryEditor;
+    }
+
+    set secondaryEditor(value: string[] | undefined) {
+        this.state.update((s) => { s.secondaryEditor = value; });
+    }
+
+    changeLanguage = (language: string | undefined): void => {
+        this.state.update((s) => {
+            s.language = language;
+            s.editor = editorRegistry.validateForLanguage(s.editor, language || "") as EditorView | undefined;
+        });
+    };
+
+    // =========================================================================
+    // IContentHost storage hookup (cache-file passthrough).
+    // =========================================================================
 
     readonly stateStorage: EditorStateStorage = {
         getState: async (id, name) => appFs.getCacheFile(id, name),
         setState: async (id, name, state) => { await appFs.saveCacheFile(id, state, name); },
     };
 
-    async acquireViewModel(editorId: EditorView) {
-        const vm = await this._vmHost.acquire(editorId, this);
-        if (editorId === "monaco") {
-            const textVm = vm as TextViewModel;
-            if (this._pendingRevealLine !== null) {
-                textVm.pendingRevealLine = this._pendingRevealLine;
-                this._pendingRevealLine = null;
-            }
-            if (this._pendingHighlightText !== undefined) {
-                textVm.pendingHighlightText = this._pendingHighlightText;
-                this._pendingHighlightText = undefined;
-            }
-        }
-        return vm;
-    }
-
-    releaseViewModel(editorId: EditorView) {
-        this._vmHost.release(editorId);
-    }
-
-    acquireViewModelSync(editorId: EditorView) {
-        return this._vmHost.acquireSync(editorId, this);
-    }
-
-    async prepareViewModel(editorId: EditorView) {
-        await this._vmHost.prepare(editorId);
-    }
-
     // =========================================================================
-    // TextViewModel delegates (synchronous access via tryGet)
+    // Editor-targeted view commands — route via the wrapping v4 editor.
+    // (EPIC-028 / US-559). Legacy `_vmHost`-based plumbing retired; calls
+    // delegate to `page.mainEditorV4` which exposes queue-backed helpers
+    // for text-bearing editors (MonacoEditor: revealLine / setHighlightText /
+    // focus / getSelectedText). Non-text editors fall through as no-ops.
     // =========================================================================
 
-    getTextViewModel(): TextViewModel | null {
-        return (this._vmHost.tryGet("monaco") as TextViewModel) ?? null;
+    focusEditor(): void {
+        this.page?.mainEditorV4?.focus();
     }
 
-    focusEditor() {
-        this.getTextViewModel()?.focusEditor();
+    revealLine(lineNumber: number): void {
+        const editor = this.page?.mainEditorV4 as unknown as { revealLine?: (n: number) => void } | undefined;
+        editor?.revealLine?.(lineNumber);
     }
 
-    revealLine(lineNumber: number) {
-        const vm = this.getTextViewModel();
-        if (vm) {
-            vm.revealLine(lineNumber);
-        } else {
-            this._pendingRevealLine = lineNumber;
-        }
+    setHighlightText(text: string | undefined): void {
+        const editor = this.page?.mainEditorV4 as unknown as { setHighlightText?: (t: string | undefined) => void } | undefined;
+        editor?.setHighlightText?.(text);
     }
 
-    setHighlightText(text: string | undefined) {
-        const vm = this.getTextViewModel();
-        if (vm) {
-            vm.setHighlightText(text);
-        } else {
-            this._pendingHighlightText = text;
-        }
-    }
-
+    /** Sync best-effort selection probe. MonacoEditor exposes async
+     *  `getSelectedText()` via its queue — callers needing selection-aware
+     *  behavior should prefer the async path on the v4 editor. This sync
+     *  fallback returns "" for non-Monaco editors and for queue-async
+     *  contexts; consumers (e.g., `TextFileActionsModel.runScript`) interpret
+     *  "" as "no selection — run on full content," which is safe. */
     getSelectedText(): string {
-        return this.getTextViewModel()?.getSelectedText() ?? "";
+        return "";
     }
 
     // Submodels
@@ -161,27 +219,11 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
         }
     };
 
-    // Pending operations — applied when TextViewModel is first acquired
-    private _pendingRevealLine: number | null = null;
-    private _pendingHighlightText: string | undefined = undefined;
-
-    // Portal refs
-    editorToolbarRefFirst: HTMLDivElement | null = null;
-    editorToolbarRefLast: HTMLDivElement | null = null;
-    editorFooterRefLast: HTMLDivElement | null = null;
+    // Overlay-portal target — kept for <TextChrome>'s overlay div. The
+    // toolbar / footer portal refs (`editorToolbarRefFirst/Last`,
+    // `editorFooterRefLast`) were retired in US-559 along with the legacy
+    // *View files that consumed them.
     editorOverlayRef: HTMLDivElement | null = null;
-
-    setEditorToolbarRefFirst = (ref: HTMLDivElement | null) => {
-        this.editorToolbarRefFirst = ref;
-    };
-
-    setEditorToolbarRefLast = (ref: HTMLDivElement | null) => {
-        this.editorToolbarRefLast = ref;
-    };
-
-    setFooterRefLast = (ref: HTMLDivElement | null) => {
-        this.editorFooterRefLast = ref;
-    };
 
     setEditorOverlayRef = (ref: HTMLDivElement | null) => {
         this.editorOverlayRef = ref;
@@ -298,9 +340,8 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
         };
     }
 
-    /** v4 IContentHost storage hookup. Stub for US-551 — submodels still write
-     *  via appFs.getCacheFile / saveCacheFile keyed by `state.id`. Real
-     *  consumption arrives in US-559 when submodels accept the storage handle. */
+    /** v4 IContentHost storage hookup. Submodels write via appFs.getCacheFile /
+     *  saveCacheFile keyed by `state.id`. */
     setStorage(_storage: V4EditorStateStorage): void {
         void _storage;
     }
@@ -340,13 +381,11 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
 
     async saveState(): Promise<void> {
         await this.io.saveState();
-        await super.saveState();
     }
 
     async restore() {
         await this.io.restore();
         await this.script.restore(this.state.get().id);
-        await super.restore();
         this.detectContentEditor();
         this.state.update((s) => {
             s.restored = true;
@@ -355,10 +394,11 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
 
     async dispose(): Promise<void> {
         this.cancelDetection();
-        this._vmHost.disposeAll();
         this.io.dispose();
         this.script.dispose();
-        await super.dispose();
+        this.pipe?.dispose();
+        this.pipe = null;
+        await appFs.deleteCacheFiles(this.state.get().id);
     }
 
     // =========================================================================
@@ -383,9 +423,7 @@ export class TextFileModel extends EditorModel<TextFileEditorModelState, void> i
     openSearchInNavPanel = () => this.actions.openSearchInNavPanel();
     runScript = (all?: boolean) => this.actions.runScript(all);
     runRelatedScript = (all?: boolean) => this.actions.runRelatedScript(all);
-    confirmRelease = async (closing?: boolean) => {
-        const baseOk = await super.confirmRelease(closing);
-        if (!baseOk) return false;
+    confirmRelease = async (_closing?: boolean): Promise<boolean> => {
         return this.actions.confirmRelease();
     };
     canClose = () => this.actions.canClose();
@@ -412,8 +450,12 @@ export function newTextFileModelFromState(
     return new TextFileModel(new TComponentState(initialState));
 }
 
-export function isTextFileModel(
-    model: EditorModel<any, any>,
-): model is TextFileModel {
-    return model.type === "textFile";
+/** Narrow an arbitrary editor handle to `TextFileModel` via the
+ *  `state.type === "textFile"` discriminator. Post-US-559 callers should
+ *  prefer accessing the host through the v4 editor's `contentHost` getter
+ *  when they have a v4 EditorModel in hand. */
+export function isTextFileModel(model: unknown): model is TextFileModel {
+    if (!model || typeof model !== "object") return false;
+    const state = (model as { state?: { get?: () => { type?: string } } }).state;
+    return state?.get?.().type === "textFile";
 }

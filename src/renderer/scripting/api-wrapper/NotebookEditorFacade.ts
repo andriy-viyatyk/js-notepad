@@ -1,16 +1,20 @@
-import type { NotebookViewModel } from "../../editors/notebook/NotebookViewModel";
+import type { NotebookEditor } from "../../editors/notebook";
 import type { NoteItem } from "../../editors/notebook/notebookTypes";
 
 /**
- * Safe facade around NotebookViewModel for script access.
+ * Safe facade around the v4 NotebookEditor for script access.
  * Implements the INotebookEditor interface from api/types/notebook-editor.d.ts.
  *
  * - Notes are read-only snapshots (INote projection of NoteItem)
  * - Mutations go through explicit methods
  * - Delete operations skip confirmation dialogs
+ *
+ * EPIC-028 / US-559 — flipped from the legacy `NotebookViewModel` to the v4
+ * `NotebookEditor` as part of strangler retirement; method surface is identical
+ * (the v4 editor relocated each mutator body byte-for-byte during US-557).
  */
 export class NotebookEditorFacade {
-    constructor(private readonly vm: NotebookViewModel) {}
+    constructor(private readonly vm: NotebookEditor) {}
 
     get notes(): Array<{ readonly id: string; readonly title: string; readonly content: string; readonly category: string; readonly tags: readonly string[] }> {
         return this.vm.state.get().data.notes.map(mapNote);

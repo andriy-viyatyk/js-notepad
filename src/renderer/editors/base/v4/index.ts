@@ -7,7 +7,5 @@ export { CONTENT_HOST_TRAIT } from "./editor-traits";
 export type { IContentHostTrait } from "./editor-traits";
 export { editorRegistry } from "./editorRegistry";
 export type { EditorDefinition, EditorModule, AcceptanceInput } from "./editorRegistry";
-export { LegacyEditorAdapter, deriveEditorId } from "./LegacyEditorAdapter";
-export type { LegacyEditorState } from "./LegacyEditorAdapter";
 export { PageToolbar } from "./PageToolbar";
 export { TextChrome } from "./TextChrome";

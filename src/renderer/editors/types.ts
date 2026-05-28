@@ -1,7 +1,6 @@
 import { IEditorState, EditorView, EditorType } from "../../shared/types";
 import { EditorModel } from "./base";
 import type { IContentHost } from "./base/IContentHost";
-import type { ContentViewModel } from "./base/ContentViewModel";
 
 export type FileEditorComponent<T extends EditorModel | IContentHost = EditorModel | IContentHost> = React.ComponentType<{
     model: T;
@@ -17,23 +16,12 @@ export interface EditorViewModule {
     Editor: FileEditorComponent;
 }
 
-/** Factory function that creates a ContentViewModel for a given host. */
-export type ViewModelFactory = (host: IContentHost) => ContentViewModel<any>;
-
-export type EditorModule = EditorViewModule & EditorModelCreations & {
-    /** Optional factory for creating a content view model. Content-view editors provide this. */
-    createViewModel?: ViewModelFactory;
-};
+export type EditorModule = EditorViewModule & EditorModelCreations;
 
 /**
- * Editor category distinguishes between two types of editors:
- *
- * - "standalone": Standalone editors with their own EditorModel (e.g., PDF viewer, Image viewer).
- *   These render instead of TextEditorView and handle their own UI entirely.
- *
- * - "content-view": Views of text-based content that share TextFileModel (e.g., Monaco, Grid, Markdown).
- *   These render inside TextEditorView via ActiveEditor and share toolbar, script panel, footer.
- *   Content views can switch between each other (e.g., JSON text → Grid view).
+ * Editor category — preserved on legacy `EditorDefinition` for the strangler
+ * period. Post-US-559 the v4 registry's `hasContentHost` flag replaces this.
+ * Phase 5 deletes the legacy `EditorDefinition` along with this type.
  */
 export type EditorCategory = "standalone" | "content-view";
 
@@ -41,7 +29,7 @@ export interface EditorDefinition {
     id: EditorView;
     name: string;
     editorType: EditorType;
-    /** Distinguishes standalone page editors from content views */
+    /** Distinguishes standalone page editors from content views (legacy). */
     category: EditorCategory;
 
     /**
@@ -54,29 +42,17 @@ export interface EditorDefinition {
 
     /**
      * Checks if this editor is valid for a given language.
-     * Used when language changes to validate current editor selection.
-     * @param languageId - The Monaco language ID
-     * @returns true if editor supports this language, false otherwise
      */
     validForLanguage?(languageId: string): boolean;
 
     /**
      * Determines if this editor should appear in the view switch dropdown.
-     * @param languageId - Current language ID
-     * @param fileName - Optional file path for context
-     * @returns Priority (>= 0) to include in switch options, -1 to exclude.
-     *          Lower priority appears first in the list (monaco should be 0).
      */
     switchOption?(languageId: string, fileName?: string): number;
 
     /**
      * Detects if file content belongs to this editor based on a `type` property
-     * embedded in the content. Used for structured JSON editors (notebook, todo, link)
-     * to show the correct switch button even when the file name doesn't match.
-     * Checked via fast regex — no JSON parsing.
-     * @param languageId - Current language ID (must be "json" for structured editors)
-     * @param content - The raw text content of the file
-     * @returns true if the content matches this editor's expected structure
+     * embedded in the content.
      */
     isEditorContent?(languageId: string, content: string): boolean;
 

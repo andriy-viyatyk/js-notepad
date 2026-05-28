@@ -1,5 +1,5 @@
 import type { PagesModel } from "./PagesModel";
-import { IEditorState, LegacyPageDescriptor, LegacyWindowState } from "../../../shared/types";
+import { IEditorState } from "../../../shared/types";
 import type {
     EditorDescriptor,
     PageDescriptor,
@@ -8,9 +8,6 @@ import type {
 import { openFilesNameTemplate } from "../../../shared/constants";
 import { parseObject } from "../../core/utils/parse-utils";
 import { debounce } from "../../../shared/utils";
-import { LegacyEditorAdapter, deriveEditorId } from "../../editors/base/v4";
-import type { EditorModel as LegacyEditorModel } from "../../editors/base/EditorModel";
-import { wrapLegacyForPage } from "./PagesLifecycleModel";
 import {
     ExplorerEditor,
     getDefaultExplorerEditorState,
@@ -23,47 +20,38 @@ import { app } from "../app";
 import { createLinkData } from "../../../shared/link-data";
 import { PageModel } from "./PageModel";
 
-/** Per-page sidebar cache file shape (pre-EPIC-028, v3.x). */
-interface PageSidebarSavedState {
-    open: boolean;
-    width: number;
-    activePanel?: string;
-    secondaryModelDescriptors?: { pageState: Partial<IEditorState> }[];
-}
+/**
+ * EPIC-028 / US-559 — v4-only persistence. The legacy `restoreV3` +
+ * `restoreSidebarLegacy` + LegacyEditorAdapter fallback paths were deleted
+ * with the strangler retirement. Pre-v4 session data is silently discarded
+ * on first launch (C2 / C559-6).
+ */
 
 /**
- * EPIC-028 / US-568 / PD-IMPL11 — editorIds of v4-native NO-HOST editors
- * that restore via the canonical `editorRegistry.createEditor` path
- * (rather than the legacy fallback that wraps in `LegacyEditorAdapter`).
- *
- * v4-with-host editors take the `if (d.host)` branch in `restorePage` and
- * don't need to be listed here. Explorer has its own explicit branch
- * (not in `editorRegistry`).
- *
- * US-576 (Category) was the last no-host editor — the set is now complete.
- *
- * US-559 deletes the legacy fallback entirely and folds this set into
- * the generic restore path.
+ * EditorIds of v4-native NO-HOST editors that restore via
+ * `editorRegistry.createEditor` + `Object.assign(state, d.state)` (no host
+ * descriptor). v4-with-host editors take the `if (d.host)` branch; Explorer
+ * is constructed directly (not in `editorRegistry`).
  */
 const V4_NO_HOST_EDITOR_IDS = new Set([
-    "browser-view", // US-558 (retroactive — see US-568 PD-IMPL11)
-    "pdf-view",     // US-568
-    "image-view",   // US-569
-    "archive-view", // US-570 (first no-host sidebar-owning editor)
-    "video-view",   // US-571
-    "settings-view", // US-572
-    "about-view",    // US-573
-    "mcp-view",      // US-574
+    "browser-view",   // US-558
+    "pdf-view",       // US-568
+    "image-view",     // US-569
+    "archive-view",   // US-570
+    "video-view",     // US-571
+    "settings-view",  // US-572
+    "about-view",     // US-573
+    "mcp-view",       // US-574
     "storybook-view", // US-575
-    "category-view",  // US-576 (this PR — last no-host editor; closes walkthrough 30)
+    "category-view",  // US-576
 ]);
 
 /**
  * PagesPersistenceModel — Load/save window state to storage.
  *
- * EPIC-028 / US-548: writes v4 (`schemaVersion: 4` + unified `editors[]` +
- * folded sidebar metadata). Reads v4 directly OR falls back to the v3 dual-read
- * path for one-shot upgrade of existing user data. US-559 deletes the v3 path.
+ * Writes v4 only (`schemaVersion: 4` + unified `editors[]` + folded sidebar
+ * metadata). Reads v4 only — non-v4 data silently skipped at startup per
+ * EPIC-028 C2 / US-559 C559-6.
  */
 export class PagesPersistenceModel {
     constructor(private model: PagesModel) {}
@@ -91,29 +79,29 @@ export class PagesPersistenceModel {
             await appFs.getDataFile(openFilesNameTemplate),
         );
         if (!data || !Array.isArray(data.pages)) return;
-
-        if (data.schemaVersion === 4) {
-            await this.restoreV4(data as WindowState);
-        } else {
-            await this.restoreV3(data);
-        }
+        // EPIC-028 / US-559 / C2 / C559-6 — silent detect-and-skip of
+        // pre-v4 session data. Users with a v3 session see a fresh empty
+        // window on first launch; orphan per-page cache files
+        // (`<pageId>-nav-panel.txt`) are harmless leftovers.
+        if (data.schemaVersion !== 4) return;
+        await this.restoreV4(data as WindowState);
     };
 
     /**
      * Restore a single page from a v4 PageDescriptor. Shared between bootstrap
-     * restore (`restoreV4`), IPC `movePageIn`, and `duplicatePage` (walkthrough
-     * 05 / M2 + walkthrough 04 / C5 / P5).
+     * restore (`restoreV4`), IPC `movePageIn`, and `duplicatePage`.
      *
-     * EPIC-028: descriptors with a `host` field restore through the native v4
-     * path (`editorRegistry.createEditor` → `applyRestoreData` → `restore`).
-     * `host` is the reliable discriminator — every v4-native editor writes
-     * `host: this._host?.getDescriptor()`, while `LegacyEditorAdapter`
-     * explicitly writes `host: undefined`. Falling through on this means every
-     * future per-editor migration is auto-included without touching this file.
+     * Three dispatch branches, in order:
+     *   1. `d.host` present  → v4 host-bearing editor (`createEditor` +
+     *      `applyRestoreData` + `restore`); host descriptor reconstitutes
+     *      the `TextFileModel` content host.
+     *   2. Explorer special-case (Explorer is v4-native but NOT in
+     *      `editorRegistry`).
+     *   3. No-host v4 editor (in `V4_NO_HOST_EDITOR_IDS`) — construct via
+     *      v4 registry + seed state from descriptor.
      *
-     * Legacy-shaped descriptors (no host field) take the LegacyEditorAdapter
-     * path. Pre-migration sessions with an unsupported shape restore as legacy
-     * adapter and rewrite as v4-native on the next save.
+     * Anything else skipped with a warning — descriptors not matching any
+     * branch are unrecognized post-strangler data.
      */
     restorePage = async (desc: PageDescriptor): Promise<PageModel | null> => {
         const page = new PageModel(desc.id);
@@ -131,12 +119,6 @@ export class PagesPersistenceModel {
                         await editor.restore();
                         return editor;
                     }
-                    // EPIC-028 / US-567 — Explorer is v4-native but NOT in
-                    // `editorRegistry`; construct directly. Match on both the
-                    // new editorId discriminator ("explorer", post-US-567 saves)
-                    // and the legacy state.type ("fileExplorer", pre-US-567
-                    // saves where deriveEditorId fell back to "monaco" because
-                    // Explorer had no legacy registry entry).
                     if (
                         d.editorId === "explorer"
                         || (d.state as { type?: string }).type === "fileExplorer"
@@ -151,25 +133,11 @@ export class PagesPersistenceModel {
                         await explorer.restore();
                         return explorer;
                     }
-                    // EPIC-028 / US-568 / PD-IMPL11 — generic v4-native
-                    // no-host restore branch. Closes US-558's
-                    // adapter-wrap-on-restore blocker for Browser AND
-                    // establishes the path every subsequent no-host
-                    // migration (US-569+) uses by registering in
-                    // V4_NO_HOST_EDITOR_IDS. Editors not in the set fall
-                    // through to the legacy fallback (truly-legacy editors
-                    // like Archive, Image pre-US-569, Video pre-US-571,
-                    // etc.).
                     if (V4_NO_HOST_EDITOR_IDS.has(d.editorId)) {
                         const { editorRegistry: v4Registry } = await import(
                             "../../editors/base/v4"
                         );
                         const editor = await v4Registry.createEditor(d.editorId, d.id);
-                        // Seed editor state from the descriptor before
-                        // applyRestoreData (mirrors Explorer pattern above).
-                        // For no-host editors, the persisted state lives
-                        // entirely in `d.state` (no host descriptor to
-                        // absorb fields).
                         editor.state.update((s) => {
                             Object.assign(s as object, d.state);
                             (s as { id: string }).id = d.id;
@@ -180,14 +148,11 @@ export class PagesPersistenceModel {
                         await editor.restore();
                         return editor;
                     }
-                    const legacyState = {
-                        ...(d.state as Partial<IEditorState>),
-                        id: d.id,
-                    };
-                    const legacy = await this.model.lifecycle.newEditorModelFromState(legacyState);
-                    legacy.applyRestoreData(legacyState);
-                    await legacy.restore();
-                    return new LegacyEditorAdapter(legacy, d.editorId);
+                    console.warn(
+                        `[restore] unrecognized editor descriptor for "${d.editorId}" in page ${desc.id}: ` +
+                        `no host field, not in V4_NO_HOST_EDITOR_IDS, not Explorer.`,
+                    );
+                    return null;
                 } catch (err) {
                     console.warn(
                         `[restore] editor ${d.editorId} in page ${desc.id}:`,
@@ -264,189 +229,6 @@ export class PagesPersistenceModel {
     };
 
     /**
-     * Pre-EPIC-028 (v3.x) restore path. Reads the flat `PageDescriptor.editor:
-     * Partial<IEditorState>` shape AND the per-page sidebar cache files
-     * (`<pageId>-nav-panel.txt`). Wraps every legacy editor in
-     * `LegacyEditorAdapter` before attaching to the v4 PageModel.
-     *
-     * On first save after upgrade, persistence writes v4; existing sidebar
-     * cache files orphan harmlessly (walkthrough 04 / P9 — accepted).
-     * Retired in US-559.
-     */
-    private restoreV3 = async (
-        data: { pages: LegacyPageDescriptor[]; groupings?: [string, string][]; activePageId?: string },
-    ): Promise<void> => {
-        // Detect pre-v3.0.1 flat format and skip.
-        const isPreV3 =
-            data.pages.length > 0 &&
-            (data.pages[0] as unknown as { type?: string })?.type !== undefined &&
-            !data.pages[0]?.editor?.type;
-
-        if (isPreV3) return;
-
-        const models: PageModel[] = [];
-
-        for (const desc of data.pages) {
-            const editorData = desc.editor;
-
-            const page = new PageModel(desc.id);
-            page.pinned = desc.pinned ?? false;
-
-            try {
-                if (editorData && Object.keys(editorData).length > 0) {
-                    const legacy = await this.restoreLegacyEditor(editorData);
-                    if (!legacy) continue;
-                    // US-551 — auto-promote Monaco-targeted entries to native
-                    // MonacoEditor so the next save writes the v4-native shape.
-                    const editor = wrapLegacyForPage(legacy);
-                    page.attach(editor);
-                    page.setMainEditorId(editor.id);
-
-                    if (desc.hasSidebar) {
-                        await this.restoreSidebarLegacy(page, legacy);
-                    }
-                } else if (desc.hasSidebar) {
-                    await this.restoreSidebarLegacy(page, null);
-                } else {
-                    continue;
-                }
-            } catch (err) {
-                console.warn(`[restore-v3] page ${desc.id}:`, err);
-                continue;
-            }
-
-            this.model.attachPage(page);
-            models.push(page);
-        }
-
-        const activeModel = models.find((m) => m.id === data.activePageId);
-        const orderedModels = activeModel
-            ? [...models.filter((m) => m !== activeModel), activeModel]
-            : models;
-        this.model.state.update((s) => {
-            s.pages = models;
-            s.ordered = orderedModels;
-        });
-
-        if (data.groupings && Array.isArray(data.groupings)) {
-            data.groupings.forEach((el) => {
-                if (Array.isArray(el) && el.length === 2) {
-                    this.model.layout.group(el[0], el[1]);
-                }
-            });
-            this.model.layout.fixGrouping();
-        }
-    };
-
-    /** Build a single legacy editor from a v3 partial-IEditorState blob. */
-    private restoreLegacyEditor = async (
-        data: Partial<IEditorState>,
-    ): Promise<LegacyEditorModel | null> => {
-        try {
-            const legacy = await this.model.lifecycle.newEditorModelFromState(data);
-            legacy.applyRestoreData(data);
-            await legacy.restore();
-            return legacy;
-        } catch (err) {
-            console.warn(`[restore-v3] editor ${data.type ?? "?"}:`, err);
-            return null;
-        }
-    };
-
-    /** Restore sidebar state from `<pageId>-nav-panel.txt` cache file. */
-    private restoreSidebarLegacy = async (
-        page: PageModel,
-        ownerLegacy: LegacyEditorModel | null,
-    ): Promise<void> => {
-        const data = await appFs.getCacheFile(page.id, "nav-panel");
-        const saved = parseObject(data) as PageSidebarSavedState | undefined;
-        if (!saved) return;
-
-        const navModel = page.ensurePageNavigatorModel();
-        navModel.setStateQuiet({
-            open: saved.open ?? true,
-            width: saved.width ?? 240,
-        });
-
-        // Migrate pre-v3 rootPath shape into an ExplorerEditorModel descriptor.
-        const rawSaved = saved as PageSidebarSavedState & { rootPath?: string };
-        const oldRootPath = rawSaved.rootPath;
-        const descriptors: { pageState: Partial<IEditorState> }[] = [];
-        if (
-            oldRootPath &&
-            !saved.secondaryModelDescriptors?.some(
-                (d) => d.pageState.type === "fileExplorer",
-            )
-        ) {
-            descriptors.push({
-                pageState: {
-                    id: crypto.randomUUID(),
-                    type: "fileExplorer",
-                    title: "Explorer",
-                    modified: false,
-                    rootPath: oldRootPath,
-                } as Partial<IEditorState> & { rootPath?: string },
-            });
-        }
-        if (saved.secondaryModelDescriptors?.length) {
-            descriptors.push(...saved.secondaryModelDescriptors);
-        }
-
-        // Restore each secondary editor, wrapping in adapter.
-        const restored: LegacyEditorAdapter[] = [];
-        for (const desc of descriptors) {
-            // Dedupe against the owner editor (Pattern B in v3 — same model
-            // in both main and secondary).
-            if (ownerLegacy && desc.pageState.id === ownerLegacy.state.get().id) {
-                // Already attached as main; skip.
-                continue;
-            }
-            try {
-                // EPIC-028 / US-567 — Explorer is v4-native but NOT in
-                // `editorRegistry`; construct directly without a
-                // LegacyEditorAdapter wrap. Covers the pre-v3 rootPath
-                // migration path (which synthesizes a `fileExplorer` descriptor
-                // at line ~299) AND any v3 session that persisted Explorer in
-                // the sidebar cache file.
-                if (desc.pageState.type === "fileExplorer") {
-                    const explorerState = new TComponentState({
-                        ...getDefaultExplorerEditorState(),
-                        ...(desc.pageState as Partial<ExplorerEditorState>),
-                        id: desc.pageState.id ?? crypto.randomUUID(),
-                    });
-                    const explorer = new ExplorerEditor(explorerState);
-                    explorer.applyRestoreData(desc.pageState as unknown as Parameters<typeof explorer.applyRestoreData>[0]);
-                    await explorer.restore();
-                    page.attach(explorer);
-                    continue;
-                }
-                const legacy = await this.restoreLegacyEditor(desc.pageState);
-                if (!legacy) continue;
-                const adapter = new LegacyEditorAdapter(
-                    legacy,
-                    deriveEditorId(legacy.state.get()),
-                );
-                page.attach(adapter);
-                restored.push(adapter);
-            } catch (err) {
-                console.warn(`[restore-v3] secondary editor:`, err);
-            }
-        }
-
-        // Resolve activePanel. Built-ins apply immediately; non-builtin panels
-        // are valid only if some adapter contributes them.
-        const restoredPanel = saved.activePanel ?? "explorer";
-        if (restoredPanel === "explorer" || restoredPanel === "search") {
-            page.activePanel = restoredPanel;
-        } else {
-            const valid = restored.some((a) =>
-                a.secondaryEditor?.includes(restoredPanel),
-            );
-            page.activePanel = valid ? restoredPanel : "explorer";
-        }
-    };
-
-    /**
      * Initialize pages: restore from storage + handle CLI arguments.
      * Called from app.initPages() during bootstrap.
      */
@@ -483,3 +265,6 @@ export class PagesPersistenceModel {
 export function withFreshEditorId(desc: EditorDescriptor): EditorDescriptor {
     return { ...desc, id: crypto.randomUUID() };
 }
+
+// Re-export IEditorState so existing barrel-importers stay green.
+export type { IEditorState };

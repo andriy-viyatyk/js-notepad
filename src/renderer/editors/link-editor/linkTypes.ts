@@ -91,14 +91,11 @@ export interface ILinkSource {
 }
 
 /**
- * Union type covering both link sources. Used by panel components (which
- * accept either legacy LinkViewModel or v4 LinkEditor — LK13). Method
- * signatures are identical on both classes; TS structural typing keeps
- * panel call sites unchanged.
+ * Source type for panel components. Post-US-559 the legacy `LinkViewModel`
+ * is retired; this alias resolves to the v4 `LinkEditor` only, but is
+ * preserved so panel call sites don't churn.
  */
-export type LinkSource =
-    | import("./LinkViewModel").LinkViewModel
-    | import("./LinkEditor").LinkEditor;
+export type LinkSource = import("./LinkEditor").LinkEditor;
 
 // =============================================================================
 // Component Props

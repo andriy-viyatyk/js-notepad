@@ -1,7 +1,6 @@
 import type { PagesModel } from "./PagesModel";
 import type { PageModel } from "./PageModel";
 import type { TextFileModel } from "../../editors/text";
-import { LegacyEditorAdapter } from "../../editors/base/v4";
 
 /**
  * PagesQueryModel — Read-only queries on the page collection.
@@ -73,25 +72,13 @@ export class PagesQueryModel {
 
     /**
      * Returns the page's TextFileModel host (the actual content-bearing model
-     * for text editors), or null. For adapter-wrapped editors, unwraps to the
-     * legacy TextFileModel instance. For v4-native editors (US-551+ MonacoEditor),
-     * reads `contentHost` and returns it when the host is structurally a
-     * TextFileModel.
+     * for text editors), or null. Reads the v4 editor's `contentHost` and
+     * returns it when structurally a TextFileModel.
      */
     getTextFileHost = (pageId: string): TextFileModel | null => {
         const page = this.findPage(pageId);
-        // Use the v4 surface so we can recognize adapters; `mainEditor` auto-
-        // unwraps and would lose the adapter signal.
         const main = page?.mainEditorV4;
         if (!main) return null;
-        if (main instanceof LegacyEditorAdapter) {
-            const legacy = main.legacy as unknown as { type?: string };
-            if (legacy.type === "textFile") {
-                return main.legacy as unknown as TextFileModel;
-            }
-            return null;
-        }
-        // US-551 — v4-native editor (e.g., MonacoEditor). Read contentHost.
         const host = main.contentHost as unknown as { type?: string } | null;
         if (host && host.type === "textFile") {
             return host as unknown as TextFileModel;
