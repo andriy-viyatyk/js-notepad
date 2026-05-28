@@ -190,7 +190,6 @@ export function TagsListView(props: TagsListViewProps) {
                     boxSizing: "border-box",
                     paddingLeft: 8,
                     paddingRight: 8,
-                    // Mirror UIKit ListBox `selectionStyle="accent"` visuals — see US-518.
                     backgroundColor: ctx.selected ? color.background.selection : undefined,
                     color: ctx.selected ? color.text.selection : color.text.light,
                 }}

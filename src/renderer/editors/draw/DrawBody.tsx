@@ -19,14 +19,6 @@ if (!(window as any).__EXCALIDRAW_ASSET_PATH_SET) {
     (window as any).__EXCALIDRAW_ASSET_PATH_SET = true;
 }
 
-/**
- * EPIC-028 / US-565 — Draw editor body. Reads `editor.state.use(...)`
- * reactively. Renders the `<Excalidraw>` component + library hook +
- * library-URL listener. The Excalidraw `excalidrawAPI` callback writes the
- * imperative handle directly to `editor.setExcalidrawApi(api)`; toolbar bits
- * in `index.tsx` read it via `editor.excalidrawApi` for export operations.
- */
-
 interface DrawBodyProps {
     model: DrawEditor;
 }

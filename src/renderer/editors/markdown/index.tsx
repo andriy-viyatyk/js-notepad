@@ -7,12 +7,6 @@ import { CompactViewIcon, NormalViewIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-554 — native Markdown preview editor module. Registered with
- * the v4 `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorInstance` is a v4-native MarkdownEditor instance.
- */
-
 function MarkdownToolbarBits({ model }: { model: MarkdownEditor }) {
     const compactMode = model.state.use((s) => s.compactMode);
     return (
@@ -39,7 +33,6 @@ function MarkdownEditorView({ model }: { model: EditorModel }) {
     );
 }
 
-// US-579 — chrome-free Body for notebook per-note embedding.
 function MarkdownEmbeddedBody({ model }: { model: EditorModel }) {
     return <MarkdownBody model={model as MarkdownEditor} />;
 }

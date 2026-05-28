@@ -8,20 +8,6 @@ import { CloseIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-556 — native Todo editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorInstance` is a v4-native TodoEditor instance.
- *
- * Right-toolbar bits (TD17 — relocates legacy TodoView's portal search input):
- *   - search Input (with clear button when text is present)
- *
- * Footer bits:
- *   - item count: "<filtered> of <total> items" / "<total> items"
- *
- * No left-toolbar contributions (no breadcrumb).
- */
-
 interface TodoToolbarBitsProps {
     model: TodoEditor;
 }

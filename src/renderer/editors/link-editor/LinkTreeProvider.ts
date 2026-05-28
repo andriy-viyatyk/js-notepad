@@ -10,16 +10,6 @@ import { getHostname } from "../../components/tree-provider/favicon-cache";
 import { fpBasename } from "../../core/utils/file-path";
 import type { ILinkSource, LinkItem } from "./linkTypes";
 
-/**
- * ITreeProvider implementation that wraps a `LinkSource` (legacy
- * `LinkViewModel` for embed paths, or v4 `LinkEditor` for page-level Link
- * pages — US-555 / LK12).
- *
- * Exposes link collection data (categories, tags, hostnames, pinning)
- * through the standard tree provider interface so that CategoryView
- * can render link collections the same way it renders filesystem
- * folders and archive entries.
- */
 export class LinkTreeProvider implements ITreeProvider {
     readonly type = "link";
     readonly displayName: string;

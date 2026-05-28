@@ -159,11 +159,6 @@ export interface NoteItemEditState {
     content: string;
     language: string;
     editor: EditorView;
-    // EPIC-028 / US-579 — fields read by embedded v4 editors during
-    // adoptHost / restore. The v4 editors (Grid / Markdown / Svg / Html /
-    // Mermaid) program against the concrete TextFileModel state shape, so
-    // NoteItemEditModel duck-types that surface (and keeps `type="textFile"`)
-    // to satisfy their `isLegacyTextFileHost` guard and state reads.
     id: string;
     title: string;
     filePath?: string;
@@ -176,15 +171,6 @@ export interface NoteItemEditState {
 // Edit Model (TextFileModel-duck-typed content host)
 // =============================================================================
 
-/**
- * Per-note content host. Wrapped by an embedded v4 EditorModel (Grid /
- * Markdown / Svg / Html / Mermaid) one-per-note, or driven directly by
- * `MiniTextEditor` for the monaco view (US-579 / IPM6 A1). Duck-types the
- * `TextFileModel` surface the embedded editors call (`type`, `setPage`,
- * `io.saveState`, `confirmRelease`, `pipe`, `getEditorState`/`setEditorState`)
- * — NOT a v4 EditorModel itself. Per-note state (Grid columns, etc.) persists
- * inside the notebook JSON (`data.state[noteId]`, NB8), not a cache file.
- */
 export class NoteItemEditModel {
     readonly id: string;
     readonly type = "textFile" as const;
@@ -337,17 +323,8 @@ export class NoteItemEditModel {
         }
     };
 
-    // =========================================================================
-    // EPIC-028 / US-579 — TextFileModel-duck-typed host surface
-    //
-    // The embedded v4 editors (Grid / Markdown / Svg / Html / Mermaid) call
-    // these on their `_host`. They are never reached in ways that need real
-    // behavior here: the embedded editor is not a page mainEditor, so its
-    // saveState / setPage / getNavigatorTarget paths don't fire. Implemented
-    // as safe no-ops so any defensive call can't throw.
-    // =========================================================================
 
-    /** Per-note editor view-state slot (HS1). Backed by the notebook JSON
+    /** Per-note editor view-state slot. Backed by the notebook JSON
      *  (`data.state[noteId]["editorSettings:<editorId>"]`, NB8) so Grid columns
      *  etc. survive notebook reopen + cross-window transfer. Stored as a
      *  stringified value via the existing `getNoteState`/`setNoteState`. */

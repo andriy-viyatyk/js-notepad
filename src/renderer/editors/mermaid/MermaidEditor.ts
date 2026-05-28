@@ -17,15 +17,6 @@ import { ui } from "../../api/ui";
 import { isCurrentThemeDark } from "../../theme/themes";
 import { renderMermaid } from "./render-mermaid";
 
-/**
- * EPIC-028 / US-562 — native v4 Mermaid preview editor. One class with
- * TextFileModel as its `IContentHost`. Replaces the legacy `MermaidViewModel`
- * + `LegacyEditorAdapter` pair. Owns the 400 ms debounced async render
- * pipeline (PV5) and the lightMode toggle (PV6 / HS1).
- *
- * Design rationale: doc/epics/EPIC-028-editor-architecture/walkthroughs/22-preview-group.md.
- */
-
 export type MermaidQueueEvent = { type: "focus" };
 
 export type MermaidQueueRequest = never;
@@ -121,7 +112,7 @@ export class MermaidEditor extends EditorModel<MermaidEditorState, void, Mermaid
     }
 
     /** Typed host accessor for body + toolbar consumption (MK4 pattern from
-     *  US-554; mirrors Svg/Html/Markdown). */
+     *  mirrors Svg/Html/Markdown). */
     get host(): TextFileModel | null {
         return this._host;
     }
@@ -148,7 +139,7 @@ export class MermaidEditor extends EditorModel<MermaidEditorState, void, Mermaid
     getRestoreData(): EditorDescriptor {
         const s = this.state.get();
         // Identity-only descriptor. lightMode rides host.editorSettings["mermaid-view"]
-        // (HS1); svgUrl / error / loading stripped per PV5 / MO5 (view-derived,
+        //; svgUrl / error / loading stripped per PV5 / MO5 (view-derived,
         // recomputable on restore via renderDebounced).
         return {
             editorId: this.editorId,
@@ -251,8 +242,7 @@ export class MermaidEditor extends EditorModel<MermaidEditorState, void, Mermaid
             (s) => s.lightMode,
         );
 
-        // PV5 — content changes retrigger render (replaces today's
-        // ContentViewModelHost.onContentChanged → MermaidViewModel callback).
+        // Content changes retrigger the debounced render.
         this._hostContentUnsub = host.state.subscribe(
             () => this.renderDebounced(),
             (s) => s.content,

@@ -34,23 +34,6 @@ import {
     getPartitionString,
 } from "./BrowserEditorModel";
 
-/**
- * EPIC-028 / US-558 — native v4 Browser editor. NO-HOST editor (no
- * `CONTENT_HOST_TRAIT`) — Browser owns its state directly rather than
- * wrapping a `TextFileModel`. First walked editor explicitly not a
- * content-host owner; `contentHost` getter returns null (inherited
- * default); `findCompatibleEditors()` returns [] (inherited default);
- * switch widget hides per PT10.
- *
- * Embeds a v4 `LinkEditor` for the bookmarks drawer via
- * construct-then-adoptHost (BR-IMPL2). The walkthrough's proposed
- * `EditorConstructorArgs.initialHost` primitive was deferred with NB7 →
- * US-579; US-558 is the first would-be consumer and uses the existing
- * `attachEditorToPage` precedent instead.
- *
- * Design rationale: doc/tasks/US-558-browser-editor-migration/README.md.
- */
-
 export type BrowserQueueEvent = { type: "focus" };
 export type BrowserQueueRequest = never;
 

@@ -7,20 +7,6 @@ import { IconButton, Spacer } from "../../../uikit";
 import { SaveIcon, SwapIcon } from "../../../theme/icons";
 import { LinkEditor } from "../LinkEditor";
 
-/**
- * EPIC-028 / US-555 — secondary-editor wrapper for the Categories sidebar
- * panel. `model` is always a v4 LinkEditor instance (legacy adapter path
- * retired by `attachEditorToPage` link-view branch).
- *
- * Today's duck-typed `(m as any).treeProvider = …` block retires — v4
- * LinkEditor exposes `treeProvider` / `selectByHref` / `selectionState` as
- * typed class members (LK9).
- *
- * Today's `updatePanels` useEffect (watching tags.length to add/drop
- * `link-tags` from the panel list) retires — v4 LinkEditor handles this
- * via `onMainEditorChanged` (LK8) + a tags-slice subscription inside
- * `adoptHost`.
- */
 export default function LinkCategorySecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
     if (!(model instanceof LinkEditor)) {
         return null;

@@ -1,15 +1,7 @@
 import { TextFileModel } from "../text/TextEditorModel";
 import type { NotebookEditor } from "./NotebookEditor";
 
-// =============================================================================
-// Source typing (post-US-559 — legacy NotebookViewModel retired)
-// =============================================================================
 
-/**
- * Source typing for `NoteItemView` + `NoteItemEditModel`. Post-strangler this
- * is just the v4 `NotebookEditor`; the alias is preserved so consumer call
- * sites don't churn.
- */
 export type NotebookSource = NotebookEditor;
 
 // =============================================================================

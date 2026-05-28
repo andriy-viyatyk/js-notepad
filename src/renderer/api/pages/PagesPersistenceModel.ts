@@ -21,38 +21,14 @@ import { createLinkData } from "../../../shared/link-data";
 import { PageModel } from "./PageModel";
 
 /**
- * EPIC-028 / US-559 — v4-only persistence. The legacy `restoreV3` +
- * `restoreSidebarLegacy` + LegacyEditorAdapter fallback paths were deleted
- * with the strangler retirement. Pre-v4 session data is silently discarded
- * on first launch (C2 / C559-6).
- */
-
-/**
  * EditorIds of v4-native NO-HOST editors that restore via
  * `editorRegistry.createEditor` + `Object.assign(state, d.state)` (no host
  * descriptor). v4-with-host editors take the `if (d.host)` branch; Explorer
  * is constructed directly (not in `editorRegistry`).
  */
 const NO_HOST_EDITOR_IDS = new Set([
-    "browser-view",   // US-558
-    "pdf-view",       // US-568
-    "image-view",     // US-569
-    "archive-view",   // US-570
-    "video-view",     // US-571
-    "settings-view",  // US-572
-    "about-view",     // US-573
-    "mcp-view",       // US-574
-    "storybook-view", // US-575
-    "category-view",  // US-576
-]);
+    "browser-view",       "pdf-view",           "image-view",         "archive-view",       "video-view",         "settings-view",      "about-view",         "mcp-view",           "storybook-view",     "category-view",  ]);
 
-/**
- * PagesPersistenceModel — Load/save window state to storage.
- *
- * Writes v4 only (`schemaVersion: 4` + unified `editors[]` + folded sidebar
- * metadata). Reads v4 only — non-v4 data silently skipped at startup per
- * EPIC-028 C2 / US-559 C559-6.
- */
 export class PagesPersistenceModel {
     constructor(private model: PagesModel) {}
 
@@ -79,30 +55,10 @@ export class PagesPersistenceModel {
             await appFs.getDataFile(openFilesNameTemplate),
         );
         if (!data || !Array.isArray(data.pages)) return;
-        // EPIC-028 / US-559 / C2 / C559-6 — silent detect-and-skip of
-        // pre-v4 session data. Users with a v3 session see a fresh empty
-        // window on first launch; orphan per-page cache files
-        // (`<pageId>-nav-panel.txt`) are harmless leftovers.
         if (data.schemaVersion !== 4) return;
         await this.restoreV4(data as WindowState);
     };
 
-    /**
-     * Restore a single page from a v4 PageDescriptor. Shared between bootstrap
-     * restore (`restoreV4`), IPC `movePageIn`, and `duplicatePage`.
-     *
-     * Three dispatch branches, in order:
-     *   1. `d.host` present  → v4 host-bearing editor (`createEditor` +
-     *      `applyRestoreData` + `restore`); host descriptor reconstitutes
-     *      the `TextFileModel` content host.
-     *   2. Explorer special-case (Explorer is v4-native but NOT in
-     *      `editorRegistry`).
-     *   3. No-host v4 editor (in `NO_HOST_EDITOR_IDS`) — construct via
-     *      v4 registry + seed state from descriptor.
-     *
-     * Anything else skipped with a warning — descriptors not matching any
-     * branch are unrecognized post-strangler data.
-     */
     restorePage = async (desc: PageDescriptor): Promise<PageModel | null> => {
         const page = new PageModel(desc.id);
         page.pinned = desc.pinned;

@@ -12,20 +12,6 @@ import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-562 — native Mermaid preview editor module. Registered with
- * the v4 `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorInstance` is a v4-native MermaidEditor instance.
- *
- * Three toolbar bits (mirrors today's MermaidView.tsx portal content):
- *   - theme toggle (sun/moon icon) — calls model.toggleLightMode
- *   - open-draw — converts svgUrl to base64 → opens in Draw editor
- *   - copy-image — delegates to BaseImageViewRef.copyToClipboard()
- *
- * Open-draw and copy buttons are gated on svgUrl presence (disabled during
- * load / on error).
- */
-
 interface MermaidToolbarBitsProps {
     model: MermaidEditor;
     imageRef: React.MutableRefObject<BaseImageViewRef | null>;
@@ -100,9 +86,6 @@ function MermaidEditorView({ model }: { model: EditorModel }) {
     );
 }
 
-// US-579 — chrome-free Body for notebook per-note embedding. The theme/
-// open-draw/copy toolbar buttons are page-chrome only, so the embedded Body
-// passes a no-op imageRefSetter (no toolbar bridge needed).
 function MermaidEmbeddedBody({ model }: { model: EditorModel }) {
     return <MermaidBody model={model as MermaidEditor} imageRefSetter={() => {}} />;
 }

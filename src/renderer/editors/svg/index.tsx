@@ -12,12 +12,6 @@ import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-560 — native SVG preview editor module. Registered with the
- * v4 `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorInstance` is a v4-native SvgEditor instance.
- */
-
 interface SvgToolbarBitsProps {
     model: SvgEditor;
     imageRef: React.MutableRefObject<BaseImageViewRef | null>;
@@ -77,9 +71,6 @@ function SvgEditorView({ model }: { model: EditorModel }) {
     );
 }
 
-// US-579 — chrome-free Body for notebook per-note embedding. The copy/open-draw
-// toolbar buttons are page-chrome only, so the embedded Body passes a no-op
-// imageRefSetter (no toolbar bridge needed).
 function SvgEmbeddedBody({ model }: { model: EditorModel }) {
     return <SvgBody model={model as SvgEditor} imageRefSetter={() => {}} />;
 }

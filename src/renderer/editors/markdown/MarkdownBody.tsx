@@ -6,12 +6,6 @@ import { FindBar } from "../shared/FindBar";
 import { MarkdownBlock, MarkdownBlockHandle } from "./MarkdownBlock";
 import { Minimap, Panel } from "../../uikit";
 
-/**
- * EPIC-028 / US-554 — Markdown preview body. Drains the editor's queue for
- * focus events; owns view-local scroll restoration (PV4), Minimap-ref-mirror
- * (MK1), and the search-match bridge via MarkdownBlock's imperative handle.
- */
-
 const noopState = {
     content: "",
     filePath: undefined as string | undefined,
@@ -43,7 +37,7 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         ? host.state.use((s) => ({ content: s.content, filePath: s.filePath }))
         : noopState;
 
-    // PV8 — focus queue drain. Routes <TextChrome>'s root-focus (TC8) into the
+    // PV8 — focus queue drain. Routes <TextChrome>'s root-focus into the
     // scroll panel so Tab / arrow keys work from the page.
     model.typedQueue.use((ev) => {
         if (ev.type === "focus") scrollRef.current?.focus();
@@ -109,11 +103,6 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         }
     }, [model, pageState.searchVisible]);
 
-    // US-579 — embedded (notebook collapsed-note) context: `maxEditorHeight`
-    // is set and there's no flex parent, so `flex={1} height={0}` would
-    // collapse to 0. Content-size instead (cap at maxEditorHeight, scroll
-    // beyond). At page level / expanded note (no maxEditorHeight) keep the
-    // flex-fill layout.
     const embedded = editorConfig.maxEditorHeight !== undefined;
     const showMinimap = !editorConfig.hideMinimap;
     // PV2 — editorConfig.compact (notebook-embedded context override) OR

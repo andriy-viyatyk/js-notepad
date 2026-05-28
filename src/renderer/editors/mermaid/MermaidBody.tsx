@@ -4,15 +4,6 @@ import { BaseImageView } from "../shared/BaseImageView";
 import { useEditorConfig } from "../base";
 import { Panel, Text, Spinner } from "../../uikit";
 
-/**
- * EPIC-028 / US-562 — Mermaid preview body. Reads svgUrl/error/loading from
- * editor.state (the render pipeline lives on the editor per PV5). Renders the
- * loading overlay + error message + BaseImageView, mirroring today's
- * MermaidView.tsx output byte-for-byte. The imperative BaseImageViewRef is
- * forwarded via a callback prop so the toolbar's copy button can reach it
- * (MR2 — view-local bridge, no model surface; mirrors Svg's SV2 resolution).
- */
-
 interface MermaidBodyProps {
     model: MermaidEditor;
     /** Callback receiving the BaseImageView ref. The view shell holds the
@@ -29,7 +20,7 @@ export function MermaidBody({ model, imageRefSetter }: MermaidBodyProps) {
         loading: s.loading,
     }));
 
-    // PV8 — focus queue drain. <TextChrome>'s root-focus (TC8) puts focus on
+    // PV8 — focus queue drain. <TextChrome>'s root-focus puts focus on
     // its outer panel, which is sufficient — BaseImageView's tabIndex={0}
     // root receives focus naturally on click. Drain events to keep the queue
     // lifecycle clean.
@@ -37,9 +28,6 @@ export function MermaidBody({ model, imageRefSetter }: MermaidBodyProps) {
         // no-op
     });
 
-    // US-579 — embedded (notebook collapsed-note) context: no flex parent, so
-    // give the preview a definite box (maxEditorHeight). At page / expanded
-    // note (no maxEditorHeight) keep the flex-fill layout.
     const maxH = useEditorConfig().maxEditorHeight;
     const embedded = maxH !== undefined;
 

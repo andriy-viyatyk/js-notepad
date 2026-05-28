@@ -19,10 +19,6 @@ export interface IEditorState {
     secondaryEditor?: string[],
 }
 
-// Canonical v4 persistence types (post-EPIC-028 / US-559 — the legacy
-// `LegacyPageDescriptor` / `LegacyWindowState` shapes were retired with the
-// strangler retirement; pre-v4 session data is silently detect-and-skipped
-// on first launch per C2 / C559-6).
 export type {
     PageDescriptor,
     WindowState,

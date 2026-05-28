@@ -5,16 +5,6 @@ import { TextChrome } from "../base/TextChrome";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-563 — native Rest Client editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorInstance` is a v4-native RestClientEditor instance.
- *
- * NO toolbar/footer contributions (RC17 — per-request toolbar lives inline in
- * SplitDetailPanel; predates the portal toolbar pattern). The simplest
- * `index.tsx` of all Tier-5 modules.
- */
-
 function RestClientEditorView({ model }: { model: EditorModel }) {
     const restClient = model as RestClientEditor;
     return (

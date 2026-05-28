@@ -173,16 +173,6 @@ function AboutView(_props: AboutEditorProps) {
     );
 }
 
-// ============================================================================
-// Editor Module
-// ============================================================================
-// EPIC-028 / US-573 — legacy EditorModule shape preserved for the
-// `showAboutPage` menu launcher and the LegacyEditorAdapter safety-net path.
-// The `as unknown as EditorModel` casts bridge the v4 AboutEditor class to the
-// legacy EditorModel typing the legacy module factories expect; the runtime
-// instance is the v4 class either way. `attachEditorToPage`'s
-// `instanceof EditorModel` early-return (US-568 PD-IMPL16) detects the v4
-// instance and skips the adapter wrap. US-559 retires this block entirely.
 
 const aboutEditorModule: EditorModule = {
     Editor: AboutView as unknown as EditorModule["Editor"],

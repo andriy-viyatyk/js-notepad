@@ -1,18 +1,6 @@
 import type { NotebookEditor } from "../../editors/notebook";
 import type { NoteItem } from "../../editors/notebook/notebookTypes";
 
-/**
- * Safe facade around the v4 NotebookEditor for script access.
- * Implements the INotebookEditor interface from api/types/notebook-editor.d.ts.
- *
- * - Notes are read-only snapshots (INote projection of NoteItem)
- * - Mutations go through explicit methods
- * - Delete operations skip confirmation dialogs
- *
- * EPIC-028 / US-559 — flipped from the legacy `NotebookViewModel` to the v4
- * `NotebookEditor` as part of strangler retirement; method surface is identical
- * (the v4 editor relocated each mutator body byte-for-byte during US-557).
- */
 export class NotebookEditorFacade {
     constructor(private readonly vm: NotebookEditor) {}
 

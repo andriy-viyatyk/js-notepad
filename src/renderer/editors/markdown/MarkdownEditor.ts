@@ -15,15 +15,6 @@ import { editorRegistry as v4Registry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 
-/**
- * EPIC-028 / US-554 — native v4 Markdown preview editor. One class with
- * TextFileModel as its `IContentHost`. Replaces the legacy `MarkdownViewModel`
- * + `LegacyEditorAdapter` pair. Read-only markdown preview with FindBar
- * search, compact-mode toggle, and view-local scroll restoration.
- *
- * Design rationale: doc/epics/EPIC-028-editor-architecture/walkthroughs/22-preview-group.md.
- */
-
 export type MarkdownQueueEvent = { type: "focus" };
 
 export type MarkdownQueueRequest = never;
@@ -322,7 +313,7 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
         });
     };
 
-    // ── Facade-only accessors (PV9) ─────────────────────────────────────
+    // ── Facade-only accessors ─────────────────────────────────────
 
     get containerInnerHtml(): string {
         return this._containerRef?.innerHTML ?? "";

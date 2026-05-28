@@ -482,7 +482,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
         const page = this.props.model;
         if (this.isGrouped) {
             // Walkthrough 07 / GK4: ungroup carries compare-cleanup obligation
-            // now (CK7); the explicit fixCompareMode call is redundant.
+            // now; the explicit fixCompareMode call is redundant.
             pagesModel.ungroup(page.id);
             pagesModel.showPage(page.id);
         } else {

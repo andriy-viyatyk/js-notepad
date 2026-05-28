@@ -67,13 +67,10 @@ export function createDefaultRequest(name?: string, collection?: string): RestRe
     };
 }
 
-// =============================================================================
-// Source typing (post-US-559 — legacy RestClientViewModel retired)
-// =============================================================================
 
 import type { RestClientEditor } from "./RestClientEditor";
 
-/** Source type for shared Rest Client components. Post-strangler this is just
+/** Source type for shared Rest Client components. this is just
  *  the v4 `RestClientEditor`; the alias is preserved so consumer call sites
  *  don't churn. */
 export type RestClientSource = RestClientEditor;

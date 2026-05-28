@@ -169,8 +169,7 @@ const getDefaultPromptsPanelState = (): McpPromptsPanelState => ({
 export type McpPanelId = "info" | "tools" | "resources" | "prompts" | "history";
 
 export interface McpInspectorEditorState extends EditorStateBase {
-    /** Discriminator — preserved for `deriveEditorId` and pre-US-574 saved
-     *  descriptors. `deriveEditorId({type:"mcpInspectorPage"})` === "mcp-view". */
+    /** State-type discriminator. */
     type: "mcpInspectorPage";
 
     // Connection config
@@ -234,7 +233,7 @@ export const getDefaultMcpInspectorEditorState = (): McpInspectorEditorState => 
 
 export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId and pre-US-574 saved descriptors agree. */
+     *  EditorDescriptor.editorId. */
     readonly editorId = "mcp-view";
 
     noLanguage = true;

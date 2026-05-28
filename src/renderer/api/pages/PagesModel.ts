@@ -28,15 +28,6 @@ export type OpenFilesState = typeof defaultOpenFilesState;
 
 // ── PagesModel ───────────────────────────────────────────────────────
 
-/**
- * PagesModel — Base model for the page collection.
- *
- * Holds shared state (pages, ordering, groupings, compareGroups) and composes
- * five submodels that each handle one concern.
- *
- * EPIC-028 / US-548: `rerender` field and `compareModeChanged` bridge are
- * deleted (CK6). compareGroups lives here, keyed by left page id.
- */
 export class PagesModel extends TModel<OpenFilesState> {
     onShow = new Subscription<PageModel>();
     onFocus = new Subscription<PageModel>();
@@ -61,12 +52,6 @@ export class PagesModel extends TModel<OpenFilesState> {
 
     // ── Internal methods (shared across submodels) ───────────────────
 
-    /**
-     * Subscribe to a page's editors[] and reconcile per-editor descriptorChanged
-     * subscriptions so any editor mutation triggers debounced save. EPIC-028 /
-     * US-548: replaces today's `editor.state.subscribe` with `editor.descriptorChanged`;
-     * the per-editor map is reconciled when `page.editors[]` changes.
-     */
     attachPage = (page: PageModel) => {
         const pageId = page.id;
         const editorSubs = new Map<string, () => void>();
@@ -107,7 +92,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         };
     };
 
-    /** Kept as a no-op for callers from before US-548. The new attachPage
+    /** Kept as a no-op for callers from before . The new attachPage
      *  reconciles editor subscriptions automatically when `editors[]` changes. */
     resubscribeEditor = (_page: PageModel) => {
         // No-op — see attachPage.

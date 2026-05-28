@@ -3,7 +3,7 @@ import { Button, Panel, Slider } from "../../uikit";
 import { ForceGraphRenderer, ForceParams } from "./ForceGraphRenderer";
 import color from "../../theme/color";
 
-/** Narrow structural interface — satisfied by both `GraphEditor` (new, US-564)
+/** Narrow structural interface — satisfied by both `GraphEditor` 
  *  and legacy `GraphViewModel` (preserved per GR1). Only the surface this
  *  panel actually consumes. */
 interface GraphTuningHost {

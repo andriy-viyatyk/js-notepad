@@ -74,10 +74,6 @@ export interface RenderGridProps {
     overscanRow?: number;
     fitToWidth?: boolean;
     onRender?: () => void;
-    // Rule-7 exemption: RenderGrid is a multi-region compositional primitive.
-    // `className` / `contentProps` / `renderAreaProps` / `blockStyles` are
-    // load-bearing escape hatches for region-level styling (consumed by AVGrid
-    // and editor lists). See doc/tasks/US-538-uikit-rendergrid/README.md.
     className?: string;
     contentProps?: HTMLAttributes<HTMLDivElement>;
     renderAreaProps?: HTMLAttributes<HTMLDivElement>;

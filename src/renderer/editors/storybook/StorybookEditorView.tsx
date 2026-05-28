@@ -80,16 +80,6 @@ function StorybookEditorView({ model }: { model: StorybookEditorModel }) {
     );
 }
 
-// ============================================================================
-// Editor Module
-// ============================================================================
-// EPIC-028 / US-575 — legacy EditorModule shape preserved for the
-// `showStorybookPage` launcher and the LegacyEditorAdapter safety-net path. The
-// `as unknown as EditorModel` casts bridge the v4 StorybookEditorModel class to
-// the legacy EditorModel typing the legacy module factories expect; the runtime
-// instance is the v4 class either way. `attachEditorToPage`'s
-// `instanceof EditorModel` early-return (US-568 PD-IMPL16) detects the v4
-// instance and skips the adapter wrap. US-559 retires this block entirely.
 
 const storybookEditorModule: EditorModule = {
     Editor: StorybookEditorView as unknown as EditorModule["Editor"],

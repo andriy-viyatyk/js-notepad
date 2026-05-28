@@ -3,14 +3,6 @@ import type { BaseImageViewRef } from "../shared/BaseImageView";
 import { BaseImageView } from "../shared/BaseImageView";
 import { useEditorConfig } from "../base";
 
-/**
- * EPIC-028 / US-560 — Svg preview body. Reads host content via state.use,
- * builds the data URL inline, and renders `BaseImageView`. The imperative
- * `BaseImageViewRef` is forwarded out via a callback prop so the toolbar's
- * copy-to-clipboard button can reach it (SV2 — view-local bridge, no model
- * surface).
- */
-
 interface SvgBodyProps {
     model: SvgEditor;
     /** Callback receiving the BaseImageView ref. The view shell holds the
@@ -26,7 +18,7 @@ export function SvgBody({ model, imageRefSetter }: SvgBodyProps) {
     // change.
     const content = host ? host.state.use((s) => s.content) : "";
 
-    // PV8 — focus queue subscriber. <TextChrome>'s root-focus (TC8) puts
+    // PV8 — focus queue subscriber. <TextChrome>'s root-focus puts
     // focus on its outer panel, which is sufficient — BaseImageView's
     // tabIndex={0} root receives focus naturally on click, after which its
     // own onKeyDown handler picks up keyboard zoom (+/-/0/Ctrl+C). Drain
@@ -40,10 +32,6 @@ export function SvgBody({ model, imageRefSetter }: SvgBodyProps) {
 
     const image = <BaseImageView ref={imageRefSetter} src={src} alt="SVG Preview" />;
 
-    // US-579 — embedded (notebook collapsed-note) context: BaseImageView is
-    // height:100%/flex, so it needs a definite-height parent. Give it a box of
-    // maxEditorHeight. At page / expanded note (no maxEditorHeight) the flex
-    // parent (TextChrome / fillContainer) provides height.
     const maxH = useEditorConfig().maxEditorHeight;
     if (maxH !== undefined) {
         return <div style={{ height: maxH }}>{image}</div>;

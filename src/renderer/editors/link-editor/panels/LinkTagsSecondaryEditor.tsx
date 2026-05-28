@@ -160,9 +160,6 @@ function LinkTagsNavigationPanel({ editor, pageId }: LinkTagsNavigationPanelProp
     );
 }
 
-// =============================================================================
-// Secondary Editor wrapper (US-555 — v4 LinkEditor only)
-// =============================================================================
 
 export default function LinkTagsSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
     if (!(model instanceof LinkEditor)) {

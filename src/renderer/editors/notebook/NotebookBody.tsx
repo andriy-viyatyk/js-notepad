@@ -17,15 +17,6 @@ import { LINK } from "../link-editor/linkTraits";
 import { EditorError } from "../base/EditorError";
 import { NotebookEditor } from "./NotebookEditor";
 
-/**
- * EPIC-028 / US-557 — v4 Notebook body. Reactive over `editor.state.use`;
- * composes the existing NoteItemView / ExpandedNoteView / TagsListView /
- * category-tree machinery against the dual-source `NotebookSource` typing
- * (NB-IMPL3). Toolbar / footer chrome lives in `index.tsx`'s TextChrome
- * contribution slots (NB-IMPL8). ExpandedNoteView portals into the
- * TextFileModel's editor-overlay div (unchanged from today's behavior).
- */
-
 interface NotebookBodyProps {
     model: NotebookEditor;
 }

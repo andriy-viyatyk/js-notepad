@@ -21,31 +21,10 @@ import { createLinkData } from "../../../shared/link-data";
 import { fpDirname } from "../../core/utils/file-path";
 import type { ITreeProvider, ILink } from "../../api/types/io.tree";
 
-/**
- * EPIC-028 / US-571 — native v4 Video/Audio player. NO-HOST editor (no
- * `CONTENT_HOST_TRAIT`) — Video owns its state directly and resolves its own
- * streaming-server URLs rather than reading content through a `pipe`.
- *
- * Closest siblings: PdfEditor (US-568) / ImageEditor (US-569) — same no-host
- * page-mainEditor shape. Differences:
- *   - Module-scoped `sessionMuted` shared across player instances in the window.
- *   - A local streaming-server session lifecycle (created on submit/open,
- *     deleted in dispose via `api.deleteVideoStreamSessionsByPage`).
- *   - VLC integration (`openInVlc`).
- *   - A `playNext`/shuffle "next track" feature that reads sibling tree
- *     providers from `page.panelEditors[]` (duck-typed — those panels are
- *     contributed by the v4 Explorer/Link/Archive editors, US-567/US-570).
- *   - Uses `PageToolbar` with the `noSpacer` prop (VD-IMPL4) — the nav button
- *     is auto-rendered via the `getNavigatorTarget()` override below.
- *
- * Design rationale: doc/tasks/US-571-video-editor-migration/README.md.
- */
-
 // ── State ────────────────────────────────────────────────────────────────────
 
 export interface VideoEditorState extends EditorStateBase {
-    /** Discriminator — preserved for `deriveEditorId` and pre-US-571 saved
-     *  descriptors (VD-IMPL3). `deriveEditorId({type:"videoPage"})` === "video-view". */
+    /** State-type discriminator. */
     type: "videoPage";
     /** Raw video URL as entered by user (file path or HTTP URL). */
     url: string;
@@ -62,7 +41,7 @@ export interface VideoEditorState extends EditorStateBase {
     /**
      * Resolved streaming server URL ready for VPlayer to play.
      * Empty string while being resolved or when no video is loaded.
-     * Transient — not persisted across app restarts (VD-IMPL5).
+     * Transient — not persisted across app restarts.
      */
     streamUrl: string;
 }
@@ -90,7 +69,7 @@ export const getDefaultVideoEditorState = (): VideoEditorState => ({
 
 export class VideoEditor extends EditorModel<VideoEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId and pre-US-571 saved descriptors agree. */
+     *  EditorDescriptor.editorId. */
     readonly editorId = "video-view";
 
     noLanguage = true;
@@ -175,13 +154,13 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
         }
     }
 
-    /** Called by VPlayer (US-413) when player state changes. (VPlayer's
+    /** Called by VPlayer when player state changes. (VPlayer's
      *  `onStateChange` may pass an error arg; it's unused here.) */
     onPlayerStateChange = (playerState: PlayerState) => {
         this.state.update((s) => { s.playerState = playerState; });
     };
 
-    /** Called by VPlayer (US-413) when muted state changes. */
+    /** Called by VPlayer when muted state changes. */
     onMutedChange = (muted: boolean) => {
         sessionMuted = muted;
         this.state.update((s) => { s.pageMuted = muted; });
@@ -408,7 +387,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
     };
 
     /** Surface the "File Explorer" nav button through PageToolbar's
-     *  NavPanelButton (VD-IMPL4). Returning `{ pipe: null, filePath }` gates on
+     *  NavPanelButton. Returning `{ pipe: null, filePath }` gates on
      *  `canOpenNavigator(null, filePath)` — equivalent to the legacy
      *  `(canOpenNavigator(...) || filePath)` inline gate. */
     getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {

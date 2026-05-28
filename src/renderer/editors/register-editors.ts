@@ -2,16 +2,6 @@ import { editorRegistry as v4EditorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { secondaryEditorRegistry } from "../ui/navigation/secondary-editor-registry";
 
-/**
- * Editor registrations for Persephone — v4-native only post-US-559.
- *
- * The legacy `editorRegistry` (file/extension/language matching + content
- * detection + view-model factories) was deleted along with `LegacyEditorAdapter`
- * and the content-view subsystem. Every editor surface (file resolution, switch
- * widget, content detection, MCP `create_page` guard, `app.editors` script API)
- * now reads from `v4EditorRegistry` (made self-sufficient by US-581).
- */
-
 // =============================================================================
 // Secondary Editor Registrations (EPIC-016)
 // =============================================================================
@@ -52,11 +42,7 @@ secondaryEditorRegistry.register({
     loadComponent: () => import("./link-editor/panels/LinkHostnamesSecondaryEditor"),
 });
 
-// =============================================================================
-// EPIC-028 — v4 editor registrations (native modules)
-// =============================================================================
 
-// US-551 — native v4 Monaco module.
 v4EditorRegistry.register({
     id: "monaco",
     name: "Text Editor",
@@ -78,8 +64,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-552 — native v4 grid modules. US-581: matching rules are self-contained
-// in `EDITOR_MATCHERS` (no legacy-registry delegation).
 v4EditorRegistry.register({
     id: "grid-json",
     name: "Grid (JSON)",
@@ -116,7 +100,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-553 — native v4 Log View module.
 v4EditorRegistry.register({
     id: "log-view",
     name: "Log View",
@@ -129,7 +112,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-554 — native v4 Markdown module.
 v4EditorRegistry.register({
     id: "md-view",
     name: "Preview",
@@ -142,7 +124,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-560 — native v4 SVG module.
 v4EditorRegistry.register({
     id: "svg-view",
     name: "Preview",
@@ -155,7 +136,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-561 — native v4 HTML module.
 v4EditorRegistry.register({
     id: "html-view",
     name: "Preview",
@@ -168,7 +148,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-562 — native v4 Mermaid module.
 v4EditorRegistry.register({
     id: "mermaid-view",
     name: "Mermaid",
@@ -181,7 +160,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-564 — native v4 Graph module.
 v4EditorRegistry.register({
     id: "graph-view",
     name: "Graph",
@@ -194,7 +172,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-565 — native v4 Draw module.
 v4EditorRegistry.register({
     id: "draw-view",
     name: "Drawing",
@@ -207,7 +184,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-555 — native v4 Link module.
 v4EditorRegistry.register({
     id: "link-view",
     name: "Links",
@@ -220,7 +196,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-556 — native v4 Todo module.
 v4EditorRegistry.register({
     id: "todo-view",
     name: "ToDo",
@@ -233,7 +208,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-563 — native v4 Rest Client module.
 v4EditorRegistry.register({
     id: "rest-client",
     name: "Rest Client",
@@ -246,7 +220,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-557 — native v4 Notebook module.
 v4EditorRegistry.register({
     id: "notebook-view",
     name: "Notebook",
@@ -259,8 +232,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-558 — native v4 Browser module. NO-HOST + standalone — opened only via
-// the explicit `pagesModel.lifecycle.showBrowserPage` user gesture.
 v4EditorRegistry.register({
     id: "browser-view",
     name: "Browser",
@@ -272,7 +243,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-568 — native v4 PDF module. NO-HOST.
 v4EditorRegistry.register({
     id: "pdf-view",
     name: "PDF Viewer",
@@ -285,7 +255,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-569 — native v4 Image module. NO-HOST.
 v4EditorRegistry.register({
     id: "image-view",
     name: "Image Viewer",
@@ -298,7 +267,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-570 — native v4 Archive module. NO-HOST + sidebar-owning.
 v4EditorRegistry.register({
     id: "archive-view",
     name: "Archive",
@@ -311,7 +279,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-571 — native v4 Video module. NO-HOST.
 v4EditorRegistry.register({
     id: "video-view",
     name: "Video Player",
@@ -324,8 +291,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-572 — native v4 Settings module. NO-HOST + standalone (opened only via
-// `showSettingsPage` menu action).
 v4EditorRegistry.register({
     id: "settings-view",
     name: "Settings",
@@ -337,8 +302,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-573 — native v4 About module. NO-HOST + standalone (opened only via
-// `showAboutPage` menu action).
 v4EditorRegistry.register({
     id: "about-view",
     name: "About",
@@ -350,9 +313,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-574 — native v4 MCP Inspector module. NO-HOST + standalone (opened only
-// via the `showMcpInspectorPage` launcher; not a singleton — each call creates
-// a fresh page).
 v4EditorRegistry.register({
     id: "mcp-view",
     name: "MCP Inspector",
@@ -364,8 +324,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-575 — native v4 Storybook module. NO-HOST + standalone (opened only via
-// `showStorybookPage`).
 v4EditorRegistry.register({
     id: "storybook-view",
     name: "Storybook",
@@ -377,10 +335,6 @@ v4EditorRegistry.register({
     },
 });
 
-// US-576 — native v4 Category module. NO-HOST + tree-provider CONSUMER
-// (reads a sibling host's provider from `page.panelEditors`). Opened via
-// `tree-category://` links (target="category-view"). Last no-host editor —
-// closes the walkthrough-30 group.
 v4EditorRegistry.register({
     id: "category-view",
     name: "Folder View",

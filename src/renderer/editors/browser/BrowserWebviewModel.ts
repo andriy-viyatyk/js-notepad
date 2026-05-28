@@ -456,8 +456,6 @@ export class BrowserWebviewModel {
                 const resp = await webview.executeJavaScript(
                     `fetch(location.href).then(r => r.text())`,
                 );
-                // EPIC-028 / US-559 — v4 Monaco page via shared lifecycle helper
-                // (replaces the legacy `newTextFileModel + LegacyEditorAdapter` pattern).
                 pagesModel.addEditorPage("monaco", "html", "Source: " + (tab?.pageTitle || pageUrl), resp);
             },
         });
@@ -532,7 +530,6 @@ export class BrowserWebviewModel {
                     const resp = await webview.executeJavaScript(
                         `fetch(location.href).then(r => r.text())`,
                     );
-                    // EPIC-028 / US-559 — v4 Monaco page via shared lifecycle helper.
                     pagesModel.addEditorPage("monaco", "html", "Source: " + (tab?.pageTitle || pageUrl), resp);
                 },
             },

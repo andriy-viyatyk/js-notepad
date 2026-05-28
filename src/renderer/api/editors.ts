@@ -1,9 +1,6 @@
 import { editorRegistry } from "../editors/base/editorRegistry";
 import type { IEditorInfo, IEditorRegistry, ISwitchOptions } from "./types/editors";
 
-// EPIC-028 / US-581 — `app.editors` sources from the native v4 registry.
-// `category` was dropped (redundant with the registry's internal
-// `hasContentHost`; see US-581 C581-4), so `IEditorInfo` is now `{ id, name }`.
 function toEditorInfo(def: { id: string; name: string }): IEditorInfo {
     return { id: def.id, name: def.name };
 }

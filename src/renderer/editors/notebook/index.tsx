@@ -10,22 +10,6 @@ import { CloseIcon, PlusIcon } from "../../theme/icons";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-557 — native Notebook editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorInstance` is a v4-native NotebookEditor instance.
- *
- * Contribution slots (NB-IMPL8 — replaces today's four portal targets):
- *   - `toolbarContributions` (left)  — Breadcrumb (tags or categories)
- *   - `rightToolbarContributions`    — Add Note button + Search input (+ clear)
- *   - `footerContributions`          — notes count: "<filtered> of <total>"
- *
- * NotebookBody composes NoteItemView + ExpandedNoteView. The per-note dispatch
- * (US-579) embeds v4 editors per note via `NoteItemActiveEditor` → the module's
- * `Body` slot (monaco notes keep `MiniTextEditor`); the legacy `acquireViewModel`
- * machinery is no longer used for notes.
- */
-
 interface NotebookContributionProps {
     model: NotebookEditor;
 }

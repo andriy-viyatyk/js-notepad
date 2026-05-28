@@ -6,9 +6,6 @@ import { CONTENT_HOST_TRAIT } from "../../base/editor-traits";
 import type { EditorModel } from "../../base/EditorModel";
 import { EditorView } from "../../../../shared/types";
 
-// =============================================================================
-// Component (EPIC-028 / US-579 — per-note v4 editor embedding)
-// =============================================================================
 
 interface NoteItemActiveEditorProps {
     model: NoteItemEditModel;

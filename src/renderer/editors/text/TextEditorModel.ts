@@ -17,15 +17,6 @@ import type { IContentPipe } from "../../api/types/io.pipe";
 import type { PageModel } from "../../api/pages/PageModel";
 import { createPipeFromDescriptor } from "../../content/registry";
 
-/**
- * EPIC-028 / US-559 / C559-2 Option B — `TextFileModel` is the content host
- * for every text-bearing v4 editor (Monaco / Grid / Markdown / Svg / Html /
- * Mermaid / Notebook / Todo / Link / Rest Client / Graph / Draw / Log View).
- * Post-strangler it extends `TDialogModel` directly; the former
- * `editors/base/EditorModel.ts` legacy base (with only `TextFileModel` as a
- * subclass) was folded in and deleted.
- */
-
 export interface TextFileEditorModelState extends IEditorState {
     content: string;
     deleted: boolean;
@@ -46,8 +37,6 @@ export interface TextFileEditorModelState extends IEditorState {
 }
 
 export const getDefaultTextFileEditorModelState = (): TextFileEditorModelState => ({
-    // Identity + IEditorState shape (folded in from the former legacy
-    // `getDefaultEditorModelState()` helper in US-559 C559-2 Option B).
     id: crypto.randomUUID(),
     type: "textFile" as const,
     title: "untitled",
@@ -118,7 +107,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         return this.state.get().language;
     }
 
-    /** Active secondary editor panel IDs. Post-US-559 the host's
+    /** Active secondary editor panel IDs. the host's
      *  `secondaryEditor` field is rarely consumed (panels live on the v4
      *  wrapping editor's own state); the setter is preserved as a pure
      *  state mutator so legacy callers don't churn. */
@@ -146,13 +135,6 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         setState: async (id, name, state) => { await appFs.saveCacheFile(id, state, name); },
     };
 
-    // =========================================================================
-    // Editor-targeted view commands — route via the wrapping v4 editor.
-    // (EPIC-028 / US-559). Legacy `_vmHost`-based plumbing retired; calls
-    // delegate to `page.mainEditorInstance` which exposes queue-backed helpers
-    // for text-bearing editors (MonacoEditor: revealLine / setHighlightText /
-    // focus / getSelectedText). Non-text editors fall through as no-ops.
-    // =========================================================================
 
     focusEditor(): void {
         this.page?.mainEditorInstance?.focus();
@@ -192,9 +174,6 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
 
     /** Run content detection immediately and update state if changed. */
     private detectContentEditor = () => {
-        // US-581 — v4 registry, host-driven detection. The host's content is
-        // read inside `detectContentEditor`; empty/unloaded content yields no
-        // suggestion (robust to early calls).
         const detected = editorRegistry.detectContentEditor(this as unknown as IContentHost);
         if (detected !== this.state.get().detectedContentEditor) {
             this.state.update((s) => { s.detectedContentEditor = detected as EditorView | undefined; });
@@ -218,10 +197,6 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         }
     };
 
-    // Overlay-portal target — kept for <TextChrome>'s overlay div. The
-    // toolbar / footer portal refs (`editorToolbarRefFirst/Last`,
-    // `editorFooterRefLast`) were retired in US-559 along with the legacy
-    // *View files that consumed them.
     editorOverlayRef: HTMLDivElement | null = null;
 
     setEditorOverlayRef = (ref: HTMLDivElement | null) => {
@@ -308,9 +283,6 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         });
     };
 
-    // =========================================================================
-    // EPIC-028 host primitives (US-551) — consumed by native MonacoEditor.
-    // =========================================================================
 
     /** v4 IContentHost serialization. Wraps the legacy flat shape into a
      *  HostDescriptor so MonacoEditor.getRestoreData can attach it as `host`.
@@ -450,7 +422,7 @@ export function newTextFileModelFromState(
 }
 
 /** Narrow an arbitrary editor handle to `TextFileModel` via the
- *  `state.type === "textFile"` discriminator. Post-US-559 callers should
+ *  `state.type === "textFile"` discriminator. callers should
  *  prefer accessing the host through the v4 editor's `contentHost` getter
  *  when they have a v4 EditorModel in hand. */
 export function isTextFileModel(model: unknown): model is TextFileModel {

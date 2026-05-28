@@ -14,12 +14,6 @@ import { GridBody, getVisibleRowsLabel } from "./GridBody";
 import type { AVGridModel } from "../../uikit";
 import type { GridEditorId } from "./util";
 
-/**
- * EPIC-028 / US-552 — three v4 module factories. Each constructs a
- * GridEditor with a different constructor-bound editor id; the format
- * derives from the id. The Component slot is shared across all three.
- */
-
 function GridEditorView({ model }: { model: EditorModel }) {
     const editor = model as GridEditor;
     // Shared mutable holder for the AVGridModel ref — GridBody forwards it
@@ -132,9 +126,6 @@ function GridFooterBits({
     );
 }
 
-// US-579 — chrome-free Body for notebook per-note embedding. The footer
-// record-count / columns-popover ref bridge is page-chrome only, so the
-// embedded Body renders GridBody with no ref + no visible-rows callback.
 function GridEmbeddedBody({ model }: { model: EditorModel }) {
     return <GridBody model={model as GridEditor} />;
 }

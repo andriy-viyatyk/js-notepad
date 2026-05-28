@@ -1,14 +1,5 @@
 import type { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 
-/**
- * Safe facade around MonacoEditor for script access.
- * Implements the ITextEditor interface from api/types/text-editor.d.ts.
- *
- * EPIC-028 / US-551 (SF6) — view-context query methods are async and route
- * through the editor's ComponentQueue. Fire-and-forget commands stay sync;
- * the queue drains them once Monaco mounts. Script authors must `await` the
- * query methods (breaking change vs. the legacy sync TextViewModel facade).
- */
 export class TextEditorFacade {
     constructor(private readonly editor: MonacoEditor) {}
 

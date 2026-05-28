@@ -40,18 +40,6 @@ export function PdfView({ model }: PdfViewProps) {
     );
 }
 
-// ============================================================================
-// EditorModule
-// ============================================================================
-// EPIC-028 / US-568 — legacy EditorModule shape preserved for the
-// LegacyEditorAdapter safety-net path used by `PagesLifecycleModel.openFile`
-// (file-open flow). The `as unknown as EditorModel` casts bridge the v4
-// PdfEditor class to the legacy EditorModel typing the legacy module
-// factories expect; the runtime instance is the v4 class either way.
-// Mirrors the US-558 Browser pattern at `browser/BrowserView.tsx`.
-// `attachEditorToPage`'s `instanceof EditorModel` early-return (PD-IMPL16)
-// detects the v4 instance and skips the adapter wrap. US-559 retires this
-// block entirely.
 
 const pdfEditorModule: EditorModule = {
     Editor: PdfView as unknown as EditorModule["Editor"],

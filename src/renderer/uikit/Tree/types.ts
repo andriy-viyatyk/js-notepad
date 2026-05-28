@@ -213,7 +213,7 @@ export interface TreeProps<T = ITreeItem>
     /** When true, the Tree handles ArrowUp/Down/Left/Right/Home/End/Enter on its root. Default: false. */
     keyboardNav?: boolean;
 
-    // ── Lazy children loading (US-489) ────────────────────────────────────────
+    // ── Lazy children loading ────────────────────────────────────────
 
     /**
      * Predicate: "does this row have children, even if `getChildren` would currently return
@@ -267,7 +267,7 @@ export interface TreeProps<T = ITreeItem>
      */
     getAncestorValues?: (value: string | number) => Promise<(string | number)[]>;
 
-    // ── Drag-and-drop (US-488) ────────────────────────────────────────────────
+    // ── Drag-and-drop ────────────────────────────────────────────────
 
     /**
      * Trait type id registered in `traitRegistry`. Required for drag to be enabled.

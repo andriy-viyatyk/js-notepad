@@ -7,13 +7,6 @@ import type { RenderFlexCellParams, Percent } from "../../uikit/RenderGrid";
 import { Panel, Text } from "../../uikit";
 import { EditorError } from "../base/EditorError";
 
-/**
- * EPIC-028 / US-553 — Log View body. Drains the editor's `ComponentQueue`
- * for focus / scrollToBottom events; owns the auto-scroll machinery
- * (iterative scroll-to-bottom that settles after RenderFlexGrid row-height
- * measurements). Renders the virtual grid of log entries.
- */
-
 const RIGHT_GUTTER = 40;
 const getColumnWidth = (col: number) => (col === 0 ? ("100%" as Percent) : RIGHT_GUTTER);
 const AUTO_SCROLL_THRESHOLD = 50;

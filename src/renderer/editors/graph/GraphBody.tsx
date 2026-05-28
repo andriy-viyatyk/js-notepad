@@ -15,16 +15,6 @@ import { CloseIcon, SettingsIcon, RefreshIcon, ExpandAllIcon, GraphGroupIcon } f
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import color from "../../theme/color";
 
-/**
- * EPIC-028 / US-564 — Graph editor body. Reads `editor.state.use(...)`
- * reactively from a `GraphEditor`. Renders canvas + in-canvas overlay
- * toolbar + GraphTooltip + GraphDetailPanel + GraphLegendPanel. The canvas
- * element is forwarded to the view shell's open-draw / copy-image toolbar
- * buttons via the `canvasRefSetter` callback prop (GR2 — view-local bridge,
- * mirrors SV2 from Svg / MR2 from Mermaid). Page-top toolbar + footer rows
- * live in `index.tsx` as `<TextChrome>` contributions.
- */
-
 // ============================================================================
 // Constants
 // ============================================================================

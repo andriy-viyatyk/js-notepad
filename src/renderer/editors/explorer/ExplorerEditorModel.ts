@@ -11,16 +11,6 @@ import type { FileSearchState } from "../../components/file-search";
 import type { NavigationState, PageModel } from "../../api/pages/PageModel";
 import { fpDirname } from "../../core/utils/file-path";
 
-/**
- * EPIC-028 / US-567 — native v4 Explorer editor. **First secondary-only
- * EditorModel migrated to v4 native** — not in `editorRegistry`. Second
- * consumer of `onMainEditorChanged` (LK8) but NOT `beforeNavigateAway` (LK7);
- * Explorer is sidebar-ONLY, not sidebar-OWNING-mainEditor.
- *
- * Design rationale: doc/tasks/US-567-explorer-editor-migration/README.md
- * (walkthrough 30 §3, EX1–EX10 RESOLVED; EX-IMPL1 amended EX5).
- */
-
 export interface ExplorerEditorState extends EditorStateBase {
     type: "fileExplorer";
     /** Root path for the file tree. */
@@ -28,7 +18,7 @@ export interface ExplorerEditorState extends EditorStateBase {
     /** EX3 (c) — typed persistence extras replacing legacy `_treeState` /
      *  `_selectedHref` / `_searchState` underscore-prefixed keys. The
      *  underscore form is still read for backward compat in `applyRestoreData`
-     *  (EX-IMPL9). */
+     *. */
     treeState?: TreeProviderViewSavedState;
     selectedHref?: string | null;
     searchState?: FileSearchState;
@@ -216,9 +206,6 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         if (data.treeState) this.treeState = data.treeState;
         if (data.selectedHref) this.selectionState.set({ selectedHref: data.selectedHref });
         if (data.searchState) this.searchState = data.searchState;
-        // EX-IMPL9 — pre-EPIC-028 underscore-prefixed extras. Read for
-        // backward compat; first save after upgrade writes the new shape.
-        // Retire under US-559.
         const extra = data as Partial<ExplorerEditorState> & {
             _treeState?: TreeProviderViewSavedState;
             _selectedHref?: string;

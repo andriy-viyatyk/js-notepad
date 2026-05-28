@@ -27,35 +27,10 @@ import {
     createDefaultRequest,
 } from "./restClientTypes";
 
-/**
- * EPIC-028 / US-563 — native v4 Rest Client editor. One class with
- * TextFileModel as its `IContentHost`. Replaces the legacy
- * `RestClientViewModel` + `LegacyEditorAdapter` pair. Ninth Tier-5 editor in
- * the uniform shape; fourth non-sidebar-owning text-bearing editor (after
- * Grid, Log View, Todo) — no `beforeNavigateAway` / `onMainEditorChanged`
- * overrides (RC6); RequestTree renders inline inside the editor body, not
- * as a registered secondary editor.
- *
- * Two cache files (RC7 — split by scale):
- *  - selection state (leftPanelWidth + selectedRequestId) → HS1 host slot
- *    `host.editorSettings["rest-client"]` (RC3 — sixth instance of GR4 →
- *    LV3 → LK3 → DR4 / MR5 → TD3 → RC3).
- *  - response cache (bytes-to-megabytes per request) → separate per-editor
- *    cache file `<host.id>:rest-client-responses`. Binary responses
- *    excluded from disk persistence via `if (!isBinary)` gate (verbatim
- *    from today).
- *
- * NO scripting facade (RC10 — only text-bearing Tier-5 without one).
- * NO TextChrome toolbar/footer contributions (RC17 — per-request toolbar
- * inline in SplitDetailPanel).
- *
- * Design rationale: doc/tasks/US-563-rest-client-editor-migration/README.md.
- */
-
 export type RestClientQueueEvent = { type: "focus" };
 export type RestClientQueueRequest = never;
 
-/** HS1 host-slot shape (RC3) — the 2 per-window UI fields ride
+/** HS1 host-slot shape — the 2 per-window UI fields ride
  *  `host.editorSettings["rest-client"]`. Survives Rest Client ↔ Monaco
  *  switches AND app restarts. Replaces today's `<host.id>:rest-client`
  *  selection cache file. */
@@ -65,17 +40,17 @@ interface RestClientViewSettings {
 }
 
 export interface RestClientEditorState extends EditorStateBase {
-    // HS1 — ride host.editorSettings["rest-client"] (RC3):
+    // HS1 — ride host.editorSettings["rest-client"]:
     leftPanelWidth: number;
     selectedRequestId: string;
     // View-derived — present on state for reactivity, stripped from
-    // getRestoreData (RC2). Recomputed from host content via loadData /
+    // getRestoreData. Recomputed from host content via loadData /
     // rebuilt from responseCache on selectRequest.
     data: RestClientData;
     error: string | undefined;
     response: RestResponse | null;
     responseTime: number;
-    // Transient UI state — not persisted (RC2):
+    // Transient UI state — not persisted:
     executing: boolean;
     headersJsonInvalid: boolean;
 }
@@ -208,7 +183,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
         this.typedQueue.send({ type: "focus" });
     }
 
-    // ── Persistence (RC2 + RC3) ─────────────────────────────────────────
+    // ── Persistence ─────────────────────────────────────────
 
     getRestoreData(): EditorDescriptor {
         const s = this.state.get();
@@ -363,7 +338,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
     // are dropped — replaced by the HS1 slice-subscribe mirror above.
     // ────────────────────────────────────────────────────────────────────
 
-    // ── Serialization: state → file content (RC4 + RC5) ─────────────────
+    // ── Serialization: state → file content ─────────────────
 
     private onDataChanged = (): void => {
         const { data, error } = this.state.get();
@@ -986,7 +961,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
     }
 
     async dispose(): Promise<void> {
-        // Flush BOTH pending debounced saves (RC4).
+        // Flush BOTH pending debounced saves.
         this.onDataChanged();
         this.saveResponseCache();
 

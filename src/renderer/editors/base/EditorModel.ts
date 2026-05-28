@@ -12,23 +12,6 @@ import type { EditorStateStorage } from "./EditorStateStorage";
 import type { PageModel } from "../../api/pages/PageModel";
 import type { IEditorState } from "../../../shared/types";
 
-/**
- * v4 editor base class. Coexists with the legacy [`../EditorModel.ts`](../EditorModel.ts)
- * during the strangler-fig migration. US-548's `LegacyEditorAdapter` is the
- * first subclass; per-editor migrations (US-551 onward) add direct subclasses.
- *
- * Design rationale: [`doc/epics/EPIC-028-editor-architecture/mockups/EditorModel.ts`](../../../../../doc/epics/EPIC-028-editor-architecture/mockups/EditorModel.ts).
- */
-
-/**
- * Minimal in-memory state shape every editor implements. During EPIC-028's
- * strangler period (US-548 through US-559), this widens to include all
- * legacy `IEditorState` fields as optional so adapter-wrapped editors expose
- * a single state surface that satisfies both v4-native callers and existing
- * legacy callers. Per-editor migrations (US-551+) move to subclass-specific
- * state shapes; US-559 trims this back to the v4-native minimum (id, title,
- * modified, secondaryEditor).
- */
 export interface EditorStateBase extends Omit<Partial<IEditorState>, "id" | "title" | "modified"> {
     /** Editor instance UUID — cache-file prefix. On switchFrom, the new
      *  editor copies this from the old editor so cache files survive. */
@@ -86,10 +69,9 @@ export abstract class EditorModel<
      *  avoid a runtime circular dep. */
     page: PageModel | null = null;
 
-    /** Active content pipe (provider + transformers). Host-owned in v4; this
-     *  field is kept on the base class for the inert phase so the
-     *  `LegacyEditorAdapter` can mirror the legacy editor surface. Once
-     *  Monaco migrates (US-551), the pipe lives on `TextFileModel`. */
+    /** Active content pipe (provider + transformers). For text-bearing
+     *  editors the pipe lives on `TextFileModel`; this field stays on the
+     *  base for no-host editors that own their pipe directly (e.g. Browser). */
     pipe: IContentPipe | null = null;
 
     /** Auxiliary in-memory data for scripting; not persisted. */
@@ -100,8 +82,7 @@ export abstract class EditorModel<
     skipSave = false;
 
     /** Captures the auto-sub set up in the constructor so subclasses that
-     *  swap `this.state` (LegacyEditorAdapter.switchFrom — US-551) can
-     *  unsubscribe and re-attach on the new state. */
+     *  swap `this.state` can unsubscribe and re-attach on the new state. */
     protected _stateAutoUnsub: (() => void) | null = null;
 
     constructor(
@@ -204,11 +185,6 @@ export abstract class EditorModel<
     get title(): string { return this.state.get().title; }
     get modified(): boolean { return this.state.get().modified; }
 
-    // ── Legacy-compat getters (read fields from state if present) ─────────
-    // These shim onto whatever the legacy editor stores in its state.
-    // Per-editor migrations US-551+ replace adapter-backed editors with
-    // native v4 implementations that override these as needed; US-559 may
-    // retire the getters entirely.
 
     get filePath(): string | undefined {
         return (this.state.get() as { filePath?: string }).filePath;
@@ -222,8 +198,8 @@ export abstract class EditorModel<
         return (this.state.get() as { type?: string }).type;
     }
 
-    /** Optional language change — base no-op; LegacyEditorAdapter forwards to
-     *  the wrapped legacy editor; per-editor migrations override. */
+    /** Optional language change — base no-op; per-editor subclasses override
+     *  when the editor reacts to language changes. */
     changeLanguage(_language: string | undefined): void {
         // Override in subclasses.
     }
@@ -289,7 +265,7 @@ export abstract class EditorModel<
     // ── View focus signal (walkthrough 20 / MO7) ──────────────────────────
 
     /** Called by `<TextChrome>` after its 200ms root-focus subscription fires
-     *  (TC8) so the inner editor view can grab focus too. Text-bearing
+     * so the inner editor view can grab focus too. Text-bearing
      *  editors override:
      *
      *      focus(): void { this.queue.send({ type: "focus" }); } */

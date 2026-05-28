@@ -48,26 +48,6 @@ const defaultPageState: IPageState = {
     hasSidebar: false,
 };
 
-/**
- * PageModel — one per tab. Stable identity that survives navigation.
- *
- * Unified-array shape (EPIC-028 / US-548). Replaces the legacy
- * `_mainEditor: EditorModel | null` + `secondaryEditors: EditorModel[]`
- * dual-field design. An editor's role is now described by two derived flags:
- *
- *   - "is main" — `editor.id === _mainEditorId`
- *   - "contributes panels" — `editor.contributesPanels()` (read from
- *     `editor.state.secondaryEditor.length > 0`)
- *
- * Visibility criterion (walkthrough 01 / A8): an editor is kept in `editors[]`
- * iff `(editor.id === _mainEditorId) || editor.contributesPanels()`. The slice
- * subscription wired in `attach()` (walkthrough 03 / N1) enforces this on
- * every panel-list change.
- *
- * Pattern B (same model as both main and secondary, historically used by
- * ArchiveFileModel during demote) is inexpressible — a model has exactly one
- * membership in `editors[]`, with separate role flags.
- */
 export class PageModel {
     /** Stable page UUID — tab identity, React key, cache key. Never changes. */
     readonly id: string;
@@ -78,7 +58,7 @@ export class PageModel {
     /**
      * All editors attached to this page. Order matches sidebar panel order.
      * One of these may also be the main editor (flagged by `_mainEditorId`).
-     * Holds v4 EditorModel instances (LegacyEditorAdapter or future natives).
+     * Holds v4 EditorModel instances.
      */
     readonly editors: EditorModel[] = [];
 
@@ -209,10 +189,6 @@ export class PageModel {
         if (this.editors.includes(editor)) return;
         this.editors.push(editor);
         editor.setPage(this);
-        // EPIC-028 / US-551 — when a host transfers between editors (e.g.,
-        // monaco ↔ md-view), the successor's id equals the predecessor's id.
-        // Clean up any prior slice subscription for this id before our set()
-        // would silently drop it.
         const prior = this._editorSubs.get(editor.id);
         prior?.();
         const unsub = editor.state.subscribe(
@@ -232,11 +208,6 @@ export class PageModel {
         const idx = this.editors.indexOf(editor);
         if (idx < 0) return;
         this.editors.splice(idx, 1);
-        // EPIC-028 / US-551 — when a host transfers between editors (e.g.,
-        // monaco ↔ md-view), the successor's id equals the predecessor's id.
-        // If another editor in editors[] still holds this id, skip the
-        // _editorSubs cleanup and the _mainEditorId clear so we don't clobber
-        // the successor's wiring.
         const idStillInUse = this.editors.some((e) => e.id === editor.id);
         if (!idStillInUse) {
             this._editorSubs.get(editor.id)?.();
@@ -260,7 +231,7 @@ export class PageModel {
 
     /** Compat shim for legacy EditorModel.secondaryEditor setter side-effect.
      *  Accepts ANY editor (legacy or v4) — the legacy editor's setter passes
-     *  itself, and we look up an existing adapter by id. Retired in US-559. */
+     *  itself, and we look up an existing adapter by id. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     addSecondaryEditor(editor: any): void {
         // Legacy editors pass themselves; resolve to their adapter via id.
@@ -279,7 +250,7 @@ export class PageModel {
         if (editor) this.attach(editor as EditorModel);
     }
 
-    /** Compat shim — detach without disposing. Retired in US-559. */
+    /** Compat shim — detach without disposing. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     removeSecondaryEditorWithoutDispose(editor: any): void {
         const id = editor?.state?.get?.()?.id ?? editor?.id;
@@ -302,7 +273,7 @@ export class PageModel {
         }
     }
 
-    /** Compat shim — find a secondary editor by its id. Retired in US-559. */
+    /** Compat shim — find a secondary editor by its id. */
     findSecondaryEditor(editorId: string): EditorModel | undefined {
         return this.panelEditors.find((e) => e.id === editorId);
     }
@@ -335,7 +306,7 @@ export class PageModel {
      *  - sets _mainEditorId
      *  - fires notifyMainEditorChanged
      *  - applies visibility criterion to the old main (detach + dispose if no panels)
-     *  - compare-mode cleanup (CK7): exits compare for the pair if new main's host
+     *  - compare-mode cleanup: exits compare for the pair if new main's host
      *    isn't TextFileModel.
      */
     async setMainEditor(newEditor: EditorModel | null): Promise<void> {
@@ -383,15 +354,6 @@ export class PageModel {
         }
     }
 
-    /**
-     * Switch the main editor to a different editor type.
-     *
-     * For US-548, adapter-wrapped editors throw on `switchFrom`. Real
-     * view-switching for adapter-wrapped Monaco/Grid still goes through the
-     * legacy `model.changeEditor(view)` path on the underlying TextFileModel
-     * (host-preserving in-place mutation). Per-editor migrations US-551+
-     * replace this with `createEditor → switchFrom → restore`.
-     */
     async switchMainEditor(newEditorId: string): Promise<void> {
         const oldEditor = this.mainEditorInstance;
         if (!oldEditor) return;
@@ -458,9 +420,7 @@ export class PageModel {
 
     // ── Explorer helpers ─────────────────────────────────────────────
 
-    /** Find the Explorer in editors[] (unwrapped from `LegacyEditorAdapter`
-     *  if present — Explorer is v4-native post-US-567 so the unwrap is usually
-     *  a passthrough). */
+    /** Find the Explorer in editors[]. */
     findExplorer(): EditorModel | undefined {
         return this.editors.find(
             (m) => (m.state.get() as { type?: string }).type === "fileExplorer",
@@ -502,9 +462,6 @@ export class PageModel {
         }
         if (!rootPath) return;
 
-        // EPIC-028 / US-567 / EX10 — inline Explorer construction; replaces
-        // the deleted `createExplorer` helper. Same attach-before-restore
-        // ordering as `PagesLifecycleModel.addEmptyPageWithNavPanel`.
         const state = new TComponentState({
             ...getDefaultExplorerEditorState(),
             rootPath,

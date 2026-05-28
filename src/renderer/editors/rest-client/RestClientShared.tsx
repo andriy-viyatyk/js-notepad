@@ -24,16 +24,6 @@ import { LINK } from "../link-editor/linkTraits";
 import { RestClientData, RestRequest } from "./restClientTypes";
 import type { RestClientSource, RestClientViewState } from "./restClientTypes";
 
-/**
- * Shared tree + split-detail components between the legacy `RestClientView.tsx`
- * (registry `loadModule.Editor` — kept alive for future notebook-embed parity
- * with US-554/555/556/560/561/562/564/565 preservation pattern) and the v4
- * `RestClientBody.tsx`. Extracted under US-563 Phase 5b so both consumers can
- * share ~600 LOC of tree + detail UI without duplication. Prop types use
- * `RestClientSource` (legacy VM or v4 editor) so method calls compile
- * identically against both classes.
- */
-
 export interface RequestTreeItem {
     id: string;
     items?: RequestTreeItem[];

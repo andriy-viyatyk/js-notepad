@@ -313,7 +313,7 @@ export interface ShowEditLinkDialogOptions {
     categories?: string[];
     /** Available tags for autocomplete */
     tags?: string[];
-    /** Discovered images from browser (for future US-028 integration) */
+    /** Discovered images from browser (for future integration) */
     discoveredImages?: string[];
 }
 

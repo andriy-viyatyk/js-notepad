@@ -18,25 +18,9 @@ import { isCurrentThemeDark } from "../../theme/themes";
 import { serializeAsJSON, FONT_FAMILY } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
 
-/**
- * EPIC-028 / US-565 — native v4 Drawing (Excalidraw) editor. One class with
- * TextFileModel as its `IContentHost`. Replaces the legacy `DrawViewModel`
- * + `LegacyEditorAdapter` pair. Owns the sync JSON parse pipeline, the
- * bidirectional view→editor→host payload loop (with skipNextContentUpdate
- * guard + fingerprint optimization), and the darkMode toggle (HS1 host-slot
- * — DR4). Body of methods relocated byte-for-byte from legacy DrawViewModel.
- *
- * Design rationale: doc/tasks/US-565-draw-editor-migration/README.md.
- */
-
 export type DrawQueueEvent = { type: "focus" };
 export type DrawQueueRequest = never;
 
-/**
- * HS1 host-slot shape — `darkMode` rides `host.editorSettings["draw-view"]`
- * so it survives Draw↔Monaco switches AND app restarts (DR4). Identical
- * mechanism to Mermaid's `lightMode` (US-562 / MR5 + HS1 amendment).
- */
 interface DrawViewSettings {
     darkMode?: boolean;
 }
@@ -129,7 +113,7 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
     }
 
     /** Typed host accessor for body + toolbar consumption (MK4 pattern from
-     *  US-554; mirrors Svg/Html/Markdown/Mermaid/Graph). */
+     *  mirrors Svg/Html/Markdown/Mermaid/Graph). */
     get host(): TextFileModel | null {
         return this._host;
     }
@@ -156,7 +140,7 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
     getRestoreData(): EditorDescriptor {
         const s = this.state.get();
         // Identity-only descriptor. darkMode rides host.editorSettings["draw-view"]
-        // (HS1). loading/error stripped per PV7 / MO5.
+        //. loading/error stripped per PV7 / MO5.
         return {
             editorId: this.editorId,
             id: s.id,

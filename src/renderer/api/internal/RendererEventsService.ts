@@ -10,7 +10,7 @@ import { EventEndpoint } from "../../../ipc/api-types";
 /**
  * Renderer IPC events service.
  * Subscribes to IPC events and delegates to pagesModel methods.
- * Will be updated in US-050 to delegate to app.pages instead.
+ * Will be updated in to delegate to app.pages instead.
  */
 export class RendererEventsService {
     async init(): Promise<void> {
@@ -84,7 +84,7 @@ export class RendererEventsService {
         try {
             // Route through pipeline — HTTP resolver decides content vs browser based on extension.
             // `browserMode: "internal"` prevents shell.openExternal fallback, which would loop
-            // back to us when Persephone is the OS default browser (US-425).
+            // back to us when Persephone is the OS default browser.
             await app.events.openRawLink.sendAsync(
                 createLinkData(url, { browserMode: "internal" }),
             );

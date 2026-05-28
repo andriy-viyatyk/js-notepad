@@ -50,37 +50,16 @@ function normalizeLinksTitle(title?: string): string {
     return title + ".link.json";
 }
 
-/** Wrap a legacy EditorModel for attachment to a `PageModel`.
- *
- *  EPIC-028 / US-551: text-bearing editors whose target view is "monaco"
- *  get wrapped in a native `MonacoEditor`; the legacy `TextFileModel` becomes
- *  the editor's `IContentHost`. Every other legacy editor (other content-views,
- *  standalone editors) keeps the `LegacyEditorAdapter` path until its own
- *  per-editor migration (US-552+).
- *
- *  Exported as `PagesLifecycleModel.wrapForPage` so the v3 restore path
- *  (PagesPersistenceModel.restoreV3) can auto-promote pre-US-551 sessions to
- *  native Monaco — the next save then writes the v4-native shape.
- */
+/** Attach an `EditorModel` or `TextFileModel` host to a `PageModel`.
+ *  - v4 `EditorModel` input: returned unchanged.
+ *  - `TextFileModel` host input: construct a fresh v4 editor over the host
+ *    driven by `state.editor` (e.g. "monaco", "grid-json", "md-view", …) and
+ *    return it. */
 export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
-    // EPIC-028 / US-568 / PD-IMPL16 — if the "legacy" module factory
-    // returned a v4-native editor (post-migration standalone editors use
-    // `as unknown as EditorModel` casts in their preserved EditorModule
-    // shims — `BrowserView.tsx`, `PdfView.tsx`, future Image/Video/etc.),
-    // return it directly without adapter wrap. `createEditorFromFile`
-    // already called `editor.restore()` before this function — v4 editors
-    // expose the same surface as legacy editors for that call. Closes the
-    // open-file gap so US-559 can delete `LegacyEditorAdapter` cleanly.
-    // Benefits Browser retroactively (closes US-558 limitation).
     if (legacy instanceof EditorModel) {
         return legacy as unknown as EditorModel;
     }
 
-    // EPIC-028 / US-559 — post-strangler: the only non-v4 input here is a
-    // TextFileModel produced by `newTextFileModel(...)` or
-    // `createEditorFromFile(...)`. Derive the target editor id from its
-    // `state.editor` discriminator (legacy `deriveEditorId` retired with
-    // `LegacyEditorAdapter`).
     const legacyState = legacy.state.get() as { type?: string; editor?: string };
     const targetEditorId =
         legacyState.type === "textFile" && legacyState.editor
@@ -129,9 +108,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return grid;
     }
 
-    // EPIC-028 / US-553 — LogView migrated to native v4 module. Construct
-    // LogViewEditor over the legacy TextFileModel host and trigger the
-    // initial JSONL parse inline (mirrors GridEditor's open-file branch).
     if (isTextFile && targetEditorId === "log-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const logView = new LogViewEditor(
@@ -143,10 +119,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return logView;
     }
 
-    // EPIC-028 / US-554 — Markdown migrated to native v4 module. Construct
-    // MarkdownEditor over the legacy TextFileModel host. No initial parse
-    // step — the body reads host.state.content via state.use() and
-    // MarkdownBlock re-renders on every content change via React props.
     if (isTextFile && targetEditorId === "md-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const markdown = new MarkdownEditor(
@@ -156,10 +128,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return markdown;
     }
 
-    // EPIC-028 / US-560 — Svg migrated to native v4 module. Construct
-    // SvgEditor over the legacy TextFileModel host. No initial parse step —
-    // the body reads host.state.content via state.use() and BaseImageView
-    // re-renders on every src prop change.
     if (isTextFile && targetEditorId === "svg-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const svg = new SvgEditor(
@@ -169,10 +137,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return svg;
     }
 
-    // EPIC-028 / US-561 — Html migrated to native v4 module. Construct
-    // HtmlEditor over the legacy TextFileModel host. No initial parse step —
-    // the body reads host.state.content via state.use() and the iframe
-    // re-renders on every srcDoc prop change.
     if (isTextFile && targetEditorId === "html-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const html = new HtmlEditor(
@@ -182,10 +146,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return html;
     }
 
-    // EPIC-028 / US-562 — Mermaid migrated to native v4 module. Construct
-    // MermaidEditor over the legacy TextFileModel host. The initial
-    // renderDebounced() call kicks off inside adoptHost (mirrors today's
-    // MermaidViewModel.onInit → renderDebounced behavior).
     if (isTextFile && targetEditorId === "mermaid-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const mermaid = new MermaidEditor(
@@ -195,10 +155,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return mermaid;
     }
 
-    // EPIC-028 / US-564 — Graph migrated to native v4 module. Construct
-    // GraphEditor over the legacy TextFileModel host. The initial
-    // parseContent() call kicks off inside adoptHost (mirrors today's
-    // GraphViewModel.onInit → parseContent behavior).
     if (isTextFile && targetEditorId === "graph-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const graph = new GraphEditor(
@@ -208,10 +164,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return graph;
     }
 
-    // EPIC-028 / US-565 — Draw migrated to native v4 module. Construct
-    // DrawEditor over the legacy TextFileModel host. The initial parseContent()
-    // call kicks off inside adoptHost (mirrors today's DrawViewModel.onInit →
-    // parseContent behavior).
     if (isTextFile && targetEditorId === "draw-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const draw = new DrawEditor(
@@ -221,12 +173,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return draw;
     }
 
-    // EPIC-028 / US-555 — Link migrated to native v4 module. Construct
-    // LinkEditor over the legacy TextFileModel host. The initial loadData()
-    // call kicks off inline (mirrors today's LinkViewModel.onInit → loadData
-    // behavior). First sidebar-owning v4 editor: registers
-    // `link-category` / `link-tags` / `link-hostnames` panel ids via LK6 once
-    // the page's NavPanel opens.
     if (isTextFile && targetEditorId === "link-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const link = new LinkEditor(
@@ -238,10 +184,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return link;
     }
 
-    // EPIC-028 / US-556 — Todo migrated to native v4 module. Construct
-    // TodoEditor over the legacy TextFileModel host. The initial loadData()
-    // call kicks off inline (mirrors today's TodoViewModel.onInit → loadData
-    // behavior). Non-sidebar-owning Tier-5 editor — no panel registration.
     if (isTextFile && targetEditorId === "todo-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const todo = new TodoEditor(
@@ -253,14 +195,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return todo;
     }
 
-    // EPIC-028 / US-563 — Rest Client migrated to native v4 module. Construct
-    // RestClientEditor over the legacy TextFileModel host. The initial
-    // loadData() call kicks off inline (mirrors today's
-    // RestClientViewModel.onInit → loadData behavior). The async
-    // restoreResponseCache() fires-and-forgets inside adoptHost (RC18) so the
-    // response cache restores for both descriptor-replay (restore()) AND
-    // legacy-host adoption (this branch). Non-sidebar-owning Tier-5 editor —
-    // no panel registration here.
     if (isTextFile && targetEditorId === "rest-client") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const rest = new RestClientEditor(
@@ -272,13 +206,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return rest;
     }
 
-    // EPIC-028 / US-557 — Notebook migrated to native v4 module. Construct
-    // NotebookEditor over the legacy TextFileModel host. The initial loadData()
-    // call kicks off inline (mirrors today's NotebookViewModel.onInit →
-    // loadData behavior). Non-sidebar-owning Tier-5 editor — no panel
-    // registration here. Inner per-note dispatch (NoteItemEditModel +
-    // acquireViewModel) stays on the legacy content-view path per US-557
-    // outer-only scope (NB-IMPL1); inner migration moves to US-579.
     if (isTextFile && targetEditorId === "notebook-view") {
         const id = legacy.state.get().id || crypto.randomUUID();
         const notebook = new NotebookEditor(
@@ -290,10 +217,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         return notebook;
     }
 
-    // EPIC-028 / US-559 — no LegacyEditorAdapter fallback. Every editor is
-    // v4-native (handled above by id-specific branches or the v4 early-return).
-    // Reaching this throw means a caller passed a legacy editor whose target
-    // id is unknown — fix the caller (likely a missed migration).
     throw new Error(
         `attachEditorToPage: no v4 mapping for editor id "${targetEditorId}" (type "${legacyState.type ?? "?"}").`,
     );
@@ -302,14 +225,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
 /** Module-private alias preserved for the existing call sites below. */
 const wrap = attachEditorToPage;
 
-/**
- * PagesLifecycleModel — Page creation, opening, closing, and navigation.
- *
- * EPIC-028 / US-548: every legacy editor is wrapped in `LegacyEditorAdapter`
- * before being attached to the v4 PageModel. The legacy factories
- * (`newTextFileModel`, `newEditorModelFromState`, etc.) survive — wrapping
- * happens at the boundary just before `addPage` / `setMainEditor`.
- */
 export class PagesLifecycleModel {
     constructor(private model: PagesModel) {}
 
@@ -331,16 +246,6 @@ export class PagesLifecycleModel {
         return new ContentPipe(new FileProvider(path));
     }
 
-    // ── Editor factory helpers ──────────────────────────────────────────
-    // Post-US-559: legacy `editorRegistry` deleted. File-resolution goes
-    // through the v4 registry. Text-bearing editors construct a fresh
-    // TextFileModel host; `attachEditorToPage` then wraps it in the right
-    // v4 editor (MonacoEditor / GridEditor / …). No-host editors dispatch
-    // to their preserved standalone shim files (`PdfView.tsx` / `ImageView.tsx`
-    // / `ArchiveEditorView.tsx` / `VideoView.tsx` / `CategoryEditor.tsx`),
-    // whose `newEditorModel(filePath)` factories build a v4 editor cast as
-    // legacy — `attachEditorToPage`'s v4 early-return then forwards it
-    // unwrapped.
 
     private newEditorModel = async (filePath?: string): Promise<EditorOrHost> => {
         const targetId = editorRegistryV4.resolveId(filePath) ?? "monaco";
@@ -459,10 +364,6 @@ export class PagesLifecycleModel {
 
     addEmptyPageWithNavPanel = async (folderPath: string): Promise<PageModel> => {
         const page = new PageModel();
-        // EPIC-028 / US-567 / EX10 — inline Explorer construction; replaces
-        // the deleted `PageModel.createExplorer` helper. Order matters:
-        // `page.attach()` BEFORE `explorer.restore()` so the slice subscription
-        // is wired before `restore()` mutates `secondaryEditor`.
         const state = new TComponentState({
             ...getDefaultExplorerEditorState(),
             rootPath: folderPath,
@@ -582,9 +483,6 @@ export class PagesLifecycleModel {
 
         const page = new PageModel();
         const adapter = wrap(editorModel);
-        // EPIC-028 / US-555: `secondaryEditor` now lives on the v4 editor's
-        // own state (not the host). Set it on the wrapped v4 LinkEditor so
-        // the page-level visibility criterion keeps it in `editors[]`.
         adapter.secondaryEditor = ["link-category"];
         page.addSecondaryEditor(adapter);
         page.ensurePageNavigatorModel();
@@ -666,11 +564,6 @@ export class PagesLifecycleModel {
 
         const page = new PageModel();
         const adapter = wrap(legacy);
-        // EPIC-028 / US-570 / AR-IMPL7 — `attach` calls the v4 ArchiveEditor's
-        // `setPage`, which publishes `secondaryEditor = ["archive-tree"]`; the
-        // trailing `version++` in `attach` forces the navigator render. The
-        // former manual panel-publish line (legacy compat-shim trigger) is no
-        // longer needed.
         page.attach(adapter);
         page.setMainEditorId(adapter.id);
         page.ensurePageNavigatorModel();
@@ -809,10 +702,6 @@ export class PagesLifecycleModel {
             });
         }
 
-        // EPIC-028 / US-551 — auto-select preview editor BEFORE wrap so the
-        // wrap helper picks the right v4 editor class. Previously this ran
-        // after setMainEditor, which locked Monaco-defaulted files (e.g., .md)
-        // into MonacoEditor before the previewEditor mutation could take effect.
         const isTextFile = legacy.state.get().type === "textFile";
         const skipPreview = !!(
             options?.forceTextEditor ||
@@ -1079,9 +968,6 @@ export class PagesLifecycleModel {
             }
         }
 
-        // EPIC-028 / US-558 — v4 native Browser construction. `browserModule`
-        // provides `createEditor()` returning a v4 EditorModel; pass directly
-        // to `addPage` without LegacyEditorAdapter wrapping.
         const { browserModule } = await import("../../editors/browser");
         const model = browserModule.createEditor();
         if (model) {
@@ -1114,11 +1000,6 @@ export class PagesLifecycleModel {
     };
 
     showMcpInspectorPage = async (options?: { url?: string }): Promise<void> => {
-        // EPIC-028 / US-574 — MCP Inspector migrated to native v4 module. Import
-        // path resolves to `editors/mcp-inspector/index.tsx`. `mcpModule.default`
-        // is the preserved legacy module (constructs a v4 McpInspectorEditorModel
-        // cast as legacy). `wrap(model)` early-returns the v4 instance (US-568
-        // PD-IMPL16).
         const mcpModule = await import("../../editors/mcp-inspector");
         const model =
             await mcpModule.default.newEmptyEditorModel("mcpInspectorPage");
@@ -1131,11 +1012,6 @@ export class PagesLifecycleModel {
     };
 
     showStorybookPage = async (): Promise<void> => {
-        // EPIC-028 / US-575 — Storybook migrated to native v4 module. Import path
-        // resolves to `editors/storybook/index.tsx`. `storybookModule.default` is
-        // the preserved legacy `storybookEditorModule` (constructs a v4
-        // StorybookEditorModel cast as legacy). `wrap(model)` early-returns the v4
-        // instance (US-568 PD-IMPL16) — no adapter wrap.
         const storybookModule = await import("../../editors/storybook");
         const model = await storybookModule.default.newEmptyEditorModel("storybookPage");
         if (model) {
@@ -1145,11 +1021,6 @@ export class PagesLifecycleModel {
     };
 
     showVideoPlayerPage = async (): Promise<void> => {
-        // EPIC-028 / US-571 — Video migrated to native v4 module. Import path
-        // resolves to `editors/video/index.tsx`. `videoModule.default` is the
-        // preserved legacy `videoEditorModule` (constructs v4 VideoEditor cast
-        // as legacy). `wrap(model)` early-returns the v4 instance (US-568
-        // PD-IMPL16).
         const videoModule = await import("../../editors/video");
         const model = await videoModule.default.newEmptyEditorModel("videoPage");
         if (model) {
@@ -1158,16 +1029,6 @@ export class PagesLifecycleModel {
     };
 
     openImageInNewTab = async (imageUrl: string): Promise<void> => {
-        // EPIC-028 / US-569 — Image migrated to native v4 module. Import
-        // path resolves to `editors/image/index.tsx` (post-migration; the
-        // legacy file `ImageViewer.tsx` was renamed to `ImageView.tsx`
-        // and is no longer imported directly). `imgModule.default` is
-        // the preserved legacy `imageEditorModule` (constructs v4
-        // ImageEditor cast as legacy). `imgModule.ImageEditorModel` is
-        // the v4 ImageEditor class re-exported under the compatibility
-        // alias for the `instanceof` check below. `wrap(imgModel)`
-        // early-returns the v4 instance (US-568 PD-IMPL16) — no adapter
-        // wrap.
         const imgModule = await import("../../editors/image");
         const imgModel =
             await imgModule.default.newEmptyEditorModel("imageFile");
@@ -1225,8 +1086,6 @@ export class PagesLifecycleModel {
 
         const addTabToPage = (index: number) => {
             const page = pages[index];
-            // EPIC-028 / US-558 — Browser is a v4 native editor; access directly
-            // via mainEditorInstance (no LegacyEditorAdapter unwrap).
             const editor = page.mainEditorInstance;
             if (!(editor instanceof BrowserEditor)) return;
             const tabs = editor.state.get().tabs;

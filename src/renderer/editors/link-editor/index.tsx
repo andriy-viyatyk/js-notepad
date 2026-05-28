@@ -23,19 +23,6 @@ import type { LinkViewMode } from "./linkTypes";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-555 — native Link editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorInstance` is a v4-native LinkEditor instance.
- *
- * Toolbar composition (replaces today's three portals):
- *   - `toolbarContributions` (left of spacer): Breadcrumb (categories / tags /
- *     hostnames depending on expandedPanel).
- *   - `rightToolbarContributions` (right of spacer): Add Link button +
- *     view-mode menu + search input.
- *   - `footerContributions` (footer): filtered/total link count.
- */
-
 // =============================================================================
 // View mode labels / icons
 // =============================================================================

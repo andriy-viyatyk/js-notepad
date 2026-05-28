@@ -17,14 +17,6 @@ export type IState<T> = {
     use: IUse<T>;
     update: (updateDraft: (state: T) => void) => void;
     clear: () => void;
-    /**
-     * Two forms:
-     *   - `subscribe(listener)` fires on every state mutation.
-     *   - `subscribe(listener, selector)` fires only when the selected slice
-     *      differs by `compareSelection` (the same equality the `use` hook
-     *      applies). Lets pure models subscribe with the same precision as
-     *      components — see EPIC-028 walkthrough 03 / N1.
-     */
     subscribe: {
         (listener: () => void): () => void;
         <R>(listener: (value: R) => void, selector: (state: T) => R): () => void;

@@ -1,13 +1,6 @@
 import { IEditorState } from "../../../shared/types";
 import { getDefaultEditorModelState } from "../base";
 
-/**
- * EPIC-028 / US-558 — helper exports + state shape for Browser. The class
- * itself relocated to [`./BrowserEditor.ts`](./BrowserEditor.ts) under the
- * v4 EditorModel three-generic shape. Helpers + state defaults stay here so
- * sub-models + legacy `BrowserView.tsx` continue to import from this path.
- */
-
 // ============================================================================
 // Search Engines
 // ============================================================================
@@ -314,8 +307,4 @@ export function getPartitionString(
     return `persist:browser-${profileName || "default"}`;
 }
 
-// Re-export the v4 class from its new location so consumers that import
-// `BrowserEditorModel` from this path continue to compile during the
-// strangler-fig window. Drop in US-559 when the legacy register-block
-// safety net retires.
 export { BrowserEditor as BrowserEditorModel } from "./BrowserEditor";

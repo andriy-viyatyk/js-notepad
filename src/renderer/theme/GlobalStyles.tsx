@@ -138,9 +138,9 @@ function buildGlobalStyles() {
             height: 0;
         }
 
-        /* Portal mount target inside TextEditorView for full-area overlays
-         * (e.g. NotebookEditor's expanded note view). Hidden when no portal
-         * content is present so the bg color does not blanket the editor. */
+        /* Portal mount target for full-area overlays (e.g. NotebookEditor's
+         * expanded note view). Hidden when no portal content is present so the
+         * background color does not blanket the editor. */
         .editor-overlay {
             position: absolute;
             inset: 0;

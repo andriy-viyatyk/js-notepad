@@ -436,14 +436,6 @@ function HistoryPanel({ model }: { model: McpInspectorEditorModel }) {
     );
 }
 
-// EPIC-028 / US-574 — legacy EditorModule shape preserved for the
-// `showMcpInspectorPage` launcher and the LegacyEditorAdapter safety-net path.
-// The `as unknown as EditorModel` casts bridge the v4 McpInspectorEditorModel
-// (now a v4 EditorModel subclass) to the legacy EditorModel typing the legacy
-// module factories expect; the runtime instance is the v4 class either way.
-// `attachEditorToPage`'s `instanceof EditorModel` early-return (US-568
-// PD-IMPL16) detects the v4 instance and skips the adapter wrap. US-559 retires
-// this block entirely.
 const mcpInspectorEditorModule: EditorModule = {
     Editor: McpInspectorView as unknown as EditorModule["Editor"],
 

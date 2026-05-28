@@ -18,26 +18,11 @@ import { debounce } from "../../../shared/utils";
 import type { RenderGridModel } from "../../uikit/RenderGrid";
 import type { ListCount, TodoData, TodoItem, TodoTag } from "./todoTypes";
 
-/**
- * EPIC-028 / US-556 — native v4 Todo editor. One class with TextFileModel
- * as its `IContentHost`. Replaces the legacy `TodoViewModel` +
- * `LegacyEditorAdapter` pair. Eighth Tier-5 editor in the uniform shape.
- * First non-sidebar-owning text-bearing editor since Draw — no
- * `beforeNavigateAway` / `onMainEditorChanged` overrides (TD6); TodoListPanel
- * renders inline inside the editor body, not as a registered secondary editor.
- *
- * Bodies of mutator methods are relocated byte-for-byte from legacy
- * TodoViewModel. The HS1 host-slot replaces today's `<host.id>:todo-editor`
- * selection-state cache file (TD3 — fifth instance of the pattern).
- *
- * Design rationale: doc/tasks/US-556-todo-editor-migration/README.md.
- */
-
 export type TodoQueueEvent = { type: "focus" };
 export type TodoQueueRequest = never;
 
 /**
- * HS1 host-slot shape (TD3) — the three per-window UI fields ride
+ * HS1 host-slot shape — the three per-window UI fields ride
  * `host.editorSettings["todo-view"]`. Survives Todo↔Monaco switches AND app
  * restarts. Replaces today's `<host.id>:todo-editor` cache file.
  */
@@ -48,17 +33,17 @@ interface TodoViewSettings {
 }
 
 export interface TodoEditorState extends EditorStateBase {
-    // HS1 — ride host.editorSettings["todo-view"] (TD3):
+    // HS1 — ride host.editorSettings["todo-view"]:
     leftPanelWidth: number;
     selectedList: string;
     selectedTag: string;
     // View-derived — present on state for reactivity, stripped from
-    // getRestoreData (TD2). Recomputed from host content via loadData.
+    // getRestoreData. Recomputed from host content via loadData.
     data: TodoData;
     error: string | undefined;
     listCounts: { [listName: string]: ListCount };
     filteredItems: TodoItem[];
-    // Transient UI state — not persisted (TD2):
+    // Transient UI state — not persisted:
     searchText: string;
 }
 
@@ -162,7 +147,7 @@ export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEven
         this.typedQueue.send({ type: "focus" });
     }
 
-    // ── Persistence (TD2 + TD3) ─────────────────────────────────────────
+    // ── Persistence ─────────────────────────────────────────
 
     getRestoreData(): EditorDescriptor {
         const s = this.state.get();
@@ -312,7 +297,7 @@ export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEven
     // are dropped — replaced by the HS1 slice-subscribe mirror above.
     // ────────────────────────────────────────────────────────────────────
 
-    // ── Serialization: state → file content (TD4 + TD5) ─────────────────
+    // ── Serialization: state → file content ─────────────────
 
     private onDataChanged = (): void => {
         const { data, error } = this.state.get();

@@ -5,12 +5,6 @@ import { TextChrome } from "../base/TextChrome";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-551 — native Monaco editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorInstance` is a v4-native MonacoEditor instance.
- */
-
 function MonacoEditorView({ model }: { model: EditorModel }) {
     return (
         <TextChrome model={model}>

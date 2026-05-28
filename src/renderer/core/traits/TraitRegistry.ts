@@ -13,7 +13,7 @@ export enum TraitTypeId {
     RestRequest = "RestRequest",
     BrowserTab = "BrowserTab",
     PinnedLink = "PinnedLink",
-    // Added in US-449:
+    // Added in :
     PageTab = "PageTab",
     GridColumn = "GridColumn",
     MenuFolder = "MenuFolder",

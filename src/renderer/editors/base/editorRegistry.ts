@@ -2,20 +2,6 @@ import type React from "react";
 import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
 
-/**
- * v4 editor registry. Coexists with the legacy registry at
- * [`../../registry.ts`](../../registry.ts) during the strangler-fig migration.
- * US-548 starts populating this with adapter-wrapped editors; US-559 deletes
- * the legacy registry.
- *
- * Differences from the legacy `EditorDefinition`:
- *   - Dropped: `category`, `editorType`, `acceptFile`, `validForLanguage`,
- *     `switchOption`, `isEditorContent`, `createViewModel`.
- *   - Added: single `accepts(input)` predicate, `hasContentHost` flag.
- *
- * Design rationale: [`doc/epics/EPIC-028-editor-architecture/mockups/editorRegistry.ts`](../../../../../doc/epics/EPIC-028-editor-architecture/mockups/editorRegistry.ts).
- */
-
 export interface AcceptanceInput {
     fileName?: string;
     language?: string;
@@ -34,22 +20,12 @@ export interface EditorModule {
     /** The React component that renders this editor (with chrome). */
     Component: React.ComponentType<{ model: EditorModel }>;
     /** Chrome-free body — the editor content WITHOUT `<TextChrome>`. Supplied
-     *  by editors that can be embedded inside another editor (EPIC-028 / US-579
-     *  — notebook per-note dispatch renders `module.Body` so each note's editor
+     *  by editors that can be embedded inside another editor (*  — notebook per-note dispatch renders `module.Body` so each note's editor
      *  has no page chrome). Only the language-gated embeddable editors (Grid,
      *  Markdown, Svg, Html, Mermaid) provide it. */
     Body?: React.ComponentType<{ model: EditorModel }>;
 }
 
-/**
- * Granular file/language/content matching rules for an editor (EPIC-028 /
- * US-581). Populated from [`editor-matchers.ts`](./editor-matchers.ts). Drives
- * the registry's `resolve` / `getSwitchOptions` / `getPreviewEditor` /
- * `validateForLanguage` / `detectContentEditor` — the distinct priority scales
- * (file resolution with monaco as the 0 floor; switch offering with monaco
- * first) that a single `accepts()` predicate can't express. Editors with no
- * file/switch/content rules (pure standalone pages) omit `match` entirely.
- */
 export interface EditorMatcher {
     /** File-open resolution priority for this file name (highest wins;
      *  monaco is the 0 floor). */
@@ -84,7 +60,7 @@ export interface EditorDefinition {
      *  explicit during the inert phase for clarity. */
     readonly hasContentHost: boolean;
 
-    /** Granular matching rules (US-581). Absent for pure standalone editors
+    /** Granular matching rules. Absent for pure standalone editors
      *  (browser / settings / about / mcp / storybook) that never match a file
      *  and never appear in the switch widget. */
     match?: EditorMatcher;
@@ -134,16 +110,6 @@ class EditorRegistry {
     findEditorsAccepting(host: IContentHost): string[] {
         const out: { id: string; p: number }[] = [];
         const language = host.state.get().language;
-        // TextFileModel exposes `filePath`; the v4 IContentHost interface
-        // doesn't carry it. Fall through structurally so hosts that surface
-        // it participate, others don't. (C1 — switch via `instanceof` once
-        // TextFileModel lands in v4 during US-551.)
-        //
-        // For untitled pages created via `addEditorPage("draw-view", "json",
-        // "untitled.excalidraw")` (tool-menu / sidebar entries) `filePath` is
-        // undefined but `title` carries the meaningful extension. Falling
-        // back to the title lets `acceptFile` / `switchOption` recognize the
-        // file shape and surface the editor in the switch widget.
         const fileName = (host as unknown as { filePath?: string }).filePath
             ?? (host.state.get() as { title?: string }).title;
         for (const def of this.definitions.values()) {
@@ -154,10 +120,6 @@ class EditorRegistry {
         return out.sort((a, b) => b.p - a.p).map((x) => x.id);
     }
 
-    // =========================================================================
-    // File / language / content matching (EPIC-028 / US-581 — replaces the
-    // legacy `editors/registry.ts` surface; backed by `def.match`)
-    // =========================================================================
 
     /** Resolve the best editor DEFINITION for opening a file, by file-acceptance
      *  priority (highest wins; monaco is the 0 floor). Returns undefined when no
@@ -236,7 +198,7 @@ class EditorRegistry {
      *  Robust to unloaded content — empty content matches nothing, so an early
      *  call before the host finishes loading simply yields no suggestion and
      *  re-runs once content arrives. Mirrors the legacy `detectContentEditor`,
-     *  now host-driven (US-581 / C581-3). */
+     *  now host-driven (/ C581-3). */
     detectContentEditor(host: IContentHost): string | undefined {
         const s = host.state.get() as { content?: string; language?: string };
         const content = s.content ?? "";
@@ -271,7 +233,7 @@ class EditorRegistry {
 
     /** Public module accessor — loads (and caches) the module for an id so
      *  callers can read `module.Body` / `module.createEditor` directly. Used by
-     *  the notebook per-note dispatch (US-579) to mount an embedded editor's
+     *  the notebook per-note dispatch to mount an embedded editor's
      *  chrome-free Body. */
     getModule(id: string): Promise<EditorModule> {
         return this.loadModule(id);

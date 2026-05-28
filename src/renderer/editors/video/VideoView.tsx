@@ -116,15 +116,6 @@ export function VideoView({ model }: VideoViewProps) {
     );
 }
 
-// ── Editor Module ────────────────────────────────────────────────────────────
-// EPIC-028 / US-571 — legacy EditorModule shape preserved for the file-open
-// flow, the `showVideoPlayerPage` tool launcher, and the LegacyEditorAdapter
-// safety-net path. The `as unknown as EditorModel` casts bridge the v4
-// VideoEditor class to the legacy EditorModel typing the legacy module
-// factories expect; the runtime instance is the v4 class either way.
-// `attachEditorToPage`'s `instanceof EditorModel` early-return (US-568
-// PD-IMPL16) detects the v4 instance and skips the adapter wrap. US-559 retires
-// this block entirely.
 
 const videoEditorModule: EditorModule = {
     Editor: VideoView as unknown as EditorModule["Editor"],

@@ -4,16 +4,6 @@ import { ImageView } from "./ImageView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-569 — native Image editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor`
- * when the page's `mainEditorInstance` is a v4-native ImageEditor instance.
- *
- * Image is NO-HOST (no `CONTENT_HOST_TRAIT`) — `Component` is the full
- * Image viewer (toolbar + BaseImageView zoom/pan host). No `<TextChrome>`
- * wrap (text-bearing chrome is irrelevant).
- */
-
 function ImageEditorComponent({ model }: { model: EditorModel }) {
     return <ImageView model={model as ImageEditor} />;
 }
@@ -26,15 +16,9 @@ export const imageModule: EditorModule = {
 
 export { ImageEditor, getDefaultImageEditorState };
 export type { ImageEditorState } from "./ImageEditor";
-// Compatibility aliases — retire under US-559 cleanup. Keep
-// `ImageEditorModel` / `ImageEditorModelState` names usable from any stale
-// imports outside this folder (mirrors US-568 Pdf migration's alias
-// pattern). The `openImageInNewTab` caller in PagesLifecycleModel.ts
-// consumes the `ImageEditorModel` alias via this index.
 export { ImageEditor as ImageEditorModel } from "./ImageEditor";
 export type { ImageEditorState as ImageEditorModelState } from "./ImageEditor";
 // Legacy EditorModule default-export — consumed by the legacy
-// `editorRegistry` `loadModule` callback (file-open + LegacyEditorAdapter
 // safety-net path) AND by `openImageInNewTab` for the blob-URL flow.
 // Re-exported as BOTH the named `imageEditorModule` (for direct callers)
 // AND as `default` (for the legacy `imgModule.default` consumption in

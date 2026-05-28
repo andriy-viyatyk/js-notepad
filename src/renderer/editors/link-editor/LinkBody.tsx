@@ -20,18 +20,6 @@ import { PinnedLinksPanel } from "./PinnedLinksPanel";
 import { EditorError } from "../base/EditorError";
 import type { LinkEditor } from "./LinkEditor";
 
-/**
- * EPIC-028 / US-555 — native v4 Link editor body. Replaces today's
- * `LinkView.tsx` view (preserved for browser-embed + future notebook-embed).
- *
- * - `useContentViewModel` retired — `editor` is the v4 model directly.
- * - `useSyncExternalStore` retired — `editor.state.use((s) => ({...}))` selector.
- * - Toolbar / footer portals retired — `LinkToolbarBits` / `LinkFooterBits`
- *   compose into TextChrome slots in `./index.tsx`.
- * - LK6 — sidebar panel registration: view watches `pageNavigatorModel.state`
- *   and calls `editor.setSidebarPanels(open)`. Cleanup function disappears
- *   entirely (model handles "demote survives" via `beforeNavigateAway`).
- */
 export function LinkBody({ model }: { model: LinkEditor }) {
     const pageState = model.state.use((s) => ({
         leftPanelWidth: s.leftPanelWidth,
@@ -82,7 +70,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
         return () => subs.forEach((s) => s.unsubscribe());
     }, [pageId, model]);
 
-    // Queue focus event (LK10): refocus container element on `focus` event.
+    // Queue focus event: refocus container element on `focus` event.
     model.queue.use((ev) => {
         if (ev.type === "focus") model.refocus();
     });

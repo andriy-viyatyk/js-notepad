@@ -8,23 +8,6 @@ import { EditorView } from "../../../shared/types";
 import { shell } from "../../api/shell";
 import { ui } from "../../api/ui";
 
-/**
- * EPIC-028 / US-558 — wraps `TextFileModel` (bookmarks file host) + v4
- * `LinkEditor` (data layer) for browser bookmarks. Stored on
- * `BrowserEditor.bookmarks` (null until lazily initialized).
- *
- * Pattern (BR-IMPL2 — construct-then-adoptHost):
- *   - Construct `TextFileModel(state)` + `LinkEditor(defaultLinkEditorState)`.
- *   - On `init()`: `textFileHost.restore()` → handle encryption →
- *     `linkEditor.adoptHost(textFileHost)` → `linkEditor.loadData(content)`.
- *   - On `dispose()`: `await linkEditor.dispose()` (LinkEditor disposes the
- *     host internally — see `LinkEditor.dispose`).
- *
- * Retires today's `textFileHost.acquireViewModel("link-view")` ref-counted
- * pathway (NH4 — final external consumer of the legacy view-model
- * machinery). The `useContentViewModel` indirection in preserved legacy
- * views (`LinkView.tsx`, `NotebookView.tsx`, ...) stays alive until US-559.
- */
 export class BrowserBookmarks {
     readonly textFileHost: TextFileModel;
     readonly linkEditor: LinkEditor;

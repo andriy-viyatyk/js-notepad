@@ -45,24 +45,12 @@ import { alertsBarModel } from "../../uikit";
 import { buildMarkdown } from "./GraphTooltip";
 import { pagesModel } from "../../api/pages";
 
-/**
- * EPIC-028 / US-564 — native v4 Force-Graph editor. One class with
- * TextFileModel as its `IContentHost`. Replaces the legacy `GraphViewModel`
- * + `LegacyEditorAdapter` pair. Owns the 5 graph submodels (renderer,
- * visibilityModel, dataModel, groupModel, connectivityModel, searchModel),
- * the 400 ms debounced JSON parse pipeline, and the groupingEnabled toggle
- * (HS1 host-slot — GR4). Body of methods relocated byte-for-byte from
- * legacy GraphViewModel.
- *
- * Design rationale: doc/tasks/US-564-graph-editor-migration/README.md.
- */
-
 export type GraphQueueEvent = { type: "focus" };
 export type GraphQueueRequest = never;
 
 /**
  * HS1 host-slot shape — `groupingEnabled` rides `host.editorSettings["graph-view"]`
- * so it survives Graph↔Monaco switches AND app restarts (GR4). Identical
+ * so it survives Graph↔Monaco switches AND app restarts. Identical
  * mechanism to Markdown's `compactMode` / Mermaid's `lightMode`.
  */
 interface GraphViewSettings {
@@ -126,7 +114,7 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
 export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueEvent> {
     readonly editorId = "graph-view";
 
-    // ── Owned submodels (GR5) ───────────────────────────────────────────
+    // ── Owned submodels ───────────────────────────────────────────
     readonly renderer = new ForceGraphRenderer();
     readonly visibilityModel = new GraphVisibilityModel();
     readonly dataModel = new GraphDataModel();
@@ -214,7 +202,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
     }
 
     /** Typed host accessor for body + facade + sub-panels (MK4 pattern from
-     *  US-554; mirrors Svg/Html/Markdown/Mermaid). */
+     *  mirrors Svg/Html/Markdown/Mermaid). */
     get host(): TextFileModel | null {
         return this._host;
     }
@@ -241,7 +229,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
     getRestoreData(): EditorDescriptor {
         const s = this.state.get();
         // Identity-only descriptor. groupingEnabled rides host.editorSettings["graph-view"]
-        // (HS1). All other view-derived state stripped per PV7 / MO5.
+        //. All other view-derived state stripped per PV7 / MO5.
         return {
             editorId: this.editorId,
             id: s.id,

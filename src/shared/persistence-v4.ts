@@ -1,14 +1,3 @@
-/**
- * EPIC-028 v4 persistence schemas. Coexists with legacy types in
- * [`./types.ts`](./types.ts) during the strangler-fig migration. US-548's
- * dual-read picks one or the other by inspecting `schemaVersion` on the
- * top-level WindowState. US-559 deletes legacy and lifts v4 in.
- *
- * Design rationale: see
- * [`doc/epics/EPIC-028-editor-architecture/mockups/PersistenceTypes.ts`](../../doc/epics/EPIC-028-editor-architecture/mockups/PersistenceTypes.ts)
- * (walkthrough 04 / P1, P2, P4, P10 + concern C3).
- */
-
 /** Serialized content pipe (provider + persistent transformers + encoding).
  *  Identical shape to today's `IEditorState.pipe`; relocated under
  *  `HostDescriptor` because the pipe is host-owned, not editor-owned. */

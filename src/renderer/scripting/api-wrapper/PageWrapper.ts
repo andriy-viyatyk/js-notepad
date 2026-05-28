@@ -33,30 +33,6 @@ import { BrowserEditorFacade } from "./BrowserEditorFacade";
 import { McpInspectorFacade } from "./McpInspectorFacade";
 import type { ScriptOutputFlags } from "../ScriptContext";
 
-/**
- * Safe wrapper around EditorModel for script access.
- * Implements the IPage interface from api/types/page.d.ts.
- *
- * - Exposes only script-safe properties and methods
- * - Shares a releaseList for auto-releasing ViewModels on script completion
- *
- * EPIC-028 / US-550 strangler-period notes:
- * - `page.type` retired (SF5).
- * - `set editor(v)` routes through `page.switchMainEditor(v).catch(ui.notify)` per SF4;
- *   PageModel handles the LegacyEditorAdapter case internally.
- * - `asX(force?: boolean)` (SF1): when `force = true`, the facade consults the
- *   page's compatible-editors list (same source as the UI switch widget) and
- *   switches the page if compatible. Without `force`, throws when the page
- *   isn't already the target editor.
- * - `asBrowser` / `asMcpInspector` gates use `editorId === "..."` (Q7);
- *   switches to `instanceof` during US-558.
- * - `acquireViewModel*` remains in use for the 11 ViewModel-backed facades;
- *   full retirement (SF2) happens per-editor in Phase C migrations.
- *
- * `this.model` is the unwrapped legacy editor (what `PagesModel.findPage(...).mainEditor`
- * returns). v4-only fields (`editorId`, `contentHost`, `findCompatibleEditors`) are
- * read through `this.v4` which resolves the adapter via the owning page.
- */
 export class PageWrapper {
     constructor(
         private readonly model: EditorOrHost,
@@ -64,11 +40,8 @@ export class PageWrapper {
         private readonly outputFlags?: ScriptOutputFlags,
     ) {}
 
-    /**
-     * Resolve the v4 surface (LegacyEditorAdapter or future v4-native editor)
-     * for the page that owns `this.model`. Returns null when the page can't
-     * be resolved (detached editor); callers fall back to legacy state reads.
-     */
+    /** Resolve the v4 editor instance for the page that owns `this.model`.
+     *  Returns null when the page can't be resolved (detached editor). */
     private get v4(): EditorModel | null {
         const pageId = this.model.page?.id;
         if (!pageId) return null;
@@ -76,10 +49,6 @@ export class PageWrapper {
     }
 
     private currentEditorId(): string {
-        // Post-US-559: legacy adapter gone; v4-aware path always populated when
-        // the page has a main editor. Fallback reads `state.editor` from the
-        // unwrapped host (TextFileModel) when present; otherwise defaults to
-        // "monaco" (detached-model edge case).
         return (
             this.v4?.editorId
             ?? (this.model.state.get() as { editor?: string }).editor
@@ -142,8 +111,7 @@ export class PageWrapper {
         const page = this.model.page;
         if (!page) return;
         // SF4: fire-and-forget switch with `.catch(ui.notify)`. PageModel.switchMainEditor
-        // internally handles the LegacyEditorAdapter case (legacy `model.changeEditor(view)`
-        // path on the wrapped TextFileModel). Once per-editor migrations land, the catch
+                // path on the wrapped TextFileModel). Once per-editor migrations land, the catch
         // surfaces real `switchFrom` rejections.
         page.switchMainEditor(value).catch((err: unknown) => {
             const message = err instanceof Error ? err.message : String(err);
@@ -167,9 +135,6 @@ export class PageWrapper {
 
     async asText(force = false): Promise<TextEditorFacade> {
         await this.ensureEditor("monaco", "Monaco", "asText", force);
-        // EPIC-028 / US-551 — Monaco is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a MonacoEditor; the facade wraps it directly
-        // and routes view-context queries through its ComponentQueue.
         const v4 = this.v4;
         if (!(v4 instanceof MonacoEditor)) {
             throw new Error("asText(): page is not a MonacoEditor after switch");
@@ -180,9 +145,6 @@ export class PageWrapper {
     async asGrid(force = false): Promise<GridEditorFacade> {
         const targetId = this.resolveGridEditorId();
         await this.ensureEditor(targetId, "Grid", "asGrid", force);
-        // EPIC-028 / US-552 — Grid is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a GridEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof GridEditor)) {
             throw new Error("asGrid(): page is not a GridEditor after switch");
@@ -205,10 +167,6 @@ export class PageWrapper {
 
     async asNotebook(force = false): Promise<NotebookEditorFacade> {
         await this.ensureEditor("notebook-view", "Notebook", "asNotebook", force);
-        // EPIC-028 / US-559 — Notebook is v4-native (US-557). After ensureEditor,
-        // the page's mainEditorInstance IS a NotebookEditor; the facade wraps it
-        // directly. No acquireViewModel round-trip (the last `acquireViewModel`
-        // consumer retired).
         const v4 = this.v4;
         if (!(v4 instanceof NotebookEditor)) {
             throw new Error("asNotebook(): page is not a NotebookEditor after switch");
@@ -218,9 +176,6 @@ export class PageWrapper {
 
     async asTodo(force = false): Promise<TodoEditorFacade> {
         await this.ensureEditor("todo-view", "Todo", "asTodo", force);
-        // EPIC-028 / US-556 — Todo is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a TodoEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof TodoEditor)) {
             throw new Error("asTodo(): page is not a TodoEditor after switch");
@@ -230,9 +185,6 @@ export class PageWrapper {
 
     async asLink(force = false): Promise<LinkEditorFacade> {
         await this.ensureEditor("link-view", "Link", "asLink", force);
-        // EPIC-028 / US-555 — Link is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a LinkEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof LinkEditor)) {
             throw new Error("asLink(): page is not a LinkEditor after switch");
@@ -242,9 +194,6 @@ export class PageWrapper {
 
     async asMarkdown(force = false): Promise<MarkdownEditorFacade> {
         await this.ensureEditor("md-view", "Markdown", "asMarkdown", force);
-        // EPIC-028 / US-554 — Markdown is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a MarkdownEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof MarkdownEditor)) {
             throw new Error("asMarkdown(): page is not a MarkdownEditor after switch");
@@ -254,9 +203,6 @@ export class PageWrapper {
 
     async asSvg(force = false): Promise<SvgEditorFacade> {
         await this.ensureEditor("svg-view", "SVG", "asSvg", force);
-        // EPIC-028 / US-560 — Svg is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a SvgEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof SvgEditor)) {
             throw new Error("asSvg(): page is not a SvgEditor after switch");
@@ -266,9 +212,6 @@ export class PageWrapper {
 
     async asHtml(force = false): Promise<HtmlEditorFacade> {
         await this.ensureEditor("html-view", "HTML", "asHtml", force);
-        // EPIC-028 / US-561 — Html is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS an HtmlEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof HtmlEditor)) {
             throw new Error("asHtml(): page is not an HtmlEditor after switch");
@@ -278,9 +221,6 @@ export class PageWrapper {
 
     async asMermaid(force = false): Promise<MermaidEditorFacade> {
         await this.ensureEditor("mermaid-view", "Mermaid", "asMermaid", force);
-        // EPIC-028 / US-562 — Mermaid is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a MermaidEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof MermaidEditor)) {
             throw new Error("asMermaid(): page is not a MermaidEditor after switch");
@@ -290,9 +230,6 @@ export class PageWrapper {
 
     async asGraph(force = false): Promise<GraphEditorFacade> {
         await this.ensureEditor("graph-view", "Graph", "asGraph", force);
-        // EPIC-028 / US-564 — Graph is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a GraphEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof GraphEditor)) {
             throw new Error("asGraph(): page is not a GraphEditor after switch");
@@ -302,9 +239,6 @@ export class PageWrapper {
 
     async asDraw(force = false): Promise<DrawEditorFacade> {
         await this.ensureEditor("draw-view", "Draw", "asDraw", force);
-        // EPIC-028 / US-565 — Draw is v4-native. After ensureEditor, the
-        // page's mainEditorInstance IS a DrawEditor; the facade wraps it directly.
-        // No acquireViewModel round-trip.
         const v4 = this.v4;
         if (!(v4 instanceof DrawEditor)) {
             throw new Error("asDraw(): page is not a DrawEditor after switch");
@@ -326,12 +260,6 @@ export class PageWrapper {
         return new McpInspectorFacade(this.model as unknown as McpInspectorEditorModel);
     }
 
-    /**
-     * SF1 — If the page is already at `targetId`, return. If not and `force` is true,
-     * check compatibility against the same source as the UI switch widget
-     * (`findCompatibleEditors()` per US-549's switch widget) and switch the page.
-     * Throws on incompatible or detached page.
-     */
     private async ensureEditor(
         targetId: string,
         expectedClassName: string,
@@ -359,11 +287,6 @@ export class PageWrapper {
         await page.switchMainEditor(targetId);
     }
 
-    /**
-     * Same source as the UI switch widget (US-549 `<SwitchWidget>`): the v4
-     * adapter's `findCompatibleEditors()`. Falls back to a direct legacy registry
-     * query if the v4 surface isn't available (detached editor edge case).
-     */
     private compatibleEditorIds(): string[] {
         const v4 = this.v4;
         if (v4) return v4.findCompatibleEditors();

@@ -24,11 +24,6 @@ export interface AudioPlayerProps {
     onToggleShuffle?: () => void;
 }
 
-// ── Reveal-on-hover CSS (option A from US-514 C5) ────────────────────────────
-// Plain <div> overlay with [data-audio-overlay] attribute. UIKit Panel cannot
-// express `transform`, `width: "33%"`, or `:hover` background fade, so the
-// overlay positioning is inline-style and the hover-driven visibility +
-// background transitions are injected once below.
 
 const overlayCss = `
 [data-audio-overlay] [data-visibility="parent-hover"] {

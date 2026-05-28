@@ -15,20 +15,6 @@ import { fpBasename } from "../../core/utils/file-path";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
 import { editorRegistry as v4Registry } from "../base/editorRegistry";
 
-/**
- * EPIC-028 / US-551 — native v4 Monaco editor.
- *
- * Wraps the existing legacy `TextFileModel` as its `IContentHost`. The host
- * exposes the v4 contract via structural typing — no changes to the legacy
- * class were needed beyond adding `getDescriptor` / `setStorage` /
- * `fromDescriptor` (see TextEditorModel.ts). Sibling content-view editors
- * (Grid, Markdown, …) still use `LegacyEditorAdapter` wrapping the same
- * TextFileModel during the strangler period; cross-camp swaps go through
- * `CONTENT_HOST_TRAIT`.
- *
- * Design rationale: doc/epics/EPIC-028-editor-architecture/walkthroughs/20-monaco.md.
- */
-
 export type MonacoQueueEvent =
     | { type: "revealLine"; line: number }
     | { type: "highlightText"; text: string | undefined }

@@ -38,14 +38,6 @@ import {
 } from "./utils/grid-utils";
 import { formatFromEditorId, type GridFormat, type GridEditorId } from "./util";
 
-/**
- * EPIC-028 / US-552 — native v4 Grid editor. One class, three registrations
- * (grid-json / grid-csv / grid-jsonl) discriminated by a constructor-bound
- * `format` field. Wraps the legacy `TextFileModel` as its `IContentHost`.
- *
- * Design rationale: doc/epics/EPIC-028-editor-architecture/walkthroughs/21-grid.md.
- */
-
 export type GridQueueEvent =
     | { type: "focus" }
     | { type: "focusCell"; row: number; col: number };
@@ -116,11 +108,11 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
     private _csvOptionsUnsub: (() => void) | null = null;
     private _settingsUnsub: (() => void) | null = null;
     private _pendingHost: HostDescriptor | undefined = undefined;
-    /** HS1 — pre-US-552-B descriptors carried Grid view-config directly on
+    /** HS1 — descriptors carried Grid view-config directly on
      *  `EditorDescriptor.state` (per GR4's original resolution). One-shot
      *  legacy promotion: applyRestoreData stashes the legacy fields here;
      *  adoptHost promotes them into `host.editorSettings[this.editorId]`
-     *  if the host slot is still empty. After the first save post-US-552-B,
+     *  if the host slot is still empty. After the first save 
      *  the descriptor no longer carries the legacy fields and the host slot
      *  becomes the single source of truth. */
     private _pendingLegacySettings: GridViewSettings | null = null;
@@ -223,7 +215,6 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
             // promotion into the host slot.
         });
 
-        // HS1 — one-shot legacy promotion for pre-US-552-B sessions.
         const hasLegacy =
             data.columns !== undefined ||
             data.filters !== undefined ||
@@ -385,9 +376,6 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
             });
         }
 
-        // HS1 — promote pre-US-552-B legacy descriptor fields into the
-        // host slot if it's still empty (one-shot per restore). Pre-empts
-        // the seed read below; the seed then picks up the promoted values.
         if (
             this._pendingLegacySettings &&
             host.getEditorState<GridViewSettings>(this.editorId) === undefined

@@ -13,18 +13,6 @@ import { TodoItemView } from "./components/TodoItemView";
 import type { TodoItem } from "./todoTypes";
 import type { TodoEditor } from "./TodoEditor";
 
-/**
- * EPIC-028 / US-556 — native v4 Todo editor body. Replaces today's
- * `TodoView.tsx` view (preserved for future notebook-embed).
- *
- * - `useContentViewModel` retired — `editor` is the v4 model directly.
- * - `useSyncExternalStore` retired — `editor.state.use((s) => ({...}))` selector.
- * - Toolbar / footer portals retired — `TodoToolbarBits` / `TodoFooterBits`
- *   compose into TextChrome slots in `./index.tsx`.
- * - TD6 — TodoListPanel renders INLINE inside the body (NOT a registered
- *   secondary editor). No `setSidebarPanels` dispatcher.
- */
-
 const getColumnWidth = () => "100%" as Percent;
 
 export function TodoBody({ model: editor }: { model: TodoEditor }) {
@@ -138,7 +126,7 @@ export function TodoBody({ model: editor }: { model: TodoEditor }) {
         [getItemForRow, separatorIndex, editor, tags],
     );
 
-    // Queue focus event (TD10): kept for Tier-5 symmetry. Today's TodoEditor
+    // Queue focus event: kept for Tier-5 symmetry. Today's TodoEditor
     // has no explicit refocus behavior; harmless no-op.
     editor.queue.use((ev) => {
         if (ev.type === "focus") {

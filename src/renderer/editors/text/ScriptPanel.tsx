@@ -311,10 +311,6 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
         const { selectedScript } = this.state.get();
 
         if (selectedScript && nodefs.existsSync(selectedScript)) {
-            // Open the selected script file, then add Explorer to the page.
-            // EPIC-028 / US-567 — `page.createExplorer` was deleted (EX10);
-            // construct ExplorerEditor inline using the same shape as
-            // `PagesLifecycleModel.addEmptyPageWithNavPanel`.
             const page = await pagesModel.openFile(selectedScript);
             if (page && scriptPanelDir) {
                 const { ExplorerEditor, getDefaultExplorerEditorState } =

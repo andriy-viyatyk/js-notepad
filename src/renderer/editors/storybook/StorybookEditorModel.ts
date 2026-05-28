@@ -5,28 +5,12 @@ import {
 import { ALL_STORIES, findStory } from "./storyRegistry";
 import { Story, PropDef } from "./storyTypes";
 
-/**
- * EPIC-028 / US-575 — native v4 Storybook page. NO-HOST editor (no
- * `CONTENT_HOST_TRAIT`). Singleton well-known page (fixed id `STORYBOOK_PAGE_ID`),
- * opened only via the `showStorybookPage` Tools entry (never via `openFile`), so
- * the v4 registry `accepts` predicate returns -1.
- *
- * Unlike Settings/About (identity-only state), Storybook carries real persisted
- * UI state (selected story, prop values, preview background, panel widths) with
- * NO transient runtime fields and NO instance state outside `state` — so the base
- * `getRestoreData()` (serializes the full `state`) and the no-host restore branch's
- * `Object.assign(s, d.state)` restore everything with no persistence overrides.
- *
- * Design rationale: doc/tasks/US-575-storybook-editor-migration/README.md.
- */
-
 export const STORYBOOK_PAGE_ID = "storybook-page";
 
 export type PreviewBackground = "default" | "light" | "dark";
 
 export interface StorybookEditorState extends EditorStateBase {
-    /** Discriminator — preserved for `deriveEditorId` and pre-US-575 saved
-     *  descriptors. `deriveEditorId({type:"storybookPage"})` === "storybook-view". */
+    /** State-type discriminator. */
     type: "storybookPage";
     selectedStoryId: string;
     propValues: Record<string, unknown>;
@@ -64,7 +48,7 @@ export function buildInitialProps(story: Story): Record<string, unknown> {
 
 export class StorybookEditorModel extends EditorModel<StorybookEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId and pre-US-575 saved descriptors agree. */
+     *  EditorDescriptor.editorId. */
     readonly editorId = "storybook-view";
 
     noLanguage = true;

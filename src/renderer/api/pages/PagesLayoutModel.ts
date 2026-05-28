@@ -1,13 +1,5 @@
 import type { PagesModel } from "./PagesModel";
 
-/**
- * PagesLayoutModel — Tab reordering, pinning, and grouping.
- *
- * EPIC-028 / US-548: `fixCompareMode` deleted (CK7). Compare-mode cleanup
- * is folded into `ungroup` (drops the compareGroups entry for the pair).
- * `PagesModel.removePage` and `PageModel.setMainEditor` carry the other two
- * cleanup hooks.
- */
 export class PagesLayoutModel {
     constructor(private model: PagesModel) {}
 

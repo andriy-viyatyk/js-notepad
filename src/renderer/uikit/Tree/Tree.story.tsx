@@ -104,9 +104,9 @@ const REGULAR_TREE: ITreeItem[] = [
     ]),
     folder("doc", "doc", [
         folder("doc/tasks", "tasks", [
-            leaf("doc/tasks/US-485.md", "US-485-uikit-tree.md"),
-            leaf("doc/tasks/US-488.md", "US-488-uikit-tree-dnd.md"),
-            leaf("doc/tasks/US-489.md", "US-489-uikit-tree-lazy-load.md"),
+            leaf("doc/tasks/.md", "-uikit-tree.md"),
+            leaf("doc/tasks/.md", "-uikit-tree-dnd.md"),
+            leaf("doc/tasks/.md", "-uikit-tree-lazy-load.md"),
         ]),
         leaf("doc/active-work.md", "active-work.md"),
     ]),

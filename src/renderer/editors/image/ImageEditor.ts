@@ -21,37 +21,16 @@ import {
     extToMime,
 } from "../draw/drawExport";
 
-/**
- * EPIC-028 / US-569 — native v4 Image editor. NO-HOST editor (no
- * `CONTENT_HOST_TRAIT`) — Image owns its state directly and reads binary
- * content through its own `pipe` field rather than wrapping a
- * `TextFileModel`.
- *
- * Closest siblings: PdfEditor (US-568) and BrowserEditor (US-558) — same
- * no-host page-mainEditor shape. Differences from PDF:
- *   - Image carries an external `url?` slot (browser-webview-sourced
- *     images).
- *   - Image's runtime resource is a blob URL (revoked in dispose) —
- *     PDF's is a local file path served via `safe-file://`.
- *   - Image has three toolbar actions (saveImage / copyImageToClipboard /
- *     openInDrawingEditor) attached via `<PageToolbar rightContributions>`.
- *   - Image exposes an imperative `imageRef` (instance field; view sets
- *     it via `setImageRef`) so `copyImageToClipboard` can delegate to
- *     the shared `BaseImageView`'s clipboard API.
- *
- * Design rationale: doc/tasks/US-569-image-editor-migration/README.md.
- */
-
 export interface ImageEditorState extends EditorStateBase {
     /** Discriminator — preserved for legacy `newEditorModelFromState`
-     *  routing and `EditorDescriptor.state.type` consumers (IM-IMPL3). */
+     *  routing and `EditorDescriptor.state.type` consumers. */
     type: "imageFile";
     /** Source path / URL / archive-with-bang notation
      *  (`archive.zip!path/to.png`). */
     filePath?: string;
     /** Runtime image URL — blob URL (created from pipe bytes or via
      *  `cacheBlobUrl`), HTTP(S) URL (external browser-webview source),
-     *  or undefined. Blob URLs are stripped from descriptors (IM-IMPL6);
+     *  or undefined. Blob URLs are stripped from descriptors;
      *  HTTP URLs are kept (pipe re-fetches on restore). */
     url?: string;
 }
@@ -72,8 +51,8 @@ export function getDefaultImageEditorState(): ImageEditorState {
 
 export class ImageEditor extends EditorModel<ImageEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId and pre-US-569 saved descriptors
-     *  (deriveEditorId({type:"imageFile"}) === "image-view") agree. */
+     *  EditorDescriptor.editorId
+     *  */
     readonly editorId = "image-view";
 
     noLanguage = true;

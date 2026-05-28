@@ -19,7 +19,7 @@ export interface PreprocessedGraph {
  * Membership is derived from links: any link between a group node and a non-group node
  * (in either direction) means the non-group node is a member. A node can belong to at most one group.
  *
- * This model does NOT transform data — that is the job of the link pre-processing step (US-189).
+ * This model does NOT transform data — that is the job of the link pre-processing step.
  * It only provides membership lookups for UI purposes (tooltip, detail panel, legend).
  */
 export class GraphGroupModel {

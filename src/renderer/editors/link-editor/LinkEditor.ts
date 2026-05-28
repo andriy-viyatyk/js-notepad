@@ -26,29 +26,13 @@ import { LinkTreeProvider } from "./LinkTreeProvider";
 import type { ILinkSource, LinkItem, LinkEditorData, LinkViewMode } from "./linkTypes";
 import { showEditLinkDialog } from "./EditLinkDialog";
 
-/**
- * EPIC-028 / US-555 — native v4 Link editor. One class with TextFileModel
- * as its `IContentHost`. Replaces the legacy `LinkViewModel` +
- * `LegacyEditorAdapter` pair. Seventh Tier-5 editor in the uniform shape
- * (after Monaco / Grid / LogView / Markdown / Svg / Html / Mermaid / Graph /
- * Draw). First sidebar-owning editor in v4: exercises `beforeNavigateAway`
- * (LK7) + `onMainEditorChanged` (LK8) for the first time on a text-bearing
- * editor.
- *
- * Body of methods relocated byte-for-byte from legacy LinkViewModel with
- * substitutions: `this.host` → `this._host!`. The HS1 host-slot replaces
- * today's `<host.id>:link-editor` selection-state cache file (LK3).
- *
- * Design rationale: doc/tasks/US-555-link-editor-migration/README.md.
- */
-
 export type ExpandedPanel = "tags" | "categories" | "hostnames";
 
 export type LinkQueueEvent = { type: "focus" };
 export type LinkQueueRequest = never;
 
 /**
- * HS1 host-slot shape (LK3) — the five per-window UI selection fields ride
+ * HS1 host-slot shape — the five per-window UI selection fields ride
  * `host.editorSettings["link-view"]`. Survives Link↔Monaco switches AND
  * app restarts. Replaces today's `<host.id>:link-editor` cache file.
  */
@@ -61,14 +45,14 @@ interface LinkViewSettings {
 }
 
 export interface LinkEditorState extends EditorStateBase {
-    // HS1 — ride host.editorSettings["link-view"] (LK3):
+    // HS1 — ride host.editorSettings["link-view"]:
     leftPanelWidth: number;
     expandedPanel: ExpandedPanel;
     selectedCategory: string;
     selectedTag: string;
     selectedHostname: string;
     // View-derived — present on state for reactivity, stripped from
-    // getRestoreData (LK2). Recomputed from host content via loadData.
+    // getRestoreData. Recomputed from host content via loadData.
     data: LinkEditorData;
     error: string | undefined;
     categories: string[];
@@ -78,7 +62,7 @@ export interface LinkEditorState extends EditorStateBase {
     hostnames: string[];
     hostnamesSize: Record<string, number>;
     filteredLinks: LinkItem[];
-    // Transient UI state — not persisted (LK2).
+    // Transient UI state — not persisted.
     searchText: string;
     selectedLinkId: string;
 }
@@ -107,7 +91,7 @@ export const defaultLinkEditorState: LinkEditorState = {
 };
 
 /** All link-editor sidebar panels — registered when LinkEditor is main and
- *  the sidebar is open (LK6). */
+ *  the sidebar is open. */
 const LINK_PANELS = ["link-category", "link-tags", "link-hostnames"];
 
 function isLegacyTextFileHost(host: unknown): host is TextFileModel {
@@ -236,7 +220,7 @@ export class LinkEditor
         if (link?.id) this.selectLink(link.id);
     };
 
-    // ── Persistence (LK2 + LK3) ─────────────────────────────────────────
+    // ── Persistence ─────────────────────────────────────────
 
     getRestoreData(): EditorDescriptor {
         const s = this.state.get();
@@ -469,7 +453,7 @@ export class LinkEditor
     // mechanics dropped (HS1 host slot replaces the cache file).
     // ────────────────────────────────────────────────────────────────────
 
-    // ── Serialization: state → file content (LK4 + LK5) ─────────────────
+    // ── Serialization: state → file content ─────────────────
 
     private onDataChanged = () => {
         const { data, error } = this.state.get();

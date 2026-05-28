@@ -7,20 +7,6 @@ import { Spacer } from "../../uikit/Spacer/Spacer";
 import { NavPanelIcon } from "../../theme/icons";
 import { editorRegistry } from "./editorRegistry";
 
-/**
- * Page-level toolbar host (EPIC-028 / US-549 / walkthrough 09).
- *
- * Wraps the styled `EditorToolbar` row container with two auto-rendered
- * page-level affordances:
- *
- *   - NavPanel button (left of children) — when `editor.getNavigatorTarget()`
- *     returns non-null AND the page agrees the navigator can open.
- *   - Switch widget (right, after `<Spacer />`) — when
- *     `editor.findCompatibleEditors().length >= 2` AND the current editor is
- *     in the list.
- *
- * Editor-specific contributions sit as children between the two slots.
- */
 interface PageToolbarProps {
     name?: string;
     model: EditorModel;
@@ -30,7 +16,7 @@ interface PageToolbarProps {
      *  right side of the row (e.g. ImageViewer's Save / Copy / Draw). */
     rightContributions?: ReactNode;
     /** Suppress the auto-inserted `<Spacer />`. For editors whose children
-     *  should fill the row (e.g. Video's flex URL/cURL textarea — US-571 /
+     *  should fill the row (e.g. Video's flex URL/cURL textarea — /
      *  VD-IMPL4). Default false — the spacer pushes `rightContributions` + the
      *  switch widget to the right edge. */
     noSpacer?: boolean;
@@ -95,9 +81,5 @@ function SwitchWidget({ model }: { model: EditorModel }) {
 }
 
 function onSwitch(model: EditorModel, newEditorId: string) {
-    // EPIC-028 / US-559 — every page editor is v4-native; switch always goes
-    // through `page.switchMainEditor`, which builds the target editor via
-    // `editorRegistry.createEditor` + `switchFrom` (CONTENT_HOST_TRAIT extract
-    // → adopt → restore).
     void model.page?.switchMainEditor(newEditorId);
 }

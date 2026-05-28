@@ -65,15 +65,8 @@ export interface TodoEditorProps {
     model: TextFileModel;
 }
 
-// =============================================================================
-// Source typing (post-US-559 — legacy TodoViewModel retired)
-// =============================================================================
 
 import type { TodoEditor } from "./TodoEditor";
 
-/**
- * Source type for shared Todo components. Post-strangler this is just the
- * v4 `TodoEditor`; the alias is preserved so consumer call sites don't churn.
- */
 export type TodoSource = TodoEditor;
 

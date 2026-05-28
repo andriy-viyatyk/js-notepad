@@ -38,7 +38,7 @@ registerWellKnownPage({
     title: "MCP Log.log.jsonl",
 });
 
-// MCP server request log (for US-212)
+// MCP server request log (for )
 registerWellKnownPage({
     id: "mcp-server-log",
     editor: "log-view",

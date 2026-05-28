@@ -37,7 +37,7 @@ export interface TreeState {
     /**
      * Bumped after every successful `loadChildren` resolution to force `rows` memo to
      * re-walk even when the consumer mutated the source tree in place (i.e., `props.items`
-     * reference is stable). Co-opted by US-489 from the V1 declaration.
+     * reference is stable). Co-opted by from the V1 declaration.
      */
     revision: number;
     /** Source `value` of the row currently being dragged. Null when no drag in progress. */

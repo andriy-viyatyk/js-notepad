@@ -17,18 +17,6 @@ import { isScriptLanguage } from "../../scripting/transpile";
 import { ScriptPanel } from "../text/ScriptPanel";
 import color from "../../theme/color";
 
-/**
- * Host-aware chrome wrapper for text-bearing v4 editors (EPIC-028 / US-549,
- * US-559 cleanup). Owns the page-toolbar row, script-panel mount, footer
- * row, overlay, and focus subscription. Editor-specific contributions are
- * composed inline by the editor's `Body` component.
- *
- * Post-US-559: legacy portal-slot machinery (`ToolbarPortalSlots` /
- * `FooterContributionSlot` portal branch) deleted — every text-bearing
- * editor is a v4-native EditorModel composing its toolbar/footer
- * contributions inline (no `editorToolbarRefFirst/Last` portals).
- */
-
 interface TextChromeProps {
     model: EditorModel;
     children: ReactNode;
@@ -62,9 +50,6 @@ export function TextChrome({
             setTimeout(() => {
                 const root = rootRef.current;
                 if (root && !root.contains(document.activeElement)) root.focus();
-                // US-551 / MO7 — let the inner editor view grab focus. Base
-                // EditorModel.focus is a no-op; MonacoEditor overrides to
-                // `queue.send({type:"focus"})` so MonacoBody.focus() fires.
                 model.focus();
             }, 200);
         });
@@ -76,18 +61,10 @@ export function TextChrome({
         return <>{children}</>;
     }
 
-    // For US-549 only the TextFileModel branch lights up. NoteItemEditModel
-    // arrives with US-557. Use a duck-type check ("script" + state.encoding
-    // present) so we don't need a static import of the legacy TextFileModel
-    // class — that import chain bloats this module.
     const isTextFile = isTextFileHost(host);
     const textHost = isTextFile ? (host as unknown as TextFileModel) : null;
 
     const handleRootKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        // US-551 / MO6 — F5 routes to model.runScript when the script panel
-        // is closed AND the editor exposes a `runScript` method (MonacoEditor).
-        // Otherwise fall through to host.handleKeyDown (legacy path — handles
-        // F5, Ctrl+S, Ctrl+Shift+S, Ctrl+Shift+F).
         if (e.code === "F5" && !textHost?.script.state.get().open) {
             const runner = (model as unknown as { runScript?: (all?: boolean) => Promise<void> }).runScript;
             if (typeof runner === "function") {
@@ -175,10 +152,6 @@ function RunButtons({ model, host }: { model: EditorModel; host: TextFileModel }
     const language = host.state.use((s) => s.language);
     if (!isScriptLanguage(language)) return null;
     const hasSelection = model.hasTextSelection?.() ?? false;
-    // US-551 / MO6 — when the editor exposes a queue-backed `runScript`
-    // (MonacoEditor), use it so selection is materialized through the
-    // ComponentQueue. Otherwise fall back to host.runScript (legacy path —
-    // selection-aware via TextViewModel.getSelectedText).
     const editorRunner = (model as unknown as { runScript?: (all?: boolean) => Promise<void> }).runScript;
     const runScript = (all?: boolean) =>
         typeof editorRunner === "function"
@@ -249,10 +222,6 @@ function EncodingLabel({ host }: { host: TextFileModel }) {
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function isTextFileHost(host: IContentHost): boolean {
-    // TextFileModel exposes `script`, `setEditorToolbarRefFirst`, etc. — duck
-    // type against the latter to avoid a static import. NoteItemEditModel
-    // (US-557) will lack `setEditorToolbarRefFirst` on the host (its toolbar
-    // refs live elsewhere), so the discriminator survives the second branch.
     return typeof (host as unknown as { setEditorToolbarRefFirst?: unknown }).setEditorToolbarRefFirst === "function";
 }
 

@@ -1,21 +1,5 @@
 import { useEffect, useRef } from "react";
 
-/**
- * Mailbox for model → view commands and view-context queries.
- *
- * Two parallel channels share one queue object:
- *   - Fire-and-forget events: `send` / `subscribe` / `use`. FIFO drain on subscribe.
- *   - Request/reply queries:   `execute` / `register` / `useRequest`. FIFO drain.
- *
- * Single consumer per channel — multiple sequential handlers are fine, concurrent
- * handlers are not. Designed for the model side to issue commands or probes
- * before the React view has mounted; the queue accumulates until subscribe/
- * register fires the drain.
- *
- * See [`doc/epics/EPIC-028-editor-architecture/mockups/ComponentQueue.ts`](../../../../doc/epics/EPIC-028-editor-architecture/mockups/ComponentQueue.ts)
- * for the design rationale (walkthrough 02 / S4 + walkthrough 12 / SF6).
- */
-
 export interface ComponentQueueEvent {
     readonly type: string;
 }

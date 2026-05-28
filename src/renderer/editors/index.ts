@@ -1,7 +1,3 @@
-// Types (re-export selectively to avoid collision with v4 EditorModule /
-// EditorDefinition re-exported via ./base — consumers wanting the v4 shapes
-// import from ./base/editorRegistry directly; the legacy shapes here live
-// only in ./types and are scheduled for removal post-EPIC-028 close).
 export type {
     FileEditorComponent,
     EditorModelCreations,

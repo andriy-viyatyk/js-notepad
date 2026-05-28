@@ -4,7 +4,7 @@ import type { IListBoxItem } from "../../uikit";
 import { GraphNode, GraphOptions, nodeLabel } from "./types";
 import color from "../../theme/color";
 
-/** Narrow structural interface — satisfied by both `GraphEditor` (new, US-564)
+/** Narrow structural interface — satisfied by both `GraphEditor` 
  *  and legacy `GraphViewModel` (preserved per GR1). Only the surface this
  *  panel actually consumes. */
 interface GraphExpansionHost {

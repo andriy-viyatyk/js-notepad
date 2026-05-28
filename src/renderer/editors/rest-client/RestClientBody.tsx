@@ -15,12 +15,6 @@ interface RestClientBodyProps {
     model: RestClientEditor;
 }
 
-/**
- * EPIC-028 / US-563 — v4 Rest Client body. Reactive over `editor.state.use`;
- * composes shared `RequestTree` + `SplitDetailPanel` from `RestClientShared.tsx`
- * (Phase 5b extraction). No portal toolbar/footer (RC17 — per-request toolbar
- * lives inline in SplitDetailPanel; predates the portal toolbar pattern).
- */
 export function RestClientBody({ model: editor }: RestClientBodyProps) {
     const state = editor.state.use((s) => ({
         data: s.data,

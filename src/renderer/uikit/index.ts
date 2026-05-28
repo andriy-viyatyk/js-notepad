@@ -19,7 +19,7 @@ export type { SplitterProps } from "./Splitter";
 export { Toolbar } from "./Toolbar";
 export type { ToolbarProps } from "./Toolbar";
 
-// Bootstrap components (US-440)
+// Bootstrap components
 export { Autocomplete } from "./Autocomplete";
 export type { AutocompleteProps } from "./Autocomplete";
 export { Breadcrumb } from "./Breadcrumb";

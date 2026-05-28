@@ -65,18 +65,6 @@ export function ImageView({ model }: ImageViewProps) {
     );
 }
 
-// ============================================================================
-// EditorModule
-// ============================================================================
-// EPIC-028 / US-569 — legacy EditorModule shape preserved for the
-// LegacyEditorAdapter safety-net path used by `PagesLifecycleModel.openFile`
-// (file-open flow) AND by `PagesLifecycleModel.openImageInNewTab` (direct
-// caller). The `as unknown as EditorModel` casts bridge the v4 ImageEditor
-// class to the legacy EditorModel typing the legacy module factories expect;
-// the runtime instance is the v4 class either way. Mirrors the US-568 PDF
-// pattern at `pdf/PdfView.tsx`. `attachEditorToPage`'s `instanceof EditorModel`
-// early-return (US-568 PD-IMPL16) detects the v4 instance and skips the
-// adapter wrap. US-559 retires this block entirely.
 
 const imageEditorModule: EditorModule = {
     Editor: ImageView as unknown as EditorModule["Editor"],

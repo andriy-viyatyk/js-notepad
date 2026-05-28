@@ -14,16 +14,6 @@ import { getRowKey } from "./utils/grid-utils";
 import type { GridEditor } from "./GridEditor";
 import type { TextFileModel } from "../text/TextEditorModel";
 
-/**
- * EPIC-028 / US-552 — Grid view body. Drains the editor's `ComponentQueue`
- * for focus / focusCell events, owns the AVGrid ref + two-way sortColumn
- * sync (GR5), and renders the AVGrid inside FiltersProvider + FilterBar.
- *
- * Forwards the AVGridModel ref to its parent so `GridToolbarBits` /
- * `GridFooterBits` (in index.tsx) can read it for the columns popover and
- * the visible-row count label.
- */
-
 interface GridBodyProps {
     model: GridEditor;
     /** Callback fired after `onVisibleRowsChanged` so the parent can

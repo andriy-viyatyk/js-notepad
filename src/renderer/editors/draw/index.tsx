@@ -17,23 +17,6 @@ import { fpBasename } from "../../core/utils/file-path";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
-/**
- * EPIC-028 / US-565 — native Drawing editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorInstance` is a v4-native DrawEditor instance.
- *
- * Right-toolbar bits (relocates legacy DrawView's portal toolbar buttons):
- *   - theme toggle — sun/moon icon, calls editor.toggleDarkMode
- *   - copy-image — canvas.toBlob → clipboard
- *   - save dropdown — Save as SVG / Save as PNG (file picker)
- *   - open dropdown — Open as SVG (new tab) / Open as Image (new tab)
- *   - screen-snip — captures screen region → adds as image element
- *
- * The Excalidraw component itself lives in DrawBody. Excalidraw provides its
- * own canvas UI (toolbar, sidebar, library menu) — no in-editor overlay
- * toolbar is needed.
- */
-
 interface DrawToolbarBitsProps {
     model: DrawEditor;
 }

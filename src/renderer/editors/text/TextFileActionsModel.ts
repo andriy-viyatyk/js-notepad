@@ -44,9 +44,8 @@ export class TextFileActionsModel {
         }
     };
 
-    /** EPIC-028 / US-551 — chrome-materialized dispatch. Called by MonacoEditor.runScript
-     *  after it has resolved selection via the ComponentQueue (no legacy
-     *  TextViewModel sync read involved). Pre-fetched script text + language. */
+    /** Run a script with pre-fetched text + language. Called by
+     *  `MonacoEditor.runScript` after it resolves selection via the ComponentQueue. */
     runScriptWith = async (scriptText: string, language: string): Promise<void> => {
         if (isScriptLanguage(language)) {
             await scriptRunner.runWithResult(this.model.id, scriptText, this.model, language);

@@ -3,30 +3,6 @@ import type { IState } from "../../core/state/state";
 import type { EditorStateStorage } from "./EditorStateStorage";
 import type { HostDescriptor } from "../../../shared/persistence-v4";
 
-/**
- * v4 content-host interface. Slimmed shape replacing the legacy one at
- * [`../IContentHost.ts`](../IContentHost.ts):
- *
- * Removed: `editor` field, `changeEditor`, `acquireViewModel*`,
- *          `prepareViewModel`, `releaseViewModel` (the content-view subsystem
- *          dies in EPIC-028).
- * Added:   `dispose()`, `getDescriptor()`, `setStorage()`, optional
- *          `handleKeyDown` for `TextChrome` keystroke delegation.
- *
- * Two concrete implementations land in later phases:
- *   - `TextFileModel` (file-backed; owns I/O, encryption, script, pipe) — US-551
- *   - `NoteItemEditModel` (notebook-note-backed; lighter, no file I/O) — US-557
- *
- * Static factory contract (TS interfaces can't enforce statics):
- *   static fromDescriptor(desc: HostDescriptor): Promise<IContentHost>
- *
- *   - Sync construction; async loading deferred to `host.restore()`.
- *   - Throws on incompatible `desc.kind`; the editor's restore catches and
- *     falls back to an empty host.
- *
- * See [`doc/epics/EPIC-028-editor-architecture/mockups/IContentHost.ts`](../../../../../doc/epics/EPIC-028-editor-architecture/mockups/IContentHost.ts).
- */
-
 /** Minimal reactive state every host exposes. */
 export interface IContentHostState {
     /** UTF-8 string. Editors parse/serialize as needed. */
@@ -75,20 +51,6 @@ export interface IContentHost {
      *  to its actions submodel; `NoteItemEditModel` may implement a subset. */
     handleKeyDown?(e: React.KeyboardEvent): void;
 
-    /**
-     * Read this editor's view-state slot (HS1 — 2026-05-21). Sync; backed
-     * by host state, no I/O. Returns undefined when the host hasn't seen
-     * this editor before (first activation; no slot written yet). Caller
-     * validates the shape and falls back to defaults on missing fields.
-     *
-     * Slot is keyed by `editorId` (the registry id — "grid-json", "md-view",
-     * etc.). Each editor declares its own settings interface and owns its
-     * own slot independent of siblings.
-     *
-     * Used by every text-bearing editor's `adoptHost` seed step to restore
-     * cross-switch view-config (Grid columns, Link sort, Markdown compactMode,
-     * etc.) — see `doc/tasks/US-552-B-host-managed-editor-view-state/README.md`.
-     */
     getEditorState<T>(editorId: string): T | undefined;
 
     /**

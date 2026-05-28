@@ -80,21 +80,12 @@ function NavigationContent({ page }: { page: PageModel }) {
 /** Renders a single page's content (Navigator + Editor), or CompareEditor if in compare mode */
 function PageContent({ pageId }: { pageId: string }) {
     // Subscribe to pagesModel.state so re-renders happen when compareGroups
-    // changes (CK5).
+    // changes.
     pagesModel.state.use();
     const page = pagesModel.query.findPage(pageId);
     if (!page) return null;
 
-    // EPIC-028 / US-551 — subscribe to version (bumped by attach/detach) in
-    // addition to mainEditorId. Host-transfer swaps preserve the editor id
-    // (the new editor inherits the host's id from the old), so subscribing
-    // to mainEditorId alone misses the swap — `compareSelection` sees the
-    // same string and skips the re-render, leaving Pages.tsx referencing
-    // the detached old editor.
     page.state.use((s) => ({ mainEditorId: s.mainEditorId, version: s.version }));
-    // US-551 — pass the v4 surface so RenderEditor can distinguish
-    // LegacyEditorAdapter from v4-native editors (MonacoEditor). The auto-
-    // unwrapping `mainEditor` getter loses the adapter signal.
     const editor = page.mainEditorInstance;
 
     const compareInfo = pagesModel.query.isInCompareMode(pageId);

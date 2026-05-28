@@ -206,9 +206,6 @@ const resizerStyle: React.CSSProperties = {
     opacity: 0.4,
 };
 
-// AVGrid cell-class colors — documented Rule 7 exception (see US-513 C7).
-// Floating-panel chrome (position/top/right/font/userSelect) also lives here so the
-// View body stays prop-free. Removable when AVGrid migrates.
 const DetailPanelRoot = styled(Panel)({
     position: "absolute",
     top: 8,

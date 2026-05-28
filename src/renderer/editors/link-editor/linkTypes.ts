@@ -45,9 +45,6 @@ export interface LinkEditorData {
     };
 }
 
-// =============================================================================
-// Source interface (EPIC-028 / US-555 / LK12)
-// =============================================================================
 
 /**
  * Slice of state read by LinkTreeProvider. Both the legacy `LinkViewModel`
@@ -65,16 +62,6 @@ export interface ILinkSourceSnapshot {
     hostnamesSize: Record<string, number>;
 }
 
-/**
- * Structural source interface for `LinkTreeProvider`. Implemented by:
- *   - Legacy `LinkViewModel` (browser-embed + notebook-embed).
- *   - v4 `LinkEditor` (page-level Link pages — US-555).
- *
- * `state` is typed as a STRUCTURAL SUBSET (`get` + `subscribe` only) rather
- * than `IState<ILinkSourceSnapshot>` because `IState<T>` is invariant in T
- * (`update`'s mapped callback puts T in both covariant + contravariant
- * positions). The subset exposes exactly what `LinkTreeProvider` reads.
- */
 export interface ILinkSource {
     readonly state: {
         get(): ILinkSourceSnapshot;
@@ -90,11 +77,6 @@ export interface ILinkSource {
     getPinnedLinks(): LinkItem[];
 }
 
-/**
- * Source type for panel components. Post-US-559 the legacy `LinkViewModel`
- * is retired; this alias resolves to the v4 `LinkEditor` only, but is
- * preserved so panel call sites don't churn.
- */
 export type LinkSource = import("./LinkEditor").LinkEditor;
 
 // =============================================================================

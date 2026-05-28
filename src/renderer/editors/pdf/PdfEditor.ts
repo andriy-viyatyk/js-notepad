@@ -13,24 +13,9 @@ import { ContentPipe } from "../../content/ContentPipe";
 import { FileProvider } from "../../content/providers/FileProvider";
 import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
 
-/**
- * EPIC-028 / US-568 — native v4 PDF editor. NO-HOST editor (no
- * `CONTENT_HOST_TRAIT`) — PDF owns its state directly and reads binary
- * content through its own `pipe` field rather than wrapping a
- * `TextFileModel`.
- *
- * Closest sibling: BrowserEditor (US-558) — same no-host page-mainEditor
- * shape. The lifecycle differs in one respect: PDF reads binary via the
- * pipe and may write a temp cache file for non-local sources (HTTP /
- * archive entry / etc.). The `cacheFileCreated` flag gates the
- * `dispose()` cleanup.
- *
- * Design rationale: doc/tasks/US-568-pdf-editor-migration/README.md.
- */
-
 export interface PdfEditorState extends EditorStateBase {
     /** Discriminator — preserved for legacy `newEditorModelFromState`
-     *  routing and `EditorDescriptor.state.type` consumers (PD-IMPL3). */
+     *  routing and `EditorDescriptor.state.type` consumers. */
     type: "pdfFile";
     /** Source path / URL / archive-with-bang notation
      *  (`archive.zip!path/to.pdf`). */
@@ -38,7 +23,7 @@ export interface PdfEditorState extends EditorStateBase {
     /** Local file path to serve via `safe-file://`. Either the source
      *  path (plain FileProvider) or a temp cache file (non-local
      *  sources). Recomputed on every `restore()` — stripped from
-     *  descriptors (PD-IMPL6). */
+     *  descriptors. */
     localPdfPath?: string;
 }
 
@@ -58,8 +43,8 @@ export function getDefaultPdfEditorState(): PdfEditorState {
 
 export class PdfEditor extends EditorModel<PdfEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
-     *  `EditorDescriptor.editorId` and pre-US-568 saved descriptors
-     *  (`deriveEditorId({type:"pdfFile"}) === "pdf-view"`) agree. */
+     *  `EditorDescriptor.editorId`
+     *  */
     readonly editorId = "pdf-view";
 
     noLanguage = true;
@@ -134,7 +119,7 @@ export class PdfEditor extends EditorModel<PdfEditorState> {
         // Apply filePath from descriptor; localPdfPath gets recomputed
         // inside restore() (either as the plain source path or via the
         // cache-file read path), so we don't carry it across saves
-        // (PD-IMPL8).
+        //.
         if (data.filePath) {
             this.state.update((s) => { s.filePath = data.filePath; });
         }
@@ -148,7 +133,7 @@ export class PdfEditor extends EditorModel<PdfEditorState> {
             state: {
                 ...s,
                 // localPdfPath stripped from descriptor — recomputed on
-                // restore (PD-IMPL6). Persisting a temp cache-file path
+                // restore. Persisting a temp cache-file path
                 // would be wrong because the cache may have been GC'd.
                 localPdfPath: undefined,
             } as unknown as Record<string, unknown>,

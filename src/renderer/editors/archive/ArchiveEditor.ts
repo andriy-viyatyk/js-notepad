@@ -11,22 +11,8 @@ import { fpBasename } from "../../core/utils/file-path";
 import { ArchiveIcon } from "../../theme/icons";
 import type { PageModel, NavigationState } from "../../api/pages/PageModel";
 
-/**
- * EPIC-028 / US-570 — native v4 Archive editor. NO-HOST editor (no
- * `CONTENT_HOST_TRAIT`) AND sidebar-owning — Archive owns its state directly,
- * owns an `ArchiveTreeProvider`, and contributes the `"archive-tree"` panel.
- *
- * Closest sibling: LinkEditor (US-555) — same sidebar-owning navigation-survival
- * overrides (LK7 `beforeNavigateAway` + LK8 `onMainEditorChanged`). Shares the
- * no-host page-mainEditor shape with PdfEditor (US-568) / ImageEditor (US-569) /
- * BrowserEditor (US-558).
- *
- * Design rationale: doc/tasks/US-570-archive-editor-migration/README.md.
- */
-
 export interface ArchiveEditorState extends EditorStateBase {
-    /** Discriminator — preserved for `_openZipArchive` dedup, `deriveEditorId`,
-     *  and pre-US-570 saved descriptors (AR-IMPL3). */
+    /** State-type discriminator (used by `_openZipArchive` for de-dup). */
     type: "archiveFile";
     /** Archive source URL (path to the archive file). */
     archiveUrl: string;
@@ -46,8 +32,8 @@ export function getDefaultArchiveEditorState(): ArchiveEditorState {
 
 export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
     /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId and pre-US-570 saved descriptors
-     *  (deriveEditorId({type:"archiveFile"}) === "archive-view") agree. */
+     *  EditorDescriptor.editorId
+     *  */
     readonly editorId = "archive-view";
 
     noLanguage = true;
@@ -91,7 +77,7 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
             this.treeProvider = new ArchiveTreeProvider(archiveUrl);
         }
         // Direct-open path may already have `page`; navigation/restore paths
-        // publish via setPage() once attached (AR-IMPL7).
+        // publish via setPage() once attached.
         if (this.treeProvider && this.page) {
             this.secondaryEditor = ["archive-tree"];
         }

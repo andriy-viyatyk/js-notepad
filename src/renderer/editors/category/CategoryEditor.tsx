@@ -18,13 +18,6 @@ import { ExplorerEditor } from "../explorer";
 import { ArchiveEditor } from "../archive";
 import { folderViewModeService } from "./FolderViewModeService";
 
-// =============================================================================
-// ITreeProviderHost — typed accessor for secondary editors that expose a tree
-// provider. EPIC-028 / US-570 — EX8 `instanceof` chain COMPLETE. All three
-// tree-provider hosts (LinkEditor + ExplorerEditor + ArchiveEditor) match by
-// `instanceof`; no duck-typing remains. US-567 EX-IMPL2 left Archive on the
-// duck-type fallback until this migration landed.
-// =============================================================================
 
 interface ITreeProviderHost {
     treeProvider: ITreeProvider | null;
@@ -106,8 +99,6 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
         app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: hostId }));
     }, [provider, pageId, hostId]);
 
-    // Post-migration `model` IS the v4 CategoryEditorModel — render PageToolbar
-    // directly (retires the v4Main strangler lookup; CT-IMPL4).
     const renderToolbar = (children?: ReactNode) => (
         <PageToolbar
             name="category-toolbar"
@@ -148,17 +139,6 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
     );
 }
 
-// ============================================================================
-// Editor Module
-// ============================================================================
-// EPIC-028 / US-576 — legacy EditorModule shape preserved for the open-file
-// flow (`tree-category://` links → target="category-view" →
-// `newEditorModelByTarget` → this module's `newEditorModel`). The
-// `as unknown as EditorModel` casts bridge the v4 CategoryEditorModel class to
-// the legacy EditorModel typing the legacy factories expect; the runtime
-// instance is the v4 class either way. `attachEditorToPage`'s
-// `instanceof EditorModel` early-return (US-568 PD-IMPL16) detects the v4
-// instance and skips the adapter wrap. US-559 retires this block entirely.
 
 const categoryEditorModule: EditorModule = {
     Editor: CategoryEditor as unknown as EditorModule["Editor"],

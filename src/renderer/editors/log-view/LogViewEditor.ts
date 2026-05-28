@@ -17,14 +17,6 @@ import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
 import type { LogEntry } from "./logTypes";
 
-/**
- * EPIC-028 / US-553 — native v4 LogView editor. One class with TextFileModel
- * as its `IContentHost`. Replaces the legacy `LogViewModel` + `LegacyEditorAdapter`
- * pair. Append-only renderer over JSONL with Promise-based dialog entries.
- *
- * Design rationale: doc/epics/EPIC-028-editor-architecture/walkthroughs/23-log-view.md.
- */
-
 export type LogQueueEvent =
     | { type: "focus" }
     | { type: "scrollToBottom" };

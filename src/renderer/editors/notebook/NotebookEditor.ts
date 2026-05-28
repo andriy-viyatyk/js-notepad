@@ -22,39 +22,13 @@ import type { ILink } from "../../api/types/io.tree";
 import type { CategoryItem } from "./category-tree";
 import { NoteItem, NotebookData } from "./notebookTypes";
 
-/**
- * EPIC-028 / US-557 — native v4 Notebook editor (outer-only scope). One class
- * with TextFileModel as its `IContentHost`. Replaces the legacy
- * `NotebookViewModel` + `LegacyEditorAdapter` pair at the page level.
- * **Tenth Tier-5 text-bearing editor** in the uniform shape (after Monaco /
- * Grid / LogView / Markdown / Svg / Html / Mermaid / Graph / Draw / Link /
- * Todo / RestClient). Non-sidebar-owning — no `beforeNavigateAway` /
- * `onMainEditorChanged` overrides (NB6-style); tags/categories panels render
- * inline inside the editor body via `<CollapsiblePanelStack>`.
- *
- * Bodies of mutator methods are relocated byte-for-byte from legacy
- * NotebookViewModel. The HS1 host-slot (NB3) replaces the "no persistence
- * today" silent bug for `leftPanelWidth` / `expandedPanel` /
- * `selectedCategory` / `selectedTag` — **seventh instance** of cache-file →
- * HS1 pattern (after GR4 / LV3 / LK3 / DR4-MR5 / TD3 / RC3 → NB3).
- *
- * **Outer-only scope contract (NB-IMPL1):** the inner per-note dispatch
- * subsystem (`NoteItemEditModel`, `NoteItemActiveEditor`, `MiniTextEditor`,
- * `NoteEditorModel`, `ContentViewModelHost`) is NOT touched by US-557. Inner
- * migration lands under US-579 (Phase D, before US-559).
- *
- * Design rationale: doc/tasks/US-557-notebook-editor-migration/README.md.
- */
-
 export type NotebookQueueEvent = { type: "focus" };
 export type NotebookQueueRequest = never;
 export type ExpandedPanel = "tags" | "categories";
 
 /**
- * HS1 host-slot shape (NB3) — 4 per-window UI fields ride
- * `host.editorSettings["notebook-view"]`. Survives Notebook↔Monaco switches
- * AND app restarts. Incidentally fixes today's silent bug (these never
- * persisted under the legacy ContentViewModel path).
+ * Host-slot shape — 4 per-window UI fields ride `host.editorSettings["notebook-view"]`.
+ * Survives Notebook↔Monaco switches AND app restarts.
  */
 interface NotebookViewSettings {
     leftPanelWidth?: number;
@@ -64,13 +38,13 @@ interface NotebookViewSettings {
 }
 
 export interface NotebookEditorState extends EditorStateBase {
-    // HS1 — ride host.editorSettings["notebook-view"] (NB3):
+    // HS1 — ride host.editorSettings["notebook-view"]:
     leftPanelWidth: number;
     expandedPanel: ExpandedPanel;
     selectedCategory: string;
     selectedTag: string;
     // View-derived — present on state for reactivity, stripped from
-    // getRestoreData (NB2). Recomputed from host content via loadData /
+    // getRestoreData. Recomputed from host content via loadData /
     // loadCategories / loadTags / applyFilters.
     data: NotebookData;
     error: string | undefined;
@@ -80,7 +54,7 @@ export interface NotebookEditorState extends EditorStateBase {
     tagsSize: { [key: string]: number };
     filteredNotes: NoteItem[];
     expandedNoteId: string;
-    // Transient UI state — not persisted (NB2):
+    // Transient UI state — not persisted:
     searchText: string;
 }
 
@@ -243,7 +217,7 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
         this.typedQueue.send({ type: "focus" });
     }
 
-    // ── Persistence (NB2 + NB3) ─────────────────────────────────────────
+    // ── Persistence ─────────────────────────────────────────
 
     getRestoreData(): EditorDescriptor {
         const s = this.state.get();
@@ -413,7 +387,7 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
     // dispose above.
     // ────────────────────────────────────────────────────────────────────
 
-    // ── Serialization (NB4 + NB5) ───────────────────────────────────────
+    // ── Serialization ───────────────────────────────────────
 
     private onDataChanged = (): void => {
         const { data, error } = this.state.get();
@@ -1022,7 +996,7 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
     }
 
     async dispose(): Promise<void> {
-        // Flush pending debounced save (NB4)
+        // Flush pending debounced save
         this.onDataChanged();
 
         this._tearDownHostSubscriptions();

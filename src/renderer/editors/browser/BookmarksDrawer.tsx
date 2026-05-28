@@ -41,11 +41,6 @@ interface BookmarksDrawerProps {
     onClose: () => void;
 }
 
-/**
- * EPIC-028 / US-558 — bookmarks drawer renders a chrome-less embedded
- * LinkEditor via `<LinkBody>` plus reused toolbar bits (NH5 / BR-IMPL3).
- * Drawer owns its own slim toolbar layout — no portal refs, no `swapLayout`.
- */
 export function BookmarksDrawer({
     open,
     bookmarks,

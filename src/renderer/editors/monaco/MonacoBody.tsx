@@ -9,16 +9,6 @@ import type { TextFileModel } from "../text/TextEditorModel";
 import { api } from "../../../ipc/renderer/api";
 import { convertHtmlToMarkdown, readClipboardHtml } from "../text/paste-rich-text";
 
-/**
- * EPIC-028 / US-551 — Monaco view body.
- *
- * Replaces the legacy `TextEditor.tsx` (TextViewModel + view) for native v4
- * Monaco pages. Drains the editor's `ComponentQueue` for model → view
- * commands (revealLine / highlightText / focus) and registers request/reply
- * handlers for view-context queries (getSelectedText / getCursorPosition /
- * insertText / replaceSelection).
- */
-
 const MonacoBodyRoot = styled.div({
     flex: "1 1 auto",
     position: "relative",

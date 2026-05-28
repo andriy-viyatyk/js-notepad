@@ -1,22 +1,6 @@
 import type { AcceptanceInput, EditorMatcher } from "./editorRegistry";
 import { isArchiveFile } from "../../core/utils/file-path";
 
-/**
- * EPIC-028 / US-581 — native v4 editor matching rules.
- *
- * Holds the file-extension / language / content-marker rules for every editor
- * that participates in file resolution, the editor-switch widget, or
- * content-based detection. These were previously the legacy registry's
- * `acceptFile` / `switchOption` / `validForLanguage` / `isEditorContent`
- * functions (`editors/registry.ts`); relocated here so the v4 `editorRegistry`
- * is self-sufficient and the legacy registry becomes deletable (US-559).
- *
- * The v4 `editorRegistry` consumes these via `def.match` to implement
- * `resolve` / `getSwitchOptions` / `getPreviewEditor` / `validateForLanguage` /
- * `detectContentEditor`, and via `makeAccepts(match)` to build the single
- * `accepts(input)` predicate used by `findEditorsAccepting` / `resolveForFile`.
- */
-
 // ── Shared helpers (relocated from register-editors.ts) ──────────────────────
 
 const matchesExtension = (fileName: string, extensions: string[]): boolean => {
@@ -172,15 +156,6 @@ export const EDITOR_MATCHERS: Record<string, EditorMatcher> = {
     },
 };
 
-/**
- * Build a v4 `accepts(input)` predicate from a matcher. Mirrors the pre-US-581
- * delegating behavior: file name → `acceptFile`, language → `switchOption`,
- * host content → `detectsContent` (returns 60, outranking switch options).
- *
- * Content-peek fires only when `input.host` is present (switch / detection on
- * an already-open file), so file-open resolution (file name only, no host) is
- * never perturbed by content markers.
- */
 export function makeAccepts(match: EditorMatcher): (input: AcceptanceInput) => number {
     return (input) => {
         if (input.fileName) {

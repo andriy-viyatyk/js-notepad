@@ -44,7 +44,7 @@ const rowTraits = new TraitSet().add(LIST_ITEM_KEY, {
 });
 
 // =============================================================================
-// Row chrome (chrome exception per Rule 7 — see doc/tasks/US-496/README.md)
+// Row chrome (chrome exception per Rule 7 — see doc/tasks//README.md)
 // =============================================================================
 
 const RowStyled = styled.div({

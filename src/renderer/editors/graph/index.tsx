@@ -12,20 +12,6 @@ import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 import color from "../../theme/color";
 
-/**
- * EPIC-028 / US-564 — native Graph editor module. Registered with the v4
- * `editorRegistry` in `register-editors.ts`; consumed by `RenderEditor` when
- * the page's `mainEditorInstance` is a v4-native GraphEditor instance.
- *
- * Right-toolbar bits (relocates legacy GraphView's portal toolbar buttons):
- *   - open-in-draw — converts canvas to dataURL → opens in Draw editor
- *   - copy-image — canvas.toBlob → clipboard
- *
- * Footer bits (relocates legacy GraphView's portal footer):
- *   - statusHint (italic, warning color) when hovering an alt+click target
- *   - recordsCount ("N nodes" or "N of M nodes")
- */
-
 interface GraphToolbarBitsProps {
     model: GraphEditor;
     canvasRef: React.MutableRefObject<HTMLCanvasElement | null>;

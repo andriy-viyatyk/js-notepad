@@ -5,13 +5,6 @@ import type { EditorModel } from "../../editors/base/EditorModel";
 import { AsyncEditor } from "./AsyncEditor";
 import type { EditorViewModule, FileEditorComponent } from "../../editors/types";
 
-/**
- * Renders the appropriate editor for a page model (v4 surface).
- *
- * EPIC-028 / US-559 — strangler retirement complete: every page editor is a
- * v4-native EditorModel mounted via its module's `Component`. The legacy
- * `LegacyAdapterEditor` branch + the `TextEditorView` fallback are gone.
- */
 export function RenderEditor({ model }: { model: EditorModel }) {
     return <NativeEditor model={model} />;
 }

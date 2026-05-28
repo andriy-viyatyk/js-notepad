@@ -18,11 +18,6 @@ export interface EditorViewModule {
 
 export type EditorModule = EditorViewModule & EditorModelCreations;
 
-/**
- * Editor category — preserved on legacy `EditorDefinition` for the strangler
- * period. Post-US-559 the v4 registry's `hasContentHost` flag replaces this.
- * Phase 5 deletes the legacy `EditorDefinition` along with this type.
- */
 export type EditorCategory = "standalone" | "content-view";
 
 export interface EditorDefinition {

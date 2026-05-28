@@ -15,15 +15,6 @@ import { editorRegistry as v4Registry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 
-/**
- * EPIC-028 / US-561 — native v4 HTML preview editor. One class with
- * TextFileModel as its `IContentHost`. Replaces the legacy `HtmlViewModel`
- * + `LegacyEditorAdapter` pair. Identity-only state slice (PV7) — no
- * editor-specific persisted fields.
- *
- * Design rationale: doc/epics/EPIC-028-editor-architecture/walkthroughs/22-preview-group.md.
- */
-
 export type HtmlQueueEvent = { type: "focus" };
 
 export type HtmlQueueRequest = never;
@@ -78,7 +69,7 @@ export class HtmlEditor extends EditorModel<HtmlEditorState, void, HtmlQueueEven
 
     /** Typed host accessor for body + facade consumption (avoids the
      *  `IContentHost`→`TextFileModel` cast at every read site). MK4 pattern
-     *  from US-554. */
+     * . */
     get host(): TextFileModel | null {
         return this._host;
     }

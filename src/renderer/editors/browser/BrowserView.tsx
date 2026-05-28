@@ -274,12 +274,6 @@ interface BlankPageLinksProps {
     bookmarks: BrowserBookmarks;
 }
 
-/**
- * EPIC-028 / US-558 — blank-page links renders the chrome-less embedded
- * LinkEditor via `<LinkBody>` plus only the breadcrumb (NH5 / BR-IMPL3 /
- * BR-IMPL4). Add Link button + view-mode menu omitted (today these were
- * CSS-hidden via `data-blank-toolbar` selectors — now simply not rendered).
- */
 function BlankPageLinks({ bookmarks }: BlankPageLinksProps) {
     return (
         <Panel
@@ -708,11 +702,6 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
 // EditorModule
 // ============================================================================
 
-// EPIC-028 / US-558 — legacy EditorModule shape preserved for the
-// LegacyEditorAdapter safety-net path (US-559 retires this block). The
-// `as unknown as EditorModel` casts bridge the v4 BrowserEditor class to
-// the legacy EditorModel typing the legacy module factories expect; the
-// runtime instance is the same v4 class either way.
 const browserEditorModule: EditorModule = {
     Editor: BrowserEditorView as any,
     newEditorModel: async () => {
