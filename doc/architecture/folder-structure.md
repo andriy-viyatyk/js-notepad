@@ -112,7 +112,7 @@ persephone/
 │   └── types/              # TypeScript interfaces (.d.ts)
 │       ├── index.d.ts      # Global `app` and `page` declarations
 │       ├── app.d.ts        # IApp interface
-│       ├── common.d.ts     # IDisposable, IEvent, EditorView enum
+│       ├── common.d.ts     # IDisposable, IEvent, Language
 │       ├── pages.d.ts      # IPageCollection interface
 │       ├── page.d.ts       # IPage interface (with asX() methods)
 │       ├── settings.d.ts   # ISettings
@@ -208,227 +208,250 @@ persephone/
 │       ├── PageNavigator.tsx       # PageNavigator — TreeProviderView + FileTreeProvider + FileSearch
 │       └── PageNavigatorModel.ts   # Reactive state for PageNavigator (open, width)
 │
-├── editors/                # Editor Implementations
+├── editors/                # Editor Implementations — each editor is an EditorModel subclass
 │   ├── base/               # Shared editor infrastructure
-│   │   ├── EditorModel.ts            # Base editor model (state, icon, nav panel, script data)
-│   │   ├── ContentViewModel.ts     # Base class for content-view models
-│   │   ├── ContentViewModelHost.ts # Ref-counting host for ViewModels
-│   │   ├── useContentViewModel.ts  # React hook for ViewModel lifecycle
-│   │   ├── IContentHost.ts         # Interface for content-view hosting
-│   │   ├── EditorToolbar.tsx       # Base toolbar component
-│   │   ├── EditorConfigContext.tsx  # Editor configuration provider
-│   │   ├── EditorStateStorageContext.tsx # Persistent editor state
-│   │   ├── EditorError.tsx         # Error boundary
+│   │   ├── EditorModel.ts            # Abstract base class for all editors
+│   │   ├── IContentHost.ts           # Interface for text-content hosting (TextFileModel, NoteItemEditModel)
+│   │   ├── IPageHost.ts              # Interface PageModel exposes to editors (back-reference target)
+│   │   ├── EditorStateStorage.ts     # Per-editor view-state storage interface (id, name → state)
+│   │   ├── editor-traits.ts          # CONTENT_HOST_TRAIT — owner-orchestrated editor switching
+│   │   ├── editor-matchers.ts        # Acceptance / resolution priority helpers
+│   │   ├── editorRegistry.ts         # Native editor registry — resolve, register, switch options
+│   │   ├── PageToolbar.tsx           # Shared toolbar shell — NavPanel + switch widget auto-slots
+│   │   ├── TextChrome.tsx            # Host-aware chrome wrapper (toolbar, script panel, footer)
+│   │   ├── EditorToolbar.tsx         # Toolbar root component used by individual editors
+│   │   ├── EditorConfigContext.tsx   # Editor configuration provider
+│   │   ├── EditorError.tsx           # Error boundary
 │   │   └── index.ts
 │   │
-│   ├── text/               # Monaco text editor (content-view host)
-│   │   ├── TextEditorModel.ts        # TextFileModel — hosts content-views
-│   │   ├── TextEditorView.tsx        # Main view (toolbar + active editor)
-│   │   ├── TextEditor.tsx          # Monaco editor component + TextViewModel
-│   │   ├── ActiveEditor.tsx        # Content-view switcher
-│   │   ├── TextToolbar.tsx         # Text-specific toolbar
-│   │   ├── TextFooter.tsx          # Status bar
-│   │   ├── ScriptPanel.tsx         # Inline script runner
-│   │   ├── EncryptionPanel.tsx     # Encryption UI
-│   │   ├── TextFileIOModel.ts      # File I/O via content pipes (read/write/watch/cache)
-│   │   ├── TextFileActionsModel.ts # Text actions (duplicate, transform)
-│   │   ├── TextFileEncryptionModel.ts # Encryption state
+│   ├── text/               # Text file content host (file I/O + encryption + script panel)
+│   │   ├── TextEditorModel.ts        # TextFileModel — file-backed IContentHost (state, file I/O, encryption)
+│   │   ├── TextFileIOModel.ts        # File I/O via content pipes (read/write/watch/cache)
+│   │   ├── TextFileActionsModel.ts   # Text actions (duplicate, transform)
+│   │   ├── TextFileEncryptionModel.ts # Encryption state machine
+│   │   ├── ScriptPanel.tsx           # Inline script runner panel
+│   │   ├── paste-rich-text.ts        # Rich-text paste handler
 │   │   └── index.ts
-│   ├── grid/               # JSON/CSV grid editor (content-view)
-│   │   ├── GridEditor.tsx          # Grid component
-│   │   ├── GridViewModel.ts        # Grid view state
-│   │   ├── components/             # Grid-specific components
-│   │   ├── utils/                  # Grid utilities
-│   │   └── index.ts
-│   ├── markdown/           # Markdown preview (content-view)
-│   │   ├── MarkdownBlock.tsx       # Reusable markdown rendering (CSS, ReactMarkdown, search handle)
-│   │   ├── MarkdownView.tsx        # Page shell (scroll, minimap, toolbar, search bar)
-│   │   ├── MarkdownViewModel.ts    # View state (search, compact, scroll)
-│   │   ├── MarkdownSearchBar.tsx   # Search within preview
-│   │   ├── CodeBlock.tsx           # Code block + inline Mermaid
-│   │   ├── rehypeHighlight.ts      # Search text highlighting
-│   │   └── index.ts
+│   ├── monaco/             # Monaco text editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── MonacoEditor.ts           # EditorModel subclass — composes IContentHost, hosts Monaco
+│   │   ├── MonacoBody.tsx            # React component
+│   │   └── index.tsx
+│   ├── grid/               # JSON/CSV/JSONL grid editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── GridEditor.ts             # EditorModel — parsing, sort/filter/edit state
+│   │   ├── GridBody.tsx              # React component (AVGrid integration)
+│   │   ├── components/               # Grid-specific components
+│   │   ├── utils/                    # Grid utilities
+│   │   ├── util.ts                   # Shared utility helpers
+│   │   └── index.tsx
+│   ├── markdown/           # Markdown preview (text-bearing, IContentHost + TRAIT)
+│   │   ├── MarkdownEditor.ts         # EditorModel — search state, scroll, compact
+│   │   ├── MarkdownBody.tsx          # React component
+│   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (CSS, ReactMarkdown, search handle)
+│   │   ├── CodeBlock.tsx             # Code block + inline Mermaid
+│   │   ├── rehypeHighlight.ts        # Search text highlighting
+│   │   └── index.tsx
 │   │
-│   ├── browser/            # Built-in browser (standalone)
+│   ├── browser/            # Built-in browser (non-text, no trait)
+│   │   ├── BrowserEditor.ts          # EditorModel subclass — registry entry point
 │   │   ├── BrowserEditorModel.ts     # Multi-tab browser state
-│   │   ├── BrowserEditorView.tsx     # Browser UI
-│   │   ├── BrowserWebviewModel.ts  # Webview management
-│   │   ├── BrowserUrlBarModel.ts   # URL bar state
-│   │   ├── BrowserTargetModel.ts   # Automation adapter (implements IBrowserTarget)
-│   │   ├── BrowserTabsPanel.tsx    # Browser tab bar
-│   │   ├── BrowserFindBar.tsx      # Find in page
-│   │   ├── BookmarksDrawer.tsx     # Bookmarks panel
-│   │   ├── DownloadButton.tsx      # Download indicator
+│   │   ├── BrowserView.tsx           # Browser UI
+│   │   ├── BrowserWebviewModel.ts    # Webview management
+│   │   ├── BrowserUrlBarModel.ts     # URL bar state
+│   │   ├── BrowserTargetModel.ts     # Automation adapter (implements IBrowserTarget)
+│   │   ├── BrowserTabsPanel.tsx      # Browser tab bar
+│   │   ├── BookmarksDrawer.tsx       # Bookmarks panel
+│   │   ├── DownloadButton.tsx        # Download indicator
 │   │   ├── BrowserDownloadsPopup.tsx # Download list popup
 │   │   ├── UrlSuggestionsDropdown.tsx # URL autocomplete
-│   │   ├── TorStatusOverlay.tsx    # Tor connection status
-│   │   ├── BrowserBookmarks.ts     # Bookmarks data management
+│   │   ├── TorStatusOverlay.tsx      # Tor connection status
+│   │   ├── BrowserBookmarks.ts       # Bookmarks data management (wraps TextFileModel + LinkEditor)
 │   │   ├── BrowserBookmarksUIModel.ts # Bookmarks UI state
-│   │   ├── browser-search-history.ts  # Search history
-│   │   ├── network-log-links.ts    # Network log → ILink[] conversion
-│   │   └── index.ts
-│   ├── notebook/           # Notebook editor (standalone)
-│   │   ├── NotebookEditor.tsx
-│   │   ├── NotebookEditorModel.ts  # Page model
-│   │   ├── NotebookViewModel.ts    # View model
+│   │   ├── browser-search-history.ts # Search history
+│   │   ├── network-log-links.ts      # Network log → ILink[] conversion
+│   │   └── index.tsx
+│   ├── notebook/           # Notebook editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── NotebookEditor.ts         # EditorModel — page-level notes, categories, tags
+│   │   ├── NotebookBody.tsx          # React component
 │   │   ├── NoteItemView.tsx
-│   │   ├── NoteItemViewModel.ts
-│   │   ├── ExpandedNoteView.tsx
+│   │   ├── NoteItemViewModel.ts      # Per-row view model for virtualized note list
+│   │   ├── ExpandedNoteView.tsx      # Expanded note (portal overlay)
+│   │   ├── TagsListView.tsx
+│   │   ├── category-tree.tsx
 │   │   ├── notebookTypes.ts
-│   │   ├── note-editor/            # Note item sub-editor
-│   │   └── index.ts
-│   ├── todo/               # Todo editor (standalone)
-│   │   ├── TodoEditor.tsx
-│   │   ├── TodoViewModel.ts
+│   │   ├── note-editor/              # Per-note embedded editor subsystem
+│   │   │   ├── NoteItemEditModel.ts  # IContentHost for one note (no file I/O — state in notebook JSON)
+│   │   │   ├── MiniTextEditor.tsx    # Monaco mini-editor used for monaco notes
+│   │   │   ├── NoteItemActiveEditor.tsx # Embeds language-gated v4 editors per note
+│   │   │   ├── NoteItemToolbar.tsx
+│   │   │   └── index.ts
+│   │   └── index.tsx
+│   ├── todo/               # Todo editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── TodoEditor.ts             # EditorModel — items, lists, tags
+│   │   ├── TodoBody.tsx              # React component
 │   │   ├── todoTypes.ts
 │   │   ├── todoColors.ts
 │   │   ├── components/
-│   │   └── index.ts
-│   ├── link-editor/        # Link collection editor (standalone)
-│   │   ├── LinkEditor.tsx
-│   │   ├── LinkViewModel.ts
-│   │   ├── LinkTreeProvider.ts  # ITreeProvider adapter over LinkViewModel
+│   │   └── index.tsx
+│   ├── link-editor/        # Link collection editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── LinkEditor.ts             # EditorModel — links, categories, tags, filters
+│   │   ├── LinkBody.tsx              # React component
+│   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state
 │   │   ├── linkTypes.ts
-│   │   ├── panels/             # Shared panel components (inline + secondary editor)
+│   │   ├── linkTraits.ts             # ILink trait definition + registration (TraitTypeId.ILink)
+│   │   ├── panels/                   # Shared panel components (inline + secondary editor)
 │   │   │   ├── LinkCategoryPanel.tsx       # Categories tree panel
 │   │   │   ├── LinkTagsPanel.tsx           # Tags list panel
 │   │   │   ├── LinkHostnamesPanel.tsx      # Hostnames list panel
 │   │   │   ├── LinkCategorySecondaryEditor.tsx  # Secondary editor wrapper
 │   │   │   ├── LinkTagsSecondaryEditor.tsx      # Secondary editor wrapper
 │   │   │   └── LinkHostnamesSecondaryEditor.tsx # Secondary editor wrapper
-│   │   ├── linkTraits.ts        # ILink trait definition + registration (TraitTypeId.ILink)
-│   │   ├── LinksList.tsx        # View-only list rendering (no ViewModel deps)
-│   │   ├── LinksTiles.tsx       # View-only tiles rendering (no ViewModel deps)
-│   │   ├── LinkItemList.tsx     # Wrapper: wires LinksList to LinkViewModel
-│   │   ├── LinkItemTiles.tsx    # Wrapper: wires LinksTiles to LinkViewModel
+│   │   ├── LinksList.tsx             # View-only list rendering
+│   │   ├── LinksTiles.tsx            # View-only tiles rendering
+│   │   ├── LinkItemList.tsx          # Wrapper: wires LinksList to LinkEditor
+│   │   ├── LinkItemTiles.tsx         # Wrapper: wires LinksTiles to LinkEditor
+│   │   ├── LinkTooltip.tsx
 │   │   ├── PinnedLinksPanel.tsx
 │   │   ├── EditLinkDialog.tsx
-│   │   └── index.ts
-│   ├── svg/                # SVG preview (content-view)
-│   │   ├── SvgView.tsx
-│   │   ├── SvgViewModel.ts
-│   │   └── index.ts
-│   ├── html/               # HTML preview (content-view)
-│   │   ├── HtmlView.tsx
-│   │   ├── HtmlViewModel.ts
-│   │   └── index.ts
-│   ├── mermaid/            # Mermaid diagram preview (content-view)
-│   │   ├── MermaidView.tsx
-│   │   ├── MermaidViewModel.ts
-│   │   ├── render-mermaid.ts       # Rendering utilities (shared with Markdown)
-│   │   └── index.ts
-│   ├── graph/              # Force graph viewer (content-view)
-│   │   ├── GraphView.tsx           # Canvas-based graph component (toolbar with search/selection/physics/expansion tabs, tooltip, detail panel)
-│   │   ├── GraphViewModel.ts       # ContentViewModel — JSON parsing, orchestration, delegates to sub-models
-│   │   ├── GraphDataModel.ts      # Source data ownership + node/link CRUD + legend data
-│   │   ├── GraphSearchModel.ts    # Search query matching + result computation
-│   │   ├── GraphGroupModel.ts    # Group membership analysis + link pre-processing (hide membership, split cross-group, dedup)
-│   │   ├── GraphConnectivityModel.ts # Read-only query layer bridging original/preprocessed graphs (real neighbors, visual paths, group analysis)
-│   │   ├── GraphHighlightModel.ts # Highlight layers (search, legend, links tab) + selection/hover state + color helpers
-│   │   ├── GraphContextMenu.ts    # Context menu item builders (node menu with link opening, group node menu, empty area menu, selection menu)
-│   │   ├── ForceGraphRenderer.ts   # D3 force simulation + canvas rendering
-│   │   ├── GraphVisibilityModel.ts # BFS-based visibility filtering for large graphs
-│   │   ├── GraphDetailPanel.tsx    # Collapsible detail panel overlay (Info tab, Links tab, Properties tab — AVGrid batch editing)
-│   │   ├── GraphTuningSliders.tsx  # Force tuning sliders (charge, distance, collide) — expandable from toolbar
-│   │   ├── GraphExpansionSettings.tsx # Expansion settings panel (root node, expand depth, max visible)
-│   │   ├── GraphLegendPanel.tsx    # Collapsible legend panel (bottom-left, Selection/Level/Shape tabs, checkbox highlighting, description persistence)
-│   │   ├── GraphIcons.tsx         # Shared SVG icon components (ShapeIcon, LevelIcon)
-│   │   ├── GraphTooltip.tsx        # Node tooltip (fixed-position portal, custom properties, markdown link rendering, copy as markdown, open in page)
-│   │   ├── shapeGeometry.ts       # Pure shape point generation (shared between canvas + SVG icons)
-│   │   ├── types.ts                # GraphNode, GraphLink, GraphLegend, GraphData, GraphOptions, NodeShape, nodeLabel(), nodeRadius(), effectiveNodeRadius(), getCustomProperties(), isReservedPropertyKey(), NodePropertyLink, getNodeLinks(), toNavigableHref(), openNodeLink()
-│   │   ├── constants.ts            # Force simulation parameters
-│   │   └── index.ts
-│   ├── draw/               # Excalidraw drawing editor (content-view)
-│   │   ├── DrawView.tsx           # Wraps <Excalidraw> component (debounced onChange, asset path setup, export toolbar)
-│   │   ├── DrawViewModel.ts       # ContentViewModel — JSON parsing, fingerprint-based change detection, dark mode state
-│   │   ├── drawExport.ts         # Export helpers — exportAsSvgText(), exportAsPngBlob(), buildExcalidrawJsonWithImage() (embed image as Excalidraw element)
-│   │   ├── drawLibrary.ts        # Library persistence — LibraryPersistenceAdapter for useHandleLibrary, default path init
-│   │   └── index.ts
-│   ├── log-view/           # Log viewer (content-view)
-│   │   ├── LogViewEditor.tsx       # Log viewer component (RenderFlexGrid + auto-scroll)
-│   │   ├── LogViewModel.ts         # ContentViewModel — JSONL parsing, entry management
-│   │   ├── LogViewContext.ts       # React Context providing LogViewModel to dialog views
-│   │   ├── LogEntryWrapper.tsx     # Cell root — subscribes to entries[index] via selector
-│   │   ├── LogEntryContent.tsx     # Type router — dispatches to entry renderers (with EntryErrorBoundary)
-│   │   ├── LogMessageView.tsx      # Log message renderer (text/info/warn/error/success)
-│   │   ├── StyledTextView.tsx      # StyledText renderer (plain string or styled segments)
-│   │   ├── logTypes.ts             # LogEntry, StyledText, dialog/output types
-│   │   ├── logConstants.ts         # Shared constants (DIALOG_CONTENT_MAX_HEIGHT)
-│   │   └── items/                  # Dialog and output entry renderers
-│   │       ├── DialogContainer.tsx     # Shared styled wrapper (active/resolved border)
-│   │       ├── DialogHeader.tsx        # Optional title bar
-│   │       ├── ButtonsPanel.tsx        # Reusable button row with ! prefix + check icon
-│   │       ├── ConfirmDialogView.tsx   # input.confirm renderer
-│   │       ├── TextInputDialogView.tsx # input.text renderer
-│   │       ├── ButtonsDialogView.tsx   # input.buttons renderer
-│   │       ├── CheckboxesDialogView.tsx # input.checkboxes renderer
-│   │       ├── RadioboxesDialogView.tsx # input.radioboxes renderer
-│   │       ├── SelectDialogView.tsx     # input.select renderer
-│   │       ├── ProgressOutputView.tsx   # output.progress renderer
-│   │       ├── GridOutputView.tsx       # output.grid renderer (inline AVGrid)
-│   │       ├── TextOutputView.tsx       # output.text renderer (inline Monaco editor)
-│   │       ├── MarkdownOutputView.tsx  # output.markdown renderer (inline MarkdownBlock)
-│   │       ├── MermaidOutputView.tsx  # output.mermaid renderer (inline mermaid diagram)
-│   │       └── McpRequestView.tsx   # output.mcp-request renderer (direction, method, collapsible JSON)
-│   ├── pdf/                # PDF viewer (standalone)
-│   │   ├── PdfViewer.tsx
-│   │   └── index.ts
-│   ├── image/              # Image viewer (standalone)
-│   │   ├── ImageViewer.tsx
-│   │   ├── BaseImageView.tsx
-│   │   └── index.ts
-│   ├── mcp-inspector/      # MCP Inspector (standalone)
-│   │   ├── McpInspectorEditorModel.ts      # EditorModel — connection, tools, resources (+ templates), prompts state
+│   │   └── index.tsx
+│   ├── svg/                # SVG preview (text-bearing, IContentHost + TRAIT)
+│   │   ├── SvgEditor.ts              # EditorModel — SVG state
+│   │   ├── SvgBody.tsx               # React component
+│   │   └── index.tsx
+│   ├── html/               # HTML preview (text-bearing, IContentHost + TRAIT)
+│   │   ├── HtmlEditor.ts             # EditorModel — HTML state
+│   │   ├── HtmlBody.tsx              # React component
+│   │   └── index.tsx
+│   ├── mermaid/            # Mermaid diagram preview (text-bearing, IContentHost + TRAIT)
+│   │   ├── MermaidEditor.ts          # EditorModel — SVG URL, loading, error, light mode
+│   │   ├── MermaidBody.tsx           # React component
+│   │   ├── render-mermaid.ts         # Rendering utilities (shared with Markdown)
+│   │   └── index.tsx
+│   ├── graph/              # Force graph viewer (text-bearing, IContentHost + TRAIT)
+│   │   ├── GraphEditor.ts            # EditorModel — JSON parsing, orchestration, sub-models
+│   │   ├── GraphBody.tsx             # Canvas-based graph component
+│   │   ├── GraphDataModel.ts         # Source data ownership + node/link CRUD + legend data
+│   │   ├── GraphSearchModel.ts       # Search query matching + result computation
+│   │   ├── GraphGroupModel.ts        # Group membership analysis + link pre-processing
+│   │   ├── GraphConnectivityModel.ts # Read-only query layer
+│   │   ├── GraphHighlightModel.ts    # Highlight layers + selection/hover state
+│   │   ├── GraphContextMenu.ts       # Context menu item builders
+│   │   ├── ForceGraphRenderer.ts     # D3 force simulation + canvas rendering
+│   │   ├── GraphVisibilityModel.ts   # BFS-based visibility filtering
+│   │   ├── GraphDetailPanel.tsx      # Collapsible detail panel overlay
+│   │   ├── GraphTuningSliders.tsx
+│   │   ├── GraphExpansionSettings.tsx
+│   │   ├── GraphLegendPanel.tsx
+│   │   ├── GraphIcons.tsx
+│   │   ├── GraphTooltip.tsx
+│   │   ├── shapeGeometry.ts
+│   │   ├── types.ts
+│   │   ├── constants.ts
+│   │   └── index.tsx
+│   ├── draw/               # Excalidraw drawing editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── DrawEditor.ts             # EditorModel — JSON parsing, fingerprint change detection
+│   │   ├── DrawBody.tsx              # Wraps <Excalidraw> component
+│   │   ├── drawExport.ts             # Export helpers
+│   │   ├── drawLibrary.ts            # Library persistence
+│   │   └── index.tsx
+│   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
+│   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
+│   │   ├── LogBody.tsx               # Log viewer component (RenderFlexGrid + auto-scroll)
+│   │   ├── LogViewContext.ts         # React Context for dialog views
+│   │   ├── LogEntryWrapper.tsx       # Cell root — subscribes to entries[index]
+│   │   ├── LogEntryContent.tsx       # Type router — dispatches to entry renderers
+│   │   ├── LogMessageView.tsx        # Log message renderer
+│   │   ├── StyledTextView.tsx        # StyledText renderer
+│   │   ├── logTypes.ts               # LogEntry, StyledText, dialog/output types
+│   │   ├── logConstants.ts
+│   │   ├── items/                    # Dialog and output entry renderers (15 files)
+│   │   └── index.tsx
+│   ├── rest-client/        # Rest Client editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── RestClientEditor.ts       # EditorModel — collections, requests, responses
+│   │   ├── RestClientBody.tsx        # React component
+│   │   ├── RestClientShared.tsx
+│   │   ├── RequestBuilder.tsx
+│   │   ├── ResponseViewer.tsx
+│   │   ├── KeyValueEditor.tsx
+│   │   ├── multipartBuilder.ts
+│   │   ├── httpConstants.ts
+│   │   ├── open-in-rest-client.ts
+│   │   └── index.tsx
+│   ├── pdf/                # PDF viewer (non-text, no trait)
+│   │   ├── PdfEditor.ts              # EditorModel — pipe-backed PDF state
+│   │   ├── PdfView.tsx               # React component (pdf.js)
+│   │   └── index.tsx
+│   ├── image/              # Image viewer (non-text, no trait)
+│   │   ├── ImageEditor.ts            # EditorModel — pipe-backed image state
+│   │   ├── ImageView.tsx             # React component
+│   │   └── index.tsx
+│   ├── mcp-inspector/      # MCP Inspector (non-text, no trait)
+│   │   ├── McpInspectorEditorModel.ts # EditorModel — connection, tools, resources, prompts
 │   │   ├── McpInspectorView.tsx      # Main view — connection bar, panel routing
-│   │   ├── McpConnectionManager.ts   # MCP SDK Client wrapper (connect/disconnect)
-│   │   ├── ToolsPanel.tsx            # Tools panel — sidebar list, detail, arg form, result
-│   │   ├── ToolArgForm.tsx           # JSON Schema → argument form generator
-│   │   ├── ToolResultView.tsx        # Tool call result renderer (text/image/resource)
-│   │   ├── ResourcesPanel.tsx        # Resources panel — sidebar, static resources + interactive templates, content display
-│   │   ├── ResourceContentView.tsx   # Adaptive content renderer (markdown/monaco/image)
-│   │   ├── PromptsPanel.tsx          # Prompts panel — sidebar, arg form, messages display
-│   │   ├── McpConnectionStore.ts    # Saved connections store (mcp-connections.json persistence)
-│   │   └── index.ts
-│   ├── compare/            # Diff editor (standalone)
+│   │   ├── McpConnectionManager.ts   # MCP SDK Client wrapper
+│   │   ├── McpConnectionStore.ts     # Saved connections store (mcp-connections.json)
+│   │   ├── ToolsPanel.tsx
+│   │   ├── ToolArgForm.tsx
+│   │   ├── ToolResultView.tsx
+│   │   ├── ResourcesPanel.tsx
+│   │   ├── ResourceContentView.tsx
+│   │   ├── PromptsPanel.tsx
+│   │   └── index.tsx
+│   ├── compare/            # Diff editor (non-text, no trait)
 │   │   ├── CompareEditor.tsx
 │   │   └── index.ts
-│   ├── about/              # About page (standalone)
-│   │   ├── AboutPage.tsx
-│   │   └── index.ts
-│   ├── settings/           # Settings page (standalone)
-│   │   └── SettingsPage.tsx
-│   ├── video/              # Audio/Video player (standalone)
-│   │   ├── VideoPlayerEditor.tsx  # EditorModel + EditorModule (state, model, component)
-│   │   ├── VPlayer.tsx            # Video playback component (video.js + hls.js)
-│   │   ├── AudioPlayer.tsx        # Audio file playback with visualizer
-│   │   ├── AudioVisualizer.tsx    # Audio frequency visualization with switchable effects
-│   │   ├── effects/               # Audio visualizer effect implementations
-│   │   │   ├── types.ts           # IVisualizerEffect interface, EffectType
-│   │   │   ├── BarsEffect.ts      # Frequency bars visualizer
-│   │   │   └── CircularEffect.ts  # Circular rings visualizer with cross-band modulation
-│   │   ├── NodeFetchHlsLoader.ts  # Custom hls.js loader via nodeFetch (bypass forbidden headers)
-│   │   └── video-types.ts         # VideoFormat, PlayerState, detectVideoFormat()
-│   ├── category/           # Category/folder view (standalone, provider-agnostic)
-│   │   ├── CategoryEditor.tsx             # Wraps CategoryView, resolves provider from secondary editors
-│   │   ├── CategoryEditorModel.ts         # Page model — decodes tree-category:// link
-│   │   └── FolderViewModeService.ts       # Per-folder view mode persistence with hierarchical inheritance
-│   ├── archive/            # Archive editor (secondary — sidebar panel)
-│   │   ├── ArchiveEditorModel.ts      # EditorModel — archive state, tree provider, navigation survival
-│   │   ├── ArchiveEditorView.tsx      # Main content view (archive-view)
+│   ├── about/              # About page (non-text, no trait)
+│   │   ├── AboutEditor.ts            # EditorModel
+│   │   ├── AboutView.tsx
+│   │   └── index.tsx
+│   ├── settings/           # Settings page (non-text, no trait)
+│   │   ├── SettingsEditor.ts         # EditorModel
+│   │   ├── SettingsView.tsx
+│   │   └── index.tsx
+│   ├── storybook/          # Storybook editor (non-text, no trait)
+│   │   ├── StorybookEditorModel.ts   # EditorModel — component browser, live preview
+│   │   ├── StorybookEditorView.tsx
+│   │   ├── ComponentBrowser.tsx
+│   │   ├── LivePreview.tsx
+│   │   ├── PropertyEditor.tsx
+│   │   ├── iconPresets.tsx
+│   │   ├── storyRegistry.ts
+│   │   ├── storyTypes.ts
+│   │   └── index.tsx
+│   ├── video/              # Audio/Video player (non-text, no trait)
+│   │   ├── VideoEditor.ts            # EditorModel — playback state, streaming integration
+│   │   ├── VideoView.tsx
+│   │   ├── VPlayer.tsx               # Video playback component (video.js + hls.js)
+│   │   ├── AudioPlayer.tsx           # Audio file playback with visualizer
+│   │   ├── AudioVisualizer.tsx       # Frequency visualization (switchable effects)
+│   │   ├── AudioControls.tsx
+│   │   ├── effects/                  # Audio visualizer effect implementations
+│   │   │   ├── types.ts
+│   │   │   ├── BarsEffect.ts
+│   │   │   └── CircularEffect.ts
+│   │   ├── NodeFetchHlsLoader.ts     # Custom hls.js loader via nodeFetch
+│   │   ├── video-types.ts
+│   │   └── index.tsx
+│   ├── category/           # Category/folder view (non-text, no trait — provider-agnostic)
+│   │   ├── CategoryEditor.tsx        # EditorModel + React component (single file)
+│   │   ├── CategoryEditorModel.ts    # Page model — decodes tree-category:// link
+│   │   ├── FolderViewModeService.ts  # Per-folder view mode persistence
+│   │   └── index.tsx
+│   ├── archive/            # Archive editor (non-text, with sidebar panel)
+│   │   ├── ArchiveEditor.ts          # EditorModel — archive state, tree provider, navigation survival
+│   │   ├── ArchiveEditorView.tsx     # Main content view
 │   │   ├── ArchiveSecondaryEditor.tsx # Secondary panel — tree view with portaled header
-│   │   └── index.ts
-│   ├── explorer/            # File explorer (secondary — sidebar panels)
-│   │   ├── ExplorerEditorModel.ts     # EditorModel — tree provider, selection, search, root navigation
+│   │   └── index.tsx
+│   ├── explorer/           # File explorer (non-text, sidebar-only)
+│   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
 │   │   ├── ExplorerSecondaryEditor.tsx # "explorer" panel — tree view with portaled header
-│   │   ├── SearchSecondaryEditor.tsx  # "search" panel — file search with portaled header
+│   │   ├── SearchSecondaryEditor.tsx # "search" panel — file search with portaled header
 │   │   └── index.ts
 │   ├── shared/             # Shared editor utilities
 │   │   ├── link-open-menu.tsx
-│   │   └── ColorizedCode.tsx   # Syntax-highlighted code via Monaco colorize()
+│   │   └── ColorizedCode.tsx         # Syntax-highlighted code via Monaco colorize()
 │   │
-│   ├── registry.ts         # EditorRegistry — resolution, validation
-│   ├── register-editors.ts # Editor registration (all editors)
-│   ├── types.ts            # EditorDefinition, EditorCategory
+│   ├── register-editors.ts # Editor registration (all editors call editorRegistry.register)
+│   ├── types.ts            # Shared editor types
 │   └── index.ts
 │
 ├── scripting/              # Script Execution

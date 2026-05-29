@@ -4,6 +4,54 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-028 — [Unified Editor Architecture — Editors as Standalone Models](EPIC-028.md)
+
+Single-hierarchy editor rewrite via strangler-fig migration over 37 tasks. All 22 editors became top-level `EditorModel` subclasses; text-bearing editors share `IContentHost`; owner-orchestrated switching via `CONTENT_HOST_TRAIT`. The `ContentViewModel` subsystem and the `EditorView` type alias are gone. Major version bump 3.0.10 → 4.0.1. Task folders and the `EPIC-028-editor-architecture/` design folder (walkthroughs, mockups, concerns log) were deleted on close — the per-task READMEs and walkthroughs were in-flight implementation contracts, not enduring reference material. The architectural outcome is captured in `/doc/architecture/editors.md` and the EPIC-028.md doc above. `/review`, `/document`, `/userdoc` skipped per user direction (US-583 / US-584 / US-585 already refreshed the dev-doc and user-doc surfaces).
+
+- **Phase A — Foundation**
+- [x] US-547: Foundation primitives — `EditorModel`, `IContentHost`, `ComponentQueue`, `TOneState` selector subscribe, new `editorRegistry`, `PageDescriptor` v4 types, `CONTENT_HOST_TRAIT` (inert)
+- [x] US-548: PageModel adapter layer — unified `editors[]` + `_mainEditorId`; `LegacyEditorAdapter`; persistence dual-reads (v3 or v4) writes v4; `compareGroups` to `PagesModel.state`
+- [x] US-549: Shared chrome — `PageToolbar` + `TextChrome`; NavPanel button auto-renders for sidebar editors; portal refs retired
+- **Phase B — Cross-cutting**
+- [x] US-550: MCP + scripting facades partial — `mcp-handler.ts` MI1–MI5; `page.asX()` gains `force?: boolean`; `PageWrapper.type` retired
+- **Phase C — Per-editor migrations**
+- [x] US-551: Monaco / Text editor migration — `MonacoEditor` v4 class + `<MonacoBody>`; `CONTENT_HOST_TRAIT` + cross-camp switch
+- [x] US-552: Grid editor migration — 3 registry ids collapsed into 1 class with `format`
+- [x] US-552-B: Host-managed editor view state — generic `getEditorState`/`setEditorState` on `IContentHost`; HS1 pattern established
+- [x] US-553: LogView editor migration — `LogViewEditor` over `TextFileModel` host; cleanup of `acquireViewModelSync` callsites
+- [x] US-554: Markdown editor migration — search + compact-mode + scroll machinery
+- [x] US-560: Svg editor migration — baseline Tier-5 template
+- [x] US-561: Html editor migration — identity-only state slice
+- [x] US-562: Mermaid editor migration — async render + lightMode HS1
+- [x] US-564: Graph editor migration — six owned submodels relocated; canvas-ref bridge
+- [x] US-565: Draw editor migration — bidirectional Excalidraw payload loop; HS1 darkMode
+- [x] US-555: Link editor migration — first sidebar-owning Tier-5; `beforeNavigateAway` + `onMainEditorChanged` first exercises
+- [x] US-556: Todo editor migration — first non-sidebar-owning Tier-5 since Draw
+- [x] US-563: Rest Client editor migration — `RestClientShared` extraction; response-cache split-by-scale
+- [x] US-557: Notebook editor migration — outer-only scope; inner per-note deferred to US-579
+- [x] US-558: Browser editor migration — first no-host v4 editor; first to embed another v4 EditorModel (drawer LinkEditor)
+- [x] US-566: Compare editor migration — verification pass (zero source changes; landed in US-548 + US-549)
+- [x] US-567: Explorer editor migration — first secondary-only `EditorModel` v4 native
+- [x] US-568: PDF editor migration — generic v4-native no-host restore branch (`V4_NO_HOST_EDITOR_IDS`) + `wrapLegacyForPage` early-return for v4 instances
+- [x] US-569: Image editor migration — dual-resource lifecycle (blob URL + cache file)
+- [x] US-570: Archive editor migration — first no-host sidebar-owning v4 editor; completes EX8 `instanceof` chain
+- [x] US-571: Video editor migration — streaming-server session lifecycle + VLC integration; `PageToolbar.noSpacer` opt-in
+- [x] US-572: Settings editor migration — simplest no-host (identity-only state)
+- [x] US-573: About editor migration — near-clone of Settings
+- [x] US-574: MCP Inspector editor migration — most stateful no-host; mechanically the Video pattern in place
+- [x] US-575: Storybook editor migration — singleton with persisted UI state
+- [x] US-576: Category editor migration — only tree-provider consumer; closes walkthrough-30
+- **Phase D — Cleanup**
+- [x] US-581: Native v4 editor registry — internalize matching + retire legacy-registry dependency
+- [x] US-579: Notebook inner per-note migration — embedded v4 `EditorModel` instances per note via duck-typed `NoteItemEditModel` host
+- [x] US-559: Strangler-fig retirement — delete `LegacyEditorAdapter` + content-view subsystem + dual-read persistence; fold legacy `EditorModel` base into `TextFileModel`; bump 3.0.10 → 4.0.1
+- [x] US-582: Post-strangler cleanup — drop `V4` prefix, fold `editors/base/v4/*` up, strip EPIC-028 narrative across ~135 files
+- [x] US-583: EPIC-028 documentation audit + punch list — 72 files audited, 20 changes identified, U1/U2/U3 user-locked
+- [x] US-584: Dev-doc refresh for EPIC-028 close-out — 9 architecture files updated, `editor-guide.md` rewritten, `CLAUDE.md` Key Files refreshed, 5 diagrams rewritten + 2 retired
+- [x] US-585: User-doc + QA sweep for EPIC-028 close-out — `page.md` + `editors.md` + `whats-new.md` v4.0.1 section; 37 spot-check files clean
+
+---
+
 ## EPIC-025 — [Unified Component Library and Storybook Editor](EPIC-025.md)
 
 - [x] US-437: Design system HTML — closed; exploration complete

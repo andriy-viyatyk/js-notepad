@@ -45,8 +45,7 @@ ScriptRunner.run(script, page?, language?)
     │             ├── SCRIPT_PREFIX reads from `this` (context)
     │             └── Await result if Promise
     │
-    └── context.dispose()  ← restores previous ui getter, releases ViewModels,
-                              unsubscribes events
+    └── context.dispose()  ← restores previous ui getter, unsubscribes events
 ```
 
 ## Execution Modes
@@ -86,7 +85,7 @@ interface IPage {
     // Mutable properties
     content: string;
     language: string;
-    editor: EditorView;
+    editor: string;  // editor ID (e.g. "monaco", "grid-json")
 
     // Script-local data storage (persists across runs within same session)
     data: Record<string, any>;
@@ -220,7 +219,7 @@ for (const item of largeArray) {
 - Dialog results are always objects — `button` is `undefined` if canceled (page closed while pending)
 - Log View page title uses datetime format: `"2026-03-10 12:24.log.jsonl"`
 
-**Implementation:** `UiFacade` wraps `LogViewModel`. The log-view editor module is pre-loaded in `ScriptRunner` via `editorRegistry.loadViewModelFactory("log-view")`, then the VM is created synchronously in the lazy getter via `acquireViewModelSync("log-view")`.
+**Implementation:** `UiFacade` wraps the `LogViewEditor` instance for the well-known MCP Log page (or a script-grouped Log View page). The editor module is loaded on demand via the v4 `editorRegistry`; the `LogViewEditor` instance is reused across `ui` calls within a script's lifetime.
 
 ### `app` — Application Object
 
@@ -438,50 +437,46 @@ When no library is linked, actions that need the library (sidebar "Select Folder
 
 ## Editor Facades
 
-Facades provide safe, typed access to editor-specific features. Each facade wraps a `ContentViewModel` and is acquired via `page.asX()` methods.
+Facades provide safe, typed access to editor-specific features. Each facade wraps an `EditorModel` subclass (the page's `mainEditor`) and is returned by `page.asX()` methods.
 
 | Method | Facade | Wraps | Key Operations |
 |--------|--------|-------|----------------|
-| `page.asText()` | `TextEditorFacade` | `TextViewModel` | `getSelectedText()`, `insertText()`, `replaceSelection()`, `revealLine()`, cursor position |
-| `page.asGrid()` | `GridEditorFacade` | `GridViewModel` | `rows`, `columns`, `editCell()`, `addRows()`, `deleteRows()`, `addColumns()`, `deleteColumns()` |
-| `page.asNotebook()` | `NotebookEditorFacade` | `NotebookViewModel` | `notes`, `categories`, `tags`, `addNote()`, `deleteNote()`, `updateNoteTitle()` |
-| `page.asTodo()` | `TodoEditorFacade` | `TodoViewModel` | `items`, `lists`, `tags`, `addItem()`, `toggleItem()`, `deleteItem()`, `addList()`, `selectList()`, `selectTag()`, `setSearch()`, `clearSearch()` |
-| `page.asLink()` | `LinkEditorFacade` | `LinkViewModel` | `links`, `categories`, `tags`, `addLink()`, `deleteLink()`, `updateLink()` |
-| `page.asMarkdown()` | `MarkdownEditorFacade` | `MarkdownViewModel` | `viewMounted`, `html` (read-only) |
-| `page.asSvg()` | `SvgEditorFacade` | `SvgViewModel` | `svg` (read-only) |
-| `page.asHtml()` | `HtmlEditorFacade` | `HtmlViewModel` | `html` (read-only) |
-| `page.asMermaid()` | `MermaidEditorFacade` | `MermaidViewModel` | `svgUrl`, `loading`, `error` (read-only) |
-| `page.asGraph()` | `GraphEditorFacade` | `GraphViewModel` | `nodes`, `links`, `search()`, `bfs()`, `getComponents()`, `select()`, selection, groups, neighbors |
-| `page.asDraw()` | `DrawEditorFacade` | `DrawViewModel` | `addImage()`, `exportAsSvg()`, `exportAsPng()`, `elementCount`, `editorIsMounted` |
+| `page.asText()` | `TextEditorFacade` | `MonacoEditor` | `getSelectedText()`, `insertText()`, `replaceSelection()`, `revealLine()`, cursor position |
+| `page.asGrid()` | `GridEditorFacade` | `GridEditor` | `rows`, `columns`, `editCell()`, `addRows()`, `deleteRows()`, `addColumns()`, `deleteColumns()` |
+| `page.asNotebook()` | `NotebookEditorFacade` | `NotebookEditor` | `notes`, `categories`, `tags`, `addNote()`, `deleteNote()`, `updateNoteTitle()` |
+| `page.asTodo()` | `TodoEditorFacade` | `TodoEditor` | `items`, `lists`, `tags`, `addItem()`, `toggleItem()`, `deleteItem()`, `addList()`, `selectList()`, `selectTag()`, `setSearch()`, `clearSearch()` |
+| `page.asLink()` | `LinkEditorFacade` | `LinkEditor` | `links`, `categories`, `tags`, `addLink()`, `deleteLink()`, `updateLink()` |
+| `page.asMarkdown()` | `MarkdownEditorFacade` | `MarkdownEditor` | `viewMounted`, `html` (read-only) |
+| `page.asSvg()` | `SvgEditorFacade` | `SvgEditor` | `svg` (read-only) |
+| `page.asHtml()` | `HtmlEditorFacade` | `HtmlEditor` | `html` (read-only) |
+| `page.asMermaid()` | `MermaidEditorFacade` | `MermaidEditor` | `svgUrl`, `loading`, `error` (read-only) |
+| `page.asGraph()` | `GraphEditorFacade` | `GraphEditor` | `nodes`, `links`, `search()`, `bfs()`, `getComponents()`, `select()`, selection, groups, neighbors |
+| `page.asDraw()` | `DrawEditorFacade` | `DrawEditor` | `addImage()`, `exportAsSvg()`, `exportAsPng()`, `elementCount`, `editorIsMounted` |
 | `page.asBrowser()` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, `navigate()`, `back()`, `forward()`, `reload()`, `evaluate()`, `snapshot()`, `getText()`, `getValue()`, `click()`, `type()`, `select()`, `pressKey()`, `waitForSelector()`, `waitForNavigation()`, `tabs`, `addTab()`, `closeTab()`, `switchTab()`, `cdp()` |
 | `page.asMcpInspector()` | `McpInspectorFacade` | `McpInspectorEditorModel` | `connect()`, `disconnect()`, connection params, server info (title, description, websiteUrl, instructions), `history`, `clearHistory()`, `showHistory()` |
-
-**Exception:** `BrowserEditorFacade` and `McpInspectorFacade` wrap their EditorModel directly (no ViewModel, no ref-counting) because they are standalones, not content-views.
 
 Facade source: `/src/renderer/scripting/api-wrapper/`
 Interface definitions: `/src/renderer/api/types/*.d.ts`
 
-## Auto-Release Lifecycle
+## Auto-Cleanup Lifecycle
 
-Facades acquire ViewModels via ref-counting. Event subscriptions are tracked via proxy. A shared `releaseList` ensures cleanup after script completion:
+Editor facades are stateless wrappers — there is nothing to release when a script ends. Event subscriptions made through `app.events`, however, ARE tracked and unsubscribed automatically. A shared `releaseList` ensures cleanup:
 
 ```
 1. Script starts → new ScriptContext() creates releaseList = []
 2. Script calls page.asGrid()
-   → acquireViewModel("grid-json")  (ref count +1)
-   → releaseList.push(() => releaseViewModel("grid-json"))
-   → return GridEditorFacade
+   → returns a stateless GridEditorFacade wrapping page.mainEditor (GridEditor)
+   → no entry added to releaseList
 3. Script calls app.events.fileExplorer.itemContextMenu.subscribe(handler)
    → events proxy intercepts subscribe(), calls real subscribe()
    → releaseList.push(() => sub.unsubscribe())
    → return SubscriptionObject
 4. Script completes (or throws)
 5. context.dispose() iterates releaseList
-   → releaseViewModel("grid-json")  (ref count -1 → 0 → dispose)
    → sub.unsubscribe()  (removes event handler)
 ```
 
-The `releaseList` is shared across all wrappers: `AppWrapper → PageCollectionWrapper → PageWrapper → Facades`. This means any ViewModel acquired through any path is automatically released. Event subscriptions made through `app.events` are also automatically unsubscribed.
+The `releaseList` is shared across all wrappers: `AppWrapper → PageCollectionWrapper → PageWrapper → Facades`. Event subscriptions made through `app.events` from any path are automatically unsubscribed when the script completes.
 
 ### Events Proxy
 
@@ -716,7 +711,7 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `app.d.ts` | `IApp` — root application interface |
 | `page.d.ts` | `IPage`, `IPageInfo` — page/tab interface |
 | `pages.d.ts` | `IPageCollection` — pages management |
-| `common.d.ts` | `IDisposable`, `IEvent`, `EditorView`, `Language` |
+| `common.d.ts` | `IDisposable`, `IEvent`, `Language` |
 | `text-editor.d.ts` | `ITextEditor` — Monaco editor operations |
 | `grid-editor.d.ts` | `IGridEditor` — grid editor operations |
 | `notebook-editor.d.ts` | `INotebookEditor` — notebook operations |

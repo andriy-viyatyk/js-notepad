@@ -198,12 +198,15 @@ The implementation runs in **four phases across 13 tasks**. Each task ends with 
 | **US-575** | Storybook | 30 (closure) | First-principles investigation. No host. |
 | **US-576** | Category | 30 (closure) | First-principles investigation. No host. |
 
-### Phase D — Cleanup (2 tasks)
+### Phase D — Cleanup (5 tasks)
 
 | Task | Title | Scope |
 |------|-------|-------|
-| **US-559** | Strangler-fig retirement | Delete `LegacyEditorAdapter`; drop dual-read persistence (v4-only — detect-and-skip old session data on first launch); delete `ContentViewModel` / `ContentViewModelHost` / `useContentViewModel` (whatever's left after editor migrations); delete `compareModeChanged` Subscription, `pagesModel.rerender`, dead `fixCompareMode`; delete `EditorView` union from `src/shared/types.ts`; architecture docs refresh; bump major version; release notes for breaking change. |
+| **US-559** | Strangler-fig retirement | Delete `LegacyEditorAdapter`; drop dual-read persistence (v4-only — detect-and-skip old session data on first launch); delete `ContentViewModel` / `ContentViewModelHost` / `useContentViewModel` (whatever's left after editor migrations); delete `compareModeChanged` Subscription, `pagesModel.rerender`, dead `fixCompareMode`; delete `EditorView` union from `src/shared/types.ts`; bump major version; release notes for breaking change. |
 | **US-582** | Post-strangler cleanup — drop V4 prefix, fold v4/ folder up, strip EPIC-028 narrative | Erase the strangler-fig migration's naming and commentary residue across ~135 source files. Drop `as V4EditorModel` import aliases (54 files); promote `editors/base/v4/*` → `editors/base/*` (10 files moved, ~125 import paths updated); strip `EPIC-028` / `US-5XX` / `strangler` / concern-ID-anchor comments across 109+ files. Plus structural renames: `wrapLegacyForPage` → `attachEditorToPage`, `mainEditor` + `mainEditorV4` fold-up, `EditorModel` type alias → `EditorOrHost`. Three-commit reviewability split. Zero behavioral change. |
+| **US-583** | EPIC-028 documentation audit + punch list | Read every doc file under `/doc/` and `/docs/` (plus root `CLAUDE.md`, `/qa/`, `/assets/mcp-res-*.md`); produce one `punch-list.md` enumerating every required edit, split into a Dev-doc section (drives US-584) and a User-doc section (drives US-585). No production-doc edits — audit only. Mirrors EPIC-025's US-545/US-546/US-547 closeout triplet. |
+| **US-584** | Dev-doc refresh for EPIC-028 close-out | Execute every `[dev]` finding in `US-583`'s punch list. Surface: `/doc/architecture/*`, `/doc/standards/*`, root `CLAUDE.md`, UIKit `CLAUDE.md`. Expected heavy edits: `editors.md` (rewrite), `editor-guide.md` (rewrite), `folder-structure.md`, `state-management.md`, `browser-editor.md`. `/review` + `/document` skills run at close. |
+| **US-585** | User-doc + QA sweep for EPIC-028 close-out | Execute every `[user]` finding in `US-583`'s punch list. Surface: `/docs/*`, `/qa/mcp-test-*.md`, `/assets/mcp-res-*.md`. Likely scope: `whats-new.md` v4.0.1 entry, `docs/api/page.md` + `editors.md` `EditorView`/`category` rewrites, spot-check sweep across other docs. May collapse into US-584 if scope is thin. `/userdoc` skill run at close. Epic closes after this task lands. |
 
 ### Per-task investigation
 
@@ -255,6 +258,9 @@ Listed in implementation order. Each is a placeholder until its own deep-investi
 | US-576 | Category editor | C | 30 (closure) | |
 | US-559 | Strangler-fig retirement | D | cleanup | |
 | US-582 | Post-strangler cleanup — drop V4 prefix, fold v4/ folder up, strip EPIC-028 narrative | D | cleanup | |
+| US-583 | EPIC-028 documentation audit + punch list | D | cleanup | |
+| US-584 | Dev-doc refresh for EPIC-028 close-out | D | cleanup | |
+| US-585 | User-doc + QA sweep for EPIC-028 close-out | D | cleanup | |
 
 ## Notes
 

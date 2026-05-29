@@ -313,19 +313,23 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Async worker (main)      | `/src/main/worker-host.ts`                        |
 | Script API types         | `/src/renderer/api/types/*.d.ts`                  |
 | Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
-| Editor registry          | `/src/renderer/editors/registry.ts`               |
+| Editor registry          | `/src/renderer/editors/base/editorRegistry.ts`    |
 | Secondary editor registry| `/src/renderer/ui/navigation/secondary-editor-registry.ts` |
 | Editor registration      | `/src/renderer/editors/register-editors.ts`       |
-| Content view model host  | `/src/renderer/editors/base/ContentViewModelHost.ts` |
+| Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
+| Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |
+| Content host trait       | `/src/renderer/editors/base/editor-traits.ts`     |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
-| Grid editor              | `/src/renderer/editors/grid/GridViewModel.ts`     |
-| Log view editor          | `/src/renderer/editors/log-view/LogViewModel.ts`  |
+| Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
+| Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |
+| Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
 | Syntax-highlighted code  | `/src/renderer/editors/shared/ColorizedCode.tsx`  |
-| Notebook editor model    | `/src/renderer/editors/notebook/NotebookEditorModel.ts` |
+| Notebook editor          | `/src/renderer/editors/notebook/NotebookEditor.ts` |
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
-| Graph editor model       | `/src/renderer/editors/graph/GraphViewModel.ts`   |
-| Draw editor model        | `/src/renderer/editors/draw/DrawViewModel.ts`     |
-| Rest Client editor       | `/src/renderer/editors/rest-client/RestClientViewModel.ts` |
+| Note item edit model     | `/src/renderer/editors/notebook/note-editor/NoteItemEditModel.ts` |
+| Graph editor             | `/src/renderer/editors/graph/GraphEditor.ts`      |
+| Draw editor              | `/src/renderer/editors/draw/DrawEditor.ts`        |
+| Rest Client editor       | `/src/renderer/editors/rest-client/RestClientEditor.ts` |
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |
 | Base virtualization      | `/src/renderer/uikit/RenderGrid/RenderGrid.tsx`   |
 | Advanced grid            | `/src/renderer/uikit/AVGrid/AVGrid.tsx`           |

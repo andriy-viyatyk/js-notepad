@@ -2,60 +2,23 @@ graph TB
     PC["PageContent<br/><i>Subscribes to mainEditorId</i>"]
 
     PC -->|"compareMode"| CMP["CompareEditor"]
-    PC -->|"normal"| RE["RenderEditor<br/><i>Switches on editor category</i>"]
+    PC -->|"normal"| RE["RenderEditor<br/><i>Single uniform path</i>"]
 
-    RE -->|"standalone"| AE["AsyncEditor<br/><i>Lazy-loads module</i>"]
-    AE --> PDF["PdfViewer"]
-    AE --> IMG["ImageViewer"]
-    AE --> BR["BrowserEditorView"]
-    AE --> ZIP["ZipEditorView"]
-    AE --> CAT["CategoryEditor"]
-    AE --> MCP["McpInspectorEditor"]
-    AE --> AB["AboutPage"]
-    AE --> SET["SettingsPage"]
+    RE --> AE["AsyncEditor<br/><i>Lazy-loads module</i>"]
+    AE --> EBB["EditorErrorBoundary"]
+    EBB --> ED["editor module Editor component<br/><i>e.g. MonacoBody / GridBody / PdfView</i>"]
 
-    RE -->|"content-view"| TPV["TextEditorView<br/><i>Shared shell</i>"]
+    ED -->|"text-bearing editors compose"| TC["TextChrome<br/><i>shared toolbar / script-panel / footer</i>"]
+    TC --> EB["Editor body<br/><i>MonacoBody / GridBody / NotebookBody / etc.</i>"]
 
-    TPV --> TB["TextToolbar"]
-    TPV --> ACT["ActiveEditor<br/><i>Renders current view</i>"]
-    TPV --> SP["ScriptPanel"]
-    TPV --> TF["TextFooter"]
-
-    ACT -->|"editor state"| MON["Monaco<br/><i>Text Editor</i>"]
-    ACT -->|"editor state"| GJ["Grid (JSON)"]
-    ACT -->|"editor state"| GC["Grid (CSV)"]
-    ACT -->|"editor state"| MD["Markdown Preview"]
-    ACT -->|"editor state"| NB["Notebook"]
-    ACT -->|"editor state"| TD["ToDo"]
-    ACT -->|"editor state"| LK["Links"]
-    ACT -->|"editor state"| SVG["SVG Preview"]
-    ACT -->|"editor state"| HTML["HTML Preview"]
-    ACT -->|"editor state"| MMD["Mermaid"]
-    ACT -->|"editor state"| GR["Graph"]
-    ACT -->|"editor state"| DR["Draw"]
-    ACT -->|"editor state"| RC["Rest Client"]
-    ACT -->|"editor state"| LV["Log View"]
+    ED -->|"non-text editors render directly"| DE["Direct body<br/><i>PdfView / ImageView / BrowserView / etc.</i>"]
 
     style PC fill:#e1f5fe
     style CMP fill:#f3e5f5
     style RE fill:#fff3e0
     style AE fill:#f3e5f5
-    style TPV fill:#e8f5e9
-    style TB fill:#c8e6c9
-    style ACT fill:#c8e6c9
-    style SP fill:#c8e6c9
-    style TF fill:#c8e6c9
-    style MON fill:#e8eaf6
-    style GJ fill:#e8eaf6
-    style GC fill:#e8eaf6
-    style MD fill:#e8eaf6
-    style NB fill:#e8eaf6
-    style TD fill:#e8eaf6
-    style LK fill:#e8eaf6
-    style SVG fill:#e8eaf6
-    style HTML fill:#e8eaf6
-    style MMD fill:#e8eaf6
-    style GR fill:#e8eaf6
-    style DR fill:#e8eaf6
-    style RC fill:#e8eaf6
-    style LV fill:#e8eaf6
+    style EBB fill:#ffebee
+    style ED fill:#e8f5e9
+    style TC fill:#c8e6c9
+    style EB fill:#e8eaf6
+    style DE fill:#e8eaf6

@@ -240,8 +240,8 @@ For Pattern B (mainEditor in secondaryEditors[]), the model may be disposed twic
 |-------|-----------|---------|----------|-----------|
 | `ExplorerEditorModel` | `["explorer"]` or `["explorer", "search"]` | A (separate) | Always survives navigation | `PageModel.createExplorer()` or restore |
 | `ArchiveEditorModel` | `["archive-tree"]` | B (mainEditor) | Survives if new editor was opened from this archive | `_openArchive()` in PagesLifecycleModel |
-| `TextFileModel` (links, main) | `["link-category", "link-tags", "link-hostnames"]` (always all 3) | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when PageNavigator closes, re-registered when it opens. First open fires `pageNavigatorToggled` via `PageModel.toggleNavigator()`. | LinkEditor component `useEffect` (subscribes to `pageNavigatorToggled` event) |
-| `TextFileModel` (links, standalone) | `["link-category", "link-tags"?]` (dynamic) | A (separate) | Always survives (base `onMainEditorChanged` is no-op). Exposes `treeProvider`/`selectionState`/`selectByHref()` via duck-typing for CategoryEditor discovery and player track navigation. "link-tags" dynamically registered when tags exist (US-423). | LinkCategorySecondaryEditor useEffect (subscribes to `vm.state` for tag changes) |
+| `LinkEditor` (links, main) | `["link-category", "link-tags", "link-hostnames"]` (always all 3) | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when PageNavigator closes, re-registered when it opens. First open fires `pageNavigatorToggled` via `PageModel.toggleNavigator()`. | LinkEditor component `useEffect` (subscribes to `pageNavigatorToggled` event) |
+| `LinkEditor` (links, standalone) | `["link-category", "link-tags"?]` (dynamic) | A (separate) | Always survives (base `onMainEditorChanged` is no-op). Exposes `treeProvider`/`selectionState`/`selectByHref()` via duck-typing for CategoryEditor discovery and player track navigation. "link-tags" dynamically registered when tags exist. | LinkCategorySecondaryEditor useEffect (subscribes to model state for tag changes) |
 
 ---
 
@@ -425,9 +425,9 @@ PageModel
 
 **Source code:** [`LinkTagsSecondaryEditor.tsx`](../../src/renderer/editors/link-editor/panels/LinkTagsSecondaryEditor.tsx), [`LinkTreeProvider.ts`](../../src/renderer/editors/link-editor/LinkTreeProvider.ts)
 
-When a `TextFileModel` (links, standalone) is opened as a secondary editor with available tags, the Tags navigation panel (`"link-tags"`) renders two parts:
+When a `LinkEditor` (links, standalone) is opened as a secondary editor with available tags, the Tags navigation panel (`"link-tags"`) renders two parts:
 
-**Top:** `LinkTagsPanel` — existing tag selector (unchanged from main editor). User selects a tag, which updates shared `LinkViewModel.state.selectedTag`.
+**Top:** `LinkTagsPanel` — existing tag selector (unchanged from main editor). User selects a tag, which updates shared `LinkEditor.state.selectedTag`.
 
 **Bottom:** `LinksList` grid with links for the selected tag. Clicking a link dispatches `openRawLink` with:
 - `sourceId: "link-tag"` — signals that this link came from tag-based navigation

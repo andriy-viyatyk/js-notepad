@@ -6,7 +6,7 @@ sequenceDiagram
     participant AW as AppWrapper
     participant PW as PageWrapper
     participant F as EditorFacade
-    participant VM as ContentViewModel
+    participant EM as EditorModel
     participant GP as Grouped Page
 
     U->>AM: Press F5
@@ -14,7 +14,7 @@ sequenceDiagram
     Note right of AM: Script panel open?<br/>→ run panel content<br/>JS file + no panel?<br/>→ run page content/selection
 
     AM->>SR: runWithResult(pageId, script, page)
-    SR->>SC: createScriptContext(page)
+    SR->>SC: new ScriptContext(page)
 
     rect rgb(232, 245, 233)
         Note over SC,PW: Context Creation
@@ -24,34 +24,32 @@ sequenceDiagram
         SC->>PW: new PageWrapper(model, releaseList)
         PW->>PW: Wrap EditorModel → IPage
 
-        SC->>SC: Build Proxy chain
-        Note right of SC: 1. Check customContext<br/>   (app, page, React)<br/>2. Fall back to globalThis<br/>3. Auto-bind functions
+        SC->>SC: Build context properties
+        Note right of SC: app, page, io, ai,<br/>customRequire, console,<br/>lazy ui getter
     end
 
-    SC-->>SR: { context, cleanup }
+    SC-->>SR: ScriptContext
 
     rect rgb(240, 248, 255)
         Note over SR,GP: Script Execution
         SR->>SR: Wrap script in async function
-        Note right of SR: with(this) { ... }<br/>+ lexical JS globals<br/>+ implicit return
+        Note right of SR: fn.call(context)<br/>SCRIPT_PREFIX reads from `this`<br/>+ implicit return
 
         SR->>SR: Execute script
 
-        Note over PW,VM: Script accesses page.content
+        Note over PW,EM: Script accesses page.content
         SR->>PW: page.content (getter)
         PW-->>SR: model.state.get().content
 
-        Note over PW,VM: Script calls page.asGrid()
+        Note over PW,EM: Script calls page.asGrid()
         SR->>PW: await page.asGrid()
-        PW->>VM: host.acquireViewModel("grid-json")
-        VM-->>PW: GridViewModel (refs +1)
-        PW->>PW: releaseList.push(release fn)
-        PW->>F: new GridEditorFacade(vm)
+        PW->>F: new GridEditorFacade(gridEditor)
+        Note right of F: Stateless wrapper —<br/>no acquire/release
         F-->>SR: IGridEditor
 
         Note over F: Script uses facade
         SR->>F: facade.addRows(5)
-        F->>VM: vm.addRows(5)
+        F->>EM: gridEditor.addRows(5)
 
         Note over PW,GP: Script accesses page.grouped
         SR->>PW: page.grouped.content = result
@@ -65,12 +63,11 @@ sequenceDiagram
     Note right of SR: object → JSON<br/>string → as-is<br/>Error → stack trace
 
     rect rgb(255, 243, 224)
-        Note over SR,VM: Cleanup (always runs)
-        SR->>SC: cleanup()
+        Note over SR,SC: Cleanup (always runs)
+        SR->>SC: context.dispose()
         SC->>SC: Iterate releaseList
-        SC->>VM: releaseViewModel("grid-json")
-        Note right of VM: refs -1 → 0 → dispose
-        SC->>SC: releaseList = []
+        Note right of SC: Unsubscribe event handlers<br/>from app.events.* subscriptions
+        SC->>SC: Restore previous ui getter
     end
 
     SR->>GP: Write result to grouped page

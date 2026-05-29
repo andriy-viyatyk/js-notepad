@@ -19,7 +19,7 @@ All state primitives live in `/src/renderer/core/state/`.
 | `TModel<T>` | Stateful business logic (non-React) | Models, services |
 | `TComponentModel<T, P>` | React component model with props, effects, memos | React components |
 | `TDialogModel<T, R>` | Dialog/modal with async result | Dialogs |
-| `ContentViewModel<T>` | Editor view state with ref-counting | Content-view editors |
+| `EditorModel<T, R>` | Editor instance (every editor subclasses this) | Editors |
 
 ## Core Primitives
 
@@ -134,73 +134,39 @@ class MyDialog extends TDialogModel<State, Result> {
 }
 ```
 
-## ContentViewModel Pattern
+## EditorModel Pattern
 
-Located in `/src/renderer/editors/base/`. Used by content-view editors (Grid, Markdown, Notebook, Todo, Link, Log View, SVG, HTML, Mermaid) to manage view state separately from the shared text content.
+Located in `/src/renderer/editors/base/`. Every editor (Monaco, Grid, Markdown, Notebook, Todo, Link, Log View, SVG, HTML, Mermaid, Graph, Draw, RestClient, Browser, PDF, Image, Video, etc.) subclasses `EditorModel<TState>`.
 
-### ContentViewModel\<TState\>
+### EditorModel\<TState\>
 
-Abstract base class for editor view models. Subscribes to host content changes and manages its own state.
+Base class for editor instances. Owns the editor's own state, lifecycle, and (optionally) `IContentHost` composition for text-bearing editors.
 
 ```typescript
-class GridViewModel extends ContentViewModel<GridState> {
-    protected onInit(): void {
-        // Parse initial content, set up state
-        this.parseContent(this.host.state.get().content);
-    }
-
-    protected onContentChanged(content: string): void {
-        // React to host content updates
-        this.parseContent(content);
+class GridEditor extends EditorModel<GridState> {
+    protected onRestore(): void {
+        // Parse initial content from this.contentHost
+        this.parseContent(this.contentHost?.state.get().content ?? "");
     }
 }
 ```
 
-**Lifecycle:**
-1. Created by `ContentViewModelHost.acquire(editorId, host)`
-2. `init()` subscribes to host content changes, calls `onInit()`
-3. Lives as long as at least one consumer holds a reference
-4. `dispose()` cleans up subscriptions, calls `onDispose()`
+**Lifecycle (three-phase):**
+1. `applyRestoreData(data)` — apply persisted descriptor fields to the state
+2. `switchFrom(oldEditor)` — optional content-host transfer when switching editor types on the same page
+3. `restore()` — perform any async setup (content fetch, sub-model init)
+4. `dispose()` — cleanup (subscriptions, sub-models, cache files)
 
-**Subclass hooks:**
-- `onInit()` — parse initial content, set up internal state
-- `onContentChanged(content)` — react to host content updates
-- `onDispose()` — optional custom cleanup
-- `addSubscription(unsub)` — register subscriptions for auto-cleanup
+**Text-bearing editors** additionally implement `IContentHost` (or compose one) and expose `CONTENT_HOST_TRAIT` so the page-level switch helper can transfer host ownership between editor types without re-reading the file.
 
-### ContentViewModelHost
+### IContentHost
 
-Ref-counting manager for content view models. Composed by `TextFileModel` and `NoteItemEditModel`.
+Minimal interface for "something that owns editable text content". Two concrete implementations ship today:
 
-```typescript
-class TextFileModel implements IContentHost {
-    private _vmHost = new ContentViewModelHost();
+- `TextFileModel` — file-backed (owns file I/O, encryption, pipe, cache)
+- `NoteItemEditModel` — notebook-note-backed (no file I/O; state lives in the notebook's JSON)
 
-    acquireViewModel(editorId) { return this._vmHost.acquire(editorId, this); }
-    releaseViewModel(editorId) { this._vmHost.release(editorId); }
-    dispose() { this._vmHost.disposeAll(); }
-}
-```
-
-**Reference counting:**
-- `acquire(editorId, host)` — first call creates + inits the VM; subsequent calls increment ref count
-- `release(editorId)` — decrements ref count; disposes when it reaches 0
-- `tryGet(editorId)` — peek at cached VM without changing ref count
-- `disposeAll()` — force-dispose all VMs (when host is disposed)
-
-### useContentViewModel Hook
-
-React hook for acquiring/releasing a ContentViewModel from a host.
-
-```typescript
-function GridEditor({ host }: { host: IContentHost }) {
-    const vm = useContentViewModel<GridViewModel>(host, "grid-json");
-    if (!vm) return null; // loading (usually just first render)
-    return <GridView vm={vm} />;
-}
-```
-
-On mount: calls `host.acquireViewModel(editorId)`. On unmount: calls `host.releaseViewModel(editorId)`. Handles unmount-during-async-load safely.
+Editors compose one via `this.contentHost` and read content through it. Switching editor types is a host-ownership transfer — the new editor inherits the existing host (and its content + I/O + encryption state) untouched.
 
 ### Content Pipe State (IPipeDescriptor)
 
@@ -330,7 +296,7 @@ function MyComponent() {
 ### Via Model State (direct)
 
 ```typescript
-function EditorView({ model }: { model: TextFileModel }) {
+function MyEditorView({ model }: { model: TextFileModel }) {
     const { content, modified } = model.state.use(s => ({
         content: s.content,
         modified: s.modified,
@@ -375,6 +341,6 @@ state.set({ ...state.get(), items: [...state.get().items, newItem] });
 
 Access state through `app.*` interfaces when available. Only use raw `state.use()` inside the component/editor that owns the state.
 
-### 4. ContentViewModel for Editor Views
+### 4. EditorModel for New Editors
 
-When creating a new content-view editor, extend `ContentViewModel<T>` and register its factory in the editor registry. Don't create standalone state — use the host + ref-counting pattern.
+When creating a new editor, subclass `EditorModel<T>` and register the EditorModule in `register-editors.ts`. For text-bearing editors that should be switchable from other text views, also implement `IContentHost` (or compose one) and expose `CONTENT_HOST_TRAIT`. See [editor-guide.md](../standards/editor-guide.md) for the full recipe.

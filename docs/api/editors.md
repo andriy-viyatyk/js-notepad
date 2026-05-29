@@ -17,9 +17,10 @@ console.log(best?.name); // "JSON Grid"
 Get all registered editors.
 
 ```javascript
-app.editors.getAll().forEach(e =>
-    console.log(`${e.id}: ${e.name} (${e.category})`)
-);
+app.editors.getAll().forEach(e => {
+    const kind = e.hasContentHost ? "text" : "standalone";
+    console.log(`${e.id}: ${e.name} [${kind}]`);
+});
 ```
 
 ### getById(id) → `IEditorInfo | undefined`
@@ -61,9 +62,8 @@ opts.options.forEach(id =>
 |----------|------|-------------|
 | `id` | `string` | Editor ID (e.g., `"monaco"`, `"grid-json"`). |
 | `name` | `string` | Display name (e.g., `"Text Editor"`, `"JSON Grid"`). |
-| `category` | `EditorCategory` | `"standalone"` or `"content-view"`. |
+| `hasContentHost` | `boolean` | `true` for text-bearing editors that share text content and can switch between each other; `false` for standalone editors with their own page model. |
 
-### Editor Categories
+Text-bearing editors (`hasContentHost === true`) — Monaco, Grid (JSON/CSV/JSONL), Markdown, Notebook, Todo, Link, SVG, HTML, Mermaid, Log View, Graph, Draw, Rest Client — share the same underlying text content and can switch between each other (e.g., JSON text ↔ Grid).
 
-- **`content-view`** — Views of text content. Can switch between each other (e.g., JSON text ↔ Grid). Examples: Monaco, Grid, Markdown, Notebook, Todo, Link, SVG, HTML, Mermaid.
-- **`standalone`** — Standalone editors with their own page model. Examples: PDF viewer, Image viewer, Browser, About, Settings, Compare.
+Standalone editors (`hasContentHost === false`) — PDF Viewer, Image Viewer, Browser, Archive, Video Player, MCP Inspector, Storybook, About, Settings, Compare — own their own state and do not participate in content-based editor switching.

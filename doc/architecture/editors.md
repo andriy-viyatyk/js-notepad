@@ -2,347 +2,286 @@
 
 ## Overview
 
-The editor system handles different file types with specialized viewers/editors. Each editor:
-- Has its own state management (EditorModel or ContentViewModel)
+Every editor in Persephone is a top-level `EditorModel` subclass. There is one uniform editor architecture — no separation between "content-views" and "standalone" editors. Text-bearing editors (Monaco, Grid, Markdown, Notebook, etc.) compose an `IContentHost` for content I/O and expose a `CONTENT_HOST_TRAIT` so any owner (page, notebook note, future container) can switch editor types by transferring host ownership.
+
+Each editor:
+- Subclasses `EditorModel<TState>` (`/src/renderer/editors/base/EditorModel.ts`)
+- Has its own state, lifecycle hooks, and reactive `state: TOneState<TState>`
 - Renders a specific UI for the file type
 - Is loaded asynchronously for code splitting
 - Can expose a scripting facade via `page.asX()` methods
 
 All editor code lives in `/src/renderer/editors/`.
 
-## Editor Categories
+## Editor Catalog
 
-### Content Views (`category: "content-view"`)
+22 editor classes. The `IContentHost?` column indicates whether the editor composes an `IContentHost` (text-bearing) — these can switch between each other on the same page. The `Trait?` column indicates whether the editor exposes `CONTENT_HOST_TRAIT` — these participate in owner-orchestrated switching.
 
-Views of text-based content that share `TextFileModel` for state management. They render inside `TextEditorView` and can switch between each other.
+| Editor ID | Class | File types | IContentHost? | Trait? |
+|-----------|-------|------------|---------------|--------|
+| `monaco` | `MonacoEditor` | `*` (all, default) | ✓ | ✓ |
+| `grid-json` | `GridEditor` | `.json`, `.grid.json` | ✓ | ✓ |
+| `grid-csv` | `GridEditor` | `.csv`, `.grid.csv` | ✓ | ✓ |
+| `grid-jsonl` | `GridEditor` | `.jsonl`, `.ndjson`, `.grid.jsonl` | ✓ | ✓ |
+| `md-view` | `MarkdownEditor` | `.md`, `.markdown` | ✓ | ✓ |
+| `svg-view` | `SvgEditor` | `.svg` | ✓ | ✓ |
+| `html-view` | `HtmlEditor` | `.html` | ✓ | ✓ |
+| `mermaid-view` | `MermaidEditor` | `.mmd`, `.mermaid` | ✓ | ✓ |
+| `notebook-view` | `NotebookEditor` | `.note.json` | ✓ | ✓ |
+| `todo-view` | `TodoEditor` | `.todo.json` | ✓ | ✓ |
+| `link-view` | `LinkEditor` | `.link.json` | ✓ | ✓ |
+| `log-view` | `LogViewEditor` | `.log.jsonl` | ✓ | ✓ |
+| `graph-view` | `GraphEditor` | `.fg.json` | ✓ | ✓ |
+| `draw-view` | `DrawEditor` | `.excalidraw` | ✓ | ✓ |
+| `rest-client` | `RestClientEditor` | `.rest.json` | ✓ | ✓ |
+| `pdf-view` | `PdfEditor` | `.pdf` | — | — |
+| `image-view` | `ImageEditor` | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | — | — |
+| `archive-view` | `ArchiveEditor` | `.zip`, `.epub`, `.docx`, `.xlsx`, etc. | — | — |
+| `category-view` | `CategoryEditor` | `tree-category://` links | — | — |
+| `browser-view` | `BrowserEditorModel` | (none — opened via UI) | — | — |
+| `mcp-view` | `McpInspectorEditorModel` | (none — opened via UI) | — | — |
+| `about-view` | `AboutEditor` | (none — opened via UI) | — | — |
+| `settings-view` | `SettingsEditor` | (none — opened via UI) | — | — |
+| `video-view` | `VideoEditorModel` | `.mp4`, `.mkv`, `.webm`, `.mp3`, `.flac`, `.wav`, `.ogg`, `.m3u8`, `.hls` | — | — |
+| `storybook-view` | `StorybookEditorModel` | (none — opened via UI) | — | — |
+| `compare` | `CompareEditor` | (triggered) | — | — |
 
-| Editor ID | Name | File types | ViewModel |
-|-----------|------|------------|-----------|
-| `monaco` | Text Editor | `*` (all, default) | `TextViewModel` |
-| `grid-json` | Grid | `.json`, `.grid.json` | `GridViewModel` |
-| `grid-csv` | Grid | `.csv`, `.grid.csv` | `GridViewModel` |
-| `grid-jsonl` | Grid | `.jsonl`, `.ndjson`, `.grid.jsonl` | `GridViewModel` |
-| `md-view` | Preview | `.md`, `.markdown` | `MarkdownViewModel` |
-| `svg-view` | Preview | `.svg` | `SvgViewModel` |
-| `html-view` | Preview | `.html` | `HtmlViewModel` |
-| `mermaid-view` | Mermaid | `.mmd`, `.mermaid` | `MermaidViewModel` |
-| `notebook-view` | Notebook | `.note.json` | `NotebookViewModel` |
-| `todo-view` | ToDo | `.todo.json` | `TodoViewModel` |
-| `link-view` | Links | `.link.json` | `LinkViewModel` |
-| `log-view` | Log View | `.log.jsonl` | `LogViewModel` |
-| `graph-view` | Graph | `.fg.json` | `GraphViewModel` |
-| `draw-view` | Drawing | `.excalidraw` | `DrawViewModel` |
-| `rest-client` | Rest Client | `.rest.json` | `RestClientViewModel` |
-
-**Characteristics:**
-- Rendered inside `TextEditorView` via `ActiveEditor` component
-- Share toolbar, script panel, footer, and encryption panel
-- Can switch between each other (e.g., JSON text <-> Grid view)
-- Use `TextFileModel` (no separate EditorModel)
-- Each has a `ContentViewModel` subclass for view-specific state
-- `switchOption()` function controls when editor appears in switch dropdown
-
-### Standalone Editors (`category: "standalone"`)
-
-Standalone editors with their own EditorModel.
-
-| Editor ID | Name | Page type | File types |
-|-----------|------|-----------|------------|
-| `pdf-view` | PDF Viewer | `pdfFile` | `.pdf` |
-| `image-view` | Image Viewer | `imageFile` | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` |
-
-> **Content pipe integration:** PDF Viewer and Image Viewer use content pipes for I/O. Both have `ensurePipe()` to reconstruct the pipe from `filePath` on app restart. For non-local sources (HTTP URLs, archive entries), they read content through the pipe and cache to disk for offline restart recovery. PDF caches as `{pageId}.pdf`, Image caches as `{pageId}.img`. Cache files are cleaned up on page dispose.
+> **PDF / Image content pipe integration:** Both have `ensurePipe()` to reconstruct the pipe from `filePath` on app restart. For non-local sources (HTTP URLs, archive entries), they read content through the pipe and cache to disk for offline restart recovery. PDF caches as `{pageId}.pdf`, Image caches as `{pageId}.img`. Cache files are cleaned up on page dispose.
 >
-> **Image Viewer URL support:** ImageViewer can display images from external URLs (e.g. browser context menu "Open Image in New Tab"). For HTTP URLs, an `HttpProvider` pipe is created (serializable, re-fetches on restart). The image binary is also cached to disk as a fallback. For blob URLs (REST client, drawing export), the binary is cached to disk immediately since blob URLs don't survive restart. URL-based images show a "Save Image to File" toolbar button.
+> **Image URL support:** `ImageEditor` can display images from external URLs (e.g. browser context menu "Open Image in New Tab"). For HTTP URLs, an `HttpProvider` pipe is created (serializable, re-fetches on restart). The image binary is also cached to disk as a fallback. For blob URLs (REST client, drawing export), the binary is cached to disk immediately since blob URLs don't survive restart. URL-based images show a "Save Image to File" toolbar button.
 
-| `zip-view` | Archive | `zipFile` | `.zip`, `.epub`, `.docx`, `.xlsx`, etc. |
-| `category-view` | Folder View | `categoryPage` | `tree-category://` links |
-| `browser-view` | Browser | `browserPage` | (none — opened via UI) |
-| `mcp-view` | MCP Inspector | `mcpInspectorPage` | (none — opened via UI) |
-| `about-view` | About | `aboutPage` | (none — opened via UI) |
-| `settings-view` | Settings | `settingsPage` | (none — opened via UI) |
-| `video-view` | Video/Audio Player | `videoPage` | `.mp4`, `.mkv`, `.webm`, `.mp3`, `.flac`, `.wav`, `.ogg`, `.m3u8`, `.hls` |
-| `compare` | Compare | (triggered) | (none — opened via diff command) |
-
-**Characteristics:**
-- Rendered instead of `TextEditorView` by `RenderEditor`
-- Have their own EditorModel subclass
-- Handle their own UI entirely (no shared toolbar/script panel)
-- Each has a unique `editorType`
-
-### Architecture Diagram
+## Rendering Architecture
 
 ```
 RenderEditor
-├── [standalone] → AsyncEditor → EditorErrorBoundary → PdfViewer / ImageViewer / Browser / McpInspector / About / Settings
-└── [content-view] → TextEditorView
-                         ├── TextToolbar
-                         ├── ActiveEditor → AsyncEditor → EditorErrorBoundary → Monaco / Grid / Markdown / Notebook / Todo / Link / Log View / SVG / HTML / Mermaid / Graph
-                         ├── ScriptPanel
-                         ├── TextFooter
-                         └── EditorOverlay (portal target for expanded note)
+└── AsyncEditor
+    └── EditorErrorBoundary
+        └── <EditorComponent model={page.mainEditor} />
 ```
+
+All editors flow through the same path — there is no longer a content-view branching point that wraps text-bearing editors inside `TextEditorView`. Shared chrome (`PageToolbar`, `TextChrome`) is composed by each editor's view component as needed.
 
 **Error protection:** `EditorErrorBoundary` (`/src/renderer/ui/app/EditorErrorBoundary.tsx`) wraps every editor inside `AsyncEditor`. If the editor component throws during render, the boundary catches the error and displays the error message + stack trace in the tab instead of crashing the application. This is a React class component (required for `getDerivedStateFromError`).
 
-## Content Host + ViewModel Architecture
+## EditorModel Base Class
 
-Content-view editors use a layered architecture with ref-counted ViewModels:
+```typescript
+abstract class EditorModel<TState extends IEditorState = IEditorState> {
+    readonly id: string;
+    readonly editorId: string;          // e.g. "grid-json", "pdf-view"
+    readonly state: TOneState<TState>;
+    readonly traits: TraitSet;
+    readonly queue: ComponentQueue;
+    page: IPageHost | null;             // back-reference, set via setPage()
 
+    // Lifecycle (three-phase)
+    applyRestoreData(data: Partial<TState>): void;
+    switchFrom?(oldEditor: EditorModel): Promise<void>;  // optional content-host transfer
+    restore(): Promise<void>;
+
+    // Navigation hooks
+    setPage(page: IPageHost | null): void;
+    beforeNavigateAway(newEditor: EditorModel): void;
+    onMainEditorChanged(newMainEditor: EditorModel | null): void;
+
+    // Persistence
+    getDescriptor(): HostDescriptor;
+    confirmRelease(closing?: boolean): Promise<boolean>;
+    dispose(): void;
+
+    // Secondary editor membership (managed by setter, see secondary-editors.md)
+    secondaryEditor: string[] | undefined;
+}
 ```
-TextFileModel (IContentHost)
-    │
-    ├── owns text content, language, file I/O
-    │
-    └── ContentViewModelHost (ref-counting)
-            │
-            ├── GridViewModel (refs: 1)      ← acquired by GridEditor component
-            ├── MarkdownViewModel (refs: 0)  ← disposed (no active consumers)
-            └── NotebookViewModel (refs: 2)  ← acquired by NotebookEditor + NotebookEditorFacade
-```
 
-### IContentHost Interface
+`EditorModel` extends `TDialogModel` indirectly via the queue/state primitives — every editor can `close()` with confirmation and has a `canClose` guard.
 
-The contract for anything that hosts editable text content. Implemented by:
-- `TextFileModel` — standalone page tab
-- `NoteItemEditModel` — notebook note (embedded editor)
+## IContentHost
+
+The shared abstraction for "something that owns editable text content". Two concrete implementations ship today:
 
 ```typescript
 interface IContentHost {
     readonly id: string;
-    readonly state: IState<IContentHostState>;  // { content, language, editor }
-    changeContent(content: string, byUser?: boolean): void;
-    changeEditor(editor: EditorView): void;
-    changeLanguage(language: string | undefined): void;
+    readonly type: "textFile";
+    readonly state: TOneState<IContentHostState>;  // { content, language, editor, filePath, ... }
     readonly stateStorage: EditorStateStorage;
-    acquireViewModel(editorId: EditorView): Promise<ContentViewModel<any>>;
-    acquireViewModelSync(editorId: EditorView): ContentViewModel<any> | undefined;
-    prepareViewModel(editorId: EditorView): Promise<void>;
-    releaseViewModel(editorId: EditorView): void;
-}
-```
-
-**Sync acquisition:** `prepareViewModel()` pre-loads the editor module, then `acquireViewModelSync()` creates the VM synchronously from the cached factory. Returns `undefined` if the module hasn't been loaded. Used by `UiFacade` to create `LogViewModel` synchronously in the lazy `ui` getter.
-
-### ContentViewModel Lifecycle
-
-1. React component mounts → `useContentViewModel(host, editorId)` calls `host.acquireViewModel()`
-2. `ContentViewModelHost.acquire()` → checks cache → first call: loads factory, creates VM, calls `init()`
-3. VM subscribes to host content changes via `onContentChanged()`
-4. React component unmounts → hook calls `host.releaseViewModel()`
-5. `ContentViewModelHost.release()` → decrements refs → if 0: calls `dispose()`
-
-### ViewModelFactory Registration
-
-Each content-view editor provides a `createViewModel` factory in its `EditorModule`:
-
-```typescript
-// In register-editors.ts
-editorRegistry.register({
-    id: "grid-json",
-    category: "content-view",
-    loadModule: async () => {
-        const { GridEditor } = await import("./grid/GridEditor");
-        const { createGridViewModel } = await import("./grid/GridViewModel");
-        return {
-            Editor: GridEditor,
-            createViewModel: createGridViewModel,  // ← factory for ContentViewModel
-            newEditorModel: textEditorModule.newEditorModel,
-            // ...
-        };
-    },
-});
-```
-
-## EditorModel Hierarchy
-
-```
-TDialogModel<T, R>   (from core/state/model.ts)
-└── EditorModel<T, R>   (from editors/base/EditorModel.ts)
-    ├── TextFileModel         # Content-view host (Monaco, Grid, Markdown, etc.)
-    ├── BrowserEditorModel      # Browser (multi-tab, webview, IPC)
-    ├── McpInspectorEditorModel     # MCP Inspector (connection manager, server inspection)
-    ├── VideoEditorModel      # Video/Audio Player (multi-format media, streaming server integration)
-    ├── NotebookEditorModel   # Notebook (.note.json — page-level model)
-    └── (PdfViewer, ImageViewer, About, Settings, Compare — inline models)
-
-ContentViewModel<TState>   (from editors/base/ContentViewModel.ts)
-├── TextViewModel           # Monaco text editor state
-├── GridViewModel           # Grid columns, rows, filters
-├── MarkdownViewModel       # Search state, compact, scroll (delegates rendering to MarkdownBlock)
-├── NotebookViewModel       # Notes, categories, tags, filters
-├── TodoViewModel           # Todo items, lists, tags
-├── LinkViewModel           # Links, pins, favicons
-├── LogViewModel            # Log entries, dialog promises, dirty-index serialization
-├── SvgViewModel            # SVG rendering
-├── HtmlViewModel           # HTML rendering
-├── MermaidViewModel        # SVG URL, loading, error, light mode
-└── GraphViewModel          # Force graph editing (composes GraphDataModel, GraphGroupModel, GraphConnectivityModel, GraphSearchModel, GraphHighlightModel, ForceGraphRenderer, GraphVisibilityModel)
-```
-
-**Note:** EditorModel extends `TDialogModel` (not `TModel`) because pages need `close()` with confirmation and `canClose` guards.
-
-### EditorModel Base
-
-```typescript
-class EditorModel<T extends IEditorState, R = any> extends TDialogModel<T, R> {
-    get id(): string;
-    get type(): EditorType;
-    get title(): string;
-    get modified(): boolean;
-    get filePath(): string | undefined;
-    get secondaryEditor(): string[] | undefined;  // Active secondary editor panel IDs (multi-panel)
-    set secondaryEditor(value: string[] | undefined);  // Manages page.secondaryEditors[] membership
-
-    scriptData: Record<string, any>;   // In-memory data for scripts
-    page: PageModel | null;            // Reference to containing PageModel (set via setPage)
-
-    beforeNavigateAway(newModel: EditorModel): void;  // Navigation survival hook (base: clears secondaryEditor)
-    onMainEditorChanged(newMainEditor: EditorModel | null): void;  // Secondary editor notification
+    readonly pipe: IContentPipe | null;
+    changeContent(content: string, byUser?: boolean): void;
+    changeLanguage(language: string | undefined): void;
     confirmRelease(closing?: boolean): Promise<boolean>;
-    restore(): Promise<void>;
-    saveState(): Promise<void>;
-    getRestoreData(): Partial<T>;
-    changeLanguage(language: string): void;
+    getDescriptor(): HostDescriptor;
+    dispose(): void;
 }
 ```
+
+| Implementation | Backing | I/O |
+|----------------|---------|-----|
+| `TextFileModel` | Local file (or archive entry, HTTP URL) | File-backed via content pipe, with debounced auto-save to cache |
+| `NoteItemEditModel` | Notebook note (lives in notebook JSON) | No file I/O; reads/writes via the parent notebook's `updateNoteContent` |
+
+Text-bearing editors (Monaco, Grid, Markdown, ...) hold a reference to an `IContentHost` via `this.contentHost` and read content through it. The host outlives the editor — when a user switches a JSON file from text view to grid view, the same `TextFileModel` host transfers to the new `GridEditor` instance.
+
+## CONTENT_HOST_TRAIT
+
+Switchable text-bearing editors expose `CONTENT_HOST_TRAIT` so any owner can transfer their host to a new editor instance:
+
+```typescript
+const CONTENT_HOST_TRAIT = TraitRegistry.register<IContentHostTrait>("content-host");
+
+interface IContentHostTrait {
+    extractContentHost(): IContentHost;     // detach — old editor must NOT dispose it
+    inheritContentHost(host: IContentHost): void;
+}
+```
+
+The owner-side switch helper (`switchEditorViaContentHost`) calls `extractContentHost()` on the old editor, creates the new editor instance, then calls `inheritContentHost(host)` on it. Content, file path, modifications, I/O state, encryption all survive the switch untouched because the host is the same object.
+
+## Owner-Orchestrated Switching
+
+Editor switching is initiated by the owner (the page, or a notebook), not by the editor itself. `PageModel.switchMainEditor(newEditorId)` and notebook-level note switching both call the same helper:
+
+```typescript
+async function switchEditorViaContentHost(
+    oldEditor: EditorModel | null,
+    newEditorId: string,
+    swap: (newEditor: EditorModel) => Promise<void>,
+): Promise<void> {
+    const oldTrait = oldEditor?.traits.get(CONTENT_HOST_TRAIT);
+    const host = oldTrait?.extractContentHost();
+    const newEditor = await createEditor(newEditorId);
+    const newTrait = newEditor.traits.get(CONTENT_HOST_TRAIT);
+    if (host && newTrait) {
+        newTrait.inheritContentHost(host);
+    }
+    await swap(newEditor);   // owner-specific install (e.g., `page.setMainEditor`)
+}
+```
+
+For non-text editors (PDF, Image, Browser, etc.) without `CONTENT_HOST_TRAIT`, there is no host to transfer — switching is a plain create+swap.
+
+## EditorModule Interface
+
+Each editor folder's `index.tsx` exports an `EditorModule` registered with `editorRegistry`:
+
+```typescript
+interface EditorModule {
+    id: string;                          // e.g. "grid-json"
+    name: string;                        // display name
+    Editor: React.ComponentType<{ model: EditorModel }>;
+    create(): EditorModel;               // factory for a new instance
+    accepts?(input: AcceptanceInput): number;  // priority >= 0 if this editor accepts the input, -1 otherwise
+    hasContentHost?: boolean;            // true for text-bearing editors
+    validateForLanguage?(language: string): boolean;
+    switchOption?(language: string, filePath?: string): number;
+    isEditorContent?(language: string, content: string): boolean;
+}
+```
+
+Editors are registered in `/src/renderer/editors/register-editors.ts` via `editorRegistry.register(module)`.
 
 ## Scripting Facades
 
-Editor facades provide safe, typed script access to editors via `page.asX()` methods. Each facade wraps a ContentViewModel or EditorModel.
+Editor facades provide safe, typed script access to editors via `page.asX()` methods. Each facade wraps the page's `mainEditor` (an `EditorModel` subclass) directly — there is no separate view-model layer.
 
-| Method | Facade | Source |
-|--------|--------|--------|
-| `page.asText()` | `TextEditorFacade` | Wraps `TextViewModel` |
-| `page.asGrid()` | `GridEditorFacade` | Wraps `GridViewModel` |
-| `page.asNotebook()` | `NotebookEditorFacade` | Wraps `NotebookViewModel` |
-| `page.asTodo()` | `TodoEditorFacade` | Wraps `TodoViewModel` |
-| `page.asLink()` | `LinkEditorFacade` | Wraps `LinkViewModel` |
-| `page.asBrowser()` | `BrowserEditorFacade` | Wraps `BrowserEditorModel` directly |
-| `page.asMarkdown()` | `MarkdownEditorFacade` | Wraps `MarkdownViewModel` |
-| `page.asSvg()` | `SvgEditorFacade` | Wraps `SvgViewModel` |
-| `page.asHtml()` | `HtmlEditorFacade` | Wraps `HtmlViewModel` |
-| `page.asMermaid()` | `MermaidEditorFacade` | Wraps `MermaidViewModel` |
+| Method | Facade | Wraps |
+|--------|--------|-------|
+| `page.asText()` | `TextEditorFacade` | `MonacoEditor` |
+| `page.asGrid()` | `GridEditorFacade` | `GridEditor` |
+| `page.asNotebook()` | `NotebookEditorFacade` | `NotebookEditor` |
+| `page.asTodo()` | `TodoEditorFacade` | `TodoEditor` |
+| `page.asLink()` | `LinkEditorFacade` | `LinkEditor` |
+| `page.asMarkdown()` | `MarkdownEditorFacade` | `MarkdownEditor` |
+| `page.asSvg()` | `SvgEditorFacade` | `SvgEditor` |
+| `page.asHtml()` | `HtmlEditorFacade` | `HtmlEditor` |
+| `page.asMermaid()` | `MermaidEditorFacade` | `MermaidEditor` |
+| `page.asGraph()` | `GraphEditorFacade` | `GraphEditor` |
+| `page.asDraw()` | `DrawEditorFacade` | `DrawEditor` |
+| `page.asBrowser()` | `BrowserEditorFacade` | `BrowserEditorModel` |
+| `page.asMcpInspector()` | `McpInspectorFacade` | `McpInspectorEditorModel` |
 
 Facades live in `/src/renderer/scripting/api-wrapper/`. Interfaces in `/src/renderer/api/types/*.d.ts`.
 
-Content-view facades acquire a ViewModel via `host.acquireViewModel()` and auto-release it when the script completes (via `releaseList` in `PageWrapper`). `BrowserEditorFacade` wraps the EditorModel directly (no ViewModel, no ref-counting).
+The `page.asX(force?: boolean)` methods optionally accept `force: true` to bypass the type check and return a facade for the current editor regardless of type — useful for scripts that target editors via traits rather than declared editor IDs.
 
 ## Editor Resolution
 
 When a file is opened:
 
 ```
-File Path → editorRegistry.resolve() → EditorDefinition → loadModule() → Render
+File path → editorRegistry.resolve(filePath) → EditorModule → create() → Render
 ```
 
 Resolution priority (higher priority wins):
-1. Filename patterns (e.g., `*.note.json`) — priority 20
-2. File extensions (e.g., `.pdf`) — priority 100
-3. Default to monaco text editor — priority 0
+1. Content-based detection (e.g., `"type": "note-editor"` in JSON) — priority 90 (when applicable)
+2. Filename patterns (e.g., `*.note.json`) — priority 20
+3. File extensions (e.g., `.pdf`) — priority 100
+4. Default to monaco text editor — priority 0
 
 All editor registration is in `/src/renderer/editors/register-editors.ts`.
 
-## Editor Structure
+## Editor Folder Structure
 
 Every editor follows this pattern:
 
 ```
 /editors/[name]/
-├── index.ts              # Public exports + EditorModule
-├── [Name]Editor.tsx      # Main component (or [Name]View.tsx)
-├── [Name]ViewModel.ts    # ContentViewModel subclass (content-views)
-├── [Name]EditorModel.ts    # EditorModel subclass (standalones)
-├── components/           # Editor-specific components (optional)
-└── utils/                # Editor-specific utilities (optional)
+├── index.tsx              # EditorModule export — factory + matchers
+├── [Name]Editor.ts        # EditorModel subclass (state, lifecycle, business logic)
+├── [Name]Body.tsx         # React component (or [Name]View.tsx for non-text editors)
+├── components/            # Editor-specific components (optional)
+└── utils/                 # Editor-specific utilities (optional)
 ```
-
-### EditorModule Interface
-
-```typescript
-interface EditorModule {
-    Editor: React.ComponentType<{ model: EditorModel | IContentHost }>;
-    newEditorModel(filePath?: string): Promise<EditorModel>;
-    newEmptyEditorModel(editorType: EditorType): Promise<EditorModel | null>;
-    newEditorModelFromState(state: Partial<IEditorState>): Promise<EditorModel>;
-    createViewModel?: ViewModelFactory;  // Content-views provide this
-}
-```
-
-## Adding a New Editor
-
-### Adding a Content-View Editor
-
-1. Create folder `/editors/myview/`
-2. Implement `ContentViewModel` subclass:
-   ```typescript
-   export class MyViewModel extends ContentViewModel<MyState> {
-       protected onInit(): void { /* parse initial content */ }
-       protected onContentChanged(content: string): void { /* react to updates */ }
-   }
-   export const createMyViewModel: ViewModelFactory = (host) => new MyViewModel(host, defaultState);
-   ```
-3. Implement editor component receiving `IContentHost` as model
-4. Register with `category: "content-view"` and `createViewModel` factory
-5. Add `EditorView` type to `/shared/types.ts`
-6. (Optional) Add scripting facade in `/scripting/api-wrapper/` + `.d.ts` in `/api/types/`
-
-### Adding a Page-Editor
-
-1. Create folder `/editors/myeditor/`
-2. Extend `EditorModel` with custom state
-3. Implement editor component receiving your EditorModel
-4. Register with `category: "standalone"` and unique `editorType`
-5. Add `EditorType` and `EditorView` types to `/shared/types.ts`
-6. (Optional) Add scripting facade
 
 ## Editor Switching
 
-Content-view editors support switching views (e.g., JSON text <-> Grid view):
+Text-bearing editors (those with `IContentHost` + `CONTENT_HOST_TRAIT`) support switching views (e.g., JSON text ↔ Grid view):
 
 ```typescript
 // Get available switch options for current language
-const switchOptions = editorRegistry.getSwitchOptions(language, filePath);
-if (switchOptions.options.length > 1) {
-    // Render switch buttons in toolbar
+const opts = editorRegistry.getSwitchOptions(language, filePath);
+if (opts.options.length > 1) {
+    // Render switch buttons in the toolbar
 }
 ```
 
-The `page.editor` property on `TextFileModel` state controls which editor renders the content.
+The page-level switch invokes `PageModel.switchMainEditor(newEditorId)`, which delegates to `switchEditorViaContentHost` to transfer the host.
 
 ### Content-Based Editor Detection
 
-Structured JSON editors (notebook, todo, link) embed a `"type"` property in their JSON content:
+Structured JSON editors (notebook, todo, link, graph, rest-client) embed a `"type"` property in their JSON content:
 - `"type": "note-editor"` → notebook-view
 - `"type": "todo-editor"` → todo-view
 - `"type": "link-editor"` → link-view
 - `"type": "force-graph"` → graph-view
 - `"type": "rest-client"` → rest-client
 
-This allows the correct switch button to appear even when the file name doesn't match the expected pattern (e.g., `.note.json`). Detection uses fast regex checks (no JSON parsing) via the `isEditorContent()` hook on `EditorDefinition`.
+This allows the correct switch button to appear even when the file name doesn't match the expected pattern (e.g., `.note.json`). Detection uses fast regex checks (no JSON parsing) via the `isEditorContent()` hook on `EditorModule`.
 
 `TextFileModel` runs detection:
 - **Immediately** on `restore()` and `changeEditor()`
 - **Debounced (2.5s)** on `changeContent()`
 - Timer is cancelled on `dispose()`
 
-The detected editor is stored in `TextFileEditorModelState.detectedContentEditor` and merged into switch options by `TextToolbar`.
+The detected editor is stored in `TextFileModel.state.detectedContentEditor` and merged into switch options by the toolbar.
 
 ## EditorRegistry API
 
 ```typescript
-editorRegistry.register(definition)              // Register an editor
-editorRegistry.getById(id)                       // Get editor by ID
-editorRegistry.getAll()                          // Get all registered editors
-editorRegistry.resolve(filePath)                 // Resolve editor for file
-editorRegistry.resolveId(filePath)               // Resolve just the editor ID
-editorRegistry.validateForLanguage(editor, lang) // Validate editor/language combo
-editorRegistry.getSwitchOptions(lang, filePath)  // Get UI switch options
-editorRegistry.getPreviewEditor(lang, filePath)  // Get auto-preview editor
-editorRegistry.detectContentEditor(lang, content) // Detect editor from content type field
-editorRegistry.getViewModelFactory(editorId)     // Get cached VM factory (sync)
-editorRegistry.loadViewModelFactory(editorId)    // Load VM factory (async)
-editorRegistry.validateForHost(editorId, host)   // Validate editor for content host
+editorRegistry.register(module)                    // Register an EditorModule
+editorRegistry.getById(id)                         // Get module by ID
+editorRegistry.getAll()                            // Get all registered modules
+editorRegistry.resolve(input)                      // Resolve module for file path / content / language
+editorRegistry.resolveId(input)                    // Resolve just the editor ID
+editorRegistry.validateForLanguage(editor, lang)   // Validate editor/language combo
+editorRegistry.getSwitchOptions(lang, filePath)    // Get UI switch options
+editorRegistry.getPreviewEditor(lang, filePath)    // Get auto-preview editor for the file
+editorRegistry.detectContentEditor(lang, content)  // Detect editor from content `type` field
+editorRegistry.createEditor(id)                    // Create an EditorModel instance
 ```
 
-For complete guide, see [Editor Creation Guide](/doc/standards/editor-guide.md).
+The registry is the single resolution surface — it owns extension/language/content matching internally (no external `registry.ts` to delegate to).
+
+## Adding a New Editor
+
+See [Editor Creation Guide](../standards/editor-guide.md) for the full recipe with code samples.

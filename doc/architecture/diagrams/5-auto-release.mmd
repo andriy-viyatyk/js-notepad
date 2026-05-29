@@ -2,20 +2,18 @@ flowchart TB
     START["Script starts"] --> CREATE["releaseList = []"]
     CREATE --> RUN["Execute script code"]
 
-    RUN --> |"page.asGrid()"| ACQ1["acquire VM<br/>push release fn"]
-    RUN --> |"page.asText()"| ACQ2["acquire VM<br/>push release fn"]
-    RUN --> |"page.grouped.asNotebook()"| ACQ3["acquire VM<br/>push release fn"]
+    RUN --> |"page.asGrid()"| FAC1["return stateless<br/>GridEditorFacade<br/><i>no release fn</i>"]
+    RUN --> |"page.asText()"| FAC2["return stateless<br/>TextEditorFacade<br/><i>no release fn</i>"]
+    RUN --> |"app.events.X.subscribe(h)"| SUB["push unsubscribe()<br/>onto releaseList"]
 
-    ACQ1 --> RUN
-    ACQ2 --> RUN
-    ACQ3 --> RUN
+    FAC1 --> RUN
+    FAC2 --> RUN
+    SUB --> RUN
 
     RUN --> |"success or error"| FINALLY["finally block"]
-    FINALLY --> CLEANUP["cleanup()"]
-    CLEANUP --> REL1["release grid VM"]
-    REL1 --> REL2["release text VM"]
-    REL2 --> REL3["release notebook VM"]
-    REL3 --> DONE["All VMs released ✓"]
+    FINALLY --> CLEANUP["context.dispose()"]
+    CLEANUP --> REL["Iterate releaseList<br/>→ unsubscribe each handler"]
+    REL --> DONE["All subscriptions cleaned ✓<br/>Editor facades were stateless"]
 
     style START fill:#e8f5e9
     style FINALLY fill:#fff3e0

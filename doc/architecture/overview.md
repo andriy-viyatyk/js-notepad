@@ -143,15 +143,14 @@ See [state-management.md](./state-management.md).
 
 - Custom reactive primitives in `core/state/` (TOneState, TModel, TComponentModel)
 - Object Model interfaces in `api/` use these primitives internally
-- ContentViewModel pattern for editor view state with ref-counting
+- `EditorModel<TState>` base class for all editors
 
 ### 2. Editor System
 
 See [editors.md](./editors.md).
 
-- All editors in `/editors/` — 17 editor folders
-- Two categories: **content-views** (share TextFileModel) and **page-editors** (standalone)
-- `EditorModel` base class for state, `ContentViewModel` for view state
+- All editors in `/editors/` — 22 editor folders, every editor is an `EditorModel` subclass
+- Text-bearing editors compose an `IContentHost` (`TextFileModel` for file-backed, `NoteItemEditModel` for notebook notes) and expose `CONTENT_HOST_TRAIT` for owner-orchestrated switching
 - Dynamic loading via `import()` for code splitting
 - Scripting facades expose editor APIs via `page.asX()` methods
 
@@ -164,7 +163,7 @@ See [scripting.md](./scripting.md).
 - Full Node.js and React access for scripts
 - API wrappers (AppWrapper, PageWrapper) provide safe, typed access
 - Editor facades (TextEditorFacade, GridEditorFacade, etc.) for typed editor operations
-- Auto-release of ViewModels on script completion
+- Auto-cleanup of event subscriptions on script completion
 - Monaco IntelliSense via `.d.ts` files
 
 ### 4. MCP Integration (Model Context Protocol)
@@ -228,10 +227,10 @@ Keep the core text editing experience fast and lightweight. Heavy features load 
 ```typescript
 // CORRECT - async import preserves code splitting
 const getPdfModule = async () =>
-    (await import("../editors/pdf/PdfViewer")).default;
+    (await import("../editors/pdf")).default;
 
 // WRONG - synchronous import increases main bundle
-import { PdfViewer } from "../editors/pdf/PdfViewer";
+import pdfModule from "../editors/pdf";
 ```
 
 ### 3. Container with Building Blocks
@@ -241,10 +240,9 @@ persephone provides UI building blocks (toolbar, editors, grouped pages). Users 
 Every editor follows the same pattern:
 ```
 /editors/[name]/
-├── index.ts              # Exports
-├── [Name]Editor.tsx      # View component (or [Name]View.tsx / [Name]PageView.tsx)
-├── [Name]EditorModel.ts    # State & logic (page-editors)
-├── [Name]ViewModel.ts    # View state (content-views with their own view model)
+├── index.tsx             # EditorModule registration (factory + matchers)
+├── [Name]Editor.ts       # EditorModel subclass — state, lifecycle, business logic
+├── [Name]Body.tsx        # React component (or [Name]View.tsx for older naming)
 └── components/           # Editor-specific (optional)
 ```
 

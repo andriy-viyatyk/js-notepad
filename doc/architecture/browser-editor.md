@@ -203,7 +203,7 @@ The renderer builds the menu dynamically based on `params` fields from the `cont
 | `src/renderer/editors/browser/BrowserEditorModel.ts` | Renderer | Multi-tab state management, navigation logic, favicon caching, search engines |
 | `src/renderer/editors/browser/BrowserTargetModel.ts` | Renderer | Automation adapter sub-model — implements `IBrowserTarget` for MCP tools |
 | `src/renderer/editors/browser/BrowserTabsPanel.tsx` | Renderer | Left-side internal tabs panel with compact extension popup, drag-to-reorder |
-| `src/renderer/editors/browser/BrowserBookmarks.ts` | Renderer | Wraps TextFileModel + LinkEditorModel for bookmark file I/O |
+| `src/renderer/editors/browser/BrowserBookmarks.ts` | Renderer | Wraps TextFileModel + LinkEditor for bookmark file I/O |
 | `src/renderer/editors/browser/BookmarksDrawer.tsx` | Renderer | Sliding overlay drawer rendering the Link Editor for bookmarks |
 | `src/renderer/editors/browser/UrlSuggestionsDropdown.tsx` | Renderer | URL bar dropdown with search history and navigation history |
 | `src/renderer/editors/browser/browser-search-history.ts` | Renderer | Per-profile persistent search history storage (file-based) |
@@ -431,10 +431,10 @@ Each browser profile can be associated with a `.link.json` bookmarks file. Bookm
 ```
 BrowserBookmarks (stored on BrowserEditorModel.bookmarks)
     ├─ TextFileModel     — file I/O, encryption, FileWatcher, auto-save
-    └─ LinkEditorModel   — parsed link data, categories, tags, filters
+    └─ LinkEditor   — parsed link data, categories, tags, filters
 ```
 
-`BrowserBookmarks` wraps both models. `TextFileModel` handles reading/writing the `.link.json` file (including encryption/decryption), while `LinkEditorModel` provides the structured data layer. Every mutation flows through `LinkEditorModel.onDataChanged()` → `TextFileModel.changeContent()` → debounced save to disk.
+`BrowserBookmarks` wraps both models. `TextFileModel` handles reading/writing the `.link.json` file (including encryption/decryption), while `LinkEditor` provides the structured data layer. Every mutation flows through `LinkEditor.onDataChanged()` → `TextFileModel.changeContent()` → debounced save to disk.
 
 ### Initialization Flow
 
@@ -514,7 +514,7 @@ The root browser `<div>` handles `Ctrl+L` (focus URL bar) and `Ctrl+F` (find in 
 
 ## Scripting Facade
 
-Scripts access browser pages via `page.asBrowser()`, which returns a `BrowserEditorFacade`. Unlike content-view facades (which acquire a ViewModel with ref-counting), this wraps `BrowserEditorModel` directly — no ViewModel, no ref-counting — because the browser is a standalone, not a content-view.
+Scripts access browser pages via `page.asBrowser()`, which returns a `BrowserEditorFacade`. Like all editor facades, this wraps the underlying `EditorModel` subclass (`BrowserEditorModel`) directly — there is no separate view-model layer.
 
 ```javascript
 const browser = await page.asBrowser();

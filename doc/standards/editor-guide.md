@@ -8,324 +8,305 @@ Read these first:
 - [Architecture Overview](../architecture/overview.md)
 - [Editor System](../architecture/editors.md)
 
-## Step-by-Step Guide
+## Decision Tree
 
-### Step 1: Plan Your Editor
+Three questions decide the shape of your editor:
 
-Answer these questions:
-- What file types will it handle?
-- Is it read-only (viewer) or editable?
-- Does it need custom toolbar actions?
-- Will it reuse existing components?
+1. **Does it work on editable text content?** (e.g. JSON, CSV, Markdown — yes; PDF, Image, Browser — no)
+   - **Yes** → compose an `IContentHost` (via `this.contentHost`). Skip to step 2.
+   - **No** → your editor stores its own state directly. Skip to "Step 1: Folder structure" below.
 
-### Step 2: Create Folder Structure
+2. **Should users be able to switch *to* this editor while looking at a sibling text view?** (e.g. Grid view when looking at JSON — yes; Markdown preview from Monaco — yes)
+   - **Yes** → expose `CONTENT_HOST_TRAIT` (with `extractContentHost` / `inheritContentHost`).
+   - **No** → just compose the host; no trait needed.
+
+3. **Should the editor have its own sidebar panel(s)?** (e.g. Link Editor's Categories panel)
+   - **Yes** → set `this.secondaryEditor = ["my-panel"]` in `setPage()` or `restore()`. See [Secondary Editors](../architecture/secondary-editors.md).
+   - **No** → skip.
+
+## Step 1: Folder Structure
 
 ```
 /src/renderer/editors/myeditor/
-├── index.ts              # EditorModule + exports
-├── MyEditor.tsx          # Main component
-├── MyEditorModel.ts        # State management
-├── MyToolbar.tsx         # (optional) Custom toolbar
-└── components/           # (optional) Editor-specific components
-    └── MyComponent.tsx
+├── index.tsx                # EditorModule registration
+├── MyEditor.ts              # EditorModel subclass
+├── MyEditorBody.tsx         # React component for text-bearing editors
+│                            # (or MyEditorView.tsx for non-text editors)
+└── components/              # (optional) Editor-specific components
 ```
 
-### Step 3: Implement EditorModel
+## Step 2: Implement the EditorModel Subclass
+
+### Non-text editor (no `IContentHost`)
 
 ```typescript
-// MyEditorModel.ts
-import { TComponentState } from '../../core/state/state';
-import { EditorModel, getDefaultPageModelState } from '../base';
-import { IPage, EditorType } from '../../../shared/types';
+// MyEditor.ts
+import { TOneState } from "../../core/state/state";
+import { EditorModel } from "../base/EditorModel";
+import { IEditorState } from "../../../shared/types";
 
-// 1. Define state interface
-export interface MyEditorModelState extends IPage {
-  // Add editor-specific state
-  customData: string;
-  isLoading: boolean;
+export interface MyEditorState extends IEditorState {
+    customData: string;
+    isLoading: boolean;
 }
 
-// 2. Default state factory
-export const getDefaultMyEditorModelState = (): MyEditorModelState => ({
-  ...getDefaultPageModelState(),
-  type: 'myType' as EditorType,  // Add to shared/types.ts
-  customData: '',
-  isLoading: false,
-});
+export class MyEditor extends EditorModel<MyEditorState> {
+    readonly editorId = "my-editor";
 
-// 3. EditorModel class
-export class MyEditorModel extends EditorModel<MyEditorModelState> {
-  // For read-only viewers, set this
-  // noLanguage = true;
-
-  // Restore from saved state
-  async restore(): Promise<void> {
-    const { filePath } = this.state.get();
-    if (filePath) {
-      this.state.update((s) => { s.isLoading = true; });
-
-      // Load your content
-      // const content = await loadContent(filePath);
-
-      this.state.update((s) => {
-        s.isLoading = false;
-        // s.customData = content;
-      });
+    constructor() {
+        super(new TOneState<MyEditorState>({
+            id: crypto.randomUUID(),
+            type: "myType",
+            title: "untitled",
+            modified: false,
+            language: undefined,
+            filePath: undefined,
+            editor: "my-editor",
+            customData: "",
+            isLoading: false,
+        }));
     }
-  }
 
-  // Data to persist for session restore
-  getRestoreData(): Partial<MyEditorModelState> {
-    const { customData, isLoading, ...pageData } = this.state.get();
-    return pageData;
-  }
+    async restore(): Promise<void> {
+        const { filePath } = this.state.get();
+        if (!filePath) return;
+        this.state.update((s) => { s.isLoading = true; });
+        // const content = await loadContent(filePath);
+        this.state.update((s) => {
+            s.isLoading = false;
+            // s.customData = content;
+        });
+    }
 
-  // Custom methods
-  doSomething = () => {
-    this.state.update((s) => {
-      s.customData = 'modified';
-    });
-  };
-}
-
-// 4. Factory functions
-export function newMyEditorModel(filePath?: string): MyEditorModel {
-  const state = {
-    ...getDefaultMyEditorModelState(),
-    ...(filePath ? { filePath } : {}),
-  };
-  return new MyEditorModel(new TComponentState(state));
+    getDescriptor(): HostDescriptor {
+        const { customData, isLoading, ...persisted } = this.state.get();
+        return { kind: "myType", state: persisted };
+    }
 }
 ```
 
-### Step 4: Implement Editor Component
+### Text-bearing editor (with `IContentHost` + `CONTENT_HOST_TRAIT`)
 
 ```typescript
-// MyEditor.tsx
-import styled from '@emotion/styled';
-import { MyEditorModel } from './MyEditorModel';
-import { Spinner } from '../../uikit/Spinner/Spinner';
+// MyEditor.ts
+import { EditorModel } from "../base/EditorModel";
+import { CONTENT_HOST_TRAIT, IContentHostTrait } from "../base/editor-traits";
+import { IContentHost } from "../base/IContentHost";
 
-const EditorRoot = styled.div({
-  flex: '1 1 auto',
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
+export class MyEditor extends EditorModel<MyEditorState> implements IContentHostTrait {
+    readonly editorId = "my-view";
+    contentHost: IContentHost | null = null;
+
+    constructor() {
+        super(/* state */);
+        this.traits.set(CONTENT_HOST_TRAIT, this);
+    }
+
+    extractContentHost(): IContentHost {
+        const host = this.contentHost!;
+        this.contentHost = null;   // detach — do NOT dispose
+        return host;
+    }
+
+    inheritContentHost(host: IContentHost): void {
+        this.contentHost = host;
+        // Read content via this.contentHost.state, subscribe to changes, etc.
+    }
+
+    async restore(): Promise<void> {
+        // Initial parse of content from this.contentHost.state.get().content
+    }
+
+    dispose(): void {
+        // Only dispose this.contentHost if WE created it (not if it was inherited).
+        // The owner is responsible for host lifecycle across editor swaps.
+        super.dispose();
+    }
+}
+```
+
+The lifecycle hook order during a switch is:
+
+1. Owner calls `oldEditor.traits.get(CONTENT_HOST_TRAIT)?.extractContentHost()` → returns the host (no dispose)
+2. Owner creates new editor instance via `editorRegistry.createEditor(newId)`
+3. Owner calls `newEditor.traits.get(CONTENT_HOST_TRAIT)?.inheritContentHost(host)`
+4. Owner installs newEditor (e.g., `page.setMainEditor(newEditor)`)
+5. `newEditor.restore()` runs — reads from the inherited host
+
+## Step 3: Implement the React Component
+
+```typescript
+// MyEditorBody.tsx (or MyEditorView.tsx for non-text editors)
+import styled from "@emotion/styled";
+import { MyEditor } from "./MyEditor";
+import { Spinner } from "../../uikit/Spinner/Spinner";
+
+const Root = styled.div({
+    flex: "1 1 auto",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
 });
 
-interface MyEditorProps {
-  model: MyEditorModel;
+interface Props {
+    model: MyEditor;
 }
 
-export function MyEditor({ model }: MyEditorProps) {
-  const { customData, isLoading } = model.state.use((s) => ({
-    customData: s.customData,
-    isLoading: s.isLoading,
-  }));
+export function MyEditorBody({ model }: Props) {
+    const { customData, isLoading } = model.state.use((s) => ({
+        customData: s.customData,
+        isLoading: s.isLoading,
+    }));
 
-  if (isLoading) {
-    return (
-      <EditorRoot style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <Spinner size={24} />
-      </EditorRoot>
-    );
-  }
+    if (isLoading) {
+        return (
+            <Root style={{ alignItems: "center", justifyContent: "center" }}>
+                <Spinner size={24} />
+            </Root>
+        );
+    }
 
-  return (
-    <EditorRoot>
-      <div>Your editor content: {customData}</div>
-    </EditorRoot>
-  );
+    return <Root>Your editor content: {customData}</Root>;
 }
 ```
 
-### Step 5: Create EditorModule
+For text-bearing editors, compose the shared chrome:
 
 ```typescript
-// index.ts
-import { TComponentState } from '../../core/state/state';
-import { EditorModule } from '../types';
-import { IPage, EditorType } from '../../../shared/types';
-import { MyEditor } from './MyEditor';
-import {
-  MyEditorModel,
-  getDefaultMyEditorModelState,
-} from './MyEditorModel';
+import { TextChrome } from "../base/TextChrome";
+
+export function MyEditorBody({ model }: Props) {
+    return (
+        <TextChrome model={model} host={model.contentHost!}>
+            {/* your editor-specific body */}
+        </TextChrome>
+    );
+}
+```
+
+## Step 4: Export the EditorModule
+
+```typescript
+// index.tsx
+import { EditorModule } from "../base/editorRegistry";
+import { MyEditor } from "./MyEditor";
+import { MyEditorBody } from "./MyEditorBody";
 
 const myEditorModule: EditorModule = {
-  Editor: MyEditor,
-
-  newEditorModel: async (filePath?: string) => {
-    const state = {
-      ...getDefaultMyEditorModelState(),
-      ...(filePath ? { filePath } : {}),
-    };
-    const model = new MyEditorModel(new TComponentState(state));
-    await model.restore();
-    return model;
-  },
-
-  newEmptyEditorModel: async (editorType: EditorType) => {
-    if (editorType === 'myType') {
-      return new MyEditorModel(
-        new TComponentState(getDefaultMyEditorModelState())
-      );
-    }
-    return null;
-  },
-
-  newEditorModelFromState: async (state: Partial<IPage>) => {
-    const initialState = {
-      ...getDefaultMyEditorModelState(),
-      ...state,
-    };
-    const model = new MyEditorModel(new TComponentState(initialState));
-    await model.restore();
-    return model;
-  },
+    id: "my-editor",
+    name: "My Editor",
+    Editor: MyEditorBody,
+    create: () => new MyEditor(),
+    hasContentHost: false,              // true if text-bearing
+    accepts: (input) => {
+        if (input.kind === "file" && input.fileName?.toLowerCase().endsWith(".myext")) {
+            return 50;                  // priority — see Editor System § Resolution
+        }
+        return -1;
+    },
 };
 
 export default myEditorModule;
-
-// Named exports
-export { MyEditor, MyEditorModel };
-export type { MyEditorModelState } from './MyEditorModel';
 ```
 
-### Step 6: Register Your Editor
+## Step 5: Register the Editor
 
-All editor registration happens in `/editors/register-editors.ts`. This is the only file you need to modify to add a new editor.
-
-#### 6a. Add EditorType and EditorView (if new)
+In `/src/renderer/editors/register-editors.ts`:
 
 ```typescript
-// /shared/types.ts
-export type EditorType = 'textFile' | 'pdfFile' | 'myType';
-export type EditorView = 'monaco' | 'grid-json' | 'grid-csv' | 'md-view' | 'pdf-view' | 'my-editor';
+import { editorRegistry } from "./base/editorRegistry";
+
+editorRegistry.register(
+    async () => (await import("./myeditor")).default,
+);
 ```
 
-#### 6b. Register in EditorRegistry
+The registry stores the module factory; the factory runs on first `getById` / `resolve` call, populating the actual `EditorModule`. This preserves code splitting — the editor module is only loaded when needed.
 
-Editors use function-based matching for full control over when they apply:
-
-```typescript
-// /editors/register-editors.ts
-import { editorRegistry } from "./registry";
-
-// For a standalone page editor (like PDF, Image viewer):
-editorRegistry.register({
-    id: "my-editor",           // Must match EditorView type
-    name: "My Editor",         // Display name in UI
-    editorType: "myType",        // EditorType this editor creates
-    category: "standalone",   // Standalone editor with own EditorModel
-    acceptFile: (fileName) => {
-        // Return priority >= 0 if this editor can open the file
-        // Higher priority wins when multiple editors match
-        if (fileName.toLowerCase().endsWith(".myext")) return 50;
-        return -1;  // -1 means not applicable
-    },
-    loadModule: async () => {
-        const module = await import("./myeditor");
-        return module.default;
-    },
-});
-
-// For a content view (alternative view of text content):
-editorRegistry.register({
-    id: "my-view",
-    name: "My View",
-    editorType: "textFile",      // Uses TextFileModel
-    category: "content-view",  // Rendered inside TextEditorView
-    validForLanguage: (languageId) => languageId === "mylang",
-    switchOption: (languageId, fileName) => {
-        // Return priority >= 0 to show in view switch dropdown
-        // Lower priority appears first (monaco should be 0)
-        if (languageId !== "mylang") return -1;
-        return 10;
-    },
-    loadModule: async () => {
-        const module = await import("./myview");
-        return {
-            Editor: module.MyView,
-            newEditorModel: textEditorModule.newEditorModel,  // Reuse text model
-            newEmptyEditorModel: textEditorModule.newEmptyEditorModel,
-            newEditorModelFromState: textEditorModule.newEditorModelFromState,
-        };
-    },
-});
-```
-
-#### Registration Options
+### Registration Options
 
 | Property | Description |
 |----------|-------------|
 | `id` | Unique editor ID (must be in `EditorView` type) |
 | `name` | Display name shown in UI |
-| `editorType` | The `EditorType` this editor works with |
-| `category` | `"standalone"` or `"content-view"` |
-| `acceptFile(fileName)` | Returns priority >= 0 if editor can open file, -1 otherwise |
-| `validForLanguage(languageId)` | Returns true if editor is valid for the language |
-| `switchOption(languageId, fileName)` | Returns priority >= 0 to show in switch dropdown, -1 to hide |
-| `isEditorContent(languageId, content)` | Returns true if content matches this editor (regex-based, no JSON parsing). Used by structured JSON editors to show switch button when file name doesn't match. |
-| `loadModule` | Async function returning `EditorModule` |
+| `Editor` | React component (`React.ComponentType<{ model: EditorModel }>`) |
+| `create()` | Factory returning a new `EditorModel` instance |
+| `hasContentHost` | `true` for text-bearing editors that compose an `IContentHost` |
+| `accepts(input)` | Returns priority ≥ 0 if this editor accepts the input (file/url/content), -1 otherwise |
+| `validateForLanguage(lang)` | Returns `true` if the editor is valid for the language |
+| `switchOption(lang, filePath?)` | Returns priority ≥ 0 to show in the switch dropdown, -1 to hide |
+| `isEditorContent(lang, content)` | Returns `true` if content matches this editor (regex-based, no JSON parsing) |
 
-#### Priority Guidelines
+### Priority Guidelines
 
-- `0` - Fallback editors (monaco text editor)
-- `10` - Alternative views (markdown preview, grid view)
-- `20` - Specialized text editors (e.g., *.grid.json opens in grid)
-- `50` - Standard editors for specific file types
-- `100` - Exclusive editors (PDF viewer, image viewer)
+- `0` — Fallback (monaco text editor)
+- `10` — Alternative text views (markdown preview, grid view)
+- `20` — Specialized text editors (e.g., `*.grid.json` → grid editor)
+- `50` — Standard editors for specific file types
+- `90` — Content-based detection (e.g., JSON with `"type": "note-editor"`)
+- `100` — Exclusive editors (PDF, image)
 
-### Step 7: Add Toolbar (Optional)
+## Step 6: Update Shared Types (if introducing new IDs)
+
+If your editor introduces a new `EditorType` page kind (rare — only when a brand-new page type is added, e.g. a "Settings" page), update `/src/shared/types.ts`. The set of editor IDs is unbounded — they're free-form strings, no enum required.
+
+## Step 7: Optional — Add a Scripting Facade
+
+If users should script your editor via `page.asMyEditor()`:
+
+1. Add the facade class to `/src/renderer/scripting/api-wrapper/MyEditorFacade.ts` — wraps the `EditorModel` subclass directly.
+2. Add the type declaration to `/src/renderer/api/types/my-editor.d.ts`.
+3. Wire the facade in `PageWrapper.ts` (add `asMyEditor()` method).
+4. Re-export the type from `/src/renderer/api/types/index.d.ts`.
+
+See `/src/renderer/scripting/api-wrapper/GridEditorFacade.ts` for a complete example.
+
+## Step 8: Optional — Add Sidebar Panels
+
+If your editor needs sidebar panel(s), see [Secondary Editors](../architecture/secondary-editors.md) for the full lifecycle. Quick version:
 
 ```typescript
-// MyToolbar.tsx
-import { Button } from '../../uikit/Button/Button';
-import { MyEditorModel } from './MyEditorModel';
-
-interface MyToolbarProps {
-  model: MyEditorModel;
-}
-
-export function MyToolbar({ model }: MyToolbarProps) {
-  return (
-    <>
-      <Button onClick={model.doSomething}>
-        Do Something
-      </Button>
-    </>
-  );
+class MyEditor extends EditorModel<MyEditorState> {
+    setPage(page: IPageHost | null): void {
+        super.setPage(page);
+        if (page) {
+            this.secondaryEditor = ["my-panel"];  // setter manages registration
+        }
+    }
 }
 ```
 
-Then use in your editor or integrate with EditorToolbar.
+Register the panel React component in `/src/renderer/ui/navigation/secondary-editor-registry.ts`.
 
 ## Testing Your Editor
 
-1. **Open by file extension**: Create a file with your extension
-2. **Session restore**: Close and reopen the app
-3. **Multiple instances**: Open multiple files
-4. **Edge cases**: Empty file, large file, corrupt file
+1. **Open by file extension:** create a file with your extension and verify it opens correctly
+2. **Session restore:** close and reopen the app — the page should restore with content + state intact
+3. **Editor switch (text-bearing only):** open the file in Monaco, switch to your editor via the toolbar dropdown, then back — verify content + modifications survive
+4. **Multiple instances:** open multiple files of your type in different tabs
+5. **Edge cases:** empty file, large file, file with parse errors
 
 ## Checklist
 
-- [ ] EditorModel implements `restore()`
-- [ ] EditorModel implements `getRestoreData()`
-- [ ] EditorModule exports all required functions
-- [ ] Registered in `register-editors.ts`
-- [ ] EditorType added to `shared/types.ts` (if new page type)
-- [ ] EditorView added to `shared/types.ts` (if new editor)
-- [ ] Async import used in `loadModule` (code splitting)
-- [ ] Error states handled
-- [ ] Loading states handled
+- [ ] `MyEditor` extends `EditorModel<MyEditorState>` with a unique `editorId`
+- [ ] Constructor calls `super()` with a `TOneState` seeded from `IEditorState` fields
+- [ ] `restore()` handles the initial async load (returns immediately if nothing to load)
+- [ ] `getDescriptor()` returns persisted state (stripped of runtime-only fields)
+- [ ] `dispose()` calls `super.dispose()` and cleans up subscriptions / sub-models
+- [ ] For text-bearing editors: implements `IContentHostTrait` and registers `CONTENT_HOST_TRAIT`
+- [ ] For text-bearing editors: `inheritContentHost(host)` does NOT recreate state if the host has content already
+- [ ] `EditorModule` exports all required fields (`id`, `name`, `Editor`, `create`, optional matchers)
+- [ ] Registered via `editorRegistry.register(...)` in `register-editors.ts`
+- [ ] `accepts()` returns appropriate priority (see priority guide)
+- [ ] Async import in the registration factory preserves code splitting
+- [ ] Error states and loading states are handled in the React component
+- [ ] (Optional) Scripting facade added with type declaration
 
 ## Examples
 
-- **Simple viewer**: See `/editors/pdf/` - read-only PDF viewer
-- **Minimal content-view**: See `/editors/html/` - sandboxed iframe preview, simplest content-view example
-- **Simple content-view**: See `/editors/mermaid/` - diagram preview with light/dark toggle, reuses BaseImageView
-- **Complex editor**: See `/editors/text/` - full text editor
-- **Grid view**: See `/editors/grid/` - tabular data editor
-- **Structured content-view**: See `/editors/notebook/` - complex content-view with own model, sub-editors, virtualized list, portal overlay, and drag-and-drop
-- **Multi-process editor**: See `/editors/browser/` - webview-based browser spanning three processes ([architecture doc](../architecture/browser-editor.md))
+- **Simple viewer:** `/src/renderer/editors/pdf/` — read-only PDF viewer, no content host
+- **Text-bearing minimal:** `/src/renderer/editors/html/` — HTML preview, composes IContentHost + trait
+- **Text-bearing complex:** `/src/renderer/editors/grid/` — JSON/CSV grid editor with full edit/save flow
+- **Per-note embedding:** `/src/renderer/editors/notebook/note-editor/` — Notebook embeds text-bearing editors per-note via `NoteItemEditModel` (a non-file IContentHost)
+- **No-host with sidebar:** `/src/renderer/editors/explorer/` — Explorer sidebar editor with no main content area
+- **Multi-process editor:** `/src/renderer/editors/browser/` — webview-based browser spanning three processes ([architecture doc](../architecture/browser-editor.md))

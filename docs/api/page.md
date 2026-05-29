@@ -27,11 +27,11 @@ page.data.counter = (page.data.counter || 0) + 1;
 | `filePath` | `string?` | Absolute file path, if backed by a file. Read-only. |
 | `content` | `string` | Text content. **Read/write.** Only meaningful for text-based pages. |
 | `language` | `string` | Language ID (e.g., `"json"`, `"typescript"`). **Read/write.** |
-| `editor` | `EditorView` | Active editor ID (e.g., `"monaco"`, `"grid-json"`). **Read/write.** |
+| `editor` | `string` | Active editor ID (e.g., `"monaco"`, `"grid-json"`). **Read/write.** See [Editor IDs](#editor-ids) for the full list. |
 | `data` | `Record<string, any>` | In-memory data storage. Persists across script runs but not app restarts. |
 | `grouped` | `IPage` | Grouped (side-by-side) partner page. Auto-creates if none exists. |
 
-### EditorView values
+### Editor IDs
 
 `"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"todo-view"` · `"link-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"pdf-view"` · `"image-view"` · `"browser-view"` · `"graph-view"` · `"draw-view"` · `"log-view"` · `"mcp-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"`
 
@@ -59,7 +59,7 @@ const grid = await page.asGrid();
 grid.addRows(5);
 ```
 
-> **Auto-release:** All editor facades acquired during a script run are automatically released when the script finishes. You don't need to clean up manually.
+> **Lifecycle:** Editor facades are stateless wrappers — there is nothing to release. They expose operations on the editor model directly. Event subscriptions made via `app.events` are still auto-unsubscribed when the script completes.
 
 ---
 

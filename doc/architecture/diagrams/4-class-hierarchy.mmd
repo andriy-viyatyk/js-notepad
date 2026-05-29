@@ -1,55 +1,95 @@
 classDiagram
+    class EditorModel~TState~ {
+        <<abstract>>
+        +id: string
+        +editorId: string
+        +state: TOneState~TState~
+        +traits: TraitSet
+        +page: IPageHost?
+        +applyRestoreData(data)
+        +switchFrom(oldEditor)*
+        +restore()*
+        +setPage(page)
+        +beforeNavigateAway(newEditor)
+        +onMainEditorChanged(newMainEditor)
+        +getDescriptor(): HostDescriptor
+        +dispose()
+    }
+
     class IContentHost {
         <<interface>>
         +id: string
-        +state: IState~IContentHostState~
-        +changeContent(content, byUser?)
-        +changeEditor(editor)
-        +changeLanguage(language)
+        +type: "textFile"
+        +state: TOneState~IContentHostState~
         +stateStorage: EditorStateStorage
-        +acquireViewModel(editorId): Promise~ContentViewModel~
-        +releaseViewModel(editorId)
+        +pipe: IContentPipe?
+        +changeContent(content, byUser?)
+        +changeLanguage(language)
+        +getDescriptor(): HostDescriptor
+        +dispose()
     }
 
-    class ContentViewModelHost {
-        -viewModels: Map~string, Entry~
-        +acquire(editorId): Promise~ContentViewModel~
-        +release(editorId)
-        +tryGet(editorId): ContentViewModel?
-        +disposeAll()
-    }
-
-    class ContentViewModel~TState~ {
-        <<abstract>>
-        +host: IContentHost
-        +state: TGlobalState~TState~
-        #onInit()*
-        #onContentChanged(content)*
-        #onDispose()
+    class IContentHostTrait {
+        <<interface>>
+        +extractContentHost(): IContentHost
+        +inheritContentHost(host)
     }
 
     class TextFileModel {
         implements IContentHost
-        -_vmHost: ContentViewModelHost
+        +pipe: IContentPipe
+        +io: TextFileIOModel
+        +encryption: TextFileEncryptionModel
     }
 
     class NoteItemEditModel {
         implements IContentHost
-        -_vmHost: ContentViewModelHost
+        -notebookModel: NotebookSource
+        -noteId: string
     }
 
     IContentHost <|.. TextFileModel
     IContentHost <|.. NoteItemEditModel
-    TextFileModel *-- ContentViewModelHost
-    NoteItemEditModel *-- ContentViewModelHost
-    ContentViewModelHost o-- ContentViewModel
 
-    ContentViewModel <|-- TextViewModel
-    ContentViewModel <|-- GridViewModel
-    ContentViewModel <|-- MarkdownViewModel
-    ContentViewModel <|-- NotebookViewModel
-    ContentViewModel <|-- TodoViewModel
-    ContentViewModel <|-- LinkViewModel
-    ContentViewModel <|-- SvgViewModel
-    ContentViewModel <|-- HtmlViewModel
-    ContentViewModel <|-- MermaidViewModel
+    EditorModel <|-- MonacoEditor
+    EditorModel <|-- GridEditor
+    EditorModel <|-- MarkdownEditor
+    EditorModel <|-- SvgEditor
+    EditorModel <|-- HtmlEditor
+    EditorModel <|-- MermaidEditor
+    EditorModel <|-- NotebookEditor
+    EditorModel <|-- TodoEditor
+    EditorModel <|-- LinkEditor
+    EditorModel <|-- LogViewEditor
+    EditorModel <|-- GraphEditor
+    EditorModel <|-- DrawEditor
+    EditorModel <|-- RestClientEditor
+    EditorModel <|-- BrowserEditorModel
+    EditorModel <|-- PdfEditor
+    EditorModel <|-- ImageEditor
+    EditorModel <|-- ArchiveEditor
+    EditorModel <|-- VideoEditor
+    EditorModel <|-- McpInspectorEditorModel
+    EditorModel <|-- CategoryEditorModel
+    EditorModel <|-- AboutEditor
+    EditorModel <|-- SettingsEditor
+    EditorModel <|-- StorybookEditorModel
+
+    MonacoEditor ..|> IContentHostTrait
+    GridEditor ..|> IContentHostTrait
+    MarkdownEditor ..|> IContentHostTrait
+    SvgEditor ..|> IContentHostTrait
+    HtmlEditor ..|> IContentHostTrait
+    MermaidEditor ..|> IContentHostTrait
+    NotebookEditor ..|> IContentHostTrait
+    TodoEditor ..|> IContentHostTrait
+    LinkEditor ..|> IContentHostTrait
+    LogViewEditor ..|> IContentHostTrait
+    GraphEditor ..|> IContentHostTrait
+    DrawEditor ..|> IContentHostTrait
+    RestClientEditor ..|> IContentHostTrait
+
+    MonacoEditor o-- IContentHost : composes
+    GridEditor o-- IContentHost : composes
+    MarkdownEditor o-- IContentHost : composes
+    NotebookEditor o-- IContentHost : composes

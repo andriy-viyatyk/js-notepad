@@ -1,14 +1,14 @@
 flowchart LR
-    FILE["File Opened<br/><i>example.note.json</i>"] --> REG["EditorRegistry<br/>.resolve(filePath)"]
+    FILE["File Opened<br/><i>example.note.json</i>"] --> REG["editorRegistry<br/>.resolve(input)"]
 
-    REG --> |"Query all editors'<br/>acceptFile()"| BEST["Best Match<br/><i>highest priority wins</i>"]
+    REG --> |"Query all editors'<br/>accepts()"| BEST["Best Match<br/><i>highest priority wins</i>"]
 
-    BEST --> |"category:<br/>content-view"| CV["Content View<br/><i>Shares TextFileModel</i>"]
-    BEST --> |"category:<br/>standalone"| PE["Standalone Editor<br/><i>Own EditorModel</i>"]
-    BEST --> |"no match<br/>(priority 0)"| MONACO["Monaco Fallback<br/><i>default text editor</i>"]
+    BEST --> |"hasContentHost:<br/>true (text-bearing)"| TB["EditorModel subclass<br/><i>composes IContentHost</i><br/><i>extracts on switch via trait</i>"]
+    BEST --> |"hasContentHost:<br/>false"| NT["EditorModel subclass<br/><i>standalone, no host</i>"]
+    BEST --> |"no match<br/>(priority 0)"| MONACO["MonacoEditor<br/><i>default text editor</i>"]
 
     style FILE fill:#e3f2fd
     style REG fill:#fff3e0
-    style CV fill:#e8f5e9
-    style PE fill:#f3e5f5
+    style TB fill:#e8f5e9
+    style NT fill:#f3e5f5
     style MONACO fill:#e8f5e9

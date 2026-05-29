@@ -6,7 +6,29 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 3.0.10 (Upcoming)
+## Version 4.0.1
+
+### Breaking changes
+
+- **Major version bump** — The editor system has been rewritten to a single uniform `EditorModel` hierarchy. All 22 editors are now top-level subclasses; text-bearing editors share a common `IContentHost` abstraction. No script-author-facing behavior change beyond the two API adjustments below — but the version jump signals that the internal architecture is no longer compatible with v3.x extensions or persisted session data from earlier builds.
+
+- **Session data reset on first launch** — Pages opened in v3.0.x and earlier are detected and silently skipped during session restore on first launch of v4.0.1. The app opens with a fresh empty page. Pinned tabs, recent files, and settings are preserved — only the *open-tabs* state is reset. This is a one-time cost; subsequent launches restore normally.
+
+- **Script API: `page.editor` is `string`** — The `EditorView` type alias has been removed. The set of valid editor IDs (`"monaco"`, `"grid-json"`, `"pdf-view"`, etc.) is unchanged — scripts that read or write `page.editor` continue to work as before. TypeScript-typed scripts that explicitly annotated variables as `EditorView` need to change the annotation to `string`. See [`page.editor`](./api/page.md#editor-ids) for the current list of editor IDs.
+
+- **Script API: `IEditorInfo.category` removed** — The `category` field on editor info objects (returned by `app.editors.getAll()`, `app.editors.getById()`, `app.editors.resolve()`) has been removed. Use `IEditorInfo.hasContentHost: boolean` instead — `true` for text-bearing editors (Monaco, Grid, Markdown, ...), `false` for standalone editors (PDF, Image, Browser, ...). See [`IEditorInfo`](./api/editors.md#ieditorinfo).
+
+### Under the hood
+
+- The internal `ContentViewModel` subsystem (ref-counted view models) has been retired. Editor facades returned by `page.asX()` now wrap the editor model directly. From a script author's perspective the auto-cleanup behavior is unchanged — event subscriptions made via `app.events` are still automatically released when the script completes. Facades themselves are stateless and need no cleanup.
+
+### Note on v3.0.10
+
+The v3.0.10 entry below was prepared during the EPIC-028 development period and never shipped as a standalone release. Its changes (Azure DevOps wiki Mermaid syntax, Explorer scroll-position fix) are included in v4.0.1.
+
+---
+
+## Version 3.0.10
 
 ### New Features
 

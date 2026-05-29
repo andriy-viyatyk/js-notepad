@@ -233,11 +233,11 @@ import { pagesModel } from "../api/pages";
 - `attachPage(page)` — subscribes to page state changes for auto-save, sets `onClose` callback that runs the dispose chain (`detachPage` → `removePage` → `dispose`)
 - `detachPage(page)` — unsubscribes and clears `onClose` WITHOUT disposing. Used by `movePageOut()` (multi-window transfer) and `navigatePageTo()` to preserve page resources
 - `removePage(page)` — removes from `pages[]` and `ordered[]` arrays
-- `fixGrouping()` / `fixCompareMode()` — invariant repair
+- `fixGrouping()` — invariant repair
 - `checkEmptyPage()` — auto-create empty page when last one closes
 - `addEmptyPageWithNavPanel(folderPath)` — creates a PageModel with `mainEditor = null` and an initialized sidebar (Explorer panel). Used by sidebar double-click and archive browsing. The page renders just the sidebar with an empty content area.
 - `openFileAsArchive(filePath)` — opens an archive for browsing. Creates a PageModel with sidebar root set to the archive root. Reuses existing tab if the archive is already open. ZIP archives use `!` separator (e.g., `doc.zip!word/document.xml`) via `archive-service.ts`; `.asar` archives use the regular path directly (e.g., `app.asar`) via Electron's native fs patching — see `file-path.ts`.
-- `openLinks(links, title?)` — creates a link collection page. A TextFileModel with `.link.json` content is added as a Pattern A secondary editor (never mainEditor). The Categories panel appears in the sidebar; clicking a link navigates the page's main area to that file. Accepts `(ILink | string)[]` — strings are converted to LinkItems with auto-generated titles.
+- `openLinks(links, title?)` — creates a link collection page. A `LinkEditor` with `.link.json` content is added as a Pattern A secondary editor (never mainEditor). The Categories panel appears in the sidebar; clicking a link navigates the page's main area to that file. Accepts `(ILink | string)[]` — strings are converted to LinkItems with auto-generated titles.
 - `save()` / `restore()` — persistence (called by bootstrap, not by scripts)
 - Submodel instances — private composition detail
 
