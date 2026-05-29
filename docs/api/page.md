@@ -20,7 +20,6 @@ page.data.counter = (page.data.counter || 0) + 1;
 | Property | Type | Description |
 |----------|------|-------------|
 | `id` | `string` | Unique page identifier. Read-only. |
-| `type` | `string` | Page type (e.g., `"textFile"`, `"browserPage"`). Read-only. |
 | `title` | `string` | Display title. Read-only. |
 | `modified` | `boolean` | True if page has unsaved changes. Read-only. |
 | `pinned` | `boolean` | True if tab is pinned. Read-only. |
@@ -59,6 +58,8 @@ const grid = await page.asGrid();
 grid.addRows(5);
 ```
 
+> **`force` parameter** — Every text-bearing facade (`asText`, `asGrid`, `asNotebook`, `asTodo`, `asLink`, `asMarkdown`, `asSvg`, `asHtml`, `asMermaid`, `asGraph`, `asDraw`) accepts an optional `force?: boolean` argument. By default the call throws if the page isn't already running the target editor. Pass `true` to attempt a switch from any compatible editor — the same compatibility source the UI's editor-switch widget uses. Throws if no compatible switch is possible.
+
 > **Lifecycle:** Editor facades are stateless wrappers — there is nothing to release. They expose operations on the editor model directly. Event subscriptions made via `app.events` are still auto-unsubscribed when the script completes.
 
 ---
@@ -67,24 +68,22 @@ grid.addRows(5);
 
 Monaco text editor features. Only for text pages.
 
-Methods that interact with the Monaco instance (`insertText`, `replaceSelection`, `getSelectedText`, `getCursorPosition`) require the editor to be visible — check `editorMounted` first.
+Methods that interact with the Monaco instance are queued internally and deferred until mount — call them whenever you need; you don't need to gate on `editorMounted`. The flag is informational only (e.g., for the script to decide whether selection/cursor reads will reflect on-screen state).
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `editorMounted` | `boolean` | True when Monaco editor is visible and mounted. |
-| `getSelectedText()` | `string` | Currently selected text, or `""`. |
+| `editorMounted` | `boolean` | True when Monaco editor is visible and mounted. Informational. |
+| `getSelectedText()` | `Promise<string>` | Currently selected text, or `""`. |
 | `revealLine(lineNumber)` | `void` | Scroll to reveal a line in the center. |
 | `setHighlightText(text)` | `void` | Highlight all occurrences with find-match decorations. |
-| `getCursorPosition()` | `{lineNumber, column}` | Current cursor position. |
-| `insertText(text)` | `void` | Insert text at cursor position. |
-| `replaceSelection(text)` | `void` | Replace current selection with text. |
+| `getCursorPosition()` | `Promise<{lineNumber, column}>` | Current cursor position. Returns `{lineNumber: 1, column: 1}` if the editor is not mounted. |
+| `insertText(text)` | `Promise<void>` | Insert text at cursor position. |
+| `replaceSelection(text)` | `Promise<void>` | Replace current selection with text. |
 
 ```javascript
 const text = await page.asText();
-if (text.editorMounted) {
-    const selected = text.getSelectedText();
-    text.replaceSelection(selected.toUpperCase());
-}
+const selected = await text.getSelectedText();
+await text.replaceSelection(selected.toUpperCase());
 ```
 
 ---

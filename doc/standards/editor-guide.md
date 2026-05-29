@@ -248,7 +248,11 @@ The registry stores the module factory; the factory runs on first `getById` / `r
 
 ## Step 6: Update Shared Types (if introducing new IDs)
 
-If your editor introduces a new `EditorType` page kind (rare — only when a brand-new page type is added, e.g. a "Settings" page), update `/src/shared/types.ts`. The set of editor IDs is unbounded — they're free-form strings, no enum required.
+Two unions live in the shared/public type surface; update both as applicable when adding a new editor:
+
+- **`EditorView`** (the editor ID union — required for any new editor with a new ID). Canonical site: `/src/renderer/api/types/common.d.ts`. Add the new ID to the union there. `/src/shared/types.ts` re-exports `EditorView` from this file, so internal code keeps working transparently. The Vite `editorTypesPlugin` (configured in `/vite.renderer.config.ts`) auto-copies `.d.ts` files from `src/renderer/api/types/` to `assets/editor-types/` on `npm start` / `npm run dist` — never hand-edit `assets/editor-types/`. Adding the ID gives TypeScript-typed scripts autocomplete + typo detection for the new editor on `page.editor =`, `app.editors.getById()`, `app.pages.addEditorPage()`, and `ISwitchOptions.options`.
+
+- **`EditorType`** (the page-kind union — rare; only when a brand-new page type is added, e.g. a "Settings" page). Defined in `/src/shared/types.ts`.
 
 ## Step 7: Optional — Add a Scripting Facade
 

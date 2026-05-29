@@ -1,5 +1,11 @@
 export type EditorType = "textFile" | "pdfFile" | "imageFile" | "aboutPage" | "settingsPage" | "browserPage" | "mcpInspectorPage" | "categoryPage" | "archiveFile" | "fileExplorer" | "videoPage" | "storybookPage";
-export type EditorView = "monaco" | "grid-json" | "grid-csv" | "grid-jsonl" | "md-view" | "pdf-view" | "image-view" | "svg-view" | "about-view" | "notebook-view" | "mermaid-view" | "html-view" | "settings-view" | "todo-view" | "link-view" | "log-view" | "browser-view" | "graph-view" | "draw-view" | "mcp-view" | "rest-client" | "category-view" | "archive-view" | "video-view" | "storybook-view";
+
+// `EditorView` lives in the public script-API types because that file is the
+// one copied verbatim into `assets/editor-types/` for Monaco IntelliSense in
+// user scripts — it must stay self-contained. Re-export here so main + renderer
+// internal code can read it from `shared/types` without crossing folder layers.
+import type { EditorView } from "../renderer/api/types/common";
+export type { EditorView };
 
 import type { ILinkData } from "../renderer/api/types/io.link-data";
 

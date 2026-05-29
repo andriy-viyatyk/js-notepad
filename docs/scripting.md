@@ -70,7 +70,7 @@ const browser = await page.asBrowser(); // Browser — navigation, tab managemen
 const mcp = await page.asMcpInspector(); // MCP Inspector — connection, history
 ```
 
-All facades are auto-released when the script finishes. See the [page API reference](./api/page.md#editor-facades) for the full list and detailed documentation.
+Facades are stateless wrappers — nothing needs to be released. Event subscriptions made via `app.events` are still auto-unsubscribed when the script completes. See the [page API reference](./api/page.md#editor-facades) for the full list and detailed documentation.
 
 ## Grouped Pages (Output)
 

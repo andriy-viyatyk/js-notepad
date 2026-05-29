@@ -21,7 +21,7 @@ persephone/
 │   ├── build-prod.mjs      # Vite production build (main, preload, renderer)
 │   └── vmp-sign.mjs        # electron-builder afterPack hook for Widevine VMP signing
 ├── assets/                 # Static assets
-│   ├── editor-types/       # Auto-copied .d.ts files for Monaco IntelliSense
+│   ├── editor-types/       # GENERATED — Vite plugin auto-copies .d.ts files from src/renderer/api/types/ (never hand-edit)
 │   ├── icons/              # App icons
 │   ├── pdfjs/              # PDF.js library
 │   ├── excalidraw/fonts/   # Self-hosted Excalidraw fonts (woff2, OFL-1.1 licensed)

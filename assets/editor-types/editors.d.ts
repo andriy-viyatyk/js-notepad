@@ -1,11 +1,22 @@
+import type { EditorView } from "./common";
+
 /**
  * Read-only information about a registered editor.
  */
 export interface IEditorInfo {
     /** Unique editor identifier (e.g. "monaco", "grid-json", "pdf-view"). */
-    readonly id: string;
+    readonly id: EditorView;
     /** Human-readable editor name (e.g. "Text Editor", "JSON Grid"). */
     readonly name: string;
+    /**
+     * `true` for text-bearing editors (Monaco, Grid, Markdown, Notebook, Todo,
+     * Link, SVG, HTML, Mermaid, Log View, Graph, Draw, Rest Client) — share a
+     * common text content and can switch between each other.
+     * `false` for standalone editors (PDF, Image, Browser, Archive, Video, MCP
+     * Inspector, Storybook, About, Settings, Category) — own their own state
+     * and do not participate in content-based editor switching.
+     */
+    readonly hasContentHost: boolean;
 }
 
 /**
@@ -13,9 +24,9 @@ export interface IEditorInfo {
  */
 export interface ISwitchOptions {
     /** Available editor IDs. Empty if only one editor applies. */
-    readonly options: string[];
+    readonly options: EditorView[];
     /** Get the display label for an editor option. */
-    getOptionLabel(option: string): string;
+    getOptionLabel(option: EditorView): string;
 }
 
 /**
@@ -35,7 +46,7 @@ export interface IEditorRegistry {
     getAll(): IEditorInfo[];
 
     /** Get editor info by ID. Returns `undefined` if not found. */
-    getById(id: string): IEditorInfo | undefined;
+    getById(id: EditorView): IEditorInfo | undefined;
 
     /**
      * Resolve the best matching editor for a file path.
@@ -44,7 +55,7 @@ export interface IEditorRegistry {
     resolve(filePath: string): IEditorInfo | undefined;
 
     /** Resolve just the editor ID for a file path. */
-    resolveId(filePath: string): string | undefined;
+    resolveId(filePath: string): EditorView | undefined;
 
     /**
      * Get available editor switch options for a language.
