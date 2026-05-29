@@ -8,11 +8,22 @@ import { SaveIcon, SwapIcon } from "../../../theme/icons";
 import { LinkEditor } from "../LinkEditor";
 
 export default function LinkCategorySecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
+    // Type-guard early return must precede any hooks. The hook-using body
+    // lives in an inner component so the React function called from render
+    // always calls the same hooks in the same order.
     if (!(model instanceof LinkEditor)) {
         return null;
     }
-    const editor = model;
+    return <LinkCategorySecondaryEditorBody editor={model} headerRef={headerRef} />;
+}
 
+function LinkCategorySecondaryEditorBody({
+    editor,
+    headerRef,
+}: {
+    editor: LinkEditor;
+    headerRef: SecondaryEditorProps["headerRef"];
+}) {
     // Subscribe to mainEditorId so we re-render on promote/demote toggle.
     const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);
     const isMainEditor = mainEditorId === editor.id;

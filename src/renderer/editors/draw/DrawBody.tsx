@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Excalidraw, FONT_FAMILY, THEME, useHandleLibrary } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+// eslint-disable-next-line import/no-unresolved -- CSS subpath; bundled by Vite, not by ESLint's TS resolver
 import "@excalidraw/excalidraw/index.css";
 import { Panel } from "../../uikit/Panel";
 import { Spinner } from "../../uikit/Spinner";

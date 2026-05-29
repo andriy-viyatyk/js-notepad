@@ -15,11 +15,13 @@ import { fpExtname } from "../../core/utils/file-path";
  * 4. Everything else (local file, archive entry) → FileTypeIcon
  */
 export function TreeProviderItemIcon({ item }: { item: ITreeProviderItem }) {
+    // Hook must run unconditionally — rules-of-hooks forbids calling it after
+    // the `isDirectory` early return.
+    const httpExt = useHttpPathExtension(item.href);
+
     if (item.isDirectory) {
         return <FolderIcon />;
     }
-
-    const httpExt = useHttpPathExtension(item.href);
 
     if (httpExt !== undefined) {
         // HTTP/HTTPS link

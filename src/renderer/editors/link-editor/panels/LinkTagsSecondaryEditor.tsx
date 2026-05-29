@@ -162,10 +162,21 @@ function LinkTagsNavigationPanel({ editor, pageId }: LinkTagsNavigationPanelProp
 
 
 export default function LinkTagsSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
+    // Type-guard early return must precede any hooks; hook-using body lives
+    // in an inner component. Same pattern as LinkCategorySecondaryEditor.
     if (!(model instanceof LinkEditor)) {
         return null;
     }
-    const editor = model;
+    return <LinkTagsSecondaryEditorBody editor={model} headerRef={headerRef} />;
+}
+
+function LinkTagsSecondaryEditorBody({
+    editor,
+    headerRef,
+}: {
+    editor: LinkEditor;
+    headerRef: SecondaryEditorProps["headerRef"];
+}) {
     const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);
     const isMainEditor = mainEditorId === editor.id;
 

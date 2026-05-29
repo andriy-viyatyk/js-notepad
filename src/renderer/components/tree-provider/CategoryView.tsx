@@ -133,13 +133,12 @@ export function CategoryView(props: CategoryViewProps) {
         model.onItemContextMenu(link, e);
     }, [model]);
 
-    const handleEdit = provider.writable && provider.rename
-        ? useCallback((link: ILink) => { model.renameItem(link); }, [model])
-        : undefined;
-
-    const handleDelete = provider.writable && provider.deleteItem
-        ? useCallback((link: ILink) => { model.deleteItemAction(link); }, [model])
-        : undefined;
+    // `useCallback` must be called unconditionally; the ternary then chooses
+    // whether to forward the callback to the child or omit it.
+    const editCallback = useCallback((link: ILink) => { model.renameItem(link); }, [model]);
+    const deleteCallback = useCallback((link: ILink) => { model.deleteItemAction(link); }, [model]);
+    const handleEdit = provider.writable && provider.rename ? editCallback : undefined;
+    const handleDelete = provider.writable && provider.deleteItem ? deleteCallback : undefined;
 
     const handleViewModeMenu = useCallback((e: React.MouseEvent) => {
         if (!props.onViewModeChange) return;

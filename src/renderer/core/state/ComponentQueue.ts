@@ -46,12 +46,19 @@ export class ComponentQueue<
     }
 
     /** React hook for the fire-and-forget channel. Handler is captured in a
-     *  ref so re-renders don't churn the subscription (and lose the drain). */
+     *  ref so re-renders don't churn the subscription (and lose the drain).
+     *
+     *  Hook-shaped method on a non-component class — call only from React
+     *  function components or other hooks. `rules-of-hooks` doesn't model
+     *  this pattern (sees `useX` inside a class definition and treats the
+     *  class as a component), so the disable is intentional. */
+    /* eslint-disable react-hooks/rules-of-hooks */
     use(handler: (event: E) => void): void {
         const handlerRef = useRef(handler);
         handlerRef.current = handler;
         useEffect(() => this.subscribe((ev) => handlerRef.current(ev)), [this]);
     }
+    /* eslint-enable react-hooks/rules-of-hooks */
 
     /**
      * Send a request, expect a reply. Resolves sync from the registered handler
@@ -93,11 +100,13 @@ export class ComponentQueue<
     }
 
     /** React hook for the request/reply channel. Same ref-stability pattern as `use`. */
+    /* eslint-disable react-hooks/rules-of-hooks -- hook-shaped class method; see `use()` above */
     useRequest(handler: (req: Req) => unknown): void {
         const handlerRef = useRef(handler);
         handlerRef.current = handler;
         useEffect(() => this.register((req) => handlerRef.current(req)), [this]);
     }
+    /* eslint-enable react-hooks/rules-of-hooks */
 
     /** Clear both channels and reject any pending requests. Called by
      *  EditorModel.dispose so an editor that closes before its view mounts

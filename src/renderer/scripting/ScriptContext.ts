@@ -92,7 +92,6 @@ export class ScriptContext {
         // On dispose, restore previous. This ensures autoload's getter survives F5 runs.
         this.previousUiDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ui");
         const isMcp = !!consoleLogs;
-        const context = this;
         let uiFacade: UiFacade | undefined;
         let uiLogPageId: string | undefined;
 
@@ -103,10 +102,10 @@ export class ScriptContext {
                 uiLogPageId = undefined;
             }
             if (!uiFacade) {
-                const result = initializeUiFacade(page, context.releaseList, context.outputFlags, isMcp);
+                const result = initializeUiFacade(page, this.releaseList, this.outputFlags, isMcp);
                 uiFacade = result.facade;
                 uiLogPageId = result.pageId;
-                installConsoleForwarding(uiFacade, context, consoleLogs);
+                installConsoleForwarding(uiFacade, this, consoleLogs);
             }
             return uiFacade;
         };
@@ -136,8 +135,6 @@ export class ScriptContext {
      * to ensure fresh compilation with this context's bindings.
      */
     private createCustomRequire(libraryPath?: string): NodeRequire {
-        const self = this;
-
         const req = ((id: string) => {
             if (typeof id === "string" && id.startsWith(LIBRARY_PREFIX)) {
                 if (!libraryPath) {
@@ -148,7 +145,7 @@ export class ScriptContext {
                 const modulePath = id.slice(LIBRARY_PREFIX.length);
                 const resolvedPath = fpResolve(resolveLibraryModule(libraryPath, modulePath));
                 delete nativeRequire.cache[resolvedPath];
-                globalThis.__activeScriptContext__ = self;
+                globalThis.__activeScriptContext__ = this;
                 try { return nativeRequire(resolvedPath); }
                 finally { globalThis.__activeScriptContext__ = null; }
             }
@@ -163,7 +160,7 @@ export class ScriptContext {
                     }
                 } catch { /* resolve failed — let native require handle the error */ }
             }
-            globalThis.__activeScriptContext__ = self;
+            globalThis.__activeScriptContext__ = this;
             try { return nativeRequire(id); }
             finally { globalThis.__activeScriptContext__ = null; }
         }) as NodeRequire;

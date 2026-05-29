@@ -191,7 +191,7 @@ function parseCurl(text: string): ParsedRequest | null {
         // Normalize: remove line continuations
         // bash: \ at end of line
         // cmd: ^ at end of line, and ^" escaping
-        let normalized = text
+        const normalized = text
             .replace(/\^\n/g, " ")          // cmd ^ continuation
             .replace(/\\\n/g, " ")          // bash \ continuation
             .replace(/\^"/g, '"')           // cmd ^" → "

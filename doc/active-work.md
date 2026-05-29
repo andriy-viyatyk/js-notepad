@@ -7,6 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
+- *(no epic)*
+  - [ ] [US-588: Lint baseline — fix errors, then triage warnings](tasks/US-588-lint-baseline/README.md) — phased: P1 fix all 18 errors (mostly ESLint config: install `eslint-plugin-react-hooks` + `eslint-import-resolver-typescript`, ignore `scratches/` + `assets/editor-types/`, plus 3 small code fixes); P2 mechanical/auto-fixable warnings (~110 cases); P3 categorize + decide per category for the remaining `no-explicit-any` (577) / `no-non-null-assertion` (154) / `exhaustive-deps` (14)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
