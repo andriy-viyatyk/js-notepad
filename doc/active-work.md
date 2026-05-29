@@ -38,6 +38,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-347: CategoryView / CategoryEditor Breadcrumb
   - [ ] US-453: Storybook property editor — fix scroll when prop list exceeds panel height
   - [ ] [US-454: DrawIO Viewer — read-only viewer for `.drawio` files](tasks/US-454-drawio-viewer/README.md)
+  - [ ] [US-587: Post-EPIC-028 doc / type audit](tasks/US-587-post-epic028-doc-audit/README.md) — verify 11 inconsistencies between public types and user docs surfaced by `/userdoc` during US-586 close-out
 
 
 ---

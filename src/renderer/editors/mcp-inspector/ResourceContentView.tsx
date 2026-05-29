@@ -1,7 +1,9 @@
+import { MouseEvent as ReactMouseEvent } from "react";
 import { Editor } from "@monaco-editor/react";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { MarkdownBlock } from "../markdown/MarkdownBlock";
+import { ui } from "../../api/ui";
 import { McpResourceContent } from "./McpInspectorEditorModel";
 
 const EDITOR_OPTIONS: any = {
@@ -36,6 +38,33 @@ interface ResourceContentViewProps {
     content: McpResourceContent;
 }
 
+/**
+ * Block clicks on relative links inside MCP-resource markdown.
+ *
+ * MCP resources are keyed by URI (e.g. `test://static/resource/architecture.md`),
+ * not by filesystem path, so a sibling reference like `[X](structure.md)` has
+ * no anchoring base Persephone can fetch. Letting the browser resolve such
+ * hrefs ends up navigating against the renderer origin (in dev:
+ * `http://localhost:5173/structure.md`), which Vite answers with the SPA
+ * fallback — opening a junk Persephone page. Absolute schemes (`http://`,
+ * `https://`, `mailto:`, `#fragment`, `//host`) are still allowed through and
+ * flow into the normal `openRawLink` pipeline.
+ */
+const ABSOLUTE_HREF_RE = /^([a-z][a-z0-9+.-]*:|#|\/\/)/i;
+
+function onMarkdownClickCapture(e: ReactMouseEvent): void {
+    const anchor = (e.target as HTMLElement).closest("a");
+    if (!anchor) return;
+    const href = anchor.getAttribute("href") || "";
+    if (!href || ABSOLUTE_HREF_RE.test(href)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    ui.notify(
+        `Relative link "${href}" cannot be resolved — MCP resources have no filesystem base.`,
+        "info",
+    );
+}
+
 export function ResourceContentView({ content }: ResourceContentViewProps) {
     const mime = content.mimeType || "";
 
@@ -51,6 +80,7 @@ export function ResourceContentView({ content }: ResourceContentViewProps) {
                     paddingX="lg"
                     paddingY="md"
                     height={0}
+                    onClickCapture={onMarkdownClickCapture}
                 >
                     <MarkdownBlock content={content.text} compact />
                 </Panel>
