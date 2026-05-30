@@ -95,7 +95,7 @@ function getValueByPath(obj: any, path: string[]): any {
     }
 
     const prop = path.shift();
-    return getValueByPath(obj[prop!], path);
+    return getValueByPath(obj[prop], path);
 }
 
 export function getValue(obj: any, path?: string | number | symbol): any {
@@ -108,7 +108,7 @@ function setValueByPath(obj: any, path: string[], value: any): void {
         return;
     }
 
-    const prop = path.shift()!;
+    const prop = path.shift();
     if (path.length === 0) {
         obj[prop] = value;
         return;

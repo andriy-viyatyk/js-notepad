@@ -203,7 +203,7 @@ function BrowserWebviewItem({
                                 return;
                             }
                             if (model.bookmarks) {
-                                const links = model.bookmarks!.linkEditor.state.get().data.links;
+                                const links = model.bookmarks.linkEditor.state.get().data.links;
                                 const hasLink = links.some((l: { href: string }) => getHostname(l.href) === hostname);
                                 if (hasLink) saveFavicon(hostname, faviconUrl);
                             }
@@ -637,7 +637,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                         pageIds={tabs.map((t) => t.id)}
                         activeId={activeTabId}
                         renderPage={(tabId) => {
-                            const tab = tabs.find((t) => t.id === tabId)!;
+                            const tab = tabs.find((t) => t.id === tabId);
                             const isBlank = !tab.url || tab.url === "about:blank";
                             return (
                                 <>

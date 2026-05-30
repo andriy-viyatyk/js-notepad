@@ -138,7 +138,7 @@ export class CircularEffect implements IVisualizerEffect {
             this.ocW = needW;
             this.ocH = needH;
             this.oc   = new OffscreenCanvas(needW, needH);
-            this.octx = this.oc.getContext("2d")!;
+            this.octx = this.oc.getContext("2d");
         }
 
         // ── Rebuild spark stamps if theme changed ───────────────────────────
@@ -149,7 +149,7 @@ export class CircularEffect implements IVisualizerEffect {
                 const sz = r * 2 + 4;
                 const half = sz / 2;
                 const sc = new OffscreenCanvas(sz, sz);
-                const sctx = sc.getContext("2d")!;
+                const sctx = sc.getContext("2d");
                 sctx.fillStyle = `rgb(${isDark ? BANDS[i].darkSparkRgb : BANDS[i].lightSparkRgb})`;
                 sctx.beginPath();
                 sctx.arc(half, half, r, 0, Math.PI * 2);
@@ -231,7 +231,7 @@ export class CircularEffect implements IVisualizerEffect {
             }
 
             // ── Draw segment on offscreen canvas ─────────────────────────────
-            const oc = this.octx!;
+            const oc = this.octx;
             oc.clearRect(0, 0, this.ocW, this.ocH);
 
             // Glow: wide low-alpha stroke along outer edge
@@ -300,7 +300,7 @@ export class CircularEffect implements IVisualizerEffect {
                 ctx.translate(cx, cy);
                 ctx.rotate(angle);
                 ctx.globalAlpha = mod;
-                ctx.drawImage(this.oc!, -ox, -oy);
+                ctx.drawImage(this.oc, -ox, -oy);
                 ctx.restore();
             }
         }

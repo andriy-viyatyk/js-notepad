@@ -313,7 +313,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
         const saved = host.getEditorState<GraphViewSettings>(this.editorId);
         if (saved?.groupingEnabled !== undefined) {
             this.state.update((s) => {
-                s.groupingEnabled = saved.groupingEnabled!;
+                s.groupingEnabled = saved.groupingEnabled;
             });
         }
 
@@ -1533,7 +1533,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
             if (this.groupModel.isGroup(id)) queue.push(id);
         }
         while (queue.length > 0) {
-            const groupId = queue.pop()!;
+            const groupId = queue.pop();
             if (visited.has(groupId)) continue;
             visited.add(groupId);
             for (const memberId of this.groupModel.getMembers(groupId)) {

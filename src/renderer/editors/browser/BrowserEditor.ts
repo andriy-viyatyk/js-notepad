@@ -70,7 +70,7 @@ export class BrowserEditor extends EditorModel<
         this.urlBar = new BrowserUrlBarModel(this);
         this.bookmarksUI = new BrowserBookmarksUIModel(this);
         this.target = new BrowserTargetModel(this);
-        this.keyDownSub = globalKeyDown.subscribe((e) => this.handleGlobalKeyDown(e!));
+        this.keyDownSub = globalKeyDown.subscribe((e) => this.handleGlobalKeyDown(e));
         this.windowClosingSub = windowClosing.subscribe(() => this.handleWindowClosing());
         // Preload bookmarks silently after a short delay (don't block browser page opening)
         setTimeout(() => this.preloadBookmarks(), 300);
@@ -715,7 +715,7 @@ export class BrowserEditor extends EditorModel<
                 const tabIds = new Set(s.tabs.map((t) => t.id));
                 let newActive: BrowserTabData | undefined;
                 while (this.activeTabHistory.length > 0) {
-                    const prevId = this.activeTabHistory.pop()!;
+                    const prevId = this.activeTabHistory.pop();
                     if (tabIds.has(prevId)) {
                         newActive = s.tabs.find((t) => t.id === prevId);
                         break;

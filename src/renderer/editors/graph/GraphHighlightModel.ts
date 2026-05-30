@@ -105,7 +105,7 @@ export class GraphHighlightModel {
             this.activeId = id;
             this.activeChild = new Set(getNeighbors(id));
         } else if (this.selectedIds.size > 0) {
-            const last = [...this.selectedIds].pop()!;
+            const last = [...this.selectedIds].pop();
             this.activeId = last;
             this.activeChild = new Set(getNeighbors(last));
         } else {

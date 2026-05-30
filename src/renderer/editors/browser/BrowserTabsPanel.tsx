@@ -449,7 +449,7 @@ export function BrowserTabsPanel({
                     style={{ ...floatingStyles, zIndex: 1000 }}
                     onMouseEnter={cancelClose}
                     onMouseLeave={scheduleClose}
-                    onClick={() => handleSwitchTab(hoveredTabId!)}
+                    onClick={() => handleSwitchTab(hoveredTabId)}
                 >
                     <span data-part="title">
                         {hoveredTab.pageTitle || hoveredTab.url || "New Tab"}
@@ -460,7 +460,7 @@ export function BrowserTabsPanel({
                             size="sm"
                             icon={hoveredTab.muted ? <VolumeMutedIcon /> : <VolumeIcon />}
                             title={hoveredTab.muted ? "Unmute Tab" : "Mute Tab"}
-                            onClick={(e) => handleToggleMute(e, hoveredTabId!)}
+                            onClick={(e) => handleToggleMute(e, hoveredTabId)}
                         />
                     )}
                     <IconButton
@@ -468,7 +468,7 @@ export function BrowserTabsPanel({
                         size="sm"
                         icon={<CloseIcon />}
                         title="Close Tab"
-                        onClick={(e) => handleExtensionClose(e, hoveredTabId!)}
+                        onClick={(e) => handleExtensionClose(e, hoveredTabId)}
                     />
                 </div>
             )}

@@ -139,7 +139,7 @@ export class LinkTreeProvider implements ITreeProvider {
             tags: changes.tags,
             imgSrc: changes.imgSrc,
         });
-        const updated = this.source.getLinkById(link.id)!;
+        const updated = this.source.getLinkById(link.id);
         return this.linkToItem(updated);
     }
 

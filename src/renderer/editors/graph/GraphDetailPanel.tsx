@@ -341,8 +341,8 @@ function GraphDetailPanel({
     const linksTabActive = expanded && activeTab === "links" && !!singleNode;
     useEffect(() => {
         if (linksTabActive) {
-            onExpandNode?.(singleNode!.id);
-            const ids = new Set([singleNode!.id, ...linkedNodes.map((n) => n.id)]);
+            onExpandNode?.(singleNode.id);
+            const ids = new Set([singleNode.id, ...linkedNodes.map((n) => n.id)]);
             onHighlightSet?.(ids);
         } else {
             onHighlightSet?.(null);

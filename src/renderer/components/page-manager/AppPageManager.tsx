@@ -99,8 +99,8 @@ export function AppPageManager({
             if (!groupContainers.has(leftId)) {
                 const rightId = grouping.get(leftId);
                 if (!rightId) continue;
-                const leftEl = placeholders.get(leftId)!;
-                const rightEl = placeholders.get(rightId)!;
+                const leftEl = placeholders.get(leftId);
+                const rightEl = placeholders.get(rightId);
                 const gc = new GroupContainer(container, leftEl, rightEl);
                 groupContainers.set(leftId, gc);
             }

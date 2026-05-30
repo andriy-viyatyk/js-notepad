@@ -264,7 +264,7 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
                     tags={state.tags}
                     onCollapse={editor.collapseNote}
                 />,
-                overlayRef!,
+                overlayRef,
             )}
         </>
     );

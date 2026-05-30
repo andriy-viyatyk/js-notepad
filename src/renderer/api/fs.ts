@@ -496,7 +496,7 @@ class FileSystem implements IFileSystem {
     dataFileName = async (fileName: string): Promise<string> => {
         await this.wait();
         return path.join(
-            this._dataPath!,
+            this._dataPath,
             fileName.replace("{windowIndex}", String(this._windowIndex))
         );
     };
@@ -521,7 +521,7 @@ class FileSystem implements IFileSystem {
     private async _cacheFileName(id: string, name?: string): Promise<string> {
         await this.wait();
         return path.join(
-            this._cachePath!,
+            this._cachePath,
             id + (name ? "_" + name : "") + ".txt"
         );
     }
@@ -538,11 +538,11 @@ class FileSystem implements IFileSystem {
     deleteCacheFiles = async (id: string): Promise<void> => {
         await this.wait();
         const files = this._listDirFiles(
-            this._cachePath!,
+            this._cachePath,
             new RegExp(`^${id}`, "i")
         );
         for (const file of files) {
-            await this._removeFile(path.join(this._cachePath!, file));
+            await this._removeFile(path.join(this._cachePath, file));
         }
     };
 
@@ -550,7 +550,7 @@ class FileSystem implements IFileSystem {
 
     private async _cacheMiscFileName(subPath: string): Promise<string> {
         await this.wait();
-        return path.join(this._cacheMiscPath!, subPath);
+        return path.join(this._cacheMiscPath, subPath);
     }
 
     getCacheMiscFile = async (subPath: string): Promise<string | undefined> =>

@@ -25,7 +25,7 @@ export class PageCollectionWrapper {
     get all(): PageWrapper[] {
         return this.pages.pages
             .filter((p) => p.mainEditor)
-            .map((p) => new PageWrapper(p.mainEditor!, this.releaseList));
+            .map((p) => new PageWrapper(p.mainEditor, this.releaseList));
     }
 
     get activePage(): PageWrapper | undefined {
@@ -81,7 +81,7 @@ export class PageCollectionWrapper {
 
     addEmptyPage(): PageWrapper {
         const page = this.pages.addEmptyPage();
-        return this.wrap(page)!;
+        return this.wrap(page);
     }
 
     addEditorPage(
@@ -90,12 +90,12 @@ export class PageCollectionWrapper {
         title: string,
     ): PageWrapper {
         const page = this.pages.addEditorPage(editor, language, title);
-        return this.wrap(page)!;
+        return this.wrap(page);
     }
 
     async addDrawPage(dataUrl: string, title?: string): Promise<PageWrapper> {
         const page = await this.pages.addDrawPage(dataUrl, title);
-        return this.wrap(page)!;
+        return this.wrap(page);
     }
 
     openLinks(
@@ -103,7 +103,7 @@ export class PageCollectionWrapper {
         title?: string,
     ): PageWrapper {
         const page = this.pages.openLinks(links, title);
-        return this.wrap(page)!;
+        return this.wrap(page);
     }
 
     openDiff(params: {

@@ -56,7 +56,7 @@ function LinkTagsNavigationPanel({ editor, pageId }: LinkTagsNavigationPanelProp
 
     const tagItems = useMemo(() => {
         if (selectedTag) {
-            return editor.treeProvider?.getTagItems!(selectedTag)
+            return editor.treeProvider?.getTagItems(selectedTag)
                 .filter((item) => !item.isDirectory) ?? [];
         }
         return links.filter((item) => !item.isDirectory);

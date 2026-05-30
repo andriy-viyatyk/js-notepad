@@ -134,7 +134,7 @@ export class ContentPipe implements IContentPipe {
 
     get watch(): ((callback: (event: string) => void) => ISubscriptionObject) | undefined {
         if (!this.provider.watch) return undefined;
-        return (callback) => this.provider.watch!(callback);
+        return (callback) => this.provider.watch(callback);
     }
 
     // ── Clone ───────────────────────────────────────────────────────

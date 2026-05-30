@@ -50,8 +50,8 @@ export class GraphConnectivityModel {
             if (sourceIsGroup !== targetIsGroup) {
                 isMembership = true;
             } else if (sourceIsGroup && targetIsGroup) {
-                isMembership = this.groupModel!.getGroupOf(source) === target
-                            || this.groupModel!.getGroupOf(target) === source;
+                isMembership = this.groupModel.getGroupOf(source) === target
+                            || this.groupModel.getGroupOf(target) === source;
             }
             if (isMembership) continue;
 

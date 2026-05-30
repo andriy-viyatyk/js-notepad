@@ -167,12 +167,12 @@ export function CategoryList({
                     if (!childrenMap.has(parentName)) {
                         childrenMap.set(parentName, []);
                     }
-                    childrenMap.get(parentName)!.push({
+                    childrenMap.get(parentName).push({
                         name: childPart,
                         value: item,
                     });
 
-                    parentGroups.get(parentName)!.hasChildren = true;
+                    parentGroups.get(parentName).hasChildren = true;
                 }
             }
         }

@@ -140,16 +140,17 @@ export function CategoryView(props: CategoryViewProps) {
     const handleEdit = provider.writable && provider.rename ? editCallback : undefined;
     const handleDelete = provider.writable && provider.deleteItem ? deleteCallback : undefined;
 
+    const { onViewModeChange } = props;
     const handleViewModeMenu = useCallback((e: React.MouseEvent) => {
-        if (!props.onViewModeChange) return;
+        if (!onViewModeChange) return;
         const rect = e.currentTarget.getBoundingClientRect();
         showAppPopupMenu(rect.left, rect.bottom + 2, VIEW_MODE_ORDER.map((mode) => ({
             label: VIEW_MODE_LABELS[mode],
             icon: VIEW_MODE_ICONS[mode],
             selected: mode === viewMode,
-            onClick: () => props.onViewModeChange!(mode),
+            onClick: () => onViewModeChange(mode),
         })));
-    }, [viewMode, props.onViewModeChange]);
+    }, [viewMode, onViewModeChange]);
 
     const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === "Escape") {

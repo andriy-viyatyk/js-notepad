@@ -428,9 +428,9 @@ export function MenuBar(props: MenuBarProps) {
                         <TreeProviderView
                             ref={model.setTreeViewRef}
                             key={folder.id}
-                            provider={model.getProvider(folder.id!, folder.path)}
-                            initialState={model.expandStateMap.get(folder.id!)}
-                            onStateChange={(s) => model.expandStateMap.set(folder.id!, s)}
+                            provider={model.getProvider(folder.id, folder.path)}
+                            initialState={model.expandStateMap.get(folder.id)}
+                            onStateChange={(s) => model.expandStateMap.set(folder.id, s)}
                             onItemClick={(item) => {
                                 if (!item.isDirectory) {
                                     app.events.openRawLink.sendAsync(createLinkData(item.href));

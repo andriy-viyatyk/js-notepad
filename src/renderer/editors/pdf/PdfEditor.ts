@@ -95,7 +95,7 @@ export class PdfEditor extends EditorModel<PdfEditorState> {
                 && this.pipe.transformers.length === 0
             ) {
                 this.state.update((s) => {
-                    s.localPdfPath = this.pipe!.provider.sourceUrl;
+                    s.localPdfPath = this.pipe.provider.sourceUrl;
                 });
             } else {
                 try {

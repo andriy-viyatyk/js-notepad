@@ -217,7 +217,7 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
         const saved = host.getEditorState<MarkdownViewSettings>(this.editorId);
         if (saved?.compactMode !== undefined) {
             this.state.update((s) => {
-                s.compactMode = saved.compactMode!;
+                s.compactMode = saved.compactMode;
             });
         }
 

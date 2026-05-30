@@ -48,10 +48,10 @@ export class GraphGroupModel {
         for (const link of links) {
             const { source, target } = linkIds(link);
             if (groupIds.has(source) && !groupIds.has(target)) {
-                this.groups.get(source)!.add(target);
+                this.groups.get(source).add(target);
                 if (!this.memberOf.has(target)) this.memberOf.set(target, source);
             } else if (groupIds.has(target) && !groupIds.has(source)) {
-                this.groups.get(target)!.add(source);
+                this.groups.get(target).add(source);
                 if (!this.memberOf.has(source)) this.memberOf.set(source, target);
             }
         }
@@ -68,14 +68,14 @@ export class GraphGroupModel {
             // Try source-as-parent first; if cycle, try target-as-parent
             if (!this.memberOf.has(target)) {
                 if (!this.wouldCreateCycleInternal(source, target)) {
-                    this.groups.get(source)!.add(target);
+                    this.groups.get(source).add(target);
                     this.memberOf.set(target, source);
                     continue;
                 }
             }
             if (!this.memberOf.has(source)) {
                 if (!this.wouldCreateCycleInternal(target, source)) {
-                    this.groups.get(target)!.add(source);
+                    this.groups.get(target).add(source);
                     this.memberOf.set(source, target);
                 }
             }

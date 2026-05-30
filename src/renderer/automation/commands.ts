@@ -46,7 +46,7 @@ async function getTarget(): Promise<IBrowserTarget | McpResponse> {
 
     // Ensure the browser page is active (webview needs display != none for focus/input)
     if (browserPage !== activePage) {
-        pagesModel.showPage(browserPage!.id);
+        pagesModel.showPage(browserPage.id);
     }
 
     const state = browserEditor.state.get();

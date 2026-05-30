@@ -223,7 +223,7 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
         const saved = host.getEditorState<DrawViewSettings>(this.editorId);
         if (saved?.darkMode !== undefined) {
             this.state.update((s) => {
-                s.darkMode = saved.darkMode!;
+                s.darkMode = saved.darkMode;
             });
         }
 

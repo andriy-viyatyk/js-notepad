@@ -57,14 +57,14 @@ export function buildGroupedTree(requests: RestRequest[]): RequestTreeItem[] {
             collectionOrder.push(col);
             groups.set(col, []);
         }
-        groups.get(col)!.push({ id: r.id, request: r });
+        groups.get(col).push({ id: r.id, request: r });
     }
 
     return collectionOrder.map((col) => ({
         id: `__col__${col}`,
         isCollection: true,
         collectionName: col,
-        items: groups.get(col)!,
+        items: groups.get(col),
     }));
 }
 
@@ -397,7 +397,7 @@ export function RequestTree({ vm, items, selectedId }: {
                 return;
             }
 
-            const req = item.request!;
+            const req = item.request;
             const menuItems: MenuItem[] = [
                 {
                     label: "Duplicate",
@@ -544,7 +544,7 @@ export function RequestTree({ vm, items, selectedId }: {
                     </Text>
                 )
                 : (() => {
-                    const req = item.request!;
+                    const req = item.request;
                     const badgeColor = METHOD_COLORS[req.method];
                     return (
                         <Panel direction="row" align="center" gap="sm">

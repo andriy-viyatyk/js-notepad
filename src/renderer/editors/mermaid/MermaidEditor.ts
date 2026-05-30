@@ -224,7 +224,7 @@ export class MermaidEditor extends EditorModel<MermaidEditorState, void, Mermaid
         const saved = host.getEditorState<MermaidViewSettings>(this.editorId);
         if (saved?.lightMode !== undefined) {
             this.state.update((s) => {
-                s.lightMode = saved.lightMode!;
+                s.lightMode = saved.lightMode;
             });
         }
 

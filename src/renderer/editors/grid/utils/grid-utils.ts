@@ -44,7 +44,7 @@ function detectColumns(data: any[]): Column[] {
                 }
                 const value = row[key];
                 if (value !== null && value !== undefined) {
-                    const colTypes = columnTypes.get(key)!;
+                    const colTypes = columnTypes.get(key);
                     if (typeof value === 'string') {
                         colTypes.stringCount++;
                     } else if (typeof value === 'number') {
@@ -65,7 +65,7 @@ function detectColumns(data: any[]): Column[] {
         col.width = detectColumnWidth(sampledRows, col.key as string, col.name);
 
         // Determine data type by majority vote
-        const colTypes = columnTypes.get(col.key as string)!;
+        const colTypes = columnTypes.get(col.key as string);
         if (colTypes.stringCount >= colTypes.numberCount) {
             col.dataType = colTypes.stringCount >= colTypes.booleanCount ? 'string' : 'boolean';
         } else {

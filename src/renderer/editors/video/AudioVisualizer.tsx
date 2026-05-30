@@ -232,7 +232,7 @@ export function AudioVisualizer({ mediaRef, playing, sourceUrl }: AudioVisualize
         const analyser = analyserRef.current;
         if (!analyser) return;
 
-        const ctx2d = canvas.getContext("2d")!;
+        const ctx2d = canvas.getContext("2d");
 
         const draw = () => {
             rafRef.current = requestAnimationFrame(draw);

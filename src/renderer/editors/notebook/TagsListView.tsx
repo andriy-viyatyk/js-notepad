@@ -100,8 +100,8 @@ export function TagsListView(props: TagsListViewProps) {
                     if (!childrenMap.has(parentName)) {
                         childrenMap.set(parentName, []);
                     }
-                    childrenMap.get(parentName)!.push({ name: childPart, value: tag });
-                    categoryGroups.get(parentName)!.hasChildren = true;
+                    childrenMap.get(parentName).push({ name: childPart, value: tag });
+                    categoryGroups.get(parentName).hasChildren = true;
                 }
             }
         }

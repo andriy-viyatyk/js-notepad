@@ -200,7 +200,7 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     applyRestoreData(data: RestoreData<ExplorerEditorState>): void {
         super.applyRestoreData(data);
         if (data.rootPath) {
-            this.state.update((s) => { s.rootPath = data.rootPath!; });
+            this.state.update((s) => { s.rootPath = data.rootPath; });
         }
         // EX3 (c) — typed extras (new format).
         if (data.treeState) this.treeState = data.treeState;

@@ -169,9 +169,9 @@ export function PageTabs(props: object) {
 
         return [
             ...pinned.map((item) => ({
-                label: item!.label,
-                icon: item!.icon,
-                onClick: item!.create,
+                label: item.label,
+                icon: item.icon,
+                onClick: item.create,
             })),
             {
                 label: "Show All…",

@@ -53,7 +53,7 @@ class FolderViewModeService {
         } catch {
             this.modes = {};
         }
-        return this.modes!;
+        return this.modes;
     }
 
     private async save(): Promise<void> {

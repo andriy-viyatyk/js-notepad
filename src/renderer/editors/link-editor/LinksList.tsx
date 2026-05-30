@@ -174,7 +174,7 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
     const [gridWidth, setGridWidth] = useState<number | undefined>(undefined);
     const faviconVersion = useFavicons(links);
 
-    useImperativeHandle(ref, () => gridRef.current!, []);
+    useImperativeHandle(ref, () => gridRef.current, []);
 
     // Expose grid model to parent
     const gridModelNotified = useRef(false);

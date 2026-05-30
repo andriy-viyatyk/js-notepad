@@ -66,7 +66,7 @@ export function buildCategoryTreeItems(
             }
             if (idx < parts.length - 1) {
                 current[part].map = current[part].map ?? {};
-                current = current[part].map!;
+                current = current[part].map;
             }
         });
     });

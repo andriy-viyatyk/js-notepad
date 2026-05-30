@@ -908,7 +908,7 @@ export class LinkEditor
         const queue = [...folders];
 
         while (queue.length > 0) {
-            const folder = queue.shift()!;
+            const folder = queue.shift();
             let entries: { name: string; isDirectory: boolean }[];
             try {
                 entries = await app.fs.listDirWithTypes(folder.href);

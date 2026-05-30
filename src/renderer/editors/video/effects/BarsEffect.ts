@@ -71,7 +71,7 @@ export class BarsEffect implements IVisualizerEffect {
             const sw = Math.max(1, Math.ceil(barWidth));
             for (let i = 0; i < BAR_COUNT; i++) {
                 const sc    = new OffscreenCanvas(sw, PARTICLE_H);
-                const sctx  = sc.getContext("2d")!;
+                const sctx  = sc.getContext("2d");
                 const [edge, highlight] = barColors(i, isDark);
                 const grad  = sctx.createLinearGradient(0, 0, sw, 0);
                 grad.addColorStop(0,    edge);

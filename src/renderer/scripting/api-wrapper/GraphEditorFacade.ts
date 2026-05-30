@@ -146,7 +146,7 @@ export class GraphEditorFacade {
         visited.set(startId, 0);
 
         while (queue.length > 0) {
-            const { id, depth } = queue.shift()!;
+            const { id, depth } = queue.shift();
             if (maxDepth !== undefined && depth >= maxDepth) continue;
             for (const neighborId of getNeighbors(id)) {
                 if (!visited.has(neighborId)) {
@@ -183,7 +183,7 @@ export class GraphEditorFacade {
             visited.add(node.id);
 
             while (queue.length > 0) {
-                const id = queue.shift()!;
+                const id = queue.shift();
                 component.push(id);
                 for (const neighborId of this.editor.connectivityModel.getRealNeighborIds(id)) {
                     if (!visited.has(neighborId)) {

@@ -66,7 +66,7 @@ export function detectColumns(colName: string[], rows: any[]): Column<any>[] {
 
     const columns = [...columnsMap.values()];
     columns.forEach(col => {
-        const colTypes = columnTypes.get(col.key as string)!;
+        const colTypes = columnTypes.get(col.key as string);
         if (colTypes.stringCount >= colTypes.numberCount) {
             if (colTypes.stringCount >= colTypes.booleanCount) {
                 col.dataType = 'string';

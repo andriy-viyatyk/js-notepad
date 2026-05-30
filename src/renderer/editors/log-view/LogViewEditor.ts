@@ -240,7 +240,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         const saved = host.getEditorState<LogViewSettings>(this.editorId);
         if (saved?.showTimestamps !== undefined) {
             this.state.update((s) => {
-                s.showTimestamps = saved.showTimestamps!;
+                s.showTimestamps = saved.showTimestamps;
             });
         }
 
@@ -543,7 +543,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
 
         const pending = this.pendingDialogs.get(id);
         if (pending) {
-            pending.resolve(updatedEntry!);
+            pending.resolve(updatedEntry);
             this.pendingDialogs.delete(id);
         }
     }

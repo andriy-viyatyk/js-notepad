@@ -75,8 +75,8 @@ function hookSession(ses: Session): void {
                 pagePending.set(key, new Map());
             }
 
-            const log = pageLogs.get(key)!;
-            const pending = pagePending.get(key)!;
+            const log = pageLogs.get(key);
+            const pending = pagePending.get(key);
 
             const entry: NetworkLogEntry = {
                 id: details.id,
@@ -91,7 +91,7 @@ function hookSession(ses: Session): void {
 
             // Circular buffer: remove oldest if at capacity
             if (log.length >= MAX_LOG_ENTRIES) {
-                const removed = log.shift()!;
+                const removed = log.shift();
                 pending.delete(removed.id);
             }
 
@@ -116,7 +116,7 @@ function hookSession(ses: Session): void {
             entry.statusLine = details.statusLine;
             entry.responseHeaders = details.responseHeaders;
             entry.fromCache = details.fromCache;
-            pending!.delete(details.id);
+            pending.delete(details.id);
         }
     });
 
@@ -130,7 +130,7 @@ function hookSession(ses: Session): void {
         const entry = pending?.get(details.id);
         if (entry) {
             entry.error = details.error;
-            pending!.delete(details.id);
+            pending.delete(details.id);
         }
     });
 }

@@ -90,7 +90,7 @@ class DownloadService {
         const defaultPath = path.join(defaultDir, item.getFilename());
 
         const savePath = dialog.showSaveDialogSync(
-            parentWindow!,
+            parentWindow,
             { defaultPath },
         );
 

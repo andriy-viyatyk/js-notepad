@@ -113,7 +113,7 @@ export class ClaudeSession {
 
     on(event: ClaudeSessionEvent, callback: EventCallback): () => void {
         if (!this._listeners.has(event)) this._listeners.set(event, new Set());
-        this._listeners.get(event)!.add(callback);
+        this._listeners.get(event).add(callback);
         return () => { this._listeners.get(event)?.delete(callback); };
     }
 

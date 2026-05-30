@@ -232,9 +232,9 @@ export class GraphDataModel {
         } else {
             if (!legend[tab]) legend[tab] = {};
             if (value) {
-                legend[tab]![key] = value;
+                legend[tab][key] = value;
             } else {
-                delete legend[tab]![key];
+                delete legend[tab][key];
             }
         }
 
