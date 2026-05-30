@@ -19,13 +19,19 @@ function normalizeColumns(columns?: (string | GridColumn)[]): GridColumn[] | und
     return columns.map(c => typeof c === "string" ? { key: c } : c);
 }
 
+/** Minimal persisted shape — only key + width survive across reloads. */
+interface SavedColumn {
+    key: string | number;
+    width?: number;
+}
+
 /** Merge saved column state (widths, order) with detected columns. */
-function mergeColumnsWithSaved(detected: Column[], saved?: any[]): Column[] {
+function mergeColumnsWithSaved(detected: Column[], saved?: SavedColumn[]): Column[] {
     if (!saved || saved.length === 0) return detected;
 
-    const savedMap = new Map<string, any>();
+    const savedMap = new Map<string, SavedColumn>();
     for (const sc of saved) {
-        if (sc && sc.key) savedMap.set(sc.key as string, sc);
+        if (sc && sc.key) savedMap.set(String(sc.key), sc);
     }
 
     const result: Column[] = [];
@@ -36,7 +42,7 @@ function mergeColumnsWithSaved(detected: Column[], saved?: any[]): Column[] {
         }
     }
     for (const det of detected) {
-        if (!savedMap.has(det.key as string)) {
+        if (!savedMap.has(String(det.key))) {
             result.push(det);
         }
     }
@@ -60,9 +66,10 @@ export function GridOutputView({ entry }: GridOutputViewProps) {
         [entry.data, entry.columns],
     );
 
+    const savedColumns = itemState.columns as SavedColumn[] | undefined;
     const columns = useMemo(
-        () => mergeColumnsWithSaved(baseGridData.columns, itemState.columns),
-        [baseGridData.columns, itemState.columns],
+        () => mergeColumnsWithSaved(baseGridData.columns, savedColumns),
+        [baseGridData.columns, savedColumns],
     );
 
     const focus = itemState.focus as CellFocus | undefined;

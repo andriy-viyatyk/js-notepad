@@ -52,7 +52,7 @@ function DialogEntryStub({ entry }: { entry: LogEntry }) {
     return (
         <Text size="base" color="light">
             [{entry.type}] {typeof label === "string" ? label : ""}
-            {resolved && <Text size="base" color="dark"> — answered: {entry.button}</Text>}
+            {resolved && <Text size="base" color="dark"> — answered: {String(entry.button)}</Text>}
         </Text>
     );
 }
@@ -85,7 +85,15 @@ function UnknownEntryView({ entry }: { entry: LogEntry }) {
 // Dispatcher
 // =============================================================================
 
-function dispatchedView(entry: LogEntry, updateEntry: (updater: (draft: LogEntry) => void) => void) {
+/**
+ * The dispatcher narrows by `entry.type` and forwards the same updater to
+ * variant-specific views (whose drafts are the narrowed entry). TypeScript
+ * can't follow that contravariant narrowing on a callback param, so we cast
+ * the function type per-branch — type-precise, no `any`.
+ */
+type EntryUpdater<T extends LogEntry> = (updater: (draft: T) => void) => void;
+
+function dispatchedView(entry: LogEntry, updateEntry: EntryUpdater<LogEntry>) {
     switch (entry.type) {
         case "input.confirm":
             return <ConfirmDialogView entry={entry as ConfirmEntry} />;
@@ -93,7 +101,7 @@ function dispatchedView(entry: LogEntry, updateEntry: (updater: (draft: LogEntry
             return (
                 <TextInputDialogView
                     entry={entry as TextInputEntry}
-                    updateEntry={updateEntry as any}
+                    updateEntry={updateEntry as EntryUpdater<TextInputEntry>}
                 />
             );
         case "input.buttons":
@@ -102,21 +110,21 @@ function dispatchedView(entry: LogEntry, updateEntry: (updater: (draft: LogEntry
             return (
                 <CheckboxesDialogView
                     entry={entry as CheckboxesEntry}
-                    updateEntry={updateEntry as any}
+                    updateEntry={updateEntry as EntryUpdater<CheckboxesEntry>}
                 />
             );
         case "input.radioboxes":
             return (
                 <RadioboxesDialogView
                     entry={entry as RadioboxesEntry}
-                    updateEntry={updateEntry as any}
+                    updateEntry={updateEntry as EntryUpdater<RadioboxesEntry>}
                 />
             );
         case "input.select":
             return (
                 <SelectDialogView
                     entry={entry as SelectEntry}
-                    updateEntry={updateEntry as any}
+                    updateEntry={updateEntry as EntryUpdater<SelectEntry>}
                 />
             );
         case "output.progress":

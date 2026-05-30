@@ -12,15 +12,22 @@ const { ipcRenderer } = window.electron;
 
 let idCounter = 0;
 
+// Worker-IPC message shapes (Main → Renderer). See worker-host.ts header for
+// the full protocol.
+interface WorkerResultMsg { id: string; value: unknown }
+interface WorkerErrorMsg { id: string; message: string; stack?: string }
+interface WorkerProxyCallMsg { id: string; callId: string; path: string[]; args: unknown[] }
+interface WorkerProxySetMsg { id: string; path: string[]; value: unknown }
+
 /**
  * Resolve a dotted path on an object.
  * E.g. resolvePath(obj, ["progress", "setLabel"]) → obj.progress.setLabel
  */
-function resolvePath(obj: any, path: string[]): any {
-    let current = obj;
+function resolvePath(obj: unknown, path: string[]): unknown {
+    let current: unknown = obj;
     for (const key of path) {
-        if (current == null) return undefined;
-        current = current[key];
+        if (current == null || (typeof current !== "object" && typeof current !== "function")) return undefined;
+        current = (current as Record<string, unknown>)[key];
     }
     return current;
 }
@@ -63,14 +70,14 @@ export async function runAsync<TData, TProxy, TResult>(
         };
 
         // Listen for result
-        cleanups.push(ipcRenderer.on(WorkerChannel.result, (msg: any) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.result, (msg: WorkerResultMsg) => {
             if (msg.id !== id) return;
             cleanup();
-            resolve(msg.value);
+            resolve(msg.value as TResult);
         }));
 
         // Listen for error
-        cleanups.push(ipcRenderer.on(WorkerChannel.error, (msg: any) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.error, (msg: WorkerErrorMsg) => {
             if (msg.id !== id) return;
             cleanup();
             const err = new Error(`app.runAsync worker error: ${msg.message}`);
@@ -79,7 +86,7 @@ export async function runAsync<TData, TProxy, TResult>(
         }));
 
         // Listen for proxy calls from worker
-        cleanups.push(ipcRenderer.on(WorkerChannel.proxyCall, async (msg: any) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.proxyCall, async (msg: WorkerProxyCallMsg) => {
             if (msg.id !== id) return;
             try {
                 const parentPath = msg.path.slice(0, -1);
@@ -87,24 +94,24 @@ export async function runAsync<TData, TProxy, TResult>(
                 const parent = parentPath.length > 0
                     ? resolvePath(activeProxy, parentPath)
                     : activeProxy;
-                const method = parent[methodName];
+                const method = (parent as Record<string, unknown>)[methodName];
                 const result = typeof method === "function"
-                    ? await method.call(parent, ...msg.args)
+                    ? await (method as (...a: unknown[]) => unknown).call(parent, ...msg.args)
                     : method;
                 ipcRenderer.sendMessage(
-                    WorkerChannel.proxyResult as any,
+                    WorkerChannel.proxyResult as unknown as never,
                     { id, callId: msg.callId, value: result }
                 );
             } catch (e) {
                 ipcRenderer.sendMessage(
-                    WorkerChannel.proxyResult as any,
-                    { id, callId: msg.callId, error: e?.message ?? String(e) }
+                    WorkerChannel.proxyResult as unknown as never,
+                    { id, callId: msg.callId, error: (e as Error)?.message ?? String(e) }
                 );
             }
         }));
 
         // Listen for proxy property sets from worker
-        cleanups.push(ipcRenderer.on(WorkerChannel.proxySet, (msg: any) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.proxySet, (msg: WorkerProxySetMsg) => {
             if (msg.id !== id) return;
             try {
                 const parentPath = msg.path.slice(0, -1);
@@ -112,7 +119,7 @@ export async function runAsync<TData, TProxy, TResult>(
                 const parent = parentPath.length > 0
                     ? resolvePath(activeProxy, parentPath)
                     : activeProxy;
-                parent[prop] = msg.value;
+                (parent as Record<string, unknown>)[prop] = msg.value;
             } catch {
                 // Fire-and-forget — set errors are silently ignored
             }
@@ -120,7 +127,7 @@ export async function runAsync<TData, TProxy, TResult>(
 
         // Send start message to main process
         ipcRenderer.sendMessage(
-            WorkerChannel.start as any,
+            WorkerChannel.start as unknown as never,
             {
                 id,
                 fnString: fn.toString(),

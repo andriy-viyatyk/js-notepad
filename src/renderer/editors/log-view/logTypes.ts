@@ -21,10 +21,12 @@ export interface LogEntryBase {
     type: string;
     id: string;
     timestamp?: number;
+    /** Variant-specific fields ride here — narrow by `type` to access. */
+    [key: string]: unknown;
 }
 
 /** Flat log entry — system fields + any type-specific fields. */
-export type LogEntry = LogEntryBase & Record<string, any>;
+export type LogEntry = LogEntryBase;
 
 // =============================================================================
 // Log Entries (display-only)
@@ -125,7 +127,7 @@ export interface ProgressOutputEntry extends LogEntryBase {
 export interface GridOutputEntry extends LogEntryBase {
     type: "output.grid";
     title?: StyledText;
-    data: any[];
+    data: unknown[];
     columns?: (string | GridColumn)[];
 }
 
@@ -156,8 +158,8 @@ export interface McpRequestEntry extends LogEntryBase {
     title?: StyledText;
     direction: "outgoing" | "incoming";
     method: string;
-    params: any;
-    result: any;
+    params: unknown;
+    result: unknown;
     error: string | null;
     durationMs: number;
 }

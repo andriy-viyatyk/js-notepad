@@ -15,7 +15,7 @@ import { editorRegistry as v4Registry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
-import type { LogEntry } from "./logTypes";
+import type { LogEntry, StyledText } from "./logTypes";
 
 export type LogQueueEvent =
     | { type: "focus" }
@@ -39,7 +39,7 @@ export interface LogViewEditorState extends EditorStateBase {
     // (neither on descriptor nor host slot). Resets on restart and on
     // Monaco↔LogView switch. Size scales with entry count; persistence would
     // write-storm openFiles0.json.
-    itemsState: Record<string, Record<string, any>>;
+    itemsState: Record<string, Record<string, unknown>>;
     // View-derived — present on state for reactive read; stripped from
     // getRestoreData per MO5 / GR8 pattern. Recomputed from host content on restore.
     entries: LogEntry[];
@@ -480,20 +480,23 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
 
     /** Add a log entry and append it to the host content.
      *  If `fields.id` matches an existing entry, updates it in-place (upsert). */
-    addEntry(type: string, fields: any): LogEntry {
-        const id = fields?.id != null ? String(fields.id) : String(this.nextId++);
+    addEntry(type: string, fields: StyledText | Record<string, unknown>): LogEntry {
+        const fieldsObj = typeof fields === "object" && fields !== null && !Array.isArray(fields)
+            ? (fields as Record<string, unknown>)
+            : null;
+        const id = fieldsObj?.id != null ? String(fieldsObj.id) : String(this.nextId++);
         const numId = parseInt(id, 10);
         if (!isNaN(numId) && numId >= this.nextId) {
             this.nextId = numId + 1;
         }
 
         // Upsert: if entry with this ID already exists, update it in-place
-        if (fields?.id != null) {
+        if (fieldsObj?.id != null) {
             const existingIndex = this.state.get().entries.findIndex((e) => e.id === id);
             if (existingIndex >= 0) {
                 this.state.update((s) => {
                     const existing = s.entries[existingIndex];
-                    s.entries[existingIndex] = { ...existing, ...fields, type, id };
+                    s.entries[existingIndex] = { ...existing, ...fieldsObj, type, id };
                 });
                 const updatedEntry = this.state.get().entries[existingIndex];
                 this.updateEntryInContent(updatedEntry);
@@ -504,9 +507,9 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
 
         // For log entries, fields is StyledText → wrap as { text }
         // For dialog/output entries, fields is already an object → spread
-        const entry: LogEntry = typeof fields === "string" || Array.isArray(fields)
-            ? { type, id, text: fields, timestamp: Date.now() }
-            : { type, id, ...fields, timestamp: Date.now() };
+        const entry: LogEntry = fieldsObj
+            ? { type, id, ...fieldsObj, timestamp: Date.now() }
+            : { type, id, text: fields as StyledText, timestamp: Date.now() };
 
         this.state.update((s) => {
             s.entries = [...s.entries, entry];
@@ -518,7 +521,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
     }
 
     /** Add a dialog entry and return a Promise that resolves when the user responds. */
-    addDialogEntry(type: string, fields: Record<string, any>): Promise<LogEntry> {
+    addDialogEntry(type: string, fields: Record<string, unknown>): Promise<LogEntry> {
         const entry = this.addEntry(type, fields);
         // LV5 — replaces today's forceScrollVersion bump.
         this.typedQueue.send({ type: "scrollToBottom" });
@@ -551,7 +554,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
     /** Update an entry's text by ID. Serializes immediately to prevent
      *  the host-subscription race that would overwrite in-memory styled data
      *  with stale JSONL content. */
-    updateEntryText(id: string, text: any): void {
+    updateEntryText(id: string, text: StyledText): void {
         const entries = this.state.get().entries;
         const index = entries.findIndex((e) => e.id === id);
         if (index < 0) return;
@@ -632,11 +635,11 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
 
     // ── Per-item auxiliary state ────────────────────────────────────────
 
-    getItemState(id: string): Record<string, any> {
+    getItemState(id: string): Record<string, unknown> {
         return this.state.get().itemsState[id] ?? {};
     }
 
-    setItemState(id: string, patch: Record<string, any>): void {
+    setItemState(id: string, patch: Record<string, unknown>): void {
         this.state.update((s) => {
             s.itemsState[id] = { ...s.itemsState[id], ...patch };
         });

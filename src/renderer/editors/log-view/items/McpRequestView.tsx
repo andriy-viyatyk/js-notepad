@@ -13,19 +13,20 @@ interface McpRequestViewProps {
 }
 
 /** Extract a short informative detail string from request method + params. */
-function getDetail(method: string, params: any): string {
-    if (!params) return "";
-    if (method === "tools/call") return params.name || "";
-    if (method === "resources/read") return params.uri || "";
-    if (method === "prompts/get") return params.name || "";
-    if (method === "create_page") return params.title || "";
-    if (method === "set_page_content") return params.title || params.id || "";
-    if (method === "get_page_content") return params.title || params.id || "";
-    if (method === "open_url") return params.url || "";
+function getDetail(method: string, params: unknown): string {
+    if (!params || typeof params !== "object") return "";
+    const p = params as Record<string, unknown>;
+    const str = (key: string): string => (typeof p[key] === "string" ? p[key] as string : "");
+    if (method === "tools/call") return str("name");
+    if (method === "resources/read") return str("uri");
+    if (method === "prompts/get") return str("name");
+    if (method === "create_page") return str("title");
+    if (method === "set_page_content") return str("title") || str("id");
+    if (method === "get_page_content") return str("title") || str("id");
+    if (method === "open_url") return str("url");
     for (const key of ["title", "name", "url", "uri", "id", "path"]) {
-        if (typeof params[key] === "string" && params[key].length > 0) {
-            return params[key];
-        }
+        const v = p[key];
+        if (typeof v === "string" && v.length > 0) return v;
     }
     return "";
 }

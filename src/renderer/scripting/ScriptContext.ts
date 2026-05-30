@@ -17,7 +17,7 @@ export interface ConsoleLogEntry {
     timestamp: number;
 }
 
-function serializeArg(arg: any): string {
+function serializeArg(arg: unknown): string {
     if (arg === undefined) return "undefined";
     if (arg === null) return "null";
     if (typeof arg === "string") return arg;
@@ -79,10 +79,10 @@ export class ScriptContext {
         // MCP mode: basic console capture (replaced with forwarding when ui is accessed)
         if (consoleLogs) {
             this.console = {
-                log: (...args: any[]) => { consoleLogs.push({ level: "log", args: args.map(serializeArg), timestamp: Date.now() }); },
-                error: (...args: any[]) => { consoleLogs.push({ level: "error", args: args.map(serializeArg), timestamp: Date.now() }); },
-                warn: (...args: any[]) => { consoleLogs.push({ level: "warn", args: args.map(serializeArg), timestamp: Date.now() }); },
-                info: (...args: any[]) => { consoleLogs.push({ level: "info", args: args.map(serializeArg), timestamp: Date.now() }); },
+                log: (...args: unknown[]) => { consoleLogs.push({ level: "log", args: args.map(serializeArg), timestamp: Date.now() }); },
+                error: (...args: unknown[]) => { consoleLogs.push({ level: "error", args: args.map(serializeArg), timestamp: Date.now() }); },
+                warn: (...args: unknown[]) => { consoleLogs.push({ level: "warn", args: args.map(serializeArg), timestamp: Date.now() }); },
+                info: (...args: unknown[]) => { consoleLogs.push({ level: "info", args: args.map(serializeArg), timestamp: Date.now() }); },
             };
         } else {
             this.console = globalThis.console;
@@ -178,7 +178,7 @@ export class ScriptContext {
         if (this.previousUiDescriptor) {
             Object.defineProperty(globalThis, "ui", this.previousUiDescriptor);
         } else {
-            delete (globalThis as any).ui;
+            Reflect.deleteProperty(globalThis, "ui");
         }
 
         for (const release of this.releaseList) {
@@ -279,32 +279,32 @@ function installConsoleForwarding(
     context: ScriptContext,
     consoleLogs?: ConsoleLogEntry[],
 ) {
-    const formatArgs = (args: any[]) => args.map(serializeArg).join(" ");
+    const formatArgs = (args: unknown[]) => args.map(serializeArg).join(" ");
     const nativeConsole = globalThis.console;
 
     const capture = consoleLogs
-        ? (level: ConsoleLogEntry["level"], args: any[]) => {
+        ? (level: ConsoleLogEntry["level"], args: unknown[]) => {
             consoleLogs.push({ level, args: args.map(serializeArg), timestamp: Date.now() });
         }
         : undefined;
 
     context.console = {
-        log: (...args: any[]) => {
+        log: (...args: unknown[]) => {
             nativeConsole.log(...args);
             capture?.("log", args);
             if (!facade.consoleLogPrevented) facade.addConsoleEntry("log.log", formatArgs(args));
         },
-        info: (...args: any[]) => {
+        info: (...args: unknown[]) => {
             nativeConsole.info(...args);
             capture?.("info", args);
             if (!facade.consoleLogPrevented) facade.addConsoleEntry("log.info", formatArgs(args));
         },
-        warn: (...args: any[]) => {
+        warn: (...args: unknown[]) => {
             nativeConsole.warn(...args);
             capture?.("warn", args);
             if (!facade.consoleWarnPrevented) facade.addConsoleEntry("log.warn", formatArgs(args));
         },
-        error: (...args: any[]) => {
+        error: (...args: unknown[]) => {
             nativeConsole.error(...args);
             capture?.("error", args);
             if (!facade.consoleErrorPrevented) facade.addConsoleEntry("log.error", formatArgs(args));
