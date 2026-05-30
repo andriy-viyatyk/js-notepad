@@ -1,21 +1,25 @@
 import { app } from "../../api/app";
 import { PageCollectionWrapper } from "./PageCollectionWrapper";
+import type { EventChannel, EventHandler } from "../../api/events/EventChannel";
 
 /**
  * Wrap an EventChannel to auto-track subscriptions in the releaseList.
  * When the script scope is disposed, all subscriptions are unsubscribed.
  */
-function wrapEventChannel(channel: any, releaseList: Array<() => void>) {
+function wrapEventChannel<TEvent extends { handled?: boolean }>(
+    channel: EventChannel<TEvent>,
+    releaseList: Array<() => void>,
+) {
     return {
-        subscribe(handler: any) {
+        subscribe(handler: EventHandler<TEvent>) {
             const sub = channel.subscribe(handler);
             releaseList.push(() => sub.unsubscribe());
             return sub;
         },
-        send(event: any) {
+        send(event: TEvent) {
             return channel.send(event);
         },
-        sendAsync(event: any) {
+        sendAsync(event: TEvent) {
             return channel.sendAsync(event);
         },
     };
@@ -23,19 +27,20 @@ function wrapEventChannel(channel: any, releaseList: Array<() => void>) {
 
 /**
  * Recursively wrap app.events namespace. Intercepts subscribe() on
- * EventChannel leaves, passes through namespace objects.
+ * EventChannel leaves, passes through namespace objects. The proxy returns
+ * a structurally-identical shape to the input, so we type the return as T.
  */
-function createEventsProxy(target: any, releaseList: Array<() => void>): any {
+function createEventsProxy<T extends object>(target: T, releaseList: Array<() => void>): T {
     return new Proxy(target, {
         get(obj, prop) {
-            const value = obj[prop];
+            const value = (obj as Record<PropertyKey, unknown>)[prop];
             if (value && typeof value === "object") {
                 // EventChannel leaf — has subscribe method
-                if (typeof value.subscribe === "function") {
-                    return wrapEventChannel(value, releaseList);
+                if (typeof (value as { subscribe?: unknown }).subscribe === "function") {
+                    return wrapEventChannel(value as EventChannel<{ handled?: boolean }>, releaseList);
                 }
                 // Namespace object — recurse
-                return createEventsProxy(value, releaseList);
+                return createEventsProxy(value as object, releaseList);
             }
             return value;
         },

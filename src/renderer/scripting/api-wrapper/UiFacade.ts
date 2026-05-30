@@ -7,8 +7,13 @@ import { Text } from "./Text";
 import { Markdown } from "./Markdown";
 import { Mermaid } from "./Mermaid";
 
-/** Check if value is a plain options object (not a string, not an array). */
-function isOptionsObject(value: unknown): value is Record<string, unknown> {
+/**
+ * Check if value is a plain options object (not a string, not an array).
+ * Generic so the narrowing preserves the caller's input-union object branch
+ * (and excludes array members of that union, since StyledText etc. include
+ * arrays which the runtime check rejects too).
+ */
+function isOptionsObject<T>(value: T): value is Exclude<Extract<T, object>, readonly unknown[]> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -115,58 +120,33 @@ export class UiFacade {
 
     readonly show = {
         progress: (labelOrOpts?: StyledText | { label?: StyledText; value?: number; max?: number }): Progress => {
-            let fields: Record<string, unknown>;
-            if (isOptionsObject(labelOrOpts)) {
-                fields = labelOrOpts;
-            } else {
-                fields = { label: labelOrOpts };
-            }
+            const fields = isOptionsObject(labelOrOpts) ? labelOrOpts : { label: labelOrOpts };
             const entry = this.editor.addEntry("output.progress", fields);
             return new Progress(entry.id, this.editor, fields);
         },
 
-        grid: (dataOrOpts: any[] | { data: any[]; columns?: (string | GridColumn)[]; title?: StyledText }): Grid => {
-            let fields: Record<string, unknown>;
-            if (Array.isArray(dataOrOpts)) {
-                fields = { data: dataOrOpts };
-            } else {
-                fields = dataOrOpts;
-            }
+        grid: (dataOrOpts: unknown[] | { data: unknown[]; columns?: (string | GridColumn)[]; title?: StyledText }): Grid => {
+            const fields = Array.isArray(dataOrOpts) ? { data: dataOrOpts } : dataOrOpts;
             const entry = this.editor.addEntry("output.grid", fields);
-            return new Grid(entry.id, this.editor, fields as any);
+            return new Grid(entry.id, this.editor, fields);
         },
 
         text: (textOrOpts: string | { text: string; language?: string; title?: StyledText; wordWrap?: boolean; lineNumbers?: boolean; minimap?: boolean }, language?: string): Text => {
-            let fields: Record<string, unknown>;
-            if (isOptionsObject(textOrOpts)) {
-                fields = textOrOpts;
-            } else {
-                fields = { text: textOrOpts, language };
-            }
+            const fields = isOptionsObject(textOrOpts) ? textOrOpts : { text: textOrOpts, language };
             const entry = this.editor.addEntry("output.text", fields);
-            return new Text(entry.id, this.editor, fields as any);
+            return new Text(entry.id, this.editor, fields);
         },
 
         markdown: (textOrOpts: string | { text: string; title?: StyledText }): Markdown => {
-            let fields: Record<string, unknown>;
-            if (isOptionsObject(textOrOpts)) {
-                fields = textOrOpts;
-            } else {
-                fields = { text: textOrOpts };
-            }
+            const fields = isOptionsObject(textOrOpts) ? textOrOpts : { text: textOrOpts };
             const entry = this.editor.addEntry("output.markdown", fields);
-            return new Markdown(entry.id, this.editor, fields as any);
+            return new Markdown(entry.id, this.editor, fields);
         },
 
         mermaid: (textOrOpts: string | { text: string; title?: StyledText }): Mermaid => {
-            let fields: Record<string, unknown>;
-            if (isOptionsObject(textOrOpts)) {
-                fields = textOrOpts;
-            } else {
-                fields = { text: textOrOpts };
-            }
+            const fields = isOptionsObject(textOrOpts) ? textOrOpts : { text: textOrOpts };
             const entry = this.editor.addEntry("output.mermaid", fields);
-            return new Mermaid(entry.id, this.editor, fields as any);
+            return new Mermaid(entry.id, this.editor, fields);
         },
     };
 }

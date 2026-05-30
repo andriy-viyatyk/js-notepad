@@ -3,7 +3,7 @@ import type { GridEditor } from "../../editors/grid/GridEditor";
 export class GridEditorFacade {
     constructor(private readonly editor: GridEditor) {}
 
-    get rows(): any[] {
+    get rows(): unknown[] {
         return this.editor.state.get().rows;
     }
 
@@ -18,11 +18,11 @@ export class GridEditorFacade {
         return this.editor.state.get().rows.length;
     }
 
-    editCell(columnKey: string, rowKey: string, value: any): void {
+    editCell(columnKey: string, rowKey: string, value: unknown): void {
         this.editor.editRow(columnKey, rowKey, value);
     }
 
-    addRows(count = 1, insertIndex?: number): any[] {
+    addRows(count = 1, insertIndex?: number): unknown[] {
         return this.editor.onAddRows(count, insertIndex);
     }
 

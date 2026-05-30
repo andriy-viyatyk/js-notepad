@@ -8,14 +8,14 @@ import { pagesModel } from "../../api/pages";
  * Property setters update the underlying log entry.
  */
 export class Grid {
-    private _data: any[];
+    private _data: unknown[];
     private _columns?: (string | GridColumn)[];
     private _title?: StyledText;
 
     constructor(
         private readonly entryId: string,
         private readonly vm: LogViewEditor,
-        initial: { data: any[]; columns?: (string | GridColumn)[]; title?: StyledText },
+        initial: { data: unknown[]; columns?: (string | GridColumn)[]; title?: StyledText },
     ) {
         this._data = initial.data;
         this._columns = initial.columns;
@@ -31,8 +31,8 @@ export class Grid {
         });
     }
 
-    get data(): any[] { return this._data; }
-    set data(value: any[]) { this._data = value; this.update(); }
+    get data(): unknown[] { return this._data; }
+    set data(value: unknown[]) { this._data = value; this.update(); }
 
     get columns(): (string | GridColumn)[] | undefined { return this._columns; }
     set columns(value: (string | GridColumn)[] | undefined) { this._columns = value; this.update(); }

@@ -1,4 +1,8 @@
 import type { DrawEditor } from "../../editors/draw";
+import type { MIME_TYPES } from "@excalidraw/excalidraw";
+import type { DataURL } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type { FileId } from "@excalidraw/excalidraw/dist/types/excalidraw/element/types";
+import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/dist/types/excalidraw/data/transform";
 
 /**
  * Safe facade around DrawEditor for script access.
@@ -30,20 +34,22 @@ export class DrawEditorFacade {
             );
         }
 
-        const [{ convertToExcalidrawElements }, { getImageDimensions, capDimensions }] =
-            await Promise.all([
-                import("@excalidraw/excalidraw"),
-                import("../../editors/draw/drawExport"),
-            ]);
+        const [
+            { convertToExcalidrawElements, MIME_TYPES: mimeTypes },
+            { getImageDimensions, capDimensions },
+        ] = await Promise.all([
+            import("@excalidraw/excalidraw"),
+            import("../../editors/draw/drawExport"),
+        ]);
 
         const dims = await getImageDimensions(dataUrl);
         const fileId = crypto.randomUUID();
         const { width, height } = capDimensions(dims.width, dims.height, options?.maxDimension);
 
         api.addFiles([{
-            id: fileId as any,
-            dataURL: dataUrl as any,
-            mimeType: "image/png" as any,
+            id: fileId as FileId,
+            dataURL: dataUrl as DataURL,
+            mimeType: (mimeTypes as typeof MIME_TYPES).png,
             created: Date.now(),
         }]);
 
@@ -53,9 +59,9 @@ export class DrawEditorFacade {
             y: options?.y ?? 120,
             width,
             height,
-            fileId: fileId as any,
+            fileId: fileId as FileId,
             status: "saved",
-        } as any]);
+        } satisfies ExcalidrawElementSkeleton]);
 
         const existing = api.getSceneElements();
         api.updateScene({

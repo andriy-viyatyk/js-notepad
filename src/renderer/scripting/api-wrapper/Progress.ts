@@ -59,7 +59,7 @@ export class Progress {
      * Mark progress as completed when a promise settles.
      * Optionally update the label on completion.
      */
-    completeWithPromise(promise: Promise<any>, completeLabel?: StyledText): void {
+    completeWithPromise(promise: Promise<unknown>, completeLabel?: StyledText): void {
         promise.finally(() => {
             this.completed = true;
             if (completeLabel !== undefined) {

@@ -1,4 +1,6 @@
 import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpInspectorEditorModel";
+import type { McpTransportType } from "../../editors/mcp-inspector/McpConnectionManager";
+import type { McpRequestEntry } from "../../editors/log-view/logTypes";
 
 /**
  * Safe facade around McpInspectorEditorModel for script access.
@@ -50,7 +52,7 @@ export class McpInspectorFacade {
         return this.model.state.get().transportType;
     }
     set transportType(value: string) {
-        this.model.state.update((s) => { s.transportType = value as any; });
+        this.model.state.update((s) => { s.transportType = value as McpTransportType; });
     }
 
     get url(): string {
@@ -97,7 +99,7 @@ export class McpInspectorFacade {
         return this.model.historyCount;
     }
 
-    get history(): ReadonlyArray<any> {
+    get history(): ReadonlyArray<McpRequestEntry> {
         return this.model.history;
     }
 

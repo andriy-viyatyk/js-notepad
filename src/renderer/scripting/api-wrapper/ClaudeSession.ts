@@ -4,8 +4,20 @@
 
 // Lazy-loaded SDK — only loaded when ClaudeSession is instantiated.
 // Uses require() to bypass Vite bundling (same pattern as McpConnectionManager).
+// Type-only imports preserve the SDK's real types on the runtime-loaded module.
+import type AnthropicClass from "@anthropic-ai/sdk";
+import type {
+    Message,
+    MessageParam,
+    MessageCreateParamsNonStreaming,
+    ContentBlock,
+    ToolResultBlockParam,
+    Tool,
+    ToolChoice,
+} from "@anthropic-ai/sdk/resources/messages/messages";
+
 /* eslint-disable @typescript-eslint/no-require-imports */
-let Anthropic: any;
+let Anthropic: typeof AnthropicClass;
 function loadSdk(): void {
     if (Anthropic) return;
     Anthropic = require("@anthropic-ai/sdk").default;
@@ -20,7 +32,7 @@ export interface ClaudeToolDef {
     name: string;
     description: string;
     inputSchema: Record<string, unknown>;
-    tool: (input: any) => any | Promise<any>;
+    tool: (input: unknown) => unknown | Promise<unknown>;
 }
 
 export type ClaudeSessionEvent =
@@ -45,7 +57,7 @@ export interface ClaudeSendOptions {
     toolChoice?: "auto" | "any" | string;
 }
 
-type EventCallback = (...args: any[]) => void;
+type EventCallback = (...args: unknown[]) => void;
 
 // -----------------------------------------------------------------------------
 // ClaudeSession
@@ -56,8 +68,8 @@ const DEFAULT_MAX_TOKENS = 4096;
 const DEFAULT_MAX_TOOL_ROUNDS = 20;
 
 export class ClaudeSession {
-    private client: any;
-    private _messages: Array<{ role: string; content: any }> = [];
+    private client: AnthropicClass;
+    private _messages: MessageParam[] = [];
     private _systemMessage: string | undefined;
     private _tools: ClaudeToolDef[] = [];
     private _listeners = new Map<ClaudeSessionEvent, Set<EventCallback>>();
@@ -86,7 +98,7 @@ export class ClaudeSession {
     // Messages
     // -------------------------------------------------------------------------
 
-    get messages(): Array<{ role: string; content: any }> {
+    get messages(): MessageParam[] {
         return [...this._messages];
     }
 
@@ -117,7 +129,7 @@ export class ClaudeSession {
         return () => { this._listeners.get(event)?.delete(callback); };
     }
 
-    private emit(event: ClaudeSessionEvent, ...args: any[]): void {
+    private emit(event: ClaudeSessionEvent, ...args: unknown[]): void {
         this._listeners.get(event)?.forEach(cb => {
             try { cb(...args); } catch (e) { console.error("ClaudeSession event error:", e); }
         });
@@ -128,13 +140,13 @@ export class ClaudeSession {
     // -------------------------------------------------------------------------
 
     async send(options?: ClaudeSendOptions): Promise<string> {
-        const apiTools = this._tools.map(t => ({
+        const apiTools: Tool[] = this._tools.map(t => ({
             name: t.name,
             description: t.description,
-            input_schema: t.inputSchema,
+            input_schema: t.inputSchema as Tool.InputSchema,
         }));
 
-        const reqOptions: any = {
+        const reqOptions: MessageCreateParamsNonStreaming = {
             model: this.modelId,
             max_tokens: this.maxTokens,
             messages: this._messages,
@@ -152,35 +164,33 @@ export class ClaudeSession {
         let rounds = 0;
         // eslint-disable-next-line no-constant-condition
         while (true) {
-            const response = await this.client.messages.create(reqOptions);
+            const response: Message = await this.client.messages.create(reqOptions);
 
             this._messages.push({ role: "assistant", content: response.content });
             this.emit("assistant-message", response);
             this.emit("message", { role: "assistant", content: response.content });
 
             if (response.stop_reason !== "tool_use") {
-                const textBlocks = response.content.filter((b: any) => b.type === "text");
-                return textBlocks.map((b: any) => b.text).join("");
+                return textFromBlocks(response.content);
             }
 
             // Safety limit
             rounds++;
             if (rounds >= this.maxToolRounds) {
-                const textBlocks = response.content.filter((b: any) => b.type === "text");
-                const text = textBlocks.map((b: any) => b.text).join("");
+                const text = textFromBlocks(response.content);
                 this.emit("error", new Error(`Max tool rounds (${this.maxToolRounds}) reached`));
                 return text;
             }
 
             // Execute tool calls
-            const toolResults: any[] = [];
+            const toolResults: ToolResultBlockParam[] = [];
             for (const block of response.content) {
                 if (block.type !== "tool_use") continue;
 
                 const toolDef = this._tools.find(t => t.name === block.name);
                 this.emit("tool-call", block.name, block.input);
 
-                let result: any;
+                let result: unknown;
                 let isError = false;
                 try {
                     if (toolDef) {
@@ -190,7 +200,7 @@ export class ClaudeSession {
                         isError = true;
                     }
                 } catch (err) {
-                    result = err.message || String(err);
+                    result = (err as Error)?.message || String(err);
                     isError = true;
                 }
 
@@ -222,9 +232,12 @@ export class ClaudeSession {
         for (let i = this._messages.length - 1; i >= 0; i--) {
             const msg = this._messages[i];
             if (msg.role === "assistant" && Array.isArray(msg.content)) {
-                const text = msg.content
-                    .filter((b: any) => b.type === "text")
-                    .map((b: any) => b.text)
+                // msg.content is ContentBlockParam[] for stored MessageParam,
+                // but we only push ContentBlock[] from response, so the text
+                // narrowing is the same as in textFromBlocks.
+                const text = (msg.content as ContentBlock[])
+                    .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
+                    .map(b => b.text)
                     .join("");
                 if (text) return text;
             }
@@ -237,7 +250,15 @@ export class ClaudeSession {
 // Helpers
 // -----------------------------------------------------------------------------
 
-function resolveToolChoice(choice: string): { type: string; name?: string } {
+/** Extract concatenated text from an assistant ContentBlock array. */
+function textFromBlocks(blocks: ContentBlock[]): string {
+    return blocks
+        .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
+        .map(b => b.text)
+        .join("");
+}
+
+function resolveToolChoice(choice: string): ToolChoice {
     if (choice === "auto") return { type: "auto" };
     if (choice === "any") return { type: "any" };
     return { type: "tool", name: choice };

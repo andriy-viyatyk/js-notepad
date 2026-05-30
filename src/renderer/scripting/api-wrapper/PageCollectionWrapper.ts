@@ -1,4 +1,5 @@
 import type { PagesModel } from "../../api/pages/PagesModel";
+import type { PageModel } from "../../api/pages/PageModel";
 import { PageWrapper } from "./PageWrapper";
 import { EditorView } from "../../../shared/types";
 import type { ILink } from "../../api/types/io.tree";
@@ -15,7 +16,7 @@ export class PageCollectionWrapper {
         private readonly releaseList: Array<() => void>,
     ) {}
 
-    private wrap(page: any): PageWrapper | undefined {
+    private wrap(page: PageModel | null | undefined): PageWrapper | undefined {
         const editor = page?.mainEditor;
         return editor ? new PageWrapper(editor, this.releaseList) : undefined;
     }
