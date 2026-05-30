@@ -222,7 +222,14 @@ function EncodingLabel({ host }: { host: TextFileModel }) {
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function isTextFileHost(host: IContentHost): boolean {
-    return typeof (host as unknown as { setEditorToolbarRefFirst?: unknown }).setEditorToolbarRefFirst === "function";
+    // Duck-type against `setEditorOverlayRef` — present on TextFileModel,
+    // absent on NoteItemEditModel (US-557 inner-note fake host). The original
+    // discriminator checked `setEditorToolbarRefFirst`, but US-559 ("Strangler-
+    // fig retirement") removed that method from TextFileModel while leaving
+    // it on NoteItemEditModel — silently inverting this check. Symptom: the
+    // footer toolbar, ScriptPanel, run buttons, compare button, and the
+    // editor-overlay portal all stopped rendering for v4 editors.
+    return typeof (host as unknown as { setEditorOverlayRef?: unknown }).setEditorOverlayRef === "function";
 }
 
 async function showHtmlResources(host: TextFileModel) {
