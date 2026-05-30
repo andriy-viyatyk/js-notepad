@@ -32,12 +32,12 @@ export async function showDialog<R>(data: IDialogViewData): Promise<R> {
 	data.model.result = new Promise<R>(resolve => {
 		data.model.onClose = res => {
 			dialogsState.set(oldState => oldState.filter(item => item !== data));
-			resolve(res);
+			resolve(res as R);
 		};
 		dialogsState.set(oldState => [...oldState, data]);
 	});
 
-	return data.model.result;
+	return data.model.result as Promise<R>;
 }
 
 export const closeDialog = (viewId: symbol) => {

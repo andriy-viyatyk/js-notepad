@@ -9,26 +9,32 @@ export interface DefaultProps {
     className?: string;
 }
 
-export interface ViewProps<M extends TModel<T>, T = any> extends DefaultProps {
+export interface ViewProps<M extends TModel<T>, T = unknown> extends DefaultProps {
     model: M;
 }
 
-export type ViewPropsRO<M extends TModel<T>, T = any> = Readonly<
+export type ViewPropsRO<M extends TModel<T>, T = unknown> = Readonly<
     ViewProps<M, T>
 >;
 
-export interface IViewData<M extends TModel<T>, T = any> {
+export interface IViewData<M extends TModel<T>, T = unknown> {
     viewId: Symbol;
     model: M;
     internalId?: string;
 }
 
 export interface IDialogViewData<
-    M extends TDialogModel<T> = TDialogModel,
-    T = any,
+    // M's default uses `any` to accept all concrete TDialogModel subclasses
+    // at use sites (e.g. `showDialog({ model: ConfirmationDialogModel, ... })`).
+    // TS classes are invariant in their type parameters, and defaults can't
+    // forward-reference later type params, so widening to `unknown` would
+    // reject those subclass assignments. The `any` is load-bearing here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    M extends TDialogModel<T> = TDialogModel<any, any>,
+    T = unknown,
 > extends IViewData<M, T> {}
 
-export type DefaultView = React.FC<ViewProps<TModel<any>>>;
+export type DefaultView = React.FC<ViewProps<TModel<unknown>>>;
 
 interface IViewRegistration<T extends DefaultView = DefaultView> {
     viewId: Symbol;
@@ -50,7 +56,7 @@ const registerView = <T extends DefaultView = DefaultView>(
 
 const renderView = (
     viewId: Symbol,
-    props: ViewProps<any>
+    props: ViewProps<TModel<unknown>>
 ): ReactElement | null => {
     if (!views.has(viewId)) {
         throw new Error(`View "${viewId.toString()}" not registered.`);
@@ -78,7 +84,7 @@ const ViewRoot = styled.div({
     },
 });
 
-export function View<M extends TModel<T>, T = any>(
+export function View<M extends TModel<T>, T = unknown>(
     props: IViewData<M, T> & { active: boolean }
 ) {
     return (

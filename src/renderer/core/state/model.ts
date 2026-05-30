@@ -48,13 +48,13 @@ export class TModel<T> implements IModel<T> {
     }
 }
 
-export interface IDialogModel<T = any, R = any> extends IModel<T> {
+export interface IDialogModel<T = unknown, R = unknown> extends IModel<T> {
     close: (result: R | undefined) => void;
     result: Promise<R | undefined>;
     onClose?: (result: R | undefined) => void;
 }
 
-export class TDialogModel<T = any, R = any>
+export class TDialogModel<T = unknown, R = unknown>
     extends TModel<T>
     implements IDialogModel<T, R>
 {

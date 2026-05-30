@@ -23,10 +23,11 @@ export type IState<T> = {
     };
 };
 
-const isObject = (value: any) => value !== null && typeof value === 'object' && !Array.isArray(value);
-const isArray = (value: any) => Array.isArray(value);
+const isObject = (value: unknown): value is Record<string, unknown> =>
+    value !== null && typeof value === 'object' && !Array.isArray(value);
+const isArray = (value: unknown): value is unknown[] => Array.isArray(value);
 
-const isPlainObject = (value: any) => {
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
     if (!isObject(value)) {
         return false;
     }
@@ -34,7 +35,7 @@ const isPlainObject = (value: any) => {
     return proto === null || proto === Object.prototype;
 }
 
-function compareSelection(a: any, b: any): boolean {
+function compareSelection(a: unknown, b: unknown): boolean {
     if (!isPlainObject(a) || isArray(a) || (a instanceof Date)
         || (a instanceof RegExp) || (a instanceof Map) || (a instanceof Set)
     ) {
@@ -75,11 +76,11 @@ export class TOneState<T> implements IState<T> {
         this.stateChanged();
     };
 
-    use: IUse<T> = <R>(selector?: (state: T) => R) => {
+    use: IUse<T> = (<R>(selector?: (state: T) => R) => {
         return selector
-            ? useStoreWithEqualityFn(this.store, state => selector(state), compareSelection)
+            ? useStoreWithEqualityFn(this.store, state => selector(state), compareSelection as (a: R, b: R) => boolean)
             : this.store(state => state)
-    };
+    }) as IUse<T>;
 
     update = (updateDraft: (state: T) => void) => {
         this.set(
