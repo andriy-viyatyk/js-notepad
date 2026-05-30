@@ -179,7 +179,7 @@ class Settings implements ISettings {
     };
 
     private loadSettings = async () => {
-        const content = parseJSON5(await this.fileWatcher?.getTextContent());
+        const content = parseJSON5(await this.fileWatcher?.getTextContent()) as Record<string, unknown> | undefined;
         if (content) {
             const newSettings = {
                 ...defaultAppSettingsState.settings,

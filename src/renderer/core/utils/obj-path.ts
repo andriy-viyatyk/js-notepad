@@ -85,7 +85,7 @@ function wrapProp(propName: string): string | undefined {
     return undefined;
 }
 
-function getValueByPath(obj: any, path: string[]): any {
+function getValueByPath(obj: unknown, path: string[]): unknown {
     if (!path.length) {
         return obj;
     }
@@ -95,33 +95,36 @@ function getValueByPath(obj: any, path: string[]): any {
     }
 
     const prop = path.shift();
-    return getValueByPath(obj[prop], path);
+    if (prop === undefined) return undefined;
+    return getValueByPath((obj as Record<string, unknown>)[prop], path);
 }
 
-export function getValue(obj: any, path?: string | number | symbol): any {
+export function getValue(obj: unknown, path?: string | number | symbol): unknown {
     const parsedPath = parsePath(path?.toString());
     return getValueByPath(obj, parsedPath);
 }
 
-function setValueByPath(obj: any, path: string[], value: any): void {
+function setValueByPath(obj: unknown, path: string[], value: unknown): void {
     if (!obj || typeof obj !== "object" || path.length === 0) {
         return;
     }
 
     const prop = path.shift();
+    if (prop === undefined) return;
+    const record = obj as Record<string, unknown>;
     if (path.length === 0) {
-        obj[prop] = value;
+        record[prop] = value;
         return;
     }
 
-    if (!obj[prop] || typeof obj[prop] !== "object") {
-        obj[prop] = {};
+    if (!record[prop] || typeof record[prop] !== "object") {
+        record[prop] = {};
     }
 
-    setValueByPath(obj[prop], path, value);
+    setValueByPath(record[prop], path, value);
 }
 
-export function setValue(obj: any, path: string, value: any): void {
+export function setValue(obj: unknown, path: string, value: unknown): void {
     const parsedPath = parsePath(path);
     setValueByPath(obj, parsedPath, value);
 }

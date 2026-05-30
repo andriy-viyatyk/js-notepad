@@ -73,7 +73,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
     restore = async (id: string) => {
         this.id = id;
         const data = await fs.getCacheFile(id, this.name);
-        const newState = parseObject(data) || defaultScriptPanelState;
+        const newState = (parseObject(data) as Partial<typeof defaultScriptPanelState> | undefined) || defaultScriptPanelState;
         this.skipSave = true;
         const merged = { ...defaultScriptPanelState, ...newState };
         // Ad-hoc scripts always have save enabled (acts as "save as")

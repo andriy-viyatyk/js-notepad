@@ -95,7 +95,7 @@ export class GlobalEventService {
 
     private handleDrop = (e: DragEvent) => {
         const dataStr = e.dataTransfer?.getData("application/persephone-tab");
-        const data = parseObject(dataStr);
+        const data = parseObject(dataStr) as { sourceWindowIndex?: number } | undefined;
         if (
             data &&
             data.sourceWindowIndex !== undefined &&

@@ -53,7 +53,7 @@ export class PagesPersistenceModel {
     restoreState = async () => {
         const data = parseObject(
             await appFs.getDataFile(openFilesNameTemplate),
-        );
+        ) as Partial<WindowState> | undefined;
         if (!data || !Array.isArray(data.pages)) return;
         if (data.schemaVersion !== 4) return;
         await this.restoreV4(data as WindowState);

@@ -451,7 +451,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
         const id = this.props.model.id;
         // Cross-window tab movement (check first — has priority)
         const dataStr = e.dataTransfer?.getData("application/persephone-tab");
-        const tabData = parseObject(dataStr);
+        const tabData = parseObject(dataStr) as { sourceWindowIndex?: number } | undefined;
         if (
             tabData &&
             tabData.sourceWindowIndex !== undefined &&
