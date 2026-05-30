@@ -52,23 +52,23 @@ export function extractHtmlResources(html: string, options?: ExtractOptions): IL
 
     // Images — set imgSrc + fallbackTarget for image viewer
     $("img[src]").each((_: number, el: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-        const src = $(el).attr("src")!;
+        const src = $(el).attr("src");
         const resolved = resolveUrl(src.trim(), options?.baseUrl);
         add("Images", src, $(el).attr("alt"), resolved, "image-view");
     });
     $("picture source[srcset]").each((_: number, el: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-        const first = $(el).attr("srcset")!.split(",")[0].trim().split(/\s+/)[0];
+        const first = $(el).attr("srcset").split(",")[0].trim().split(/\s+/)[0];
         const resolved = resolveUrl(first.trim(), options?.baseUrl);
         add("Images", first, undefined, resolved, "image-view");
     });
     $("input[type=image][src]").each((_: number, el: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-        const src = $(el).attr("src")!;
+        const src = $(el).attr("src");
         const resolved = resolveUrl(src.trim(), options?.baseUrl);
         add("Images", src, undefined, resolved, "image-view");
     });
 
     // Scripts (external)
-    $("script[src]").each((_: number, el: any) => add("Scripts", $(el).attr("src")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("script[src]").each((_: number, el: any) => add("Scripts", $(el).attr("src"))); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // Scripts (inline) — encode as data: URLs
     const MAX_INLINE_SIZE = 1024 * 1024; // 1MB limit
@@ -84,7 +84,7 @@ export function extractHtmlResources(html: string, options?: ExtractOptions): IL
     });
 
     // Stylesheets (external)
-    $("link[rel=stylesheet][href]").each((_: number, el: any) => add("Stylesheets", $(el).attr("href")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("link[rel=stylesheet][href]").each((_: number, el: any) => add("Stylesheets", $(el).attr("href"))); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // Styles (inline) — encode as data: URLs
     let inlineStyleIndex = 0;
@@ -99,22 +99,22 @@ export function extractHtmlResources(html: string, options?: ExtractOptions): IL
     });
 
     // Media
-    $("video[src]").each((_: number, el: any) => add("Media", $(el).attr("src")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
-    $("audio[src]").each((_: number, el: any) => add("Media", $(el).attr("src")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
-    $("video source[src], audio source[src]").each((_: number, el: any) => add("Media", $(el).attr("src")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("video[src]").each((_: number, el: any) => add("Media", $(el).attr("src"))); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("audio[src]").each((_: number, el: any) => add("Media", $(el).attr("src"))); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("video source[src], audio source[src]").each((_: number, el: any) => add("Media", $(el).attr("src"))); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // Fonts
-    $("link[rel=preload][as=font][href]").each((_: number, el: any) => add("Fonts", $(el).attr("href")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("link[rel=preload][as=font][href]").each((_: number, el: any) => add("Fonts", $(el).attr("href"))); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // Iframes
-    $("iframe[src]").each((_: number, el: any) => add("Iframes", $(el).attr("src")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("iframe[src]").each((_: number, el: any) => add("Iframes", $(el).attr("src"))); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // Favicons
-    $("link[rel~=icon][href]").each((_: number, el: any) => add("Favicons", $(el).attr("href")!)); // eslint-disable-line @typescript-eslint/no-explicit-any
+    $("link[rel~=icon][href]").each((_: number, el: any) => add("Favicons", $(el).attr("href"))); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // Links (external only — skip anchors and javascript:)
     $("a[href]").each((_: number, el: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-        const href = $(el).attr("href")!;
+        const href = $(el).attr("href");
         if (href.startsWith("#") || href.startsWith("javascript:")) return;
         add("Links", href, $(el).text().trim() || undefined);
     });

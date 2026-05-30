@@ -46,49 +46,49 @@ export class StyledTextBuilder {
 
     /** Set text color of the current segment. */
     color = (color: string): this => {
-        this.lastSegment.styles!.color = color;
+        this.lastSegment.styles.color = color;
         return this;
     };
 
     /** Set background color of the current segment. */
     background = (color: string): this => {
         const seg = this.lastSegment;
-        seg.styles!.backgroundColor = color;
-        seg.styles!.padding = "0 2px";
-        seg.styles!.borderRadius = 2;
+        seg.styles.backgroundColor = color;
+        seg.styles.padding = "0 2px";
+        seg.styles.borderRadius = 2;
         return this;
     };
 
     /** Add a border to the current segment. */
     border = (color: string): this => {
         const seg = this.lastSegment;
-        seg.styles!.border = `1px solid ${color}`;
-        seg.styles!.borderRadius = 2;
-        seg.styles!.padding = "0 2px";
+        seg.styles.border = `1px solid ${color}`;
+        seg.styles.borderRadius = 2;
+        seg.styles.padding = "0 2px";
         return this;
     };
 
     /** Set font size of the current segment. */
     fontSize = (size: string | number): this => {
-        this.lastSegment.styles!.fontSize = size;
+        this.lastSegment.styles.fontSize = size;
         return this;
     };
 
     /** Underline the current segment. */
     underline = (): this => {
-        this.lastSegment.styles!.textDecoration = "underline";
+        this.lastSegment.styles.textDecoration = "underline";
         return this;
     };
 
     /** Italicize the current segment. */
     italic = (): this => {
-        this.lastSegment.styles!.fontStyle = "italic";
+        this.lastSegment.styles.fontStyle = "italic";
         return this;
     };
 
     /** Bold the current segment. */
     bold = (): this => {
-        this.lastSegment.styles!.fontWeight = "bold";
+        this.lastSegment.styles.fontWeight = "bold";
         return this;
     };
 

@@ -54,7 +54,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: Li
     }, []);
 
     const handleSelect = useCallback((link: ILink) => {
-        model.selectLink(link.id!);
+        model.selectLink(link.id);
     }, [model]);
 
     const handleOpen = useCallback((link: ILink) => {
@@ -65,15 +65,15 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: Li
     }, [model]);
 
     const handleEdit = useCallback((link: ILink) => {
-        model.showLinkDialog(link.id!);
+        model.showLinkDialog(link.id);
     }, [model]);
 
     const handleDelete = useCallback((link: ILink, skipConfirm: boolean) => {
-        model.deleteLink(link.id!, skipConfirm);
+        model.deleteLink(link.id, skipConfirm);
     }, [model]);
 
     const handleContextMenu = useCallback((e: React.MouseEvent, link: ILink) => {
-        model.selectLink(link.id!);
+        model.selectLink(link.id);
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "link-item");
         ctxEvent.target = link;
 
@@ -86,7 +86,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: Li
             {
                 label: "Edit",
                 icon: <RenameIcon />,
-                onClick: () => model.showLinkDialog(link.id!),
+                onClick: () => model.showLinkDialog(link.id),
                 startGroup: customItems?.length ? true : undefined,
             },
         );
@@ -117,18 +117,18 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: Li
                 },
             );
         }
-        const isPinned = model.isLinkPinned(link.id!);
+        const isPinned = model.isLinkPinned(link.id);
         ctxEvent.items.push(
             {
                 label: isPinned ? "Unpin" : "Pin",
                 icon: isPinned ? <PinFilledIcon /> : <PinIcon />,
-                onClick: () => model.togglePinLink(link.id!),
+                onClick: () => model.togglePinLink(link.id),
                 startGroup: true,
             },
             {
                 label: "Delete",
                 icon: <DeleteIcon />,
-                onClick: () => model.deleteLink(link.id!),
+                onClick: () => model.deleteLink(link.id),
             },
         );
 
@@ -139,7 +139,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: Li
     }, [model]);
 
     const getAdditionalIcon = useCallback((link: ILink) => {
-        return pinnedLinkIds.has(link.id!) ? <PinFilledIcon width={16} height={16} /> : null;
+        return pinnedLinkIds.has(link.id) ? <PinFilledIcon width={16} height={16} /> : null;
     }, [pinnedLinkIds]);
 
     return (
