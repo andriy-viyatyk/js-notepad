@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { ipcRenderer } = require("electron");
+import type { IpcRendererEvent } from "electron";
 import { scriptRunner } from "../scripting/ScriptRunner";
 import { pagesModel } from "./pages";
 import { editorRegistry } from "../editors/base/editorRegistry";
@@ -8,17 +9,58 @@ import { app } from "./app";
 import { LogViewEditor } from "../editors/log-view";
 import type { LogEntry, McpRequestEntry } from "../editors/log-view/logTypes";
 import { csvToRecords } from "../core/utils/csv-utils";
+import type { EditorView } from "./types/common";
 
 // ── Types ───────────────────────────────────────────────────────────
 
 interface McpResponse {
-    result?: any;
-    error?: { code: number; message: string; data?: any };
+    result?: unknown;
+    error?: { code: number; message: string; data?: unknown };
+}
+
+/** JSON-RPC params: object-or-null shape per spec. Handlers narrow as needed. */
+type McpParams = Record<string, unknown> | null | undefined;
+
+interface McpPageInfo {
+    id: string;
+    title: string;
+    editor?: string;
+    language?: string;
+    filePath?: string;
+    modified: boolean;
+    pinned: boolean;
+    active: boolean;
+}
+
+interface McpActivePage {
+    id: string;
+    title: string;
+    editor?: string;
+    language?: string;
+    filePath?: string;
+    modified: boolean;
+    content: string;
+}
+
+interface McpAppInfo {
+    version: string;
+    pageCount: number;
+    activePageId: string | null;
+}
+
+// ── Param narrowing helpers ─────────────────────────────────────────
+
+function asString(v: unknown): string | undefined {
+    return typeof v === "string" ? v : undefined;
+}
+
+function asBoolean(v: unknown): boolean | undefined {
+    return typeof v === "boolean" ? v : undefined;
 }
 
 // ── Command Dispatcher ──────────────────────────────────────────────
 
-async function handleCommand(method: string, params: any): Promise<McpResponse> {
+async function handleCommand(method: string, params: McpParams): Promise<McpResponse> {
     switch (method) {
         case "execute_script":
             return executeScript(params);
@@ -50,14 +92,14 @@ async function handleCommand(method: string, params: any): Promise<McpResponse> 
 
 // ── Command Implementations ─────────────────────────────────────────
 
-async function executeScript(params: any): Promise<McpResponse> {
-    const script = params?.script;
-    if (!script || typeof script !== "string") {
+async function executeScript(params: McpParams): Promise<McpResponse> {
+    const script = asString(params?.script);
+    if (!script) {
         return { error: { code: -32602, message: "Missing or invalid 'script' parameter" } };
     }
 
-    const pageId = params?.pageId;
-    const language = params?.language;
+    const pageId = asString(params?.pageId);
+    const language = asString(params?.language);
     const pageModel = pageId ? pagesModel.findPage(pageId) : pagesModel.activePage;
 
     // scriptRunner expects a legacy EditorModel; unwrap adapter or pass undefined.
@@ -75,7 +117,7 @@ async function executeScript(params: any): Promise<McpResponse> {
     };
 }
 
-function getPages(): any[] {
+function getPages(): McpPageInfo[] {
     const pages = pagesModel.state.get().pages;
     return pages.map((p) => {
         const editorV4 = p.mainEditorInstance;
@@ -96,8 +138,8 @@ function getPages(): any[] {
     });
 }
 
-function getPageContent(params: any): McpResponse {
-    const pageId = params?.pageId;
+function getPageContent(params: McpParams): McpResponse {
+    const pageId = asString(params?.pageId);
     if (!pageId) {
         return { error: { code: -32602, message: "Missing 'pageId' parameter" } };
     }
@@ -119,7 +161,7 @@ function getPageContent(params: any): McpResponse {
     };
 }
 
-function getActivePage(): any {
+function getActivePage(): McpActivePage | null {
     const page = pagesModel.activePage;
     if (!page) return null;
 
@@ -141,11 +183,11 @@ function getActivePage(): any {
     };
 }
 
-function createPage(params: any): McpResponse {
-    const content = params?.content ?? "";
-    const language = params?.language ?? "plaintext";
-    const editor = params?.editor ?? "monaco";
-    const title = params?.title ?? "Untitled";
+function createPage(params: McpParams): McpResponse {
+    const content = asString(params?.content) ?? "";
+    const language = asString(params?.language) ?? "plaintext";
+    const editor = asString(params?.editor) ?? "monaco";
+    const title = asString(params?.title) ?? "Untitled";
 
     const editorDef = editorRegistry.getById(editor);
     if (!editorDef) {
@@ -178,7 +220,9 @@ function createPage(params: any): McpResponse {
         };
     }
 
-    const page = pagesModel.addEditorPage(editor, language, title, content || undefined);
+    // Editor string was validated against the registry above, so the cast to
+    // the EditorView union is safe at this point.
+    const page = pagesModel.addEditorPage(editor as EditorView, language, title, content || undefined);
 
     const editorV4 = page.mainEditorInstance;
     const editorState = page.mainEditor?.state.get() as { language?: string } | undefined;
@@ -193,14 +237,14 @@ function createPage(params: any): McpResponse {
     };
 }
 
-function setPageContent(params: any): McpResponse {
-    const pageId = params?.pageId;
+function setPageContent(params: McpParams): McpResponse {
+    const pageId = asString(params?.pageId);
     if (!pageId) {
         return { error: { code: -32602, message: "Missing 'pageId' parameter" } };
     }
 
-    const content = params?.content;
-    if (content == null || typeof content !== "string") {
+    const content = asString(params?.content);
+    if (content == null) {
         return { error: { code: -32602, message: "Missing or invalid 'content' parameter" } };
     }
 
@@ -243,7 +287,7 @@ const requestHistory: McpRequestEntry[] = [];
 
 function logIncomingRequest(
     method: string,
-    params: any,
+    params: McpParams,
     response: McpResponse,
     durationMs: number,
 ): void {
@@ -286,7 +330,7 @@ export async function showMcpRequestLog(): Promise<void> {
 
 // ── ui_push Handler ────────────────────────────────────────────────
 
-async function handleUiPush(params: any): Promise<McpResponse> {
+async function handleUiPush(params: McpParams): Promise<McpResponse> {
     const entries = params?.entries;
     if (!Array.isArray(entries)) {
         return { error: { code: -32602, message: "Missing or invalid 'entries' parameter" } };
@@ -370,7 +414,7 @@ async function handleUiPush(params: any): Promise<McpResponse> {
                 return { error: { code: -32602, message: `output.grid 'content' must be a string (JSON array or CSV text), not ${typeof fields.content}. Stringify your data: content: JSON.stringify(data). Example: { type: "output.grid", content: "[{\\"name\\":\\"A\\",\\"value\\":1}]", contentType: "json", title: "My Table" }` } };
             }
             const contentType = fields.contentType ?? "json";
-            let data: any[];
+            let data: unknown[];
             if (contentType === "csv") {
                 data = csvToRecords(fields.content, true, ",");
             } else {
@@ -420,7 +464,7 @@ async function handleUiPush(params: any): Promise<McpResponse> {
 
 // ── App Info ───────────────────────────────────────────────────────
 
-function getAppInfo(): any {
+function getAppInfo(): McpAppInfo {
     const pages = pagesModel.state.get().pages;
     return {
         version: app.version,
@@ -431,14 +475,14 @@ function getAppInfo(): any {
 
 // ── Open URL ────────────────────────────────────────────────────────
 
-async function openUrl(params: any): Promise<McpResponse> {
-    const url = params?.url;
-    if (!url || typeof url !== "string") {
+async function openUrl(params: McpParams): Promise<McpResponse> {
+    const url = asString(params?.url);
+    if (!url) {
         return { error: { code: -32602, message: "Missing or invalid 'url' parameter" } };
     }
     await pagesModel.openUrlInBrowserTab(url, {
-        profileName: params?.profileName,
-        incognito: params?.incognito,
+        profileName: asString(params?.profileName),
+        incognito: asBoolean(params?.incognito),
     });
     return { result: { opened: url } };
 }
@@ -446,13 +490,18 @@ async function openUrl(params: any): Promise<McpResponse> {
 // ── Initialization ──────────────────────────────────────────────────
 
 export function initMcpHandler(): void {
-    ipcRenderer.on(MCP_EXECUTE, async (_event: any, requestId: string, method: string, params: any) => {
+    ipcRenderer.on(MCP_EXECUTE, async (
+        _event: IpcRendererEvent,
+        requestId: string,
+        method: string,
+        params: McpParams,
+    ) => {
         const startTime = Date.now();
         let response: McpResponse;
         try {
             response = await handleCommand(method, params);
         } catch (err) {
-            response = { error: { code: -32603, message: err.message || "Internal error" } };
+            response = { error: { code: -32603, message: (err as Error).message || "Internal error" } };
         }
         logIncomingRequest(method, params, response, Date.now() - startTime);
         ipcRenderer.send(MCP_RESULT, requestId, response);

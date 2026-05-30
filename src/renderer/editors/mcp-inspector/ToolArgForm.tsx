@@ -16,7 +16,15 @@ function isCodeLikeField(name: string): boolean {
     return CODE_FIELD_PATTERNS.test(name);
 }
 
-function getSchemaType(schema: any): string {
+/** Subset of JSON Schema properties actually consumed by this form. */
+interface JsonSchemaProperty {
+    type?: string;
+    enum?: string[];
+    description?: string;
+    default?: unknown;
+}
+
+function getSchemaType(schema: JsonSchemaProperty | undefined): string {
     if (!schema) return "string";
     if (schema.type) return schema.type;
     if (schema.enum) return "enum";
@@ -48,7 +56,9 @@ export function ToolArgForm({ schema, args, onArgChange, disabled }: ToolArgForm
                 <ArgField
                     key={name}
                     name={name}
-                    propSchema={propSchema as any}
+                    // properties is Record<string, unknown>; the JSON schema
+                    // shape is asserted here at the form boundary.
+                    propSchema={propSchema as JsonSchemaProperty}
                     required={requiredFields.has(name)}
                     value={args[name] || ""}
                     onChange={onArgChange}
@@ -61,7 +71,7 @@ export function ToolArgForm({ schema, args, onArgChange, disabled }: ToolArgForm
 
 interface ArgFieldProps {
     name: string;
-    propSchema: any;
+    propSchema: JsonSchemaProperty;
     required: boolean;
     value: string;
     onChange: (name: string, value: string) => void;

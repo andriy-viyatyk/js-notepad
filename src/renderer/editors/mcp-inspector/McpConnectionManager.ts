@@ -2,6 +2,11 @@
 // McpConnectionManager — wraps @modelcontextprotocol/sdk Client
 // ============================================================================
 
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import type { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import type { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+
 export type McpTransportType = "http" | "stdio";
 
 export interface McpConnectionConfig {
@@ -34,9 +39,11 @@ export interface McpServerInfo {
 // Lazy-loaded SDK modules via require() to bypass Vite bundling.
 // Electron's nodeIntegration:true provides real require() — Node.js resolves
 // the SDK from node_modules at runtime, so node:process and other builtins work.
-let ClientClass: any;
-let StreamableHTTPClientTransportClass: any;
-let StdioClientTransportClass: any;
+// Type-only imports above let us preserve the SDK's actual types on what is a
+// runtime-loaded module.
+let ClientClass: typeof Client;
+let StreamableHTTPClientTransportClass: typeof StreamableHTTPClientTransport;
+let StdioClientTransportClass: typeof StdioClientTransport;
 
 function loadSdk(): void {
     if (ClientClass) return;
@@ -47,10 +54,8 @@ function loadSdk(): void {
     /* eslint-enable @typescript-eslint/no-require-imports */
 }
 
-type Transport = { close(): Promise<void>; onclose?: () => void; onerror?: (err: Error) => void };
-
 export class McpConnectionManager {
-    private client: InstanceType<typeof ClientClass> | null = null;
+    private client: Client | null = null;
     private transport: Transport | null = null;
     private _status: McpConnectionStatus = "disconnected";
     private _serverInfo: McpServerInfo | null = null;
@@ -65,7 +70,7 @@ export class McpConnectionManager {
     get error(): string { return this._error; }
 
     /** Returns the connected MCP Client instance, or null if disconnected. */
-    getClient(): InstanceType<typeof ClientClass> | null {
+    getClient(): Client | null {
         return this._status === "connected" ? this.client : null;
     }
 
@@ -141,7 +146,7 @@ export class McpConnectionManager {
 
             this.setStatus("connected");
         } catch (err) {
-            this._error = err?.message || String(err);
+            this._error = (err as Error)?.message || String(err);
             this._serverInfo = null;
             this.client = null;
             this.transport = null;

@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { Editor } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { McpToolResult } from "./McpInspectorEditorModel";
 
-const EDITOR_OPTIONS: any = {
+const EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
     automaticLayout: true,
     readOnly: true,
     domReadOnly: true,

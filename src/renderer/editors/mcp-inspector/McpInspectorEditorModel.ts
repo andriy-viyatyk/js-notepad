@@ -356,7 +356,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         try {
             const result = await client.listTools();
             this.logRequest("tools/list", null, result, null, Date.now() - start);
-            const tools: McpToolInfo[] = (result.tools || []).map((t: any) => ({
+            const tools: McpToolInfo[] = (result.tools || []).map((t) => ({
                 name: t.name,
                 description: t.description || "",
                 inputSchema: t.inputSchema as McpToolInfo["inputSchema"],
@@ -401,12 +401,15 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         const args: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(ts.toolArgs)) {
             if (!value && value !== "false") continue;
-            const propSchema = tool.inputSchema.properties?.[key] as any;
-            if (propSchema?.type === "number" || propSchema?.type === "integer") {
+            const propSchema = tool.inputSchema.properties?.[key];
+            const propType = (propSchema && typeof propSchema === "object" && "type" in propSchema)
+                ? (propSchema as { type?: unknown }).type
+                : undefined;
+            if (propType === "number" || propType === "integer") {
                 args[key] = Number(value);
-            } else if (propSchema?.type === "boolean") {
+            } else if (propType === "boolean") {
                 args[key] = value === "true";
-            } else if (propSchema?.type === "object" || propSchema?.type === "array") {
+            } else if (propType === "object" || propType === "array") {
                 try { args[key] = JSON.parse(value); } catch { args[key] = value; }
             } else {
                 args[key] = value;
@@ -423,8 +426,8 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
             this.toolsState.update((s) => {
                 s.toolCallLoading = false;
                 s.toolResult = {
-                    content: (result as any).content || [],
-                    isError: (result as any).isError,
+                    content: (result.content as McpToolResultContent[]) || [],
+                    isError: result.isError as boolean | undefined,
                     durationMs: duration,
                 };
             });
@@ -450,18 +453,20 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         if (!client) return;
         const start = Date.now();
         try {
+            // `never[]` fallbacks are assignable to the SDK's typed
+            // `Resource[]` / `ResourceTemplate[]` arrays without `any`.
             const [resResult, tmplResult] = await Promise.all([
-                client.listResources().catch(() => ({ resources: [] as any[] })),
-                client.listResourceTemplates().catch(() => ({ resourceTemplates: [] as any[] })),
+                client.listResources().catch(() => ({ resources: [] as never[] })),
+                client.listResourceTemplates().catch(() => ({ resourceTemplates: [] as never[] })),
             ]);
             this.logRequest("resources/list", null, { resources: resResult, templates: tmplResult }, null, Date.now() - start);
-            const resources: McpResourceInfo[] = (resResult.resources || []).map((r: any) => ({
+            const resources: McpResourceInfo[] = (resResult.resources || []).map((r) => ({
                 uri: r.uri,
                 name: r.name || r.uri,
                 description: r.description || "",
                 mimeType: r.mimeType || "",
             }));
-            const templates: McpResourceTemplateInfo[] = (tmplResult.resourceTemplates || []).map((t: any) => ({
+            const templates: McpResourceTemplateInfo[] = (tmplResult.resourceTemplates || []).map((t) => ({
                 uriTemplate: t.uriTemplate,
                 name: t.name || t.uriTemplate,
                 description: t.description || "",
@@ -530,15 +535,15 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         try {
             const result = await client.readResource(readParams);
             this.logRequest("resources/read", readParams, result, null, Date.now() - start);
-            const first = result.contents?.[0] as any;
+            const first = result.contents?.[0];
             if (first) {
                 this.resourcesState.update((s) => {
                     s.templateReadLoading = false;
                     s.templateReadContent = {
                         uri: first.uri || expandedUri,
                         mimeType: first.mimeType || "",
-                        text: first.text,
-                        blob: first.blob,
+                        text: "text" in first ? first.text : undefined,
+                        blob: "blob" in first ? first.blob : undefined,
                     };
                 });
             } else {
@@ -569,15 +574,15 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         try {
             const result = await client.readResource(readParams);
             this.logRequest("resources/read", readParams, result, null, Date.now() - start);
-            const first = result.contents?.[0] as any;
+            const first = result.contents?.[0];
             if (first) {
                 this.resourcesState.update((s) => {
                     s.readLoading = false;
                     s.readContent = {
                         uri: first.uri || rs.selectedUri,
                         mimeType: first.mimeType || "",
-                        text: first.text,
-                        blob: first.blob,
+                        text: "text" in first ? first.text : undefined,
+                        blob: "blob" in first ? first.blob : undefined,
                     };
                 });
             } else {
@@ -605,10 +610,10 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         try {
             const result = await client.listPrompts();
             this.logRequest("prompts/list", null, result, null, Date.now() - start);
-            const prompts: McpPromptInfo[] = (result.prompts || []).map((p: any) => ({
+            const prompts: McpPromptInfo[] = (result.prompts || []).map((p) => ({
                 name: p.name,
                 description: p.description || "",
-                arguments: (p.arguments || []).map((a: any) => ({
+                arguments: (p.arguments || []).map((a) => ({
                     name: a.name,
                     description: a.description || "",
                     required: !!a.required,
@@ -662,7 +667,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
         try {
             const result = await client.getPrompt(getParams);
             this.logRequest("prompts/get", getParams, result, null, Date.now() - start);
-            const messages: McpPromptMessage[] = (result.messages || []).map((m: any) => {
+            const messages: McpPromptMessage[] = (result.messages || []).map((m) => {
                 const contentBlock = m.content;
                 // content can be a single block or array
                 const contentArray: McpPromptMessageContent[] = Array.isArray(contentBlock)
@@ -685,7 +690,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
 
     // -- History --------------------------------------------------------------
 
-    private logRequest(method: string, params: any, result: any, error: string | null, durationMs: number): void {
+    private logRequest(method: string, params: unknown, result: unknown, error: string | null, durationMs: number): void {
         this._history.push({
             type: "output.mcp-request",
             id: crypto.randomUUID(),
@@ -791,19 +796,25 @@ export function expandUriTemplate(uriTemplate: string, args: Record<string, stri
     return uriTemplate.replace(/\{([^}]+)\}/g, (_, name) => args[name] ?? "");
 }
 
-function normalizePromptContent(block: any): McpPromptMessageContent {
-    if (!block || typeof block === "string") return { type: "text", text: block || "" };
-    if (block.type === "text") return { type: "text", text: block.text || "" };
-    if (block.type === "image") return { type: "image", data: block.data, mimeType: block.mimeType };
-    if (block.type === "resource") return {
-        type: "resource",
-        resource: {
-            uri: block.resource?.uri || "",
-            mimeType: block.resource?.mimeType,
-            text: block.resource?.text,
-            blob: block.resource?.blob,
-        },
-    };
-    if (block.type === "resource_link") return { type: "resource_link", uri: block.uri, name: block.name };
+function normalizePromptContent(block: unknown): McpPromptMessageContent {
+    if (!block) return { type: "text", text: "" };
+    if (typeof block === "string") return { type: "text", text: block };
+    if (typeof block !== "object") return { type: "text", text: String(block) };
+    const b = block as Record<string, unknown>;
+    if (b.type === "text") return { type: "text", text: String(b.text || "") };
+    if (b.type === "image") return { type: "image", data: String(b.data), mimeType: String(b.mimeType) };
+    if (b.type === "resource") {
+        const r = (b.resource && typeof b.resource === "object" ? b.resource : {}) as Record<string, unknown>;
+        return {
+            type: "resource",
+            resource: {
+                uri: String(r.uri || ""),
+                mimeType: r.mimeType as string | undefined,
+                text: r.text as string | undefined,
+                blob: r.blob as string | undefined,
+            },
+        };
+    }
+    if (b.type === "resource_link") return { type: "resource_link", uri: String(b.uri), name: String(b.name) };
     return { type: "text", text: JSON.stringify(block) };
 }
