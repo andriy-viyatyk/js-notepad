@@ -17,7 +17,7 @@ let monacoInstance: Monaco | null = null;
 
 declare global {
     interface Window {
-        require: any;
+        require: NodeRequire;
     }
 }
 

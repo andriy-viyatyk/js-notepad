@@ -131,16 +131,16 @@ class Settings implements ISettings {
     }
 
     get<K extends AppSettingsKey>(key: K): AppSettingsState["settings"][K];
-    get<T = any>(key: string): T;
+    get<T = unknown>(key: string): T;
     get(key: string) {
         return this.state.get().settings[key as AppSettingsKey];
     }
 
     set<K extends AppSettingsKey>(key: K, value: AppSettingsState["settings"][K]): void;
-    set<T = any>(key: string, value: T): void;
-    set(key: string, value: any): void {
+    set<T = unknown>(key: string, value: T): void;
+    set(key: string, value: unknown): void {
         this.state.update((s) => {
-            (s.settings as any)[key] = value;
+            (s.settings as Record<string, unknown>)[key] = value;
         });
         this._onChanged.send({ key, value });
         this.saveSettingsDebounced();
@@ -159,7 +159,7 @@ class Settings implements ISettings {
     // Internal
     // -------------------------------------------------------------------------
 
-    private readonly _onChanged = new Subscription<{ key: string; value: any }>();
+    private readonly _onChanged = new Subscription<{ key: string; value: unknown }>();
 
     private init = async () => {
         await fs.prepareDataFile(settingsFileName, "{}");

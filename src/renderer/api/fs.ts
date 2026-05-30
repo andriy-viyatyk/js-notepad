@@ -5,6 +5,7 @@ import jschardet from "jschardet";
 // eslint-disable-next-line import/no-named-as-default -- iconv-lite is CJS; `* as iconv` breaks decode/encode usage downstream
 import iconv from "iconv-lite";
 import { api } from "../../ipc/renderer/api";
+import type { CommonFolder } from "../../ipc/api-param-types";
 import type { IFileSystem, ITextFile, IFileStat, IDirEntry } from "./types/fs";
 import { isArchivePath, parseArchivePath, isAsarFile, isAsarPath } from "../core/utils/file-path";
 import { archiveService } from "./archive-service";
@@ -405,8 +406,11 @@ class FileSystem implements IFileSystem {
         if (!isAsarFile(dirPath) && !isAsarPath(dirPath) && !this.fileExistsSync(dirPath)) {
             return [];
         }
-        const entries: any[] = nodefs.readdirSync(dirPath, { withFileTypes: true });
-        return entries.map((dirent: any) => ({
+        // `nodefs` is untyped (loaded via require to bypass Electron's fs-asar patch);
+        // annotate the result so dirent has a real type.
+        type Dirent = import("fs").Dirent;
+        const entries = nodefs.readdirSync(dirPath, { withFileTypes: true }) as Dirent[];
+        return entries.map((dirent) => ({
             name: dirent.name,
             // Electron patches fs to treat .asar files as directories — override back to file
             isDirectory: dirent.isDirectory() && !dirent.name.endsWith(".asar"),
@@ -437,7 +441,7 @@ class FileSystem implements IFileSystem {
     }
 
     async commonFolder(name: string): Promise<string> {
-        return api.getCommonFolder(name as any);
+        return api.getCommonFolder(name as CommonFolder);
     }
 
     // ── IFileSystem — Dialogs ─────────────────────────────────────────

@@ -169,7 +169,9 @@ function doFetch(
             } else if (contentEncoding === "br") {
                 responseStream = res.pipe(zlib.createBrotliDecompress());
             } else if (contentEncoding === "zstd") {
-                responseStream = res.pipe((zlib as any).createZstdDecompress());
+                // createZstdDecompress was added in Node 23; not yet in @types/node.
+                const z = zlib as typeof zlib & { createZstdDecompress(): NodeJS.ReadWriteStream };
+                responseStream = res.pipe(z.createZstdDecompress());
             }
 
             if (responseStream !== res) {
@@ -219,7 +221,7 @@ function doFetch(
                 cancel() {
                     isCancelled = true;
                     if (responseStream !== res) {
-                        (responseStream as any).destroy?.();
+                        (responseStream as NodeJS.ReadableStream & { destroy?(): void }).destroy?.();
                     }
                     res.destroy();
                     responseStream.removeAllListeners();

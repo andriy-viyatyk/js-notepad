@@ -4,13 +4,13 @@
 // second parameter is a function that checks if result successfull. Should return true to memorize the result.
 // if function is async then result of function is a promise and check function need to return Promise<boolean>.
 
-export const memorize = <F extends (...args: any) => any>(
+export const memorize = <F extends (...args: unknown[]) => unknown>(
     f: F,
     memorizeResult?: (result: ReturnType<F>) => boolean | Promise<boolean>
 ) => {
-    const resultMap = new Map<string, any | undefined>();
+    const resultMap = new Map<string, unknown>();
 
-    const func = ((...args: any[]) => {
+    const func = ((...args: unknown[]) => {
         const newArgs = JSON.stringify(args);
         if (resultMap.has(newArgs)) {
             return resultMap.get(newArgs);
@@ -18,7 +18,7 @@ export const memorize = <F extends (...args: any) => any>(
 
         resultMap.delete(newArgs);
         const newResult = f(...args);
-        const canMemorize = !memorizeResult || memorizeResult(newResult);
+        const canMemorize = !memorizeResult || memorizeResult(newResult as ReturnType<F>);
         if (canMemorize) {
             if (canMemorize instanceof Promise) {
                 canMemorize.then((can) => {
@@ -31,7 +31,7 @@ export const memorize = <F extends (...args: any) => any>(
             }
         }
         return newResult;
-    }) as any as F;
+    }) as unknown as F;
 
     Object.defineProperty(func, 'length', {get: () => f.length})
 

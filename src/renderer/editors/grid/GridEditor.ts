@@ -517,14 +517,16 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
         switch (this.format) {
             case "csv": {
                 const { csvDelimiter, csvWithColumns } = this.state.get();
-                let rows = csvToRecords(
+                let rows: string[][] | Record<string, string>[] = csvToRecords(
                     content,
                     csvWithColumns,
                     csvDelimiter,
                     (e) => (err = e),
                 );
                 if (Array.isArray(rows) && !csvWithColumns) {
-                    rows = rows.map((r) => ({ ...r }));
+                    // Spread `string[]` → `{ "0": "a", "1": "b", ... }` so the grid
+                    // can index cells by column name (its numeric ordinal).
+                    rows = (rows as string[][]).map((r) => ({ ...r })) as unknown as Record<string, string>[];
                 }
                 res = rows;
                 break;

@@ -10,6 +10,7 @@ import type { IDownloads } from "./types/downloads";
 import type { IMenuFolders } from "./types/menu-folders";
 import type { PagesModel } from "./pages/PagesModel";
 import { AppEvents } from "./events/AppEvents";
+import type { IFetchOptions } from "./types/app";
 
 // Note: IApp (.d.ts) is the script-facing interface for Monaco IntelliSense.
 // App class has additional internal methods (init, initServices, initPages, initEvents)
@@ -84,7 +85,7 @@ class App {
         return this._events;
     }
 
-    fetch = async (url: string, options?: any): Promise<Response> => {
+    fetch = async (url: string, options?: IFetchOptions): Promise<Response> => {
         const { nodeFetch } = await import("./node-fetch");
         return nodeFetch(url, options);
     };

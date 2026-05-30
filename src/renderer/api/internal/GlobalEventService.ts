@@ -177,6 +177,6 @@ export class GlobalEventService {
     };
 
     private handleBeforeUnload = () => {
-        windowClosing.send(undefined as any);
+        windowClosing.send();
     };
 }

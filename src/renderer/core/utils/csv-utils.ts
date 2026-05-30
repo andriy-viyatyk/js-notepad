@@ -1,20 +1,26 @@
 import { stringify } from "csv-stringify/browser/esm/sync";
 import { parse } from "csv-parse/browser/esm/sync";
 
-export function recordsToCsv(records: readonly any[], columns: Array<string | undefined>, options = {}): string {
+export function recordsToCsv(records: readonly unknown[], columns: Array<string | undefined>, options = {}): string {
     return stringify([...records],
         {
             header: true,
             columns: columns.map(col => col === undefined ? "undefined" : col),
             cast: {
-                boolean: (value: any) => ({value: value ? 'true': 'false', quote: false})
+                boolean: (value: boolean) => ({value: value ? 'true': 'false', quote: false})
             },
             ...options,
         }
     );
 }
 
-export function csvToRecords(csv: string, withColumns = false, delimiter = '\t', onError?: (err: any) => void): Array<any> {
+// csv-parse returns string[][] when `columns: false` (default) and
+// Record<string, string>[] when `columns: true`. Overloads keep callers typed
+// without an `any` return.
+export function csvToRecords(csv: string, withColumns: true, delimiter?: string, onError?: (err: unknown) => void): Record<string, string>[];
+export function csvToRecords(csv: string, withColumns?: false, delimiter?: string, onError?: (err: unknown) => void): string[][];
+export function csvToRecords(csv: string, withColumns?: boolean, delimiter?: string, onError?: (err: unknown) => void): string[][] | Record<string, string>[];
+export function csvToRecords(csv: string, withColumns = false, delimiter = '\t', onError?: (err: unknown) => void): string[][] | Record<string, string>[] {
     try{
         if (!csv?.trim()) {
             return [];

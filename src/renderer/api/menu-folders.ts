@@ -43,18 +43,19 @@ class MenuFoldersModel extends TModel<MenuFoldersState> implements IMenuFolders 
         this.loadState();
     };
 
-    private isStateValid = (state: any): state is MenuFoldersState => {
-        return (
-            state &&
-            Array.isArray(state.folders) &&
-            state.folders.every(
-                (folder: any) => typeof folder.name === "string" &&
-                    (folder.path === undefined || typeof folder.path === "string") &&
-                    (folder.files === undefined ||
-                        (Array.isArray(folder.files) &&
-                            folder.files.every((file: any) => typeof file === "string")))
-            )
-        );
+    private isStateValid = (state: unknown): state is MenuFoldersState => {
+        if (!state || typeof state !== "object") return false;
+        const s = state as { folders?: unknown };
+        if (!Array.isArray(s.folders)) return false;
+        return s.folders.every((folder: unknown) => {
+            if (!folder || typeof folder !== "object") return false;
+            const f = folder as { name?: unknown; path?: unknown; files?: unknown };
+            return typeof f.name === "string" &&
+                (f.path === undefined || typeof f.path === "string") &&
+                (f.files === undefined ||
+                    (Array.isArray(f.files) &&
+                        f.files.every((file: unknown) => typeof file === "string")));
+        });
     };
 
     private loadState = async () => {

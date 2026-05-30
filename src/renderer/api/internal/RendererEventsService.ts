@@ -6,6 +6,7 @@ import { api } from "../../../ipc/renderer/api";
 import { ui } from "../ui";
 import { UpdateCheckResult } from "../../../ipc/api-param-types";
 import { EventEndpoint } from "../../../ipc/api-types";
+import type { PageDescriptor } from "../../../shared/types";
 
 /**
  * Renderer IPC events service.
@@ -56,7 +57,7 @@ export class RendererEventsService {
         }
     };
 
-    private handleMovePageIn = async (data: any) => {
+    private handleMovePageIn = async (data: { page: PageDescriptor; targetPageId: string | undefined } | undefined) => {
         try {
             await pagesModel.movePageIn(data);
         } catch (err) {
