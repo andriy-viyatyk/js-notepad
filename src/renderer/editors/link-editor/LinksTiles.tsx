@@ -323,6 +323,7 @@ export function LinksTiles({
                 </div>
             );
         },
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- faviconVersion bumps on favicon load to force re-render of tiles (no direct read in body)
         [links, counts.colCount, dims, selectedId, getId, getAdditionalIcon,
          dragSourceId, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, faviconVersion],
     );

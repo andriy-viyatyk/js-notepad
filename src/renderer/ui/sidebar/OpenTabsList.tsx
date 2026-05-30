@@ -34,6 +34,7 @@ interface OpenTabsListProps {
 }
 
 export function OpenTabsList(props: OpenTabsListProps) {
+    const { onClose, open } = props;
     const [allWindowsPages, setAllWindowsPages] = useState<WindowPages[]>([]);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const state = pagesModel.state.use();
@@ -49,15 +50,13 @@ export function OpenTabsList(props: OpenTabsListProps) {
     }, []);
 
     useEffect(() => {
-        if (props.open) {
+        if (open) {
             loadWindowPages();
         }
-    }, [props.open]);
+    }, [open]);
 
-    const activePageId = useMemo(
-        () => pagesModel.activePage?.id,
-        [state]
-    );
+    // activePage is a getter derived from `state`; re-evaluates on every render of this component (which is itself driven by state.use() above).
+    const activePageId = pagesModel.activePage?.id;
 
     const items = useMemo<ListItem[]>(() => {
         const currentPages = state.pages.map((page) => ({
@@ -116,10 +115,10 @@ export function OpenTabsList(props: OpenTabsListProps) {
                 pagesModel.showPage(item.page?.id);
             } else {
                 api.showWindowPage(item.windowIndex, item.page.id);
-                props.onClose?.();
+                onClose?.();
             }
         }
-    }, [props.onClose, currentWindowIndex]);
+    }, [onClose, currentWindowIndex]);
 
     const isSelected = useCallback(
         (item: ListItem) => item.page?.id === activePageId,

@@ -19,7 +19,7 @@ interface RecentFileListProps {
 }
 
 export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
-    function RecentFileList(props, ref) {
+    function RecentFileList({ onClose }, ref) {
         useEffect(() => {
             recent.load();
         }, []);
@@ -37,9 +37,9 @@ export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
         const onItemClick = useCallback(
             (item: FileListItem) => {
                 app.events.openRawLink.sendAsync(createLinkData(item.filePath));
-                props.onClose?.();
+                onClose?.();
             },
-            [props.onClose]
+            [onClose]
         );
 
         const getItemContextMenu = useCallback((item: FileListItem) => {
@@ -49,7 +49,7 @@ export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
                     icon: <OpenFileIcon />,
                     onClick: () => {
                         app.events.openRawLink.sendAsync(createLinkData(item.filePath));
-                        props.onClose?.();
+                        onClose?.();
                     },
                 },
                 {
@@ -72,7 +72,7 @@ export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
                 }
             ];
             return menuItems;
-        }, []);
+        }, [onClose]);
 
         return (
             <FileList

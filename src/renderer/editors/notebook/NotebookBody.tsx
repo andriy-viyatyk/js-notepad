@@ -112,6 +112,7 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
 
     const categoryTreeItems = useMemo<CategoryItem[]>(() => {
         return buildCategoryTreeItems(state.categories, editor.getCategorySize);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- state.categoriesSize is read indirectly via editor.getCategorySize; needed to rebuild tree when sizes change
     }, [state.categories, state.categoriesSize, editor]);
 
     const isCategorySelected = useCallback(

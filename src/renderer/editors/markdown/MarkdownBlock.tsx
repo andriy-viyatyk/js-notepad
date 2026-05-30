@@ -420,6 +420,7 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
 
         const components = useMemo(
             () => getComponents(filePath || "", mermaidLightMode),
+            // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally gate re-render on mermaidLightMode only when content has mermaid (else `0` keeps memo stable across theme flips)
             [filePath, hasMermaid ? mermaidLightMode : 0],
         );
 

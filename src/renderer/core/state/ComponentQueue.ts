@@ -56,6 +56,7 @@ export class ComponentQueue<
     use(handler: (event: E) => void): void {
         const handlerRef = useRef(handler);
         handlerRef.current = handler;
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `this` is a stable per-instance reference; exhaustive-deps classifies it as "complex expression" and refuses to verify
         useEffect(() => this.subscribe((ev) => handlerRef.current(ev)), [this]);
     }
     /* eslint-enable react-hooks/rules-of-hooks */
@@ -104,6 +105,7 @@ export class ComponentQueue<
     useRequest(handler: (req: Req) => unknown): void {
         const handlerRef = useRef(handler);
         handlerRef.current = handler;
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `this` is a stable per-instance reference; see `use()` above
         useEffect(() => this.register((req) => handlerRef.current(req)), [this]);
     }
     /* eslint-enable react-hooks/rules-of-hooks */

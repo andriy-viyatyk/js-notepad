@@ -70,6 +70,9 @@ export function TreeProviderView(
     props: TreeProviderViewProps & { ref?: React.Ref<TreeProviderViewRef> },
 ) {
     const { ref, ...viewProps } = props;
+    // Destructure named props referenced inside hook bodies so exhaustive-deps
+    // can statically verify them (avoids the "missing dependency: 'props'" hint).
+    const { provider, getLabel, onStateChange } = viewProps;
     const model = useComponentModel(
         viewProps,
         TreeProviderViewModel,
@@ -98,7 +101,7 @@ export function TreeProviderView(
                 rootRef.current?.focus();
             },
             collapseAll: () => {
-                const rootPath = props.provider.rootPath;
+                const rootPath = provider.rootPath;
                 treeRef.current?.collapseAll();
                 // Tree.collapseAll queues a microtask that walks every node including the
                 // root — re-expand root after that microtask settles, otherwise the root
@@ -107,7 +110,7 @@ export function TreeProviderView(
                 setTimeout(() => {
                     treeRef.current?.expandItem(rootPath);
                 }, 0);
-                props.onStateChange?.({ expandedPaths: [rootPath] });
+                onStateChange?.({ expandedPaths: [rootPath] });
             },
             getState: model.getState,
             revealItem: model.revealItem,
@@ -124,7 +127,7 @@ export function TreeProviderView(
                 (ref as React.MutableRefObject<TreeProviderViewRef | null>).current = null;
             }
         };
-    }, [ref, model]);
+    }, [ref, model, provider, onStateChange]);
 
     const isDeepSearch = state.searchText.length >= 3;
     const showLinks = props.showLinks !== false;
@@ -221,8 +224,8 @@ export function TreeProviderView(
 
     const renderItem = useCallback((ctx: TreeItemRenderContext<TreeProviderNode>) => {
         const node = ctx.source;
-        const labelContent = props.getLabel
-            ? props.getLabel(node.data, state.searchText)
+        const labelContent = getLabel
+            ? getLabel(node.data, state.searchText)
             : node.data.title;
         // Root is the single permanent ancestor in every tree-provider view — render it
         // without a chevron and without the chevron-column placeholder (icon sits flush
@@ -251,7 +254,7 @@ export function TreeProviderView(
                 onContextMenu={(e) => model.onItemContextMenu(node, e)}
             />
         );
-    }, [props.getLabel, state.searchText, model]);
+    }, [getLabel, state.searchText, model]);
 
     // Items wrapped as a single-rooted Traited — the Tree memo walks children via the trait.
     const tNodes = useMemo(

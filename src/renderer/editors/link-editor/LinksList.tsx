@@ -221,6 +221,7 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
                 </div>
             );
         },
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- faviconVersion bumps on favicon load to force re-render of cells (no direct read in body)
         [links, selectedId, getId, searchText, getAdditionalIcon, dragSourceId, allTags,
          onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag, faviconVersion],
     );

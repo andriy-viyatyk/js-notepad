@@ -365,6 +365,9 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
 
 export function MenuBar(props: MenuBarProps) {
     const model = useComponentModel(props, MenuBarModel, defaultMenuBarState);
+    // Destructure named props referenced inside hook bodies (renderRightList, JSX
+    // attributes) so exhaustive-deps can statically verify them.
+    const { onClose, open } = props;
     const state = model.state.use();
     const { folders } = menuFolders.state.use();
     const allFolders = useMemo(() => [...staticFolders, ...folders], [folders]);
@@ -402,16 +405,16 @@ export function MenuBar(props: MenuBarProps) {
         switch (state.leftItemId) {
             case openTabsId:
                 return (
-                    <OpenTabsList onClose={props.onClose} open={props.open} />
+                    <OpenTabsList onClose={onClose} open={open} />
                 );
             case recentFilesId:
-                return <RecentFileList ref={model.setFileListRef} onClose={props.onClose} />;
+                return <RecentFileList ref={model.setFileListRef} onClose={onClose} />;
             case toolsEditorsId:
-                return <ToolsEditorsPanel onClose={props.onClose} />;
+                return <ToolsEditorsPanel onClose={onClose} />;
             case scriptLibraryId:
                 return (
                     <ScriptLibraryPanel
-                        onClose={props.onClose}
+                        onClose={onClose}
                         explorerRef={model.setTreeViewRef}
                         expandState={model.expandStateMap.get(scriptLibraryId)}
                         onExpandStateChange={(s) => model.expandStateMap.set(scriptLibraryId, s)}
@@ -430,7 +433,7 @@ export function MenuBar(props: MenuBarProps) {
                             onItemClick={(item) => {
                                 if (!item.isDirectory) {
                                     app.events.openRawLink.sendAsync(createLinkData(item.href));
-                                    props.onClose?.();
+                                    onClose?.();
                                 }
                             }}
                         />
@@ -439,16 +442,16 @@ export function MenuBar(props: MenuBarProps) {
                 return null;
             }
         }
-    }, [state.leftItemId, props.onClose, props.open]);
+    }, [state.leftItemId, onClose, open, model]);
 
     return (
         <MenuBarRoot
             key="menu-bar-root"
             className={clsx("menu-bar-backdrop", {
                 open: state.isAnimating,
-                doDisplay: props.open,
+                doDisplay: open,
             })}
-            onClick={props.onClose}
+            onClick={onClose}
         >
             <div
                 ref={model.setContentRef}

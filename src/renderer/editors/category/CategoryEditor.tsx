@@ -67,6 +67,7 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
     const host = useMemo(() => {
         if (!page || !link) return null;
         return findTreeProviderHost(page.panelEditors, link.type, link.url);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- pageVersion bumps on attach/detach/expandPanel to force re-scan of page.panelEditors
     }, [page, link, pageVersion]);
 
     const provider = host?.treeProvider ?? null;
