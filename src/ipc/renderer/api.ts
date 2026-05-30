@@ -21,7 +21,7 @@ const getId = () => {
     return ++idGen;
 };
 
-function executeOnce<T = any>(command: Endpoint, ...args: any[]): Promise<T> {
+function executeOnce<T = unknown>(command: Endpoint, ...args: unknown[]): Promise<T> {
     if (!window.electron) {
         return Promise.reject(new Error("window.electron is undefined"));
     }
@@ -37,11 +37,11 @@ function executeOnce<T = any>(command: Endpoint, ...args: any[]): Promise<T> {
         const commandId = getId();
         window.electron.ipcRenderer.once(
             `${command}_${commandId}`,
-            (arg: any) => {
+            (arg: unknown) => {
                 if (arg instanceof Error) {
                     reject(arg);
                 }
-                resolve(arg);
+                resolve(arg as T);
             }
         );
         window.electron.ipcRenderer.sendMessage(command, args, commandId);

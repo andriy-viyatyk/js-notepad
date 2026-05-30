@@ -23,7 +23,7 @@ class ScriptRunner extends ScriptRunnerBase {
     /**
      * Simple run — creates context, executes, cleans up, returns raw result.
      */
-    run = async (script: string, page?: EditorOrHost, language?: string): Promise<any> => {
+    run = async (script: string, page?: EditorOrHost, language?: string): Promise<unknown> => {
         return this.executeWithContext(script, page, undefined, language);
     };
 
@@ -85,7 +85,7 @@ class ScriptRunner extends ScriptRunnerBase {
         page?: EditorOrHost,
         consoleLogs?: ConsoleLogEntry[],
         language?: string,
-    ): Promise<any> {
+    ): Promise<unknown> {
         const { result } = await this.executeWithContextAndFlags(script, page, consoleLogs, language);
         return result;
     }
@@ -99,7 +99,7 @@ class ScriptRunner extends ScriptRunnerBase {
         page?: EditorOrHost,
         consoleLogs?: ConsoleLogEntry[],
         language?: string,
-    ): Promise<{ result: any; outputFlags: ScriptOutputFlags }> {
+    ): Promise<{ result: unknown; outputFlags: ScriptOutputFlags }> {
         this.handlePromiseException += 1;
         let scriptContext: import("./ScriptContext").ScriptContext | undefined;
         try {

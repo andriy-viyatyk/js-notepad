@@ -42,7 +42,7 @@ window.electron = electronHandler;
 
 // Expose webview preload path for browser tabs.
 // __dirname points to the build output directory where both preload files live.
-(window as any).webviewPreloadUrl = pathToFileURL(
+(window as Window & { webviewPreloadUrl?: string }).webviewPreloadUrl = pathToFileURL(
     path.join(__dirname, "preload-webview.js"),
 ).toString();
 

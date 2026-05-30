@@ -232,7 +232,7 @@ async function browserEvaluate(target: IBrowserTarget, params: any): Promise<Mcp
     return { result: value };
 }
 
-async function browserGetTabs(target: IBrowserTarget, params: any): Promise<McpResponse> {
+async function browserGetTabs(target: IBrowserTarget, params: Record<string, unknown> | undefined): Promise<McpResponse> {
     const action = params?.action ?? "list";
 
     switch (action) {
@@ -240,16 +240,17 @@ async function browserGetTabs(target: IBrowserTarget, params: any): Promise<McpR
             return { result: target.tabs };
 
         case "new": {
-            target.addTab(params?.url);
+            target.addTab(params?.url as string | undefined);
             await new Promise(resolve => setTimeout(resolve, 200));
             return { result: target.tabs };
         }
 
         case "close": {
             const tabs = target.tabs;
-            if (params?.index != null) {
-                const tab = tabs[params.index];
-                if (!tab) return { error: { code: -32602, message: `No tab at index ${params.index}` } };
+            const idx = params?.index as number | undefined;
+            if (idx != null) {
+                const tab = tabs[idx];
+                if (!tab) return { error: { code: -32602, message: `No tab at index ${idx}` } };
                 target.closeTab(tab.id);
             } else {
                 target.closeTab();
@@ -260,9 +261,10 @@ async function browserGetTabs(target: IBrowserTarget, params: any): Promise<McpR
 
         case "select": {
             const tabs = target.tabs;
-            if (params?.index == null) return { error: { code: -32602, message: "Missing 'index' for action 'select'" } };
-            const tab = tabs[params.index];
-            if (!tab) return { error: { code: -32602, message: `No tab at index ${params.index}` } };
+            const idx = params?.index as number | undefined;
+            if (idx == null) return { error: { code: -32602, message: "Missing 'index' for action 'select'" } };
+            const tab = tabs[idx];
+            if (!tab) return { error: { code: -32602, message: `No tab at index ${idx}` } };
             target.switchTab(tab.id);
             return { result: target.tabs };
         }

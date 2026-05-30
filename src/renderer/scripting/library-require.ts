@@ -52,7 +52,7 @@ export function registerLibraryExtensions(libraryPath: string): void {
             transforms: ["typescript", "imports"],
             filePath: filename,
         });
-        (module as any)._compile(MODULE_CONTEXT_PREFIX + compiled, filename);
+        (module as NodeModule & { _compile(code: string, filename: string): void })._compile(MODULE_CONTEXT_PREFIX + compiled, filename);
     };
 
     require.extensions[".js"] = (module: NodeModule, filename: string) => {
@@ -64,7 +64,7 @@ export function registerLibraryExtensions(libraryPath: string): void {
                 transforms: ["imports"],
                 filePath: filename,
             });
-            (module as any)._compile(MODULE_CONTEXT_PREFIX + compiled, filename);
+            (module as NodeModule & { _compile(code: string, filename: string): void })._compile(MODULE_CONTEXT_PREFIX + compiled, filename);
             return;
         }
 

@@ -69,7 +69,7 @@ export function OpenTabsList(props: OpenTabsListProps) {
             },
         }));
 
-        const resItems: any[] = [
+        const resItems: Array<ListItem | ListItem[]> = [
             { windowIndex: currentWindowIndex },
             currentPages,
         ];

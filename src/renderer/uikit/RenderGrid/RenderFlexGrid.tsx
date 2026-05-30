@@ -235,7 +235,7 @@ export const RenderFlexGrid = forwardRef<RenderGridModel, RenderFlexGridProps>(
                     if (typeof ref === "function") {
                         ref(instance);
                     } else if (ref) {
-                        (ref as React.RefObject<any>).current = instance;
+                        (ref as React.MutableRefObject<unknown>).current = instance;
                     }
                 }}
                 {...restProps}

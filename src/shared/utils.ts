@@ -1,9 +1,9 @@
-export function debounce<T extends (...args: any[]) => void>(
+export function debounce<T extends (...args: unknown[]) => void>(
     func: T,
     delay: number,
     canRun?: () => boolean
 ): (...args: Parameters<T>) => void {
-    let timeoutId: any = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     return (...args: Parameters<T>) => {
         const run = () => {

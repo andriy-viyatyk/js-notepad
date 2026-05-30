@@ -1,7 +1,7 @@
 /**
  * Convert any script result value to a text + language pair for display.
  */
-export function convertToText(value: any): { text: string; language: string } {
+export function convertToText(value: unknown): { text: string; language: string } {
     // Handle Error objects (including exceptions)
     if (value instanceof Error) {
         let errorText = `Error: ${value.message}\n`;
@@ -91,7 +91,7 @@ export function convertToText(value: any): { text: string; language: string } {
             };
         }
         // For TypedArrays, show as JSON array
-        const arr = Array.from(value as any);
+        const arr = Array.from(value as unknown as ArrayLike<unknown>);
         if (arr.length > 100) {
             return {
                 text: `${typeName}(${arr.length} items): [${arr.slice(0, 100).join(", ")}, ...]`,
@@ -102,7 +102,7 @@ export function convertToText(value: any): { text: string; language: string } {
     }
 
     // Handle Promise (shouldn't happen as run() awaits them, but just in case)
-    if (value && typeof value.then === "function") {
+    if (value && typeof (value as { then?: unknown }).then === "function") {
         return { text: "[Promise - not awaited]", language: "plaintext" };
     }
 
@@ -146,7 +146,7 @@ export function convertToText(value: any): { text: string; language: string } {
         } catch {
             // Last resort - use toString
             return {
-                text: `[Object: ${value.constructor?.name || "Unknown"}]`,
+                text: `[Object: ${(value as { constructor?: { name?: string } }).constructor?.name || "Unknown"}]`,
                 language: "plaintext",
             };
         }

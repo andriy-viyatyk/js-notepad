@@ -80,7 +80,7 @@ export interface RenderGridProps {
     blockStyles?: Partial<BlockStyles>;
     onInnerSizeChange?: (is: RenderInnerSize) => void;
     onAdjustRenderRange?: AdjustRenderRangeFunc;
-    qaData?: any;
+    qaData?: unknown;
     whiteSpaceY?: number;
     whiteSpaceX?: number;
     extraElement?: React.ReactNode;

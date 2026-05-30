@@ -6,7 +6,7 @@ import { getFileToOpen, getUrlToOpen, windowReady } from "./window-handlers";
 import { DownloadEntry, OpenFileDialogParams, RuntimeVersions, SaveFileDialogParams, UpdateCheckResult, VideoStreamSessionConfig, VideoStreamSessionResult } from "../api-param-types";
 import { openWindows } from "../../main/open-windows";
 import { initRendererEvents } from "./renderer-events";
-import { WindowPages } from "../../shared/types";
+import { WindowPages, PageDragData } from "../../shared/types";
 import { dragModel } from "../../main/drag-model";
 import { fileIconCache } from "../../main/fileIconCache";
 import { versionService } from "../../main/version-service";
@@ -72,7 +72,7 @@ class Controller implements MainApi {
     }
 
     getCommonFolder = async (event: IpcMainEvent, folder: string): Promise<string> => {
-        return app.getPath(folder as any);
+        return app.getPath(folder as Parameters<typeof app.getPath>[0]);
     }
 
     zoom = async (event: IpcMainEvent, delta: number): Promise<void> => {
@@ -130,7 +130,7 @@ class Controller implements MainApi {
         openWindows.showWindowPage(windowIndex, pageId);
     }
 
-    addDragEvent = async (event: IpcMainEvent, dragData: any): Promise<void> => {
+    addDragEvent = async (event: IpcMainEvent, dragData: PageDragData): Promise<void> => {
         return dragModel.addDragEvent(dragData);
     }
 
@@ -243,7 +243,7 @@ class Controller implements MainApi {
 
 const controllerInstance = new Controller();
 
-function bindEndpoint(command: Endpoint, handler: (...args: any[]) => any) {
+function bindEndpoint(command: Endpoint, handler: (...args: unknown[]) => unknown) {
     ipcMain.on(command, async (event, arg, commandId) => {
         try {
             const result = await handler(event, ...arg);

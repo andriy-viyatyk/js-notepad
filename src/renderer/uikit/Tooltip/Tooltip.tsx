@@ -29,7 +29,7 @@ export interface TooltipProps {
      * Single React element whose ref forwards to a DOM node. UIKit components and standard HTML
      * elements all qualify.
      */
-    children: React.ReactElement<any>;
+    children: React.ReactElement<Record<string, unknown>>;
     /** Floating-ui placement. Default: "top". */
     placement?: Placement;
     /** [skidding, distance] — skidding shifts perpendicular to the main axis. Default: [0, 8]. */
@@ -142,7 +142,7 @@ export function Tooltip({
         }
     }, [open, suppressedByOverlay, clearTimers]);
 
-    const childRef = (children as any).ref as React.Ref<unknown> | undefined;
+    const childRef = (children as { ref?: React.Ref<unknown> }).ref;
     const mergedRef = useCallback(
         (node: Element | null) => {
             triggerElRef.current = node;
@@ -154,7 +154,15 @@ export function Tooltip({
         [refs, childRef],
     );
 
-    const childProps = children.props as Record<string, any>;
+    // Forwarded handler shape — props we may chain into the cloned child.
+    type ChildHandlers = {
+        onMouseEnter?: (e: React.MouseEvent) => void;
+        onMouseLeave?: (e: React.MouseEvent) => void;
+        onFocus?: (e: React.FocusEvent) => void;
+        onBlur?: (e: React.FocusEvent) => void;
+        onKeyDown?: (e: React.KeyboardEvent) => void;
+    };
+    const childProps = children.props as ChildHandlers;
     const trigger = cloneElement(children, {
         ref: mergedRef,
         onMouseEnter: (e: React.MouseEvent) => {

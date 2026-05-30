@@ -37,7 +37,7 @@ export class ScriptRunnerBase {
      * Handles transpilation (TS → JS) and Script Library registration
      * before executing. Returns the script result.
      */
-    protected async execute(script: string, context: ScriptContext, language?: string): Promise<any> {
+    protected async execute(script: string, context: ScriptContext, language?: string): Promise<unknown> {
         const prepared = await this.prepare(script, language);
         return this.executeInternal(prepared, context);
     }
@@ -69,7 +69,7 @@ export class ScriptRunnerBase {
      * Context globals are injected via SCRIPT_PREFIX reading from `this` (context).
      * Handles expression/statement detection, implicit return, and async await.
      */
-    private async executeInternal(script: string, context: ScriptContext): Promise<any> {
+    private async executeInternal(script: string, context: ScriptContext): Promise<unknown> {
         // Check if script contains statement keywords at the start
         const trimmedScript = script.trim();
         const statementKeywords =
@@ -160,9 +160,11 @@ export class ScriptRunnerBase {
      * Check if a value is a genuine Promise-like object (not just any object with a .then method).
      * StyledLogBuilder has a .then() method for chaining styled text segments — it is NOT a Promise.
      */
-    private isPromiseLike(value: any): boolean {
-        return value instanceof Promise
-            || (value && typeof value.then === "function" && typeof value.catch === "function");
+    private isPromiseLike(value: unknown): boolean {
+        if (value instanceof Promise) return true;
+        if (!value || typeof value !== "object") return false;
+        const v = value as { then?: unknown; catch?: unknown };
+        return typeof v.then === "function" && typeof v.catch === "function";
     }
 
     /** Check if script has a top-level `return` (not inside a function/arrow body). */
