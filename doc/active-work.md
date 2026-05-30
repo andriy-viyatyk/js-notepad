@@ -7,8 +7,6 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(no epic)*
-  - [ ] US-589: TextChrome — fix `isTextFileHost` discriminator regression from US-559 (silently dropped footer toolbar, ScriptPanel, run/compare buttons, and editor-overlay portal for ALL v4 editors; surfaced as "Expand note doesn't work" in notebook). One-line fix in `src/renderer/editors/base/TextChrome.tsx`: duck-type against `setEditorOverlayRef` instead of the deleted `setEditorToolbarRefFirst`.
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
