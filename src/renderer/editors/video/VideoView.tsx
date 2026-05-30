@@ -60,21 +60,19 @@ export function VideoView({ model }: VideoViewProps) {
     return (
         <Panel name="video-player" direction="column" height="100%" background="dark" overflow="hidden">
             <PageToolbar name="video-toolbar" model={model} noSpacer borderBottom>
-                <Panel
-                    direction="column"
-                    flex={1}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && e.ctrlKey) {
-                            e.preventDefault();
-                            model.submitUrl(inputText);
-                        }
-                    }}
-                >
+                <Panel direction="column" flex={1}>
                     <Textarea
                         name="video-url-input"
                         value={inputText}
                         onChange={model.setInputText}
-                        placeholder="Enter video URL or paste cURL command... (Ctrl+Enter to play)"
+                        placeholder="Enter video URL or paste cURL command... (Enter to play)"
+                        singleLine
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+                                e.preventDefault();
+                                model.submitUrl(inputText);
+                            }
+                        }}
                         minHeight={28}
                         maxHeight={72}
                         size="sm"

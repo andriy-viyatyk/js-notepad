@@ -7,6 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
+- *(no epic)*
+  - [ ] US-591: Video/Audio Player URL input — restore single-line submit-on-Enter behavior (use Textarea `singleLine` + `onKeyDown`; Enter loads URL, no newline inserted, long URLs still wrap)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
