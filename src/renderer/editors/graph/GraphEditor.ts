@@ -477,11 +477,12 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
     updateExpansionOptions(patch: Partial<Pick<GraphOptions, "expandDepth" | "maxVisible">>): void {
         if (!this.dataModel.sourceData) return;
         if (!this.dataModel.sourceData.options) this.dataModel.sourceData.options = {};
+        const opts = this.dataModel.sourceData.options as unknown as Record<string, unknown>;
         for (const [key, value] of Object.entries(patch)) {
             if (value === undefined) {
-                delete (this.dataModel.sourceData.options as any)[key];
+                delete opts[key];
             } else {
-                (this.dataModel.sourceData.options as any)[key] = value;
+                opts[key] = value;
             }
         }
         this.serializeToHost();

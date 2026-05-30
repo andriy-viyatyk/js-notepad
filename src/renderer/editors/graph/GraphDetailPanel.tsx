@@ -624,14 +624,14 @@ function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExter
         onDirtyChange(true);
     }, [onDirtyChange]);
 
-    const editRow = useCallback((columnKey: string, rowKey: string, value: any) => {
+    const editRow = useCallback((columnKey: string, rowKey: string, value: unknown) => {
         if (columnKey === "level") {
             const num = Number(value);
             value = (num >= 1 && num <= 5) ? num : 5;
         }
         if (columnKey === "shape") {
             const shapes = ["circle", "square", "diamond", "triangle", "star", "hexagon"];
-            if (!shapes.includes(value)) value = "circle";
+            if (!shapes.includes(value as string)) value = "circle";
         }
 
         setRows((prev) => prev.map((r) =>
@@ -851,7 +851,7 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
         onDirtyChange(true);
     }, [onDirtyChange]);
 
-    const editRow = useCallback((columnKey: string, rowKey: string, value: any) => {
+    const editRow = useCallback((columnKey: string, rowKey: string, value: unknown) => {
         setRows((prev) => prev.map((r) =>
             r._rowKey === rowKey ? { ...r, [columnKey]: String(value ?? ""), _isChanged: true } : r
         ));

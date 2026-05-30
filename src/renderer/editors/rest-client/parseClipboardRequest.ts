@@ -100,7 +100,10 @@ function parseFetch(text: string): ParsedRequest | null {
             const optionsStr = extractBalancedBraces(text, optionsStart);
             if (optionsStr) {
                 // Parse as relaxed JSON (keys may be quoted with double quotes)
-                const options = parseRelaxedJSON(optionsStr);
+                const parsed = parseRelaxedJSON(optionsStr);
+                const options = (parsed && typeof parsed === "object")
+                    ? parsed as Record<string, unknown>
+                    : null;
                 if (options) {
                     if (options.method) method = String(options.method).toUpperCase();
 
@@ -166,7 +169,7 @@ function extractBalancedBraces(text: string, start: number): string | null {
 }
 
 /** Parse a JSON-like object that may have unquoted keys or trailing commas. */
-function parseRelaxedJSON(text: string): any {
+function parseRelaxedJSON(text: string): unknown {
     try {
         return JSON.parse(text);
     } catch {

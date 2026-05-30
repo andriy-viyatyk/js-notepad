@@ -26,7 +26,7 @@ const RESPONSE_LANGUAGES = [
     "plaintext",
 ];
 
-const EDITOR_OPTIONS: any = {
+const EDITOR_OPTIONS: import("monaco-editor").editor.IStandaloneEditorConstructionOptions = {
     automaticLayout: true,
     minimap: { enabled: false },
     lineNumbers: "off",

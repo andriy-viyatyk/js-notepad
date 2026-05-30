@@ -5,11 +5,20 @@ import { CopyIcon, OpenLinkIcon } from "../../theme/icons";
 import { renderMermaidSvg, svgToDataUrl } from "../mermaid/render-mermaid";
 import { ColorizedCode } from "../shared/ColorizedCode";
 
+/** Shape of a hast (rehype/remark) AST node passed in by react-markdown. */
+interface HastNode {
+    type?: string;
+    tagName?: string;
+    properties?: Record<string, unknown>;
+    children?: HastNode[];
+    value?: string;
+}
+
 interface CodeBlockProps {
     className?: string;
     children?: React.ReactNode;
-    node?: any;
-    [key: string]: any;
+    node?: HastNode;
+    [key: string]: unknown;
 }
 
 // Build reverse lookup: alias/id (lowercase) → Monaco language ID
@@ -146,18 +155,24 @@ function MermaidBlock({ code, lightMode }: { code: string; lightMode: boolean })
 
 // Creates a PreBlock component with the given mermaid light mode.
 // Called from MarkdownView to capture the current theme mode via closure.
+interface PreBlockProps {
+    children?: React.ReactNode;
+    node?: HastNode;
+    [key: string]: unknown;
+}
+
 export function createPreBlock(mermaidLightMode: boolean) {
-    return function PreBlock({ children, node, ...props }: any) {
+    return function PreBlock({ children, node, ...props }: PreBlockProps) {
         // Detect mermaid code block from AST node
         const codeNode = node?.children?.[0];
         const codeClassName = codeNode?.properties?.className;
         const isMermaid = Array.isArray(codeClassName)
-            ? codeClassName.some((c: string) => isMermaidLanguage(c))
-            : isMermaidLanguage(codeClassName);
+            ? codeClassName.some((c) => isMermaidLanguage(c as string))
+            : isMermaidLanguage(codeClassName as string | undefined);
 
         if (isMermaid) {
             const code = codeNode?.children
-                ?.map((c: any) => c.value || "")
+                ?.map((c) => c.value || "")
                 .join("")
                 .replace(/\n$/, "") || "";
             return <MermaidBlock code={code} lightMode={mermaidLightMode} />;
@@ -168,7 +183,7 @@ export function createPreBlock(mermaidLightMode: boolean) {
 }
 
 // Code pre block with copy-to-clipboard button
-function CodePreBlock({ children, ...props }: any) {
+function CodePreBlock({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) {
     const preRef = useRef<HTMLPreElement>(null);
     const [copied, setCopied] = useState(false);
 

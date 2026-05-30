@@ -83,12 +83,13 @@ export class GraphDataModel {
         const node = this.sourceData.nodes.find((n) => n.id === nodeId);
         if (!node) return;
 
+        const bag = node as unknown as Record<string, unknown>;
         for (const [key, value] of Object.entries(props)) {
             if (key === "id") continue; // Use renameNode for ID changes
             if (value === undefined || value === "" || value === null) {
-                delete (node as any)[key];
+                delete bag[key];
             } else {
-                (node as any)[key] = value;
+                bag[key] = value;
             }
         }
     }
@@ -193,12 +194,13 @@ export class GraphDataModel {
         const node = this.sourceData.nodes.find((n) => n.id === nodeId);
         if (!node) return;
 
+        const bag = node as unknown as Record<string, unknown>;
         for (const key of keysToRemove) {
-            delete (node as any)[key];
+            delete bag[key];
         }
 
         for (const [key, value] of Object.entries(propsToSet)) {
-            (node as any)[key] = value;
+            bag[key] = value;
         }
     }
 
@@ -400,12 +402,13 @@ export class GraphDataModel {
 
     /** Apply row properties to a node, skipping 'id' and empty values. */
     private applyRowPropsToNode(node: GraphNode, row: Record<string, unknown>): void {
+        const bag = node as unknown as Record<string, unknown>;
         for (const [key, value] of Object.entries(row)) {
             if (key === "id") continue;
             if (value === undefined || value === null || value === "") {
-                delete (node as any)[key];
+                delete bag[key];
             } else {
-                (node as any)[key] = value;
+                bag[key] = value;
             }
         }
     }

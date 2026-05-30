@@ -377,8 +377,8 @@ function preprocessFencedContainers(content: string): string {
 // =============================================================================
 
 const getComponents = (filePath: string, mermaidLightMode: boolean): Components => ({
-    code: CodeBlock as any,
-    pre: createPreBlock(mermaidLightMode),
+    code: CodeBlock as Components["code"],
+    pre: createPreBlock(mermaidLightMode) as Components["pre"],
     input: ({ node, ...props }) => {
         if (props.type === "checkbox") {
             return props.checked ? (
@@ -426,11 +426,11 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
 
         // Rehype plugin for search text highlighting
         const rehypePlugins = useMemo(() => {
-            const plugins: any[] = [rehypeRaw];
+            const plugins: unknown[] = [rehypeRaw];
             if (highlightText) {
                 plugins.push(createRehypeHighlight(highlightText));
             }
-            return plugins;
+            return plugins as Parameters<typeof ReactMarkdown>[0]["rehypePlugins"];
         }, [highlightText]);
 
         // Context menu for links — copy link, open external

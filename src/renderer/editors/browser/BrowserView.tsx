@@ -5,7 +5,7 @@ import { IEditorState, EditorType } from "../../../shared/types";
 import { EditorModel } from "../base";
 import { EditorToolbar } from "../base/EditorToolbar";
 import { TComponentState } from "../../core/state/state";
-import { EditorModule } from "../types";
+import { EditorModule, FileEditorComponent } from "../types";
 import color from "../../theme/color";
 import { Panel, Input, Button, IconButton, Spinner, Text, Dot, Splitter, WithMenu } from "../../uikit";
 import {
@@ -705,7 +705,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
 // ============================================================================
 
 const browserEditorModule: EditorModule = {
-    Editor: BrowserEditorView as any,
+    Editor: BrowserEditorView as FileEditorComponent,
     newEditorModel: async () => {
         return new BrowserEditorModel(
             new TComponentState(getDefaultBrowserPageState()),

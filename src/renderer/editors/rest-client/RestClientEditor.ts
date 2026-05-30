@@ -421,7 +421,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
         try {
             const parsed = JSON.parse(content);
             const requests: RestRequest[] = Array.isArray(parsed.requests)
-                ? parsed.requests.map((r: any) => ({
+                ? parsed.requests.map((r: Partial<RestRequest>) => ({
                     id: r.id || crypto.randomUUID(),
                     name: r.name ?? "",
                     collection: r.collection || "",

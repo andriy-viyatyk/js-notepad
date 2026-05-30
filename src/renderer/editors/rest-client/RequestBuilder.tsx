@@ -29,7 +29,7 @@ const BODY_TYPES: { type: BodyType; label: string }[] = [
     { type: "binary", label: "binary" },
 ];
 
-const BODY_EDITOR_OPTIONS: any = {
+const BODY_EDITOR_OPTIONS: import("monaco-editor").editor.IStandaloneEditorConstructionOptions = {
     automaticLayout: true,
     minimap: { enabled: false },
     lineNumbers: "off",

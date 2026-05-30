@@ -26,7 +26,7 @@ export function LivePreview({ model }: { model: StorybookEditorModel }) {
         );
     }
 
-    const Component = story.component as React.ComponentType<any>;
+    const Component = story.component as React.ComponentType<Record<string, unknown>>;
     const hasChildrenProp = story.props.some((p) => p.name === "children");
     const componentProps: Record<string, unknown> = { ...propValues };
 
