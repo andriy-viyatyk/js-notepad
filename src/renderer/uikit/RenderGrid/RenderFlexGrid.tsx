@@ -53,6 +53,7 @@ function FlexCell({
             observerRef.current = null;
             observedElementRef.current = null;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow: only re-create the observer when the row index or setRowHeight callback changes; other `p` fields (key, style, etc.) are inert to the observer setup
     }, [p.row, p.setRowHeight]);
 
     // Detect when ref.current changes (React reuses component but renders different content)

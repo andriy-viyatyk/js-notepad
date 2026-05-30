@@ -57,7 +57,7 @@ export function CompareEditor(props: CompareEditorProps) {
         return () => {
             editorModel.dispose();
         };
-    }, []);
+    }, [editorModel]);
 
     const leftLabel = filePath || title;
     const rightLabel = groupedFilePath || groupedTitle;

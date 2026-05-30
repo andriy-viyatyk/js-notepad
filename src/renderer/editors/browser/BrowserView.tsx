@@ -243,6 +243,7 @@ function BrowserWebviewItem({
                 ipcRenderer.send(BrowserChannel.unregister, key);
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-per-tab effect (model/tabId/internalTabId are stable for the tab lifetime). Adding `isActive` would tear down and re-register all webview listeners + IPC every time the active tab changes. Theoretical stale-closure on `isActive` inside onFoundInPage is acceptable: found-in-page events only fire during an active find, which typically ends when the user switches tabs.
     }, [model, tabId, internalTabId]);
 
     return (
@@ -451,6 +452,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
         if (activeTab) {
             model.webview.navigateWebview(activeTabId, activeTab.url);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow: re-navigate only when the URL slice or active tab id changes, not on every `activeTab` object identity change (which churns on unrelated tabs[] updates)
     }, [activeTab?.url, activeTabId, model]);
 
     const { urlBar, bookmarksUI, webview } = model;

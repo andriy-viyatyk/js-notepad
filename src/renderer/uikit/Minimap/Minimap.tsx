@@ -81,14 +81,14 @@ export function Minimap(props: MinimapProps) {
 
     useEffect(() => {
         model.setScrollContainer(scrollContainer);
-    }, [scrollContainer]);
+    }, [scrollContainer, model]);
 
     useEffect(() => {
         model.init();
         return () => {
             model.dispose();
         };
-    }, []);
+    }, [model]);
 
     return (
         <Root

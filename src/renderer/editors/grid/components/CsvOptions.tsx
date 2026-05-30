@@ -37,7 +37,7 @@ export function CsvOptions({ model }: ViewPropsRO<CsvOptionsModel>) {
         if (valueToSet) {
             model.gridModel?.setDelimiter(valueToSet);
         }
-    }, []);
+    }, [model.gridModel]);
 
     useEffect(() => {
         setOther((old) => {

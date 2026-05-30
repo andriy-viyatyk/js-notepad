@@ -377,6 +377,7 @@ export function MenuBar(props: MenuBarProps) {
         if (!allFolders.find((f) => f.id === state.leftItemId)) {
             model.setLeftItem(staticFolders[0]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-validate only when the folder list changes; leftItemId is set via the validated setLeftItem path, so transient leftItemId changes don't need re-validation. `allFolders` is derived from `folders` (already in deps); `model` is stable.
     }, [folders]);
 
     const tFolders = useMemo(

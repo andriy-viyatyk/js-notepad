@@ -65,6 +65,7 @@ export function TextOutputView({ entry }: TextOutputViewProps) {
             editorRef.current = null;
             editor.dispose();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: create the Monaco editor once with the initial entry config; subsequent entry.text changes flow through the separate effect below
     }, []);
 
     useEffect(() => {

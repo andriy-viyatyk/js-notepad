@@ -79,6 +79,7 @@ function InputDialog({ model }: ViewPropsRO<InputDialogModel>) {
                 inputRef.current?.focus();
             }
         }, 0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only auto-focus: state.selectAll is read at mount-time-via-setTimeout; the dialog re-mounts per open, so the initial value is always current
     }, []);
 
     return (

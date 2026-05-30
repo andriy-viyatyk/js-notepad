@@ -106,7 +106,8 @@ function HlsPlayer({
             player.dispose();
             playerRef.current = null;
         };
-    }, []); // initialize once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- initialize once on mount: `muted` is the initial value, callback refs (onMutedChangeRef / onStateChangeRef) are by design — updated externally and read at callback fire time so player listeners always see latest handlers without re-init
+    }, []);
 
     useEffect(() => {
         const video = videoRef.current;

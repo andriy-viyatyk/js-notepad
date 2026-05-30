@@ -59,7 +59,7 @@ const RenderGrid = React.forwardRef<RenderGridModel, RenderGridProps>(function R
         return () => {
             objserver.disconnect();
         }
-    }, [model.onFrameResize]);
+    }, [model.onFrameResize, model.gridRef]);
 
     useImperativeHandle(ref, () => model);
 

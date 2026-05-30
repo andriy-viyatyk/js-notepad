@@ -252,7 +252,7 @@ export function useComponentModel<T, P, M extends TComponentModel<T, P>>(
     useEffect(() => {
         controlModel._initInternal();
         return () => controlModel.onUnmountInternal();
-    }, []);
+    }, [controlModel]);
 
     return controlModel;
 }

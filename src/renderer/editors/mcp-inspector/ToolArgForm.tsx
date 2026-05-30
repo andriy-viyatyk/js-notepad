@@ -31,7 +31,10 @@ interface ToolArgFormProps {
 }
 
 export function ToolArgForm({ schema, args, onArgChange, disabled }: ToolArgFormProps) {
-    const properties = schema.properties || {};
+    // Wrap in useMemo so identity is stable when schema.properties is present;
+    // otherwise the `|| {}` fallback creates a fresh object every render and
+    // makes the propEntries useMemo below recompute unnecessarily.
+    const properties = useMemo(() => schema.properties || {}, [schema.properties]);
     const requiredFields = useMemo(() => new Set(schema.required || []), [schema.required]);
     const propEntries = useMemo(() => Object.entries(properties), [properties]);
 

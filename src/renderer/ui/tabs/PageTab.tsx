@@ -567,6 +567,7 @@ export function PageTab(props: PageTabProps) {
     const activeLanguages = settings.use("tab-recent-languages");
     const languageMenuItems = useMemo(
         () => tabModel.getLanguageMenuItems(),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional indirect deps: tabModel.getLanguageMenuItems() reads `language` and the recent-languages setting internally; deps listed so the menu rebuilds when either changes. tabModel is stable; omitted to keep the recomputation triggers semantically clear.
         [language, activeLanguages]
     );
 

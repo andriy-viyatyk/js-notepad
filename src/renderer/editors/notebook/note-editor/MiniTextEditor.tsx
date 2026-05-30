@@ -41,7 +41,7 @@ export function MiniTextEditor({ model }: MiniTextEditorProps) {
     // Apply external search highlighting decorations
     useEffect(() => {
         editorModel.setHighlightText(editorConfig.highlightText);
-    }, [editorConfig.highlightText]);
+    }, [editorConfig.highlightText, editorModel]);
 
     const rootStyle: React.CSSProperties = fillContainer
         ? { position: "relative", flex: "1 1 auto", overflow: "hidden" }

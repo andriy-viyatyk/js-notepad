@@ -98,6 +98,7 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
         host?.selectionState.update((s) => { s.selectedHref = item.href; });
         const url = provider?.getNavigationUrl(item) ?? item.href;
         app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: hostId }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- host?.selectionState correlates with hostId (already in deps; hostId is derived from host); narrow deps prevent re-creating the callback on host object identity changes that don't change hostId
     }, [provider, pageId, hostId]);
 
     const renderToolbar = (children?: ReactNode) => (
