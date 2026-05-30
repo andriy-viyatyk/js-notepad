@@ -4,7 +4,7 @@ import {
     type EditorStateBase,
     type RestoreData,
 } from "../base/EditorModel";
-import type { EditorDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor } from "../../../shared/persistence";
 import type { ITreeProvider } from "../../api/types/io.tree";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import type { FileSearchState } from "../../components/file-search";
@@ -35,7 +35,7 @@ export function getDefaultExplorerEditorState(): ExplorerEditorState {
 }
 
 export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
-    /** v4 editor identity. Deliberately equal to the secondary-editor
+    /** Editor identity. Deliberately equal to the secondary-editor
      *  registration id so persistence (`EditorDescriptor.editorId`) reads the
      *  same string as the panel-component lookup. Explorer is NOT in
      *  `editorRegistry`. */
@@ -147,11 +147,9 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     // ── Lifecycle hooks ───────────────────────────────────────────────
 
     /** Explorer ALWAYS survives navigation — it's a sidebar-only EditorModel.
-     *  The v4 base default clears `secondaryEditor` (which would trigger
+     *  The base default clears `secondaryEditor` (which would trigger
      *  detach + dispose via the slice subscription); override to a no-op so
-     *  Explorer stays attached when the main editor changes. **EX-IMPL1**
-     *  amends walkthrough 30 §3 EX5 (a)'s "drop the override" claim — base
-     *  default does NOT suffice. */
+     *  Explorer stays attached when the main editor changes. */
     beforeNavigateAway(_newModel: EditorModel): void {
         // No-op: Explorer always stays.
     }

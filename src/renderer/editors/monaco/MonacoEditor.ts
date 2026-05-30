@@ -7,13 +7,13 @@ import {
 import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
 import type { IContentHost } from "../base/IContentHost";
 import { ComponentQueue, type ComponentQueueEvent } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { PageModel } from "../../api/pages/PageModel";
 import { ui } from "../../api/ui";
 import { fpBasename } from "../../core/utils/file-path";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry as v4Registry } from "../base/editorRegistry";
+import { editorRegistry } from "../base/editorRegistry";
 
 export type MonacoQueueEvent =
     | { type: "revealLine"; line: number }
@@ -92,7 +92,7 @@ export class MonacoEditor extends EditorModel<
 
     findCompatibleEditors(): string[] {
         if (!this._host) return [];
-        return v4Registry.findEditorsAccepting(this._host as unknown as IContentHost);
+        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
     }
 
     isFreshEmpty(): boolean {

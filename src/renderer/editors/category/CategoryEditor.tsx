@@ -162,10 +162,9 @@ const categoryEditorModule: EditorModule = {
         return new CategoryEditorModel() as unknown as EditorModel;
     },
 
-    // Seed state via the constructor — the v4 base `applyRestoreData` is a no-op
-    // (the legacy path used it to set filePath). Dead on the v4 restore path
-    // (`category-view` ∈ NO_HOST_EDITOR_IDS → generic Object.assign branch);
-    // kept correct for contract completeness.
+    // Seed state via the constructor — the base `applyRestoreData` is a no-op.
+    // Dead on the restore path (`category-view` ∈ NO_HOST_EDITOR_IDS → generic
+    // Object.assign branch); kept correct for contract completeness.
     newEditorModelFromState: async (state: Partial<IEditorState>) => {
         const { CategoryEditorModel, getDefaultCategoryEditorModelState } =
             await import("./CategoryEditorModel");

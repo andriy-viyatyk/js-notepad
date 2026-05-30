@@ -14,8 +14,7 @@ const ALL_LEVELS = [1, 2, 3, 4, 5];
 type LegendTab = "level" | "shape" | "selection";
 type SelectionFilter = "" | "selected" | "not-selected" | "selected-with-children";
 
-/** Host type for this panel. the legacy `GraphViewModel` is
- *  retired; the alias resolves to the v4 `GraphEditor` only. */
+/** Host type for this panel. */
 type GraphLegendHost = GraphEditor;
 
 // =============================================================================

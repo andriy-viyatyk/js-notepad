@@ -4,7 +4,7 @@ import type {
     EditorDescriptor,
     PageDescriptor,
     WindowState,
-} from "../../../shared/persistence-v4";
+} from "../../../shared/persistence";
 import { openFilesNameTemplate } from "../../../shared/constants";
 import { parseObject } from "../../core/utils/parse-utils";
 import { debounce } from "../../../shared/utils";
@@ -21,9 +21,9 @@ import { createLinkData } from "../../../shared/link-data";
 import { PageModel } from "./PageModel";
 
 /**
- * EditorIds of v4-native NO-HOST editors that restore via
+ * EditorIds of NO-HOST editors that restore via
  * `editorRegistry.createEditor` + `Object.assign(state, d.state)` (no host
- * descriptor). v4-with-host editors take the `if (d.host)` branch; Explorer
+ * descriptor). Editors with a host take the `if (d.host)` branch; Explorer
  * is constructed directly (not in `editorRegistry`).
  */
 const NO_HOST_EDITOR_IDS = new Set([
@@ -56,7 +56,7 @@ export class PagesPersistenceModel {
         ) as Partial<WindowState> | undefined;
         if (!data || !Array.isArray(data.pages)) return;
         if (data.schemaVersion !== 4) return;
-        await this.restoreV4(data as WindowState);
+        await this.applyState(data as WindowState);
     };
 
     restorePage = async (desc: PageDescriptor): Promise<PageModel | null> => {
@@ -67,10 +67,10 @@ export class PagesPersistenceModel {
             desc.editors.map(async (d) => {
                 try {
                     if (d.host) {
-                        const { editorRegistry: v4Registry } = await import(
+                        const { editorRegistry } = await import(
                             "../../editors/base"
                         );
-                        const editor = await v4Registry.createEditor(d.editorId, d.id);
+                        const editor = await editorRegistry.createEditor(d.editorId, d.id);
                         editor.applyRestoreData(d as unknown as Parameters<typeof editor.applyRestoreData>[0]);
                         await editor.restore();
                         return editor;
@@ -90,10 +90,10 @@ export class PagesPersistenceModel {
                         return explorer;
                     }
                     if (NO_HOST_EDITOR_IDS.has(d.editorId)) {
-                        const { editorRegistry: v4Registry } = await import(
+                        const { editorRegistry } = await import(
                             "../../editors/base"
                         );
-                        const editor = await v4Registry.createEditor(d.editorId, d.id);
+                        const editor = await editorRegistry.createEditor(d.editorId, d.id);
                         editor.state.update((s) => {
                             Object.assign(s as object, d.state);
                             (s as { id: string }).id = d.id;
@@ -148,7 +148,7 @@ export class PagesPersistenceModel {
         return page;
     };
 
-    private restoreV4 = async (data: WindowState): Promise<void> => {
+    private applyState = async (data: WindowState): Promise<void> => {
         const results = await Promise.all(
             data.pages.map(async (d) => {
                 try {

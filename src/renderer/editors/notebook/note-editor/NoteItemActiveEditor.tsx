@@ -1,7 +1,7 @@
 import { ComponentType, useEffect, useState } from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
 import { MiniTextEditor } from "./MiniTextEditor";
-import { editorRegistry as v4EditorRegistry } from "../../base/editorRegistry";
+import { editorRegistry } from "../../base/editorRegistry";
 import { CONTENT_HOST_TRAIT } from "../../base/editor-traits";
 import type { EditorModel } from "../../base/EditorModel";
 import { EditorView } from "../../../../shared/types";
@@ -15,7 +15,7 @@ interface NoteItemActiveEditorProps {
  * Renders the active editor for a note item.
  *  - `monaco` → `MiniTextEditor` (note-specific content-sized Monaco; IPM6 A1).
  *  - any language-gated editor (grid-json / grid-csv / grid-jsonl / md-view /
- *    svg-view / html-view / mermaid-view) → an embedded v4 `EditorModel`
+ *    svg-view / html-view / mermaid-view) → an embedded `EditorModel`
  *    wrapping this `NoteItemEditModel` as its content host, rendered chrome-free
  *    via the module's `Body` slot.
  *
@@ -35,7 +35,7 @@ export function NoteItemActiveEditor({ model }: NoteItemActiveEditorProps) {
     return <EmbeddedNoteEditor host={model} editorId={editor} key={editor} />;
 }
 
-// Minimal structural type for the host-adopting v4 editors. Each subclass
+// Minimal structural type for the host-adopting editors. Each subclass
 // declares `adoptHost(host: TextFileModel)`; the base does not, and the note
 // host is a TextFileModel-duck-type (passed structurally).
 type AdoptingEditor = EditorModel & { adoptHost(host: unknown): void };
@@ -66,7 +66,7 @@ function EmbeddedNoteEditor({ host, editorId }: EmbeddedNoteEditorProps) {
         let alive = true;
         let created: EditorModel | null = null;
         (async () => {
-            const module = await v4EditorRegistry.getModule(editorId);
+            const module = await editorRegistry.getModule(editorId);
             if (!module.Body) {
                 throw new Error(`Editor "${editorId}" is not embeddable (no Body slot)`);
             }

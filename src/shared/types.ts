@@ -31,9 +31,9 @@ export type {
     EditorDescriptor,
     HostDescriptor,
     PipeDescriptor,
-} from "./persistence-v4";
+} from "./persistence";
 
-import type { PageDescriptor } from "./persistence-v4";
+import type { PageDescriptor } from "./persistence";
 
 export interface WindowPages {
     pages: PageDescriptor[];

@@ -29,7 +29,7 @@ import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
 import { ui } from "../ui";
 import { settings } from "../settings";
-import { editorRegistry as editorRegistryV4 } from "../../editors/base/editorRegistry";
+import { editorRegistry } from "../../editors/base/editorRegistry";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { PageModel } from "./PageModel";
 
@@ -51,8 +51,8 @@ function normalizeLinksTitle(title?: string): string {
 }
 
 /** Attach an `EditorModel` or `TextFileModel` host to a `PageModel`.
- *  - v4 `EditorModel` input: returned unchanged.
- *  - `TextFileModel` host input: construct a fresh v4 editor over the host
+ *  - `EditorModel` input: returned unchanged.
+ *  - `TextFileModel` host input: construct a fresh editor over the host
  *    driven by `state.editor` (e.g. "monaco", "grid-json", "md-view", …) and
  *    return it. */
 export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
@@ -218,7 +218,7 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
     }
 
     throw new Error(
-        `attachEditorToPage: no v4 mapping for editor id "${targetEditorId}" (type "${legacyState.type ?? "?"}").`,
+        `attachEditorToPage: no mapping for editor id "${targetEditorId}" (type "${legacyState.type ?? "?"}").`,
     );
 }
 
@@ -248,7 +248,7 @@ export class PagesLifecycleModel {
 
 
     private newEditorModel = async (filePath?: string): Promise<EditorOrHost> => {
-        const targetId = editorRegistryV4.resolveId(filePath) ?? "monaco";
+        const targetId = editorRegistry.resolveId(filePath) ?? "monaco";
         return this.buildEditorById(targetId, filePath);
     };
 
@@ -259,17 +259,17 @@ export class PagesLifecycleModel {
         return this.buildEditorById(target, filePath);
     };
 
-    /** Construct a (possibly v4-cast-as-legacy) editor for an editor id +
-     *  optional file path. Text-bearing editors get a fresh TextFileModel
-     *  host; no-host editors go through their preserved standalone shim. */
+    /** Construct an editor for an editor id + optional file path. Text-bearing
+     *  editors get a fresh TextFileModel host; no-host editors go through their
+     *  standalone shim. */
     private buildEditorById = async (
         editorId: string,
         filePath?: string,
     ): Promise<EditorOrHost> => {
-        const def = editorRegistryV4.getById(editorId);
+        const def = editorRegistry.getById(editorId);
         if (!def || def.hasContentHost) {
             // Text-bearing or unknown — build a TextFileModel host.
-            // `attachEditorToPage` picks the v4 editor class based on
+            // `attachEditorToPage` picks the editor class based on
             // state.editor (set by `getPreviewEditor` in navigatePageTo,
             // or by `resolveId` for fresh file opens).
             return newTextFileModel(filePath) as unknown as EditorOrHost;
@@ -324,9 +324,9 @@ export class PagesLifecycleModel {
     };
 
     /**
-     * Add an editor (already wrapped in v4 adapter) to the page collection.
+     * Add an editor to the page collection.
      *
-     * @param editor — the v4 EditorModel to add (null for empty pages with sidebar only)
+     * @param editor — the EditorModel to add (null for empty pages with sidebar only)
      * @param existingPage — optional pre-created PageModel
      */
     addPage = (
@@ -386,10 +386,10 @@ export class PagesLifecycleModel {
                 `addEditorPage() expects positional arguments: (editor, language, title, content?). Got ${typeof editor} for editor. Example: addEditorPage("monaco", "plaintext", "My Page", "content")`,
             );
         }
-        const editorDef = editorRegistryV4.getById(editor);
+        const editorDef = editorRegistry.getById(editor);
         if (!editorDef && editor !== "monaco") {
             throw new Error(
-                `Editor '${editor}' is not registered. Available editors: ${editorRegistryV4.getAll().map((e) => e.id).join(", ")}`,
+                `Editor '${editor}' is not registered. Available editors: ${editorRegistry.getAll().map((e) => e.id).join(", ")}`,
             );
         }
         if (editorDef && !editorDef.hasContentHost) {
@@ -401,7 +401,7 @@ export class PagesLifecycleModel {
         editorModel.state.update((s) => {
             s.title = title;
             s.language = language;
-            s.editor = editorRegistryV4.validateForLanguage(editor, language) as EditorView;
+            s.editor = editorRegistry.validateForLanguage(editor, language) as EditorView;
         });
         if (content) {
             editorModel.changeContent(content);
@@ -425,7 +425,7 @@ export class PagesLifecycleModel {
             s.id = id;
             s.title = def.title;
             s.language = def.language;
-            s.editor = editorRegistryV4.validateForLanguage(
+            s.editor = editorRegistry.validateForLanguage(
                 def.editor as EditorView,
                 def.language,
             ) as EditorView;
@@ -476,7 +476,7 @@ export class PagesLifecycleModel {
         editorModel.state.update((s) => {
             s.title = normalizedTitle;
             s.language = "json";
-            s.editor = editorRegistryV4.validateForLanguage("link-view", "json") as EditorView;
+            s.editor = editorRegistry.validateForLanguage("link-view", "json") as EditorView;
         });
         editorModel.restore();
         editorModel.changeContent(content);
@@ -712,7 +712,7 @@ export class PagesLifecycleModel {
             const ext = fpExtname(newFilePath).toLowerCase();
             const lang = getLanguageByExtension(ext);
             const languageId = lang?.id || "plaintext";
-            const previewEditor = editorRegistryV4.getPreviewEditor(
+            const previewEditor = editorRegistry.getPreviewEditor(
                 languageId,
                 newFilePath,
             );

@@ -47,8 +47,7 @@ export function buildInitialProps(story: Story): Record<string, unknown> {
 }
 
 export class StorybookEditorModel extends EditorModel<StorybookEditorState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId. */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "storybook-view";
 
     noLanguage = true;

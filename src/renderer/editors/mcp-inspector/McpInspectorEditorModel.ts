@@ -4,7 +4,7 @@ import {
     type EditorStateBase,
     type RestoreData,
 } from "../base/EditorModel";
-import type { EditorDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor } from "../../../shared/persistence";
 import { TComponentState, TOneState } from "../../core/state/state";
 import { McpIcon } from "../../theme/icons";
 import {
@@ -232,8 +232,7 @@ export const getDefaultMcpInspectorEditorState = (): McpInspectorEditorState => 
 // ============================================================================
 
 export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId. */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "mcp-view";
 
     noLanguage = true;
@@ -724,7 +723,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
     };
 
     // -- Lifecycle ------------------------------------------------------------
-    // No `restore()` override — the v4 base no-op suffices. MCP must NOT
+    // No `restore()` override — the base no-op suffices. MCP must NOT
     // auto-connect on restore (connection is user-initiated).
 
     getRestoreData(): EditorDescriptor {

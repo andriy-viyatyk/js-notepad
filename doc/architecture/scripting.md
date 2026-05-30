@@ -219,7 +219,7 @@ for (const item of largeArray) {
 - Dialog results are always objects — `button` is `undefined` if canceled (page closed while pending)
 - Log View page title uses datetime format: `"2026-03-10 12:24.log.jsonl"`
 
-**Implementation:** `UiFacade` wraps the `LogViewEditor` instance for the well-known MCP Log page (or a script-grouped Log View page). The editor module is loaded on demand via the v4 `editorRegistry`; the `LogViewEditor` instance is reused across `ui` calls within a script's lifetime.
+**Implementation:** `UiFacade` wraps the `LogViewEditor` instance for the well-known MCP Log page (or a script-grouped Log View page). The editor module is loaded on demand via the `editorRegistry`; the `LogViewEditor` instance is reused across `ui` calls within a script's lifetime.
 
 ### `app` — Application Object
 

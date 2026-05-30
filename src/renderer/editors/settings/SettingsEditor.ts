@@ -19,8 +19,7 @@ export const getDefaultSettingsEditorState = (): SettingsEditorState => ({
 });
 
 export class SettingsEditor extends EditorModel<SettingsEditorState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId. */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "settings-view";
 
     noLanguage = true;

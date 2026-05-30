@@ -5,7 +5,7 @@ import {
     type EditorStateBase,
     type RestoreData,
 } from "../base/EditorModel";
-import type { EditorDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor } from "../../../shared/persistence";
 import { FileIcon } from "../../components/icons/FileIcon";
 import { fpBasename, fpExtname } from "../../core/utils/file-path";
 import { fs as appFs } from "../../api/fs";
@@ -50,9 +50,7 @@ export function getDefaultImageEditorState(): ImageEditorState {
 }
 
 export class ImageEditor extends EditorModel<ImageEditorState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId
-     *  */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "image-view";
 
     noLanguage = true;

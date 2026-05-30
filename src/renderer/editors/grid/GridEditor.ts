@@ -8,11 +8,11 @@ import {
 import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
 import type { IContentHost } from "../base/IContentHost";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { PageModel } from "../../api/pages/PageModel";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry as v4Registry } from "../base/editorRegistry";
+import { editorRegistry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 import {
@@ -163,7 +163,7 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
 
     findCompatibleEditors(): string[] {
         if (!this._host) return [];
-        return v4Registry.findEditorsAccepting(this._host as unknown as IContentHost);
+        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
     }
 
     getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {

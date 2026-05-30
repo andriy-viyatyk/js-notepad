@@ -4,7 +4,7 @@ import { pagesModel } from "../../api/pages";
 import { app } from "../../api/app";
 import { EditorView } from "../../../shared/types";
 import type { EditorModel } from "../../editors/base/EditorModel";
-import { editorRegistry as v4EditorRegistry } from "../../editors/base/editorRegistry";
+import { editorRegistry } from "../../editors/base/editorRegistry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import { NotebookEditor } from "../../editors/notebook";
@@ -40,9 +40,9 @@ export class PageWrapper {
         private readonly outputFlags?: ScriptOutputFlags,
     ) {}
 
-    /** Resolve the v4 editor instance for the page that owns `this.model`.
+    /** Resolve the main editor instance for the page that owns `this.model`.
      *  Returns null when the page can't be resolved (detached editor). */
-    private get v4(): EditorModel | null {
+    private get mainEditor(): EditorModel | null {
         const pageId = this.model.page?.id;
         if (!pageId) return null;
         return pagesModel.findPage(pageId)?.mainEditorInstance ?? null;
@@ -50,7 +50,7 @@ export class PageWrapper {
 
     private currentEditorId(): string {
         return (
-            this.v4?.editorId
+            this.mainEditor?.editorId
             ?? (this.model.state.get() as { editor?: string }).editor
             ?? "monaco"
         );
@@ -135,21 +135,21 @@ export class PageWrapper {
 
     async asText(force = false): Promise<TextEditorFacade> {
         await this.ensureEditor("monaco", "Monaco", "asText", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof MonacoEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof MonacoEditor)) {
             throw new Error("asText(): page is not a MonacoEditor after switch");
         }
-        return new TextEditorFacade(v4);
+        return new TextEditorFacade(editor);
     }
 
     async asGrid(force = false): Promise<GridEditorFacade> {
         const targetId = this.resolveGridEditorId();
         await this.ensureEditor(targetId, "Grid", "asGrid", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof GridEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof GridEditor)) {
             throw new Error("asGrid(): page is not a GridEditor after switch");
         }
-        return new GridEditorFacade(v4);
+        return new GridEditorFacade(editor);
     }
 
     private resolveGridEditorId(): EditorView {
@@ -157,7 +157,7 @@ export class PageWrapper {
         if (id === "grid-json" || id === "grid-csv" || id === "grid-jsonl") {
             return id as EditorView;
         }
-        const language = this.v4?.contentHost?.state.get().language
+        const language = this.mainEditor?.contentHost?.state.get().language
             ?? (this.model.state.get() as { language?: string }).language;
         if (language === "json") return "grid-json";
         if (language === "csv") return "grid-csv";
@@ -167,83 +167,83 @@ export class PageWrapper {
 
     async asNotebook(force = false): Promise<NotebookEditorFacade> {
         await this.ensureEditor("notebook-view", "Notebook", "asNotebook", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof NotebookEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof NotebookEditor)) {
             throw new Error("asNotebook(): page is not a NotebookEditor after switch");
         }
-        return new NotebookEditorFacade(v4);
+        return new NotebookEditorFacade(editor);
     }
 
     async asTodo(force = false): Promise<TodoEditorFacade> {
         await this.ensureEditor("todo-view", "Todo", "asTodo", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof TodoEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof TodoEditor)) {
             throw new Error("asTodo(): page is not a TodoEditor after switch");
         }
-        return new TodoEditorFacade(v4);
+        return new TodoEditorFacade(editor);
     }
 
     async asLink(force = false): Promise<LinkEditorFacade> {
         await this.ensureEditor("link-view", "Link", "asLink", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof LinkEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof LinkEditor)) {
             throw new Error("asLink(): page is not a LinkEditor after switch");
         }
-        return new LinkEditorFacade(v4);
+        return new LinkEditorFacade(editor);
     }
 
     async asMarkdown(force = false): Promise<MarkdownEditorFacade> {
         await this.ensureEditor("md-view", "Markdown", "asMarkdown", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof MarkdownEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof MarkdownEditor)) {
             throw new Error("asMarkdown(): page is not a MarkdownEditor after switch");
         }
-        return new MarkdownEditorFacade(v4);
+        return new MarkdownEditorFacade(editor);
     }
 
     async asSvg(force = false): Promise<SvgEditorFacade> {
         await this.ensureEditor("svg-view", "SVG", "asSvg", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof SvgEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof SvgEditor)) {
             throw new Error("asSvg(): page is not a SvgEditor after switch");
         }
-        return new SvgEditorFacade(v4);
+        return new SvgEditorFacade(editor);
     }
 
     async asHtml(force = false): Promise<HtmlEditorFacade> {
         await this.ensureEditor("html-view", "HTML", "asHtml", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof HtmlEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof HtmlEditor)) {
             throw new Error("asHtml(): page is not an HtmlEditor after switch");
         }
-        return new HtmlEditorFacade(v4);
+        return new HtmlEditorFacade(editor);
     }
 
     async asMermaid(force = false): Promise<MermaidEditorFacade> {
         await this.ensureEditor("mermaid-view", "Mermaid", "asMermaid", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof MermaidEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof MermaidEditor)) {
             throw new Error("asMermaid(): page is not a MermaidEditor after switch");
         }
-        return new MermaidEditorFacade(v4);
+        return new MermaidEditorFacade(editor);
     }
 
     async asGraph(force = false): Promise<GraphEditorFacade> {
         await this.ensureEditor("graph-view", "Graph", "asGraph", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof GraphEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof GraphEditor)) {
             throw new Error("asGraph(): page is not a GraphEditor after switch");
         }
-        return new GraphEditorFacade(v4);
+        return new GraphEditorFacade(editor);
     }
 
     async asDraw(force = false): Promise<DrawEditorFacade> {
         await this.ensureEditor("draw-view", "Draw", "asDraw", force);
-        const v4 = this.v4;
-        if (!(v4 instanceof DrawEditor)) {
+        const editor = this.mainEditor;
+        if (!(editor instanceof DrawEditor)) {
             throw new Error("asDraw(): page is not a DrawEditor after switch");
         }
-        return new DrawEditorFacade(v4);
+        return new DrawEditorFacade(editor);
     }
 
     async asBrowser(): Promise<BrowserEditorFacade> {
@@ -288,10 +288,10 @@ export class PageWrapper {
     }
 
     private compatibleEditorIds(): string[] {
-        const v4 = this.v4;
-        if (v4) return v4.findCompatibleEditors();
+        const editor = this.mainEditor;
+        if (editor) return editor.findCompatibleEditors();
         const s = this.model.state.get() as { language?: string; filePath?: string };
-        return v4EditorRegistry.getSwitchOptions(s.language ?? "", s.filePath).options;
+        return editorRegistry.getSwitchOptions(s.language ?? "", s.filePath).options;
     }
 
     async runScript(): Promise<string> {

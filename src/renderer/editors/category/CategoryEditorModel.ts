@@ -27,9 +27,7 @@ export function getDefaultCategoryEditorModelState(): CategoryEditorModelState {
 }
 
 export class CategoryEditorModel extends EditorModel<CategoryEditorModelState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  `EditorDescriptor.editorId`
-     *  */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "category-view";
 
     noLanguage = true;

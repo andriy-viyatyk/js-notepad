@@ -2,7 +2,7 @@ import type { LinkEditor } from "../../editors/link-editor";
 import type { LinkItem } from "../../editors/link-editor/linkTypes";
 
 /**
- * Safe facade around v4 LinkEditor for script access.
+ * Safe facade around LinkEditor for script access.
  * Implements the ILinkEditor interface from api/types/link-editor.d.ts.
  *
  * - Links are read-only snapshots (ILink projection of LinkItem)

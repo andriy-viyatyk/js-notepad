@@ -5,7 +5,7 @@ import {
     type EditorStateBase,
     type RestoreData,
 } from "../base/EditorModel";
-import type { EditorDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor } from "../../../shared/persistence";
 import type { ArchiveTreeProvider } from "../../content/tree-providers/ArchiveTreeProvider";
 import { fpBasename } from "../../core/utils/file-path";
 import { ArchiveIcon } from "../../theme/icons";
@@ -31,9 +31,7 @@ export function getDefaultArchiveEditorState(): ArchiveEditorState {
 }
 
 export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId
-     *  */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "archive-view";
 
     noLanguage = true;
@@ -93,8 +91,8 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
     /**
      * Navigation survival: keep this model as secondary editor if the new page
      * was opened from this archive (sourceLink.sourceId matches). NOT a no-op
-     * (contrast Explorer EX-IMPL1) — the v4 base default would unconditionally
-     * clear `secondaryEditor` and drop Archive's panel on every navigation.
+     * — the base default would unconditionally clear `secondaryEditor` and
+     * drop Archive's panel on every navigation.
      */
     beforeNavigateAway(newModel: EditorModel): void {
         if (this._isOpenedFromThisArchive(newModel)) return;
@@ -133,8 +131,8 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
 
     /** Check if a model was opened from this archive via sourceLink. Reads the
      *  source id from both the editor's own state and its content host (see
-     *  `EditorModel.getNavigationSourceId`) so navigation into a v4-native text
-     *  editor (e.g. Monaco) keeps the Archive panel instead of dropping it. */
+     *  `EditorModel.getNavigationSourceId`) so navigation into a text editor
+     *  (e.g. Monaco) keeps the Archive panel instead of dropping it. */
     private _isOpenedFromThisArchive(model: EditorModel): boolean {
         return model.getNavigationSourceId() === this.id;
     }

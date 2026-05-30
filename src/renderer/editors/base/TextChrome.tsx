@@ -228,7 +228,7 @@ function isTextFileHost(host: IContentHost): boolean {
     // fig retirement") removed that method from TextFileModel while leaving
     // it on NoteItemEditModel — silently inverting this check. Symptom: the
     // footer toolbar, ScriptPanel, run buttons, compare button, and the
-    // editor-overlay portal all stopped rendering for v4 editors.
+    // editor-overlay portal all stopped rendering for editors.
     return typeof (host as unknown as { setEditorOverlayRef?: unknown }).setEditorOverlayRef === "function";
 }
 

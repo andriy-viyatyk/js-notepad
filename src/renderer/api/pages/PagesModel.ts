@@ -161,7 +161,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         if (pages.length !== 2) return;
         const firstPage = pages[0];
         if (firstPage.pinned) return;
-        // Check the v4 surface so adapter's isFreshEmpty() resolves correctly.
+        // Use the editor instance so isFreshEmpty() resolves correctly.
         if (firstPage.mainEditorInstance?.isFreshEmpty?.() === true) {
             firstPage.close();
         }

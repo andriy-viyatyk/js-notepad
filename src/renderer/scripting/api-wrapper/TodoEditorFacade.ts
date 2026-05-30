@@ -2,7 +2,7 @@ import type { TodoEditor } from "../../editors/todo";
 import type { TodoItem, TodoTag } from "../../editors/todo/todoTypes";
 
 /**
- * Safe facade around v4 TodoEditor for script access.
+ * Safe facade around TodoEditor for script access.
  * Implements the ITodoEditor interface from api/types/todo-editor.d.ts.
  *
  * - Items are read-only snapshots (ITodoItem projection of TodoItem)

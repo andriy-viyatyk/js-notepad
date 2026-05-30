@@ -80,7 +80,7 @@ export function OpenTabsList(props: OpenTabsListProps) {
         otherWindowsPages.forEach((wp) => {
             resItems.push({ windowIndex: wp.windowIndex });
             const pages = wp.pages.map((desc) => {
-                // v4 PageDescriptor: pick the main editor's state slice.
+                // PageDescriptor: pick the main editor's state slice.
                 const main = desc.editors.find(e => e.id === desc.mainEditorId);
                 const state = (main?.state ?? {}) as Partial<IEditorState>;
                 return {

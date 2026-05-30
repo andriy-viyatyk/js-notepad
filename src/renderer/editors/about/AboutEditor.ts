@@ -19,8 +19,7 @@ export const getDefaultAboutEditorState = (): AboutEditorState => ({
 });
 
 export class AboutEditor extends EditorModel<AboutEditorState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId. */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "about-view";
 
     noLanguage = true;

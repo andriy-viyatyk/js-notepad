@@ -4,7 +4,7 @@ import type { IState } from "../../core/state/state";
 import { TraitSet } from "../../core/traits/traits";
 import { Subscription } from "../../core/state/events";
 import { ComponentQueue, ComponentQueueEvent } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import type { IContentHost } from "./IContentHost";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { PageModel } from "../../api/pages/PageModel";
@@ -211,12 +211,11 @@ export abstract class EditorModel<
      *  the legacy editor's state BEFORE wrap, so the location depends on the
      *  new main editor's topology:
      *
-     *   - v4-native text editors (Monaco, Grid, …) adopt that state as their
-     *     content host — `sourceLink` is on `contentHost.state`, NOT the
-     *     editor's own state (which is a fresh editor-shaped state).
-     *   - no-host editors (PDF, Image, Browser, Archive) and legacy non-text
-     *     adapters (Player) keep `sourceLink` on the editor's OWN state, and
-     *     have no content host.
+     *   - text editors (Monaco, Grid, …) adopt that state as their content
+     *     host — `sourceLink` is on `contentHost.state`, NOT the editor's
+     *     own state (which is a fresh editor-shaped state).
+     *   - no-host editors (PDF, Image, Browser, Archive) keep `sourceLink`
+     *     on the editor's OWN state, and have no content host.
      *
      *  Check own state first, then fall back to the content host, so neither
      *  topology is missed. (Reading only one location was the cause of the

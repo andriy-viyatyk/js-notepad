@@ -47,10 +47,9 @@ export interface LinkEditorData {
 
 
 /**
- * Slice of state read by LinkTreeProvider. Both the legacy `LinkViewModel`
- * (used by browser-embed + notebook-embed) and the v4 `LinkEditor` class
- * (used by page-level Link pages) satisfy this shape — their full state
- * types are wider, but only these fields are consumed by the provider.
+ * Slice of state read by LinkTreeProvider. `LinkEditor` satisfies this
+ * shape — its full state type is wider, but only these fields are consumed
+ * by the provider.
  */
 export interface ILinkSourceSnapshot {
     data: LinkEditorData;

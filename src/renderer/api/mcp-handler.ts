@@ -120,7 +120,7 @@ async function executeScript(params: McpParams): Promise<McpResponse> {
 function getPages(): McpPageInfo[] {
     const pages = pagesModel.state.get().pages;
     return pages.map((p) => {
-        const editorV4 = p.mainEditorInstance;
+        const editor = p.mainEditorInstance;
         const editorState = p.mainEditor?.state.get() as
             | { language?: string; filePath?: string }
             | undefined;
@@ -128,7 +128,7 @@ function getPages(): McpPageInfo[] {
         return {
             id: p.id,
             title: p.title,
-            editor: editorV4?.editorId,
+            editor: editor?.editorId,
             language: textHost?.state.get().language ?? editorState?.language,
             filePath: textHost?.state.get().filePath ?? editorState?.filePath,
             modified: p.modified,
@@ -165,7 +165,7 @@ function getActivePage(): McpActivePage | null {
     const page = pagesModel.activePage;
     if (!page) return null;
 
-    const editorV4 = page.mainEditorInstance;
+    const editor = page.mainEditorInstance;
     const editorState = page.mainEditor?.state.get() as
         | { language?: string; filePath?: string }
         | undefined;
@@ -175,7 +175,7 @@ function getActivePage(): McpActivePage | null {
     return {
         id: page.id,
         title: page.title,
-        editor: editorV4?.editorId,
+        editor: editor?.editorId,
         language: textHost?.state.get().language ?? editorState?.language,
         filePath: textHost?.state.get().filePath ?? editorState?.filePath,
         modified: page.modified,
@@ -186,13 +186,13 @@ function getActivePage(): McpActivePage | null {
 function createPage(params: McpParams): McpResponse {
     const content = asString(params?.content) ?? "";
     const language = asString(params?.language) ?? "plaintext";
-    const editor = asString(params?.editor) ?? "monaco";
+    const editorId = asString(params?.editor) ?? "monaco";
     const title = asString(params?.title) ?? "Untitled";
 
-    const editorDef = editorRegistry.getById(editor);
+    const editorDef = editorRegistry.getById(editorId);
     if (!editorDef) {
         const all = editorRegistry.getAll().map((e) => e.id);
-        return { error: { code: -32602, message: `Unknown editor '${editor}'. Valid editors: ${all.join(", ")}` } };
+        return { error: { code: -32602, message: `Unknown editor '${editorId}'. Valid editors: ${all.join(", ")}` } };
     }
 
     if (!editorDef.hasContentHost) {
@@ -209,12 +209,12 @@ function createPage(params: McpParams): McpResponse {
             "log-view": 'Use ui_push to write entries to the MCP log page, or execute_script with: '
                 + 'await app.pages.requireWellKnownPage("mcp-ui-log")',
         };
-        const hint = hints[editor]
+        const hint = hints[editorId]
             ?? `Read resource 'notepad://guides/pages' for details on editor types.`;
         return {
             error: {
                 code: -32602,
-                message: `Editor '${editor}' is a standalone editor and cannot be created with create_page. `
+                message: `Editor '${editorId}' is a standalone editor and cannot be created with create_page. `
                     + `Standalone editors require specialized models. ${hint}`,
             },
         };
@@ -222,16 +222,16 @@ function createPage(params: McpParams): McpResponse {
 
     // Editor string was validated against the registry above, so the cast to
     // the EditorView union is safe at this point.
-    const page = pagesModel.addEditorPage(editor as EditorView, language, title, content || undefined);
+    const page = pagesModel.addEditorPage(editorId as EditorView, language, title, content || undefined);
 
-    const editorV4 = page.mainEditorInstance;
+    const editor = page.mainEditorInstance;
     const editorState = page.mainEditor?.state.get() as { language?: string } | undefined;
     const textHost = pagesModel.getTextFileHost(page.id);
     return {
         result: {
             id: page.id,
             title: page.title,
-            editor: editorV4?.editorId,
+            editor: editor?.editorId,
             language: textHost?.state.get().language ?? editorState?.language,
         },
     };

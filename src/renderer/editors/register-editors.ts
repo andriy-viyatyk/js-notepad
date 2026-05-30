@@ -1,4 +1,4 @@
-import { editorRegistry as v4EditorRegistry } from "./base/editorRegistry";
+import { editorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { secondaryEditorRegistry } from "../ui/navigation/secondary-editor-registry";
 
@@ -43,7 +43,7 @@ secondaryEditorRegistry.register({
 });
 
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "monaco",
     name: "Text Editor",
     hasContentHost: true,
@@ -64,7 +64,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "grid-json",
     name: "Grid (JSON)",
     hasContentHost: true,
@@ -76,7 +76,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "grid-csv",
     name: "Grid (CSV)",
     hasContentHost: true,
@@ -88,7 +88,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "grid-jsonl",
     name: "Grid (JSONL)",
     hasContentHost: true,
@@ -100,7 +100,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "log-view",
     name: "Log View",
     hasContentHost: true,
@@ -112,7 +112,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "md-view",
     name: "Preview",
     hasContentHost: true,
@@ -124,7 +124,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "svg-view",
     name: "Preview",
     hasContentHost: true,
@@ -136,7 +136,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "html-view",
     name: "Preview",
     hasContentHost: true,
@@ -148,7 +148,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "mermaid-view",
     name: "Mermaid",
     hasContentHost: true,
@@ -160,7 +160,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "graph-view",
     name: "Graph",
     hasContentHost: true,
@@ -172,7 +172,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "draw-view",
     name: "Drawing",
     hasContentHost: true,
@@ -184,7 +184,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "link-view",
     name: "Links",
     hasContentHost: true,
@@ -196,7 +196,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "todo-view",
     name: "ToDo",
     hasContentHost: true,
@@ -208,7 +208,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "rest-client",
     name: "Rest Client",
     hasContentHost: true,
@@ -220,7 +220,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "notebook-view",
     name: "Notebook",
     hasContentHost: true,
@@ -232,7 +232,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "browser-view",
     name: "Browser",
     hasContentHost: false,
@@ -243,7 +243,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "pdf-view",
     name: "PDF Viewer",
     hasContentHost: false,
@@ -255,7 +255,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "image-view",
     name: "Image Viewer",
     hasContentHost: false,
@@ -267,7 +267,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "archive-view",
     name: "Archive",
     hasContentHost: false,
@@ -279,7 +279,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "video-view",
     name: "Video Player",
     hasContentHost: false,
@@ -291,7 +291,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "settings-view",
     name: "Settings",
     hasContentHost: false,
@@ -302,7 +302,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "about-view",
     name: "About",
     hasContentHost: false,
@@ -313,7 +313,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "mcp-view",
     name: "MCP Inspector",
     hasContentHost: false,
@@ -324,7 +324,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "storybook-view",
     name: "Storybook",
     hasContentHost: false,
@@ -335,7 +335,7 @@ v4EditorRegistry.register({
     },
 });
 
-v4EditorRegistry.register({
+editorRegistry.register({
     id: "category-view",
     name: "Folder View",
     hasContentHost: false,

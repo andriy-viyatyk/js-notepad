@@ -1,7 +1,7 @@
 import { TComponentState, TOneState } from "../../core/state/state";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
-import type { PageDescriptor } from "../../../shared/persistence-v4";
+import type { PageDescriptor } from "../../../shared/persistence";
 import { PageNavigatorModel } from "../../ui/navigation/PageNavigatorModel";
 import type { IContentPipe } from "../types/io.pipe";
 import { fs } from "../fs";
@@ -57,7 +57,7 @@ export class PageModel {
     /**
      * All editors attached to this page. Order matches sidebar panel order.
      * One of these may also be the main editor (flagged by `_mainEditorId`).
-     * Holds v4 EditorModel instances.
+     * Holds EditorModel instances.
      */
     readonly editors: EditorModel[] = [];
 
@@ -112,7 +112,7 @@ export class PageModel {
      *  `encrypted` / `modified` (tab strip, OpenTabsList) work uniformly with
      *  no-host editors that return the editor instance itself.
      *  Use `mainEditorInstance` when an `instanceof EditorModel` check or
-     *  access to v4-specific fields (`editorId`, `contentHost`) is needed. */
+     *  access to editor-specific fields (`editorId`, `contentHost`) is needed. */
     get mainEditor(): EditorOrHost | null {
         return unwrapToHost(this.mainEditorInstance);
     }
@@ -125,9 +125,9 @@ export class PageModel {
         this.state.update((s) => { s.mainEditorId = editor?.id ?? null; });
     }
 
-    /** Raw v4 editor instance (no host unwrap). Used by callers that need
+    /** Raw editor instance (no host unwrap). Used by callers that need
      *  `instanceof` checks against concrete editor classes or access to
-     *  v4-specific fields like `editorId` and `contentHost`. */
+     *  editor-specific fields like `editorId` and `contentHost`. */
     get mainEditorInstance(): EditorModel | null {
         if (!this._mainEditorId) return null;
         return this.editors.find((e) => e.id === this._mainEditorId) ?? null;
@@ -135,7 +135,7 @@ export class PageModel {
 
     /** Editors that currently contribute panels (subset of `editors[]`). All
      *  sidebar-owning editors (Link, Archive, Explorer, Category) live on the
-     *  v4 editor; `instanceof` checks resolve against the concrete class. */
+     *  editor; `instanceof` checks resolve against the concrete class. */
     get panelEditors(): EditorModel[] {
         const editors = this.editors.filter((e) => e.contributesPanels());
         // Explorer panel always renders first. The Explorer editor is lazily
@@ -228,9 +228,8 @@ export class PageModel {
         });
     }
 
-    /** Compat shim for legacy EditorModel.secondaryEditor setter side-effect.
-     *  Accepts ANY editor (legacy or v4) — the legacy editor's setter passes
-     *  itself, and we look up an existing adapter by id. */
+    /** Compat shim for the `EditorModel.secondaryEditor` setter side-effect.
+     *  Accepts any editor and looks up an existing adapter by id. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     addSecondaryEditor(editor: any): void {
         // Legacy editors pass themselves; resolve to their adapter via id.
@@ -561,7 +560,7 @@ export class PageModel {
 
         this.pageNavigatorModel?.dispose();
         this.pageNavigatorModel = null;
-        // No page-level cache file in v4 (walkthrough 04 / P3); per-editor
-        // caches were cleaned in the loop above.
+        // No page-level cache file; per-editor caches were cleaned in the
+        // loop above.
     }
 }

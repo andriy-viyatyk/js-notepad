@@ -10,7 +10,7 @@ import { TextFileIOModel } from "./TextFileIOModel";
 import { TextFileActionsModel } from "./TextFileActionsModel";
 import type { IContentHost } from "../base/IContentHost";
 import type { EditorStateStorage } from "../base/EditorStateStorage";
-import type { HostDescriptor } from "../../../shared/persistence-v4";
+import type { HostDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { PageModel } from "../../api/pages/PageModel";
 import { createPipeFromDescriptor } from "../../content/registry";
@@ -67,7 +67,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
      *  not persist to disk. */
     scriptData: Record<string, unknown> = {};
 
-    /** Reference to the containing PageModel. Set by the wrapping v4 editor's
+    /** Reference to the containing PageModel. Set by the wrapping editor's
      *  `setPage` so the host can read sibling editors / navigator state. */
     page: PageModel | null = null;
 
@@ -105,10 +105,9 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         return this.state.get().language;
     }
 
-    /** Active secondary editor panel IDs. the host's
-     *  `secondaryEditor` field is rarely consumed (panels live on the v4
-     *  wrapping editor's own state); the setter is preserved as a pure
-     *  state mutator so legacy callers don't churn. */
+    /** Active secondary editor panel IDs. The host's `secondaryEditor` field
+     *  is rarely consumed (panels live on the wrapping editor's own state);
+     *  the setter is preserved as a pure state mutator. */
     get secondaryEditor(): string[] | undefined {
         return this.state.get().secondaryEditor;
     }
@@ -150,7 +149,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
 
     /** Sync best-effort selection probe. MonacoEditor exposes async
      *  `getSelectedText()` via its queue — callers needing selection-aware
-     *  behavior should prefer the async path on the v4 editor. This sync
+     *  behavior should prefer the async path on the editor. This sync
      *  fallback returns "" for non-Monaco editors and for queue-async
      *  contexts; consumers (e.g., `TextFileActionsModel.runScript`) interpret
      *  "" as "no selection — run on full content," which is safe. */
@@ -282,10 +281,10 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     };
 
 
-    /** v4 IContentHost serialization. Wraps the legacy flat shape into a
-     *  HostDescriptor so MonacoEditor.getRestoreData can attach it as `host`.
-     *  Strips runtime-only / security-sensitive fields (content lives in
-     *  cache file; password never persists; encrypted/restored/deleted are
+    /** IContentHost serialization. Builds a `HostDescriptor` so
+     *  `MonacoEditor.getRestoreData` can attach it as `host`. Strips
+     *  runtime-only / security-sensitive fields (content lives in the cache
+     *  file; password never persists; encrypted/restored/deleted are
      *  reconstructed at restore time). */
     getDescriptor(): HostDescriptor {
         const s = this.state.get();
@@ -414,9 +413,9 @@ export function newTextFileModelFromState(
 }
 
 /** Narrow an arbitrary editor handle to `TextFileModel` via the
- *  `state.type === "textFile"` discriminator. callers should
- *  prefer accessing the host through the v4 editor's `contentHost` getter
- *  when they have a v4 EditorModel in hand. */
+ *  `state.type === "textFile"` discriminator. Callers should prefer
+ *  accessing the host through the editor's `contentHost` getter when they
+ *  have an `EditorModel` in hand. */
 export function isTextFileModel(model: unknown): model is TextFileModel {
     if (!model || typeof model !== "object") return false;
     const state = (model as { state?: { get?: () => { type?: string } } }).state;

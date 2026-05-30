@@ -72,7 +72,7 @@ export class PagesQueryModel {
 
     /**
      * Returns the page's TextFileModel host (the actual content-bearing model
-     * for text editors), or null. Reads the v4 editor's `contentHost` and
+     * for text editors), or null. Reads the editor's `contentHost` and
      * returns it when structurally a TextFileModel.
      */
     getTextFileHost = (pageId: string): TextFileModel | null => {

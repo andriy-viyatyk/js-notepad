@@ -5,7 +5,7 @@ import {
     type EditorStateBase,
     type RestoreData,
 } from "../base/EditorModel";
-import type { EditorDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import { PlayerIcon } from "../../theme/icons";
 import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
@@ -68,8 +68,7 @@ export const getDefaultVideoEditorState = (): VideoEditorState => ({
 // ── Model ────────────────────────────────────────────────────────────────────
 
 export class VideoEditor extends EditorModel<VideoEditorState> {
-    /** v4 editor identity. Matches the legacy registry id so v4
-     *  EditorDescriptor.editorId. */
+    /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "video-view";
 
     noLanguage = true;

@@ -398,7 +398,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
         return {
             sourceWindowIndex: drop ? undefined : appWindow.windowIndex,
             targetWindowIndex: drop ? appWindow.windowIndex : undefined,
-            // Walkthrough 05 / M1: IPC payload is the new v4 PageDescriptor.
+            // IPC payload is the PageDescriptor.
             page: page.getDescriptor(),
         };
     };

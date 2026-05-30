@@ -6,7 +6,7 @@ import {
     type RestoreData,
 } from "../base/EditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor } from "../../../shared/persistence-v4";
+import type { EditorDescriptor } from "../../../shared/persistence";
 import { globalKeyDown, windowClosing, SubscriptionObject } from "../../core/state/events";
 import { pagesModel } from "../../api/pages";
 import { IncognitoIcon, TorIcon } from "../../theme/language-icons";

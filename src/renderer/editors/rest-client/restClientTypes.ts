@@ -70,15 +70,13 @@ export function createDefaultRequest(name?: string, collection?: string): RestRe
 
 import type { RestClientEditor } from "./RestClientEditor";
 
-/** Source type for shared Rest Client components. this is just
- *  the v4 `RestClientEditor`; the alias is preserved so consumer call sites
- *  don't churn. */
+/** Source type for shared Rest Client components. */
 export type RestClientSource = RestClientEditor;
 
-/** Minimal state surface read by RequestBuilder + SplitDetailPanel. Both the
- *  legacy RestClientEditorState and the v4 RestClientEditorState satisfy it
- *  (extra fields on the v4 state — id/title/modified/secondaryEditor from
- *  EditorStateBase — are ignored by the shared components). */
+/** Minimal state surface read by RequestBuilder + SplitDetailPanel.
+ *  `RestClientEditorState` satisfies it (extra fields — id/title/modified/
+ *  secondaryEditor from `EditorStateBase` — are ignored by the shared
+ *  components). */
 export interface RestClientViewState {
     response: RestResponse | null;
     responseTime: number;

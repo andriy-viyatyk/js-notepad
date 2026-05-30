@@ -246,7 +246,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                     pageCount: wState?.pages?.length ?? 0,
                     activePageId: wState?.activePageId,
                     pages: (wState?.pages || []).map(p => {
-                        // v4 PageDescriptor: read main editor's state from editors[mainEditorId].
+                        // PageDescriptor: read main editor's state from editors[mainEditorId].
                         const main = p.editors.find(e => e.id === p.mainEditorId);
                         const state = (main?.state ?? {}) as { title?: string; type?: string; editor?: string; language?: string; filePath?: string };
                         return {

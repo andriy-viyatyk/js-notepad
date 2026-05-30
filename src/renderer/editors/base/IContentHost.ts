@@ -1,6 +1,6 @@
 import type React from "react";
 import type { IState } from "../../core/state/state";
-import type { HostDescriptor } from "../../../shared/persistence-v4";
+import type { HostDescriptor } from "../../../shared/persistence";
 
 /** Minimal reactive state every host exposes. */
 export interface IContentHostState {

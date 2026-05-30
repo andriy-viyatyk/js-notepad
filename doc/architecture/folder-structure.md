@@ -281,7 +281,7 @@ persephone/
 │   │   ├── note-editor/              # Per-note embedded editor subsystem
 │   │   │   ├── NoteItemEditModel.ts  # IContentHost for one note (no file I/O — state in notebook JSON)
 │   │   │   ├── MiniTextEditor.tsx    # Monaco mini-editor used for monaco notes
-│   │   │   ├── NoteItemActiveEditor.tsx # Embeds language-gated v4 editors per note
+│   │   │   ├── NoteItemActiveEditor.tsx # Embeds language-gated editors per note
 │   │   │   ├── NoteItemToolbar.tsx
 │   │   │   └── index.ts
 │   │   └── index.tsx
