@@ -8,7 +8,6 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 - *(no epic)*
-  - [ ] [US-588: Lint baseline — fix errors, then triage warnings](tasks/US-588-lint-baseline/README.md) — phased: P1 fix all 18 errors (mostly ESLint config: install `eslint-plugin-react-hooks` + `eslint-import-resolver-typescript`, ignore `scratches/` + `assets/editor-types/`, plus 3 small code fixes); P2 mechanical/auto-fixable warnings (~110 cases); P3 categorize + decide per category for the remaining `no-explicit-any` (577) / `no-non-null-assertion` (154) / `exhaustive-deps` (14)
   - [ ] US-589: TextChrome — fix `isTextFileHost` discriminator regression from US-559 (silently dropped footer toolbar, ScriptPanel, run/compare buttons, and editor-overlay portal for ALL v4 editors; surfaced as "Expand note doesn't work" in notebook). One-line fix in `src/renderer/editors/base/TextChrome.tsx`: duck-type against `setEditorOverlayRef` instead of the deleted `setEditorToolbarRefFirst`.
 
 ## Planned
