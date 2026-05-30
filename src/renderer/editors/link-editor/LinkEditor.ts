@@ -1167,6 +1167,17 @@ export class LinkEditor
 
     // ── Save / release / dispose ────────────────────────────────────────
 
+    /** Delegate to host — same pattern as `confirmRelease` below. LinkEditor
+     *  wraps a TextFileModel; edits flow through the host, so `host.modified`
+     *  is the source of truth. Without this override, a demoted LinkEditor
+     *  (sidebar-only, no main editor) would report `modified=false` and
+     *  `page.close()` would skip the save prompt — the close loop reads
+     *  `editor.modified` on each entry in `editors[]` and only the main-editor
+     *  branch goes through `unwrapToHost`. (US-592.) */
+    get modified(): boolean {
+        return this._host ? this._host.modified : super.modified;
+    }
+
     async confirmRelease(closing?: boolean): Promise<boolean> {
         return this._host ? this._host.confirmRelease(closing) : true;
     }
