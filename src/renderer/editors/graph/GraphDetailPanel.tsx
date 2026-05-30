@@ -288,13 +288,14 @@ function GraphDetailPanel({
             setEditTitle(singleNode.title || "");
             setIdError("");
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow: only re-init edit fields when the id/title slice changes, not on every singleNode object identity change
     }, [singleNode?.id, singleNode?.title]);
 
     useEffect(() => {
         if (isMulti && activeTab === "links") {
             setActiveTab("info");
         }
-    }, [isMulti]);
+    }, [isMulti, activeTab]);
 
     useEffect(() => {
         if (hasSelection) {
@@ -307,13 +308,14 @@ function GraphDetailPanel({
             setExpanded(false);
             hadSelectionRef.current = false;
         }
-    }, [selectionKey]);
+    }, [selectionKey, hasSelection]);
 
     useEffect(() => {
         if (expandRequest && hasSelection) {
             setExpanded(true);
             wasExpandedRef.current = true;
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- expandRequest is a one-shot bump signal from parent; hasSelection is a runtime gate checked at fire time, not a re-fire trigger
     }, [expandRequest]);
 
     useEffect(() => {
@@ -321,6 +323,7 @@ function GraphDetailPanel({
             setExpanded(false);
             wasExpandedRef.current = false;
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- collapseRequest is a one-shot bump signal from parent; expanded / anyDirty are runtime gates checked at fire time, not re-fire triggers
     }, [collapseRequest]);
 
     useEffect(() => {
@@ -345,8 +348,10 @@ function GraphDetailPanel({
             onHighlightSet?.(null);
             onExternalHover?.("");
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- deps intentionally narrowed: only re-emit when singleNode id / linkedNodes / linksTabActive change. Parent callbacks are not wrapped in useCallback and would cause redundant re-fires on every parent render.
     }, [linksTabActive, singleNode?.id, linkedNodes]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only cleanup: clear external hover/highlight when this panel unmounts (parent callbacks captured at mount)
     useEffect(() => () => { onHighlightSet?.(null); onExternalHover?.(""); }, []);
 
     const commitId = useCallback(() => {
@@ -601,6 +606,7 @@ function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExter
         setDirty(false);
         onDirtyChange(false);
         originalIdsRef.current = new Set(linkedNodes.map((n) => n.id));
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally re-init only when source data (linkedNodes) changes; callback identity changes from parent should not reset row state
     }, [linkedNodes]);
 
     useEffect(() => {
@@ -610,6 +616,7 @@ function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExter
         } else {
             onExternalHover?.("");
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- hover is keyed on focus changes only; rows mutations are expected to come paired with focus resets by the parent. TODO: consider extracting focusedRowId = rows.find(...)?.id outside the effect for a more defensive structure.
     }, [focus?.rowKey]);
 
     const markDirty = useCallback(() => {
@@ -808,6 +815,7 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
         setDirty(false);
         onDirtyChange(false);
         setStatusMessage("");
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- isMulti / singleNode are derived from `nodes` (in deps); onDirtyChange identity changes from parent should not reset row state
     }, [selectionKey, nodes]);
 
     useEffect(() => {

@@ -96,12 +96,14 @@ export function ExpandedNoteView({
     // Create edit model for expanded view
     const editModel = useMemo(
         () => new NoteItemEditModel(notebookModel, note),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow: rebuild model only when the underlying note swaps (note.id), not on every parent re-render or data refresh
         [note.id]
     );
 
     // Sync edit model when note data changes
     useEffect(() => {
         editModel.syncFromNote(note);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow: sync only when the external content slices change, not on every `note` object identity change — otherwise a parent re-render would overwrite the user's in-flight local edits inside editModel
     }, [note.content.content, note.content.language, note.content.editor]);
 
     // Cleanup on unmount

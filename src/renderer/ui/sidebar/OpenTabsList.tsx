@@ -47,13 +47,13 @@ export function OpenTabsList(props: OpenTabsListProps) {
 
     useEffect(() => {
         loadWindowPages();
-    }, []);
+    }, [loadWindowPages]);
 
     useEffect(() => {
         if (open) {
             loadWindowPages();
         }
-    }, [open]);
+    }, [open, loadWindowPages]);
 
     // activePage is a getter derived from `state`; re-evaluates on every render of this component (which is itself driven by state.use() above).
     const activePageId = pagesModel.activePage?.id;
@@ -102,7 +102,7 @@ export function OpenTabsList(props: OpenTabsListProps) {
             setTimeout(loadWindowPages, 50);
         }
         return allItems;
-    }, [state.pages, allWindowsPages, currentWindowIndex]);
+    }, [state.pages, allWindowsPages, currentWindowIndex, loadWindowPages]);
 
     const tItems = useMemo(
         () => traited(items, openTabsListTraits),
