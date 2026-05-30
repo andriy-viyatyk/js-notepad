@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Excalidraw, FONT_FAMILY, THEME, useHandleLibrary } from "@excalidraw/excalidraw";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type {
+    ExcalidrawImperativeAPI,
+    AppState,
+    BinaryFiles,
+    LibraryItemsSource,
+} from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type { OrderedExcalidrawElement } from "@excalidraw/excalidraw/dist/types/excalidraw/element/types";
 // eslint-disable-next-line import/no-unresolved -- CSS subpath; bundled by Vite, not by ESLint's TS resolver
 import "@excalidraw/excalidraw/index.css";
 import { Panel } from "../../uikit/Panel";
@@ -14,10 +20,19 @@ import { createLibraryAdapter, initDefaultLibraryPath } from "./drawLibrary";
 
 const LIBRARY_RETURN_URL = "https://jsnotepad.excalidraw-library/";
 
+// Excalidraw reads these globals at module-init time. Augment Window so the
+// assignments below typecheck without `any`.
+declare global {
+    interface Window {
+        EXCALIDRAW_ASSET_PATH?: string;
+        __EXCALIDRAW_ASSET_PATH_SET?: boolean;
+    }
+}
+
 // Set Excalidraw asset path to local fonts (must be set before component mounts)
-if (!(window as any).__EXCALIDRAW_ASSET_PATH_SET) {
-    (window as any).EXCALIDRAW_ASSET_PATH = "app-asset://excalidraw/";
-    (window as any).__EXCALIDRAW_ASSET_PATH_SET = true;
+if (!window.__EXCALIDRAW_ASSET_PATH_SET) {
+    window.EXCALIDRAW_ASSET_PATH = "app-asset://excalidraw/";
+    window.__EXCALIDRAW_ASSET_PATH_SET = true;
 }
 
 interface DrawBodyProps {
@@ -78,7 +93,7 @@ export function DrawBody({ model: editor }: DrawBodyProps) {
                 .then((res) => res.blob())
                 .then((blob) => {
                     api.updateLibrary({
-                        libraryItems: blob as any,
+                        libraryItems: blob as unknown as LibraryItemsSource,
                         merge: true,
                         prompt: true,
                         openLibraryMenu: true,
@@ -93,7 +108,11 @@ export function DrawBody({ model: editor }: DrawBodyProps) {
 
     // Debounced Excalidraw onChange → editor.updateFromExcalidraw.
     const handleChange = useCallback(
-        (elements: readonly any[], appState: any, files: any) => {
+        (
+            elements: readonly OrderedExcalidrawElement[],
+            appState: AppState,
+            files: BinaryFiles,
+        ) => {
             if (debounceRef.current) clearTimeout(debounceRef.current);
             debounceRef.current = setTimeout(() => {
                 editor.updateFromExcalidraw(elements, appState, files);

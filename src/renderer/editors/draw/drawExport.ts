@@ -1,5 +1,14 @@
 import { exportToSvg, exportToBlob, convertToExcalidrawElements, FONT_FAMILY } from "@excalidraw/excalidraw";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type {
+    ExcalidrawImperativeAPI,
+    AppState,
+    BinaryFiles,
+} from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type {
+    OrderedExcalidrawElement,
+    FileId,
+} from "@excalidraw/excalidraw/dist/types/excalidraw/element/types";
+import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/dist/types/excalidraw/data/transform";
 
 /**
  * Default position offset for images added to the canvas.
@@ -9,9 +18,9 @@ export const IMAGE_OFFSET_X = 250;
 export const IMAGE_OFFSET_Y = 120;
 
 export interface SceneData {
-    elements: readonly any[];
-    appState: Record<string, any>;
-    files: any;
+    elements: readonly OrderedExcalidrawElement[];
+    appState: Partial<AppState>;
+    files: BinaryFiles;
 }
 
 function getSceneData(api: ExcalidrawImperativeAPI): SceneData {
@@ -23,7 +32,7 @@ function getSceneData(api: ExcalidrawImperativeAPI): SceneData {
     };
 }
 
-function isDarkScene(appState: Record<string, any>): boolean {
+function isDarkScene(appState: Partial<AppState>): boolean {
     return appState.theme === "dark";
 }
 
@@ -43,7 +52,7 @@ export async function exportSceneAsSvgText(scene: SceneData): Promise<string> {
     const dark = isDarkScene(scene.appState);
     const svg = await exportToSvg({
         elements: scene.elements,
-        appState: { ...scene.appState, exportBackground: true, exportWithDarkMode: dark } as any,
+        appState: { ...scene.appState, exportBackground: true, exportWithDarkMode: dark },
         files: scene.files,
     });
     return svg.outerHTML;
@@ -53,7 +62,7 @@ export async function exportSceneAsPngBlob(scene: SceneData, scale = 2): Promise
     const dark = isDarkScene(scene.appState);
     return exportToBlob({
         elements: scene.elements,
-        appState: { ...scene.appState, exportBackground: true, exportWithDarkMode: dark, exportScale: scale } as any,
+        appState: { ...scene.appState, exportBackground: true, exportWithDarkMode: dark, exportScale: scale },
         files: scene.files,
         mimeType: "image/png",
     });
@@ -116,9 +125,9 @@ export function buildExcalidrawJsonWithImage(
         y: IMAGE_OFFSET_Y,
         width,
         height,
-        fileId: fileId as any,
+        fileId: fileId as FileId,
         status: "saved",
-    } as any]);
+    } satisfies ExcalidrawElementSkeleton]);
 
     return JSON.stringify({
         type: "excalidraw",

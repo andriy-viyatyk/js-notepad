@@ -16,7 +16,15 @@ import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 import { isCurrentThemeDark } from "../../theme/themes";
 import { serializeAsJSON, FONT_FAMILY } from "@excalidraw/excalidraw";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type {
+    ExcalidrawImperativeAPI,
+    AppState,
+    BinaryFiles,
+} from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type {
+    OrderedExcalidrawElement,
+    ExcalidrawElement,
+} from "@excalidraw/excalidraw/dist/types/excalidraw/element/types";
 
 export type DrawQueueEvent = { type: "focus" };
 export type DrawQueueRequest = never;
@@ -53,9 +61,9 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
     readonly editorId = "draw-view";
 
     // ── Payload fields (relocated from legacy DrawViewModel) ────────────
-    private _elements: any[] = [];
-    private _appState: Record<string, any> = {};
-    private _files: Record<string, any> = {};
+    private _elements: readonly OrderedExcalidrawElement[] = [];
+    private _appState: Partial<AppState> = {};
+    private _files: BinaryFiles = {};
     /** DR7 — prevents feedback loop when we push serialized content back to host. */
     private _skipNextContentUpdate = false;
     /** Fingerprint of elements + files for change detection (avoids dirty on scroll/select). */
@@ -299,7 +307,11 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
      * files actually change, ignoring appState-only changes (scroll, zoom,
      * cursor, selection).
      */
-    updateFromExcalidraw(elements: readonly any[], appState: Record<string, any>, files: any): void {
+    updateFromExcalidraw(
+        elements: readonly OrderedExcalidrawElement[],
+        appState: AppState,
+        files: BinaryFiles,
+    ): void {
         this._appState = appState;
         const fingerprint = this.computeFingerprint(elements, files);
         if (fingerprint === this._lastFingerprint) return;
@@ -307,12 +319,15 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
         this._elements = [...elements];
         this._files = files;
         this._skipNextContentUpdate = true;
-        const json = serializeAsJSON(elements as any, appState as any, files, "local");
+        const json = serializeAsJSON(elements, appState, files, "local");
         this._host?.changeContent(json, true);
     }
 
     /** Fast fingerprint of elements + files to detect real content changes. */
-    private computeFingerprint(elements: readonly any[], files: any): string {
+    private computeFingerprint(
+        elements: readonly ExcalidrawElement[],
+        files: BinaryFiles,
+    ): string {
         const elPart = elements.map(
             (e) => `${e.id}:${e.version ?? 0}:${e.versionNonce ?? 0}`,
         ).join(";");
@@ -330,9 +345,9 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
 
     // ── Public accessors (relocated verbatim) ───────────────────────────
 
-    get elements(): any[] { return this._elements; }
-    get appState(): Record<string, any> { return this._appState; }
-    get files(): Record<string, any> { return this._files; }
+    get elements(): readonly OrderedExcalidrawElement[] { return this._elements; }
+    get appState(): Partial<AppState> { return this._appState; }
+    get files(): BinaryFiles { return this._files; }
     get excalidrawApi(): ExcalidrawImperativeAPI | null { return this._excalidrawApi; }
 
     setExcalidrawApi(api: ExcalidrawImperativeAPI): void {

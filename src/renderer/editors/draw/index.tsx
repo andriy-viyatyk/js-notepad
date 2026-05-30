@@ -8,7 +8,10 @@ import { WithMenu } from "../../uikit/Menu";
 import type { MenuItem } from "../../uikit/Menu";
 import { SunIcon, MoonIcon, CopyIcon, DownloadIcon, NewWindowIcon, SnipIcon } from "../../theme/icons";
 import { exportAsSvgText, exportAsPngBlob, getImageDimensions, IMAGE_OFFSET_X, IMAGE_OFFSET_Y } from "./drawExport";
-import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
+import { convertToExcalidrawElements, MIME_TYPES } from "@excalidraw/excalidraw";
+import type { DataURL } from "@excalidraw/excalidraw/dist/types/excalidraw/types";
+import type { FileId } from "@excalidraw/excalidraw/dist/types/excalidraw/element/types";
+import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/dist/types/excalidraw/data/transform";
 import { ui } from "../../api/ui";
 import { fs } from "../../api/fs";
 import { api } from "../../../ipc/renderer/api";
@@ -61,9 +64,9 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
         const dims = await getImageDimensions(dataUrl);
         const fileId = crypto.randomUUID();
         a.addFiles([{
-            id: fileId as any,
-            dataURL: dataUrl as any,
-            mimeType: "image/png" as any,
+            id: fileId as FileId,
+            dataURL: dataUrl as DataURL,
+            mimeType: MIME_TYPES.png,
             created: Date.now(),
         }]);
         const maxDim = 1200;
@@ -77,9 +80,9 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
             y: IMAGE_OFFSET_Y,
             width: w,
             height: h,
-            fileId: fileId as any,
+            fileId: fileId as FileId,
             status: "saved",
-        } as any]);
+        } satisfies ExcalidrawElementSkeleton]);
         const existing = a.getSceneElements();
         a.updateScene({ elements: [...existing, ...newElements] });
     }, [editor]);
