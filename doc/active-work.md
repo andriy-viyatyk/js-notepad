@@ -32,8 +32,6 @@ Overview of all active and planned epics and tasks.
   - [ ] US-391: PowerShell shortcut (Ctrl+\`) — open shell at cwd
 - **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
 - *(no epic)*
-  - [x] US-577: Decode percent-encoded `file://` paths in `will-navigate` (Cyrillic/Unicode filenames in Markdown links)
-  - [x] US-578: Grid editor — wrap single JSON object into `[obj]` so an object-shaped `.json` viewed as Grid renders as a one-row grid (today shows empty grid)
   - [ ] [US-580: Mermaid — strip comment lines before rendering](tasks/US-580-mermaid-strip-comments/README.md) — *(investigation complete 2026-05-27, ready for implementation)* leading `%%` comment lines (common in agent-authored `.mmd` files) break Mermaid's parser (`Expecting 'ER_DIAGRAM', got '%'`). Add `stripMermaidComments()` in the single shared chokepoint `render-mermaid.ts:renderMermaidSvg` (covers the `.mmd` editor + Markdown inline + log-view outputs). Regex `/^\s*%%(?!\{)/` strips full-line comments but preserves `%%{init:…}%%` directives. One-file change; no state/persistence/facade surface.
   - [ ] US-347: CategoryView / CategoryEditor Breadcrumb
   - [ ] US-453: Storybook property editor — fix scroll when prop list exceeds panel height
