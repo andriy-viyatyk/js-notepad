@@ -8,7 +8,7 @@ import { Markdown } from "./Markdown";
 import { Mermaid } from "./Mermaid";
 
 /** Check if value is a plain options object (not a string, not an array). */
-function isOptionsObject(value: unknown): value is Record<string, any> {
+function isOptionsObject(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -115,7 +115,7 @@ export class UiFacade {
 
     readonly show = {
         progress: (labelOrOpts?: StyledText | { label?: StyledText; value?: number; max?: number }): Progress => {
-            let fields: Record<string, any>;
+            let fields: Record<string, unknown>;
             if (isOptionsObject(labelOrOpts)) {
                 fields = labelOrOpts;
             } else {
@@ -126,7 +126,7 @@ export class UiFacade {
         },
 
         grid: (dataOrOpts: any[] | { data: any[]; columns?: (string | GridColumn)[]; title?: StyledText }): Grid => {
-            let fields: Record<string, any>;
+            let fields: Record<string, unknown>;
             if (Array.isArray(dataOrOpts)) {
                 fields = { data: dataOrOpts };
             } else {
@@ -137,7 +137,7 @@ export class UiFacade {
         },
 
         text: (textOrOpts: string | { text: string; language?: string; title?: StyledText; wordWrap?: boolean; lineNumbers?: boolean; minimap?: boolean }, language?: string): Text => {
-            let fields: Record<string, any>;
+            let fields: Record<string, unknown>;
             if (isOptionsObject(textOrOpts)) {
                 fields = textOrOpts;
             } else {
@@ -148,7 +148,7 @@ export class UiFacade {
         },
 
         markdown: (textOrOpts: string | { text: string; title?: StyledText }): Markdown => {
-            let fields: Record<string, any>;
+            let fields: Record<string, unknown>;
             if (isOptionsObject(textOrOpts)) {
                 fields = textOrOpts;
             } else {
@@ -159,7 +159,7 @@ export class UiFacade {
         },
 
         mermaid: (textOrOpts: string | { text: string; title?: StyledText }): Mermaid => {
-            let fields: Record<string, any>;
+            let fields: Record<string, unknown>;
             if (isOptionsObject(textOrOpts)) {
                 fields = textOrOpts;
             } else {

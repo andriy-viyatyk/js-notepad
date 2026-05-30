@@ -19,7 +19,7 @@ function loadSdk(): void {
 export interface ClaudeToolDef {
     name: string;
     description: string;
-    inputSchema: Record<string, any>;
+    inputSchema: Record<string, unknown>;
     tool: (input: any) => any | Promise<any>;
 }
 

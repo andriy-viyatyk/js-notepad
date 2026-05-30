@@ -64,7 +64,7 @@ export class ScriptContext {
     readonly React = React;
     readonly styledText = styledText;
     readonly preventOutput: () => void;
-    console: Console | Record<string, any>;
+    console: Console | Record<string, unknown>;
     readonly customRequire: NodeRequire;
 
     // Stack-based ui getter

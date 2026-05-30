@@ -119,7 +119,7 @@ export class PageWrapper {
         });
     }
 
-    get data(): Record<string, any> {
+    get data(): Record<string, unknown> {
         return this.model.scriptData;
     }
 

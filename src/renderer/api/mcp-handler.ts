@@ -408,7 +408,7 @@ async function handleUiPush(params: any): Promise<McpResponse> {
 
     // Convert undefined → null for JSON serialization
     const results = dialogResults.map((r) => {
-        const obj: Record<string, any> = { ...r };
+        const obj: Record<string, unknown> = { ...r };
         if (obj.button === undefined) {
             obj.button = null;
         }
