@@ -70,14 +70,14 @@ export async function runAsync<TData, TProxy, TResult>(
         };
 
         // Listen for result
-        cleanups.push(ipcRenderer.on(WorkerChannel.result, (msg: WorkerResultMsg) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.result as unknown as never, (msg: WorkerResultMsg) => {
             if (msg.id !== id) return;
             cleanup();
             resolve(msg.value as TResult);
         }));
 
         // Listen for error
-        cleanups.push(ipcRenderer.on(WorkerChannel.error, (msg: WorkerErrorMsg) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.error as unknown as never, (msg: WorkerErrorMsg) => {
             if (msg.id !== id) return;
             cleanup();
             const err = new Error(`app.runAsync worker error: ${msg.message}`);
@@ -86,7 +86,7 @@ export async function runAsync<TData, TProxy, TResult>(
         }));
 
         // Listen for proxy calls from worker
-        cleanups.push(ipcRenderer.on(WorkerChannel.proxyCall, async (msg: WorkerProxyCallMsg) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.proxyCall as unknown as never, async (msg: WorkerProxyCallMsg) => {
             if (msg.id !== id) return;
             try {
                 const parentPath = msg.path.slice(0, -1);
@@ -111,7 +111,7 @@ export async function runAsync<TData, TProxy, TResult>(
         }));
 
         // Listen for proxy property sets from worker
-        cleanups.push(ipcRenderer.on(WorkerChannel.proxySet, (msg: WorkerProxySetMsg) => {
+        cleanups.push(ipcRenderer.on(WorkerChannel.proxySet as unknown as never, (msg: WorkerProxySetMsg) => {
             if (msg.id !== id) return;
             try {
                 const parentPath = msg.path.slice(0, -1);

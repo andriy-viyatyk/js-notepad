@@ -7,6 +7,7 @@ import { scriptRunner } from "../../../scripting/ScriptRunner";
 import { isScriptLanguage } from "../../../scripting/transpile";
 import type { EditorStateStorage } from "../../base/EditorStateStorage";
 import type { HostDescriptor } from "../../../../shared/persistence-v4";
+import type { IContentPipe } from "../../../api/types/io.pipe";
 import * as monaco from "monaco-editor";
 
 // =============================================================================
@@ -357,7 +358,7 @@ export class NoteItemEditModel {
     confirmRelease = async (): Promise<boolean> => true;
 
     /** Notebook notes have no file pipe. */
-    pipe = null;
+    pipe: IContentPipe | null = null;
 
     /** Notebook notes have no I/O of their own — content propagates to the
      *  notebook synchronously via `updateNoteContent`. */

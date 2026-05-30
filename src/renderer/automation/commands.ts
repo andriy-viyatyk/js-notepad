@@ -24,6 +24,13 @@ interface McpResponse {
 
 // ── Target Resolution ───────────────────────────────────────────────
 
+/** Discriminate the error-response branch of `getTarget()`. Needed because
+ *  `McpResponse.error` is optional, so `"error" in target` alone doesn't
+ *  narrow the union for TS. */
+function isErrorResponse(t: IBrowserTarget | McpResponse): t is McpResponse {
+    return "error" in t;
+}
+
 /**
  * Get the automation target for the ACTIVE browser page.
  * Falls back to the first browser page if the active page is not a browser.
@@ -401,7 +408,7 @@ export async function handleBrowserCommand(
         return { error: { code: -32602, message: "Browser interaction is disabled. Enable it in Settings → MCP Server → 'Enable browser interaction'." } };
     }
     const target = await getTarget();
-    if ("error" in target) return target;
+    if (isErrorResponse(target)) return target;
 
     switch (command) {
         case "browser_navigate":        return browserNavigate(target, params);
