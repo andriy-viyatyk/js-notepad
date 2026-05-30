@@ -1,14 +1,12 @@
 import type { IProvider, IProviderDescriptor } from "../api/types/io.provider";
 import type { ITransformer, ITransformerDescriptor } from "../api/types/io.transformer";
-import type { IPipeDescriptor } from "../api/types/io.pipe";
-import type { IContentPipe } from "../api/types/io.pipe";
+import type { IContentPipe, IPipeDescriptor } from "../api/types/io.pipe";
 import { ContentPipe } from "./ContentPipe";
 import { FileProvider } from "./providers/FileProvider";
 import { CacheFileProvider } from "./providers/CacheFileProvider";
 import { HttpProvider } from "./providers/HttpProvider";
 import { DataUrlProvider } from "./providers/DataUrlProvider";
 import { ArchiveTransformer } from "./transformers/ArchiveTransformer";
-import { DecryptTransformer } from "./transformers/DecryptTransformer";
 
 type ProviderFactory = (config: Record<string, unknown>) => IProvider;
 type TransformerFactory = (config: Record<string, unknown>) => ITransformer;

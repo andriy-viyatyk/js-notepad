@@ -23,7 +23,7 @@ export type MainApi = {
 };
 
 class Controller implements MainApi {
-    getAppRootPath = async (event: IpcMainEvent): Promise<string> => {
+    getAppRootPath = async (_event: IpcMainEvent): Promise<string> => {
         return getAppRootPath();
     }
 
@@ -101,11 +101,11 @@ class Controller implements MainApi {
         const window = BrowserWindow.fromWebContents(event.sender);
         return windowReady(window);
     }
-    getFileToOpen = async (event: IpcMainEvent): Promise<string | undefined> => {
+    getFileToOpen = async (_event: IpcMainEvent): Promise<string | undefined> => {
         return getFileToOpen();
     }
 
-    getUrlToOpen = async (event: IpcMainEvent): Promise<string | undefined> => {
+    getUrlToOpen = async (_event: IpcMainEvent): Promise<string | undefined> => {
         return getUrlToOpen();
     }
 
@@ -122,7 +122,7 @@ class Controller implements MainApi {
         return newWindow.index;
     }
 
-    getWindowPages = async (event: IpcMainEvent): Promise<WindowPages[]> => {
+    getWindowPages = async (_event: IpcMainEvent): Promise<WindowPages[]> => {
         return openWindows.getWindowPages();
     }
 
@@ -142,11 +142,11 @@ class Controller implements MainApi {
         return versionService.checkForUpdates(force);
     }
 
-    getAppVersion = async (event: IpcMainEvent): Promise<string> => {
+    getAppVersion = async (_event: IpcMainEvent): Promise<string> => {
         return versionService.getAppVersion();
     }
 
-    getRuntimeVersions = async (event: IpcMainEvent): Promise<RuntimeVersions> => {
+    getRuntimeVersions = async (_event: IpcMainEvent): Promise<RuntimeVersions> => {
         return versionService.getRuntimeVersions();
     }
 
@@ -154,23 +154,23 @@ class Controller implements MainApi {
         nativeTheme.themeSource = mode;
     }
 
-    registerAsDefaultBrowser = async (event: IpcMainEvent): Promise<void> => {
+    registerAsDefaultBrowser = async (_event: IpcMainEvent): Promise<void> => {
         browserRegistration.registerAsDefaultBrowser();
     }
 
-    unregisterAsDefaultBrowser = async (event: IpcMainEvent): Promise<void> => {
+    unregisterAsDefaultBrowser = async (_event: IpcMainEvent): Promise<void> => {
         browserRegistration.unregisterAsDefaultBrowser();
     }
 
-    isRegisteredAsDefaultBrowser = async (event: IpcMainEvent): Promise<boolean> => {
+    isRegisteredAsDefaultBrowser = async (_event: IpcMainEvent): Promise<boolean> => {
         return browserRegistration.isRegisteredAsDefaultBrowser();
     }
 
-    openDefaultAppsSettings = async (event: IpcMainEvent): Promise<void> => {
+    openDefaultAppsSettings = async (_event: IpcMainEvent): Promise<void> => {
         browserRegistration.openDefaultAppsSettings();
     }
 
-    getDownloads = async (event: IpcMainEvent): Promise<DownloadEntry[]> => {
+    getDownloads = async (_event: IpcMainEvent): Promise<DownloadEntry[]> => {
         return downloadService.getDownloads();
     }
 
@@ -186,7 +186,7 @@ class Controller implements MainApi {
         downloadService.showInFolder(id);
     }
 
-    clearCompletedDownloads = async (event: IpcMainEvent): Promise<void> => {
+    clearCompletedDownloads = async (_event: IpcMainEvent): Promise<void> => {
         downloadService.clearCompleted();
     }
 
@@ -203,7 +203,7 @@ class Controller implements MainApi {
         setBrowserToolsEnabled(enabled);
     }
 
-    getMcpStatus = async (event: IpcMainEvent): Promise<McpStatus> => {
+    getMcpStatus = async (_event: IpcMainEvent): Promise<McpStatus> => {
         return {
             running: isMcpHttpServerRunning(),
             url: getMcpUrl(),

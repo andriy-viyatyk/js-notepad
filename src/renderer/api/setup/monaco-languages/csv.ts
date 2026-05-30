@@ -69,7 +69,7 @@ export function defineCSVLanguage(monaco: Monaco): void {
 
         tokenize(
             line: string,
-            state: monaco.languages.IState
+            _state: monaco.languages.IState
         ): monaco.languages.ILineTokens {
             const tokens: monaco.languages.IToken[] = [];
             let currentPos = 0;

@@ -3,6 +3,7 @@
  * The phantom type T ensures type safety at call sites — get() returns T,
  * add() requires T as the implementation type.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- phantom generic; used by callers via type inference
 export class TraitKey<T> {
     readonly symbol: symbol;
 

@@ -3,7 +3,6 @@ import { TDialogModel } from "../../core/state/model";
 import type { IState } from "../../core/state/state";
 import { TraitSet } from "../../core/traits/traits";
 import { Subscription } from "../../core/state/events";
-import { fs as appFs } from "../../api/fs";
 import { ComponentQueue, ComponentQueueEvent } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence-v4";
 import type { IContentHost } from "./IContentHost";

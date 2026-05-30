@@ -1,6 +1,6 @@
-import type { IProvider, IProviderDescriptor } from "./io.provider";
-import type { ITransformer, ITransformerDescriptor } from "./io.transformer";
-import type { IContentPipe, IPipeDescriptor } from "./io.pipe";
+import type { IProvider } from "./io.provider";
+import type { ITransformer } from "./io.transformer";
+import type { IContentPipe } from "./io.pipe";
 import type { ILinkData } from "./io.link-data";
 import type { ILink } from "./io.tree";
 

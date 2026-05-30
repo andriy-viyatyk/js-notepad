@@ -1,7 +1,7 @@
 import type { PagesModel } from "./PagesModel";
 import { EditorModel } from "../../editors/base";
 import type { EditorOrHost } from "../../editors/base";
-import { IEditorState, EditorView, EditorType, PageDescriptor } from "../../../shared/types";
+import { EditorView, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
 import type { ILinkData } from "../../../shared/link-data";
 import {

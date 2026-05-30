@@ -9,7 +9,7 @@ function executeRegFile(regFilePath: string): Promise<void> {
         // Use regedit.exe with the /s (silent) switch to import the keys
         const command = `regedit.exe /s "${regFilePath}"`;
 
-        exec(command, (error, stdout, stderr) => {
+        exec(command, (error, _stdout, _stderr) => {
             // Clean up the temporary file immediately after execution
             try {
                 fs.unlinkSync(regFilePath);
@@ -40,7 +40,7 @@ function executeRegFile(regFilePath: string): Promise<void> {
  * NOTE: This implementation focuses on the simple '*' entry.
  */
 export async function registerOpenWithOption(
-    extensions?: string
+    _extensions?: string
 ): Promise<void> {
     const regFileName = "register.reg";
     // Path to your main application executable

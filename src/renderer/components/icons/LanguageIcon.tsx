@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { SvgIconComponent, SvgIconProps } from "../../theme/icons";
+import { ArchiveIcon, SvgIconComponent, SvgIconProps } from "../../theme/icons";
 import { api } from "../../../ipc/renderer/api";
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
@@ -7,7 +7,6 @@ import {
     getLanguageByExtension,
     getLanguageById,
 } from "../../core/utils";
-import { ArchiveIcon } from "../../theme/icons";
 import {
     CIcon,
     ClojureIcon,

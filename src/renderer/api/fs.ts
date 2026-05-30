@@ -2,6 +2,7 @@ const path = require("path");
 const nodefs = require("fs");
 
 import jschardet from "jschardet";
+// eslint-disable-next-line import/no-named-as-default -- iconv-lite is CJS; `* as iconv` breaks decode/encode usage downstream
 import iconv from "iconv-lite";
 import { api } from "../../ipc/renderer/api";
 import type { IFileSystem, ITextFile, IFileStat, IDirEntry } from "./types/fs";

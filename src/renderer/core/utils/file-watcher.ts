@@ -90,7 +90,7 @@ export class FileWatcher {
         return this.path;
     }
 
-    private onFileChange = (eventType: string) => {
+    private onFileChange = (_eventType: string) => {
         const newStat = getFileStats(this.path);
         this.stat = newStat;
         this.onChangeDebounced();

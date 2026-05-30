@@ -1,4 +1,4 @@
-import clsx from "clsx";
+import { clsx } from "clsx";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 

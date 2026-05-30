@@ -142,7 +142,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
     };
 
     setupSelectionListener = (editor: monaco.editor.IStandaloneCodeEditor) => {
-        this.selectionListenerDisposable = editor.onDidChangeCursorSelection((e) => {
+        this.selectionListenerDisposable = editor.onDidChangeCursorSelection((_e) => {
             const selection = editor.getSelection();
             const hasSelection = selection ? !selection.isEmpty() : false;
 

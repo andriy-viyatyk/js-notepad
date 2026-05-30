@@ -1,6 +1,5 @@
 import * as monaco from "monaco-editor";
 import { loader } from "@monaco-editor/react";
-import { languages } from "monaco-editor";
 
 import { getCurrentThemeId, getThemeById, onMonacoThemeChange } from "../../theme/themes";
 import { ThemeDefinition } from "../../theme/themes/types";

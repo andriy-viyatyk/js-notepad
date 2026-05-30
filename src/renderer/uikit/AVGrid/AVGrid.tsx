@@ -7,7 +7,7 @@ import {
     useMemo,
 } from "react";
 import styled from "@emotion/styled";
-import clsx from "clsx";
+import { clsx } from "clsx";
 
 import { TCellRenderer, TCellRendererProps } from "./avGridTypes";
 import { RenderGrid } from "../RenderGrid";

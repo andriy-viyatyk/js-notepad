@@ -14,7 +14,7 @@ import { showMcpRequestLog } from "../../api/mcp-handler";
 import { autoloadService } from "../../api/autoload-service";
 import { Pages } from "./Pages";
 import { PageTabs } from "../tabs/PageTabs";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import { MenuBar } from "../sidebar/MenuBar";
 
 const AppRoot = styled.div({

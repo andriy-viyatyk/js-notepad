@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import { useCallback, useEffect, useMemo } from "react";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import {

@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from "react";
 import styled from "@emotion/styled";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
 
 import color from "../../theme/color";

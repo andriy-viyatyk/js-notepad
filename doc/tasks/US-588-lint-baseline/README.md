@@ -1,6 +1,6 @@
 # US-588: Lint baseline — fix errors, then triage warnings
 
-**Status:** Planned — phased
+**Status:** Phase 1 + Phase 2 complete (commits `f08a1c8`, _pending_) — Phase 3 next
 **Type:** Maintenance
 **Started by:** Lint sweep during 2026-05-30 session — `npm run lint` reports 847 problems (18 errors, 829 warnings). User goal: fix what we can sustainably; downgrade or per-line-disable what's not worth fixing; don't let the baseline drift forever.
 
@@ -157,21 +157,63 @@ Three sub-patterns. Triage by category:
 
 ### Phase 2 acceptance
 
-- [ ] `import/no-duplicates`, `import/no-named-as-default` warnings → 0.
-- [ ] `@typescript-eslint/no-unused-vars` warnings → 0 (each resolved as remove / `_` prefix / suppress-with-comment).
-- [ ] All `eslint --fix` autofixes reviewed and accepted (or backed out).
+- [x] `import/no-duplicates`, `import/no-named-as-default` warnings → 0 (or suppressed with rationale).
+- [x] `@typescript-eslint/no-unused-vars` warnings → 0.
+- [x] All `eslint --fix` autofixes reviewed and accepted (or backed out).
 - [ ] Commit Phase 2 separately.
+
+### Phase 2 outcome
+
+| Metric | Before Phase 2 (post-Phase-1) | After Phase 2 |
+|---|---:|---:|
+| Total problems | 952 | 816 |
+| Errors | 0 | 0 |
+| `import/no-duplicates` | 10 | 0 |
+| `import/no-named-as-default` (clsx) | 9 | 0 |
+| `@typescript-eslint/no-unused-vars` | 74 | 0 |
+| `import/no-named-as-default` (`iconv-lite`) | 1 | 1 _(suppressed; see below)_ |
+
+**Config changes (`.eslintrc.json`):**
+- Added `"release/"` to `ignorePatterns` — packaged build output was being linted (cleared ~45 duplicate warnings from `release/win-unpacked/.../assets/editor-types/`).
+- Added `@typescript-eslint/no-unused-vars` rule config with `argsIgnorePattern: "^_"`, `varsIgnorePattern: "^_"`, `caughtErrorsIgnorePattern: "^_"`, `destructuredArrayIgnorePattern: "^_"`, and `ignoreRestSiblings: true`. The `_`-prefix convention was already in use (e.g. `_`, `_ct`, `_page`); honoring it silenced 25 already-prefixed warnings, and `ignoreRestSiblings` silenced 10 "destructure to exclude with `...rest`" patterns.
+
+**Auto-fix (`eslint --fix .`):** ran once, produced cosmetically messy diffs (extra spaces / blank lines on merged imports) on 5 files. Reverted and re-did each manually.
+
+**Bulk renames (no behavior change):**
+- `import clsx from "clsx"` → `import { clsx } from "clsx"` in 9 files (runtime verified: `clsx` package exports both default and named). All AVGrid plus `MainPage.tsx`, `MenuBar.tsx`, `view.tsx`.
+- 13 `event: IpcMainEvent` → `_event: IpcMainEvent` in `src/ipc/main/controller.ts` (only single-arg methods that don't use `event`; multi-arg signatures with at least one used arg are exempted by ESLint's `after-used` default).
+
+**Import deduplication (5 files):**
+- `src/renderer/api/pages/PageModel.ts` — combined two `editors/base` imports.
+- `src/renderer/components/icons/LanguageIcon.tsx` — combined two `theme/icons` imports.
+- `src/renderer/content/registry.ts` — combined two `io.pipe` imports.
+- `src/renderer/ui/app/RenderEditor.tsx` — combined two `editors/base` imports.
+- `src/renderer/uikit/AVGrid/DataCell.tsx` — combined two `react` imports.
+
+**Unused-import removals (12 files):**
+`open-windows.ts` (IEditorState), `PagesLifecycleModel.ts` (IEditorState, EditorType), `configure-monaco.ts` (languages), `io.d.ts` (IProviderDescriptor / ITransformerDescriptor / IPipeDescriptor), `CategoryView.tsx` (useState), `registry.ts` (DecryptTransformer), `EditorModel.ts` (appFs), `TextEditorModel.ts` (EditorModel), `PageTab.tsx` (isTextFileModel, TextFileModel), `FocusModel.ts` (range), `NoteItemView.tsx` (notebookModel destructure binding).
+
+**Unused-param renames to `_*`:**
+`registry-handler.ts` (stdout, stderr, extensions), `open-windows.ts` (canQuit — see finding below), `csv.ts` (state in tokenize), `file-watcher.ts` (eventType), `ScriptPanel.tsx` (e in cursor-selection handler).
+
+**Suppressed (with rationale comment):**
+- `src/renderer/core/traits/traits.ts` — `TraitKey<T>` phantom generic; used by callers via type inference, not by the class body.
+- `src/renderer/api/fs.ts` — `import iconv from "iconv-lite"`; switching to `* as iconv` broke 8 downstream `iconv.decode` / `iconv.encode` calls because the plugin's `import/namespace` rule doesn't understand the CJS namespace shape. Suppressed at the import line with rationale.
+
+### Phase 2 findings (file as follow-ups, not in this task)
+
+1. **Real bug in `src/main/open-windows.ts:88-106`**: `setCanQuit(browserWindow, canQuit)` ignores the `canQuit` parameter entirely. The function uses `this.doQuit` instead, but the API surface implies the caller can set per-window quit-ability. Worth investigating whether the parameter should be wired in or removed from the signature.
 
 ## Phase 3 — Review & decide per category
 
-After Phase 1 + 2, the remaining warnings will be roughly:
+After Phase 1 + 2, the remaining 816 warnings break down as:
 
-| Estimated count | Rule | Likely disposition |
-|---|---|---|
-| ~577 | `@typescript-eslint/no-explicit-any` | Sub-categorize first (see 3.1). |
-| ~154 | `@typescript-eslint/no-non-null-assertion` | Sub-categorize (see 3.2). |
-| 14 | `react-hooks/exhaustive-deps` | Review each — these are real dependency-array bugs or false positives. |
-| Few | other | One-off. |
+| Count | Rule | Likely disposition |
+|---:|---|---|
+| 513 | `@typescript-eslint/no-explicit-any` | Sub-categorize first (see 3.1). |
+| 154 | `@typescript-eslint/no-non-null-assertion` | Sub-categorize (see 3.2). |
+| 102 | `import/no-named-as-default-member` | Almost all `React.createElement` / `React.Fragment` — review and decide whether to disable rule project-wide or rewrite to named imports. |
+| 47 | `react-hooks/exhaustive-deps` | Review each — real dependency-array bugs or intentional. |
 
 ### 3.1 `no-explicit-any` triage approach
 

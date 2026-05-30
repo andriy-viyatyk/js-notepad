@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import { Column, TCellRendererProps } from "./avGridTypes";
 import { IconButton } from "../IconButton";
 import {

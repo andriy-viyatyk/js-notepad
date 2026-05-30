@@ -1,6 +1,5 @@
 import { TComponentState, TOneState } from "../../core/state/state";
-import { type EditorModel } from "../../editors/base";
-import type { EditorOrHost } from "../../editors/base";
+import type { EditorModel, EditorOrHost } from "../../editors/base";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { PageDescriptor } from "../../../shared/persistence-v4";
 import { PageNavigatorModel } from "../../ui/navigation/PageNavigatorModel";

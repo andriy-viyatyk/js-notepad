@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { EditorOrHost } from "../../editors/base";
-import { editorRegistry as v4EditorRegistry } from "../../editors/base";
+import { type EditorOrHost, editorRegistry as v4EditorRegistry } from "../../editors/base";
 import type { EditorModel } from "../../editors/base/EditorModel";
 import { AsyncEditor } from "./AsyncEditor";
 import type { EditorViewModule, FileEditorComponent } from "../../editors/types";

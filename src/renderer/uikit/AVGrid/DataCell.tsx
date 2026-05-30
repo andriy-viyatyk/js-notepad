@@ -1,5 +1,6 @@
+import React, { useCallback } from "react";
 import styled from "@emotion/styled";
-import clsx from "clsx";
+import { clsx } from "clsx";
 
 import { TCellRendererProps } from "./avGridTypes";
 import { highlight, useHighlightedText } from "../shared/highlight";
@@ -8,9 +9,7 @@ import { columnDisplayValue, gridBoolean } from "./avGridUtils";
 import { TruncatedText } from "../TruncatedText";
 import color from "../../theme/color";
 import { DefaultEditFormater } from "./DefaultEditFormater";
-import { useCallback } from "react";
 import { IconButton } from "../IconButton";
-import React from "react";
 
 const DataCellRoot = styled.div(
     {

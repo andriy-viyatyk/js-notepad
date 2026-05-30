@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import React, { ReactElement } from "react";
 import styled from "@emotion/styled";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import { TDialogModel, TModel } from "./model";
 
 export interface DefaultProps {

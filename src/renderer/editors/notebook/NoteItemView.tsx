@@ -96,7 +96,7 @@ const tagsContainerStyle: React.CSSProperties = {
 // =============================================================================
 
 export function NoteItemView(props: NoteItemViewProps) {
-    const { note, notebookModel } = props;
+    const { note } = props;
 
     const model = useComponentModel(props, NoteItemViewModel, defaultNoteItemViewState);
     const {

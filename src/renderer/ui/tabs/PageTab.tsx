@@ -29,10 +29,6 @@ import { monacoLanguages } from "../../core/utils/monaco-languages";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
 import { api } from "../../../ipc/renderer/api";
-import {
-    isTextFileModel,
-    TextFileModel,
-} from "../../editors/text";
 import { PageDragData } from "../../../shared/types";
 import { parseObject } from "../../core/utils/parse-utils";
 import { ui } from "../../api/ui";

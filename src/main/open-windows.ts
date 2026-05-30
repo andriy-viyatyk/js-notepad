@@ -5,7 +5,7 @@ import { EventEndpoint } from "../ipc/api-types";
 import { OpenWindow } from "./open-window";
 import { windowStates } from "./window-states";
 import { getDataFolder, preparePath } from "./utils";
-import { IEditorState, PageDescriptor, WindowPages } from "../shared/types";
+import { PageDescriptor, WindowPages } from "../shared/types";
 
 interface OpenWindowData {
     window?: OpenWindow;
@@ -87,7 +87,7 @@ class OpenWindows {
 
     setCanQuit = (
         browserWindow: BrowserWindow | undefined,
-        canQuit: boolean
+        _canQuit: boolean
     ) => {
         const openWindowData = this.findWindowDataByWindow(browserWindow);
         const openWindow = openWindowData?.window;

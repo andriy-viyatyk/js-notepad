@@ -1,5 +1,4 @@
-import clsx from "clsx";
-import { range } from "../../../core/utils/utils";
+import { clsx } from "clsx";
 import { CellFocus, Column } from "../avGridTypes";
 import { AVGridDataChangeEvent } from "./AVGridData";
 import { AVGridModel } from "./AVGridModel";
