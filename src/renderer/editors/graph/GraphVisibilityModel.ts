@@ -232,7 +232,7 @@ export class GraphVisibilityModel {
 
         let found = 0;
         while (queue.length > 0 && found < targetSet.size) {
-            const current = queue.shift()!;
+            const current = queue.shift();
             const pn = this.fullNodes.get(current);
             if (!pn) continue;
 
@@ -289,7 +289,7 @@ export class GraphVisibilityModel {
             const queue: string[] = [rootId];
             componentOf.set(rootId, rootId);
             while (queue.length > 0) {
-                const cur = queue.shift()!;
+                const cur = queue.shift();
                 for (const neighborId of adjacency.get(cur) || []) {
                     if (!componentOf.has(neighborId)) {
                         componentOf.set(neighborId, rootId);
@@ -327,7 +327,7 @@ export class GraphVisibilityModel {
         let index = startIndex + 1;
 
         while (queue.length > 0) {
-            const { id: nodeId, depth } = queue.shift()!;
+            const { id: nodeId, depth } = queue.shift();
 
             for (const neighborId of adjacency.get(nodeId) || []) {
                 if (!showIndexMap.has(neighborId)) {
@@ -344,7 +344,7 @@ export class GraphVisibilityModel {
     private determineFocusNode(nodes: GraphNode[]): string {
         // 1. Explicit rootNode from options
         if (this.options.rootNode && nodes.some((n) => n.id === this.options.rootNode)) {
-            return this.options.rootNode!;
+            return this.options.rootNode;
         }
 
         // 2. Node with lowest level (most important)
@@ -382,7 +382,7 @@ export class GraphVisibilityModel {
             // Cap at maxVisible: keep nodes with lowest showIndex (closest to their component root)
             if (this.visibleIds.size > maxVisible) {
                 const sorted = [...this.visibleIds]
-                    .map((id) => ({ id, showIndex: this.fullNodes.get(id)!.showIndex }))
+                    .map((id) => ({ id, showIndex: this.fullNodes.get(id).showIndex }))
                     .sort((a, b) => a.showIndex - b.showIndex);
                 this.visibleIds = new Set(sorted.slice(0, maxVisible).map((e) => e.id));
             }
@@ -425,7 +425,7 @@ export class GraphVisibilityModel {
         let changed = false;
 
         while (queue.length > 0) {
-            const current = queue.shift()!;
+            const current = queue.shift();
             const cpn = this.fullNodes.get(current);
             if (!cpn) continue;
 
@@ -475,7 +475,7 @@ export class GraphVisibilityModel {
         }
 
         while (queue.length > 0) {
-            const current = queue.shift()!;
+            const current = queue.shift();
             if (toHide.has(current)) continue;
             toHide.add(current);
 

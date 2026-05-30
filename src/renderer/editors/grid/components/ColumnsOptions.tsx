@@ -191,27 +191,27 @@ class ColumnsOptionsModel extends TPopperModel<ColumnsOptionsState, undefined> {
         return rows.map((row) => {
             const newRow = { ...row };
             for (const delKey of deletedKeys) {
-                delete newRow[delKey!];
+                delete newRow[delKey];
             }
             for (const change of changedKeys) {
-                newRow[change.newKey!] = newRow[change.oldKey!];
-                delete newRow[change.oldKey!];
+                newRow[change.newKey] = newRow[change.oldKey];
+                delete newRow[change.oldKey];
             }
             for (const change of changedTypes) {
                 switch (change.newDataType) {
                     case "number":
-                        newRow[change.newKey!] = parseNumber(
-                            newRow[change.newKey!]
+                        newRow[change.newKey] = parseNumber(
+                            newRow[change.newKey]
                         );
                         break;
                     case "boolean":
-                        newRow[change.newKey!] = parseBoolean(
-                            newRow[change.newKey!]
+                        newRow[change.newKey] = parseBoolean(
+                            newRow[change.newKey]
                         );
                         break;
                     default:
-                        newRow[change.newKey!] = parseString(
-                            newRow[change.newKey!]
+                        newRow[change.newKey] = parseString(
+                            newRow[change.newKey]
                         );
                         break;
                 }
@@ -229,8 +229,8 @@ class ColumnsOptionsModel extends TPopperModel<ColumnsOptionsState, undefined> {
                 const existing = columns.find((c) => c.key === row.oldKey);
                 return {
                     ...existing,
-                    key: row.newKey!,
-                    name: row.newName || row.newKey!,
+                    key: row.newKey,
+                    name: row.newName || row.newKey,
                     dataType: row.newDataType,
                     hidden: !row.visible,
                     ...(existing

@@ -145,7 +145,7 @@ export class ForceGraphRenderer {
                 node.vx = pos.vx;
                 node.vy = pos.vy;
             } else if (newNodePositions?.has(node.id)) {
-                const hint = newNodePositions.get(node.id)!;
+                const hint = newNodePositions.get(node.id);
                 node.x = hint.x;
                 node.y = hint.y;
             } else if (anchor) {
@@ -755,7 +755,7 @@ export class ForceGraphRenderer {
             const isHighlighted = linkCol !== colors.linkDefault && linkCol !== colors.linkSelected;
             if (dimming) {
                 const { source, target } = linkIds(d);
-                ctx.globalAlpha = isHighlighted || dimSet!.has(source) || dimSet!.has(target) ? 1.0 : 0.15;
+                ctx.globalAlpha = isHighlighted || dimSet.has(source) || dimSet.has(target) ? 1.0 : 0.15;
             }
             ctx.strokeStyle = linkCol;
             ctx.lineWidth = isHighlighted ? 2 : 0.5;
@@ -765,7 +765,7 @@ export class ForceGraphRenderer {
         // Draw nodes
         const rootId = this._rootNodeId;
         graphData.nodes.forEach((d) => {
-            if (dimming) ctx.globalAlpha = dimSet!.has(d.id) ? 1.0 : 0.15;
+            if (dimming) ctx.globalAlpha = dimSet.has(d.id) ? 1.0 : 0.15;
             const isRoot = rootId !== "" && d.id === rootId;
             const isSpecial = isRoot || !!d.isGroup;
             const r = effectiveNodeRadius(d, rootId);
@@ -804,7 +804,7 @@ export class ForceGraphRenderer {
             graphData.nodes.forEach((d) => {
                 const hiddenCount = d._$hiddenCount ?? 0;
                 if (hiddenCount > 0) {
-                    if (dimming) ctx.globalAlpha = dimSet!.has(d.id) ? 1.0 : 0.15;
+                    if (dimming) ctx.globalAlpha = dimSet.has(d.id) ? 1.0 : 0.15;
                     const r = effectiveNodeRadius(d, rootId);
                     const badgeX = (d.x || 0) + r * 0.7;
                     const badgeY = (d.y || 0) - r * 0.7;
@@ -851,7 +851,7 @@ export class ForceGraphRenderer {
                 }
 
                 // Highlighted labels are always fully visible, even for dimmed nodes
-                if (dimming) ctx.globalAlpha = isHighlighted ? 1.0 : (dimSet!.has(d.id) ? 1.0 : 0.15);
+                if (dimming) ctx.globalAlpha = isHighlighted ? 1.0 : (dimSet.has(d.id) ? 1.0 : 0.15);
                 const text = nodeLabel(d);
                 const r = effectiveNodeRadius(d, rootId);
 

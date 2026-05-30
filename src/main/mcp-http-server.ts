@@ -97,7 +97,7 @@ async function sendToRenderer(method: string, params: any, windowIndex?: number,
             resolve(response);
         });
 
-        windowData.window!.window.webContents.send(MCP_EXECUTE, requestId, method, params);
+        windowData.window.window.webContents.send(MCP_EXECUTE, requestId, method, params);
     });
 }
 
@@ -706,7 +706,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
             const body = await parseJsonBody(req);
 
             if (sessionId && sessions.has(sessionId)) {
-                await sessions.get(sessionId)!.transport.handleRequest(req, res, body);
+                await sessions.get(sessionId).transport.handleRequest(req, res, body);
             } else if (!sessionId && isInitializeRequest(body)) {
                 const mcpServer = createMcpServer();
                 const transport = new StreamableHTTPServerTransport({
@@ -739,14 +739,14 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
                 res.end("Invalid or missing session ID");
                 return;
             }
-            await sessions.get(sessionId)!.transport.handleRequest(req, res);
+            await sessions.get(sessionId).transport.handleRequest(req, res);
         } else if (req.method === "DELETE") {
             if (!sessionId || !sessions.has(sessionId)) {
                 res.writeHead(400, { "Content-Type": "text/plain" });
                 res.end("Invalid or missing session ID");
                 return;
             }
-            await sessions.get(sessionId)!.transport.handleRequest(req, res);
+            await sessions.get(sessionId).transport.handleRequest(req, res);
         } else {
             res.writeHead(405, { "Content-Type": "text/plain" });
             res.end("Method not allowed");
@@ -813,7 +813,7 @@ export async function stopMcpHttpServer(): Promise<void> {
     pendingRequests.clear();
 
     return new Promise<void>((resolve) => {
-        httpServer!.close(() => {
+        httpServer.close(() => {
             httpServer = undefined;
             console.log("MCP HTTP server stopped");
             broadcastMcpStatus();
