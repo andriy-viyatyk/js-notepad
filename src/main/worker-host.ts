@@ -17,6 +17,13 @@ import { ipcMain, IpcMainEvent } from "electron";
 import { Worker } from "worker_threads";
 import { WorkerChannel } from "../ipc/worker-channels";
 
+// Worker → Host message discriminator (see protocol comment above).
+type WorkerHostMessage =
+    | { type: "result"; value: unknown }
+    | { type: "error"; message: string; stack?: string }
+    | { type: "proxy-call"; id: string; path: string[]; args: unknown[] }
+    | { type: "proxy-set"; path: string[]; value: unknown };
+
 /** Inline worker code — runs in a worker_thread with full Node.js access. */
 const WORKER_CODE = `
 const { parentPort } = require("worker_threads");
@@ -143,7 +150,7 @@ export function initWorkerHost(): void {
             worker.terminate();
         };
 
-        worker.on("message", (workerMsg: any) => {
+        worker.on("message", (workerMsg: WorkerHostMessage) => {
             try {
                 if (workerMsg.type === "result") {
                     cleanup();

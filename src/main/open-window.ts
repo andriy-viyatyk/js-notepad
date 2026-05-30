@@ -199,7 +199,7 @@ export class OpenWindow {
         // this.window.webContents.openDevTools();
     }
 
-    send(eventName: EventEndpoint, data: any) {
+    send(eventName: EventEndpoint, data: unknown) {
         if (!this.window) {
             return;
         }

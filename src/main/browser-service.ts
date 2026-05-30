@@ -23,6 +23,15 @@ import { initCdpHandlers } from "./cdp-service";
 
 const BLOCKED_PROTOCOLS = ["file:", "app-asset:", "safe-file:"];
 
+/** Generic event-listener shape — used for storing handlers we attach to
+ *  WebContents. WebContents extends EventEmitter; this matches that surface
+ *  while letting us bypass Electron's per-event overloaded `on()` types. */
+type AnyEventHandler = (...args: unknown[]) => void;
+interface EventTarget {
+    on(event: string, handler: AnyEventHandler): void;
+    removeListener(event: string, handler: AnyEventHandler): void;
+}
+
 // Track sessions whose User-Agent has already been cleaned
 const cleanedSessions = new WeakSet<Electron.Session>();
 
@@ -50,7 +59,7 @@ interface RegisteredWebview {
     internalTabId: string;
     webContents: WebContents;
     senderWebContents: WebContents;
-    listeners: Array<{ event: string; handler: (...args: any[]) => void }>;
+    listeners: Array<{ event: string; handler: AnyEventHandler }>;
 }
 
 // Active registrations: `${tabId}/${internalTabId}` → registration
@@ -159,15 +168,16 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
     const sender = event.sender;
     const listeners: RegisteredWebview["listeners"] = [];
 
+    const wcEvents = wc as unknown as EventTarget;
     function on<T extends string>(
         eventName: T,
-        handler: (...args: any[]) => void,
+        handler: AnyEventHandler,
     ) {
-        wc.on(eventName as any, handler);
+        wcEvents.on(eventName, handler);
         listeners.push({ event: eventName, handler });
     }
 
-    on("did-navigate", (_e: any, url: string) => {
+    on("did-navigate", (_e: Electron.Event, url: string) => {
         sendEvent(sender, tabId, internalTabId, "did-navigate", {
             url,
             canGoBack: wc.canGoBack(),
@@ -175,7 +185,7 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         });
     });
 
-    on("did-navigate-in-page", (_e: any, url: string, isMainFrame: boolean) => {
+    on("did-navigate-in-page", (_e: Electron.Event, url: string, isMainFrame: boolean) => {
         if (isMainFrame) {
             sendEvent(sender, tabId, internalTabId, "did-navigate-in-page", {
                 url,
@@ -186,13 +196,13 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         }
     });
 
-    on("page-title-updated", (_e: any, title: string) => {
+    on("page-title-updated", (_e: Electron.Event, title: string) => {
         sendEvent(sender, tabId, internalTabId, "page-title-updated", {
             title,
         });
     });
 
-    on("page-favicon-updated", (_e: any, favicons: string[]) => {
+    on("page-favicon-updated", (_e: Electron.Event, favicons: string[]) => {
         if (favicons && favicons.length > 0) {
             sendEvent(sender, tabId, internalTabId, "page-favicon-updated", {
                 favicon: favicons[0],
@@ -208,7 +218,7 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         sendEvent(sender, tabId, internalTabId, "did-stop-loading", {});
     });
 
-    on("audio-state-changed", (e: any) => {
+    on("audio-state-changed", (e: Electron.Event & { audible: boolean }) => {
         sendEvent(sender, tabId, internalTabId, "audio-state-changed", {
             audible: e.audible,
         });
@@ -219,7 +229,7 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
     // (links, window.location, forms) — NOT for programmatic loadURL().
     // This allows app-initiated file:// navigations (MCP, restore) while
     // blocking third-party sites from redirecting to local files.
-    on("will-navigate", (event: any, url: string) => {
+    on("will-navigate", (event: Electron.Event, url: string) => {
         try {
             const parsed = new URL(url);
             if (BLOCKED_PROTOCOLS.includes(parsed.protocol)) {
@@ -368,7 +378,7 @@ function unregisterWebview(key: string) {
     for (const { event: eventName, handler } of reg.listeners) {
         try {
             if (!reg.webContents.isDestroyed()) {
-                (reg.webContents as any).removeListener(eventName, handler);
+                (reg.webContents as unknown as EventTarget).removeListener(eventName, handler);
             }
         } catch {
             // webContents may already be destroyed

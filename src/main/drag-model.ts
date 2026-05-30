@@ -3,7 +3,7 @@ import { openWindows } from "./open-windows";
 
 class DragModel {
     dragEvents: PageDragData[] = [];
-    timer: any = null;
+    timer: ReturnType<typeof setTimeout> | null = null;
 
     addDragEvent = async (event: PageDragData) => {
         this.dragEvents.push(event);

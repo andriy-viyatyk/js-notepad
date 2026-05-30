@@ -74,7 +74,9 @@ class DownloadService {
 
     private getParentWindow(webContents: WebContents): BrowserWindow | undefined {
         // For webview downloads, get the host window
-        const hostContents = (webContents as any).hostWebContents as WebContents | undefined;
+        // `hostWebContents` exists on Electron's WebContents for webview-hosted
+        // pages but isn't in the public TS surface.
+        const hostContents = (webContents as WebContents & { hostWebContents?: WebContents }).hostWebContents;
         const contents = hostContents || webContents;
         return BrowserWindow.fromWebContents(contents) ?? undefined;
     }

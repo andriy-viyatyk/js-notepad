@@ -38,7 +38,10 @@ let ipcInitialized = false;
 let requestIdGen = 0;
 let currentPort = DEFAULT_PORT;
 let browserToolsEnabled = false;
-const pendingRequests = new Map<string, (response: { result?: any; error?: any }) => void>();
+// Renderer→main IPC response shape. `result` / `error` are JSON-RPC-style
+// payloads whose shape is method-specific, so they ride as `unknown`.
+interface McpResponse { result?: unknown; error?: { code?: number; message: string } }
+const pendingRequests = new Map<string, (response: McpResponse) => void>();
 const sessions = new Map<string, { server: InstanceType<typeof McpServer>; transport: InstanceType<typeof StreamableHTTPServerTransport> }>();
 
 // ── IPC Bridge (main ↔ renderer) ───────────────────────────────────
@@ -48,7 +51,7 @@ function initMcpIpc(): void {
     if (ipcInitialized) return;
     ipcInitialized = true;
 
-    ipcMain.on(MCP_RESULT, (_event, requestId: string, response: any) => {
+    ipcMain.on(MCP_RESULT, (_event, requestId: string, response: McpResponse) => {
         const resolve = pendingRequests.get(requestId);
         if (resolve) {
             pendingRequests.delete(requestId);
@@ -57,7 +60,7 @@ function initMcpIpc(): void {
     });
 }
 
-async function sendToRenderer(method: string, params: any, windowIndex?: number, timeoutMs?: number): Promise<{ result?: any; error?: any }> {
+async function sendToRenderer(method: string, params: unknown, windowIndex?: number, timeoutMs?: number): Promise<McpResponse> {
     const windowData = windowIndex !== undefined
         ? openWindows.windows.find(w => w.index === windowIndex)
         : openWindows.windows.find(w => w.window);
@@ -103,7 +106,7 @@ async function sendToRenderer(method: string, params: any, windowIndex?: number,
 
 // ── MCP Tool Result Helper ─────────────────────────────────────────
 
-function toToolResult(response: { result?: any; error?: any }) {
+function toToolResult(response: McpResponse) {
     if (response.error) {
         return {
             content: [{ type: "text" as const, text: `Error: ${response.error.message}` }],
@@ -674,7 +677,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
 // ── HTTP Body Parser ───────────────────────────────────────────────
 
-function parseJsonBody(req: http.IncomingMessage): Promise<any> {
+function parseJsonBody(req: http.IncomingMessage): Promise<unknown> {
     return new Promise((resolve, reject) => {
         let data = "";
         req.on("data", (chunk: Buffer) => { data += chunk.toString(); });

@@ -24,7 +24,7 @@ class OpenWindows {
         return this.windows.find((w) => w.window)?.window;
     }
 
-    send = (eventName: EventEndpoint, data: any) => {
+    send = (eventName: EventEndpoint, data: unknown) => {
         this.windows.forEach((win) => {
             win.window?.send(eventName, data);
         });
