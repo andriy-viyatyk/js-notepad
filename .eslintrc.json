@@ -60,6 +60,12 @@
       }
     },
     {
+      "files": ["src/renderer/editors/grid/**/*"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
       "files": ["**/*.story.tsx"],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off"
