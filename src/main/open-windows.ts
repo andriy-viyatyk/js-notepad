@@ -151,7 +151,7 @@ class OpenWindows {
         try {
             const data = fs.readFileSync(filePath, { encoding: "utf-8" });
             return JSON.parse(data);
-        } catch (e: any) {
+        } catch (e) {
             console.error("Failed to load open windows state:", e);
             return [];
         }

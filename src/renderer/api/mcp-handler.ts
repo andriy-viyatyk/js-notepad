@@ -451,7 +451,7 @@ export function initMcpHandler(): void {
         let response: McpResponse;
         try {
             response = await handleCommand(method, params);
-        } catch (err: any) {
+        } catch (err) {
             response = { error: { code: -32603, message: err.message || "Internal error" } };
         }
         logIncomingRequest(method, params, response, Date.now() - startTime);

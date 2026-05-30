@@ -368,7 +368,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.toolResult = null;
                 s.toolArgs = {};
             });
-        } catch (err: any) {
+        } catch (err) {
             this.logRequest("tools/list", null, null, err?.message || String(err), Date.now() - start);
         }
     };
@@ -428,7 +428,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                     durationMs: duration,
                 };
             });
-        } catch (err: any) {
+        } catch (err) {
             const duration = Date.now() - startTime;
             this.logRequest("tools/call", callParams, null, err?.message || String(err), duration);
             this.toolsState.update((s) => {
@@ -474,7 +474,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.readContent = null;
                 s.readError = "";
             });
-        } catch (err: any) {
+        } catch (err) {
             this.logRequest("resources/list", null, null, err?.message || String(err), Date.now() - start);
         }
     };
@@ -547,7 +547,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                     s.templateReadError = "No content returned.";
                 });
             }
-        } catch (err: any) {
+        } catch (err) {
             this.logRequest("resources/read", readParams, null, err?.message || String(err), Date.now() - start);
             this.resourcesState.update((s) => {
                 s.templateReadLoading = false;
@@ -586,7 +586,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                     s.readError = "No content returned.";
                 });
             }
-        } catch (err: any) {
+        } catch (err) {
             this.logRequest("resources/read", readParams, null, err?.message || String(err), Date.now() - start);
             this.resourcesState.update((s) => {
                 s.readLoading = false;
@@ -621,7 +621,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.promptMessages = null;
                 s.promptError = "";
             });
-        } catch (err: any) {
+        } catch (err) {
             this.logRequest("prompts/list", null, null, err?.message || String(err), Date.now() - start);
         }
     };
@@ -674,7 +674,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.getPromptLoading = false;
                 s.promptMessages = messages;
             });
-        } catch (err: any) {
+        } catch (err) {
             this.logRequest("prompts/get", getParams, null, err?.message || String(err), Date.now() - start);
             this.promptsState.update((s) => {
                 s.getPromptLoading = false;

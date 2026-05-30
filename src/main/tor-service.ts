@@ -93,7 +93,7 @@ class TorService {
             let child: ChildProcessWithoutNullStreams;
             try {
                 child = spawn(torExePath, ["-f", torrcPath]);
-            } catch (err: any) {
+            } catch (err) {
                 const msg = `Failed to spawn tor.exe: ${err.message}`;
                 this.broadcastLog(msg);
                 resolve({ success: false, error: msg });

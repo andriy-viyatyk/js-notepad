@@ -231,7 +231,7 @@ export class TreeProviderViewModel extends TComponentModel<
                 s.displayTree = displayTree;
                 s.error = null;
             });
-        } catch (err: any) {
+        } catch (err) {
             this.state.update((s) => {
                 s.tree = null;
                 s.displayTree = null;
@@ -638,7 +638,7 @@ export class TreeProviderViewModel extends TComponentModel<
 
         try {
             await provider.addItem({ href, title: name, category: dirPath, tags: [], isDirectory: false });
-        } catch (err: any) {
+        } catch (err) {
             ui.notify(err.message || "Failed to create file.", "warning");
             return;
         }
@@ -660,7 +660,7 @@ export class TreeProviderViewModel extends TComponentModel<
 
         try {
             await provider.mkdir(folderPath);
-        } catch (err: any) {
+        } catch (err) {
             ui.notify(err.message || "Failed to create folder.", "warning");
             return;
         }
@@ -688,7 +688,7 @@ export class TreeProviderViewModel extends TComponentModel<
                 this.getListPath(node),
                 newPath,
             );
-        } catch (err: any) {
+        } catch (err) {
             ui.notify(err.message || "Failed to rename.", "warning");
             return;
         }
@@ -707,7 +707,7 @@ export class TreeProviderViewModel extends TComponentModel<
 
         try {
             await provider.deleteItem(node.data.href);
-        } catch (err: any) {
+        } catch (err) {
             ui.notify(err.message || "Failed to delete.", "warning");
             return;
         }
@@ -759,7 +759,7 @@ export class TreeProviderViewModel extends TComponentModel<
 
             try {
                 await provider.rename(source.href, newPath);
-            } catch (err: any) {
+            } catch (err) {
                 ui.notify(err.message || "Failed to move.", "warning");
                 return;
             }

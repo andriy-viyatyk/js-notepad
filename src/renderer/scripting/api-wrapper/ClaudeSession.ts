@@ -189,7 +189,7 @@ export class ClaudeSession {
                         result = `Unknown tool: ${block.name}`;
                         isError = true;
                     }
-                } catch (err: any) {
+                } catch (err) {
                     result = err.message || String(err);
                     isError = true;
                 }

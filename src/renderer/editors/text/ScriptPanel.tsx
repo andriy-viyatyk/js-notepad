@@ -236,7 +236,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
             try {
                 nodefs.writeFileSync(state.selectedScript, state.content, "utf-8");
                 this.state.update((s) => { s.dirty = false; });
-            } catch (err: any) {
+            } catch (err) {
                 const { ui } = await import("../../api/ui");
                 ui.notify(`Failed to save script: ${err.message}`, "error");
             }
@@ -289,7 +289,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
                 s.selectedScript = filePath;
                 s.dirty = false;
             });
-        } catch (err: any) {
+        } catch (err) {
             const { ui } = await import("../../api/ui");
             ui.notify(`Failed to save script: ${err.message}`, "error");
         }

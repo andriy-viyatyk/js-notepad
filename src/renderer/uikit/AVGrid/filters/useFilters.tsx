@@ -103,7 +103,7 @@ export function restoreFiltersConfig(configName: string): TFilter[] {
         }
 
         return [];
-    } catch (e: any) {
+    } catch (e) {
         console.warn(e.message ? e.message : e);
     }
     return [];

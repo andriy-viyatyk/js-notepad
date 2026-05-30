@@ -61,7 +61,7 @@ export function isValidFilePath(filePath: string | undefined): boolean {
             console.warn('File does not exist:', filePath);
             return false;
         }
-    } catch (error: any) {
+    } catch (error) {
         console.warn('Error checking file path:', error?.message);
         return false;
     }
@@ -72,7 +72,7 @@ export function isValidFilePath(filePath: string | undefined): boolean {
             console.warn('Path is not a file (might be a directory):', filePath);
             return false;
         }
-    } catch (error: any) {
+    } catch (error) {
         console.warn('Error reading file stats:', error?.message);
         return false;
     }

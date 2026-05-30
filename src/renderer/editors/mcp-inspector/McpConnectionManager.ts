@@ -140,7 +140,7 @@ export class McpConnectionManager {
             };
 
             this.setStatus("connected");
-        } catch (err: any) {
+        } catch (err) {
             this._error = err?.message || String(err);
             this._serverInfo = null;
             this.client = null;

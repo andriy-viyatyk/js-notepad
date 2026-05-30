@@ -454,7 +454,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
                 this.ensureEmptyLastHeader(selectedId);
                 this.ensureEmptyLastFormData(selectedId);
             }
-        } catch (e: any) {
+        } catch (e) {
             this.state.update((s) => {
                 s.error = `Failed to parse JSON: ${e.message}`;
             });
@@ -915,7 +915,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
                 s.response = response;
                 s.responseTime = responseTime;
             });
-        } catch (err: any) {
+        } catch (err) {
             const responseTime = Date.now() - startTime;
             const response: RestResponse = {
                 status: 0,

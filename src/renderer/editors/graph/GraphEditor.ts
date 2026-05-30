@@ -1844,7 +1844,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
 
             // Refresh panel snapshot — selected node may have changed or been deleted externally
             this.refreshSelectedNodes();
-        } catch (e: any) {
+        } catch (e) {
             this.state.update((s) => {
                 s.error = e.message || "Invalid JSON";
                 s.loading = false;

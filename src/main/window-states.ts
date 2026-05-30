@@ -15,7 +15,7 @@ class WindowStates {
         try {
             const pages = JSON.parse(fileContent) as WindowState;
             return pages;
-        } catch (e: any) {
+        } catch (e) {
             console.error("Failed to parse window files:", e);
             return undefined;
         }

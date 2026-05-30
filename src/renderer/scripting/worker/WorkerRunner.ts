@@ -95,7 +95,7 @@ export async function runAsync<TData, TProxy, TResult>(
                     WorkerChannel.proxyResult as any,
                     { id, callId: msg.callId, value: result }
                 );
-            } catch (e: any) {
+            } catch (e) {
                 ipcRenderer.sendMessage(
                     WorkerChannel.proxyResult as any,
                     { id, callId: msg.callId, error: e?.message ?? String(e) }

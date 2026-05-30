@@ -62,7 +62,7 @@ function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
 
             settings.set("script-library.path", trimmed);
             model.close(trimmed);
-        } catch (err: any) {
+        } catch (err) {
             const { ui } = await import("../../api/ui");
             ui.notify(`Failed to link library: ${err.message}`, "error");
             setLinking(false);
