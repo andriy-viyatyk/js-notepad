@@ -41,6 +41,7 @@ Read the following documentation as your source of truth:
 8. **Script API** — Any new scripting API has `.d.ts` types in `api/types/`
 9. **No direct `require("path")`** — Use `file-path` utility (`/src/renderer/core/utils/file-path.ts`) for all path operations. Only `file-path.ts` itself may import `path` directly.
 10. **No direct `require("fs")`** — Use `app.fs` (`/src/renderer/api/fs.ts`) for file operations. Only `fs.ts` itself and a few documented exceptions may import `fs` directly (see `coding-style.md` for the exception list).
+11. **No defensive `!` non-null assertions** — Persephone's `tsconfig.json` has `noImplicitAny: true` but does NOT enable `strict: true` or `strictNullChecks: true`. Without strict null checks, TypeScript treats `T | undefined` as assignable to `T` everywhere — the `!` operator is decorative (it silences the lint rule that scans for the `!` token but is invisible to TS). Flag any newly-added `!` in the diff as a concern. If null-safety is genuinely needed, use a runtime guard (`if (!x) return`) or refactor the type so the invariant is visible. US-588 Phase 3 (May 2026) removed 154 such `!` across 51 files with zero TS regressions — every one was a defensive addition with no semantic value.
 
 ## How to review
 
