@@ -6,6 +6,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
+## Version 4.0.2 (Upcoming)
+
+*No changes yet.*
+
+---
+
 ## Version 4.0.1
 
 ### Breaking changes
@@ -15,26 +21,6 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **Session data reset on first launch** — Pages opened in v3.0.x and earlier are detected and silently skipped during session restore on first launch of v4.0.1. The app opens with a fresh empty page. Pinned tabs, recent files, and settings are preserved — only the *open-tabs* state is reset. This is a one-time cost; subsequent launches restore normally.
 
 - **Script API: `IEditorInfo.category` removed** — The `category` field on editor info objects (returned by `app.editors.getAll()`, `app.editors.getById()`, `app.editors.resolve()`) has been removed. Use `IEditorInfo.hasContentHost: boolean` instead — `true` for text-bearing editors (Monaco, Grid, Markdown, ...), `false` for standalone editors (PDF, Image, Browser, ...). See [`IEditorInfo`](./api/editors.md#ieditorinfo).
-
-### TypeScript improvements
-
-- **Editor-ID autocomplete across the public API** — `page.editor`, `app.pages.addEditorPage()`, `app.editors.getById()`, `app.editors.resolveId()`, and `ISwitchOptions.options` all type their editor-ID values as the `EditorView` union. TypeScript-typed scripts get autocomplete and typo detection for the 25 supported editor IDs (`"monaco"`, `"grid-json"`, `"rest-client"`, `"video-view"`, `"storybook-view"`, `"pdf-view"`, etc.). Plain JavaScript scripts are unaffected.
-
-### Under the hood
-
-- The internal `ContentViewModel` subsystem (ref-counted view models) has been retired. Editor facades returned by `page.asX()` now wrap the editor model directly. From a script author's perspective the auto-cleanup behavior is unchanged — event subscriptions made via `app.events` are still automatically released when the script completes. Facades themselves are stateless and need no cleanup.
-
-### Bug Fixes
-
-- **MCP Inspector — relative links in resource content blocked gracefully** — Previously, clicking a relative link (e.g., `[structure](structure.md)`) inside a Markdown resource displayed by the MCP Inspector would open a blank Persephone page with a stuck editor toggle. MCP resource URIs have no filesystem base, so relative links cannot be resolved. They are now intercepted before navigation and a notification is shown explaining that relative links cannot be followed. Absolute links (`http://`, `https://`, `#fragment`, `//host`) continue to open normally.
-
-### Note on v3.0.10
-
-The v3.0.10 entry below was prepared during the EPIC-028 development period and never shipped as a standalone release. Its changes (Azure DevOps wiki Mermaid syntax, Explorer scroll-position fix) are included in v4.0.1.
-
----
-
-## Version 3.0.10
 
 ### New Features
 
@@ -49,7 +35,17 @@ The v3.0.10 entry below was prepared during the EPIC-028 development period and 
 
   These blocks are automatically converted to the standard ` ```mermaid ``` ` form before rendering, so diagrams display as SVG just like regular mermaid code blocks (hover toolbar with copy/open controls included). Files authored on Azure DevOps wikis or with Pandoc fenced divs now render diagrams without any changes to the source.
 
+### TypeScript improvements
+
+- **Editor-ID autocomplete across the public API** — `page.editor`, `app.pages.addEditorPage()`, `app.editors.getById()`, `app.editors.resolveId()`, and `ISwitchOptions.options` all type their editor-ID values as the `EditorView` union. TypeScript-typed scripts get autocomplete and typo detection for the 25 supported editor IDs (`"monaco"`, `"grid-json"`, `"rest-client"`, `"video-view"`, `"storybook-view"`, `"pdf-view"`, etc.). Plain JavaScript scripts are unaffected.
+
+### Under the hood
+
+- The internal `ContentViewModel` subsystem (ref-counted view models) has been retired. Editor facades returned by `page.asX()` now wrap the editor model directly. From a script author's perspective the auto-cleanup behavior is unchanged — event subscriptions made via `app.events` are still automatically released when the script completes. Facades themselves are stateless and need no cleanup.
+
 ### Bug Fixes
+
+- **MCP Inspector — relative links in resource content blocked gracefully** — Previously, clicking a relative link (e.g., `[structure](structure.md)`) inside a Markdown resource displayed by the MCP Inspector would open a blank Persephone page with a stuck editor toggle. MCP resource URIs have no filesystem base, so relative links cannot be resolved. They are now intercepted before navigation and a notification is shown explaining that relative links cannot be followed. Absolute links (`http://`, `https://`, `#fragment`, `//host`) continue to open normally.
 
 - **Explorer panel: scroll position preserved on file changes** — Previously, when files in the project folder changed (e.g., while an AI agent was editing them, or during a build), the Explorer file tree jumped back to the top, forcing you to scroll back down to find your place. Scroll position is now retained across automatic tree refreshes — added, removed, and renamed files animate in place without disturbing the viewport.
 
