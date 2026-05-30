@@ -564,6 +564,17 @@ export function PageTab(props: PageTabProps) {
         }
     }, []);
 
+    /** HTML5 DnD: `dragleave` does NOT fire on the drop target when a drop
+     *  occurs — so the dragEnter counter never decrements back to 0 and
+     *  `isOver` stays `true`, leaving `data-drag-over` (lighter background)
+     *  stuck on the tab. Reset state here in parallel with delegating to
+     *  the model's drop handler. */
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        dragEnterCount.current = 0;
+        setIsOver(false);
+        tabModel.handleDrop(e);
+    }, [tabModel]);
+
     const activeLanguages = settings.use("tab-recent-languages");
     const languageMenuItems = useMemo(
         () => tabModel.getLanguageMenuItems(),
@@ -598,7 +609,7 @@ export function PageTab(props: PageTabProps) {
             draggable
             onDragStart={tabModel.handleDragStart}
             onDragEnd={tabModel.handleDragEnd}
-            onDrop={tabModel.handleDrop}
+            onDrop={handleDrop}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
