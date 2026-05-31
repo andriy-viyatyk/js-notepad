@@ -277,7 +277,12 @@ export class BrowserWebviewModel {
         const wvRect = webview.getBoundingClientRect();
         const probeX = menuX - wvRect.left;
         const probeY = menuY - wvRect.top;
-        const svgSource: string | null = await webview.executeJavaScript(`
+        // SVG probe — only used to decide whether to include the "Open SVG in Editor" item.
+        // `webview.executeJavaScript` queues on the page renderer's main thread; if the page
+        // is mid-load and the renderer is busy, awaiting it can block the menu for many
+        // seconds. Race against a short budget — on idle pages the probe returns near-
+        // instantly; on busy pages we drop the SVG item and open the menu immediately.
+        const svgProbe: Promise<string | null> = webview.executeJavaScript(`
             (() => {
                 const el = document.elementFromPoint(${probeX}, ${probeY});
                 const svg = el?.closest('svg');
@@ -315,6 +320,10 @@ export class BrowserWebviewModel {
                 return html;
             })()
         `);
+        const svgSource: string | null = await Promise.race([
+            svgProbe,
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
+        ]);
 
         const items: MenuItem[] = [];
 

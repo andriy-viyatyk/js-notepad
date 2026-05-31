@@ -169,6 +169,7 @@ When a bookmarks file is configured for the current profile, new blank tabs disp
 - `Ctrl+Click` opens the link in a **new internal tab**, keeping bookmarks visible on the original tab
 - **Right-click a bookmark** for a context menu: **Open in New Tab**, Edit, Open in Default Browser, browser profiles, Open in Incognito, Copy URL, Pin/Unpin, Delete
 - **Hover a link** to see a rich tooltip with title, URL, and thumbnail image
+- The toolbar includes **Add Link**, a **view mode switcher** (list or tile layouts), and a **search box** for filtering bookmarks
 - Encrypted bookmark files are not unlocked automatically on blank page load — use the star button or bookmarks drawer to trigger decryption, after which the blank page will show the links
 
 ### Additional Details

@@ -402,7 +402,8 @@ export function BrowserTabsPanel({
     return (
         <BrowserTabsRoot
             name="browser-tabs-root"
-            direction="column" overflow="hidden" background="default" height="100%"
+            direction="column" overflow="hidden" background="default"
+            width="100%" height="100%"
         >
             <Panel
                 name="browser-tabs-list"

@@ -37,7 +37,7 @@ import { BrowserTabsPanel } from "./BrowserTabsPanel";
 import { UrlSuggestionsDropdown } from "./UrlSuggestionsDropdown";
 import { BookmarksDrawer } from "./BookmarksDrawer";
 import { LinkBody } from "../link-editor/LinkBody";
-import { LinkBreadcrumbBits } from "../link-editor";
+import { LinkActionBits, LinkBreadcrumbBits } from "../link-editor";
 import { BrowserBookmarks } from "./BrowserBookmarks";
 import { DownloadButton } from "./DownloadButton";
 import { FindBar } from "../shared/FindBar";
@@ -290,6 +290,7 @@ function BlankPageLinks({ bookmarks }: BlankPageLinksProps) {
             >
                 <LinkBreadcrumbBits model={bookmarks.linkEditor} />
                 <Panel flex={1} />
+                <LinkActionBits model={bookmarks.linkEditor} />
             </Panel>
             <Panel flex={1} overflow="hidden">
                 <LinkBody model={bookmarks.linkEditor} />

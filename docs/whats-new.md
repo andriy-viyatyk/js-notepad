@@ -8,7 +8,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.2 (Upcoming)
 
-*No changes yet.*
+### Bug Fixes
+
+- **Browser blank page — link controls restored** — The **Add Link**, view mode switcher, and search box were missing from the toolbar on the browser's blank bookmarks page. All three controls now appear correctly in the top-right of the blank-page toolbar.
+
+- **Browser context menu — no longer delayed on busy pages** — Right-clicking a web page while it was still loading (or while JavaScript was running) could block the context menu for several seconds due to a synchronous SVG probe. The probe now races against a 250 ms budget — on idle pages the "Open SVG in Editor" item still appears; on busy pages the menu opens immediately without it.
+
+- **Add/Edit Link dialog — Title and Tags inputs no longer stretch** — In the Add/Edit Link dialog, the Title and Tags input fields were expanding horizontally beyond their intended column. The form rows now lay out correctly.
 
 ---
 

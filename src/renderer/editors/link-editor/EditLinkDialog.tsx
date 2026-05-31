@@ -135,7 +135,7 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
             <Panel width={LABEL_WIDTH} direction="row" justify="end">
                 <Text size="sm" color="light">{label}</Text>
             </Panel>
-            <Panel flex minWidth={0}>{children}</Panel>
+            <Panel flex minWidth={0} direction="column">{children}</Panel>
         </Panel>
     );
 }
