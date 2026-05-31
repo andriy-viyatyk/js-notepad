@@ -2,6 +2,7 @@ import type {
     ITreeProvider,
     ITreeProviderItem,
     ITreeStat,
+    ICategorySegment,
 } from "../../api/types/io.tree";
 import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink } from "./tree-provider-link";
@@ -131,6 +132,20 @@ export class FileTreeProvider implements ITreeProvider {
             return encodeCategoryLink({ type: this.type, url: this.sourceUrl, category: href });
         }
         return href;
+    }
+
+    getCategorySegments(category: string): ICategorySegment[] {
+        const root = this.rootPath.replace(/\\/g, "/").replace(/\/+$/, "");
+        const cur = category.replace(/\\/g, "/").replace(/\/+$/, "");
+        if (!cur || cur === root) return [];
+        const rel = cur.startsWith(root + "/") ? cur.slice(root.length + 1) : cur;
+        const parts = rel.split("/").filter(Boolean);
+        return parts.map((label, i) => ({
+            label,
+            // Absolute path of this ancestor. readdirSync accepts "/" on Windows,
+            // so a "/"-joined absolute path is a valid navigation category.
+            category: root + "/" + parts.slice(0, i + 1).join("/"),
+        }));
     }
 
     async addItem(item: Partial<ITreeProviderItem> & { href: string }): Promise<ITreeProviderItem> {

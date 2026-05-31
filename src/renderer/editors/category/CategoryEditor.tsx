@@ -4,9 +4,11 @@ import type { CategoryViewMode } from "../../components/tree-provider/CategoryVi
 import { PageToolbar } from "../base";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
+import { Breadcrumb } from "../../uikit/Breadcrumb";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
-import type { ITreeProvider, ITreeProviderItem } from "../../api/types/io.tree";
+import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
+import type { ITreeProvider, ITreeProviderItem, ICategorySegment } from "../../api/types/io.tree";
 import { TComponentState, useOptionalState, type TOneState } from "../../core/state/state";
 import type { NavigationState } from "../../api/pages/PageModel";
 import type { EditorModel } from "../base";
@@ -101,13 +103,48 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps -- host?.selectionState correlates with hostId (already in deps; hostId is derived from host); narrow deps prevent re-creating the callback on host object identity changes that don't change hostId
     }, [provider, pageId, hostId]);
 
+    // Breadcrumb — segments from root → current folder, computed by the provider.
+    const segments = useMemo<ICategorySegment[]>(
+        () => (provider ? provider.getCategorySegments(categoryPath) : []),
+        [provider, categoryPath],
+    );
+    const breadcrumbValue = useMemo(
+        () => segments.map((s) => s.label).join("/"),
+        [segments],
+    );
+
+    const handleBreadcrumbChange = useCallback((value: string) => {
+        if (!provider) return;
+        const count = value ? value.split("/").length : 0;
+        // count === 0 → root chip → provider.rootPath; else the matching segment.
+        const targetCategory = count === 0 ? provider.rootPath : segments[count - 1].category;
+        const url = encodeCategoryLink({
+            type: provider.type,
+            url: provider.sourceUrl,
+            category: targetCategory,
+        });
+        app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: hostId }));
+    }, [provider, segments, pageId, hostId]);
+
     const renderToolbar = (children?: ReactNode) => (
         <PageToolbar
             name="category-toolbar"
             model={model}
             borderBottom
             rightContributions={children}
-        />
+        >
+            {provider && (
+                <Breadcrumb
+                    name="category-breadcrumb"
+                    rootLabel={provider.displayName}
+                    value={breadcrumbValue}
+                    onChange={handleBreadcrumbChange}
+                    separators="/"
+                    size="sm"
+                    clipStart
+                />
+            )}
+        </PageToolbar>
     );
 
     if (!provider) {

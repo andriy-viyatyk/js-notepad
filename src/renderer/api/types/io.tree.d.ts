@@ -30,6 +30,11 @@ export interface ITreeProvider {
      *  For files: returns item.href. For directories: returns a tree-category:// link. */
     getNavigationUrl(item: ILink): string;
 
+    /** Break a category path into ordered breadcrumb segments (root → leaf), EXCLUDING the
+     *  root chip itself. Each segment's `category` can be fed to encodeCategoryLink({ category })
+     *  to navigate there. Returns [] when `category` is the root. */
+    getCategorySegments(category: string): ICategorySegment[];
+
     /** Resolve a stored href back to a navigation URL.
      *  Uses stat() to determine isDirectory, then delegates to getNavigationUrl().
      *  Useful for panel switch navigation where only the href is stored. */
@@ -133,6 +138,14 @@ export interface ILink {
 
 /** @deprecated Use ILink instead. */
 export type ITreeProviderItem = ILink;
+
+/** One breadcrumb segment: a folder on the path from root to the current category. */
+export interface ICategorySegment {
+    /** Display label for the segment (folder name). */
+    label: string;
+    /** Category value to navigate to (pass to encodeCategoryLink as `category`). */
+    category: string;
+}
 
 /** Tag or hostname info with item count. */
 export interface ITreeTagInfo {

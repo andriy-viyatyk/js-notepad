@@ -409,6 +409,25 @@ PageModel notifies the main editor when secondary editors change. In `addSeconda
 
 Secondary editors are restored asynchronously after the main editor. On mount, if no provider is found, CategoryEditor retries after 50ms via `setTimeout`. This handles the case where the page is restored and the secondary editor isn't ready yet.
 
+### Breadcrumb Navigation
+
+CategoryEditor renders a `Breadcrumb` (UIKit) on the left of its toolbar showing the path from the provider's root (`provider.displayName` as the root chip) down to the current folder. Clicking the root chip or any intermediate chip navigates the **same page** to that ancestor — it builds a `tree-category://` link via `encodeCategoryLink({ type, url: sourceUrl, category })` and dispatches `openRawLink` with the host's model ID as `sourceId` (the same mechanism as folder double-click, so the secondary panel survives the navigation). The root chip navigates to `provider.rootPath`.
+
+The path segmentation is provider-specific because category-path conventions differ, so it is delegated to the provider via the `ITreeProvider.getCategorySegments(category)` method:
+
+```typescript
+interface ITreeProvider {
+    /** Ordered breadcrumb segments root → leaf (excludes the root chip).
+     *  Each segment's `category` can be fed to encodeCategoryLink({ category }). */
+    getCategorySegments(category: string): ICategorySegment[]; // { label, category }
+}
+```
+
+- **LinkTreeProvider / ArchiveTreeProvider** — `category` is already a `/`-separated **relative** path (`rootPath === ""`). Both delegate to the shared `relativeCategorySegments()` helper in [`tree-provider-link.ts`](../../src/renderer/content/tree-providers/tree-provider-link.ts).
+- **FileTreeProvider** — `category` is an **absolute** OS path (`rootPath === sourceUrl`). Its implementation strips the `rootPath` prefix for the segment labels but keeps `/`-joined absolute paths as each segment's navigation `category` (`readdirSync` accepts `/` on Windows).
+
+The UIKit `Breadcrumb` is used with its opt-in `clipStart` prop: on overflow it shrinks within the toolbar row and clips the **start** (root) side, keeping the trailing (current) folder visible. See [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md) for the component contract.
+
 ### Diagram
 
 ```

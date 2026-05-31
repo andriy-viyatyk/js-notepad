@@ -2,10 +2,11 @@ import type {
     ITreeProvider,
     ITreeProviderItem,
     ITreeStat,
+    ICategorySegment,
 } from "../../api/types/io.tree";
 import { archiveService } from "../../api/archive-service";
 import { buildArchivePath } from "../../core/utils/file-path";
-import { encodeCategoryLink } from "./tree-provider-link";
+import { encodeCategoryLink, relativeCategorySegments } from "./tree-provider-link";
 
 // Direct Node.js path — used only for basename/extname on plain filenames,
 // not archive-aware path operations. Listed in coding-style.md exceptions.
@@ -123,5 +124,9 @@ export class ArchiveTreeProvider implements ITreeProvider {
             return encodeCategoryLink({ type: this.type, url: this.sourceUrl, category: href });
         }
         return href;
+    }
+
+    getCategorySegments(category: string): ICategorySegment[] {
+        return relativeCategorySegments(category);
     }
 }

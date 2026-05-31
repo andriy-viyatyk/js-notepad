@@ -21,6 +21,9 @@ export interface BreadcrumbProps
     trailingParentSeparator?: boolean;
     separatorContent?: React.ReactNode;
     size?: "sm" | "md";
+    /** When true, the breadcrumb shrinks to fit its container and clips the START (root side)
+     *  on overflow, keeping the trailing (current) segment visible. Default: false. */
+    clipStart?: boolean;
 }
 
 // --- Styled ---
@@ -48,6 +51,19 @@ const Root = styled.div(
             cursor: "default",
             "&:hover": { color: color.misc.blue },
         },
+
+        // Clip-start mode — shrink within a flex container and clip the root (start) side on
+        // overflow, keeping the trailing segment visible. Children are rendered in reversed DOM
+        // order (leaf-first) so `row-reverse` restores the visual root → leaf order while the
+        // overflow falls on the left edge.
+        "&[data-clip-start]": {
+            overflow: "hidden",
+            minWidth: 0,
+            flexDirection: "row-reverse",
+            justifyContent: "flex-start",
+            whiteSpace: "nowrap",
+        },
+        "&[data-clip-start] > span": { flexShrink: 0 },
     },
     { label: "Breadcrumb" },
 );
@@ -63,6 +79,7 @@ export function Breadcrumb({
     trailingParentSeparator = false,
     separatorContent = ">",
     size = "md",
+    clipStart = false,
     ...rest
 }: BreadcrumbProps) {
     const joinSeparator = separators[0];
@@ -91,30 +108,45 @@ export function Breadcrumb({
 
     const rootIsCurrent = segments.length === 0;
 
-    return (
-        <Root data-type="breadcrumb" data-name={name} data-size={size} {...rest}>
+    // Build a flat node array so clip-start mode can reverse the DOM order (paired with the
+    // `row-reverse` style). Each node is a direct `<span>` child of Root — Fragments would
+    // break the `& > span` flex-shrink rule.
+    const nodes: React.ReactNode[] = [
+        <span
+            key="root"
+            data-part="root"
+            data-current={rootIsCurrent || undefined}
+            onClick={rootIsCurrent ? undefined : () => handleClick(-1)}
+        >
+            {rootLabel}
+        </span>,
+    ];
+    segments.forEach((segment, index) => {
+        const isLeaf = index === segments.length - 1;
+        nodes.push(
+            <span key={`sep-${index}`} data-part="separator">{separatorContent}</span>,
+        );
+        nodes.push(
             <span
-                data-part="root"
-                data-current={rootIsCurrent || undefined}
-                onClick={rootIsCurrent ? undefined : () => handleClick(-1)}
+                key={`seg-${index}`}
+                data-part="segment"
+                data-current={isLeaf || undefined}
+                onClick={isLeaf ? undefined : () => handleClick(index)}
             >
-                {rootLabel}
-            </span>
-            {segments.map((segment, index) => {
-                const isLeaf = index === segments.length - 1;
-                return (
-                    <React.Fragment key={index}>
-                        <span data-part="separator">{separatorContent}</span>
-                        <span
-                            data-part="segment"
-                            data-current={isLeaf || undefined}
-                            onClick={isLeaf ? undefined : () => handleClick(index)}
-                        >
-                            {segment}
-                        </span>
-                    </React.Fragment>
-                );
-            })}
+                {segment}
+            </span>,
+        );
+    });
+
+    return (
+        <Root
+            data-type="breadcrumb"
+            data-name={name}
+            data-size={size}
+            data-clip-start={clipStart || undefined}
+            {...rest}
+        >
+            {clipStart ? [...nodes].reverse() : nodes}
         </Root>
     );
 }

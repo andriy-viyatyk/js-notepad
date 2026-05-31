@@ -8,6 +8,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.2 (Upcoming)
 
+### New Features
+
+- **Folder View — breadcrumb navigation** — The toolbar of the Folder View editor (File Explorer folders, archive subfolders, and link categories) now shows a breadcrumb with the root name and one clickable chip per ancestor folder. Click any chip to jump to that ancestor. On long paths the breadcrumb clips the root side so the current folder is always visible.
+
 ### Bug Fixes
 
 - **Browser blank page — link controls restored** — The **Add Link**, view mode switcher, and search box were missing from the toolbar on the browser's blank bookmarks page. All three controls now appear correctly in the top-right of the blank-page toolbar.

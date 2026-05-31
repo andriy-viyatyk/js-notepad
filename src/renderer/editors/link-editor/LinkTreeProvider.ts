@@ -3,9 +3,10 @@ import type {
     ILink,
     ITreeStat,
     ITreeTagInfo,
+    ICategorySegment,
 } from "../../api/types/io.tree";
 import type { ISubscriptionObject } from "../../api/types/events";
-import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
+import { encodeCategoryLink, relativeCategorySegments } from "../../content/tree-providers/tree-provider-link";
 import { getHostname } from "../../components/tree-provider/favicon-cache";
 import { fpBasename } from "../../core/utils/file-path";
 import type { ILinkSource, LinkItem } from "./linkTypes";
@@ -112,6 +113,10 @@ export class LinkTreeProvider implements ITreeProvider {
             return encodeCategoryLink({ type: this.type, url: this.sourceUrl, category: href });
         }
         return href;
+    }
+
+    getCategorySegments(category: string): ICategorySegment[] {
+        return relativeCategorySegments(category);
     }
 
     // =========================================================================

@@ -395,10 +395,11 @@ Opens when you click a folder in the File Explorer or Archive panel. Displays th
 - **List mode** — Files and folders shown as a vertical list with file-type icons
 - **Tile modes** — Switch between landscape tiles, portrait tiles (normal and large) for a visual grid layout. Images show a preview thumbnail; links show favicons as fallback icons
 - **View mode per folder** — Each folder remembers its preferred view mode. Child folders inherit the parent's mode unless overridden
+- **Breadcrumb navigation** — The toolbar shows a breadcrumb with the root folder name and one chip per ancestor folder, up to the current folder. Click any chip to jump to that ancestor. On deep paths the breadcrumb clips the start (root side) so the current folder is always visible
 - **View mode toggle** — Switch between list and tile modes using the toolbar button
 - **Single click to select** — Click an item to highlight it; double-click to open files or navigate into folders
 - **Sidebar sync** — The sidebar panel tree stays in sync with the folder you are viewing
-- **Works with any tree provider** — File Explorer folders, archive subfolders, and future link categories all use the same Folder View
+- **Works with any tree provider** — File Explorer folders, archive subfolders, and link categories all use the same Folder View with breadcrumb
 
 The Folder View uses editor ID `"category-view"` in scripts:
 ```javascript
