@@ -16,7 +16,7 @@
     {
       "id": "fs-extra",
       "level": 1,
-      "dependents": 29,
+      "dependents": 28,
       "dependencies": 3
     },
     {
@@ -26,16 +26,16 @@
       "dependencies": 0
     },
     {
+      "id": "semver",
+      "level": 1,
+      "dependents": 24,
+      "dependencies": 0
+    },
+    {
       "id": "call-bind",
       "level": 1,
       "dependents": 23,
       "dependencies": 4
-    },
-    {
-      "id": "semver",
-      "level": 1,
-      "dependents": 23,
-      "dependencies": 0
     },
     {
       "id": "devlop",
@@ -84,6 +84,12 @@
       "level": 2,
       "dependents": 15,
       "dependencies": 2
+    },
+    {
+      "id": "@babel/runtime",
+      "level": 2,
+      "dependents": 14,
+      "dependencies": 0
     },
     {
       "id": "@electron-forge/shared-types",
@@ -140,6 +146,12 @@
       "dependencies": 12
     },
     {
+      "id": "global",
+      "level": 2,
+      "dependents": 10,
+      "dependencies": 2
+    },
+    {
       "id": "graceful-fs",
       "level": 2,
       "dependents": 10,
@@ -176,6 +188,12 @@
       "dependencies": 54
     },
     {
+      "id": "iconv-lite",
+      "level": 3,
+      "dependents": 9,
+      "dependencies": 1
+    },
+    {
       "id": "mdast-util-from-markdown",
       "level": 3,
       "dependents": 9,
@@ -188,10 +206,10 @@
       "dependencies": 9
     },
     {
-      "id": "iconv-lite",
+      "id": "cross-spawn",
       "level": 3,
       "dependents": 8,
-      "dependencies": 1
+      "dependencies": 3
     },
     {
       "id": "vfile",
@@ -218,12 +236,6 @@
       "dependencies": 0
     },
     {
-      "id": "cross-spawn",
-      "level": 3,
-      "dependents": 7,
-      "dependencies": 3
-    },
-    {
       "id": "domhandler",
       "level": 3,
       "dependents": 7,
@@ -248,7 +260,25 @@
       "dependencies": 2
     },
     {
+      "id": "tslib",
+      "level": 3,
+      "dependents": 7,
+      "dependencies": 0
+    },
+    {
       "id": "@malept/cross-spawn-promise",
+      "level": 3,
+      "dependents": 6,
+      "dependencies": 1
+    },
+    {
+      "id": "@radix-ui/react-compose-refs",
+      "level": 3,
+      "dependents": 6,
+      "dependencies": 0
+    },
+    {
+      "id": "@radix-ui/react-primitive",
       "level": 3,
       "dependents": 6,
       "dependencies": 1
@@ -320,12 +350,6 @@
       "dependencies": 0
     },
     {
-      "id": "@babel/runtime",
-      "level": 3,
-      "dependents": 5,
-      "dependencies": 0
-    },
-    {
       "id": "@babel/types",
       "level": 3,
       "dependents": 5,
@@ -344,10 +368,28 @@
       "dependencies": 7
     },
     {
+      "id": "@radix-ui/react-use-callback-ref",
+      "level": 3,
+      "dependents": 5,
+      "dependencies": 0
+    },
+    {
+      "id": "@radix-ui/react-use-layout-effect",
+      "level": 3,
+      "dependents": 5,
+      "dependencies": 0
+    },
+    {
       "id": "@typescript-eslint/types",
       "level": 3,
       "dependents": 5,
       "dependencies": 0
+    },
+    {
+      "id": "@videojs/vhs-utils",
+      "level": 3,
+      "dependents": 5,
+      "dependencies": 2
     },
     {
       "id": "@webassemblyjs/helper-wasm-bytecode",
@@ -360,12 +402,6 @@
       "level": 3,
       "dependents": 5,
       "dependencies": 1
-    },
-    {
-      "id": "builder-util",
-      "level": 3,
-      "dependents": 5,
-      "dependencies": 16
     },
     {
       "id": "decode-named-character-reference",
@@ -387,6 +423,18 @@
     },
     {
       "id": "has-property-descriptors",
+      "level": 3,
+      "dependents": 5,
+      "dependencies": 1
+    },
+    {
+      "id": "inherits",
+      "level": 3,
+      "dependents": 5,
+      "dependencies": 0
+    },
+    {
+      "id": "is-glob",
       "level": 3,
       "dependents": 5,
       "dependencies": 1
@@ -434,6 +482,12 @@
       "dependencies": 1
     },
     {
+      "id": "picomatch",
+      "level": 3,
+      "dependents": 5,
+      "dependencies": 0
+    },
+    {
       "id": "resolve",
       "level": 3,
       "dependents": 5,
@@ -473,12 +527,6 @@
       "id": "wrap-ansi",
       "level": 3,
       "dependents": 5,
-      "dependencies": 3
-    },
-    {
-      "id": "@electron/asar",
-      "level": 4,
-      "dependents": 4,
       "dependencies": 3
     },
     {
@@ -540,6 +588,12 @@
       "level": 4,
       "dependents": 4,
       "dependencies": 1
+    },
+    {
+      "id": "builder-util",
+      "level": 4,
+      "dependents": 4,
+      "dependencies": 16
     },
     {
       "id": "builder-util-runtime",
@@ -650,12 +704,6 @@
       "dependencies": 0
     },
     {
-      "id": "inherits",
-      "level": 4,
-      "dependents": 4,
-      "dependencies": 0
-    },
-    {
       "id": "is-callable",
       "level": 4,
       "dependents": 4,
@@ -666,12 +714,6 @@
       "level": 4,
       "dependents": 4,
       "dependencies": 3
-    },
-    {
-      "id": "is-glob",
-      "level": 4,
-      "dependents": 4,
-      "dependencies": 1
     },
     {
       "id": "isarray",
@@ -704,7 +746,7 @@
       "dependencies": 3
     },
     {
-      "id": "mkdirp",
+      "id": "object-assign",
       "level": 4,
       "dependents": 4,
       "dependencies": 0
@@ -746,12 +788,6 @@
       "dependencies": 0
     },
     {
-      "id": "rimraf",
-      "level": 4,
-      "dependents": 4,
-      "dependencies": 1
-    },
-    {
       "id": "safe-regex-test",
       "level": 4,
       "dependents": 4,
@@ -786,6 +822,12 @@
       "level": 4,
       "dependents": 3,
       "dependencies": 0
+    },
+    {
+      "id": "@electron/asar",
+      "level": 4,
+      "dependents": 3,
+      "dependencies": 3
     },
     {
       "id": "@electron-forge/core-utils",
@@ -864,12 +906,6 @@
       "level": 4,
       "dependents": 3,
       "dependencies": 1
-    },
-    {
-      "id": "app-builder-lib",
-      "level": 4,
-      "dependents": 3,
-      "dependencies": 36
     },
     {
       "id": "available-typed-arrays",
@@ -962,13 +998,13 @@
       "dependencies": 0
     },
     {
-      "id": "fast-deep-equal",
+      "id": "get-stream",
       "level": 4,
       "dependents": 3,
-      "dependencies": 0
+      "dependencies": 1
     },
     {
-      "id": "get-stream",
+      "id": "glob-parent",
       "level": 4,
       "dependents": 3,
       "dependencies": 1
@@ -1034,12 +1070,6 @@
       "dependencies": 0
     },
     {
-      "id": "lodash",
-      "level": 4,
-      "dependents": 3,
-      "dependencies": 0
-    },
-    {
       "id": "lowercase-keys",
       "level": 4,
       "dependents": 3,
@@ -1076,7 +1106,19 @@
       "dependencies": 1
     },
     {
+      "id": "mkdirp",
+      "level": 4,
+      "dependents": 3,
+      "dependencies": 0
+    },
+    {
       "id": "ms",
+      "level": 4,
+      "dependents": 3,
+      "dependencies": 0
+    },
+    {
+      "id": "nanoid",
       "level": 4,
       "dependents": 3,
       "dependencies": 0
@@ -1088,7 +1130,7 @@
       "dependencies": 0
     },
     {
-      "id": "picomatch",
+      "id": "points-on-curve",
       "level": 4,
       "dependents": 3,
       "dependencies": 0
@@ -1098,6 +1140,12 @@
       "level": 4,
       "dependents": 3,
       "dependencies": 0
+    },
+    {
+      "id": "rimraf",
+      "level": 4,
+      "dependents": 3,
+      "dependencies": 1
     },
     {
       "id": "source-map-support",
@@ -1116,6 +1164,12 @@
       "level": 4,
       "dependents": 3,
       "dependencies": 0
+    },
+    {
+      "id": "tinyglobby",
+      "level": 4,
+      "dependents": 3,
+      "dependencies": 2
     },
     {
       "id": "tmp",
@@ -1184,6 +1238,12 @@
       "dependencies": 0
     },
     {
+      "id": "@braintree/sanitize-url",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
       "id": "@chevrotain/gast",
       "level": 4,
       "dependents": 2,
@@ -1218,12 +1278,6 @@
       "level": 4,
       "dependents": 2,
       "dependencies": 7
-    },
-    {
-      "id": "@electron/windows-sign",
-      "level": 4,
-      "dependents": 2,
-      "dependencies": 5
     },
     {
       "id": "@electron-forge/tracer",
@@ -1274,6 +1328,12 @@
       "dependencies": 2
     },
     {
+      "id": "@floating-ui/react-dom",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 1
+    },
+    {
       "id": "@jridgewell/sourcemap-codec",
       "level": 4,
       "dependents": 2,
@@ -1292,7 +1352,25 @@
       "dependencies": 2
     },
     {
-      "id": "@react-dnd/invariant",
+      "id": "@radix-ui/primitive",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
+      "id": "@radix-ui/react-context",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
+      "id": "@radix-ui/react-slot",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 1
+    },
+    {
+      "id": "@radix-ui/rect",
       "level": 4,
       "dependents": 2,
       "dependencies": 0
@@ -1412,6 +1490,18 @@
       "dependencies": 0
     },
     {
+      "id": "@xmldom/xmldom",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
+      "id": "aes-decrypter",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 4
+    },
+    {
       "id": "ajv-keywords",
       "level": 4,
       "dependents": 2,
@@ -1428,6 +1518,12 @@
       "level": 4,
       "dependents": 2,
       "dependencies": 0
+    },
+    {
+      "id": "app-builder-lib",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 36
     },
     {
       "id": "array-buffer-byte-length",
@@ -1452,6 +1548,12 @@
       "level": 4,
       "dependents": 2,
       "dependencies": 0
+    },
+    {
+      "id": "braces",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 1
     },
     {
       "id": "bytes",
@@ -1490,10 +1592,22 @@
       "dependencies": 1
     },
     {
+      "id": "clsx",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
       "id": "cose-base",
       "level": 4,
       "dependents": 2,
       "dependencies": 1
+    },
+    {
+      "id": "crc-32",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
     },
     {
       "id": "css-what",
@@ -1550,10 +1664,10 @@
       "dependencies": 5
     },
     {
-      "id": "dnd-core",
+      "id": "dequal",
       "level": 4,
       "dependents": 2,
-      "dependencies": 3
+      "dependencies": 0
     },
     {
       "id": "doctrine",
@@ -1628,6 +1742,12 @@
       "dependencies": 4
     },
     {
+      "id": "fast-deep-equal",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
       "id": "fast-glob",
       "level": 4,
       "dependents": 2,
@@ -1664,12 +1784,6 @@
       "dependencies": 0
     },
     {
-      "id": "glob-parent",
-      "level": 4,
-      "dependents": 2,
-      "dependencies": 1
-    },
-    {
       "id": "glob-to-regexp",
       "level": 4,
       "dependents": 2,
@@ -1688,6 +1802,12 @@
       "dependencies": 2
     },
     {
+      "id": "glur",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
       "id": "graphemer",
       "level": 4,
       "dependents": 2,
@@ -1698,12 +1818,6 @@
       "level": 4,
       "dependents": 2,
       "dependencies": 0
-    },
-    {
-      "id": "hoist-non-react-statics",
-      "level": 4,
-      "dependents": 2,
-      "dependencies": 1
     },
     {
       "id": "hosted-git-info",
@@ -1820,6 +1934,18 @@
       "dependencies": 2
     },
     {
+      "id": "lodash",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
+      "id": "m3u8-parser",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 3
+    },
+    {
       "id": "make-fetch-happen",
       "level": 4,
       "dependents": 2,
@@ -1836,6 +1962,12 @@
       "level": 4,
       "dependents": 2,
       "dependencies": 0
+    },
+    {
+      "id": "mermaid",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 20
     },
     {
       "id": "micromark-core-commonmark",
@@ -1916,10 +2048,22 @@
       "dependencies": 4
     },
     {
+      "id": "mpd-parser",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 4
+    },
+    {
       "id": "mute-stream",
       "level": 4,
       "dependents": 2,
       "dependencies": 0
+    },
+    {
+      "id": "mux.js",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 2
     },
     {
       "id": "negotiator",
@@ -1934,7 +2078,7 @@
       "dependencies": 1
     },
     {
-      "id": "object-assign",
+      "id": "normalize-path",
       "level": 4,
       "dependents": 2,
       "dependencies": 0
@@ -1944,6 +2088,12 @@
       "level": 4,
       "dependents": 2,
       "dependencies": 1
+    },
+    {
+      "id": "pako",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
     },
     {
       "id": "parse-author",
@@ -1976,10 +2126,10 @@
       "dependencies": 0
     },
     {
-      "id": "points-on-curve",
+      "id": "pica",
       "level": 4,
       "dependents": 2,
-      "dependencies": 0
+      "dependencies": 5
     },
     {
       "id": "possible-typed-array-names",
@@ -2018,6 +2168,12 @@
       "dependencies": 4
     },
     {
+      "id": "react-style-singleton",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 2
+    },
+    {
       "id": "readable-stream",
       "level": 4,
       "dependents": 2,
@@ -2052,6 +2208,12 @@
       "level": 4,
       "dependents": 2,
       "dependencies": 0
+    },
+    {
+      "id": "roughjs",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 4
     },
     {
       "id": "safe-buffer",
@@ -2114,6 +2276,12 @@
       "dependencies": 0
     },
     {
+      "id": "source-map-js",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
       "id": "spdx-expression-parse",
       "level": 4,
       "dependents": 2,
@@ -2168,12 +2336,6 @@
       "dependencies": 1
     },
     {
-      "id": "tinyglobby",
-      "level": 4,
-      "dependents": 2,
-      "dependencies": 2
-    },
-    {
       "id": "type-check",
       "level": 4,
       "dependents": 2,
@@ -2216,6 +2378,12 @@
       "dependencies": 0
     },
     {
+      "id": "video.js",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 12
+    },
+    {
       "id": "which-boxed-primitive",
       "level": 4,
       "dependents": 2,
@@ -2246,6 +2414,12 @@
       "dependencies": 0
     },
     {
+      "id": "zustand",
+      "level": 4,
+      "dependents": 2,
+      "dependencies": 0
+    },
+    {
       "id": "7zip-bin",
       "level": 5,
       "dependents": 1,
@@ -2256,6 +2430,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 2
+    },
+    {
+      "id": "@anthropic-ai/sdk",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "@babel/generator",
@@ -2294,12 +2474,6 @@
       "dependencies": 7
     },
     {
-      "id": "@braintree/sanitize-url",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 0
-    },
-    {
       "id": "@chevrotain/cst-dts-gen",
       "level": 5,
       "dependents": 1,
@@ -2328,6 +2502,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 10
+    },
+    {
+      "id": "@electron/windows-sign",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 5
     },
     {
       "id": "@electron-forge/cli",
@@ -2450,6 +2630,36 @@
       "dependencies": 0
     },
     {
+      "id": "@excalidraw/excalidraw",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 31
+    },
+    {
+      "id": "@excalidraw/laser-pointer",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "@excalidraw/markdown-to-text",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "@excalidraw/mermaid-to-excalidraw",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 3
+    },
+    {
+      "id": "@excalidraw/random-username",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "@floating-ui/core",
       "level": 5,
       "dependents": 1,
@@ -2460,12 +2670,6 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 3
-    },
-    {
-      "id": "@floating-ui/react-dom",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 1
     },
     {
       "id": "@gar/promisify",
@@ -2612,6 +2816,12 @@
       "dependencies": 1
     },
     {
+      "id": "@mixmark-io/domino",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "@modelcontextprotocol/sdk",
       "level": 5,
       "dependents": 1,
@@ -2636,6 +2846,12 @@
       "dependencies": 2
     },
     {
+      "id": "@nolyfill/is-core-module",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "@npmcli/fs",
       "level": 5,
       "dependents": 1,
@@ -2648,16 +2864,82 @@
       "dependencies": 2
     },
     {
-      "id": "@react-dnd/asap",
+      "id": "@radix-ui/react-arrow",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
+      "id": "@radix-ui/react-dismissable-layer",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 5
+    },
+    {
+      "id": "@radix-ui/react-focus-guards",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
     },
     {
-      "id": "@react-dnd/shallowequal",
+      "id": "@radix-ui/react-focus-scope",
       "level": 5,
       "dependents": 1,
-      "dependencies": 0
+      "dependencies": 3
+    },
+    {
+      "id": "@radix-ui/react-id",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
+      "id": "@radix-ui/react-popover",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 15
+    },
+    {
+      "id": "@radix-ui/react-popper",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 10
+    },
+    {
+      "id": "@radix-ui/react-portal",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
+    },
+    {
+      "id": "@radix-ui/react-presence",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
+    },
+    {
+      "id": "@radix-ui/react-use-controllable-state",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
+      "id": "@radix-ui/react-use-escape-keydown",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
+      "id": "@radix-ui/react-use-rect",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
+      "id": "@radix-ui/react-use-size",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "@rollup/rollup-win32-x64-gnu",
@@ -2900,6 +3182,12 @@
       "dependencies": 0
     },
     {
+      "id": "@types/turndown",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "@types/wrap-ansi",
       "level": 5,
       "dependents": 1,
@@ -2928,6 +3216,18 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 4
+    },
+    {
+      "id": "@videojs/http-streaming",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 8
+    },
+    {
+      "id": "@videojs/xhr",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 3
     },
     {
       "id": "@vscode/sudo-prompt",
@@ -2970,12 +3270,6 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 2
-    },
-    {
-      "id": "@xmldom/xmldom",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 0
     },
     {
       "id": "@xtuc/ieee754",
@@ -3026,6 +3320,12 @@
       "dependencies": 2
     },
     {
+      "id": "anymatch",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
+    },
+    {
       "id": "app-builder-bin",
       "level": 5,
       "dependents": 1,
@@ -3036,6 +3336,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 0
+    },
+    {
+      "id": "aria-hidden",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "array-includes",
@@ -3128,6 +3434,12 @@
       "dependencies": 0
     },
     {
+      "id": "binary-extensions",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "bl",
       "level": 5,
       "dependents": 1,
@@ -3152,10 +3464,10 @@
       "dependencies": 2
     },
     {
-      "id": "braces",
+      "id": "browser-fs-access",
       "level": 5,
       "dependents": 1,
-      "dependencies": 1
+      "dependencies": 0
     },
     {
       "id": "browserslist",
@@ -3212,6 +3524,12 @@
       "dependencies": 0
     },
     {
+      "id": "canvas-roundrect-polyfill",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "character-entities",
       "level": 5,
       "dependents": 1,
@@ -3252,6 +3570,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 1
+    },
+    {
+      "id": "chokidar",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 7
     },
     {
       "id": "chromium-pickle-js",
@@ -3306,12 +3630,6 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 1
-    },
-    {
-      "id": "clsx",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 0
     },
     {
       "id": "color-convert",
@@ -3402,6 +3720,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 0
+    },
+    {
+      "id": "cross-env",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "css-select",
@@ -3596,12 +3920,6 @@
       "dependencies": 0
     },
     {
-      "id": "dequal",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 0
-    },
-    {
       "id": "detect-libc",
       "level": 5,
       "dependents": 1,
@@ -3609,6 +3927,18 @@
     },
     {
       "id": "detect-node",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "detect-node-es",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "diff",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -3630,6 +3960,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 5
+    },
+    {
+      "id": "dom-walk",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
     },
     {
       "id": "dompurify",
@@ -3698,10 +4034,10 @@
       "dependencies": 0
     },
     {
-      "id": "electron-winstaller",
+      "id": "encoding",
       "level": 5,
       "dependents": 1,
-      "dependencies": 6
+      "dependencies": 1
     },
     {
       "id": "encoding-sniffer",
@@ -3752,6 +4088,12 @@
       "dependencies": 0
     },
     {
+      "id": "es6-promise-pool",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "esbuild",
       "level": 5,
       "dependents": 1,
@@ -3770,6 +4112,12 @@
       "dependencies": 3
     },
     {
+      "id": "eslint-import-resolver-typescript",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 7
+    },
+    {
       "id": "eslint-module-utils",
       "level": 5,
       "dependents": 1,
@@ -3780,6 +4128,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 19
+    },
+    {
+      "id": "eslint-plugin-react-hooks",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
     },
     {
       "id": "esquery",
@@ -3944,7 +4298,19 @@
       "dependencies": 0
     },
     {
+      "id": "fractional-indexing",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "fs.realpath",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "fuzzy",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -3968,6 +4334,12 @@
       "dependencies": 0
     },
     {
+      "id": "get-nonce",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "get-package-info",
       "level": 5,
       "dependents": 1,
@@ -3978,6 +4350,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 3
+    },
+    {
+      "id": "get-tsconfig",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "global-agent",
@@ -4052,6 +4430,18 @@
       "dependencies": 5
     },
     {
+      "id": "hls.js",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "hoist-non-react-statics",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
       "id": "hono",
       "level": 5,
       "dependents": 1,
@@ -4094,6 +4484,12 @@
       "dependencies": 0
     },
     {
+      "id": "image-blob-reduce",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
       "id": "immediate",
       "level": 5,
       "dependents": 1,
@@ -4101,6 +4497,12 @@
     },
     {
       "id": "immer",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "immutable",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -4184,10 +4586,22 @@
       "dependencies": 1
     },
     {
+      "id": "is-binary-path",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
       "id": "is-boolean-object",
       "level": 5,
       "dependents": 1,
       "dependencies": 2
+    },
+    {
+      "id": "is-bun-module",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "is-extglob",
@@ -4200,6 +4614,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 1
+    },
+    {
+      "id": "is-function",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
     },
     {
       "id": "is-generator-function",
@@ -4322,6 +4742,18 @@
       "dependencies": 0
     },
     {
+      "id": "jotai",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "jotai-scope",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "js-tokens",
       "level": 5,
       "dependents": 1,
@@ -4350,6 +4782,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 0
+    },
+    {
+      "id": "json-schema-to-ts",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
     },
     {
       "id": "json-schema-traverse",
@@ -4418,6 +4856,12 @@
       "dependencies": 1
     },
     {
+      "id": "kleur",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "langium",
       "level": 5,
       "dependents": 1,
@@ -4425,6 +4869,12 @@
     },
     {
       "id": "layout-base",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "libarchive-wasm",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -4460,6 +4910,12 @@
       "dependencies": 1
     },
     {
+      "id": "lodash.debounce",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "lodash.get",
       "level": 5,
       "dependents": 1,
@@ -4467,6 +4923,12 @@
     },
     {
       "id": "lodash.merge",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "lodash.throttle",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -4598,12 +5060,6 @@
       "dependencies": 0
     },
     {
-      "id": "mermaid",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 20
-    },
-    {
       "id": "micromark",
       "level": 5,
       "dependents": 1,
@@ -4700,6 +5156,12 @@
       "dependencies": 0
     },
     {
+      "id": "min-document",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
       "id": "minipass-fetch",
       "level": 5,
       "dependents": 1,
@@ -4718,13 +5180,25 @@
       "dependencies": 0
     },
     {
+      "id": "mri",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "multimath",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
+    },
+    {
       "id": "mz",
       "level": 5,
       "dependents": 1,
       "dependencies": 3
     },
     {
-      "id": "nanoid",
+      "id": "napi-postinstall",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -4832,6 +5306,12 @@
       "dependencies": 2
     },
     {
+      "id": "open-color",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "optionator",
       "level": 5,
       "dependents": 1,
@@ -4893,12 +5373,6 @@
     },
     {
       "id": "package-manager-detector",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 0
-    },
-    {
-      "id": "pako",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -4970,6 +5444,12 @@
       "dependencies": 0
     },
     {
+      "id": "perfect-freehand",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "pify",
       "level": 5,
       "dependents": 1,
@@ -4988,10 +5468,34 @@
       "dependencies": 0
     },
     {
+      "id": "pkcs7",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
       "id": "pkg-types",
       "level": 5,
       "dependents": 1,
       "dependencies": 3
+    },
+    {
+      "id": "png-chunk-text",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "png-chunks-encode",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
+    },
+    {
+      "id": "png-chunks-extract",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "points-on-path",
@@ -5013,6 +5517,12 @@
     },
     {
       "id": "prettier",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "process",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -5054,6 +5564,12 @@
       "dependencies": 0
     },
     {
+      "id": "pwacompat",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "queue-microtask",
       "level": 5,
       "dependents": 1,
@@ -5078,18 +5594,6 @@
       "dependencies": 0
     },
     {
-      "id": "react-dnd",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 5
-    },
-    {
-      "id": "react-dnd-html5-backend",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 1
-    },
-    {
       "id": "react-dom",
       "level": 5,
       "dependents": 1,
@@ -5106,6 +5610,18 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 11
+    },
+    {
+      "id": "react-remove-scroll",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 5
+    },
+    {
+      "id": "react-remove-scroll-bar",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
     },
     {
       "id": "react-tooltip",
@@ -5132,13 +5648,13 @@
       "dependencies": 2
     },
     {
-      "id": "rechoir",
+      "id": "readdirp",
       "level": 5,
       "dependents": 1,
       "dependencies": 1
     },
     {
-      "id": "redux",
+      "id": "rechoir",
       "level": 5,
       "dependents": 1,
       "dependencies": 1
@@ -5192,6 +5708,12 @@
       "dependencies": 0
     },
     {
+      "id": "resolve-pkg-maps",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "restore-cursor",
       "level": 5,
       "dependents": 1,
@@ -5228,12 +5750,6 @@
       "dependencies": 24
     },
     {
-      "id": "roughjs",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 4
-    },
-    {
       "id": "router",
       "level": 5,
       "dependents": 1,
@@ -5252,6 +5768,12 @@
       "dependencies": 0
     },
     {
+      "id": "sade",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
       "id": "safe-array-concat",
       "level": 5,
       "dependents": 1,
@@ -5268,6 +5790,12 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 1
+    },
+    {
+      "id": "sass",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 3
     },
     {
       "id": "sax",
@@ -5366,6 +5894,12 @@
       "dependencies": 1
     },
     {
+      "id": "sliced",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "smart-buffer",
       "level": 5,
       "dependents": 1,
@@ -5376,12 +5910,6 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 2
-    },
-    {
-      "id": "source-map-js",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 0
     },
     {
       "id": "spdx-correct",
@@ -5397,6 +5925,12 @@
     },
     {
       "id": "sprintf-js",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "stable-hash",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -5522,12 +6056,6 @@
       "dependencies": 0
     },
     {
-      "id": "temp",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 2
-    },
-    {
       "id": "terser",
       "level": 5,
       "dependents": 1,
@@ -5612,6 +6140,12 @@
       "dependencies": 1
     },
     {
+      "id": "ts-algebra",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
       "id": "ts-dedent",
       "level": 5,
       "dependents": 1,
@@ -5630,10 +6164,16 @@
       "dependencies": 4
     },
     {
-      "id": "tslib",
+      "id": "tunnel-rat",
       "level": 5,
       "dependents": 1,
-      "dependencies": 0
+      "dependencies": 1
+    },
+    {
+      "id": "turndown",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "typed-array-buffer",
@@ -5708,6 +6248,12 @@
       "dependencies": 0
     },
     {
+      "id": "unrs-resolver",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
       "id": "update-browserslist-db",
       "level": 5,
       "dependents": 1,
@@ -5718,6 +6264,18 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 1
+    },
+    {
+      "id": "use-callback-ref",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
+      "id": "use-sidecar",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 2
     },
     {
       "id": "use-sync-external-store",
@@ -5754,6 +6312,24 @@
       "level": 5,
       "dependents": 1,
       "dependencies": 2
+    },
+    {
+      "id": "videojs-contrib-quality-levels",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
+    },
+    {
+      "id": "videojs-font",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "videojs-vtt.js",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 1
     },
     {
       "id": "vite",
@@ -5829,6 +6405,12 @@
     },
     {
       "id": "webpack-sources",
+      "level": 5,
+      "dependents": 1,
+      "dependencies": 0
+    },
+    {
+      "id": "webworkify",
       "level": 5,
       "dependents": 1,
       "dependencies": 0
@@ -5918,12 +6500,6 @@
       "dependencies": 0
     },
     {
-      "id": "zustand",
-      "level": 5,
-      "dependents": 1,
-      "dependencies": 0
-    },
-    {
       "id": "@isaacs/fs-minipass",
       "level": 5,
       "dependents": 0,
@@ -5948,6 +6524,12 @@
       "dependencies": 0
     },
     {
+      "id": "@unrs/resolver-binding-win32-x64-msvc",
+      "level": 5,
+      "dependents": 0,
+      "dependencies": 0
+    },
+    {
       "id": "at-least-node",
       "level": 5,
       "dependents": 0,
@@ -5960,10 +6542,10 @@
       "dependencies": 0
     },
     {
-      "id": "electron-builder-squirrel-windows",
+      "id": "elkjs",
       "level": 5,
       "dependents": 0,
-      "dependencies": 3
+      "dependencies": 0
     },
     {
       "id": "fast-uri",
@@ -5994,6 +6576,12 @@
       "level": 5,
       "dependents": 0,
       "dependencies": 10
+    },
+    {
+      "id": "non-layered-tidy-tree-layout",
+      "level": 5,
+      "dependents": 0,
+      "dependencies": 0
     },
     {
       "id": "p-try",
@@ -6032,11 +6620,23 @@
       "dependencies": 0
     },
     {
+      "id": "uvu",
+      "level": 5,
+      "dependents": 0,
+      "dependencies": 4
+    },
+    {
+      "id": "web-worker",
+      "level": 5,
+      "dependents": 0,
+      "dependencies": 0
+    },
+    {
       "id": "persephone",
       "level": 1,
       "shape": "star",
       "dependents": 0,
-      "dependencies": 54
+      "dependencies": 61
     }
   ],
   "links": [
@@ -6047,6 +6647,10 @@
     {
       "source": "@antfu/install-pkg",
       "target": "tinyexec"
+    },
+    {
+      "source": "@anthropic-ai/sdk",
+      "target": "json-schema-to-ts"
     },
     {
       "source": "@babel/code-frame",
@@ -7065,6 +7669,138 @@
       "target": "eslint-visitor-keys"
     },
     {
+      "source": "@excalidraw/excalidraw",
+      "target": "@braintree/sanitize-url"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "@excalidraw/laser-pointer"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "@excalidraw/mermaid-to-excalidraw"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "@excalidraw/random-username"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "@radix-ui/react-popover"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "browser-fs-access"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "canvas-roundrect-polyfill"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "clsx"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "cross-env"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "es6-promise-pool"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "fractional-indexing"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "fuzzy"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "image-blob-reduce"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "jotai"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "jotai-scope"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "lodash.throttle"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "lodash.debounce"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "nanoid"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "open-color"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "pako"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "perfect-freehand"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "pica"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "png-chunk-text"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "png-chunks-encode"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "png-chunks-extract"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "points-on-curve"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "pwacompat"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "roughjs"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "sass"
+    },
+    {
+      "source": "@excalidraw/excalidraw",
+      "target": "tunnel-rat"
+    },
+    {
+      "source": "@excalidraw/mermaid-to-excalidraw",
+      "target": "@excalidraw/markdown-to-text"
+    },
+    {
+      "source": "@excalidraw/mermaid-to-excalidraw",
+      "target": "mermaid"
+    },
+    {
+      "source": "@excalidraw/mermaid-to-excalidraw",
+      "target": "nanoid"
+    },
+    {
       "source": "@floating-ui/core",
       "target": "@floating-ui/utils"
     },
@@ -7545,6 +8281,186 @@
       "target": "rimraf"
     },
     {
+      "source": "@radix-ui/react-arrow",
+      "target": "@radix-ui/react-primitive"
+    },
+    {
+      "source": "@radix-ui/react-dismissable-layer",
+      "target": "@radix-ui/primitive"
+    },
+    {
+      "source": "@radix-ui/react-dismissable-layer",
+      "target": "@radix-ui/react-compose-refs"
+    },
+    {
+      "source": "@radix-ui/react-dismissable-layer",
+      "target": "@radix-ui/react-primitive"
+    },
+    {
+      "source": "@radix-ui/react-dismissable-layer",
+      "target": "@radix-ui/react-use-callback-ref"
+    },
+    {
+      "source": "@radix-ui/react-dismissable-layer",
+      "target": "@radix-ui/react-use-escape-keydown"
+    },
+    {
+      "source": "@radix-ui/react-focus-scope",
+      "target": "@radix-ui/react-compose-refs"
+    },
+    {
+      "source": "@radix-ui/react-focus-scope",
+      "target": "@radix-ui/react-primitive"
+    },
+    {
+      "source": "@radix-ui/react-focus-scope",
+      "target": "@radix-ui/react-use-callback-ref"
+    },
+    {
+      "source": "@radix-ui/react-id",
+      "target": "@radix-ui/react-use-layout-effect"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/primitive"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-compose-refs"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-context"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-dismissable-layer"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-focus-guards"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-focus-scope"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-id"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-popper"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-portal"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-presence"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-primitive"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-slot"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "@radix-ui/react-use-controllable-state"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "aria-hidden"
+    },
+    {
+      "source": "@radix-ui/react-popover",
+      "target": "react-remove-scroll"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@floating-ui/react-dom"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-arrow"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-compose-refs"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-context"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-primitive"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-use-callback-ref"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-use-layout-effect"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-use-rect"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/react-use-size"
+    },
+    {
+      "source": "@radix-ui/react-popper",
+      "target": "@radix-ui/rect"
+    },
+    {
+      "source": "@radix-ui/react-portal",
+      "target": "@radix-ui/react-primitive"
+    },
+    {
+      "source": "@radix-ui/react-portal",
+      "target": "@radix-ui/react-use-layout-effect"
+    },
+    {
+      "source": "@radix-ui/react-presence",
+      "target": "@radix-ui/react-compose-refs"
+    },
+    {
+      "source": "@radix-ui/react-presence",
+      "target": "@radix-ui/react-use-layout-effect"
+    },
+    {
+      "source": "@radix-ui/react-primitive",
+      "target": "@radix-ui/react-slot"
+    },
+    {
+      "source": "@radix-ui/react-slot",
+      "target": "@radix-ui/react-compose-refs"
+    },
+    {
+      "source": "@radix-ui/react-use-controllable-state",
+      "target": "@radix-ui/react-use-callback-ref"
+    },
+    {
+      "source": "@radix-ui/react-use-escape-keydown",
+      "target": "@radix-ui/react-use-callback-ref"
+    },
+    {
+      "source": "@radix-ui/react-use-rect",
+      "target": "@radix-ui/rect"
+    },
+    {
+      "source": "@radix-ui/react-use-size",
+      "target": "@radix-ui/react-use-layout-effect"
+    },
+    {
       "source": "@szmarczak/http-timer",
       "target": "defer-to-connect"
     },
@@ -7949,6 +8865,58 @@
       "target": "eslint-visitor-keys"
     },
     {
+      "source": "@videojs/http-streaming",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "@videojs/http-streaming",
+      "target": "@videojs/vhs-utils"
+    },
+    {
+      "source": "@videojs/http-streaming",
+      "target": "aes-decrypter"
+    },
+    {
+      "source": "@videojs/http-streaming",
+      "target": "global"
+    },
+    {
+      "source": "@videojs/http-streaming",
+      "target": "m3u8-parser"
+    },
+    {
+      "source": "@videojs/http-streaming",
+      "target": "mpd-parser"
+    },
+    {
+      "source": "@videojs/http-streaming",
+      "target": "mux.js"
+    },
+    {
+      "source": "@videojs/http-streaming",
+      "target": "video.js"
+    },
+    {
+      "source": "@videojs/vhs-utils",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "@videojs/vhs-utils",
+      "target": "global"
+    },
+    {
+      "source": "@videojs/xhr",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "@videojs/xhr",
+      "target": "is-function"
+    },
+    {
+      "source": "@videojs/xhr",
+      "target": "global"
+    },
+    {
       "source": "@webassemblyjs/ast",
       "target": "@webassemblyjs/helper-numbers"
     },
@@ -8101,6 +9069,22 @@
       "target": "negotiator"
     },
     {
+      "source": "aes-decrypter",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "aes-decrypter",
+      "target": "@videojs/vhs-utils"
+    },
+    {
+      "source": "aes-decrypter",
+      "target": "global"
+    },
+    {
+      "source": "aes-decrypter",
+      "target": "pkcs7"
+    },
+    {
       "source": "agent-base",
       "target": "debug"
     },
@@ -8143,6 +9127,14 @@
     {
       "source": "ansi-styles",
       "target": "color-convert"
+    },
+    {
+      "source": "anymatch",
+      "target": "normalize-path"
+    },
+    {
+      "source": "anymatch",
+      "target": "picomatch"
     },
     {
       "source": "app-builder-lib",
@@ -8287,6 +9279,10 @@
     {
       "source": "app-builder-lib",
       "target": "builder-util"
+    },
+    {
+      "source": "aria-hidden",
+      "target": "tslib"
     },
     {
       "source": "array-buffer-byte-length",
@@ -8837,6 +9833,34 @@
       "target": "lodash-es"
     },
     {
+      "source": "chokidar",
+      "target": "anymatch"
+    },
+    {
+      "source": "chokidar",
+      "target": "braces"
+    },
+    {
+      "source": "chokidar",
+      "target": "glob-parent"
+    },
+    {
+      "source": "chokidar",
+      "target": "is-binary-path"
+    },
+    {
+      "source": "chokidar",
+      "target": "is-glob"
+    },
+    {
+      "source": "chokidar",
+      "target": "normalize-path"
+    },
+    {
+      "source": "chokidar",
+      "target": "readdirp"
+    },
+    {
       "source": "cli-cursor",
       "target": "restore-cursor"
     },
@@ -8939,6 +9963,10 @@
     {
       "source": "cosmiconfig",
       "target": "yaml"
+    },
+    {
+      "source": "cross-env",
+      "target": "cross-spawn"
     },
     {
       "source": "cross-spawn",
@@ -9397,18 +10425,6 @@
       "target": "builder-util"
     },
     {
-      "source": "dnd-core",
-      "target": "@react-dnd/asap"
-    },
-    {
-      "source": "dnd-core",
-      "target": "@react-dnd/invariant"
-    },
-    {
-      "source": "dnd-core",
-      "target": "redux"
-    },
-    {
       "source": "doctrine",
       "target": "esutils"
     },
@@ -9517,18 +10533,6 @@
       "target": "builder-util-runtime"
     },
     {
-      "source": "electron-builder-squirrel-windows",
-      "target": "electron-winstaller"
-    },
-    {
-      "source": "electron-builder-squirrel-windows",
-      "target": "app-builder-lib"
-    },
-    {
-      "source": "electron-builder-squirrel-windows",
-      "target": "builder-util"
-    },
-    {
       "source": "electron-publish",
       "target": "@types/fs-extra"
     },
@@ -9569,28 +10573,8 @@
       "target": "type-fest"
     },
     {
-      "source": "electron-winstaller",
-      "target": "@electron/asar"
-    },
-    {
-      "source": "electron-winstaller",
-      "target": "@electron/windows-sign"
-    },
-    {
-      "source": "electron-winstaller",
-      "target": "debug"
-    },
-    {
-      "source": "electron-winstaller",
-      "target": "fs-extra"
-    },
-    {
-      "source": "electron-winstaller",
-      "target": "lodash"
-    },
-    {
-      "source": "electron-winstaller",
-      "target": "temp"
+      "source": "encoding",
+      "target": "iconv-lite"
     },
     {
       "source": "encoding-sniffer",
@@ -10035,6 +11019,34 @@
     {
       "source": "eslint-import-resolver-node",
       "target": "resolve"
+    },
+    {
+      "source": "eslint-import-resolver-typescript",
+      "target": "@nolyfill/is-core-module"
+    },
+    {
+      "source": "eslint-import-resolver-typescript",
+      "target": "debug"
+    },
+    {
+      "source": "eslint-import-resolver-typescript",
+      "target": "get-tsconfig"
+    },
+    {
+      "source": "eslint-import-resolver-typescript",
+      "target": "is-bun-module"
+    },
+    {
+      "source": "eslint-import-resolver-typescript",
+      "target": "stable-hash"
+    },
+    {
+      "source": "eslint-import-resolver-typescript",
+      "target": "tinyglobby"
+    },
+    {
+      "source": "eslint-import-resolver-typescript",
+      "target": "unrs-resolver"
     },
     {
       "source": "eslint-module-utils",
@@ -10589,6 +11601,10 @@
       "target": "get-intrinsic"
     },
     {
+      "source": "get-tsconfig",
+      "target": "resolve-pkg-maps"
+    },
+    {
       "source": "glob",
       "target": "fs.realpath"
     },
@@ -10615,6 +11631,14 @@
     {
       "source": "glob-parent",
       "target": "is-glob"
+    },
+    {
+      "source": "global",
+      "target": "min-document"
+    },
+    {
+      "source": "global",
+      "target": "process"
     },
     {
       "source": "global-agent",
@@ -11017,6 +12041,10 @@
       "target": "safer-buffer"
     },
     {
+      "source": "image-blob-reduce",
+      "target": "pica"
+    },
+    {
       "source": "import-fresh",
       "target": "parent-module"
     },
@@ -11089,12 +12117,20 @@
       "target": "has-bigints"
     },
     {
+      "source": "is-binary-path",
+      "target": "binary-extensions"
+    },
+    {
       "source": "is-boolean-object",
       "target": "call-bound"
     },
     {
       "source": "is-boolean-object",
       "target": "has-tostringtag"
+    },
+    {
+      "source": "is-bun-module",
+      "target": "semver"
     },
     {
       "source": "is-core-module",
@@ -11247,6 +12283,14 @@
     {
       "source": "js-yaml",
       "target": "argparse"
+    },
+    {
+      "source": "json-schema-to-ts",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "json-schema-to-ts",
+      "target": "ts-algebra"
     },
     {
       "source": "json-stable-stringify",
@@ -11407,6 +12451,18 @@
     {
       "source": "log-update",
       "target": "wrap-ansi"
+    },
+    {
+      "source": "m3u8-parser",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "m3u8-parser",
+      "target": "@videojs/vhs-utils"
+    },
+    {
+      "source": "m3u8-parser",
+      "target": "global"
     },
     {
       "source": "make-fetch-happen",
@@ -12381,6 +13437,10 @@
       "target": "mime-db"
     },
     {
+      "source": "min-document",
+      "target": "dom-walk"
+    },
+    {
       "source": "minimatch",
       "target": "brace-expansion"
     },
@@ -12391,6 +13451,10 @@
     {
       "source": "minipass-collect",
       "target": "minipass"
+    },
+    {
+      "source": "minipass-fetch",
+      "target": "encoding"
     },
     {
       "source": "minipass-fetch",
@@ -12439,6 +13503,38 @@
     {
       "source": "mlly",
       "target": "ufo"
+    },
+    {
+      "source": "mpd-parser",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "mpd-parser",
+      "target": "@videojs/vhs-utils"
+    },
+    {
+      "source": "mpd-parser",
+      "target": "@xmldom/xmldom"
+    },
+    {
+      "source": "mpd-parser",
+      "target": "global"
+    },
+    {
+      "source": "multimath",
+      "target": "glur"
+    },
+    {
+      "source": "multimath",
+      "target": "object-assign"
+    },
+    {
+      "source": "mux.js",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "mux.js",
+      "target": "global"
     },
     {
       "source": "mz",
@@ -12825,6 +13921,30 @@
       "target": "minipass"
     },
     {
+      "source": "pica",
+      "target": "glur"
+    },
+    {
+      "source": "pica",
+      "target": "inherits"
+    },
+    {
+      "source": "pica",
+      "target": "multimath"
+    },
+    {
+      "source": "pica",
+      "target": "object-assign"
+    },
+    {
+      "source": "pica",
+      "target": "webworkify"
+    },
+    {
+      "source": "pkcs7",
+      "target": "@babel/runtime"
+    },
+    {
       "source": "pkg-types",
       "target": "confbox"
     },
@@ -12847,6 +13967,18 @@
     {
       "source": "plist",
       "target": "xmlbuilder"
+    },
+    {
+      "source": "png-chunks-encode",
+      "target": "crc-32"
+    },
+    {
+      "source": "png-chunks-encode",
+      "target": "sliced"
+    },
+    {
+      "source": "png-chunks-extract",
+      "target": "crc-32"
     },
     {
       "source": "points-on-path",
@@ -12933,30 +14065,6 @@
       "target": "unpipe"
     },
     {
-      "source": "react-dnd",
-      "target": "@react-dnd/invariant"
-    },
-    {
-      "source": "react-dnd",
-      "target": "@react-dnd/shallowequal"
-    },
-    {
-      "source": "react-dnd",
-      "target": "dnd-core"
-    },
-    {
-      "source": "react-dnd",
-      "target": "fast-deep-equal"
-    },
-    {
-      "source": "react-dnd",
-      "target": "hoist-non-react-statics"
-    },
-    {
-      "source": "react-dnd-html5-backend",
-      "target": "dnd-core"
-    },
-    {
       "source": "react-dom",
       "target": "scheduler"
     },
@@ -13005,6 +14113,42 @@
       "target": "vfile"
     },
     {
+      "source": "react-remove-scroll",
+      "target": "react-remove-scroll-bar"
+    },
+    {
+      "source": "react-remove-scroll",
+      "target": "react-style-singleton"
+    },
+    {
+      "source": "react-remove-scroll",
+      "target": "tslib"
+    },
+    {
+      "source": "react-remove-scroll",
+      "target": "use-callback-ref"
+    },
+    {
+      "source": "react-remove-scroll",
+      "target": "use-sidecar"
+    },
+    {
+      "source": "react-remove-scroll-bar",
+      "target": "react-style-singleton"
+    },
+    {
+      "source": "react-remove-scroll-bar",
+      "target": "tslib"
+    },
+    {
+      "source": "react-style-singleton",
+      "target": "tslib"
+    },
+    {
+      "source": "react-style-singleton",
+      "target": "get-nonce"
+    },
+    {
       "source": "react-tooltip",
       "target": "@floating-ui/dom"
     },
@@ -13049,12 +14193,12 @@
       "target": "util-deprecate"
     },
     {
-      "source": "rechoir",
-      "target": "resolve"
+      "source": "readdirp",
+      "target": "picomatch"
     },
     {
-      "source": "redux",
-      "target": "@babel/runtime"
+      "source": "rechoir",
+      "target": "resolve"
     },
     {
       "source": "reflect.getprototypeof",
@@ -13305,6 +14449,10 @@
       "target": "queue-microtask"
     },
     {
+      "source": "sade",
+      "target": "mri"
+    },
+    {
       "source": "safe-array-concat",
       "target": "call-bind"
     },
@@ -13347,6 +14495,18 @@
     {
       "source": "sanitize-filename",
       "target": "truncate-utf8-bytes"
+    },
+    {
+      "source": "sass",
+      "target": "chokidar"
+    },
+    {
+      "source": "sass",
+      "target": "immutable"
+    },
+    {
+      "source": "sass",
+      "target": "source-map-js"
     },
     {
       "source": "schema-utils",
@@ -13797,14 +14957,6 @@
       "target": "yallist"
     },
     {
-      "source": "temp",
-      "target": "mkdirp"
-    },
-    {
-      "source": "temp",
-      "target": "rimraf"
-    },
-    {
       "source": "temp-file",
       "target": "async-exit-hook"
     },
@@ -13903,6 +15055,14 @@
     {
       "source": "tsutils",
       "target": "tslib"
+    },
+    {
+      "source": "tunnel-rat",
+      "target": "zustand"
+    },
+    {
+      "source": "turndown",
+      "target": "@mixmark-io/domino"
     },
     {
       "source": "type-check",
@@ -14089,6 +15249,10 @@
       "target": "unist-util-is"
     },
     {
+      "source": "unrs-resolver",
+      "target": "napi-postinstall"
+    },
+    {
       "source": "update-browserslist-db",
       "target": "escalade"
     },
@@ -14101,12 +15265,40 @@
       "target": "punycode"
     },
     {
+      "source": "use-callback-ref",
+      "target": "tslib"
+    },
+    {
+      "source": "use-sidecar",
+      "target": "detect-node-es"
+    },
+    {
+      "source": "use-sidecar",
+      "target": "tslib"
+    },
+    {
       "source": "username",
       "target": "execa"
     },
     {
       "source": "username",
       "target": "mem"
+    },
+    {
+      "source": "uvu",
+      "target": "dequal"
+    },
+    {
+      "source": "uvu",
+      "target": "diff"
+    },
+    {
+      "source": "uvu",
+      "target": "kleur"
+    },
+    {
+      "source": "uvu",
+      "target": "sade"
     },
     {
       "source": "validate-npm-package-license",
@@ -14139,6 +15331,62 @@
     {
       "source": "vfile-message",
       "target": "unist-util-stringify-position"
+    },
+    {
+      "source": "video.js",
+      "target": "@babel/runtime"
+    },
+    {
+      "source": "video.js",
+      "target": "@videojs/http-streaming"
+    },
+    {
+      "source": "video.js",
+      "target": "@videojs/vhs-utils"
+    },
+    {
+      "source": "video.js",
+      "target": "@videojs/xhr"
+    },
+    {
+      "source": "video.js",
+      "target": "aes-decrypter"
+    },
+    {
+      "source": "video.js",
+      "target": "global"
+    },
+    {
+      "source": "video.js",
+      "target": "m3u8-parser"
+    },
+    {
+      "source": "video.js",
+      "target": "mpd-parser"
+    },
+    {
+      "source": "video.js",
+      "target": "mux.js"
+    },
+    {
+      "source": "video.js",
+      "target": "videojs-contrib-quality-levels"
+    },
+    {
+      "source": "video.js",
+      "target": "videojs-font"
+    },
+    {
+      "source": "video.js",
+      "target": "videojs-vtt.js"
+    },
+    {
+      "source": "videojs-contrib-quality-levels",
+      "target": "global"
+    },
+    {
+      "source": "videojs-vtt.js",
+      "target": "global"
     },
     {
       "source": "vite",
@@ -14470,11 +15718,19 @@
     },
     {
       "source": "persephone",
+      "target": "@anthropic-ai/sdk"
+    },
+    {
+      "source": "persephone",
       "target": "@emotion/react"
     },
     {
       "source": "persephone",
       "target": "@emotion/styled"
+    },
+    {
+      "source": "persephone",
+      "target": "@excalidraw/excalidraw"
     },
     {
       "source": "persephone",
@@ -14522,6 +15778,10 @@
     },
     {
       "source": "persephone",
+      "target": "hls.js"
+    },
+    {
+      "source": "persephone",
       "target": "iconv-lite"
     },
     {
@@ -14542,6 +15802,10 @@
     },
     {
       "source": "persephone",
+      "target": "libarchive-wasm"
+    },
+    {
+      "source": "persephone",
       "target": "mermaid"
     },
     {
@@ -14555,14 +15819,6 @@
     {
       "source": "persephone",
       "target": "react"
-    },
-    {
-      "source": "persephone",
-      "target": "react-dnd"
-    },
-    {
-      "source": "persephone",
-      "target": "react-dnd-html5-backend"
     },
     {
       "source": "persephone",
@@ -14590,7 +15846,15 @@
     },
     {
       "source": "persephone",
+      "target": "turndown"
+    },
+    {
+      "source": "persephone",
       "target": "use-sync-external-store"
+    },
+    {
+      "source": "persephone",
+      "target": "video.js"
     },
     {
       "source": "persephone",
@@ -14646,6 +15910,10 @@
     },
     {
       "source": "persephone",
+      "target": "@types/turndown"
+    },
+    {
+      "source": "persephone",
       "target": "@typescript-eslint/eslint-plugin"
     },
     {
@@ -14666,7 +15934,15 @@
     },
     {
       "source": "persephone",
+      "target": "eslint-import-resolver-typescript"
+    },
+    {
+      "source": "persephone",
       "target": "eslint-plugin-import"
+    },
+    {
+      "source": "persephone",
+      "target": "eslint-plugin-react-hooks"
     },
     {
       "source": "persephone",
