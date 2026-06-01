@@ -7,6 +7,20 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
+- **EPIC-029** — [Standalone PageNavigator → `SecondaryViews`, a reusable panel host](epics/EPIC-029.md) *(design done; tasks are placeholders, investigated per-task before implementation)*
+  - [ ] US-595: Rename `secondaryEditor`→`secondaryView` + `PageNavigator`→`SecondaryViews` family *(Phase 1a)*
+  - [ ] US-596: `ISecondaryViewsState` + controlled `SecondaryViews` component *(Phase 1a)*
+  - [ ] US-597: `IPageHost` typing for `editor.page` (+ derived `isMain`) *(Phase 1a)*
+  - [ ] US-598: Explorer — adopt + verify under new infra *(Phase 1b)*
+  - [ ] US-599: Archive — adopt + verify under new infra *(Phase 1b)*
+  - [ ] US-600: Links — finalize `IPageHost` membership + `isMain` *(Phase 1b)*
+  - [ ] US-601: Browser adopts `SecondaryViews` in its empty page *(Phase 2)*
+  - [ ] US-602: Notebook → `SecondaryViews` *(Phase 3)*
+  - [ ] US-603: Todo → `SecondaryViews` *(Phase 3)*
+  - [ ] US-604: Rest Client → `SecondaryViews` *(Phase 3)*
+  - [ ] US-605: MCP Inspector — evaluate (migrate with view change, or skip) *(Phase 3)*
+  - [ ] US-606: Storybook — evaluate (migrate with view change, or skip) *(Phase 3)*
+  - [ ] US-607: Epic close-out — review + docs, move to completed.md *(Phase 4)*
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

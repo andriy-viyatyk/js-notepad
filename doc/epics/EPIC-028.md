@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Implementation phase in progress. Strangler fig migration; 30 tasks queued (US-547–US-559, US-560–US-576). US-547 / US-548 / US-549 / US-552 / US-552-B / US-553 complete; remainder placeholders.
+**Status:** ✅ **COMPLETE** (closed 2026-05-29, shipped in v4.0.1). All 37 tasks done across Phases A–D (strangler-fig migration retired in US-559; V4-prefix cleanup US-582; doc refresh US-583/584/585). Canonical record — including the full task list marked `[x]` — lives in [`completed.md`](completed.md#epic-028--unified-editor-architecture--editors-as-standalone-models). The task table further down this doc is a historical planning snapshot and is **not** maintained.
 **Created:** 2026-05-19
 
 ## Overview
