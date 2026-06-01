@@ -3,11 +3,11 @@ graph TD
         PM_ID["id: string — stable UUID"]
         PM_STATE["state: IPageState<br/>{pinned, hasSidebar, mainEditorId}"]
         PM_ME["mainEditor: EditorModel | null"]
-        PM_SE["secondaryEditors: EditorModel[]"]
+        PM_SE["secondaryViews: EditorModel[]"]
     end
 
     subgraph Sidebar["Sidebar State (owned by PageModel)"]
-        NAV["pageNavigatorModel<br/>(open/close/width)"]
+        NAV["secondaryViewsModel<br/>(open/close/width)"]
         APANEL["activePanel<br/>('explorer' | 'search' | panelId)"]
     end
 
@@ -15,7 +15,7 @@ graph TD
         EM_ID["id: string"]
         EM_STATE["state: IEditorState<br/>{type, content, language,<br/>filePath, pipe, editor, ...}"]
         EM_PAGE["page: PageModel | null"]
-        EM_SE_PROP["secondaryEditor: string[] | undefined"]
+        EM_SE_PROP["secondaryView: string[] | undefined"]
     end
 
     subgraph ExplEditor["ExplorerEditorModel (secondary)"]
@@ -23,29 +23,29 @@ graph TD
         XM_TREE["treeProvider: FileTreeProvider"]
         XM_SEL["selectionState"]
         XM_SEARCH["searchState"]
-        XM_SE["secondaryEditor: ['explorer'] or ['explorer','search']"]
+        XM_SE["secondaryView: ['explorer'] or ['explorer','search']"]
     end
 
     subgraph SecEditor["ZipEditorModel (secondary)"]
         ZM["ZipEditorModel"]
         ZM_TREE["treeProvider: ZipTreeProvider"]
         ZM_SEL["selectionState"]
-        ZM_SE["secondaryEditor: ['zip-tree']"]
+        ZM_SE["secondaryView: ['zip-tree']"]
     end
 
-    subgraph Navigator["PageNavigator (sidebar UI)"]
-        SEC_PANELS["All panels via<br/>LazySecondaryEditor<br/>(portaled headers)"]
+    subgraph Navigator["SecondaryViews (sidebar UI)"]
+        SEC_PANELS["All panels via<br/>LazySecondaryView<br/>(portaled headers)"]
     end
 
     subgraph Rendering["PageContent (main area rendering)"]
-        NAV_WRAP["NavigationWrapper<br/>(subscribes to hasSidebar)"]
+        NAV_WRAP["SecondaryViewsWrapper<br/>(subscribes to hasSidebar)"]
         RENDER["RenderEditor<br/>(subscribes to mainEditorId)"]
     end
 
-    subgraph Registry["SecondaryEditorRegistry"]
-        REG_EXP["'explorer' → ExplorerSecondaryEditor"]
-        REG_SEARCH["'search' → SearchSecondaryEditor"]
-        REG_ZIP["'zip-tree' → ZipSecondaryEditor"]
+    subgraph Registry["SecondaryViewRegistry"]
+        REG_EXP["'explorer' → ExplorerSecondaryView"]
+        REG_SEARCH["'search' → SearchSecondaryView"]
+        REG_ZIP["'zip-tree' → ZipSecondaryView"]
     end
 
     %% PageModel → EditorModel ownership
@@ -55,7 +55,7 @@ graph TD
     %% PageModel → Sidebar
     PageModel --> Sidebar
 
-    %% Secondary editors
+    %% Secondary views
     PM_SE -->|"contains"| XM
     PM_SE -->|"contains"| ZM
     XM_SE -->|"registered in"| REG_EXP

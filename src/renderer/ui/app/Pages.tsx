@@ -3,7 +3,7 @@ import { Panel, Splitter } from "../../uikit";
 import { pagesModel } from "../../api/pages";
 import { RenderEditor } from "./RenderEditor";
 import { CompareEditor } from "../../editors/compare";
-import { PageNavigator } from "../navigation/PageNavigator";
+import { SecondaryViews } from "../secondary-views/SecondaryViews";
 import { AppPageManager } from "../../components/page-manager/AppPageManager";
 import type { PageModel } from "../../api/pages/PageModel";
 import { Ornament } from "../../theme/Ornament";
@@ -39,31 +39,31 @@ const OrnamentWrapper = styled.div({
     pointerEvents: "none",
 });
 
-function NavigationWrapper({ page }: { page: PageModel }) {
+function SecondaryViewsWrapper({ page }: { page: PageModel }) {
     const hasSidebar = page.state.use((s) => s.hasSidebar);
     if (!hasSidebar) return null;
-    return <NavigationContent page={page} />;
+    return <SecondaryViewsContent page={page} />;
 }
 
-function NavigationContent({ page }: { page: PageModel }) {
-    const navModel = page.ensurePageNavigatorModel();
+function SecondaryViewsContent({ page }: { page: PageModel }) {
+    const navModel = page.ensureSecondaryViewsModel();
     const { open, width } = navModel.state.use();
     if (!open) return null;
 
     return (
         <>
             <Panel
-                name="page-navigator-container"
+                name="secondary-views-container"
                 direction="column"
                 width={width}
                 shrink={false}
                 overflow="hidden"
                 height="100%"
             >
-                <PageNavigator page={page} />
+                <SecondaryViews page={page} />
             </Panel>
             <Splitter
-                name="page-navigator-splitter"
+                name="secondary-views-splitter"
                 orientation="vertical"
                 value={width}
                 onChange={navModel.setWidth}
@@ -112,7 +112,7 @@ function PageContent({ pageId }: { pageId: string }) {
 
     return (
         <>
-            <NavigationWrapper page={page} />
+            <SecondaryViewsWrapper page={page} />
             {editor ? (
                 <PageEditorContainer key={page.id} className="scroll-container">
                     <RenderEditor model={editor} />

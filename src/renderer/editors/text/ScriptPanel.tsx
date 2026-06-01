@@ -323,7 +323,7 @@ export class ScriptPanelModel extends TModel<ScriptPanelState> {
                 const explorer = new ExplorerEditor(explorerState);
                 page.attach(explorer);
                 await explorer.restore();
-                page.ensurePageNavigatorModel();
+                page.ensureSecondaryViewsModel();
             }
         } else if (scriptPanelDir) {
             // No selected script — open empty page with NavPanel

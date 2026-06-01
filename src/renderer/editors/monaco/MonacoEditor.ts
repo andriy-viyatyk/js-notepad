@@ -37,7 +37,7 @@ export const defaultMonacoEditorState: MonacoEditorState = {
     id: "",
     title: "",
     modified: false,
-    secondaryEditor: undefined,
+    secondaryView: undefined,
     hasSelection: false,
 };
 
@@ -188,7 +188,7 @@ export class MonacoEditor extends EditorModel<
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -198,7 +198,7 @@ export class MonacoEditor extends EditorModel<
         this.state.update((cur) => {
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
+            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
         });
         if (data.host) this._pendingHost = data.host;
         if (data.revealLine !== undefined) {
@@ -281,7 +281,7 @@ export class MonacoEditor extends EditorModel<
             if (s.editor !== "monaco") s.editor = "monaco";
         });
         // Propagate page reference (legacy editor needs `.page` for actions,
-        // io, secondaryEditor setters). PageModel.attach calls setPage on us
+        // io, secondaryView setters). PageModel.attach calls setPage on us
         // next; we forward.
         if (this.page) host.setPage(this.page);
     }

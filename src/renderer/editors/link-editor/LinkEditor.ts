@@ -71,7 +71,7 @@ export const defaultLinkEditorState: LinkEditorState = {
     id: "",
     title: "",
     modified: false,
-    secondaryEditor: undefined,
+    secondaryView: undefined,
     leftPanelWidth: 200,
     expandedPanel: "categories",
     selectedCategory: "",
@@ -234,7 +234,7 @@ export class LinkEditor
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -244,7 +244,7 @@ export class LinkEditor
         this.state.update((cur) => {
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
+            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
         });
         if (data.host) this._pendingHost = data.host;
     }
@@ -356,7 +356,7 @@ export class LinkEditor
                 if (this.page?.mainEditorInstance === this) return; // main; LK6 handles
                 if (!this.contributesPanels()) return; // already detached
                 const hasTags = this.state.get().tags.length > 0;
-                this.secondaryEditor = hasTags ? ["link-category", "link-tags"] : ["link-category"];
+                this.secondaryView = hasTags ? ["link-category", "link-tags"] : ["link-category"];
             },
             (s) => s.tags.length > 0,
         );
@@ -386,11 +386,11 @@ export class LinkEditor
     /** Called by the view's useEffect when the page's NavPanel toggles.
      *  Pure state mutation per A8; gated on `mainEditor === this` so demote
      *  paths can call `setSidebarPanels(false)` without affecting the
-     *  surviving secondaryEditor entry. */
+     *  surviving secondaryView entry. */
     setSidebarPanels(open: boolean): void {
         if (this.page?.mainEditorInstance !== this) return; // demote-safe no-op
         if (open) {
-            this.secondaryEditor = LINK_PANELS;
+            this.secondaryView = LINK_PANELS;
             const reverseMap: Record<string, string> = {
                 categories: "link-category",
                 tags: "link-tags",
@@ -400,36 +400,36 @@ export class LinkEditor
                 reverseMap[this.state.get().expandedPanel] ?? "link-category";
             this.page?.expandPanel(panelToExpand);
         } else {
-            this.secondaryEditor = undefined;
+            this.secondaryView = undefined;
         }
     }
 
-    /** LK7 — Survive as a standalone-secondary editor only when the user is
+    /** LK7 — Survive as a standalone-secondary view only when the user is
      *  navigating WITHIN our own links (matched via `sourceLink.sourceId`).
      *  External navigation (Explorer click, Tab switch, etc.) → unload so
      *  stale Categories/Tags/Hostnames panels don't leak into the new file's
-     *  PageNavigator. Mirrors `ArchiveEditorModel.beforeNavigateAway`. */
+     *  SecondaryViews. Mirrors `ArchiveEditorModel.beforeNavigateAway`. */
     beforeNavigateAway(newModel: EditorModel): void {
         if (this._isOpenedFromMe(newModel)) {
             return;
         }
-        this.secondaryEditor = undefined;
+        this.secondaryView = undefined;
     }
 
     /** LK8 — On demote, reshape the panel list to standalone-secondary form
      *  (drops `link-hostnames` to match today's
-     *  LinkCategorySecondaryEditor.updatePanels behavior). Also evicts
+     *  LinkCategorySecondaryView.updatePanels behavior). Also evicts
      *  defensively if the new main wasn't opened from us. */
     onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (newMainEditor === this) return;
         if (newMainEditor === null) return;
         if (!this.contributesPanels()) return;
         if (!this._isOpenedFromMe(newMainEditor)) {
-            this.secondaryEditor = undefined;
+            this.secondaryView = undefined;
             return;
         }
         const hasTags = this.state.get().tags.length > 0;
-        this.secondaryEditor = hasTags ? ["link-category", "link-tags"] : ["link-category"];
+        this.secondaryView = hasTags ? ["link-category", "link-tags"] : ["link-category"];
     }
 
     /** Check if a model was opened via this LinkEditor's own UI (own-id

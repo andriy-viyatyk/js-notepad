@@ -88,7 +88,7 @@ export const defaultGraphEditorState: GraphEditorState = {
     id: "",
     title: "",
     modified: false,
-    secondaryEditor: undefined,
+    secondaryView: undefined,
     groupingEnabled: true,
     error: "",
     loading: true,
@@ -236,7 +236,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -246,7 +246,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
         this.state.update((cur) => {
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
+            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
         });
         // groupingEnabled is NOT carried via descriptor — read from host.editorSettings
         // in adoptHost. View-derived state re-derived by initial parse.

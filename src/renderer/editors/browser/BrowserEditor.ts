@@ -358,7 +358,7 @@ export class BrowserEditor extends EditorModel<
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
                 url,
                 pageTitle: s.pageTitle,
                 tabs,

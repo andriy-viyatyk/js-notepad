@@ -53,7 +53,7 @@ export function registerResolvers(): void {
         if (!pipeDescriptor) {
             // Virtual paths (tree-category://, etc.) don't resolve to a pipe
             // but still need to flow through openContent for page creation.
-            // Create a placeholder file pipe — CategoryEditor resolves its treeProvider from secondary editors, not the pipe.
+            // Create a placeholder file pipe — CategoryEditor resolves its treeProvider from secondary views, not the pipe.
             if (data.url.includes("://")) {
                 data.target ||= "monaco";
                 data.pipeDescriptor = {

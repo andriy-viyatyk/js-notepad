@@ -222,7 +222,7 @@ The renderer builds the menu dynamically based on `params` fields from the `cont
 | `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels: start, stop, log |
 | `src/ipc/popup-rate-limiter.ts` | Shared | Time-window rate limiter for popup/tab spam blocking |
 | `src/renderer/editors/shared/link-open-menu.tsx` | Renderer | Shared helper for "Open in..." browser menu items |
-| `src/renderer/core/state/events.ts` | Renderer | `globalKeyDown` Subscription for keyboard event broadcasting, `browserUrlChanged` for cross-editor URL event broadcasting, `windowClosing` for resource cleanup on window close, `pageNavigatorToggled` for sidebar open/close, `panelExpanded` for secondary panel expansion |
+| `src/renderer/core/state/events.ts` | Renderer | `globalKeyDown` Subscription for keyboard event broadcasting, `browserUrlChanged` for cross-editor URL event broadcasting, `windowClosing` for resource cleanup on window close, `secondaryViewsToggled` for sidebar open/close, `panelExpanded` for secondary panel expansion |
 
 ## Why the Main Process Bridge?
 

@@ -77,26 +77,26 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
         // Direct-open path may already have `page`; navigation/restore paths
         // publish via setPage() once attached.
         if (this.treeProvider && this.page) {
-            this.secondaryEditor = ["archive-tree"];
+            this.secondaryView = ["archive-tree"];
         }
     }
 
     setPage(page: PageModel | null): void {
         super.setPage(page);
-        if (page && this.treeProvider && !this.secondaryEditor?.length) {
-            this.secondaryEditor = ["archive-tree"];
+        if (page && this.treeProvider && !this.secondaryView?.length) {
+            this.secondaryView = ["archive-tree"];
         }
     }
 
     /**
-     * Navigation survival: keep this model as secondary editor if the new page
+     * Navigation survival: keep this model as secondary view if the new page
      * was opened from this archive (sourceLink.sourceId matches). NOT a no-op
-     * — the base default would unconditionally clear `secondaryEditor` and
+     * — the base default would unconditionally clear `secondaryView` and
      * drop Archive's panel on every navigation.
      */
     beforeNavigateAway(newModel: EditorModel): void {
         if (this._isOpenedFromThisArchive(newModel)) return;
-        this.secondaryEditor = undefined;
+        this.secondaryView = undefined;
     }
 
     /**
@@ -115,7 +115,7 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
             }
             setTimeout(() => this.page?.expandPanel("archive-tree"), 0);
         } else {
-            this.secondaryEditor = undefined;
+            this.secondaryView = undefined;
         }
     }
 

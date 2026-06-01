@@ -35,14 +35,14 @@ export function getDefaultExplorerEditorState(): ExplorerEditorState {
 }
 
 export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
-    /** Editor identity. Deliberately equal to the secondary-editor
+    /** Editor identity. Deliberately equal to the secondary-view
      *  registration id so persistence (`EditorDescriptor.editorId`) reads the
      *  same string as the panel-component lookup. Explorer is NOT in
      *  `editorRegistry`. */
     readonly editorId = "explorer";
 
     /** File tree data source. Created lazily by the view layer
-     *  (`ExplorerSecondaryEditor.tsx`); reads see whatever the view set.
+     *  (`ExplorerSecondaryView.tsx`); reads see whatever the view set.
      *  EX-IMPL5 — public field, NOT a getter (Link uses a getter because its
      *  tree provider is constructible without view-supplied configuration;
      *  Explorer's `FileTreeProvider` needs the reactive rootPath). */
@@ -100,16 +100,16 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
                 totalFiles: 0,
             };
         }
-        if (!this.secondaryEditor?.includes("search")) {
-            this.secondaryEditor = ["explorer", "search"];
+        if (!this.secondaryView?.includes("search")) {
+            this.secondaryView = ["explorer", "search"];
         }
         setTimeout(() => this.page?.expandPanel("search"), 0);
     }
 
     closeSearch(): void {
         this.searchState = undefined;
-        if (this.secondaryEditor?.includes("search")) {
-            this.secondaryEditor = ["explorer"];
+        if (this.secondaryView?.includes("search")) {
+            this.secondaryView = ["explorer"];
         }
         setTimeout(() => this.page?.expandPanel("explorer"), 0);
     }
@@ -147,7 +147,7 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     // ── Lifecycle hooks ───────────────────────────────────────────────
 
     /** Explorer ALWAYS survives navigation — it's a sidebar-only EditorModel.
-     *  The base default clears `secondaryEditor` (which would trigger
+     *  The base default clears `secondaryView` (which would trigger
      *  detach + dispose via the slice subscription); override to a no-op so
      *  Explorer stays attached when the main editor changes. */
     beforeNavigateAway(_newModel: EditorModel): void {
@@ -219,7 +219,7 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     async restore(): Promise<void> {
         await super.restore();
         if (this.rootPath && this.page) {
-            this.secondaryEditor = this.searchState
+            this.secondaryView = this.searchState
                 ? ["explorer", "search"]
                 : ["explorer"];
         }
@@ -227,8 +227,8 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
 
     setPage(page: PageModel | null): void {
         super.setPage(page);
-        if (page && this.rootPath && !this.secondaryEditor?.length) {
-            this.secondaryEditor = this.searchState
+        if (page && this.rootPath && !this.secondaryView?.length) {
+            this.secondaryView = this.searchState
                 ? ["explorer", "search"]
                 : ["explorer"];
         }

@@ -205,8 +205,8 @@ persephone/
 │   │   │   └── types.ts
 │   │   └── index.ts
 │   └── navigation/         # Navigation panel (in-editor)
-│       ├── PageNavigator.tsx       # PageNavigator — TreeProviderView + FileTreeProvider + FileSearch
-│       └── PageNavigatorModel.ts   # Reactive state for PageNavigator (open, width)
+│       ├── SecondaryViews.tsx       # SecondaryViews — TreeProviderView + FileTreeProvider + FileSearch
+│       └── SecondaryViewsModel.ts   # Reactive state for SecondaryViews (open, width)
 │
 ├── editors/                # Editor Implementations — each editor is an EditorModel subclass
 │   ├── base/               # Shared editor infrastructure
@@ -298,13 +298,13 @@ persephone/
 │   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state
 │   │   ├── linkTypes.ts
 │   │   ├── linkTraits.ts             # ILink trait definition + registration (TraitTypeId.ILink)
-│   │   ├── panels/                   # Shared panel components (inline + secondary editor)
+│   │   ├── panels/                   # Shared panel components (inline + secondary view)
 │   │   │   ├── LinkCategoryPanel.tsx       # Categories tree panel
 │   │   │   ├── LinkTagsPanel.tsx           # Tags list panel
 │   │   │   ├── LinkHostnamesPanel.tsx      # Hostnames list panel
-│   │   │   ├── LinkCategorySecondaryEditor.tsx  # Secondary editor wrapper
-│   │   │   ├── LinkTagsSecondaryEditor.tsx      # Secondary editor wrapper
-│   │   │   └── LinkHostnamesSecondaryEditor.tsx # Secondary editor wrapper
+│   │   │   ├── LinkCategorySecondaryView.tsx  # Secondary view wrapper
+│   │   │   ├── LinkTagsSecondaryView.tsx      # Secondary view wrapper
+│   │   │   └── LinkHostnamesSecondaryView.tsx # Secondary view wrapper
 │   │   ├── LinksList.tsx             # View-only list rendering
 │   │   ├── LinksTiles.tsx            # View-only tiles rendering
 │   │   ├── LinkItemList.tsx          # Wrapper: wires LinksList to LinkEditor
@@ -439,12 +439,12 @@ persephone/
 │   ├── archive/            # Archive editor (non-text, with sidebar panel)
 │   │   ├── ArchiveEditor.ts          # EditorModel — archive state, tree provider, navigation survival
 │   │   ├── ArchiveEditorView.tsx     # Main content view
-│   │   ├── ArchiveSecondaryEditor.tsx # Secondary panel — tree view with portaled header
+│   │   ├── ArchiveSecondaryView.tsx # Secondary panel — tree view with portaled header
 │   │   └── index.tsx
 │   ├── explorer/           # File explorer (non-text, sidebar-only)
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
-│   │   ├── ExplorerSecondaryEditor.tsx # "explorer" panel — tree view with portaled header
-│   │   ├── SearchSecondaryEditor.tsx # "search" panel — file search with portaled header
+│   │   ├── ExplorerSecondaryView.tsx # "explorer" panel — tree view with portaled header
+│   │   ├── SearchSecondaryView.tsx # "search" panel — file search with portaled header
 │   │   └── index.ts
 │   ├── shared/             # Shared editor utilities
 │   │   ├── link-open-menu.tsx

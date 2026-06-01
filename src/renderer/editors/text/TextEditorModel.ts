@@ -105,15 +105,15 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         return this.state.get().language;
     }
 
-    /** Active secondary editor panel IDs. The host's `secondaryEditor` field
+    /** Active secondary view panel IDs. The host's `secondaryView` field
      *  is rarely consumed (panels live on the wrapping editor's own state);
      *  the setter is preserved as a pure state mutator. */
-    get secondaryEditor(): string[] | undefined {
-        return this.state.get().secondaryEditor;
+    get secondaryView(): string[] | undefined {
+        return this.state.get().secondaryView;
     }
 
-    set secondaryEditor(value: string[] | undefined) {
-        this.state.update((s) => { s.secondaryEditor = value; });
+    set secondaryView(value: string[] | undefined) {
+        this.state.update((s) => { s.secondaryView = value; });
     }
 
     changeLanguage = (language: string | undefined): void => {
@@ -298,7 +298,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
             encoding: s.encoding,
             temp: s.temp,
         };
-        if (s.secondaryEditor !== undefined) metadata.secondaryEditor = s.secondaryEditor;
+        if (s.secondaryView !== undefined) metadata.secondaryView = s.secondaryView;
         if (s.sourceLink !== undefined) metadata.sourceLink = s.sourceLink;
         if (s.editorSettings !== undefined) metadata.editorSettings = s.editorSettings;
         return {

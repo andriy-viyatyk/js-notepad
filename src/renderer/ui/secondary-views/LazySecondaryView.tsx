@@ -1,23 +1,23 @@
 import { useEffect, useState, type ComponentType } from "react";
-import { secondaryEditorRegistry, type SecondaryEditorProps } from "./secondary-editor-registry";
+import { secondaryViewRegistry, type SecondaryViewProps } from "./secondary-view-registry";
 import type { EditorOrHost } from "../../editors/base";
 import color from "../../theme/color";
 
-interface LazySecondaryEditorProps {
+interface LazySecondaryViewProps {
     model: EditorOrHost;
     editorId: string;
     headerRef: HTMLDivElement | null;
 }
 
-/** Loads a secondary editor component from the registry and renders it. */
-export function LazySecondaryEditor({ model, editorId, headerRef }: LazySecondaryEditorProps) {
-    const [Component, setComponent] = useState<ComponentType<SecondaryEditorProps> | null>(null);
+/** Loads a secondary view component from the registry and renders it. */
+export function LazySecondaryView({ model, editorId, headerRef }: LazySecondaryViewProps) {
+    const [Component, setComponent] = useState<ComponentType<SecondaryViewProps> | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const def = secondaryEditorRegistry.get(editorId);
+        const def = secondaryViewRegistry.get(editorId);
         if (!def) {
-            setError(`Unknown secondary editor: "${editorId}"`);
+            setError(`Unknown secondary view: "${editorId}"`);
             return;
         }
         let cancelled = false;

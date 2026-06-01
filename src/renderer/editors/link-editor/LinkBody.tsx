@@ -8,7 +8,7 @@ import {
 } from "../../uikit";
 import { HighlightedTextProvider } from "../../uikit/shared/highlight";
 import { useOptionalState } from "../../core/state/state";
-import { pageNavigatorToggled, panelExpanded } from "../../core/state/events";
+import { secondaryViewsToggled, panelExpanded } from "../../core/state/events";
 import { hasTraitDragData, getTraitDragData, resolveTraits } from "../../core/traits";
 import { LINK } from "./linkTraits";
 import { LinkCategoryPanel } from "./panels/LinkCategoryPanel";
@@ -37,7 +37,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
 
     // LK6 — translate sidebar open/close into model state. Pure view dispatcher.
     const isNavigatorOpen = useOptionalState(
-        model.page?.pageNavigatorModel?.state,
+        model.page?.secondaryViewsModel?.state,
         (s) => s.open,
         false,
     );
@@ -50,7 +50,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
     useEffect(() => {
         if (!pageId) return;
         const subs = [
-            pageNavigatorToggled.subscribe(() => {
+            secondaryViewsToggled.subscribe(() => {
                 // No-op: isNavigatorOpen above tracks the state. Subscribe just
                 // so we re-render if needed (kept for parity with today).
             }),

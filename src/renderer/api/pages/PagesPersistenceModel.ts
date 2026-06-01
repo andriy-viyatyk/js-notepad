@@ -131,7 +131,7 @@ export class PagesPersistenceModel {
         }
 
         if (desc.sidebar) {
-            const nav = page.ensurePageNavigatorModel();
+            const nav = page.ensureSecondaryViewsModel();
             nav.setStateQuiet({
                 open: desc.sidebar.open,
                 width: desc.sidebar.width,
@@ -140,7 +140,7 @@ export class PagesPersistenceModel {
             const valid =
                 panel === "explorer" ||
                 panel === "search" ||
-                page.editors.some((e) => e.secondaryEditor?.includes(panel));
+                page.editors.some((e) => e.secondaryView?.includes(panel));
             page.activePanel = valid ? panel : "explorer";
         }
 

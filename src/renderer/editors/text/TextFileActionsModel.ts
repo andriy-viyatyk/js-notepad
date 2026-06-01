@@ -38,7 +38,7 @@ export class TextFileActionsModel {
         const page = this.model.page;
         if (!page?.hasSidebar && !filePath) return;
 
-        const navModel = page?.ensurePageNavigatorModel();
+        const navModel = page?.ensureSecondaryViewsModel();
         if (navModel && !navModel.state.get().open) {
             navModel.toggle();
         }

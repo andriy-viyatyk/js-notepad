@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { FileSearch } from "../../components/file-search";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
-import type { SecondaryEditorProps } from "../../ui/navigation/secondary-editor-registry";
+import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import type { ExplorerEditor } from "./ExplorerEditorModel";
 import { IconButton } from "../../uikit/IconButton";
 import { Spacer } from "../../uikit/Spacer";
@@ -11,7 +11,7 @@ import { Text } from "../../uikit/Text";
 import { CloseIcon } from "../../theme/icons";
 import { fpBasename } from "../../core/utils/file-path";
 
-export default function SearchSecondaryEditor({ model: rawModel, headerRef }: SecondaryEditorProps) {
+export default function SearchSecondaryView({ model: rawModel, headerRef }: SecondaryViewProps) {
     const model = rawModel as ExplorerEditor;
     const rootPath = model.rootPath;
     const pageId = model.page?.id ?? "";

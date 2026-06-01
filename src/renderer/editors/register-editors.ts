@@ -1,45 +1,45 @@
 import { editorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
-import { secondaryEditorRegistry } from "../ui/navigation/secondary-editor-registry";
+import { secondaryViewRegistry } from "../ui/secondary-views/secondary-view-registry";
 
 // =============================================================================
 // Secondary Editor Registrations (EPIC-016)
 // =============================================================================
 
-secondaryEditorRegistry.register({
+secondaryViewRegistry.register({
     id: "archive-tree",
     label: "Archive",
-    loadComponent: () => import("./archive/ArchiveSecondaryEditor"),
+    loadComponent: () => import("./archive/ArchiveSecondaryView"),
 });
 
-secondaryEditorRegistry.register({
+secondaryViewRegistry.register({
     id: "explorer",
     label: "Explorer",
-    loadComponent: () => import("./explorer/ExplorerSecondaryEditor"),
+    loadComponent: () => import("./explorer/ExplorerSecondaryView"),
 });
 
-secondaryEditorRegistry.register({
+secondaryViewRegistry.register({
     id: "search",
     label: "Search",
-    loadComponent: () => import("./explorer/SearchSecondaryEditor"),
+    loadComponent: () => import("./explorer/SearchSecondaryView"),
 });
 
-secondaryEditorRegistry.register({
+secondaryViewRegistry.register({
     id: "link-category",
     label: "Categories",
-    loadComponent: () => import("./link-editor/panels/LinkCategorySecondaryEditor"),
+    loadComponent: () => import("./link-editor/panels/LinkCategorySecondaryView"),
 });
 
-secondaryEditorRegistry.register({
+secondaryViewRegistry.register({
     id: "link-tags",
     label: "Tags",
-    loadComponent: () => import("./link-editor/panels/LinkTagsSecondaryEditor"),
+    loadComponent: () => import("./link-editor/panels/LinkTagsSecondaryView"),
 });
 
-secondaryEditorRegistry.register({
+secondaryViewRegistry.register({
     id: "link-hostnames",
     label: "Hostnames",
-    loadComponent: () => import("./link-editor/panels/LinkHostnamesSecondaryEditor"),
+    loadComponent: () => import("./link-editor/panels/LinkHostnamesSecondaryView"),
 });
 
 

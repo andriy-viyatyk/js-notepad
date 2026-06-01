@@ -7,7 +7,7 @@ import { ContextMenuEvent } from "../../api/events/events";
 import { createLinkData } from "../../../shared/link-data";
 import { app } from "../../api/app";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
-import type { SecondaryEditorProps } from "../../ui/navigation/secondary-editor-registry";
+import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import type { ExplorerEditor } from "./ExplorerEditorModel";
 import { IconButton } from "../../uikit/IconButton";
 import { Spacer } from "../../uikit/Spacer";
@@ -20,7 +20,7 @@ import {
 } from "../../theme/icons";
 import { fpBasename, fpDirname } from "../../core/utils/file-path";
 
-export default function ExplorerSecondaryEditor({ model: rawModel, headerRef }: SecondaryEditorProps) {
+export default function ExplorerSecondaryView({ model: rawModel, headerRef }: SecondaryViewProps) {
     const model = rawModel as ExplorerEditor;
     const { rootPath } = model.state.use();
     const treeProviderRef = useRef<TreeProviderViewRef>(null);
@@ -129,7 +129,7 @@ export default function ExplorerSecondaryEditor({ model: rawModel, headerRef }: 
                 size="sm"
                 title="Close Panel"
                 icon={<CloseIcon />}
-                onClick={(e) => { e.stopPropagation(); model.page?.pageNavigatorModel?.close(); }}
+                onClick={(e) => { e.stopPropagation(); model.page?.secondaryViewsModel?.close(); }}
             />
         </>
     );

@@ -81,7 +81,7 @@ export const defaultGridEditorState: GridEditorState = {
     id: "",
     title: "",
     modified: false,
-    secondaryEditor: undefined,
+    secondaryView: undefined,
     columns: [],
     focus: undefined,
     search: "",
@@ -197,7 +197,7 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -207,7 +207,7 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
         this.state.update((cur) => {
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
+            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
             // NOTE: columns / filters / sortColumn / search / focus /
             // csvDelimiter / csvWithColumns no longer applied here — they
             // arrive from host.getEditorState in adoptHost. Legacy descriptors

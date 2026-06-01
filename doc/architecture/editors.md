@@ -89,8 +89,8 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
     confirmRelease(closing?: boolean): Promise<boolean>;
     dispose(): void;
 
-    // Secondary editor membership (managed by setter, see secondary-editors.md)
-    secondaryEditor: string[] | undefined;
+    // Secondary view membership (managed by setter, see secondary-views.md)
+    secondaryView: string[] | undefined;
 }
 ```
 

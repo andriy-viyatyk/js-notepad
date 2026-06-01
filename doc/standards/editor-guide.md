@@ -21,7 +21,7 @@ Three questions decide the shape of your editor:
    - **No** → just compose the host; no trait needed.
 
 3. **Should the editor have its own sidebar panel(s)?** (e.g. Link Editor's Categories panel)
-   - **Yes** → set `this.secondaryEditor = ["my-panel"]` in `setPage()` or `restore()`. See [Secondary Editors](../architecture/secondary-editors.md).
+   - **Yes** → set `this.secondaryView = ["my-panel"]` in `setPage()` or `restore()`. See [Secondary Editors](../architecture/secondary-views.md).
    - **No** → skip.
 
 ## Step 1: Folder Structure
@@ -267,20 +267,20 @@ See `/src/renderer/scripting/api-wrapper/GridEditorFacade.ts` for a complete exa
 
 ## Step 8: Optional — Add Sidebar Panels
 
-If your editor needs sidebar panel(s), see [Secondary Editors](../architecture/secondary-editors.md) for the full lifecycle. Quick version:
+If your editor needs sidebar panel(s), see [Secondary Editors](../architecture/secondary-views.md) for the full lifecycle. Quick version:
 
 ```typescript
 class MyEditor extends EditorModel<MyEditorState> {
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         if (page) {
-            this.secondaryEditor = ["my-panel"];  // setter manages registration
+            this.secondaryView = ["my-panel"];  // setter manages registration
         }
     }
 }
 ```
 
-Register the panel React component in `/src/renderer/ui/navigation/secondary-editor-registry.ts`.
+Register the panel React component in `/src/renderer/ui/secondary-views/secondary-view-registry.ts`.
 
 ## Testing Your Editor
 

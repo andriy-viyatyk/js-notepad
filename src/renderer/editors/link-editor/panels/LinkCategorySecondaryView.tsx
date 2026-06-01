@@ -1,28 +1,28 @@
 import React, { useCallback, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import type { SecondaryEditorProps } from "../../../ui/navigation/secondary-editor-registry";
+import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
 import { useOptionalState } from "../../../core/state/state";
 import { LinkCategoryPanel } from "./LinkCategoryPanel";
 import { IconButton, Spacer } from "../../../uikit";
 import { SaveIcon, SwapIcon } from "../../../theme/icons";
 import { LinkEditor } from "../LinkEditor";
 
-export default function LinkCategorySecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
+export default function LinkCategorySecondaryView({ model, headerRef }: SecondaryViewProps) {
     // Type-guard early return must precede any hooks. The hook-using body
     // lives in an inner component so the React function called from render
     // always calls the same hooks in the same order.
     if (!(model instanceof LinkEditor)) {
         return null;
     }
-    return <LinkCategorySecondaryEditorBody editor={model} headerRef={headerRef} />;
+    return <LinkCategorySecondaryViewBody editor={model} headerRef={headerRef} />;
 }
 
-function LinkCategorySecondaryEditorBody({
+function LinkCategorySecondaryViewBody({
     editor,
     headerRef,
 }: {
     editor: LinkEditor;
-    headerRef: SecondaryEditorProps["headerRef"];
+    headerRef: SecondaryViewProps["headerRef"];
 }) {
     // Subscribe to mainEditorId so we re-render on promote/demote toggle.
     const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);

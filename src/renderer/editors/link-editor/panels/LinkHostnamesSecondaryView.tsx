@@ -1,9 +1,9 @@
 import { createPortal } from "react-dom";
-import type { SecondaryEditorProps } from "../../../ui/navigation/secondary-editor-registry";
+import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
 import { LinkHostnamesPanel } from "./LinkHostnamesPanel";
 import { LinkEditor } from "../LinkEditor";
 
-export default function LinkHostnamesSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
+export default function LinkHostnamesSecondaryView({ model, headerRef }: SecondaryViewProps) {
     if (!(model instanceof LinkEditor)) {
         return null;
     }

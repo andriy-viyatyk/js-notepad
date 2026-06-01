@@ -47,7 +47,7 @@ export const defaultDrawEditorState: DrawEditorState = {
     id: "",
     title: "",
     modified: false,
-    secondaryEditor: undefined,
+    secondaryView: undefined,
     darkMode: true,
     error: null,
     loading: true,
@@ -155,7 +155,7 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -165,7 +165,7 @@ export class DrawEditor extends EditorModel<DrawEditorState, void, DrawQueueEven
         this.state.update((cur) => {
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
+            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
         });
         // darkMode is NOT carried via descriptor — read from host.editorSettings
         // in adoptHost. View-derived state re-derived by initial parse.

@@ -17,7 +17,7 @@ export interface EditorStateBase extends Omit<Partial<IEditorState>, "id" | "tit
     title: string;
     modified: boolean;
     /** Panel contributions for the sidebar (walkthrough 03 / A8). */
-    secondaryEditor?: string[];
+    secondaryView?: string[];
 }
 
 /** Partial state used by `applyRestoreData`. Subclasses widen S with their own
@@ -114,13 +114,13 @@ export abstract class EditorModel<
         // Override in subclasses.
     }
 
-    // ── Lifecycle hooks — secondary editor reactions ──────────────────────
+    // ── Lifecycle hooks — secondary view reactions ──────────────────────
 
     /** Called before this editor is replaced as `page.mainEditor`. Inspect
-     *  `newModel` to decide whether to keep `secondaryEditor` set (survive as
+     *  `newModel` to decide whether to keep `secondaryView` set (survive as
      *  a sidebar panel). Base clears it. */
     beforeNavigateAway(_newModel: EditorModel): void {
-        this.secondaryEditor = undefined;
+        this.secondaryView = undefined;
     }
 
     /** Called on every editor in `page.editors[]` (except the new main)
@@ -138,17 +138,17 @@ export abstract class EditorModel<
 
     /** Pure state mutation — no side effects on `page`. PageModel observes
      *  the slice via TOneState's selector-subscribe (walkthrough 03 / N1). */
-    get secondaryEditor(): string[] | undefined {
-        return this.state.get().secondaryEditor;
+    get secondaryView(): string[] | undefined {
+        return this.state.get().secondaryView;
     }
 
-    set secondaryEditor(value: string[] | undefined) {
-        this.state.update((s) => { s.secondaryEditor = value; });
+    set secondaryView(value: string[] | undefined) {
+        this.state.update((s) => { s.secondaryView = value; });
     }
 
-    /** True if this editor currently contributes panels to the PageNavigator. */
+    /** True if this editor currently contributes panels to the SecondaryViews. */
     contributesPanels(): boolean {
-        return (this.state.get().secondaryEditor?.length ?? 0) > 0;
+        return (this.state.get().secondaryView?.length ?? 0) > 0;
     }
 
     // ── Switch widget support (walkthrough 01 / A7) ───────────────────────

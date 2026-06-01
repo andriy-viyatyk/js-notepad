@@ -53,18 +53,18 @@ export const browserUrlChanged = new Subscription<BrowserUrlEvent>();
 /** Fired when the renderer window is about to close. Subscribers should release resources. */
 export const windowClosing = new Subscription<void>();
 
-export interface PageNavigatorEvent {
+export interface SecondaryViewsEvent {
     pageId: string;
     isOpen: boolean;
 }
 
-/** Fired when any PageNavigator sidebar opens or closes. */
-export const pageNavigatorToggled = new Subscription<PageNavigatorEvent>();
+/** Fired when any SecondaryViews sidebar opens or closes. */
+export const secondaryViewsToggled = new Subscription<SecondaryViewsEvent>();
 
 export interface PanelExpandedEvent {
     pageId: string;
     panelId: string;
 }
 
-/** Fired when a secondary editor panel is expanded in PageNavigator. */
+/** Fired when a secondary view panel is expanded in SecondaryViews. */
 export const panelExpanded = new Subscription<PanelExpandedEvent>();

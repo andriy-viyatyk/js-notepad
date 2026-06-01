@@ -2,10 +2,10 @@ import { TComponentState, TOneState } from "../../core/state/state";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { PageDescriptor } from "../../../shared/persistence";
-import { PageNavigatorModel } from "../../ui/navigation/PageNavigatorModel";
+import { SecondaryViewsModel } from "../../ui/secondary-views/SecondaryViewsModel";
 import type { IContentPipe } from "../types/io.pipe";
 import { fs } from "../fs";
-import { pageNavigatorToggled, panelExpanded } from "../../core/state/events";
+import { secondaryViewsToggled, panelExpanded } from "../../core/state/events";
 import { fpDirname } from "../../core/utils/file-path";
 
 /** Unwrap a text-bearing editor to its TextFileModel host, so legacy consumers
@@ -21,7 +21,7 @@ function unwrapToHost(editor: EditorModel | null): EditorOrHost | null {
 }
 
 export interface NavigationState {
-    /** Currently selected item href (shared between PageNavigator and secondary editors). */
+    /** Currently selected item href (shared between SecondaryViews and secondary views). */
     selectedHref: string | null;
 }
 
@@ -32,10 +32,10 @@ export interface IPageState {
     /** Current main editor ID — changes on navigation, triggers re-render for editor swap. */
     mainEditorId: string | null;
     /** Bumped whenever `editors[]` changes (attach/detach) or an editor's panel-list
-     *  flips. Drives PageNavigator re-render and the per-page persistence
+     *  flips. Drives SecondaryViews re-render and the per-page persistence
      *  subscription's editor-membership reconciliation. */
     version: number;
-    /** Whether the sidebar (PageNavigatorModel) exists. Kept for backward compat
+    /** Whether the sidebar (SecondaryViewsModel) exists. Kept for backward compat
      *  with existing UI; equivalent to `hasSidebar` getter. */
     hasSidebar: boolean;
 }
@@ -73,7 +73,7 @@ export class PageModel {
     // ── Sidebar state ─────────────────────────────────────────────────
 
     /** Sidebar model — pure reactive state (open/close/width). */
-    pageNavigatorModel: PageNavigatorModel | null = null;
+    secondaryViewsModel: SecondaryViewsModel | null = null;
     /** Which panel is currently active/expanded.
      *  Values: "explorer", "search", or a secondary panel ID. */
     activePanel = "explorer";
@@ -144,7 +144,7 @@ export class PageModel {
         // editor to the front; Array.sort is stable, so other editors keep
         // their attach order.
         const explorerRank = (e: EditorModel) =>
-            ((e.state.get() as { secondaryEditor?: string[] }).secondaryEditor ?? [])
+            ((e.state.get() as { secondaryView?: string[] }).secondaryView ?? [])
                 .includes("explorer") ? 0 : 1;
         return editors.sort((a, b) => explorerRank(a) - explorerRank(b));
     }
@@ -173,14 +173,14 @@ export class PageModel {
 
     /** Whether this page has an active sidebar. */
     get hasSidebar(): boolean {
-        return this.editors.some((e) => e.contributesPanels()) || this.pageNavigatorModel !== null;
+        return this.editors.some((e) => e.contributesPanels()) || this.secondaryViewsModel !== null;
     }
 
     // ── Membership primitives ─────────────────────────────────────────
 
     /** Add an editor to `editors[]`. No-op if already present.
      *
-     *  Walkthrough 03 / N1: subscribes to the editor's `secondaryEditor` slice
+     *  Walkthrough 03 / N1: subscribes to the editor's `secondaryView` slice
      *  via the TOneState selector overload. The handler fires only when the
      *  panel list reference changes; visibility criterion enforced in
      *  `onEditorPanelsChanged`. */
@@ -192,7 +192,7 @@ export class PageModel {
         prior?.();
         const unsub = editor.state.subscribe(
             () => this.onEditorPanelsChanged(editor),
-            (s) => (s as { secondaryEditor?: string[] }).secondaryEditor,
+            (s) => (s as { secondaryView?: string[] }).secondaryView,
         );
         this._editorSubs.set(editor.id, unsub);
         this.state.update((s) => {
@@ -218,7 +218,7 @@ export class PageModel {
             this.state.update((s) => { s.mainEditorId = null; });
         }
         // Adjust activePanel if it pointed to a panel this editor owned.
-        const panels = editor.secondaryEditor;
+        const panels = editor.secondaryView;
         if (panels?.includes(this.activePanel) || this.activePanel === editor.id) {
             this.activePanel = "explorer";
         }
@@ -228,10 +228,10 @@ export class PageModel {
         });
     }
 
-    /** Compat shim for the `EditorModel.secondaryEditor` setter side-effect.
+    /** Compat shim for the `EditorModel.secondaryView` setter side-effect.
      *  Accepts any editor and looks up an existing adapter by id. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    addSecondaryEditor(editor: any): void {
+    addSecondaryView(editor: any): void {
         // Legacy editors pass themselves; resolve to their adapter via id.
         const id = editor?.state?.get?.()?.id ?? editor?.id;
         if (id) {
@@ -250,7 +250,7 @@ export class PageModel {
 
     /** Compat shim — detach without disposing. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    removeSecondaryEditorWithoutDispose(editor: any): void {
+    removeSecondaryViewWithoutDispose(editor: any): void {
         const id = editor?.state?.get?.()?.id ?? editor?.id;
         const target = id ? this.editors.find((e) => e.id === id) : undefined;
         if (target) this.detach(target);
@@ -259,7 +259,7 @@ export class PageModel {
 
     /** Compat shim — detach + dispose. Used when the user explicitly closes a panel. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async removeSecondaryEditor(editor: any): Promise<void> {
+    async removeSecondaryView(editor: any): Promise<void> {
         const id = editor?.state?.get?.()?.id ?? editor?.id;
         const target = id ? this.editors.find((e) => e.id === id) : undefined;
         if (target) {
@@ -271,14 +271,14 @@ export class PageModel {
         }
     }
 
-    /** Compat shim — find a secondary editor by its id. */
-    findSecondaryEditor(editorId: string): EditorModel | undefined {
+    /** Compat shim — find a secondary view by its id. */
+    findSecondaryView(editorId: string): EditorModel | undefined {
         return this.panelEditors.find((e) => e.id === editorId);
     }
 
     /**
      * Slice-subscription handler from `attach()`. Fires when the editor's
-     * `secondaryEditor` slice changes (panel list flips). Bumps version and
+     * `secondaryView` slice changes (panel list flips). Bumps version and
      * enforces the visibility criterion.
      */
     onEditorPanelsChanged(editor: EditorModel): void {
@@ -378,7 +378,7 @@ export class PageModel {
             if (editor === main) continue;
             editor.onMainEditorChanged(main);
         }
-        // Some editors may have cleared their secondaryEditor during the
+        // Some editors may have cleared their secondaryView during the
         // notification — their slice subscriptions will fire detach via
         // onEditorPanelsChanged.
     }
@@ -396,23 +396,23 @@ export class PageModel {
         }
     }
 
-    // ── Sidebar / PageNavigator ────────────────────────────────────────
+    // ── Sidebar / SecondaryViews ────────────────────────────────────────
 
     /** Set the active panel. Notifies the owning editor via onPanelExpanded(). */
     setActivePanel(panel: string): void {
         this.activePanel = panel;
         this.state.update((s) => { s.version++; });
-        const owner = this.editors.find((e) => e.secondaryEditor?.includes(panel));
+        const owner = this.editors.find((e) => e.secondaryView?.includes(panel));
         if (owner) {
             owner.onPanelExpanded(panel);
         }
         panelExpanded.send({ pageId: this.id, panelId: panel });
     }
 
-    /** Expand a secondary panel by its panel ID. Called by secondary editors directly. */
+    /** Expand a secondary panel by its panel ID. Called by secondary views directly. */
     expandPanel(panelId: string): void {
         if (!panelId) return;
-        if (!this.editors.some((e) => e.secondaryEditor?.includes(panelId))) return;
+        if (!this.editors.some((e) => e.secondaryView?.includes(panelId))) return;
         this.setActivePanel(panelId);
     }
 
@@ -425,30 +425,30 @@ export class PageModel {
         );
     }
 
-    // ── PageNavigatorModel ───────────────────────────────────────────
+    // ── SecondaryViewsModel ───────────────────────────────────────────
 
-    /** Lazy-create PageNavigatorModel on first access. */
-    ensurePageNavigatorModel(): PageNavigatorModel {
-        if (!this.pageNavigatorModel) {
-            this.pageNavigatorModel = new PageNavigatorModel(this.id);
+    /** Lazy-create SecondaryViewsModel on first access. */
+    ensureSecondaryViewsModel(): SecondaryViewsModel {
+        if (!this.secondaryViewsModel) {
+            this.secondaryViewsModel = new SecondaryViewsModel(this.id);
             // Bump version so UI knows sidebar exists. Persistence subscription
             // is in PagesModel.attachPage — it watches page.state for save
             // triggers, so navigator mutations ride the same channel.
-            this.pageNavigatorModel.state.subscribe(() => {
+            this.secondaryViewsModel.state.subscribe(() => {
                 this.state.update((s) => { s.version++; });
             });
             this.state.update((s) => { s.hasSidebar = true; });
         }
-        return this.pageNavigatorModel;
+        return this.secondaryViewsModel;
     }
 
     // ── Navigator toggle ─────────────────────────────────────────────
 
-    /** Toggle the PageNavigator panel. Creates ExplorerEditorModel if needed. */
+    /** Toggle the SecondaryViews panel. Creates ExplorerEditorModel if needed. */
     async toggleNavigator(pipe?: IContentPipe | null, filePath?: string): Promise<void> {
         const existing = this.findExplorer();
-        if (existing || this.pageNavigatorModel) {
-            this.ensurePageNavigatorModel().toggle();
+        if (existing || this.secondaryViewsModel) {
+            this.ensureSecondaryViewsModel().toggle();
             return;
         }
 
@@ -468,14 +468,14 @@ export class PageModel {
         this.attach(explorer);
         await explorer.restore();
 
-        this.ensurePageNavigatorModel();
-        pageNavigatorToggled.send({ pageId: this.id, isOpen: true });
+        this.ensureSecondaryViewsModel();
+        secondaryViewsToggled.send({ pageId: this.id, isOpen: true });
     }
 
     /** Whether the navigator can be opened. */
     canOpenNavigator(pipe?: IContentPipe | null, filePath?: string): boolean {
         if (this.findExplorer()) return true;
-        if (this.pageNavigatorModel) return true;
+        if (this.secondaryViewsModel) return true;
         if (pipe?.provider.type === "file") return true;
         if (filePath) return true;
         return false;
@@ -514,14 +514,14 @@ export class PageModel {
      * PageTab.getDragData, and PagesLifecycleModel.duplicatePage.
      */
     getDescriptor(): PageDescriptor {
-        const navState = this.pageNavigatorModel?.state.get();
+        const navState = this.secondaryViewsModel?.state.get();
         return {
             id: this.id,
             pinned: this.pinned,
             modified: this.modified,
             mainEditorId: this._mainEditorId,
             editors: this.editors.map((e) => e.getRestoreData()),
-            sidebar: this.pageNavigatorModel
+            sidebar: this.secondaryViewsModel
                 ? {
                     open: navState?.open ?? true,
                     width: navState?.width ?? 240,
@@ -558,8 +558,8 @@ export class PageModel {
         this.editors.length = 0;
         this._mainEditorId = null;
 
-        this.pageNavigatorModel?.dispose();
-        this.pageNavigatorModel = null;
+        this.secondaryViewsModel?.dispose();
+        this.secondaryViewsModel = null;
         // No page-level cache file; per-editor caches were cleaned in the
         // loop above.
     }

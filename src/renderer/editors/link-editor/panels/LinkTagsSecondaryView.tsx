@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import type { SecondaryEditorProps } from "../../../ui/navigation/secondary-editor-registry";
+import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
 import { useOptionalState } from "../../../core/state/state";
 import type { ILink } from "../../../api/types/io.tree";
 import { LinkTagsPanel } from "./LinkTagsPanel";
@@ -161,21 +161,21 @@ function LinkTagsNavigationPanel({ editor, pageId }: LinkTagsNavigationPanelProp
 }
 
 
-export default function LinkTagsSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
+export default function LinkTagsSecondaryView({ model, headerRef }: SecondaryViewProps) {
     // Type-guard early return must precede any hooks; hook-using body lives
-    // in an inner component. Same pattern as LinkCategorySecondaryEditor.
+    // in an inner component. Same pattern as LinkCategorySecondaryView.
     if (!(model instanceof LinkEditor)) {
         return null;
     }
-    return <LinkTagsSecondaryEditorBody editor={model} headerRef={headerRef} />;
+    return <LinkTagsSecondaryViewBody editor={model} headerRef={headerRef} />;
 }
 
-function LinkTagsSecondaryEditorBody({
+function LinkTagsSecondaryViewBody({
     editor,
     headerRef,
 }: {
     editor: LinkEditor;
-    headerRef: SecondaryEditorProps["headerRef"];
+    headerRef: SecondaryViewProps["headerRef"];
 }) {
     const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);
     const isMainEditor = mainEditorId === editor.id;

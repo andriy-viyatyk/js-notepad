@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CollapsiblePanel, CollapsiblePanelStack, Panel } from "../../uikit";
 import type { PageModel } from "../../api/pages/PageModel";
-import { secondaryEditorRegistry } from "./secondary-editor-registry";
-import { LazySecondaryEditor } from "./LazySecondaryEditor";
+import { secondaryViewRegistry } from "./secondary-view-registry";
+import { LazySecondaryView } from "./LazySecondaryView";
 
 // =============================================================================
 // Component
 // =============================================================================
 
-interface PageNavigatorProps {
+interface SecondaryViewsProps {
     page: PageModel;
 }
 
-export function PageNavigator({ page }: PageNavigatorProps) {
+export function SecondaryViews({ page }: SecondaryViewsProps) {
     // Subscribe to page.state — re-renders on attach/detach and panel-list flips
     // (walkthrough 03 / N2).
     const { version: _version } = page.state.use();
@@ -43,23 +43,23 @@ export function PageNavigator({ page }: PageNavigatorProps) {
 
     return (
         <Panel
-            name="page-navigator-root"
+            name="secondary-views-root"
             direction="column"
             height="100%"
             overflow="hidden"
             background="default"
         >
             <CollapsiblePanelStack
-                name="page-navigator-stack"
+                name="secondary-views-stack"
                 activePanel={activePanel}
                 setActivePanel={handleSetActivePanel}
                 height="100%"
             >
                 {panelEditors.flatMap((model) => {
-                    const panelIds = (model.state.get() as { secondaryEditor?: string[] }).secondaryEditor;
+                    const panelIds = (model.state.get() as { secondaryView?: string[] }).secondaryView;
                     if (!panelIds?.length) return [];
                     return panelIds.map((panelId) => {
-                        const def = secondaryEditorRegistry.get(panelId);
+                        const def = secondaryViewRegistry.get(panelId);
                         if (!def) return null;
                         const refKey = `${model.id}-${panelId}`;
                         return (
@@ -70,7 +70,7 @@ export function PageNavigator({ page }: PageNavigatorProps) {
                                 headerRef={(el) => setHeaderRef(refKey, el)}
                                 alwaysRenderContent
                             >
-                                <LazySecondaryEditor
+                                <LazySecondaryView
                                     model={model as never}
                                     editorId={panelId}
                                     headerRef={headerRefs.current[refKey] ?? null}

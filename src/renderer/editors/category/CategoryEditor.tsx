@@ -35,11 +35,11 @@ function isTreeProviderHost(editor: EditorModel): editor is EditorModel & ITreeP
 }
 
 function findTreeProviderHost(
-    secondaryEditors: EditorModel[],
+    secondaryViews: EditorModel[],
     type: string,
     sourceUrl: string,
 ): ITreeProviderHost | null {
-    for (const editor of secondaryEditors) {
+    for (const editor of secondaryViews) {
         if (!isTreeProviderHost(editor)) continue;
         const tp = editor.treeProvider;
         if (tp && tp.type === type && tp.sourceUrl === sourceUrl) {

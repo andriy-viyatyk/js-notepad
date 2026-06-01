@@ -44,7 +44,7 @@ export const defaultMarkdownEditorState: MarkdownEditorState = {
     id: "",
     title: "",
     modified: false,
-    secondaryEditor: undefined,
+    secondaryView: undefined,
     compactMode: false,
     searchVisible: false,
     searchText: "",
@@ -135,7 +135,7 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -145,7 +145,7 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
         this.state.update((cur) => {
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
+            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
         });
         // No legacy promotion needed — today's MarkdownViewModel doesn't
         // persist compactMode (in-memory only). `adoptHost` seeds compactMode

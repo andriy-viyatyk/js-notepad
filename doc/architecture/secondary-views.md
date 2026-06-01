@@ -1,42 +1,42 @@
 # Secondary Editor System
 
-How sidebar panels work in Persephone. Covers registration, lifecycle hooks, navigation survival, rendering, persistence, and how to add new secondary editors.
+How sidebar panels work in Persephone. Covers registration, lifecycle hooks, navigation survival, rendering, persistence, and how to add new secondary views.
 
-**Source code:** [`PageModel.ts`](../../src/renderer/api/pages/PageModel.ts), [`EditorModel.ts`](../../src/renderer/editors/base/EditorModel.ts), [`PageNavigator.tsx`](../../src/renderer/ui/navigation/PageNavigator.tsx)
+**Source code:** [`PageModel.ts`](../../src/renderer/api/pages/PageModel.ts), [`EditorModel.ts`](../../src/renderer/editors/base/EditorModel.ts), [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx)
 
 ---
 
 ## Overview
 
-PageModel holds a `secondaryEditors[]` array of EditorModel instances that appear as sidebar panels in PageNavigator. Secondary editors can be separate models (like ExplorerEditorModel) or the mainEditor itself (like ArchiveEditorModel when browsing an archive).
+PageModel holds a `secondaryViews[]` array of EditorModel instances that appear as sidebar panels in SecondaryViews. Secondary views can be separate models (like ExplorerEditorModel) or the mainEditor itself (like ArchiveEditorModel when browsing an archive).
 
 ```
 PageModel (one per tab)
   ├── mainEditor: EditorModel              // primary content area
-  ├── secondaryEditors: EditorModel[]      // sidebar panels
+  ├── secondaryViews: EditorModel[]      // sidebar panels
   │   ├── ExplorerEditorModel              // Pattern A: separate model
   │   └── ArchiveEditorModel ←── same as mainEditor  // Pattern B: mainEditor as secondary
-  ├── pageNavigatorModel                   // sidebar layout: open/close/width
+  ├── secondaryViewsModel                   // sidebar layout: open/close/width
   ├── activePanel: string                  // which panel is expanded
   └── expandPanel(panelId)                 // expand a specific panel
 ```
 
 ---
 
-## 1. Core Mechanism — the `secondaryEditor` setter
+## 1. Core Mechanism — the `secondaryView` setter
 
-The `secondaryEditor` getter/setter on EditorModel manages `PageModel.secondaryEditors[]` membership automatically. It is `string[] | undefined` — one model can register multiple sidebar panels:
+The `secondaryView` getter/setter on EditorModel manages `PageModel.secondaryViews[]` membership automatically. It is `string[] | undefined` — one model can register multiple sidebar panels:
 
 ```typescript
-// Setting adds the model to page.secondaryEditors[]
-model.secondaryEditor = ["archive-tree"];       // one panel
-model.secondaryEditor = ["explorer", "search"]; // multiple panels
+// Setting adds the model to page.secondaryViews[]
+model.secondaryView = ["archive-tree"];       // one panel
+model.secondaryView = ["explorer", "search"]; // multiple panels
 
 // Clearing removes the model (without disposing it)
-model.secondaryEditor = undefined;
+model.secondaryView = undefined;
 ```
 
-**Internally**, the setter calls `this.page?.addSecondaryEditor(this)` or `this.page?.removeSecondaryEditorWithoutDispose(this)`. This is the ONLY way models should register/unregister themselves.
+**Internally**, the setter calls `this.page?.addSecondaryView(this)` or `this.page?.removeSecondaryViewWithoutDispose(this)`. This is the ONLY way models should register/unregister themselves.
 
 ---
 
@@ -44,12 +44,12 @@ model.secondaryEditor = undefined;
 
 ### Pattern A: Separate model (ExplorerEditorModel)
 
-A dedicated EditorModel subclass that is ONLY a secondary editor — never becomes mainEditor.
+A dedicated EditorModel subclass that is ONLY a secondary view — never becomes mainEditor.
 
 ```
 PageModel
   ├── mainEditor: TextFileModel
-  └── secondaryEditors: [ExplorerEditorModel]  // separate instance
+  └── secondaryViews: [ExplorerEditorModel]  // separate instance
 ```
 
 - Created by `PageModel.createExplorer(rootPath)` or during restore
@@ -58,20 +58,20 @@ PageModel
 
 ### Pattern B: mainEditor as secondary (ArchiveEditorModel)
 
-The mainEditor registers itself in `secondaryEditors[]` simultaneously. The same model instance is both `page.mainEditor` and in `page.secondaryEditors[]`.
+The mainEditor registers itself in `secondaryViews[]` simultaneously. The same model instance is both `page.mainEditor` and in `page.secondaryViews[]`.
 
 ```
 PageModel
   ├── mainEditor: ArchiveEditorModel ←─── same instance
-  └── secondaryEditors: [ExplorerEditorModel, ArchiveEditorModel ←─── same instance]
+  └── secondaryViews: [ExplorerEditorModel, ArchiveEditorModel ←─── same instance]
 ```
 
-- ArchiveEditorModel sets `this.secondaryEditor = ["archive-tree"]` in `restore()` or `setPage()`
-- When user navigates to a file inside the archive, ArchiveEditorModel becomes a secondary editor:
+- ArchiveEditorModel sets `this.secondaryView = ["archive-tree"]` in `restore()` or `setPage()`
+- When user navigates to a file inside the archive, ArchiveEditorModel becomes a secondary view:
   - `beforeNavigateAway(newEditor)` checks `newEditor.sourceLink?.sourceId === this.id`
-  - If the new file was opened from this archive → keeps `secondaryEditor` → **survives as secondary**
-  - `setMainEditor()` checks `survivesAsSecondary = secondaryEditors.includes(oldEditor)` — if true, old editor is NOT disposed
-- When user navigates to an unrelated file → `beforeNavigateAway()` clears `secondaryEditor` → removed from sidebar → disposed
+  - If the new file was opened from this archive → keeps `secondaryView` → **survives as secondary**
+  - `setMainEditor()` checks `survivesAsSecondary = secondaryViews.includes(oldEditor)` — if true, old editor is NOT disposed
+- When user navigates to an unrelated file → `beforeNavigateAway()` clears `secondaryView` → removed from sidebar → disposed
 
 **This pattern is designed into PageModel** — `setMainEditor()` explicitly handles it.
 
@@ -83,8 +83,8 @@ EditorModel provides lifecycle hooks that PageModel calls at specific moments:
 
 | Hook | Called by | When | Base behavior | Override for |
 |------|-----------|------|---------------|-------------|
-| `setPage(page)` | `addSecondaryEditor()`, `setMainEditor()` | Model attached to / detached from a page | Stores reference | Registration (e.g., ArchiveEditorModel sets `secondaryEditor` here) |
-| `beforeNavigateAway(newEditor)` | `setMainEditor()` | Old mainEditor is about to be replaced | Clears `secondaryEditor` (remove self) | Conditional survival (check `newEditor.sourceLink`) |
+| `setPage(page)` | `addSecondaryView()`, `setMainEditor()` | Model attached to / detached from a page | Stores reference | Registration (e.g., ArchiveEditorModel sets `secondaryView` here) |
+| `beforeNavigateAway(newEditor)` | `setMainEditor()` | Old mainEditor is about to be replaced | Clears `secondaryView` (remove self) | Conditional survival (check `newEditor.sourceLink`) |
 | `onMainEditorChanged(newMainEditor)` | `notifyMainEditorChanged()` | After mainEditor was replaced | No-op | React to new content: highlight file in tree, clear selection, or remove self |
 | `onPanelExpanded(panelId)` | `setActivePanel()` | A panel belonging to this model was expanded | No-op | Deferred reveal (scroll to highlighted item) |
 
@@ -97,10 +97,10 @@ When user navigates to a new file (`navigatePageTo()`):
 ```
 1. page.setMainEditor(newEditor)
    ├── oldEditor.beforeNavigateAway(newEditor)
-   │   ├── Base: this.secondaryEditor = undefined  → removed from sidebar
+   │   ├── Base: this.secondaryView = undefined  → removed from sidebar
    │   └── Override (ArchiveEditorModel): keep if newEditor is from this archive
    │
-   ├── survivesAsSecondary = secondaryEditors.includes(oldEditor)
+   ├── survivesAsSecondary = secondaryViews.includes(oldEditor)
    │   ├── true  → oldEditor stays alive (no dispose, no setPage(null))
    │   └── false → oldEditor.setPage(null), deferred dispose
    │
@@ -108,27 +108,27 @@ When user navigates to a new file (`navigatePageTo()`):
    ├── newEditor.setPage(this)
    │
    ├── notifyMainEditorChanged()
-   │   ├── For each secondary editor: m.onMainEditorChanged(newMainEditor)
+   │   ├── For each secondary view: m.onMainEditorChanged(newMainEditor)
    │   │   └── ArchiveEditorModel: checks sourceId, clears if unrelated → dispose
    │   │   └── ExplorerEditorModel: updates highlight, never clears
-   │   └── Cleanup: remove & dispose models that cleared their secondaryEditor
+   │   └── Cleanup: remove & dispose models that cleared their secondaryView
    │
-   └── Register new editor's secondary panel if newEditor.secondaryEditor is set
+   └── Register new editor's secondary panel if newEditor.secondaryView is set
 ```
 
 ---
 
 ## 4b. Promote / Demote Flow
 
-A secondary editor can be toggled into the main editor role (and back) via `promoteSecondaryToMain(model)`:
+A secondary view can be toggled into the main editor role (and back) via `promoteSecondaryToMain(model)`:
 
 **Promote** (secondary → main):
 ```
-1. page.promoteSecondaryToMain(model)  // model is in secondaryEditors[], not mainEditor
+1. page.promoteSecondaryToMain(model)  // model is in secondaryViews[], not mainEditor
    └── page.setMainEditor(model)       // standard navigation lifecycle
        ├── oldEditor.beforeNavigateAway(model)
-       │   └── base: this.secondaryEditor = undefined → removed from sidebar → disposed
-       ├── model becomes mainEditor AND stays in secondaryEditors[] (Pattern B)
+       │   └── base: this.secondaryView = undefined → removed from sidebar → disposed
+       ├── model becomes mainEditor AND stays in secondaryViews[] (Pattern B)
        ├── notifyMainEditorChanged()
        └── pagesModel.resubscribeEditor(page)
 ```
@@ -142,13 +142,13 @@ A secondary editor can be toggled into the main editor role (and back) via `prom
    ├── queueMicrotask: restore panels if promoted-from-secondary
    │   ├── If _prePromotePanels saved → restore pre-promote panel list
    │   └── If no saved panels (was originally main, Pattern B) → leave panels as-is
-   │       (secondary editor component manages its own panel list via useEffect)
+   │       (secondary view component manages its own panel list via useEffect)
    └── pagesModel.resubscribeEditor(page)
 ```
 
-The demote path does NOT call `setMainEditor(null)` — that would dispose the model. Instead it directly clears the reference, keeping the model alive in `secondaryEditors[]`.
+The demote path does NOT call `setMainEditor(null)` — that would dispose the model. Instead it directly clears the reference, keeping the model alive in `secondaryViews[]`.
 
-**Panel save/restore:** When promoting, the current panel list is saved as `_prePromotePanels`. On demote, if saved panels exist (model was promoted from secondary), they are restored. For Pattern B (model was originally the main editor, no saved panels), panels are left unchanged — the secondary editor component (e.g., `LinkCategorySecondaryEditor`) manages the panel list reactively via `useEffect`. The `queueMicrotask` ensures this runs after React unmount cleanup.
+**Panel save/restore:** When promoting, the current panel list is saved as `_prePromotePanels`. On demote, if saved panels exist (model was promoted from secondary), they are restored. For Pattern B (model was originally the main editor, no saved panels), panels are left unchanged — the secondary view component (e.g., `LinkCategorySecondaryView`) manages the panel list reactively via `useEffect`. The `queueMicrotask` ensures this runs after React unmount cleanup.
 
 ---
 
@@ -156,60 +156,60 @@ The demote path does NOT call `setMainEditor(null)` — that would dispose the m
 
 **Active panel:** `PageModel.activePanel` tracks which panel is expanded (e.g., `"explorer"`, `"archive-tree"`). Only one panel is expanded at a time.
 
-**Expand:** `page.expandPanel(panelId)` — sets activePanel if the panelId exists in any secondary editor's array. Calls `onPanelExpanded(panelId)` on the owning model. Used by models to auto-expand their panel (e.g., ArchiveEditorModel expands "archive-tree" when navigating to an archive entry).
+**Expand:** `page.expandPanel(panelId)` — sets activePanel if the panelId exists in any secondary view's array. Calls `onPanelExpanded(panelId)` on the owning model. Used by models to auto-expand their panel (e.g., ArchiveEditorModel expands "archive-tree" when navigating to an archive entry).
 
-**Close:** The secondary editor's React component renders a close button in its portal header. The close handler clears `model.secondaryEditor = undefined`, which removes the model from the sidebar. For user-closeable panels, this is the standard pattern.
+**Close:** The secondary view's React component renders a close button in its portal header. The close handler clears `model.secondaryView = undefined`, which removes the model from the sidebar. For user-closeable panels, this is the standard pattern.
 
 ---
 
-## 6. Rendering in PageNavigator
+## 6. Rendering in SecondaryViews
 
-**Source:** [`PageNavigator.tsx`](../../src/renderer/ui/navigation/PageNavigator.tsx)
+**Source:** [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx)
 
-The rendering loop nests: outer loop over models (`flatMap`), inner loop over each model's `secondaryEditor[]` panel IDs:
+The rendering loop nests: outer loop over models (`flatMap`), inner loop over each model's `secondaryView[]` panel IDs:
 
 ```tsx
-secondaryEditors.flatMap((model) => {
-    const panelIds = model.secondaryEditor ?? [];
+secondaryViews.flatMap((model) => {
+    const panelIds = model.secondaryView ?? [];
     return panelIds.map((panelId) => (
         <CollapsiblePanel key={`${model.id}-${panelId}`} id={panelId}
             headerRef={setHeaderRef} alwaysRenderContent>
-            <LazySecondaryEditor model={model} editorId={panelId} headerRef={...} />
+            <LazySecondaryView model={model} editorId={panelId} headerRef={...} />
         </CollapsiblePanel>
     ));
 })
 ```
 
-**Portal-based headers:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. The loaded secondary editor component uses `createPortal(headerContent, headerRef)` to render its title, buttons, and icons into the header. This lets each secondary editor fully control its header content.
+**Portal-based headers:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. The loaded secondary view component uses `createPortal(headerContent, headerRef)` to render its title, buttons, and icons into the header. This lets each secondary view fully control its header content.
 
 **`alwaysRenderContent`:** Keeps panel content mounted when collapsed (`display: none`). Required for portal components to render headers even when their panel is collapsed.
 
-**Reactivity:** `secondaryEditors` is a plain array (EditorModel instances can't be in TOneState — Immer proxies would corrupt them). A `secondaryEditorsVersion` counter (`TOneState<{ version }>`) is bumped on every add/remove. PageNavigator subscribes via `.use()`.
+**Reactivity:** `secondaryViews` is a plain array (EditorModel instances can't be in TOneState — Immer proxies would corrupt them). A `secondaryViewsVersion` counter (`TOneState<{ version }>`) is bumped on every add/remove. SecondaryViews subscribes via `.use()`.
 
-**Registry:** [`secondary-editor-registry.ts`](../../src/renderer/ui/navigation/secondary-editor-registry.ts) maps panel ID strings to React sidebar components via dynamic imports. Each registration provides an `id`, `label`, and `loadComponent()` factory.
+**Registry:** [`secondary-view-registry.ts`](../../src/renderer/ui/secondary-views/secondary-view-registry.ts) maps panel ID strings to React sidebar components via dynamic imports. Each registration provides an `id`, `label`, and `loadComponent()` factory.
 
 ---
 
 ## 7. Persistence
 
-Secondary editor state is saved as `SecondaryModelDescriptor[]` in the PageModel sidebar cache (`_saveState()`). Each descriptor contains the model's serialized `IEditorState` from `getRestoreData()`.
+Secondary view state is saved as `SecondaryModelDescriptor[]` in the PageModel sidebar cache (`_saveState()`). Each descriptor contains the model's serialized `IEditorState` from `getRestoreData()`.
 
 On restore:
 1. `restoreSidebar()` reads cache, stores descriptors as `pendingSecondaryDescriptors`
-2. `restoreSecondaryEditors(ownerEditor)` processes them after the mainEditor is created. The `ownerEditor` parameter is nullable — pass `null` for pages without mainEditor (Pattern A standalone secondary editors).
-3. **Deduplication:** If `ownerEditor` is non-null and a descriptor's ID matches `ownerEditor.id`, the existing ownerEditor instance is reused (added to `secondaryEditors[]` directly, no new model created). This handles Pattern B — when mainEditor was also a secondary editor before restart.
+2. `restoreSecondaryViews(ownerEditor)` processes them after the mainEditor is created. The `ownerEditor` parameter is nullable — pass `null` for pages without mainEditor (Pattern A standalone secondary views).
+3. **Deduplication:** If `ownerEditor` is non-null and a descriptor's ID matches `ownerEditor.id`, the existing ownerEditor instance is reused (added to `secondaryViews[]` directly, no new model created). This handles Pattern B — when mainEditor was also a secondary view before restart.
 
 ---
 
 ## 8. Dispose
 
 When a tab closes:
-1. `page.close()` → `confirmSecondaryRelease()` checks secondary editors for unsaved changes
+1. `page.close()` → `confirmSecondaryRelease()` checks secondary views for unsaved changes
 2. `page.close()` → `mainEditor.confirmRelease()` checks main editor
-3. `page.dispose()` → iterates `secondaryEditors[]`, calls `dispose()` on each, then disposes mainEditor
+3. `page.dispose()` → iterates `secondaryViews[]`, calls `dispose()` on each, then disposes mainEditor
 4. `page.dispose()` → `fs.deleteCacheFiles(this.id)` deletes page-level cache files (e.g., `{pageId}_nav-panel.txt`). Editor-level cache files are deleted by each `EditorModel.dispose()` call.
 
-For Pattern B (mainEditor in secondaryEditors[]), the model may be disposed twice by `dispose()`. This is safe — `EditorModel.dispose()` is idempotent (`pipe` is nulled on first call, cache file deletion is a no-op on second call).
+For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice by `dispose()`. This is safe — `EditorModel.dispose()` is idempotent (`pipe` is nulled on first call, cache file deletion is a no-op on second call).
 
 ---
 
@@ -217,18 +217,18 @@ For Pattern B (mainEditor in secondaryEditors[]), the model may be disposed twic
 
 | Method | Description |
 |--------|-------------|
-| `addSecondaryEditor(model)` | Adds model to array, calls `model.setPage(this)`, bumps version. If model is already registered, still bumps version (panel list may have changed). |
-| `removeSecondaryEditor(model)` | Removes, disposes, falls back `activePanel` if needed |
-| `removeSecondaryEditorWithoutDispose(model)` | Removes without disposing (used by `secondaryEditor` setter). Skips `setPage(null)` if model is the mainEditor (Pattern B guard). |
+| `addSecondaryView(model)` | Adds model to array, calls `model.setPage(this)`, bumps version. If model is already registered, still bumps version (panel list may have changed). |
+| `removeSecondaryView(model)` | Removes, disposes, falls back `activePanel` if needed |
+| `removeSecondaryViewWithoutDispose(model)` | Removes without disposing (used by `secondaryView` setter). Skips `setPage(null)` if model is the mainEditor (Pattern B guard). |
 | `promoteSecondaryToMain(model)` | Toggle: if model is secondary-only → promotes to mainEditor (old main goes through `setMainEditor` lifecycle); if model IS mainEditor → demotes (clears mainEditor to null, model stays as secondary). Calls `resubscribeEditor` for persistence. |
-| `findSecondaryEditor(editorId)` | Lookup by editor model ID |
+| `findSecondaryView(editorId)` | Lookup by editor model ID |
 | `confirmSecondaryRelease()` | Iterates modified secondaries, prompts user via `confirmRelease()` |
-| `restoreSecondaryEditors(ownerEditor)` | Restores from `pendingSecondaryDescriptors`, deduplicates against owner |
+| `restoreSecondaryViews(ownerEditor)` | Restores from `pendingSecondaryDescriptors`, deduplicates against owner |
 | `notifyMainEditorChanged()` | Propagates main editor change, cleans up models that cleared themselves |
 | `setActivePanel(panel)` | Sets expanded panel, notifies owning model via `onPanelExpanded()` |
-| `expandPanel(panelId)` | Sets activePanel if panelId exists in any secondary editor |
-| `findExplorer()` | Returns the ExplorerEditorModel from secondaryEditors (if any) |
-| `createExplorer(rootPath)` | Creates ExplorerEditorModel, adds to secondaryEditors |
+| `expandPanel(panelId)` | Sets activePanel if panelId exists in any secondary view |
+| `findExplorer()` | Returns the ExplorerEditorModel from secondaryViews (if any) |
+| `createExplorer(rootPath)` | Creates ExplorerEditorModel, adds to secondaryViews |
 | `getTransient<T>(key)` | Read a transient (non-persisted) runtime value by key. Returns undefined if not set. |
 | `setTransient(key, value)` | Write a transient runtime value. Pass undefined to delete. Cleared on page close / app restart. |
 
@@ -240,8 +240,8 @@ For Pattern B (mainEditor in secondaryEditors[]), the model may be disposed twic
 |-------|-----------|---------|----------|-----------|
 | `ExplorerEditorModel` | `["explorer"]` or `["explorer", "search"]` | A (separate) | Always survives navigation | `PageModel.createExplorer()` or restore |
 | `ArchiveEditorModel` | `["archive-tree"]` | B (mainEditor) | Survives if new editor was opened from this archive | `_openArchive()` in PagesLifecycleModel |
-| `LinkEditor` (links, main) | `["link-category", "link-tags", "link-hostnames"]` (always all 3) | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when PageNavigator closes, re-registered when it opens. First open fires `pageNavigatorToggled` via `PageModel.toggleNavigator()`. | LinkEditor component `useEffect` (subscribes to `pageNavigatorToggled` event) |
-| `LinkEditor` (links, standalone) | `["link-category", "link-tags"?]` (dynamic) | A (separate) | Always survives (base `onMainEditorChanged` is no-op). Exposes `treeProvider`/`selectionState`/`selectByHref()` via duck-typing for CategoryEditor discovery and player track navigation. "link-tags" dynamically registered when tags exist. | LinkCategorySecondaryEditor useEffect (subscribes to model state for tag changes) |
+| `LinkEditor` (links, main) | `["link-category", "link-tags", "link-hostnames"]` (always all 3) | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. First open fires `secondaryViewsToggled` via `PageModel.toggleNavigator()`. | LinkEditor component `useEffect` (subscribes to `secondaryViewsToggled` event) |
+| `LinkEditor` (links, standalone) | `["link-category", "link-tags"?]` (dynamic) | A (separate) | Always survives (base `onMainEditorChanged` is no-op). Exposes `treeProvider`/`selectionState`/`selectByHref()` via duck-typing for CategoryEditor discovery and player track navigation. "link-tags" dynamically registered when tags exist. | LinkCategorySecondaryView useEffect (subscribes to model state for tag changes) |
 
 ---
 
@@ -252,24 +252,24 @@ For Pattern B (mainEditor in secondaryEditors[]), the model may be disposed twic
 **For Pattern A** (separate model):
 ```typescript
 class MySecondaryModel extends EditorModel<MyState> {
-    // Set secondaryEditor when ready
+    // Set secondaryView when ready
     setPage(page: PageModel | null): void {
         super.setPage(page);
         if (page && this.isReady) {
-            this.secondaryEditor = ["my-panel"];
+            this.secondaryView = ["my-panel"];
         }
     }
     
     // Decide survival on navigation
     beforeNavigateAway(newEditor: EditorModel): void {
-        if (this.shouldSurvive(newEditor)) return; // keep secondaryEditor set
-        this.secondaryEditor = undefined; // clear → removed from sidebar
+        if (this.shouldSurvive(newEditor)) return; // keep secondaryView set
+        this.secondaryView = undefined; // clear → removed from sidebar
     }
     
     // React to main editor changes
     onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (!newMainEditor || newMainEditor === this) return;
-        // Update highlights, or clear secondaryEditor to remove self
+        // Update highlights, or clear secondaryView to remove self
     }
     
     // React to panel expansion
@@ -287,19 +287,19 @@ class MyMainEditorModel extends EditorModel<MyState> {
     setPage(page: PageModel | null): void {
         super.setPage(page);
         if (page && this.isReady) {
-            this.secondaryEditor = ["my-panel"]; // adds self to secondaryEditors[]
+            this.secondaryView = ["my-panel"]; // adds self to secondaryViews[]
         }
     }
     
     beforeNavigateAway(newEditor: EditorModel): void {
         if (this.isRelatedTo(newEditor)) return; // survive as secondary
-        this.secondaryEditor = undefined; // don't survive
+        this.secondaryView = undefined; // don't survive
     }
     
     onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (!newMainEditor || newMainEditor === this) return; // guard self-notification
         if (!this.isRelatedTo(newMainEditor)) {
-            this.secondaryEditor = undefined; // remove self if unrelated
+            this.secondaryView = undefined; // remove self if unrelated
         }
     }
 }
@@ -309,11 +309,11 @@ class MyMainEditorModel extends EditorModel<MyState> {
 
 In [`register-editors.ts`](../../src/renderer/editors/register-editors.ts):
 ```typescript
-secondaryEditorRegistry.register({
+secondaryViewRegistry.register({
     id: "my-panel",
     label: "My Panel",
     loadComponent: async () => {
-        const mod = await import("./my-editor/MySecondaryEditor");
+        const mod = await import("./my-editor/MySecondaryView");
         return mod.default;
     },
 });
@@ -322,7 +322,7 @@ secondaryEditorRegistry.register({
 ### Step 3: Create the React panel component
 
 ```tsx
-export default function MySecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
+export default function MySecondaryView({ model, headerRef }: SecondaryViewProps) {
     const myModel = model as MySecondaryModel;
     
     const headerContent = (
@@ -336,7 +336,7 @@ export default function MySecondaryEditor({ model, headerRef }: SecondaryEditorP
                 icon={<CloseIcon />}
                 onClick={(e) => {
                     e.stopPropagation();
-                    myModel.secondaryEditor = undefined; // or remove specific panel
+                    myModel.secondaryView = undefined; // or remove specific panel
                 }}
             />
         </>
@@ -351,20 +351,20 @@ export default function MySecondaryEditor({ model, headerRef }: SecondaryEditorP
 }
 ```
 
-### Step 4: Create or add to `secondaryEditors[]`
+### Step 4: Create or add to `secondaryViews[]`
 
 **For Pattern A** — create the model and add it:
 ```typescript
 const myModel = new MySecondaryModel();
-page.addSecondaryEditor(myModel);
-// Or let the model self-register via setPage → this.secondaryEditor = [...]
+page.addSecondaryView(myModel);
+// Or let the model self-register via setPage → this.secondaryView = [...]
 ```
 
-**For Pattern B** — the mainEditor sets `secondaryEditor` on itself:
+**For Pattern B** — the mainEditor sets `secondaryView` on itself:
 ```typescript
 // In the mainEditor model (e.g., in setPage or restore)
-this.secondaryEditor = ["my-panel"];
-// This automatically adds this model to page.secondaryEditors[]
+this.secondaryView = ["my-panel"];
+// This automatically adds this model to page.secondaryViews[]
 ```
 
 ---
@@ -377,11 +377,11 @@ CategoryEditor is the main content area editor for `tree-category://` links. It 
 
 ### Provider Resolution
 
-CategoryEditor resolves its ITreeProvider by scanning `page.secondaryEditors[]`. It matches the `tree-category://` link's `type` and `url` against each secondary editor's `treeProvider.type` and `treeProvider.sourceUrl`:
+CategoryEditor resolves its ITreeProvider by scanning `page.secondaryViews[]`. It matches the `tree-category://` link's `type` and `url` against each secondary view's `treeProvider.type` and `treeProvider.sourceUrl`:
 
 ```
 tree-category:// link: { type: "archive", url: "D:\archive.epub", category: "OEBPS" }
-                                ↓ scan secondaryEditors[]
+                                ↓ scan secondaryViews[]
     ExplorerEditorModel → treeProvider.type="file", sourceUrl="D:\temp"     → no match
     ArchiveEditorModel  → treeProvider.type="archive", sourceUrl="D:\archive.epub" → MATCH
 ```
@@ -399,15 +399,15 @@ Both `ExplorerEditorModel` and `ArchiveEditorModel` expose `treeProvider` and `s
 
 ### Navigation Survival
 
-When CategoryEditor navigates (user double-clicks a subfolder), it passes the host's model ID as `sourceId` in the ILinkData. This ensures the secondary editor's `_isOpenedFromThisArchive()` check recognizes the navigation and keeps the panel alive.
+When CategoryEditor navigates (user double-clicks a subfolder), it passes the host's model ID as `sourceId` in the ILinkData. This ensures the secondary view's `_isOpenedFromThisArchive()` check recognizes the navigation and keeps the panel alive.
 
 ### PageModel Notification
 
-PageModel notifies the main editor when secondary editors change. In `addSecondaryEditor()`, `removeSecondaryEditor()`, and `removeSecondaryEditorWithoutDispose()`, PageModel checks if the main editor implements `onSecondaryEditorsChanged()` and calls it. CategoryEditorModel implements this method to trigger a provider re-scan.
+PageModel notifies the main editor when secondary views change. In `addSecondaryView()`, `removeSecondaryView()`, and `removeSecondaryViewWithoutDispose()`, PageModel checks if the main editor implements `onSecondaryViewsChanged()` and calls it. CategoryEditorModel implements this method to trigger a provider re-scan.
 
 ### Restore Timing
 
-Secondary editors are restored asynchronously after the main editor. On mount, if no provider is found, CategoryEditor retries after 50ms via `setTimeout`. This handles the case where the page is restored and the secondary editor isn't ready yet.
+Secondary views are restored asynchronously after the main editor. On mount, if no provider is found, CategoryEditor retries after 50ms via `setTimeout`. This handles the case where the page is restored and the secondary view isn't ready yet.
 
 ### Breadcrumb Navigation
 
@@ -434,17 +434,17 @@ The UIKit `Breadcrumb` is used with its opt-in `clipStart` prop: on overflow it 
 PageModel
   ├── mainEditor: CategoryEditor
   │   ├── decodedLink: { type, url, category }
-  │   └── scans secondaryEditors[] for matching treeProvider
-  └── secondaryEditors:
+  │   └── scans secondaryViews[] for matching treeProvider
+  └── secondaryViews:
       ├── ExplorerEditorModel (treeProvider: FileTreeProvider)
       └── ArchiveEditorModel (treeProvider: ArchiveTreeProvider)
 ```
 
 ## 13. Tag-Based Navigation Panel
 
-**Source code:** [`LinkTagsSecondaryEditor.tsx`](../../src/renderer/editors/link-editor/panels/LinkTagsSecondaryEditor.tsx), [`LinkTreeProvider.ts`](../../src/renderer/editors/link-editor/LinkTreeProvider.ts)
+**Source code:** [`LinkTagsSecondaryView.tsx`](../../src/renderer/editors/link-editor/panels/LinkTagsSecondaryView.tsx), [`LinkTreeProvider.ts`](../../src/renderer/editors/link-editor/LinkTreeProvider.ts)
 
-When a `LinkEditor` (links, standalone) is opened as a secondary editor with available tags, the Tags navigation panel (`"link-tags"`) renders two parts:
+When a `LinkEditor` (links, standalone) is opened as a secondary view with available tags, the Tags navigation panel (`"link-tags"`) renders two parts:
 
 **Top:** `LinkTagsPanel` — existing tag selector (unchanged from main editor). User selects a tag, which updates shared `LinkEditor.state.selectedTag`.
 
@@ -455,7 +455,7 @@ When a `LinkEditor` (links, standalone) is opened as a secondary editor with ava
 
 ### Provider Support
 
-Tag-based navigation requires the secondary editor's `ITreeProvider` to expose:
+Tag-based navigation requires the secondary view's `ITreeProvider` to expose:
 
 ```typescript
 interface ITreeProvider {
@@ -473,7 +473,7 @@ interface ITreeProvider {
 
 When `VideoEditorModel` navigates to a link with `sourceId === "link-tag"`:
 
-1. **Lookup sibling provider:** Scans `page.secondaryEditors[]` for a links editor exposing `treeProvider` + `selectByHref()` (duck-typed).
+1. **Lookup sibling provider:** Scans `page.secondaryViews[]` for a links editor exposing `treeProvider` + `selectByHref()` (duck-typed).
 2. **Get sibling tracks:** Calls `treeProvider.getTagItems(sourceLink.selectedTag)` to list all links in the same tag.
 3. **Track navigation:** `canPlayNext()`, `findSourceProvider()`, `getSiblingTracks()`, and `navigateToTrack()` all recognize `sourceId === "link-tag"` and use the tag-filtered sibling list instead of a directory listing.
 4. **Selection update:** After navigation, `selectByHref()` is called to highlight the new link in the tags panel.

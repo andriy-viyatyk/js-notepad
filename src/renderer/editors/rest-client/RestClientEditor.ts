@@ -59,7 +59,7 @@ export const defaultRestClientEditorState: RestClientEditorState = {
     id: "",
     title: "",
     modified: false,
-    secondaryEditor: undefined,
+    secondaryView: undefined,
     leftPanelWidth: 250,
     selectedRequestId: "",
     data: { type: "rest-client", requests: [] },
@@ -196,7 +196,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
             state: {
                 title: s.title,
                 modified: s.modified,
-                secondaryEditor: s.secondaryEditor,
+                secondaryView: s.secondaryView,
             } as Record<string, unknown>,
             host: this._host?.getDescriptor(),
         };
@@ -206,7 +206,7 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
         this.state.update((cur) => {
             if (data.title !== undefined) cur.title = data.title;
             if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryEditor !== undefined) cur.secondaryEditor = data.secondaryEditor;
+            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
         });
         if (data.host) this._pendingHost = data.host;
     }

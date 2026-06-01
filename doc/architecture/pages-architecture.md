@@ -63,15 +63,15 @@ graph TD
 
 **Diagram:** [`diagrams/6-page-architecture.mmd`](diagrams/6-page-architecture.mmd)
 
-Every tab is a `PageModel` — a stable container that owns the browsing context (sidebar, secondary editors) and contains an `EditorModel` as its main content.
+Every tab is a `PageModel` — a stable container that owns the browsing context (sidebar, secondary views) and contains an `EditorModel` as its main content.
 
 ```
 PageModel (one per tab — stable identity, never changes during navigation)
 ├── id: string                          // stable UUID — tab key, React key, cache key
 ├── state: TOneState<IPageState>        // reactive: { pinned, hasSidebar, mainEditorId }
 ├── mainEditor: EditorModel | null      // the content (swapped during navigation)
-├── secondaryEditors: EditorModel[]     // sidebar panels (ExplorerEditorModel, ArchiveEditorModel, etc.)
-├── pageNavigatorModel                  // sidebar open/close/width
+├── secondaryViews: EditorModel[]     // sidebar panels (ExplorerEditorModel, ArchiveEditorModel, etc.)
+├── secondaryViewsModel                  // sidebar open/close/width
 ├── activePanel: string                 // which panel is expanded
 ├── findExplorer() / createExplorer()   // ExplorerEditorModel helpers
 ├── toggleNavigator() / canOpenNavigator() // sidebar toggle (creates Explorer if needed)
@@ -104,12 +104,12 @@ EditorModel (the content inside a page — replaceable during navigation)
 ### Close flow detail
 
 1. `page.close()` — on PageModel
-2. → `confirmSecondaryRelease()` — checks secondary editors for unsaved changes
+2. → `confirmSecondaryRelease()` — checks secondary views for unsaved changes
 3. → `mainEditor.confirmRelease()` — checks main editor (TextFileModel prompts save dialog)
 4. → `onClose()` — set by `attachPage()` in PagesModel
 5. → `detachPage(page)` — unsubscribes state listeners, clears `onClose`
 6. → `removePage(page)` — removes from `pages[]` and `ordered[]`
-7. → `page.dispose()` — disposes secondary editors, tree providers, navigator model, then main editor (content pipes, cache files)
+7. → `page.dispose()` — disposes secondary views, tree providers, navigator model, then main editor (content pipes, cache files)
 
 For multi-window transfer, `movePageOut()` calls `detachPage()` WITHOUT calling `dispose()`. Cache files survive for the target window.
 
@@ -237,7 +237,7 @@ import { pagesModel } from "../api/pages";
 - `checkEmptyPage()` — auto-create empty page when last one closes
 - `addEmptyPageWithNavPanel(folderPath)` — creates a PageModel with `mainEditor = null` and an initialized sidebar (Explorer panel). Used by sidebar double-click and archive browsing. The page renders just the sidebar with an empty content area.
 - `openFileAsArchive(filePath)` — opens an archive for browsing. Creates a PageModel with sidebar root set to the archive root. Reuses existing tab if the archive is already open. ZIP archives use `!` separator (e.g., `doc.zip!word/document.xml`) via `archive-service.ts`; `.asar` archives use the regular path directly (e.g., `app.asar`) via Electron's native fs patching — see `file-path.ts`.
-- `openLinks(links, title?)` — creates a link collection page. A `LinkEditor` with `.link.json` content is added as a Pattern A secondary editor (never mainEditor). The Categories panel appears in the sidebar; clicking a link navigates the page's main area to that file. Accepts `(ILink | string)[]` — strings are converted to LinkItems with auto-generated titles.
+- `openLinks(links, title?)` — creates a link collection page. A `LinkEditor` with `.link.json` content is added as a Pattern A secondary view (never mainEditor). The Categories panel appears in the sidebar; clicking a link navigates the page's main area to that file. Accepts `(ILink | string)[]` — strings are converted to LinkItems with auto-generated titles.
 - `save()` / `restore()` — persistence (called by bootstrap, not by scripts)
 - Submodel instances — private composition detail
 
@@ -255,7 +255,7 @@ During user actions:              throw, let caller handle
 
 ### ID resolution
 
-`PagesQueryModel.findPage(id)` accepts any associated ID — page ID, mainEditor ID, or secondary editor ID. All IDs are unique UUIDs, so this is unambiguous. Methods like `getGroupedPage()`, `groupTabs()`, and `isGrouped()` resolve their inputs through `findPage()` first, so callers don't need to worry about which ID type they're passing. This eliminates a class of bugs where code passes editor IDs to methods that internally use page IDs for grouping map lookups.
+`PagesQueryModel.findPage(id)` accepts any associated ID — page ID, mainEditor ID, or secondary view ID. All IDs are unique UUIDs, so this is unambiguous. Methods like `getGroupedPage()`, `groupTabs()`, and `isGrouped()` resolve their inputs through `findPage()` first, so callers don't need to worry about which ID type they're passing. This eliminates a class of bugs where code passes editor IDs to methods that internally use page IDs for grouping map lookups.
 
 ---
 
@@ -272,9 +272,9 @@ When a tab is dragged to another window:
 4. **Target window** — receives `eMovePageIn` IPC event with `PageDescriptor` (main process awaits `whenReady` first):
    - `movePageIn(data)` creates a new PageModel with the **same page ID** from the descriptor
    - Creates an EditorModel from `desc.editor`, calls `applyRestoreData()` and `restore()`
-   - If `desc.hasSidebar`, restores sidebar from cache (keyed by page ID) including secondary editors
+   - If `desc.hasSidebar`, restores sidebar from cache (keyed by page ID) including secondary views
 
-**Why it works:** The `PageDragData` sent by `PageTab.getDragData()` includes a full `PageDescriptor` with `id`, `pinned`, `modified`, `hasSidebar`, and serialized editor state. Cache files are keyed by page ID. The source window preserves them (no `dispose()`), and the target window reads them using the same ID. Sidebar state (tree expansion, search, secondary editor descriptors) is fully reconstructed from cache. The page ID is preserved across the transfer.
+**Why it works:** The `PageDragData` sent by `PageTab.getDragData()` includes a full `PageDescriptor` with `id`, `pinned`, `modified`, `hasSidebar`, and serialized editor state. Cache files are keyed by page ID. The source window preserves them (no `dispose()`), and the target window reads them using the same ID. Sidebar state (tree expansion, search, secondary view descriptors) is fully reconstructed from cache. The page ID is preserved across the transfer.
 
 **Critical dependency:** The target window must have called `api.windowReady()` before the main process sends `eMovePageIn`. The main process holds a `whenReady` promise per window and awaits it before forwarding events.
 
@@ -343,7 +343,7 @@ Do NOT use for:
 
 ## 9. PageModel — Sidebar and Navigation Context
 
-PageModel is the tab container that owns the sidebar layout (open/close/width via `pageNavigatorModel`), panel selection (`activePanel`), and secondary editors. Explorer state (tree provider, selection, search) is owned by `ExplorerEditorModel` in `secondaryEditors[]`. PageModel survives navigation — when the user navigates to a new file, only `page.mainEditor` changes while the PageModel (and its sidebar) stays intact.
+PageModel is the tab container that owns the sidebar layout (open/close/width via `secondaryViewsModel`), panel selection (`activePanel`), and secondary views. Explorer state (tree provider, selection, search) is owned by `ExplorerEditorModel` in `secondaryViews[]`. PageModel survives navigation — when the user navigates to a new file, only `page.mainEditor` changes while the PageModel (and its sidebar) stays intact.
 
 **Source:** [`/src/renderer/api/pages/PageModel.ts`](../../src/renderer/api/pages/PageModel.ts)
 
@@ -362,31 +362,31 @@ In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/P
 ```
 
 **Step 4** — `page.setMainEditor(newEditor)` is the high-level editor swap method on PageModel. It consolidates the lifecycle:
-- Calls `oldEditor.beforeNavigateAway(newEditor)` — old editor decides to keep/clear its `secondaryEditor`
-- Checks secondary survival: if old editor is in `secondaryEditors[]`, it's kept alive
+- Calls `oldEditor.beforeNavigateAway(newEditor)` — old editor decides to keep/clear its `secondaryView`
+- Checks secondary survival: if old editor is in `secondaryViews[]`, it's kept alive
 - Otherwise, defers old editor disposal (`setTimeout` to let React unmount the view first)
 - Sets `newEditor.setPage(page)`, updates `mainEditorId` for UI re-render
-- Calls `notifyMainEditorChanged()` — secondary editors react, cleanup runs
+- Calls `notifyMainEditorChanged()` — secondary views react, cleanup runs
 - Registers new editor's secondary panel if it has one
 
 **Note:** The raw `mainEditor` setter (without lifecycle) is still used for low-level operations: persistence restore, `addPage()`, and `dispose()`. `setMainEditor()` is the high-level method for navigation.
 
-**`beforeNavigateAway(newEditor)`** lets the old editor inspect `newEditor.sourceLink` to decide whether to keep itself as a secondary editor. The base implementation clears `secondaryEditor`. Subclasses like ArchiveEditorModel override to check `newEditor.sourceLink?.sourceId === this.id`.
+**`beforeNavigateAway(newEditor)`** lets the old editor inspect `newEditor.sourceLink` to decide whether to keep itself as a secondary view. The base implementation clears `secondaryView`. Subclasses like ArchiveEditorModel override to check `newEditor.sourceLink?.sourceId === this.id`.
 
-**`notifyMainEditorChanged()`** calls `onMainEditorChanged(newMainEditor)` on each secondary editor. Each editor reacts independently: ExplorerEditorModel clears selection if the new editor wasn't opened from Explorer, ArchiveEditorModel checks if the new main editor was opened from its archive — if not, it clears `secondaryEditor` and is cleaned up.
+**`notifyMainEditorChanged()`** calls `onMainEditorChanged(newMainEditor)` on each secondary view. Each editor reacts independently: ExplorerEditorModel clears selection if the new editor wasn't opened from Explorer, ArchiveEditorModel checks if the new main editor was opened from its archive — if not, it clears `secondaryView` and is cleaned up.
 
 ---
 
 ## 10. Secondary Editor System
 
-PageModel holds a `secondaryEditors[]` array of EditorModel instances that appear as sidebar panels in PageNavigator. This is a major subsystem with its own lifecycle — see the dedicated document for full details.
+PageModel holds a `secondaryViews[]` array of EditorModel instances that appear as sidebar panels in SecondaryViews. This is a major subsystem with its own lifecycle — see the dedicated document for full details.
 
-**Full documentation:** [Secondary Editor System](secondary-editors.md)
+**Full documentation:** [Secondary Editor System](secondary-views.md)
 
 **Quick summary:**
-- Secondary editors register by setting `model.secondaryEditor = ["panel-id"]` — the setter automatically manages `PageModel.secondaryEditors[]`
+- Secondary views register by setting `model.secondaryView = ["panel-id"]` — the setter automatically manages `PageModel.secondaryViews[]`
 - **Pattern A** (separate model): A dedicated EditorModel subclass, e.g., ExplorerEditorModel
-- **Pattern B** (mainEditor as secondary): The mainEditor registers itself in `secondaryEditors[]` simultaneously, e.g., ArchiveEditorModel when browsing an archive
+- **Pattern B** (mainEditor as secondary): The mainEditor registers itself in `secondaryViews[]` simultaneously, e.g., ArchiveEditorModel when browsing an archive
 - Lifecycle hooks: `beforeNavigateAway()`, `onMainEditorChanged()`, `onPanelExpanded()`
 - Portal-based headers: panel components use `createPortal()` to render into CollapsiblePanel headers
 - Persistence: saved as `SecondaryModelDescriptor[]` in sidebar cache, with deduplication for Pattern B

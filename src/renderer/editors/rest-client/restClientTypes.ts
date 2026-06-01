@@ -75,7 +75,7 @@ export type RestClientSource = RestClientEditor;
 
 /** Minimal state surface read by RequestBuilder + SplitDetailPanel.
  *  `RestClientEditorState` satisfies it (extra fields — id/title/modified/
- *  secondaryEditor from `EditorStateBase` — are ignored by the shared
+ *  secondaryView from `EditorStateBase` — are ignored by the shared
  *  components). */
 export interface RestClientViewState {
     response: RestResponse | null;

@@ -21,8 +21,8 @@ export interface IEditorState {
     editor?: EditorView,
     /** The link that opened this page — cleaned ILinkData (ephemeral fields stripped). Persisted across restarts. */
     sourceLink?: ILinkData,
-    /** Active secondary editor panel IDs (e.g., ["archive-tree"]). Array supports multi-panel models. */
-    secondaryEditor?: string[],
+    /** Active secondary view panel IDs (e.g., ["archive-tree"]). Array supports multi-panel models. */
+    secondaryView?: string[],
 }
 
 export type {

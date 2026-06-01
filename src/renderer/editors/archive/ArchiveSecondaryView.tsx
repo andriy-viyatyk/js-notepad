@@ -5,13 +5,13 @@ import type { TreeProviderViewRef } from "../../components/tree-provider";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
-import type { SecondaryEditorProps } from "../../ui/navigation/secondary-editor-registry";
+import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import type { ArchiveEditor } from "./ArchiveEditor";
 import { IconButton } from "../../uikit/IconButton";
 import { Spacer } from "../../uikit/Spacer";
 import { CloseIcon } from "../../theme/icons";
 
-export default function ArchiveSecondaryEditor({ model, headerRef }: SecondaryEditorProps) {
+export default function ArchiveSecondaryView({ model, headerRef }: SecondaryViewProps) {
     const archiveModel = model as ArchiveEditor;
     const provider = archiveModel.treeProvider;
     const treeProviderRef = useRef<TreeProviderViewRef>(null);
@@ -48,7 +48,7 @@ export default function ArchiveSecondaryEditor({ model, headerRef }: SecondaryEd
                     icon={<CloseIcon />}
                     onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
-                        archiveModel.page?.removeSecondaryEditor(archiveModel);
+                        archiveModel.page?.removeSecondaryView(archiveModel);
                     }}
                 />
             )}

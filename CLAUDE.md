@@ -125,7 +125,7 @@ The user may say "review done tasks" or "run review for completed tasks" at any 
 | Build complex components      | [/doc/standards/model-view-pattern.md](doc/standards/model-view-pattern.md) |
 | Understand state management   | [/doc/architecture/state-management.md](doc/architecture/state-management.md) |
 | Work with pages/tabs          | [/doc/architecture/pages-architecture.md](doc/architecture/pages-architecture.md) |
-| Add sidebar panels            | [/doc/architecture/secondary-editors.md](doc/architecture/secondary-editors.md) |
+| Add sidebar panels            | [/doc/architecture/secondary-views.md](doc/architecture/secondary-views.md) |
 | Work with scripting system    | [/doc/architecture/scripting.md](doc/architecture/scripting.md) |
 | Check coding style            | [/doc/standards/coding-style.md](doc/standards/coding-style.md) |
 | See active/planned work       | [/doc/active-work.md](doc/active-work.md) |
@@ -314,7 +314,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Script API types         | `/src/renderer/api/types/*.d.ts`                  |
 | Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry          | `/src/renderer/editors/base/editorRegistry.ts`    |
-| Secondary editor registry| `/src/renderer/ui/navigation/secondary-editor-registry.ts` |
+| Secondary view registry| `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
 | Editor registration      | `/src/renderer/editors/register-editors.ts`       |
 | Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
 | Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |

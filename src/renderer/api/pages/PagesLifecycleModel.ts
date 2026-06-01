@@ -371,7 +371,7 @@ export class PagesLifecycleModel {
         const explorer = new ExplorerEditor(state);
         page.attach(explorer);
         await explorer.restore();
-        page.ensurePageNavigatorModel();
+        page.ensureSecondaryViewsModel();
         return this.addPage(null, page);
     };
 
@@ -483,9 +483,9 @@ export class PagesLifecycleModel {
 
         const page = new PageModel();
         const adapter = wrap(editorModel);
-        adapter.secondaryEditor = ["link-category"];
-        page.addSecondaryEditor(adapter);
-        page.ensurePageNavigatorModel();
+        adapter.secondaryView = ["link-category"];
+        page.addSecondaryView(adapter);
+        page.ensureSecondaryViewsModel();
         page.expandPanel("link-category");
 
         this.addPage(null, page);
@@ -566,7 +566,7 @@ export class PagesLifecycleModel {
         const adapter = wrap(legacy);
         page.attach(adapter);
         page.setMainEditorId(adapter.id);
-        page.ensurePageNavigatorModel();
+        page.ensureSecondaryViewsModel();
 
         this.addPage(adapter, page);
         this.model.closeFirstPageIfEmpty();
