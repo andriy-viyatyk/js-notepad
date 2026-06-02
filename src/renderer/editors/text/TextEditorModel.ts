@@ -12,7 +12,7 @@ import type { IContentHost } from "../base/IContentHost";
 import type { EditorStateStorage } from "../base/EditorStateStorage";
 import type { HostDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
-import type { PageModel } from "../../api/pages/PageModel";
+import type { IPageHost } from "../../api/pages/IPageHost";
 import { createPipeFromDescriptor } from "../../content/registry";
 
 export interface TextFileEditorModelState extends IEditorState {
@@ -67,15 +67,15 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
      *  not persist to disk. */
     scriptData: Record<string, unknown> = {};
 
-    /** Reference to the containing PageModel. Set by the wrapping editor's
+    /** Reference to the containing owner host. Set by the wrapping editor's
      *  `setPage` so the host can read sibling editors / navigator state. */
-    page: PageModel | null = null;
+    page: IPageHost | null = null;
 
     /** Content pipe (provider + transformers). Owned by the page, disposed on
      *  close. Survives editor switches because the host outlives the editor. */
     pipe: IContentPipe | null = null;
 
-    setPage(page: PageModel | null): void {
+    setPage(page: IPageHost | null): void {
         this.page = page;
     }
 

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { CollapsiblePanel, CollapsiblePanelStack, Panel } from "../../uikit";
-import type { PageModel } from "../../api/pages/PageModel";
+import { useCallback, useRef, useState } from "react";
+import { CollapsiblePanel, CollapsiblePanelStack, Panel, Splitter } from "../../uikit";
+import type { EditorModel } from "../../editors/base/EditorModel";
+import type { ISecondaryViewsState } from "./SecondaryViewsModel";
 import { secondaryViewRegistry } from "./secondary-view-registry";
 import { LazySecondaryView } from "./LazySecondaryView";
 
@@ -9,17 +10,25 @@ import { LazySecondaryView } from "./LazySecondaryView";
 // =============================================================================
 
 interface SecondaryViewsProps {
-    page: PageModel;
+    /** Panel-contributing editors (= owner.panelEditors). The owner subscribes
+     *  to editor/panel-list changes and hands a fresh array down; this component
+     *  subscribes to nothing. */
+    views: EditorModel[];
+    /** Controlled layout state, owner-held. */
+    state: ISecondaryViewsState;
+    /** Owner-provided setState — carries side effects (onPanelExpanded,
+     *  secondaryViewsToggled). */
+    setState: (patch: Partial<ISecondaryViewsState>) => void;
 }
 
-export function SecondaryViews({ page }: SecondaryViewsProps) {
-    // Subscribe to page.state — re-renders on attach/detach and panel-list flips
-    // (walkthrough 03 / N2).
-    const { version: _version } = page.state.use();
-    const panelEditors = page.panelEditors;
+/**
+ * SecondaryViews — the controlled sidebar host. Purely presentational: it reads
+ * `views`/`state`/`setState` from props and subscribes to no store. Self-contained
+ * (owns its container Panel + Splitter) so it can be mounted by any host.
+ */
+export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) {
     const headerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const [, setHeaderRefsVersion] = useState(0);
-    const [activePanel, setActivePanelLocal] = useState(page.activePanel);
 
     const setHeaderRef = useCallback((refKey: string, el: HTMLDivElement | null) => {
         if (el && headerRefs.current[refKey] !== el) {
@@ -28,58 +37,62 @@ export function SecondaryViews({ page }: SecondaryViewsProps) {
         }
     }, []);
 
-    // Sync local activePanel when PageModel changes.
-    useEffect(() => {
-        if (page.activePanel !== activePanel) {
-            setActivePanelLocal(page.activePanel);
-        }
-    }, [page.activePanel, _version]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleSetActivePanel = useCallback((panelId: string) => {
-        if (panelId === activePanel) return;
-        page.setActivePanel(panelId);
-        setActivePanelLocal(panelId);
-    }, [page, activePanel]);
+    if (!state.open) return null;
 
     return (
-        <Panel
-            name="secondary-views-root"
-            direction="column"
-            height="100%"
-            overflow="hidden"
-            background="default"
-        >
-            <CollapsiblePanelStack
-                name="secondary-views-stack"
-                activePanel={activePanel}
-                setActivePanel={handleSetActivePanel}
+        <>
+            <Panel
+                name="secondary-views-container"
+                direction="column"
+                width={state.width}
+                shrink={false}
+                overflow="hidden"
                 height="100%"
+                background="default"
             >
-                {panelEditors.flatMap((model) => {
-                    const panelIds = (model.state.get() as { secondaryView?: string[] }).secondaryView;
-                    if (!panelIds?.length) return [];
-                    return panelIds.map((panelId) => {
-                        const def = secondaryViewRegistry.get(panelId);
-                        if (!def) return null;
-                        const refKey = `${model.id}-${panelId}`;
-                        return (
-                            <CollapsiblePanel
-                                key={refKey}
-                                id={panelId}
-                                name={panelId}
-                                headerRef={(el) => setHeaderRef(refKey, el)}
-                                alwaysRenderContent
-                            >
-                                <LazySecondaryView
-                                    model={model as never}
-                                    editorId={panelId}
-                                    headerRef={headerRefs.current[refKey] ?? null}
-                                />
-                            </CollapsiblePanel>
-                        );
-                    });
-                })}
-            </CollapsiblePanelStack>
-        </Panel>
+                <CollapsiblePanelStack
+                    name="secondary-views-stack"
+                    activePanel={state.activePanel}
+                    setActivePanel={(id) => setState({ activePanel: id })}
+                    height="100%"
+                >
+                    {views.flatMap((model) => {
+                        const panelIds = (model.state.get() as { secondaryView?: string[] }).secondaryView;
+                        if (!panelIds?.length) return [];
+                        return panelIds.map((panelId) => {
+                            const def = secondaryViewRegistry.get(panelId);
+                            if (!def) return null;
+                            const refKey = `${model.id}-${panelId}`;
+                            return (
+                                <CollapsiblePanel
+                                    key={refKey}
+                                    id={panelId}
+                                    name={panelId}
+                                    headerRef={(el) => setHeaderRef(refKey, el)}
+                                    alwaysRenderContent
+                                >
+                                    <LazySecondaryView
+                                        model={model as never}
+                                        editorId={panelId}
+                                        headerRef={headerRefs.current[refKey] ?? null}
+                                    />
+                                </CollapsiblePanel>
+                            );
+                        });
+                    })}
+                </CollapsiblePanelStack>
+            </Panel>
+            <Splitter
+                name="secondary-views-splitter"
+                orientation="vertical"
+                value={state.width}
+                onChange={(w) => setState({ width: w })}
+                side="before"
+                min={120}
+                border="after"
+                background="default"
+                hoverBackground="light"
+            />
+        </>
     );
 }

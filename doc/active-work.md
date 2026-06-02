@@ -9,8 +9,8 @@ Overview of all active and planned epics and tasks.
 ## Active
 - **EPIC-029** — [Standalone PageNavigator → `SecondaryViews`, a reusable panel host](epics/EPIC-029.md) *(design done; tasks are placeholders, investigated per-task before implementation)*
   - [ ] [US-595: Rename `secondaryEditor`→`secondaryView` + `PageNavigator`→`SecondaryViews` family](tasks/US-595-rename-secondary-view/README.md) *(Phase 1a)*
-  - [ ] US-596: `ISecondaryViewsState` + controlled `SecondaryViews` component *(Phase 1a)*
-  - [ ] US-597: `IPageHost` typing for `editor.page` (+ derived `isMain`) *(Phase 1a)*
+  - [ ] [US-596: `ISecondaryViewsState` + controlled `SecondaryViews` component](tasks/US-596-controlled-secondary-views/README.md) *(Phase 1a)*
+  - [ ] [US-597: `IPageHost` typing for `editor.page` (+ derived `isMain`)](tasks/US-597-ipagehost-typing/README.md) *(Phase 1a)*
   - [ ] US-598: Explorer — adopt + verify under new infra *(Phase 1b)*
   - [ ] US-599: Archive — adopt + verify under new infra *(Phase 1b)*
   - [ ] US-600: Links — finalize `IPageHost` membership + `isMain` *(Phase 1b)*

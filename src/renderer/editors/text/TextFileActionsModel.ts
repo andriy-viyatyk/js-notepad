@@ -1,5 +1,6 @@
 import { ui } from "../../api/ui";
 import { pagesModel } from "../../api/pages";
+import type { PageModel } from "../../api/pages/PageModel";
 import { scriptRunner } from "../../scripting/ScriptRunner";
 import { isScriptLanguage } from "../../scripting/transpile";
 
@@ -40,7 +41,7 @@ export class TextFileActionsModel {
 
         const navModel = page?.ensureSecondaryViewsModel();
         if (navModel && !navModel.state.get().open) {
-            navModel.toggle();
+            page?.setSecondaryViewsState({ open: true });
         }
     };
 
@@ -102,7 +103,9 @@ export class TextFileActionsModel {
                 await this.model.dispose();
             }
         } else {
-            if (this.model.page) pagesModel.focusPage(this.model.page);
+            // Host is always a concrete PageModel in Phase 1 (US-597); focusPage
+            // takes PageModel, so cast the widened IPageHost back.
+            if (this.model.page) pagesModel.focusPage(this.model.page as PageModel);
         }
         return result;
     };

@@ -9,7 +9,8 @@ import type { EditorDescriptor } from "../../../shared/persistence";
 import type { ArchiveTreeProvider } from "../../content/tree-providers/ArchiveTreeProvider";
 import { fpBasename } from "../../core/utils/file-path";
 import { ArchiveIcon } from "../../theme/icons";
-import type { PageModel, NavigationState } from "../../api/pages/PageModel";
+import type { NavigationState } from "../../api/pages/PageModel";
+import type { IPageHost } from "../../api/pages/IPageHost";
 
 export interface ArchiveEditorState extends EditorStateBase {
     /** State-type discriminator (used by `_openZipArchive` for de-dup). */
@@ -81,7 +82,7 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
         }
     }
 
-    setPage(page: PageModel | null): void {
+    setPage(page: IPageHost | null): void {
         super.setPage(page);
         if (page && this.treeProvider && !this.secondaryView?.length) {
             this.secondaryView = ["archive-tree"];

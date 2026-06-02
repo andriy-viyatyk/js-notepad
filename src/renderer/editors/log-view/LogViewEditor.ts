@@ -9,7 +9,7 @@ import type { IContentHost } from "../base/IContentHost";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
-import type { PageModel } from "../../api/pages/PageModel";
+import type { IPageHost } from "../../api/pages/IPageHost";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
 import { editorRegistry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
@@ -269,7 +269,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         if (this.page) host.setPage(this.page);
     }
 
-    setPage(page: PageModel | null): void {
+    setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
     }

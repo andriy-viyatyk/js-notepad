@@ -7,7 +7,7 @@ import { ComponentQueue, ComponentQueueEvent } from "../../core/state/ComponentQ
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import type { IContentHost } from "./IContentHost";
 import type { IContentPipe } from "../../api/types/io.pipe";
-import type { PageModel } from "../../api/pages/PageModel";
+import type { IPageHost } from "../../api/pages/IPageHost";
 import type { IEditorState } from "../../../shared/types";
 
 export interface EditorStateBase extends Omit<Partial<IEditorState>, "id" | "title" | "modified"> {
@@ -55,9 +55,10 @@ export abstract class EditorModel<
      *  pipe) forward those onto this Subscription too. */
     readonly descriptorChanged = new Subscription<void>();
 
-    /** Set when attached to a `PageModel`. Type imported as type-only to
-     *  avoid a runtime circular dep. */
-    page: PageModel | null = null;
+    /** Set when attached to an owner host (`PageModel` today, a Browser host
+     *  later). Typed as the `IPageHost` contract; imported type-only to avoid
+     *  a runtime circular dep. */
+    page: IPageHost | null = null;
 
     /** Active content pipe (provider + transformers). For text-bearing
      *  editors the pipe lives on `TextFileModel`; this field stays on the
@@ -84,7 +85,7 @@ export abstract class EditorModel<
         this._stateAutoUnsub = this.state.subscribe(() => this.descriptorChanged.send(undefined));
     }
 
-    setPage(page: PageModel | null): void {
+    setPage(page: IPageHost | null): void {
         this.page = page;
     }
 
@@ -174,6 +175,14 @@ export abstract class EditorModel<
     get id(): string { return this.state.get().id; }
     get title(): string { return this.state.get().title; }
     get modified(): boolean { return this.state.get().modified; }
+
+    /** True if this editor is its host's main (content-area) editor. Default
+     *  derivation; a Browser host's embedded Link editor will hardcode this in
+     *  US-601. NOT reactive on its own — a view that must re-render on
+     *  promote/demote subscribes to `editor.page?.state` (US-600). */
+    get isMain(): boolean {
+        return this.page?.mainEditorInstance === this;
+    }
 
 
     get filePath(): string | undefined {

@@ -1,5 +1,4 @@
 import styled from "@emotion/styled";
-import { Panel, Splitter } from "../../uikit";
 import { pagesModel } from "../../api/pages";
 import { RenderEditor } from "./RenderEditor";
 import { CompareEditor } from "../../editors/compare";
@@ -46,34 +45,15 @@ function SecondaryViewsWrapper({ page }: { page: PageModel }) {
 }
 
 function SecondaryViewsContent({ page }: { page: PageModel }) {
-    const navModel = page.ensureSecondaryViewsModel();
-    const { open, width } = navModel.state.use();
-    if (!open) return null;
-
+    const nav = page.ensureSecondaryViewsModel();
+    const state = nav.state.use();            // open/width/activePanel
+    page.state.use((s) => s.version);         // re-derive views on panel attach/detach
     return (
-        <>
-            <Panel
-                name="secondary-views-container"
-                direction="column"
-                width={width}
-                shrink={false}
-                overflow="hidden"
-                height="100%"
-            >
-                <SecondaryViews page={page} />
-            </Panel>
-            <Splitter
-                name="secondary-views-splitter"
-                orientation="vertical"
-                value={width}
-                onChange={navModel.setWidth}
-                side="before"
-                min={120}
-                border="after"
-                background="default"
-                hoverBackground="light"
-            />
-        </>
+        <SecondaryViews
+            views={page.panelEditors}
+            state={state}
+            setState={page.setSecondaryViewsState}
+        />
     );
 }
 

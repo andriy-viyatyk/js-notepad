@@ -1,13 +1,13 @@
 import { TComponentState } from "../../core/state/state";
-import { secondaryViewsToggled } from "../../core/state/events";
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface SecondaryViewsState {
+export interface ISecondaryViewsState {
     open: boolean;
     width: number;
+    activePanel: string;
 }
 
 const DEFAULT_WIDTH = 240;
@@ -19,49 +19,32 @@ const DEFAULT_WIDTH = 240;
 /**
  * SecondaryViewsModel — reactive state for the SecondaryViews sidebar.
  *
- * Pure layout container: open/close, width.
+ * Pure layout-state container: open/close, width, and the active panel ID.
+ * All mutation carrying side effects (panelExpanded / secondaryViewsToggled,
+ * onPanelExpanded notification) goes through the owner's controlled setState
+ * (PageModel.setSecondaryViewsState) — this model only holds state.
  * Persistence is owned by PageModel (not this model).
  */
 export class SecondaryViewsModel {
-    state: TComponentState<SecondaryViewsState>;
+    state: TComponentState<ISecondaryViewsState>;
 
-    constructor(private readonly pageId: string) {
-        this.state = new TComponentState<SecondaryViewsState>({
+    constructor() {
+        this.state = new TComponentState<ISecondaryViewsState>({
             open: true,
             width: DEFAULT_WIDTH,
+            activePanel: "explorer",
         });
     }
 
-    /** Set state without triggering subscriptions. Used by PageModel.restoreSidebar(). */
-    setStateQuiet(s: Partial<SecondaryViewsState>): void {
+    /** Set state without triggering side effects. Used by PageModel restore + ensure-seed. */
+    setStateQuiet(s: Partial<ISecondaryViewsState>): void {
         const current = this.state.get();
         this.state.set({
             open: s.open ?? current.open,
             width: s.width ?? current.width,
+            activePanel: s.activePanel ?? current.activePanel,
         });
     }
 
     dispose = () => {};
-
-    // ── State management ─────────────────────────────────────────────────
-
-    setWidth = (width: number) => {
-        this.state.update((s) => {
-            s.width = Math.max(120, width);
-        });
-    };
-
-    toggle = () => {
-        this.state.update((s) => {
-            s.open = !s.open;
-        });
-        secondaryViewsToggled.send({ pageId: this.pageId, isOpen: this.state.get().open });
-    };
-
-    close = () => {
-        this.state.update((s) => {
-            s.open = false;
-        });
-        secondaryViewsToggled.send({ pageId: this.pageId, isOpen: false });
-    };
 }

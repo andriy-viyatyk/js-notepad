@@ -43,7 +43,7 @@ function LinkCategorySecondaryViewBody({
 
     const handleToggleMainEditor = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        editor.page?.promoteSecondaryToMain(editor);
+        editor.page?.promoteSecondaryToMain?.(editor);
     }, [editor]);
 
     const headerContent = (

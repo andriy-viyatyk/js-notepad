@@ -8,7 +8,8 @@ import type { EditorDescriptor } from "../../../shared/persistence";
 import type { ITreeProvider } from "../../api/types/io.tree";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import type { FileSearchState } from "../../components/file-search";
-import type { NavigationState, PageModel } from "../../api/pages/PageModel";
+import type { NavigationState } from "../../api/pages/PageModel";
+import type { IPageHost } from "../../api/pages/IPageHost";
 import { fpDirname } from "../../core/utils/file-path";
 
 export interface ExplorerEditorState extends EditorStateBase {
@@ -225,7 +226,7 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         }
     }
 
-    setPage(page: PageModel | null): void {
+    setPage(page: IPageHost | null): void {
         super.setPage(page);
         if (page && this.rootPath && !this.secondaryView?.length) {
             this.secondaryView = this.searchState

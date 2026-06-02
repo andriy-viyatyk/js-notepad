@@ -9,7 +9,7 @@ import type { IContentHost } from "../base/IContentHost";
 import { ComponentQueue, type ComponentQueueEvent } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
-import type { PageModel } from "../../api/pages/PageModel";
+import type { IPageHost } from "../../api/pages/IPageHost";
 import { ui } from "../../api/ui";
 import { fpBasename } from "../../core/utils/file-path";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
@@ -286,7 +286,7 @@ export class MonacoEditor extends EditorModel<
         if (this.page) host.setPage(this.page);
     }
 
-    setPage(page: PageModel | null): void {
+    setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
     }

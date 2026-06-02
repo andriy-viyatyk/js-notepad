@@ -129,7 +129,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef }: Se
                 size="sm"
                 title="Close Panel"
                 icon={<CloseIcon />}
-                onClick={(e) => { e.stopPropagation(); model.page?.secondaryViewsModel?.close(); }}
+                onClick={(e) => { e.stopPropagation(); model.page?.setSecondaryViewsState({ open: false }); }}
             />
         </>
     );

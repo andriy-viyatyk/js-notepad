@@ -81,5 +81,5 @@ function SwitchWidget({ model }: { model: EditorModel }) {
 }
 
 function onSwitch(model: EditorModel, newEditorId: string) {
-    void model.page?.switchMainEditor(newEditorId);
+    void model.page?.switchMainEditor?.(newEditorId);
 }

@@ -2,7 +2,8 @@ import { TComponentState, TOneState } from "../../core/state/state";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { PageDescriptor } from "../../../shared/persistence";
-import { SecondaryViewsModel } from "../../ui/secondary-views/SecondaryViewsModel";
+import { SecondaryViewsModel, ISecondaryViewsState } from "../../ui/secondary-views/SecondaryViewsModel";
+import type { IPageHost } from "./IPageHost";
 import type { IContentPipe } from "../types/io.pipe";
 import { fs } from "../fs";
 import { secondaryViewsToggled, panelExpanded } from "../../core/state/events";
@@ -47,7 +48,7 @@ const defaultPageState: IPageState = {
     hasSidebar: false,
 };
 
-export class PageModel {
+export class PageModel implements IPageHost {
     /** Stable page UUID — tab identity, React key, cache key. Never changes. */
     readonly id: string;
 
@@ -72,11 +73,26 @@ export class PageModel {
 
     // ── Sidebar state ─────────────────────────────────────────────────
 
-    /** Sidebar model — pure reactive state (open/close/width). */
+    /** Sidebar model — pure reactive state (open/close/width/activePanel). */
     secondaryViewsModel: SecondaryViewsModel | null = null;
+    /** Pre-model seed for `activePanel`, used before the sidebar model is lazily
+     *  created (and to carry the value into it on creation). */
+    private _activePanel = "explorer";
+
     /** Which panel is currently active/expanded.
-     *  Values: "explorer", "search", or a secondary panel ID. */
-    activePanel = "explorer";
+     *  Values: "explorer", "search", or a secondary panel ID.
+     *  Backed by the sidebar model once it exists, else the seed. */
+    get activePanel(): string {
+        return this.secondaryViewsModel?.state.get().activePanel ?? this._activePanel;
+    }
+
+    /** Quiet setter — no events. Used by detach-adjust and restore. The
+     *  side-effecting path is setSecondaryViewsState(). Does NOT create the
+     *  sidebar model (avoids resurrecting a sidebar during a last-panel detach). */
+    set activePanel(value: string) {
+        this._activePanel = value;
+        this.secondaryViewsModel?.setStateQuiet({ activePanel: value });
+    }
 
     // ── Per-editor slice subscriptions (walkthrough 03 / N1) ───────────
 
@@ -398,15 +414,35 @@ export class PageModel {
 
     // ── Sidebar / SecondaryViews ────────────────────────────────────────
 
-    /** Set the active panel. Notifies the owning editor via onPanelExpanded(). */
-    setActivePanel(panel: string): void {
-        this.activePanel = panel;
-        this.state.update((s) => { s.version++; });
-        const owner = this.editors.find((e) => e.secondaryView?.includes(panel));
-        if (owner) {
-            owner.onPanelExpanded(panel);
+    /**
+     * Owner-provided controlled setState for the SecondaryViews component.
+     * The single side-effecting entry point: merges the patch into the sidebar
+     * model and fires the matching effects — onPanelExpanded + panelExpanded on
+     * activePanel change, secondaryViewsToggled on open change. Width is clamped.
+     */
+    setSecondaryViewsState = (patch: Partial<ISecondaryViewsState>): void => {
+        const nav = this.ensureSecondaryViewsModel();
+        const prev = nav.state.get();
+        nav.state.update((s) => {
+            if (patch.open !== undefined) s.open = patch.open;
+            if (patch.width !== undefined) s.width = Math.max(120, patch.width);
+            if (patch.activePanel !== undefined) s.activePanel = patch.activePanel;
+        });
+        if (patch.activePanel !== undefined && patch.activePanel !== prev.activePanel) {
+            this._activePanel = patch.activePanel;
+            const owner = this.editors.find((e) => e.secondaryView?.includes(patch.activePanel));
+            owner?.onPanelExpanded(patch.activePanel);
+            panelExpanded.send({ pageId: this.id, panelId: patch.activePanel });
         }
-        panelExpanded.send({ pageId: this.id, panelId: panel });
+        if (patch.open !== undefined && patch.open !== prev.open) {
+            secondaryViewsToggled.send({ pageId: this.id, isOpen: patch.open });
+        }
+    };
+
+    /** Set the active panel. Delegates to the controlled setState (which fires
+     *  onPanelExpanded + panelExpanded). */
+    setActivePanel(panel: string): void {
+        this.setSecondaryViewsState({ activePanel: panel });
     }
 
     /** Expand a secondary panel by its panel ID. Called by secondary views directly. */
@@ -430,7 +466,9 @@ export class PageModel {
     /** Lazy-create SecondaryViewsModel on first access. */
     ensureSecondaryViewsModel(): SecondaryViewsModel {
         if (!this.secondaryViewsModel) {
-            this.secondaryViewsModel = new SecondaryViewsModel(this.id);
+            this.secondaryViewsModel = new SecondaryViewsModel();
+            // Carry the current activePanel seed into the new model.
+            this.secondaryViewsModel.setStateQuiet({ activePanel: this._activePanel });
             // Bump version so UI knows sidebar exists. Persistence subscription
             // is in PagesModel.attachPage — it watches page.state for save
             // triggers, so navigator mutations ride the same channel.
@@ -448,7 +486,8 @@ export class PageModel {
     async toggleNavigator(pipe?: IContentPipe | null, filePath?: string): Promise<void> {
         const existing = this.findExplorer();
         if (existing || this.secondaryViewsModel) {
-            this.ensureSecondaryViewsModel().toggle();
+            const open = this.ensureSecondaryViewsModel().state.get().open;
+            this.setSecondaryViewsState({ open: !open });
             return;
         }
 
@@ -468,8 +507,7 @@ export class PageModel {
         this.attach(explorer);
         await explorer.restore();
 
-        this.ensureSecondaryViewsModel();
-        secondaryViewsToggled.send({ pageId: this.id, isOpen: true });
+        this.setSecondaryViewsState({ open: true });
     }
 
     /** Whether the navigator can be opened. */
