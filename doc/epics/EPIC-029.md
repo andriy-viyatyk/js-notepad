@@ -205,7 +205,7 @@ The component is ~90% there; the subsystem under it is not. Realizing the vision
 | # | Concern | Status |
 |---|---------|--------|
 | 1 | `activePanel` / navigator state | ✅ decided |
-| 2 | `editor.page` → `IPageHost` | ✅ resolved (provisional membership) |
+| 2 | `editor.page` → `IPageHost` | ✅ resolved (membership FINAL — US-600) |
 | 3 | Navigation survival vs static panels | ✅ resolved (no logic change) |
 | 4 | Persistence boundaries | ✅ resolved |
 | 5 | MCP Inspector / Storybook fit | ✅ resolved (per-editor task) |
@@ -235,7 +235,7 @@ interface ISecondaryViewsState { open: boolean; width: number; activePanel: stri
 
 ### Concern 2 — `editor.page` type → `IPageHost`
 
-**Status: ✅ shape DECIDED (Phase 1); membership provisional, finalized at LinkEditor migration.**
+**Status: ✅ shape DECIDED (Phase 1); membership FINAL as of US-600 (2026-06-02).** The LinkEditor migration exercised the full surface and confirmed the US-597 provisional split: required core unchanged; optional group trimmed to `{ mainEditor?, mainEditorInstance?, switchMainEditor?, promoteSecondaryToMain? }` — `setMainEditor`/`close` removed (never reached via `editor.page`). The view-side `mainEditorId` reads were replaced by the derived `editor.isMain`, and `NavigationState` was relocated off `PageModel` to `editors/base/navigation-state.ts`.
 
 `editor.page` is re-typed from concrete `PageModel` to an `IPageHost` interface so an owner can be a Page, a Browser, or a future host. Page-specific members (main-editor navigation: `promoteSecondaryToMain`, `setMainEditor`, `switchMainEditor`, `close`, `mainEditorInstance`) are **optional** and called with optional chaining (`editor.page?.promoteSecondaryToMain?.(editor)`); a Browser host omits them. Draft interface + member audit are in "Host contracts" above.
 

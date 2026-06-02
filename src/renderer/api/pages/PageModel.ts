@@ -21,11 +21,6 @@ function unwrapToHost(editor: EditorModel | null): EditorOrHost | null {
     return editor;
 }
 
-export interface NavigationState {
-    /** Currently selected item href (shared between SecondaryViews and secondary views). */
-    selectedHref: string | null;
-}
-
 /** Reactive page-level state — UI subscribes to this for re-render on page changes. */
 export interface IPageState {
     /** Page-level pinned flag. */

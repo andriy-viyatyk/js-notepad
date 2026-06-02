@@ -24,9 +24,9 @@ function LinkCategorySecondaryViewBody({
     editor: LinkEditor;
     headerRef: SecondaryViewProps["headerRef"];
 }) {
-    // Subscribe to mainEditorId so we re-render on promote/demote toggle.
-    const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);
-    const isMainEditor = mainEditorId === editor.id;
+    // Subscribe to page.state for the re-render signal; read the canonical value
+    // from editor.isMain (US-600 / EPIC-029 Concern 2b).
+    const isMainEditor = useOptionalState(editor.page?.state, () => editor.isMain, false);
 
     // Track host modified flag for the Save button (only visible in
     // standalone-secondary mode when modifications are pending).

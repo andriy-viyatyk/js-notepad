@@ -8,7 +8,7 @@ import type { EditorDescriptor } from "../../../shared/persistence";
 import type { ITreeProvider } from "../../api/types/io.tree";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import type { FileSearchState } from "../../components/file-search";
-import type { NavigationState } from "../../api/pages/PageModel";
+import type { NavigationState } from "../base/navigation-state";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { fpDirname } from "../../core/utils/file-path";
 

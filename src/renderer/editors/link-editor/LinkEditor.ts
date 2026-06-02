@@ -9,7 +9,7 @@ import type { IContentHost } from "../base/IContentHost";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import type { IContentPipe } from "../../api/types/io.pipe";
-import type { NavigationState } from "../../api/pages/PageModel";
+import type { NavigationState } from "../base/navigation-state";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
 import { editorRegistry } from "../base/editorRegistry";
@@ -354,7 +354,7 @@ export class LinkEditor
         // reshape the panel list to keep `link-tags` registration accurate.
         this._tagsSliceUnsub = this.state.subscribe(
             () => {
-                if (this.page?.mainEditorInstance === this) return; // main; LK6 handles
+                if (this.isMain) return; // main; LK6 handles
                 if (!this.contributesPanels()) return; // already detached
                 const hasTags = this.state.get().tags.length > 0;
                 this.secondaryView = hasTags ? ["link-category", "link-tags"] : ["link-category"];
@@ -389,7 +389,7 @@ export class LinkEditor
      *  paths can call `setSidebarPanels(false)` without affecting the
      *  surviving secondaryView entry. */
     setSidebarPanels(open: boolean): void {
-        if (this.page?.mainEditorInstance !== this) return; // demote-safe no-op
+        if (!this.isMain) return; // demote-safe no-op
         if (open) {
             this.secondaryView = LINK_PANELS;
             const reverseMap: Record<string, string> = {

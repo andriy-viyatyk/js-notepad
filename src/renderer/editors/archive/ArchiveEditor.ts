@@ -9,7 +9,7 @@ import type { EditorDescriptor } from "../../../shared/persistence";
 import type { ArchiveTreeProvider } from "../../content/tree-providers/ArchiveTreeProvider";
 import { fpBasename } from "../../core/utils/file-path";
 import { ArchiveIcon } from "../../theme/icons";
-import type { NavigationState } from "../../api/pages/PageModel";
+import type { NavigationState } from "../base/navigation-state";
 import type { IPageHost } from "../../api/pages/IPageHost";
 
 export interface ArchiveEditorState extends EditorStateBase {

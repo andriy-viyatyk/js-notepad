@@ -177,8 +177,9 @@ function LinkTagsSecondaryViewBody({
     editor: LinkEditor;
     headerRef: SecondaryViewProps["headerRef"];
 }) {
-    const mainEditorId = useOptionalState(editor.page?.state, (s) => s.mainEditorId, null);
-    const isMainEditor = mainEditorId === editor.id;
+    // Subscribe to page.state for the re-render signal; read the canonical value
+    // from editor.isMain (US-600 / EPIC-029 Concern 2b).
+    const isMainEditor = useOptionalState(editor.page?.state, () => editor.isMain, false);
 
     return (
         <>

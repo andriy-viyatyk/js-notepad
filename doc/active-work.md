@@ -11,9 +11,9 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-595: Rename `secondaryEditor`→`secondaryView` + `PageNavigator`→`SecondaryViews` family](tasks/US-595-rename-secondary-view/README.md) *(Phase 1a)*
   - [ ] [US-596: `ISecondaryViewsState` + controlled `SecondaryViews` component](tasks/US-596-controlled-secondary-views/README.md) *(Phase 1a)*
   - [ ] [US-597: `IPageHost` typing for `editor.page` (+ derived `isMain`)](tasks/US-597-ipagehost-typing/README.md) *(Phase 1a)*
-  - [ ] US-598: Explorer — adopt + verify under new infra *(Phase 1b)*
-  - [ ] US-599: Archive — adopt + verify under new infra *(Phase 1b)*
-  - [ ] US-600: Links — finalize `IPageHost` membership + `isMain` *(Phase 1b)*
+  - [ ] [US-598: Explorer — adopt + verify under new infra](tasks/US-598-explorer-adopt/README.md) *(Phase 1b)*
+  - [ ] [US-599: Archive — adopt + verify under new infra](tasks/US-599-archive-adopt/README.md) *(Phase 1b)*
+  - [ ] [US-600: Links — finalize `IPageHost` membership + `isMain`](tasks/US-600-links-finalize-ipagehost/README.md) *(Phase 1b)*
   - [ ] US-601: Browser adopts `SecondaryViews` in its empty page *(Phase 2)*
   - [ ] US-602: Notebook → `SecondaryViews` *(Phase 3)*
   - [ ] US-603: Todo → `SecondaryViews` *(Phase 3)*

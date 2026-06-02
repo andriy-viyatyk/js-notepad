@@ -10,7 +10,7 @@ import { createLinkData } from "../../../shared/link-data";
 import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
 import type { ITreeProvider, ITreeProviderItem, ICategorySegment } from "../../api/types/io.tree";
 import { TComponentState, useOptionalState, type TOneState } from "../../core/state/state";
-import type { NavigationState } from "../../api/pages/PageModel";
+import type { NavigationState } from "../base/navigation-state";
 import type { EditorModel } from "../base";
 import type { CategoryEditorModel, CategoryEditorModelState } from "./CategoryEditorModel";
 import type { EditorModule } from "../types";

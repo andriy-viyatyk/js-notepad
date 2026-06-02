@@ -40,12 +40,14 @@ export interface IPageHost {
     // ── OPTIONAL — page-tab property (an embedded host isn't a pinnable tab) ──
     pinned?: boolean;
 
-    // ── OPTIONAL — main-editor navigation (a Browser host omits these) ──
+    // ── OPTIONAL — main-editor navigation (a Browser host omits these).
+    //    Membership FINAL as of US-600 (Link exercised the full surface): every
+    //    member below has a live `editor.page?.…` caller. `setMainEditor`/`close`
+    //    were trimmed — they are only ever called via the concrete `pagesModel`,
+    //    never through `editor.page`. ──
     mainEditor?: EditorOrHost | null;
     mainEditorInstance?: EditorModel | null;
-    setMainEditor?(editor: EditorModel | null): Promise<void>;
     switchMainEditor?(newEditorId: string): Promise<void>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     promoteSecondaryToMain?(editor: any): Promise<void>;
-    close?(): Promise<boolean>;
 }
