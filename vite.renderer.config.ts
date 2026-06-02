@@ -64,6 +64,14 @@ function editorTypesPlugin(): Plugin {
 }
 
 export default defineConfig({
+  // Pin a dedicated dev-server port (Vite's default 5173 conflicts with another
+  // local React app whose redirect URI is locked to that port in its app
+  // registration). strictPort fails fast instead of hopping to 5174+, so the
+  // URL stays deterministic.
+  server: {
+    port: 5273,
+    strictPort: true,
+  },
   plugins: [
     editorTypesPlugin(),
     monacoEditorPlugin({
