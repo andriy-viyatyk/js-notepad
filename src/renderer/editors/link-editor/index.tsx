@@ -89,7 +89,7 @@ export function LinkBreadcrumbBits({ model: editor }: { model: LinkEditor }) {
     return (
         <Breadcrumb
             name="link-editor-breadcrumb-categories"
-            rootLabel="Categories"
+            rootLabel="Collections"
             value={selectedCategory}
             onChange={editor.setSelectedCategory}
         />

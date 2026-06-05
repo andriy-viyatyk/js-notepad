@@ -124,13 +124,15 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef }: Se
                 icon={<RefreshIcon />}
                 onClick={(e) => { e.stopPropagation(); treeProviderRef.current?.refresh(); }}
             />
-            <IconButton
-                name="explorer-close"
-                size="sm"
-                title="Close Panel"
-                icon={<CloseIcon />}
-                onClick={(e) => { e.stopPropagation(); model.page?.setSecondaryViewsState({ open: false }); }}
-            />
+            {!model.page?.sidebarMandatory && (
+                <IconButton
+                    name="explorer-close"
+                    size="sm"
+                    title="Close Panel"
+                    icon={<CloseIcon />}
+                    onClick={(e) => { e.stopPropagation(); model.page?.setSecondaryViewsState({ open: false }); }}
+                />
+            )}
         </>
     );
 

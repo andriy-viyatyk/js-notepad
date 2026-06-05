@@ -248,7 +248,23 @@ export class LinkTreeProvider implements ITreeProvider {
     // =========================================================================
 
     watch(callback: () => void): ISubscriptionObject {
-        const unsub = this.source.state.subscribe(callback);
+        // Rebuild the tree ONLY when the structural input (`data.links`) changes —
+        // add / edit / delete / move / import all replace the `links` reference
+        // (immer copy-on-write). Transient UI state on the same editor
+        // (selectedCategory / selectedTag / selectedHostname / searchText /
+        // selectedLinkId / filteredLinks / derived category-tag-hostname lists)
+        // must NOT trigger a rebuild: a full async `buildTree()` racing the Tree's
+        // own expansion-toggle microtask is what made a category *label* click
+        // (= toggle + setSelectedCategory) leave the chevron expanded while the
+        // virtualized rows never refreshed. Selection highlight is driven
+        // separately via the `selectedHref` prop, not by `watch`.
+        let lastLinks = this.source.state.get().data.links;
+        const unsub = this.source.state.subscribe(() => {
+            const nextLinks = this.source.state.get().data.links;
+            if (nextLinks === lastLinks) return;
+            lastLinks = nextLinks;
+            callback();
+        });
         return { unsubscribe: unsub };
     }
 

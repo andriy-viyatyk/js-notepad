@@ -22,19 +22,17 @@ export type TodoQueueEvent = { type: "focus" };
 export type TodoQueueRequest = never;
 
 /**
- * HS1 host-slot shape — the three per-window UI fields ride
+ * HS1 host-slot shape — the two per-window UI fields ride
  * `host.editorSettings["todo-view"]`. Survives Todo↔Monaco switches AND app
  * restarts. Replaces today's `<host.id>:todo-editor` cache file.
  */
 interface TodoViewSettings {
-    leftPanelWidth?: number;
     selectedList?: string;
     selectedTag?: string;
 }
 
 export interface TodoEditorState extends EditorStateBase {
     // HS1 — ride host.editorSettings["todo-view"]:
-    leftPanelWidth: number;
     selectedList: string;
     selectedTag: string;
     // View-derived — present on state for reactivity, stripped from
@@ -52,7 +50,6 @@ export const defaultTodoEditorState: TodoEditorState = {
     title: "",
     modified: false,
     secondaryView: undefined,
-    leftPanelWidth: 200,
     selectedList: "",
     selectedTag: "",
     data: { lists: [], tags: [], items: [], state: {} },
@@ -65,6 +62,12 @@ export const defaultTodoEditorState: TodoEditorState = {
 function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
+
+// Single combined Lists+Tags panel (labeled "Todo"). Registered once in
+// adoptHost, constant for the editor's life on the page. The base
+// beforeNavigateAway clears it on navigate-away (Pattern-B; no survival
+// override). The sidebar is mandatory-open per PageModel.sidebarMandatory.
+const TODO_PANELS = ["todo-panel"];
 
 export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEvent> {
     readonly editorId = "todo-view";
@@ -225,6 +228,8 @@ export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEven
         this._host = host;
         this._tearDownHostSubscriptions();
 
+        this.secondaryView = TODO_PANELS;
+
         // Forward host metadata changes to descriptorChanged (P3 debounce).
         this._hostStateUnsub = host.state.subscribe(() =>
             this.descriptorChanged.send(undefined),
@@ -247,7 +252,6 @@ export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEven
         const saved = host.getEditorState<TodoViewSettings>(this.editorId);
         if (saved) {
             this.state.update((s) => {
-                if (saved.leftPanelWidth !== undefined) s.leftPanelWidth = saved.leftPanelWidth;
                 if (saved.selectedList !== undefined) s.selectedList = saved.selectedList;
                 if (saved.selectedTag !== undefined) s.selectedTag = saved.selectedTag;
             });
@@ -261,12 +265,11 @@ export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEven
                 if (!this._host) return;
                 const s = this.state.get();
                 this._host.setEditorState<TodoViewSettings>(this.editorId, {
-                    leftPanelWidth: s.leftPanelWidth,
                     selectedList: s.selectedList,
                     selectedTag: s.selectedTag,
                 });
             },
-            (s) => `${s.leftPanelWidth}|${s.selectedList}|${s.selectedTag}`,
+            (s) => `${s.selectedList}|${s.selectedTag}`,
         );
 
         // TD4 — state subscription → debounced serialize-back. Replaces
@@ -282,11 +285,24 @@ export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEven
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
         if (this.page) host.setPage(this.page);
+        this._seedActivePanel();
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
+        // Fresh-open path: adoptHost ran before the page was attached, so make
+        // the single Todo panel the active (expanded) one once the page is
+        // present and the panel is registered.
+        if (page && this.contributesPanels()) this._seedActivePanel();
+    }
+
+    /** Make the single Todo panel the active/expanded one. CollapsiblePanelStack
+     *  collapses any panel whose id !== activePanel, so a lone panel still needs
+     *  this. No-op when no page is attached. */
+    private _seedActivePanel(): void {
+        if (!this.page) return;
+        this.page.expandPanel("todo-panel");
     }
 
     // ────────────────────────────────────────────────────────────────────
@@ -864,14 +880,6 @@ export class TodoEditor extends EditorModel<TodoEditorState, void, TodoQueueEven
     /** Get tag definition by name */
     getTag = (name: string): TodoTag | undefined => {
         return this.state.get().data.tags.find((t) => t.name === name);
-    };
-
-    // ── UI state ────────────────────────────────────────────────────────
-
-    setLeftPanelWidth = (width: number): void => {
-        this.state.update((s) => {
-            s.leftPanelWidth = width;
-        });
     };
 
     // ── Item height persistence (for RenderFlexGrid initial sizing) ─────

@@ -23,6 +23,10 @@ export interface IPageHost {
     panelEditors: EditorModel[];
     activePanel: string;
     hasSidebar: boolean;
+    /** Whether the sidebar is mandatory-open (cannot be closed). PageModel
+     *  computes the Explorer-only-closeable rule; an embedded `BrowserPanelHost`
+     *  (US-601) returns `true`. Read by the close affordances (toggle / ✕). */
+    sidebarMandatory?: boolean;
     expandPanel(panelId: string): void;
     setActivePanel(panel: string): void;
     setSecondaryViewsState(patch: Partial<ISecondaryViewsState>): void;

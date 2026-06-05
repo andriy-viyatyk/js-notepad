@@ -27,11 +27,10 @@ export type NotebookQueueRequest = never;
 export type ExpandedPanel = "tags" | "categories";
 
 /**
- * Host-slot shape — 4 per-window UI fields ride `host.editorSettings["notebook-view"]`.
+ * Host-slot shape — 3 per-window UI fields ride `host.editorSettings["notebook-view"]`.
  * Survives Notebook↔Monaco switches AND app restarts.
  */
 interface NotebookViewSettings {
-    leftPanelWidth?: number;
     expandedPanel?: ExpandedPanel;
     selectedCategory?: string;
     selectedTag?: string;
@@ -39,7 +38,6 @@ interface NotebookViewSettings {
 
 export interface NotebookEditorState extends EditorStateBase {
     // HS1 — ride host.editorSettings["notebook-view"]:
-    leftPanelWidth: number;
     expandedPanel: ExpandedPanel;
     selectedCategory: string;
     selectedTag: string;
@@ -63,7 +61,6 @@ export const defaultNotebookEditorState: NotebookEditorState = {
     title: "",
     modified: false,
     secondaryView: undefined,
-    leftPanelWidth: 200,
     expandedPanel: "categories",
     selectedCategory: "",
     selectedTag: "",
@@ -77,6 +74,14 @@ export const defaultNotebookEditorState: NotebookEditorState = {
     expandedNoteId: "",
     searchText: "",
 };
+
+/** The two Notebook sidebar panels — registered for the whole time the
+ *  Notebook is on a page. Categories first, then Tags (US-602 Concern E). An
+ *  Explorer panel, when auto-initialized for a saved notebook, is hoisted above
+ *  both by `PageModel.panelEditors`. The set is binary: both panels while the
+ *  Notebook is on the page, or gone — the base `beforeNavigateAway` clears it on
+ *  navigate-away (Pattern-B; no survival override). */
+const NOTEBOOK_PANELS = ["notebook-categories", "notebook-tags"];
 
 function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
@@ -301,6 +306,12 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
         this._host = host;
         this._tearDownHostSubscriptions();
 
+        // Panels are a property of "the Notebook is on a page" — registered once
+        // here, constant for the editor's life. The base beforeNavigateAway
+        // clears them on navigate-away (Pattern-B; no survival override). The
+        // sidebar is mandatory-open per PageModel.sidebarMandatory.
+        this.secondaryView = NOTEBOOK_PANELS;
+
         // Forward host metadata changes to descriptorChanged (P3 debounce).
         this._hostStateUnsub = host.state.subscribe(() =>
             this.descriptorChanged.send(undefined),
@@ -319,15 +330,10 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
             (s) => s.content,
         );
 
-        // HS1 — seed the 4 selection fields from host slot (sync, no flicker).
+        // HS1 — seed the 3 selection fields from host slot (sync, no flicker).
         const saved = host.getEditorState<NotebookViewSettings>(this.editorId);
         if (saved) {
             this.state.update((s) => {
-                if (saved.leftPanelWidth !== undefined) {
-                    // Floor at 100 — view-side clamp re-normalizes against
-                    // the live container width on the next drag interaction.
-                    s.leftPanelWidth = Math.max(100, saved.leftPanelWidth);
-                }
                 if (saved.expandedPanel !== undefined) {
                     s.expandedPanel = saved.expandedPanel;
                 }
@@ -341,21 +347,19 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
         }
 
         // HS1 — mirror back. Slice-subscribe over a composite key so the
-        // mirror fires on any of the 4 slot fields but NOT on data /
+        // mirror fires on any of the 3 slot fields but NOT on data /
         // derived / transient mutations.
         this._settingsUnsub = this.state.subscribe(
             () => {
                 if (!this._host) return;
                 const s = this.state.get();
                 this._host.setEditorState<NotebookViewSettings>(this.editorId, {
-                    leftPanelWidth: s.leftPanelWidth,
                     expandedPanel: s.expandedPanel,
                     selectedCategory: s.selectedCategory,
                     selectedTag: s.selectedTag,
                 });
             },
-            (s) =>
-                `${s.leftPanelWidth}|${s.expandedPanel}|${s.selectedCategory}|${s.selectedTag}`,
+            (s) => `${s.expandedPanel}|${s.selectedCategory}|${s.selectedTag}`,
         );
 
         // NB4 — state subscription → debounced serialize-back. Replaces
@@ -373,11 +377,31 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
         if (this.page) host.setPage(this.page);
+        // Restore the previously-expanded panel as the sidebar's active panel.
+        // Covers the restore path (page already set when restore→adoptHost runs);
+        // the fresh-open path seeds via setPage (which fires after adoptHost when
+        // the page attaches the editor).
+        this._seedActivePanel();
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
+        // Fresh-open path: adoptHost ran before the page was attached, so seed
+        // the active panel once the page is present and panels are registered.
+        if (page && this.contributesPanels()) this._seedActivePanel();
+    }
+
+    /** Map the saved `expandedPanel` to its sidebar panel ID and make it the
+     *  active panel. No-op when no page is attached or the panel isn't
+     *  registered (expandPanel guards both). */
+    private _seedActivePanel(): void {
+        if (!this.page) return;
+        const map: Record<ExpandedPanel, string> = {
+            tags: "notebook-tags",
+            categories: "notebook-categories",
+        };
+        this.page.expandPanel(map[this.state.get().expandedPanel] ?? "notebook-categories");
     }
 
     // ────────────────────────────────────────────────────────────────────
@@ -485,16 +509,6 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
         this.loadTags();
         this.applyFilters();
         return newNote;
-    };
-
-    setLeftPanelWidth = (width: number) => {
-        // The view layer (NotebookBody.handleSplitterChange) clamps to
-        // [100, 80% of body width] dynamically on each drag. This setter
-        // just floors at 100 as a defensive sanity check.
-        const clamped = Math.max(100, width);
-        this.state.update((s) => {
-            s.leftPanelWidth = clamped;
-        });
     };
 
     setExpandedPanel = (panel: string) => {

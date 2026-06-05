@@ -2,9 +2,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { Panel, Tooltip } from "../../../uikit";
 import { highlight } from "../../../uikit/shared/highlight";
 import { TreeProviderView } from "../../../components/tree-provider/TreeProviderView";
-import { app } from "../../../api/app";
 import type { ContextMenuEvent } from "../../../api/events/events";
-import { createLinkData } from "../../../../shared/link-data";
 import type { ILink } from "../../../api/types/io.tree";
 import color from "../../../theme/color";
 import type { LinkSource } from "../linkTypes";
@@ -16,20 +14,9 @@ import { LinkTooltipContent } from "../LinkTooltip";
 
 interface LinkCategoryPanelProps {
     vm: LinkSource;
-    /** When true, category clicks go through openRawLink pipeline (Context B).
-     *  When false, category clicks filter content directly (Context A). */
-    useOpenRawLink: boolean;
-    /** When true, shows only category folders. When false, shows categories + links. Default: true. */
-    categoriesOnly?: boolean;
-    /** Page ID to include in openRawLink metadata (navigates within this page). */
-    pageId?: string;
 }
 
-export function LinkCategoryPanel({ vm, useOpenRawLink, categoriesOnly = true, pageId }: LinkCategoryPanelProps) {
-    const selectedCategory = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().selectedCategory,
-    );
+export function LinkCategoryPanel({ vm }: LinkCategoryPanelProps) {
     // Derive selected item href from LinkViewModel's selectedLinkId (single source of truth)
     const selectedLinkId = useSyncExternalStore(
         (cb) => vm.state.subscribe(cb),
@@ -41,22 +28,17 @@ export function LinkCategoryPanel({ vm, useOpenRawLink, categoriesOnly = true, p
         return link?.href;
     }, [selectedLinkId, vm]);
 
+    // Unified click: a category folder filters the Link main view (promoting
+    // the Link editor back to main if a file is currently shown); a link opens
+    // its file in the main view via the openRawLink pipeline.
     const handleItemClick = useCallback((item: ILink) => {
-        if (useOpenRawLink) {
-            if (item.id) vm.selectLink(item.id);
-            const navUrl = vm.treeProvider.getNavigationUrl(item);
-            app.events.openRawLink.sendAsync(
-                createLinkData(navUrl, {
-                    target: item.target || undefined,
-                    sourceId: "link-category",
-                    category: item.category,
-                    ...(pageId ? { pageId, fallbackTarget: "monaco", title: item.title } : undefined),
-                }),
-            );
-        } else {
+        if (item.isDirectory) {
             vm.setSelectedCategory(item.href);
+            if (!vm.isMain) vm.page?.promoteSecondaryToMain?.(vm);
+        } else {
+            vm.openLinkFromPanel(item, "link-category");
         }
-    }, [vm, useOpenRawLink, pageId]);
+    }, [vm]);
 
     const handleContextMenu = useCallback((event: ContextMenuEvent<ILink>) => {
         const item = event.target;
@@ -125,10 +107,10 @@ export function LinkCategoryPanel({ vm, useOpenRawLink, categoriesOnly = true, p
         >
             <TreeProviderView
                 provider={vm.treeProvider}
-                showLinks={!categoriesOnly}
-                selectedHref={categoriesOnly ? selectedCategory : selectedItemHref}
+                showLinks={true}
+                selectedHref={selectedItemHref}
                 onItemClick={handleItemClick}
-                onContextMenu={!categoriesOnly ? handleContextMenu : undefined}
+                onContextMenu={handleContextMenu}
                 getLabel={getTreeItemLabel}
                 rootLabel="All"
             />

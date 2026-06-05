@@ -42,6 +42,30 @@ secondaryViewRegistry.register({
     loadComponent: () => import("./link-editor/panels/LinkHostnamesSecondaryView"),
 });
 
+secondaryViewRegistry.register({
+    id: "notebook-categories",
+    label: "Categories",
+    loadComponent: () => import("./notebook/panels/NotebookCategoriesSecondaryView"),
+});
+
+secondaryViewRegistry.register({
+    id: "notebook-tags",
+    label: "Tags",
+    loadComponent: () => import("./notebook/panels/NotebookTagsSecondaryView"),
+});
+
+secondaryViewRegistry.register({
+    id: "todo-panel",
+    label: "Todo",
+    loadComponent: () => import("./todo/panels/TodoSecondaryView"),
+});
+
+secondaryViewRegistry.register({
+    id: "rest-panel",
+    label: "Rest",
+    loadComponent: () => import("./rest-client/panels/RestPanelSecondaryView"),
+});
+
 
 editorRegistry.register({
     id: "monaco",

@@ -1,29 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
-import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
 import type { ILink } from "../../../api/types/io.tree";
-import { LinkTagsPanel } from "./LinkTagsPanel";
+import { LinkHostnamesPanel } from "./LinkHostnamesPanel";
 import { LinksList } from "../LinksList";
 import { RenderGridModel } from "../../../uikit/RenderGrid";
 import { Panel, Splitter } from "../../../uikit";
 import { LinkEditor } from "../LinkEditor";
 
 // =============================================================================
-// LinkTagsNavigationPanel — Tags panel with resizable bottom links list
+// LinkHostnamesNavigationPanel — Hostnames panel with resizable bottom links
+// list. Mirrors LinkTagsNavigationPanel. Selecting a hostname filters only
+// (no promote/navigate); a bottom-list link click opens the file.
 // =============================================================================
 
-interface LinkTagsNavigationPanelProps {
+interface LinkHostnamesNavigationPanelProps {
     editor: LinkEditor;
 }
 
-function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
+export function LinkHostnamesNavigationPanel({ editor }: LinkHostnamesNavigationPanelProps) {
     const rootRef = useRef<HTMLDivElement>(null);
     const gridRef = useRef<RenderGridModel>(null);
     const [bottomHeight, setBottomHeight] = useState<number | undefined>(undefined);
 
-    const selectedTag = useSyncExternalStore(
+    const selectedHostname = useSyncExternalStore(
         (cb) => editor.state.subscribe(cb),
-        () => editor.state.get().selectedTag,
+        () => editor.state.get().selectedHostname,
     );
 
     const links = useSyncExternalStore(
@@ -50,16 +50,16 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
         editor.updateLink(item.id, { tags });
     }, [editor]);
 
-    const tagItems = useMemo(() => {
-        if (selectedTag) {
-            return editor.treeProvider?.getTagItems(selectedTag)
+    const hostnameItems = useMemo(() => {
+        if (selectedHostname) {
+            return editor.treeProvider?.getHostnameItems(selectedHostname)
                 .filter((item) => !item.isDirectory) ?? [];
         }
         return links.filter((item) => !item.isDirectory);
-    }, [editor, selectedTag, links]);
+    }, [editor, selectedHostname, links]);
 
     const handleSelect = useCallback((item: ILink) => {
-        editor.openLinkFromPanel(item, "link-tag");
+        editor.openLinkFromPanel(item, "link-hostname");
     }, [editor]);
 
     const handleChangeHeight = useCallback((h: number) => {
@@ -92,13 +92,13 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
 
     useEffect(() => {
         if (!selectedLinkId || !gridRef.current) return;
-        const row = tagItems.findIndex((item) => (item.id ?? item.href) === selectedLinkId);
+        const row = hostnameItems.findIndex((item) => (item.id ?? item.href) === selectedLinkId);
         if (row >= 0) gridRef.current.scrollToRow(row, "nearest");
-    }, [selectedLinkId, tagItems]);
+    }, [selectedLinkId, hostnameItems]);
 
     return (
         <Panel
-            name="link-tags-navigation"
+            name="link-hostnames-navigation"
             ref={rootRef}
             direction="column"
             flex={1}
@@ -106,18 +106,18 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
             width="100%"
         >
             <Panel
-                name="link-tags-navigation-top"
+                name="link-hostnames-navigation-top"
                 direction="column"
                 flex={1}
                 overflow="hidden"
                 minHeight={40}
             >
-                <LinkTagsPanel vm={editor} />
+                <LinkHostnamesPanel vm={editor} />
             </Panel>
-            {tagItems.length > 0 && (
+            {hostnameItems.length > 0 && (
                 <>
                     <Splitter
-                        name="link-tags-bottom-splitter"
+                        name="link-hostnames-bottom-splitter"
                         orientation="horizontal"
                         value={bottomHeight ?? 150}
                         onChange={handleChangeHeight}
@@ -125,7 +125,7 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
                         border="before"
                     />
                     <Panel
-                        name="link-tags-navigation-bottom"
+                        name="link-hostnames-navigation-bottom"
                         direction="column"
                         overflow="hidden"
                         shrink={false}
@@ -133,7 +133,7 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
                     >
                         <LinksList
                             ref={gridRef}
-                            links={tagItems}
+                            links={hostnameItems}
                             selectedId={selectedLinkId || undefined}
                             onSelect={handleSelect}
                             onDoubleClick={handleSelect}
@@ -144,32 +144,5 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
                 </>
             )}
         </Panel>
-    );
-}
-
-
-export default function LinkTagsSecondaryView({ model, headerRef }: SecondaryViewProps) {
-    // Type-guard early return must precede any hooks; hook-using body lives
-    // in an inner component. Same pattern as LinkCategorySecondaryView.
-    if (!(model instanceof LinkEditor)) {
-        return null;
-    }
-    return <LinkTagsSecondaryViewBody editor={model} headerRef={headerRef} />;
-}
-
-function LinkTagsSecondaryViewBody({
-    editor,
-    headerRef,
-}: {
-    editor: LinkEditor;
-    headerRef: SecondaryViewProps["headerRef"];
-}) {
-    // Always the navigation form (tags list + bottom links list). Selecting a
-    // tag filters only — it never promotes/navigates the page (Concern 3).
-    return (
-        <>
-            {headerRef && createPortal(<>Tags</>, headerRef)}
-            <LinkTagsNavigationPanel editor={editor} />
-        </>
     );
 }

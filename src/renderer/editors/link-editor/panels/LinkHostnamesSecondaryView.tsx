@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
-import { LinkHostnamesPanel } from "./LinkHostnamesPanel";
+import { LinkHostnamesNavigationPanel } from "./LinkHostnamesNavigationPanel";
 import { LinkEditor } from "../LinkEditor";
 
 export default function LinkHostnamesSecondaryView({ model, headerRef }: SecondaryViewProps) {
@@ -10,7 +10,7 @@ export default function LinkHostnamesSecondaryView({ model, headerRef }: Seconda
     return (
         <>
             {headerRef && createPortal(<>Hostnames</>, headerRef)}
-            <LinkHostnamesPanel vm={model} />
+            <LinkHostnamesNavigationPanel editor={model} />
         </>
     );
 }

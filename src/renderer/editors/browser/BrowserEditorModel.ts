@@ -197,6 +197,9 @@ export interface BrowserEditorState extends IEditorState {
     bookmarksOpen: boolean;
     /** Bookmarks drawer width in pixels. Persisted (NH3 — sixth instance of `leftPanelWidth`-equivalent silent fix). */
     bookmarksWidth: number;
+    /** SecondaryViews sidebar width (Categories/Tags/Hostnames panels) inside the
+     *  bookmarks surfaces. Persisted per epic Concern 4 (US-601). */
+    bookmarksSidebarWidth?: number;
     /** Whether the current URL is bookmarked (star button state). */
     isBookmarked: boolean;
     /** Whether bookmarks have been initialized. */

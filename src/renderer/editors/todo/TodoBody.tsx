@@ -2,13 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Panel } from "../../uikit/Panel/Panel";
 import { Textarea } from "../../uikit/Textarea/Textarea";
 import { IconButton } from "../../uikit/IconButton/IconButton";
-import { Splitter } from "../../uikit/Splitter/Splitter";
 import { RenderFlexGrid, RenderGridModel } from "../../uikit/RenderGrid";
 import type { RenderFlexCellParams, Percent } from "../../uikit/RenderGrid";
 import color from "../../theme/color";
 import { PlusIcon } from "../../theme/icons";
 import { EditorError } from "../base/EditorError";
-import { TodoListPanel } from "./components/TodoListPanel";
 import { TodoItemView } from "./components/TodoItemView";
 import type { TodoItem } from "./todoTypes";
 import type { TodoEditor } from "./TodoEditor";
@@ -19,10 +17,7 @@ export function TodoBody({ model: editor }: { model: TodoEditor }) {
     const pageState = editor.state.use((s) => ({
         data: s.data,
         error: s.error,
-        leftPanelWidth: s.leftPanelWidth,
-        listCounts: s.listCounts,
         selectedList: s.selectedList,
-        selectedTag: s.selectedTag,
         filteredItems: s.filteredItems,
     }));
 
@@ -141,119 +136,90 @@ export function TodoBody({ model: editor }: { model: TodoEditor }) {
     const isQuickAddDisabled = !pageState.selectedList;
 
     return (
-        <Panel name="todo-root" direction="row" flex={1} overflow="hidden">
+        <Panel name="todo-root" direction="column" flex={1} minWidth={0} overflow="hidden">
             <Panel
-                name="todo-left-panel"
-                direction="column"
-                minWidth={100}
-                maxWidth="80%"
-                overflow="hidden"
-                background="default"
-                width={pageState.leftPanelWidth}
+                name="todo-quick-add-row"
+                direction="row"
+                gap="xs"
+                paddingX="sm"
+                paddingY="xs"
+                align="center"
                 shrink={false}
             >
-                <TodoListPanel
-                    pageModel={editor}
-                    lists={pageState.data.lists}
-                    selectedList={pageState.selectedList}
-                    listCounts={pageState.listCounts}
-                    tags={pageState.data.tags}
-                    selectedTag={pageState.selectedTag}
+                <div
+                    onKeyDown={handleQuickAddKeyDown}
+                    style={{ flex: 1, minWidth: 0 }}
+                >
+                    <Textarea
+                        name="todo-quick-add"
+                        value={quickAddText}
+                        onChange={setQuickAddText}
+                        singleLine
+                        placeholder={
+                            isQuickAddDisabled
+                                ? "Select a list to add items..."
+                                : "Add new todo item..."
+                        }
+                        readOnly={isQuickAddDisabled}
+                    />
+                </div>
+                <IconButton
+                    name="todo-add-item"
+                    size="sm"
+                    icon={<PlusIcon />}
+                    title="Add item"
+                    onClick={handleQuickAdd}
+                    disabled={isQuickAddDisabled}
                 />
             </Panel>
-            <Splitter
-                name="todo-splitter"
-                orientation="vertical"
-                value={pageState.leftPanelWidth}
-                onChange={editor.setLeftPanelWidth}
-                border="after"
-                min={100}
-            />
-            <Panel name="todo-content" direction="column" flex={1} minWidth={0} overflow="hidden">
-                <Panel
-                    name="todo-quick-add-row"
-                    direction="row"
-                    gap="xs"
-                    paddingX="sm"
-                    paddingY="xs"
-                    align="center"
-                    shrink={false}
+
+            {allItems.length === 0 ? (
+                <div
+                    style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 16,
+                        padding: 16,
+                        color: color.text.light,
+                        fontSize: 14,
+                    }}
                 >
-                    <div
-                        onKeyDown={handleQuickAddKeyDown}
-                        style={{ flex: 1, minWidth: 0 }}
-                    >
-                        <Textarea
-                            name="todo-quick-add"
-                            value={quickAddText}
-                            onChange={setQuickAddText}
-                            singleLine
-                            placeholder={
-                                isQuickAddDisabled
-                                    ? "Select a list to add items..."
-                                    : "Add new todo item..."
-                            }
-                            readOnly={isQuickAddDisabled}
-                        />
-                    </div>
-                    <IconButton
-                        name="todo-add-item"
-                        size="sm"
-                        icon={<PlusIcon />}
-                        title="Add item"
-                        onClick={handleQuickAdd}
-                        disabled={isQuickAddDisabled}
+                    <div style={{ fontSize: 24, color: color.text.default }}>ToDo</div>
+                    <div>No items yet</div>
+                    <div>Create a list, then add your first todo item</div>
+                </div>
+            ) : items.length === 0 ? (
+                <div
+                    style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 16,
+                        color: color.text.light,
+                        fontSize: 14,
+                    }}
+                >
+                    No items match the current filter
+                </div>
+            ) : (
+                <Panel direction="column" flex={1} minHeight={0}>
+                    <RenderFlexGrid
+                        ref={setGridModel}
+                        columnCount={1}
+                        rowCount={rowCount}
+                        columnWidth={getColumnWidth}
+                        renderCell={renderTodoCell}
+                        fitToWidth
+                        minRowHeight={34}
+                        maxRowHeight={400}
+                        getInitialRowHeight={getInitialRowHeight}
                     />
                 </Panel>
-
-                {allItems.length === 0 ? (
-                    <div
-                        style={{
-                            flex: 1,
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 16,
-                            padding: 16,
-                            color: color.text.light,
-                            fontSize: 14,
-                        }}
-                    >
-                        <div style={{ fontSize: 24, color: color.text.default }}>ToDo</div>
-                        <div>No items yet</div>
-                        <div>Create a list, then add your first todo item</div>
-                    </div>
-                ) : items.length === 0 ? (
-                    <div
-                        style={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: 16,
-                            color: color.text.light,
-                            fontSize: 14,
-                        }}
-                    >
-                        No items match the current filter
-                    </div>
-                ) : (
-                    <Panel direction="column" flex={1} minHeight={0}>
-                        <RenderFlexGrid
-                            ref={setGridModel}
-                            columnCount={1}
-                            rowCount={rowCount}
-                            columnWidth={getColumnWidth}
-                            renderCell={renderTodoCell}
-                            fitToWidth
-                            minRowHeight={34}
-                            maxRowHeight={400}
-                            getInitialRowHeight={getInitialRowHeight}
-                        />
-                    </Panel>
-                )}
-            </Panel>
+            )}
         </Panel>
     );
 }

@@ -14,10 +14,11 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-598: Explorer — adopt + verify under new infra](tasks/US-598-explorer-adopt/README.md) *(Phase 1b)*
   - [ ] [US-599: Archive — adopt + verify under new infra](tasks/US-599-archive-adopt/README.md) *(Phase 1b)*
   - [ ] [US-600: Links — finalize `IPageHost` membership + `isMain`](tasks/US-600-links-finalize-ipagehost/README.md) *(Phase 1b)*
-  - [ ] US-601: Browser adopts `SecondaryViews` in its empty page *(Phase 2)*
-  - [ ] US-602: Notebook → `SecondaryViews` *(Phase 3)*
-  - [ ] US-603: Todo → `SecondaryViews` *(Phase 3)*
-  - [ ] US-604: Rest Client → `SecondaryViews` *(Phase 3)*
+  - [ ] [US-600-a: Links — always-on `SecondaryViews`, drop in-view panels, unify Category click](tasks/US-600-a-links-secondaryviews-refactor/README.md) *(Phase 1b — prereq for US-601)*
+  - [ ] [US-601: Browser adopts `SecondaryViews` in its empty page + bookmarks drawer](tasks/US-601-browser-secondaryviews/README.md) *(Phase 2 — planned, investigated; restores the panels US-600-a removed)*
+  - [ ] [US-602: Notebook → `SecondaryViews`](tasks/US-602-notebook-secondaryviews/README.md) *(Phase 3 — implemented; awaiting smoke test)*
+  - [ ] [US-603: Todo → `SecondaryViews`](tasks/US-603-todo-secondaryviews/README.md) *(Phase 3 — investigated; single panel "Todo")*
+  - [ ] [US-604: Rest Client → `SecondaryViews`](tasks/US-604-rest-client-secondaryviews/README.md) *(Phase 3 — investigated; single panel "Rest", tree moved verbatim)*
   - [ ] US-605: MCP Inspector — evaluate (migrate with view change, or skip) *(Phase 3)*
   - [ ] US-606: Storybook — evaluate (migrate with view change, or skip) *(Phase 3)*
   - [ ] US-607: Epic close-out — review + docs, move to completed.md *(Phase 4)*

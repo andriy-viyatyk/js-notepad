@@ -30,18 +30,16 @@ import {
 export type RestClientQueueEvent = { type: "focus" };
 export type RestClientQueueRequest = never;
 
-/** HS1 host-slot shape — the 2 per-window UI fields ride
+/** HS1 host-slot shape — the per-window UI field rides
  *  `host.editorSettings["rest-client"]`. Survives Rest Client ↔ Monaco
  *  switches AND app restarts. Replaces today's `<host.id>:rest-client`
  *  selection cache file. */
 interface RestClientViewSettings {
-    leftPanelWidth?: number;
     selectedRequestId?: string;
 }
 
 export interface RestClientEditorState extends EditorStateBase {
     // HS1 — ride host.editorSettings["rest-client"]:
-    leftPanelWidth: number;
     selectedRequestId: string;
     // View-derived — present on state for reactivity, stripped from
     // getRestoreData. Recomputed from host content via loadData /
@@ -60,7 +58,6 @@ export const defaultRestClientEditorState: RestClientEditorState = {
     title: "",
     modified: false,
     secondaryView: undefined,
-    leftPanelWidth: 250,
     selectedRequestId: "",
     data: { type: "rest-client", requests: [] },
     error: undefined,
@@ -97,6 +94,12 @@ function isBinaryContentType(contentType: string): boolean {
 function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
+
+// Single collections/requests panel (labeled "Rest"). Registered once in
+// adoptHost, constant for the editor's life on the page. The base
+// beforeNavigateAway clears it on navigate-away (Pattern-B; no survival
+// override). The sidebar is mandatory-open per PageModel.sidebarMandatory.
+const REST_PANELS = ["rest-panel"];
 
 export class RestClientEditor extends EditorModel<RestClientEditorState, void, RestClientQueueEvent> {
     readonly editorId = "rest-client";
@@ -261,6 +264,8 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
         this._host = host;
         this._tearDownHostSubscriptions();
 
+        this.secondaryView = REST_PANELS;
+
         // Forward host metadata changes to descriptorChanged (P3 debounce).
         this._hostStateUnsub = host.state.subscribe(() =>
             this.descriptorChanged.send(undefined),
@@ -283,7 +288,6 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
         const saved = host.getEditorState<RestClientViewSettings>(this.editorId);
         if (saved) {
             this.state.update((s) => {
-                if (saved.leftPanelWidth !== undefined) s.leftPanelWidth = saved.leftPanelWidth;
                 if (saved.selectedRequestId !== undefined) s.selectedRequestId = saved.selectedRequestId;
             });
         }
@@ -296,11 +300,10 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
                 if (!this._host) return;
                 const s = this.state.get();
                 this._host.setEditorState<RestClientViewSettings>(this.editorId, {
-                    leftPanelWidth: s.leftPanelWidth,
                     selectedRequestId: s.selectedRequestId,
                 });
             },
-            (s) => `${s.leftPanelWidth}|${s.selectedRequestId}`,
+            (s) => s.selectedRequestId,
         );
 
         // RC4 — state subscription → debounced serialize-back. Replaces
@@ -323,11 +326,24 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
         if (this.page) host.setPage(this.page);
+        this._seedActivePanel();
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
+        // Fresh-open path: adoptHost ran before the page was attached, so make
+        // the single Rest panel the active (expanded) one once the page is
+        // present and the panel is registered.
+        if (page && this.contributesPanels()) this._seedActivePanel();
+    }
+
+    /** Make the single Rest panel the active/expanded one. CollapsiblePanelStack
+     *  collapses any panel whose id !== activePanel, so a lone panel still needs
+     *  this. No-op when no page is attached. */
+    private _seedActivePanel(): void {
+        if (!this.page) return;
+        this.page.expandPanel("rest-panel");
     }
 
     // ────────────────────────────────────────────────────────────────────
@@ -933,16 +949,6 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
                 s.responseTime = responseTime;
             });
         }
-    };
-
-    // ── Layout ──────────────────────────────────────────────────────────
-
-    setLeftPanelWidth = (width: number): void => {
-        const clamped = Math.max(150, Math.min(500, width));
-        this.state.update((s) => {
-            s.leftPanelWidth = clamped;
-        });
-        // No cache write — HS1 slice-subscribe handles persistence.
     };
 
     // ── Save / release / dispose ────────────────────────────────────────

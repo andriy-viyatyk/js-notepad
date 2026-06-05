@@ -8,6 +8,7 @@ import {
     LinkFooterBits,
 } from "../link-editor";
 import { BrowserBookmarks } from "./BrowserBookmarks";
+import { BrowserSecondaryViews } from "./BrowserSecondaryViews";
 
 // =============================================================================
 // Styled — single styled(Panel) wrapper for drawer backdrop + slide-in animation
@@ -119,8 +120,11 @@ export function BookmarksDrawer({
                         <Panel flex={1} />
                         <LinkActionBits model={bookmarks.linkEditor} />
                     </Panel>
-                    <Panel name="bookmarks-editor-host" flex={1} overflow="hidden">
-                        <LinkBody model={bookmarks.linkEditor} />
+                    <Panel name="bookmarks-editor-host" direction="row" flex={1} overflow="hidden">
+                        <BrowserSecondaryViews host={bookmarks.panelHost} />
+                        <Panel flex={1} overflow="hidden">
+                            <LinkBody model={bookmarks.linkEditor} />
+                        </Panel>
                     </Panel>
                     <Panel
                         name="bookmarks-footer"

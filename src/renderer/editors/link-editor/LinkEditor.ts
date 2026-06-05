@@ -38,7 +38,6 @@ export type LinkQueueRequest = never;
  * app restarts. Replaces today's `<host.id>:link-editor` cache file.
  */
 interface LinkViewSettings {
-    leftPanelWidth?: number;
     expandedPanel?: ExpandedPanel;
     selectedCategory?: string;
     selectedTag?: string;
@@ -47,7 +46,6 @@ interface LinkViewSettings {
 
 export interface LinkEditorState extends EditorStateBase {
     // HS1 — ride host.editorSettings["link-view"]:
-    leftPanelWidth: number;
     expandedPanel: ExpandedPanel;
     selectedCategory: string;
     selectedTag: string;
@@ -73,7 +71,6 @@ export const defaultLinkEditorState: LinkEditorState = {
     title: "",
     modified: false,
     secondaryView: undefined,
-    leftPanelWidth: 200,
     expandedPanel: "categories",
     selectedCategory: "",
     selectedTag: "",
@@ -91,8 +88,10 @@ export const defaultLinkEditorState: LinkEditorState = {
     selectedLinkId: "",
 };
 
-/** All link-editor sidebar panels — registered when LinkEditor is main and
- *  the sidebar is open. */
+/** All link-editor sidebar panels — registered for the whole time the
+ *  LinkEditor is on a page (always-on; the sidebar is mandatory-open while a
+ *  Link editor is present). The set is binary: all three, or gone (self-evict
+ *  on external navigation). */
 const LINK_PANELS = ["link-category", "link-tags", "link-hostnames"];
 
 function isLegacyTextFileHost(host: unknown): host is TextFileModel {
@@ -109,7 +108,6 @@ export class LinkEditor
     private _hostStateUnsub: (() => void) | null = null;
     private _hostContentUnsub: (() => void) | null = null;
     private _settingsUnsub: (() => void) | null = null;
-    private _tagsSliceUnsub: (() => void) | null = null;
     private _saveSubUnsub: (() => void) | null = null;
     private _pendingHost: HostDescriptor | undefined = undefined;
 
@@ -166,12 +164,10 @@ export class LinkEditor
         this._hostStateUnsub?.();
         this._hostContentUnsub?.();
         this._settingsUnsub?.();
-        this._tagsSliceUnsub?.();
         this._saveSubUnsub?.();
         this._hostStateUnsub = null;
         this._hostContentUnsub = null;
         this._settingsUnsub = null;
-        this._tagsSliceUnsub = null;
         this._saveSubUnsub = null;
     }
 
@@ -300,6 +296,12 @@ export class LinkEditor
         this._host = host;
         this._tearDownHostSubscriptions();
 
+        // Panels are a property of "the Link editor is on a page" — registered
+        // once here, independent of the sidebar open flag (the sidebar is
+        // mandatory-open per PageModel.sidebarMandatory). Constant for the
+        // editor's life on the page; only the survival hooks clear it.
+        this.secondaryView = LINK_PANELS;
+
         // Forward host metadata changes to descriptorChanged (P3 debounce).
         this._hostStateUnsub = host.state.subscribe(() =>
             this.descriptorChanged.send(undefined),
@@ -322,7 +324,6 @@ export class LinkEditor
         const saved = host.getEditorState<LinkViewSettings>(this.editorId);
         if (saved) {
             this.state.update((s) => {
-                if (saved.leftPanelWidth !== undefined) s.leftPanelWidth = saved.leftPanelWidth;
                 if (saved.expandedPanel !== undefined) s.expandedPanel = saved.expandedPanel;
                 if (saved.selectedCategory !== undefined) s.selectedCategory = saved.selectedCategory;
                 if (saved.selectedTag !== undefined) s.selectedTag = saved.selectedTag;
@@ -338,7 +339,6 @@ export class LinkEditor
                 if (!this._host) return;
                 const s = this.state.get();
                 this._host.setEditorState<LinkViewSettings>(this.editorId, {
-                    leftPanelWidth: s.leftPanelWidth,
                     expandedPanel: s.expandedPanel,
                     selectedCategory: s.selectedCategory,
                     selectedTag: s.selectedTag,
@@ -346,20 +346,7 @@ export class LinkEditor
                 });
             },
             (s) =>
-                `${s.leftPanelWidth}|${s.expandedPanel}|${s.selectedCategory}|${s.selectedTag}|${s.selectedHostname}`,
-        );
-
-        // LK8 — tag-count-crosses-zero subscription. When demoted to
-        // standalone-secondary and tag count changes (e.g., last tag deleted),
-        // reshape the panel list to keep `link-tags` registration accurate.
-        this._tagsSliceUnsub = this.state.subscribe(
-            () => {
-                if (this.isMain) return; // main; LK6 handles
-                if (!this.contributesPanels()) return; // already detached
-                const hasTags = this.state.get().tags.length > 0;
-                this.secondaryView = hasTags ? ["link-category", "link-tags"] : ["link-category"];
-            },
-            (s) => s.tags.length > 0,
+                `${s.expandedPanel}|${s.selectedCategory}|${s.selectedTag}|${s.selectedHostname}`,
         );
 
         // LK4 — state subscription → debounced serialize-back. Replaces
@@ -375,35 +362,36 @@ export class LinkEditor
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
         if (this.page) host.setPage(this.page);
+        // Restore the previously-expanded panel as the sidebar's active panel.
+        // Covers the restore path (page already set when restore→adoptHost
+        // runs); the fresh-open path seeds via setPage (which fires after
+        // adoptHost when the page attaches the editor).
+        this._seedActivePanel();
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
+        // Fresh-open path: adoptHost ran before the page was attached, so the
+        // panels are already registered by the time the page calls setPage —
+        // seed the active panel now.
+        if (page && this.contributesPanels()) this._seedActivePanel();
+    }
+
+    /** Map the saved `expandedPanel` to its sidebar panel ID and make it the
+     *  active panel. No-op when no page is attached or the panel isn't
+     *  registered (expandPanel guards both). */
+    private _seedActivePanel(): void {
+        if (!this.page) return;
+        const map: Record<ExpandedPanel, string> = {
+            categories: "link-category",
+            tags: "link-tags",
+            hostnames: "link-hostnames",
+        };
+        this.page.expandPanel(map[this.state.get().expandedPanel] ?? "link-category");
     }
 
     // ── LK6 — Sidebar lifecycle hooks ───────────────────────────────────
-
-    /** Called by the view's useEffect when the page's NavPanel toggles.
-     *  Pure state mutation per A8; gated on `mainEditor === this` so demote
-     *  paths can call `setSidebarPanels(false)` without affecting the
-     *  surviving secondaryView entry. */
-    setSidebarPanels(open: boolean): void {
-        if (!this.isMain) return; // demote-safe no-op
-        if (open) {
-            this.secondaryView = LINK_PANELS;
-            const reverseMap: Record<string, string> = {
-                categories: "link-category",
-                tags: "link-tags",
-                hostnames: "link-hostnames",
-            };
-            const panelToExpand =
-                reverseMap[this.state.get().expandedPanel] ?? "link-category";
-            this.page?.expandPanel(panelToExpand);
-        } else {
-            this.secondaryView = undefined;
-        }
-    }
 
     /** LK7 — Survive as a standalone-secondary view only when the user is
      *  navigating WITHIN our own links (matched via `sourceLink.sourceId`).
@@ -417,10 +405,8 @@ export class LinkEditor
         this.secondaryView = undefined;
     }
 
-    /** LK8 — On demote, reshape the panel list to standalone-secondary form
-     *  (drops `link-hostnames` to match today's
-     *  LinkCategorySecondaryView.updatePanels behavior). Also evicts
-     *  defensively if the new main wasn't opened from us. */
+    /** On demote, keep the full panel set (Concern 4 — no reshape). Evicts
+     *  only when the new main wasn't opened from us (external navigation). */
     onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (newMainEditor === this) return;
         if (newMainEditor === null) return;
@@ -429,13 +415,12 @@ export class LinkEditor
             this.secondaryView = undefined;
             return;
         }
-        const hasTags = this.state.get().tags.length > 0;
-        this.secondaryView = hasTags ? ["link-category", "link-tags"] : ["link-category"];
+        this.secondaryView = LINK_PANELS;
     }
 
     /** Check if a model was opened via this LinkEditor's own UI (own-id
-     *  links, or standalone-secondary panel clicks emitting `link-category`
-     *  / `link-tag`). Reads `sourceLink.sourceId` via
+     *  links, or panel clicks emitting `link-category` / `link-tag` /
+     *  `link-hostname`). Reads `sourceLink.sourceId` via
      *  `EditorModel.getNavigationSourceId`, which checks both the editor's own
      *  state AND its content host — so links opening in a no-host / legacy
      *  non-text editor (e.g. the audio/video player, where `sourceLink` lives
@@ -445,7 +430,11 @@ export class LinkEditor
         const sourceId = model.getNavigationSourceId();
         if (!sourceId) return false;
         if (sourceId === this.id) return true;
-        return sourceId === "link-category" || sourceId === "link-tag";
+        return (
+            sourceId === "link-category" ||
+            sourceId === "link-tag" ||
+            sourceId === "link-hostname"
+        );
     }
 
     // ────────────────────────────────────────────────────────────────────
@@ -521,12 +510,6 @@ export class LinkEditor
             s.expandedPanel = panel as ExpandedPanel;
         });
         this.applyFilters();
-    };
-
-    setLeftPanelWidth = (width: number): void => {
-        this.state.update((s) => {
-            s.leftPanelWidth = width;
-        });
     };
 
     setSelectedCategory = (category: string): void => {
@@ -1152,6 +1135,31 @@ export class LinkEditor
     };
 
     // ── Link opening ────────────────────────────────────────────────────
+
+    /** Open a link clicked in a sidebar panel (Category tree / Tags-Hostnames
+     *  bottom list). Single open path (US-601 Concern A):
+     *   - **Embedded (browser):** when `onLinkOpen` is set (only the browser
+     *     sets it), route through `openLink()` so the hook can force
+     *     `target:"browser"` + `browserPageId` and navigate the empty tab (or a
+     *     new tab when the current tab isn't blank / on Ctrl-click).
+     *   - **Page:** dispatch `openRawLink` with the navigation metadata — opens
+     *     the file in the page's main view and keeps the Link panels alive via
+     *     `_isOpenedFromMe`. Byte-identical to the pre-US-601 per-panel path. */
+    openLinkFromPanel = (item: ILink, sourceId: string): void => {
+        if (item.id) this.selectLink(item.id);
+        if (this.onLinkOpen) {
+            void this.openLink(item);
+            return;
+        }
+        const navUrl = this.treeProvider?.getNavigationUrl(item) ?? item.href;
+        const data = createLinkData(navUrl, {
+            target: item.target || undefined,
+            sourceId,
+            category: item.category,
+            ...(this.page ? { pageId: this.page.id, fallbackTarget: "monaco", title: item.title } : undefined),
+        });
+        void import("../../api/app").then(({ app }) => app.events.openRawLink.sendAsync(data));
+    };
 
     openLink = async (link: ILink | { href: string; target?: string }): Promise<void> => {
         const url = link.href;

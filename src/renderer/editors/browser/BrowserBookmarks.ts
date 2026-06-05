@@ -4,6 +4,7 @@ import { TComponentState } from "../../core/state/state";
 import { TextFileModel, getDefaultTextFileEditorModelState } from "../text/TextEditorModel";
 import { LinkEditor, defaultLinkEditorState } from "../link-editor";
 import { LinkItem } from "../link-editor/linkTypes";
+import { BrowserPanelHost } from "./BrowserPanelHost";
 import { EditorView } from "../../../shared/types";
 import { shell } from "../../api/shell";
 import { ui } from "../../api/ui";
@@ -11,6 +12,9 @@ import { ui } from "../../api/ui";
 export class BrowserBookmarks {
     readonly textFileHost: TextFileModel;
     readonly linkEditor: LinkEditor;
+    /** IPageHost that hosts the Link editor's SecondaryViews panels in the
+     *  browser empty page + bookmarks drawer (US-601). */
+    readonly panelHost = new BrowserPanelHost();
     private saveDebounced = debounce(() => this.textFileHost.saveFile(), 300);
 
     constructor(filePath: string) {
@@ -57,6 +61,12 @@ export class BrowserBookmarks {
         this.linkEditor.adoptHost(this.textFileHost);
         this.linkEditor.loadData(this.textFileHost.state.get().content ?? "");
 
+        // US-601 — attach the Link editor to the browser panel host so its
+        // Categories/Tags/Hostnames panels render via SecondaryViews on the
+        // browser empty page + bookmarks drawer. setPage seeds the active panel
+        // from the restored `expandedPanel` HS1 slot.
+        this.panelHost.attach(this.linkEditor);
+
         // Auto-save to disk when modified by user. LinkEditor's
         // onDataChangedDebounced writes serialized state back to
         // host.changeContent which flips host.state.modified — that's the
@@ -70,9 +80,12 @@ export class BrowserBookmarks {
     }
 
     async dispose(): Promise<void> {
-        // LinkEditor.dispose flushes its debounced save, tears down host
-        // subscriptions, and disposes the TextFileModel host. Single-owner
-        // lifecycle — no ref-counting needed.
+        // Detach the panel host first (clears linkEditor.page) so the editor's
+        // teardown runs cleanly, then dispose the editor. LinkEditor.dispose
+        // flushes its debounced save, tears down host subscriptions, and
+        // disposes the TextFileModel host. Single-owner lifecycle — no
+        // ref-counting needed.
+        this.panelHost.dispose();
         await this.linkEditor.dispose();
     }
 

@@ -4,7 +4,7 @@ import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-v
 import { useOptionalState } from "../../../core/state/state";
 import { LinkCategoryPanel } from "./LinkCategoryPanel";
 import { IconButton, Spacer } from "../../../uikit";
-import { SaveIcon, SwapIcon } from "../../../theme/icons";
+import { SaveIcon } from "../../../theme/icons";
 import { LinkEditor } from "../LinkEditor";
 
 export default function LinkCategorySecondaryView({ model, headerRef }: SecondaryViewProps) {
@@ -41,14 +41,9 @@ function LinkCategorySecondaryViewBody({
         editor.host?.saveFile();
     }, [editor]);
 
-    const handleToggleMainEditor = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        editor.page?.promoteSecondaryToMain?.(editor);
-    }, [editor]);
-
     const headerContent = (
         <>
-            {isMainEditor ? "Categories" : "Links"}
+            Collections
             <Spacer />
             {!isMainEditor && modified && (
                 <IconButton
@@ -59,25 +54,13 @@ function LinkCategorySecondaryViewBody({
                     onClick={handleSave}
                 />
             )}
-            <IconButton
-                name="link-category-secondary-toggle-main"
-                size="sm"
-                title={isMainEditor ? "Demote to sidebar only" : "Open as main editor"}
-                icon={<SwapIcon width={14} height={14} />}
-                onClick={handleToggleMainEditor}
-            />
         </>
     );
 
     return (
         <>
             {headerRef && createPortal(headerContent, headerRef)}
-            <LinkCategoryPanel
-                vm={editor}
-                useOpenRawLink={!isMainEditor}
-                categoriesOnly={isMainEditor}
-                pageId={isMainEditor ? undefined : editor.page?.id}
-            />
+            <LinkCategoryPanel vm={editor} />
         </>
     );
 }

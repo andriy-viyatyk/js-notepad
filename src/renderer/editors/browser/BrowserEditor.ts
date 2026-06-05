@@ -135,6 +135,13 @@ export class BrowserEditor extends EditorModel<
             return; // encrypted or failed — user will trigger manually
         }
         this.bookmarks = bm;
+        this.configureBookmarks(bm);
+        this.state.update((s) => { s.bookmarksReady = true; });
+    }
+
+    /** Wire the bookmarks Link editor's open/menu hooks and the panel-host
+     *  sidebar-width persistence (US-601). Shared by preload + explicit init. */
+    private configureBookmarks(bm: BrowserBookmarks): void {
         bm.linkEditor.onLinkOpen = (data) => {
             data.target = "browser";
             data.browserPageId = this.page?.id;
@@ -151,8 +158,11 @@ export class BrowserEditor extends EditorModel<
             icon: createElement(OpenLinkIcon),
             onClick: () => this.addTab(link.href),
         }] : [];
-        this.state.update((s) => { s.bookmarksReady = true; });
-    };
+        // US-601 Concern C — restore the persisted SecondaryViews sidebar width
+        // and mirror user resizes back into browser state.
+        bm.panelHost.setInitialWidth(this.state.get().bookmarksSidebarWidth);
+        bm.panelHost.onWidthChange = (w) => this.state.update((s) => { s.bookmarksSidebarWidth = w; });
+    }
 
     /** Initialize bookmarks from a file path. Returns null if user cancels (e.g. encrypted file). */
     async initBookmarks(filePath: string): Promise<BrowserBookmarks | null> {
@@ -166,22 +176,7 @@ export class BrowserEditor extends EditorModel<
             return null;
         }
         this.bookmarks = bm;
-        bm.linkEditor.onLinkOpen = (data) => {
-            data.target = "browser";
-            data.browserPageId = this.page?.id;
-            // Navigate current tab if it's empty; otherwise add a new tab
-            const s = this.state.get();
-            const currentTab = s.tabs.find((t) => t.id === s.activeTabId);
-            const currentUrl = currentTab?.url || "";
-            if (!currentUrl || currentUrl === "about:blank") {
-                data.browserTabMode = "navigate";
-            }
-        };
-        bm.linkEditor.onGetLinkMenuItems = (link) => link.href ? [{
-            label: "Open in New Tab",
-            icon: createElement(OpenLinkIcon),
-            onClick: () => this.addTab(link.href),
-        }] : [];
+        this.configureBookmarks(bm);
         return this.bookmarks;
     }
 
@@ -365,6 +360,8 @@ export class BrowserEditor extends EditorModel<
                 activeTabId: s.activeTabId,
                 tabsPanelWidth: s.tabsPanelWidth,
                 bookmarksWidth: s.bookmarksWidth, // NH3 — promoted to persisted (sixth instance of leftPanelWidth-equivalent silent fix)
+                bookmarksSidebarWidth: s.bookmarksSidebarWidth, // US-601 — SecondaryViews sidebar width
+
                 profileName: s.profileName,
                 isIncognito: s.isIncognito,
                 isTor: s.isTor,
@@ -404,6 +401,7 @@ export class BrowserEditor extends EditorModel<
             }
             if (data.tabsPanelWidth) s.tabsPanelWidth = data.tabsPanelWidth;
             if (data.bookmarksWidth !== undefined) s.bookmarksWidth = data.bookmarksWidth; // NH3
+            if (data.bookmarksSidebarWidth !== undefined) s.bookmarksSidebarWidth = data.bookmarksSidebarWidth; // US-601
             if (data.profileName !== undefined) s.profileName = data.profileName;
             if (data.isIncognito !== undefined) s.isIncognito = data.isIncognito;
             if (data.isTor !== undefined) {

@@ -37,6 +37,9 @@ export function PageToolbar({ name, model, children, rightContributions, noSpace
 }
 
 function NavPanelButton({ model }: { model: EditorModel }) {
+    // Sidebar is mandatory-open (a Link/Archive/etc. panel is present) — the
+    // toggle would be a no-op, so don't render it.
+    if (model.page?.sidebarMandatory) return null;
     const target = model.getNavigatorTarget();
     if (target === null) return null;
     // Empty target `{}` — always render (Archive / Category: panel already attached).

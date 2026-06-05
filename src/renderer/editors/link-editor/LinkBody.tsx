@@ -1,19 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-    CollapsiblePanel,
-    CollapsiblePanelStack,
-    Panel,
-    Splitter,
-    Text,
-} from "../../uikit";
+import { Panel, Splitter, Text } from "../../uikit";
 import { HighlightedTextProvider } from "../../uikit/shared/highlight";
-import { useOptionalState } from "../../core/state/state";
-import { secondaryViewsToggled, panelExpanded } from "../../core/state/events";
+import { panelExpanded } from "../../core/state/events";
 import { hasTraitDragData, getTraitDragData, resolveTraits } from "../../core/traits";
 import { LINK } from "./linkTraits";
-import { LinkCategoryPanel } from "./panels/LinkCategoryPanel";
-import { LinkTagsPanel } from "./panels/LinkTagsPanel";
-import { LinkHostnamesPanel } from "./panels/LinkHostnamesPanel";
 import { LinkItemList } from "./LinkItemList";
 import { LinkItemTiles } from "./LinkItemTiles";
 import { PinnedLinksPanel } from "./PinnedLinksPanel";
@@ -22,8 +12,6 @@ import type { LinkEditor } from "./LinkEditor";
 
 export function LinkBody({ model }: { model: LinkEditor }) {
     const pageState = model.state.use((s) => ({
-        leftPanelWidth: s.leftPanelWidth,
-        expandedPanel: s.expandedPanel,
         searchText: s.searchText,
         selectedLinkId: s.selectedLinkId,
         error: s.error,
@@ -35,39 +23,24 @@ export function LinkBody({ model }: { model: LinkEditor }) {
 
     const pageId = model.page?.id;
 
-    // LK6 — translate sidebar open/close into model state. Pure view dispatcher.
-    const isNavigatorOpen = useOptionalState(
-        model.page?.secondaryViewsModel?.state,
-        (s) => s.open,
-        false,
-    );
-    useEffect(() => {
-        model.setSidebarPanels(isNavigatorOpen);
-    }, [isNavigatorOpen, model]);
-
     // panelExpanded global event → maps sidebar panel IDs to expandedPanel state
-    // (today's pattern preserved verbatim).
+    // (drives the breadcrumb + center-list filter when the user switches the
+    // active sidebar panel).
     useEffect(() => {
         if (!pageId) return;
-        const subs = [
-            secondaryViewsToggled.subscribe(() => {
-                // No-op: isNavigatorOpen above tracks the state. Subscribe just
-                // so we re-render if needed (kept for parity with today).
-            }),
-            panelExpanded.subscribe((event) => {
-                if (event?.pageId !== pageId) return;
-                const map: Record<string, string> = {
-                    "link-category": "categories",
-                    "link-tags": "tags",
-                    "link-hostnames": "hostnames",
-                };
-                const expandedPanel = map[event.panelId];
-                if (expandedPanel) {
-                    model.setExpandedPanel(expandedPanel);
-                }
-            }),
-        ];
-        return () => subs.forEach((s) => s.unsubscribe());
+        const sub = panelExpanded.subscribe((event) => {
+            if (event?.pageId !== pageId) return;
+            const map: Record<string, string> = {
+                "link-category": "categories",
+                "link-tags": "tags",
+                "link-hostnames": "hostnames",
+            };
+            const expandedPanel = map[event.panelId];
+            if (expandedPanel) {
+                model.setExpandedPanel(expandedPanel);
+            }
+        });
+        return () => sub.unsubscribe();
     }, [pageId, model]);
 
     // Queue focus event: refocus container element on `focus` event.
@@ -138,7 +111,6 @@ export function LinkBody({ model }: { model: LinkEditor }) {
         );
     }
 
-    const showPanelsInSidebar = isNavigatorOpen;
     const links = pageState.filteredLinks;
     const allLinks = pageState.allLinks;
 
@@ -151,36 +123,6 @@ export function LinkBody({ model }: { model: LinkEditor }) {
             overflow="hidden"
             flex={1}
         >
-            {!showPanelsInSidebar && (
-                <>
-                    <CollapsiblePanelStack
-                        name="link-editor-left-panels"
-                        width={pageState.leftPanelWidth}
-                        minWidth={100}
-                        maxWidth="80%"
-                        activePanel={pageState.expandedPanel}
-                        setActivePanel={model.setExpandedPanel}
-                    >
-                        <CollapsiblePanel id="categories" name="categories" title="Categories">
-                            <LinkCategoryPanel vm={model} useOpenRawLink={false} />
-                        </CollapsiblePanel>
-                        <CollapsiblePanel id="tags" name="tags" title="Tags">
-                            <LinkTagsPanel vm={model} />
-                        </CollapsiblePanel>
-                        <CollapsiblePanel id="hostnames" name="hostnames" title="Hostnames">
-                            <LinkHostnamesPanel vm={model} />
-                        </CollapsiblePanel>
-                    </CollapsiblePanelStack>
-                    <Splitter
-                        name="link-editor-left-splitter"
-                        orientation="vertical"
-                        value={pageState.leftPanelWidth}
-                        onChange={model.setLeftPanelWidth}
-                        side="before"
-                        border="after"
-                    />
-                </>
-            )}
             <HighlightedTextProvider value={pageState.searchText}>
                 <Panel
                     name="link-editor-center"

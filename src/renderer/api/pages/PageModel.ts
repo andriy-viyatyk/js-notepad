@@ -187,6 +187,17 @@ export class PageModel implements IPageHost {
         return this.editors.some((e) => e.contributesPanels()) || this.secondaryViewsModel !== null;
     }
 
+    /** Sidebar is closeable only when the Explorer is the *sole* panel
+     *  contributor. Any other secondary view (Link/Archive/Todo/Notebook/…
+     *  panels) makes it mandatory and non-closeable. Discriminates on the same
+     *  `type === "fileExplorer"` marker as `findExplorer()`. */
+    get sidebarMandatory(): boolean {
+        return this.editors.some(
+            (e) => e.contributesPanels()
+                && (e.state.get() as { type?: string }).type !== "fileExplorer",
+        );
+    }
+
     // ── Membership primitives ─────────────────────────────────────────
 
     /** Add an editor to `editors[]`. No-op if already present.
@@ -210,6 +221,7 @@ export class PageModel implements IPageHost {
             s.version++;
             s.hasSidebar = this.hasSidebar;
         });
+        this._enforceMandatoryOpen();
     }
 
     /** Remove an editor from `editors[]`. Does NOT dispose — caller decides.
@@ -237,6 +249,7 @@ export class PageModel implements IPageHost {
             s.version++;
             s.hasSidebar = this.hasSidebar;
         });
+        this._enforceMandatoryOpen();
     }
 
     /** Compat shim for the `EditorModel.secondaryView` setter side-effect.
@@ -297,6 +310,7 @@ export class PageModel implements IPageHost {
             s.version++;
             s.hasSidebar = this.hasSidebar;
         });
+        this._enforceMandatoryOpen();
         if (!this.editors.includes(editor)) return;
         if (editor.id !== this._mainEditorId && !editor.contributesPanels()) {
             this.detach(editor);
@@ -416,6 +430,11 @@ export class PageModel implements IPageHost {
      * activePanel change, secondaryViewsToggled on open change. Width is clamped.
      */
     setSecondaryViewsState = (patch: Partial<ISecondaryViewsState>): void => {
+        // Mandatory-open clamp: ignore close requests while a non-Explorer panel
+        // is present (width / activePanel still apply).
+        if (patch.open === false && this.sidebarMandatory) {
+            patch = { ...patch, open: true };
+        }
         const nav = this.ensureSecondaryViewsModel();
         const prev = nav.state.get();
         nav.state.update((s) => {
@@ -445,6 +464,73 @@ export class PageModel implements IPageHost {
         if (!panelId) return;
         if (!this.editors.some((e) => e.secondaryView?.includes(panelId))) return;
         this.setActivePanel(panelId);
+    }
+
+    /** Force the sidebar open when a non-Explorer panel is present, and
+     *  auto-initialize the Explorer panel for a panel editor opened from local
+     *  disk. Called from the lifecycle points that recompute `hasSidebar`
+     *  (attach / detach / onEditorPanelsChanged) so opening a Link/Archive/etc.
+     *  editor force-opens the sidebar even on the initial attach.
+     *  `setStateQuiet` avoids re-firing `secondaryViewsToggled`; the model's own
+     *  subscription bumps version. */
+    private _enforceMandatoryOpen(): void {
+        if (this.sidebarMandatory) {
+            this.ensureSecondaryViewsModel().setStateQuiet({ open: true });
+        }
+        this._maybeAutoInitExplorer();
+    }
+
+    /** When the sidebar is mandatory (a panel editor like Links is present) and
+     *  there is no Explorer yet, auto-create one rooted at the panel editor's
+     *  file folder — restoring the pre-mandatory-sidebar affordance where the
+     *  user could toggle a file-folder Explorer alongside the panels. Deferred
+     *  to a microtask + guarded by `findExplorer()` so a persisted Explorer
+     *  re-attached during session restore is never duplicated (all restore
+     *  attaches run synchronously before the microtask fires). */
+    private _autoInitExplorerQueued = false;
+
+    private _maybeAutoInitExplorer(): void {
+        if (this._autoInitExplorerQueued) return;
+        if (!this.sidebarMandatory) return;
+        if (this.findExplorer()) return;
+        if (!this._explorerRootForPanels()) return;
+        this._autoInitExplorerQueued = true;
+        queueMicrotask(() => {
+            this._autoInitExplorerQueued = false;
+            void this._autoInitExplorer();
+        });
+    }
+
+    /** Derive the Explorer root folder from the first panel-contributing editor
+     *  exposing a local-file navigator target (Link/Todo/Notebook/…). Returns
+     *  "" when none has a file target (e.g. an unsaved collection). */
+    private _explorerRootForPanels(): string {
+        for (const e of this.editors) {
+            if (!e.contributesPanels()) continue;
+            const target = e.getNavigatorTarget();
+            if (!target) continue;
+            if (target.pipe?.provider.type === "file" && target.pipe.provider.sourceUrl) {
+                return fpDirname(target.pipe.provider.sourceUrl);
+            }
+            if (target.filePath) {
+                return fpDirname(target.filePath);
+            }
+        }
+        return "";
+    }
+
+    private async _autoInitExplorer(): Promise<void> {
+        if (this.findExplorer()) return;
+        if (!this.sidebarMandatory) return;
+        const rootPath = this._explorerRootForPanels();
+        if (!rootPath) return;
+        const state = new TComponentState({
+            ...getDefaultExplorerEditorState(),
+            rootPath,
+        });
+        const explorer = new ExplorerEditor(state);
+        this.attach(explorer);
+        await explorer.restore();
     }
 
     // ── Explorer helpers ─────────────────────────────────────────────
