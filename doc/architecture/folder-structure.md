@@ -72,6 +72,8 @@ persephone/
 │   ├── internal.ts         # Disposable utilities (wrapSubscription, etc.)
 │   │
 │   ├── pages/              # Page collection — composed submodels
+│   │   ├── PageModel.ts            # Tab container — sidebar, secondary views, mainEditor lifecycle
+│   │   ├── IPageHost.ts            # IPageHost interface — editor↔owner contract (PageModel + BrowserPanelHost)
 │   │   ├── PagesModel.ts           # Base: state, subscriptions, composes submodels
 │   │   ├── PagesQueryModel.ts      # Queries: getAll, byId, byType, activePage
 │   │   ├── PagesNavigationModel.ts # Navigation: show, focus, next/prev
@@ -204,15 +206,16 @@ persephone/
 │   │   │   ├── showPopupMenu.tsx
 │   │   │   └── types.ts
 │   │   └── index.ts
-│   └── navigation/         # Navigation panel (in-editor)
-│       ├── SecondaryViews.tsx       # SecondaryViews — TreeProviderView + FileTreeProvider + FileSearch
-│       └── SecondaryViewsModel.ts   # Reactive state for SecondaryViews (open, width)
+│   └── secondary-views/    # SecondaryViews — controlled panel host (EPIC-029)
+│       ├── SecondaryViews.tsx       # Controlled panel host — renders CollapsiblePanel per registered secondary
+│       ├── SecondaryViewsModel.ts   # Reactive state (open, width, activePanel)
+│       ├── LazySecondaryView.tsx    # Dynamic panel component loader (dynamic import per panel ID)
+│       └── secondary-view-registry.ts # Registry: panel ID → dynamic component factory
 │
 ├── editors/                # Editor Implementations — each editor is an EditorModel subclass
 │   ├── base/               # Shared editor infrastructure
 │   │   ├── EditorModel.ts            # Abstract base class for all editors
 │   │   ├── IContentHost.ts           # Interface for text-content hosting (TextFileModel, NoteItemEditModel)
-│   │   ├── IPageHost.ts              # Interface PageModel exposes to editors (back-reference target)
 │   │   ├── EditorStateStorage.ts     # Per-editor view-state storage interface (id, name → state)
 │   │   ├── editor-traits.ts          # CONTENT_HOST_TRAIT — owner-orchestrated editor switching
 │   │   ├── editor-matchers.ts        # Acceptance / resolution priority helpers
@@ -266,6 +269,8 @@ persephone/
 │   │   ├── TorStatusOverlay.tsx      # Tor connection status
 │   │   ├── BrowserBookmarks.ts       # Bookmarks data management (wraps TextFileModel + LinkEditor)
 │   │   ├── BrowserBookmarksUIModel.ts # Bookmarks UI state
+│   │   ├── BrowserPanelHost.ts       # IPageHost impl for browser's bookmarks sidebar (EPIC-029 US-601)
+│   │   ├── BrowserSecondaryViews.tsx # SecondaryViews mount for browser empty page and BookmarksDrawer
 │   │   ├── browser-search-history.ts # Search history
 │   │   ├── network-log-links.ts      # Network log → ILink[] conversion
 │   │   └── index.tsx
@@ -284,6 +289,9 @@ persephone/
 │   │   │   ├── NoteItemActiveEditor.tsx # Embeds language-gated editors per note
 │   │   │   ├── NoteItemToolbar.tsx
 │   │   │   └── index.ts
+│   │   ├── panels/                   # Secondary view panel components
+│   │   │   ├── NotebookCategoriesSecondaryView.tsx  # "notebook-categories" panel
+│   │   │   └── NotebookTagsSecondaryView.tsx        # "notebook-tags" panel
 │   │   └── index.tsx
 │   ├── todo/               # Todo editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── TodoEditor.ts             # EditorModel — items, lists, tags
@@ -291,6 +299,8 @@ persephone/
 │   │   ├── todoTypes.ts
 │   │   ├── todoColors.ts
 │   │   ├── components/
+│   │   ├── panels/                   # Secondary view panel components
+│   │   │   └── TodoSecondaryView.tsx             # "todo" panel
 │   │   └── index.tsx
 │   ├── link-editor/        # Link collection editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── LinkEditor.ts             # EditorModel — links, categories, tags, filters
@@ -375,6 +385,8 @@ persephone/
 │   │   ├── multipartBuilder.ts
 │   │   ├── httpConstants.ts
 │   │   ├── open-in-rest-client.ts
+│   │   ├── panels/                   # Secondary view panel components
+│   │   │   └── RestPanelSecondaryView.tsx        # "rest" panel
 │   │   └── index.tsx
 │   ├── pdf/                # PDF viewer (non-text, no trait)
 │   │   ├── PdfEditor.ts              # EditorModel — pipe-backed PDF state

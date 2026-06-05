@@ -287,7 +287,7 @@ The panel header shows "Rest"; the tree's root row keeps showing "REQUESTS" with
 The Rest Client side panel stays **one** collections/requests panel labeled "Rest" (the existing `RequestTree`, moved verbatim). The set is always `[rest-panel]` while the Rest Client is on the page and **gone** when it navigates away (base `beforeNavigateAway`). No active-panel/breadcrumb state, so no `_seedActivePanel` map and no `panelExpanded` body subscription — only the unconditional `expandPanel("rest-panel")` seed so the lone panel renders expanded.
 
 ### Out of scope
-- MCP Inspector / Storybook migration — US-605 / US-606.
+- MCP Inspector / Storybook — **excluded from EPIC-029** (not file-backed; dropped 2026-06-05, formerly US-605 / US-606).
 - Any change to `RequestTree` / `RestClientShared.tsx` (root node, "+", DnD, context menus — all retained), the request builder (`RequestBuilder`), response viewer (`ResponseViewer`), the request↔response horizontal splitter inside `SplitDetailPanel`, serialization, send logic, or the response cache — untouched.
 - Moving the "+"/title into the header or de-duplicating the two labels — **explicitly declined** by the user.
 - `secondary-views.md` doc drift — epic close-out **US-607**.

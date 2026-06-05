@@ -12,6 +12,19 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Folder View — breadcrumb navigation** — The toolbar of the Folder View editor (File Explorer folders, archive subfolders, and link categories) now shows a breadcrumb with the root name and one clickable chip per ancestor folder. Click any chip to jump to that ancestor. On long paths the breadcrumb clips the root side so the current folder is always visible.
 
+- **Link Editor — always-open sidebar panels** — The Collections, Tags, and Hostnames panels are now always shown in the page sidebar. The sidebar cannot be closed while a `.link.json` file is open. The toolbar toggle button is hidden on link pages. Previously these panels lived in a resizable left pane inside the editor when the sidebar was closed; that fallback pane is gone. The File Explorer also opens automatically in the sidebar alongside the link panels, rooted at the link file's folder.
+
+  - The Categories panel is now labelled **"Collections"** throughout (the breadcrumb root label and the panel header both say "Collections"). Clicking a category folder filters the link list in the main area; clicking a link item opens the file in the main view.
+  - The **Tags** panel now has a resizable bottom pane listing all links under the selected tag. The **Hostnames** panel also gains this bottom pane (previously it only showed the hostname list). Clicking a link in the bottom pane opens the file.
+
+- **Browser bookmarks — sidebar panels** — The Collections, Tags, and Hostnames panels are now available in the browser's blank bookmarks page and in the slide-in bookmarks drawer, exactly as they appear in a standalone link editor. Click a category folder to filter the link list; click a link to navigate the browser to that URL.
+
+- **Notebook — sidebar panels** — The **Categories** (category tree) and **Tags** panels have moved from the resizable left pane inside the Notebook editor to the always-open page sidebar. Behavior is unchanged; filtering by category or tag works the same way.
+
+- **Todo — sidebar panel** — The list selector and tag filter have moved from the resizable left pane inside the Todo editor to a single **Todo** panel in the always-open page sidebar.
+
+- **Rest Client — sidebar panel** — The request collection tree has moved from the resizable left pane inside the Rest Client editor to a **Rest** panel in the always-open page sidebar.
+
 ### Bug Fixes
 
 - **Browser blank page — link controls restored** — The **Add Link**, view mode switcher, and search box were missing from the toolbar on the browser's blank bookmarks page. All three controls now appear correctly in the top-right of the blank-page toolbar.
@@ -19,6 +32,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **Browser context menu — no longer delayed on busy pages** — Right-clicking a web page while it was still loading (or while JavaScript was running) could block the context menu for several seconds due to a synchronous SVG probe. The probe now races against a 250 ms budget — on idle pages the "Open SVG in Editor" item still appears; on busy pages the menu opens immediately without it.
 
 - **Add/Edit Link dialog — Title and Tags inputs no longer stretch** — In the Add/Edit Link dialog, the Title and Tags input fields were expanding horizontally beyond their intended column. The form rows now lay out correctly.
+
+- **Link Editor — category tree expansion no longer breaks after multiple label clicks** — Clicking a category label (rather than the expand/collapse chevron) could cause the tree to stop rendering or hiding children after the first couple of clicks. The chevron worked fine; the label did not. Fixed by scoping the tree rebuild to fire only when the link list actually changes, eliminating the race between the expansion toggle and the tree rebuild.
 
 ---
 

@@ -347,6 +347,18 @@ PageModel is the tab container that owns the sidebar layout (open/close/width vi
 
 **Source:** [`/src/renderer/api/pages/PageModel.ts`](../../src/renderer/api/pages/PageModel.ts)
 
+### Mandatory sidebar and auto-Explorer (EPIC-029)
+
+`PageModel.sidebarMandatory` is a computed boolean. It is `true` when any secondary view other than the file Explorer is contributing panels. This happens for Link, Archive, Todo, Notebook, and Rest Client editors when their panels are open.
+
+When `sidebarMandatory` is `true`:
+- `setSecondaryViewsState({ open: false })` is ignored — the close request is silently clamped to `open: true`.
+- The sidebar close ✕ button and the toggle affordance are hidden.
+
+This is enforced in `_enforceMandatoryOpen()`, called whenever panel editors attach or detach. It also calls `_maybeAutoInitExplorer()`.
+
+**`_maybeAutoInitExplorer()`** — when the sidebar becomes mandatory and no Explorer exists yet, this method queues a microtask to auto-create an Explorer rooted at the panel editor's file folder (resolved via `_explorerRootForPanels()`). The deferred-microtask design means a persisted Explorer that is re-attached synchronously during session restore is always found by the guard (`findExplorer()` returns it), so no duplicate is created. If the panel editor has no file path (e.g., a new unsaved file), the Explorer is not created.
+
 ### Navigation pattern
 
 In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/PagesLifecycleModel.ts)):

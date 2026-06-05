@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Design complete — all 8 concerns resolved. 13 implementation tasks placeholdered (US-595–US-607; see [Linked Tasks](#linked-tasks-implementation-order) and the dashboard), each investigated + detailed per-task before implementation. Implementation not yet started.
+**Status:** Design complete — all 8 concerns resolved. Implementation tasks span US-595–US-604 + close-out US-607–US-609 (US-605/606 dropped 2026-06-05; close-out split into three skill-scoped tasks 2026-06-05 — see Notes, the [Linked Tasks](#linked-tasks-implementation-order) table and the dashboard), each investigated + detailed per-task before implementation.
 **Created:** 2026-06-01
 
 ## Overview
@@ -20,13 +20,13 @@ The end state has two parts: (1) the component (renamed `PageNavigator` → **`S
 - **Rename `secondaryEditor` → `secondaryView` through *all* code** (and docs), including the persisted state field. A navigator panel is a *view* over an `EditorModel`, not an editor; the misnomer is a constant source of confusion. This is a committed deliverable of the epic, not optional cleanup (see Concern 7 for the persisted-key decision).
 - The Browser hosts `SecondaryViews` inside its empty/blank page, driven by its own `bookmarks.linkEditor` — replacing the bespoke `BlankPageLinks` chrome. The Browser orchestrates both the navigator and the Link editor to render its empty page.
 - `SecondaryViews` becomes mandatory/automatic for the Link editor: when a Link editor is open, its panels render in it with no in-editor panel duplication.
-- Other side-panel editors (Notebook, Todo, Rest Client; MCP Inspector and Storybook decided per their own migration tasks) render their side panels through `SecondaryViews` instead of hand-rolled splitter layouts.
+- Other **file-backed** side-panel editors (Notebook, Todo, Rest Client) render their side panels through `SecondaryViews` instead of hand-rolled splitter layouts. MCP Inspector and Storybook are **out of scope** — they are not file-backed (cannot be opened from a file), so there is no Explorer panel to co-host and the consolidation rationale (one sidebar combining Explorer + the editor's panel, rather than two left panels) does not apply.
 
 ## Non-Goals
 
 - New panel *types* or new editors. This is a relocation/decoupling refactor.
 - Changing the look of existing panels. Visual parity is the target.
-- Generalizing the navigator to right-side or tabbed panels at the epic level. If a specific editor (e.g. MCP Inspector, Storybook) needs it, that's decided in that editor's own migration task (Concern 5).
+- Generalizing the navigator to right-side or tabbed panels. MCP Inspector (tabbed) and Storybook (dual-panel) are **excluded** from the epic — not file-backed, so no Explorer to co-host (Concern 5).
 
 ## Conceptual model & terminology
 
@@ -151,8 +151,8 @@ None use the secondary-editor system; each renders its panel inline with its own
 | Notebook (`NotebookBody.tsx:150-258`) | Left collapsible stack (tags + category tree), ~110 lines | ✅ Clean fit |
 | Todo (`TodoBody.tsx` + `TodoListPanel.tsx`, ~380 lines) | Single left panel (lists + tags) | ✅ Fit |
 | Rest Client (`RestClientBody.tsx:71-100`) | Single left request tree, ~67 lines | ✅ Fit |
-| MCP Inspector (`McpInspectorView.tsx`) | **Tabbed** (SegmentedControl), not a left stack | ⚠️ Different paradigm — needs design |
-| Storybook (`StorybookEditorView.tsx:54-78`) | Left **and** right panels | ⚠️ Navigator is single left stack; right "property editor" doesn't fit |
+| MCP Inspector (`McpInspectorView.tsx`) | **Tabbed** (SegmentedControl), not a left stack | ❌ **Excluded** — not file-backed (no Explorer to co-host); Concern 5 |
+| Storybook (`StorybookEditorView.tsx:54-78`) | Left **and** right panels | ❌ **Excluded** — not file-backed (no Explorer to co-host); Concern 5 |
 
 ### Verdict
 
@@ -194,7 +194,7 @@ The component is ~90% there; the subsystem under it is not. Realizing the vision
 
 - Notebook → Todo → Rest Client as registered secondary views (clean fits) — **each its own task**. Deletes substantial duplicated splitter/width code.
 - No special static-panel mechanism needed (Concern 3): these editors rely on the base `EditorModel` hook defaults; survival hooks are only ever called by a navigating Page host.
-- MCP Inspector (tabbed) and Storybook (dual-panel): decided in their own migration tasks (may change the view, or skip migration) — not an epic-level decision (Concern 5).
+- MCP Inspector (tabbed) and Storybook (dual-panel) are **excluded** from this phase — neither is file-backed, so there is no Explorer panel to co-host and the consolidation rationale does not apply (Concern 5).
 
 ## Concerns / Open Questions
 
@@ -208,7 +208,7 @@ The component is ~90% there; the subsystem under it is not. Realizing the vision
 | 2 | `editor.page` → `IPageHost` | ✅ resolved (membership FINAL — US-600) |
 | 3 | Navigation survival vs static panels | ✅ resolved (no logic change) |
 | 4 | Persistence boundaries | ✅ resolved |
-| 5 | MCP Inspector / Storybook fit | ✅ resolved (per-editor task) |
+| 5 | MCP Inspector / Storybook fit | ✅ resolved (excluded — not file-backed) |
 | 6 | EPIC-028 sequencing | ✅ resolved (EPIC-028 shipped) |
 | 7 | `secondaryEditor` → `secondaryView` rename | ✅ decided (persisted key: reset-to-default) |
 | 8 | `PageNavigator` → `SecondaryViews` naming | ✅ decided (`SecondaryViews`) |
@@ -272,9 +272,11 @@ Each owner keeps its own `ISecondaryViewsState` and is responsible for saving/re
 
 ### Concern 5 — MCP Inspector / Storybook fit (and per-editor concerns generally)
 
-**Status: ✅ RESOLVED (2026-06-01) — deferred to per-editor migration tasks.**
+**Status: ✅ RESOLVED (2026-06-05) — MCP Inspector and Storybook are excluded from the epic.**
 
-Editor-specific fit (MCP Inspector's tabbed `SegmentedControl`, Storybook's dual left+right panels, and any other editor's quirks) is **not** decided up front in this epic. Each editor migration is planned as **its own task**, and editor-specific concerns are resolved during that task's investigation. Changing an editor's view a bit (to fit the `SecondaryViews` model) is acceptable where needed. Whether MCP Inspector / Storybook are migrated at all — or left as-is — is a per-task decision, not an epic-level one.
+MCP Inspector and Storybook are **not file-backed** — neither can be opened from a file. The whole point of migrating the file-backed editors (Notebook, Todo, Rest Client) is to let a single mandatory sidebar **co-host** the auto-Explorer with the editor's own panel, so a saved file shows one combined left sidebar instead of two competing left panels. With no file there is no Explorer to co-host, so that rationale does not apply to these two. Combined with their awkward shapes for a single left stack (MCP Inspector is tabbed; Storybook has left **and** right panels), they are **dropped from the epic** — their tasks US-605 and US-606 are removed (2026-06-05). They keep their existing bespoke layouts. Any future migration would be its own standalone task outside EPIC-029.
+
+For the remaining (migrated) editors, editor-specific fit is still resolved during each task's own investigation, and changing an editor's view a bit to fit `SecondaryViews` is acceptable where needed.
 
 ---
 
@@ -332,13 +334,23 @@ Foundation tasks (US-595–597) necessarily touch every panel-contributing edito
 | US-602 | Notebook → `SecondaryViews` | 3 | [Investigated + detailed](../tasks/US-602-notebook-secondaryviews/README.md). Migrate the tags/category side panel to `notebook-tags`/`notebook-categories` secondary views; **Pattern-B** (no survival override — panels drop on navigate-away, per user requirement); delete bespoke splitter/`leftPanelWidth`. Open: **Concern A** — the inherited US-600-a auto-Explorer would add an Explorer panel to a saved Notebook's sidebar (recommend accept). |
 | US-603 | Todo → `SecondaryViews` | 3 | [Investigated + detailed](../tasks/US-603-todo-secondaryviews/README.md). Migrate the lists/tags side panel as a **single** secondary view labeled "Todo" (no split — user steer); **Pattern-B** (no survival override — panel drops on navigate-away); seed the lone panel active via `expandPanel`; delete `leftPanelWidth`. Inherits mandatory-open + auto-Explorer (the latter explicitly requested for saved files — Concern A). |
 | US-604 | Rest Client → `SecondaryViews` | 3 | [Investigated + detailed](../tasks/US-604-rest-client-secondaryviews/README.md). **Pure relocation** (user steer): move the collections/requests `RequestTree` into a **single** secondary view labeled "Rest", **verbatim** — keep the in-tree "REQUESTS" root node + "+" add button, no header button, no `RestClientShared` changes. **Pattern-B** (no survival override — panel drops on navigate-away); seed the lone panel active via `expandPanel`; delete `leftPanelWidth`. Inherits mandatory-open + auto-Explorer (Concern A). |
-| US-605 | MCP Inspector — evaluate (migrate with view change, or skip) | 3 | Tabbed `SegmentedControl` doesn't fit a left stack; per-task decision (Concern 5). |
-| US-606 | Storybook — evaluate (migrate with view change, or skip) | 3 | Dual left+right panels; per-task decision (Concern 5). |
-| US-607 | Epic close-out — `/review` + `/document` + `/userdoc`; move to `completed.md` | 4 | May split into audit / dev-doc / user-doc like EPIC-028 if scope warrants. |
+| US-607 | Epic close-out — `/review` | 4 | Code audit of the whole epic against the architecture docs; report concerns. First of three skill-scoped close-out tasks. |
+| US-608 | Epic close-out — `/document` | 4 | Update developer docs in `/doc/` (architecture, standards, CLAUDE.md) for the `SecondaryViews` refactor + per-editor migrations. |
+| US-609 | Epic close-out — `/userdoc`; move to `completed.md` | 4 | Update user docs in `/docs/`; then move the entire epic block to [`completed.md`](completed.md) and remove from the dashboard. |
+
+> **US-605 (MCP Inspector) and US-606 (Storybook) were dropped on 2026-06-05** — neither is file-backed, so there is no Explorer panel to co-host and the consolidation rationale does not apply (Concern 5). They keep their existing layouts.
 
 **Stop points:** the epic delivers value at the end of Phase 1b (navigator fully refactored + existing editors migrated), again after Phase 2 (Browser), and again after each Phase 3 editor — it can pause at any of these.
 
 ## Notes
+
+### 2026-06-05 — split close-out US-607 into three skill-scoped tasks
+- User steer: the epic is large, so close-out is more precise as three specialized tasks rather than one. Split US-607 into **US-607** (`/review` — code audit), **US-608** (`/document` — dev docs in `/doc/`), **US-609** (`/userdoc` — user docs in `/docs/`, then move the epic to `completed.md`). Mirrors how EPIC-028 ran its close-out.
+- Updated: the Status line, the Linked Tasks table (one row → three), and the dashboard.
+
+### 2026-06-05 — dropped US-605 (MCP Inspector) and US-606 (Storybook)
+- User steer: remove both from the epic. Rationale — these two are **completely separate, non-file-backed editors** (cannot be opened from a file). The reason to migrate the other editors was to let one mandatory sidebar **co-host** the auto-Explorer with the editor's own panel (avoiding two competing left panels) for a saved file; with no file there is no Explorer to co-host, so that rationale doesn't apply. Combined with their awkward shapes (MCP Inspector tabbed; Storybook left+right), they're excluded and keep their bespoke layouts.
+- Updated: Concern 5 → ✅ resolved (excluded), the survey table verdicts, the Goals/Non-Goals/Phase-3 bullets, the concern-status table, and removed the US-605/606 rows from Linked Tasks. Phase-3 migrations are now Notebook/Todo/Rest Client only.
 
 ### 2026-06-01 — implementation plan: 13 placeholder tasks (US-595–US-607)
 - Concern 7 persisted-key detail decided: **accept reset-to-default** (no read-shim).

@@ -199,7 +199,7 @@ For `.todo.json` files — a structured task list interface:
 
 - **Multiple lists** — organize tasks into named lists (e.g., "Project A", "Personal")
 - **Tags** — define colored tags and assign one tag per item for categorization (e.g., "bug", "feature")
-- **Tag filtering** — click a tag in the left panel to filter items; combines with list filter and search
+- **Sidebar panel** — A **Todo** panel in the page sidebar contains the list selector and tag filter. Click a list to filter items; click a tag to filter by tag. Filters combine with search.
 - **Item counts** — each list shows undone/total count badges
 - **Quick add** — type and press Enter to add new items
 - **Checkbox toggle** — mark items done/undone with a click
@@ -218,7 +218,7 @@ For `.todo.json` files — a structured task list interface:
 
 For `.note.json` files — a structured notes interface:
 
-- **Categories** and **tags** for organizing notes
+- **Categories** and **tags** for organizing notes — shown as **Categories** and **Tags** panels in the always-open page sidebar
 - Each note has its own code editor (Monaco, Grid, Markdown, SVG)
 - **Full-text search** with highlighting across all content
 - **Drag-and-drop** to reorganize categories; drag links from the Links editor (or files from the File Explorer) onto a category to create notes from them
@@ -349,11 +349,11 @@ For `.excalidraw` files — an Excalidraw-based drawing canvas. Click **Drawing*
 
 For `.link.json` files — a structured link manager:
 
-- **Categories**, **tags**, and **hostnames** for organizing and filtering links
-- **Filter panels** — Categories, Tags, and Hostnames panels let you filter links by navigation. These panels adapt based on whether the page sidebar is open:
-  - **With sidebar open** — Categories, Tags, and Hostnames appear as separate panels in the page sidebar (the same sidebar used by the File Explorer). Click a panel header to expand it. The breadcrumb in the toolbar shows the current filter path. The **Categories** panel header has a swap button (⇄) to promote it into the main editor area (full-page link list view) or demote it back to sidebar-only mode.
-  - **With sidebar open — Tags panel** — In addition to the tag list, the Tags panel shows a resizable bottom pane listing all links in the selected tag. Click a link to open it. When the main editor is an audio player, clicking a link in this pane establishes the tag set as the audio source, enabling **Next Track** and **Shuffle** navigation within that tag. The pane scrolls automatically to highlight the current track as the player auto-advances.
-  - **Without sidebar** — A collapsible left panel inside the editor shows the three filters (Categories, Tags, Hostnames) as tabs. Resize it by dragging the splitter.
+- **Collections**, **tags**, and **hostnames** for organizing and filtering links
+- **Sidebar panels** — Collections, Tags, and Hostnames appear as separate panels in the always-open page sidebar. The sidebar cannot be closed while a link file is open. Click a panel header to expand it. The breadcrumb in the toolbar shows the current filter path.
+  - **Collections panel** — Shows the category tree (all categories + their links). Click a category folder to filter the main link list. Click a link to open it in the main view. The panel header has a swap button (⇄) to promote the link list into the main editor area (full-page view) or demote it back when a file is already open.
+  - **Tags panel** — In addition to the tag list, the Tags panel shows a resizable bottom pane listing all links in the selected tag. Click a link to open it. When the main editor is an audio player, clicking a link in this pane establishes the tag set as the audio source, enabling **Next Track** and **Shuffle** navigation within that tag. The pane scrolls automatically to highlight the current track as the player auto-advances.
+  - **Hostnames panel** — In addition to the hostname list, the Hostnames panel shows a resizable bottom pane listing all links under the selected hostname. Click a link to open it.
 - **Multiple view modes** — List, Landscape tiles, Portrait tiles (normal and large variants)
 - **View mode per category, per tag, and per hostname** — each filter remembers its preferred layout
 - **Image tiles** — tile views display preview images with "no image" placeholder for links without images
@@ -374,7 +374,7 @@ For `.link.json` files — a structured link manager:
 
 For `.rest.json` files — an HTTP request collection editor:
 
-- **Two-panel layout** — collection tree on the left, request detail on the right
+- **Sidebar + detail layout** — request collection tree in the always-open page sidebar, request detail in the main area
 - **Request collection** — organize multiple HTTP requests in a single file
 - **Collection grouping** — requests can be organized into named collections (one level deep). Collections are virtual — derived from each request's `collection` field. Drag-drop requests between collections, use context menus to add/delete/duplicate, and edit collection and request names inline in the header bar. New requests inherit the collection of the currently selected request. You can also drag links from the Links editor (or files from the File Explorer) onto a collection or request to create new requests pre-populated with those URLs.
 - **Add, delete, rename, reorder** requests within the collection

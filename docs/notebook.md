@@ -15,24 +15,24 @@ Alternatively, open a new tab, change the language to JSON, and rename the tab t
 ## Layout
 
 ```
-+------------------------------------------------------------------+
-| [Categories / Tags breadcrumb]     [Add Note] [Search...]        |
-+---------------+--------------------------------------------------+
-|               |                                                  |
-| Left Panel    |  Notes List (virtualized)                        |
-|               |                                                  |
-| Categories    |  +--------------------------------------------+  |
-|   OR          |  | * [category] [tags]   [date] [expand] [del]|  |
-| Tags          |  |   [lang] [title]      [editor switch]      |  |
-|               |  |   +--------------------------------------+ |  |
-| (collapsible) |  |   | Editor content (Monaco/Grid/etc.)    | |  |
-|               |  |   +--------------------------------------+ |  |
-|               |  |   [+ Add comment]                          |  |
-|               |  +--------------------------------------------+  |
-|               |                                                  |
-+---------------+--------------------------------------------------+
-| [X notes] or [X of Y notes]                                     |
-+------------------------------------------------------------------+
++--------------------+-------------------------------------------+
+| Sidebar            | [Categories / Tags breadcrumb]            |
+|                    | [Add Note] [Search...]                    |
+| [Categories]       +-------------------------------------------+
+|  All               |                                           |
+|  work/             |  Notes List (virtualized)                 |
+|    projects        |                                           |
+|  personal          |  +---------------------------------------+|
+|                    |  | * [category] [tags] [date] [expand]  ||
+| [Tags]             |  |   [lang] [title]  [editor switch]    ||
+|  env:dev           |  |   +-----------------------------------+||
+|  env:prod          |  |   | Editor content (Monaco/Grid/etc.)||
+|                    |  |   +-----------------------------------+||
+|                    |  |   [+ Add comment]                     ||
+|                    |  +---------------------------------------+|
++--------------------+-------------------------------------------+
+| [X notes] or [X of Y notes]                                    |
++----------------------------------------------------------------+
 ```
 
 ## Notes
@@ -88,9 +88,9 @@ Click the category badge on a note (shows "No category" by default). A path inpu
 - Select from existing categories via autocomplete
 - Press Enter to confirm, Escape to cancel
 
-### Category Tree (Left Panel)
+### Category Tree (Sidebar Panel)
 
-The left panel shows a collapsible category tree:
+The **Categories** panel in the sidebar shows the category tree:
 - **All** — Shows all notes (root)
 - Categories are auto-created from note paths
 - Note counts appear next to each category
@@ -129,9 +129,9 @@ Hover over a note and click the **+** button in the tags area. A path input appe
 - Click a tag to edit it inline
 - Hover over a tag and click the **x** button to remove it
 
-### Tags Panel (Left Panel)
+### Tags Panel (Sidebar)
 
-Switch to the Tags panel using the collapsible panel header. The panel shows:
+The **Tags** panel in the sidebar shows:
 - All tags with note counts
 - Categorized tags are grouped — click a category to drill down
 - Select a tag to filter the notes list

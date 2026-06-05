@@ -148,12 +148,12 @@ The **star button (☆)** in the URL bar lets you quickly bookmark or edit the c
 Click the **"Open Links" button** on the toolbar to open a sliding bookmarks panel:
 
 - Right-anchored overlay drawer with backdrop
-- Full **Link Editor** inside — categories, tags, search, and all view modes (list and tile variants)
+- Full **Link Editor** inside — Collections, Tags, Hostnames sidebar panels plus search and all view modes (list and tile variants)
 - Click a link to navigate (in current tab if blank, otherwise new internal tab)
 - **Right-click a bookmark** for a context menu: **Open in New Tab**, Edit, Open in Default Browser, browser profiles, Open in Incognito, Copy URL, Pin/Unpin, Delete
 - **Hover a link** to see a rich tooltip with title, URL, and thumbnail image
 - Drawer closes automatically after clicking a link
-- Resizable width; Categories/Tags panel on the right side
+- Resizable width; Collections/Tags/Hostnames panels on the left side of the drawer
 - Press `Escape` to close
 
 ### Context Menu Bookmarking
@@ -165,6 +165,7 @@ Click the **"Open Links" button** on the toolbar to open a sliding bookmarks pan
 
 When a bookmarks file is configured for the current profile, new blank tabs display your bookmarks directly instead of an empty page:
 
+- The **Collections, Tags, and Hostnames** panels appear in the left sidebar for filtering
 - Click a link to **navigate the current tab**
 - `Ctrl+Click` opens the link in a **new internal tab**, keeping bookmarks visible on the original tab
 - **Right-click a bookmark** for a context menu: **Open in New Tab**, Edit, Open in Default Browser, browser profiles, Open in Incognito, Copy URL, Pin/Unpin, Delete

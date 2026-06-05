@@ -7,21 +7,6 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-029** — [Standalone PageNavigator → `SecondaryViews`, a reusable panel host](epics/EPIC-029.md) *(design done; tasks are placeholders, investigated per-task before implementation)*
-  - [ ] [US-595: Rename `secondaryEditor`→`secondaryView` + `PageNavigator`→`SecondaryViews` family](tasks/US-595-rename-secondary-view/README.md) *(Phase 1a)*
-  - [ ] [US-596: `ISecondaryViewsState` + controlled `SecondaryViews` component](tasks/US-596-controlled-secondary-views/README.md) *(Phase 1a)*
-  - [ ] [US-597: `IPageHost` typing for `editor.page` (+ derived `isMain`)](tasks/US-597-ipagehost-typing/README.md) *(Phase 1a)*
-  - [ ] [US-598: Explorer — adopt + verify under new infra](tasks/US-598-explorer-adopt/README.md) *(Phase 1b)*
-  - [ ] [US-599: Archive — adopt + verify under new infra](tasks/US-599-archive-adopt/README.md) *(Phase 1b)*
-  - [ ] [US-600: Links — finalize `IPageHost` membership + `isMain`](tasks/US-600-links-finalize-ipagehost/README.md) *(Phase 1b)*
-  - [ ] [US-600-a: Links — always-on `SecondaryViews`, drop in-view panels, unify Category click](tasks/US-600-a-links-secondaryviews-refactor/README.md) *(Phase 1b — prereq for US-601)*
-  - [ ] [US-601: Browser adopts `SecondaryViews` in its empty page + bookmarks drawer](tasks/US-601-browser-secondaryviews/README.md) *(Phase 2 — planned, investigated; restores the panels US-600-a removed)*
-  - [ ] [US-602: Notebook → `SecondaryViews`](tasks/US-602-notebook-secondaryviews/README.md) *(Phase 3 — implemented; awaiting smoke test)*
-  - [ ] [US-603: Todo → `SecondaryViews`](tasks/US-603-todo-secondaryviews/README.md) *(Phase 3 — investigated; single panel "Todo")*
-  - [ ] [US-604: Rest Client → `SecondaryViews`](tasks/US-604-rest-client-secondaryviews/README.md) *(Phase 3 — investigated; single panel "Rest", tree moved verbatim)*
-  - [ ] US-605: MCP Inspector — evaluate (migrate with view change, or skip) *(Phase 3)*
-  - [ ] US-606: Storybook — evaluate (migrate with view change, or skip) *(Phase 3)*
-  - [ ] US-607: Epic close-out — review + docs, move to completed.md *(Phase 4)*
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

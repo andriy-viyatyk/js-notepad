@@ -1,6 +1,6 @@
 import { ui } from "../../api/ui";
 import { pagesModel } from "../../api/pages";
-import type { PageModel } from "../../api/pages/PageModel";
+import { PageModel } from "../../api/pages/PageModel";
 import { scriptRunner } from "../../scripting/ScriptRunner";
 import { isScriptLanguage } from "../../scripting/transpile";
 
@@ -103,9 +103,7 @@ export class TextFileActionsModel {
                 await this.model.dispose();
             }
         } else {
-            // Host is always a concrete PageModel in Phase 1 (US-597); focusPage
-            // takes PageModel, so cast the widened IPageHost back.
-            if (this.model.page) pagesModel.focusPage(this.model.page as PageModel);
+            if (this.model.page instanceof PageModel) pagesModel.focusPage(this.model.page);
         }
         return result;
     };

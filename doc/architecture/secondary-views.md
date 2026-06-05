@@ -242,6 +242,10 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 | `ArchiveEditorModel` | `["archive-tree"]` | B (mainEditor) | Survives if new editor was opened from this archive | `_openArchive()` in PagesLifecycleModel |
 | `LinkEditor` (links, main) | `["link-category", "link-tags", "link-hostnames"]` (always all 3) | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. First open fires `secondaryViewsToggled` via `PageModel.toggleNavigator()`. | LinkEditor component `useEffect` (subscribes to `secondaryViewsToggled` event) |
 | `LinkEditor` (links, standalone) | `["link-category", "link-tags"?]` (dynamic) | A (separate) | Always survives (base `onMainEditorChanged` is no-op). Exposes `treeProvider`/`selectionState`/`selectByHref()` via duck-typing for CategoryEditor discovery and player track navigation. "link-tags" dynamically registered when tags exist. | LinkCategorySecondaryView useEffect (subscribes to model state for tag changes) |
+| `NotebookEditor` | `["notebook-categories", "notebook-tags"?]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. "notebook-tags" only when tags exist. | NotebookBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
+| `TodoEditor` | `["todo"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | TodoBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
+| `RestClientEditor` | `["rest"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | RestClientBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
+| `LinkEditor` (browser bookmarks) | `["link-category", "link-tags", "link-hostnames"]` | B — hosted on `BrowserPanelHost` (not `PageModel`) | Always present while the browser page is open; sidebar is mandatory-open. | `BrowserPanelHost.attach()` — called by `BrowserEditorModel` during bookmarks init |
 
 ---
 

@@ -195,6 +195,20 @@ The renderer builds the menu dynamically based on `params` fields from the `cont
 - **Popup dismissal:** Webview clicks don't bubble to the renderer DOM. A transparent overlay (`webview-click-overlay`) is rendered over the webview area while a popup menu is open, allowing clicks to reach the renderer's `document` and trigger the popup's dismiss handler.
 - **skipInspect:** The browser context menu provides its own "Inspect Element" item, so `showAppPopupMenu` is called with `{ skipInspect: true }` to suppress the app's default "Inspect" item.
 
+## Browser Panel Host (EPIC-029 / US-601)
+
+The browser editor mounts a `SecondaryViews` component inside both `BlankPageLinks` (empty-page bookmarks overlay) and `BookmarksDrawer`. To do this without a `PageModel`, `BrowserPanelHost` implements the `IPageHost` interface that `SecondaryViews` requires.
+
+**Key design points:**
+- `BrowserPanelHost` is **not** a `PageModel` — it has no tab identity or page lifecycle. It lives only for the lifetime of the browser editor that created it.
+- `sidebarMandatory` is permanently `true`. The bookmarks panel can never be closed via the ✕ button or toggle.
+- `mainEditorInstance` returns the bookmarks `LinkEditor`, so `linkEditor.isMain === true` — this satisfies `isMain`-gated features (e.g., showing save affordances).
+- The optional main-editor-navigation members of `IPageHost` (`switchMainEditor`, `promoteSecondaryToMain`) are **omitted** — there is no main-editor navigation in the browser panel context.
+- Sidebar width is persisted in the browser's own state by subscribing to `onWidthChange` — not in `openFiles0.json`.
+- The host lives in `editors/browser/` (not `api/pages/`) to avoid an import cycle via `LinkEditor`.
+
+`BrowserSecondaryViews.tsx` wires the `<SecondaryViews>` controlled component to a `BrowserPanelHost`, passing `views`, `state`, and `setState`. It is mounted in both `BlankPageLinks` and `BookmarksDrawer`.
+
 ## Key Files
 
 | File | Process | Purpose |
@@ -205,6 +219,8 @@ The renderer builds the menu dynamically based on `params` fields from the `cont
 | `src/renderer/editors/browser/BrowserTabsPanel.tsx` | Renderer | Left-side internal tabs panel with compact extension popup, drag-to-reorder |
 | `src/renderer/editors/browser/BrowserBookmarks.ts` | Renderer | Wraps TextFileModel + LinkEditor for bookmark file I/O |
 | `src/renderer/editors/browser/BookmarksDrawer.tsx` | Renderer | Sliding overlay drawer rendering the Link Editor for bookmarks |
+| `src/renderer/editors/browser/BrowserPanelHost.ts` | Renderer | `IPageHost` implementation for the browser's bookmarks sidebar (non-page host) |
+| `src/renderer/editors/browser/BrowserSecondaryViews.tsx` | Renderer | `SecondaryViews` wiring for browser empty page and BookmarksDrawer |
 | `src/renderer/editors/browser/UrlSuggestionsDropdown.tsx` | Renderer | URL bar dropdown with search history and navigation history |
 | `src/renderer/editors/browser/browser-search-history.ts` | Renderer | Per-profile persistent search history storage (file-based) |
 | `src/renderer/editors/browser/TorStatusOverlay.tsx` | Renderer | Tor connection overlay with spinner, log, reconnect button |

@@ -277,6 +277,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | App object model         | `/src/renderer/api/app.ts`                        |
 | Page/tab management      | `/src/renderer/api/pages/PagesModel.ts`           |
 | Page container (tab)     | `/src/renderer/api/pages/PageModel.ts`            |
+| Editor↔owner contract    | `/src/renderer/api/pages/IPageHost.ts`            |
 | Well-known pages         | `/src/renderer/api/pages/well-known-pages.ts`     |
 | File operations          | `/src/renderer/api/fs.ts`                         |
 | Archive I/O (ZIP/RAR/7z/TAR) | `/src/renderer/api/archive-service.ts`          |

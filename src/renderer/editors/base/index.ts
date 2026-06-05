@@ -33,7 +33,6 @@ export { EditorConfigProvider, useEditorConfig } from './EditorConfigContext';
 export type { EditorConfig } from './EditorConfigContext';
 export type { IContentHost, IContentHostState } from './IContentHost';
 export type { EditorStateStorage } from './EditorStateStorage';
-export type { IPageHost } from './IPageHost';
 export { CONTENT_HOST_TRAIT } from './editor-traits';
 export type { IContentHostTrait } from './editor-traits';
 export { editorRegistry } from './editorRegistry';
