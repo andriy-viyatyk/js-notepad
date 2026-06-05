@@ -1,7 +1,7 @@
 {
   "name": "persephone",
   "productName": "persephone",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Persephone",
   "main": ".vite/build/main.js",
   "scripts": {
