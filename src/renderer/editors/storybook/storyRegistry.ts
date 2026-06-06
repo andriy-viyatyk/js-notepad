@@ -44,6 +44,9 @@ import { multiSelectStory }      from "../../uikit/MultiSelect/MultiSelect.story
 import { selectStory }           from "../../uikit/Select/Select.story";
 import { treeStory }             from "../../uikit/Tree/Tree.story";
 
+// Git
+import { gitTreeStory }          from "../../components/git-tree/GitTree.story";
+
 export const ALL_STORIES: Story[] = [
     collapsiblePanelStackStory, panelStory, spacerStory, splitterStory, toolbarStory,
     breadcrumbStory,
@@ -53,6 +56,7 @@ export const ALL_STORIES: Story[] = [
     tagStory, tagsInputStory,
     popoverStory, tooltipStory, dialogStory, notificationStory, menuStory,
     autocompleteStory, categoryListStory, listBoxStory, multiListBoxStory, multiSelectStory, selectStory, treeStory,
+    gitTreeStory,
 ];
 
 export function findStory(id: string): Story | undefined {

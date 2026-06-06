@@ -11,7 +11,7 @@ import {
     VideoStreamSessionResult,
 } from "../api-param-types";
 import { Api, Endpoint, McpStatus } from "../api-types";
-import { GitProbeResult, GitRepoInfo } from "../git-ipc";
+import { GitCommit, GitLogOptions, GitProbeResult, GitRepoInfo } from "../git-ipc";
 
 let idGen = 0;
 const idGenMax = 2000000000;
@@ -249,6 +249,10 @@ class ApiCalls implements Api {
 
     gitDetectRepo = async (dir: string) => {
         return executeOnce<GitRepoInfo | null>(Endpoint.gitDetectRepo, dir);
+    };
+
+    gitLog = async (dir: string, opts: GitLogOptions = {}) => {
+        return executeOnce<GitCommit[]>(Endpoint.gitLog, dir, opts);
     };
 }
 

@@ -10,7 +10,7 @@ import {
     VideoStreamSessionConfig,
     VideoStreamSessionResult,
 } from "./api-param-types";
-import { GitProbeResult, GitRepoInfo } from "./git-ipc";
+import { GitCommit, GitLogOptions, GitProbeResult, GitRepoInfo } from "./git-ipc";
 
 export enum Endpoint {
     getAppRootPath = "getAppRootPath",
@@ -61,6 +61,7 @@ export enum Endpoint {
     openInVlc = "openInVlc",
     gitProbe = "gitProbe",
     gitDetectRepo = "gitDetectRepo",
+    gitLog = "gitLog",
 }
 
 export interface McpStatus {
@@ -124,6 +125,7 @@ export type Api = {
     [Endpoint.openInVlc]: (url: string, vlcPath?: string) => Promise<void>;
     [Endpoint.gitProbe]: () => Promise<GitProbeResult>;
     [Endpoint.gitDetectRepo]: (dir: string) => Promise<GitRepoInfo | null>;
+    [Endpoint.gitLog]: (dir: string, opts: GitLogOptions) => Promise<GitCommit[]>;
 };
 
 export enum EventEndpoint {

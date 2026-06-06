@@ -20,3 +20,38 @@ export interface GitRepoInfo {
     /** Current branch, or "HEAD" when detached / no commits yet. */
     branch: string;
 }
+
+/** Options for a `git log` query (EPIC-030 / US-611). */
+export interface GitLogOptions {
+    /** Cap on commits returned (Concern 7 — simple bounded load). Default 500. */
+    maxCount?: number;
+    /** Limit history to a single file (repo-relative or absolute), via `--follow`. */
+    file?: string;
+}
+
+/** Kind of a decoration ref, used to color its label (US-611). */
+export type GitRefKind = "head" | "branch" | "remote" | "tag";
+
+/** A decoration ref at a commit (the prefix is parsed off into `kind`). */
+export interface GitRef {
+    /** Display name (e.g. "main", "v1.0", "origin/main"). */
+    name: string;
+    kind: GitRefKind;
+}
+
+/** One commit row from `git log --topo-order` (EPIC-030 / US-611). */
+export interface GitCommit {
+    /** Full 40-char hash. */
+    hash: string;
+    /** Abbreviated hash for display (first 7). */
+    shortHash: string;
+    /** Parent hashes in order — parents[0] is the first parent. */
+    parents: string[];
+    /** First line of the commit message. */
+    subject: string;
+    authorName: string;
+    /** Commit (author) date as epoch ms. */
+    authorDate: number;
+    /** Decoration refs at this commit (branch/tag/HEAD), classified by kind. */
+    refs: GitRef[];
+}

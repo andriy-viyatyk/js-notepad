@@ -12,7 +12,7 @@
 import { fpDirname } from "../core/utils/file-path";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
-import type { GitRepoInfo, GitProbeResult } from "../../ipc/git-ipc";
+import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions } from "../../ipc/git-ipc";
 
 // dir → resolved repo info (or null). Stores the in-flight promise so
 // concurrent opens in the same directory collapse to a single git spawn.
@@ -43,5 +43,15 @@ export const git = {
     /** Settings-page availability probe (`git --version`). Not cached. */
     probe(): Promise<GitProbeResult> {
         return api.gitProbe();
+    },
+
+    /**
+     * Commit history for a repo root (optionally scoped to one file). Returns
+     * `[]` (no git spawn) when the "git.enabled" setting is off or no root is
+     * given. Not cached — history changes between calls (EPIC-030 / US-611).
+     */
+    log(repoRoot: string, opts: GitLogOptions = {}): Promise<GitCommit[]> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve([]);
+        return api.gitLog(repoRoot, opts).catch((): GitCommit[] => []);
     },
 };

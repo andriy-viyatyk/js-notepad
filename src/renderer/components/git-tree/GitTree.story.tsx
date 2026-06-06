@@ -1,0 +1,48 @@
+import React, { useState } from "react";
+
+import { GitTree } from "./GitTree";
+import { Panel } from "../../uikit/Panel";
+import type { GitCommit } from "../../../ipc/git-ipc";
+import type { Story } from "../../editors/storybook/storyTypes";
+
+// Synthetic DAG (newest→oldest, topo-ordered) exercising every layout case:
+// 2-parent merge (A), octopus 3-parent merge (C), branch-out + parallel lanes
+// (D/E/F off G), refs + tag decorations, and the root commit (I).
+const h = (n: string) => `${n}${"0".repeat(40 - n.length)}`;
+const t = (day: number) => Date.UTC(2026, 4, day, 12, 0, 0); // May 2026
+
+const DEMO_COMMITS: GitCommit[] = [
+    { hash: h("A"), shortHash: "Aaaaaaa", parents: [h("B"), h("E")], subject: "Merge feature into main", authorName: "Ada",  authorDate: t(20), refs: [{ name: "main", kind: "head" }, { name: "origin/main", kind: "remote" }] },
+    { hash: h("B"), shortHash: "Bbbbbbb", parents: [h("C")],         subject: "Update README",            authorName: "Lin",  authorDate: t(19), refs: [] },
+    { hash: h("C"), shortHash: "Ccccccc", parents: [h("D"), h("E"), h("F")], subject: "Octopus merge of work, feature, hotfix", authorName: "Ada", authorDate: t(18), refs: [] },
+    { hash: h("D"), shortHash: "Ddddddd", parents: [h("G")],         subject: "Main line work",            authorName: "Lin",  authorDate: t(17), refs: [] },
+    { hash: h("E"), shortHash: "Eeeeeee", parents: [h("G")],         subject: "Feature: add X",             authorName: "Sam",  authorDate: t(16), refs: [{ name: "feature", kind: "branch" }] },
+    { hash: h("F"), shortHash: "Fffffff", parents: [h("G")],         subject: "Hotfix: patch crash",        authorName: "Ada",  authorDate: t(15), refs: [{ name: "v1.0", kind: "tag" }] },
+    { hash: h("G"), shortHash: "Ggggggg", parents: [h("H")],         subject: "Shared base",                authorName: "Lin",  authorDate: t(14), refs: [] },
+    { hash: h("H"), shortHash: "Hhhhhhh", parents: [h("I")],         subject: "Project scaffolding",        authorName: "Sam",  authorDate: t(13), refs: [] },
+    { hash: h("I"), shortHash: "Iiiiiii", parents: [],               subject: "Initial commit",             authorName: "Ada",  authorDate: t(12), refs: [{ name: "v0.1", kind: "tag" }] },
+];
+
+function GitTreeDemo({ compact = false }: { compact?: boolean }) {
+    const [selected, setSelected] = useState<string | undefined>(undefined);
+    return (
+        <Panel direction="column" width={compact ? 460 : 760} height={320}>
+            <Panel flex={1} height={0}>
+                <GitTree
+                    commits={DEMO_COMMITS}
+                    selectedHash={selected}
+                    onSelectCommit={setSelected}
+                    compact={compact}
+                />
+            </Panel>
+        </Panel>
+    );
+}
+
+export const gitTreeStory: Story = {
+    id: "git-tree",
+    name: "GitTree",
+    section: "Git",
+    component: GitTreeDemo as React.ComponentType<Record<string, unknown>>,
+    props: [{ name: "compact", type: "boolean", default: false }],
+};

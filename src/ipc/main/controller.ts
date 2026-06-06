@@ -13,6 +13,7 @@ import { versionService } from "../../main/version-service";
 import * as browserRegistration from "../../main/browser-registration";
 import { downloadService } from "../../main/download-service";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
+import { GitLogOptions } from "../git-ipc";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -249,6 +250,11 @@ class Controller implements MainApi {
         const { detectRepo } = await import("../../main/git-service");
         return detectRepo(dir);
     };
+
+    gitLog = async (_event: IpcMainEvent, dir: string, opts: GitLogOptions) => {
+        const { log } = await import("../../main/git-service");
+        return log(dir, opts);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -315,6 +321,7 @@ const init = () => {
     bindEndpoint(Endpoint.openInVlc, controllerInstance.openInVlc);
     bindEndpoint(Endpoint.gitProbe, controllerInstance.gitProbe);
     bindEndpoint(Endpoint.gitDetectRepo, controllerInstance.gitDetectRepo);
+    bindEndpoint(Endpoint.gitLog, controllerInstance.gitLog);
 
     initRendererEvents();
 }
