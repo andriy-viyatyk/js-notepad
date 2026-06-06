@@ -7,6 +7,11 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
+- **EPIC-030** — [Git Integration — Git Tree + File Diff editors](epics/EPIC-030.md) *(design complete; v1 implementation)*
+  - [ ] US-610: Git service + IPC + "Git integration" setting + host detection
+  - [ ] US-611: Git Tree component (AVGrid + SVG BranchTreeCell + swimlane layout)
+  - [ ] US-612: Git Tree editor + Explorer `.git` entry point
+  - [ ] US-613: File Diff editor
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
