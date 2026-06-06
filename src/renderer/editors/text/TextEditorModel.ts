@@ -25,6 +25,11 @@ export interface TextFileEditorModelState extends IEditorState {
     temp: boolean;
     /** Editor detected from content (e.g., "notebook-view" when JSON has "type": "note-editor") */
     detectedContentEditor?: EditorView;
+    /** Git repo membership (EPIC-030). Detected once on filePath resolve when
+     *  the "Git integration" setting is on. `undefined` = not yet checked;
+     *  `null` = checked, not a repo (or git unavailable). Not persisted —
+     *  re-detected on restore, like `detectedContentEditor`. */
+    gitRepo?: { root: string; branch: string } | null;
     /** HS1 — editor-keyed view-state slot map. Each text-bearing editor that
      *  wraps this host reads + writes its own slot via
      *  `getEditorState<XxxSettings>(this.editorId)` /
@@ -194,6 +199,24 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         }
     };
 
+    // =========================================================================
+    // Git repo detection (EPIC-030 / US-610)
+    // =========================================================================
+
+    /** Detect git repo membership for the current filePath, gated by the
+     *  "Git integration" setting. Fire-and-forget; writes host state. Detection
+     *  is dir-cached in the renderer git API, so siblings don't re-spawn git. */
+    detectGitRepo = async () => {
+        const { git } = await import("../../api/git");
+        const filePath = this.state.get().filePath;
+        const info = await git.detectRepoForFile(filePath);
+        const next = info ?? null;
+        const cur = this.state.get().gitRepo;
+        if (cur?.root !== next?.root || cur?.branch !== next?.branch) {
+            this.state.update((s) => { s.gitRepo = next; });
+        }
+    };
+
     editorOverlayRef: HTMLDivElement | null = null;
 
     setEditorOverlayRef = (ref: HTMLDivElement | null) => {
@@ -349,6 +372,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         await this.io.restore();
         await this.script.restore(this.state.get().id);
         this.detectContentEditor();
+        void this.detectGitRepo();
         this.state.update((s) => {
             s.restored = true;
         });

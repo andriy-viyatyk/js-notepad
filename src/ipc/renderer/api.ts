@@ -11,6 +11,7 @@ import {
     VideoStreamSessionResult,
 } from "../api-param-types";
 import { Api, Endpoint, McpStatus } from "../api-types";
+import { GitProbeResult, GitRepoInfo } from "../git-ipc";
 
 let idGen = 0;
 const idGenMax = 2000000000;
@@ -240,6 +241,14 @@ class ApiCalls implements Api {
 
     openInVlc = async (url: string, vlcPath?: string) => {
         return executeOnce<void>(Endpoint.openInVlc, url, vlcPath);
+    };
+
+    gitProbe = async () => {
+        return executeOnce<GitProbeResult>(Endpoint.gitProbe);
+    };
+
+    gitDetectRepo = async (dir: string) => {
+        return executeOnce<GitRepoInfo | null>(Endpoint.gitDetectRepo, dir);
     };
 }
 

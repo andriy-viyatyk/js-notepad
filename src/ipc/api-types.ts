@@ -10,6 +10,7 @@ import {
     VideoStreamSessionConfig,
     VideoStreamSessionResult,
 } from "./api-param-types";
+import { GitProbeResult, GitRepoInfo } from "./git-ipc";
 
 export enum Endpoint {
     getAppRootPath = "getAppRootPath",
@@ -58,6 +59,8 @@ export enum Endpoint {
     deleteVideoStreamSession = "deleteVideoStreamSession",
     deleteVideoStreamSessionsByPage = "deleteVideoStreamSessionsByPage",
     openInVlc = "openInVlc",
+    gitProbe = "gitProbe",
+    gitDetectRepo = "gitDetectRepo",
 }
 
 export interface McpStatus {
@@ -119,6 +122,8 @@ export type Api = {
     [Endpoint.deleteVideoStreamSession]: (sessionId: string) => Promise<void>;
     [Endpoint.deleteVideoStreamSessionsByPage]: (pageId: string) => Promise<void>;
     [Endpoint.openInVlc]: (url: string, vlcPath?: string) => Promise<void>;
+    [Endpoint.gitProbe]: () => Promise<GitProbeResult>;
+    [Endpoint.gitDetectRepo]: (dir: string) => Promise<GitRepoInfo | null>;
 };
 
 export enum EventEndpoint {

@@ -41,7 +41,8 @@ export type AppSettingsKey =
     | "vlc-path"
     | "video-stream.port"
     | "visualizer-effect"
-    | "audio-shuffle";
+    | "audio-shuffle"
+    | "git.enabled";
 
 // =============================================================================
 // State
@@ -73,6 +74,7 @@ const settingsComments: Partial<Record<AppSettingsKey, string>> = {
     "video-stream.port": "Port for the local video streaming server.\nUsed by the video player for VLC integration and proxied HTTP sources. Default: 7866.",
     "visualizer-effect": "Audio visualizer effect type.\nAvailable: bars, circular.",
     "audio-shuffle": "Whether shuffle mode is enabled for audio playback.",
+    "git.enabled": "Enable Git integration (Git Tree + File Diff editors).\nOff by default. Requires git installed and on PATH.",
 };
 
 const defaultAppSettingsState = {
@@ -99,6 +101,7 @@ const defaultAppSettingsState = {
         "video-stream.port": 7866,
         "visualizer-effect": "bars" as string,
         "audio-shuffle": false,
+        "git.enabled": false,
     },
 };
 

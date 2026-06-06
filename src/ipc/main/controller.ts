@@ -239,6 +239,16 @@ class Controller implements MainApi {
         const { openInVlc } = await import("../../main/vlc-launcher");
         openInVlc(url, vlcPath);
     };
+
+    gitProbe = async (_event: IpcMainEvent) => {
+        const { probeGit } = await import("../../main/git-service");
+        return probeGit();
+    };
+
+    gitDetectRepo = async (_event: IpcMainEvent, dir: string) => {
+        const { detectRepo } = await import("../../main/git-service");
+        return detectRepo(dir);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -303,6 +313,8 @@ const init = () => {
     bindEndpoint(Endpoint.deleteVideoStreamSession, controllerInstance.deleteVideoStreamSession);
     bindEndpoint(Endpoint.deleteVideoStreamSessionsByPage, controllerInstance.deleteVideoStreamSessionsByPage);
     bindEndpoint(Endpoint.openInVlc, controllerInstance.openInVlc);
+    bindEndpoint(Endpoint.gitProbe, controllerInstance.gitProbe);
+    bindEndpoint(Endpoint.gitDetectRepo, controllerInstance.gitDetectRepo);
 
     initRendererEvents();
 }

@@ -146,6 +146,10 @@ export class TextFileIOModel {
             }
         });
 
+        // filePath may have changed (untitled→saved, or Save As across repos) —
+        // re-run git detection (EPIC-030).
+        void this.model.detectGitRepo();
+
         return true;
     };
 
@@ -198,6 +202,9 @@ export class TextFileIOModel {
             await recent.remove(oldPath);
             recent.add(newPath);
         }
+
+        // Rename can move a file across repo boundaries — re-detect (EPIC-030).
+        void this.model.detectGitRepo();
     };
 
     async restore() {

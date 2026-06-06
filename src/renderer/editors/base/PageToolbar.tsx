@@ -66,6 +66,10 @@ function SwitchWidget({ model }: { model: EditorModel }) {
         filePath: (s as { filePath?: string }).filePath,
         editor: (s as { editor?: string }).editor,
     }));
+    // Re-render when async git detection lands on the shared host (EPIC-030):
+    // `gitRepo` lives on host state, not the editor's own state. Inert until the
+    // File Diff editor (US-613) registers a host-aware `accepts`.
+    model.contentHost?.state.use((s) => (s as { gitRepo?: unknown }).gitRepo);
     const options = model.findCompatibleEditors();
     if (options.length < 2 || !options.includes(model.editorId)) return null;
     const items: ISegment[] = options.map((id) => ({

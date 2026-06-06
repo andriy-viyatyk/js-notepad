@@ -79,6 +79,7 @@
     "react-tooltip": "^5.30.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "simple-git": "^3.36.0",
     "sucrase": "^3.35.1",
     "turndown": "^7.2.4",
     "use-sync-external-store": "^1.6.0",

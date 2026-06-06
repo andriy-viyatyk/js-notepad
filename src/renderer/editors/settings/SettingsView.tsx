@@ -178,6 +178,7 @@ function BookmarksFileLine({ filePath, onBrowse, onClear }: {
             paddingBottom="sm"
             paddingLeft="xxl"
         >
+            {filename && <span style={labelTextStyle}>Bookmark file:</span>}
             <span style={labelTextStyle}>📁</span>
             {filename ? (
                 <span
@@ -810,6 +811,56 @@ function McpSection() {
 }
 
 // ============================================================================
+// Git Integration Section
+// ============================================================================
+
+function GitIntegrationSection() {
+    const gitEnabled = settings.use("git.enabled");
+    const [probe, setProbe] = useState<{ installed: boolean; version?: string } | null>(null);
+
+    useEffect(() => {
+        if (!gitEnabled) {
+            setProbe(null);
+            return;
+        }
+        let alive = true;
+        import("../../api/git")
+            .then(({ git }) => git.probe())
+            .then((r) => { if (alive) setProbe(r); })
+            .catch(() => { if (alive) setProbe({ installed: false }); });
+        return () => { alive = false; };
+    }, [gitEnabled]);
+
+    return (
+        <>
+            <Panel paddingBottom="lg"><Text bold size="sm">Git Integration</Text></Panel>
+            <Panel paddingBottom="md">
+                <Text color="light" size="xs">
+                    Enable Git Tree and File Diff editors. Off by default — requires git installed and on PATH.
+                </Text>
+            </Panel>
+
+            <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                <Checkbox checked={gitEnabled} onChange={() => settings.set("git.enabled", !gitEnabled)}>
+                    Enable Git integration
+                </Checkbox>
+            </Panel>
+
+            {gitEnabled && probe && (
+                <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                    <Dot size="sm" color={probe.installed ? "success" : "neutral"} />
+                    <Text size="sm" color="light">
+                        {probe.installed
+                            ? `Git ${probe.version ?? ""} detected`.trim()
+                            : "git not found on PATH — install git or fix PATH"}
+                    </Text>
+                </Panel>
+            )}
+        </>
+    );
+}
+
+// ============================================================================
 // Script Library Section
 // ============================================================================
 
@@ -1154,6 +1205,10 @@ function SettingsView(_props: SettingsEditorProps) {
                     <Panel paddingY="xl"><Divider /></Panel>
 
                     <McpSection />
+
+                    <Panel paddingY="xl"><Divider /></Panel>
+
+                    <GitIntegrationSection />
 
                     <Panel paddingY="xl"><Divider /></Panel>
 

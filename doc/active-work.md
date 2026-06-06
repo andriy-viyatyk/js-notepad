@@ -8,7 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 - **EPIC-030** — [Git Integration — Git Tree + File Diff editors](epics/EPIC-030.md) *(design complete; v1 implementation)*
-  - [ ] US-610: Git service + IPC + "Git integration" setting + host detection
+  - [ ] [US-610: Git service + IPC + "Git integration" setting + host detection](tasks/US-610-git-service-detection/README.md)
   - [ ] US-611: Git Tree component (AVGrid + SVG BranchTreeCell + swimlane layout)
   - [ ] US-612: Git Tree editor + Explorer `.git` entry point
   - [ ] US-613: File Diff editor
