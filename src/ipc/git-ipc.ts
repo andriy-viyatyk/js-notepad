@@ -23,8 +23,11 @@ export interface GitRepoInfo {
 
 /** Options for a `git log` query (EPIC-030 / US-611). */
 export interface GitLogOptions {
-    /** Cap on commits returned (Concern 7 — simple bounded load). Default 500. */
+    /** Cap on commits returned (Concern 7 — simple bounded load). Default 500.
+     *  `0` (or negative) means no limit — load all commits ("Load all", US-612). */
     maxCount?: number;
+    /** Skip the first N commits — pagination for "load more" (US-612). */
+    skip?: number;
     /** Limit history to a single file (repo-relative or absolute), via `--follow`. */
     file?: string;
 }

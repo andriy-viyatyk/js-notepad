@@ -33,8 +33,12 @@ export interface GitEdge {
     color: string;
 }
 
-export interface GitCommitRow {
-    commit: GitCommit;
+/**
+ * A grid row: the commit's fields flattened in (so column `key`s like
+ * "subject"/"shortHash" map directly to row fields — AVGrid range-copy reads
+ * `row[key]`), plus the per-row swimlane layout the SVG cell paints.
+ */
+export interface GitCommitRow extends GitCommit {
     node: { column: number; color: string };
     inputSwimlanes: GitLane[];
     outputSwimlanes: GitLane[];
@@ -141,7 +145,7 @@ export function toCommitRows(commits: GitCommit[], laneColors: string[]): GitCom
         }
 
         rows.push({
-            commit,
+            ...commit,
             node: { column: nodeColumn, color: nodeColor },
             inputSwimlanes,
             outputSwimlanes,

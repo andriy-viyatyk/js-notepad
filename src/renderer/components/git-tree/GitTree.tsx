@@ -14,7 +14,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styled from "@emotion/styled";
 
 import { AVGrid } from "../../uikit/AVGrid";
-import type { Column, TCellFormater, TCellRendererProps } from "../../uikit/AVGrid";
+import type { CellFocus, Column, TCellFormater, TCellRendererProps } from "../../uikit/AVGrid";
 import type { GitCommit, GitRefKind } from "../../../ipc/git-ipc";
 import { TAG_COLORS } from "../../theme/palette-colors";
 import color from "../../theme/color";
@@ -54,6 +54,14 @@ export interface GitTreeProps {
     onSelectCommit?: (hash: string) => void;
     /** Compact layout for the File-Diff popover: graph + subject + hash only. */
     compact?: boolean;
+    /** More history is available beyond the loaded commits — renders "Load more". */
+    hasMore?: boolean;
+    /** A "load more" / "load all" fetch is in flight (footer shows a loading label). */
+    loadingMore?: boolean;
+    /** Called when the user clicks "Load more" (next page; only rendered when hasMore). */
+    onLoadMore?: () => void;
+    /** Called when the user clicks "Load all" (all remaining commits). */
+    onLoadAll?: () => void;
 }
 
 const RefTag = styled.span({
@@ -65,6 +73,36 @@ const RefTag = styled.span({
     fontWeight: 600,
     border: `1px solid ${color.border.default}`,
     // `color` (text) is set per-kind inline; border stays neutral.
+});
+
+// Pinned to the bottom of the (relative, content-height) render area — the same
+// trick AVGrid's built-in add-row button uses. A normal-flow element would
+// collapse to the top behind the absolutely-positioned cells. Opaque background
+// so it reads as a footer over the bottom whitespace.
+const LoadMoreRow = styled.div({
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.md,
+    height: GIT_TREE_ROW_HEIGHT,
+    background: color.background.default,
+    fontSize: fontSize.sm,
+    userSelect: "none",
+});
+
+const LoadMoreLink = styled.span({
+    cursor: "pointer",
+    color: color.text.default,
+    "&:hover": { textDecoration: "underline" },
+    "&[data-disabled]": { opacity: 0.6, cursor: "default", textDecoration: "none" },
+});
+
+const LoadMoreSep = styled.span({
+    color: color.text.light,
 });
 
 const SubjectWrap = styled.span({
@@ -85,25 +123,27 @@ const subjectFormatter: TCellFormater = (props) => {
     if (!r) return null;
     return (
         <SubjectWrap>
-            {r.commit.refs.map((ref) => (
+            {r.refs.map((ref) => (
                 <RefTag key={`${ref.kind}:${ref.name}`} style={{ color: REF_COLOR[ref.kind] }}>
                     {ref.name}
                 </RefTag>
             ))}
-            {r.commit.subject}
+            {r.subject}
         </SubjectWrap>
     );
 };
 
-const authorFormatter: TCellFormater = (props) => rowOf(props)?.commit.authorName ?? "";
+const authorFormatter: TCellFormater = (props) => rowOf(props)?.authorName ?? "";
 
-const dateFormatter: TCellFormater = (props) => {
-    const ms = rowOf(props)?.commit.authorDate ?? 0;
-    return ms ? new Date(ms).toLocaleString() : "";
-};
+const dateText = (ms: number) => (ms ? new Date(ms).toLocaleString() : "");
 
-const hashFormatter: TCellFormater = (props) => rowOf(props)?.commit.shortHash ?? "";
+const dateFormatter: TCellFormater = (props) => dateText(rowOf(props)?.authorDate ?? 0);
 
+const hashFormatter: TCellFormater = (props) => rowOf(props)?.shortHash ?? "";
+
+// Rows are flat (commit fields spread in), so AVGrid range-copy reads `row[key]`
+// directly for the string columns. Only the graph (no field) and the date
+// (number → readable) need an explicit `formatValue`.
 function buildColumns(maxColumns: number, compact: boolean): Column<GitCommitRow>[] {
     const graph: Column<GitCommitRow> = {
         key: "graph",
@@ -111,6 +151,7 @@ function buildColumns(maxColumns: number, compact: boolean): Column<GitCommitRow
         width: graphWidth(maxColumns),
         resizible: true,
         cellRenderer: makeBranchTreeCell(maxColumns),
+        formatValue: () => "",
     };
     const subject: Column<GitCommitRow> = {
         key: "subject",
@@ -131,7 +172,7 @@ function buildColumns(maxColumns: number, compact: boolean): Column<GitCommitRow
         graph,
         subject,
         { key: "authorName", name: "Author", width: 140, resizible: true, cellFormater: authorFormatter },
-        { key: "authorDate", name: "Date", width: 160, resizible: true, cellFormater: dateFormatter },
+        { key: "authorDate", name: "Date", width: 160, resizible: true, cellFormater: dateFormatter, formatValue: (_c, r) => dateText(r.authorDate) },
         hash,
     ];
 }
@@ -142,6 +183,10 @@ export function GitTree({
     selectedHash,
     onSelectCommit,
     compact = false,
+    hasMore = false,
+    loadingMore = false,
+    onLoadMore,
+    onLoadAll,
 }: GitTreeProps) {
     const rows = useMemo(() => toCommitRows(commits, LANE_COLORS), [commits]);
     const maxColumns = useMemo(() => maxColumnCount(rows), [rows]);
@@ -162,19 +207,39 @@ export function GitTree({
         [selectedHash],
     );
 
+    // Cell focus + range selection (enables AVGrid's range-copy). Held here, in
+    // the AVGrid's parent, per the controlled focus/setFocus contract.
+    const [focus, setFocus] = useState<CellFocus<GitCommitRow> | undefined>(undefined);
+
+    const loadMore = hasMore ? (
+        <LoadMoreRow data-type="git-tree-load-more">
+            {loadingMore ? (
+                <LoadMoreLink data-disabled>Loading…</LoadMoreLink>
+            ) : (
+                <>
+                    <LoadMoreLink onClick={onLoadMore}>Load more</LoadMoreLink>
+                    <LoadMoreSep>·</LoadMoreSep>
+                    <LoadMoreLink onClick={onLoadAll}>Load all</LoadMoreLink>
+                </>
+            )}
+        </LoadMoreRow>
+    ) : undefined;
+
     return (
         <AVGrid<GitCommitRow>
             name={name}
             columns={columns}
             setColumns={setColumns}
             rows={rows}
-            getRowKey={(r) => r.commit.hash}
+            getRowKey={(r) => r.hash}
             rowHeight={GIT_TREE_ROW_HEIGHT}
             selected={selected}
-            onClick={(r) => onSelectCommit?.(r.commit.hash)}
+            onClick={(r) => onSelectCommit?.(r.hash)}
+            focus={focus}
+            setFocus={setFocus}
             disableFiltering
             disableSorting
-            fitToWidth
+            extraElement={loadMore}
         />
     );
 }

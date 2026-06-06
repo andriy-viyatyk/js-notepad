@@ -2,6 +2,7 @@ import { app } from "../api/app";
 import { isArchivePath } from "../core/utils/file-path";
 import { parseHttpRequest } from "../core/utils/curl-parser";
 import { TREE_CATEGORY_PREFIX } from "./tree-providers/tree-provider-link";
+import { GIT_TREE_PREFIX } from "./git-tree-link";
 import { normalizeFileUrl, isFileUrl, isPlausibleFilePath } from "./link-utils";
 
 /**
@@ -68,6 +69,18 @@ export function registerRawLinkParsers(): void {
         if (!data.href.startsWith(TREE_CATEGORY_PREFIX)) return;
         data.url = data.href;
         data.target ??= "category-view";
+        data.handled = false;
+        await app.events.openLink.sendAsync(data);
+        data.handled = true;
+    });
+
+    // git-tree:// parser — repo history view; navigates the current page
+    // (the Explorer passes pageId, so openContent → navigatePageTo). Mirrors the
+    // tree-category:// parser. (EPIC-030 / US-612)
+    app.events.openRawLink.subscribe(async (data) => {
+        if (!data.href.startsWith(GIT_TREE_PREFIX)) return;
+        data.url = data.href;
+        data.target ??= "git-tree";
         data.handled = false;
         await app.events.openLink.sendAsync(data);
         data.handled = true;

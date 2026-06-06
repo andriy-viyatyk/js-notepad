@@ -266,6 +266,8 @@ function AVGridComponent<R = any>(
             </span>
         );
     }
+    // No internal add-row button — fall back to a caller-supplied extraElement.
+    extraElement = extraElement ?? model.props.extraElement;
 
     let extraElementTop = null as ReactNode;
     if (model.props.onAddColumns) {

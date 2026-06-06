@@ -6,6 +6,8 @@ import type {
 } from "../../api/types/io.tree";
 import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink } from "./tree-provider-link";
+import { encodeGitTreeLink } from "../git-tree-link";
+import { settings } from "../../api/settings";
 import { debounce } from "../../../shared/utils";
 
 // Direct Node.js imports — FileTreeProvider is a low-level filesystem provider
@@ -56,12 +58,15 @@ export class FileTreeProvider implements ITreeProvider {
             const isDir = entry.isDirectory();
 
             if (isDir) {
+                // A real `.git` repo dir → Git Tree entry point (EPIC-030 / US-612).
+                const isGit = entry.name === ".git" && this.isGitRepoDir(fullPath);
                 folders.push({
                     title: entry.name,
                     href: fullPath,
                     category: dirPath,
                     tags: [],
                     isDirectory: true,
+                    ...(isGit ? { target: "git-tree", icon: "git" } : {}),
                 });
             } else {
                 const ext = path.extname(entry.name).toLowerCase();
@@ -122,8 +127,24 @@ export class FileTreeProvider implements ITreeProvider {
     }
 
     getNavigationUrl(item: ITreeProviderItem): string {
+        // `.git` repo dir → open the Git Tree editor (repoRoot = parent of .git).
+        if (item.target === "git-tree") {
+            return encodeGitTreeLink(path.dirname(item.href));
+        }
         if (!item.isDirectory) return item.href;
         return encodeCategoryLink({ type: this.type, url: this.sourceUrl, category: item.href });
+    }
+
+    /** Cheap, `git.enabled`-gated marker check for a real `.git` repo directory
+     *  (HEAD + objects present). No git spawn. (EPIC-030 Concern 2B / US-612.) */
+    private isGitRepoDir(gitPath: string): boolean {
+        if (!settings.get("git.enabled")) return false;
+        try {
+            return nodefs.existsSync(path.join(gitPath, "HEAD"))
+                && nodefs.existsSync(path.join(gitPath, "objects"));
+        } catch {
+            return false;
+        }
     }
 
     async getNavigationUrlByHref(href: string): Promise<string> {

@@ -117,9 +117,11 @@ export async function log(dir: string, opts: GitLogOptions = {}): Promise<GitCom
         const args = [
             "log",
             "--topo-order",
-            `--max-count=${max}`,
             `--pretty=format:${LOG_FORMAT}`,
         ];
+        // max <= 0 means "no limit" — load all commits ("Load all", US-612).
+        if (max > 0) args.push(`--max-count=${max}`);
+        if (opts.skip && opts.skip > 0) args.push(`--skip=${opts.skip}`);
         if (opts.file) args.push("--follow", "--", opts.file);
         const raw = await git.raw(args);
         return parseLog(raw);

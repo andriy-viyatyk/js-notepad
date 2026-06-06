@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import { FileTypeIcon } from "../icons/LanguageIcon";
 import { FolderIcon } from "../icons/FileIcon";
+import { GitIcon } from "../../theme/icons";
 import { getFaviconPathSync } from "./favicon-cache";
 import { fpExtname } from "../../core/utils/file-path";
 
@@ -18,6 +19,10 @@ export function TreeProviderItemIcon({ item }: { item: ITreeProviderItem }) {
     // Hook must run unconditionally — rules-of-hooks forbids calling it after
     // the `isDirectory` early return.
     const httpExt = useHttpPathExtension(item.href);
+
+    if (item.icon === "git") {
+        return <GitIcon width={16} height={16} />;
+    }
 
     if (item.isDirectory) {
         return <FolderIcon />;

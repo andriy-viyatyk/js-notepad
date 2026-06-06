@@ -134,6 +134,8 @@ export interface ILink {
     hasItems?: boolean;
     /** Preferred editor target for opening this link (e.g., "image-view", "monaco"). */
     target?: string;
+    /** Optional semantic icon hint (e.g., "git") overriding the default folder/file icon. */
+    icon?: string;
 }
 
 /** @deprecated Use ILink instead. */

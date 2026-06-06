@@ -27,7 +27,7 @@ function GitTreeDemo({ compact = false }: { compact?: boolean }) {
     const [selected, setSelected] = useState<string | undefined>(undefined);
     return (
         <Panel direction="column" width={compact ? 460 : 760} height={320}>
-            <Panel flex={1} height={0}>
+            <Panel direction="column" flex={1} height={0}>
                 <GitTree
                     commits={DEMO_COMMITS}
                     selectedHash={selected}

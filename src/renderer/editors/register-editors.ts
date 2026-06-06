@@ -370,3 +370,14 @@ editorRegistry.register({
         return categoryModule;
     },
 });
+
+editorRegistry.register({
+    id: "git-tree",
+    name: "Git Tree",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { gitTreeModule } = await import("./git-tree");
+        return gitTreeModule;
+    },
+});

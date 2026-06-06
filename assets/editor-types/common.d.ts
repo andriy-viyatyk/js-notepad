@@ -48,7 +48,8 @@ export type EditorView =
     | "category-view"
     | "rest-client"
     | "video-view"
-    | "storybook-view";
+    | "storybook-view"
+    | "git-tree";
 
 /** Monaco language identifier. */
 export type Language =

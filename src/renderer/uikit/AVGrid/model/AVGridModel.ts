@@ -1,4 +1,4 @@
-import { CSSProperties, SetStateAction } from "react";
+import { CSSProperties, ReactNode, SetStateAction } from "react";
 import {
     CellEdit,
     CellFocus,
@@ -65,6 +65,10 @@ export interface AVGridProps<R> {
     fitToWidth?: boolean;
     growToHeight?: CSSProperties["height"];
     growToWidth?: CSSProperties["height"];
+    /** Caller-supplied node rendered after the last row (forwarded to
+     *  RenderGrid.extraElement). Ignored when `onAddRows` is set — the internal
+     *  add-row button takes that slot. */
+    extraElement?: ReactNode;
 }
 
 export interface AVGridState<R> {

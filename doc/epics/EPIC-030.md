@@ -46,6 +46,7 @@ Explicitly **not** built in v1 — each is a *candidate* future task, not a prom
 - **Status decorations** beyond the two detection touch-points already specified (the File Diff switch + the `.git` icon) — e.g. per-file dirty badges in Explorer, Monaco gutter diff markers.
 - **Multi-repo** orchestration, remotes/credential management (beyond what the git CLI handles itself), submodule drill-in.
 - **Bundling a git binary** — we rely on the user's installed git (Concern 4).
+- **Git Tree entry point for worktrees / submodules** — the Explorer `.git` entry point (US-612) detects a real `.git` *directory* (HEAD + objects marker). Worktrees and submodules use a `.git` *file* (`gitdir:` pointer) and won't get the entry point. (The File Diff switch still works for files in them, since US-610 detection uses `rev-parse`.)
 - Live **auto-refresh** on filesystem/repo changes — v1 may use manual / on-open refresh; reactive watching is a later refinement.
 
 ## Decided so far
