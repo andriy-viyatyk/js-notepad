@@ -565,7 +565,8 @@ persephone/
 │   │   └── favicon-cache.ts # Favicon download/cache for HTTP links (shared by link-editor, browser, tree icons)
 │   ├── file-search/        # FileSearch — standalone file content search with virtualized results (EPIC-015)
 │   ├── icons/              # FileIcon, LanguageIcon
-│   └── page-manager/       # Portal-based page/tab host (prevents iframe/webview reload on reorder)
+│   ├── page-manager/       # Portal-based page/tab host (prevents iframe/webview reload on reorder)
+│   └── git-tree/           # Reusable Git history view (AVGrid + SVG BranchTreeCell + swimlane layout + GitTreeModel) — shared by the git-tree editor and the File Diff commit picker (EPIC-030)
 │
 ├── core/                   # Core Infrastructure
 │   ├── state/              # State management primitives
@@ -623,6 +624,7 @@ persephone/
 ├── browser-service.ts      # Browser page support (webview management)
 ├── browser-registration.ts # Default browser registration
 ├── tor-service.ts          # Tor process lifecycle and per-partition SOCKS5 proxy
+├── git-service.ts          # Git access via simple-git (rev-parse, branch, log, show, --version probe) — main-process only (EPIC-030)
 ├── download-service.ts     # Download management
 ├── search-service.ts       # File search service
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
@@ -646,6 +648,7 @@ persephone/
 ├── api-param-types.ts      # IPC parameter types
 ├── browser-ipc.ts          # Browser-specific IPC channels
 ├── tor-ipc.ts              # Tor service IPC channels (start, stop, log)
+├── git-ipc.ts              # Git service IPC channel names + request/response types (EPIC-030)
 ├── search-ipc.ts           # Search IPC channels
 ├── worker-channels.ts      # Worker thread IPC channels (app.runAsync)
 ├── popup-rate-limiter.ts   # Global popup/tab rate limiter (app-wide singleton)
@@ -668,7 +671,7 @@ persephone/
 | New composed API (multiple files) | `/api/[name]/` subfolder |
 | New internal service | `/api/internal/` |
 | New reusable UIKit primitive | `/uikit/<ComponentName>/` |
-| New persephone-coupled component | `/components/<existing-keep-folder>/` (only `icons/`, `page-manager/`, `file-search/`, `tree-provider/`) |
+| New persephone-coupled component | `/components/<existing-keep-folder>/` (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `git-tree/`) |
 | New utility | `/core/utils/` |
 | New scripting facade | `/scripting/api-wrapper/[Name]Facade.ts` |
 

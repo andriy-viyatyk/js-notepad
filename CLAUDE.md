@@ -360,3 +360,11 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Rust launcher            | `/launcher/src/main.rs`                           |
 | Rust screen snip tool    | `/snip-tool/src/main.rs`                          |
 | VMP signing (build hook) | `/scripts/vmp-sign.mjs`                           |
+| Git service (main)       | `/src/main/git-service.ts`                        |
+| Git IPC types            | `/src/ipc/git-ipc.ts`                             |
+| Git renderer API         | `/src/renderer/api/git.ts`                        |
+| Git Tree component       | `/src/renderer/components/git-tree/GitTree.tsx`   |
+| Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
+| Swimlane lane layout     | `/src/renderer/components/git-tree/swimlane-layout.ts` |
+| Git Tree editor          | `/src/renderer/editors/git-tree/GitTreeEditorModel.ts` |
+| File Diff editor         | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |

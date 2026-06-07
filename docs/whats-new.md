@@ -8,7 +8,15 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.3 (Upcoming)
 
-*No changes yet.*
+### New Features
+
+- **Git integration (off by default)** — Persephone now ships with optional, read-only git support. Enable it in **Settings → Git Integration** with the **Enable Git integration** checkbox. When enabled, the settings page runs a `git --version` probe and reports the result inline ("Git 2.x.x detected" or an error). Requires git installed and on PATH. When disabled (the default), no git activity occurs.
+
+- **Git Tree editor** — Browse the commit history of any git repository. In the **File Explorer** panel, a `.git` entry appears for repos with a detected git root — click it to open the **Git Tree** tab. The editor shows a scrollable commit list with a swimlane graph column, commit message, author, relative time, and short hash. Branch and tag ref labels appear on relevant commits. Use the **Refresh** toolbar button to reload. The list loads 200 commits at a time; a **Load more** button appends the next page, and a **Load all** option fetches the entire history. The view is read-only; no staging or committing from here.
+
+- **Git Diff editor switch** — For any text file inside a git repository, a **Git Diff** button appears in the editor switch toolbar (alongside Text Editor, Preview, etc.). Click it to open a Monaco side-by-side diff view. Two toolbar dropdowns (**From** / **To**) pick the revisions to compare — each opens a commit picker (a compact Git Tree in a popover, scoped to the file's history). Quick options: **Unstaged** (current working tree), **Staged** (git index — shown only when staged changes exist). The default comparison is the file's latest commit on the left versus Unstaged on the right. When **To** is set to **Unstaged**, the right pane is editable and writes changes back to the file. Comparing two commits or Staged is read-only. The selected revision pair is persisted across restarts. If the file is not tracked by git (or git fails), the editor shows an explanatory message with a **Switch to Text Editor** button.
+
+  > Git integration is v1 — inspect only. Stage, commit, push, branch, and merge operations are not available.
 
 ---
 

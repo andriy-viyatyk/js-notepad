@@ -15,7 +15,7 @@ All editor code lives in `/src/renderer/editors/`.
 
 ## Editor Catalog
 
-22 editor classes. The `IContentHost?` column indicates whether the editor composes an `IContentHost` (text-bearing) — these can switch between each other on the same page. The `Trait?` column indicates whether the editor exposes `CONTENT_HOST_TRAIT` — these participate in owner-orchestrated switching.
+24 editor classes. The `IContentHost?` column indicates whether the editor composes an `IContentHost` (text-bearing) — these can switch between each other on the same page. The `Trait?` column indicates whether the editor exposes `CONTENT_HOST_TRAIT` — these participate in owner-orchestrated switching.
 
 | Editor ID | Class | File types | IContentHost? | Trait? |
 |-----------|-------|------------|---------------|--------|
@@ -34,6 +34,7 @@ All editor code lives in `/src/renderer/editors/`.
 | `graph-view` | `GraphEditor` | `.fg.json` | ✓ | ✓ |
 | `draw-view` | `DrawEditor` | `.excalidraw` | ✓ | ✓ |
 | `rest-client` | `RestClientEditor` | `.rest.json` | ✓ | ✓ |
+| `file-diff` | `FileDiffEditor` | (switch — "Git Diff", offered for files in a git repo) | ✓ | ✓ |
 | `pdf-view` | `PdfEditor` | `.pdf` | — | — |
 | `image-view` | `ImageEditor` | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | — | — |
 | `archive-view` | `ArchiveEditor` | `.zip`, `.epub`, `.docx`, `.xlsx`, etc. | — | — |
@@ -44,6 +45,7 @@ All editor code lives in `/src/renderer/editors/`.
 | `settings-view` | `SettingsEditor` | (none — opened via UI) | — | — |
 | `video-view` | `VideoEditorModel` | `.mp4`, `.mkv`, `.webm`, `.mp3`, `.flac`, `.wav`, `.ogg`, `.m3u8`, `.hls` | — | — |
 | `storybook-view` | `StorybookEditorModel` | (none — opened via UI) | — | — |
+| `git-tree` | `GitTreeEditorModel` | (none — opened from the `.git` node in Explorer) | — | — |
 | `compare` | `CompareEditor` | (triggered) | — | — |
 
 > **PDF / Image content pipe integration:** Both have `ensurePipe()` to reconstruct the pipe from `filePath` on app restart. For non-local sources (HTTP URLs, archive entries), they read content through the pipe and cache to disk for offline restart recovery. PDF caches as `{pageId}.pdf`, Image caches as `{pageId}.img`. Cache files are cleaned up on page dispose.
@@ -246,6 +248,8 @@ if (opts.options.length > 1) {
 ```
 
 The page-level switch invokes `PageModel.switchMainEditor(newEditorId)`, which delegates to `switchEditorViaContentHost` to transfer the host.
+
+**Host-state-driven switch offers:** an editor's `accepts(input)` receives the candidate `input.host`, so a switch can be offered conditionally on host state — not just file type. The `file-diff` editor uses this: `accepts` returns a positive priority only when `input.host.state.gitRepo` is set (the file lives in a git repo), otherwise `-1`. Because the `SwitchWidget` (`PageToolbar.tsx`) also subscribes to `host.state`, the "Git Diff" switch appears the moment async git detection lands on the shared host (see [state-management.md](state-management.md#host-centric-git-detection)). This is how every text editor inherits the File Diff switch with zero per-editor code.
 
 ### Content-Based Editor Detection
 

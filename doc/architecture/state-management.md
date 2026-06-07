@@ -168,6 +168,10 @@ Minimal interface for "something that owns editable text content". Two concrete 
 
 Editors compose one via `this.contentHost` and read content through it. Switching editor types is a host-ownership transfer — the new editor inherits the existing host (and its content + I/O + encryption state) untouched.
 
+### Host-centric git detection
+
+`TextFileModel` carries an optional `gitRepo: { root: string; branch: string } | null | undefined` in its state (`undefined` = not yet checked, `null` = checked and not a repo). When the setting `git.enabled` is on, detection runs **once** as `filePath` resolves — `git rev-parse --show-toplevel` through the renderer git API (`api/git.ts`, directory-keyed cache) over the main-process `git-service.ts`. Because the host is transferred on every editor switch (not re-created), detection never re-runs as the user switches Monaco → Preview → Diff. Editors read this fact off the shared host rather than detecting per-editor — see the host-state-driven switch offer for `file-diff` in [editors.md](editors.md#editor-switching). The whole subsystem is inert when `git.enabled` is off (the default): no `rev-parse`, no git spawns.
+
 ### Content Pipe State (IPipeDescriptor)
 
 Content pipes are serializable for persistence across app restarts. `IPipeDescriptor` stores the provider type/config and transformer chain:

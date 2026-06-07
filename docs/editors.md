@@ -425,6 +425,65 @@ Opens automatically when you open an archive file. Supports:
 - **Open as Archive** — Right-click an archive file in the File Explorer and choose **Open as Archive** to browse it in a dedicated Archive tab.
 - **ASAR archives** — Electron `.asar` files open the same way. File operations are disabled inside `.asar` archives.
 
+## Git Tree
+
+Requires **Git integration** to be enabled (see [Settings — Git Integration](#git-integration-setting)).
+
+The Git Tree editor shows the commit history of a git repository as a read-only scrollable list. Open it by clicking the `.git` entry in the **File Explorer** panel — this entry appears automatically for any folder that is (or contains) a git repo root.
+
+**Columns:**
+
+| Column | Description |
+|--------|-------------|
+| Graph | Swimlane graph showing branch topology |
+| Message | Commit subject line; ref labels (branch, tag) appear inline |
+| Author | Commit author name |
+| Time | Relative time since the commit |
+| Hash | Abbreviated commit hash |
+
+**Toolbar:**
+
+- **Refresh** — Reload history from disk.
+
+**Pagination:** The first 200 commits load immediately. A **Load more** row at the bottom of the list appends the next 200 commits. A **Load all** option fetches the entire history at once (use with care on very large repos).
+
+The Git Tree is read-only — it is an inspection tool. Stage, commit, push, branch, and merge operations are not available in v1.
+
+## Git Diff
+
+Requires **Git integration** to be enabled (see [Settings — Git Integration](#git-integration-setting)).
+
+The Git Diff editor is a revision comparison view surfaced via the editor switch toolbar for any text file that is tracked by a git repository. Click **Git Diff** in the switch toolbar (next to Text Editor, Preview, etc.) to activate it.
+
+**Toolbar controls:**
+
+- **From** dropdown — the left (original) side of the diff. Options: **Staged** (git index, shown only when the file has staged changes), or any specific commit (selected from the commit picker popover).
+- **To** dropdown — the right (modified) side. Options: **Unstaged** (current working-tree content), **Staged** (git index, shown only when staged changes exist), or a specific commit.
+
+**Default view:** When you first open Git Diff for a file, the comparison defaults to the file's latest commit (left) versus **Unstaged** / working tree (right). This immediately shows what you have changed since the last commit.
+
+**Editing:** When **To** is **Unstaged**, the right pane is a live editor — changes you make are written back to the file on disk. All other combinations (commit ↔ commit, commit ↔ staged, etc.) are read-only.
+
+**Commit picker:** Clicking either dropdown opens a popover with a compact commit list scoped to the file's history. Select a commit to use it as that side's revision.
+
+**Persistence:** The selected From/To pair is saved with the tab and restored on the next app start or when the tab is re-opened via drag-and-drop between windows.
+
+**Error state:** If the file is not inside a git repo, or git is unavailable, the editor shows an explanatory message with a **Switch to Text Editor** button. The **Git Diff** switch button is also hidden for those files.
+
+## Git Integration Setting
+
+Git features (Git Tree and Git Diff) are disabled by default. To enable them:
+
+1. Open **Settings** (sidebar button or **Tools & Editors** panel).
+2. Scroll to the **Git Integration** section.
+3. Check **Enable Git integration**.
+
+When the checkbox is on, Persephone immediately probes for git on your PATH and shows the result inline:
+- A green dot and "Git 2.x.x detected" — git is found and ready.
+- A grey dot and "git not found on PATH" — install git or fix your PATH, then toggle the setting off and back on to re-probe.
+
+When the checkbox is off (the default), Persephone performs zero git activity — no background processes, no disk access beyond normal file opening.
+
 ## MCP Inspector
 
 A tool for connecting to and testing MCP (Model Context Protocol) servers. Open it from the **+** dropdown → **MCP Inspector** (if pinned), or from the **Tools & Editors** panel.
@@ -469,6 +528,7 @@ Some files support multiple editors:
 | `.mp4`, `.webm`, `.avi`, `.mkv`, `.mov`, `.m3u8`, `.m3u` | Video Player only |
 | `.mp3`, `.wav`, `.aac`, `.flac`, `.m4a`, `.wma`, `.ogg`, `.opus` | Video Player only (audio with visualizer) |
 | Images | Image Viewer only |
+| Any text file in a git repo (requires Git integration enabled) | + Git Diff |
 | Other | Text only |
 
 Use the buttons in the toolbar to switch between available editors.

@@ -101,7 +101,7 @@ Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previou
 ├── scripting/        # Script execution engine and API wrappers
 ├── automation/       # Browser automation — Playwright-compatible MCP tools
 ├── uikit/            # Standalone component library (canonical home for primitives)
-├── components/       # Persephone-coupled components (icons, page-manager, file-search, tree-provider)
+├── components/       # Persephone-coupled components (icons, page-manager, file-search, tree-provider, git-tree)
 ├── core/             # State primitives and utilities
 ├── theme/            # Colors, icons, theme definitions
 └── types/            # Global type declarations
@@ -118,7 +118,7 @@ Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previou
 | **scripting/** | Script sandbox, API wrappers, facades | `ScriptRunner.ts`, `ScriptContext.ts`, `api-wrapper/` |
 | **automation/** | Playwright-compatible browser MCP tools, CDP, input, refs | `commands.ts`, `input.ts`, `ref.ts`, `snapshot.ts` |
 | **uikit/** | Standalone reusable component library (EPIC-025) | `Button/`, `Menu/`, `Tree/`, `ListBox/`, `Select/`, `RenderGrid/`, `AVGrid/`, … — see `uikit/index.ts` |
-| **components/** | Persephone-coupled components only (KEEP-only) | `icons/`, `page-manager/`, `file-search/`, `tree-provider/` |
+| **components/** | Persephone-coupled components only (KEEP-only) | `icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `git-tree/` |
 | **core/** | State primitives, utilities | `state/` (TOneState, TModel), `utils/` |
 | **theme/** | Design tokens, themes | `color.ts`, `themes/` |
 
@@ -126,7 +126,7 @@ Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previou
 
 1. **`core/`** is the foundation — no imports from other renderer layers
 2. **`uikit/`** is the standalone library — imports only `core/` and `theme/`. No imports from `api/`, `ui/`, `editors/`, or app-specific code (the contract that lets `uikit/` be split into a separate package later)
-3. **`components/`** is persephone-coupled by definition — each remaining folder (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`) uses `api/`, the page model, file system, or scripting. New pure primitives do NOT go here — they go in `uikit/`
+3. **`components/`** is persephone-coupled by definition — each remaining folder (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `git-tree/`) uses `api/`, the page model, file system, or scripting. New pure primitives do NOT go here — they go in `uikit/`
 4. **`api/`** implements the Object Model — imports `core/`, uses IPC
 5. **`content/`** implements the I/O pipeline — imports `core/`, `api/types/`
 6. **`editors/`** implement page types — import `core/`, `uikit/`, `components/`, `api/`, `content/`
