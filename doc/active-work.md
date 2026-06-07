@@ -11,7 +11,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-610: Git service + IPC + "Git integration" setting + host detection](tasks/US-610-git-service-detection/README.md)
   - [ ] [US-611: Git Tree component (AVGrid + SVG BranchTreeCell + swimlane layout)](tasks/US-611-git-tree-component/README.md)
   - [ ] [US-612: Git Tree editor + Explorer `.git` entry point](tasks/US-612-git-tree-editor/README.md)
-  - [ ] US-613: File Diff editor
+  - [ ] [US-613: File Diff editor](tasks/US-613-file-diff-editor/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

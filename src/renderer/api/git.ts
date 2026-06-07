@@ -54,4 +54,15 @@ export const git = {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve([]);
         return api.gitLog(repoRoot, opts).catch((): GitCommit[] => []);
     },
+
+    /**
+     * Blob content of `relPath` at a revision (EPIC-030 / US-613). `rev` is ""
+     * (the index — staged blob if staged, else HEAD), "HEAD", or a commit hash.
+     * `relPath` is repo-relative (forward slashes). Returns "" when git is off,
+     * no root/path, or the path is absent at that revision. Never throws.
+     */
+    show(repoRoot: string, rev: string, relPath: string): Promise<string> {
+        if (!settings.get("git.enabled") || !repoRoot || !relPath) return Promise.resolve("");
+        return api.gitShow(repoRoot, rev, relPath).catch((): string => "");
+    },
 };

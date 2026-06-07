@@ -62,6 +62,7 @@ export enum Endpoint {
     gitProbe = "gitProbe",
     gitDetectRepo = "gitDetectRepo",
     gitLog = "gitLog",
+    gitShow = "gitShow",
 }
 
 export interface McpStatus {
@@ -126,6 +127,7 @@ export type Api = {
     [Endpoint.gitProbe]: () => Promise<GitProbeResult>;
     [Endpoint.gitDetectRepo]: (dir: string) => Promise<GitRepoInfo | null>;
     [Endpoint.gitLog]: (dir: string, opts: GitLogOptions) => Promise<GitCommit[]>;
+    [Endpoint.gitShow]: (dir: string, rev: string, path: string) => Promise<string>;
 };
 
 export enum EventEndpoint {

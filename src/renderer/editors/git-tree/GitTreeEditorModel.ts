@@ -5,6 +5,7 @@ import {
     type EditorStateBase,
 } from "../base/EditorModel";
 import { GitIcon } from "../../theme/icons";
+import { GitTreeModel } from "../../components/git-tree";
 
 export interface GitTreeEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -40,15 +41,33 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     noLanguage = true;
     skipSave = true;
 
+    /** Commit history model (model-view). The view renders `<GitTree model={this.gitTree}>`
+     *  and the toolbar's Refresh calls `this.gitTree.reload()`. */
+    readonly gitTree = new GitTreeModel();
+
     /** Tab icon — the git glyph (EPIC-030 / US-612). */
     getIcon = (): ReactNode => createElement(GitIcon, { width: 16, height: 16 });
 
-    /** Seed repoRoot + title from a decoded `git-tree://` link. */
+    /** Seed repoRoot + title from a decoded `git-tree://` link, then load history. */
     initFromRepoRoot(repoRoot: string): void {
         const folder = repoRoot.replace(/[/\\]+$/, "").split(/[/\\]/).pop() || "Git";
         this.state.update((s) => {
             s.repoRoot = repoRoot;
             s.title = `${folder} — Git`;
         });
+        this.syncGitTree();
+    }
+
+    /** Point the history model at the current repoRoot and load page 1. Called
+     *  on fresh open (`initFromRepoRoot`) and on session restore (from the
+     *  module factory) so both paths populate the tree. */
+    syncGitTree(): void {
+        this.gitTree.configure(this.state.get().repoRoot);
+        void this.gitTree.reload();
+    }
+
+    async dispose(): Promise<void> {
+        this.gitTree.dispose();
+        await super.dispose();
     }
 }

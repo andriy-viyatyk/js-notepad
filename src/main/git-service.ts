@@ -129,3 +129,20 @@ export async function log(dir: string, opts: GitLogOptions = {}): Promise<GitCom
         return [];
     }
 }
+
+/**
+ * Blob content of a file at a revision (EPIC-030 / US-613). `rev` may be:
+ *   - ""      → the index (`:path`) — the staged blob if staged, else HEAD,
+ *   - "HEAD"  → the last commit,
+ *   - a hash  → that commit.
+ * `path` is repo-relative (forward slashes). Returns "" when the path doesn't
+ * exist at that revision (new/untracked file) or git is unavailable. Never throws.
+ */
+export async function show(dir: string, rev: string, path: string): Promise<string> {
+    try {
+        const git = simpleGit(dir);
+        return await git.raw(["show", `${rev}:${path}`]);
+    } catch {
+        return ""; // absent at that rev (new file) / git missing → empty side
+    }
+}

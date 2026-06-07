@@ -254,6 +254,10 @@ class ApiCalls implements Api {
     gitLog = async (dir: string, opts: GitLogOptions = {}) => {
         return executeOnce<GitCommit[]>(Endpoint.gitLog, dir, opts);
     };
+
+    gitShow = async (dir: string, rev: string, path: string) => {
+        return executeOnce<string>(Endpoint.gitShow, dir, rev, path);
+    };
 }
 
 export const api = new ApiCalls();

@@ -49,7 +49,8 @@ export type EditorView =
     | "rest-client"
     | "video-view"
     | "storybook-view"
-    | "git-tree";
+    | "git-tree"
+    | "file-diff";
 
 /** Monaco language identifier. */
 export type Language =

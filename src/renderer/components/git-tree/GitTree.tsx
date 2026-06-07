@@ -15,7 +15,8 @@ import styled from "@emotion/styled";
 
 import { AVGrid } from "../../uikit/AVGrid";
 import type { CellFocus, Column, TCellFormater, TCellRendererProps } from "../../uikit/AVGrid";
-import type { GitCommit, GitRefKind } from "../../../ipc/git-ipc";
+import type { GitRefKind } from "../../../ipc/git-ipc";
+import type { GitTreeModel } from "./GitTreeModel";
 import { TruncatedText } from "../../uikit/TruncatedText";
 import { TAG_COLORS } from "../../theme/palette-colors";
 import color from "../../theme/color";
@@ -47,22 +48,16 @@ const REF_COLOR: Record<GitRefKind, string> = {
 export interface GitTreeProps {
     /** Optional debug label forwarded to the underlying AVGrid. */
     name?: string;
-    /** Commits newest→oldest, as returned by `git.log`. */
-    commits: GitCommit[];
+    /** Data + load/pagination model, owned by the editor (model-view). The
+     *  component renders from `model.state` and calls `model.loadMore()` /
+     *  `model.loadAll()`; it never fetches directly. */
+    model: GitTreeModel;
     /** Currently selected commit hash (highlights the row). */
     selectedHash?: string;
     /** Fired when a row is clicked. */
     onSelectCommit?: (hash: string) => void;
     /** Compact layout for the File-Diff popover: graph + subject + hash only. */
     compact?: boolean;
-    /** More history is available beyond the loaded commits — renders "Load more". */
-    hasMore?: boolean;
-    /** A "load more" / "load all" fetch is in flight (footer shows a loading label). */
-    loadingMore?: boolean;
-    /** Called when the user clicks "Load more" (next page; only rendered when hasMore). */
-    onLoadMore?: () => void;
-    /** Called when the user clicks "Load all" (all remaining commits). */
-    onLoadAll?: () => void;
 }
 
 const RefTag = styled.span({
@@ -185,15 +180,16 @@ function buildColumns(maxColumns: number, compact: boolean): Column<GitCommitRow
 
 export function GitTree({
     name,
-    commits,
+    model,
     selectedHash,
     onSelectCommit,
     compact = false,
-    hasMore = false,
-    loadingMore = false,
-    onLoadMore,
-    onLoadAll,
 }: GitTreeProps) {
+    const { commits, loadingMore, hasMore } = model.state.use((s) => ({
+        commits: s.commits,
+        loadingMore: s.loadingMore,
+        hasMore: s.hasMore,
+    }));
     const rows = useMemo(() => toCommitRows(commits, LANE_COLORS), [commits]);
     const maxColumns = useMemo(() => maxColumnCount(rows), [rows]);
 
@@ -223,9 +219,9 @@ export function GitTree({
                 <LoadMoreLink data-disabled>Loading…</LoadMoreLink>
             ) : (
                 <>
-                    <LoadMoreLink onClick={onLoadMore}>Load more</LoadMoreLink>
+                    <LoadMoreLink onClick={() => void model.loadMore()}>Load more</LoadMoreLink>
                     <LoadMoreSep>·</LoadMoreSep>
-                    <LoadMoreLink onClick={onLoadAll}>Load all</LoadMoreLink>
+                    <LoadMoreLink onClick={() => void model.loadAll()}>Load all</LoadMoreLink>
                 </>
             )}
         </LoadMoreRow>

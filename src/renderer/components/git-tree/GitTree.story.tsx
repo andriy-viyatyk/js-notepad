@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import { GitTree } from "./GitTree";
+import { GitTreeModel } from "./GitTreeModel";
 import { Panel } from "../../uikit/Panel";
 import type { GitCommit } from "../../../ipc/git-ipc";
 import type { Story } from "../../editors/storybook/storyTypes";
@@ -25,11 +26,18 @@ const DEMO_COMMITS: GitCommit[] = [
 
 function GitTreeDemo({ compact = false }: { compact?: boolean }) {
     const [selected, setSelected] = useState<string | undefined>(undefined);
+    // Seed a model with the synthetic DAG (no git fetch) — the component is a
+    // pure renderer over `model.state`.
+    const model = useMemo(() => {
+        const m = new GitTreeModel();
+        m.state.update((s) => { s.commits = DEMO_COMMITS; });
+        return m;
+    }, []);
     return (
         <Panel direction="column" width={compact ? 460 : 760} height={320}>
             <Panel direction="column" flex={1} height={0}>
                 <GitTree
-                    commits={DEMO_COMMITS}
+                    model={model}
                     selectedHash={selected}
                     onSelectCommit={setSelected}
                     compact={compact}

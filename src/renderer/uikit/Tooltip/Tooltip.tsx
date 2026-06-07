@@ -142,7 +142,10 @@ export function Tooltip({
         }
     }, [open, suppressedByOverlay, clearTimers]);
 
-    const childRef = (children as { ref?: React.Ref<unknown> }).ref;
+    // React 19: ref is a regular prop — read it from `props.ref`. Accessing
+    // `children.ref` triggers a deprecation warning ("Accessing element.ref was
+    // removed in React 19").
+    const childRef = (children.props as { ref?: React.Ref<unknown> }).ref;
     const mergedRef = useCallback(
         (node: Element | null) => {
             triggerElRef.current = node;

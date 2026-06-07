@@ -1,4 +1,5 @@
 export { GitTree, type GitTreeProps } from "./GitTree";
+export { GitTreeModel, GIT_TREE_PAGE, type GitTreeState } from "./GitTreeModel";
 export {
     GIT_TREE_ROW_HEIGHT,
     LANE_WIDTH,

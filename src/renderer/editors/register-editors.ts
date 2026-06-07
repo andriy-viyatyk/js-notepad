@@ -381,3 +381,19 @@ editorRegistry.register({
         return gitTreeModule;
     },
 });
+
+editorRegistry.register({
+    id: "file-diff",
+    name: "Git Diff",
+    hasContentHost: true,
+    // Host-aware (EPIC-030 / US-613): offered for any file detected in a git
+    // repo, regardless of changes (Concern 2A). No host (file-open resolution)
+    // → -1, so it never becomes a default open target. Below monaco (50) so
+    // editing stays the primary editor.
+    accepts: (input) =>
+        (input.host?.state.get() as { gitRepo?: unknown } | undefined)?.gitRepo ? 25 : -1,
+    loadModule: async () => {
+        const { fileDiffModule } = await import("./file-diff");
+        return fileDiffModule;
+    },
+});

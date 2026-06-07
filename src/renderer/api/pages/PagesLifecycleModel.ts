@@ -13,6 +13,7 @@ import { MonacoEditor, defaultMonacoEditorState } from "../../editors/monaco/Mon
 import { GridEditor, defaultGridEditorState, type GridEditorId } from "../../editors/grid";
 import { LogViewEditor, defaultLogViewEditorState } from "../../editors/log-view";
 import { MarkdownEditor, defaultMarkdownEditorState } from "../../editors/markdown";
+import { FileDiffEditor, defaultFileDiffEditorState } from "../../editors/file-diff";
 import { SvgEditor, defaultSvgEditorState } from "../../editors/svg";
 import { HtmlEditor, defaultHtmlEditorState } from "../../editors/html";
 import { MermaidEditor, defaultMermaidEditorState } from "../../editors/mermaid";
@@ -126,6 +127,15 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         );
         markdown.adoptHost(legacy as TextFileModel);
         return markdown;
+    }
+
+    if (isTextFile && targetEditorId === "file-diff") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const fileDiff = new FileDiffEditor(
+            new TComponentState({ ...defaultFileDiffEditorState, id }),
+        );
+        fileDiff.adoptHost(legacy as TextFileModel);
+        return fileDiff;
     }
 
     if (isTextFile && targetEditorId === "svg-view") {

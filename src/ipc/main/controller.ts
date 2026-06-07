@@ -255,6 +255,11 @@ class Controller implements MainApi {
         const { log } = await import("../../main/git-service");
         return log(dir, opts);
     };
+
+    gitShow = async (_event: IpcMainEvent, dir: string, rev: string, path: string) => {
+        const { show } = await import("../../main/git-service");
+        return show(dir, rev, path);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -322,6 +327,7 @@ const init = () => {
     bindEndpoint(Endpoint.gitProbe, controllerInstance.gitProbe);
     bindEndpoint(Endpoint.gitDetectRepo, controllerInstance.gitDetectRepo);
     bindEndpoint(Endpoint.gitLog, controllerInstance.gitLog);
+    bindEndpoint(Endpoint.gitShow, controllerInstance.gitShow);
 
     initRendererEvents();
 }

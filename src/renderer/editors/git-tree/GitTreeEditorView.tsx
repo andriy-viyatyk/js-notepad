@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { PageToolbar } from "../base";
 import { Panel } from "../../uikit/Panel";
@@ -6,11 +6,8 @@ import { Text } from "../../uikit/Text";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { RefreshIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
-import { git } from "../../api/git";
-import { settings } from "../../api/settings";
 import { GitTree } from "../../components/git-tree";
 import { decodeGitTreeLink } from "../../content/git-tree-link";
-import type { GitCommit } from "../../../ipc/git-ipc";
 import {
     GitTreeEditorModel,
     getDefaultGitTreeEditorState,
@@ -20,75 +17,19 @@ import type { EditorModule } from "../types";
 import type { EditorModel } from "../base";
 import type { EditorType, IEditorState } from "../../../shared/types";
 
-/** Commits loaded per page (Concern 5 — manual "load more"). */
-const PAGE = 200;
-
 // =============================================================================
-// Component
+// Component — thin render over the editor-owned GitTreeModel (model-view).
 // =============================================================================
 
 export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
-    const repoRoot = model.state.use((s) => s.repoRoot);
-    const gitEnabled = settings.get("git.enabled");
-
-    const [commits, setCommits] = useState<GitCommit[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(false);
-    const [gitOk, setGitOk] = useState(true);
+    const { loading, gitOk } = model.gitTree.state.use((s) => ({
+        loading: s.loading,
+        gitOk: s.gitOk,
+    }));
     const [selectedHash, setSelectedHash] = useState<string | undefined>(undefined);
 
-    // Reload from page 1 (mount, repoRoot change, or Refresh).
-    const reload = useCallback(async () => {
-        if (!gitEnabled || !repoRoot) {
-            setGitOk(gitEnabled);
-            setCommits([]);
-            setHasMore(false);
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        const probe = await git.probe();
-        setGitOk(probe.installed);
-        if (!probe.installed) {
-            setCommits([]);
-            setHasMore(false);
-            setLoading(false);
-            return;
-        }
-        const list = await git.log(repoRoot, { maxCount: PAGE });
-        setCommits(list);
-        setHasMore(list.length === PAGE);
-        setLoading(false);
-    }, [gitEnabled, repoRoot]);
-
-    const loadMore = useCallback(async () => {
-        if (loadingMore || !repoRoot) return;
-        setLoadingMore(true);
-        const list = await git.log(repoRoot, { maxCount: PAGE, skip: commits.length });
-        setCommits((prev) => [...prev, ...list]);
-        setHasMore(list.length === PAGE);
-        setLoadingMore(false);
-    }, [loadingMore, repoRoot, commits.length]);
-
-    // Load the ENTIRE history (maxCount: 0 → git log with no --max-count). Fetches
-    // from HEAD and replaces the list — robust regardless of how much is already
-    // loaded (avoids any skip-past-the-end edge case).
-    const loadAll = useCallback(async () => {
-        if (loadingMore || !repoRoot) return;
-        setLoadingMore(true);
-        const list = await git.log(repoRoot, { maxCount: 0 });
-        setCommits(list);
-        setHasMore(false);
-        setLoadingMore(false);
-    }, [loadingMore, repoRoot]);
-
-    useEffect(() => {
-        void reload();
-    }, [reload]);
-
     let body: ReactNode;
-    if (!gitEnabled || !gitOk) {
+    if (!gitOk) {
         body = (
             <Panel padding="xl">
                 <Text color="light">
@@ -109,13 +50,9 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
             // with a 100px height fallback) grows to fill instead of staying 100px.
             <Panel direction="column" flex={1} height={0}>
                 <GitTree
-                    commits={commits}
+                    model={model.gitTree}
                     selectedHash={selectedHash}
                     onSelectCommit={setSelectedHash}
-                    hasMore={hasMore}
-                    loadingMore={loadingMore}
-                    onLoadMore={() => void loadMore()}
-                    onLoadAll={() => void loadAll()}
                 />
             </Panel>
         );
@@ -140,7 +77,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                         title="Refresh"
                         icon={<RefreshIcon />}
                         disabled={loading}
-                        onClick={() => void reload()}
+                        onClick={() => void model.gitTree.reload()}
                     />
                 }
             />
@@ -175,13 +112,17 @@ const gitTreeEditorModule: EditorModule = {
         ) as unknown as EditorModel;
     },
 
-    newEditorModelFromState: async (state: Partial<IEditorState>) =>
-        new GitTreeEditorModel(
+    newEditorModelFromState: async (state: Partial<IEditorState>) => {
+        const model = new GitTreeEditorModel(
             new TComponentState({
                 ...getDefaultGitTreeEditorState(),
                 ...(state as Partial<GitTreeEditorState>),
             }),
-        ) as unknown as EditorModel,
+        );
+        // Session restore: repoRoot rides the persisted state — load history now.
+        model.syncGitTree();
+        return model as unknown as EditorModel;
+    },
 };
 
 export default gitTreeEditorModule;
