@@ -71,7 +71,12 @@ export function makeBranchTreeCell(maxColumns: number): TCellRenderer {
                     width={width}
                     height={GIT_TREE_ROW_HEIGHT}
                     viewBox={`0 0 ${width} ${GIT_TREE_ROW_HEIGHT}`}
-                    style={{ display: "block" }}
+                    // The cell box is `display: inline-flex` (RenderGrid), so the
+                    // SVG is a flex item. Without flexShrink:0 it shrinks to fit a
+                    // narrowed column and the viewBox rescales the graph. Pinning
+                    // it makes the SVG overflow at constant size; CellRoot's
+                    // overflow:hidden then clips it (EPIC-030 Concern 9).
+                    style={{ display: "block", flexShrink: 0 }}
                 >
                     {edges.map((e, i) => {
                         const x1 = e.fromColumn === -1 ? laneX(node.column) : laneX(e.fromColumn);

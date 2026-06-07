@@ -16,6 +16,7 @@ import styled from "@emotion/styled";
 import { AVGrid } from "../../uikit/AVGrid";
 import type { CellFocus, Column, TCellFormater, TCellRendererProps } from "../../uikit/AVGrid";
 import type { GitCommit, GitRefKind } from "../../../ipc/git-ipc";
+import { TruncatedText } from "../../uikit/TruncatedText";
 import { TAG_COLORS } from "../../theme/palette-colors";
 import color from "../../theme/color";
 import { fontSize, radius, spacing } from "../../uikit/tokens";
@@ -66,6 +67,7 @@ export interface GitTreeProps {
 
 const RefTag = styled.span({
     display: "inline-block",
+    flexShrink: 0, // chips keep their size; the subject's TruncatedText absorbs shrink
     marginRight: spacing.sm,
     padding: `0 ${spacing.sm}px`,
     borderRadius: radius.xs,
@@ -105,41 +107,45 @@ const LoadMoreSep = styled.span({
     color: color.text.light,
 });
 
-const SubjectWrap = styled.span({
-    display: "inline-flex",
-    alignItems: "center",
-    minWidth: 0,
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
-});
-
 function rowOf(props: TCellRendererProps): GitCommitRow | undefined {
     return props.model.data.rows[props.row] as GitCommitRow | undefined;
 }
 
+// Each text column wraps its content in <TruncatedText> (like AVGrid's DataCell):
+// it ellipsizes when it doesn't fit the column and shows the full text in a
+// hover tooltip. The ref chips stay full-size (RefTag flexShrink:0); the
+// subject's TruncatedText absorbs the shrink.
 const subjectFormatter: TCellFormater = (props) => {
     const r = rowOf(props);
     if (!r) return null;
     return (
-        <SubjectWrap>
+        <>
             {r.refs.map((ref) => (
                 <RefTag key={`${ref.kind}:${ref.name}`} style={{ color: REF_COLOR[ref.kind] }}>
                     {ref.name}
                 </RefTag>
             ))}
-            {r.subject}
-        </SubjectWrap>
+            <TruncatedText>{r.subject}</TruncatedText>
+        </>
     );
 };
 
-const authorFormatter: TCellFormater = (props) => rowOf(props)?.authorName ?? "";
+const authorFormatter: TCellFormater = (props) => {
+    const r = rowOf(props);
+    return r ? <TruncatedText>{r.authorName}</TruncatedText> : null;
+};
 
 const dateText = (ms: number) => (ms ? new Date(ms).toLocaleString() : "");
 
-const dateFormatter: TCellFormater = (props) => dateText(rowOf(props)?.authorDate ?? 0);
+const dateFormatter: TCellFormater = (props) => {
+    const r = rowOf(props);
+    return r ? <TruncatedText>{dateText(r.authorDate)}</TruncatedText> : null;
+};
 
-const hashFormatter: TCellFormater = (props) => rowOf(props)?.shortHash ?? "";
+const hashFormatter: TCellFormater = (props) => {
+    const r = rowOf(props);
+    return r ? <TruncatedText>{r.shortHash}</TruncatedText> : null;
+};
 
 // Rows are flat (commit fields spread in), so AVGrid range-copy reads `row[key]`
 // directly for the string columns. Only the graph (no field) and the date
