@@ -12,7 +12,9 @@
 import { fpDirname } from "../core/utils/file-path";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
-import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions } from "../../ipc/git-ipc";
+import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult } from "../../ipc/git-ipc";
+
+const EMPTY_STATUS: GitStatusResult = { staged: [], unstaged: [] };
 
 // dir → resolved repo info (or null). Stores the in-flight promise so
 // concurrent opens in the same directory collapse to a single git spawn.
@@ -64,5 +66,16 @@ export const git = {
     show(repoRoot: string, rev: string, relPath: string): Promise<string> {
         if (!settings.get("git.enabled") || !repoRoot || !relPath) return Promise.resolve("");
         return api.gitShow(repoRoot, rev, relPath).catch((): string => "");
+    },
+
+    /**
+     * Working-tree status for a repo root, split into staged / unstaged
+     * (EPIC-031 / US-616). Untracked files arrive under `unstaged` ('?');
+     * ignored files are omitted. Returns empty arrays (no git spawn) when the
+     * "git.enabled" setting is off or no root is given. Never throws.
+     */
+    status(repoRoot: string): Promise<GitStatusResult> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(EMPTY_STATUS);
+        return api.gitStatus(repoRoot).catch((): GitStatusResult => EMPTY_STATUS);
     },
 };

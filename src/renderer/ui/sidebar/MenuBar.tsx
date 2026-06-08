@@ -41,7 +41,7 @@ import {
     type TreeProviderViewSavedState,
 } from "../../components/tree-provider/TreeProviderView";
 import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider";
-import { FileListRef } from "./FileList";
+import { FileListRef } from "../../components/file-list";
 import { ContextMenuEvent } from "../../api/events/events";
 import { FolderIcon } from "../../components/icons/FileIcon";
 import { FolderItem } from "./FolderItem";

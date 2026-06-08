@@ -77,7 +77,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                         title="Refresh"
                         icon={<RefreshIcon />}
                         disabled={loading}
-                        onClick={() => void model.gitTree.reload()}
+                        onClick={() => model.refresh()}
                     />
                 }
             />

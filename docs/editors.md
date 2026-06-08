@@ -443,9 +443,32 @@ The Git Tree editor shows the commit history of a git repository as a read-only 
 
 **Toolbar:**
 
-- **Refresh** — Reload history from disk.
+- **Refresh** — Reload both the commit history and the Changes panel from disk.
 
 **Pagination:** The first 200 commits load immediately. A **Load more** row at the bottom of the list appends the next 200 commits. A **Load all** option fetches the entire history at once (use with care on very large repos).
+
+**Changes panel:**
+
+When the Git Tree editor is open, a **Changes** panel appears in the sidebar. The panel is split into two parts:
+
+- **Unstaged** (top) — working-tree modifications not yet staged, plus untracked files. Git-ignored files are not shown.
+- **Staged** (bottom) — files currently in the git index (ready to commit).
+
+Each row shows the repo-relative file path with a file icon and a right-aligned colored **status badge**:
+
+| Badge | Meaning |
+|-------|---------|
+| `M` | Modified |
+| `A` | Added (staged new file) |
+| `D` | Deleted |
+| `R` | Renamed |
+| `?` | Untracked (new file, not yet staged) |
+
+Click any file row to open its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. A **Refresh** button in the panel header reloads the status (and also reloads the commit history).
+
+When a list has no files, it shows a **"No changes"** label.
+
+The Changes panel is display-only in this release — staging, unstaging, discarding, and committing are not yet available.
 
 The Git Tree is read-only — it is an inspection tool. Stage, commit, push, branch, and merge operations are not available in v1.
 

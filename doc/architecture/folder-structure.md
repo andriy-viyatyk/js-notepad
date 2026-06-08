@@ -564,9 +564,10 @@ persephone/
 │   ├── tree-provider/      # TreeProviderView — generic tree viewer for any ITreeProvider (EPIC-015)
 │   │   └── favicon-cache.ts # Favicon download/cache for HTTP links (shared by link-editor, browser, tree icons)
 │   ├── file-search/        # FileSearch — standalone file content search with virtualized results (EPIC-015)
+│   ├── file-list/          # FileList — flat file list (FileIcon + single-click + search), reused by the Recent files panel and the git Changes panel; getTrailing/compact props (EPIC-031)
 │   ├── icons/              # FileIcon, LanguageIcon
 │   ├── page-manager/       # Portal-based page/tab host (prevents iframe/webview reload on reorder)
-│   └── git-tree/           # Reusable Git history view (AVGrid + SVG BranchTreeCell + swimlane layout + GitTreeModel) — shared by the git-tree editor and the File Diff commit picker (EPIC-030)
+│   └── git-tree/           # Git history view (AVGrid + SVG BranchTreeCell + swimlane layout) + git data submodels (GitTreeModel = commits, GitChangesModel = staged/unstaged status, GitStatusBadge) — shared by the git-tree editor + File Diff picker + Changes panel (EPIC-030/031)
 │
 ├── core/                   # Core Infrastructure
 │   ├── state/              # State management primitives
@@ -671,7 +672,7 @@ persephone/
 | New composed API (multiple files) | `/api/[name]/` subfolder |
 | New internal service | `/api/internal/` |
 | New reusable UIKit primitive | `/uikit/<ComponentName>/` |
-| New persephone-coupled component | `/components/<existing-keep-folder>/` (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `git-tree/`) |
+| New persephone-coupled component | `/components/<existing-keep-folder>/` (`icons/`, `page-manager/`, `file-search/`, `file-list/`, `tree-provider/`, `git-tree/`) |
 | New utility | `/core/utils/` |
 | New scripting facade | `/scripting/api-wrapper/[Name]Facade.ts` |
 

@@ -56,12 +56,20 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
                     setActivePanel={(id) => setState({ activePanel: id })}
                     height="100%"
                 >
-                    {views.flatMap((model) => {
+                    {(() => {
+                      // Panel ids must be unique within the stack — CollapsiblePanelStack
+                      // keys children by panel id. Defensively dedup so a stray duplicate
+                      // (e.g. corrupted persisted state) degrades gracefully instead of
+                      // crashing React with duplicate keys + a ref-callback update loop.
+                      const seenPanelIds = new Set<string>();
+                      return views.flatMap((model) => {
                         const panelIds = (model.state.get() as { secondaryView?: string[] }).secondaryView;
                         if (!panelIds?.length) return [];
                         return panelIds.map((panelId) => {
                             const def = secondaryViewRegistry.get(panelId);
                             if (!def) return null;
+                            if (seenPanelIds.has(panelId)) return null;
+                            seenPanelIds.add(panelId);
                             const refKey = `${model.id}-${panelId}`;
                             return (
                                 <CollapsiblePanel
@@ -79,7 +87,8 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
                                 </CollapsiblePanel>
                             );
                         });
-                    })}
+                      });
+                    })()}
                 </CollapsiblePanelStack>
             </Panel>
             <Splitter

@@ -4,7 +4,7 @@ import { pagesModel } from "../../api/pages";
 import { recent } from "../../api/recent";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
-import { FileListItem, FileList, FileListRef } from "./FileList";
+import { FileListItem, FileList, FileListRef } from "../../components/file-list";
 import type { MenuItem } from "../../uikit/Menu";
 import { api } from "../../../ipc/renderer/api";
 import {

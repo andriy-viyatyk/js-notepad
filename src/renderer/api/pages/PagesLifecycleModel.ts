@@ -726,14 +726,30 @@ export class PagesLifecycleModel {
             const ext = fpExtname(newFilePath).toLowerCase();
             const lang = getLanguageByExtension(ext);
             const languageId = lang?.id || "plaintext";
-            const previewEditor = editorRegistry.getPreviewEditor(
-                languageId,
-                newFilePath,
-            );
-            if (previewEditor) {
+            // An explicit, non-default content-host target (e.g. "file-diff",
+            // which is never the natural default for a file) must win over the
+            // language preview editor. Normal opens carry target === resolveId,
+            // so they fall through to the preview editor exactly as before
+            // (EPIC-031 / US-616).
+            const explicitTarget = options?.target;
+            const isExplicitHostTarget =
+                !!explicitTarget &&
+                explicitTarget !== editorRegistry.resolveId(newFilePath) &&
+                !!editorRegistry.getById(explicitTarget)?.hasContentHost;
+            if (isExplicitHostTarget) {
                 legacy.state.update((s) => {
-                    s.editor = previewEditor as EditorView;
+                    s.editor = explicitTarget as EditorView;
                 });
+            } else {
+                const previewEditor = editorRegistry.getPreviewEditor(
+                    languageId,
+                    newFilePath,
+                );
+                if (previewEditor) {
+                    legacy.state.update((s) => {
+                        s.editor = previewEditor as EditorView;
+                    });
+                }
             }
         }
 

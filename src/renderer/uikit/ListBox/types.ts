@@ -18,6 +18,9 @@ export interface IListBoxItem {
     label: React.ReactNode;
     /** Leading icon. */
     icon?: React.ReactNode;
+    /** Right-aligned trailing content (e.g. a status badge). Overrides the
+     *  default selection check/chevron for this row when set. */
+    trailing?: React.ReactNode;
     /** Disables this item without affecting siblings. */
     disabled?: boolean;
     /**

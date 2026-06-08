@@ -126,6 +126,7 @@ function ListBoxView<T = IListBoxItem>(
                     id={id}
                     icon={item.icon}
                     label={item.label}
+                    trailing={item.trailing}
                     searchText={searchText}
                     selected={selected}
                     active={active}

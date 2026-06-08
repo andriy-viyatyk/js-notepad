@@ -18,6 +18,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   > Git integration is v1 — inspect only. Stage, commit, push, branch, and merge operations are not available.
 
+- **Git Tree — "Changes" panel** — When the Git Tree editor is open, a **Changes** panel now appears in the sidebar showing all modified files in the repository. The panel is split into two sections: **Unstaged** (top) lists working-tree edits and untracked files; **Staged** (bottom) lists files in the git index. Each row shows the repo-relative path with a file icon and a right-aligned colored status badge (`M` modified, `A` added, `D` deleted, `R` renamed, `?` untracked). Single-click any file to open its **Git Diff** in the page — the Changes panel stays so you can review files one by one. A **Refresh** button on the panel header (and the Git Tree toolbar) reloads both the commit history and the file status. Git-ignored files are not shown. Display-only — no stage, unstage, or commit actions yet.
+
 ### Bug Fixes
 
 - **Browser reload — unsaved-changes confirmation** — A soft reload (Reload button, `F5`, `Ctrl+R`) on a page with an unsaved-changes guard (a `beforeunload` handler) now shows a confirmation dialog: **"You have unsaved changes. Leave the page and discard them?"** — click **Leave** to reload or **Cancel** to stay. Previously the reload appeared to do nothing because the guard silently blocked it. A hard reload (`Ctrl+F5` / `Ctrl+Shift+R`) still reloads immediately without prompting, bypassing the guard.

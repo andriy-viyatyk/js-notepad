@@ -96,7 +96,12 @@ export class PagesPersistenceModel {
                         const editor = await editorRegistry.createEditor(d.editorId, d.id);
                         editor.state.update((s) => {
                             Object.assign(s as object, d.state);
-                            (s as { id: string }).id = d.id;
+                            // Guarantee a non-empty id. A blank id (from a
+                            // previously-corrupted descriptor) breaks id-based
+                            // dedup and lets duplicate editors/panels accumulate
+                            // (EPIC-031 / US-616 regression fix).
+                            (s as { id: string }).id =
+                                d.id || (s as { id?: string }).id || crypto.randomUUID();
                         });
                         editor.applyRestoreData(
                             d.state as unknown as Parameters<typeof editor.applyRestoreData>[0],

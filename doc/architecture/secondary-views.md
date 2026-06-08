@@ -246,6 +246,7 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 | `TodoEditor` | `["todo"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | TodoBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
 | `RestClientEditor` | `["rest"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | RestClientBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
 | `LinkEditor` (browser bookmarks) | `["link-category", "link-tags", "link-hostnames"]` | B — hosted on `BrowserPanelHost` (not `PageModel`) | Always present while the browser page is open; sidebar is mandatory-open. | `BrowserPanelHost.attach()` — called by `BrowserEditorModel` during bookmarks init |
+| `GitTreeEditorModel` | `["git-changes"]` | B (mainEditor) | **Unconditional survival** — `beforeNavigateAway()` is a no-op, so the "Changes" panel stays when clicking a changed file opens its Git Diff (the editor becomes secondary-only). The only removal path is the panel's manual "x" (US-617). | `setPage()` sets `secondaryView = ["git-changes"]` on attach (EPIC-031 / US-616) |
 
 ---
 

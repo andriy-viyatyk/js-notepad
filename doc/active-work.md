@@ -7,7 +7,9 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- _(none)_
+- **EPIC-031** — [Git Functionality Enhancements (incremental)](epics/EPIC-031.md) *(rolling epic — small git features added one task at a time, on demand)*
+  - [x] [US-616: Git Tree "Changes" secondary view — status backend + display](tasks/US-616-git-changes-panel/README.md)
+  - [ ] [US-617: "Changes" panel — manual "x" close + empty-page + persistence](tasks/US-617-git-changes-close-lifecycle/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

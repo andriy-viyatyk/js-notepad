@@ -42,6 +42,25 @@ export interface GitRef {
     kind: GitRefKind;
 }
 
+/** One changed file in `git status` (EPIC-031 / US-616). */
+export interface GitFileChange {
+    /** Repo-relative path, forward-slashed. */
+    path: string;
+    /** Single-letter status code: M(odified) A(dded) D(eleted) R(enamed)
+     *  C(opied) U(nmerged) ?(untracked). See `git-service.status()`. */
+    status: string;
+    /** Original path for renames/copies (R/C), forward-slashed. */
+    oldPath?: string;
+}
+
+/** Split working-tree status for a repo (EPIC-031 / US-616). */
+export interface GitStatusResult {
+    /** Index (staged) changes. */
+    staged: GitFileChange[];
+    /** Working-tree (unstaged) changes, including untracked ('?'). */
+    unstaged: GitFileChange[];
+}
+
 /** One commit row from `git log --topo-order` (EPIC-030 / US-611). */
 export interface GitCommit {
     /** Full 40-char hash. */

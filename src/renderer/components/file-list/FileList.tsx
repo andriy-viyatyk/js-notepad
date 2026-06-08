@@ -1,9 +1,10 @@
 import styled from "@emotion/styled";
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
 import { ListBox, LIST_ITEM_KEY, Input, IconButton, Panel } from "../../uikit";
+import { fontSize } from "../../uikit/tokens";
 import type { MenuItem } from "../../uikit/Menu";
 import { TraitSet, traited } from "../../core/traits/traits";
-import { FileIcon, FolderIcon } from "../../components/icons/FileIcon";
+import { FileIcon, FolderIcon } from "../icons/FileIcon";
 import { CloseIcon } from "../../theme/icons";
 
 export interface FileListItem {
@@ -23,6 +24,12 @@ interface FileListProps {
     getContextMenu?: (item: FileListItem) => MenuItem[] | undefined;
     onContextMenu?: (e: React.MouseEvent) => void;
     searchable?: boolean;
+    /** Optional right-aligned trailing content per row (e.g. a git status
+     *  badge). When omitted, rows render the default ListBox trailing. */
+    getTrailing?: (item: FileListItem) => ReactNode;
+    /** Compact mode — smaller font + tighter rows. Use for dense lists such as
+     *  the git Changes panel where relative paths are shown. */
+    compact?: boolean;
 }
 
 const FileListWrapper = styled.div({
@@ -31,15 +38,10 @@ const FileListWrapper = styled.div({
     flexDirection: "column",
     overflow: "hidden",
     outline: "none",
-});
 
-const fileListTraits = new TraitSet().add(LIST_ITEM_KEY, {
-    value: (item: unknown) => (item as FileListItem).filePath,
-    label: (item: unknown) => (item as FileListItem).title,
-    icon: (item: unknown) =>
-        (item as FileListItem).isFolder
-            ? <FolderIcon />
-            : <FileIcon path={(item as FileListItem).filePath} />,
+    '&[data-compact="true"]': {
+        fontSize: fontSize.sm,
+    },
 });
 
 export const FileList = forwardRef<FileListRef, FileListProps>(
@@ -74,6 +76,23 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
             hideSearch,
         }));
 
+        const { getTrailing } = props;
+        const fileListTraits = useMemo(
+            () =>
+                new TraitSet().add(LIST_ITEM_KEY, {
+                    value: (item: unknown) => (item as FileListItem).filePath,
+                    label: (item: unknown) => (item as FileListItem).title,
+                    icon: (item: unknown) =>
+                        (item as FileListItem).isFolder
+                            ? <FolderIcon />
+                            : <FileIcon path={(item as FileListItem).filePath} />,
+                    ...(getTrailing
+                        ? { trailing: (item: unknown) => getTrailing(item as FileListItem) }
+                        : {}),
+                }),
+            [getTrailing],
+        );
+
         const filteredItems = useMemo(() => {
             if (!searchText) {
                 return props.items;
@@ -90,7 +109,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
 
         const tItems = useMemo(
             () => traited(filteredItems, fileListTraits),
-            [filteredItems]
+            [filteredItems, fileListTraits]
         );
 
         const onKeyDown = (e: React.KeyboardEvent) => {
@@ -110,7 +129,12 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
         };
 
         return (
-            <FileListWrapper ref={rootRef} tabIndex={0} onKeyDown={onKeyDown}>
+            <FileListWrapper
+                ref={rootRef}
+                tabIndex={0}
+                onKeyDown={onKeyDown}
+                data-compact={props.compact ? "true" : undefined}
+            >
                 {searchVisible && (
                     <Panel name="file-list-search" padding="sm">
                         <Input
@@ -139,7 +163,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                     name="file-list"
                     items={tItems}
                     searchText={searchText || undefined}
-                    rowHeight={22}
+                    rowHeight={props.compact ? 20 : 22}
                     activeIndex={activeIndex}
                     onActiveChange={setActiveIndex}
                     onChange={props.onClick}

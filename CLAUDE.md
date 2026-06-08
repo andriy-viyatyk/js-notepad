@@ -365,6 +365,10 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Git renderer API         | `/src/renderer/api/git.ts`                        |
 | Git Tree component       | `/src/renderer/components/git-tree/GitTree.tsx`   |
 | Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
+| Git changes (status) model | `/src/renderer/components/git-tree/GitChangesModel.ts` |
+| Git status badge         | `/src/renderer/components/git-tree/GitStatusBadge.tsx` |
 | Swimlane lane layout     | `/src/renderer/components/git-tree/swimlane-layout.ts` |
 | Git Tree editor          | `/src/renderer/editors/git-tree/GitTreeEditorModel.ts` |
+| Git Tree "Changes" panel | `/src/renderer/editors/git-tree/GitChangesSecondaryView.tsx` |
 | File Diff editor         | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |
+| Flat file list (icons + single-click) | `/src/renderer/components/file-list/FileList.tsx` |

@@ -9,5 +9,7 @@ Remaining folders:
 - `page-manager/` — coupled to `PageModel` lifecycle
 - `file-search/` — uses `app.fs`
 - `tree-provider/` — coupled to `ITreeProvider` contracts
+- `file-list/` — flat file list (icons + single-click) built on `ListBox` + `FileIcon`; reused by the Recent files panel and the Git Tree "Changes" panel
+- `git-tree/` — Git Tree component (`AVGrid` + SVG branch graph) and the git data submodels (`GitTreeModel`, `GitChangesModel`)
 
 See [`/doc/standards/uikit-vs-components-split.md`](../../../doc/standards/uikit-vs-components-split.md) for the permanent contract.

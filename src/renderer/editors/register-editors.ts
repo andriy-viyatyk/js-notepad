@@ -66,6 +66,12 @@ secondaryViewRegistry.register({
     loadComponent: () => import("./rest-client/panels/RestPanelSecondaryView"),
 });
 
+secondaryViewRegistry.register({
+    id: "git-changes",
+    label: "Changes",
+    loadComponent: () => import("./git-tree/GitChangesSecondaryView"),
+});
+
 
 editorRegistry.register({
     id: "monaco",

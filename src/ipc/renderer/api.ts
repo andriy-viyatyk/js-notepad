@@ -11,7 +11,7 @@ import {
     VideoStreamSessionResult,
 } from "../api-param-types";
 import { Api, Endpoint, McpStatus } from "../api-types";
-import { GitCommit, GitLogOptions, GitProbeResult, GitRepoInfo } from "../git-ipc";
+import { GitCommit, GitLogOptions, GitProbeResult, GitRepoInfo, GitStatusResult } from "../git-ipc";
 
 let idGen = 0;
 const idGenMax = 2000000000;
@@ -257,6 +257,10 @@ class ApiCalls implements Api {
 
     gitShow = async (dir: string, rev: string, path: string) => {
         return executeOnce<string>(Endpoint.gitShow, dir, rev, path);
+    };
+
+    gitStatus = async (dir: string) => {
+        return executeOnce<GitStatusResult>(Endpoint.gitStatus, dir);
     };
 }
 

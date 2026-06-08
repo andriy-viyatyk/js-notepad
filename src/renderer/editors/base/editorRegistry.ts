@@ -225,7 +225,11 @@ class EditorRegistry {
     async createEditor(id: string, instanceId?: string): Promise<EditorModel> {
         const module = await this.loadModule(id);
         const editor = module.createEditor();
-        if (instanceId !== undefined) {
+        // Only override the module-generated id with a real instance id. An
+        // empty string must NOT clobber it — a falsy id breaks all id-based
+        // dedup downstream (panel keys, addSecondaryView), causing duplicate
+        // editors to accumulate (EPIC-031 / US-616 regression fix).
+        if (instanceId) {
             editor.state.update((s) => { s.id = instanceId; });
         }
         return editor;

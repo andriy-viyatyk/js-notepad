@@ -11,7 +11,7 @@
  * Log/show/diff arrive with US-611/US-613 as further endpoints.
  */
 import { simpleGit } from "simple-git";
-import type { GitCommit, GitLogOptions, GitProbeResult, GitRef, GitRepoInfo } from "../ipc/git-ipc";
+import type { GitCommit, GitFileChange, GitLogOptions, GitProbeResult, GitRef, GitRepoInfo, GitStatusResult } from "../ipc/git-ipc";
 
 /** `git --version` availability probe for the settings page. Never throws. */
 export async function probeGit(): Promise<GitProbeResult> {
@@ -127,6 +127,44 @@ export async function log(dir: string, opts: GitLogOptions = {}): Promise<GitCom
         return parseLog(raw);
     } catch {
         return [];
+    }
+}
+
+/**
+ * Working-tree status split into staged (index) and unstaged (working-tree)
+ * changes (EPIC-031 / US-616). Untracked files appear under `unstaged` with
+ * status `?`; git-ignored files are omitted by `git status` (and thus here).
+ * Never throws — returns empty arrays when git is unavailable or `dir` is not
+ * a repo.
+ *
+ * simple-git's `status()` gives each file an `index` (staged) code and a
+ * `working_dir` (unstaged) code; `' '` means "unchanged in that column". A file
+ * can appear in both lists (e.g. staged then edited again).
+ */
+export async function status(dir: string): Promise<GitStatusResult> {
+    try {
+        const s = await simpleGit(dir).status();
+        const staged: GitFileChange[] = [];
+        const unstaged: GitFileChange[] = [];
+        for (const f of s.files) {
+            // Renames are encoded by simple-git as "old -> new" in `path`.
+            let path = f.path;
+            let oldPath: string | undefined;
+            const arrow = path.indexOf(" -> ");
+            if (arrow >= 0) {
+                oldPath = path.slice(0, arrow);
+                path = path.slice(arrow + 4);
+            }
+            if (f.index && f.index !== " " && f.index !== "?") {
+                staged.push({ path, status: f.index, ...(oldPath ? { oldPath } : {}) });
+            }
+            if (f.working_dir && f.working_dir !== " ") {
+                unstaged.push({ path, status: f.working_dir, ...(oldPath ? { oldPath } : {}) });
+            }
+        }
+        return { staged, unstaged };
+    } catch {
+        return { staged: [], unstaged: [] };
     }
 }
 
