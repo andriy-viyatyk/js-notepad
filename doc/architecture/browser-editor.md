@@ -528,6 +528,18 @@ The root browser `<div>` handles `Ctrl+L` (focus URL bar) and `Ctrl+F` (find in 
 | `Ctrl+L` | Focus URL bar | Root div only |
 | `Ctrl+F` | Find in page | Root div only |
 
+### Reload and the `beforeunload` guard
+
+A guest page with a `beforeunload` handler (e.g. an unsaved-changes guard) tries to cancel any reload/navigation. Electron's default for the resulting `will-prevent-unload` event is to **silently cancel the unload** — no prompt, no reload — which makes Reload/F5 appear dead. `browser-service.ts` handles `will-prevent-unload` to fix this:
+
+- **Soft reload** (toolbar button, `F5`, `Ctrl+R`) → a native confirm ("You have unsaved changes. Leave the page and discard them?"); **Leave** allows the unload (reload proceeds), **Cancel** keeps the page.
+- **Hard reload** (`Ctrl+F5` / `Ctrl+Shift+R`) → bypasses the prompt and force-reloads.
+
+The bypass uses a one-shot `bypassUnloadGuard` flag on the per-webContents `RegisteredWebview`: armed by a hard reload, consumed (and cleared) by the `will-prevent-unload` handler, and cleared defensively on `did-stop-loading` so it can never leak to a later reload. Because the flag lives in the main process, both keyboard layers must arm it there:
+
+- **Layer 1** (`before-input-event`, focus inside the page) sets `reg.bypassUnloadGuard` and calls `wc.reloadIgnoringCache()` directly.
+- **Layer 2** (`globalKeyDown`, focus on browser chrome) calls `BrowserWebviewModel.hardReload()`, which sends the new `BrowserChannel.hardReload` IPC (key `${tabId}/${internalTabId}`); the main handler arms the flag and reloads — mirroring Layer 1 so both paths have identical semantics. (Soft reload stays renderer-side via `reloadOrStop()` → `<webview>.reload()`, which still triggers the confirm.)
+
 ## Scripting Facade
 
 Scripts access browser pages via `page.asBrowser()`, which returns a `BrowserEditorFacade`. Like all editor facades, this wraps the underlying `EditorModel` subclass (`BrowserEditorModel`) directly — there is no separate view-model layer.

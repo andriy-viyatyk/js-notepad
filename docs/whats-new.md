@@ -18,6 +18,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   > Git integration is v1 — inspect only. Stage, commit, push, branch, and merge operations are not available.
 
+### Bug Fixes
+
+- **Browser reload — unsaved-changes confirmation** — A soft reload (Reload button, `F5`, `Ctrl+R`) on a page with an unsaved-changes guard (a `beforeunload` handler) now shows a confirmation dialog: **"You have unsaved changes. Leave the page and discard them?"** — click **Leave** to reload or **Cancel** to stay. Previously the reload appeared to do nothing because the guard silently blocked it. A hard reload (`Ctrl+F5` / `Ctrl+Shift+R`) still reloads immediately without prompting, bypassing the guard.
+
 ---
 
 ## Version 4.0.2

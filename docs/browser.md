@@ -42,6 +42,13 @@ A clickable label appears in the URL bar on blank pages and search result pages.
 - **Reload / Stop** — reload the current page or stop a pending load
 - **Loading indicator** — animated bar below the toolbar while a page is loading
 
+### Reload and unsaved-changes guards
+
+Some web pages register a `beforeunload` handler to warn when you try to leave with unsaved work (e.g. an online editor or a form with unsaved input). Persephone respects these guards when you reload:
+
+- **Soft reload** (Reload button, `F5`, `Ctrl+R`) — if the page has an unsaved-changes guard, a confirmation dialog appears: **"You have unsaved changes. Leave the page and discard them?"**. Click **Leave** to reload; click **Cancel** to stay on the page. Pages without a guard reload instantly.
+- **Hard reload** (`Ctrl+F5` / `Ctrl+Shift+R`) — bypasses the guard and reloads immediately, discarding any unsaved changes without prompting. Use this when you intentionally want to force a fresh load.
+
 ---
 
 ## Internal Tabs
@@ -383,9 +390,9 @@ AI agents connected via the [MCP server](./mcp-setup.md) can control the browser
 | `Ctrl+F` | Find in page (open search bar) |
 | `F3` | Next match (when find bar is open) |
 | `Shift+F3` | Previous match (when find bar is open) |
-| `F5` | Reload page |
-| `Ctrl+F5` / `Ctrl+Shift+R` | Hard reload (bypass cache) |
-| `Ctrl+R` | Reload (alias) |
+| `F5` | Soft reload (shows confirmation if page has unsaved-changes guard) |
+| `Ctrl+R` | Soft reload (alias for F5) |
+| `Ctrl+F5` / `Ctrl+Shift+R` | Hard reload — bypass cache, skip unsaved-changes guard |
 | `F12` | Open DevTools |
 | `Alt+Left` | Go back |
 | `Alt+Right` | Go forward |

@@ -32,6 +32,8 @@ export const BrowserChannel = {
     setAudioMuted: "browser:set-audio-muted",
     /** Renderer → Main: allow popups for a given tabId (disable rate limiting). Args: (tabId: string) */
     allowPopups: "browser:allow-popups",
+    /** Renderer → Main: hard reload (ignore cache) bypassing the beforeunload guard prompt. Args: (key: string) */
+    hardReload: "browser:hard-reload",
 
     // Main → Renderer
     event: "browser:event",

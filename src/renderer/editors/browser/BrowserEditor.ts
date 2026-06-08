@@ -277,7 +277,7 @@ export class BrowserEditor extends EditorModel<
         if (e.key === "F5" || (keyLower === "r" && e.ctrlKey)) {
             e.preventDefault();
             if (e.key === "F5" ? e.ctrlKey : e.shiftKey) {
-                this.webview.getActiveWebview()?.reloadIgnoringCache();
+                this.webview.hardReload();
             } else {
                 this.webview.reloadOrStop();
             }

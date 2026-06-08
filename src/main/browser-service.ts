@@ -10,7 +10,7 @@
  * Registration key is `${tabId}/${internalTabId}` to support multiple
  * internal browser tabs per persephone page tab.
  */
-import { app, BrowserWindow, ipcMain, IpcMainEvent, session, webContents, WebContents, WebFrameMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, session, webContents, WebContents, WebFrameMain } from "electron";
 import * as cheerio from "cheerio";
 import {
     BrowserChannel,
@@ -60,6 +60,12 @@ interface RegisteredWebview {
     webContents: WebContents;
     senderWebContents: WebContents;
     listeners: Array<{ event: string; handler: AnyEventHandler }>;
+    /** One-shot: when true, the next will-prevent-unload is allowed without a
+     *  confirmation prompt. Armed by a hard reload (Ctrl+F5 / Ctrl+Shift+R from
+     *  either keyboard path), consumed by the will-prevent-unload handler, and
+     *  cleared defensively on did-stop-loading so it can never leak to a later
+     *  reload if no prompt was triggered. */
+    bypassUnloadGuard: boolean;
 }
 
 // Active registrations: `${tabId}/${internalTabId}` → registration
@@ -215,7 +221,41 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
     });
 
     on("did-stop-loading", () => {
+        // Defensive: clear a hard-reload bypass that was set but never consumed
+        // (e.g. the page had no beforeunload guard, so no prompt fired).
+        const reg = registrations.get(key);
+        if (reg) reg.bypassUnloadGuard = false;
         sendEvent(sender, tabId, internalTabId, "did-stop-loading", {});
+    });
+
+    // A page with a beforeunload handler (e.g. an unsaved-changes guard) tries
+    // to cancel reloads/navigations. Electron's default is to SILENTLY cancel
+    // the unload — no prompt, no reload — which makes Reload/F5 appear dead.
+    // Surface a confirmation instead: "Leave" allows the unload (reload
+    // proceeds), "Cancel" keeps the page. A hard reload (Ctrl+F5 /
+    // Ctrl+Shift+R) arms bypassUnloadGuard to skip the prompt and force through.
+    on("will-prevent-unload", (event: Electron.Event) => {
+        const reg = registrations.get(key);
+        if (reg?.bypassUnloadGuard) {
+            reg.bypassUnloadGuard = false;
+            event.preventDefault(); // allow unload — reload without prompting
+            return;
+        }
+        const parentWindow = BrowserWindow.fromWebContents(sender);
+        const options: Electron.MessageBoxSyncOptions = {
+            type: "question",
+            buttons: ["Leave", "Cancel"],
+            defaultId: 1,
+            cancelId: 1,
+            title: "Unsaved changes",
+            message: "You have unsaved changes. Leave the page and discard them?",
+        };
+        const choice = parentWindow
+            ? dialog.showMessageBoxSync(parentWindow, options)
+            : dialog.showMessageBoxSync(options);
+        if (choice === 0) {
+            event.preventDefault(); // user chose Leave — allow the unload/reload
+        }
     });
 
     on("audio-state-changed", (e: Electron.Event & { audible: boolean }) => {
@@ -269,6 +309,10 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         if (input.key === "F5" || (keyLower === "r" && input.control)) {
             _e.preventDefault();
             if (input.key === "F5" ? input.control : input.shift) {
+                // Hard reload (Ctrl+F5 / Ctrl+Shift+R): force through any
+                // beforeunload guard without prompting.
+                const reg = registrations.get(key);
+                if (reg) reg.bypassUnloadGuard = true;
                 wc.reloadIgnoringCache();
             } else {
                 wc.reload();
@@ -367,6 +411,7 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
         webContents: wc,
         senderWebContents: sender,
         listeners,
+        bypassUnloadGuard: false,
     });
 }
 
@@ -558,6 +603,18 @@ export function initBrowserHandlers(): void {
 
     ipcMain.on(BrowserChannel.allowPopups, () => {
         globalPopupRateLimiter.allow("popups");
+    });
+
+    // Hard reload routed from the renderer (Ctrl+F5 / Ctrl+Shift+R while focus
+    // is on the browser UI rather than inside the page). Arm the bypass flag
+    // and reload here so the beforeunload guard is skipped without a prompt —
+    // mirrors the main-side before-input-event path.
+    ipcMain.on(BrowserChannel.hardReload, (_event, key: string) => {
+        const reg = registrations.get(key);
+        if (reg && !reg.webContents.isDestroyed()) {
+            reg.bypassUnloadGuard = true;
+            reg.webContents.reloadIgnoringCache();
+        }
     });
 
     ipcMain.handle(BrowserChannel.clearProfileData, async (_event, partition: string) => {

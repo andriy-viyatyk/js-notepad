@@ -59,6 +59,18 @@ export class BrowserWebviewModel {
         }
     };
 
+    /** Hard reload (ignore cache) the active tab, bypassing any beforeunload
+     *  guard prompt. Routed through the main process so the bypass flag is
+     *  armed atomically with the reload (see browser-service.ts). */
+    hardReload = () => {
+        const { activeTabId } = this.model.state.get();
+        if (!this.webviewRefs.has(activeTabId)) return;
+        ipcRenderer.send(
+            BrowserChannel.hardReload,
+            `${this.model.id}/${activeTabId}`,
+        );
+    };
+
     openDevTools = () => {
         this.getActiveWebview()?.openDevTools();
     };
