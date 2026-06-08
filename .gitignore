@@ -107,3 +107,6 @@ tmpclaude-*
 
 # Scratch files
 scratches/
+
+# Crash reports — local only, never tracked
+crash-reports/
