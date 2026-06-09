@@ -95,7 +95,14 @@ function PageContent({ pageId }: { pageId: string }) {
             <SecondaryViewsWrapper page={page} />
             {editor ? (
                 <PageEditorContainer key={page.id} className="scroll-container">
-                    <RenderEditor model={editor} />
+                    {/* Key the editor view by the model INSTANCE id so navigating
+                        within a page to a new file of the SAME editor type (Git Diff
+                        A → B, Monaco A → B) remounts the view instead of reusing the
+                        component with a new `model` prop — which left the body model
+                        and Monaco/DiffEditor internal state (content, scroll) stale.
+                        An editor-type switch preserves the id (handled by AsyncEditor's
+                        module swap), so this only remounts on a genuine model change. */}
+                    <RenderEditor key={editor.id} model={editor} />
                 </PageEditorContainer>
             ) : (
                 <EmptyPageRoot key={page.id}>

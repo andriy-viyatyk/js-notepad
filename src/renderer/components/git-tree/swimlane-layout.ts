@@ -34,15 +34,51 @@ export interface GitEdge {
 }
 
 /**
+ * Row kind (US-618). Real commits are "commit"; the Git Diff "File History" panel
+ * also injects synthetic "unstaged"/"staged" rows at the top of its grid so the
+ * working-tree / index endpoints are selectable inline (not as separate UI above
+ * the table). Synthetic rows carry an empty date/hash and a label in `subject`.
+ */
+export type GitRowType = "commit" | "unstaged" | "staged";
+
+/**
  * A grid row: the commit's fields flattened in (so column `key`s like
  * "subject"/"shortHash" map directly to row fields — AVGrid range-copy reads
  * `row[key]`), plus the per-row swimlane layout the SVG cell paints.
  */
 export interface GitCommitRow extends GitCommit {
+    /** "commit" for real history; "unstaged"/"staged" for the synthetic endpoint
+     *  rows (US-618). Lets the panel recognize special rows. */
+    recordType: GitRowType;
     node: { column: number; color: string };
     inputSwimlanes: GitLane[];
     outputSwimlanes: GitLane[];
     edges: GitEdge[];
+}
+
+/**
+ * Build a synthetic endpoint row (US-618). Empty date/hash (`authorDate: 0` →
+ * blank via `dateText`; `shortHash: ""`), no refs, a sentinel hash for the row
+ * key, and the label in `subject`.
+ */
+export function syntheticCommitRow(
+    recordType: Exclude<GitRowType, "commit">,
+    subject: string,
+): GitCommitRow {
+    return {
+        hash: `__${recordType}__`,
+        shortHash: "",
+        parents: [],
+        subject,
+        authorName: "",
+        authorDate: 0,
+        refs: [],
+        recordType,
+        node: { column: 0, color: "" },
+        inputSwimlanes: [],
+        outputSwimlanes: [],
+        edges: [],
+    };
 }
 
 /** Number of lane columns a row occupies (for sizing the graph cell). */
@@ -146,6 +182,7 @@ export function toCommitRows(commits: GitCommit[], laneColors: string[]): GitCom
 
         rows.push({
             ...commit,
+            recordType: "commit",
             node: { column: nodeColumn, color: nodeColor },
             inputSwimlanes,
             outputSwimlanes,

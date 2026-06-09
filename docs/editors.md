@@ -438,7 +438,7 @@ The Git Tree editor shows the commit history of a git repository as a read-only 
 | Graph | Swimlane graph showing branch topology |
 | Message | Commit subject line; ref labels (branch, tag) appear inline |
 | Author | Commit author name |
-| Time | Relative time since the commit |
+| Time | Commit date and time in `YYYY-MM-DD HH:mm` format (24-hour, local time) |
 | Hash | Abbreviated commit hash |
 
 **Toolbar:**
@@ -497,7 +497,9 @@ The Git Diff editor is a revision comparison view surfaced via the editor switch
 
 **Editing:** When **To** is **Unstaged**, the right pane is a live editor — changes you make are written back to the file on disk. All other combinations (commit ↔ commit, commit ↔ staged, etc.) are read-only.
 
-**Commit picker:** Clicking either dropdown opens a popover with a compact commit list scoped to the file's history. Select a commit to use it as that side's revision.
+**Commit picker:** Clicking either dropdown opens a popover with a compact commit list scoped to the file's history. Select a commit to use it as that side's revision. Commit dates in the picker are shown in `YYYY-MM-DD HH:mm` format (24-hour, local time).
+
+**File History panel:** When the Git Diff editor is active, a **File History** panel appears in the page sidebar. It lists the file's commits with the same two-column layout used by the toolbar popovers — **Unstaged** (and **Staged**, when the file has staged changes) at the top, followed by the file's full commit history. Each row has two toggle buttons, **L** (left / "From" side) and **R** (right / "To" side), highlighted in blue to show which version is currently loaded on each side. Click **L** on a row to set that revision as the left side; click **R** to set it as the right side. The Unstaged row offers only an **R** toggle (the working-tree copy can only be the right side). The File History panel and the toolbar From/To dropdowns share a single selection — changing one updates the other. A **Refresh** button in the panel header reloads the file's history. The panel is shown only while the Git Diff editor is the active view; it disappears automatically when you switch back to the Text Editor or navigate to a different file.
 
 **Persistence:** The selected From/To pair is saved with the tab and restored on the next app start or when the tab is re-opened via drag-and-drop between windows.
 

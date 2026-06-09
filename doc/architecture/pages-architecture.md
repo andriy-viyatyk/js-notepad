@@ -115,6 +115,8 @@ For multi-window transfer, `movePageOut()` calls `detachPage()` WITHOUT calling 
 
 **Portal-based rendering:** Pages are rendered through `AppPageManager` (`src/renderer/components/page-manager/AppPageManager.tsx`) using React portals with imperatively managed placeholder divs. Each page gets a stable placeholder that is never destroyed until the page closes. This prevents iframes, webviews, and canvas elements from reloading when pages are closed, reordered, grouped, or ungrouped. Placeholders are never reparented (moved between containers) — grouping is achieved purely via CSS absolute positioning within the same container. See `GroupContainer` and `ImperativeSplitter` in the same folder.
 
+**Main editor view keyed by model id:** within a page, the main editor view is rendered as `<RenderEditor key={editor.id} model={editor} />` (`src/renderer/ui/app/Pages.tsx`). The `key` is the editor **model instance id**, so navigating within a page to another file of the *same* editor type (Monaco A→B, Git Diff A→B) **remounts** the view rather than reusing the component with a new `model` prop — the latter left the body model (`useComponentModel`) and Monaco/DiffEditor internal state (content, scroll) stale. An editor-type switch preserves the id (the component swap is handled by `AsyncEditor`'s module cache), so the key does not cause a spurious remount there. This is the original design; it regressed during a refactor and was restored in US-618.
+
 ---
 
 ## 3. Page Actions Taxonomy

@@ -22,6 +22,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   - **Changes panel — close button** — The panel header now has an **×** button that removes the Git Tree editor entirely. If the Git Tree is the main editor, clicking × leaves the page empty (blank tab). If you had opened a Git Diff from the Changes panel, clicking × removes the Git Tree and panel while keeping the diff open. The panel never closes on its own — × is the only way to dismiss it.
 
+- **Git Diff — File History sidebar panel** — When the Git Diff editor is active for a file in a git repo, a **File History** panel now appears in the page sidebar. It shows **Unstaged** (and **Staged**, when applicable) rows at the top, followed by the full commit history for that file. Each row has **L** / **R** toggle buttons (highlighted blue) to select which revision is loaded on the left or right side of the diff. The Unstaged row provides only an **R** toggle. The panel stays in sync with the From/To dropdowns in the toolbar — changing either updates the other. A **Refresh** button reloads the file's history. The panel is visible only while the Git Diff view is active; it disappears when you switch to the Text Editor or navigate to another file.
+
+- **Git history — commit date format** — Commit dates throughout the git history views (File History panel, the From/To commit picker popovers in Git Diff, and the Git Tree editor) are now displayed as `YYYY-MM-DD HH:mm` (24-hour, local time). In the File History panel and the commit picker popovers the date is the first column and is resizable.
+
 ### Bug Fixes
 
 - **Browser reload — unsaved-changes confirmation** — A soft reload (Reload button, `F5`, `Ctrl+R`) on a page with an unsaved-changes guard (a `beforeunload` handler) now shows a confirmation dialog: **"You have unsaved changes. Leave the page and discard them?"** — click **Leave** to reload or **Cancel** to stay. Previously the reload appeared to do nothing because the guard silently blocked it. A hard reload (`Ctrl+F5` / `Ctrl+Shift+R`) still reloads immediately without prompting, bypassing the guard.

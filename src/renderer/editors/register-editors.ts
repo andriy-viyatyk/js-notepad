@@ -72,6 +72,11 @@ secondaryViewRegistry.register({
     loadComponent: () => import("./git-tree/GitChangesSecondaryView"),
 });
 
+secondaryViewRegistry.register({
+    id: "git-diff-revisions",
+    label: "File History",
+    loadComponent: () => import("./file-diff/GitDiffRevisionsSecondaryView"),
+});
 
 editorRegistry.register({
     id: "monaco",

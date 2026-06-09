@@ -75,11 +75,13 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
     private _gitRepoUnsub: (() => void) | null = null;
     private _pendingHost: HostDescriptor | undefined = undefined;
 
-    /** Commit-picker models (model-view) — one per side, owned here so they
-     *  survive popover open/close. Configured file-scoped in `adoptHost`;
-     *  loaded lazily on first popover open via `ensureLoaded`. */
-    readonly fromPicker = new GitTreeModel();
-    readonly toPicker = new GitTreeModel();
+    /** Single file-scoped commit-list model (model-view), shared by both toolbar
+     *  popovers AND the "Revisions" secondary panel (US-618). All three render the
+     *  same single-file history; selection is a render prop (`selectedHash` /
+     *  `sideSelect`), not model state, so one model backs them all. Owned here so
+     *  it survives popover open/close; loaded eagerly in `configureForRepo` (the
+     *  panel is visible as soon as the diff opens). */
+    readonly fileTree = new GitTreeModel();
 
     constructor(state: TComponentState<FileDiffEditorState>) {
         super(state);
@@ -160,13 +162,23 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
      * Only replaces a still-default `staged`/`head` selection — a restored or
      * user-picked commit is left untouched.
      */
-    /** Configure both commit pickers for the current repo/file and resolve the
-     *  diff defaults. Called on adopt and again when git detection lands (restore). */
+    /** Configure the shared commit-list model for the current repo/file and resolve
+     *  the diff defaults. Called on adopt and again when git detection lands
+     *  (restore). Eagerly reloads so the "Revisions" panel shows history immediately;
+     *  the popovers' lazy `ensureLoaded()` then finds it already loaded. */
     private configureForRepo(): void {
-        this.fromPicker.configure(this.repoRoot, this.relPath);
-        this.toPicker.configure(this.repoRoot, this.relPath);
+        this.fileTree.configure(this.repoRoot, this.relPath);
+        void this.fileTree.reload();
         void this.initDiffDefaults();
     }
+
+    /** Header "Refresh" for the Revisions panel (US-618): reload the commit list
+     *  and re-derive `hasStaged` (which drives the panel's Staged endpoint row).
+     *  `configure` is a no-op when the repo/file is unchanged, so this just
+     *  re-fetches (it never wipes the list). */
+    refreshPanel = (): void => {
+        this.configureForRepo();
+    };
 
     private async initDiffDefaults(): Promise<void> {
         const root = this.repoRoot;
@@ -309,6 +321,14 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
         host.state.update((s) => {
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
+
+        // Register the "Revisions" sidebar panel (Pattern B — the main editor is
+        // also its own secondary view; mirrors TodoEditor.adoptHost). We do NOT
+        // override `beforeNavigateAway`, so the base default clears this panel when
+        // the editor stops being main — it disappears on navigation to another file
+        // AND on switching the Git Diff back to the Text Editor (US-618).
+        this.secondaryView = ["git-diff-revisions"];
+
         if (this.page) host.setPage(this.page);
     }
 
@@ -336,8 +356,7 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
         this._hostStateUnsub = null;
         this._gitRepoUnsub?.();
         this._gitRepoUnsub = null;
-        this.fromPicker.dispose();
-        this.toPicker.dispose();
+        this.fileTree.dispose();
         if (this._host) {
             await this._host.dispose();
             this._host = null;

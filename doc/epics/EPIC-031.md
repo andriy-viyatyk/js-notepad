@@ -65,6 +65,7 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 |----|-------|--------|
 | [US-616](../tasks/US-616-git-changes-panel/README.md) | Git Tree "Changes" secondary view — status backend + two-part display (unstaged/staged), click opens Git Diff | ✅ Done (2026-06-09) |
 | [US-617](../tasks/US-617-git-changes-close-lifecycle/README.md) | "Changes" panel — manual "x" close (unmount editor / empty page when main) + per-page navigation-singleton | ✅ Done (2026-06-09) |
+| [US-618](../tasks/US-618-git-diff-revisions-panel/README.md) | Git Diff "File History" secondary view + filtered-list datetime column (popovers + panel) + L/R side-select toggles | ✅ Done (2026-06-09) |
 
 ## Notes
 

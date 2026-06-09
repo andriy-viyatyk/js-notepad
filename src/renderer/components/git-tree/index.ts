@@ -1,4 +1,5 @@
-export { GitTree, type GitTreeProps } from "./GitTree";
+export { GitTree, type GitTreeProps, type GitTreeSideSelect } from "./GitTree";
+export { SideSelectToggle, type SideSelectToggleProps } from "./SideSelectToggle";
 export { GitTreeModel, GIT_TREE_PAGE, type GitTreeState } from "./GitTreeModel";
 export { GitChangesModel, type GitChangesState } from "./GitChangesModel";
 export { GitStatusBadge } from "./GitStatusBadge";
@@ -12,7 +13,9 @@ export {
     toCommitRows,
     maxColumnCount,
     rowColumnCount,
+    syntheticCommitRow,
     type GitLane,
     type GitEdge,
     type GitCommitRow,
+    type GitRowType,
 } from "./swimlane-layout";

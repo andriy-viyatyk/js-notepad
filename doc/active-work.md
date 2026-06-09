@@ -10,6 +10,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-031** — [Git Functionality Enhancements (incremental)](epics/EPIC-031.md) *(rolling epic — small git features added one task at a time, on demand)*
   - [x] [US-616: Git Tree "Changes" secondary view — status backend + display](tasks/US-616-git-changes-panel/README.md)
   - [x] [US-617: "Changes" panel — manual "x" close + empty-page + persistence](tasks/US-617-git-changes-close-lifecycle/README.md)
+  - [x] [US-618: Git Diff "File History" panel + filtered-list datetime column + L/R side-select](tasks/US-618-git-diff-revisions-panel/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

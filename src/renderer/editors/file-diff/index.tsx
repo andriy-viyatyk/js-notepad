@@ -17,9 +17,9 @@ function FileDiffToolbarBits({ model }: { model: FileDiffEditor }) {
     return (
         <Panel align="center" gap="xs">
             <Text size="sm" color="light">From</Text>
-            <RevisionPicker side="from" picker={model.fromPicker} value={from} showStaged={hasStaged} onPick={model.setFrom} />
+            <RevisionPicker side="from" picker={model.fileTree} value={from} showStaged={hasStaged} onPick={model.setFrom} />
             <Text size="sm" color="light">→</Text>
-            <RevisionPicker side="to" picker={model.toPicker} value={to} showStaged={hasStaged} onPick={model.setTo} />
+            <RevisionPicker side="to" picker={model.fileTree} value={to} showStaged={hasStaged} onPick={model.setTo} />
         </Panel>
     );
 }
