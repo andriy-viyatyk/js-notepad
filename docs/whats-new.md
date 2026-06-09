@@ -24,6 +24,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   - **Changes panel — multiple repositories** — When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own independent **Changes** panel in the sidebar. Each panel header shows the repository name: **[repoName] Changes** (e.g. `[persephone] Changes`), so the panels are distinguishable. Each panel can be expanded and collapsed independently. Re-opening the same repo's `.git` entry does not create a duplicate panel.
 
+  - **Changes panel — "Show Git Tree" button** — The Changes panel header now has a **Show Git Tree** button (git icon). After clicking a file row (which opens its Git Diff in the main area), click this button to switch the main area back to the commit-graph view without closing the Changes panel.
+
+  - **Git Tree toolbar — repository name** — The Git Tree editor toolbar now shows the repository folder name. Hover over it to see the full path to the repository root.
+
+  - **Git Tree — column layout remembered** — Resizing or reordering columns in the Git Tree is now persisted. The saved layout survives **Refresh**, **Load more**, navigating away and back, and app restarts. The Graph column (swimlane) still auto-sizes to the number of branch lanes and does not save a fixed width.
+
+  - **Git Tree — automatic refresh** — The Git Tree and Changes panel now refresh automatically when the repository changes on disk (saving a tracked file, staging/unstaging, committing, checking out, merging, fetching, and similar operations). Updates appear within about half a second — no manual **Refresh** needed. Always on when Git integration is enabled.
+
 - **Git Diff — File History sidebar panel** — When the Git Diff editor is active for a file in a git repo, a **File History** panel now appears in the page sidebar. It shows **Unstaged** (and **Staged**, when applicable) rows at the top, followed by the full commit history for that file. Each row has **L** / **R** toggle buttons (highlighted blue) to select which revision is loaded on the left or right side of the diff. The Unstaged row provides only an **R** toggle. The panel stays in sync with the From/To dropdowns in the toolbar — changing either updates the other. A **Refresh** button reloads the file's history. The panel is visible only while the Git Diff view is active; it disappears when you switch to the Text Editor or navigate to another file.
 
 - **Git history — commit date format** — Commit dates throughout the git history views (File History panel, the From/To commit picker popovers in Git Diff, and the Git Tree editor) are now displayed as `YYYY-MM-DD HH:mm` (24-hour, local time). In the File History panel and the commit picker popovers the date is the first column and is resizable.

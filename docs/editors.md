@@ -435,14 +435,17 @@ The Git Tree editor shows the commit history of a git repository as a read-only 
 
 | Column | Description |
 |--------|-------------|
-| Graph | Swimlane graph showing branch topology |
+| Graph | Swimlane graph showing branch topology; auto-sized to the number of branch lanes |
 | Message | Commit subject line; ref labels (branch, tag) appear inline |
 | Author | Commit author name |
 | Time | Commit date and time in `YYYY-MM-DD HH:mm` format (24-hour, local time) |
 | Hash | Abbreviated commit hash |
 
+Column widths and order are remembered. Resize or reorder any column and the layout is saved — it survives **Refresh**, **Load more**, navigating away and back, and app restarts. The Graph column is the exception: it auto-sizes to fit the branch lane count and ignores any saved width.
+
 **Toolbar:**
 
+- **Repository name** — The toolbar displays the repository folder name. Hover over it to see the full path.
 - **Refresh** — Reload both the commit history and the Changes panel from disk.
 
 **Pagination:** The first 200 commits load immediately. A **Load more** row at the bottom of the list appends the next 200 commits. A **Load all** option fetches the entire history at once (use with care on very large repos).
@@ -464,9 +467,10 @@ Each row shows the repo-relative file path with a file icon and a right-aligned 
 | `R` | Renamed |
 | `?` | Untracked (new file, not yet staged) |
 
-Click any file row to open its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. The panel header has two buttons:
+Click any file row to open its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. The panel header has three buttons:
 
 - **Refresh** — reloads the file status and the commit history.
+- **Show Git Tree** (git icon) — switches the main area back to the commit-graph view. Use this after clicking a file (which opens its Git Diff) to return to the Git Tree without closing the Changes panel.
 - **× (Close Git Tree)** — removes the Git Tree editor entirely (see below).
 
 When a list has no files, it shows a **"No changes"** label.
@@ -483,6 +487,10 @@ The Changes panel does not close on its own — navigating away or switching edi
 
 - **Git Tree is the main editor** — the Git Tree editor is removed and the page becomes empty (the tab stays open as a blank tab).
 - **Git Diff is the main editor** (you opened a diff from the Changes panel) — the Git Tree and Changes panel are removed; the diff view stays as the main editor.
+
+**Auto-refresh:**
+
+The Git Tree and Changes panel update automatically when the repository changes on disk — no manual **Refresh** needed. Saving a tracked file, staging or unstaging, committing, checking out, merging, or fetching all trigger a refresh within about half a second. Auto-refresh is always on when Git integration is enabled.
 
 The Git Tree is read-only — it is an inspection tool. Stage, commit, push, branch, and merge operations are not available in v1.
 

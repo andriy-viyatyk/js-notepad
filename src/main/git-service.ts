@@ -143,7 +143,13 @@ export async function log(dir: string, opts: GitLogOptions = {}): Promise<GitCom
  */
 export async function status(dir: string): Promise<GitStatusResult> {
     try {
-        const s = await simpleGit(dir).status();
+        // GIT_OPTIONAL_LOCKS=0 (≡ `git --no-optional-locks status`) stops status
+        // from rewriting `.git/index` to refresh its stat-cache. That write would
+        // otherwise trip the Git Tree auto-refresh watcher (US-624) into a loop:
+        // watch → refresh → status → rewrite index → watch → … The two-arg
+        // `.env(name, value)` SUPPLEMENTS the inherited process env (PATH etc.);
+        // the single-object form would replace it.
+        const s = await simpleGit(dir).env("GIT_OPTIONAL_LOCKS", "0").status();
         const staged: GitFileChange[] = [];
         const unstaged: GitFileChange[] = [];
         for (const f of s.files) {

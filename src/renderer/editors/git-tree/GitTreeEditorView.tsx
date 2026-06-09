@@ -22,9 +22,10 @@ import type { EditorType, IEditorState } from "../../../shared/types";
 // =============================================================================
 
 export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
-    const { loading, gitOk } = model.gitTree.state.use((s) => ({
+    const { loading, gitOk, hasCommits } = model.gitTree.state.use((s) => ({
         loading: s.loading,
         gitOk: s.gitOk,
+        hasCommits: s.commits.length > 0,
     }));
     const [selectedHash, setSelectedHash] = useState<string | undefined>(undefined);
 
@@ -38,7 +39,11 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                 </Text>
             </Panel>
         );
-    } else if (loading) {
+    } else if (loading && !hasCommits) {
+        // Initial load only. On Refresh (commits already present) we keep the
+        // <GitTree> mounted so its column state — user-dragged widths + reorder —
+        // survives the reload; unmounting to this placeholder would rebuild the
+        // grid from scratch and reset them (US-622).
         body = (
             <Panel padding="xl">
                 <Text color="light">Loading history…</Text>
@@ -53,6 +58,8 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                     model={model.gitTree}
                     selectedHash={selectedHash}
                     onSelectCommit={setSelectedHash}
+                    initialColumnLayout={model.state.get().columnLayout}
+                    onColumnLayoutChange={model.setColumnLayout}
                 />
             </Panel>
         );
@@ -80,7 +87,13 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                         onClick={() => model.refresh()}
                     />
                 }
-            />
+            >
+                {/* Repository name (folder basename) — identifies which repo this
+                    Git Tree shows; full path on hover (US-620 follow-up). */}
+                <Text color="light" nowrap title={model.state.get().repoRoot}>
+                    {model.repoName}
+                </Text>
+            </PageToolbar>
             {body}
         </Panel>
     );

@@ -67,6 +67,11 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 | [US-617](../tasks/US-617-git-changes-close-lifecycle/README.md) | "Changes" panel — manual "x" close (unmount editor / empty page when main) + per-page navigation-singleton | ✅ Done (2026-06-09) |
 | [US-618](../tasks/US-618-git-diff-revisions-panel/README.md) | Git Diff "File History" secondary view + filtered-list datetime column (popovers + panel) + L/R side-select toggles | ✅ Done (2026-06-09) |
 | [US-619](../tasks/US-619-multi-panel-secondary-views/README.md) | Allow multiple secondary-view panels of the same type — composite panel keys (sidebar renders all; dedup stays at model level); multiple repos' "Changes" panels; repo name in header | ✅ Done (2026-06-09) |
+| US-620 | "Changes" panel — "Show Git Tree" header button (git icon) promotes the surviving Git Tree editor back to the page's main view via the existing `git-tree://` navigation-singleton path | ✅ Done (2026-06-10) |
+| US-621 | Git Tree editor toolbar — show the repository name (folder basename via `repoName`, full path on hover) in the toolbar's left `children` slot | ✅ Done (2026-06-10) |
+| US-622 | Git Tree grid — generate columns once on first mount; preserve user-dragged widths + column reorder across refresh/load-more; re-fit only the graph (first) column when the branch-lane count (`maxColumns`) shifts. Editor view keeps `<GitTree>` mounted during Refresh (placeholder only on initial load) so column state survives the reload remount | ✅ Done (2026-06-10) |
+| US-623 | Git Tree grid — persist column layout (width + order) in the **owner** model: `columnLayout` on `GitTreeEditorState` (round-trips via `getRestoreData` like `repoRoot`). `<GitTree>` gains `initialColumnLayout` (applied once at mount) + `onColumnLayoutChange` (emitted on user resize/reorder only, not programmatic rebuilds). Survives navigation-away/back and app restart | ✅ Done (2026-06-10) |
+| [US-624](../tasks/US-624-git-tree-autorefresh/README.md) | Git Tree auto-refresh — recursive `fs.watch` on `repoRoot` (Option A, mirrors Explorer) calling `refresh()` debounced 500ms; `git status` via `GIT_OPTIONAL_LOCKS=0` to break the index-rewrite refresh loop. Always-on under `git.enabled`; `DirectoryWatcher` util in `file-watcher.ts`; lifecycle in `GitTreeEditorModel` | ✅ Done (2026-06-10) |
 
 ## Notes
 

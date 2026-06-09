@@ -10,7 +10,7 @@ import { Text } from "../../uikit/Text";
 import { Spacer } from "../../uikit/Spacer";
 import { Splitter } from "../../uikit/Splitter";
 import { IconButton } from "../../uikit/IconButton/IconButton";
-import { RefreshIcon, CloseIcon } from "../../theme/icons";
+import { RefreshIcon, CloseIcon, GitIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
 // =============================================================================
@@ -72,6 +72,19 @@ function GitChangesBody({
         <>
             {`[${model.repoName}] Changes`}
             <Spacer />
+            {/* Promote the Git Tree back to the page's main view (US-620). Useful
+                after clicking a changed file opened its diff as the main editor —
+                this brings the commit tree back without leaving the panel. */}
+            <IconButton
+                name="git-changes-show-tree"
+                size="sm"
+                title="Show Git Tree"
+                icon={<GitIcon />}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    model.showGitTree();
+                }}
+            />
             <IconButton
                 name="git-changes-refresh"
                 size="sm"

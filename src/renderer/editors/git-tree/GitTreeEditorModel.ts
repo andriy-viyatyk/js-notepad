@@ -5,12 +5,14 @@ import {
     type EditorStateBase,
 } from "../base/EditorModel";
 import { GitIcon } from "../../theme/icons";
-import { GitTreeModel, GitChangesModel } from "../../components/git-tree";
+import { GitTreeModel, GitChangesModel, type GitColumnLayout } from "../../components/git-tree";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { app } from "../../api/app";
+import { settings } from "../../api/settings";
 import { createLinkData } from "../../../shared/link-data";
 import { fpJoin } from "../../core/utils/file-path";
-import { decodeGitTreeLink } from "../../content/git-tree-link";
+import { DirectoryWatcher } from "../../core/utils/file-watcher";
+import { decodeGitTreeLink, encodeGitTreeLink } from "../../content/git-tree-link";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
 export interface GitTreeEditorState extends EditorStateBase {
@@ -18,6 +20,11 @@ export interface GitTreeEditorState extends EditorStateBase {
     type: "gitTreePage";
     /** Absolute repo top-level (the parent of the `.git` folder). */
     repoRoot: string;
+    /** Persisted grid column layout (width + order). Owner-held so the user's
+     *  resizing/reordering of the commit grid survives navigation-away/back and
+     *  app restart — round-trips through the page descriptor like `repoRoot`
+     *  (US-623). Undefined until the user first changes a column. */
+    columnLayout?: GitColumnLayout;
 }
 
 /** Basename of a repo top-level path (folder name), or "Git" when empty.
@@ -66,6 +73,14 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     /** Submodel: working-tree status for the "Changes" secondary panel (US-616). */
     readonly changes = new GitChangesModel();
 
+    /** Auto-refresh watcher on the repo root (US-624). Recursively watches the
+     *  working tree — which includes `.git` — so edits, staging, commits, and
+     *  checkouts all trigger a debounced `refresh()`. Loop-safe: `refresh()` only
+     *  reads (`git log` + `--no-optional-locks` status), so it never writes back
+     *  into the tree it's watching. */
+    private repoWatcher: DirectoryWatcher | undefined;
+    private watchedRoot: string | undefined;
+
     /** Tab icon — the git glyph (EPIC-030 / US-612). */
     getIcon = (): ReactNode => createElement(GitIcon, { width: 16, height: 16 });
 
@@ -104,6 +119,13 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         return repoFolderName(this.state.get().repoRoot);
     }
 
+    /** Persist the commit grid's column layout (width + order) into editor state
+     *  so it round-trips through the page descriptor (US-623). Bound so the view
+     *  can pass it straight to `<GitTree onColumnLayoutChange>`. */
+    setColumnLayout = (layout: GitColumnLayout): void => {
+        this.state.update((s) => { s.columnLayout = layout; });
+    };
+
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */
     initFromRepoRoot(repoRoot: string): void {
         const folder = repoFolderName(repoRoot);
@@ -122,6 +144,19 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         void this.gitTree.reload();
         this.changes.configure(repoRoot);
         void this.changes.reload();
+        this.startWatching();
+    }
+
+    /** Start (or re-point) the repo-root auto-refresh watcher (US-624). Always-on
+     *  whenever git is enabled and a repoRoot is set. Idempotent — keeps the
+     *  existing watcher when the root is unchanged; re-creates it when it changes. */
+    private startWatching(): void {
+        const repoRoot = this.state.get().repoRoot;
+        if (!settings.get("git.enabled") || !repoRoot) return;
+        if (this.repoWatcher && this.watchedRoot === repoRoot) return;
+        this.repoWatcher?.dispose();
+        this.watchedRoot = repoRoot;
+        this.repoWatcher = new DirectoryWatcher(repoRoot, this.refresh, 500);
     }
 
     /** Unified manual refresh (US-616): reload history + staged/unstaged lists.
@@ -159,6 +194,25 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         );
     }
 
+    /** Promote this Git Tree back to the page's main editor (US-620). After the
+     *  user clicks a changed file in the "Changes" panel — opening its Git Diff
+     *  as the main editor while this editor survives only as the secondary panel
+     *  — the panel header's "Show Git Tree" button calls this to bring the commit
+     *  tree back into view. Fires the same `git-tree://` navigation the Explorer
+     *  `.git` node uses, so `matchesNavigationTarget` reuses THIS instance
+     *  (promote-to-main + `onNavigationReuse` refresh) rather than building a
+     *  duplicate. A no-op-equivalent when already main (it just stays main). */
+    showGitTree(): void {
+        const repoRoot = this.state.get().repoRoot;
+        if (!repoRoot || !this.page) return;
+        void app.events.openRawLink.sendAsync(
+            createLinkData(encodeGitTreeLink(repoRoot), {
+                pageId: this.page.id,
+                sourceId: this.id,
+            }),
+        );
+    }
+
     /** Per-page singleton (US-617). The Git Tree survives navigation as the
      *  "Changes" secondary panel, so re-navigating to it (clicking the `.git`
      *  node again after viewing a diff) must reuse THIS instance rather than
@@ -187,6 +241,7 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     }
 
     async dispose(): Promise<void> {
+        this.repoWatcher?.dispose();
         this.gitTree.dispose();
         this.changes.dispose();
         await super.dispose();

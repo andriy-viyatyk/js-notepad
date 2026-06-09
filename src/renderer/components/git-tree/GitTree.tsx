@@ -10,7 +10,7 @@
  * `components/` is app code (not uikit/), so Emotion is allowed for this
  * component's own elements — but only props are passed to AVGrid (Rule 7).
  */
-import React, { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, type RefObject, type SetStateAction } from "react";
 import styled from "@emotion/styled";
 import { clsx } from "clsx";
 
@@ -69,6 +69,16 @@ export interface GitTreeSideSelect {
     onPickRight: (row: GitCommitRow) => void;
 }
 
+/**
+ * Serializable grid column layout — the user's dragged widths + column order
+ * (order = array index), keyed by `Column.key`. The owner (e.g. the Git Tree
+ * editor) persists this in its descriptor state so widths/order survive
+ * navigation-away/back and app restart (US-623). Holds only plain data — the
+ * non-serializable `Column` objects (cell renderers/formatters) are rebuilt by
+ * the component from data + this layout.
+ */
+export type GitColumnLayout = { key: string; width: number | `${number}%` }[];
+
 export interface GitTreeProps {
     /** Optional debug label forwarded to the underlying AVGrid. */
     name?: string;
@@ -90,6 +100,15 @@ export interface GitTreeProps {
      *  Unstaged/Staged endpoint rows. Build with `syntheticCommitRow`. Memoize at
      *  the caller so the rows reference is stable. */
     leadingRows?: GitCommitRow[];
+    /** Owner-persisted column layout (width + order) applied ONCE at mount, so
+     *  user resizing/reordering survives a remount (navigation-back / restart).
+     *  Read-once — later changes to this prop are ignored; the live layout is
+     *  reported back via `onColumnLayoutChange` (US-623). */
+    initialColumnLayout?: GitColumnLayout;
+    /** Called whenever the user resizes or reorders a column (NOT on the
+     *  component's own structural rebuilds / graph re-fit). The owner stores this
+     *  in its descriptor state (US-623). */
+    onColumnLayoutChange?: (layout: GitColumnLayout) => void;
 }
 
 const RefTag = styled.span({
@@ -310,6 +329,49 @@ function buildColumns(
     ];
 }
 
+// Apply an owner-persisted layout (width + order) to freshly-built columns
+// (US-623). Widths are matched by key; the array is reordered to the stored
+// order. Keys absent from the layout (e.g. a column added since the layout was
+// saved) keep their relative order at the end. A no-op when no layout is stored.
+function applyLayout(
+    cols: Column<GitCommitRow>[],
+    layout: GitColumnLayout | undefined,
+): Column<GitCommitRow>[] {
+    if (!layout?.length) return cols;
+    const widthByKey = new Map(layout.map((l) => [l.key, l.width]));
+    const orderByKey = new Map(layout.map((l, i) => [l.key, i]));
+    const withWidth = cols.map((c) =>
+        widthByKey.has(String(c.key)) ? { ...c, width: widthByKey.get(String(c.key)) } : c,
+    );
+    return withWidth
+        .map((c, i) => ({
+            c,
+            rank: orderByKey.has(String(c.key)) ? orderByKey.get(String(c.key)) : layout.length + i,
+        }))
+        .sort((a, b) => a.rank - b.rank)
+        .map((x) => x.c);
+}
+
+// Re-fit ONLY the graph (swimlane) column to a new branch-lane count, in place —
+// preserving its position and every other column's user-set width + order. Both
+// the width and the cell renderer encode `maxColumns`, so update both (US-622).
+// Returns the same array reference when there is no graph column (compact views),
+// so the caller's setColumns is a no-op.
+function refitGraphColumn(
+    cols: Column<GitCommitRow>[],
+    maxColumns: number,
+): Column<GitCommitRow>[] {
+    const i = cols.findIndex((c) => c.key === "graph");
+    if (i < 0) return cols;
+    const next = cols.slice();
+    next[i] = {
+        ...next[i],
+        width: graphWidth(maxColumns),
+        cellRenderer: makeBranchTreeCell(maxColumns),
+    };
+    return next;
+}
+
 export function GitTree({
     name,
     model,
@@ -318,6 +380,8 @@ export function GitTree({
     compact = false,
     sideSelect,
     leadingRows,
+    initialColumnLayout,
+    onColumnLayoutChange,
 }: GitTreeProps) {
     const { commits, loadingMore, hasMore } = model.state.use((s) => ({
         commits: s.commits,
@@ -347,17 +411,52 @@ export function GitTree({
         if (hasSideSelect) gridRef.current?.update({ columns: [0] });
     }, [hasSideSelect, sideSelect?.selectionKey]);
 
-    // Columns are stateful so AVGrid's resize handler (via setColumns) can
-    // persist user-dragged widths. Rebuilt when the structure changes
-    // (compact toggled, sideSelect added/removed, or maxColumns shifts after
-    // loading different commits) — that resets widths, the right behavior on a
-    // structural change.
+    // Columns are stateful so AVGrid's resize/reorder handlers (via setColumns)
+    // persist user-dragged widths and column order. They are generated ONCE on
+    // first mount, then preserved across refresh / load-more (US-622):
+    //   - A *structural* change (compact toggled, or the L/R side-select column
+    //     added/removed) rebuilds from scratch — resetting widths/order is the
+    //     right behavior there.
+    //   - Otherwise, when more commits load and the branch-lane count shifts, we
+    //     re-fit ONLY the graph (first) column — its width and cell renderer both
+    //     depend on `maxColumns` — leaving every other column's user width and
+    //     the user's column order untouched. Compact views (no graph) are fully
+    //     preserved.
+    const structureKey = `${compact}|${hasSideSelect}`;
+    const builtStructureRef = useRef(structureKey);
+    const prevMaxColumnsRef = useRef(maxColumns);
+    // Apply the owner-persisted layout (width + order) once, at mount — read-once
+    // from the initial prop value (US-623).
     const [columns, setColumns] = useState<Column<GitCommitRow>[]>(() =>
-        buildColumns(maxColumns, compact, sideSelectCell),
+        applyLayout(buildColumns(maxColumns, compact, sideSelectCell), initialColumnLayout),
     );
+
+    // AVGrid drives resize/reorder through `setColumns(updater)`. Wrap it so user
+    // changes are reported up to the owner for persistence — while the component's
+    // OWN programmatic updates (structural rebuild + graph re-fit, below) call the
+    // raw `setColumns` and therefore do NOT emit (US-623).
+    const handleColumnsChange = useCallback(
+        (action: SetStateAction<Column<GitCommitRow>[]>) => {
+            setColumns((prev) => {
+                const next = typeof action === "function" ? action(prev) : action;
+                onColumnLayoutChange?.(next.map((c) => ({ key: String(c.key), width: c.width })));
+                return next;
+            });
+        },
+        [onColumnLayoutChange],
+    );
+
     useEffect(() => {
-        setColumns(buildColumns(maxColumns, compact, sideSelectCell));
-    }, [maxColumns, compact, sideSelectCell]);
+        const structureChanged = builtStructureRef.current !== structureKey;
+        const maxColumnsChanged = prevMaxColumnsRef.current !== maxColumns;
+        builtStructureRef.current = structureKey;
+        prevMaxColumnsRef.current = maxColumns;
+        if (structureChanged) {
+            setColumns(buildColumns(maxColumns, compact, sideSelectCell));
+        } else if (maxColumnsChanged && !compact) {
+            setColumns((cols) => refitGraphColumn(cols, maxColumns));
+        }
+    }, [maxColumns, compact, sideSelectCell, structureKey]);
 
     const selected = useMemo(
         () => new Set<string>(selectedHash ? [selectedHash] : []),
@@ -387,7 +486,7 @@ export function GitTree({
             ref={gridRef}
             name={name}
             columns={columns}
-            setColumns={setColumns}
+            setColumns={handleColumnsChange}
             rows={rows}
             getRowKey={(r) => r.hash}
             rowHeight={GIT_TREE_ROW_HEIGHT}

@@ -12,6 +12,11 @@ Overview of all active and planned epics and tasks.
   - [x] [US-617: "Changes" panel — manual "x" close + empty-page + persistence](tasks/US-617-git-changes-close-lifecycle/README.md)
   - [x] [US-618: Git Diff "File History" panel + filtered-list datetime column + L/R side-select](tasks/US-618-git-diff-revisions-panel/README.md)
   - [x] [US-619: Allow multiple secondary-view panels of the same type (composite panel keys)](tasks/US-619-multi-panel-secondary-views/README.md)
+  - [x] US-620: "Changes" panel — "Show Git Tree" header button (promote Git Tree back to main view)
+  - [x] US-621: Git Tree editor toolbar — show repository name (folder basename, full path on hover)
+  - [x] US-622: Git Tree grid — generate columns once; preserve user width/reorder across refresh/load-more (re-fit only the graph column)
+  - [x] US-623: Git Tree grid — persist column layout (width + order) in editor descriptor state; survives navigation-away/back and app restart
+  - [x] [US-624: Git Tree auto-refresh — recursive working-tree watcher + `--no-optional-locks` status](tasks/US-624-git-tree-autorefresh/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

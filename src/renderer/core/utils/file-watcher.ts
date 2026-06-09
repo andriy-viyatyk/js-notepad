@@ -100,3 +100,32 @@ export class FileWatcher {
         this.onChange();
     }, 300);
 }
+
+/**
+ * Recursive directory watcher (US-624). A disposable wrapper over
+ * `fs.watch(dir, { recursive: true })` with a debounced callback — mirrors
+ * `FileTreeProvider.watch` but as a class consistent with `FileWatcher`. Used by
+ * the Git Tree editor to auto-refresh when the repo changes on disk. Degrades
+ * gracefully (no-op) when a watch can't be established (network drives, missing
+ * dir, platforms without recursive support).
+ */
+export class DirectoryWatcher {
+    private unWatch: () => void;
+
+    constructor(dirPath: string, onChange: () => void, debounceMs = 500) {
+        const debouncedOnChange = debounce(onChange, debounceMs);
+        try {
+            const watcher = nodefs.watch(dirPath, { recursive: true }, debouncedOnChange);
+            this.unWatch = () => watcher.close();
+        } catch (err) {
+            console.error("Error watching directory:", err);
+            this.unWatch = () => {
+                /**/
+            };
+        }
+    }
+
+    dispose = () => {
+        this.unWatch();
+    };
+}
