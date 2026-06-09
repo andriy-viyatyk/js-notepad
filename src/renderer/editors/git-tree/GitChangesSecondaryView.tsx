@@ -70,7 +70,7 @@ function GitChangesBody({
 
     const header = (
         <>
-            Changes
+            {`[${model.repoName}] Changes`}
             <Spacer />
             <IconButton
                 name="git-changes-refresh"

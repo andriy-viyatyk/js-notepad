@@ -449,7 +449,7 @@ The Git Tree editor shows the commit history of a git repository as a read-only 
 
 **Changes panel:**
 
-When the Git Tree editor is open, a **Changes** panel appears in the sidebar. The panel is split into two parts:
+When the Git Tree editor is open, a **Changes** panel appears in the sidebar. The panel header shows the repository name: **[repoName] Changes** (e.g. `[persephone] Changes`). The panel is split into two parts:
 
 - **Unstaged** (top) — working-tree modifications not yet staged, plus untracked files. Git-ignored files are not shown.
 - **Staged** (bottom) — files currently in the git index (ready to commit).
@@ -472,6 +472,10 @@ Click any file row to open its **Git Diff** in the main area. The Changes panel 
 When a list has no files, it shows a **"No changes"** label.
 
 The Changes panel is display-only in this release — staging, unstaging, discarding, and committing are not yet available.
+
+**Multiple repositories:**
+
+When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own **Changes** panel in the sidebar. The panels are independently expandable and collapsible. Re-opening the same repo's `.git` entry does not create a duplicate panel.
 
 **Closing the Changes panel:**
 

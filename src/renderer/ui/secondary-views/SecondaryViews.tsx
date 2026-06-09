@@ -4,6 +4,7 @@ import type { EditorModel } from "../../editors/base/EditorModel";
 import type { ISecondaryViewsState } from "./SecondaryViewsModel";
 import { secondaryViewRegistry } from "./secondary-view-registry";
 import { LazySecondaryView } from "./LazySecondaryView";
+import { panelKey, isCompositePanelKey } from "./panel-key";
 
 // =============================================================================
 // Component
@@ -39,6 +40,34 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
 
     if (!state.open) return null;
 
+    // Enumerate every (model, panelId) pair the page's models expose — no
+    // restriction on panel-id uniqueness (US-619). A rendered panel's identity
+    // is the composite `${model.id}::${panelId}`, so two models contributing the
+    // same panel type (e.g. two git repos' "Changes") render as independent,
+    // independently-expandable panels. The registry lookup stays on the BARE
+    // panelId, so one registered component serves every instance.
+    const rendered = views.flatMap((model) => {
+        const panelIds = (model.state.get() as { secondaryView?: string[] }).secondaryView;
+        if (!panelIds?.length) return [];
+        return panelIds
+            .filter((panelId) => secondaryViewRegistry.has(panelId))
+            .map((panelId) => ({
+                model,
+                panelId,
+                key: panelKey(model.id, panelId),
+                refKey: `${model.id}-${panelId}`,
+            }));
+    });
+
+    // Resolve a bare `activePanel` (the default "explorer" seed, or any
+    // pre-US-619 persisted bare id) to its composite so the right panel is
+    // expanded. After any user toggle, `state.activePanel` is already composite.
+    let activeKey = state.activePanel;
+    if (!isCompositePanelKey(activeKey)) {
+        const hit = rendered.find((p) => p.panelId === activeKey);
+        if (hit) activeKey = hit.key;
+    }
+
     return (
         <>
             <Panel
@@ -52,43 +81,25 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
             >
                 <CollapsiblePanelStack
                     name="secondary-views-stack"
-                    activePanel={state.activePanel}
+                    activePanel={activeKey}
                     setActivePanel={(id) => setState({ activePanel: id })}
                     height="100%"
                 >
-                    {(() => {
-                      // Panel ids must be unique within the stack — CollapsiblePanelStack
-                      // keys children by panel id. Defensively dedup so a stray duplicate
-                      // (e.g. corrupted persisted state) degrades gracefully instead of
-                      // crashing React with duplicate keys + a ref-callback update loop.
-                      const seenPanelIds = new Set<string>();
-                      return views.flatMap((model) => {
-                        const panelIds = (model.state.get() as { secondaryView?: string[] }).secondaryView;
-                        if (!panelIds?.length) return [];
-                        return panelIds.map((panelId) => {
-                            const def = secondaryViewRegistry.get(panelId);
-                            if (!def) return null;
-                            if (seenPanelIds.has(panelId)) return null;
-                            seenPanelIds.add(panelId);
-                            const refKey = `${model.id}-${panelId}`;
-                            return (
-                                <CollapsiblePanel
-                                    key={refKey}
-                                    id={panelId}
-                                    name={panelId}
-                                    headerRef={(el) => setHeaderRef(refKey, el)}
-                                    alwaysRenderContent
-                                >
-                                    <LazySecondaryView
-                                        model={model as never}
-                                        editorId={panelId}
-                                        headerRef={headerRefs.current[refKey] ?? null}
-                                    />
-                                </CollapsiblePanel>
-                            );
-                        });
-                      });
-                    })()}
+                    {rendered.map(({ model, panelId, key, refKey }) => (
+                        <CollapsiblePanel
+                            key={refKey}
+                            id={key}
+                            name={panelId}
+                            headerRef={(el) => setHeaderRef(refKey, el)}
+                            alwaysRenderContent
+                        >
+                            <LazySecondaryView
+                                model={model as never}
+                                panelId={panelId}
+                                headerRef={headerRefs.current[refKey] ?? null}
+                            />
+                        </CollapsiblePanel>
+                    ))}
                 </CollapsiblePanelStack>
             </Panel>
             <Splitter

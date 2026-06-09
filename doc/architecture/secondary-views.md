@@ -154,9 +154,9 @@ The demote path does NOT call `setMainEditor(null)` — that would dispose the m
 
 ## 5. Panel Management
 
-**Active panel:** `PageModel.activePanel` tracks which panel is expanded (e.g., `"explorer"`, `"archive-tree"`). Only one panel is expanded at a time.
+**Active panel:** `PageModel.activePanel` tracks which panel is expanded. Only one panel is expanded at a time. Its value is a **composite panel key** `` `${editorId}::${panelId}` `` (see §5a) — e.g. `"a1b2…::archive-tree"`. Use `PageModel.activePanelId` to read the **bare** panel-type id (`"archive-tree"`) for "is panel X expanded" checks.
 
-**Expand:** `page.expandPanel(panelId)` — sets activePanel if the panelId exists in any secondary view's array. Calls `onPanelExpanded(panelId)` on the owning model. Used by models to auto-expand their panel (e.g., ArchiveEditorModel expands "archive-tree" when navigating to an archive entry).
+**Expand:** `page.expandPanel(panelId)` — accepts a **bare** panel-type id (resolved to the owning editor's composite key) or an already-composite key (passed through). Sets activePanel and calls `onPanelExpanded(panelId)` (bare) on the owning model. Used by models to auto-expand their panel (e.g., ArchiveEditorModel expands "archive-tree" when navigating to an archive entry).
 
 **Close — two semantics:**
 - **Hide the panel only** (default): the close handler clears `model.secondaryView = undefined`, removing the model from the sidebar (without disposing). The standard pattern for user-closeable panels.
@@ -164,23 +164,58 @@ The demote path does NOT call `setMainEditor(null)` — that would dispose the m
 
 ---
 
+## 5a. Composite Panel Keys (US-619)
+
+**Source:** [`panel-key.ts`](../../src/renderer/ui/secondary-views/panel-key.ts)
+
+A panel id (`"git-changes"`, `"archive-tree"`) names a panel **type** — the registry key. It is **not** unique within a page: two models can contribute the same type. The canonical case is two open git repositories, each contributing a `"git-changes"` panel. The sidebar must render **all** of them — uniqueness restriction does not belong in the render layer.
+
+A *rendered* panel's identity is therefore the **composite** of its owning editor id and its panel-type id:
+
+```
+panelKey(editorId, panelId) → `${editorId}::${panelId}`
+```
+
+Editor ids are UUIDs and panel-type ids are kebab-case, so `"::"` is an unambiguous separator. `panel-key.ts` exposes `panelKey()`, `parsePanelKey()` (a bare id with no separator parses to `{ editorId: "", panelId }`), `panelIdOf()`, and `isCompositePanelKey()`.
+
+**Bare vs. composite — the split:**
+
+| Surface | Form | Why |
+|---------|------|-----|
+| `model.secondaryView = [...]` (declaration) | **bare** (`"git-changes"`) | Models declare the panel *type*. They never mint instance ids — uniqueness is the sidebar's job. |
+| Registry lookup (`secondaryViewRegistry.get`) | **bare** | One registered component serves every instance of a type. |
+| `activePanel` storage + `CollapsiblePanel id` | **composite** | The accordion needs a unique identity per *rendered* panel to track which one is expanded. |
+| `expandPanel(id)` | **either** | A bare id resolves to the owning editor's composite; a composite is passed through. |
+| `onPanelExpanded(panelId)` + the `panelExpanded` event | **bare** | Editors/subscribers reason about panel *type*, not instances. `setSecondaryViewsState` extracts the bare id from the composite before notifying. |
+| `activePanelId` getter | **bare** | Convenience for "is panel X expanded" checks (Explorer/Archive use `this.page?.activePanelId === "explorer"`). |
+
+**Seed/legacy resolution:** the default `activePanel` seed (`"explorer"`) and any pre-US-619 persisted bare value are resolved to their composite at render time in `SecondaryViews` (a bare value is matched against the rendered panels' bare ids). After any accordion click, `activePanel` is already composite.
+
+**Same-type dedup is a model-level concern, not a render-level one.** Re-clicking the *same* repo's `.git` reuses the existing `GitTreeEditorModel` via `matchesNavigationTarget` (see [pages-architecture.md §9](pages-architecture.md)), so no duplicate model is created. Different repos correctly produce distinct models, and the sidebar renders a `"git-changes"` panel for each. `CollapsiblePanelStack` (UIKit) is untouched — it operates on whatever id string it is given, so feeding it composite keys needs no change.
+
+---
+
 ## 6. Rendering in SecondaryViews
 
 **Source:** [`SecondaryViews.tsx`](../../src/renderer/ui/secondary-views/SecondaryViews.tsx)
 
-The rendering loop nests: outer loop over models (`flatMap`), inner loop over each model's `secondaryView[]` panel IDs:
+The rendering loop nests: outer loop over models (`flatMap`), inner loop over each model's `secondaryView[]` panel IDs. Every `(model, panelId)` pair is rendered — there is **no** panel-id-uniqueness restriction (the old `seenPanelIds` dedup was removed in US-619). The `CollapsiblePanel` `id` is the **composite** key (§5a); the registry lookup and the `LazySecondaryView panelId` prop stay **bare**:
 
 ```tsx
 secondaryViews.flatMap((model) => {
     const panelIds = model.secondaryView ?? [];
-    return panelIds.map((panelId) => (
-        <CollapsiblePanel key={`${model.id}-${panelId}`} id={panelId}
-            headerRef={setHeaderRef} alwaysRenderContent>
-            <LazySecondaryView model={model} editorId={panelId} headerRef={...} />
-        </CollapsiblePanel>
-    ));
+    return panelIds
+        .filter((panelId) => secondaryViewRegistry.has(panelId))
+        .map((panelId) => (
+            <CollapsiblePanel key={`${model.id}-${panelId}`} id={panelKey(model.id, panelId)}
+                headerRef={setHeaderRef} alwaysRenderContent>
+                <LazySecondaryView model={model} panelId={panelId} headerRef={...} />
+            </CollapsiblePanel>
+        ));
 })
 ```
+
+The React `key` stays the `${model.id}-${panelId}` ref-key; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
 
 **Portal-based headers:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. The loaded secondary view component uses `createPortal(headerContent, headerRef)` to render its title, buttons, and icons into the header. This lets each secondary view fully control its header content.
 
@@ -227,8 +262,9 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 | `confirmSecondaryRelease()` | Iterates modified secondaries, prompts user via `confirmRelease()` |
 | `restoreSecondaryViews(ownerEditor)` | Restores from `pendingSecondaryDescriptors`, deduplicates against owner |
 | `notifyMainEditorChanged()` | Propagates main editor change, cleans up models that cleared themselves |
-| `setActivePanel(panel)` | Sets expanded panel, notifies owning model via `onPanelExpanded()` |
-| `expandPanel(panelId)` | Sets activePanel if panelId exists in any secondary view |
+| `setActivePanel(panel)` | Sets expanded panel (composite key), notifies owning model via `onPanelExpanded()` (bare id) |
+| `expandPanel(panelId)` | Expands a panel. Accepts a **bare** panel-type id (resolved to the owning editor's composite key) or an already-composite key. See §5a. |
+| `activePanel` / `activePanelId` | `activePanel` = composite key of the expanded panel; `activePanelId` = its **bare** panel-type id (for "is panel X expanded" checks). See §5a. |
 | `findExplorer()` | Returns the ExplorerEditorModel from secondaryViews (if any) |
 | `createExplorer(rootPath)` | Creates ExplorerEditorModel, adds to secondaryViews |
 | `getTransient<T>(key)` | Read a transient (non-persisted) runtime value by key. Returns undefined if not set. |
@@ -248,7 +284,7 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 | `TodoEditor` | `["todo"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | TodoBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
 | `RestClientEditor` | `["rest"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | RestClientBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
 | `LinkEditor` (browser bookmarks) | `["link-category", "link-tags", "link-hostnames"]` | B — hosted on `BrowserPanelHost` (not `PageModel`) | Always present while the browser page is open; sidebar is mandatory-open. | `BrowserPanelHost.attach()` — called by `BrowserEditorModel` during bookmarks init |
-| `GitTreeEditorModel` | `["git-changes"]` | B (mainEditor) | **Unconditional survival** — `beforeNavigateAway()` is a no-op, so the "Changes" panel stays when clicking a changed file opens its Git Diff (the editor becomes secondary-only). The only removal path is the panel's manual "x" → `requestClose()` → `page.removeSecondaryView(this)` (US-617). Also a **per-page navigation-singleton** (`matchesNavigationTarget` / `onNavigationReuse`): re-navigating to the same repo reuses this instance instead of stacking duplicates — see [pages-architecture.md §9 "navigation-singleton reuse"](pages-architecture.md). | `setPage()` sets `secondaryView = ["git-changes"]` on attach (EPIC-031 / US-616) |
+| `GitTreeEditorModel` | `["git-changes"]` | B (mainEditor) | **Unconditional survival** — `beforeNavigateAway()` is a no-op, so the "Changes" panel stays when clicking a changed file opens its Git Diff (the editor becomes secondary-only). The only removal path is the panel's manual "x" → `requestClose()` → `page.removeSecondaryView(this)` (US-617). Also a **per-page navigation-singleton** (`matchesNavigationTarget` / `onNavigationReuse`): re-navigating to the same repo reuses this instance instead of stacking duplicates — see [pages-architecture.md §9 "navigation-singleton reuse"](pages-architecture.md). **Multiple repos coexist:** opening a second repo's `.git` creates a second instance, so the page shows one `"git-changes"` panel per repo (distinct composite keys, §5a); the header reads `[<repoName>] Changes` (`model.repoName`) to disambiguate (US-619). | `setPage()` sets `secondaryView = ["git-changes"]` on attach (EPIC-031 / US-616) |
 | `FileDiffEditor` | `["git-diff-revisions"]` (label "File History") | B (mainEditor) | **Removed on navigation AND editor-switch** — uses the **default** `beforeNavigateAway` (clears `secondaryView`), so the "File History" panel disappears when the page navigates to another file or when the Git Diff is switched back to the Text Editor. The deliberate **opposite** of `GitTreeEditorModel`'s unconditional survival (the panel is meaningful only while its Git Diff is the main editor). The panel shows the file's filtered commit history with synthetic Unstaged/Staged rows + per-row L/R (from/to) side-select toggles bound to the editor's single `from`/`to` state. | `adoptHost()` sets `secondaryView = ["git-diff-revisions"]` (mirrors `TodoEditor`; EPIC-031 / US-618) |
 
 ---

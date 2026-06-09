@@ -4,6 +4,7 @@ import type { IPageHost } from "../../api/pages/IPageHost";
 import type { IPageState } from "../../api/pages/PageModel";
 import { SecondaryViewsModel, ISecondaryViewsState } from "../../ui/secondary-views/SecondaryViewsModel";
 import { panelExpanded } from "../../core/state/events";
+import { panelKey, panelIdOf, isCompositePanelKey } from "../../ui/secondary-views/panel-key";
 import type { LinkEditor } from "../link-editor";
 
 const defaultPageState: IPageState = {
@@ -99,6 +100,11 @@ export class BrowserPanelHost implements IPageHost {
         this.secondaryViewsModel?.setStateQuiet({ activePanel: value });
     }
 
+    /** Bare panel-type id of the active composite key (US-619). */
+    get activePanelId(): string {
+        return panelIdOf(this.activePanel);
+    }
+
     // ── SecondaryViews ───────────────────────────────────────────────────────
 
     /** Seed the initial sidebar width before `attach` creates the model
@@ -141,8 +147,10 @@ export class BrowserPanelHost implements IPageHost {
         });
         if (patch.activePanel !== undefined && patch.activePanel !== prev.activePanel) {
             this._activePanel = patch.activePanel;
-            this._editor?.onPanelExpanded(patch.activePanel);
-            panelExpanded.send({ pageId: this.id, panelId: patch.activePanel });
+            // Side effects use the BARE panel id (US-619).
+            const panelId = panelIdOf(patch.activePanel);
+            this._editor?.onPanelExpanded(panelId);
+            panelExpanded.send({ pageId: this.id, panelId });
         }
         if (nextWidth !== undefined && nextWidth !== prev.width) {
             this.onWidthChange?.(nextWidth);
@@ -155,8 +163,12 @@ export class BrowserPanelHost implements IPageHost {
 
     expandPanel(panelId: string): void {
         if (!panelId) return;
+        if (isCompositePanelKey(panelId)) {
+            this.setActivePanel(panelId);
+            return;
+        }
         if (!this._editor?.secondaryView?.includes(panelId)) return;
-        this.setActivePanel(panelId);
+        this.setActivePanel(panelKey(this._editor.id, panelId));
     }
 
     // ── Navigator toggle (inert in the browser) ──────────────────────────────

@@ -11,6 +11,7 @@ Overview of all active and planned epics and tasks.
   - [x] [US-616: Git Tree "Changes" secondary view — status backend + display](tasks/US-616-git-changes-panel/README.md)
   - [x] [US-617: "Changes" panel — manual "x" close + empty-page + persistence](tasks/US-617-git-changes-close-lifecycle/README.md)
   - [x] [US-618: Git Diff "File History" panel + filtered-list datetime column + L/R side-select](tasks/US-618-git-diff-revisions-panel/README.md)
+  - [x] [US-619: Allow multiple secondary-view panels of the same type (composite panel keys)](tasks/US-619-multi-panel-secondary-views/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

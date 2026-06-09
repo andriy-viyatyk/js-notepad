@@ -140,7 +140,7 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     /** Update selection and request reveal if the "explorer" panel is active. */
     private _selectAndReveal(href: string | null): void {
         this.selectionState.update((s) => { s.selectedHref = href; });
-        if (href && this.page?.activePanel === "explorer") {
+        if (href && this.page?.activePanelId === "explorer") {
             this.revealVersion.update((s) => { s.version++; });
         }
     }

@@ -22,6 +22,9 @@ export interface IPageHost {
     // panels / sidebar — every host has panels
     panelEditors: EditorModel[];
     activePanel: string;
+    /** Bare panel-type id of the active panel (`activePanel` is the composite
+     *  `${editorId}::${panelId}`). Use for "is panel X expanded" checks (US-619). */
+    activePanelId: string;
     hasSidebar: boolean;
     /** Whether the sidebar is mandatory-open (cannot be closed). PageModel
      *  computes the Explorer-only-closeable rule; an embedded `BrowserPanelHost`

@@ -316,6 +316,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry          | `/src/renderer/editors/base/editorRegistry.ts`    |
 | Secondary view registry| `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
+| Composite panel keys (sidebar) | `/src/renderer/ui/secondary-views/panel-key.ts` |
 | Editor registration      | `/src/renderer/editors/register-editors.ts`       |
 | Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
 | Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |

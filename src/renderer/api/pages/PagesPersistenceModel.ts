@@ -18,6 +18,7 @@ import { api } from "../../../ipc/renderer/api";
 import { fs as appFs } from "../fs";
 import { app } from "../app";
 import { createLinkData } from "../../../shared/link-data";
+import { parsePanelKey } from "../../ui/secondary-views/panel-key";
 import { PageModel } from "./PageModel";
 
 /**
@@ -141,11 +142,17 @@ export class PagesPersistenceModel {
                 open: desc.sidebar.open,
                 width: desc.sidebar.width,
             });
+            // `activePanel` may be composite (`${editorId}::${panelId}`, US-619)
+            // or a bare seed/legacy id. Validate by the parsed panel id, and —
+            // when composite — require the named editor to still exist.
             const panel = desc.sidebar.activePanel;
+            const { editorId, panelId } = parsePanelKey(panel);
             const valid =
-                panel === "explorer" ||
-                panel === "search" ||
-                page.editors.some((e) => e.secondaryView?.includes(panel));
+                panelId === "explorer" ||
+                panelId === "search" ||
+                (editorId
+                    ? page.editors.some((e) => e.id === editorId && e.secondaryView?.includes(panelId))
+                    : page.editors.some((e) => e.secondaryView?.includes(panelId)));
             page.activePanel = valid ? panel : "explorer";
         }
 

@@ -8,6 +8,7 @@ import type { IContentPipe } from "../types/io.pipe";
 import { fs } from "../fs";
 import { secondaryViewsToggled, panelExpanded } from "../../core/state/events";
 import { fpDirname } from "../../core/utils/file-path";
+import { panelKey, parsePanelKey, panelIdOf, isCompositePanelKey } from "../../ui/secondary-views/panel-key";
 
 /** Unwrap a text-bearing editor to its TextFileModel host, so legacy consumers
  *  (tab strip, OpenTabsList, PageTabs) see `filePath` / `language` / `encrypted`
@@ -87,6 +88,13 @@ export class PageModel implements IPageHost {
     set activePanel(value: string) {
         this._activePanel = value;
         this.secondaryViewsModel?.setStateQuiet({ activePanel: value });
+    }
+
+    /** The bare panel-type id of the active panel (composite `activePanel` is
+     *  `${editorId}::${panelId}`). Use this for "is panel X expanded" checks
+     *  (US-619). */
+    get activePanelId(): string {
+        return panelIdOf(this.activePanel);
     }
 
     // ── Per-editor slice subscriptions (walkthrough 03 / N1) ───────────
@@ -240,9 +248,15 @@ export class PageModel implements IPageHost {
             this._mainEditorId = null;
             this.state.update((s) => { s.mainEditorId = null; });
         }
-        // Adjust activePanel if it pointed to a panel this editor owned.
-        const panels = editor.secondaryView;
-        if (panels?.includes(this.activePanel) || this.activePanel === editor.id) {
+        // Adjust activePanel if it pointed to a panel this editor owned. A
+        // composite key carries the owning editor id; a bare value (a pre-US-619
+        // persisted id not yet converted by an accordion click) is matched
+        // against the detached editor's own panel ids (US-619).
+        const active = parsePanelKey(this.activePanel);
+        const ownedByDetached = active.editorId
+            ? active.editorId === editor.id
+            : (editor.secondaryView?.includes(active.panelId) ?? false);
+        if (ownedByDetached) {
             this.activePanel = "explorer";
         }
         this.state.update((s) => {
@@ -444,9 +458,14 @@ export class PageModel implements IPageHost {
         });
         if (patch.activePanel !== undefined && patch.activePanel !== prev.activePanel) {
             this._activePanel = patch.activePanel;
-            const owner = this.editors.find((e) => e.secondaryView?.includes(patch.activePanel));
-            owner?.onPanelExpanded(patch.activePanel);
-            panelExpanded.send({ pageId: this.id, panelId: patch.activePanel });
+            // Side effects use the BARE panel id (the composite key carries the
+            // owning editor id). Resolve the owner by id first, then fall back to
+            // a panel-type match for a bare/seed value (US-619).
+            const { editorId, panelId } = parsePanelKey(patch.activePanel);
+            const owner = this.editors.find((e) => e.id === editorId)
+                ?? this.editors.find((e) => e.secondaryView?.includes(panelId));
+            owner?.onPanelExpanded(panelId);
+            panelExpanded.send({ pageId: this.id, panelId });
         }
         if (patch.open !== undefined && patch.open !== prev.open) {
             secondaryViewsToggled.send({ pageId: this.id, isOpen: patch.open });
@@ -459,11 +478,21 @@ export class PageModel implements IPageHost {
         this.setSecondaryViewsState({ activePanel: panel });
     }
 
-    /** Expand a secondary panel by its panel ID. Called by secondary views directly. */
+    /** Expand a secondary panel. Accepts a BARE panel-type id (resolved to the
+     *  owning editor's composite key) or an already-composite key (passed
+     *  through). Models call this with their bare panel id; since every current
+     *  multi-instance concern (`git-changes`) has no `expandPanel` caller, the
+     *  first-owner resolution is unambiguous in practice. A future multi-owner
+     *  panel that calls `expandPanel` should pass the composite key (US-619). */
     expandPanel(panelId: string): void {
         if (!panelId) return;
-        if (!this.editors.some((e) => e.secondaryView?.includes(panelId))) return;
-        this.setActivePanel(panelId);
+        if (isCompositePanelKey(panelId)) {
+            this.setActivePanel(panelId);
+            return;
+        }
+        const owner = this.editors.find((e) => e.secondaryView?.includes(panelId));
+        if (!owner) return;
+        this.setActivePanel(panelKey(owner.id, panelId));
     }
 
     /** Force the sidebar open when a non-Explorer panel is present, and

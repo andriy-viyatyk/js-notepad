@@ -20,6 +20,12 @@ export interface GitTreeEditorState extends EditorStateBase {
     repoRoot: string;
 }
 
+/** Basename of a repo top-level path (folder name), or "Git" when empty.
+ *  Shared by the tab title (`initFromRepoRoot`) and the `repoName` getter. */
+function repoFolderName(repoRoot: string): string {
+    return repoRoot.replace(/[/\\]+$/, "").split(/[/\\]/).pop() || "Git";
+}
+
 export const getDefaultGitTreeEditorState = (): GitTreeEditorState => ({
     // Editor instance id — keys this editor in `page.editors[]` and is the
     // cache-file prefix. MUST be non-empty (PageModel.mainEditorInstance treats
@@ -91,9 +97,16 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         this.syncGitTree();
     }
 
+    /** Repository folder name (basename of `repoRoot`) — used by the "Changes"
+     *  panel header to disambiguate multiple repos' panels (US-619). Set once at
+     *  open and never changes for a given instance. */
+    get repoName(): string {
+        return repoFolderName(this.state.get().repoRoot);
+    }
+
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */
     initFromRepoRoot(repoRoot: string): void {
-        const folder = repoRoot.replace(/[/\\]+$/, "").split(/[/\\]/).pop() || "Git";
+        const folder = repoFolderName(repoRoot);
         this.state.update((s) => {
             s.repoRoot = repoRoot;
             s.title = `${folder} — Git`;

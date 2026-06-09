@@ -111,7 +111,7 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
             const url = (newMainEditor.state.get() as { sourceLink?: { url?: string } })
                 .sourceLink?.url ?? null;
             this.selectionState.update((s) => { s.selectedHref = url; });
-            if (url && this.page?.activePanel === "archive-tree") {
+            if (url && this.page?.activePanelId === "archive-tree") {
                 this.revealVersion.update((s) => { s.version++; });
             }
             setTimeout(() => this.page?.expandPanel("archive-tree"), 0);

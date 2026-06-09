@@ -5,19 +5,20 @@ import color from "../../theme/color";
 
 interface LazySecondaryViewProps {
     model: EditorOrHost;
-    editorId: string;
+    /** Panel-type id — the registry key (NOT an editor instance id). */
+    panelId: string;
     headerRef: HTMLDivElement | null;
 }
 
 /** Loads a secondary view component from the registry and renders it. */
-export function LazySecondaryView({ model, editorId, headerRef }: LazySecondaryViewProps) {
+export function LazySecondaryView({ model, panelId, headerRef }: LazySecondaryViewProps) {
     const [Component, setComponent] = useState<ComponentType<SecondaryViewProps> | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const def = secondaryViewRegistry.get(editorId);
+        const def = secondaryViewRegistry.get(panelId);
         if (!def) {
-            setError(`Unknown secondary view: "${editorId}"`);
+            setError(`Unknown secondary view: "${panelId}"`);
             return;
         }
         let cancelled = false;
@@ -27,7 +28,7 @@ export function LazySecondaryView({ model, editorId, headerRef }: LazySecondaryV
             if (!cancelled) setError(String(err));
         });
         return () => { cancelled = true; };
-    }, [editorId]);
+    }, [panelId]);
 
     if (error) return <div style={{ padding: 8, color: color.text.light }}>{error}</div>;
     if (!Component) return null;
