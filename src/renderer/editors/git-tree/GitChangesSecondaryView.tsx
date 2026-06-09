@@ -10,7 +10,7 @@ import { Text } from "../../uikit/Text";
 import { Spacer } from "../../uikit/Spacer";
 import { Splitter } from "../../uikit/Splitter";
 import { IconButton } from "../../uikit/IconButton/IconButton";
-import { RefreshIcon } from "../../theme/icons";
+import { RefreshIcon, CloseIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
 // =============================================================================
@@ -80,6 +80,20 @@ function GitChangesBody({
                 onClick={(e) => {
                     e.stopPropagation();
                     model.refresh();
+                }}
+            />
+            {/* Unconditional "x" — intentionally NOT gated on "is main" like
+                ArchiveSecondaryView. Closing while the Git Tree is the main
+                editor leaves an empty page by design (US-617 Concern 2). Do not
+                "align" this to the archive pattern. */}
+            <IconButton
+                name="git-changes-close"
+                size="sm"
+                title="Close Git Tree"
+                icon={<CloseIcon />}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    void model.requestClose();
                 }}
             />
         </>

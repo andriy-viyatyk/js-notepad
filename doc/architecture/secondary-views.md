@@ -158,7 +158,9 @@ The demote path does NOT call `setMainEditor(null)` — that would dispose the m
 
 **Expand:** `page.expandPanel(panelId)` — sets activePanel if the panelId exists in any secondary view's array. Calls `onPanelExpanded(panelId)` on the owning model. Used by models to auto-expand their panel (e.g., ArchiveEditorModel expands "archive-tree" when navigating to an archive entry).
 
-**Close:** The secondary view's React component renders a close button in its portal header. The close handler clears `model.secondaryView = undefined`, which removes the model from the sidebar. For user-closeable panels, this is the standard pattern.
+**Close — two semantics:**
+- **Hide the panel only** (default): the close handler clears `model.secondaryView = undefined`, removing the model from the sidebar (without disposing). The standard pattern for user-closeable panels.
+- **Remove the whole Pattern B editor** (`page.removeSecondaryView(model)`): detaches *and disposes* the model. Because `detach()` clears `mainEditorId` when the editor was also the main, this leaves the page empty if the editor was main, and leaves a different main untouched otherwise. Used by `ArchiveSecondaryView` and by `GitTreeEditorModel.requestClose()` (the Git Tree "x" — US-617). The Git Tree "x" is intentionally **unconditional** (unlike `ArchiveSecondaryView`, which hides its "x" while it is the main), because the empty-page outcome is the intended behavior.
 
 ---
 
@@ -246,7 +248,7 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 | `TodoEditor` | `["todo"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | TodoBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
 | `RestClientEditor` | `["rest"]` | B (mainEditor) | Removed on navigation (default `beforeNavigateAway`). Removed when SecondaryViews closes, re-registered when it opens. | RestClientBody `useEffect` (subscribes to `secondaryViewsToggled` event) |
 | `LinkEditor` (browser bookmarks) | `["link-category", "link-tags", "link-hostnames"]` | B — hosted on `BrowserPanelHost` (not `PageModel`) | Always present while the browser page is open; sidebar is mandatory-open. | `BrowserPanelHost.attach()` — called by `BrowserEditorModel` during bookmarks init |
-| `GitTreeEditorModel` | `["git-changes"]` | B (mainEditor) | **Unconditional survival** — `beforeNavigateAway()` is a no-op, so the "Changes" panel stays when clicking a changed file opens its Git Diff (the editor becomes secondary-only). The only removal path is the panel's manual "x" (US-617). | `setPage()` sets `secondaryView = ["git-changes"]` on attach (EPIC-031 / US-616) |
+| `GitTreeEditorModel` | `["git-changes"]` | B (mainEditor) | **Unconditional survival** — `beforeNavigateAway()` is a no-op, so the "Changes" panel stays when clicking a changed file opens its Git Diff (the editor becomes secondary-only). The only removal path is the panel's manual "x" → `requestClose()` → `page.removeSecondaryView(this)` (US-617). Also a **per-page navigation-singleton** (`matchesNavigationTarget` / `onNavigationReuse`): re-navigating to the same repo reuses this instance instead of stacking duplicates — see [pages-architecture.md §9 "navigation-singleton reuse"](pages-architecture.md). | `setPage()` sets `secondaryView = ["git-changes"]` on attach (EPIC-031 / US-616) |
 
 ---
 

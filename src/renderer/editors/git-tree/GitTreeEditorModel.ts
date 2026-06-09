@@ -10,6 +10,7 @@ import type { IPageHost } from "../../api/pages/IPageHost";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import { fpJoin } from "../../core/utils/file-path";
+import { decodeGitTreeLink } from "../../content/git-tree-link";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
 export interface GitTreeEditorState extends EditorStateBase {
@@ -143,6 +144,33 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
                 sourceId: this.id,
             }),
         );
+    }
+
+    /** Per-page singleton (US-617). The Git Tree survives navigation as the
+     *  "Changes" secondary panel, so re-navigating to it (clicking the `.git`
+     *  node again after viewing a diff) must reuse THIS instance rather than
+     *  build a second one — otherwise instances pile up, each contributing the
+     *  same `git-changes` panel, and the panel "x" closes only one per click.
+     *  Matches when the navigation is a `git-tree` target for our repoRoot. */
+    matchesNavigationTarget(target: string | undefined, filePath: string): boolean {
+        if (target !== "git-tree") return false;
+        const link = decodeGitTreeLink(filePath);
+        return !!link && link.repoRoot === this.state.get().repoRoot;
+    }
+
+    /** Reused-on-navigation hook (US-617): refresh so promoting back to main
+     *  shows current history + changes (a fresh open would have loaded fresh). */
+    onNavigationReuse(): void {
+        this.refresh();
+    }
+
+    /** Manual close (US-617): the Changes panel "x" removes this whole editor.
+     *  `removeSecondaryView` detaches us — clearing the page's main editor when
+     *  we ARE the main (→ empty page) and leaving a Git Diff main untouched when
+     *  we are only the secondary panel — then disposes us exactly once. Mirrors
+     *  the close path in `ArchiveSecondaryView`. */
+    async requestClose(): Promise<void> {
+        await this.page?.removeSecondaryView(this);
     }
 
     async dispose(): Promise<void> {

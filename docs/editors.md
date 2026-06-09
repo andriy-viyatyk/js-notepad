@@ -464,11 +464,21 @@ Each row shows the repo-relative file path with a file icon and a right-aligned 
 | `R` | Renamed |
 | `?` | Untracked (new file, not yet staged) |
 
-Click any file row to open its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. A **Refresh** button in the panel header reloads the status (and also reloads the commit history).
+Click any file row to open its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. The panel header has two buttons:
+
+- **Refresh** — reloads the file status and the commit history.
+- **× (Close Git Tree)** — removes the Git Tree editor entirely (see below).
 
 When a list has no files, it shows a **"No changes"** label.
 
 The Changes panel is display-only in this release — staging, unstaging, discarding, and committing are not yet available.
+
+**Closing the Changes panel:**
+
+The Changes panel does not close on its own — navigating away or switching editors leaves it open. The only way to close it is the **×** button in the panel header. What happens when you click it depends on which editor is in the main area:
+
+- **Git Tree is the main editor** — the Git Tree editor is removed and the page becomes empty (the tab stays open as a blank tab).
+- **Git Diff is the main editor** (you opened a diff from the Changes panel) — the Git Tree and Changes panel are removed; the diff view stays as the main editor.
 
 The Git Tree is read-only — it is an inspection tool. Stage, commit, push, branch, and merge operations are not available in v1.
 

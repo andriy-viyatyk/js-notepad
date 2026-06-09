@@ -260,6 +260,21 @@ export abstract class EditorModel<
      *  exists). Default: undefined — Monaco overrides. */
     hasTextSelection?(): boolean;
 
+    // ── Navigation reuse — per-page singleton (US-617) ────────────────────
+
+    /** Optional. A Pattern B editor that survives navigation (e.g. Git Tree)
+     *  returns true when a navigation request targets the same logical resource
+     *  this instance already represents. `navigatePageTo` then reuses this
+     *  instance — promoting it back to main — instead of building a duplicate
+     *  that would accumulate as a redundant surviving secondary panel. Default:
+     *  undefined — the editor is not a navigation singleton. */
+    matchesNavigationTarget?(target: string | undefined, filePath: string): boolean;
+
+    /** Optional. Called by `navigatePageTo` when this instance is reused for a
+     *  navigation (see `matchesNavigationTarget`), so it can refresh data that
+     *  may have gone stale since it was last the main editor. */
+    onNavigationReuse?(): void;
+
     // ── View focus signal (walkthrough 20 / MO7) ──────────────────────────
 
     /** Called by `<TextChrome>` after its 200ms root-focus subscription fires

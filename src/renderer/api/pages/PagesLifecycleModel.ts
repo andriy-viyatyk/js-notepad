@@ -677,6 +677,28 @@ export class PagesLifecycleModel {
             if (!released) return false;
         }
 
+        // US-617: a Pattern B editor that survives navigation (Git Tree) is a
+        // per-page singleton. If the page already holds an instance representing
+        // this target, promote it back to main and refresh — never build a
+        // duplicate. Duplicates would accumulate as redundant surviving secondary
+        // panels (the panel "x" would then need one click per stale instance).
+        const navTarget = options?.target;
+        if (navTarget) {
+            const existing = page.editors.find(
+                (e) => e.matchesNavigationTarget?.(navTarget, newFilePath),
+            );
+            if (existing) {
+                if (page.mainEditorInstance !== existing) {
+                    await page.setMainEditor(existing);
+                }
+                existing.onNavigationReuse?.();
+                this.model.onShow.send(page);
+                this.model.onFocus.send(page);
+                this.model.persistence.saveState();
+                return true;
+            }
+        }
+
         // Build legacy editor (with adapter wrap deferred until after the
         // post-restore mutations that need the underlying TextFileModel API).
         let legacy: EditorOrHost;
