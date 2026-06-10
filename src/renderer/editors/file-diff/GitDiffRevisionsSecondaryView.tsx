@@ -28,7 +28,7 @@ import { RefreshIcon } from "../../theme/icons";
 // Pattern B with the DEFAULT `beforeNavigateAway`: the panel disappears when the
 // page navigates to another file AND when the Git Diff is switched back to the
 // Text Editor. A picked commit's shorthash is the first 7 chars (matching
-// `RevisionPicker.pickCommit`).
+// `RevisionPicker`'s commit pick).
 // =============================================================================
 
 const shortHashOf = (hash: string) => hash.slice(0, 7);

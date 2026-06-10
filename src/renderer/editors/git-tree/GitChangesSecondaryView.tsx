@@ -40,6 +40,17 @@ function GitChangesBody({
         gitOk: s.gitOk,
     }));
 
+    // Unique changed-file count for the header (US-625 log #3). A file can appear in
+    // BOTH lists (partially staged: some hunks staged, others not) — union the
+    // repo-relative paths so it's counted once, rather than unstaged+staged which
+    // would double-count it.
+    const fileCount = useMemo(() => {
+        const paths = new Set<string>();
+        for (const c of unstaged) paths.add(c.path);
+        for (const c of staged) paths.add(c.path);
+        return paths.size;
+    }, [unstaged, staged]);
+
     const rootRef = useRef<HTMLDivElement>(null);
     const [bottomHeight, setBottomHeight] = useState<number | undefined>(undefined);
 
@@ -70,7 +81,7 @@ function GitChangesBody({
 
     const header = (
         <>
-            {`[${model.repoName}] Changes`}
+            {`[${model.repoName}] Changes (${fileCount})`}
             <Spacer />
             {/* Promote the Git Tree back to the page's main view (US-620). Useful
                 after clicking a changed file opened its diff as the main editor —

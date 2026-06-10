@@ -452,7 +452,7 @@ Column widths and order are remembered. Resize or reorder any column and the lay
 
 **Changes panel:**
 
-When the Git Tree editor is open, a **Changes** panel appears in the sidebar. The panel header shows the repository name: **[repoName] Changes** (e.g. `[persephone] Changes`). The panel is split into two parts:
+When the Git Tree editor is open, a **Changes** panel appears in the sidebar. The panel header shows the repository name and a count of changed files: **[repoName] Changes (n)** (e.g. `[persephone] Changes (3)`). The count reflects the union of unstaged and staged files — a file modified in both lists is counted once. The panel is split into two parts:
 
 - **Unstaged** (top) — working-tree modifications not yet staged, plus untracked files. Git-ignored files are not shown.
 - **Staged** (bottom) — files currently in the git index (ready to commit).
@@ -502,14 +502,18 @@ The Git Diff editor is a revision comparison view surfaced via the editor switch
 
 **Toolbar controls:**
 
-- **From** dropdown — the left (original) side of the diff. Options: **Staged** (git index, shown only when the file has staged changes), or any specific commit (selected from the commit picker popover).
-- **To** dropdown — the right (modified) side. Options: **Unstaged** (current working-tree content), **Staged** (git index, shown only when staged changes exist), or a specific commit.
+The **From** / **To** revision pickers sit at the left end of the toolbar. Each picker is a button showing the active revision label; clicking it opens a popover with a compact commit list scoped to the file's history. At the top of every list, **Unstaged** and **Staged** (when staged changes exist) appear as inline rows — so all revision choices live in one scrollable list with no separate buttons needed.
+
+- **From** button — the left (original) side of the diff. Choose **Staged** (git index, shown only when the file has staged changes) or any specific commit from the list.
+- **To** button — the right (modified) side. Choose **Unstaged** (current working-tree content), **Staged** (git index, shown only when staged changes exist), or a specific commit.
+
+The **Run Script** toolbar button does not appear on the Git Diff editor — running a script over a read-only diff is not supported.
 
 **Default view:** When you first open Git Diff for a file, the comparison defaults to the file's latest commit (left) versus **Unstaged** / working tree (right). This immediately shows what you have changed since the last commit.
 
 **Editing:** When **To** is **Unstaged**, the right pane is a live editor — changes you make are written back to the file on disk. All other combinations (commit ↔ commit, commit ↔ staged, etc.) are read-only.
 
-**Commit picker:** Clicking either dropdown opens a popover with a compact commit list scoped to the file's history. Select a commit to use it as that side's revision. Commit dates in the picker are shown in `YYYY-MM-DD HH:mm` format (24-hour, local time).
+**Commit picker:** Commit dates in the picker are shown in `YYYY-MM-DD HH:mm` format (24-hour, local time).
 
 **File History panel:** When the Git Diff editor is active, a **File History** panel appears in the page sidebar. It lists the file's commits with the same two-column layout used by the toolbar popovers — **Unstaged** (and **Staged**, when the file has staged changes) at the top, followed by the file's full commit history. Each row has two toggle buttons, **L** (left / "From" side) and **R** (right / "To" side), highlighted in blue to show which version is currently loaded on each side. Click **L** on a row to set that revision as the left side; click **R** to set it as the right side. The Unstaged row offers only an **R** toggle (the working-tree copy can only be the right side). The File History panel and the toolbar From/To dropdowns share a single selection — changing one updates the other. A **Refresh** button in the panel header reloads the file's history. The panel is shown only while the Git Diff editor is the active view; it disappears automatically when you switch back to the Text Editor or navigate to a different file.
 

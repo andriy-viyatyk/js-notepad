@@ -1,11 +1,14 @@
-import { useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Popover } from "../../uikit/Popover";
 import { Panel } from "../../uikit/Panel";
 import { Button } from "../../uikit/Button";
-import { Text } from "../../uikit/Text";
-import { Divider } from "../../uikit/Divider";
-import { GitTree, type GitTreeModel } from "../../components/git-tree";
+import {
+    GitTree,
+    syntheticCommitRow,
+    type GitCommitRow,
+    type GitTreeModel,
+} from "../../components/git-tree";
 import type { RevSel } from "./FileDiffEditor";
 
 interface RevisionPickerProps {
@@ -29,40 +32,49 @@ function labelFor(sel: RevSel): string {
     }
 }
 
-// Quick (non-commit) endpoints. `to` may compare against the working tree;
-// `from` (left/original) never does. "HEAD" is intentionally absent — the
-// latest committed version is reached by picking the top commit in the grid
-// (the editor defaults the base to it).
-const ENDPOINTS: Record<"from" | "to", { kind: Exclude<RevSel["kind"], "commit">; label: string }[]> = {
-    to: [
-        { kind: "unstaged", label: "Unstaged" },
-        { kind: "staged", label: "Staged" },
-    ],
-    from: [
-        { kind: "staged", label: "Staged" },
-    ],
-};
-
 export function RevisionPicker({ side, picker, value, showStaged, onPick }: RevisionPickerProps) {
     const anchorRef = useRef<HTMLButtonElement>(null);
     const [open, setOpen] = useState(false);
 
-    const endpoints = ENDPOINTS[side].filter((ep) => ep.kind !== "staged" || showStaged);
+    // Quick (non-commit) endpoints, combined INTO the commit grid as synthetic
+    // leading rows (US-625) — the same inline treatment as the "File History"
+    // panel (US-618), instead of separate buttons above the table. `to` may
+    // compare against the working tree (Unstaged); `from` (left/original) never
+    // does. "HEAD" is intentionally absent — the latest committed version is
+    // reached by picking the top commit (the editor defaults the base to it).
+    // Staged is offered on both sides only when the file has staged changes.
+    const leadingRows = useMemo<GitCommitRow[]>(() => {
+        const rows: GitCommitRow[] = [];
+        if (side === "to") rows.push(syntheticCommitRow("unstaged", "Unstaged changes"));
+        if (showStaged) rows.push(syntheticCommitRow("staged", "Staged changes"));
+        return rows;
+    }, [side, showStaged]);
+
+    // Highlight the row holding the current selection: the commit hash for a
+    // commit, otherwise the matching synthetic row's sentinel hash (derived from
+    // `leadingRows` so the sentinel format stays owned by `syntheticCommitRow`).
+    const selectedHash = useMemo(() => {
+        if (value.kind === "commit") return value.hash;
+        return leadingRows.find((r) => r.recordType === value.kind)?.hash;
+    }, [value, leadingRows]);
 
     const toggle = () => {
         setOpen((o) => !o);
         void picker.ensureLoaded(); // lazy first fetch
     };
 
-    const pickEndpoint = (kind: Exclude<RevSel["kind"], "commit">) => {
-        onPick({ kind } as RevSel);
-        setOpen(false);
-    };
-
-    const pickCommit = (hash: string) => {
-        onPick({ kind: "commit", hash, shortHash: hash.slice(0, 7) });
-        setOpen(false);
-    };
+    // A click resolves to the synthetic endpoint when it lands on a leading row,
+    // otherwise to a commit (shorthash = first 7 chars, matching the panel).
+    // Memoized so the AVGrid-backed `<GitTree>` keeps a stable `onSelectCommit`.
+    const pick = useCallback(
+        (hash: string) => {
+            const lead = leadingRows.find((r) => r.hash === hash);
+            if (lead) onPick({ kind: lead.recordType } as RevSel);
+            else onPick({ kind: "commit", hash, shortHash: hash.slice(0, 7) });
+            setOpen(false);
+        },
+        [leadingRows, onPick],
+    );
 
     return (
         <>
@@ -83,25 +95,6 @@ export function RevisionPicker({ side, picker, value, showStaged, onPick }: Revi
                 placement="bottom-start"
             >
                 <Panel direction="column" gap="xs" padding="xs" width={460}>
-                    {endpoints.length > 0 && (
-                        <>
-                            {endpoints.map((ep) => (
-                                <Button
-                                    key={ep.kind}
-                                    block
-                                    size="sm"
-                                    variant={value.kind === ep.kind ? "primary" : "ghost"}
-                                    onClick={() => pickEndpoint(ep.kind)}
-                                >
-                                    <Panel flex={1} justify="start">
-                                        <Text>{ep.label}</Text>
-                                    </Panel>
-                                </Button>
-                            ))}
-                            <Divider />
-                        </>
-                    )}
-                    <Text size="sm" color="light">Compare with a commit</Text>
                     {/* Fixed-height column-flex ancestor + the `flex={1} height={0}`
                         filler — the proven structure for RenderGrid (flex:1 1 auto
                         with a 100px fallback) to fill instead of staying 100px. */}
@@ -110,8 +103,9 @@ export function RevisionPicker({ side, picker, value, showStaged, onPick }: Revi
                             <GitTree
                                 model={picker}
                                 compact
-                                selectedHash={value.kind === "commit" ? value.hash : undefined}
-                                onSelectCommit={pickCommit}
+                                leadingRows={leadingRows}
+                                selectedHash={selectedHash}
+                                onSelectCommit={pick}
                             />
                         </Panel>
                     </Panel>

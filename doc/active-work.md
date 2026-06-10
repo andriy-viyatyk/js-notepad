@@ -17,6 +17,7 @@ Overview of all active and planned epics and tasks.
   - [x] US-622: Git Tree grid — generate columns once; preserve user width/reorder across refresh/load-more (re-fit only the graph column)
   - [x] US-623: Git Tree grid — persist column layout (width + order) in editor descriptor state; survives navigation-away/back and app restart
   - [x] [US-624: Git Tree auto-refresh — recursive working-tree watcher + `--no-optional-locks` status](tasks/US-624-git-tree-autorefresh/README.md)
+  - [ ] [US-625: Git small enhancements (rolling log — small tweaks recorded as entries, not separate tasks)](tasks/US-625-git-small-enhancements/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

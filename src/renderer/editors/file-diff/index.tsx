@@ -27,7 +27,7 @@ function FileDiffToolbarBits({ model }: { model: FileDiffEditor }) {
 function FileDiffEditorView({ model }: { model: EditorModel }) {
     const fd = model as FileDiffEditor;
     return (
-        <TextChrome model={model} rightToolbarContributions={<FileDiffToolbarBits model={fd} />}>
+        <TextChrome model={model} toolbarContributions={<FileDiffToolbarBits model={fd} />}>
             <FileDiffBody model={fd} />
         </TextChrome>
     );

@@ -14,13 +14,19 @@ Grow Persephone's Git support from the read-only v1 (shipped under [EPIC-030](EP
 ## How this epic works
 
 1. **The user describes one small enhancement** to the existing git functionality.
-2. **We create a task — or a few tasks if the piece is larger** — following the normal task-creation workflow (deep investigation → task doc → dashboard entry). For small, well-scoped pieces a lightweight task entry on the dashboard may be enough; larger pieces get a full task folder + README.
+2. **Where does it go? (decided 2026-06-10 — STRICT)**
+   - **Small, well-scoped tweak** (a handful of lines, one or two files, no design open questions) → do **NOT** mint a new `US-XXX` ID or dashboard row. Append a **log entry** to the single rolling task **[US-625: Git small enhancements](../tasks/US-625-git-small-enhancements/README.md)** instead. This keeps the dashboard and the task table below from filling up with one-line tweaks.
+   - **Larger piece** (multiple files, real design decisions, needs investigation) → still gets its own `US-XXX` task folder + README + dashboard row, via the normal task-creation workflow (deep investigation → task doc → dashboard entry).
 3. **We implement it**, leaving Persephone compiling and runnable at each step, behind the existing **"Git integration"** setting (off by default).
-4. **The user tests it.** Bugs/adjustments are folded into the same task before it's marked done.
-5. **Each task is completed normally — with `/review`, `/document`, and `/userdoc` run per task** (NOT the deferred epic-level review model). When the user says "complete this task": verify acceptance criteria → run `/review` → `/document` → `/userdoc` → mark the task `[x]` on the dashboard. Tasks stay listed under this epic (they do not move to `completed.md` individually); the whole block moves to [`/doc/epics/completed.md`](completed.md) when the epic itself closes.
+4. **The user tests it.** Bugs/adjustments are folded in before the entry/task is marked done.
+5. **Completion + review:**
+   - **Rolling-log entries (US-625):** review is **batched**. When the user says "complete these" (or at epic close), run `/review` + `/document` + `/userdoc` over the unreviewed log entries together, then mark them ✅ in the log. US-625 stays open and keeps accumulating until the epic closes.
+   - **Standalone `US-XXX` tasks:** completed normally with `/review` + `/document` + `/userdoc` run **per task** (NOT the deferred epic-level model). Verify acceptance criteria → run the three skills → mark `[x]` on the dashboard. They stay listed under this epic (do not move to `completed.md` individually); the whole block moves to [`/doc/epics/completed.md`](completed.md) when the epic closes.
 6. **Repeat** — the user describes the next enhancement.
 
-> **Completion model (decided 2026-06-09):** this epic uses **per-task** review + docs, not the deferred epic-level pass other epics use. Because increments are independent and land one at a time with their own user-test cycle, each gets its own `/review` + `/document` + `/userdoc` at completion.
+> **Completion model (decided 2026-06-09):** this epic uses **per-task** review + docs, not the deferred epic-level pass other epics use. Because increments are independent and land with their own user-test cycle, each task (or each batch of rolling-log entries) gets its own `/review` + `/document` + `/userdoc` at completion.
+>
+> **Single rolling task for small tweaks (decided 2026-06-10):** small one-off enhancements are logged in **[US-625](../tasks/US-625-git-small-enhancements/README.md)** as table rows, not as separate `US-XXX` IDs. Only larger, multi-file/design-bearing pieces get their own task ID. **Next agent: follow this — don't create a new task per small git tweak.**
 
 There is **no master plan or locked scope** here. Each increment is decided when its concrete need is described. The Goals list below is a loose north star, not a commitment to a particular design or ordering.
 
@@ -72,6 +78,7 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 | US-622 | Git Tree grid — generate columns once on first mount; preserve user-dragged widths + column reorder across refresh/load-more; re-fit only the graph (first) column when the branch-lane count (`maxColumns`) shifts. Editor view keeps `<GitTree>` mounted during Refresh (placeholder only on initial load) so column state survives the reload remount | ✅ Done (2026-06-10) |
 | US-623 | Git Tree grid — persist column layout (width + order) in the **owner** model: `columnLayout` on `GitTreeEditorState` (round-trips via `getRestoreData` like `repoRoot`). `<GitTree>` gains `initialColumnLayout` (applied once at mount) + `onColumnLayoutChange` (emitted on user resize/reorder only, not programmatic rebuilds). Survives navigation-away/back and app restart | ✅ Done (2026-06-10) |
 | [US-624](../tasks/US-624-git-tree-autorefresh/README.md) | Git Tree auto-refresh — recursive `fs.watch` on `repoRoot` (Option A, mirrors Explorer) calling `refresh()` debounced 500ms; `git status` via `GIT_OPTIONAL_LOCKS=0` to break the index-rewrite refresh loop. Always-on under `git.enabled`; `DirectoryWatcher` util in `file-watcher.ts`; lifecycle in `GitTreeEditorModel` | ✅ Done (2026-06-10) |
+| [US-625](../tasks/US-625-git-small-enhancements/README.md) | **Rolling log of small git tweaks** — single task; each small enhancement is a row in its log table (no separate `US-XXX` per tweak, per the rule above). Entries so far: from/to popover inline endpoints + left-edge toolbar move; hide Run Script on non-script editors; Changes-panel unique file count | 🔨 Rolling (open) |
 
 ## Notes
 

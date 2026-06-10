@@ -151,12 +151,15 @@ function CompareButton({ model }: { model: EditorModel }) {
 function RunButtons({ model, host }: { model: EditorModel; host: TextFileModel }) {
     const language = host.state.use((s) => s.language);
     if (!isScriptLanguage(language)) return null;
-    const hasSelection = model.hasTextSelection?.() ?? false;
+    // Only editors that run scripts themselves expose `runScript` — that's the
+    // Monaco text editor. The Git Diff editor shares this chrome and its host can
+    // be a script-language file, but it has no `runScript` (running a script over
+    // a read-only diff is meaningless), so the button is hidden there. This is the
+    // same gate the F5 handler uses, keeping the button and the shortcut in sync.
     const editorRunner = (model as unknown as { runScript?: (all?: boolean) => Promise<void> }).runScript;
-    const runScript = (all?: boolean) =>
-        typeof editorRunner === "function"
-            ? editorRunner.call(model, all)
-            : host.runScript(all);
+    if (typeof editorRunner !== "function") return null;
+    const hasSelection = model.hasTextSelection?.() ?? false;
+    const runScript = (all?: boolean) => editorRunner.call(model, all);
     return (
         <>
             <IconButton
