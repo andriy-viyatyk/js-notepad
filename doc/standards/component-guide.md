@@ -10,7 +10,7 @@ Walk the decision tree from the top. Stop at the first match.
 |----------|--------|----------|
 | Does only this editor use it? | Yes | `src/renderer/editors/<editor-name>/components/` *(private to that editor)* |
 | Is it part of the app shell — page tabs, sidebar, navigation bar, dialog — and unique to Persephone? | Yes | `src/renderer/ui/<feature>/` *(not a reusable component — owned by the screen)* |
-| Does it depend on `app.*` APIs, the page model, file system, or the scripting system? | Yes | `src/renderer/components/<existing-keep-folder>/` *(only `icons/`, `page-manager/`, `file-search/`, `tree-provider/` are valid)* |
+| Does it depend on `app.*` APIs, the page model, file system, or the scripting system? | Yes | `src/renderer/components/<existing-keep-folder>/` *(valid: `icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/`)* |
 | Otherwise — reusable primitive with no app coupling | | `src/renderer/uikit/<ComponentName>/` *(canonical home for new reusable components)* |
 
 See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md) for the permanent contract that defines what belongs in `uikit/` vs `components/`.
@@ -28,7 +28,7 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 - **Rule 7** — no Emotion / `style=` / `className=` outside `uikit/` in app code (exception: `src/renderer/ui/` chrome).
 - **Rule 8** — model-view pattern (`TComponentModel`) once a component exceeds the small-and-readable threshold.
 
-**Persephone-coupled components** (the four KEEP folders inside `components/`) may import `api/`, `core/`, and `theme/` directly — that's the criterion for living in `components/` at all. They should still use UIKit primitives (`Button`, `Tooltip`, `IconButton`, `Panel`, …) for primitive rendering rather than re-implementing them.
+**Persephone-coupled components** (the KEEP folders inside `components/`) may import `api/`, `core/`, and `theme/` directly — that's the criterion for living in `components/` at all. They should still use UIKit primitives (`Button`, `Tooltip`, `IconButton`, `Panel`, …) for primitive rendering rather than re-implementing them.
 
 ## Naming conventions
 
@@ -44,4 +44,4 @@ Use the template at the bottom of [`uikit/CLAUDE.md`](../../src/renderer/uikit/C
 
 ## Migration history
 
-The legacy `src/renderer/components/{basic,form,layout,overlay,TreeView,virtualization,data-grid}/` split was retired in [EPIC-025](../epics/EPIC-025.md). Reusable primitives now live in `src/renderer/uikit/`; the four folders that remain in `components/` (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`) are persephone-coupled and do not receive new pure primitives. The canonical rename table (e.g. `Chip → Tag`, `PopupMenu → Menu`, `TreeView → Tree`, `ComboSelect → Select`) lives in [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md).
+The legacy `src/renderer/components/{basic,form,layout,overlay,TreeView,virtualization,data-grid}/` split was retired in [EPIC-025](../epics/EPIC-025.md). Reusable primitives now live in `src/renderer/uikit/`; the folders that remain in `components/` (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/`) are persephone-coupled and do not receive new pure primitives. The canonical rename table (e.g. `Chip → Tag`, `PopupMenu → Menu`, `TreeView → Tree`, `ComboSelect → Select`) lives in [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md).

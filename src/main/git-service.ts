@@ -11,7 +11,7 @@
  * Log/show/diff arrive with US-611/US-613 as further endpoints.
  */
 import { simpleGit } from "simple-git";
-import type { GitCommit, GitFileChange, GitLogOptions, GitProbeResult, GitRef, GitRepoInfo, GitStatusResult } from "../ipc/git-ipc";
+import type { GitCommit, GitFileChange, GitLogOptions, GitMutationResult, GitProbeResult, GitRef, GitRepoInfo, GitStatusResult } from "../ipc/git-ipc";
 
 /** `git --version` availability probe for the settings page. Never throws. */
 export async function probeGit(): Promise<GitProbeResult> {
@@ -234,5 +234,70 @@ export async function commitFiles(dir: string, hash: string): Promise<GitFileCha
         return out;
     } catch {
         return [];
+    }
+}
+
+/**
+ * Stage paths — move working-tree changes into the index (EPIC-031 / US-631,
+ * the first mutating git op). `git add -- <paths>` also stages deletions and
+ * untracked files, and operates on the WHOLE path (not per-hunk) so a
+ * partially-staged file becomes fully staged. `paths` is repo-relative
+ * (forward-slashed); for a rename pass both new + old path. Never throws —
+ * returns `{ ok:false, error }` so the renderer can surface failure.
+ */
+export async function stage(dir: string, paths: string[]): Promise<GitMutationResult> {
+    if (!paths.length) return { ok: true };
+    try {
+        await simpleGit(dir).add(paths);
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+/**
+ * Unstage paths — move index changes back to the working tree (EPIC-031 /
+ * US-631). `git reset -- <paths>` (≡ `git reset HEAD -- <paths>`) operates on
+ * the whole path, so a partially-staged file becomes fully unstaged. On an
+ * initial-commit repo there is no HEAD to reset against, so fall back to
+ * `git rm --cached` to unstage the freshly-added blobs. Never throws.
+ */
+export async function unstage(dir: string, paths: string[]): Promise<GitMutationResult> {
+    if (!paths.length) return { ok: true };
+    const git = simpleGit(dir);
+    try {
+        await git.reset(["--", ...paths]);
+        return { ok: true };
+    } catch {
+        // No-HEAD repo (no commits yet): `reset` fails — `rm --cached` unstages.
+        try {
+            await git.raw(["rm", "--cached", "--", ...paths]);
+            return { ok: true };
+        } catch (e2) {
+            return { ok: false, error: String(e2) };
+        }
+    }
+}
+
+/**
+ * Discard working-tree changes — "Reset" for the Unstaged list (EPIC-031 /
+ * US-631). Tracked paths are restored to their staged/HEAD version via
+ * `git checkout -- <paths>`; untracked paths (status '?') are removed from disk
+ * via `git clean -f -- <paths>`. DESTRUCTIVE — the caller confirms first. Never
+ * throws.
+ */
+export async function discard(
+    dir: string,
+    trackedPaths: string[],
+    untrackedPaths: string[],
+): Promise<GitMutationResult> {
+    if (!trackedPaths.length && !untrackedPaths.length) return { ok: true };
+    const git = simpleGit(dir);
+    try {
+        if (trackedPaths.length) await git.raw(["checkout", "--", ...trackedPaths]);
+        if (untrackedPaths.length) await git.raw(["clean", "-f", "--", ...untrackedPaths]);
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
     }
 }

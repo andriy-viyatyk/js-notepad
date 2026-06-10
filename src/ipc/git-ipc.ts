@@ -53,6 +53,13 @@ export interface GitFileChange {
     oldPath?: string;
 }
 
+/** Result of a mutating git op (EPIC-031 / US-631). Never thrown across IPC —
+ *  `ok:false` + message lets the renderer surface failure without a crash. */
+export interface GitMutationResult {
+    ok: boolean;
+    error?: string;
+}
+
 /** Split working-tree status for a repo (EPIC-031 / US-616). */
 export interface GitStatusResult {
     /** Index (staged) changes. */

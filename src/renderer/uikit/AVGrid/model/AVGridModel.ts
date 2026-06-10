@@ -7,6 +7,7 @@ import {
     TSortColumn,
 } from "../avGridTypes";
 import { TComponentModel } from "../../../core/state/model";
+import type { MenuItem } from "../../Menu";
 import { RenderGridModel } from "../../RenderGrid";
 import type { RerenderInfo } from "../../RenderGrid";
 import { IState } from "../../../core/state/state";
@@ -55,6 +56,10 @@ export interface AVGridProps<R> {
 
     onClick?: (row: R, col: Column<R>) => void;
     onDoubleClick?: (row: R, col: Column<R>) => void;
+    /** Caller-supplied context-menu items for a data-cell right-click, prepended
+     *  above the built-in copy/insert/delete items. Receives the current row
+     *  selection (the right-clicked row is selected first). Return [] to add none. */
+    getContextMenuItems?: (selectedRows: R[]) => MenuItem[];
     onMouseDown?: (e: React.MouseEvent) => void;
     onCellClass?: (row: R, col: Column<R>) => string;
     onColumnsChanged?: () => void;

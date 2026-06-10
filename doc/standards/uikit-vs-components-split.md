@@ -15,7 +15,7 @@
 ### `src/renderer/components/` — persephone-coupled components
 
 - Each remaining folder uses `app.*` APIs, the page model, the file system, or the scripting system — that's the criterion for living here.
-- Four folders remain. **No new pure primitives go here.** New primitives go in `uikit/`.
+- These persephone-coupled folders remain. **No new pure primitives go here.** New primitives go in `uikit/`.
 
   | Folder | What it does | Why it can't live in `uikit/` |
   |--------|--------------|-------------------------------|
@@ -23,11 +23,14 @@
   | `page-manager/` | Portal-based page / tab host | Couples to `PageModel` and the page lifecycle |
   | `file-search/` | Standalone file content search with virtualized results | Uses `app.fs` + search service IPC |
   | `tree-provider/` | `TreeProviderView` — generic tree viewer over `ITreeProvider` | Coupled to provider-tree contracts defined in `api/` |
+  | `file-list/` | Flat file list (`ListBox` + `FileIcon`) | Couples to the `FileIcon` registration system |
+  | `file-grid/` | `AVGrid`-based file list (range select, sorting, range-copy) | Couples to `FileIcon`; the eventual `FileList` replacement |
+  | `git-tree/` | Git history view + git data submodels (`GitTreeModel`, `GitChangesModel`) | Couples to `api/git` + the page model |
 
 ## What goes where, in practice
 
 - A new `Slider` → `uikit/Slider/`.
-- A new file-picker that uses `app.fs` → `components/file-search/` (extend existing) or a new persephone-coupled folder if the existing four don't fit.
+- A new file-picker that uses `app.fs` → `components/file-search/` (extend existing) or a new persephone-coupled folder if the existing ones don't fit.
 - A new editor-specific panel that only the Notebook editor uses → `editors/notebook/components/` (private to that editor — not reusable).
 - A new dialog or settings panel — reusable UI built from UIKit primitives → consumer code under `editors/`, `ui/`, or wherever it's used. Compose UIKit primitives by props; do not create new wrappers in `uikit/` just to hold a layout.
 

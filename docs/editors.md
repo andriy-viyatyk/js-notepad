@@ -457,7 +457,13 @@ When the Git Tree editor is open, a **Changes** panel appears in the sidebar. Th
 - **Unstaged** (top) — working-tree modifications not yet staged, plus untracked files. Git-ignored files are not shown.
 - **Staged** (bottom) — files currently in the git index (ready to commit).
 
-Each row shows the repo-relative file path with a file icon and a right-aligned colored **status badge**:
+Each list is displayed as a three-column grid:
+
+| Column | Description |
+|--------|-------------|
+| Icon | File-type icon |
+| Path | Repo-relative path — the column header shows the section name (**Unstaged** or **Staged**) |
+| Status | Colored status badge (right-aligned) |
 
 | Badge | Meaning |
 |-------|---------|
@@ -467,7 +473,13 @@ Each row shows the repo-relative file path with a file icon and a right-aligned 
 | `R` | Renamed |
 | `?` | Untracked (new file, not yet staged) |
 
-Click any file row to open its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. The panel header has three buttons:
+Click a column header to sort by that column. Click again to reverse the sort order.
+
+**Selecting files:** Click a row to select it. **Shift-click** extends the selection. **Ctrl+A** selects all rows in that list. You can also drag to select a range.
+
+**Single-click to diff:** Clicking a file row opens its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one.
+
+The panel header has three buttons:
 
 - **Refresh** — reloads the file status and the commit history.
 - **Show Git Tree** (git icon) — switches the main area back to the commit-graph view. Use this after clicking a file (which opens its Git Diff) to return to the Git Tree without closing the Changes panel.
@@ -475,7 +487,19 @@ Click any file row to open its **Git Diff** in the main area. The Changes panel 
 
 When a list has no files, it shows a **"No changes"** label.
 
-The Changes panel is display-only in this release — staging, unstaging, discarding, and committing are not yet available.
+**Staging and unstaging files:**
+
+The Changes panel lets you move files between the **Unstaged** and **Staged** lists. Three ways to do it:
+
+- **Arrow buttons on the Staged list header** — select one or more files in a list, then click the arrow button on the **Staged** list's header: **↓** stages the current Unstaged selection; **↑** unstages the current Staged selection.
+- **Double-click** — double-click any file row to move it to the other list. Double-clicking an Unstaged row stages the file; double-clicking a Staged row unstages it.
+- **Right-click context menu** — right-click one or more selected rows and choose **Stage N files** or **Unstage N files**.
+
+A file that has been partially staged (modified after staging) appears in **both** lists simultaneously. Double-clicking the Unstaged row fully stages it; double-clicking the Staged row fully unstages it.
+
+**Resetting files (Unstaged only):**
+
+Right-click one or more rows in the **Unstaged** list and choose **Reset N files** to discard uncommitted changes and restore the file(s) to the last staged or committed version. Untracked files are deleted. A confirmation dialog appears before the reset is applied.
 
 **Multiple repositories:**
 
@@ -504,7 +528,7 @@ The Changes panel does not close on its own — navigating away or switching edi
 
 The Git Tree and Changes panel update automatically when the repository changes on disk — no manual **Refresh** needed. Saving a tracked file, staging or unstaging, committing, checking out, merging, or fetching all trigger a refresh within about half a second. Auto-refresh is always on when Git integration is enabled.
 
-The Git Tree is read-only — it is an inspection tool. Stage, commit, push, branch, and merge operations are not available in v1.
+The Git Tree is an inspection and partial-staging tool. Commit, push, branch, and merge operations are not yet available.
 
 ## Git Diff
 

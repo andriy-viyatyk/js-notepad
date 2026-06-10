@@ -20,6 +20,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-625: Git small enhancements (rolling log — small tweaks recorded as entries, not separate tasks)](tasks/US-625-git-small-enhancements/README.md)
   - [x] [US-629: Git Tree editor — bottom panel scaffold + "Commit" tab](tasks/US-629-git-tree-commit-panel/README.md)
   - [x] [US-630: Git Tree editor — "Diff" tab (changed files + per-file diff)](tasks/US-630-git-tree-commit-diff-tab/README.md)
+  - [x] [US-631: "Changes" panel — stage / unstage / reset (buttons + double-click + context menu) + AVGrid-based `FileGrid` (range select)](tasks/US-631-git-stage-unstage/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

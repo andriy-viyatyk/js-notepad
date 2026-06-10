@@ -37,6 +37,13 @@ export class ContextMenuModel<R> {
         const menuItems: MenuItem[] = [];
         const selection = this.model.models.focus.getGridSelection();
 
+        // Caller-supplied items (e.g. git Stage/Unstage) go first, above the
+        // built-in copy/insert/delete group.
+        const customItems = isDataCell
+            ? this.model.props.getContextMenuItems?.(selection?.rows ?? []) ?? []
+            : [];
+        menuItems.push(...customItems);
+
         if (selection && isDataCell) {
             menuItems.push(
                 {
@@ -44,6 +51,7 @@ export class ContextMenuModel<R> {
                     onClick: () => this.model.models.copyPaste.copySelection(),
                     icon: <CopyIcon />,
                     hotKey: "(Ctrl+C)",
+                    startGroup: customItems.length > 0,
                 },
                 {
                     label: "Copy as...",

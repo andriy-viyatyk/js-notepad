@@ -91,6 +91,13 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     private repoWatcher: DirectoryWatcher | undefined;
     private watchedRoot: string | undefined;
 
+    /** Absolute path of an in-flight `openChangeDiff` navigation (US-631). A
+     *  double-click fires two single clicks; the 2nd lands before the async
+     *  navigation swaps the main editor, so dedupe by the path being opened to
+     *  stop the diff re-mounting twice (the "blink"). Cleared when the
+     *  navigation settles. */
+    private diffNavInFlight: string | undefined;
+
     /** Tab icon — the git glyph (EPIC-030 / US-612). */
     getIcon = (): ReactNode => createElement(GitIcon, { width: 16, height: 16 });
 
@@ -212,13 +219,28 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         // diff itself is still valid (HEAD vs empty). Left ungated for now —
         // the common M/A/?/staged cases work; revisit if it proves problematic.
         const absPath = fpJoin(repoRoot, change.path);
-        void app.events.openRawLink.sendAsync(
-            createLinkData(absPath, {
-                target: "file-diff",
-                pageId: this.page.id,
-                sourceId: this.id,
-            }),
-        );
+        const norm = (p?: string | null) => p?.replace(/\\/g, "/");
+        // Skip redundant navigation (US-631). The file's diff is already the
+        // page's main editor → nothing to do (also covers slow repeat clicks).
+        if (norm(this.page.mainEditorInstance?.getNavigatorTarget?.()?.filePath) === norm(absPath)) {
+            return;
+        }
+        // A navigation to this same path is already in flight → ignore the
+        // duplicate (the rapid 2nd click of a double-click, before the 1st
+        // navigation has swapped the main editor — otherwise the diff blinks).
+        if (norm(this.diffNavInFlight) === norm(absPath)) return;
+        this.diffNavInFlight = absPath;
+        void app.events.openRawLink
+            .sendAsync(
+                createLinkData(absPath, {
+                    target: "file-diff",
+                    pageId: this.page.id,
+                    sourceId: this.id,
+                }),
+            )
+            .finally(() => {
+                this.diffNavInFlight = undefined;
+            });
     }
 
     /** Promote this Git Tree back to the page's main editor (US-620). After the

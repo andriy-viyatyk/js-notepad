@@ -275,6 +275,21 @@ class Controller implements MainApi {
         const { commitFiles } = await import("../../main/git-service");
         return commitFiles(dir, hash);
     };
+
+    gitStage = async (_event: IpcMainEvent, dir: string, paths: string[]) => {
+        const { stage } = await import("../../main/git-service");
+        return stage(dir, paths);
+    };
+
+    gitUnstage = async (_event: IpcMainEvent, dir: string, paths: string[]) => {
+        const { unstage } = await import("../../main/git-service");
+        return unstage(dir, paths);
+    };
+
+    gitDiscard = async (_event: IpcMainEvent, dir: string, trackedPaths: string[], untrackedPaths: string[]) => {
+        const { discard } = await import("../../main/git-service");
+        return discard(dir, trackedPaths, untrackedPaths);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -346,6 +361,9 @@ const init = () => {
     bindEndpoint(Endpoint.gitStatus, controllerInstance.gitStatus);
     bindEndpoint(Endpoint.gitCommitMessage, controllerInstance.gitCommitMessage);
     bindEndpoint(Endpoint.gitCommitFiles, controllerInstance.gitCommitFiles);
+    bindEndpoint(Endpoint.gitStage, controllerInstance.gitStage);
+    bindEndpoint(Endpoint.gitUnstage, controllerInstance.gitUnstage);
+    bindEndpoint(Endpoint.gitDiscard, controllerInstance.gitDiscard);
 
     initRendererEvents();
 }

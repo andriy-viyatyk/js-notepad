@@ -12,7 +12,7 @@
 import { fpDirname } from "../core/utils/file-path";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
-import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange } from "../../ipc/git-ipc";
+import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult } from "../../ipc/git-ipc";
 
 const EMPTY_STATUS: GitStatusResult = { staged: [], unstaged: [] };
 
@@ -97,5 +97,36 @@ export const git = {
     commitFiles(repoRoot: string, hash: string): Promise<GitFileChange[]> {
         if (!settings.get("git.enabled") || !repoRoot || !hash) return Promise.resolve([]);
         return api.gitCommitFiles(repoRoot, hash).catch((): GitFileChange[] => []);
+    },
+
+    /**
+     * Stage paths (move working-tree → index) for the "Changes" panel
+     * (EPIC-031 / US-631). The first mutating git op. Returns `{ ok:true }`
+     * (no-op) when git is off or no root/paths; on IPC failure resolves to
+     * `{ ok:false, error }` — never throws.
+     */
+    stage(repoRoot: string, paths: string[]): Promise<GitMutationResult> {
+        if (!settings.get("git.enabled") || !repoRoot || !paths.length) return Promise.resolve({ ok: true });
+        return api.gitStage(repoRoot, paths).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+    },
+
+    /** Unstage paths (move index → working-tree) for the "Changes" panel
+     *  (EPIC-031 / US-631). Symmetric to `stage`. Never throws. */
+    unstage(repoRoot: string, paths: string[]): Promise<GitMutationResult> {
+        if (!settings.get("git.enabled") || !repoRoot || !paths.length) return Promise.resolve({ ok: true });
+        return api.gitUnstage(repoRoot, paths).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+    },
+
+    /**
+     * Discard working-tree changes — "Reset" for the Unstaged list (EPIC-031 /
+     * US-631). Tracked paths restore to staged/HEAD; untracked paths are deleted.
+     * DESTRUCTIVE — the caller confirms first. Returns `{ ok:true }` (no-op) when
+     * git is off or nothing to do; never throws.
+     */
+    discard(repoRoot: string, trackedPaths: string[], untrackedPaths: string[]): Promise<GitMutationResult> {
+        if (!settings.get("git.enabled") || !repoRoot || (!trackedPaths.length && !untrackedPaths.length)) {
+            return Promise.resolve({ ok: true });
+        }
+        return api.gitDiscard(repoRoot, trackedPaths, untrackedPaths).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
     },
 };

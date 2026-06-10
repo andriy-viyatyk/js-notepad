@@ -14,6 +14,7 @@
 import { TComponentState } from "../../core/state/state";
 import { settings } from "../../api/settings";
 import { git } from "../../api/git";
+import { ui } from "../../api/ui";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
 export interface GitChangesState {
@@ -83,6 +84,41 @@ export class GitChangesModel {
             s.staged = result.staged;
             s.loading = false;
         });
+    };
+
+    /** Stage paths (working-tree → index), then reload the lists (US-631). The
+     *  US-624 watcher also fires, but reload now for immediate feedback. On
+     *  failure, surface a toast and still reload (shows the true, unchanged
+     *  state). `paths` already expanded for renames by the caller (path+oldPath). */
+    stagePaths = async (paths: string[]): Promise<void> => {
+        if (!this.repoRoot || !paths.length) return;
+        const r = await git.stage(this.repoRoot, paths);
+        if (!r.ok) void ui.notify(`Failed to stage: ${r.error ?? "unknown error"}`, "error");
+        await this.reload();
+    };
+
+    /** Unstage paths (index → working-tree), then reload (US-631). Symmetric to
+     *  `stagePaths`. */
+    unstagePaths = async (paths: string[]): Promise<void> => {
+        if (!this.repoRoot || !paths.length) return;
+        const r = await git.unstage(this.repoRoot, paths);
+        if (!r.ok) void ui.notify(`Failed to unstage: ${r.error ?? "unknown error"}`, "error");
+        await this.reload();
+    };
+
+    /** Discard working-tree changes for the given Unstaged files — "Reset"
+     *  (US-631). Tracked files restore to their staged/HEAD version; untracked
+     *  ('?') files are deleted from disk. DESTRUCTIVE — the caller confirms
+     *  first. Renames expand to path+oldPath. Toasts on failure, then reloads. */
+    resetChanges = async (changes: GitFileChange[]): Promise<void> => {
+        if (!this.repoRoot || !changes.length) return;
+        const untracked = changes.filter((c) => c.status === "?").map((c) => c.path);
+        const tracked = changes
+            .filter((c) => c.status !== "?")
+            .flatMap((c) => (c.oldPath ? [c.path, c.oldPath] : [c.path]));
+        const r = await git.discard(this.repoRoot, tracked, untracked);
+        if (!r.ok) void ui.notify(`Failed to reset: ${r.error ?? "unknown error"}`, "error");
+        await this.reload();
     };
 
     dispose(): void {
