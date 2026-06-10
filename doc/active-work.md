@@ -19,7 +19,7 @@ Overview of all active and planned epics and tasks.
   - [x] [US-624: Git Tree auto-refresh — recursive working-tree watcher + `--no-optional-locks` status](tasks/US-624-git-tree-autorefresh/README.md)
   - [ ] [US-625: Git small enhancements (rolling log — small tweaks recorded as entries, not separate tasks)](tasks/US-625-git-small-enhancements/README.md)
   - [x] [US-629: Git Tree editor — bottom panel scaffold + "Commit" tab](tasks/US-629-git-tree-commit-panel/README.md)
-  - [ ] [US-630: Git Tree editor — "Diff" tab (changed files + per-file diff)](tasks/US-630-git-tree-commit-diff-tab/README.md)
+  - [x] [US-630: Git Tree editor — "Diff" tab (changed files + per-file diff)](tasks/US-630-git-tree-commit-diff-tab/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

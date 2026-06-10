@@ -10,6 +10,7 @@ import { RefreshIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { GitTree } from "../../components/git-tree";
 import { CommitInfoPanel } from "./CommitInfoPanel";
+import { CommitDiffPanel } from "./CommitDiffPanel";
 import { decodeGitTreeLink } from "../../content/git-tree-link";
 import {
     GitTreeEditorModel,
@@ -26,6 +27,9 @@ import type { EditorType, IEditorState } from "../../../shared/types";
 
 /** Default bottom-panel height (px) until the user resizes it (US-629). */
 const DEFAULT_PANEL_H = 240;
+
+/** Default width (px) of the "Diff" tab's left file-list column (US-630). */
+const DEFAULT_DIFF_LIST_W = 240;
 
 export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
     const { loading, gitOk, hasCommits } = model.gitTree.state.use((s) => ({
@@ -48,9 +52,10 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
         ro.observe(el);
         return () => ro.disconnect();
     }, []);
-    const { bottomPanelHeight, bottomPanelTab } = model.state.use((s) => ({
+    const { bottomPanelHeight, bottomPanelTab, commitDiffListWidth } = model.state.use((s) => ({
         bottomPanelHeight: s.bottomPanelHeight,
         bottomPanelTab: s.bottomPanelTab,
+        commitDiffListWidth: s.commitDiffListWidth,
     }));
     const maxH = containerH > 0 ? Math.round(containerH * 0.8) : Infinity;
     const panelH = Math.min(bottomPanelHeight ?? DEFAULT_PANEL_H, maxH);
@@ -174,10 +179,13 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                                 />
                             )}
                             {tab === "diff" && (
-                                // US-630 fills this in.
-                                <Panel padding="md" align="center" justify="center" flex={1}>
-                                    <Text color="light">Diff view — coming in US-630.</Text>
-                                </Panel>
+                                <CommitDiffPanel
+                                    repoRoot={model.state.get().repoRoot}
+                                    gitTree={model.gitTree}
+                                    selectedHash={selectedHash}
+                                    listWidth={commitDiffListWidth ?? DEFAULT_DIFF_LIST_W}
+                                    onListWidthChange={model.setCommitDiffListWidth}
+                                />
                             )}
                         </Panel>
                     </Panel>

@@ -80,7 +80,7 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 | [US-624](../tasks/US-624-git-tree-autorefresh/README.md) | Git Tree auto-refresh — recursive `fs.watch` on `repoRoot` (Option A, mirrors Explorer) calling `refresh()` debounced 500ms; `git status` via `GIT_OPTIONAL_LOCKS=0` to break the index-rewrite refresh loop. Always-on under `git.enabled`; `DirectoryWatcher` util in `file-watcher.ts`; lifecycle in `GitTreeEditorModel` | ✅ Done (2026-06-10) |
 | [US-625](../tasks/US-625-git-small-enhancements/README.md) | **Rolling log of small git tweaks** — single task; each small enhancement is a row in its log table (no separate `US-XXX` per tweak, per the rule above). Entries so far: from/to popover inline endpoints + left-edge toolbar move; hide Run Script on non-script editors; Changes-panel unique file count | 🔨 Rolling (open) |
 | [US-629](../tasks/US-629-git-tree-commit-panel/README.md) | Git Tree editor — resizable bottom panel (Git-Extensions-style) with "Commit"/"Diff" tab strip + persisted height/active-tab; **"Commit" tab** shows the selected commit's author/email, date, full hash, ref badges, and full message (no parent/child — visible in the graph) | ✅ Done (2026-06-10) |
-| [US-630](../tasks/US-630-git-tree-commit-diff-tab/README.md) | Git Tree editor — **"Diff" tab**: changed-file list (`commitFiles` backend) + per-file side-by-side Monaco diff (parent→commit via `git.show`). Depends on US-629 | 📋 Planned |
+| [US-630](../tasks/US-630-git-tree-commit-diff-tab/README.md) | Git Tree editor — **"Diff" tab**: changed-file list (`commitFiles` backend) + per-file inline Monaco diff (parent→commit via `git.show`); persisted file-list width. Depends on US-629 | ✅ Done (2026-06-10) |
 
 ## Notes
 

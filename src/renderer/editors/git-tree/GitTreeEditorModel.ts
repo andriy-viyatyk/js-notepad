@@ -31,6 +31,10 @@ export interface GitTreeEditorState extends EditorStateBase {
     bottomPanelHeight?: number;
     /** Active bottom-panel tab (US-629). Undefined → "commit". */
     bottomPanelTab?: "commit" | "diff";
+    /** Width (px) of the "Diff" tab's left file-list column (US-630). Undefined →
+     *  DEFAULT_DIFF_LIST_W. Persisted via the page descriptor like
+     *  `bottomPanelHeight` so the divider survives navigation + restart. */
+    commitDiffListWidth?: number;
 }
 
 /** Basename of a repo top-level path (folder name), or "Git" when empty.
@@ -141,6 +145,12 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     /** Persist the active bottom-panel tab (US-629). */
     setBottomPanelTab = (t: "commit" | "diff"): void => {
         this.state.update((s) => { s.bottomPanelTab = t; });
+    };
+
+    /** Persist the "Diff" tab's left file-list width (US-630). Bound so the view
+     *  can pass it straight to the file-list/diff `<Splitter onChange>`. */
+    setCommitDiffListWidth = (w: number): void => {
+        this.state.update((s) => { s.commitDiffListWidth = w; });
     };
 
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */

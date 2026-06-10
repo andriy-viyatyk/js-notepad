@@ -12,7 +12,7 @@
 import { fpDirname } from "../core/utils/file-path";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
-import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult } from "../../ipc/git-ipc";
+import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange } from "../../ipc/git-ipc";
 
 const EMPTY_STATUS: GitStatusResult = { staged: [], unstaged: [] };
 
@@ -87,5 +87,15 @@ export const git = {
     commitMessage(repoRoot: string, hash: string): Promise<string> {
         if (!settings.get("git.enabled") || !repoRoot || !hash) return Promise.resolve("");
         return api.gitCommitMessage(repoRoot, hash).catch((): string => "");
+    },
+
+    /**
+     * Files changed by one commit (vs its first parent) for the Git Tree "Diff"
+     * tab (EPIC-031 / US-630). Same `GitFileChange` DTO as `status()`. Returns []
+     * (no git spawn) when git is off or no root/hash is given. Never throws.
+     */
+    commitFiles(repoRoot: string, hash: string): Promise<GitFileChange[]> {
+        if (!settings.get("git.enabled") || !repoRoot || !hash) return Promise.resolve([]);
+        return api.gitCommitFiles(repoRoot, hash).catch((): GitFileChange[] => []);
     },
 };

@@ -377,6 +377,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.tsx` |
 | Git Tree "Changes" panel | `/src/renderer/editors/git-tree/GitChangesSecondaryView.tsx` |
 | Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.tsx` |
+| Git Tree "Diff" bottom panel (changed-file list + inline Monaco diff) | `/src/renderer/editors/git-tree/CommitDiffPanel.tsx` |
 | File Diff editor (single shared `fileTree` model) | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |
 | Git Diff "File History" panel | `/src/renderer/editors/file-diff/GitDiffRevisionsSecondaryView.tsx` |
 | Flat file list (icons + single-click) | `/src/renderer/components/file-list/FileList.tsx` |

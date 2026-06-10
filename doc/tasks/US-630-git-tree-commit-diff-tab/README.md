@@ -1,11 +1,11 @@
 # US-630: Git Tree editor — "Diff" tab (changed files + per-file diff)
 
 **Epic:** [EPIC-031: Git Functionality Enhancements](../../epics/EPIC-031.md)
-**Status:** Planned (awaiting user review) — **depends on US-629**
+**Status:** ✅ Done (2026-06-10) — depends on US-629
 
 ## Goal
 
-Implement the **"Diff" tab** of the Git Tree editor's bottom panel (scaffold built in **US-629**). For the commit selected in the commit tree, the Diff tab shows a list of files changed in that commit (left) and, for the file selected in that list, a side-by-side diff of the file's change introduced by that commit (right) — mirroring the Git Extensions "Diff" tab.
+Implement the **"Diff" tab** of the Git Tree editor's bottom panel (scaffold built in **US-629**). For the commit selected in the commit tree, the Diff tab shows a list of files changed in that commit (left) and, for the file selected in that list, an inline (single-column) diff of the file's change introduced by that commit (right) — mirroring the Git Extensions "Diff" tab. (Inline rather than side-by-side: the bottom panel is too short for two columns — decided 2026-06-10.)
 
 ## Background
 
@@ -26,14 +26,16 @@ This task replaces that placeholder with a real `<CommitDiffPanel>`.
 - **Per-file content at a revision already exists:** `git.show(repoRoot, rev, relPath)` → `git show <rev>:<path>`, returns `""` when the path is absent at that rev (new file). (`src/renderer/api/git.ts`; `src/main/git-service.ts:185`.) This gives the **after** side (`rev = hash`) and the **before** side (`rev = parentHash`).
 - **Missing:** the list of files changed in a commit. Needs a new `commitFiles(dir, hash)` backed by `git diff-tree --no-commit-id --name-status -r --root <hash>`.
 
-### Diff rendering — Monaco `DiffEditor`
+### Diff rendering — Monaco `DiffEditor` (inline / single-column)
 
-The File Diff editor mounts Monaco's `DiffEditor` directly (`src/renderer/editors/file-diff/FileDiffBody.tsx`):
+**Decided 2026-06-10:** render with Monaco's `DiffEditor` in **inline mode** (`renderSideBySide: false`) — a single column with two line-number gutters and red/green change backgrounds. The bottom panel is too short for the side-by-side layout the File Diff editor uses, and inline mode is the native Monaco equivalent of the Git Extensions "Diff" tab. (Raw `git diff` patch text in a `language="diff"` editor was considered and rejected — it matches the screenshot's headers but loses interactive diff folding/navigation.)
+
+The File Diff editor mounts Monaco's `DiffEditor` directly (`src/renderer/editors/file-diff/FileDiffBody.tsx`) — use the same approach but **read-only on both sides** and **inline**:
 
 ```tsx
 import { DiffEditor } from "@monaco-editor/react";
-<DiffEditor language={language} original={fromText} modified={toText}
-    options={{ readOnly: true, originalEditable: false, renderSideBySide: true, automaticLayout: true }}
+<DiffEditor language={language} original={before} modified={after}
+    options={{ readOnly: true, originalEditable: false, renderSideBySide: false, automaticLayout: true }}
     theme="custom-dark" />
 ```
 
@@ -135,7 +137,7 @@ Behaviour:
   ]);
   ```
   Guard against stale async (the `live` flag pattern) since both `selectedHash` and `selectedFile` can change rapidly.
-- Mount `DiffEditor` read-only: `original={before}`, `modified={after}`, `options={{ readOnly: true, originalEditable: false, renderSideBySide: true, automaticLayout: true }}`, `theme` from the active theme (see how `FileDiffBody` selects it).
+- Mount `DiffEditor` read-only and **inline**: `original={before}`, `modified={after}`, `options={{ readOnly: true, originalEditable: false, renderSideBySide: false, automaticLayout: true }}`, `theme` from the active theme (see how `FileDiffBody` selects it).
 - **Language detection** from the file path — check for an existing helper in `src/renderer/api/setup/configure-monaco.ts` or how `FileDiffBody`/`MonacoEditor` derive `language` from a filename; reuse it rather than re-deriving.
 - Empty states: no commit selected → "Select a commit to view its changes."; commit selected but no files → "No file changes in this commit."; commit selected but no file picked → "Select a file to view its diff.".
 - Persist `fileListW` (left list width) — small additive state on `GitTreeEditorState` like US-629's `bottomPanelHeight` (`commitDiffListWidth?: number` + bound setter), OR keep it view-local. **Recommendation:** persist it for consistency with the other panel dimensions.

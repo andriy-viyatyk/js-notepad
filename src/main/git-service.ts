@@ -205,3 +205,34 @@ export async function commitMessage(dir: string, hash: string): Promise<string> 
         return "";
     }
 }
+
+/**
+ * Files changed by one commit, vs its first parent (`--root` lists every file
+ * for the initial commit). Returns the same `GitFileChange` DTO as `status()`:
+ * repo-relative forward-slashed paths with M/A/D/R/C/T status letters, and
+ * `oldPath` for renames/copies. Used by the Git Tree "Diff" tab (EPIC-031 /
+ * US-630). Never throws — [] on failure or when git is unavailable.
+ */
+export async function commitFiles(dir: string, hash: string): Promise<GitFileChange[]> {
+    try {
+        const raw = await simpleGit(dir).raw([
+            "diff-tree", "--no-commit-id", "--name-status", "-r", "--root", hash,
+        ]);
+        const out: GitFileChange[] = [];
+        for (const line of raw.split("\n")) {
+            const t = line.trim();
+            if (!t) continue;
+            const parts = t.split("\t");
+            const status = parts[0][0]; // "M" | "A" | "D" | "R100" → "R" | "C075" → "C" | "T"
+            if (status === "R" || status === "C") {
+                // rename/copy: <code>\t<oldPath>\t<newPath>
+                out.push({ path: parts[2], status, oldPath: parts[1] });
+            } else {
+                out.push({ path: parts[1], status });
+            }
+        }
+        return out;
+    } catch {
+        return [];
+    }
+}

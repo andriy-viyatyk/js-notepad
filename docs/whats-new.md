@@ -49,7 +49,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
   - **Refs** — branch and tag badges for any refs at the commit
   - **Commit message** — the full message, including multi-line body text
 
-  The panel has a **Commit** tab (described above) and a **Diff** tab (placeholder, coming soon). Drag the divider to resize the panel — the height is capped at 80% of the editor height. Both the panel height and the active tab persist across navigation and app restarts. Requires Git integration to be enabled.
+  The panel has a **Commit** tab (described above) and a **Diff** tab (see below). Drag the divider to resize the panel — the height is capped at 80% of the editor height. Both the panel height and the active tab persist across navigation and app restarts. Requires Git integration to be enabled.
+
+- **Git Tree — commit Diff tab** — The **Diff** tab in the Git Tree bottom panel is now fully functional. Selecting a commit and switching to **Diff** shows a two-column view:
+  - **Left — changed files.** A list of every file touched by the commit, each with a status badge (`M` modified, `A` added, `D` deleted, `R` renamed). Click a row to inspect it.
+  - **Right — inline diff.** A Monaco-rendered inline (single-column) diff comparing the file at the parent commit to the selected commit. Inline rather than side-by-side keeps the view readable in the compact bottom panel.
+  - The divider between the file list and the diff is resizable; its width is saved and restored on restart.
 
 ### Bug Fixes
 

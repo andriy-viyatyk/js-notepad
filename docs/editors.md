@@ -486,7 +486,10 @@ When two or more repositories are open in the same page (e.g. you clicked `.git`
 Below the commit grid, a resizable **bottom panel** shows details about the selected commit. The panel has two tabs:
 
 - **Commit** — displays the selected commit's author (name and email), date, full commit hash, ref badges (branches and tags at that commit), and the full commit message (multiline). With no commit selected, the panel shows a hint: *"Select a commit to see its details."*
-- **Diff** — shows the files changed in the selected commit (coming in a future update).
+- **Diff** — shows a split view of the files changed in the selected commit:
+  - **Left side — changed files list.** Each row shows the file path with a colored status badge: `M` modified, `A` added, `D` deleted, `R` renamed. Click a row to load its diff on the right.
+  - **Right side — inline diff.** Shows the full content diff for the selected file, comparing the parent commit (before) to the selected commit (after). The diff is displayed as a single inline column (not side-by-side) because the panel is compact. With no commit selected, or before clicking a file, the right side shows an empty placeholder.
+  - The divider between the file list and the inline diff is draggable; its position is saved and restored across restarts.
 
 Drag the divider between the commit grid and the panel to resize it. The panel height is capped at 80% of the editor height so the commit list is never completely crowded out. Both the panel height and the active tab persist across navigation-away/back and app restarts.
 
