@@ -369,10 +369,14 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
 | Git changes (status) model | `/src/renderer/components/git-tree/GitChangesModel.ts` |
 | Git status badge         | `/src/renderer/components/git-tree/GitStatusBadge.tsx` |
+| Git ref chip (branch/tag/HEAD, shared) | `/src/renderer/components/git-tree/RefBadge.tsx` |
+| Git history date formatter (shared) | `/src/renderer/components/git-tree/git-date.ts` |
 | L/R side-select toggle   | `/src/renderer/components/git-tree/SideSelectToggle.tsx` |
 | Swimlane lane layout     | `/src/renderer/components/git-tree/swimlane-layout.ts` |
 | Git Tree editor          | `/src/renderer/editors/git-tree/GitTreeEditorModel.ts` |
+| Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.tsx` |
 | Git Tree "Changes" panel | `/src/renderer/editors/git-tree/GitChangesSecondaryView.tsx` |
+| Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.tsx` |
 | File Diff editor (single shared `fileTree` model) | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |
 | Git Diff "File History" panel | `/src/renderer/editors/file-diff/GitDiffRevisionsSecondaryView.tsx` |
 | Flat file list (icons + single-click) | `/src/renderer/components/file-list/FileList.tsx` |

@@ -16,13 +16,14 @@ import { clsx } from "clsx";
 
 import { AVGrid, AVGridModel } from "../../uikit/AVGrid";
 import type { CellFocus, Column, TCellFormater, TCellRenderer, TCellRendererProps } from "../../uikit/AVGrid";
-import type { GitRefKind } from "../../../ipc/git-ipc";
 import type { GitTreeModel } from "./GitTreeModel";
 import { SideSelectToggle } from "./SideSelectToggle";
 import { TruncatedText } from "../../uikit/TruncatedText";
 import { TAG_COLORS } from "../../theme/palette-colors";
 import color from "../../theme/color";
-import { fontSize, radius, spacing } from "../../uikit/tokens";
+import { fontSize, spacing } from "../../uikit/tokens";
+import { RefBadge } from "./RefBadge";
+import { dateText } from "./git-date";
 import {
     GIT_TREE_ROW_HEIGHT,
     graphWidth,
@@ -35,17 +36,6 @@ import {
 } from "./swimlane-layout";
 
 const LANE_COLORS = TAG_COLORS.map((c) => c.hex);
-
-// Ref-label colors picked from the shared palette by name (theme-safe, no raw
-// hardcodes): branch = blue, remote = lighter blue, tag = pink, HEAD = green.
-const paletteHex = (name: string) =>
-    TAG_COLORS.find((c) => c.name === name)?.hex ?? color.text.default;
-const REF_COLOR: Record<GitRefKind, string> = {
-    head: paletteHex("Lime Green"),
-    branch: paletteHex("Dodger Blue"),
-    remote: paletteHex("Cornflower Blue"),
-    tag: paletteHex("Hot Pink"),
-};
 
 /**
  * Side-select wiring for the Git Diff "File History" panel (US-618). When passed,
@@ -111,18 +101,6 @@ export interface GitTreeProps {
     onColumnLayoutChange?: (layout: GitColumnLayout) => void;
 }
 
-const RefTag = styled.span({
-    display: "inline-block",
-    flexShrink: 0, // chips keep their size; the subject's TruncatedText absorbs shrink
-    marginRight: spacing.sm,
-    padding: `0 ${spacing.sm}px`,
-    borderRadius: radius.xs,
-    fontSize: fontSize.xs,
-    fontWeight: 600,
-    border: `1px solid ${color.border.default}`,
-    // `color` (text) is set per-kind inline; border stays neutral.
-});
-
 // Pinned to the bottom of the (relative, content-height) render area — the same
 // trick AVGrid's built-in add-row button uses. A normal-flow element would
 // collapse to the top behind the absolutely-positioned cells. Opaque background
@@ -177,9 +155,7 @@ const subjectFormatter: TCellFormater = (props) => {
     return (
         <>
             {r.refs.map((ref) => (
-                <RefTag key={`${ref.kind}:${ref.name}`} style={{ color: REF_COLOR[ref.kind] }}>
-                    {ref.name}
-                </RefTag>
+                <RefBadge key={`${ref.kind}:${ref.name}`} refData={ref} />
             ))}
             <TruncatedText>{r.subject}</TruncatedText>
         </>
@@ -189,19 +165,6 @@ const subjectFormatter: TCellFormater = (props) => {
 const authorFormatter: TCellFormater = (props) => {
     const r = rowOf(props);
     return r ? <TruncatedText>{r.authorName}</TruncatedText> : null;
-};
-
-// Developer-friendly, zero-padded, local-time format `YYYY-MM-DD HH:mm` (24-hour,
-// no seconds — US-618). Used by every git-history view (popovers, Revisions panel,
-// whole-repo editor) since both date columns route through here.
-const pad = (n: number) => String(n).padStart(2, "0");
-const dateText = (ms: number) => {
-    if (!ms) return "";
-    const d = new Date(ms);
-    return (
-        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
-        `${pad(d.getHours())}:${pad(d.getMinutes())}`
-    );
 };
 
 const dateFormatter: TCellFormater = (props) => {

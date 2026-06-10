@@ -481,6 +481,15 @@ The Changes panel is display-only in this release — staging, unstaging, discar
 
 When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own **Changes** panel in the sidebar. The panels are independently expandable and collapsible. Re-opening the same repo's `.git` entry does not create a duplicate panel.
 
+**Commit panel:**
+
+Below the commit grid, a resizable **bottom panel** shows details about the selected commit. The panel has two tabs:
+
+- **Commit** — displays the selected commit's author (name and email), date, full commit hash, ref badges (branches and tags at that commit), and the full commit message (multiline). With no commit selected, the panel shows a hint: *"Select a commit to see its details."*
+- **Diff** — shows the files changed in the selected commit (coming in a future update).
+
+Drag the divider between the commit grid and the panel to resize it. The panel height is capped at 80% of the editor height so the commit list is never completely crowded out. Both the panel height and the active tab persist across navigation-away/back and app restarts.
+
 **Closing the Changes panel:**
 
 The Changes panel does not close on its own — navigating away or switching editors leaves it open. The only way to close it is the **×** button in the panel header. What happens when you click it depends on which editor is in the main area:

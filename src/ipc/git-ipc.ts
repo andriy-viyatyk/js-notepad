@@ -72,6 +72,8 @@ export interface GitCommit {
     /** First line of the commit message. */
     subject: string;
     authorName: string;
+    /** Author email (`%ae`) — shown in the Git Tree "Commit" panel (US-629). */
+    authorEmail: string;
     /** Commit (author) date as epoch ms. */
     authorDate: number;
     /** Decoration refs at this commit (branch/tag/HEAD), classified by kind. */

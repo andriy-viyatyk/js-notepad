@@ -265,6 +265,11 @@ class Controller implements MainApi {
         const { status } = await import("../../main/git-service");
         return status(dir);
     };
+
+    gitCommitMessage = async (_event: IpcMainEvent, dir: string, hash: string) => {
+        const { commitMessage } = await import("../../main/git-service");
+        return commitMessage(dir, hash);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -334,6 +339,7 @@ const init = () => {
     bindEndpoint(Endpoint.gitLog, controllerInstance.gitLog);
     bindEndpoint(Endpoint.gitShow, controllerInstance.gitShow);
     bindEndpoint(Endpoint.gitStatus, controllerInstance.gitStatus);
+    bindEndpoint(Endpoint.gitCommitMessage, controllerInstance.gitCommitMessage);
 
     initRendererEvents();
 }

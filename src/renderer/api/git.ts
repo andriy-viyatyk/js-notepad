@@ -78,4 +78,14 @@ export const git = {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(EMPTY_STATUS);
         return api.gitStatus(repoRoot).catch((): GitStatusResult => EMPTY_STATUS);
     },
+
+    /**
+     * Full commit message (subject + body) for one commit (EPIC-031 / US-629).
+     * Fetched lazily by the Git Tree "Commit" panel for the selected commit.
+     * Returns "" when git is off, no root/hash, or the commit is absent. Never throws.
+     */
+    commitMessage(repoRoot: string, hash: string): Promise<string> {
+        if (!settings.get("git.enabled") || !repoRoot || !hash) return Promise.resolve("");
+        return api.gitCommitMessage(repoRoot, hash).catch((): string => "");
+    },
 };

@@ -25,6 +25,12 @@ export interface GitTreeEditorState extends EditorStateBase {
      *  app restart — round-trips through the page descriptor like `repoRoot`
      *  (US-623). Undefined until the user first changes a column. */
     columnLayout?: GitColumnLayout;
+    /** Bottom panel height in px (US-629). Undefined → DEFAULT_PANEL_H. Persisted
+     *  via the page descriptor like `columnLayout` so it survives navigation +
+     *  restart. */
+    bottomPanelHeight?: number;
+    /** Active bottom-panel tab (US-629). Undefined → "commit". */
+    bottomPanelTab?: "commit" | "diff";
 }
 
 /** Basename of a repo top-level path (folder name), or "Git" when empty.
@@ -124,6 +130,17 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
      *  can pass it straight to `<GitTree onColumnLayoutChange>`. */
     setColumnLayout = (layout: GitColumnLayout): void => {
         this.state.update((s) => { s.columnLayout = layout; });
+    };
+
+    /** Persist the bottom panel's height (US-629). Bound so the view can pass it
+     *  straight to `<Splitter onChange>`. */
+    setBottomPanelHeight = (h: number): void => {
+        this.state.update((s) => { s.bottomPanelHeight = h; });
+    };
+
+    /** Persist the active bottom-panel tab (US-629). */
+    setBottomPanelTab = (t: "commit" | "diff"): void => {
+        this.state.update((s) => { s.bottomPanelTab = t; });
     };
 
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */

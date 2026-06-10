@@ -42,6 +42,15 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Git history — commit date format** — Commit dates throughout the git history views (File History panel, the From/To commit picker popovers in Git Diff, and the Git Tree editor) are now displayed as `YYYY-MM-DD HH:mm` (24-hour, local time). In the File History panel and the commit picker popovers the date is the first column and is resizable.
 
+- **Git Tree — commit details panel** — The Git Tree editor now shows a resizable panel below the commit grid (similar to the bottom pane in Git Extensions). Select a commit in the list to see:
+  - **Author** — name and email address
+  - **Date** — in `YYYY-MM-DD HH:mm` format (local time)
+  - **Commit hash** — the full 40-character hash
+  - **Refs** — branch and tag badges for any refs at the commit
+  - **Commit message** — the full message, including multi-line body text
+
+  The panel has a **Commit** tab (described above) and a **Diff** tab (placeholder, coming soon). Drag the divider to resize the panel — the height is capped at 80% of the editor height. Both the panel height and the active tab persist across navigation and app restarts. Requires Git integration to be enabled.
+
 ### Bug Fixes
 
 - **Browser reload — unsaved-changes confirmation** — A soft reload (Reload button, `F5`, `Ctrl+R`) on a page with an unsaved-changes guard (a `beforeunload` handler) now shows a confirmation dialog: **"You have unsaved changes. Leave the page and discard them?"** — click **Leave** to reload or **Cancel** to stay. Previously the reload appeared to do nothing because the guard silently blocked it. A hard reload (`Ctrl+F5` / `Ctrl+Shift+R`) still reloads immediately without prompting, bypassing the guard.

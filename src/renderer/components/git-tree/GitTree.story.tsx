@@ -13,15 +13,15 @@ const h = (n: string) => `${n}${"0".repeat(40 - n.length)}`;
 const t = (day: number) => Date.UTC(2026, 4, day, 12, 0, 0); // May 2026
 
 const DEMO_COMMITS: GitCommit[] = [
-    { hash: h("A"), shortHash: "Aaaaaaa", parents: [h("B"), h("E")], subject: "Merge feature into main", authorName: "Ada",  authorDate: t(20), refs: [{ name: "main", kind: "head" }, { name: "origin/main", kind: "remote" }] },
-    { hash: h("B"), shortHash: "Bbbbbbb", parents: [h("C")],         subject: "Update README",            authorName: "Lin",  authorDate: t(19), refs: [] },
-    { hash: h("C"), shortHash: "Ccccccc", parents: [h("D"), h("E"), h("F")], subject: "Octopus merge of work, feature, hotfix", authorName: "Ada", authorDate: t(18), refs: [] },
-    { hash: h("D"), shortHash: "Ddddddd", parents: [h("G")],         subject: "Main line work",            authorName: "Lin",  authorDate: t(17), refs: [] },
-    { hash: h("E"), shortHash: "Eeeeeee", parents: [h("G")],         subject: "Feature: add X",             authorName: "Sam",  authorDate: t(16), refs: [{ name: "feature", kind: "branch" }] },
-    { hash: h("F"), shortHash: "Fffffff", parents: [h("G")],         subject: "Hotfix: patch crash",        authorName: "Ada",  authorDate: t(15), refs: [{ name: "v1.0", kind: "tag" }] },
-    { hash: h("G"), shortHash: "Ggggggg", parents: [h("H")],         subject: "Shared base",                authorName: "Lin",  authorDate: t(14), refs: [] },
-    { hash: h("H"), shortHash: "Hhhhhhh", parents: [h("I")],         subject: "Project scaffolding",        authorName: "Sam",  authorDate: t(13), refs: [] },
-    { hash: h("I"), shortHash: "Iiiiiii", parents: [],               subject: "Initial commit",             authorName: "Ada",  authorDate: t(12), refs: [{ name: "v0.1", kind: "tag" }] },
+    { hash: h("A"), shortHash: "Aaaaaaa", parents: [h("B"), h("E")], subject: "Merge feature into main", authorName: "Ada",  authorEmail: "ada@example.com", authorDate: t(20), refs: [{ name: "main", kind: "head" }, { name: "origin/main", kind: "remote" }] },
+    { hash: h("B"), shortHash: "Bbbbbbb", parents: [h("C")],         subject: "Update README",            authorName: "Lin",  authorEmail: "lin@example.com", authorDate: t(19), refs: [] },
+    { hash: h("C"), shortHash: "Ccccccc", parents: [h("D"), h("E"), h("F")], subject: "Octopus merge of work, feature, hotfix", authorName: "Ada", authorEmail: "ada@example.com", authorDate: t(18), refs: [] },
+    { hash: h("D"), shortHash: "Ddddddd", parents: [h("G")],         subject: "Main line work",            authorName: "Lin",  authorEmail: "lin@example.com", authorDate: t(17), refs: [] },
+    { hash: h("E"), shortHash: "Eeeeeee", parents: [h("G")],         subject: "Feature: add X",             authorName: "Sam",  authorEmail: "sam@example.com", authorDate: t(16), refs: [{ name: "feature", kind: "branch" }] },
+    { hash: h("F"), shortHash: "Fffffff", parents: [h("G")],         subject: "Hotfix: patch crash",        authorName: "Ada",  authorEmail: "ada@example.com", authorDate: t(15), refs: [{ name: "v1.0", kind: "tag" }] },
+    { hash: h("G"), shortHash: "Ggggggg", parents: [h("H")],         subject: "Shared base",                authorName: "Lin",  authorEmail: "lin@example.com", authorDate: t(14), refs: [] },
+    { hash: h("H"), shortHash: "Hhhhhhh", parents: [h("I")],         subject: "Project scaffolding",        authorName: "Sam",  authorEmail: "sam@example.com", authorDate: t(13), refs: [] },
+    { hash: h("I"), shortHash: "Iiiiiii", parents: [],               subject: "Initial commit",             authorName: "Ada",  authorEmail: "ada@example.com", authorDate: t(12), refs: [{ name: "v0.1", kind: "tag" }] },
 ];
 
 function GitTreeDemo({ compact = false }: { compact?: boolean }) {

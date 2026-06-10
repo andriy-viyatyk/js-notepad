@@ -1,12 +1,15 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { PageToolbar } from "../base";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
+import { Splitter } from "../../uikit/Splitter";
+import { SegmentedControl } from "../../uikit/SegmentedControl";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { RefreshIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { GitTree } from "../../components/git-tree";
+import { CommitInfoPanel } from "./CommitInfoPanel";
 import { decodeGitTreeLink } from "../../content/git-tree-link";
 import {
     GitTreeEditorModel,
@@ -21,6 +24,9 @@ import type { EditorType, IEditorState } from "../../../shared/types";
 // Component — thin render over the editor-owned GitTreeModel (model-view).
 // =============================================================================
 
+/** Default bottom-panel height (px) until the user resizes it (US-629). */
+const DEFAULT_PANEL_H = 240;
+
 export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
     const { loading, gitOk, hasCommits } = model.gitTree.state.use((s) => ({
         loading: s.loading,
@@ -28,6 +34,27 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
         hasCommits: s.commits.length > 0,
     }));
     const [selectedHash, setSelectedHash] = useState<string | undefined>(undefined);
+
+    // Bottom panel (US-629): resizable, persisted height + active tab. Capped at
+    // 80% of the editor-root height so it can never crowd out the commit grid on
+    // a short window — measure the root with a ResizeObserver and clamp both the
+    // Splitter `max` and the panel's rendered height.
+    const rootRef = useRef<HTMLDivElement>(null);
+    const [containerH, setContainerH] = useState(0);
+    useEffect(() => {
+        const el = rootRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(([e]) => setContainerH(e.contentRect.height));
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+    const { bottomPanelHeight, bottomPanelTab } = model.state.use((s) => ({
+        bottomPanelHeight: s.bottomPanelHeight,
+        bottomPanelTab: s.bottomPanelTab,
+    }));
+    const maxH = containerH > 0 ? Math.round(containerH * 0.8) : Infinity;
+    const panelH = Math.min(bottomPanelHeight ?? DEFAULT_PANEL_H, maxH);
+    const tab = bottomPanelTab ?? "commit";
 
     let body: ReactNode;
     if (!gitOk) {
@@ -67,6 +94,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
 
     return (
         <Panel
+            ref={rootRef}
             name="git-tree-editor-root"
             direction="column"
             flex={1}
@@ -95,6 +123,66 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                 </Text>
             </PageToolbar>
             {body}
+            {gitOk && hasCommits && (
+                <>
+                    <Splitter
+                        name="git-tree-bottom-splitter"
+                        orientation="horizontal"
+                        value={panelH}
+                        onChange={model.setBottomPanelHeight}
+                        side="after"
+                        border="before"
+                        min={120}
+                        max={maxH}
+                    />
+                    <Panel
+                        name="git-tree-bottom-panel"
+                        direction="column"
+                        shrink={false}
+                        height={panelH}
+                        minHeight={120}
+                        maxHeight={maxH}
+                        overflow="hidden"
+                    >
+                        <Panel
+                            name="git-tree-bottom-tabs"
+                            direction="row"
+                            align="center"
+                            paddingX="sm"
+                            paddingY="xs"
+                            shrink={false}
+                            background="dark"
+                            borderBottom
+                        >
+                            <SegmentedControl
+                                name="git-tree-bottom-tab-select"
+                                size="sm"
+                                value={tab}
+                                onChange={(v) => model.setBottomPanelTab(v as "commit" | "diff")}
+                                items={[
+                                    { value: "commit", label: "Commit" },
+                                    { value: "diff", label: "Diff" },
+                                ]}
+                            />
+                        </Panel>
+                        <Panel direction="column" flex={1} height={0} overflow="hidden">
+                            {tab === "commit" && (
+                                <CommitInfoPanel
+                                    repoRoot={model.state.get().repoRoot}
+                                    gitTree={model.gitTree}
+                                    selectedHash={selectedHash}
+                                />
+                            )}
+                            {tab === "diff" && (
+                                // US-630 fills this in.
+                                <Panel padding="md" align="center" justify="center" flex={1}>
+                                    <Text color="light">Diff view — coming in US-630.</Text>
+                                </Panel>
+                            )}
+                        </Panel>
+                    </Panel>
+                </>
+            )}
         </Panel>
     );
 }

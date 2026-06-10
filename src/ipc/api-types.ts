@@ -64,6 +64,7 @@ export enum Endpoint {
     gitLog = "gitLog",
     gitShow = "gitShow",
     gitStatus = "gitStatus",
+    gitCommitMessage = "gitCommitMessage",
 }
 
 export interface McpStatus {
@@ -130,6 +131,7 @@ export type Api = {
     [Endpoint.gitLog]: (dir: string, opts: GitLogOptions) => Promise<GitCommit[]>;
     [Endpoint.gitShow]: (dir: string, rev: string, path: string) => Promise<string>;
     [Endpoint.gitStatus]: (dir: string) => Promise<GitStatusResult>;
+    [Endpoint.gitCommitMessage]: (dir: string, hash: string) => Promise<string>;
 };
 
 export enum EventEndpoint {

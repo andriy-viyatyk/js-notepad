@@ -71,6 +71,7 @@ export function syntheticCommitRow(
         parents: [],
         subject,
         authorName: "",
+        authorEmail: "",
         authorDate: 0,
         refs: [],
         recordType,

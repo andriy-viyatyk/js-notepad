@@ -54,7 +54,7 @@ export async function detectRepo(dir: string): Promise<GitRepoInfo | null> {
 // quotes, etc. parse unambiguously.
 const FIELD_SEP = "\x1f";
 const RECORD_SEP = "\x1e";
-const LOG_FORMAT = ["%H", "%P", "%s", "%an", "%at", "%D"].join(FIELD_SEP) + RECORD_SEP;
+const LOG_FORMAT = ["%H", "%P", "%s", "%an", "%ae", "%at", "%D"].join(FIELD_SEP) + RECORD_SEP;
 
 /**
  * Parse decoration refs (`%D`), e.g. "HEAD -> main, origin/main, tag: v1.0",
@@ -85,7 +85,7 @@ function parseLog(raw: string): GitCommit[] {
     for (const record of raw.split(RECORD_SEP)) {
         const line = record.trim();
         if (!line) continue;
-        const [hash, parentField, subject, authorName, at, decorations] =
+        const [hash, parentField, subject, authorName, authorEmail, at, decorations] =
             line.split(FIELD_SEP);
         if (!hash) continue;
         const parents = parentField?.trim() ? parentField.trim().split(" ") : [];
@@ -95,6 +95,7 @@ function parseLog(raw: string): GitCommit[] {
             parents,
             subject: subject ?? "",
             authorName: authorName ?? "",
+            authorEmail: authorEmail ?? "",
             authorDate: Number(at) * 1000 || 0,
             refs: parseDecorations(decorations ?? ""),
         });
@@ -188,5 +189,19 @@ export async function show(dir: string, rev: string, path: string): Promise<stri
         return await git.raw(["show", `${rev}:${path}`]);
     } catch {
         return ""; // absent at that rev (new file) / git missing → empty side
+    }
+}
+
+/**
+ * Full commit message (subject + body) for one commit (EPIC-031 / US-629).
+ * Fetched lazily by the Git Tree "Commit" panel for the selected commit only,
+ * so the `log` payload stays lean (it carries just the subject). Returns ""
+ * when the commit is absent or git is unavailable. Never throws.
+ */
+export async function commitMessage(dir: string, hash: string): Promise<string> {
+    try {
+        return (await simpleGit(dir).raw(["show", "-s", "--format=%B", hash])).trimEnd();
+    } catch {
+        return "";
     }
 }

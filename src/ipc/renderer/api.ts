@@ -262,6 +262,10 @@ class ApiCalls implements Api {
     gitStatus = async (dir: string) => {
         return executeOnce<GitStatusResult>(Endpoint.gitStatus, dir);
     };
+
+    gitCommitMessage = async (dir: string, hash: string) => {
+        return executeOnce<string>(Endpoint.gitCommitMessage, dir, hash);
+    };
 }
 
 export const api = new ApiCalls();
