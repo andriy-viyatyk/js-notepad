@@ -367,7 +367,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Git renderer API         | `/src/renderer/api/git.ts`                        |
 | Git Tree component       | `/src/renderer/components/git-tree/GitTree.tsx`   |
 | Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
-| Git changes (status) model + stage/unstage/reset | `/src/renderer/components/git-tree/GitChangesModel.ts` |
+| Git changes (status) model + stage/unstage/reset/commit (+ branch, identity) | `/src/renderer/components/git-tree/GitChangesModel.ts` |
 | Git status badge         | `/src/renderer/components/git-tree/GitStatusBadge.tsx` |
 | Git ref chip (branch/tag/HEAD, shared) | `/src/renderer/components/git-tree/RefBadge.tsx` |
 | Git history date formatter (shared) | `/src/renderer/components/git-tree/git-date.ts` |
@@ -375,7 +375,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Swimlane lane layout     | `/src/renderer/components/git-tree/swimlane-layout.ts` |
 | Git Tree editor          | `/src/renderer/editors/git-tree/GitTreeEditorModel.ts` |
 | Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.tsx` |
-| Git Tree "Changes" panel (stage/unstage/reset — buttons, double-click, context menu) | `/src/renderer/editors/git-tree/GitChangesSecondaryView.tsx` |
+| Git Tree "Changes" panel (stage/unstage/reset + Commit button — buttons, double-click, context menu) | `/src/renderer/editors/git-tree/GitChangesSecondaryView.tsx` |
+| Commit dialog (message + author Name/Email + branch; `showCommitDialog`) | `/src/renderer/ui/dialogs/CommitDialog.tsx` |
 | Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.tsx` |
 | Git Tree "Diff" bottom panel (changed-file list + inline Monaco diff) | `/src/renderer/editors/git-tree/CommitDiffPanel.tsx` |
 | File Diff editor (single shared `fileTree` model) | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |

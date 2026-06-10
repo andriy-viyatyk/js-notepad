@@ -62,6 +62,24 @@ Check the root `CLAUDE.md` file:
 4. Make targeted edits — only change what's actually stale or missing
 5. Do NOT rewrite docs that are already accurate
 
+## Do NOT reference tasks or epics in architecture docs
+
+Architecture and standards docs (`doc/architecture/`, `doc/standards/`, root `CLAUDE.md`)
+describe the **current state of the system** — the architecture as it is now. They must
+**not** cite the task or epic that produced a feature (`US-619`, `EPIC-031`, "added in
+US-624", "pre-US-619 behavior", etc.).
+
+- Describe **what the system does and why**, not **when/under-which-ticket it was added**.
+  Reasoning and trade-offs are welcome; the ticket number that introduced them is not.
+- When you add or edit content, write it ticket-free. When you touch a section that already
+  carries a `US-XXX` / `EPIC-XXX` citation, strip the citation (keep the explanation).
+- Never put a task/epic id in a heading.
+- Task/epic tracking belongs in `doc/active-work.md`, `doc/epics/`, and `doc/tasks/` — not
+  in the architecture record. (The `/review` and history in git already tie code to tickets.)
+
+Keep prose out of table cells. A table cell holds a short identifying phrase; multi-sentence
+behavior belongs in a prose paragraph under the table (linked from the cell if useful).
+
 ## Output
 
 After making updates, provide a summary:

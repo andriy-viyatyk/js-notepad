@@ -501,6 +501,23 @@ A file that has been partially staged (modified after staging) appears in **both
 
 Right-click one or more rows in the **Unstaged** list and choose **Reset N files** to discard uncommitted changes and restore the file(s) to the last staged or committed version. Untracked files are deleted. A confirmation dialog appears before the reset is applied.
 
+**Committing staged files:**
+
+A **Commit** button sits in a bar above the **Staged** list (alongside the stage/unstage arrow buttons). The button is disabled when the Staged list is empty.
+
+Clicking **Commit** opens a dialog with:
+
+- **Branch** — the current branch name, shown read-only (displays "detached / no branch" when HEAD is detached).
+- **Author** — editable **Name** and **Email** fields, prepopulated from your git config (`user.name` / `user.email`). Changes here apply only to this commit — your git config is never modified.
+- **Message** — a multi-line text area for the commit message. The action buttons are disabled until a message is entered.
+
+From the dialog:
+
+- Click **Commit** (or press **Ctrl+Enter**) to commit all staged files with the message and author shown.
+- Click **Cancel** (or press **Esc**) to close without committing.
+
+On success the **Staged** list clears and the new commit appears at the top of the Git Tree. On failure (e.g. no git identity configured, a failing pre-commit hook) a toast notification describes the error and the staged files remain intact.
+
 **Multiple repositories:**
 
 When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own **Changes** panel in the sidebar. The panels are independently expandable and collapsible. Re-opening the same repo's `.git` entry does not create a duplicate panel.
@@ -528,7 +545,7 @@ The Changes panel does not close on its own — navigating away or switching edi
 
 The Git Tree and Changes panel update automatically when the repository changes on disk — no manual **Refresh** needed. Saving a tracked file, staging or unstaging, committing, checking out, merging, or fetching all trigger a refresh within about half a second. Auto-refresh is always on when Git integration is enabled.
 
-The Git Tree is an inspection and partial-staging tool. Commit, push, branch, and merge operations are not yet available.
+The Git Tree supports inspecting history, staging/unstaging files, and committing staged changes. Push, branch, and merge operations are not yet available.
 
 ## Git Diff
 

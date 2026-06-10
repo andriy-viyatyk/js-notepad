@@ -9,9 +9,11 @@ import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Spacer } from "../../uikit/Spacer";
 import { Splitter } from "../../uikit/Splitter";
+import { Button } from "../../uikit/Button";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import type { MenuItem } from "../../uikit/Menu";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
+import { showCommitDialog } from "../../ui/dialogs/CommitDialog";
 import { RefreshIcon, CloseIcon, GitIcon, FilterArrowUpIcon, FilterArrowDownIcon, DeleteIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
@@ -42,10 +44,11 @@ function GitChangesBody({
     model: GitTreeEditorModel;
     headerRef: SecondaryViewProps["headerRef"];
 }) {
-    const { unstaged, staged, gitOk } = model.changes.state.use((s) => ({
+    const { unstaged, staged, gitOk, branch } = model.changes.state.use((s) => ({
         unstaged: s.unstaged,
         staged: s.staged,
         gitOk: s.gitOk,
+        branch: s.branch,
     }));
 
     // Unique changed-file count for the header (US-625 log #3). A file can appear in
@@ -99,6 +102,24 @@ function GitChangesBody({
             void model.changes.resetChanges(changes);
         },
         [model],
+    );
+
+    // Commit the staged index (US-632). Fetch the effective identity, open the dialog
+    // prepopulated (branch + name/email + message), and commit with the (possibly edited)
+    // identity applied as a per-commit override.
+    const doCommit = useCallback(async () => {
+        const id = await model.changes.getIdentity();
+        const result = await showCommitDialog({ branch, name: id.name, email: id.email });
+        if (result?.button === "Commit" && result.message.trim()) {
+            void model.changes.commit(result.message, { name: result.name, email: result.email });
+        }
+    }, [model, branch]);
+
+    // Primary action above the Staged grid — disabled when nothing is staged.
+    const commitButton = (
+        <Button name="git-commit" disabled={!staged.length} onClick={doCommit}>
+            Commit
+        </Button>
     );
 
     // Right-aligned buttons for the Staged section's toolbar.
@@ -251,6 +272,7 @@ function GitChangesBody({
                             onMove={unstage}
                             onSelectionChange={setSelStaged}
                             toolbarRight={stagedButtons}
+                            toolbarLeft={commitButton}
                         />
                     </Panel>
                 </>
@@ -269,6 +291,7 @@ function ChangesList({
     onReset,
     onSelectionChange,
     toolbarRight,
+    toolbarLeft,
 }: {
     model: GitTreeEditorModel;
     changes: GitFileChange[];
@@ -286,8 +309,10 @@ function ChangesList({
     onReset?: (changes: GitFileChange[]) => void;
     /** Range selection changed → report the selected changes to the parent. */
     onSelectionChange: (changes: GitFileChange[]) => void;
-    /** Optional right-aligned toolbar content (the Staged stage/unstage buttons). */
+    /** Optional right-aligned content for the bottom bar (the Staged stage/unstage buttons). */
     toolbarRight?: ReactNode;
+    /** Optional left-aligned content for the bottom bar (the Staged "Commit" button). */
+    toolbarLeft?: ReactNode;
 }) {
     // Key changes by repo-relative path (unique within a list); the FileGrid
     // item's filePath carries that path for icon + tooltip + lookup.
@@ -368,14 +393,19 @@ function ChangesList({
 
     return (
         <>
-            {toolbarRight && (
+            {/* Single bar above the grid: left-aligned "Commit" + right-aligned
+                stage/unstage arrows (Staged list only). */}
+            {(toolbarLeft || toolbarRight) && (
                 <Panel
                     name="git-changes-toolbar"
                     direction="row"
                     align="center"
                     paddingX="xs"
+                    paddingY="xs"
+                    gap="sm"
                     shrink={false}
                 >
+                    {toolbarLeft}
                     <Spacer />
                     {toolbarRight}
                 </Panel>

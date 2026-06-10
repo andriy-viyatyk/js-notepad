@@ -43,6 +43,20 @@ Make working with git inside Persephone fully functional. Likely areas, to be ta
 
 (This list will evolve. Items are added or refined as the user describes them; nothing here is promised in a specific form.)
 
+## Acceptance Criteria (must-not-miss follow-ups)
+
+Recorded so they are **not missed**. These are deferred enhancements that depend on other
+increments landing first; implement each once its prerequisite is in place. Check off when done.
+
+- [ ] **"Commit and Push" button in the Commit dialog** — after the **push** functionality
+  (its own task) lands, add a "Commit and Push" button to the US-632 Commit dialog. The
+  dialog was deliberately built to take a `buttons` array so this is additive — pass
+  `["Commit", "Commit and Push", "Cancel"]` and handle the extra return value (commit, then
+  push). Prerequisite: push task.
+- [ ] **Create-a-branch from the Commit dialog** — after **branch creation** (its own task)
+  lands, allow creating a new branch from within the Commit dialog (e.g. commit onto a newly
+  created branch). Prerequisite: branch-creation task.
+
 ## Background — existing git infrastructure to build on
 
 v1 (EPIC-030, completed 2026-06-07) already established the foundation every increment in this epic extends. Reuse these rather than re-inventing:
@@ -82,6 +96,7 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 | [US-629](../tasks/US-629-git-tree-commit-panel/README.md) | Git Tree editor — resizable bottom panel (Git-Extensions-style) with "Commit"/"Diff" tab strip + persisted height/active-tab; **"Commit" tab** shows the selected commit's author/email, date, full hash, ref badges, and full message (no parent/child — visible in the graph) | ✅ Done (2026-06-10) |
 | [US-630](../tasks/US-630-git-tree-commit-diff-tab/README.md) | Git Tree editor — **"Diff" tab**: changed-file list (`commitFiles` backend) + per-file inline Monaco diff (parent→commit via `git.show`); persisted file-list width. Depends on US-629 | ✅ Done (2026-06-10) |
 | [US-631](../tasks/US-631-git-stage-unstage/README.md) | "Changes" panel — **stage / unstage / reset** (first mutating ops): arrow buttons + double-click + context menu move files between Unstaged/Staged (`git add` / `git reset`); **Reset** discards changes (`git checkout` / `git clean`) with confirmation; new AVGrid-based **`FileGrid`** (range select + sorting + range-copy) replaces `FileList` in the panel | ✅ Done (2026-06-10) |
+| [US-632](../tasks/US-632-git-commit/README.md) | "Changes" panel — **Commit** staged files: "Commit" button under the Staged grid opens a **Commit dialog** (multi-line message + current branch + editable author Name/Email prepopulated from git config, applied as a per-commit override — no config write) that runs `git commit` of the staged index (`GitMutationResult` reused; `gitCommit`/`gitIdentity` IPC; `GitStatusResult.branch`). Push + branch-create postponed to dedicated tasks | ✅ Done (2026-06-11) |
 
 ## Notes
 

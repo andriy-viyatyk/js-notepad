@@ -11,7 +11,7 @@ import {
     VideoStreamSessionResult,
 } from "../api-param-types";
 import { Api, Endpoint, McpStatus } from "../api-types";
-import { GitCommit, GitFileChange, GitLogOptions, GitMutationResult, GitProbeResult, GitRepoInfo, GitStatusResult } from "../git-ipc";
+import { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRepoInfo, GitStatusResult } from "../git-ipc";
 
 let idGen = 0;
 const idGenMax = 2000000000;
@@ -281,6 +281,14 @@ class ApiCalls implements Api {
 
     gitDiscard = async (dir: string, trackedPaths: string[], untrackedPaths: string[]) => {
         return executeOnce<GitMutationResult>(Endpoint.gitDiscard, dir, trackedPaths, untrackedPaths);
+    };
+
+    gitCommit = async (dir: string, message: string, identity?: GitIdentity) => {
+        return executeOnce<GitMutationResult>(Endpoint.gitCommit, dir, message, identity);
+    };
+
+    gitIdentity = async (dir: string) => {
+        return executeOnce<GitIdentity>(Endpoint.gitIdentity, dir);
     };
 }
 

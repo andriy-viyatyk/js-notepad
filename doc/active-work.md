@@ -21,6 +21,7 @@ Overview of all active and planned epics and tasks.
   - [x] [US-629: Git Tree editor — bottom panel scaffold + "Commit" tab](tasks/US-629-git-tree-commit-panel/README.md)
   - [x] [US-630: Git Tree editor — "Diff" tab (changed files + per-file diff)](tasks/US-630-git-tree-commit-diff-tab/README.md)
   - [x] [US-631: "Changes" panel — stage / unstage / reset (buttons + double-click + context menu) + AVGrid-based `FileGrid` (range select)](tasks/US-631-git-stage-unstage/README.md)
+  - [x] [US-632: "Changes" panel — Commit staged files (Commit button + commit dialog)](tasks/US-632-git-commit/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

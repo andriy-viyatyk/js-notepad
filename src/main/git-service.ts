@@ -11,7 +11,7 @@
  * Log/show/diff arrive with US-611/US-613 as further endpoints.
  */
 import { simpleGit } from "simple-git";
-import type { GitCommit, GitFileChange, GitLogOptions, GitMutationResult, GitProbeResult, GitRef, GitRepoInfo, GitStatusResult } from "../ipc/git-ipc";
+import type { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRef, GitRepoInfo, GitStatusResult } from "../ipc/git-ipc";
 
 /** `git --version` availability probe for the settings page. Never throws. */
 export async function probeGit(): Promise<GitProbeResult> {
@@ -169,7 +169,9 @@ export async function status(dir: string): Promise<GitStatusResult> {
                 unstaged.push({ path, status: f.working_dir, ...(oldPath ? { oldPath } : {}) });
             }
         }
-        return { staged, unstaged };
+        // `s.current` is the branch name ("main"), null when detached/no commits.
+        // Carried here so the commit dialog (US-632) can show it without a 2nd round-trip.
+        return { staged, unstaged, branch: s.current ?? undefined };
     } catch {
         return { staged: [], unstaged: [] };
     }
@@ -296,6 +298,53 @@ export async function discard(
     try {
         if (trackedPaths.length) await git.raw(["checkout", "--", ...trackedPaths]);
         if (untrackedPaths.length) await git.raw(["clean", "-f", "--", ...untrackedPaths]);
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+/**
+ * Effective git author identity (EPIC-031 / US-632) — `git config user.name` /
+ * `user.email`, the layered system→global→local resolution. Used to PREPOPULATE the
+ * commit dialog (what Git Extensions reads — the user never types it because it lives in
+ * `~/.gitconfig`). Each key throws when unset → "" (no identity configured). Never throws.
+ */
+export async function getIdentity(dir: string): Promise<GitIdentity> {
+    const read = async (key: string): Promise<string> => {
+        try {
+            return (await simpleGit(dir).raw(["config", key])).trim();
+        } catch {
+            return ""; // key unset (or git unavailable) → empty
+        }
+    };
+    const [name, email] = await Promise.all([read("user.name"), read("user.email")]);
+    return { name, email };
+}
+
+/**
+ * Commit the staged index with `message` (EPIC-031 / US-632). `simpleGit().commit`
+ * commits only what is staged (no `-a`). When `identity` carries a name/email, it is
+ * applied as a PER-COMMIT override (`-c user.name=… -c user.email=…` via simple-git's
+ * `config` option) — NO config file is written (decided "per-commit only"). Rejects an
+ * empty/whitespace message rather than relying on git (which would need
+ * `--allow-empty-message`). Never throws — returns `{ ok:false, error }` so the renderer
+ * can toast hook/identity failures (e.g. missing identity, failing pre-commit hook).
+ */
+export async function commit(
+    dir: string,
+    message: string,
+    identity?: GitIdentity,
+): Promise<GitMutationResult> {
+    if (!message.trim()) return { ok: false, error: "Empty commit message" };
+    try {
+        // Only attach the override when at least one field is set, so a blank dialog
+        // (git unconfigured + nothing typed) falls through to git's own resolution /
+        // error rather than committing as "<empty> <empty@>".
+        const opts = identity && (identity.name || identity.email)
+            ? { config: [`user.name=${identity.name}`, `user.email=${identity.email}`] }
+            : undefined;
+        await simpleGit(dir, opts).commit(message);
         return { ok: true };
     } catch (e) {
         return { ok: false, error: String(e) };

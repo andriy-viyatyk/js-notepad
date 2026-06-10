@@ -12,9 +12,10 @@
 import { fpDirname } from "../core/utils/file-path";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
-import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult } from "../../ipc/git-ipc";
+import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult, GitIdentity } from "../../ipc/git-ipc";
 
 const EMPTY_STATUS: GitStatusResult = { staged: [], unstaged: [] };
+const EMPTY_IDENTITY: GitIdentity = { name: "", email: "" };
 
 // dir → resolved repo info (or null). Stores the in-flight promise so
 // concurrent opens in the same directory collapse to a single git spawn.
@@ -128,5 +129,26 @@ export const git = {
             return Promise.resolve({ ok: true });
         }
         return api.gitDiscard(repoRoot, trackedPaths, untrackedPaths).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+    },
+
+    /**
+     * Effective git author identity for prepopulating the commit dialog (EPIC-031 /
+     * US-632). Returns empty strings (no git spawn) when git is off or no root is given.
+     * Never throws.
+     */
+    getIdentity(repoRoot: string): Promise<GitIdentity> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(EMPTY_IDENTITY);
+        return api.gitIdentity(repoRoot).catch((): GitIdentity => EMPTY_IDENTITY);
+    },
+
+    /**
+     * Commit the staged index (EPIC-031 / US-632). `identity` (from the dialog) is applied
+     * as a per-commit override — no config file is written. Returns `{ ok:true }` (no-op)
+     * when git is off or no root/message; on IPC failure resolves to `{ ok:false, error }`
+     * — never throws.
+     */
+    commit(repoRoot: string, message: string, identity?: GitIdentity): Promise<GitMutationResult> {
+        if (!settings.get("git.enabled") || !repoRoot || !message.trim()) return Promise.resolve({ ok: true });
+        return api.gitCommit(repoRoot, message, identity).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
     },
 };

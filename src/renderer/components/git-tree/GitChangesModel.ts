@@ -15,7 +15,7 @@ import { TComponentState } from "../../core/state/state";
 import { settings } from "../../api/settings";
 import { git } from "../../api/git";
 import { ui } from "../../api/ui";
-import type { GitFileChange } from "../../../ipc/git-ipc";
+import type { GitFileChange, GitIdentity } from "../../../ipc/git-ipc";
 
 export interface GitChangesState {
     /** Working-tree (unstaged) changes, incl. untracked. */
@@ -26,6 +26,8 @@ export interface GitChangesState {
     loading: boolean;
     /** Probe result — `false` → git unavailable; lists render empty. */
     gitOk: boolean;
+    /** Current branch name, or undefined when detached / no commits (US-632). */
+    branch?: string;
 }
 
 const defaultGitChangesState: GitChangesState = {
@@ -82,6 +84,7 @@ export class GitChangesModel {
             s.gitOk = true;
             s.unstaged = result.unstaged;
             s.staged = result.staged;
+            s.branch = result.branch;
             s.loading = false;
         });
     };
@@ -119,6 +122,24 @@ export class GitChangesModel {
         const r = await git.discard(this.repoRoot, tracked, untracked);
         if (!r.ok) void ui.notify(`Failed to reset: ${r.error ?? "unknown error"}`, "error");
         await this.reload();
+    };
+
+    /** Effective git author identity (config user.name/email) for prepopulating the
+     *  commit dialog (US-632). Empty strings when unset or no repo. */
+    getIdentity = (): Promise<GitIdentity> => {
+        return this.repoRoot ? git.getIdentity(this.repoRoot) : Promise.resolve({ name: "", email: "" });
+    };
+
+    /** Commit the staged index with the dialog's (possibly edited) identity (US-632).
+     *  Identity is applied as a per-commit override — no config is written. Toasts on
+     *  failure, then reloads (clears the staged list; the watcher + reload also refresh
+     *  the commit tree). Returns whether it succeeded — the future push step keys off this. */
+    commit = async (message: string, identity?: GitIdentity): Promise<boolean> => {
+        if (!this.repoRoot || !message.trim()) return false;
+        const r = await git.commit(this.repoRoot, message, identity);
+        if (!r.ok) void ui.notify(`Failed to commit: ${r.error ?? "unknown error"}`, "error");
+        await this.reload();
+        return r.ok;
     };
 
     dispose(): void {

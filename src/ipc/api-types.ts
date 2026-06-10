@@ -10,7 +10,7 @@ import {
     VideoStreamSessionConfig,
     VideoStreamSessionResult,
 } from "./api-param-types";
-import { GitCommit, GitFileChange, GitLogOptions, GitMutationResult, GitProbeResult, GitRepoInfo, GitStatusResult } from "./git-ipc";
+import { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRepoInfo, GitStatusResult } from "./git-ipc";
 
 export enum Endpoint {
     getAppRootPath = "getAppRootPath",
@@ -69,6 +69,8 @@ export enum Endpoint {
     gitStage = "gitStage",
     gitUnstage = "gitUnstage",
     gitDiscard = "gitDiscard",
+    gitCommit = "gitCommit",
+    gitIdentity = "gitIdentity",
 }
 
 export interface McpStatus {
@@ -140,6 +142,8 @@ export type Api = {
     [Endpoint.gitStage]: (dir: string, paths: string[]) => Promise<GitMutationResult>;
     [Endpoint.gitUnstage]: (dir: string, paths: string[]) => Promise<GitMutationResult>;
     [Endpoint.gitDiscard]: (dir: string, trackedPaths: string[], untrackedPaths: string[]) => Promise<GitMutationResult>;
+    [Endpoint.gitCommit]: (dir: string, message: string, identity?: GitIdentity) => Promise<GitMutationResult>;
+    [Endpoint.gitIdentity]: (dir: string) => Promise<GitIdentity>;
 };
 
 export enum EventEndpoint {

@@ -13,7 +13,7 @@ import { versionService } from "../../main/version-service";
 import * as browserRegistration from "../../main/browser-registration";
 import { downloadService } from "../../main/download-service";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
-import { GitLogOptions } from "../git-ipc";
+import { GitIdentity, GitLogOptions } from "../git-ipc";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -290,6 +290,16 @@ class Controller implements MainApi {
         const { discard } = await import("../../main/git-service");
         return discard(dir, trackedPaths, untrackedPaths);
     };
+
+    gitCommit = async (_event: IpcMainEvent, dir: string, message: string, identity?: GitIdentity) => {
+        const { commit } = await import("../../main/git-service");
+        return commit(dir, message, identity);
+    };
+
+    gitIdentity = async (_event: IpcMainEvent, dir: string) => {
+        const { getIdentity } = await import("../../main/git-service");
+        return getIdentity(dir);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -364,6 +374,8 @@ const init = () => {
     bindEndpoint(Endpoint.gitStage, controllerInstance.gitStage);
     bindEndpoint(Endpoint.gitUnstage, controllerInstance.gitUnstage);
     bindEndpoint(Endpoint.gitDiscard, controllerInstance.gitDiscard);
+    bindEndpoint(Endpoint.gitCommit, controllerInstance.gitCommit);
+    bindEndpoint(Endpoint.gitIdentity, controllerInstance.gitIdentity);
 
     initRendererEvents();
 }

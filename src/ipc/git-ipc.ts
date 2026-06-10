@@ -60,12 +60,21 @@ export interface GitMutationResult {
     error?: string;
 }
 
+/** Git author identity (EPIC-031 / US-632). Empty strings when unset in git config. */
+export interface GitIdentity {
+    name: string;
+    email: string;
+}
+
 /** Split working-tree status for a repo (EPIC-031 / US-616). */
 export interface GitStatusResult {
     /** Index (staged) changes. */
     staged: GitFileChange[];
     /** Working-tree (unstaged) changes, including untracked ('?'). */
     unstaged: GitFileChange[];
+    /** Current branch name (simple-git status `.current`), or undefined when
+     *  detached / no commits yet (EPIC-031 / US-632). */
+    branch?: string;
 }
 
 /** One commit row from `git log --topo-order` (EPIC-030 / US-611). */
