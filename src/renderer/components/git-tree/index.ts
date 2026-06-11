@@ -2,6 +2,15 @@ export { GitTree, type GitTreeProps, type GitTreeSideSelect, type GitColumnLayou
 export { SideSelectToggle, type SideSelectToggleProps } from "./SideSelectToggle";
 export { GitTreeModel, GIT_TREE_PAGE, type GitTreeState } from "./GitTreeModel";
 export { GitChangesModel, type GitChangesState } from "./GitChangesModel";
+export { GitBranchesModel, type GitBranchesState } from "./GitBranchesModel";
+export {
+    buildRefsTree,
+    BRANCHES_ROOT_VALUE,
+    REMOTES_ROOT_VALUE,
+    TAGS_ROOT_VALUE,
+    type GitRefNode,
+    type GitRefNodeKind,
+} from "./git-refs-tree";
 export { GitStatusBadge } from "./GitStatusBadge";
 export { RefBadge, REF_COLOR } from "./RefBadge";
 export { dateText } from "./git-date";

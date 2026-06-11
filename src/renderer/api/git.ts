@@ -12,10 +12,11 @@
 import { fpDirname } from "../core/utils/file-path";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
-import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult, GitIdentity } from "../../ipc/git-ipc";
+import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult, GitIdentity, GitRefs, GitSwitchTarget } from "../../ipc/git-ipc";
 
 const EMPTY_STATUS: GitStatusResult = { staged: [], unstaged: [] };
 const EMPTY_IDENTITY: GitIdentity = { name: "", email: "" };
+const EMPTY_REFS: GitRefs = { localBranches: [], remotes: [], remoteBranches: [], tags: [] };
 
 // dir → resolved repo info (or null). Stores the in-flight promise so
 // concurrent opens in the same directory collapse to a single git spawn.
@@ -150,5 +151,25 @@ export const git = {
     commit(repoRoot: string, message: string, identity?: GitIdentity): Promise<GitMutationResult> {
         if (!settings.get("git.enabled") || !repoRoot || !message.trim()) return Promise.resolve({ ok: true });
         return api.gitCommit(repoRoot, message, identity).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+    },
+
+    /**
+     * Repository refs (local branches, remotes + remote-tracking branches, tags,
+     * current branch) for the "Branches & Tags" panel (EPIC-031 / US-634). Returns
+     * an empty set (no git spawn) when git is off or no root is given. Never throws.
+     */
+    refs(repoRoot: string): Promise<GitRefs> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(EMPTY_REFS);
+        return api.gitRefs(repoRoot).catch((): GitRefs => EMPTY_REFS);
+    },
+
+    /**
+     * Switch HEAD to a branch / remote branch / commit / tag (EPIC-031 / US-636).
+     * Returns `{ ok:true }` (no-op) when git is off or no root; on failure resolves
+     * to `{ ok:false, error }` so the model can toast. Never throws.
+     */
+    switchTo(repoRoot: string, target: GitSwitchTarget): Promise<GitMutationResult> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
+        return api.gitSwitch(repoRoot, target).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
     },
 };

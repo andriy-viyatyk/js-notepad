@@ -22,6 +22,9 @@ Overview of all active and planned epics and tasks.
   - [x] [US-630: Git Tree editor — "Diff" tab (changed files + per-file diff)](tasks/US-630-git-tree-commit-diff-tab/README.md)
   - [x] [US-631: "Changes" panel — stage / unstage / reset (buttons + double-click + context menu) + AVGrid-based `FileGrid` (range select)](tasks/US-631-git-stage-unstage/README.md)
   - [x] [US-632: "Changes" panel — Commit staged files (Commit button + commit dialog)](tasks/US-632-git-commit/README.md)
+  - [x] [US-634: Git Tree "Branches & Tags" secondary view + relocate "x" close to it](tasks/US-634-git-branches-tags-panel/README.md)
+  - [x] [US-635: "Branches & Tags" panel — polish (hover, head-green active branch, AZ/historical order, truncating titles) + click-to-reveal in graph](tasks/US-635-git-branches-panel-polish/README.md)
+  - [x] [US-636: Git Tree — Switch to branch / remote branch / commit (context menus on grid + Branches panel)](tasks/US-636-git-switch-branch-commit/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

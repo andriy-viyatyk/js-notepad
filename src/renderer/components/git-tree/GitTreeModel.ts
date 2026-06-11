@@ -14,10 +14,27 @@
 import { TComponentState } from "../../core/state/state";
 import { settings } from "../../api/settings";
 import { git } from "../../api/git";
-import type { GitCommit } from "../../../ipc/git-ipc";
+import type { AVGridModel } from "../../uikit/AVGrid";
+import type { GitCommit, GitRef } from "../../../ipc/git-ipc";
+import type { GitCommitRow } from "./swimlane-layout";
+import type { GitRefNodeKind } from "./git-refs-tree";
 
 /** Commits loaded per page (Concern 7 — manual "load more"). */
 export const GIT_TREE_PAGE = 200;
+
+/** Does a commit decoration ref correspond to the clicked panel ref?
+ *  The checked-out branch decorates as `head` (not `branch`), so a local-branch
+ *  click matches either. Remote branches carry their full "remote/name". */
+function refMatches(ref: GitRef, refName: string, kind: GitRefNodeKind): boolean {
+    switch (kind) {
+        case "branch":
+            return (ref.kind === "branch" || ref.kind === "head") && ref.name === refName;
+        case "remote-branch":
+            return ref.kind === "remote" && ref.name === refName;
+        case "tag":
+            return ref.kind === "tag" && ref.name === refName;
+    }
+}
 
 export interface GitTreeState {
     commits: GitCommit[];
@@ -47,6 +64,24 @@ export class GitTreeModel {
     private loaded = false;
     private disposed = false;
 
+    /** Live AVGrid handle, registered by the `<GitTree>` view on mount (US-634).
+     *  Present only while the grid is rendered (i.e. the Git Tree is the page's
+     *  main editor) — undefined otherwise, in which case `revealRef` no-ops. */
+    private grid: AVGridModel<GitCommitRow> | undefined;
+
+    /** Set true by `markStale()` when a repo change happened while the tree was
+     *  not the page's main editor; cleared by the next `reload()`. The owning
+     *  editor reloads on promote-back only when stale (visibility-aware refresh,
+     *  US-634). */
+    private _stale = false;
+    get stale(): boolean {
+        return this._stale;
+    }
+    /** Mark the commit list possibly out-of-date without fetching (tree not visible). */
+    markStale(): void {
+        this._stale = true;
+    }
+
     constructor(opts?: { pageSize?: number }) {
         this.pageSize = opts?.pageSize ?? GIT_TREE_PAGE;
     }
@@ -60,6 +95,7 @@ export class GitTreeModel {
         this.repoRoot = repoRoot;
         this.file = file;
         this.loaded = false;
+        this._stale = false;
         this.write((s) => {
             s.commits = [];
             s.hasMore = false;
@@ -70,6 +106,7 @@ export class GitTreeModel {
 
     /** Reload from page 1 (probe + first page). Always re-fetches (used by Refresh). */
     reload = async (): Promise<void> => {
+        this._stale = false;
         const gitEnabled = settings.get("git.enabled");
         if (!gitEnabled || !this.repoRoot) {
             this.loaded = true;
@@ -94,7 +131,7 @@ export class GitTreeModel {
             });
             return;
         }
-        const list = await git.log(this.repoRoot, { maxCount: this.pageSize, file: this.file });
+        const list = await git.log(this.repoRoot, { maxCount: this.pageSize, file: this.file, all: !this.file });
         if (this.disposed) return;
         this.loaded = true;
         this.write((s) => {
@@ -113,6 +150,7 @@ export class GitTreeModel {
             maxCount: this.pageSize,
             skip: this.state.get().commits.length,
             file: this.file,
+            all: !this.file,
         });
         if (this.disposed) return;
         this.write((s) => {
@@ -129,7 +167,7 @@ export class GitTreeModel {
     loadAll = async (): Promise<void> => {
         if (this.state.get().loadingMore || !this.repoRoot) return;
         this.write((s) => { s.loadingMore = true; });
-        const list = await git.log(this.repoRoot, { maxCount: 0, file: this.file });
+        const list = await git.log(this.repoRoot, { maxCount: 0, file: this.file, all: !this.file });
         if (this.disposed) return;
         this.write((s) => {
             s.commits = list;
@@ -145,8 +183,37 @@ export class GitTreeModel {
         await this.reload();
     };
 
+    /** Register (or clear) the live AVGrid handle. The `<GitTree>` view calls
+     *  this on mount with `gridRef.current` and on unmount with `undefined`. */
+    setGrid(grid: AVGridModel<GitCommitRow> | undefined): void {
+        this.grid = grid;
+    }
+
+    /**
+     * Focus the "Comment" (subject) cell of the commit a ref points to (US-634).
+     * Matches the ref against each loaded commit's decoration refs; if found,
+     * focuses + scrolls to that row's subject cell. If the ref's tip isn't among
+     * the loaded commits (history is paginated), focuses the LAST row instead, so
+     * the "Load more" / "Load all" footer is in view. No-op when the grid isn't
+     * mounted (Git Tree not the page's main editor).
+     */
+    revealRef(refName: string, kind: GitRefNodeKind): void {
+        const grid = this.grid;
+        if (!grid) return;
+        const { rows, columns } = grid.data;
+        if (!rows.length || !columns.length) return;
+        let colIndex = columns.findIndex((c) => String(c.key) === "subject");
+        if (colIndex < 0) colIndex = 0;
+        const matchIdx = rows.findIndex(
+            (r) => r.recordType === "commit" && r.refs.some((ref) => refMatches(ref, refName, kind)),
+        );
+        const rowIndex = matchIdx >= 0 ? matchIdx : rows.length - 1;
+        grid.models.focus.focusCell(rowIndex, colIndex, true);
+    }
+
     dispose(): void {
         this.disposed = true;
+        this.grid = undefined;
     }
 
     /** State write guarded against late async writes after dispose. */

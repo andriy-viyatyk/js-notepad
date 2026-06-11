@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { PageToolbar } from "../base";
 import { Panel } from "../../uikit/Panel";
@@ -6,9 +6,10 @@ import { Text } from "../../uikit/Text";
 import { Splitter } from "../../uikit/Splitter";
 import { SegmentedControl } from "../../uikit/SegmentedControl";
 import { IconButton } from "../../uikit/IconButton/IconButton";
-import { RefreshIcon } from "../../theme/icons";
+import type { MenuItem } from "../../uikit/Menu";
+import { RefreshIcon, GitIcon, GlobeIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
-import { GitTree } from "../../components/git-tree";
+import { GitTree, type GitCommitRow } from "../../components/git-tree";
 import { CommitInfoPanel } from "./CommitInfoPanel";
 import { CommitDiffPanel } from "./CommitDiffPanel";
 import { decodeGitTreeLink } from "../../content/git-tree-link";
@@ -61,6 +62,53 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
     const panelH = Math.min(bottomPanelHeight ?? DEFAULT_PANEL_H, maxH);
     const tab = bottomPanelTab ?? "commit";
 
+    // Right-click a commit → Switch options (US-636). AVGrid passes the current
+    // grid selection; a single right-click targets one row, a right-click inside a
+    // multi-row range keeps the range — switch is single-commit, so the items are
+    // disabled when more than one row is selected. The current branch (a `head`
+    // ref) is shown disabled "(current)".
+    //
+    // De-duplication: a branch/tag is just a pointer to this commit, so switching
+    // to a local branch lands on the same commit (on a branch — the preferred
+    // outcome). So when a local branch points here we offer ONLY the branch
+    // switch(es); "Switch to Commit" (detached HEAD) is offered only when no local
+    // branch is here (covers the tag-only and bare-commit cases). Tags are not
+    // listed separately on the grid — "Switch to Commit" covers the tagged commit.
+    const commitContextMenu = useCallback(
+        (rows: GitCommitRow[]): MenuItem[] => {
+            const row = rows[0];
+            if (!row || row.recordType !== "commit") return [];
+            const multi = rows.length > 1;
+            const items: MenuItem[] = [];
+            let hasLocalBranch = false;
+            for (const ref of row.refs) {
+                if (ref.kind === "head") {
+                    hasLocalBranch = true;
+                    items.push({ label: `Switch to Branch '${ref.name}' (current)`, icon: <GitIcon />, disabled: true });
+                } else if (ref.kind === "branch") {
+                    hasLocalBranch = true;
+                    items.push({ label: `Switch to Branch '${ref.name}'`, icon: <GitIcon />, disabled: multi, onClick: () => void model.switchTo({ type: "branch", name: ref.name }) });
+                }
+            }
+            for (const ref of row.refs) {
+                if (ref.kind === "remote") {
+                    items.push({ label: `Switch to Remote Branch '${ref.name}'`, icon: <GlobeIcon />, disabled: multi, onClick: () => void model.switchTo({ type: "remote", ref: ref.name }) });
+                }
+            }
+            if (!hasLocalBranch) {
+                items.push({
+                    label: `Switch to Commit ${row.shortHash}`,
+                    icon: <GitIcon />,
+                    startGroup: items.length > 0,
+                    disabled: multi,
+                    onClick: () => void model.switchTo({ type: "commit", hash: row.hash }),
+                });
+            }
+            return items;
+        },
+        [model],
+    );
+
     let body: ReactNode;
     if (!gitOk) {
         body = (
@@ -92,6 +140,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                     onSelectCommit={setSelectedHash}
                     initialColumnLayout={model.state.get().columnLayout}
                     onColumnLayoutChange={model.setColumnLayout}
+                    getContextMenuItems={commitContextMenu}
                 />
             </Panel>
         );

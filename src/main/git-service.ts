@@ -11,7 +11,7 @@
  * Log/show/diff arrive with US-611/US-613 as further endpoints.
  */
 import { simpleGit } from "simple-git";
-import type { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRef, GitRepoInfo, GitStatusResult } from "../ipc/git-ipc";
+import type { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRef, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../ipc/git-ipc";
 
 /** `git --version` availability probe for the settings page. Never throws. */
 export async function probeGit(): Promise<GitProbeResult> {
@@ -57,8 +57,14 @@ const RECORD_SEP = "\x1e";
 const LOG_FORMAT = ["%H", "%P", "%s", "%an", "%ae", "%at", "%D"].join(FIELD_SEP) + RECORD_SEP;
 
 /**
- * Parse decoration refs (`%D`), e.g. "HEAD -> main, origin/main, tag: v1.0",
- * classifying each by kind so the renderer can color it (US-611).
+ * Parse decoration refs (`%D` under `--decorate=full`), classifying each by kind
+ * so the renderer can color it (US-611). Full ref paths are used so a local branch
+ * whose name contains a slash (e.g. "feature/api") is NOT mistaken for a remote —
+ * the namespace prefix is authoritative, not a "contains /" heuristic (US-636 fix).
+ *
+ * Examples (full form): "HEAD -> refs/heads/main", "refs/heads/feature/api",
+ * "refs/remotes/origin/main", "tag: refs/tags/v1.0". The returned `name` is the
+ * short form (prefix stripped): "main", "feature/api", "origin/main", "v1.0".
  */
 function parseDecorations(raw: string): GitRef[] {
     const out: GitRef[] = [];
@@ -66,18 +72,30 @@ function parseDecorations(raw: string): GitRef[] {
         const ref = part.trim();
         if (!ref) continue;
         if (ref.startsWith("tag: ")) {
-            out.push({ name: ref.slice(5), kind: "tag" });
+            // "tag: refs/tags/v1.0" → "v1.0"
+            out.push({ name: stripRefPrefix(ref.slice(5), "refs/tags/"), kind: "tag" });
         } else if (ref === "HEAD") {
-            out.push({ name: "HEAD", kind: "head" });
+            out.push({ name: "HEAD", kind: "head" }); // detached HEAD
         } else if (ref.startsWith("HEAD -> ")) {
-            out.push({ name: ref.slice(8), kind: "head" }); // the checked-out branch
-        } else if (ref.includes("/")) {
-            out.push({ name: ref, kind: "remote" });
+            // "HEAD -> refs/heads/main" → the checked-out branch "main"
+            out.push({ name: stripRefPrefix(ref.slice(8), "refs/heads/"), kind: "head" });
+        } else if (ref.startsWith("refs/heads/")) {
+            out.push({ name: ref.slice("refs/heads/".length), kind: "branch" });
+        } else if (ref.startsWith("refs/remotes/")) {
+            out.push({ name: ref.slice("refs/remotes/".length), kind: "remote" });
+        } else if (ref.startsWith("refs/tags/")) {
+            out.push({ name: ref.slice("refs/tags/".length), kind: "tag" });
         } else {
+            // Unexpected short/bare form — default to branch (no slash heuristic).
             out.push({ name: ref, kind: "branch" });
         }
     }
     return out;
+}
+
+/** Strip a known ref namespace prefix when present (leaves the value otherwise). */
+function stripRefPrefix(ref: string, prefix: string): string {
+    return ref.startsWith(prefix) ? ref.slice(prefix.length) : ref;
 }
 
 function parseLog(raw: string): GitCommit[] {
@@ -118,8 +136,16 @@ export async function log(dir: string, opts: GitLogOptions = {}): Promise<GitCom
         const args = [
             "log",
             "--topo-order",
+            // Full ref paths so `%D` distinguishes local branches (refs/heads/…)
+            // from remote-tracking ones (refs/remotes/…) even when a local branch
+            // name contains a slash, e.g. "feature/api" (US-636 fix).
+            "--decorate=full",
             `--pretty=format:${LOG_FORMAT}`,
         ];
+        // Walk every ref, not just HEAD — the whole-repo Git Tree then shows all
+        // branches' commits (like Git Extensions) even when HEAD is behind another
+        // branch (US-636). File-scoped history keeps the HEAD/--follow walk.
+        if (opts.all) args.push("--all");
         // max <= 0 means "no limit" — load all commits ("Load all", US-612).
         if (max > 0) args.push(`--max-count=${max}`);
         if (opts.skip && opts.skip > 0) args.push(`--skip=${opts.skip}`);
@@ -174,6 +200,60 @@ export async function status(dir: string): Promise<GitStatusResult> {
         return { staged, unstaged, branch: s.current ?? undefined };
     } catch {
         return { staged: [], unstaged: [] };
+    }
+}
+
+/**
+ * Repository refs for the "Branches & Tags" panel (EPIC-031 / US-634): local
+ * branches, remote names + remote-tracking branches, and tags, plus the current
+ * branch. Never throws — returns all-empty on failure or when `dir` is not a repo.
+ *
+ * `%(refname:short)` strips the namespace, so each namespace is queried
+ * separately to keep the lists unambiguous. `GIT_OPTIONAL_LOCKS=0` keeps these
+ * reads from rewriting `.git` (same loop-safety as `status`, US-624). Remote
+ * names come from `git remote` (a remote may exist with zero branches); the
+ * symbolic `<remote>/HEAD` ref is dropped.
+ */
+export async function refs(dir: string): Promise<GitRefs> {
+    const empty: GitRefs = { localBranches: [], remotes: [], remoteBranches: [], tags: [] };
+    try {
+        const git = simpleGit(dir).env("GIT_OPTIONAL_LOCKS", "0");
+        // Sorted most-recent-first: branches/remotes by commit date, tags by
+        // creation date (`creatordate` covers both lightweight + annotated tags).
+        // The renderer re-sorts alphabetically on demand; this is the default order.
+        const list = async (namespace: string, sortKey: string): Promise<string[]> => {
+            const raw = await git.raw([
+                "for-each-ref",
+                `--sort=${sortKey}`,
+                "--format=%(refname:short)",
+                namespace,
+            ]);
+            return raw.split("\n").map((l) => l.trim()).filter(Boolean);
+        };
+        const [localBranches, remoteRefs, tags] = await Promise.all([
+            list("refs/heads", "-committerdate"),
+            list("refs/remotes", "-committerdate"),
+            list("refs/tags", "-creatordate"),
+        ]);
+        // Drop the symbolic "<remote>/HEAD" pointer — it's not a real branch.
+        const remoteBranches = remoteRefs.filter((r) => !r.endsWith("/HEAD"));
+
+        let remotes: string[] = [];
+        try {
+            const raw = await git.raw(["remote"]);
+            remotes = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+        } catch { /* no remotes configured */ }
+
+        let current: string | undefined;
+        try {
+            const head = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+            // "HEAD" means detached — leave current undefined.
+            if (head && head !== "HEAD") current = head;
+        } catch { /* detached / no commits */ }
+
+        return { current, localBranches, remotes, remoteBranches, tags };
+    } catch {
+        return empty;
     }
 }
 
@@ -345,6 +425,48 @@ export async function commit(
             ? { config: [`user.name=${identity.name}`, `user.email=${identity.email}`] }
             : undefined;
         await simpleGit(dir, opts).commit(message);
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+/**
+ * Switch HEAD to a branch / remote branch / commit / tag (EPIC-031 / US-636) — the
+ * first history-moving op. Uses `git switch` (git ≥ 2.23):
+ *   - branch  → `switch <name>`
+ *   - remote  → `switch -c <short> --track <ref>`, falling back to `switch <short>`
+ *               when the local branch already exists (so re-switching just works)
+ *   - commit  → `switch --detach <hash>` (detached HEAD)
+ *   - tag     → `switch --detach <tag>`  (detached HEAD)
+ * Never throws — a dirty tree that would be overwritten makes git exit non-zero and
+ * is returned as `{ ok:false, error }` for the renderer to toast.
+ */
+export async function switchTo(dir: string, target: GitSwitchTarget): Promise<GitMutationResult> {
+    try {
+        const git = simpleGit(dir);
+        switch (target.type) {
+            case "branch":
+                await git.raw(["switch", target.name]);
+                break;
+            case "commit":
+                await git.raw(["switch", "--detach", target.hash]);
+                break;
+            case "tag":
+                await git.raw(["switch", "--detach", target.name]);
+                break;
+            case "remote": {
+                // "origin/feature/x" → local "feature/x" (strip the first segment = remote name).
+                const short = target.ref.slice(target.ref.indexOf("/") + 1);
+                try {
+                    await git.raw(["switch", "-c", short, "--track", target.ref]);
+                } catch {
+                    // Local branch already exists → just switch to it.
+                    await git.raw(["switch", short]);
+                }
+                break;
+            }
+        }
         return { ok: true };
     } catch (e) {
         return { ok: false, error: String(e) };

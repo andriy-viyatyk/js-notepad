@@ -43,10 +43,23 @@ export class GitChangesModel {
     private repoRoot: string | undefined;
     private disposed = false;
 
+    /** Set true by `markStale()` when a repo change happened while this panel was
+     *  hidden; cleared by the next `reload()`. The owning editor reloads on reveal
+     *  only when stale (visibility-aware refresh, US-634). */
+    private _stale = false;
+    get stale(): boolean {
+        return this._stale;
+    }
+    /** Mark the lists possibly out-of-date without fetching (the panel is collapsed). */
+    markStale(): void {
+        this._stale = true;
+    }
+
     /** Point the model at a repo. Resets the lists when the target changes. */
     configure(repoRoot: string | undefined): void {
         if (this.repoRoot === repoRoot) return;
         this.repoRoot = repoRoot;
+        this._stale = false;
         this.write((s) => {
             s.unstaged = [];
             s.staged = [];
@@ -56,6 +69,7 @@ export class GitChangesModel {
 
     /** Reload the staged/unstaged lists (probe + status). Always re-fetches. */
     reload = async (): Promise<void> => {
+        this._stale = false;
         const gitEnabled = settings.get("git.enabled");
         if (!gitEnabled || !this.repoRoot) {
             this.write((s) => {

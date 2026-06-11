@@ -13,7 +13,7 @@ import { versionService } from "../../main/version-service";
 import * as browserRegistration from "../../main/browser-registration";
 import { downloadService } from "../../main/download-service";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
-import { GitIdentity, GitLogOptions } from "../git-ipc";
+import { GitIdentity, GitLogOptions, GitSwitchTarget } from "../git-ipc";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -300,6 +300,16 @@ class Controller implements MainApi {
         const { getIdentity } = await import("../../main/git-service");
         return getIdentity(dir);
     };
+
+    gitRefs = async (_event: IpcMainEvent, dir: string) => {
+        const { refs } = await import("../../main/git-service");
+        return refs(dir);
+    };
+
+    gitSwitch = async (_event: IpcMainEvent, dir: string, target: GitSwitchTarget) => {
+        const { switchTo } = await import("../../main/git-service");
+        return switchTo(dir, target);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -376,6 +386,8 @@ const init = () => {
     bindEndpoint(Endpoint.gitDiscard, controllerInstance.gitDiscard);
     bindEndpoint(Endpoint.gitCommit, controllerInstance.gitCommit);
     bindEndpoint(Endpoint.gitIdentity, controllerInstance.gitIdentity);
+    bindEndpoint(Endpoint.gitRefs, controllerInstance.gitRefs);
+    bindEndpoint(Endpoint.gitSwitch, controllerInstance.gitSwitch);
 
     initRendererEvents();
 }

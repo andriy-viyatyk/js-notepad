@@ -5,15 +5,17 @@ import {
     type EditorStateBase,
 } from "../base/EditorModel";
 import { GitIcon } from "../../theme/icons";
-import { GitTreeModel, GitChangesModel, type GitColumnLayout } from "../../components/git-tree";
+import { GitTreeModel, GitChangesModel, GitBranchesModel, type GitColumnLayout, type GitRefNodeKind } from "../../components/git-tree";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { app } from "../../api/app";
+import { git } from "../../api/git";
+import { ui } from "../../api/ui";
 import { settings } from "../../api/settings";
 import { createLinkData } from "../../../shared/link-data";
 import { fpJoin } from "../../core/utils/file-path";
 import { DirectoryWatcher } from "../../core/utils/file-watcher";
 import { decodeGitTreeLink, encodeGitTreeLink } from "../../content/git-tree-link";
-import type { GitFileChange } from "../../../ipc/git-ipc";
+import type { GitFileChange, GitSwitchTarget } from "../../../ipc/git-ipc";
 
 export interface GitTreeEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -35,6 +37,16 @@ export interface GitTreeEditorState extends EditorStateBase {
      *  DEFAULT_DIFF_LIST_W. Persisted via the page descriptor like
      *  `bottomPanelHeight` so the divider survives navigation + restart. */
     commitDiffListWidth?: number;
+    /** Persisted expansion map for the "Branches & Tags" tree (US-634), keyed by
+     *  ITreeItem value (e.g. "sec:branches", "localdir:feature"). Undefined →
+     *  default (only the Branches root expanded). Round-trips through the page
+     *  descriptor like `columnLayout`. */
+    branchesExpanded?: Record<string, boolean>;
+    /** When true, the "Branches & Tags" tree sorts refs alphabetically; when
+     *  false/undefined (default) it preserves the historical (most-recent-first)
+     *  order. Toggled by the "AZ" header button and persisted via the page
+     *  descriptor like `branchesExpanded` (US-634). */
+    branchesAlphabetical?: boolean;
 }
 
 /** Basename of a repo top-level path (folder name), or "Git" when empty.
@@ -83,6 +95,9 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     /** Submodel: working-tree status for the "Changes" secondary panel (US-616). */
     readonly changes = new GitChangesModel();
 
+    /** Submodel: repository refs for the "Branches & Tags" secondary panel (US-634). */
+    readonly branches = new GitBranchesModel();
+
     /** Auto-refresh watcher on the repo root (US-624). Recursively watches the
      *  working tree — which includes `.git` — so edits, staging, commits, and
      *  checkouts all trigger a debounced `refresh()`. Loop-safe: `refresh()` only
@@ -106,7 +121,8 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         if (page && !this.secondaryView?.length) {
-            this.secondaryView = ["git-changes"];
+            // Branches & Tags on top of Changes — Git-Extensions-like (US-634).
+            this.secondaryView = ["git-branches", "git-changes"];
         }
     }
 
@@ -160,6 +176,42 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         this.state.update((s) => { s.commitDiffListWidth = w; });
     };
 
+    /** Persist the "Branches & Tags" tree expansion map (US-634). Bound so the
+     *  panel can pass it straight to `<Tree onExpandChange>`. */
+    setBranchesExpanded = (map: Record<string, boolean>): void => {
+        this.state.update((s) => { s.branchesExpanded = map; });
+    };
+
+    /** Toggle alphabetical vs. historical ordering of the "Branches & Tags"
+     *  tree (US-634). Bound for the "AZ" header button. */
+    setBranchesAlphabetical = (alphabetical: boolean): void => {
+        this.state.update((s) => { s.branchesAlphabetical = alphabetical; });
+    };
+
+    /** Reveal a ref clicked in the "Branches & Tags" panel inside the commit
+     *  grid (US-634). No-op unless the Git Tree is the page's main editor (the
+     *  grid is only mounted then). Focuses the matching row's "Comment" cell;
+     *  if the ref's tip isn't among the loaded commits, focuses the last row so
+     *  the "Load more"/"Load all" footer is in view. */
+    revealRef = (refName: string | undefined, kind: GitRefNodeKind | undefined): void => {
+        if (!refName || !kind || !this.isTreeVisible()) return;
+        this.gitTree.revealRef(refName, kind);
+    };
+
+    /** Switch HEAD to a branch / remote branch / commit / tag (US-636). No
+     *  confirmation — every switch is frictionless (a dirty tree that git refuses
+     *  just toasts). A commit/tag switch leaves a detached HEAD; helping the user
+     *  create a branch from that state is a future task (handled in the commit
+     *  dialog). Refreshes on success for immediate feedback; the US-624 watcher
+     *  also fires. */
+    switchTo = async (target: GitSwitchTarget): Promise<void> => {
+        const repoRoot = this.state.get().repoRoot;
+        if (!repoRoot) return;
+        const r = await git.switchTo(repoRoot, target);
+        if (!r.ok) void ui.notify(`Failed to switch: ${r.error ?? "unknown error"}`, "error");
+        this.refresh();
+    };
+
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */
     initFromRepoRoot(repoRoot: string): void {
         const folder = repoFolderName(repoRoot);
@@ -174,10 +226,16 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
      *  open (`initFromRepoRoot`) and on session restore (from the module factory). */
     syncGitTree(): void {
         const repoRoot = this.state.get().repoRoot;
+        // Initial load is eager for all three so every panel has content the
+        // moment it is first revealed; the visibility-aware gating (US-634)
+        // applies to the repeated watcher-driven `refresh()`, not this one-time
+        // population.
         this.gitTree.configure(repoRoot);
         void this.gitTree.reload();
         this.changes.configure(repoRoot);
         void this.changes.reload();
+        this.branches.configure(repoRoot);
+        void this.branches.reload();
         this.startWatching();
     }
 
@@ -193,20 +251,53 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         this.repoWatcher = new DirectoryWatcher(repoRoot, this.refresh, 500);
     }
 
-    /** Unified manual refresh (US-616): reload history + staged/unstaged lists.
-     *  Bound to both the Git Tree toolbar Refresh and the Changes panel header
-     *  Refresh, so one method serves both buttons. */
-    refresh = (): void => {
-        // Configure first so refresh is self-healing — if a submodel was never
-        // pointed at the repo (e.g. an unsynced restore), this sets its root.
-        // `configure` is a no-op when the root is unchanged, so a normal refresh
-        // just re-fetches without wiping the lists.
-        const repoRoot = this.state.get().repoRoot;
-        this.gitTree.configure(repoRoot);
-        this.changes.configure(repoRoot);
+    /** Tree body visible ⟺ the Git Tree is the page's main editor. */
+    private isTreeVisible(): boolean {
+        return this.page?.mainEditorInstance === this;
+    }
+
+    /** A panel is the expanded one ⟺ it is the page's active (bare) panel id.
+     *  The sidebar is a single-expand accordion (US-619), so at most one of our
+     *  panels is visible at a time. */
+    private isPanelVisible(panelId: string): boolean {
+        return this.page?.activePanelId === panelId;
+    }
+
+    /** Reload the commit graph (configure-first, self-healing — sets the root if
+     *  a restore left the submodel unconfigured; a no-op when unchanged). */
+    private refreshTree(): void {
+        this.gitTree.configure(this.state.get().repoRoot);
         void this.gitTree.reload();
+    }
+    private refreshChanges(): void {
+        this.changes.configure(this.state.get().repoRoot);
         void this.changes.reload();
+    }
+    private refreshBranches(): void {
+        this.branches.configure(this.state.get().repoRoot);
+        void this.branches.reload();
+    }
+
+    /** Unified refresh (US-616): bound to the Git Tree toolbar Refresh and both
+     *  panels' header Refresh, and fired by the US-624 auto-refresh watcher.
+     *
+     *  Visibility-aware (US-634): reload only the CURRENTLY-VISIBLE surfaces; a
+     *  hidden surface is marked stale and reloads lazily when next revealed
+     *  (`onPanelExpanded` for a panel, promote-to-main for the tree). This avoids
+     *  reloading the commit log + status + refs on every working-tree change when
+     *  the user is looking at only one of them. */
+    refresh = (): void => {
+        if (this.isTreeVisible()) this.refreshTree(); else this.gitTree.markStale();
+        if (this.isPanelVisible("git-changes")) this.refreshChanges(); else this.changes.markStale();
+        if (this.isPanelVisible("git-branches")) this.refreshBranches(); else this.branches.markStale();
     };
+
+    /** Reveal-time catch-up (US-634): when the user expands one of our panels,
+     *  reload it if a hidden-refresh left it stale. */
+    onPanelExpanded(panelId: string): void {
+        if (panelId === "git-changes" && this.changes.stale) this.refreshChanges();
+        else if (panelId === "git-branches" && this.branches.stale) this.refreshBranches();
+    }
 
     /** Open a changed file's Git Diff in this page (US-616, Concern 1). Navigates
      *  the current page to the file with the `file-diff` editor as target; this
@@ -275,7 +366,9 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     }
 
     /** Reused-on-navigation hook (US-617): refresh so promoting back to main
-     *  shows current history + changes (a fresh open would have loaded fresh). */
+     *  shows current history + changes (a fresh open would have loaded fresh).
+     *  Promotion makes the tree the main editor, so `refresh()` reloads it; the
+     *  stale visible panel (if any) catches up too (US-634). */
     onNavigationReuse(): void {
         this.refresh();
     }
@@ -293,6 +386,7 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         this.repoWatcher?.dispose();
         this.gitTree.dispose();
         this.changes.dispose();
+        this.branches.dispose();
         await super.dispose();
     }
 }

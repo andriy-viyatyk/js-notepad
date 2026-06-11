@@ -110,6 +110,15 @@ const StackRoot = styled.div(
         },
         '& [data-part="header-spacer"]': { flex: "1 1 auto" },
 
+        // A header title rendered as <Text> (e.g. a truncating label portalled in
+        // via headerRef) is an element whose React fiber lives in the portal tree,
+        // not under this header div — so clicks on it would bubble to the panel
+        // body, never reaching the header's expand/collapse onClick. Making the
+        // label click-through routes the click to the header div instead, so
+        // clicking the title toggles the panel like clicking empty header space.
+        // Buttons (icon-button / button) keep pointer events and stopPropagation.
+        '& [data-part="header"] [data-type="text"]': { pointerEvents: "none" },
+
         '& [data-part="content"]': {
             flex: 1,
             display: "flex",

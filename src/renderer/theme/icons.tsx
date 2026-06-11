@@ -1345,6 +1345,37 @@ export const ArchiveIcon = createIcon(24)(
     </>,
 );
 
+/** Tag / label icon — a rectangle with the two bottom corners cut to a downward
+ *  point, and a small hole above the center. Used for git tag refs (US-634). */
+export const TagIcon = createIcon(24)(
+    <>
+        <path
+            d="M5 4 H19 V14 L12 21 L5 14 Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+        />
+        <circle cx="12" cy="8.5" r="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </>,
+);
+
+/** "AZ" glyph — alphabetical-sort toggle (Git "Branches & Tags" panel). */
+export const SortAlphaIcon = createIcon(24)(
+    <text
+        x="12"
+        y="18"
+        fontSize="18"
+        fontWeight="700"
+        letterSpacing="-1"
+        textAnchor="middle"
+        fontFamily="sans-serif"
+        fill="currentColor"
+    >
+        AZ
+    </text>,
+);
+
 /** Web scraper / resource extraction icon — spider with radiating web lines. */
 export const WebScraperIcon = createIcon(24)(
     <>

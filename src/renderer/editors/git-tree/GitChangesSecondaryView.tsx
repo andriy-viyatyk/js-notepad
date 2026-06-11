@@ -14,7 +14,7 @@ import { IconButton } from "../../uikit/IconButton/IconButton";
 import type { MenuItem } from "../../uikit/Menu";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import { showCommitDialog } from "../../ui/dialogs/CommitDialog";
-import { RefreshIcon, CloseIcon, GitIcon, FilterArrowUpIcon, FilterArrowDownIcon, DeleteIcon } from "../../theme/icons";
+import { RefreshIcon, FilterArrowUpIcon, FilterArrowDownIcon, DeleteIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
 /** Expand a selection to git path args — renames need both new + old path so
@@ -171,21 +171,11 @@ function GitChangesBody({
 
     const header = (
         <>
-            {`[${model.repoName}] Changes (${fileCount})`}
+            <Text color="inherit" truncate>{`[${model.repoName}] Changes (${fileCount})`}</Text>
             <Spacer />
-            {/* Promote the Git Tree back to the page's main view (US-620). Useful
-                after clicking a changed file opened its diff as the main editor —
-                this brings the commit tree back without leaving the panel. */}
-            <IconButton
-                name="git-changes-show-tree"
-                size="sm"
-                title="Show Git Tree"
-                icon={<GitIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    model.showGitTree();
-                }}
-            />
+            {/* "Show Git Tree" lives on the "Branches & Tags" panel header
+                (US-634) — kept alongside the editor's other navigation/close
+                affordances. Only Refresh remains here. */}
             <IconButton
                 name="git-changes-refresh"
                 size="sm"
@@ -196,20 +186,9 @@ function GitChangesBody({
                     model.refresh();
                 }}
             />
-            {/* Unconditional "x" — intentionally NOT gated on "is main" like
-                ArchiveSecondaryView. Closing while the Git Tree is the main
-                editor leaves an empty page by design (US-617 Concern 2). Do not
-                "align" this to the archive pattern. */}
-            <IconButton
-                name="git-changes-close"
-                size="sm"
-                title="Close Git Tree"
-                icon={<CloseIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    void model.requestClose();
-                }}
-            />
+            {/* The manual "x" close lives on the "Branches & Tags" panel header
+                (US-634), not here — closing tears down the whole Git Tree editor
+                (both panels), so a single affordance suffices. */}
         </>
     );
 

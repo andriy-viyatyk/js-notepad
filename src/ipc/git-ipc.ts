@@ -30,6 +30,10 @@ export interface GitLogOptions {
     skip?: number;
     /** Limit history to a single file (repo-relative or absolute), via `--follow`. */
     file?: string;
+    /** Walk ALL refs (`git log --all`), not just HEAD — so the whole-repo Git Tree
+     *  shows every branch's commits (like Git Extensions) even when HEAD is behind
+     *  another branch. Omit/false for file-scoped history (US-636). */
+    all?: boolean;
 }
 
 /** Kind of a decoration ref, used to color its label (US-611). */
@@ -66,6 +70,14 @@ export interface GitIdentity {
     email: string;
 }
 
+/** Target of a `git switch` (EPIC-031 / US-636). The renderer builds this from a
+ *  clicked commit row or refs-panel node; the service maps it to a `git switch` form. */
+export type GitSwitchTarget =
+    | { type: "branch"; name: string }   // local branch → `git switch <name>`
+    | { type: "remote"; ref: string }    // full remote ref "origin/feature/x" → tracking branch
+    | { type: "commit"; hash: string }   // detached HEAD at a commit
+    | { type: "tag"; name: string };     // detached HEAD at a tag
+
 /** Split working-tree status for a repo (EPIC-031 / US-616). */
 export interface GitStatusResult {
     /** Index (staged) changes. */
@@ -75,6 +87,21 @@ export interface GitStatusResult {
     /** Current branch name (simple-git status `.current`), or undefined when
      *  detached / no commits yet (EPIC-031 / US-632). */
     branch?: string;
+}
+
+/** Repository refs for the Git Tree "Branches & Tags" panel (EPIC-031 / US-634). */
+export interface GitRefs {
+    /** Current branch name (HEAD), or undefined when detached / no commits. */
+    current?: string;
+    /** Local branch names, e.g. "main", "feature/x". */
+    localBranches: string[];
+    /** Configured remote names, e.g. ["origin", "upstream"]. */
+    remotes: string[];
+    /** Remote-tracking branch names incl. remote prefix, e.g. "origin/main",
+     *  "origin/feature/x". Excludes the symbolic "origin/HEAD". */
+    remoteBranches: string[];
+    /** Tag names, e.g. "v1.0.0". */
+    tags: string[];
 }
 
 /** One commit row from `git log --topo-order` (EPIC-030 / US-611). */

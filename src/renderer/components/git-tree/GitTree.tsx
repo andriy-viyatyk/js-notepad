@@ -16,13 +16,14 @@ import { clsx } from "clsx";
 
 import { AVGrid, AVGridModel } from "../../uikit/AVGrid";
 import type { CellFocus, Column, TCellFormater, TCellRenderer, TCellRendererProps } from "../../uikit/AVGrid";
+import type { MenuItem } from "../../uikit/Menu";
 import type { GitTreeModel } from "./GitTreeModel";
 import { SideSelectToggle } from "./SideSelectToggle";
 import { TruncatedText } from "../../uikit/TruncatedText";
 import { TAG_COLORS } from "../../theme/palette-colors";
 import color from "../../theme/color";
 import { fontSize, spacing } from "../../uikit/tokens";
-import { RefBadge } from "./RefBadge";
+import { RefBadge, REF_COLOR } from "./RefBadge";
 import { dateText } from "./git-date";
 import {
     GIT_TREE_ROW_HEIGHT,
@@ -99,6 +100,11 @@ export interface GitTreeProps {
      *  component's own structural rebuilds / graph re-fit). The owner stores this
      *  in its descriptor state (US-623). */
     onColumnLayoutChange?: (layout: GitColumnLayout) => void;
+    /** Per-selection context menu for commit rows (US-636). Returns the items for
+     *  the current grid selection; `undefined`/`[]` suppresses the menu. Only the
+     *  whole-repo editor passes this — the file-scoped popovers / History panel
+     *  omit it (no switch from a filtered single-file view). */
+    getContextMenuItems?: (rows: GitCommitRow[]) => MenuItem[];
 }
 
 // Pinned to the bottom of the (relative, content-height) render area — the same
@@ -142,6 +148,11 @@ const SpecialSubject = styled.span({
     color: color.text.light,
 }, { label: "GitTreeSpecialSubject" });
 
+// The HEAD commit's short-hash reads green (matches the green current-branch
+// label), so the active commit stays marked even when HEAD is detached and has no
+// branch label to color (US-636). TruncatedText inherits this color.
+const HeadHash = styled.span({ color: REF_COLOR.head }, { label: "GitTreeHeadHash" });
+
 // Each text column wraps its content in <TruncatedText> (like AVGrid's DataCell):
 // it ellipsizes when it doesn't fit the column and shows the full text in a
 // hover tooltip. The ref chips stay full-size (RefTag flexShrink:0); the
@@ -174,7 +185,10 @@ const dateFormatter: TCellFormater = (props) => {
 
 const hashFormatter: TCellFormater = (props) => {
     const r = rowOf(props);
-    return r ? <TruncatedText>{r.shortHash}</TruncatedText> : null;
+    if (!r) return null;
+    const content = <TruncatedText>{r.shortHash}</TruncatedText>;
+    const isHead = r.recordType === "commit" && r.refs.some((ref) => ref.kind === "head");
+    return isHead ? <HeadHash>{content}</HeadHash> : content;
 };
 
 // Cell root for the L/R side-select column. A custom cellRenderer fully replaces
@@ -345,6 +359,7 @@ export function GitTree({
     leadingRows,
     initialColumnLayout,
     onColumnLayoutChange,
+    getContextMenuItems,
 }: GitTreeProps) {
     const { commits, loadingMore, hasMore } = model.state.use((s) => ({
         commits: s.commits,
@@ -373,6 +388,14 @@ export function GitTree({
     useEffect(() => {
         if (hasSideSelect) gridRef.current?.update({ columns: [0] });
     }, [hasSideSelect, sideSelect?.selectionKey]);
+
+    // Register the grid handle with the model so the owning editor can focus a
+    // commit row imperatively — e.g. reveal a branch/tag clicked in the
+    // "Branches & Tags" panel (US-634). Cleared on unmount.
+    useEffect(() => {
+        model.setGrid(gridRef.current);
+        return () => model.setGrid(undefined);
+    }, [model]);
 
     // Columns are stateful so AVGrid's resize/reorder handlers (via setColumns)
     // persist user-dragged widths and column order. They are generated ONCE on
@@ -460,6 +483,7 @@ export function GitTree({
             disableFiltering
             disableSorting
             extraElement={loadMore}
+            getContextMenuItems={getContextMenuItems}
         />
     );
 }
