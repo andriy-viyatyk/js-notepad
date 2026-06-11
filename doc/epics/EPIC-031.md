@@ -53,9 +53,10 @@ increments landing first; implement each once its prerequisite is in place. Chec
   dialog was deliberately built to take a `buttons` array so this is additive — pass
   `["Commit", "Commit and Push", "Cancel"]` and handle the extra return value (commit, then
   push). Prerequisite: push task.
-- [ ] **Create-a-branch from the Commit dialog** — after **branch creation** (its own task)
-  lands, allow creating a new branch from within the Commit dialog (e.g. commit onto a newly
-  created branch). Prerequisite: branch-creation task.
+- [x] **Create-a-branch from the Commit dialog** — done in US-638. The Commit dialog's branch
+  field is editable + required; editing it creates + checks out a new branch (`git switch -c`)
+  and commits onto it. Branches can also be created from the commit-graph row context menu
+  ("Create branch here…").
 
 ## Background — existing git infrastructure to build on
 

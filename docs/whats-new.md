@@ -90,6 +90,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Git Tree — Changes panel: smarter diff comparison for staged files** — Clicking a file in the **Staged** list of the Changes panel now opens its diff preselected to **Last commit ↔ Staged** (what will go into the next commit). Previously it showed **Staged ↔ Unstaged**, which appeared empty for a fully-staged file. Clicking a file in the **Unstaged** list still opens **Staged ↔ Unstaged** as before.
 
+- **Git Tree — create branch at any commit** — Right-click a single commit row in the Git Tree graph and choose **"Create branch here…"** to create a new branch at that commit and immediately check it out. A prompt asks for the branch name. After the operation the new branch is shown in green in the commit graph and in the Branches & Tags panel. If the name is invalid or already exists, an error toast appears and no branch is created.
+
+- **Commit dialog — create branch while committing** — The **Branch** field in the Commit dialog is now editable and required:
+  - **Keep the prefilled name** to commit to the current branch as before.
+  - **Type a different name** to create a new branch and commit onto it in one step. The button relabels to **"Create Branch & Commit"**. The new branch is created and checked out first (carrying your staged changes), then the commit is made.
+  - **Detached HEAD** — when HEAD is not on any branch, the field starts empty and must be filled before committing. This ensures the commit is kept on a real named branch instead of becoming unreachable after a future checkout.
+  - An empty branch name disables the action button (red border). If the branch name is invalid or already exists, a toast describes the error and the **dialog stays open** — your message and branch name are preserved so you can fix and retry without retyping.
+
 - **Image export — save rendered PNG to file** — The Mermaid Diagram Viewer, SVG Preview, and Image Viewer can now save their rendered output to a file:
 
   - **Mermaid & SVG** — A new **Save as PNG** toolbar button opens a save dialog and writes the rendered diagram or SVG as a PNG. The PNG is rasterised by Persephone's own rendering engine, so diagram text and custom fonts are reproduced faithfully (external mermaid-to-PNG converters often render empty text boxes because they cannot access the browser's font stack).

@@ -474,6 +474,12 @@ A switch that git refuses (for example, because uncommitted changes would be ove
 
 After a switch the commit grid and the **Branches & Tags** panel both refresh automatically.
 
+**Creating a branch at a commit:**
+
+Right-click a single commit row and choose **Create branch here…** to create a new branch at that commit and check it out. A prompt asks for the branch name. The new branch becomes the current branch (shown in green in the graph and the Branches & Tags panel) once the operation completes. Selecting multiple rows disables the item — it only applies to a single commit.
+
+If the name is invalid (e.g. contains spaces or other disallowed characters) or already exists, an error toast appears and no branch is created. Creating a branch at a historical commit moves the working tree to that commit — if uncommitted changes would be overwritten, git refuses the operation and a toast describes the error.
+
 **Branches & Tags panel:**
 
 When the Git Tree editor is open, a **Branches & Tags** panel appears in the sidebar above the Changes panel. The panel header shows the repository name: **[repoName] Branches & Tags**.
@@ -561,16 +567,19 @@ A **Commit** button sits in a bar above the **Staged** list (alongside the stage
 
 Clicking **Commit** opens a dialog with:
 
-- **Branch** — the current branch name, shown read-only (displays "detached / no branch" when HEAD is detached).
+- **Branch** — an editable field showing the branch the commit will land on. It is prepopulated with the current branch name. The field is required: leaving it empty disables the action button and shows a red border.
+  - **Keep the prefilled name** to commit to the current branch as normal.
+  - **Type a different name** to create a new branch and commit onto it. The new branch is created and checked out first (carrying your staged changes), and then the commit is made. The action button relabels to **"Create Branch & Commit"** when the name differs from the current branch.
+  - **Detached HEAD** — when HEAD is not on any branch (e.g. after switching to a commit or a tag), the field starts empty and must be filled before you can commit. This ensures the new commit is kept on a real branch instead of becoming unreachable after the next checkout.
 - **Author** — editable **Name** and **Email** fields, prepopulated from your git config (`user.name` / `user.email`). Changes here apply only to this commit — your git config is never modified.
-- **Message** — a multi-line text area for the commit message. The action buttons are disabled until a message is entered.
+- **Message** — a multi-line text area for the commit message. The action button is disabled until both a branch name and a message are entered.
 
 From the dialog:
 
-- Click **Commit** (or press **Ctrl+Enter**) to commit all staged files with the message and author shown.
+- Click **Commit** (or **Create Branch & Commit**, or press **Ctrl+Enter**) to commit all staged files with the message and author shown.
 - Click **Cancel** (or press **Esc**) to close without committing.
 
-On success the **Staged** list clears and the new commit appears at the top of the Git Tree. On failure (e.g. no git identity configured, a failing pre-commit hook) a toast notification describes the error and the staged files remain intact.
+On success the **Staged** list clears and the new commit appears at the top of the Git Tree. On failure (e.g. the branch name is invalid, the name already exists, no git identity configured, or a failing pre-commit hook) a toast notification describes the error and **the dialog stays open** — your message and branch name are preserved so you can fix the problem and retry without retyping.
 
 **Multiple repositories:**
 

@@ -145,11 +145,23 @@ export class GitChangesModel {
     };
 
     /** Commit the staged index with the dialog's (possibly edited) identity (US-632).
-     *  Identity is applied as a per-commit override — no config is written. Toasts on
-     *  failure, then reloads (clears the staged list; the watcher + reload also refresh
-     *  the commit tree). Returns whether it succeeded — the future push step keys off this. */
-    commit = async (message: string, identity?: GitIdentity): Promise<boolean> => {
+     *  Identity is applied as a per-commit override — no config is written. When
+     *  `newBranch` is given (the dialog's branch name was changed, or HEAD was
+     *  detached), a branch is created + checked out FIRST via `git switch -c`
+     *  (US-638) — which carries the staged index — so the commit lands on the new
+     *  branch; a create failure (invalid/duplicate name) toasts and aborts the commit
+     *  (returns false → the dialog stays open for a retry). Toasts on failure, then
+     *  reloads. Returns whether it succeeded — the future push step keys off this. */
+    commit = async (message: string, identity?: GitIdentity, newBranch?: string): Promise<boolean> => {
         if (!this.repoRoot || !message.trim()) return false;
+        if (newBranch) {
+            const cr = await git.createBranch(this.repoRoot, newBranch, undefined, true);
+            if (!cr.ok) {
+                void ui.notify(`Failed to create branch: ${cr.error ?? "unknown error"}`, "error");
+                await this.reload();
+                return false;
+            }
+        }
         const r = await git.commit(this.repoRoot, message, identity);
         if (!r.ok) void ui.notify(`Failed to commit: ${r.error ?? "unknown error"}`, "error");
         await this.reload();

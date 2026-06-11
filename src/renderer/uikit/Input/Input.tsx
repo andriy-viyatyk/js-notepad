@@ -31,6 +31,9 @@ export interface InputProps
     startSlot?: React.ReactNode;
     /** Content rendered inside the input chrome, after the text. */
     endSlot?: React.ReactNode;
+    /** When true, paints a red border (`color.error.border`) — for required/validated
+     *  fields whose current value is rejected. Persists through focus. Default: false. */
+    invalid?: boolean;
     /** Fixed width — number → px, string passes through. Default: fills parent (100%). */
     width?: number | string;
     /** Minimum width — number → px, string passes through. */
@@ -57,6 +60,10 @@ const Wrapper = styled.div(
         "&[data-readonly]:focus-within": {
             borderColor: color.border.light,
         },
+
+        // Invalid state — red border, kept even on focus (overrides active).
+        "&[data-invalid]":              { borderColor: color.error.border },
+        "&[data-invalid]:focus-within": { borderColor: color.error.border },
 
         '&[data-size="sm"]': {
             height: height.controlSm,
@@ -152,7 +159,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     function Input(
         {
             name, onChange, size = "md", variant = "default", tone = "default",
-            disabled, readOnly, startSlot, endSlot,
+            disabled, readOnly, startSlot, endSlot, invalid,
             width, minWidth, maxWidth,
             ...rest
         },
@@ -179,6 +186,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 data-tone={tone}
                 data-disabled={disabled || undefined}
                 data-readonly={readOnly || undefined}
+                data-invalid={invalid || undefined}
                 style={wrapperStyle}
             >
                 {hasStart && <Slot data-part="start-slot">{startSlot}</Slot>}

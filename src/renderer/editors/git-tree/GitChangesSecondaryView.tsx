@@ -105,14 +105,23 @@ function GitChangesBody({
     );
 
     // Commit the staged index (US-632). Fetch the effective identity, open the dialog
-    // prepopulated (branch + name/email + message), and commit with the (possibly edited)
-    // identity applied as a per-commit override.
+    // prepopulated (branch + name/email + message). The dialog DRIVES the commit via the
+    // injected `onAction` (US-638): it stays open on failure (invalid/duplicate branch
+    // name) for a fix-and-retry, and closes only on success. A changed branch name (or a
+    // detached HEAD whose field started empty) creates + checks out a new branch first, so
+    // the commit lands on it; the identity is applied as a per-commit override.
     const doCommit = useCallback(async () => {
         const id = await model.changes.getIdentity();
-        const result = await showCommitDialog({ branch, name: id.name, email: id.email });
-        if (result?.button === "Commit" && result.message.trim()) {
-            void model.changes.commit(result.message, { name: result.name, email: result.email });
-        }
+        await showCommitDialog({
+            branch,
+            name: id.name,
+            email: id.email,
+            onAction: async (result) => {
+                if (result.button !== "Commit") return false;
+                const newBranch = result.branch.trim() !== (branch ?? "") ? result.branch.trim() : undefined;
+                return model.changes.commit(result.message, { name: result.name, email: result.email }, newBranch);
+            },
+        });
     }, [model, branch]);
 
     // Primary action above the Staged grid — disabled when nothing is staged.

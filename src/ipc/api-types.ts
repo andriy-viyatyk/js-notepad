@@ -73,6 +73,7 @@ export enum Endpoint {
     gitIdentity = "gitIdentity",
     gitRefs = "gitRefs",
     gitSwitch = "gitSwitch",
+    gitCreateBranch = "gitCreateBranch",
 }
 
 export interface McpStatus {
@@ -148,6 +149,7 @@ export type Api = {
     [Endpoint.gitIdentity]: (dir: string) => Promise<GitIdentity>;
     [Endpoint.gitRefs]: (dir: string) => Promise<GitRefs>;
     [Endpoint.gitSwitch]: (dir: string, target: GitSwitchTarget) => Promise<GitMutationResult>;
+    [Endpoint.gitCreateBranch]: (dir: string, name: string, startPoint?: string, checkout?: boolean) => Promise<GitMutationResult>;
 };
 
 export enum EventEndpoint {

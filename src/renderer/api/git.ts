@@ -172,4 +172,20 @@ export const git = {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
         return api.gitSwitch(repoRoot, target).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
     },
+
+    /**
+     * Create a branch (EPIC-031 / US-638). `startPoint` is a commit hash / ref
+     * (omitted → HEAD); `checkout` true creates + checks out (`git switch -c`,
+     * carrying the staged index), false creates only (`git branch`). Returns
+     * `{ ok:true }` (no-op) when git is off or no root/name; on failure (invalid /
+     * duplicate name, dirty-tree checkout) resolves to `{ ok:false, error }` so
+     * the caller can toast. Never throws.
+     */
+    createBranch(repoRoot: string, name: string, startPoint?: string, checkout?: boolean): Promise<GitMutationResult> {
+        // git-off / no-root are genuine no-ops (ok:true); a blank name is an ERROR —
+        // mirror git-service's own guard rather than masking it as success.
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
+        if (!name.trim()) return Promise.resolve({ ok: false, error: "Empty branch name" });
+        return api.gitCreateBranch(repoRoot, name, startPoint, checkout).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+    },
 };

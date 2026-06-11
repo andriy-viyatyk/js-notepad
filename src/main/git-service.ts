@@ -472,3 +472,31 @@ export async function switchTo(dir: string, target: GitSwitchTarget): Promise<Gi
         return { ok: false, error: String(e) };
     }
 }
+
+/**
+ * Create a branch (EPIC-031 / US-638). `startPoint` is a commit hash / ref;
+ * omitted → current HEAD. `checkout` true uses `git switch -c` (create + check
+ * out, carrying the staged index so a following commit lands on the new branch);
+ * false uses `git branch` (create only, HEAD unmoved). An invalid or already-
+ * existing name — or a dirty tree git would overwrite when checking out a
+ * historical commit — makes git exit non-zero → returned as `{ ok:false, error }`
+ * for the renderer to toast (we never pass `-f`). Never throws.
+ */
+export async function createBranch(
+    dir: string,
+    name: string,
+    startPoint?: string,
+    checkout = false,
+): Promise<GitMutationResult> {
+    if (!name.trim()) return { ok: false, error: "Empty branch name" };
+    try {
+        const git = simpleGit(dir);
+        const args = checkout
+            ? ["switch", "-c", name, ...(startPoint ? [startPoint] : [])]
+            : ["branch", name, ...(startPoint ? [startPoint] : [])];
+        await git.raw(args);
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}

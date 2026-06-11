@@ -213,6 +213,28 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         this.refresh();
     };
 
+    /** Create a branch at a commit and check it out, prompting for the name
+     *  (US-638). Reuses the name-input dialog; an invalid/duplicate name (or a
+     *  dirty tree that would be overwritten when checking out a historical commit)
+     *  is surfaced as a toast. Uses `switch -c` (checkout=true) so the new branch
+     *  becomes current — mirrors the commit-dialog flow. Refreshes on success so
+     *  the new (now-current) ref appears in the graph + Branches panel. */
+    createBranchAt = async (hash: string, shortHash: string): Promise<void> => {
+        const repoRoot = this.state.get().repoRoot;
+        if (!repoRoot) return;
+        const { showInputDialog } = await import("../../ui/dialogs/InputDialog");
+        const res = await showInputDialog({
+            title: "Create branch",
+            message: `Create branch at ${shortHash}`,
+            value: "",
+            buttons: ["Create", "Cancel"],
+        });
+        if (res?.button !== "Create" || !res.value.trim()) return;
+        const r = await git.createBranch(repoRoot, res.value.trim(), hash, true);
+        if (!r.ok) void ui.notify(`Failed to create branch: ${r.error ?? "unknown error"}`, "error");
+        this.refresh();
+    };
+
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */
     initFromRepoRoot(repoRoot: string): void {
         const folder = repoFolderName(repoRoot);

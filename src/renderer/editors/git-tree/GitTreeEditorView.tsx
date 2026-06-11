@@ -104,6 +104,13 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                     onClick: () => void model.switchTo({ type: "commit", hash: row.hash }),
                 });
             }
+            items.push({
+                label: "Create branch here…",
+                icon: <GitIcon />,
+                startGroup: items.length > 0,
+                disabled: multi,
+                onClick: () => void model.createBranchAt(row.hash, row.shortHash),
+            });
             return items;
         },
         [model],

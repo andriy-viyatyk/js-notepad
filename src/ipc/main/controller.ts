@@ -310,6 +310,11 @@ class Controller implements MainApi {
         const { switchTo } = await import("../../main/git-service");
         return switchTo(dir, target);
     };
+
+    gitCreateBranch = async (_event: IpcMainEvent, dir: string, name: string, startPoint?: string, checkout?: boolean) => {
+        const { createBranch } = await import("../../main/git-service");
+        return createBranch(dir, name, startPoint, checkout);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -388,6 +393,7 @@ const init = () => {
     bindEndpoint(Endpoint.gitIdentity, controllerInstance.gitIdentity);
     bindEndpoint(Endpoint.gitRefs, controllerInstance.gitRefs);
     bindEndpoint(Endpoint.gitSwitch, controllerInstance.gitSwitch);
+    bindEndpoint(Endpoint.gitCreateBranch, controllerInstance.gitCreateBranch);
 
     initRendererEvents();
 }

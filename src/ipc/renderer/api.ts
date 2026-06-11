@@ -298,6 +298,10 @@ class ApiCalls implements Api {
     gitSwitch = async (dir: string, target: GitSwitchTarget) => {
         return executeOnce<GitMutationResult>(Endpoint.gitSwitch, dir, target);
     };
+
+    gitCreateBranch = async (dir: string, name: string, startPoint?: string, checkout?: boolean) => {
+        return executeOnce<GitMutationResult>(Endpoint.gitCreateBranch, dir, name, startPoint, checkout);
+    };
 }
 
 export const api = new ApiCalls();
