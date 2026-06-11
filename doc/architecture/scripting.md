@@ -23,7 +23,7 @@ ScriptRunner.run(script, page?, language?)
     │       │     ├── PageCollectionWrapper  ← wraps `app.pages`
     │       │     └── Events proxy ← wraps `app.events` (auto-tracks subscriptions)
     │       ├── page = PageWrapper      ← wraps `page` global
-    │       │     └── EditorFacades (13)  ← page.asText(), page.asGrid(), ...
+    │       │     └── EditorFacades (14)  ← page.asText(), page.asGrid(), ...
     │       ├── io = IoNamespace        ← wraps `io` global (providers, pipes, events)
     │       ├── ai = AiNamespace        ← wraps `ai` global (ClaudeSession)
     │       ├── ui getter (lazy, stack-based on globalThis)
@@ -107,6 +107,7 @@ interface IPage {
     asDraw(): Promise<IDrawEditor>;
     asBrowser(): Promise<IBrowserEditor>;
     asMcpInspector(): Promise<IMcpInspectorEditor>;
+    asImage(): Promise<IImageEditor>;
 
     // Run this page as a script (same as F5)
     runScript(): Promise<string>;
@@ -447,15 +448,24 @@ Facades provide safe, typed access to editor-specific features. Each facade wrap
 | `page.asTodo()` | `TodoEditorFacade` | `TodoEditor` | `items`, `lists`, `tags`, `addItem()`, `toggleItem()`, `deleteItem()`, `addList()`, `selectList()`, `selectTag()`, `setSearch()`, `clearSearch()` |
 | `page.asLink()` | `LinkEditorFacade` | `LinkEditor` | `links`, `categories`, `tags`, `addLink()`, `deleteLink()`, `updateLink()` |
 | `page.asMarkdown()` | `MarkdownEditorFacade` | `MarkdownEditor` | `viewMounted`, `html` (read-only) |
-| `page.asSvg()` | `SvgEditorFacade` | `SvgEditor` | `svg` (read-only) |
+| `page.asSvg()` | `SvgEditorFacade` | `SvgEditor` | `svg` (read-only), `savePngToFile()` |
 | `page.asHtml()` | `HtmlEditorFacade` | `HtmlEditor` | `html` (read-only) |
-| `page.asMermaid()` | `MermaidEditorFacade` | `MermaidEditor` | `svgUrl`, `loading`, `error` (read-only) |
+| `page.asMermaid()` | `MermaidEditorFacade` | `MermaidEditor` | `svgUrl`, `loading`, `error` (read-only), `savePngToFile()` |
 | `page.asGraph()` | `GraphEditorFacade` | `GraphEditor` | `nodes`, `links`, `search()`, `bfs()`, `getComponents()`, `select()`, selection, groups, neighbors |
 | `page.asDraw()` | `DrawEditorFacade` | `DrawEditor` | `addImage()`, `exportAsSvg()`, `exportAsPng()`, `elementCount`, `editorIsMounted` |
 | `page.asBrowser()` | `BrowserEditorFacade` | `BrowserEditorModel` | `url`, `title`, `navigate()`, `back()`, `forward()`, `reload()`, `evaluate()`, `snapshot()`, `getText()`, `getValue()`, `click()`, `type()`, `select()`, `pressKey()`, `waitForSelector()`, `waitForNavigation()`, `tabs`, `addTab()`, `closeTab()`, `switchTab()`, `cdp()` |
 | `page.asMcpInspector()` | `McpInspectorFacade` | `McpInspectorEditorModel` | `connect()`, `disconnect()`, connection params, server info (title, description, websiteUrl, instructions), `history`, `clearHistory()`, `showHistory()` |
+| `page.asImage()` | `ImageEditorFacade` | `ImageEditor` | `savePngToFile()` |
 
 Facade source: `/src/renderer/scripting/api-wrapper/`
+
+The Mermaid, SVG, and Image editors expose `savePngToFile(filePath)` — they rasterise their
+rendered output to PNG and write it to disk. This is the same capability used by each editor's
+toolbar "Save" action, surfaced to scripts and to MCP agents (which call it via `execute_script`,
+then read the written file). The rendering is host-independent and runs at the model level, so it
+works even when the page is not the active tab; the Mermaid editor renders on demand if its preview
+has not been generated yet. The underlying capability is the `IImageExport` interface (see
+[editors.md](editors.md)).
 Interface definitions: `/src/renderer/api/types/*.d.ts`
 
 ## Auto-Cleanup Lifecycle
@@ -753,8 +763,9 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
     ├── MarkdownEditorFacade.ts  # Markdown preview (read-only)
     ├── SvgEditorFacade.ts       # SVG preview (read-only)
     ├── HtmlEditorFacade.ts      # HTML preview (read-only)
-    ├── MermaidEditorFacade.ts   # Mermaid diagram (read-only)
+    ├── MermaidEditorFacade.ts   # Mermaid diagram (read-only + savePngToFile)
     ├── GraphEditorFacade.ts     # Graph query/analysis (read-only, designed for MCP)
+    ├── ImageEditorFacade.ts     # Image viewer (savePngToFile)
     ├── BrowserEditorFacade.ts   # Browser page operations
     ├── McpInspectorFacade.ts    # MCP Inspector connection & troubleshooting
     ├── UiFacade.ts              # Log View UI (logging + dialogs + output)

@@ -123,8 +123,12 @@ For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — o
 - **Fit to window** (default view)
 - **Reset zoom** — click the zoom percentage indicator
 - **Copy to clipboard** — `Ctrl+C` or toolbar button (copies as PNG)
-- **Save Image to File** — for URL-based images, a toolbar button downloads the image and saves it to disk
+- **Save image** — the toolbar save button is a dropdown with two options:
+  - **Save as .png** — re-encodes the image to PNG (useful for converting JPG, GIF, etc. to PNG)
+  - **Save original** — writes the source bytes in their original format with no re-encoding
 - **Open in Drawing Editor** — toolbar button embeds the image into a new Excalidraw drawing tab for annotation
+
+**Scripting:** `const img = await page.asImage()` — exposes `savePngToFile(filePath)` to write the image to disk as PNG. See [`asImage()` API reference](./api/page.md#asimage--promiseimageeditor).
 
 ## SVG Preview
 
@@ -132,8 +136,11 @@ For `.svg` files — opens in text editor by default, click **Preview** in the t
 
 - Same zoom/pan/copy controls as Image Viewer
 - **Live preview** of unsaved changes
+- **Save as PNG** — toolbar button rasterises the SVG to a PNG file (opens a save dialog); the PNG is rendered by Persephone's own engine so text and fonts are correct
 - **Open in Drawing Editor** — toolbar button embeds the SVG into a new Excalidraw drawing tab for annotation
 - Switch between text editor and preview anytime
+
+**Scripting:** `const svg = await page.asSvg()` — exposes `savePngToFile(filePath)` to rasterise and write the SVG as PNG to disk. See [`asSvg()` API reference](./api/page.md#assvg--promiseisvgeditor).
 
 ## Mermaid Diagram Viewer
 
@@ -143,9 +150,12 @@ For `.mmd` and `.mermaid` files — click **Mermaid** in the toolbar:
 - Same zoom/pan controls as Image Viewer
 - **Light/dark theme toggle** (dark by default, light for copying into documents)
 - **Copy diagram** to clipboard as image
+- **Save as PNG** — toolbar button rasterises the rendered diagram to a PNG file (opens a save dialog); the PNG is rendered by Persephone's own engine so diagram text and fonts are correct (fixes broken output from external mermaid-to-PNG converters)
 - **Open in Drawing Editor** — toolbar button embeds the rendered diagram into a new Excalidraw drawing tab for annotation
 - **Live preview** with debounced re-rendering
 - Mermaid syntax highlighting in the text editor
+
+**Scripting:** `const m = await page.asMermaid()` — exposes `savePngToFile(filePath)` to render the diagram and write it as PNG to disk. The method renders on demand even when the diagram page is not the active tab. See [`asMermaid()` API reference](./api/page.md#asmermaid--promiseimermaideditor).
 
 ## HTML Preview
 

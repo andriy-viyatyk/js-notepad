@@ -1,4 +1,5 @@
 import type { SvgEditor } from "../../editors/svg";
+import { writePngToFile } from "../../editors/shared/image-export";
 
 /**
  * Safe facade around SvgEditor for script access.
@@ -12,5 +13,10 @@ export class SvgEditorFacade {
 
     get svg(): string {
         return this.editor.host?.state.get().content ?? "";
+    }
+
+    /** Render the SVG to PNG and write it to `filePath`. Returns the path. */
+    savePngToFile(filePath: string): Promise<string> {
+        return writePngToFile(this.editor, filePath);
     }
 }

@@ -139,6 +139,23 @@ interface IContentHostTrait {
 
 The owner-side switch helper (`switchEditorViaContentHost`) calls `extractContentHost()` on the old editor, creates the new editor instance, then calls `inheritContentHost(host)` on it. Content, file path, modifications, I/O state, encryption all survive the switch untouched because the host is the same object.
 
+## IImageExport
+
+Editors that render an image — the Mermaid preview, SVG preview, and Image viewer — implement the `IImageExport` capability (`/src/renderer/editors/base/IImageExport.ts`):
+
+```typescript
+interface IImageExport {
+    exportPng(): Promise<Blob>;          // rendered content as a PNG blob (natural size, 1×)
+    suggestedImageName(): string;        // file basename without extension
+}
+```
+
+Export runs at the **model level and is host-independent** — it does not require a mounted view, so it works for a page that is not the active tab. The shared helpers in `/src/renderer/editors/shared/image-export.ts` do the canvas work: `rasterToPngBlob(src)` loads any source (an `image/svg+xml` data URL, a blob URL, or an http(s) URL) into an offscreen `<img>`, draws it to a canvas at natural size, and encodes a PNG. Because the browser performs the rasterisation, fonts and text render correctly — output external "SVG → PNG" tooling fails to produce.
+
+Each model builds its own source before delegating: Mermaid uses its rendered SVG data URL (rendering on demand via `renderMermaid` when the preview has not been generated), SVG builds the `image/svg+xml` data URL from host content, and the Image viewer rasterises the displayed image URL. `BaseImageView`'s clipboard copy shares the same canvas path (`imageElementToPngBlob`).
+
+Two shared entry points sit on top of `exportPng()`: `savePngViaDialog(source)` (prompts for a path; backs the editors' toolbar "Save" actions and surfaces failures as a toast) and `writePngToFile(source, filePath)` (writes directly; backs the `savePngToFile(filePath)` script-facade method). The Image viewer additionally offers a "Save original" action that writes the source bytes in their original format without re-encoding.
+
 ## Owner-Orchestrated Switching
 
 Editor switching is initiated by the owner (the page, or a notebook), not by the editor itself. `PageModel.switchMainEditor(newEditorId)` and notebook-level note switching both call the same helper:
@@ -201,6 +218,7 @@ Editor facades provide safe, typed script access to editors via `page.asX()` met
 | `page.asDraw()` | `DrawEditorFacade` | `DrawEditor` |
 | `page.asBrowser()` | `BrowserEditorFacade` | `BrowserEditorModel` |
 | `page.asMcpInspector()` | `McpInspectorFacade` | `McpInspectorEditorModel` |
+| `page.asImage()` | `ImageEditorFacade` | `ImageEditor` |
 
 Facades live in `/src/renderer/scripting/api-wrapper/`. Interfaces in `/src/renderer/api/types/*.d.ts`.
 

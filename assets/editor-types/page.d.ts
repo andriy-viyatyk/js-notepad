@@ -11,6 +11,7 @@ import type { IHtmlEditor } from "./html-editor";
 import type { IMermaidEditor } from "./mermaid-editor";
 import type { IGraphEditor } from "./graph-editor";
 import type { IMcpInspectorEditor } from "./mcp-inspector-editor";
+import type { IImageEditor } from "./image-editor";
 
 /**
  * IPage — represents a page (tab) in the current window.
@@ -141,6 +142,12 @@ export interface IPage {
 
     /** Get MCP Inspector interface. Only for MCP Inspector pages. */
     asMcpInspector(): Promise<IMcpInspectorEditor>;
+
+    /**
+     * Get the Image viewer interface. Only for image pages. Exposes
+     * `savePngToFile(filePath)` to write the image to disk as PNG.
+     */
+    asImage(): Promise<IImageEditor>;
 
     /**
      * Run this page's content as a script (same as pressing F5).

@@ -16,6 +16,8 @@ import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 import { isCurrentThemeDark } from "../../theme/themes";
 import { renderMermaid } from "./render-mermaid";
+import type { IImageExport } from "../base/IImageExport";
+import { rasterToPngBlob } from "../shared/image-export";
 
 export type MermaidQueueEvent = { type: "focus" };
 
@@ -56,7 +58,8 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class MermaidEditor extends EditorModel<MermaidEditorState, void, MermaidQueueEvent> {
+export class MermaidEditor extends EditorModel<MermaidEditorState, void, MermaidQueueEvent>
+    implements IImageExport {
     readonly editorId = "mermaid-view";
 
     private _host: TextFileModel | null = null;
@@ -315,6 +318,23 @@ export class MermaidEditor extends EditorModel<MermaidEditorState, void, Mermaid
         // The slice-subscribe on `s.lightMode` (set up in adoptHost) fires
         // automatically and triggers renderDebounced. No explicit call needed.
     };
+
+    // ── Image export (IImageExport) ─────────────────────────────────────
+
+    /** Rasterise the rendered diagram to a PNG blob. Renders on demand when
+     *  `svgUrl` is empty (page never shown / not the active tab). */
+    async exportPng(): Promise<Blob> {
+        let url = this.state.get().svgUrl;
+        if (!url) {
+            const content = this._host?.state.get().content ?? "";
+            url = await renderMermaid(content, this.state.get().lightMode);
+        }
+        return rasterToPngBlob(url);
+    }
+
+    suggestedImageName(): string {
+        return (this.state.get().title || "diagram").replace(/\.\w+$/, "");
+    }
 
     // ── Save / release / dispose ────────────────────────────────────────
 

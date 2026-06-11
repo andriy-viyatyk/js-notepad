@@ -60,6 +60,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
   - **Right — inline diff.** A Monaco-rendered inline (single-column) diff comparing the file at the parent commit to the selected commit. Inline rather than side-by-side keeps the view readable in the compact bottom panel.
   - The divider between the file list and the diff is resizable; its width is saved and restored on restart.
 
+- **Image export — save rendered PNG to file** — The Mermaid Diagram Viewer, SVG Preview, and Image Viewer can now save their rendered output to a file:
+
+  - **Mermaid & SVG** — A new **Save as PNG** toolbar button opens a save dialog and writes the rendered diagram or SVG as a PNG. The PNG is rasterised by Persephone's own rendering engine, so diagram text and custom fonts are reproduced faithfully (external mermaid-to-PNG converters often render empty text boxes because they cannot access the browser's font stack).
+  - **Image Viewer** — The toolbar save button is now a **dropdown** with two options: **Save as .png** (re-encodes the image to PNG, useful for converting JPG/GIF/etc.) and **Save original** (writes the original bytes in their native format without re-encoding).
+
+  **Scripting & agent API** — `page.asMermaid()`, `page.asSvg()`, and the new `page.asImage()` each expose a `savePngToFile(filePath)` method that writes a PNG to disk without a dialog. The method renders on demand — for Mermaid diagrams it triggers rendering even when the page is not the active tab. MCP agents can call `execute_script` to save a diagram to a temp file and read it back as an image for vision analysis. See [`asMermaid()`](./api/page.md#asmermaid--promiseimermaideditor), [`asSvg()`](./api/page.md#assvg--promiseisvgeditor), and [`asImage()`](./api/page.md#asimage--promiseimageeditor).
+
 ### Bug Fixes
 
 - **Browser reload — unsaved-changes confirmation** — A soft reload (Reload button, `F5`, `Ctrl+R`) on a page with an unsaved-changes guard (a `beforeunload` handler) now shows a confirmation dialog: **"You have unsaved changes. Leave the page and discard them?"** — click **Leave** to reload or **Cancel** to stay. Previously the reload appeared to do nothing because the guard silently blocked it. A hard reload (`Ctrl+F5` / `Ctrl+Shift+R`) still reloads immediately without prompting, bypassing the guard.

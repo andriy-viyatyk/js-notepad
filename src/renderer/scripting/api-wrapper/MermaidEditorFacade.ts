@@ -1,4 +1,5 @@
 import type { MermaidEditor } from "../../editors/mermaid";
+import { writePngToFile } from "../../editors/shared/image-export";
 
 /**
  * Safe facade around MermaidEditor for script access.
@@ -22,5 +23,10 @@ export class MermaidEditorFacade {
 
     get error(): string {
         return this.editor.state.get().error;
+    }
+
+    /** Render the diagram to PNG and write it to `filePath`. Returns the path. */
+    savePngToFile(filePath: string): Promise<string> {
+        return writePngToFile(this.editor, filePath);
     }
 }

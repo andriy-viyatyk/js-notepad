@@ -4,10 +4,11 @@ import { MermaidEditor, defaultMermaidEditorState } from "./MermaidEditor";
 import { MermaidBody } from "./MermaidBody";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
-import { CopyIcon, SunIcon, MoonIcon } from "../../theme/icons";
+import { CopyIcon, SunIcon, MoonIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
+import { savePngViaDialog } from "../shared/image-export";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
@@ -52,6 +53,14 @@ function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
                 disabled={!svgUrl}
                 onClick={onOpenDraw}
                 icon={<DrawIcon />}
+            />
+            <IconButton
+                name="mermaid-save"
+                size="sm"
+                title="Save as PNG"
+                onClick={() => savePngViaDialog(model)}
+                disabled={!svgUrl}
+                icon={<SaveIcon />}
             />
             <IconButton
                 name="mermaid-copy"

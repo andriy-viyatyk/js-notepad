@@ -16,6 +16,7 @@ import { HtmlEditor } from "../../editors/html";
 import { MermaidEditor } from "../../editors/mermaid";
 import { GraphEditor } from "../../editors/graph";
 import { DrawEditor } from "../../editors/draw";
+import type { ImageEditor } from "../../editors/image/ImageEditor";
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
 import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpInspectorEditorModel";
 import { TextEditorFacade } from "./TextEditorFacade";
@@ -29,6 +30,7 @@ import { HtmlEditorFacade } from "./HtmlEditorFacade";
 import { MermaidEditorFacade } from "./MermaidEditorFacade";
 import { GraphEditorFacade } from "./GraphEditorFacade";
 import { DrawEditorFacade } from "./DrawEditorFacade";
+import { ImageEditorFacade } from "./ImageEditorFacade";
 import { BrowserEditorFacade } from "./BrowserEditorFacade";
 import { McpInspectorFacade } from "./McpInspectorFacade";
 import type { ScriptOutputFlags } from "../ScriptContext";
@@ -258,6 +260,13 @@ export class PageWrapper {
             throw new Error("asMcpInspector() is only available for MCP Inspector pages");
         }
         return new McpInspectorFacade(this.model as unknown as McpInspectorEditorModel);
+    }
+
+    async asImage(): Promise<ImageEditorFacade> {
+        if (this.currentEditorId() !== "image-view") {
+            throw new Error("asImage() is only available for image pages");
+        }
+        return new ImageEditorFacade(this.mainEditor as unknown as ImageEditor);
     }
 
     private async ensureEditor(

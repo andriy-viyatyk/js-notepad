@@ -14,6 +14,8 @@ import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
 import { editorRegistry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
+import type { IImageExport } from "../base/IImageExport";
+import { rasterToPngBlob } from "../shared/image-export";
 
 export type SvgQueueEvent = { type: "focus" };
 
@@ -32,7 +34,8 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
 }
 
-export class SvgEditor extends EditorModel<SvgEditorState, void, SvgQueueEvent> {
+export class SvgEditor extends EditorModel<SvgEditorState, void, SvgQueueEvent>
+    implements IImageExport {
     readonly editorId = "svg-view";
 
     private _host: TextFileModel | null = null;
@@ -190,6 +193,19 @@ export class SvgEditor extends EditorModel<SvgEditorState, void, SvgQueueEvent> 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
+    }
+
+    // ── Image export (IImageExport) ─────────────────────────────────────
+
+    /** Rasterise the SVG to a PNG blob. Builds the same `image/svg+xml` data
+     *  URL the body renders, then draws it to a canvas. */
+    async exportPng(): Promise<Blob> {
+        const content = this._host?.state.get().content ?? "";
+        return rasterToPngBlob(`data:image/svg+xml,${encodeURIComponent(content)}`);
+    }
+
+    suggestedImageName(): string {
+        return (this.state.get().title || "image").replace(/\.\w+$/, "");
     }
 
     // ── Save / release / dispose ────────────────────────────────────────

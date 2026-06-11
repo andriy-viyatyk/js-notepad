@@ -326,6 +326,12 @@ SVG preview. Only for text pages with SVG content.
 | Member | Type | Description |
 |--------|------|-------------|
 | `svg` | `string` | The SVG source content. |
+| `savePngToFile(filePath)` | `Promise<string>` | Rasterise the SVG to PNG (1× scale) and write it to `filePath`. Parent directories are created as needed. Returns the written path. |
+
+```javascript
+const svg = await page.asSvg();
+await svg.savePngToFile("D:/tmp/image.png");
+```
 
 ---
 
@@ -348,12 +354,25 @@ Mermaid diagram preview. Only for text pages with mermaid content.
 | `svgUrl` | `string` | Data URL of the rendered SVG. Empty while loading or on error. |
 | `loading` | `boolean` | True while rendering. |
 | `error` | `string` | Error message if rendering failed. Empty on success. |
+| `savePngToFile(filePath)` | `Promise<string>` | Render the diagram to PNG (1× scale) and write it to `filePath`. Parent directories are created as needed. Returns the written path. Renders on demand even if the page has never been shown. |
 
 ```javascript
 const mermaid = await page.asMermaid();
 if (!mermaid.loading && !mermaid.error) {
     console.log(mermaid.svgUrl); // data URL of the rendered diagram
 }
+
+// Save the rendered diagram to a file (renders on demand if needed)
+await mermaid.savePngToFile("D:/tmp/diagram.png");
+```
+
+**Agent usage via `execute_script`:**
+
+```javascript
+// An MCP agent can save a Mermaid diagram to a temp file and read it back as an image
+const m = await page.asMermaid();
+const path = await m.savePngToFile("C:/Users/me/AppData/Local/Temp/diagram.png");
+// then use app.pages.openFile(path) or return path to the agent
 ```
 
 ---
@@ -454,6 +473,31 @@ page.grouped.editor = "svg-view";
 if (draw.editorIsMounted) {
     await draw.addImage("data:image/png;base64,...", { x: 100, y: 100 });
 }
+```
+
+---
+
+### asImage() → `Promise<IImageEditor>`
+
+Image viewer. Only for image pages (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`, and images opened from URLs or archives).
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `savePngToFile(filePath)` | `Promise<string>` | Re-encode the displayed image to PNG (1× scale) and write it to `filePath`. Parent directories are created as needed. Returns the written path. |
+
+```javascript
+const img = await page.asImage();
+await img.savePngToFile("D:/tmp/out.png");
+```
+
+**Agent usage via `execute_script`:**
+
+```javascript
+// Open an image file, then save it as PNG to a temp path for the agent to read
+await app.pages.openFile("D:/photos/photo.jpg");
+const img = await page.asImage();
+const outPath = await img.savePngToFile("C:/Users/me/AppData/Local/Temp/photo.png");
+// agent reads the temp file back as an image
 ```
 
 ---

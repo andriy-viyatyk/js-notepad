@@ -4,6 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import color from "../../theme/color";
 import { spacing, radius, fontSize } from "../../uikit/tokens";
+import { imageElementToPngBlob } from "./image-export";
 
 // ============================================================================
 // Styled Components
@@ -239,20 +240,7 @@ export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewMod
     copyToClipboard = async () => {
         const image = this.imageRef;
         if (!image) return;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        ctx.drawImage(image, 0, 0);
-
-        const blob = await new Promise<Blob | null>((resolve) =>
-            canvas.toBlob(resolve, "image/png")
-        );
-        if (!blob) return;
-
+        const blob = await imageElementToPngBlob(image);
         await navigator.clipboard.write([
             new ClipboardItem({ "image/png": blob }),
         ]);

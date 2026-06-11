@@ -15,6 +15,8 @@ import { ContentPipe } from "../../content/ContentPipe";
 import { FileProvider } from "../../content/providers/FileProvider";
 import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
+import type { IImageExport } from "../base/IImageExport";
+import { rasterToPngBlob, savePngViaDialog } from "../shared/image-export";
 import {
     buildExcalidrawJsonWithImage,
     getImageDimensions,
@@ -49,7 +51,7 @@ export function getDefaultImageEditorState(): ImageEditorState {
     };
 }
 
-export class ImageEditor extends EditorModel<ImageEditorState> {
+export class ImageEditor extends EditorModel<ImageEditorState> implements IImageExport {
     /** Editor identity. Matches `EditorDescriptor.editorId`. */
     readonly editorId = "image-view";
 
@@ -216,49 +218,62 @@ export class ImageEditor extends EditorModel<ImageEditorState> {
         } catch { /* ignore cache failure */ }
     }
 
-    saveImage = async (): Promise<void> => {
-        const url = this.state.get().url;
-        if (!url) return;
+    // ── Image export (IImageExport) ─────────────────────────────────────
 
-        // Guess a default filename from the URL
-        let defaultName = "image.png";
-        try {
-            const urlPath = new URL(url).pathname;
-            const basename = urlPath.split("/").pop();
-            if (basename && /\.\w+$/.test(basename)) {
-                defaultName = decodeURIComponent(basename)
-                    .replace(/[<>:"/\\|?*]/g, "_");
-            }
-        } catch { /* ignore invalid URLs */ }
+    /** Rasterise the displayed image to a PNG blob (re-encode to PNG). */
+    async exportPng(): Promise<Blob> {
+        const url = this.state.get().url;
+        if (!url) throw new Error("No image to export");
+        return rasterToPngBlob(url);
+    }
+
+    suggestedImageName(): string {
+        const filePath = this.state.get().filePath;
+        return filePath ? fpBasename(filePath).replace(/\.\w+$/, "") : "image";
+    }
+
+    /** "Save as .png" menu action — convert the image to PNG and write it
+     *  (prompts for a path; `savePngViaDialog` surfaces failures as a toast). */
+    saveAsPng = (): Promise<void> => savePngViaDialog(this);
+
+    /** "Save original" menu action — write the source bytes in their original
+     *  format (no re-encode). Reads via the content pipe (local / archive /
+     *  cached URL) and falls back to fetching the runtime URL. */
+    saveOriginal = async (): Promise<void> => {
+        const { filePath, url } = this.state.get();
+        this.ensurePipe();
+        const sourceName = filePath
+            ? fpBasename(filePath)
+            : (this.pipe?.provider.sourceUrl
+                ? fpBasename(this.pipe.provider.sourceUrl)
+                : undefined);
+        const ext = (fpExtname(sourceName ?? ".png").replace(/^\./, "") || "png").toLowerCase();
+        const baseName = sourceName ? sourceName.replace(/\.\w+$/, "") : "image";
 
         const savePath = await appFs.showSaveDialog({
             title: "Save Image",
-            defaultPath: defaultName,
+            defaultPath: `${baseName}.${ext}`,
             filters: [
-                {
-                    name: "Images",
-                    extensions: ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "bmp"],
-                },
+                { name: ext.toUpperCase(), extensions: [ext] },
                 { name: "All Files", extensions: ["*"] },
             ],
         });
         if (!savePath) return;
 
         try {
-            const response = await fetch(url);
-            const buffer = Buffer.from(await response.arrayBuffer());
+            let buffer: Buffer;
+            if (this.pipe) {
+                buffer = await this.pipe.readBinary();
+            } else if (url) {
+                const response = await fetch(url);
+                buffer = Buffer.from(await response.arrayBuffer());
+            } else {
+                return;
+            }
             await appFs.saveBinaryFile(savePath, buffer);
         } catch (err) {
             ui.notify(`Failed to save image: ${(err as Error).message}`, "error");
-            return;
         }
-
-        // Switch from URL to local file
-        this.state.update((s) => {
-            s.url = undefined;
-            s.filePath = savePath;
-            s.title = fpBasename(savePath);
-        });
     };
 
     copyImageToClipboard = (): void => {

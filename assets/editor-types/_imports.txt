@@ -10,6 +10,7 @@ fs.d.ts
 graph-editor.d.ts
 grid-editor.d.ts
 html-editor.d.ts
+image-editor.d.ts
 io.d.ts
 io.link-data.d.ts
 io.pipe.d.ts

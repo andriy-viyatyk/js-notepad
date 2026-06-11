@@ -246,6 +246,20 @@ browser.back() / browser.forward() / browser.reload()
 
 Preview facades for rendered content. Check `viewMounted` / `loading` before accessing.
 
+The **Mermaid** and **SVG** preview facades (and the **Image viewer** facade `asImage()`) can save
+their rendered image to a file as PNG. This rasterises the diagram exactly as Persephone renders it
+(fonts and text included), then writes the PNG. Use it to obtain a viewable image of a diagram:
+
+```
+// Render a mermaid page, save the PNG to a temp file, then read it back as an image.
+const m = await page.asMermaid();
+const file = await m.savePngToFile("D:/tmp/diagram.png");   // returns the written path
+
+// Also available on SVG and Image pages:
+await (await page.asSvg()).savePngToFile("D:/tmp/image.png");
+await (await page.asImage()).savePngToFile("D:/tmp/photo.png");
+```
+
 ### asDraw()
 
 Drawing editor facade for Excalidraw pages (`.excalidraw`).

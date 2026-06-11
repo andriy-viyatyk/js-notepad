@@ -4,10 +4,11 @@ import { SvgEditor, defaultSvgEditorState } from "./SvgEditor";
 import { SvgBody } from "./SvgBody";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
-import { CopyIcon } from "../../theme/icons";
+import { CopyIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
+import { savePngViaDialog } from "../shared/image-export";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
@@ -38,6 +39,13 @@ function SvgToolbarBits({ model, imageRef }: SvgToolbarBitsProps) {
                 title="Open in Drawing Editor"
                 onClick={onOpenDraw}
                 icon={<DrawIcon />}
+            />
+            <IconButton
+                name="svg-save"
+                size="sm"
+                title="Save as PNG"
+                onClick={() => savePngViaDialog(model)}
+                icon={<SaveIcon />}
             />
             <IconButton
                 name="svg-copy"

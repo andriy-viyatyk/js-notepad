@@ -322,6 +322,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
 | Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |
 | Content host trait       | `/src/renderer/editors/base/editor-traits.ts`     |
+| Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image) | `/src/renderer/editors/base/IImageExport.ts` |
+| Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |

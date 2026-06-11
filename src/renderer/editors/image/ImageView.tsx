@@ -4,6 +4,7 @@ import { EditorModule } from "../types";
 import { PageToolbar } from "../base";
 import { TComponentState } from "../../core/state/state";
 import { IconButton } from "../../uikit";
+import { WithMenu } from "../../uikit/Menu";
 import { CopyIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
 import { BaseImageView } from "../shared/BaseImageView";
@@ -26,14 +27,24 @@ export function ImageView({ model }: ImageViewProps) {
 
     const rightActions = (
         <>
-            {!filePath && url && (
-                <IconButton
-                    name="image-save"
-                    size="sm"
-                    title="Save Image to File"
-                    onClick={model.saveImage}
-                    icon={<SaveIcon />}
-                />
+            {url && (
+                <WithMenu
+                    name="image-save-menu"
+                    items={[
+                        { label: "Save as .png", onClick: () => void model.saveAsPng() },
+                        { label: "Save original", onClick: () => void model.saveOriginal() },
+                    ]}
+                >
+                    {(setOpen) => (
+                        <IconButton
+                            name="image-save"
+                            size="sm"
+                            title="Save image…"
+                            onClick={(e) => setOpen(e.currentTarget)}
+                            icon={<SaveIcon />}
+                        />
+                    )}
+                </WithMenu>
             )}
             <IconButton
                 name="image-open-draw"
