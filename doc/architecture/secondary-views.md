@@ -312,8 +312,9 @@ The working-tree view. The header reads `[<repoName>] Changes (<n>)`, where `<n>
 
 - **Stage / unstage / commit.** A bar above the Staged grid carries a "Commit" button (left) + the stage/unstage arrows (right). Commit opens the modal `showCommitDialog` (`ui/dialogs/CommitDialog.tsx`) — current branch + editable author Name/Email (prepopulated from git config) + message — then `git commit`s the staged index via `model.changes.commit()`. The author identity is applied as a per-commit `-c` override (no config file is written); the dialog's `buttons` array is forward-compatible for a future "Commit and Push".
 - **Stage/unstage/reset** are also available via double-click and a right-click context menu on the file grid (`FileGrid`).
+- **Single click opens the file's Git Diff** in the page (`openChangeDiff(change, list)`). The list the click came from picks the preselected comparison: the **Staged** list opens `Last commit (HEAD) ↔ Staged` so a fully-staged file shows real changes; the **Unstaged** list keeps the editor's default `Staged ↔ Unstaged`. The selection rides the link pipeline (`diffFrom`/`diffTo` hints) — no direct editor call.
 
-The File Diff "File History" panel (`["git-diff-revisions"]`) shows the file's filtered commit history with synthetic Unstaged/Staged rows + per-row L/R (from/to) side-select toggles bound to the editor's single `from`/`to` state.
+The File Diff "File History" panel (`["git-diff-revisions"]`) shows the file's filtered commit history with synthetic Unstaged/Staged rows + per-row L/R (from/to) side-select toggles bound to the editor's single `from`/`to` state. The same `from`/`to` can be **preselected when the diff opens** via the `diffFrom`/`diffTo` link hints — e.g. opening a commit's changed file in a new tab as `previous commit ↔ selected commit`. The editor exposes `applyDiffRevisions(from, to)`, consumed once on a fresh build and guarded against the default-resolution pass (`initDiffDefaults`) so an explicit selection is never overwritten.
 
 ---
 

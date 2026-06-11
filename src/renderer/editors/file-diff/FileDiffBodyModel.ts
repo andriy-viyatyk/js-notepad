@@ -57,6 +57,10 @@ export class FileDiffBodyModel extends TComponentModel<FileDiffBodyState, FileDi
         if (!root || !relPath) return "";
         if (sel.kind === "staged") return git.show(root, "", relPath); // `:path` (index)
         if (sel.kind === "head") return git.show(root, "HEAD", relPath);
+        // Empty commit hash = the empty tree (root commit's absent parent). Guard
+        // it explicitly: `git.show(root, "", relPath)` would return the index, not
+        // empty (US-637).
+        if (!sel.hash) return "";
         return git.show(root, sel.hash, relPath);
     }
 

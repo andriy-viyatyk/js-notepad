@@ -530,7 +530,10 @@ Click a column header to sort by that column. Click again to reverse the sort or
 
 **Selecting files:** Click a row to select it. **Shift-click** extends the selection. **Ctrl+A** selects all rows in that list. You can also drag to select a range.
 
-**Single-click to diff:** Clicking a file row opens its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one.
+**Single-click to diff:** Clicking a file row opens its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. The comparison preselected depends on which list you click:
+
+- **Unstaged list** — opens **Staged ↔ Unstaged** (what you have changed but not yet staged). This is the standard working-tree diff.
+- **Staged list** — opens **Last commit ↔ Staged** (what will be included in the next commit). This comparison shows meaningful changes even for a fully-staged file (where Staged ↔ Unstaged would be identical and appear empty).
 
 The panel header has one button:
 
@@ -579,7 +582,7 @@ Below the commit grid, a resizable **bottom panel** shows details about the sele
 
 - **Commit** — displays the selected commit's author (name and email), date, full commit hash, ref badges (branches and tags at that commit), and the full commit message (multiline). With no commit selected, the panel shows a hint: *"Select a commit to see its details."*
 - **Diff** — shows a split view of the files changed in the selected commit:
-  - **Left side — changed files list.** Each row shows the file path with a colored status badge: `M` modified, `A` added, `D` deleted, `R` renamed. Click a row to load its diff on the right.
+  - **Left side — changed files list.** Each row shows the file path with a colored status badge: `M` modified, `A` added, `D` deleted, `R` renamed. Click a row to load its diff on the right — the selected row is highlighted. Right-clicking a row also selects it (so the diff updates) and opens a context menu with **"Open in new Tab"** — this opens the file in a new tab as a File Diff preselected to **previous commit ↔ selected commit**, which is the same comparison shown inline. For a root commit (no parent), the left side is empty, showing all additions. A new-tab File Diff opened this way starts with the **File History** panel expanded.
   - **Right side — inline diff.** Shows the full content diff for the selected file, comparing the parent commit (before) to the selected commit (after). The diff is displayed as a single inline column (not side-by-side) because the panel is compact. With no commit selected, or before clicking a file, the right side shows an empty placeholder.
   - The divider between the file list and the inline diff is draggable; its position is saved and restored across restarts.
 

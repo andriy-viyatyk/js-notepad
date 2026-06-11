@@ -25,6 +25,7 @@ Overview of all active and planned epics and tasks.
   - [x] [US-634: Git Tree "Branches & Tags" secondary view + relocate "x" close to it](tasks/US-634-git-branches-tags-panel/README.md)
   - [x] [US-635: "Branches & Tags" panel — polish (hover, head-green active branch, AZ/historical order, truncating titles) + click-to-reveal in graph](tasks/US-635-git-branches-panel-polish/README.md)
   - [x] [US-636: Git Tree — Switch to branch / remote branch / commit (context menus on grid + Branches panel)](tasks/US-636-git-switch-branch-commit/README.md)
+  - [x] [US-637: File Diff — "commits to compare" link metadata (smarter Staged default + "Open in new Tab")](tasks/US-637-git-diff-compare-commits/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

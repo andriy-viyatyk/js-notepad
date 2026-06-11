@@ -4,6 +4,7 @@ import type { EditorOrHost } from "../../editors/base";
 import { EditorView, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
 import type { ILinkData } from "../../../shared/link-data";
+import type { ILinkDiffRevision } from "../types/io.link-data";
 import {
     isTextFileModel,
     newTextFileModel,
@@ -512,9 +513,17 @@ export class PagesLifecycleModel {
     openFile = async (
         filePath?: string,
         pipe?: IContentPipe,
-        options?: { sourceLink?: ILinkData; target?: string },
+        options?: {
+            sourceLink?: ILinkData;
+            target?: string;
+            diffFrom?: ILinkDiffRevision;
+            diffTo?: ILinkDiffRevision;
+        },
     ): Promise<PageModel | undefined> => {
         if (!filePath) return undefined;
+        // Existing-page dedupe is deliberately left intact (US-637): an already-
+        // open file just activates its page and the diff metadata is dropped.
+        // "Open in new Tab" preselection therefore applies only on a fresh open.
         const existingPage = this.model.state
             .get()
             .pages.find((p) => {
@@ -531,7 +540,34 @@ export class PagesLifecycleModel {
         if (options?.sourceLink) {
             editor.state.update((s) => { s.sourceLink = options.sourceLink; });
         }
-        const page = this.addPage(wrap(editor));
+        // Honor an explicit content-host target (e.g. "file-diff") that isn't the
+        // file's natural editor, so a new-tab open lands on the requested editor —
+        // mirrors navigatePageTo's isExplicitHostTarget handling (US-637).
+        const explicitTarget = options?.target;
+        if (
+            explicitTarget &&
+            editor.state.get().type === "textFile" &&
+            explicitTarget !== editorRegistry.resolveId(filePath) &&
+            editorRegistry.getById(explicitTarget)?.hasContentHost
+        ) {
+            editor.state.update((s) => { s.editor = explicitTarget as EditorView; });
+        }
+        const adapter = wrap(editor);
+        const page = this.addPage(adapter);
+        // Apply caller-chosen diff revisions to a freshly-built File Diff editor
+        // (no-op for any other editor type / when no revisions given) (US-637).
+        (adapter as { applyDiffRevisions?: (f?: ILinkDiffRevision, t?: ILinkDiffRevision) => void })
+            .applyDiffRevisions?.(options?.diffFrom, options?.diffTo);
+        // A new-tab open carrying a preselected comparison (diffFrom/diffTo) is a
+        // File Diff — expand its own first panel ("File History") instead of the
+        // default "explorer" active panel (US-637). Uses the editor's registered
+        // panel, so there's no hardcoded panel id here; the panel is registered
+        // during `wrap`/adopt and the deferred auto-Explorer attach doesn't change
+        // the active panel.
+        if (options?.diffFrom || options?.diffTo) {
+            const panelId = adapter.secondaryView?.[0];
+            if (panelId) page.expandPanel(panelId);
+        }
         recent.add(filePath);
 
         this.model.closeFirstPageIfEmpty();
@@ -666,6 +702,8 @@ export class PagesLifecycleModel {
             pipe?: IContentPipe;
             target?: string;
             title?: string;
+            diffFrom?: ILinkDiffRevision;
+            diffTo?: ILinkDiffRevision;
         },
     ): Promise<boolean> => {
         const page = this.model.query.findPage(pageId);
@@ -777,6 +815,13 @@ export class PagesLifecycleModel {
 
         const adapter = wrap(legacy);
         await page.setMainEditor(adapter);
+
+        // Apply caller-chosen diff revisions to the freshly-built File Diff editor
+        // (no-op for any other editor type / when no revisions given). The
+        // matchesNavigationTarget reuse path returned earlier, so this only ever
+        // runs on a fresh build (US-637).
+        (adapter as { applyDiffRevisions?: (f?: ILinkDiffRevision, t?: ILinkDiffRevision) => void })
+            .applyDiffRevisions?.(options?.diffFrom, options?.diffTo);
 
         // revealLine / highlightText apply after the editor has mounted.
         if (isTextFile && skipPreview) {

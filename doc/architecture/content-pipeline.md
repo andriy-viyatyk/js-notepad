@@ -56,9 +56,11 @@ The `resolveUrlToPipeDescriptor()` utility is also used by tree providers to cre
 
 ### Layer 3 — Open Handler
 
-Registered in `open-handler.ts` via `registerOpenHandler()`. Reconstructs the full file path from the pipe (combining provider `sourceUrl` + ArchiveTransformer `entryPath` for archive files). Cleans the `ILinkData` via `cleanForStorage()` (strips ephemeral fields like `handled`, `pipe`, `pageId`, `revealLine`, `highlightText`) and stores the result as `IEditorState.sourceLink`. Then either:
+Registered in `open-handler.ts` via `registerOpenHandler()`. Reconstructs the full file path from the pipe (combining provider `sourceUrl` + ArchiveTransformer `entryPath` for archive files). Cleans the `ILinkData` via `cleanForStorage()` (strips ephemeral fields like `handled`, `pipe`, `pageId`, `revealLine`, `highlightText`, `diffFrom`, `diffTo`) and stores the result as `IEditorState.sourceLink`. Then either:
 - Opens a new page via `pagesModel.lifecycle.openFile(filePath, pipe, { sourceLink })` -- the page owns the pipe.
 - Navigates an existing page via `pagesModel.lifecycle.navigatePageTo()` (when `data.pageId` is set) -- disposes the pipe since navigation creates its own.
+
+Both paths forward the ephemeral **navigation hints** to the freshly-built editor: `revealLine`/`highlightText` scroll/highlight a text editor, and `diffFrom`/`diffTo` (each an `ILinkDiffRevision` — `unstaged` / `staged` / `head` / `commit`, where a `commit` with an empty hash denotes the empty tree) preselect the two sides of a File Diff comparison. Hints are consumed only on a fresh editor build, never on a reuse/activate path, so they cannot perturb an already-open page.
 
 The `sourceLink` (`ILinkData` with ephemeral fields removed) is stored in `IEditorState.sourceLink` and persisted across app restarts. It records the page's origin (URL, target editor, title, ILink metadata, HTTP fields, etc.) but is informational only — it does not affect page content or I/O.
 

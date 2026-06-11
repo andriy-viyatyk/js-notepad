@@ -219,6 +219,7 @@ function GitChangesBody({
                             model={model}
                             changes={unstaged}
                             label="Unstaged"
+                            listKind="unstaged"
                             moveLabel="Stage"
                             moveIcon={<FilterArrowDownIcon />}
                             onMove={stage}
@@ -246,6 +247,7 @@ function GitChangesBody({
                             model={model}
                             changes={staged}
                             label="Staged"
+                            listKind="staged"
                             moveLabel="Unstage"
                             moveIcon={<FilterArrowUpIcon />}
                             onMove={unstage}
@@ -264,6 +266,7 @@ function ChangesList({
     model,
     changes,
     label,
+    listKind,
     moveLabel,
     moveIcon,
     onMove,
@@ -276,6 +279,9 @@ function ChangesList({
     changes: GitFileChange[];
     /** Path-column header text — doubles as the section label (US-631). */
     label: string;
+    /** Which list this is — picks the diff comparison preselected on single
+     *  click (Staged → Last commit ↔ Staged; Unstaged → default) (US-637). */
+    listKind: "unstaged" | "staged";
     /** Verb for the move action ("Stage" / "Unstage") — used in the context menu. */
     moveLabel: string;
     /** Icon for the move context-menu item. */
@@ -311,9 +317,9 @@ function ChangesList({
     const onClick = useCallback(
         (item: FileGridItem) => {
             const change = changeMap.get(item.filePath);
-            if (change) model.openChangeDiff(change);
+            if (change) model.openChangeDiff(change, listKind);
         },
-        [model, changeMap],
+        [model, changeMap, listKind],
     );
 
     const onDoubleClick = useCallback(

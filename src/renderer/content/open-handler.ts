@@ -39,6 +39,8 @@ export function registerOpenHandler(): void {
                     sourceLink,
                     pipe: data.pipe,
                     target: data.target,
+                    diffFrom: data.diffFrom,
+                    diffTo: data.diffTo,
                 });
             } catch (err) {
                 data.pipe.dispose();
@@ -48,7 +50,12 @@ export function registerOpenHandler(): void {
             // Open file in new or existing tab — pass pipe through
             // On success the page owns the pipe; on error we must dispose it
             try {
-                await pagesModel.lifecycle.openFile(filePath, data.pipe, { sourceLink, target: data.target });
+                await pagesModel.lifecycle.openFile(filePath, data.pipe, {
+                    sourceLink,
+                    target: data.target,
+                    diffFrom: data.diffFrom,
+                    diffTo: data.diffTo,
+                });
             } catch (err) {
                 data.pipe.dispose();
                 throw err;

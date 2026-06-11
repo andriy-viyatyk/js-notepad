@@ -30,6 +30,11 @@ interface FileListProps {
     /** Compact mode — smaller font + tighter rows. Use for dense lists such as
      *  the git Changes panel where relative paths are shown. */
     compact?: boolean;
+    /** When set, the row whose `filePath` matches renders as persistently
+     *  selected (accent background). Use for browse lists where the selected
+     *  item's details are shown elsewhere (e.g. the commit Diff panel's file
+     *  list, whose selection drives the diff to its right). */
+    selectedPath?: string;
 }
 
 const FileListWrapper = styled.div({
@@ -76,7 +81,14 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
             hideSearch,
         }));
 
-        const { getTrailing } = props;
+        const { getTrailing, selectedPath } = props;
+        const isSelected = useMemo(
+            () =>
+                selectedPath != null
+                    ? (item: FileListItem) => item.filePath === selectedPath
+                    : undefined,
+            [selectedPath],
+        );
         const fileListTraits = useMemo(
             () =>
                 new TraitSet().add(LIST_ITEM_KEY, {
@@ -167,6 +179,8 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                     activeIndex={activeIndex}
                     onActiveChange={setActiveIndex}
                     onChange={props.onClick}
+                    isSelected={isSelected}
+                    selectionStyle={selectedPath != null ? "accent" : undefined}
                     getTooltip={(item) => item.filePath}
                     getContextMenu={props.getContextMenu}
                     onContextMenu={props.onContextMenu}

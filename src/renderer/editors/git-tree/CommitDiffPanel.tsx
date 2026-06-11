@@ -5,12 +5,17 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Splitter } from "../../uikit/Splitter";
+import type { MenuItem } from "../../uikit/Menu";
 import { FileList, type FileListItem } from "../../components/file-list";
 import { GitStatusBadge, type GitTreeModel } from "../../components/git-tree";
+import { app } from "../../api/app";
 import { git } from "../../api/git";
-import { fpExtname } from "../../core/utils/file-path";
+import { createLinkData } from "../../../shared/link-data";
+import { fpExtname, fpJoin } from "../../core/utils/file-path";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
+import { CompareIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
+import type { ILinkDiffRevision } from "../../api/types/io.link-data";
 
 // =============================================================================
 // Git Tree "Diff" tab (EPIC-031 / US-630).
@@ -117,6 +122,49 @@ export function CommitDiffPanel({
     );
     const onClick = useCallback((item: FileListItem) => setSelectedFile(item.filePath), []);
 
+    // Right-click → open this file's change in a NEW Persephone tab as a File Diff
+    // preselected to "previous commit ↔ this commit" (US-637). Rides the link
+    // pipeline (no pageId → new tab; no sourceId → not a sidebar panel). Root
+    // commit → empty-hash "from" = empty left side (all additions).
+    const openInNewTab = useCallback(
+        (change: GitFileChange) => {
+            if (!commit) return;
+            const parent = commit.parents[0] ?? "";
+            const diffFrom: ILinkDiffRevision = parent
+                ? { kind: "commit", hash: parent, shortHash: parent.slice(0, 7) }
+                : { kind: "commit", hash: "", shortHash: "" };
+            const diffTo: ILinkDiffRevision = {
+                kind: "commit",
+                hash: commit.hash,
+                shortHash: commit.shortHash,
+            };
+            void app.events.openRawLink.sendAsync(
+                createLinkData(fpJoin(repoRoot, change.path), {
+                    target: "file-diff",
+                    diffFrom,
+                    diffTo,
+                }),
+            );
+        },
+        [commit, repoRoot],
+    );
+
+    const getContextMenu = useCallback(
+        (item: FileListItem): MenuItem[] => {
+            const change = changeMap.get(item.filePath);
+            if (!change || !commit) return [];
+            // Right-click selects the file too (so its diff shows on the right and
+            // the row highlights), matching a left click.
+            setSelectedFile(item.filePath);
+            return [{
+                label: "Open in new Tab",
+                icon: <CompareIcon />,
+                onClick: () => openInNewTab(change),
+            }];
+        },
+        [changeMap, commit, openInNewTab],
+    );
+
     const language = useMemo(() => {
         if (!selectedFile) return undefined;
         const ext = fpExtname(selectedFile);
@@ -140,7 +188,14 @@ export function CommitDiffPanel({
                 shrink={false}
                 overflow="hidden"
             >
-                <FileList items={items} onClick={onClick} getTrailing={getTrailing} compact />
+                <FileList
+                    items={items}
+                    onClick={onClick}
+                    getTrailing={getTrailing}
+                    getContextMenu={getContextMenu}
+                    selectedPath={selectedFile}
+                    compact
+                />
             </Panel>
             <Splitter
                 name="commit-diff-splitter"

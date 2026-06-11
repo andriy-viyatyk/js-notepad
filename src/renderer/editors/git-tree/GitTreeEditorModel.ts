@@ -16,6 +16,7 @@ import { fpJoin } from "../../core/utils/file-path";
 import { DirectoryWatcher } from "../../core/utils/file-watcher";
 import { decodeGitTreeLink, encodeGitTreeLink } from "../../content/git-tree-link";
 import type { GitFileChange, GitSwitchTarget } from "../../../ipc/git-ipc";
+import type { ILinkDiffRevision } from "../../api/types/io.link-data";
 
 export interface GitTreeEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -301,8 +302,17 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
 
     /** Open a changed file's Git Diff in this page (US-616, Concern 1). Navigates
      *  the current page to the file with the `file-diff` editor as target; this
-     *  editor survives as the secondary "Changes" panel (see `beforeNavigateAway`). */
-    openChangeDiff(change: GitFileChange): void {
+     *  editor survives as the secondary "Changes" panel (see `beforeNavigateAway`).
+     *
+     *  `list` chooses the preselected comparison (US-637): the **Staged** list
+     *  opens `Last commit (HEAD) ↔ Staged (index)` so a fully-staged file shows
+     *  its real changes (not an empty `Staged ↔ Unstaged`); the **Unstaged** list
+     *  keeps the editor's default (`Staged ↔ Unstaged`). Preselection rides the
+     *  link pipeline (`diffFrom`/`diffTo`) and is consumed only when the fresh
+     *  File Diff editor mounts. Accepted limitation: when the file's diff is
+     *  already this page's main editor, the same-file early-return below makes a
+     *  repeat click a no-op (it won't re-switch the comparison). */
+    openChangeDiff(change: GitFileChange, list: "unstaged" | "staged"): void {
         const repoRoot = this.state.get().repoRoot;
         if (!repoRoot || !this.page) return;
         // Known deferred edge (US-616 Concern 1): a deleted file has no
@@ -320,6 +330,10 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         // duplicate (the rapid 2nd click of a double-click, before the 1st
         // navigation has swapped the main editor — otherwise the diff blinks).
         if (norm(this.diffNavInFlight) === norm(absPath)) return;
+        const diffFrom: ILinkDiffRevision | undefined =
+            list === "staged" ? { kind: "head" } : undefined;
+        const diffTo: ILinkDiffRevision | undefined =
+            list === "staged" ? { kind: "staged" } : undefined;
         this.diffNavInFlight = absPath;
         void app.events.openRawLink
             .sendAsync(
@@ -327,6 +341,8 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
                     target: "file-diff",
                     pageId: this.page.id,
                     sourceId: this.id,
+                    diffFrom,
+                    diffTo,
                 }),
             )
             .finally(() => {

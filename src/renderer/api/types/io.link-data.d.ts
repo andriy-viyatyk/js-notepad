@@ -1,6 +1,21 @@
 import type { IContentPipe, IPipeDescriptor } from "./io.pipe";
 
 /**
+ * A single revision selector for the File Diff editor (target === "file-diff").
+ * Structurally identical to the editor's `RevSel` (single source of truth):
+ *   - unstaged → working tree (live editor content)
+ *   - staged   → the git index (`:path`)
+ *   - head     → the last commit (`HEAD:path`)
+ *   - commit   → a specific commit (`<hash>:path`); an empty `hash` means the
+ *     empty tree (e.g. a root commit's absent parent → empty side).
+ */
+export type ILinkDiffRevision =
+    | { kind: "unstaged" }
+    | { kind: "staged" }
+    | { kind: "head" }
+    | { kind: "commit"; hash: string; shortHash: string };
+
+/**
  * Unified link data descriptor.
  *
  * Flows through the entire `openRawLink → openLink → openContent` pipeline.
@@ -68,6 +83,12 @@ export interface ILinkData {
     revealLine?: number;
     /** Highlight occurrences of this text after opening. */
     highlightText?: string;
+    /** Preselect the File Diff "from" (left) revision. Consumed once, only when
+     *  a fresh File Diff editor is constructed on open (target === "file-diff"). */
+    diffFrom?: ILinkDiffRevision;
+    /** Preselect the File Diff "to" (right) revision. Consumed once, only when
+     *  a fresh File Diff editor is constructed on open (target === "file-diff"). */
+    diffTo?: ILinkDiffRevision;
 
     // ── HTTP metadata (from cURL parser or callers) ───────────────
     /** HTTP headers. */

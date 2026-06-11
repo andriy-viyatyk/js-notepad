@@ -18,19 +18,20 @@ import { GitTreeModel } from "../../components/git-tree";
 import { CompareIcon } from "../../theme/icons";
 import { git } from "../../api/git";
 import { ui } from "../../api/ui";
+import type { ILinkDiffRevision } from "../../api/types/io.link-data";
 
 /**
  * A revision selection for one side of the diff (EPIC-030 / US-613).
  *   - unstaged → the working tree = current editor content (live host content)
  *   - staged   → the git index (`:path`) = staged changes
  *   - head     → the last commit (`HEAD:path`)
- *   - commit   → a specific commit (`<hash>:path`)
+ *   - commit   → a specific commit (`<hash>:path`); an empty `hash` means the
+ *     empty tree (a root commit's absent parent → empty side)
+ *
+ * Aliased to the link-pipeline type `ILinkDiffRevision` so a caller can preselect
+ * the comparison via `diffFrom`/`diffTo` link metadata (single source of truth).
  */
-export type RevSel =
-    | { kind: "unstaged" }
-    | { kind: "staged" }
-    | { kind: "head" }
-    | { kind: "commit"; hash: string; shortHash: string };
+export type RevSel = ILinkDiffRevision;
 
 export interface FileDiffEditorState extends EditorStateBase {
     /** Left / original. Default = staged (index). The `from` side is never "unstaged". */
@@ -74,6 +75,11 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
     private _hostStateUnsub: (() => void) | null = null;
     private _gitRepoUnsub: (() => void) | null = null;
     private _pendingHost: HostDescriptor | undefined = undefined;
+
+    /** Set once `applyDiffRevisions` has installed a caller-chosen comparison
+     *  (US-637). Tells `initDiffDefaults` to keep `from`/`to` untouched so a late
+     *  git-detection re-run can't clobber the explicit selection. */
+    private _explicitRevs = false;
 
     /** Single file-scoped commit-list model (model-view), shared by both toolbar
      *  popovers AND the "Revisions" secondary panel (US-618). All three render the
@@ -153,6 +159,22 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
     };
 
     /**
+     * Apply a caller-chosen comparison from link metadata (US-637). Called once,
+     * right after a fresh File Diff editor is constructed on open (the open
+     * pipeline never calls this on a reuse/activate path). Marks the selection
+     * explicit so a late `initDiffDefaults()` (fired when git detection lands on
+     * the restore/open path) won't overwrite it. A no-op when neither side is given.
+     */
+    applyDiffRevisions = (from?: RevSel, to?: RevSel): void => {
+        if (!from && !to) return;
+        this._explicitRevs = true;
+        this.state.update((s) => {
+            if (from) s.from = from;
+            if (to) s.to = to;
+        });
+    };
+
+    /**
      * On adopt, resolve the diff defaults from git:
      *   - `hasStaged` (index ≠ HEAD) — when false the pickers hide "Staged".
      *   - the file's **latest commit**, used as the default left side instead of
@@ -201,6 +223,9 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
             : { kind: "head" };
         this.state.update((s) => {
             s.hasStaged = hasStaged;
+            // A caller-chosen comparison (link metadata) wins — never normalize
+            // over an explicit selection (US-637).
+            if (this._explicitRevs) return;
             if (!hasStaged) {
                 // No staged version → "Staged"/"HEAD" all equal the latest commit;
                 // prefer the concrete commit so the label matches the grid.

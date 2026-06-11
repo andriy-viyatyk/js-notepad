@@ -10,6 +10,8 @@ const EPHEMERAL_FIELDS: ReadonlySet<string> = new Set([
     "pageId",
     "revealLine",
     "highlightText",
+    "diffFrom",
+    "diffTo",
     "browserMode",
     "browserPageId",
     "browserTabMode",

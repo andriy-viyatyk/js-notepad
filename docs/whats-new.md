@@ -82,6 +82,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
   - **Right — inline diff.** A Monaco-rendered inline (single-column) diff comparing the file at the parent commit to the selected commit. Inline rather than side-by-side keeps the view readable in the compact bottom panel.
   - The divider between the file list and the diff is resizable; its width is saved and restored on restart.
 
+- **Git Tree — commit Diff tab improvements** — Several usability enhancements to the changed-file list in the **Diff** bottom panel:
+
+  - **Selected file highlighted** — The file whose diff is shown on the right is now highlighted in the changed-file list, making it clear which row the diff belongs to.
+  - **Right-click selects and shows context menu** — Right-clicking a file row now also selects it (updating the inline diff on the right), consistent with a left click. A **"Open in new Tab"** context menu item appears, which opens that file in a new Persephone tab as a File Diff preselected to **previous commit ↔ selected commit** — the same comparison shown inline. For a root commit (no parent), the left side is empty, showing the file as all-additions.
+  - **File History panel expanded on new-tab open** — A File Diff tab opened this way starts with the **File History** panel expanded in the sidebar so the commit context is immediately visible.
+
+- **Git Tree — Changes panel: smarter diff comparison for staged files** — Clicking a file in the **Staged** list of the Changes panel now opens its diff preselected to **Last commit ↔ Staged** (what will go into the next commit). Previously it showed **Staged ↔ Unstaged**, which appeared empty for a fully-staged file. Clicking a file in the **Unstaged** list still opens **Staged ↔ Unstaged** as before.
+
 - **Image export — save rendered PNG to file** — The Mermaid Diagram Viewer, SVG Preview, and Image Viewer can now save their rendered output to a file:
 
   - **Mermaid & SVG** — A new **Save as PNG** toolbar button opens a save dialog and writes the rendered diagram or SVG as a PNG. The PNG is rasterised by Persephone's own rendering engine, so diagram text and custom fonts are reproduced faithfully (external mermaid-to-PNG converters often render empty text boxes because they cannot access the browser's font stack).
