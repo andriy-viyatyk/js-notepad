@@ -206,10 +206,12 @@ persephone/
 │   │   │   ├── showPopupMenu.tsx
 │   │   │   └── types.ts
 │   │   └── index.ts
-│   └── secondary-views/    # SecondaryViews — controlled panel host (EPIC-029)
+│   └── secondary-views/    # SecondaryViews — controlled panel host
 │       ├── SecondaryViews.tsx       # Controlled panel host — renders CollapsiblePanel per registered secondary
 │       ├── SecondaryViewsModel.ts   # Reactive state (open, width, activePanel)
 │       ├── LazySecondaryView.tsx    # Dynamic panel component loader (dynamic import per panel ID)
+│       ├── SideBarPanelHeader.tsx   # Shared panel header (icon + badge + truncating title + pinned actions); portals into the header
+│       ├── panel-key.ts             # Composite panel keys (`${editorId}::${panelId}`)
 │       └── secondary-view-registry.ts # Registry: panel ID → dynamic component factory
 │
 ├── editors/                # Editor Implementations — each editor is an EditorModel subclass

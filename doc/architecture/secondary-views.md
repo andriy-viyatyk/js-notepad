@@ -210,8 +210,8 @@ secondaryViews.flatMap((model) => {
             const icon = secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />;
             return (
                 <CollapsiblePanel key={`${model.id}-${panelId}`} id={panelKey(model.id, panelId)}
-                    icon={icon} headerRef={setHeaderRef} alwaysRenderContent>
-                    <LazySecondaryView model={model} panelId={panelId} headerRef={...} />
+                    headerRef={setHeaderRef} alwaysRenderContent>
+                    <LazySecondaryView model={model} panelId={panelId} headerRef={...} icon={icon} />
                 </CollapsiblePanel>
             );
         });
@@ -220,9 +220,15 @@ secondaryViews.flatMap((model) => {
 
 The React `key` stays the `${model.id}-${panelId}` ref-key; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
 
-**Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved as **per-panel registry override first, owning-editor icon otherwise** — `secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />`. `EditorIcon` ([`components/icons/EditorIcon.tsx`](../../src/renderer/components/icons/EditorIcon.tsx)) is the **shared resolver** that produces the same glyph an editor shows on its page tab (see [editors.md](editors.md#editor-icons)). Because `CollapsiblePanel.icon` renders inside the header `<div>` (in the same React tree as the toggle `onClick`, not portalled), clicking the icon toggles the panel — no portal click-through workaround is needed for it.
+**Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved here — **per-panel registry override first, owning-editor icon otherwise** — `secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />`. `EditorIcon` ([`components/icons/EditorIcon.tsx`](../../src/renderer/components/icons/EditorIcon.tsx)) is the **shared resolver** that produces the same glyph an editor shows on its page tab (see [editors.md](editors.md#editor-icons)). The resolved node is **not** handed to `CollapsiblePanel`; it is passed down to the panel component as `SecondaryViewProps.icon` (via `LazySecondaryView`), and the panel forwards it to `SideBarPanelHeader`, which renders it as the leading glyph. Resolution stays here because this is the only layer with the registry + editor in scope.
 
-**Portal-based headers:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. The loaded secondary view component uses `createPortal(headerContent, headerRef)` to render its title and buttons into the header (the leading icon comes from the `icon` prop above, not the portal). This lets each secondary view fully control its header content. Because portalled content lives in a separate React fiber tree, its clicks would bubble to the panel body rather than the header's toggle `onClick`; `CollapsiblePanelStack` makes non-interactive label primitives (`Text`, `Tag`, `Panel`) click-through (`pointer-events: none`) so a click on the title still toggles the panel, while interactive controls (`button`, `icon-button`, clickable `Tag`) re-assert pointer events.
+**Portal-based headers — `SideBarPanelHeader`:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. Each secondary view renders a [`SideBarPanelHeader`](../../src/renderer/ui/secondary-views/SideBarPanelHeader.tsx), which `createPortal`s its content into that `<div>`. The component takes `icon`, `badge` (optional, e.g. a repo-name `Tag`), `title`, and `actions` (the panel's buttons), and lays them out as `[icon] [title group] [actions]`:
+
+- the **icon** is rendered first and unwrapped so it stays a direct child of the header `<div>` — the stack's `[data-part="header"] > svg { width: 14; height: 14 }` rule sizes only direct-child SVGs;
+- the **title group** (`badge` + `title`) is a flex-grow `Panel` with `width={0}` + `overflow: hidden`, so the title (`<Text truncate size="md">`) and a `truncate` `Tag` badge ellipsize as the sidebar narrows;
+- the **actions** region is a `Panel` with `shrink={false}`, so the buttons stay pinned and fully visible — the label group is what gives way, never the buttons.
+
+This replaces per-panel hand-rolled `createPortal` + layout. Because portalled content lives in a separate React fiber tree, its clicks would bubble to the panel body rather than the header's toggle `onClick`; `CollapsiblePanelStack` makes non-interactive label primitives (`Text`, `Tag`, `Panel`) click-through (`pointer-events: none`) so a click on the title still toggles the panel, while interactive controls (`button`, `icon-button`, clickable `Tag`) re-assert pointer events.
 
 **`alwaysRenderContent`:** Keeps panel content mounted when collapsed (`display: none`). Required for portal components to render headers even when their panel is collapsed.
 
@@ -403,35 +409,38 @@ secondaryViewRegistry.register({
 
 ### Step 3: Create the React panel component
 
+Render a `SideBarPanelHeader` — it owns the portal and the layout (forward the `icon` from props; pass `title`, an optional `badge`, and the buttons as `actions`):
+
 ```tsx
-export default function MySecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function MySecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     const myModel = model as MySecondaryModel;
-    
-    const headerContent = (
-        <>
-            My Panel Title
-            <Spacer />
-            <IconButton
-                name="my-secondary-close"
-                size="sm"
-                title="Close Panel"
-                icon={<CloseIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    myModel.secondaryView = undefined; // or remove specific panel
-                }}
-            />
-        </>
-    );
-    
+
     return (
         <>
-            {headerRef && createPortal(headerContent, headerRef)}
+            <SideBarPanelHeader
+                headerRef={headerRef}
+                icon={icon}
+                title="My Panel Title"
+                actions={
+                    <IconButton
+                        name="my-secondary-close"
+                        size="sm"
+                        title="Close Panel"
+                        icon={<CloseIcon />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            myModel.secondaryView = undefined; // or remove specific panel
+                        }}
+                    />
+                }
+            />
             <MyPanelContent model={myModel} />
         </>
     );
 }
 ```
+
+A title-only panel is just `<SideBarPanelHeader headerRef={headerRef} icon={icon} title="My Panel" />`. Conditional buttons stay inside the `actions` node (`actions={cond && <IconButton.../>}`).
 
 ### Step 4: Create or add to `secondaryViews[]`
 

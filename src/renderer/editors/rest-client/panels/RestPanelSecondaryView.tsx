@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { createPortal } from "react-dom";
 import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../../ui/secondary-views/SideBarPanelHeader";
 import { Panel } from "../../../uikit";
 import { traited } from "../../../core/traits/traits";
 import {
@@ -11,19 +11,21 @@ import {
 } from "../RestClientShared";
 import { RestClientEditor } from "../RestClientEditor";
 
-export default function RestPanelSecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function RestPanelSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     // Type-guard early return must precede any hooks; the hook-using body lives
     // in an inner component (same pattern as TodoSecondaryView).
     if (!(model instanceof RestClientEditor)) return null;
-    return <RestPanelBody editor={model} headerRef={headerRef} />;
+    return <RestPanelBody editor={model} headerRef={headerRef} icon={icon} />;
 }
 
 function RestPanelBody({
     editor,
     headerRef,
+    icon,
 }: {
     editor: RestClientEditor;
     headerRef: SecondaryViewProps["headerRef"];
+    icon: SecondaryViewProps["icon"];
 }) {
     const state = editor.state.use((s) => ({
         requests: s.data.requests,
@@ -40,7 +42,7 @@ function RestPanelBody({
 
     return (
         <>
-            {headerRef && createPortal(<>Rest</>, headerRef)}
+            <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Rest" />
             <Panel
                 name="rest-panel-pane"
                 direction="column"

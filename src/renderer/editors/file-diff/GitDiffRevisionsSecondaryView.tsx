@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { createPortal } from "react-dom";
 
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import { FileDiffEditor } from "./FileDiffEditor";
 import {
     GitTree,
@@ -11,7 +11,6 @@ import {
 } from "../../components/git-tree";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { Spacer } from "../../uikit/Spacer";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { RefreshIcon } from "../../theme/icons";
 
@@ -33,18 +32,20 @@ import { RefreshIcon } from "../../theme/icons";
 
 const shortHashOf = (hash: string) => hash.slice(0, 7);
 
-export default function GitDiffRevisionsSecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function GitDiffRevisionsSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     // Type-guard before any hooks (same pattern as GitChangesSecondaryView).
     if (!(model instanceof FileDiffEditor)) return null;
-    return <RevisionsBody model={model} headerRef={headerRef} />;
+    return <RevisionsBody model={model} headerRef={headerRef} icon={icon} />;
 }
 
 function RevisionsBody({
     model,
     headerRef,
+    icon,
 }: {
     model: FileDiffEditor;
     headerRef: SecondaryViewProps["headerRef"];
+    icon: SecondaryViewProps["icon"];
 }) {
     const { from, to, hasStaged } = model.state.use((s) => ({
         from: s.from,
@@ -96,23 +97,6 @@ function RevisionsBody({
         [from, to, model],
     );
 
-    const header = (
-        <>
-            File History
-            <Spacer />
-            <IconButton
-                name="git-diff-revisions-refresh"
-                size="sm"
-                title="Refresh"
-                icon={<RefreshIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    model.refreshPanel();
-                }}
-            />
-        </>
-    );
-
     return (
         <Panel
             name="git-diff-revisions"
@@ -121,7 +105,23 @@ function RevisionsBody({
             overflow="hidden"
             width="100%"
         >
-            {headerRef && createPortal(header, headerRef)}
+            <SideBarPanelHeader
+                headerRef={headerRef}
+                icon={icon}
+                title="File History"
+                actions={
+                    <IconButton
+                        name="git-diff-revisions-refresh"
+                        size="sm"
+                        title="Refresh"
+                        icon={<RefreshIcon />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            model.refreshPanel();
+                        }}
+                    />
+                }
+            />
             {!gitOk ? (
                 <Panel padding="md">
                     <Text color="light">Git is unavailable.</Text>

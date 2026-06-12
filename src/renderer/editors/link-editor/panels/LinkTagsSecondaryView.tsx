@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
 import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../../ui/secondary-views/SideBarPanelHeader";
 import type { ILink } from "../../../api/types/io.tree";
 import { LinkTagsPanel } from "./LinkTagsPanel";
 import { LinksList } from "../LinksList";
@@ -148,27 +148,29 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
 }
 
 
-export default function LinkTagsSecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function LinkTagsSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     // Type-guard early return must precede any hooks; hook-using body lives
     // in an inner component. Same pattern as LinkCategorySecondaryView.
     if (!(model instanceof LinkEditor)) {
         return null;
     }
-    return <LinkTagsSecondaryViewBody editor={model} headerRef={headerRef} />;
+    return <LinkTagsSecondaryViewBody editor={model} headerRef={headerRef} icon={icon} />;
 }
 
 function LinkTagsSecondaryViewBody({
     editor,
     headerRef,
+    icon,
 }: {
     editor: LinkEditor;
     headerRef: SecondaryViewProps["headerRef"];
+    icon: SecondaryViewProps["icon"];
 }) {
     // Always the navigation form (tags list + bottom links list). Selecting a
     // tag filters only — it never promotes/navigates the page (Concern 3).
     return (
         <>
-            {headerRef && createPortal(<>Tags</>, headerRef)}
+            <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Tags" />
             <LinkTagsNavigationPanel editor={editor} />
         </>
     );

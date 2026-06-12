@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import { GitTreeEditorModel } from "./GitTreeEditorModel";
 import { FileGrid, type FileGridItem } from "../../components/file-grid";
 import { GitStatusBadge } from "../../components/git-tree";
@@ -32,18 +32,20 @@ function expandPaths(changes: GitFileChange[]): string[] {
 // colored status badge. Survives navigation (Pattern B; only-manual-close).
 // =============================================================================
 
-export default function GitChangesSecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function GitChangesSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     // Type-guard before any hooks (same pattern as LinkTagsSecondaryView).
     if (!(model instanceof GitTreeEditorModel)) return null;
-    return <GitChangesBody model={model} headerRef={headerRef} />;
+    return <GitChangesBody model={model} headerRef={headerRef} icon={icon} />;
 }
 
 function GitChangesBody({
     model,
     headerRef,
+    icon,
 }: {
     model: GitTreeEditorModel;
     headerRef: SecondaryViewProps["headerRef"];
+    icon: SecondaryViewProps["icon"];
 }) {
     const { unstaged, staged, gitOk, branch } = model.changes.state.use((s) => ({
         unstaged: s.unstaged,
@@ -189,40 +191,6 @@ function GitChangesBody({
         setBottomHeight(Math.max(60, Math.min(h, maxH)));
     }, []);
 
-    const header = (
-        <>
-            <Panel direction="row" align="center" gap="sm" overflow="hidden">
-                {/* Repository name (folder basename) as a badge; full path on hover —
-                    mirrors the Git Tree editor toolbar. */}
-                <Tag
-                    name="git-changes-repo-name"
-                    variant="outlined"
-                    size="sm"
-                    label={model.repoName}
-                    title={model.state.get().repoRoot}
-                />
-                <Text color="inherit" truncate>{`Changes (${fileCount})`}</Text>
-            </Panel>
-            <Spacer />
-            {/* "Show Git Tree" lives on the "Branches & Tags" panel header
-                (US-634) — kept alongside the editor's other navigation/close
-                affordances. Only Refresh remains here. */}
-            <IconButton
-                name="git-changes-refresh"
-                size="sm"
-                title="Refresh"
-                icon={<RefreshIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    model.refresh();
-                }}
-            />
-            {/* The manual "x" close lives on the "Branches & Tags" panel header
-                (US-634), not here — closing tears down the whole Git Tree editor
-                (both panels), so a single affordance suffices. */}
-        </>
-    );
-
     return (
         <Panel
             name="git-changes"
@@ -232,7 +200,39 @@ function GitChangesBody({
             overflow="hidden"
             width="100%"
         >
-            {headerRef && createPortal(header, headerRef)}
+            <SideBarPanelHeader
+                headerRef={headerRef}
+                icon={icon}
+                badge={
+                    /* Repository name (folder basename) as a badge; full path on
+                       hover — mirrors the Git Tree editor toolbar. */
+                    <Tag
+                        name="git-changes-repo-name"
+                        variant="outlined"
+                        size="sm"
+                        truncate
+                        label={model.repoName}
+                        title={model.state.get().repoRoot}
+                    />
+                }
+                title={`Changes (${fileCount})`}
+                actions={
+                    /* "Show Git Tree" and the manual "x" close live on the
+                       "Branches & Tags" panel header — closing tears down the whole
+                       Git Tree editor (both panels), so a single affordance there
+                       suffices. Only Refresh remains here. */
+                    <IconButton
+                        name="git-changes-refresh"
+                        size="sm"
+                        title="Refresh"
+                        icon={<RefreshIcon />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            model.refresh();
+                        }}
+                    />
+                }
+            />
             {!gitOk ? (
                 <Panel padding="md">
                     <Text color="light">Git is unavailable.</Text>

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { TreeProviderView, TreeProviderViewRef } from "../../components/tree-provider";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider";
@@ -8,9 +7,9 @@ import { createLinkData } from "../../../shared/link-data";
 import { app } from "../../api/app";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import type { ExplorerEditor } from "./ExplorerEditorModel";
 import { IconButton } from "../../uikit/IconButton";
-import { Spacer } from "../../uikit/Spacer";
 import {
     CollapseAllIcon,
     FolderUpIcon,
@@ -20,7 +19,7 @@ import {
 } from "../../theme/icons";
 import { fpBasename, fpDirname } from "../../core/utils/file-path";
 
-export default function ExplorerSecondaryView({ model: rawModel, headerRef }: SecondaryViewProps) {
+export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon }: SecondaryViewProps) {
     const model = rawModel as ExplorerEditor;
     const { rootPath } = model.state.use();
     const treeProviderRef = useRef<TreeProviderViewRef>(null);
@@ -84,15 +83,13 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef }: Se
         }
     }, [provider, rootPath, model]);
 
-    // ── Header content (portaled into CollapsiblePanel header) ───────
+    // ── Header action buttons (rendered by SideBarPanelHeader) ───────
 
     const parentPath = fpDirname(rootPath);
     const canNavigateUp = parentPath !== rootPath && rootPath !== "";
 
-    const headerContent = (
+    const actions = (
         <>
-            Explorer
-            <Spacer />
             {provider?.navigable && (
                 <IconButton
                     name="explorer-up"
@@ -140,7 +137,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef }: Se
 
     return (
         <>
-            {headerRef && createPortal(headerContent, headerRef)}
+            <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Explorer" actions={actions} />
             <TreeProviderView
                 ref={treeProviderRef}
                 key={rootPath}

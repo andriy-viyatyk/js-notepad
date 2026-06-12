@@ -101,7 +101,6 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
                                 key={refKey}
                                 id={key}
                                 name={panelId}
-                                icon={panelIcon}
                                 headerRef={(el) => setHeaderRef(refKey, el)}
                                 alwaysRenderContent
                             >
@@ -109,6 +108,7 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
                                     model={model as never}
                                     panelId={panelId}
                                     headerRef={headerRefs.current[refKey] ?? null}
+                                    icon={panelIcon}
                                 />
                             </CollapsiblePanel>
                         );

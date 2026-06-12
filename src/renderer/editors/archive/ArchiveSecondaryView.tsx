@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { TreeProviderView } from "../../components/tree-provider";
 import type { TreeProviderViewRef } from "../../components/tree-provider";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import type { ArchiveEditor } from "./ArchiveEditor";
 import { IconButton } from "../../uikit/IconButton";
-import { Spacer } from "../../uikit/Spacer";
 import { CloseIcon } from "../../theme/icons";
 
-export default function ArchiveSecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function ArchiveSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     const archiveModel = model as ArchiveEditor;
     const provider = archiveModel.treeProvider;
     const treeProviderRef = useRef<TreeProviderViewRef>(null);
@@ -36,30 +35,24 @@ export default function ArchiveSecondaryView({ model, headerRef }: SecondaryView
 
     const isActivePagePanel = archiveModel === archiveModel.page?.mainEditor;
 
-    const headerContent = (
-        <>
-            Archive
-            <Spacer />
-            {!isActivePagePanel && (
-                <IconButton
-                    name="archive-secondary-close"
-                    size="sm"
-                    title="Close"
-                    icon={<CloseIcon />}
-                    onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        archiveModel.page?.removeSecondaryView(archiveModel);
-                    }}
-                />
-            )}
-        </>
+    const actions = !isActivePagePanel && (
+        <IconButton
+            name="archive-secondary-close"
+            size="sm"
+            title="Close"
+            icon={<CloseIcon />}
+            onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                archiveModel.page?.removeSecondaryView(archiveModel);
+            }}
+        />
     );
 
     if (!provider) return null;
 
     return (
         <>
-            {headerRef && createPortal(headerContent, headerRef)}
+            <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Archive" actions={actions} />
             <TreeProviderView
                 ref={treeProviderRef}
                 provider={provider}

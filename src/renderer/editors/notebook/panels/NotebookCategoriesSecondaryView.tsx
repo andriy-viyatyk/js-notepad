@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { createPortal } from "react-dom";
 import type { SecondaryViewProps } from "../../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../../ui/secondary-views/SideBarPanelHeader";
 import { Panel } from "../../../uikit/Panel";
 import { Tree } from "../../../uikit/Tree";
 import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../../core/traits";
@@ -8,19 +8,21 @@ import { LINK } from "../../link-editor/linkTraits";
 import { buildCategoryTreeItems, type CategoryItem } from "../category-tree";
 import { NotebookEditor } from "../NotebookEditor";
 
-export default function NotebookCategoriesSecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function NotebookCategoriesSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     // Type-guard early return must precede any hooks; the hook-using body lives
     // in an inner component (same pattern as LinkCategorySecondaryView).
     if (!(model instanceof NotebookEditor)) return null;
-    return <NotebookCategoriesBody editor={model} headerRef={headerRef} />;
+    return <NotebookCategoriesBody editor={model} headerRef={headerRef} icon={icon} />;
 }
 
 function NotebookCategoriesBody({
     editor,
     headerRef,
+    icon,
 }: {
     editor: NotebookEditor;
     headerRef: SecondaryViewProps["headerRef"];
+    icon: SecondaryViewProps["icon"];
 }) {
     const state = editor.state.use((s) => ({
         categories: s.categories,
@@ -51,7 +53,7 @@ function NotebookCategoriesBody({
 
     return (
         <>
-            {headerRef && createPortal(<>Categories</>, headerRef)}
+            <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Categories" />
             <Panel
                 name="notebook-categories-pane"
                 direction="column"

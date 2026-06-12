@@ -30,6 +30,10 @@ export interface TagProps
     variant?: "filled" | "outlined";
     /** Size variant. Default: "md". */
     size?: "sm" | "md";
+    /** Ellipsize the label when the tag is constrained by a flex parent. Sets
+     *  `min-width: 0` so the tag can shrink below its content, and truncates the
+     *  label span with an ellipsis. Default: false. */
+    truncate?: boolean;
     /** Remove-button visibility. Default: "always". */
     removeAffordance?: "always" | "hover";
     /** Accessible label for the remove button. Default: "Remove tag". */
@@ -87,6 +91,14 @@ const Root = styled.span(
             opacity: 0.5,
             pointerEvents: "none",
         },
+
+        "&[data-truncate]": { minWidth: 0 },
+        "&[data-truncate] > span": {
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            minWidth: 0,
+        },
     },
     { label: "Tag" },
 );
@@ -134,6 +146,7 @@ export function Tag({
     disabled,
     variant = "filled",
     size = "md",
+    truncate,
     removeAffordance = "always",
     removeAriaLabel = "Remove tag",
     ...rest
@@ -153,6 +166,7 @@ export function Tag({
             data-name={name}
             data-variant={variant}
             data-size={size}
+            data-truncate={truncate || undefined}
             data-disabled={disabled || undefined}
             data-selected={selected || undefined}
             data-clickable={onClick && !disabled ? "" : undefined}

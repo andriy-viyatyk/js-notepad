@@ -1,17 +1,16 @@
 import { useCallback } from "react";
-import { createPortal } from "react-dom";
 import { FileSearch } from "../../components/file-search";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import type { ExplorerEditor } from "./ExplorerEditorModel";
 import { IconButton } from "../../uikit/IconButton";
-import { Spacer } from "../../uikit/Spacer";
 import { Text } from "../../uikit/Text";
 import { CloseIcon } from "../../theme/icons";
 import { fpBasename } from "../../core/utils/file-path";
 
-export default function SearchSecondaryView({ model: rawModel, headerRef }: SecondaryViewProps) {
+export default function SearchSecondaryView({ model: rawModel, headerRef, icon }: SecondaryViewProps) {
     const model = rawModel as ExplorerEditor;
     const rootPath = model.rootPath;
     const pageId = model.page?.id ?? "";
@@ -27,25 +26,26 @@ export default function SearchSecondaryView({ model: rawModel, headerRef }: Seco
         }));
     }, [pageId, model]);
 
-    const headerContent = (
-        <>
-            <Text truncate color="light" title={searchFolder}>
-                Search [{searchFolderName}]
-            </Text>
-            <Spacer />
-            <IconButton
-                name="search-secondary-close"
-                size="sm"
-                title="Close Search"
-                icon={<CloseIcon />}
-                onClick={(e) => { e.stopPropagation(); model.closeSearch(); }}
-            />
-        </>
-    );
-
     return (
         <>
-            {headerRef && createPortal(headerContent, headerRef)}
+            <SideBarPanelHeader
+                headerRef={headerRef}
+                icon={icon}
+                title={
+                    <Text truncate color="light" size="md" title={searchFolder}>
+                        Search [{searchFolderName}]
+                    </Text>
+                }
+                actions={
+                    <IconButton
+                        name="search-secondary-close"
+                        size="sm"
+                        title="Close Search"
+                        icon={<CloseIcon />}
+                        onClick={(e) => { e.stopPropagation(); model.closeSearch(); }}
+                    />
+                }
+            />
             <FileSearch
                 folder={rootPath}
                 state={model.searchState}

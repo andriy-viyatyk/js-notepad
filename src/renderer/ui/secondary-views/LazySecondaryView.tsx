@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { secondaryViewRegistry, type SecondaryViewProps } from "./secondary-view-registry";
 import type { EditorOrHost } from "../../editors/base";
 import color from "../../theme/color";
@@ -8,10 +8,12 @@ interface LazySecondaryViewProps {
     /** Panel-type id — the registry key (NOT an editor instance id). */
     panelId: string;
     headerRef: HTMLDivElement | null;
+    /** Resolved leading header icon, forwarded to the panel component. */
+    icon?: ReactNode;
 }
 
 /** Loads a secondary view component from the registry and renders it. */
-export function LazySecondaryView({ model, panelId, headerRef }: LazySecondaryViewProps) {
+export function LazySecondaryView({ model, panelId, headerRef, icon }: LazySecondaryViewProps) {
     const [Component, setComponent] = useState<ComponentType<SecondaryViewProps> | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -32,5 +34,5 @@ export function LazySecondaryView({ model, panelId, headerRef }: LazySecondaryVi
 
     if (error) return <div style={{ padding: 8, color: color.text.light }}>{error}</div>;
     if (!Component) return null;
-    return <Component model={model} headerRef={headerRef} />;
+    return <Component model={model} headerRef={headerRef} icon={icon} />;
 }

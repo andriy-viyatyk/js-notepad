@@ -6,6 +6,9 @@ export interface SecondaryViewProps {
     model: EditorOrHost;
     /** Portal target for the panel header. Render title, buttons, etc. into this element via createPortal. */
     headerRef: HTMLDivElement | null;
+    /** Resolved leading header icon (registry per-panel override ?? the owning editor's
+     *  `EditorIcon`), supplied by the host. Forward to `SideBarPanelHeader`'s `icon` prop. */
+    icon?: React.ReactNode;
 }
 
 /** Registration for a secondary view type. */

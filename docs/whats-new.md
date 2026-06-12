@@ -144,6 +144,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Storybook — dedicated icon** — The Storybook tool now has its own book-with-bookmark icon on its page tab and in the **Tools & Editors** list, replacing the generic list icon it previously shared with other tools.
 
+- **Sidebar panel headers — title truncation** — When the sidebar is narrowed, panel header titles (and the repository-name badge on git panels) now truncate with an ellipsis instead of pushing action buttons off the right edge. The action buttons — Refresh, AZ sort toggle, Show Git Tree, Close, etc. — remain fully visible at all sidebar widths.
+
 ### Bug Fixes
 
 - **Folder links open the Explorer panel** — Clicking a link that resolves to a directory (e.g. a `file://` link in a Markdown preview, a Links list entry, or any other link) now opens the folder in the **File Explorer** sidebar panel — the same view you would get from **"Open Folder"** in the sidebar. Previously such links opened a blank Monaco text editor instead of a folder browser.

@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import { GitTreeEditorModel } from "./GitTreeEditorModel";
 import { buildRefsTree, BRANCHES_ROOT_VALUE, REF_COLOR, type GitRefNode } from "../../components/git-tree";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Tag } from "../../uikit/Tag";
-import { Spacer } from "../../uikit/Spacer";
 import { Tree } from "../../uikit/Tree";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import type { MenuItem } from "../../uikit/Menu";
@@ -54,18 +53,20 @@ function decorateNodes(nodes: GitRefNode[], currentValue?: string): GitRefNode[]
     return nodes;
 }
 
-export default function GitBranchesSecondaryView({ model, headerRef }: SecondaryViewProps) {
+export default function GitBranchesSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     // Type-guard before any hooks (same pattern as GitChangesSecondaryView).
     if (!(model instanceof GitTreeEditorModel)) return null;
-    return <GitBranchesBody model={model} headerRef={headerRef} />;
+    return <GitBranchesBody model={model} headerRef={headerRef} icon={icon} />;
 }
 
 function GitBranchesBody({
     model,
     headerRef,
+    icon,
 }: {
     model: GitTreeEditorModel;
     headerRef: SecondaryViewProps["headerRef"];
+    icon: SecondaryViewProps["icon"];
 }) {
     const { refs, gitOk } = model.branches.state.use((s) => ({
         refs: s.refs,
@@ -159,25 +160,11 @@ function GitBranchesBody({
         [model],
     );
 
-    const header = (
+    const actions = (
         <>
-            <Panel direction="row" align="center" gap="sm" overflow="hidden">
-                {/* Repository name (folder basename) as a badge; full path on hover —
-                    mirrors the Git Tree editor toolbar. */}
-                <Tag
-                    name="git-branches-repo-name"
-                    variant="outlined"
-                    size="sm"
-                    label={model.repoName}
-                    title={model.state.get().repoRoot}
-                />
-                <Text color="inherit" truncate>Branches &amp; Tags</Text>
-            </Panel>
-            <Spacer />
-            {/* Promote the Git Tree back to the page's main view (US-620 /
-                US-634). Useful after clicking a changed file or ref opened the
-                diff as the main editor — brings the commit tree back without
-                leaving the panel. */}
+            {/* Promote the Git Tree back to the page's main view. Useful after
+                clicking a changed file or ref opened the diff as the main editor —
+                brings the commit tree back without leaving the panel. */}
             <IconButton
                 name="git-branches-show-tree"
                 size="sm"
@@ -209,9 +196,9 @@ function GitBranchesBody({
                     model.refresh();
                 }}
             />
-            {/* The editor's sole manual-close affordance (relocated here from the
-                Changes panel, US-634). Tears down the whole Git Tree editor — both
-                panels — and empties the page when it is the main editor. */}
+            {/* The editor's sole manual-close affordance. Tears down the whole Git
+                Tree editor — both panels — and empties the page when it is the main
+                editor. */}
             <IconButton
                 name="git-branches-close"
                 size="sm"
@@ -233,7 +220,24 @@ function GitBranchesBody({
             overflow="hidden"
             width="100%"
         >
-            {headerRef && createPortal(header, headerRef)}
+            <SideBarPanelHeader
+                headerRef={headerRef}
+                icon={icon}
+                badge={
+                    /* Repository name (folder basename) as a badge; full path on
+                       hover — mirrors the Git Tree editor toolbar. */
+                    <Tag
+                        name="git-branches-repo-name"
+                        variant="outlined"
+                        size="sm"
+                        truncate
+                        label={model.repoName}
+                        title={model.state.get().repoRoot}
+                    />
+                }
+                title="Branches & Tags"
+                actions={actions}
+            />
             {!gitOk ? (
                 <Panel padding="md">
                     <Text color="light">Git is unavailable.</Text>
