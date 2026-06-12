@@ -16,7 +16,7 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Git Diff editor switch** — For any text file inside a git repository, a **Git Diff** button appears in the editor switch toolbar (alongside Text Editor, Preview, etc.). Click it to open a Monaco side-by-side diff view. Two picker buttons (**From** / **To**) at the left of the toolbar pick the revisions to compare — each opens a popover with a compact commit list scoped to the file's history. **Unstaged** (current working tree) and **Staged** (git index — shown only when staged changes exist) appear as inline rows at the top of the list. The default comparison is the file's latest commit on the left versus Unstaged on the right. When **To** is set to **Unstaged**, the right pane is editable and writes changes back to the file. Comparing two commits or Staged is read-only. The selected revision pair is persisted across restarts. If the file is not tracked by git (or git fails), the editor shows an explanatory message with a **Switch to Text Editor** button.
 
-  > Git integration is v1. Push, branch, and merge operations are not yet available. Staging, unstaging, and committing staged changes are supported via the Changes panel.
+  > Git integration is v1. Merge operations are not yet available. Staging, unstaging, committing, fetching, and pushing are supported.
 
 - **Git Tree — "Changes" panel** — When the Git Tree editor is open, a **Changes** panel now appears in the sidebar showing all modified files in the repository. The panel is split into two sections: **Unstaged** (top) lists working-tree edits and untracked files; **Staged** (bottom) lists files in the git index. Each row shows the repo-relative path with a file icon and a right-aligned colored status badge (`M` modified, `A` added, `D` deleted, `R` renamed, `?` untracked). Single-click any file to open its **Git Diff** in the page — the Changes panel stays so you can review files one by one. A **Refresh** button on the panel header (and the Git Tree toolbar) reloads both the commit history and the file status. Git-ignored files are not shown.
 
@@ -98,6 +98,19 @@ Release notes and changelog for Persephone (formerly js-notepad).
   - **Detached HEAD** — when HEAD is not on any branch, the field starts empty and must be filled before committing. This ensures the commit is kept on a real named branch instead of becoming unreachable after a future checkout.
   - An empty branch name disables the action button (red border). If the branch name is invalid or already exists, a toast describes the error and the **dialog stays open** — your message and branch name are preserved so you can fix and retry without retyping.
 
+- **Git Tree — Pull, Fetch, and Push** — The Git Tree editor toolbar now shows a grouped left cluster: a **"Repo:"** label, the repository name badge (hover for full path), an **ahead/behind indicator** (↑ / ↓ showing how many commits the current branch is ahead of or behind its remote tracking branch), and action buttons — **Pull** (split-button), **Push**, and **Refresh** (right side, unchanged).
+
+  - **Ahead / behind indicator** — Shows `↑N` (commits not yet pushed) and `↓N` (commits on the remote not yet pulled) for the current branch. Only appears when the branch has a remote tracking branch configured. Updates automatically on every refresh. The `↓N` indicator is the cue that a pull is available.
+  - **Pull (split-button)** — The standalone Fetch button has been replaced with a **Pull** split-button. Primary click runs **Pull (merge)**: fetches from the upstream remote and merges it into the current branch in one step. Click the caret (▾) to open a dropdown with two items: **Pull (merge)** (same as the primary click) and **Fetch all** (`git fetch --all --prune` — the action the old Fetch button performed). The Pull button is **disabled** when the current branch has no upstream tracking branch; the **Fetch all** dropdown item stays available. On a no-op pull, a toast shows "Already up to date." On merge conflicts, a toast lists the conflicted files (up to 5) and they appear in the Changes panel's Unstaged list with status `U` — resolve them in an external editor or the File Diff view, then commit. Pull over HTTPS without stored credentials fails fast with an error toast; no in-app credential prompt is shown.
+  - **Push** — Pushes the current branch to its remote tracking branch. The first push of a newly created branch automatically sets the upstream (`-u`). Push never force-pushes; if the remote has commits the local branch does not (non-fast-forward), a toast explains that you need to pull first.
+  - **Authentication** — Pull and push both rely on the OS credential manager (HTTPS remotes) or SSH agent (SSH remotes). Persephone does not prompt for credentials inline. If no credential is stored and the remote requires authentication, the operation fails immediately with a clear error rather than hanging.
+
+- **Commit dialog — Commit & Push** — The Commit dialog now has a second action button alongside **Commit**:
+
+  - **Commit & Push** — commits all staged files and immediately pushes the result to the remote. Equivalent to clicking **Commit** then **Push** in one step. The first push of a newly created branch sets the upstream automatically.
+  - When you type a new branch name in the **Branch** field, the button relabels to **& Push** (the primary button becomes **"Create Branch & Commit"** and the secondary becomes **"& Push"** to keep the labels compact).
+  - If the push is rejected (non-fast-forward) after a successful commit, the commit is kept and a toast describes the push failure — the staged files are already committed and are not lost.
+
 - **Image export — save rendered PNG to file** — The Mermaid Diagram Viewer, SVG Preview, and Image Viewer can now save their rendered output to a file:
 
   - **Mermaid & SVG** — A new **Save as PNG** toolbar button opens a save dialog and writes the rendered diagram or SVG as a PNG. The PNG is rasterised by Persephone's own rendering engine, so diagram text and custom fonts are reproduced faithfully (external mermaid-to-PNG converters often render empty text boxes because they cannot access the browser's font stack).
@@ -105,7 +118,27 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   **Scripting & agent API** — `page.asMermaid()`, `page.asSvg()`, and the new `page.asImage()` each expose a `savePngToFile(filePath)` method that writes a PNG to disk without a dialog. The method renders on demand — for Mermaid diagrams it triggers rendering even when the page is not the active tab. MCP agents can call `execute_script` to save a diagram to a temp file and read it back as an image for vision analysis. See [`asMermaid()`](./api/page.md#asmermaid--promiseimermaideditor), [`asSvg()`](./api/page.md#assvg--promiseisvgeditor), and [`asImage()`](./api/page.md#asimage--promiseimageeditor).
 
+- **MCP — browser profile awareness** — AI agents connecting via the MCP server can now discover and target browser profiles reliably. This is the key building block for multi-profile automation (e.g., directing an agent to act on the page holding your work Outlook/SharePoint login, not your personal profile).
+
+  - **`get_app_info`** — now returns `browserProfiles` (array of configured profile names) and `defaultBrowserProfile`. Call this once to discover valid profile names before issuing browser tool calls.
+  - **`list_pages` / `get_active_page`** — browser pages now include `profileName` (`""` = built-in default), `isIncognito`, `isTor`, and `url` (the active tab's URL). `url` is omitted for incognito/Tor pages to preserve privacy.
+  - **`list_windows`** — browser pages now include `profileName`, `isIncognito`, and `isTor` (no `url`; works even for closed windows).
+  - **All 14 `browser_*` tools** — each now accepts optional `pageId` and `profileName` parameters. `pageId` takes precedence; `profileName` selects the browser page of that profile (`""` = default). The resolved page is focused automatically. Neither parameter ever matches incognito or Tor pages. When no matching page is found the error suggests using `open_url` with `profileName` to open one.
+  - **`open_url`** — the existing profile-matched reuse behavior is now documented: with `profileName` the tool adds the tab to (or focuses) an existing page of that profile, or creates a new page with that profile — it never attaches to a different-profile page.
+
+  See [MCP Server Setup — Browser Profiles](./mcp-setup.md#browser-profiles) for usage examples.
+
+### UI Polish
+
+- **Sidebar panel header icons** — Each secondary-view panel in the sidebar now shows a small icon at the start of its header row, matching the icon the editor displays on its page tab. This makes it easy to tell panels apart when multiple editors are open at once — for example, the **File Explorer** panel shows a folder icon, the **Search** panel shows a search icon, and the **Changes** and **Branches & Tags** git panels show the git icon.
+
+- **Git sidebar panels — repository badge** — The **Branches & Tags** and **Changes** panel headers now display the repository name as a small bordered badge (matching the style used in the Git Tree toolbar), replacing the plain `[name]` bracket notation used previously.
+
+- **Storybook — dedicated icon** — The Storybook tool now has its own book-with-bookmark icon on its page tab and in the **Tools & Editors** list, replacing the generic list icon it previously shared with other tools.
+
 ### Bug Fixes
+
+- **Folder links open the Explorer panel** — Clicking a link that resolves to a directory (e.g. a `file://` link in a Markdown preview, a Links list entry, or any other link) now opens the folder in the **File Explorer** sidebar panel — the same view you would get from **"Open Folder"** in the sidebar. Previously such links opened a blank Monaco text editor instead of a folder browser.
 
 - **Browser reload — unsaved-changes confirmation** — A soft reload (Reload button, `F5`, `Ctrl+R`) on a page with an unsaved-changes guard (a `beforeunload` handler) now shows a confirmation dialog: **"You have unsaved changes. Leave the page and discard them?"** — click **Leave** to reload or **Cancel** to stay. Previously the reload appeared to do nothing because the guard silently blocked it. A hard reload (`Ctrl+F5` / `Ctrl+Shift+R`) still reloads immediately without prompting, bypassing the guard.
 

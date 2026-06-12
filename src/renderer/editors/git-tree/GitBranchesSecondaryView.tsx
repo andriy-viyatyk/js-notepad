@@ -6,6 +6,7 @@ import { GitTreeEditorModel } from "./GitTreeEditorModel";
 import { buildRefsTree, BRANCHES_ROOT_VALUE, REF_COLOR, type GitRefNode } from "../../components/git-tree";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
+import { Tag } from "../../uikit/Tag";
 import { Spacer } from "../../uikit/Spacer";
 import { Tree } from "../../uikit/Tree";
 import { IconButton } from "../../uikit/IconButton/IconButton";
@@ -160,7 +161,18 @@ function GitBranchesBody({
 
     const header = (
         <>
-            <Text color="inherit" truncate>{`[${model.repoName}] Branches & Tags`}</Text>
+            <Panel direction="row" align="center" gap="sm" overflow="hidden">
+                {/* Repository name (folder basename) as a badge; full path on hover —
+                    mirrors the Git Tree editor toolbar. */}
+                <Tag
+                    name="git-branches-repo-name"
+                    variant="outlined"
+                    size="sm"
+                    label={model.repoName}
+                    title={model.state.get().repoRoot}
+                />
+                <Text color="inherit" truncate>Branches &amp; Tags</Text>
+            </Panel>
             <Spacer />
             {/* Promote the Git Tree back to the page's main view (US-620 /
                 US-634). Useful after clicking a changed file or ref opened the

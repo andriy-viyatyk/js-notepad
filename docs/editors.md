@@ -457,8 +457,27 @@ Column widths and order are remembered. Resize or reorder any column and the lay
 
 **Toolbar:**
 
-- **Repository name** — The toolbar displays the repository folder name. Hover over it to see the full path.
-- **Refresh** — Reload both the commit history and the Changes panel from disk.
+The toolbar has two groups separated by a divider. The left cluster shows repository context and remote actions; **Refresh** stays on the right.
+
+Left cluster (left to right):
+
+- **"Repo:" label** — static label identifying the cluster as repository controls.
+- **Repository name badge** — the repository folder name. Hover to see the full path to the repository root.
+- **Ahead / behind indicator** — shows `↑N` (local commits not yet pushed) and `↓N` (remote commits not yet pulled) for the current branch. Only visible when the branch has a configured remote tracking branch. Updated on every refresh.
+- **Pull (split-button)** — fetches and merges the upstream into the current branch in one step (`git pull`). The button has two parts:
+  - **Primary click** — runs **Pull (merge)**: fetches from the upstream and merges it into the working tree.
+  - **Caret (▾)** — opens a dropdown with two items:
+    - **Pull (merge)** — same action as the primary click.
+    - **Fetch all** — runs `git fetch --all --prune`, downloading all remotes and removing stale remote-tracking branches (the action the standalone Fetch button performed in earlier versions).
+  - The Pull button is **disabled** (greyed out) when the current branch has no configured upstream tracking branch. The **Fetch all** dropdown item remains available regardless.
+  - **On success:** if the branch was already up to date, a toast shows "Already up to date." If the pull merges new commits, the commit grid refreshes automatically.
+  - **Conflicts:** if the merge produces conflicts, a toast lists up to 5 conflicted files and the files appear in the **Changes** panel's **Unstaged** list with status `U`. Resolve conflicts in an external editor or the File Diff view, then commit.
+  - **Authentication:** pull over HTTPS uses the OS credential manager or SSH agent — Persephone shows no in-app credential prompt. If no credential is stored and authentication is required, the operation fails immediately with an error toast.
+- **Push** — pushes the current branch to its remote tracking branch. The first push of a newly created branch automatically sets the upstream (`-u`). Push never force-pushes; a non-fast-forward rejection shows a toast asking you to pull first. Authentication uses the OS credential manager or SSH agent — no in-app credential prompt.
+
+Right side:
+
+- **Refresh** — reloads both the commit history and the Changes panel from disk.
 
 **Pagination:** The first 200 commits load immediately. A **Load more** row at the bottom of the list appends the next 200 commits. A **Load all** option fetches the entire history at once (use with care on very large repos).
 
@@ -482,7 +501,7 @@ If the name is invalid (e.g. contains spaces or other disallowed characters) or 
 
 **Branches & Tags panel:**
 
-When the Git Tree editor is open, a **Branches & Tags** panel appears in the sidebar above the Changes panel. The panel header shows the repository name: **[repoName] Branches & Tags**.
+When the Git Tree editor is open, a **Branches & Tags** panel appears in the sidebar above the Changes panel. The panel header shows the repository name as a small bordered badge alongside the panel title (e.g. **persephone** · Branches & Tags), matching the badge style used in the Git Tree toolbar.
 
 The panel renders the repository's refs as a tree:
 
@@ -511,7 +530,7 @@ The panel header has four buttons:
 
 **Changes panel:**
 
-When the Git Tree editor is open, a **Changes** panel appears in the sidebar below the Branches & Tags panel. The panel header shows the repository name and a count of changed files: **[repoName] Changes (n)** (e.g. `[persephone] Changes (3)`). The count reflects the union of unstaged and staged files — a file modified in both lists is counted once. The panel is split into two parts:
+When the Git Tree editor is open, a **Changes** panel appears in the sidebar below the Branches & Tags panel. The panel header shows the repository name as a bordered badge alongside the panel title and a count of changed files (e.g. **persephone** · Changes (3)). The count reflects the union of unstaged and staged files — a file modified in both lists is counted once. The panel is split into two parts:
 
 - **Unstaged** (top) — working-tree modifications not yet staged, plus untracked files. Git-ignored files are not shown.
 - **Staged** (bottom) — files currently in the git index (ready to commit).
@@ -577,6 +596,7 @@ Clicking **Commit** opens a dialog with:
 From the dialog:
 
 - Click **Commit** (or **Create Branch & Commit**, or press **Ctrl+Enter**) to commit all staged files with the message and author shown.
+- Click **Commit & Push** (or **& Push** when a new branch name is typed) to commit and immediately push the result to the remote in one step. The first push of a newly created branch sets the upstream automatically. If the push is rejected after a successful commit, the commit is kept and a toast describes the push failure.
 - Click **Cancel** (or press **Esc**) to close without committing.
 
 On success the **Staged** list clears and the new commit appears at the top of the Git Tree. On failure (e.g. the branch name is invalid, the name already exists, no git identity configured, or a failing pre-commit hook) a toast notification describes the error and **the dialog stays open** — your message and branch name are preserved so you can fix the problem and retry without retyping.
@@ -608,7 +628,7 @@ The Git Tree panels do not close on their own — navigating away or switching e
 
 The Git Tree and Changes panel update automatically when the repository changes on disk — no manual **Refresh** needed. Saving a tracked file, staging or unstaging, committing, checking out, merging, or fetching all trigger a refresh within about half a second. Auto-refresh is always on when Git integration is enabled.
 
-The Git Tree supports inspecting history, browsing branches and tags, switching branches and commits, staging/unstaging files, and committing staged changes. Push and merge operations are not yet available.
+The Git Tree supports inspecting history, browsing branches and tags, switching branches and commits, staging/unstaging files, committing staged changes, pulling (fetch + merge), fetching from all remotes, and pushing the current branch. Merge operations initiated outside of pull are not yet available.
 
 ## Git Diff
 

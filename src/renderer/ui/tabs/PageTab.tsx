@@ -21,6 +21,7 @@ import {
     VolumeMutedIcon,
 } from "../../theme/icons";
 import { LanguageIcon } from "../../components/icons/LanguageIcon";
+import { EditorIcon } from "../../components/icons/EditorIcon";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { IconButton, Tooltip, WithMenu } from "../../uikit";
 import type { MenuItem } from "../../uikit";
@@ -621,7 +622,7 @@ export function PageTab(props: PageTabProps) {
             )}
             {editor?.noLanguage ? (
                 <span data-part="empty-language" data-with-icon={editor.getIcon ? "" : undefined}>
-                    {editor.getIcon ? editor.getIcon() : null}
+                    <EditorIcon editor={editor} />
                 </span>
             ) : (
                 <WithMenu items={languageMenuItems}>
@@ -630,7 +631,7 @@ export function PageTab(props: PageTabProps) {
                             name="tab-language"
                             size="sm"
                             title={language}
-                            icon={<LanguageIcon language={language} fileName={title} />}
+                            icon={<EditorIcon editor={{ language, title }} />}
                             onClick={(e) => {
                                 if (!tabModel.isActive && e.ctrlKey) {
                                     tabModel.handleClick(e);

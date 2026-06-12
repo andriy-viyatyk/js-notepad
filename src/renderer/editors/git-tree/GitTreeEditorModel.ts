@@ -15,7 +15,7 @@ import { createLinkData } from "../../../shared/link-data";
 import { fpJoin } from "../../core/utils/file-path";
 import { DirectoryWatcher } from "../../core/utils/file-watcher";
 import { decodeGitTreeLink, encodeGitTreeLink } from "../../content/git-tree-link";
-import type { GitFileChange, GitSwitchTarget } from "../../../ipc/git-ipc";
+import type { GitFileChange, GitSwitchTarget, GitPullOptions } from "../../../ipc/git-ipc";
 import type { ILinkDiffRevision } from "../../api/types/io.link-data";
 
 export interface GitTreeEditorState extends EditorStateBase {
@@ -235,6 +235,30 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         this.refresh();
     };
 
+    /** Fetch all remotes, then refresh the graph + ahead/behind (US-641). Delegates
+     *  busy state + toast to the branches submodel. */
+    fetch = async (): Promise<void> => {
+        await this.branches.fetch();   // sets fetching, toasts on failure, reloads refs + ahead/behind
+        this.refresh();                // reload the commit graph (new remote-tracking commits)
+    };
+
+    /** Push the current branch (US-641). Delegates upstream-detection + busy state +
+     *  toast to the branches submodel, then refreshes the graph + ahead/behind. */
+    push = async (): Promise<void> => {
+        await this.branches.push();
+        this.refresh();
+    };
+
+    /** Pull from the current branch's upstream, then reload the commit graph +
+     *  ahead/behind + Changes panel (US-642). Delegates the git op + toast to
+     *  `branches.pull()`, then `this.refresh()` (visibility-aware: reloads the graph +
+     *  ahead/behind, and the Changes panel when it's open). The view calls `model.pull()`
+     *  — not `branches.pull()` — keeping cross-model coordination in the editor model. */
+    pull = async (opts?: GitPullOptions): Promise<void> => {
+        await this.branches.pull(opts);
+        this.refresh();
+    };
+
     /** Seed repoRoot + title from a decoded `git-tree://` link, then load. */
     initFromRepoRoot(repoRoot: string): void {
         const folder = repoFolderName(repoRoot);
@@ -310,7 +334,8 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
      *  reloading the commit log + status + refs on every working-tree change when
      *  the user is looking at only one of them. */
     refresh = (): void => {
-        if (this.isTreeVisible()) this.refreshTree(); else this.gitTree.markStale();
+        if (this.isTreeVisible()) { this.refreshTree(); void this.branches.reloadAheadBehind(); }
+        else this.gitTree.markStale();
         if (this.isPanelVisible("git-changes")) this.refreshChanges(); else this.changes.markStale();
         if (this.isPanelVisible("git-branches")) this.refreshBranches(); else this.branches.markStale();
     };

@@ -5,7 +5,7 @@ import {
     DrawIcon, GraphIcon, GridIcon, IncognitoIcon, RestClientIcon, TorIcon,
     JavascriptIcon, LinkIcon, NotebookIcon, TodoIcon, TypescriptIcon,
 } from "../../theme/language-icons";
-import { GlobeIcon, McpIcon, PlayerIcon, ViewListIcon } from "../../theme/icons";
+import { GlobeIcon, McpIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
 import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
 
 // =============================================================================
@@ -139,7 +139,7 @@ const staticItems: CreatableItem[] = [
     {
         id: "storybook",
         label: "Storybook",
-        icon: React.createElement(ViewListIcon),
+        icon: React.createElement(StorybookIcon),
         create: () => { pagesModel.showStorybookPage(); },
         category: "tool",
     },

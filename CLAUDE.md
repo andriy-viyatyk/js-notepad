@@ -329,6 +329,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |
 | Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
 | Syntax-highlighted code  | `/src/renderer/editors/shared/ColorizedCode.tsx`  |
+| Editor icon resolver (tab + sidebar panel headers; `noLanguage`/`getIcon` vs `LanguageIcon`) | `/src/renderer/components/icons/EditorIcon.tsx` |
 | Notebook editor          | `/src/renderer/editors/notebook/NotebookEditor.ts` |
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Note item edit model     | `/src/renderer/editors/notebook/note-editor/NoteItemEditModel.ts` |
@@ -370,7 +371,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Git Tree component       | `/src/renderer/components/git-tree/GitTree.tsx`   |
 | Git Tree model (load/paginate) | `/src/renderer/components/git-tree/GitTreeModel.ts` |
 | Git changes (status) model + stage/unstage/reset/commit (+ branch, identity) | `/src/renderer/components/git-tree/GitChangesModel.ts` |
-| Git refs (branches/remotes/tags) model | `/src/renderer/components/git-tree/GitBranchesModel.ts` |
+| Git refs (branches/remotes/tags) model + fetch / push / pull / ahead-behind | `/src/renderer/components/git-tree/GitBranchesModel.ts` |
 | Refs-tree builder (Branches/Remotes/Tags nodes, `/`-folding, historical/alpha order) | `/src/renderer/components/git-tree/git-refs-tree.ts` |
 | Git status badge         | `/src/renderer/components/git-tree/GitStatusBadge.tsx` |
 | Git ref chip (branch/tag/HEAD, shared) | `/src/renderer/components/git-tree/RefBadge.tsx` |
@@ -381,7 +382,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Git Tree editor view (toolbar + grid + bottom panel) | `/src/renderer/editors/git-tree/GitTreeEditorView.tsx` |
 | Git Tree "Changes" panel (stage/unstage/reset + Commit button — buttons, double-click, context menu) | `/src/renderer/editors/git-tree/GitChangesSecondaryView.tsx` |
 | Git Tree "Branches & Tags" panel (refs tree, head-green active branch, AZ/historical order, click-to-reveal, Switch context menu, "Show Git Tree" + "x" close) | `/src/renderer/editors/git-tree/GitBranchesSecondaryView.tsx` |
-| Commit dialog (message + author Name/Email + branch; `showCommitDialog`) | `/src/renderer/ui/dialogs/CommitDialog.tsx` |
+| Commit dialog (message + author Name/Email + branch; "Commit" / "Commit & Push" actions; `showCommitDialog`) | `/src/renderer/ui/dialogs/CommitDialog.tsx` |
 | Git Tree "Commit" bottom panel (commit metadata + message) | `/src/renderer/editors/git-tree/CommitInfoPanel.tsx` |
 | Git Tree "Diff" bottom panel (changed-file list + inline Monaco diff) | `/src/renderer/editors/git-tree/CommitDiffPanel.tsx` |
 | File Diff editor (single shared `fileTree` model) | `/src/renderer/editors/file-diff/FileDiffEditor.ts` |

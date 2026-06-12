@@ -1,6 +1,8 @@
+import { createElement } from "react";
 import { editorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { secondaryViewRegistry } from "../ui/secondary-views/secondary-view-registry";
+import { SearchIcon } from "../theme/icons";
 
 // =============================================================================
 // Secondary Editor Registrations (EPIC-016)
@@ -21,6 +23,9 @@ secondaryViewRegistry.register({
 secondaryViewRegistry.register({
     id: "search",
     label: "Search",
+    // Sidebar-only sub-panel of Explorer — give it the search glyph (the one on
+    // the Explorer header's "open search" button) instead of Explorer's folder icon.
+    icon: createElement(SearchIcon),
     loadComponent: () => import("./explorer/SearchSecondaryView"),
 });
 

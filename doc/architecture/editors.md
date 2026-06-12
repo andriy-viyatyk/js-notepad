@@ -93,10 +93,32 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
 
     // Secondary view membership (managed by setter, see secondary-views.md)
     secondaryView: string[] | undefined;
+
+    // Icon (see "Editor icons" below)
+    noLanguage: boolean;                 // default false
+    getIcon?: () => React.ReactNode;     // self-supplied icon for noLanguage editors
 }
 ```
 
 `EditorModel` extends `TDialogModel` indirectly via the queue/state primitives — every editor can `close()` with confirmation and has a `canClose` guard.
+
+## Editor icons
+
+The glyph that represents an editor — on its page tab, in the Tools & Editors list, and at the start of its sidebar panel headers — comes from one of two sources, decided per editor:
+
+- **`noLanguage` editors** (`noLanguage = true`) supply their own icon by assigning `getIcon` in the constructor — e.g. `this.getIcon = () => createElement(GitIcon)`. These are editors with no Monaco language (Git Tree, Archive, Explorer, Storybook, …). An editor that sets `noLanguage` but no `getIcon` shows no icon.
+- **Language editors** (`noLanguage = false`, the default) derive a file-type icon from their `language` + `title` via `LanguageIcon` (`components/icons/LanguageIcon.tsx`, which resolves the language map, compound-extension patterns like `*.note.json` → Notebook, the OS system icon, then a default).
+
+This decision is centralized in the shared **`EditorIcon`** resolver ([`components/icons/EditorIcon.tsx`](../../src/renderer/components/icons/EditorIcon.tsx)):
+
+```tsx
+<EditorIcon editor={model} />
+// noLanguage ? editor.getIcon?.() : <LanguageIcon language={editor.language} fileName={editor.title} />
+```
+
+`EditorIcon` accepts a duck-typed `EditorIconSource` (`{ noLanguage?, getIcon?, language?, title? }`) rather than importing `EditorModel`, so `components/icons` stays decoupled from the editors layer. It is the single source of truth shared by the page tab (`PageTab.tsx`) and the sidebar panel headers (`SecondaryViews.tsx`), so the two never drift. It forces **no size and no color**: icons carry their own sizing, and leaving `color` unset lets the surrounding header color cascade — monochrome `currentColor` icons (e.g. `GitIcon`) follow the header state (accent when a panel is active), while explicitly-colored icons (Todo/Link, the folder emoji, the Storybook brand mark) keep their own hue.
+
+The Tools & Editors list keeps its **own** per-item icon in [`tools-editors-registry.ts`](../../src/renderer/ui/sidebar/tools-editors-registry.ts) (it lists editor *types*, not live models), so a new editor icon must be set there too if the editor appears in that list.
 
 ## IContentHost
 

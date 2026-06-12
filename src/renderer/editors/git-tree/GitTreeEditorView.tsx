@@ -6,8 +6,12 @@ import { Text } from "../../uikit/Text";
 import { Splitter } from "../../uikit/Splitter";
 import { SegmentedControl } from "../../uikit/SegmentedControl";
 import { IconButton } from "../../uikit/IconButton/IconButton";
+import { SplitButton } from "../../uikit/SplitButton";
+import { Divider } from "../../uikit/Divider";
+import { Tag } from "../../uikit/Tag";
 import type { MenuItem } from "../../uikit/Menu";
-import { RefreshIcon, GitIcon, GlobeIcon } from "../../theme/icons";
+import { RefreshIcon, GitIcon, GlobeIcon, DownloadIcon, UploadIcon } from "../../theme/icons";
+import color from "../../theme/color";
 import { TComponentState } from "../../core/state/state";
 import { GitTree, type GitCommitRow } from "../../components/git-tree";
 import { CommitInfoPanel } from "./CommitInfoPanel";
@@ -37,6 +41,12 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
         loading: s.loading,
         gitOk: s.gitOk,
         hasCommits: s.commits.length > 0,
+    }));
+    const { aheadBehind, pushing, fetching, pulling } = model.branches.state.use((s) => ({
+        aheadBehind: s.aheadBehind,
+        pushing: s.pushing,
+        fetching: s.fetching,
+        pulling: s.pulling,
     }));
     const [selectedHash, setSelectedHash] = useState<string | undefined>(undefined);
 
@@ -177,11 +187,68 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                     />
                 }
             >
-                {/* Repository name (folder basename) — identifies which repo this
-                    Git Tree shows; full path on hover (US-620 follow-up). */}
-                <Text color="light" nowrap title={model.state.get().repoRoot}>
-                    {model.repoName}
-                </Text>
+                {/* Left group: repo identity + its main remote actions, closed by a
+                    vertical divider so it reads as one unit. Refresh stays at the far
+                    right (rightContributions). */}
+                <Panel direction="row" align="center" gap="sm">
+                    <Text color="light" nowrap>Repo:</Text>
+                    {/* Repository name (folder basename) as a badge; full path on hover. */}
+                    <Tag
+                        name="git-repo-name"
+                        variant="outlined"
+                        size="sm"
+                        label={model.repoName}
+                        title={model.state.get().repoRoot}
+                    />
+                    {(aheadBehind.ahead > 0 || aheadBehind.behind > 0) && (
+                        <Panel direction="row" gap="xs" align="center">
+                            {aheadBehind.ahead > 0 && <Text color={color.text.light} size="xs">{`↑${aheadBehind.ahead}`}</Text>}
+                            {aheadBehind.behind > 0 && <Text color={color.warning.text} size="xs">{`↓${aheadBehind.behind}`}</Text>}
+                        </Panel>
+                    )}
+                    {/* Pull split-button: primary = Pull (merge); caret dropdown =
+                        Pull (merge) + Fetch all. Replaces the standalone Fetch button —
+                        Fetch becomes the secondary dropdown action. */}
+                    <SplitButton
+                        name="git-tree-pull"
+                        size="sm"
+                        icon={<DownloadIcon />}
+                        title={
+                            !aheadBehind.hasUpstream ? "Pull (no upstream configured)"
+                                : aheadBehind.behind > 0 ? `Pull ${aheadBehind.behind} commit(s) — merge`
+                                    : "Pull — merge (up to date)"
+                        }
+                        disabled={pulling || fetching || !aheadBehind.hasUpstream}
+                        menuDisabled={pulling || fetching}
+                        onClick={() => void model.pull()}
+                        items={[
+                            {
+                                label: "Pull (merge)",
+                                icon: <DownloadIcon />,
+                                disabled: !aheadBehind.hasUpstream,
+                                onClick: () => void model.pull(),
+                            },
+                            {
+                                label: "Fetch all",
+                                startGroup: true,
+                                onClick: () => void model.fetch(),
+                            },
+                        ]}
+                    />
+                    <IconButton
+                        name="git-tree-push"
+                        size="sm"
+                        title={
+                            !aheadBehind.hasUpstream ? "Push (set upstream)"
+                                : aheadBehind.ahead > 0 ? `Push ${aheadBehind.ahead} commit(s)`
+                                    : "Nothing to push"
+                        }
+                        icon={<UploadIcon />}
+                        disabled={pushing || (aheadBehind.hasUpstream && aheadBehind.ahead === 0)}
+                        onClick={() => void model.push()}
+                    />
+                    <Divider name="git-toolbar-divider" orientation="vertical" />
+                </Panel>
             </PageToolbar>
             {body}
             {gitOk && hasCommits && (

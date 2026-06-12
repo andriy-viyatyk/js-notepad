@@ -27,6 +27,8 @@ Overview of all active and planned epics and tasks.
   - [x] [US-636: Git Tree — Switch to branch / remote branch / commit (context menus on grid + Branches panel)](tasks/US-636-git-switch-branch-commit/README.md)
   - [x] [US-637: File Diff — "commits to compare" link metadata (smarter Staged default + "Open in new Tab")](tasks/US-637-git-diff-compare-commits/README.md)
   - [x] [US-638: Create branch — Git Tree grid "Create branch here" + editable/required branch in Commit dialog](tasks/US-638-git-create-branch/README.md)
+  - [x] [US-641: Git Push — current branch + set-upstream + "Commit and Push" + shared fetch/ahead-behind/auth foundation](tasks/US-641-git-push/README.md)
+  - [x] [US-642: Git Pull — Git Extensions-style split-button (Pull-merge primary + "Fetch all" dropdown, new UIKit `SplitButton`); conflict reporting (depends on US-641)](tasks/US-642-git-pull/README.md)
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*

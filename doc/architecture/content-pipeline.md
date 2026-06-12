@@ -49,8 +49,8 @@ Registered in `parsers.ts` via `registerRawLinkParsers()`. Each parser receives 
 
 Registered in `resolvers.ts` via `registerResolvers()`. Each resolver uses `resolveUrlToPipeDescriptor()` (from `link-utils.ts`) to create a pipe descriptor, then `createPipeFromDescriptor()` (from `registry.ts`) to instantiate the pipe. Enriches the `ILinkData` object (sets `data.pipe`, `data.pipeDescriptor`, `data.target`) and forwards the same object on `app.events.openContent`.
 
-- **File resolver** (fallback) -- resolves file paths and archive paths (with "!") to pipe descriptors. Resolves target editor via `editorRegistry.resolveId()`.
-- **HTTP resolver** -- resolves HTTP/HTTPS URLs to pipe descriptors. Maps file extensions to editors via a built-in extension table. URLs without recognized extensions open in the browser tab (unless `data.fallbackTarget` overrides). cURL/fetch requests with `Accept` headers use header-based editor resolution.
+- **File resolver** (fallback) -- resolves file paths and archive paths (with "!") to pipe descriptors. Resolves target editor via `editorRegistry.resolveId()`. A plain (non-virtual, non-archive) path is first `stat`-ed via `app.fs.stat()`: if it is a **directory**, the resolver short-circuits — it opens an empty page (no main editor) with the Explorer panel rooted at the folder via `pagesModel.addEmptyPageWithNavPanel()` and marks `data.handled`, bypassing Layer 3 entirely. Directories never produce a content pipe.
+- **HTTP resolver** -- resolves HTTP/HTTPS URLs to pipe descriptors. Maps file extensions to editors via a built-in extension table. URLs without recognized extensions open in the browser tab (unless `data.fallbackTarget` overrides), short-circuiting Layer 3 the same way. cURL/fetch requests with `Accept` headers use header-based editor resolution.
 
 The `resolveUrlToPipeDescriptor()` utility is also used by tree providers to create pipes from URLs without going through the event channel system.
 

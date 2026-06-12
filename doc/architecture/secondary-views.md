@@ -206,24 +206,29 @@ secondaryViews.flatMap((model) => {
     const panelIds = model.secondaryView ?? [];
     return panelIds
         .filter((panelId) => secondaryViewRegistry.has(panelId))
-        .map((panelId) => (
-            <CollapsiblePanel key={`${model.id}-${panelId}`} id={panelKey(model.id, panelId)}
-                headerRef={setHeaderRef} alwaysRenderContent>
-                <LazySecondaryView model={model} panelId={panelId} headerRef={...} />
-            </CollapsiblePanel>
-        ));
+        .map((panelId) => {
+            const icon = secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />;
+            return (
+                <CollapsiblePanel key={`${model.id}-${panelId}`} id={panelKey(model.id, panelId)}
+                    icon={icon} headerRef={setHeaderRef} alwaysRenderContent>
+                    <LazySecondaryView model={model} panelId={panelId} headerRef={...} />
+                </CollapsiblePanel>
+            );
+        });
 })
 ```
 
 The React `key` stays the `${model.id}-${panelId}` ref-key; the accordion identity is the composite `id`. `activePanel` (composite) is passed to `CollapsiblePanelStack` after the bare-seed resolution described in §5a.
 
-**Portal-based headers:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. The loaded secondary view component uses `createPortal(headerContent, headerRef)` to render its title, buttons, and icons into the header. This lets each secondary view fully control its header content.
+**Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved as **per-panel registry override first, owning-editor icon otherwise** — `secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />`. `EditorIcon` ([`components/icons/EditorIcon.tsx`](../../src/renderer/components/icons/EditorIcon.tsx)) is the **shared resolver** that produces the same glyph an editor shows on its page tab (see [editors.md](editors.md#editor-icons)). Because `CollapsiblePanel.icon` renders inside the header `<div>` (in the same React tree as the toggle `onClick`, not portalled), clicking the icon toggles the panel — no portal click-through workaround is needed for it.
+
+**Portal-based headers:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. The loaded secondary view component uses `createPortal(headerContent, headerRef)` to render its title and buttons into the header (the leading icon comes from the `icon` prop above, not the portal). This lets each secondary view fully control its header content. Because portalled content lives in a separate React fiber tree, its clicks would bubble to the panel body rather than the header's toggle `onClick`; `CollapsiblePanelStack` makes non-interactive label primitives (`Text`, `Tag`, `Panel`) click-through (`pointer-events: none`) so a click on the title still toggles the panel, while interactive controls (`button`, `icon-button`, clickable `Tag`) re-assert pointer events.
 
 **`alwaysRenderContent`:** Keeps panel content mounted when collapsed (`display: none`). Required for portal components to render headers even when their panel is collapsed.
 
 **Reactivity:** `secondaryViews` is a plain array (EditorModel instances can't be in TOneState — Immer proxies would corrupt them). A `secondaryViewsVersion` counter (`TOneState<{ version }>`) is bumped on every add/remove. SecondaryViews subscribes via `.use()`.
 
-**Registry:** [`secondary-view-registry.ts`](../../src/renderer/ui/secondary-views/secondary-view-registry.ts) maps panel ID strings to React sidebar components via dynamic imports. Each registration provides an `id`, `label`, and `loadComponent()` factory.
+**Registry:** [`secondary-view-registry.ts`](../../src/renderer/ui/secondary-views/secondary-view-registry.ts) maps panel ID strings to React sidebar components via dynamic imports. Each registration provides an `id`, `label`, `loadComponent()` factory, and an optional `icon` — a per-panel header-icon override for sidebar-only sub-panels that want their own glyph instead of the owning editor's icon (e.g. the Explorer `"search"` panel registers a `SearchIcon`). Panels that omit `icon` fall back to the editor icon.
 
 ---
 
@@ -291,7 +296,7 @@ For Pattern B (mainEditor in secondaryViews[]), the model may be disposed twice 
 
 `GitTreeEditorModel` hosts **two** panels next to the commit graph — `"git-branches"` ("Branches & Tags", top) and `"git-changes"` ("Changes", bottom) — composed as focused submodels (`branches`, `changes`, plus `gitTree` for the graph), mirroring how `BrowserEditor` composes submodels. Both share the editor's repo root and refresh path.
 
-**Multiple repos coexist.** Opening a second repo's `.git` creates a second `GitTreeEditorModel`, so the page shows one of each panel per repo (distinct composite keys — see §5a). Headers read `[<repoName>] …` (`model.repoName`) to disambiguate.
+**Multiple repos coexist.** Opening a second repo's `.git` creates a second `GitTreeEditorModel`, so the page shows one of each panel per repo (distinct composite keys — see §5a). Each header leads with the repository name (`model.repoName`) rendered as an outlined `Tag` badge — mirroring the Git Tree editor toolbar — to disambiguate.
 
 **Commit-graph row context menu.** Right-clicking a commit row in the graph offers the same "Switch to …" actions as the Branches panel plus **"Create branch here…"** (`createBranchAt` → name prompt → `git switch -c <name> <commit>`, creating + checking out a branch at that commit; invalid/duplicate names toast). Single-commit only — disabled on a multi-row selection.
 
@@ -310,7 +315,7 @@ A refs tree built by `git-refs-tree.ts` (`buildRefsTree`) from the `GitRefs` DTO
 
 #### "Changes" panel (`"git-changes"`)
 
-The working-tree view. The header reads `[<repoName>] Changes (<n>)`, where `<n>` is the unique changed-file count — the union of the unstaged + staged repo-relative paths, so a partially-staged file (present in both lists) is counted once. The header keeps only a **Refresh** button (the "Show Git Tree" and "x" affordances live on the Branches & Tags header).
+The working-tree view. The header reads `‹repoName badge› Changes (<n>)` (the repo name as an outlined `Tag`), where `<n>` is the unique changed-file count — the union of the unstaged + staged repo-relative paths, so a partially-staged file (present in both lists) is counted once. The header keeps only a **Refresh** button (the "Show Git Tree" and "x" affordances live on the Branches & Tags header).
 
 - **Stage / unstage / commit.** A bar above the Staged grid carries a "Commit" button (left) + the stage/unstage arrows (right). Commit opens the modal `showCommitDialog` (`ui/dialogs/CommitDialog.tsx`) — an editable **required** branch field (red border when empty, via the UIKit `Input` `invalid` prop) + editable author Name/Email (prepopulated from git config) + message. The author identity is applied as a per-commit `-c` override (no config file is written); the `buttons` array is forward-compatible for a future "Commit and Push".
 

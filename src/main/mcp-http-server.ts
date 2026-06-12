@@ -177,6 +177,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 "If `browser_*` tools are listed, they follow the Playwright MCP convention.",
                 "Apply your Playwright knowledge — selectors, accessibility refs (ref=eN), navigation, evaluation, and snapshots all work as in Playwright MCP.",
                 "Use `browser_snapshot` to inspect the page structure before interacting.",
+                "Browser pages belong to profiles (separate cookie/login sessions). Use get_app_info → browserProfiles to discover them, and the profileName/pageId params on browser_* tools to target a specific page.",
                 "Note: browser_* tools only work on normal browser pages — incognito and Tor pages are blocked for privacy.",
             ].join("\n"),
         },
@@ -185,6 +186,14 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     // ── Window parameter (shared across tools) ────────────────────────
     const windowIndexParam = z.number().int().optional().describe(
         "Target window index (from list_windows). If omitted, uses the first open window. Use open_window to reopen closed windows first.",
+    );
+
+    // ── Browser-targeting parameters (shared across browser_* tools) ──
+    const browserPageIdParam = z.string().optional().describe(
+        "Target a specific browser page by page ID (from list_pages). Takes precedence over profileName.",
+    );
+    const browserProfileParam = z.string().optional().describe(
+        "Target the browser page of this profile (profile names: get_app_info → browserProfiles; '' = default profile). If omitted, uses the active (or first) browser page.",
     );
 
     // ── Resource file definitions (used by read_guide tool and resource registration) ──
@@ -236,7 +245,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     // ── Multi-window tools ───────────────────────────────────────────
     server.tool(
         "list_windows",
-        "List all windows (open and closed) with their status and pages. Closed windows have persisted pages and can be reopened with open_window. Returns array of { windowIndex, status, pageCount, activePageId, pages: [{ id, title, type, editor, language, filePath, modified, pinned }] }.",
+        "List all windows (open and closed) with their status and pages. Closed windows have persisted pages and can be reopened with open_window. Returns array of { windowIndex, status, pageCount, activePageId, pages: [{ id, title, type, editor, language, filePath, modified, pinned }] }. Browser pages also include { profileName, isIncognito, isTor }.",
         async () => {
             const result = openWindows.windows.map(w => {
                 const wState = windowStates.getState(w.index);
@@ -248,7 +257,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                     pages: (wState?.pages || []).map(p => {
                         // PageDescriptor: read main editor's state from editors[mainEditorId].
                         const main = p.editors.find(e => e.id === p.mainEditorId);
-                        const state = (main?.state ?? {}) as { title?: string; type?: string; editor?: string; language?: string; filePath?: string };
+                        const state = (main?.state ?? {}) as { title?: string; type?: string; editor?: string; language?: string; filePath?: string; profileName?: string; isIncognito?: boolean; isTor?: boolean };
                         return {
                             id: p.id,
                             title: state.title ?? "Empty",
@@ -258,6 +267,8 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                             filePath: state.filePath,
                             modified: p.modified,
                             pinned: p.pinned,
+                            // Browser pages: surface profile identity (persisted fields)
+                            ...(state.editor === "browser-view" ? { profileName: state.profileName ?? "", isIncognito: !!state.isIncognito, isTor: !!state.isTor } : {}),
                         };
                     }),
                 };
@@ -317,7 +328,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "list_pages",
-        "List all open pages (tabs) in a window. Returns array of { id, title, type, editor, language, filePath, modified, pinned, active }.",
+        "List all open pages (tabs) in a window. Returns array of { id, title, type, editor, language, filePath, modified, pinned, active }. Browser pages also include { profileName, isIncognito, isTor, url } (url = the active tab's URL; omitted for incognito/Tor pages).",
         {
             windowIndex: windowIndexParam,
         },
@@ -336,7 +347,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "get_active_page",
-        "Get the currently active (focused) page with its content and metadata. Returns { id, title, type, editor, language, filePath, modified, content }.",
+        "Get the currently active (focused) page with its content and metadata. Returns { id, title, type, editor, language, filePath, modified, content }. Browser pages also include { profileName, isIncognito, isTor, url } (url = the active tab's URL; omitted for incognito/Tor pages).",
         {
             windowIndex: windowIndexParam,
         },
@@ -394,7 +405,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "get_app_info",
-        "Get application info: { version, pageCount, activePageId }.",
+        "Get application info: { version, pageCount, activePageId, browserProfiles, defaultBrowserProfile } (browserProfiles = configured browser profile names; defaultBrowserProfile = '' for the built-in default).",
         {
             windowIndex: windowIndexParam,
         },
@@ -403,7 +414,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "open_url",
-        "Open a URL in the built-in browser. Persephone has a full browser with tabs, profiles, and incognito mode. Reuses an existing browser page if one is open (adds a new tab), or creates a new browser page. Returns { opened: url }.",
+        "Open a URL in the built-in browser. Persephone has a full browser with tabs, profiles, and incognito mode. Reuse is profile-matched: with profileName it adds the tab to (and focuses) an existing page of that profile, or creates a new page with that profile; never attaches to a different-profile page. Returns { opened: url }.",
         {
             url: z.string().describe("The URL to open."),
             profileName: z.string().optional().describe("Browser profile name. Uses the default profile if omitted."),
@@ -423,20 +434,24 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         "Navigate the browser to a URL. Returns the page accessibility snapshot after loading.",
         {
             url: z.string().describe("URL to navigate to."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ url, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_navigate", { url }, windowIndex)),
+        async ({ url, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_navigate", { url, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
         "browser_snapshot",
         "Get the accessibility snapshot of the current page. Returns a YAML-like tree of elements with roles, names, and ref IDs for interaction. Preferred over screenshots — structured, fast, deterministic.",
         {
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_snapshot", {}, windowIndex)),
+        async ({ pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_snapshot", { pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -446,10 +461,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             selector: z.string().optional().describe("CSS selector for the target element."),
             ref: z.string().optional().describe("Element ref from accessibility snapshot (e.g., 'e52')."),
             element: z.string().optional().describe("Human-readable element description (used as CSS selector)."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ selector, ref, element, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_click", { selector, ref, element }, windowIndex)),
+        async ({ selector, ref, element, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_click", { selector, ref, element, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -459,10 +476,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             selector: z.string().optional().describe("CSS selector for the target element."),
             ref: z.string().optional().describe("Element ref from accessibility snapshot (e.g., 'e52')."),
             element: z.string().optional().describe("Human-readable element description (used as CSS selector)."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ selector, ref, element, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_hover", { selector, ref, element }, windowIndex)),
+        async ({ selector, ref, element, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_hover", { selector, ref, element, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -474,10 +493,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             text: z.string().describe("Text to type into the element."),
             submit: z.boolean().optional().describe("Whether to press Enter after typing (e.g. to submit a form)."),
             slowly: z.boolean().optional().describe("Whether to type one character at a time. Useful for triggering key handlers in the page. By default entire text is filled in at once."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ selector, ref, text, submit, slowly, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_type", { selector, ref, text, submit, slowly }, windowIndex)),
+        async ({ selector, ref, text, submit, slowly, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_type", { selector, ref, text, submit, slowly, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -488,10 +509,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             ref: z.string().optional().describe("Element ref from accessibility snapshot."),
             value: z.string().optional().describe("Option value to select."),
             values: z.array(z.string()).optional().describe("Array of option values to select (Playwright-compatible). First value is used for single-select."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ selector, ref, value, values, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_select_option", { selector, ref, value, values }, windowIndex)),
+        async ({ selector, ref, value, values, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_select_option", { selector, ref, value, values, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -499,10 +522,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         "Press a keyboard key. Returns updated accessibility snapshot.",
         {
             key: z.string().describe("Key to press (e.g., 'Enter', 'Tab', 'Escape', 'ArrowDown')."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ key, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_press_key", { key }, windowIndex)),
+        async ({ key, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_press_key", { key, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -511,10 +536,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         {
             expression: z.string().optional().describe("JavaScript expression to evaluate in the page."),
             function: z.string().optional().describe("JavaScript function to call, e.g. '() => document.title'. Playwright-compatible alias for 'expression'."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ expression, function: fn, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_evaluate", { expression, function: fn }, windowIndex)),
+        async ({ expression, function: fn, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_evaluate", { expression, function: fn, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -527,20 +554,24 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 .describe("Tab index (0-based) for 'close' or 'select'. If omitted for 'close', closes the active tab."),
             url: z.string().optional()
                 .describe("URL to open in the new tab (for 'new' action)."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ action, index, url, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_tabs", { action, index, url }, windowIndex)),
+        async ({ action, index, url, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_tabs", { action, index, url, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
         "browser_navigate_back",
         "Navigate back in browser history. Returns updated accessibility snapshot.",
         {
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_navigate_back", {}, windowIndex)),
+        async ({ pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_navigate_back", { pageId, profileName }, windowIndex)),
     );
 
     server.tool(
@@ -552,20 +583,24 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             textGone: z.string().optional().describe("Wait until this text is no longer visible on the page (Playwright-compatible)."),
             time: z.number().optional().describe("Time to wait in seconds (Playwright-compatible). E.g. 2 = 2 seconds."),
             timeout: z.number().optional().describe("Max wait time in ms (default 30000). Applies to selector/text/textGone modes."),
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ selector, text, textGone, time, timeout, windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_wait_for", { selector, text, textGone, time, timeout }, windowIndex)),
+        async ({ selector, text, textGone, time, timeout, pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_wait_for", { selector, text, textGone, time, timeout, pageId, profileName }, windowIndex)),
     );
 
     server.tool(
         "browser_take_screenshot",
         "Take a screenshot of the current page. Returns a base64-encoded PNG image.",
         {
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ windowIndex }) => {
-            const resp = await sendToRenderer("browser_take_screenshot", {}, windowIndex);
+        async ({ pageId, profileName, windowIndex }) => {
+            const resp = await sendToRenderer("browser_take_screenshot", { pageId, profileName }, windowIndex);
             if (resp.error) return toToolResult(resp);
             const r = resp.result as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (r?.type === "image") {
@@ -579,20 +614,24 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         "browser_network_requests",
         "Get the network request log for the current browser tab. Returns array of { url, method, statusCode, resourceType, requestHeaders, responseHeaders }.",
         {
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_network_requests", {}, windowIndex)),
+        async ({ pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_network_requests", { pageId, profileName }, windowIndex)),
     );
 
     server.tool(
         "browser_close",
         "Close the active browser tab.",
         {
+            pageId: browserPageIdParam,
+            profileName: browserProfileParam,
             windowIndex: windowIndexParam,
         },
-        async ({ windowIndex }) =>
-            toToolResult(await sendToRenderer("browser_close", {}, windowIndex)),
+        async ({ pageId, profileName, windowIndex }) =>
+            toToolResult(await sendToRenderer("browser_close", { pageId, profileName }, windowIndex)),
     );
 
     } // end browserToolsEnabled

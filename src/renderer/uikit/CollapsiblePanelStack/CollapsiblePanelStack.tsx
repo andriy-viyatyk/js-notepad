@@ -110,14 +110,24 @@ const StackRoot = styled.div(
         },
         '& [data-part="header-spacer"]': { flex: "1 1 auto" },
 
-        // A header title rendered as <Text> (e.g. a truncating label portalled in
-        // via headerRef) is an element whose React fiber lives in the portal tree,
-        // not under this header div — so clicks on it would bubble to the panel
-        // body, never reaching the header's expand/collapse onClick. Making the
-        // label click-through routes the click to the header div instead, so
-        // clicking the title toggles the panel like clicking empty header space.
-        // Buttons (icon-button / button) keep pointer events and stopPropagation.
-        '& [data-part="header"] [data-type="text"]': { pointerEvents: "none" },
+        // A header label portalled in via headerRef (e.g. a truncating <Text>, or a
+        // repo-name <Tag> wrapped in a layout <Panel>) is an element whose React
+        // fiber lives in the portal tree, not under this header div — so clicks on
+        // it would bubble to the panel body, never reaching the header's
+        // expand/collapse onClick. Making the non-interactive label primitives
+        // click-through routes the click to the header div instead, so clicking the
+        // title toggles the panel like clicking empty header space.
+        '& [data-part="header"] [data-type="text"], & [data-part="header"] [data-type="tag"], & [data-part="header"] [data-type="panel"]':
+            { pointerEvents: "none" },
+        // Interactive controls re-assert pointer events: buttons keep their own
+        // handlers + stopPropagation, and a clickable Tag fires its own onClick.
+        // CONSTRAINT: the click-through rule above covers the whole `[data-type="panel"]`
+        // label wrapper, so any OTHER interactive control portalled into a header Panel
+        // (e.g. a Select, Input) must carry one of these re-enabled data-types or be added
+        // to this list — otherwise it silently loses clicks. Current headers only use
+        // Text + Tag + IconButton, so the list below is sufficient.
+        '& [data-part="header"] [data-type="button"], & [data-part="header"] [data-type="icon-button"], & [data-part="header"] [data-type="tag"][data-clickable]':
+            { pointerEvents: "auto" },
 
         '& [data-part="content"]': {
             flex: 1,

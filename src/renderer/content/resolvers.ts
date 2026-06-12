@@ -49,6 +49,21 @@ export function registerResolvers(): void {
         // Skip HTTP URLs — handled by HTTP resolver
         if (isHttpUrl(data.url)) return;
 
+        // Directory → open an empty page with the Explorer (folder tree) panel,
+        // instead of a content pipe + empty Monaco editor. Matches the "Open Folder"
+        // entry points (MenuBar, folder-tree context menu). Skip virtual schemes
+        // (tree-category://, etc.) — those never name a real directory.
+        if (!data.url.includes("://") && !isArchivePath(data.url)) {
+            const stat = await app.fs.stat(data.url);
+            if (stat.isDirectory) {
+                const { pagesModel } = await import("../api/pages");
+                await pagesModel.addEmptyPageWithNavPanel(data.url);
+                pagesModel.closeFirstPageIfEmpty();
+                data.handled = true;
+                return;
+            }
+        }
+
         const pipeDescriptor = resolveUrlToPipeDescriptor(data.url);
         if (!pipeDescriptor) {
             // Virtual paths (tree-category://, etc.) don't resolve to a pipe

@@ -12,11 +12,14 @@
 import { fpDirname } from "../core/utils/file-path";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
-import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult, GitIdentity, GitRefs, GitSwitchTarget } from "../../ipc/git-ipc";
+import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult, GitIdentity, GitRefs, GitSwitchTarget, GitFetchOptions, GitAheadBehind, GitPushOptions, GitPushResult, GitPullOptions, GitPullResult } from "../../ipc/git-ipc";
 
 const EMPTY_STATUS: GitStatusResult = { staged: [], unstaged: [] };
 const EMPTY_IDENTITY: GitIdentity = { name: "", email: "" };
 const EMPTY_REFS: GitRefs = { localBranches: [], remotes: [], remoteBranches: [], tags: [] };
+const NO_UPSTREAM: GitAheadBehind = { ahead: 0, behind: 0, hasUpstream: false };
+const PUSH_FAIL: GitPushResult = { ok: false, error: "git disabled" };
+const PULL_FAIL: GitPullResult = { ok: false, error: "git disabled" };
 
 // dir → resolved repo info (or null). Stores the in-flight promise so
 // concurrent opens in the same directory collapse to a single git spawn.
@@ -187,5 +190,45 @@ export const git = {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
         if (!name.trim()) return Promise.resolve({ ok: false, error: "Empty branch name" });
         return api.gitCreateBranch(repoRoot, name, startPoint, checkout).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+    },
+
+    /**
+     * Fetch remote-tracking branches (US-641). Fetches all remotes when `opts.remote`
+     * is omitted. Returns `{ ok:true }` (no-op) when git is off or no root given.
+     * Never throws.
+     */
+    fetch(repoRoot: string, opts?: GitFetchOptions): Promise<GitMutationResult> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
+        return api.gitFetch(repoRoot, opts).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+    },
+
+    /**
+     * Ahead/behind count for the current branch vs its upstream (US-641). Returns
+     * `{ hasUpstream: false }` (no-op) when git is off, no root, or the branch has no
+     * upstream. Never throws.
+     */
+    aheadBehind(repoRoot: string): Promise<GitAheadBehind> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(NO_UPSTREAM);
+        return api.gitAheadBehind(repoRoot).catch((): GitAheadBehind => NO_UPSTREAM);
+    },
+
+    /**
+     * Push the current branch to its upstream remote (US-641). When the branch has
+     * no upstream, pass `opts.setUpstream=true` to set it. Never force-pushes. Returns
+     * `{ ok:false }` (no-op) when git is off or no root given. Never throws.
+     */
+    push(repoRoot: string, opts?: GitPushOptions): Promise<GitPushResult> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(PUSH_FAIL);
+        return api.gitPush(repoRoot, opts).catch((e): GitPushResult => ({ ok: false, error: String(e) }));
+    },
+
+    /**
+     * Pull from the current branch's upstream (US-642). Returns `{ ok:false }` (no-op)
+     * when git is off or no root given. On conflict, `hadConflicts` is true and
+     * `conflicts[]` lists the affected paths. Never throws.
+     */
+    pull(repoRoot: string, opts?: GitPullOptions): Promise<GitPullResult> {
+        if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(PULL_FAIL);
+        return api.gitPull(repoRoot, opts).catch((e): GitPullResult => ({ ok: false, error: String(e) }));
     },
 };

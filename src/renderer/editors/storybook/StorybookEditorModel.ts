@@ -1,7 +1,9 @@
+import { createElement } from "react";
 import {
     EditorModel,
     type EditorStateBase,
 } from "../base/EditorModel";
+import { StorybookIcon } from "../../theme/icons";
 import { ALL_STORIES, findStory } from "./storyRegistry";
 import { Story, PropDef } from "./storyTypes";
 
@@ -52,6 +54,7 @@ export class StorybookEditorModel extends EditorModel<StorybookEditorState> {
 
     noLanguage = true;
     skipSave = true;
+    getIcon = () => createElement(StorybookIcon);
 
     selectStory = (id: string): void => {
         const story = findStory(id);

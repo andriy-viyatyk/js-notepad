@@ -7,6 +7,7 @@ import { FileGrid, type FileGridItem } from "../../components/file-grid";
 import { GitStatusBadge } from "../../components/git-tree";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
+import { Tag } from "../../uikit/Tag";
 import { Spacer } from "../../uikit/Spacer";
 import { Splitter } from "../../uikit/Splitter";
 import { Button } from "../../uikit/Button";
@@ -116,10 +117,20 @@ function GitChangesBody({
             branch,
             name: id.name,
             email: id.email,
+            buttons: ["Commit", "Commit & Push", "Cancel"],
             onAction: async (result) => {
-                if (result.button !== "Commit") return false;
+                if (result.button !== "Commit" && result.button !== "Commit & Push") return false;
                 const newBranch = result.branch.trim() !== (branch ?? "") ? result.branch.trim() : undefined;
-                return model.changes.commit(result.message, { name: result.name, email: result.email }, newBranch);
+                const committed = await model.changes.commit(
+                    result.message,
+                    { name: result.name, email: result.email },
+                    newBranch,
+                );
+                if (!committed) return false;
+                if (result.button === "Commit & Push") {
+                    await model.branches.push();
+                }
+                return true;
             },
         });
     }, [model, branch]);
@@ -180,7 +191,18 @@ function GitChangesBody({
 
     const header = (
         <>
-            <Text color="inherit" truncate>{`[${model.repoName}] Changes (${fileCount})`}</Text>
+            <Panel direction="row" align="center" gap="sm" overflow="hidden">
+                {/* Repository name (folder basename) as a badge; full path on hover —
+                    mirrors the Git Tree editor toolbar. */}
+                <Tag
+                    name="git-changes-repo-name"
+                    variant="outlined"
+                    size="sm"
+                    label={model.repoName}
+                    title={model.state.get().repoRoot}
+                />
+                <Text color="inherit" truncate>{`Changes (${fileCount})`}</Text>
+            </Panel>
             <Spacer />
             {/* "Show Git Tree" lives on the "Branches & Tags" panel header
                 (US-634) — kept alongside the editor's other navigation/close

@@ -54,6 +54,19 @@ export const createIconWithViewBox = (viewBox: string) => (icon: ReactNode) =>
 export const createIcon = (size: number | string) =>
     createIconWithViewBox(`0 0 ${size} ${size}`);
 
+// Storybook editor icon — a book with a bookmark in the Storybook brand pink.
+// Fixed colors (not currentColor) so it stays recognizable on the page tab.
+export const StorybookIcon = createIconWithViewBox("0 0 32 32")(
+    <g>
+        {/* Book cover */}
+        <rect x="7" y="3.5" width="18" height="25" rx="2.5" fill="#FF4785" />
+        {/* Spine */}
+        <rect x="11" y="3.5" width="1.5" height="25" fill="#E8336B" opacity="0.6" />
+        {/* Bookmark ribbon */}
+        <path d="M13.5 3.5 h5 v8 l-2.5 -2 l-2.5 2 Z" fill="#FFFFFF" />
+    </g>,
+);
+
 export const WindowMaximizeIcon = createIcon(36)(
     <>
         <path
@@ -1322,6 +1335,16 @@ export const DownloadIcon = createIcon(24)(
     <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 3v12" />
         <path d="M8 11l4 4 4-4" />
+        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </g>,
+);
+
+/** Upload — vertical mirror of {@link DownloadIcon} (arrow out of a tray).
+ *  Used for the Git "Push" action so it reads as the counterpart of "Fetch". */
+export const UploadIcon = createIcon(24)(
+    <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 15V3" />
+        <path d="M8 7l4-4 4 4" />
         <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
     </g>,
 );

@@ -13,7 +13,7 @@ import { versionService } from "../../main/version-service";
 import * as browserRegistration from "../../main/browser-registration";
 import { downloadService } from "../../main/download-service";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
-import { GitIdentity, GitLogOptions, GitSwitchTarget } from "../git-ipc";
+import { GitFetchOptions, GitIdentity, GitLogOptions, GitPullOptions, GitPushOptions, GitSwitchTarget } from "../git-ipc";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -315,6 +315,26 @@ class Controller implements MainApi {
         const { createBranch } = await import("../../main/git-service");
         return createBranch(dir, name, startPoint, checkout);
     };
+
+    gitFetch = async (_event: IpcMainEvent, dir: string, opts?: GitFetchOptions) => {
+        const { fetch } = await import("../../main/git-service");
+        return fetch(dir, opts);
+    };
+
+    gitAheadBehind = async (_event: IpcMainEvent, dir: string) => {
+        const { aheadBehind } = await import("../../main/git-service");
+        return aheadBehind(dir);
+    };
+
+    gitPush = async (_event: IpcMainEvent, dir: string, opts?: GitPushOptions) => {
+        const { push } = await import("../../main/git-service");
+        return push(dir, opts);
+    };
+
+    gitPull = async (_event: IpcMainEvent, dir: string, opts?: GitPullOptions) => {
+        const { pull } = await import("../../main/git-service");
+        return pull(dir, opts);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -394,6 +414,10 @@ const init = () => {
     bindEndpoint(Endpoint.gitRefs, controllerInstance.gitRefs);
     bindEndpoint(Endpoint.gitSwitch, controllerInstance.gitSwitch);
     bindEndpoint(Endpoint.gitCreateBranch, controllerInstance.gitCreateBranch);
+    bindEndpoint(Endpoint.gitFetch, controllerInstance.gitFetch);
+    bindEndpoint(Endpoint.gitAheadBehind, controllerInstance.gitAheadBehind);
+    bindEndpoint(Endpoint.gitPush, controllerInstance.gitPush);
+    bindEndpoint(Endpoint.gitPull, controllerInstance.gitPull);
 
     initRendererEvents();
 }

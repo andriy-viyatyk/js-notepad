@@ -42,6 +42,57 @@ open_window({ windowIndex: 1 })  // Reopens window 1 with its persisted pages
 
 After reopening, you can target the window with any tool using `windowIndex`.
 
+## Browser Profiles
+
+Persephone's built-in browser groups pages by **profile** — each profile is an isolated cookie/login session (separate cookies, storage, and cache). Only the profile that holds a site's authenticated session can act on that site; using the wrong-profile page silently fails (not logged in).
+
+### Profile fields on browser pages
+
+`list_pages`, `get_active_page`, and `list_windows` expose profile identity for `browser-view` pages:
+
+| Field | Description |
+|-------|-------------|
+| `profileName` | Profile name. `""` = the built-in default profile. |
+| `isIncognito` | `true` for incognito sessions (no cookies/history). |
+| `isTor` | `true` for Tor browsing sessions. |
+| `url` | The **active tab's** URL. A browser page hosts multiple internal tabs — use `browser_tabs` with `action: "list"` to enumerate them all. Omitted for incognito/Tor pages (privacy). `list_windows` does not include `url`. |
+
+### Discovering configured profiles
+
+`get_app_info` returns the configured profile names and the default:
+
+```json
+{ "version": "4.0.3", "pageCount": 2, "activePageId": "abc",
+  "browserProfiles": ["work", "personal"], "defaultBrowserProfile": "work" }
+```
+
+### Targeting a profile
+
+Every `browser_*` tool accepts optional `profileName` and `pageId` parameters:
+
+- **`profileName`** — acts on the browser page of that profile (`""` = default profile). Prefers the active page if it matches, otherwise the first such page. Never matches incognito/Tor pages.
+- **`pageId`** — targets an exact browser page (from `list_pages`). Takes precedence over `profileName`. Use it to disambiguate when several pages share a profile.
+- Omit both to act on the active browser page (or the first one).
+
+```
+browser_snapshot({ profileName: "work" })
+browser_click({ pageId: "abc", ref: "e12" })
+```
+
+Targeting **focuses** (activates) the resolved page — the webview must be visible for input. A useful side effect: subsequent untargeted calls stick to the now-active page.
+
+### Opening a URL in a profile
+
+`open_url` reuse is profile-matched: with `profileName` it adds the tab to (and focuses) an existing page of that profile, or creates a new page with that profile — it never attaches to a different-profile page.
+
+```
+open_url({ url: "https://outlook.com", profileName: "work" })
+```
+
+### Privacy
+
+Incognito and Tor pages are **never automatable**: they are never matched by `profileName`, a direct `pageId` at one still gets a privacy-refusal error, and their `url` is never exposed.
+
 ## The `page` Object
 
 The current page (tab). Available as a global in scripts.

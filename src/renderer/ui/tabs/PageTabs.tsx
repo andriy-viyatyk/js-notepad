@@ -4,10 +4,9 @@ import { pagesModel } from "../../api/pages";
 import {
     ArrowLeftIcon,
     ArrowRightIcon,
-    ChevronDownIcon,
     PlusIcon,
 } from "../../theme/icons";
-import { IconButton, Divider, WithMenu } from "../../uikit";
+import { IconButton, SplitButton } from "../../uikit";
 import type { MenuItem } from "../../uikit";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { useMemo } from "react";
@@ -36,34 +35,6 @@ const PageTabsRoot = styled.div(
             scrollbarWidth: "none",
             "&::-webkit-scrollbar": {
                 display: "none",
-            },
-        },
-        "& .add-page-split": {
-            display: "flex",
-            alignItems: "center",
-            flexShrink: 0,
-            height: 26,
-            marginLeft: 2,
-            '& [data-type="icon-button"]': {
-                height: 26,
-                borderRadius: 0,
-            },
-            '& [data-part="add-page-main"]': {
-                borderRadius: "4px 0 0 4px",
-                padding: "0 3px",
-            },
-            '& [data-part="add-page-dropdown"]': {
-                borderRadius: "0 4px 4px 0",
-                padding: "0 1px",
-                minWidth: 14,
-                "& svg": {
-                    width: 13,
-                    height: 13,
-                    opacity: 0.5,
-                },
-                "&:hover svg": {
-                    opacity: 1,
-                },
             },
         },
     },
@@ -219,29 +190,15 @@ export function PageTabs(props: object) {
                     icon={<ArrowRightIcon />}
                 />
             )}
-            <div className="add-page-split">
-                <IconButton
-                    name="page-tabs-add"
-                    data-part="add-page-main"
-                    size="md"
-                    title="Add Page (Ctrl+N)"
-                    onClick={() => pagesModel.addEmptyPage()}
-                    icon={<PlusIcon />}
-                />
-                <Divider orientation="vertical" />
-                <WithMenu items={addPageMenuItems}>
-                    {(setOpen) => (
-                        <IconButton
-                            name="page-tabs-add-menu"
-                            data-part="add-page-dropdown"
-                            size="sm"
-                            title="New editor page"
-                            onClick={(e) => setOpen(e.currentTarget)}
-                            icon={<ChevronDownIcon />}
-                        />
-                    )}
-                </WithMenu>
-            </div>
+            <SplitButton
+                name="page-tabs-add"
+                size="md"
+                title="Add Page (Ctrl+N)"
+                icon={<PlusIcon />}
+                onClick={() => pagesModel.addEmptyPage()}
+                menuTitle="New editor page"
+                items={addPageMenuItems}
+            />
         </PageTabsRoot>
     );
 }

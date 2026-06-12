@@ -563,13 +563,21 @@ Browser automation for AI agents lives in `src/renderer/automation/`. This layer
 
 ```
 MCP tool call (browser_click) → mcp-handler.ts → automation/commands.ts
-    → getTarget() → active BrowserEditorModel.target (IBrowserTarget)
+    → getTarget(params) → resolved BrowserEditorModel.target (IBrowserTarget)
     → perform action via CDP → return accessibility snapshot
 ```
 
-**Key design:** The automation layer uses the active browser page (not the first one). Agents switch pages using other Persephone MCP tools, then interact with browser_* tools on whichever page is active.
+**Target resolution:** every `browser_*` tool accepts optional `pageId` and `profileName` params; `getTarget(params)` in `commands.ts` resolves the target page by precedence:
 
-**Privacy guard:** `getTarget()` in `commands.ts` checks `isIncognito` and `isTor` on the active browser page before returning the target. If the active browser is incognito or Tor, all `browser_*` commands return a descriptive error and suggest using `open_url` to open a normal browser page. This prevents AI agents from silently reading or interacting with private sessions.
+1. `pageId` — exact page (must be a browser page; error otherwise).
+2. `profileName` — first browser page of that profile (`""` = default profile; never matches incognito/Tor; prefers the active page, else first in page order). A descriptive error suggests `open_url` with `profileName` when no page matches.
+3. Neither — the active browser page, else the first browser page.
+
+The resolved page is **activated** (`showPage`) because the webview needs `display != none` for focus/input — so targeting a background page brings it to front, and subsequent untargeted calls naturally stick to it.
+
+**Profile visibility & discovery:** `list_pages` / `get_active_page` (renderer `mcp-handler.ts`) include `profileName` / `isIncognito` / `isTor` / `url` for browser pages — `url` is the **active internal tab's** URL and is omitted for incognito/Tor pages. The fields are read via a structural state cast keyed on `editorId === "browser-view"` — deliberately **no static `BrowserEditor` import** in `mcp-handler.ts` (it loads at startup; the browser chunk must stay dynamically imported). `get_app_info` returns `browserProfiles` (configured names) + `defaultBrowserProfile`. `list_windows` (main process) exposes the same three identity fields from the persisted page descriptors (works for closed windows; no `url` — not persisted).
+
+**Privacy guard:** `getTarget()` checks `isIncognito` and `isTor` on the resolved browser page before returning the target. If it is incognito or Tor, all `browser_*` commands return a descriptive error and suggest using `open_url` to open a normal browser page — this holds for direct `pageId` targeting too, and `profileName` matching skips private pages entirely. This prevents AI agents from silently reading or interacting with private sessions.
 
 **Browser tools toggle:** `handleBrowserCommand()` checks the `mcp.browser-tools.enabled` setting (default: `false`) at the top of every call. When disabled, all `browser_*` commands return a "disabled" error regardless of how the call was made — including direct HTTP calls to the MCP endpoint that bypass the tool list. The setting is also read by `createMcpServer()` in `mcp-http-server.ts` to conditionally omit all 14 browser tools from the `tools/list` response for new connections. Controlled via **Settings → MCP Server → Enable browser interaction**; requires stopping and restarting the MCP server to apply.
 

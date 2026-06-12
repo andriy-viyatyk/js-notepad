@@ -50,18 +50,18 @@ gemini --mcp-server http://localhost:7865/mcp
 
 | Tool | Description |
 |------|-------------|
-| **list_windows** | List all windows (open and closed) with their status, page count, and page metadata. |
+| **list_windows** | List all windows (open and closed) with their status, page count, and page metadata. Browser pages also include `profileName`, `isIncognito`, and `isTor`. |
 | **open_window** | Open or reopen a window by index. Closed windows are recreated with their persisted pages. |
 | **execute_script** | Execute JavaScript or TypeScript with access to `page` and `app` objects. Accepts an optional `language` parameter (`"javascript"` or `"typescript"`; defaults to `"javascript"`). The most powerful tool — can do anything the scripting system supports. |
-| **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. |
+| **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
 | **get_page_content** | Get text content of a page by ID. |
-| **get_active_page** | Get the active page with content and metadata. |
+| **get_active_page** | Get the active page with content and metadata. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
 | **create_page** | Create a new page with optional content, language, and editor. Returns a clear error with specific hints for standalone editor types (browser, PDF, image, MCP Inspector, etc.) — use `open_url` or `execute_script` instead. |
 | **set_page_content** | Update text content of a page by ID. |
-| **open_url** | Open a URL in the [built-in browser](./browser.md). Accepts optional `profileName` (browser profile), `incognito` (boolean), and `tor` (boolean) parameters. Reuses an existing browser page if one is open, otherwise creates a new one. |
+| **open_url** | Open a URL in the [built-in browser](./browser.md). Accepts optional `profileName` (browser profile), `incognito` (boolean), and `tor` (boolean) parameters. Reuse is profile-matched: with `profileName` it adds the tab to (or focuses) an existing page of that profile, or creates a new page with that profile — never attaches to a different-profile page. |
 | **ui_push** | Push log entries, interactive dialogs, and output widgets to a Log View page — the recommended output channel for AI agents. Strings are shorthand for `log.info`. Dialog entries (`input.confirm`, `input.text`, `input.buttons`, `input.checkboxes`, `input.radioboxes`, `input.select`) block until the user responds. Output entries (`output.progress`, `output.grid`) support rich display — progress bars with upsert-by-id for real-time updates, and inline data grids from JSON or CSV strings. The Log View page is created automatically on first call and reused on subsequent calls. |
 | **read_guide** | Read a documentation guide by name (`ui-push`, `pages`, `scripting`, `graph`, `notebook`, `todo`, `links`). Returns the guide content as text. An alternative to fetching `notepad://guides/*` resources — works with AI clients that don't support MCP resources. |
-| **get_app_info** | Get app version, page count, and active page ID. |
+| **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), and the default profile name (`defaultBrowserProfile`). Use this to discover valid profile names before calling browser tools. |
 
 ### Browser Automation Tools
 
@@ -69,32 +69,97 @@ These tools control the built-in browser directly — no script needed. They ope
 
 > **Note:** Browser automation tools are disabled by default. Enable them in **Settings → MCP Server → Enable browser interaction**. While disabled, the tools are hidden from the agent entirely (not listed in the MCP tool set). This is an opt-in safety gate — enable only when you want AI agents to be able to control the browser.
 
+Every `browser_*` tool accepts two optional parameters for targeting a specific browser page:
+
+- **`pageId`** — target an exact browser page by its ID (from `list_pages`). Takes precedence over `profileName`.
+- **`profileName`** — target the browser page belonging to this profile (`""` = built-in default profile). Never matches incognito or Tor pages. If omitted, the active (or first) browser page is used.
+
+Targeting a page also **focuses** it — the resolved page becomes the active tab. This is a useful side-effect: subsequent untargeted calls stay on the now-active page. If no matching page is found a clear error message suggests using `open_url` with the desired `profileName` to open one.
+
 | Tool | Description |
 |------|-------------|
-| **browser_navigate** | Navigate to a URL. Returns an accessibility snapshot of the loaded page. |
-| **browser_snapshot** | Get the accessibility snapshot of the current page — a YAML-like tree of elements with roles, names, and `[ref=eN]` IDs. Preferred over screenshots for structured, deterministic inspection. |
-| **browser_click** | Click an element. Accepts a CSS `selector`, an accessibility `ref` from a snapshot (e.g. `"e52"`), or a human-readable `element` description used as a CSS selector. Returns an updated snapshot. |
-| **browser_type** | Type text into an input element. Clears existing value first. Returns an updated snapshot. Accepts `selector` or `ref`. Optional `slowly: true` to type character by character (triggers key handlers); optional `submit: true` to press Enter after typing. |
-| **browser_select_option** | Select an option in a `<select>` element. Returns an updated snapshot. Accepts `selector` or `ref`. Pass `value` (string) or `values` (array, Playwright-compatible — first value is used). |
-| **browser_press_key** | Press a keyboard key (e.g. `"Enter"`, `"Tab"`, `"Escape"`, `"ArrowDown"`). Returns an updated snapshot. |
-| **browser_evaluate** | Run JavaScript in the page and return the result. Supports async expressions. Accepts `expression` (JS expression string) or `function` (Playwright-compatible — a function string like `"() => document.title"` that is automatically invoked). |
-| **browser_tabs** | Manage browser tabs. Accepts `action`: `"list"` (default) — return all tabs; `"new"` — open a new tab (optional `url`); `"close"` — close a tab by `index` (or the active tab if omitted); `"select"` — switch to a tab by `index`. Returns updated tab list. |
-| **browser_hover** | Hover over an element, triggering `mouseenter` and `mouseover` events. Useful for revealing tooltips, dropdown menus, and other hover-dependent UI. Accepts `selector` or `ref`. Returns an updated snapshot. |
-| **browser_navigate_back** | Navigate back in browser history. Returns an updated snapshot. |
-| **browser_wait_for** | Wait for a condition on the page. Returns a snapshot when done. Options: `selector` — wait for a CSS element to appear; `text` — wait for text to appear; `textGone` — wait until text disappears (Playwright-compatible); `time` — wait a fixed number of seconds, e.g. `2` (Playwright-compatible). Optional `timeout` in ms (default 30000) applies to selector/text/textGone modes. |
-| **browser_take_screenshot** | Take a screenshot of the current page. Returns a base64-encoded PNG image. |
-| **browser_network_requests** | Get the network request log for the current tab. Returns an array of `{ url, method, statusCode, resourceType, requestHeaders, responseHeaders }`. |
-| **browser_close** | Close the active browser tab. |
+| **browser_navigate** | Navigate to a URL. Returns an accessibility snapshot of the loaded page. Accepts optional `pageId` and `profileName`. |
+| **browser_snapshot** | Get the accessibility snapshot of the current page — a YAML-like tree of elements with roles, names, and `[ref=eN]` IDs. Preferred over screenshots for structured, deterministic inspection. Accepts optional `pageId` and `profileName`. |
+| **browser_click** | Click an element. Accepts a CSS `selector`, an accessibility `ref` from a snapshot (e.g. `"e52"`), or a human-readable `element` description used as a CSS selector. Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
+| **browser_type** | Type text into an input element. Clears existing value first. Returns an updated snapshot. Accepts `selector` or `ref`. Optional `slowly: true` to type character by character (triggers key handlers); optional `submit: true` to press Enter after typing. Accepts optional `pageId` and `profileName`. |
+| **browser_select_option** | Select an option in a `<select>` element. Returns an updated snapshot. Accepts `selector` or `ref`. Pass `value` (string) or `values` (array, Playwright-compatible — first value is used). Accepts optional `pageId` and `profileName`. |
+| **browser_press_key** | Press a keyboard key (e.g. `"Enter"`, `"Tab"`, `"Escape"`, `"ArrowDown"`). Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
+| **browser_evaluate** | Run JavaScript in the page and return the result. Supports async expressions. Accepts `expression` (JS expression string) or `function` (Playwright-compatible — a function string like `"() => document.title"` that is automatically invoked). Accepts optional `pageId` and `profileName`. |
+| **browser_tabs** | Manage browser tabs. Accepts `action`: `"list"` (default) — return all tabs; `"new"` — open a new tab (optional `url`); `"close"` — close a tab by `index` (or the active tab if omitted); `"select"` — switch to a tab by `index`. Returns updated tab list. Accepts optional `pageId` and `profileName`. |
+| **browser_hover** | Hover over an element, triggering `mouseenter` and `mouseover` events. Useful for revealing tooltips, dropdown menus, and other hover-dependent UI. Accepts `selector` or `ref`. Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
+| **browser_navigate_back** | Navigate back in browser history. Returns an updated snapshot. Accepts optional `pageId` and `profileName`. |
+| **browser_wait_for** | Wait for a condition on the page. Returns a snapshot when done. Options: `selector` — wait for a CSS element to appear; `text` — wait for text to appear; `textGone` — wait until text disappears (Playwright-compatible); `time` — wait a fixed number of seconds, e.g. `2` (Playwright-compatible). Optional `timeout` in ms (default 30000) applies to selector/text/textGone modes. Accepts optional `pageId` and `profileName`. |
+| **browser_take_screenshot** | Take a screenshot of the current page. Returns a base64-encoded PNG image. Accepts optional `pageId` and `profileName`. |
+| **browser_network_requests** | Get the network request log for the current tab. Returns an array of `{ url, method, statusCode, resourceType, requestHeaders, responseHeaders }`. Accepts optional `pageId` and `profileName`. |
+| **browser_close** | Close the active browser tab. Accepts optional `pageId` and `profileName`. |
 
 > **Tip:** `browser_snapshot` is the recommended way to inspect page state — it is faster and more deterministic than screenshots. After any click or type action, the tool automatically returns an updated snapshot so you can verify the result without a separate call.
 
 > **Privacy guard:** Browser automation tools are blocked when the active browser page is in incognito or Tor mode. Any `browser_*` call on an incognito or Tor page returns an error with a clear message. Use `open_url` without `incognito` or `tor` to open a normal browser session first. `open_url` also never reuses an incognito or Tor page for a normal URL — it always creates a fresh normal session.
 
+### Browser Profiles
+
+Persephone's built-in browser supports multiple **profiles** — each is an isolated cookie and login session (separate cookies, storage, and cache). Multi-profile users (e.g., a work account in one profile and a personal account in another) can have agents reliably act on the correct session without reverse-engineering which page holds which login.
+
+**Discovering profiles**
+
+Call `get_app_info` to discover which profiles are configured:
+
+```json
+{
+  "version": "4.0.3",
+  "pageCount": 3,
+  "activePageId": "abc",
+  "browserProfiles": ["work", "personal"],
+  "defaultBrowserProfile": "work"
+}
+```
+
+`browserProfiles` lists all configured profile names. `""` is always the built-in default profile (even if it is not listed).
+
+**Profile fields on browser pages**
+
+`list_pages` and `get_active_page` include these fields for `browser-view` pages:
+
+| Field | Description |
+|-------|-------------|
+| `profileName` | Profile name. `""` = built-in default profile. |
+| `isIncognito` | `true` for incognito sessions. |
+| `isTor` | `true` for Tor browsing sessions. |
+| `url` | The active tab's URL. Omitted for incognito/Tor pages (privacy). |
+
+`list_windows` also includes `profileName`, `isIncognito`, and `isTor` for browser pages — but not `url`.
+
+**Targeting a specific profile**
+
+Pass `profileName` to any `browser_*` tool to act on the page belonging to that profile. Pass `pageId` (from `list_pages`) for precise targeting when several pages share a profile:
+
+```
+// Snapshot the "work" profile's page
+browser_snapshot({ profileName: "work" })
+
+// Click an element on a specific page by ID
+browser_click({ pageId: "abc", ref: "e12" })
+
+// Navigate the default-profile page
+browser_navigate({ url: "https://example.com", profileName: "" })
+```
+
+**Opening a URL in a profile**
+
+`open_url` with `profileName` adds the tab to (and focuses) an existing page of that profile, or creates a new page — it never attaches to a different-profile page:
+
+```
+open_url({ url: "https://outlook.com", profileName: "work" })
+```
+
+Incognito and Tor pages are never automatable: `profileName` never matches them, and a direct `pageId` targeting such a page returns a privacy-refusal error.
+
 ### Multi-Window Support
 
 All tools (except `list_windows`) accept an optional `windowIndex` parameter to target a specific window. If omitted, the first open window is used.
 
-- Use `list_windows` to discover all windows and their status (`open` or `closed`)
+- Use `list_windows` to discover all windows and their status (`open` or `closed`). Browser pages in the list include `profileName`, `isIncognito`, and `isTor` so you can identify which profile's page is in each window.
 - Closed windows have persisted pages but cannot be targeted directly — use `open_window` to reopen them first
 - After reopening, target the window with any tool using its `windowIndex`
 
@@ -146,6 +211,20 @@ The agent will use `create_page` with `language: "javascript"` and the content.
 Ask: *"Open the GitHub API docs in persephone"*
 
 The agent will use `open_url` with the URL. You can also ask for a specific profile, incognito mode, or Tor mode: *"Open google.com in incognito"*, *"Open this page through Tor"*.
+
+### Automate the browser in a specific profile
+
+Ask: *"Go to my Outlook inbox in the work profile and tell me the subject of the first unread email"*
+
+The agent will:
+
+1. `get_app_info` — confirm that the `"work"` profile exists in `browserProfiles`
+2. `list_pages` — find the browser page whose `profileName` is `"work"`; note its `url`
+3. `open_url({ url: "https://outlook.com", profileName: "work" })` — navigate to Outlook if not already there
+4. `browser_snapshot({ profileName: "work" })` — read the page structure
+5. Extract and return the first unread subject from the snapshot
+
+Because `profileName: "work"` is passed, every tool targets the page holding the work login session — regardless of which browser page happens to be active.
 
 ### Automate the browser
 

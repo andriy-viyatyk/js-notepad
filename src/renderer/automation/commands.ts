@@ -7,6 +7,7 @@
  */
 const { ipcRenderer } = require("electron"); // eslint-disable-line @typescript-eslint/no-var-requires
 import { pagesModel } from "../api/pages";
+import type { PageModel } from "../api/pages/PageModel";
 import { settings } from "../api/settings";
 import { BrowserChannel } from "../../ipc/browser-ipc";
 import { BrowserEditor } from "../editors/browser";
@@ -32,19 +33,56 @@ function isErrorResponse(t: IBrowserTarget | McpResponse): t is McpResponse {
 }
 
 /**
- * Get the automation target for the ACTIVE browser page.
- * Falls back to the first browser page if the active page is not a browser.
+ * Resolve the automation target for a browser command.
+ *
+ * Resolution precedence:
+ *   1. `pageId`      — exact page (must be a browser page).
+ *   2. `profileName` — first browser page of that profile ("" = default profile;
+ *                      never matches incognito/tor). Prefers the active page.
+ *   3. neither       — the ACTIVE browser page, else the FIRST browser page.
+ *
+ * The resolved page is activated (the webview needs display != none for focus/input),
+ * and incognito/Tor pages are blocked for privacy (after resolution).
  */
-async function getTarget(): Promise<IBrowserTarget | McpResponse> {
+async function getTarget(
+    params?: { pageId?: unknown; profileName?: unknown },
+): Promise<IBrowserTarget | McpResponse> {
     const pages = pagesModel.state.get().pages;
     const activePage = pagesModel.activePage;
+    const pageId = typeof params?.pageId === "string" ? params.pageId : undefined;
+    const profileName = typeof params?.profileName === "string" ? params.profileName : undefined;
 
-    // Prefer active page if it's a browser
-    let browserPage = (activePage?.mainEditorInstance instanceof BrowserEditor) ? activePage : null;
+    let browserPage: PageModel | null = null;
+    if (pageId) {
+        const page = pagesModel.findPage(pageId);
+        if (!page) {
+            return { error: { code: -32602, message: `Page not found: ${pageId}` } };
+        }
+        if (!(page.mainEditorInstance instanceof BrowserEditor)) {
+            return { error: { code: -32602, message: `Page ${pageId} is not a browser page.` } };
+        }
+        browserPage = page;
+    } else if (profileName !== undefined) {
+        // "" targets the default profile. Prefer the active page if it matches.
+        const matches = (p: PageModel) => {
+            const e = p.mainEditorInstance;
+            if (!(e instanceof BrowserEditor)) return false;
+            const s = e.state.get();
+            return !s.isIncognito && !s.isTor && (s.profileName ?? "") === profileName;
+        };
+        browserPage = (activePage && matches(activePage) ? activePage : null)
+            ?? pages.find(matches) ?? null;
+        if (!browserPage) {
+            return { error: { code: -32602, message: `No browser page with profile '${profileName || "default"}'. Use the 'open_url' tool with profileName to open one.` } };
+        }
+    } else {
+        // Prefer active page if it's a browser
+        browserPage = (activePage?.mainEditorInstance instanceof BrowserEditor) ? activePage : null;
 
-    // Fallback to first browser page
-    if (!browserPage) {
-        browserPage = pages.find((p) => p.mainEditorInstance instanceof BrowserEditor) ?? null;
+        // Fallback to first browser page
+        if (!browserPage) {
+            browserPage = pages.find((p) => p.mainEditorInstance instanceof BrowserEditor) ?? null;
+        }
     }
     const browserEditor = browserPage?.mainEditorInstance;
     if (!(browserEditor instanceof BrowserEditor)) {
@@ -407,7 +445,7 @@ export async function handleBrowserCommand(
     if (!settings.get("mcp.browser-tools.enabled")) {
         return { error: { code: -32602, message: "Browser interaction is disabled. Enable it in Settings → MCP Server → 'Enable browser interaction'." } };
     }
-    const target = await getTarget();
+    const target = await getTarget(params);
     if (isErrorResponse(target)) return target;
 
     switch (command) {

@@ -11,7 +11,7 @@
  * Log/show/diff arrive with US-611/US-613 as further endpoints.
  */
 import { simpleGit } from "simple-git";
-import type { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRef, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../ipc/git-ipc";
+import type { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRef, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../ipc/git-ipc";
 
 /** `git --version` availability probe for the settings page. Never throws. */
 export async function probeGit(): Promise<GitProbeResult> {
@@ -498,5 +498,153 @@ export async function createBranch(
         return { ok: true };
     } catch (e) {
         return { ok: false, error: String(e) };
+    }
+}
+
+/**
+ * Fetch remote-tracking branches (US-641). When `opts.remote` is given, fetch
+ * only that remote; otherwise `--all --prune`. Sets GIT_TERMINAL_PROMPT=0 so
+ * HTTPS without a helper fails fast rather than hanging. Never throws.
+ */
+export async function fetch(dir: string, opts: GitFetchOptions = {}): Promise<GitMutationResult> {
+    try {
+        const git = simpleGit(dir).env("GIT_TERMINAL_PROMPT", "0");
+        if (opts.remote) {
+            await git.raw(["fetch", "--prune", opts.remote]);
+        } else {
+            await git.raw(["fetch", "--all", "--prune"]);
+        }
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+/**
+ * Ahead/behind count for the current branch vs its upstream (US-641).
+ * Uses `rev-list --left-right --count @{upstream}...HEAD`:
+ *   left count  = commits on upstream not on HEAD = "behind"
+ *   right count = commits on HEAD not on upstream = "ahead"
+ * Returns `{ hasUpstream: false }` gracefully when there is no upstream
+ * (new/local-only branch). Never throws.
+ */
+export async function aheadBehind(dir: string): Promise<GitAheadBehind> {
+    try {
+        const git = simpleGit(dir).env("GIT_OPTIONAL_LOCKS", "0").env("GIT_TERMINAL_PROMPT", "0");
+        // Get the upstream name for display.
+        let upstream: string | undefined;
+        try {
+            upstream = (await git.raw(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])).trim();
+        } catch {
+            // No upstream configured.
+            return { ahead: 0, behind: 0, hasUpstream: false };
+        }
+        const raw = (await git.raw(["rev-list", "--left-right", "--count", "@{upstream}...HEAD"])).trim();
+        const parts = raw.split(/\s+/);
+        const behind = parseInt(parts[0] ?? "0", 10) || 0;
+        const ahead = parseInt(parts[1] ?? "0", 10) || 0;
+        return { ahead, behind, upstream, hasUpstream: true };
+    } catch {
+        return { ahead: 0, behind: 0, hasUpstream: false };
+    }
+}
+
+/**
+ * Push the current (or specified) branch to its upstream remote (US-641).
+ * Passes `-u <remote> <branch>` to set the tracking reference whenever the
+ * current branch has no upstream — detected fresh here rather than trusting the
+ * caller, so the combined "Commit & Push" flow on a just-created branch reliably
+ * establishes tracking (the renderer's cached ahead/behind can still reflect the
+ * previous branch at push time). `opts.setUpstream` forces `-u` regardless. The
+ * remote defaults to "origin"; when origin is absent falls back to the single
+ * configured remote. Never force-pushes. A non-fast-forward rejection is
+ * surfaced as `{ ok:false, rejected:true }` — the user must fetch/pull first.
+ * Sets GIT_TERMINAL_PROMPT=0 so HTTPS without credentials fails fast. Never throws.
+ */
+export async function push(dir: string, opts: GitPushOptions = {}): Promise<GitPushResult> {
+    try {
+        const git = simpleGit(dir).env("GIT_TERMINAL_PROMPT", "0");
+
+        // Resolve the remote: use opts.remote if given, else "origin", else the sole remote.
+        let remote = opts.remote;
+        if (!remote) {
+            try {
+                const remoteList = (await git.raw(["remote"])).split("\n").map((l) => l.trim()).filter(Boolean);
+                remote = remoteList.includes("origin") ? "origin" : remoteList[0];
+            } catch {
+                remote = "origin";
+            }
+        }
+
+        // Resolve the branch: use opts.branch if given, else the current branch.
+        let branch = opts.branch;
+        if (!branch) {
+            try {
+                const head = (await git.raw(["rev-parse", "--abbrev-ref", "HEAD"])).trim();
+                branch = head && head !== "HEAD" ? head : undefined;
+            } catch {
+                // ignore
+            }
+        }
+
+        // Set the upstream when the current branch has none (or the caller forces it).
+        // Detect freshly here so a just-created branch reliably gets `-u` tracking.
+        let setUpstream = !!opts.setUpstream;
+        if (!setUpstream) {
+            try {
+                await git.raw(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]);
+                // Upstream exists → a normal push, no `-u` needed.
+            } catch {
+                setUpstream = true;
+            }
+        }
+
+        if (setUpstream && remote && branch) {
+            await git.raw(["push", "-u", remote, branch]);
+        } else if (remote && branch) {
+            await git.raw(["push", remote, branch]);
+        } else {
+            await git.raw(["push"]);
+        }
+        return { ok: true };
+    } catch (e) {
+        const msg = String(e);
+        // Detect non-fast-forward rejection — git outputs "[rejected]" and
+        // "fetch first" / "cannot fast-forward" in the error stream.
+        const rejected = /\[rejected\]|fetch first|cannot fast.forward|non-fast-forward/i.test(msg);
+        return { ok: false, error: msg, rejected };
+    }
+}
+
+/**
+ * Pull from the current branch's upstream (US-642). Merge by default; `--rebase` when
+ * `opts.rebase`, `--ff-only` when `opts.ffOnly`. Sets GIT_TERMINAL_PROMPT=0 so HTTPS
+ * without a credential helper fails fast; GIT_OPTIONAL_LOCKS=0 to avoid a stat-cache
+ * rewrite while the working tree is updated. Detects conflicts from the error text and
+ * populates `conflicts[]`. Never throws.
+ */
+export async function pull(dir: string, opts: GitPullOptions = {}): Promise<GitPullResult> {
+    try {
+        const git = simpleGit(dir)
+            .env("GIT_OPTIONAL_LOCKS", "0")
+            .env("GIT_TERMINAL_PROMPT", "0");
+
+        const args = ["pull"];
+        if (opts.rebase) args.push("--rebase");
+        if (opts.ffOnly) args.push("--ff-only");
+
+        const out = await git.raw(args);
+        return { ok: true, summary: out.trim() || undefined };
+    } catch (e) {
+        const msg = String(e);
+        // Conflicts: git outputs "CONFLICT" lines and exits non-zero.
+        const hadConflicts = /CONFLICT|Automatic merge failed/i.test(msg);
+        const conflicts: string[] = [];
+        if (hadConflicts) {
+            for (const m of msg.matchAll(/CONFLICT[^\n]*?: Merge conflict in (.+)/g)) {
+                conflicts.push(m[1].trim());
+            }
+        }
+        return { ok: false, error: msg, hadConflicts, conflicts: conflicts.length ? conflicts : undefined };
     }
 }

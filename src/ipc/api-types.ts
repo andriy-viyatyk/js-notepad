@@ -10,7 +10,7 @@ import {
     VideoStreamSessionConfig,
     VideoStreamSessionResult,
 } from "./api-param-types";
-import { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "./git-ipc";
+import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "./git-ipc";
 
 export enum Endpoint {
     getAppRootPath = "getAppRootPath",
@@ -74,6 +74,10 @@ export enum Endpoint {
     gitRefs = "gitRefs",
     gitSwitch = "gitSwitch",
     gitCreateBranch = "gitCreateBranch",
+    gitFetch = "gitFetch",
+    gitAheadBehind = "gitAheadBehind",
+    gitPush = "gitPush",
+    gitPull = "gitPull",
 }
 
 export interface McpStatus {
@@ -150,6 +154,10 @@ export type Api = {
     [Endpoint.gitRefs]: (dir: string) => Promise<GitRefs>;
     [Endpoint.gitSwitch]: (dir: string, target: GitSwitchTarget) => Promise<GitMutationResult>;
     [Endpoint.gitCreateBranch]: (dir: string, name: string, startPoint?: string, checkout?: boolean) => Promise<GitMutationResult>;
+    [Endpoint.gitFetch]: (dir: string, opts?: GitFetchOptions) => Promise<GitMutationResult>;
+    [Endpoint.gitAheadBehind]: (dir: string) => Promise<GitAheadBehind>;
+    [Endpoint.gitPush]: (dir: string, opts?: GitPushOptions) => Promise<GitPushResult>;
+    [Endpoint.gitPull]: (dir: string, opts?: GitPullOptions) => Promise<GitPullResult>;
 };
 
 export enum EventEndpoint {

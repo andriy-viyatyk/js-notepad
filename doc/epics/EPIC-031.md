@@ -48,11 +48,10 @@ Make working with git inside Persephone fully functional. Likely areas, to be ta
 Recorded so they are **not missed**. These are deferred enhancements that depend on other
 increments landing first; implement each once its prerequisite is in place. Check off when done.
 
-- [ ] **"Commit and Push" button in the Commit dialog** — after the **push** functionality
-  (its own task) lands, add a "Commit and Push" button to the US-632 Commit dialog. The
-  dialog was deliberately built to take a `buttons` array so this is additive — pass
-  `["Commit", "Commit and Push", "Cancel"]` and handle the extra return value (commit, then
-  push). Prerequisite: push task.
+- [x] **"Commit and Push" button in the Commit dialog** — done in US-641. The dialog takes a
+  `buttons` array, so `["Commit", "Commit & Push", "Cancel"]` was additive; the push button
+  relabels to "& Push" when a new branch is being created, and commits-then-pushes (the commit
+  is preserved if the push is rejected).
 - [x] **Create-a-branch from the Commit dialog** — done in US-638. The Commit dialog's branch
   field is editable + required; editing it creates + checks out a new branch (`git switch -c`)
   and commits onto it. Branches can also be created from the commit-graph row context menu
@@ -98,6 +97,8 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 | [US-630](../tasks/US-630-git-tree-commit-diff-tab/README.md) | Git Tree editor — **"Diff" tab**: changed-file list (`commitFiles` backend) + per-file inline Monaco diff (parent→commit via `git.show`); persisted file-list width. Depends on US-629 | ✅ Done (2026-06-10) |
 | [US-631](../tasks/US-631-git-stage-unstage/README.md) | "Changes" panel — **stage / unstage / reset** (first mutating ops): arrow buttons + double-click + context menu move files between Unstaged/Staged (`git add` / `git reset`); **Reset** discards changes (`git checkout` / `git clean`) with confirmation; new AVGrid-based **`FileGrid`** (range select + sorting + range-copy) replaces `FileList` in the panel | ✅ Done (2026-06-10) |
 | [US-632](../tasks/US-632-git-commit/README.md) | "Changes" panel — **Commit** staged files: "Commit" button under the Staged grid opens a **Commit dialog** (multi-line message + current branch + editable author Name/Email prepopulated from git config, applied as a per-commit override — no config write) that runs `git commit` of the staged index (`GitMutationResult` reused; `gitCommit`/`gitIdentity` IPC; `GitStatusResult.branch`). Push + branch-create postponed to dedicated tasks | ✅ Done (2026-06-11) |
+| [US-641](../tasks/US-641-git-push/README.md) | **Git Push** — push the current branch to its remote (set-upstream `-u` on first push of a new branch) + "Commit and Push" from the Commit dialog; carries the **shared foundation** Pull reuses: `fetch` (all remotes), current-branch **ahead/behind** badge, the **`GIT_TERMINAL_PROMPT=0`** fail-fast auth strategy (OS/SSH creds only — no credential dialog), and busy+toast progress. Never force-pushes; rejected push → "fetch/pull first" message. Toolbar regrouped: left cluster (`Repo:` + name badge + ↑/↓ + Fetch + Push + divider), Refresh on the right; new `UploadIcon` | ✅ Done (2026-06-12) |
+| [US-642](../tasks/US-642-git-pull/README.md) | **Git Pull** — Git Extensions-style **split-button** (Pull-merge primary + "Fetch all" dropdown) that replaces the standalone Fetch button; new UIKit **`SplitButton`** primitive (composes `IconButton` + `WithMenu`); conflict-state reporting in the Changes panel; reuses the US-641 foundation. **Depends on US-641** | ✅ Done (2026-06-12) |
 
 ## Notes
 

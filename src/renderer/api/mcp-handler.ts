@@ -6,6 +6,7 @@ import { pagesModel } from "./pages";
 import { editorRegistry } from "../editors/base/editorRegistry";
 import { MCP_EXECUTE, MCP_RESULT } from "../../shared/constants";
 import { app } from "./app";
+import { settings } from "./settings";
 import { LogViewEditor } from "../editors/log-view";
 import type { LogEntry, McpRequestEntry } from "../editors/log-view/logTypes";
 import { csvToRecords } from "../core/utils/csv-utils";
@@ -30,6 +31,13 @@ interface McpPageInfo {
     modified: boolean;
     pinned: boolean;
     active: boolean;
+    /** Browser pages only (editor === "browser-view") */
+    profileName?: string;   // "" = default profile
+    isIncognito?: boolean;
+    isTor?: boolean;
+    url?: string;           // ACTIVE TAB's URL (a browser page hosts multiple internal
+                            // tabs; browser_tabs lists them all) — omitted for
+                            // incognito/tor pages (privacy)
 }
 
 interface McpActivePage {
@@ -40,12 +48,19 @@ interface McpActivePage {
     filePath?: string;
     modified: boolean;
     content: string;
+    /** Browser pages only (editor === "browser-view") */
+    profileName?: string;   // "" = default profile
+    isIncognito?: boolean;
+    isTor?: boolean;
+    url?: string;           // ACTIVE TAB's URL — omitted for incognito/tor pages (privacy)
 }
 
 interface McpAppInfo {
     version: string;
     pageCount: number;
     activePageId: string | null;
+    browserProfiles: string[];        // configured profile names
+    defaultBrowserProfile: string;    // "" = built-in default
 }
 
 // ── Param narrowing helpers ─────────────────────────────────────────
@@ -125,7 +140,7 @@ function getPages(): McpPageInfo[] {
             | { language?: string; filePath?: string }
             | undefined;
         const textHost = pagesModel.getTextFileHost(p.id);
-        return {
+        const result: McpPageInfo = {
             id: p.id,
             title: p.title,
             editor: editor?.editorId,
@@ -135,6 +150,22 @@ function getPages(): McpPageInfo[] {
             pinned: p.pinned,
             active: p === pagesModel.activePage,
         };
+
+        // Browser pages: surface profile identity (structural read — do NOT import
+        // BrowserEditor here; mcp-handler loads at startup, the browser chunk must not)
+        if (editor?.editorId === "browser-view") {
+            const bs = p.mainEditor?.state.get() as
+                | { profileName?: string; isIncognito?: boolean; isTor?: boolean; url?: string }
+                | undefined;
+            const isIncognito = !!bs?.isIncognito;
+            const isTor = !!bs?.isTor;
+            result.profileName = bs?.profileName ?? "";
+            result.isIncognito = isIncognito;
+            result.isTor = isTor;
+            if (!isIncognito && !isTor) result.url = bs?.url;   // privacy: no incognito/tor URLs
+        }
+
+        return result;
     });
 }
 
@@ -172,7 +203,7 @@ function getActivePage(): McpActivePage | null {
     const textHost = pagesModel.getTextFileHost(page.id);
     const content = textHost ? textHost.state.get().content : "";
 
-    return {
+    const result: McpActivePage = {
         id: page.id,
         title: page.title,
         editor: editor?.editorId,
@@ -181,6 +212,22 @@ function getActivePage(): McpActivePage | null {
         modified: page.modified,
         content,
     };
+
+    // Browser pages: surface profile identity (structural read — do NOT import
+    // BrowserEditor here; mcp-handler loads at startup, the browser chunk must not)
+    if (editor?.editorId === "browser-view") {
+        const bs = page.mainEditor?.state.get() as
+            | { profileName?: string; isIncognito?: boolean; isTor?: boolean; url?: string }
+            | undefined;
+        const isIncognito = !!bs?.isIncognito;
+        const isTor = !!bs?.isTor;
+        result.profileName = bs?.profileName ?? "";
+        result.isIncognito = isIncognito;
+        result.isTor = isTor;
+        if (!isIncognito && !isTor) result.url = bs?.url;   // privacy: no incognito/tor URLs
+    }
+
+    return result;
 }
 
 function createPage(params: McpParams): McpResponse {
@@ -470,6 +517,8 @@ function getAppInfo(): McpAppInfo {
         version: app.version,
         pageCount: pages.length,
         activePageId: pagesModel.activePage?.id ?? null,
+        browserProfiles: settings.get("browser-profiles").map((p) => p.name),
+        defaultBrowserProfile: settings.get("browser-default-profile"),
     };
 }
 

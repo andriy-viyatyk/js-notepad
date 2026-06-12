@@ -23,10 +23,13 @@ interface CommitDialogProps {
     name?: string;
     /** Author email, prepopulated from git config (editable). */
     email?: string;
-    /** Action buttons. The "Cancel" button always closes with `undefined`; any other
-     *  button closes with the result (gated on a non-empty message). Default
-     *  `["Commit", "Cancel"]`; the future push task passes `["Commit", "Commit and Push",
-     *  "Cancel"]` (US-632 / EPIC-031). */
+    /** Action button labels. The "Cancel" button always closes with `undefined`; any
+     *  other button closes with the result (gated on a non-empty message). Default
+     *  `["Commit", "Cancel"]`. The push task passes `["Commit", "Commit & Push", "Cancel"]`
+     *  (US-641 / EPIC-031). In `CommitResult.button`, the value equals the original array
+     *  label (not the relabeled text). When the branch field is edited, `"Commit"`
+     *  relabels to `"Create Branch & Commit"` and `"Commit & Push"` relabels to `"& Push"`
+     *  (reads as a continuation of `"Create Branch & Commit"` on its left). */
     buttons?: string[];
     /** Transient — an action is in flight (US-638). Disables the action buttons so the
      *  user can't double-submit while the commit/branch-create runs. */
@@ -73,6 +76,8 @@ class CommitDialogModel extends TDialogModel<CommitDialogProps, CommitResult | u
             return;
         }
         // Ctrl/Cmd+Enter commits with the first non-Cancel (default) action button.
+        // This is "Commit" — deliberately NOT "Commit & Push" (US-641): the hotkey
+        // is the low-friction commit; pushing is an explicit button click.
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
             e.preventDefault();
             const s = this.state.get();
@@ -113,6 +118,18 @@ class CommitDialogModel extends TDialogModel<CommitDialogProps, CommitResult | u
         });
         if (!closed) this.state.update((d) => { d.committing = false; });
     };
+}
+
+/** Display label for an action button. When the branch field was edited the commit
+ *  will create a new branch first, so the labels grow: "Commit" → "Create Branch &
+ *  Commit" and "Commit & Push" → "& Push" (the latter reads as a continuation of the
+ *  relabeled commit button just to its left). The action identity passed to
+ *  `submit(bt)` is unchanged — only the visible text. */
+function actionButtonLabel(bt: string, branchChanged: boolean): string {
+    if (!branchChanged) return bt;
+    if (bt === "Commit") return "Create Branch & Commit";
+    if (bt === "Commit & Push") return "& Push";
+    return bt;
 }
 
 function CommitDialog({ model }: ViewPropsRO<CommitDialogModel>) {
@@ -187,7 +204,7 @@ function CommitDialog({ model }: ViewPropsRO<CommitDialogModel>) {
                             </Button>
                         ) : (
                             <Button key={i} disabled={!canCommit || committing} onClick={() => model.submit(bt)}>
-                                {bt === "Commit" && branchChanged ? "Create Branch & Commit" : bt}
+                                {actionButtonLabel(bt, branchChanged)}
                             </Button>
                         ),
                     )}

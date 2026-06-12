@@ -11,7 +11,7 @@ import {
     VideoStreamSessionResult,
 } from "../api-param-types";
 import { Api, Endpoint, McpStatus } from "../api-types";
-import { GitCommit, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../git-ipc";
+import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../git-ipc";
 
 let idGen = 0;
 const idGenMax = 2000000000;
@@ -301,6 +301,22 @@ class ApiCalls implements Api {
 
     gitCreateBranch = async (dir: string, name: string, startPoint?: string, checkout?: boolean) => {
         return executeOnce<GitMutationResult>(Endpoint.gitCreateBranch, dir, name, startPoint, checkout);
+    };
+
+    gitFetch = async (dir: string, opts?: GitFetchOptions) => {
+        return executeOnce<GitMutationResult>(Endpoint.gitFetch, dir, opts);
+    };
+
+    gitAheadBehind = async (dir: string) => {
+        return executeOnce<GitAheadBehind>(Endpoint.gitAheadBehind, dir);
+    };
+
+    gitPush = async (dir: string, opts?: GitPushOptions) => {
+        return executeOnce<GitPushResult>(Endpoint.gitPush, dir, opts);
+    };
+
+    gitPull = async (dir: string, opts?: GitPullOptions) => {
+        return executeOnce<GitPullResult>(Endpoint.gitPull, dir, opts);
     };
 }
 

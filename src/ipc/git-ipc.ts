@@ -104,6 +104,62 @@ export interface GitRefs {
     tags: string[];
 }
 
+/** Options for `git fetch` (US-641). */
+export interface GitFetchOptions {
+    /** Fetch only this remote; omit → fetch all remotes (`--all`). */
+    remote?: string;
+}
+
+/** Ahead/behind counts for the current branch vs its upstream (US-641).
+ *  `hasUpstream: false` when the branch has no configured upstream — not an error. */
+export interface GitAheadBehind {
+    ahead: number;
+    behind: number;
+    /** Full upstream ref, e.g. "origin/main". Present only when `hasUpstream` is true. */
+    upstream?: string;
+    hasUpstream: boolean;
+}
+
+/** Options for `git push` (US-641). */
+export interface GitPushOptions {
+    /** Remote name. Defaults to "origin" (or the sole configured remote). */
+    remote?: string;
+    /** Local branch to push. Defaults to the current branch. */
+    branch?: string;
+    /** Pass `-u` to set the upstream tracking reference (first push of a new branch). */
+    setUpstream?: boolean;
+}
+
+/** Result of a `git push` operation (US-641). Extends `GitMutationResult`
+ *  with a rejection flag for non-fast-forward pushes. */
+export interface GitPushResult {
+    ok: boolean;
+    error?: string;
+    /** True when git rejected the push because the remote has commits the local
+     *  branch does not — the user must fetch/pull before pushing. Never auto-force. */
+    rejected?: boolean;
+}
+
+/** Options for `git pull` (US-642). */
+export interface GitPullOptions {
+    /** When true, pull with `--rebase` instead of merge. */
+    rebase?: boolean;
+    /** When true, pull with `--ff-only` (fails if a non-fast-forward merge is needed). */
+    ffOnly?: boolean;
+}
+
+/** Result of a `git pull` operation (US-642). */
+export interface GitPullResult {
+    ok: boolean;
+    error?: string;
+    /** True when the pull failed because it left merge conflicts in the working tree. */
+    hadConflicts?: boolean;
+    /** Repo-relative paths of conflicted files (when `hadConflicts` is true). */
+    conflicts?: string[];
+    /** Human-readable summary from git (e.g. "Already up to date."). */
+    summary?: string;
+}
+
 /** One commit row from `git log --topo-order` (EPIC-030 / US-611). */
 export interface GitCommit {
     /** Full 40-char hash. */

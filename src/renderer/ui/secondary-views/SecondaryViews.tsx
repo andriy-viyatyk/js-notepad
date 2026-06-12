@@ -5,6 +5,7 @@ import type { ISecondaryViewsState } from "./SecondaryViewsModel";
 import { secondaryViewRegistry } from "./secondary-view-registry";
 import { LazySecondaryView } from "./LazySecondaryView";
 import { panelKey, isCompositePanelKey } from "./panel-key";
+import { EditorIcon } from "../../components/icons/EditorIcon";
 
 // =============================================================================
 // Component
@@ -85,21 +86,33 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
                     setActivePanel={(id) => setState({ activePanel: id })}
                     height="100%"
                 >
-                    {rendered.map(({ model, panelId, key, refKey }) => (
-                        <CollapsiblePanel
-                            key={refKey}
-                            id={key}
-                            name={panelId}
-                            headerRef={(el) => setHeaderRef(refKey, el)}
-                            alwaysRenderContent
-                        >
-                            <LazySecondaryView
-                                model={model as never}
-                                panelId={panelId}
-                                headerRef={headerRefs.current[refKey] ?? null}
-                            />
-                        </CollapsiblePanel>
-                    ))}
+                    {rendered.map(({ model, panelId, key, refKey }) => {
+                        // Panel header icon: a registry per-panel override (e.g. the
+                        // Explorer "search" panel's SearchIcon) wins; otherwise the
+                        // owning editor's icon — the same glyph that editor shows on
+                        // its page tab — so panels from different editors are
+                        // distinguishable at a glance.
+                        const panelIcon =
+                            secondaryViewRegistry.get(panelId)?.icon ?? (
+                                <EditorIcon editor={model} />
+                            );
+                        return (
+                            <CollapsiblePanel
+                                key={refKey}
+                                id={key}
+                                name={panelId}
+                                icon={panelIcon}
+                                headerRef={(el) => setHeaderRef(refKey, el)}
+                                alwaysRenderContent
+                            >
+                                <LazySecondaryView
+                                    model={model as never}
+                                    panelId={panelId}
+                                    headerRef={headerRefs.current[refKey] ?? null}
+                                />
+                            </CollapsiblePanel>
+                        );
+                    })}
                 </CollapsiblePanelStack>
             </Panel>
             <Splitter

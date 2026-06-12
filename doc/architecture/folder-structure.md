@@ -517,6 +517,7 @@ persephone/
 │   ├── index.ts            # Public exports (one entry per primitive)
 │   ├── Button/             # Button
 │   ├── IconButton/         # Icon-only button (also: chip variant)
+│   ├── SplitButton/        # Primary action + caret dropdown menu (composes IconButton + WithMenu)
 │   ├── Input/              # Text input
 │   ├── Textarea/           # Multi-line text input (contentEditable, auto-grow)
 │   ├── Checkbox/           # Checkbox
@@ -626,7 +627,7 @@ persephone/
 ├── browser-service.ts      # Browser page support (webview management)
 ├── browser-registration.ts # Default browser registration
 ├── tor-service.ts          # Tor process lifecycle and per-partition SOCKS5 proxy
-├── git-service.ts          # Git access via simple-git (rev-parse, branch, log, show, --version probe) — main-process only (EPIC-030)
+├── git-service.ts          # Git access via simple-git — status, stage/unstage/commit, branch/switch, fetch/push/pull, ahead-behind, log/show, --version probe — main-process only
 ├── download-service.ts     # Download management
 ├── search-service.ts       # File search service
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
