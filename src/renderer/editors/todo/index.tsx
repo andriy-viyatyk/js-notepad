@@ -17,6 +17,7 @@ function TodoToolbarBits({ model: editor }: TodoToolbarBitsProps) {
     return (
         <Input
             name="todo-search"
+            width={200}
             value={searchText}
             onChange={editor.setSearchText}
             placeholder="Search..."

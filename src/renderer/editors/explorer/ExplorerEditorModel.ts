@@ -167,7 +167,15 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
             this._selectAndReveal(null);
             return;
         }
-        const filePath = (newMainEditor.state.get() as { filePath?: string }).filePath;
+        // The navigated file's path. For wrapped editors (Monaco, Grid, …) the
+        // path lives on the content host's state, not the editor's own state
+        // (which is a fresh editor-shaped state) — fall back to the host, same
+        // as EditorModel.getNavigationSourceId. Without the fallback `filePath`
+        // is always undefined for file editors, so the tree never highlights or
+        // reveals the navigated file.
+        const filePath =
+            (newMainEditor.state.get() as { filePath?: string }).filePath ??
+            (newMainEditor.contentHost?.state.get() as { filePath?: string } | undefined)?.filePath;
         if (filePath && filePath.toLowerCase().startsWith(this.rootPath.toLowerCase())) {
             this._selectAndReveal(filePath);
         } else {

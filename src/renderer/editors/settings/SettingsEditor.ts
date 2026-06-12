@@ -24,6 +24,7 @@ export class SettingsEditor extends EditorModel<SettingsEditorState> {
 
     noLanguage = true;
     skipSave = true;
+    showBackgroundOrnament = true;
 
     /** Preserve the legacy `restore()` title-reset for parity. */
     async restore(): Promise<void> {

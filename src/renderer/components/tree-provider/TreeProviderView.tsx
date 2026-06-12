@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import { useComponentModel } from "../../core/state/model";
 import { TraitSet, traited } from "../../core/traits/traits";
@@ -82,6 +82,11 @@ export function TreeProviderView(
     const treeRef = useRef<TreeRef>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const rootRef = useRef<HTMLDivElement>(null);
+
+    // Transient hover highlight — Tree routes onItemMouseEnter → onActiveChange,
+    // and styles the [data-active] row. Visual-only, so view-local state (same
+    // pattern as the Git "Branches & Tags" tree).
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
     useEffect(() => {
         model.setTreeRef(treeRef.current);
@@ -294,6 +299,8 @@ export function TreeProviderView(
                 items={tNodes}
                 getChildren={getNodeChildren}
                 isSelected={isSelected}
+                activeIndex={activeIndex}
+                onActiveChange={setActiveIndex}
                 onChange={model.onItemClick}
                 onItemDoubleClick={model.onItemDoubleClick}
                 searchText={state.searchText}

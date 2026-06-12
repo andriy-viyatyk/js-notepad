@@ -38,6 +38,26 @@ const OrnamentWrapper = styled.div({
     pointerEvents: "none",
 });
 
+// Non-scrolling page area for editors that show the background Ornament
+// (Settings, About): the ornament is pinned to this box's bottom-right corner
+// while the inner scroll container scrolls independently. The scroll container
+// is raised above the ornament (z-index) and has a transparent background, so
+// the ornament shows through the empty space around the centered content.
+const OrnamentPageArea = styled.div({
+    flex: "1 1 auto",
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    minWidth: 100,
+    // Raise the (transparent) scroll container above the ornament so content
+    // paints over it while the empty margins let the ornament show through.
+    "& > .scroll-container": {
+        position: "relative",
+        zIndex: 1,
+    },
+});
+
 function SecondaryViewsWrapper({ page }: { page: PageModel }) {
     const hasSidebar = page.state.use((s) => s.hasSidebar);
     if (!hasSidebar) return null;
@@ -94,16 +114,27 @@ function PageContent({ pageId }: { pageId: string }) {
         <>
             <SecondaryViewsWrapper page={page} />
             {editor ? (
-                <PageEditorContainer key={page.id} className="scroll-container">
-                    {/* Key the editor view by the model INSTANCE id so navigating
-                        within a page to a new file of the SAME editor type (Git Diff
-                        A → B, Monaco A → B) remounts the view instead of reusing the
-                        component with a new `model` prop — which left the body model
-                        and Monaco/DiffEditor internal state (content, scroll) stale.
-                        An editor-type switch preserves the id (handled by AsyncEditor's
-                        module swap), so this only remounts on a genuine model change. */}
-                    <RenderEditor key={editor.id} model={editor} />
-                </PageEditorContainer>
+                /* Key the editor view by the model INSTANCE id so navigating
+                   within a page to a new file of the SAME editor type (Git Diff
+                   A → B, Monaco A → B) remounts the view instead of reusing the
+                   component with a new `model` prop — which left the body model
+                   and Monaco/DiffEditor internal state (content, scroll) stale.
+                   An editor-type switch preserves the id (handled by AsyncEditor's
+                   module swap), so this only remounts on a genuine model change. */
+                editor.showBackgroundOrnament ? (
+                    <OrnamentPageArea key={page.id}>
+                        <OrnamentWrapper>
+                            <Ornament style={{ width: "100%", height: "100%" }} />
+                        </OrnamentWrapper>
+                        <PageEditorContainer className="scroll-container">
+                            <RenderEditor key={editor.id} model={editor} />
+                        </PageEditorContainer>
+                    </OrnamentPageArea>
+                ) : (
+                    <PageEditorContainer key={page.id} className="scroll-container">
+                        <RenderEditor key={editor.id} model={editor} />
+                    </PageEditorContainer>
+                )
             ) : (
                 <EmptyPageRoot key={page.id}>
                     <OrnamentWrapper>

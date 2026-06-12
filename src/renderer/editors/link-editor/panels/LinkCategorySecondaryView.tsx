@@ -4,7 +4,7 @@ import { SideBarPanelHeader } from "../../../ui/secondary-views/SideBarPanelHead
 import { useOptionalState } from "../../../core/state/state";
 import { LinkCategoryPanel } from "./LinkCategoryPanel";
 import { IconButton } from "../../../uikit";
-import { SaveIcon } from "../../../theme/icons";
+import { SaveIcon, ChevronRightIcon } from "../../../theme/icons";
 import { LinkEditor } from "../LinkEditor";
 
 export default function LinkCategorySecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
@@ -43,14 +43,35 @@ function LinkCategorySecondaryViewBody({
         editor.host?.saveFile();
     }, [editor]);
 
-    const actions = !isMainEditor && modified && (
-        <IconButton
-            name="link-category-secondary-save"
-            size="sm"
-            title="Save"
-            icon={<SaveIcon width={14} height={14} />}
-            onClick={handleSave}
-        />
+    // Promote the Link editor back to the page's main view. Clicking a link in
+    // the Collections panel opens its target as the main editor while this
+    // editor survives as the secondary panel — this brings the links list back
+    // into view. Hidden when the editor is already the main view (nothing to
+    // return to); mirrors the directory-click promote in LinkCategoryPanel.
+    const handleShowMain = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        editor.page?.promoteSecondaryToMain?.(editor);
+    }, [editor]);
+
+    const actions = !isMainEditor && (
+        <>
+            {modified && (
+                <IconButton
+                    name="link-category-secondary-save"
+                    size="sm"
+                    title="Save"
+                    icon={<SaveIcon width={14} height={14} />}
+                    onClick={handleSave}
+                />
+            )}
+            <IconButton
+                name="link-category-secondary-show-main"
+                size="sm"
+                title="Show links"
+                icon={<ChevronRightIcon width={14} height={14} />}
+                onClick={handleShowMain}
+            />
+        </>
     );
 
     return (

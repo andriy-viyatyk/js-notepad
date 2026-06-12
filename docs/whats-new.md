@@ -152,6 +152,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Browser reload — unsaved-changes confirmation** — A soft reload (Reload button, `F5`, `Ctrl+R`) on a page with an unsaved-changes guard (a `beforeunload` handler) now shows a confirmation dialog: **"You have unsaved changes. Leave the page and discard them?"** — click **Leave** to reload or **Cancel** to stay. Previously the reload appeared to do nothing because the guard silently blocked it. A hard reload (`Ctrl+F5` / `Ctrl+Shift+R`) still reloads immediately without prompting, bypassing the guard.
 
+- **Links editor — "Show links" button in Collections panel** — After clicking a link in the **Collections** sidebar panel (which opens the link's target in the main view), a new **Show links** button in the panel header brings the full links list back as the main view without closing or collapsing the panel.
+
+- **Links editor — audio Next/Random respects active tag filter** — When a tag is selected in the **Tags** panel, the audio player's **Next** and **Random** buttons now advance through tracks within that filtered set. Previously they ignored the tag filter and jumped to unrelated files.
+
+- **Explorer panel — hover highlight and active-file reveal restored** — Two regressions in the Explorer sidebar panel have been fixed: (1) file and folder rows now highlight on hover again; (2) opening a file now scrolls to and highlights that file in the tree, expanding ancestor folders as needed.
+
 ---
 
 ## Version 4.0.2

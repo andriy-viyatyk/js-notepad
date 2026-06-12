@@ -1156,6 +1156,11 @@ export class LinkEditor
             target: item.target || undefined,
             sourceId,
             category: item.category,
+            // Seed the active tag filter so the player's Next/Random walks the
+            // filtered list (e.g. only "pop" tracks). Without it the player reads
+            // sourceLink.selectedTag === undefined and falls back to the full,
+            // unfiltered link list. Mirrors navigateToTrack's re-propagation.
+            ...(sourceId === "link-tag" ? { selectedTag: this.state.get().selectedTag } : undefined),
             ...(this.page ? { pageId: this.page.id, fallbackTarget: "monaco", title: item.title } : undefined),
         });
         void import("../../api/app").then(({ app }) => app.events.openRawLink.sendAsync(data));

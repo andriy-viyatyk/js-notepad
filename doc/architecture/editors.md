@@ -98,6 +98,11 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
     noLanguage: boolean;                 // default false
     getIcon?: () => React.ReactNode;     // self-supplied icon for noLanguage editors
 
+    // Page-area presentation hint
+    showBackgroundOrnament: boolean;     // default false; when true the page area
+                                         // pins the decorative Ornament bottom-right,
+                                         // behind content (Settings, About)
+
     // Page-tab context menu (see "Page-tab context menu" below)
     onGetMenuItems(): MenuItem[];        // default delegates to contentHost
 }

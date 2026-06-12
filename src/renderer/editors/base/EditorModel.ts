@@ -73,6 +73,11 @@ export abstract class EditorModel<
     noLanguage = false;
     skipSave = false;
 
+    /** When true, the page area renders the decorative Ornament pinned to the
+     *  bottom-right corner, behind the editor content (matching the empty page).
+     *  For editors whose content leaves empty space around it (Settings, About). */
+    showBackgroundOrnament = false;
+
     /** Captures the auto-sub set up in the constructor so subclasses that
      *  swap `this.state` can unsubscribe and re-attach on the new state. */
     protected _stateAutoUnsub: (() => void) | null = null;
