@@ -6,110 +6,50 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 4.0.3 (Upcoming)
+## Version 4.0.4 (Upcoming)
+
+*No changes yet.*
+
+---
+
+## Version 4.0.3
 
 ### New Features
 
-- **Git integration (off by default)** — Persephone now ships with optional, read-only git support. Enable it in **Settings → Git Integration** with the **Enable Git integration** checkbox. When enabled, the settings page runs a `git --version` probe and reports the result inline ("Git 2.x.x detected" or an error). Requires git installed and on PATH. When disabled (the default), no git activity occurs.
+- **Git integration (off by default)** — Persephone now ships with optional git support. Enable it in **Settings → Git Integration** with the **Enable Git integration** checkbox. When enabled, the settings page runs a `git --version` probe and reports the result inline ("Git 2.x.x detected" or an error). Requires git installed and on PATH. When disabled (the default), no git activity occurs.
 
-- **Git Tree editor** — Browse the commit history of any git repository. In the **File Explorer** panel, a `.git` entry appears for repos with a detected git root — click it to open the **Git Tree** tab. The editor shows a scrollable commit list with a swimlane graph column, commit message, author, relative time, and short hash. Branch and tag ref labels appear on relevant commits. Use the **Refresh** toolbar button to reload. The list loads 200 commits at a time; a **Load more** button appends the next page, and a **Load all** option fetches the entire history. The view is read-only; no staging or committing from here.
+  > Git integration is v1. Staging, unstaging, committing, branch create/switch, fetch, pull (merge), and push are all supported. Merge-conflict resolution is manual (edit conflicted files in a text editor or the Git Diff view, then commit). No in-app credential prompt is shown — authentication uses the OS credential manager (HTTPS) or SSH agent. Merge/rebase operations beyond pull-merge are not available.
 
-- **Git Diff editor switch** — For any text file inside a git repository, a **Git Diff** button appears in the editor switch toolbar (alongside Text Editor, Preview, etc.). Click it to open a Monaco side-by-side diff view. Two picker buttons (**From** / **To**) at the left of the toolbar pick the revisions to compare — each opens a popover with a compact commit list scoped to the file's history. **Unstaged** (current working tree) and **Staged** (git index — shown only when staged changes exist) appear as inline rows at the top of the list. The default comparison is the file's latest commit on the left versus Unstaged on the right. When **To** is set to **Unstaged**, the right pane is editable and writes changes back to the file. Comparing two commits or Staged is read-only. The selected revision pair is persisted across restarts. If the file is not tracked by git (or git fails), the editor shows an explanatory message with a **Switch to Text Editor** button.
+- **Git Tree editor** — Browse the full commit history of any git repository. In the **File Explorer** panel, a `.git` entry appears for repos with a detected git root — click it to open the **Git Tree** tab. The editor shows a scrollable commit list with a swimlane graph column, commit message, author, date (`YYYY-MM-DD HH:mm`), and short hash. The list shows commits from **all branches** (`git log --all`), so no commits disappear from the graph after a branch switch. Branch and tag ref labels appear on relevant commits; the HEAD commit's short hash displays in **green** (on a detached HEAD, the green hash is the only active-commit marker). The list loads 200 commits at a time — a **Load more** button appends the next page and a **Load all** option fetches the entire history. Column widths and order are persisted across restarts (the Graph/swimlane column still auto-sizes). The tree and Changes panel refresh automatically within about half a second whenever the repository changes on disk. The toolbar shows the repository name (hover for full path) and the **ahead/behind indicator** (`↑N` / `↓N`) for the current branch's remote tracking branch.
 
-  > Git integration is v1. Merge operations are not yet available. Staging, unstaging, committing, fetching, and pushing are supported.
+  The bottom of the editor holds a resizable panel (height and active tab persisted) with two tabs:
+  - **Commit tab** — author, date, full hash, ref badges, and the complete commit message for the selected commit.
+  - **Diff tab** — a two-column view: left shows the changed-file list with status badges; right shows a Monaco inline diff for the selected file. The divider width is persisted. Right-clicking a file row selects it and shows a context menu with **"Open in new Tab"** — which opens a full Git Diff editor for that file preselected to *previous commit ↔ selected commit*, with the File History panel already expanded.
 
-- **Git Tree — "Changes" panel** — When the Git Tree editor is open, a **Changes** panel now appears in the sidebar showing all modified files in the repository. The panel is split into two sections: **Unstaged** (top) lists working-tree edits and untracked files; **Staged** (bottom) lists files in the git index. Each row shows the repo-relative path with a file icon and a right-aligned colored status badge (`M` modified, `A` added, `D` deleted, `R` renamed, `?` untracked). Single-click any file to open its **Git Diff** in the page — the Changes panel stays so you can review files one by one. A **Refresh** button on the panel header (and the Git Tree toolbar) reloads both the commit history and the file status. Git-ignored files are not shown.
+- **Branches & Tags panel** — Appears in the sidebar whenever the Git Tree editor is open. Renders all repository refs as a tree with three sections: **Branches** (local branches with `/`-folder nesting), **Remotes** (one entry per remote, tracking branches nested beneath), and **Tags** (flat list). All sections are always shown, even when empty. The checked-out branch is displayed in **green**. Branches and tags are listed most-recent-first by default; click the **AZ** button in the panel header to switch to alphabetical order (persisted). Clicking a branch or tag scrolls the commit grid to that ref's commit and highlights the row. The tree's expanded/collapsed state is persisted — only Branches is expanded on first open. The panel header holds: **Show Git Tree** (returns the commit graph to the main area), **AZ** sort toggle, **Refresh**, and **× Close Git Tree** (tears down the Git Tree editor and both panels — the only way to close them).
 
-  - **Changes panel — close button** — The panel header now has an **×** button that removes the Git Tree editor entirely. If the Git Tree is the main editor, clicking × leaves the page empty (blank tab). If you had opened a Git Diff from the Changes panel, clicking × removes the Git Tree and panel while keeping the diff open. The panel never closes on its own — × is the only way to dismiss it. *(Note: in a later increment the × button moved to the Branches & Tags panel header — see below.)*
+- **Changes panel** — Appears in the sidebar alongside the Branches & Tags panel. Split into **Unstaged** (working-tree edits and untracked files) and **Staged** (git index) sections. Each section is a full grid with icon / path / status columns, click-to-sort headers, and range selection (click, Shift-click, drag, Ctrl+A). Colored status badges — `M` modified, `A` added, `D` deleted, `R` renamed, `?` untracked — appear right-aligned on each row. The panel header shows the repository name as a badge and the total changed-file count, e.g. **[persephone] Changes (3)**. When multiple repositories are open, each gets its own independent Changes panel. Git-ignored files are not shown.
 
-  - **Changes panel — multiple repositories** — When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own independent **Changes** panel in the sidebar. Each panel header shows the repository name: **[repoName] Changes** (e.g. `[persephone] Changes`), so the panels are distinguishable. Each panel can be expanded and collapsed independently. Re-opening the same repo's `.git` entry does not create a duplicate panel.
+  - **Stage / unstage / reset** — Move files between lists three ways: (1) select rows and click the **↓** / **↑** arrow buttons; (2) double-click a row; (3) right-click and choose **Stage N files** / **Unstage N files**. **Reset** (right-click on Unstaged rows) discards uncommitted changes after a confirmation dialog; untracked files are deleted.
+  - **Click to open diff** — Clicking a file in the Unstaged list opens its diff preselected to **Staged ↔ Unstaged**. Clicking a file in the Staged list opens it preselected to **Last commit ↔ Staged** (showing exactly what will go into the next commit).
+  - **Commit button** — A **Commit** button above the Staged list (disabled when nothing is staged) opens the Commit dialog.
+  - **Refresh** — The panel header has a **Refresh** button; the Git Tree toolbar Refresh reloads both the commit history and the file status.
 
-  - **Changes panel — "Show Git Tree" button** — The Changes panel header now has a **Show Git Tree** button (git icon). After clicking a file row (which opens its Git Diff in the main area), click this button to switch the main area back to the commit-graph view without closing the Changes panel. *(Note: in a later increment this button moved to the Branches & Tags panel header — see below.)*
+- **Commit dialog** — Opened from the **Commit** button in the Changes panel. Shows an editable **Author Name** and **Email** (prepopulated from git config; applies only to this commit — your config is never changed), a multi-line message box, and an editable **Branch** field:
+  - **Keep the prefilled branch name** to commit to the current branch as before.
+  - **Type a different name** to create a new branch and commit onto it in one step (button relabels to **"Create Branch & Commit"**).
+  - **Detached HEAD** — the Branch field starts empty and must be filled before committing.
+  - An empty or invalid branch name disables the action button (red border); on name conflict a toast describes the error and the dialog stays open so you can fix and retry.
+  - **Commit & Push** — a second action button commits all staged files and immediately pushes to the remote in one step. The first push of a new branch sets the upstream automatically. If the push is rejected (non-fast-forward), the commit is kept and a toast describes the push failure.
+  - Press **Ctrl+Enter** to commit; **Esc** or **Cancel** to close without committing.
 
-  - **Git Tree toolbar — repository name** — The Git Tree editor toolbar now shows the repository folder name. Hover over it to see the full path to the repository root.
+- **Git operations** — The Git Tree toolbar provides remote operations:
+  - **Pull (split-button)** — primary click runs **Pull (merge)** (fetch + merge in one step). Click the caret (▾) for **Fetch all** (`git fetch --all --prune`). Pull is disabled when the branch has no upstream tracking branch; Fetch all remains available. On merge conflicts a toast lists the conflicted files (up to 5) and they appear in the Changes panel with status `U`.
+  - **Push** — pushes the current branch to its remote tracking branch. Never force-pushes; if the remote has unmerged commits a toast explains to pull first.
+  - **Switch** — right-click a commit row in the graph or a branch/tag leaf in the Branches & Tags panel to switch: **Switch to Branch** (local), **Switch to Remote Branch** (creates a local tracking branch), **Switch to Commit** (detaches HEAD — appears only when no local branch points at the commit), or **Switch to Tag Commit** (panel only). A refused switch surfaces an error toast. After a successful switch both the graph and the Branches & Tags panel refresh automatically.
+  - **Create branch at commit** — right-click a commit row and choose **"Create branch here…"** to create and check out a new branch at that commit. On name conflict an error toast appears.
 
-  - **Git Tree — column layout remembered** — Resizing or reordering columns in the Git Tree is now persisted. The saved layout survives **Refresh**, **Load more**, navigating away and back, and app restarts. The Graph column (swimlane) still auto-sizes to the number of branch lanes and does not save a fixed width.
-
-  - **Git Tree — automatic refresh** — The Git Tree and Changes panel now refresh automatically when the repository changes on disk (saving a tracked file, staging/unstaging, committing, checking out, merging, fetching, and similar operations). Updates appear within about half a second — no manual **Refresh** needed. Always on when Git integration is enabled.
-
-  - **Changes panel — file count** — The Changes panel header now shows the number of changed files alongside the repository name: **[repoName] Changes (n)** (e.g. `[persephone] Changes (3)`). A file that appears in both the Unstaged and Staged lists is counted once.
-
-  - **Changes panel — staging, unstaging, and reset** — The Changes panel now supports mutating git operations (the first in Persephone's git support). You can stage and unstage files between the **Unstaged** and **Staged** lists three ways: (1) select files and click the **↓** / **↑** arrow buttons on the Staged list's header; (2) double-click a file row to move it to the other list; (3) right-click selected rows and choose **Stage N files** or **Unstage N files** from the context menu. **Reset** is available via right-click on Unstaged rows — it discards uncommitted changes (restores to the last staged or committed version); untracked files are deleted; a confirmation dialog appears first. The lists are now full grids with **icon / path / status** columns, click-to-sort headers, and range selection (click, Shift-click, drag, Ctrl+A). A file modified after staging appears in both lists simultaneously; double-clicking either row fully stages or unstages it.
-
-  - **Changes panel — commit** — A **Commit** button now sits in a bar above the **Staged** list (alongside the stage/unstage arrows). The button is disabled when nothing is staged. Clicking it opens a **Commit** dialog showing the current branch (read-only), an editable **Author Name** and **Email** (prepopulated from your git config), and a multi-line message box. The action buttons are disabled until a message is entered. Click **Commit** or press **Ctrl+Enter** to commit; press **Esc** or click **Cancel** to close without committing. The author you enter applies only to this commit — your git config is never changed. On success the Staged list clears and the new commit appears at the top of the Git Tree. On failure (e.g. no git identity configured, a failing pre-commit hook) a toast describes the error and the staged files remain intact. This is the first commit operation available in Persephone's git integration.
-
-- **Git Tree — "Branches & Tags" panel** — A new **Branches & Tags** panel now appears in the sidebar whenever the Git Tree editor is open (above the Changes panel). It renders all repository refs as a tree with three sections: **Branches** (local branches with `/`-folder nesting), **Remotes** (one entry per configured remote, tracking branches nested beneath it), and **Tags** (flat list). All three sections are always shown, even when empty.
-
-  - **Current branch highlighted** — The checked-out branch is displayed in **green** in the panel tree, matching the green ref label already shown on the commit row in the graph column.
-  - **Historical order by default** — Branches and tags are listed most-recent-first (newest commit at the top). Click the **AZ** button in the panel header to switch to alphabetical order; the choice persists across restarts.
-  - **Click to reveal in graph** — Clicking a branch or tag in the panel scrolls the commit grid to that ref's commit and highlights the row. If the commit has not yet been loaded, the last loaded row is focused instead so the **Load more / Load all** controls are visible.
-  - **Hover highlighting** — Hovering any row in the tree shows a background highlight for easy visual tracking.
-  - **Expansion remembered** — The tree's expanded/collapsed state is persisted across navigation and app restarts. On first open only the Branches section is expanded; Remotes and Tags start collapsed.
-  - **Panel header controls** — The Branches & Tags header holds: **Show Git Tree** (returns the commit graph to the main area), **AZ** (sort toggle), **Refresh**, and **× (Close Git Tree)** (which tears down the entire Git Tree editor — both panels — and is the only way to close it). The Changes panel header retains only its own **Refresh** button.
-
-- **Git Tree — switch branches and commits** — Right-clicking a commit row in the graph or a branch/tag leaf in the Branches & Tags panel now offers **Switch** operations (equivalent to `git switch` / `git checkout`). No confirmation dialog is shown; a switch that git refuses (e.g. uncommitted changes that would be overwritten) surfaces an error toast instead.
-
-  - **Switch to Branch '…'** — checks out a local branch. The current branch is listed as disabled ("current").
-  - **Switch to Remote Branch '…'** — creates a local tracking branch named after the remote branch and checks it out. If the local branch already exists, switches to it.
-  - **Switch to Commit `<hash>`** (grid only) — detaches HEAD at that commit. This item appears only when no local branch points at the commit; otherwise the branch item is shown.
-  - **Switch to Tag '<name>' Commit** (panel only) — detaches HEAD at the tagged commit.
-
-  After a successful switch the commit grid and the Branches & Tags panel both refresh automatically (within about half a second, via the auto-refresh watcher).
-
-- **Git Tree — active commit marked in green** — The HEAD commit's **short hash** in the graph now displays in **green**, making the current position visible at a glance even after a detached-HEAD switch (when there is no branch label to color). On a normal branch the hash is green alongside the green branch label; on a detached HEAD the green hash is the only active-commit marker.
-
-- **Git Tree — full branch graph** — The commit list now shows commits from **all branches** (equivalent to `git log --all`), matching the view in Git Extensions. Previously only commits reachable from HEAD were shown. After switching to a branch that is behind another branch the full history remains visible — no commits disappear from the graph.
-
-- **Git Diff — File History sidebar panel** — When the Git Diff editor is active for a file in a git repo, a **File History** panel now appears in the page sidebar. It shows **Unstaged** (and **Staged**, when applicable) rows at the top, followed by the full commit history for that file. Each row has **L** / **R** toggle buttons (highlighted blue) to select which revision is loaded on the left or right side of the diff. The Unstaged row provides only an **R** toggle. The panel stays in sync with the From/To dropdowns in the toolbar — changing either updates the other. A **Refresh** button reloads the file's history. The panel is visible only while the Git Diff view is active; it disappears when you switch to the Text Editor or navigate to another file.
-
-  - **Git Diff — From/To pickers redesigned** — The **From** and **To** revision pickers now sit at the left end of the toolbar. Clicking a picker opens a single scrollable commit list where **Unstaged** and **Staged** (when staged changes exist) appear as inline rows at the top — no separate quick-access buttons are needed. This matches the layout already used in the **File History** sidebar panel.
-
-  - **Git Diff — Run Script button hidden** — The **Run Script** toolbar button no longer appears when the Git Diff editor is active. Running a script over a read-only diff is not supported; the button appears only in editors where it is meaningful (Text Editor, Grid, etc.).
-
-- **Git history — commit date format** — Commit dates throughout the git history views (File History panel, the From/To commit picker popovers in Git Diff, and the Git Tree editor) are now displayed as `YYYY-MM-DD HH:mm` (24-hour, local time). In the File History panel and the commit picker popovers the date is the first column and is resizable.
-
-- **Git Tree — commit details panel** — The Git Tree editor now shows a resizable panel below the commit grid (similar to the bottom pane in Git Extensions). Select a commit in the list to see:
-  - **Author** — name and email address
-  - **Date** — in `YYYY-MM-DD HH:mm` format (local time)
-  - **Commit hash** — the full 40-character hash
-  - **Refs** — branch and tag badges for any refs at the commit
-  - **Commit message** — the full message, including multi-line body text
-
-  The panel has a **Commit** tab (described above) and a **Diff** tab (see below). Drag the divider to resize the panel — the height is capped at 80% of the editor height. Both the panel height and the active tab persist across navigation and app restarts. Requires Git integration to be enabled.
-
-- **Git Tree — commit Diff tab** — The **Diff** tab in the Git Tree bottom panel is now fully functional. Selecting a commit and switching to **Diff** shows a two-column view:
-  - **Left — changed files.** A list of every file touched by the commit, each with a status badge (`M` modified, `A` added, `D` deleted, `R` renamed). Click a row to inspect it.
-  - **Right — inline diff.** A Monaco-rendered inline (single-column) diff comparing the file at the parent commit to the selected commit. Inline rather than side-by-side keeps the view readable in the compact bottom panel.
-  - The divider between the file list and the diff is resizable; its width is saved and restored on restart.
-
-- **Git Tree — commit Diff tab improvements** — Several usability enhancements to the changed-file list in the **Diff** bottom panel:
-
-  - **Selected file highlighted** — The file whose diff is shown on the right is now highlighted in the changed-file list, making it clear which row the diff belongs to.
-  - **Right-click selects and shows context menu** — Right-clicking a file row now also selects it (updating the inline diff on the right), consistent with a left click. A **"Open in new Tab"** context menu item appears, which opens that file in a new Persephone tab as a File Diff preselected to **previous commit ↔ selected commit** — the same comparison shown inline. For a root commit (no parent), the left side is empty, showing the file as all-additions.
-  - **File History panel expanded on new-tab open** — A File Diff tab opened this way starts with the **File History** panel expanded in the sidebar so the commit context is immediately visible.
-
-- **Git Tree — Changes panel: smarter diff comparison for staged files** — Clicking a file in the **Staged** list of the Changes panel now opens its diff preselected to **Last commit ↔ Staged** (what will go into the next commit). Previously it showed **Staged ↔ Unstaged**, which appeared empty for a fully-staged file. Clicking a file in the **Unstaged** list still opens **Staged ↔ Unstaged** as before.
-
-- **Git Tree — create branch at any commit** — Right-click a single commit row in the Git Tree graph and choose **"Create branch here…"** to create a new branch at that commit and immediately check it out. A prompt asks for the branch name. After the operation the new branch is shown in green in the commit graph and in the Branches & Tags panel. If the name is invalid or already exists, an error toast appears and no branch is created.
-
-- **Commit dialog — create branch while committing** — The **Branch** field in the Commit dialog is now editable and required:
-  - **Keep the prefilled name** to commit to the current branch as before.
-  - **Type a different name** to create a new branch and commit onto it in one step. The button relabels to **"Create Branch & Commit"**. The new branch is created and checked out first (carrying your staged changes), then the commit is made.
-  - **Detached HEAD** — when HEAD is not on any branch, the field starts empty and must be filled before committing. This ensures the commit is kept on a real named branch instead of becoming unreachable after a future checkout.
-  - An empty branch name disables the action button (red border). If the branch name is invalid or already exists, a toast describes the error and the **dialog stays open** — your message and branch name are preserved so you can fix and retry without retyping.
-
-- **Git Tree — Pull, Fetch, and Push** — The Git Tree editor toolbar now shows a grouped left cluster: a **"Repo:"** label, the repository name badge (hover for full path), an **ahead/behind indicator** (↑ / ↓ showing how many commits the current branch is ahead of or behind its remote tracking branch), and action buttons — **Pull** (split-button), **Push**, and **Refresh** (right side, unchanged).
-
-  - **Ahead / behind indicator** — Shows `↑N` (commits not yet pushed) and `↓N` (commits on the remote not yet pulled) for the current branch. Only appears when the branch has a remote tracking branch configured. Updates automatically on every refresh. The `↓N` indicator is the cue that a pull is available.
-  - **Pull (split-button)** — The standalone Fetch button has been replaced with a **Pull** split-button. Primary click runs **Pull (merge)**: fetches from the upstream remote and merges it into the current branch in one step. Click the caret (▾) to open a dropdown with two items: **Pull (merge)** (same as the primary click) and **Fetch all** (`git fetch --all --prune` — the action the old Fetch button performed). The Pull button is **disabled** when the current branch has no upstream tracking branch; the **Fetch all** dropdown item stays available. On a no-op pull, a toast shows "Already up to date." On merge conflicts, a toast lists the conflicted files (up to 5) and they appear in the Changes panel's Unstaged list with status `U` — resolve them in an external editor or the File Diff view, then commit. Pull over HTTPS without stored credentials fails fast with an error toast; no in-app credential prompt is shown.
-  - **Push** — Pushes the current branch to its remote tracking branch. The first push of a newly created branch automatically sets the upstream (`-u`). Push never force-pushes; if the remote has commits the local branch does not (non-fast-forward), a toast explains that you need to pull first.
-  - **Authentication** — Pull and push both rely on the OS credential manager (HTTPS remotes) or SSH agent (SSH remotes). Persephone does not prompt for credentials inline. If no credential is stored and the remote requires authentication, the operation fails immediately with a clear error rather than hanging.
-
-- **Commit dialog — Commit & Push** — The Commit dialog now has a second action button alongside **Commit**:
-
-  - **Commit & Push** — commits all staged files and immediately pushes the result to the remote. Equivalent to clicking **Commit** then **Push** in one step. The first push of a newly created branch sets the upstream automatically.
-  - When you type a new branch name in the **Branch** field, the button relabels to **& Push** (the primary button becomes **"Create Branch & Commit"** and the secondary becomes **"& Push"** to keep the labels compact).
-  - If the push is rejected (non-fast-forward) after a successful commit, the commit is kept and a toast describes the push failure — the staged files are already committed and are not lost.
+- **Git Diff editor** — For any text file inside a git repository, a **Git Diff** button appears in the editor switch toolbar. Opens a Monaco side-by-side diff. **From** / **To** pickers at the left of the toolbar each open a scrollable commit list scoped to the file's history; **Unstaged** and **Staged** (when applicable) appear as inline rows at the top. The default comparison is the file's latest commit on the left versus Unstaged on the right. When **To** is Unstaged, the right pane is editable and writes changes back to the file; all other combinations are read-only. The selected revision pair is persisted across restarts. If the file is not tracked by git the editor shows an explanatory message with a **Switch to Text Editor** button. The **Run Script** toolbar button is hidden in Git Diff view. A **File History** sidebar panel shows the full per-file commit history with **L** / **R** toggle buttons to load revisions into either diff pane; it stays in sync with the From/To pickers and is visible only while Git Diff is active.
 
 - **Image export — save rendered PNG to file** — The Mermaid Diagram Viewer, SVG Preview, and Image Viewer can now save their rendered output to a file:
 
@@ -130,21 +70,15 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### UI Polish
 
-- **Context-aware tab menu** — The page-tab right-click menu is now context-aware. Each editor contributes only the actions that apply to it:
-  - **Text editor tabs** — unchanged: Save, Save As, Rename, Show in File Explorer, Copy File Path, and the encryption group (Encrypt, Decrypt, Make Unencrypted).
-  - **Git Tree tabs** — show two new items: **Open Git Root Folder** (reveals the repository root in Windows Explorer) and **Copy Remote URL** (copies the configured remote URL — origin preferred — to the clipboard).
-  - **PDF, Image, and Archive tabs** — show Show in File Explorer and Copy File Path for their source file.
-  - **Other editors** (e.g. MCP Inspector) — show only the universal tab items (Close, Pin, Duplicate, Open in New Window) with no greyed-out editor-specific entries.
+- **Context-aware tab menu** — The page-tab right-click menu now shows only the actions that apply to the active editor. Text editor tabs are unchanged. Git Tree tabs add **Open Git Root Folder** and **Copy Remote URL**. PDF, Image, and Archive tabs show Show in File Explorer and Copy File Path. Other editors (e.g. MCP Inspector) show only the universal tab items with no greyed-out entries. See [Tab Context Menu](./tabs-and-navigation.md#tab-context-menu) for the full reference.
 
-  The universal tab items (Close Tab, Close Other Tabs, Close Tabs to the Right, Open in New Window, Duplicate Tab, Pin/Unpin Tab) are unchanged for all tabs. See [Tab Context Menu](./tabs-and-navigation.md#tab-context-menu) for the full reference.
+- **Sidebar panel header icons** — Each sidebar panel now shows a small icon at the start of its header row, matching the icon the editor uses on its page tab — folder icon for File Explorer, search icon for Search, git icon for Changes and Branches & Tags panels.
 
-- **Sidebar panel header icons** — Each secondary-view panel in the sidebar now shows a small icon at the start of its header row, matching the icon the editor displays on its page tab. This makes it easy to tell panels apart when multiple editors are open at once — for example, the **File Explorer** panel shows a folder icon, the **Search** panel shows a search icon, and the **Changes** and **Branches & Tags** git panels show the git icon.
-
-- **Git sidebar panels — repository badge** — The **Branches & Tags** and **Changes** panel headers now display the repository name as a small bordered badge (matching the style used in the Git Tree toolbar), replacing the plain `[name]` bracket notation used previously.
+- **Git sidebar panels — repository badge** — The **Branches & Tags** and **Changes** panel headers display the repository name as a small bordered badge, matching the style used in the Git Tree toolbar.
 
 - **Storybook — dedicated icon** — The Storybook tool now has its own book-with-bookmark icon on its page tab and in the **Tools & Editors** list, replacing the generic list icon it previously shared with other tools.
 
-- **Sidebar panel headers — title truncation** — When the sidebar is narrowed, panel header titles (and the repository-name badge on git panels) now truncate with an ellipsis instead of pushing action buttons off the right edge. The action buttons — Refresh, AZ sort toggle, Show Git Tree, Close, etc. — remain fully visible at all sidebar widths.
+- **Sidebar panel headers — title truncation** — When the sidebar is narrowed, panel header titles (and the repository-name badge on git panels) now truncate with an ellipsis instead of pushing action buttons off the right edge. Action buttons — Refresh, AZ sort toggle, Show Git Tree, Close, etc. — remain fully visible at all sidebar widths.
 
 ### Bug Fixes
 

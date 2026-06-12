@@ -29,6 +29,9 @@ Browse the web in a dedicated tab with profiles, incognito mode, Tor routing, bo
 ### Browser Automation *(experimental)*
 Automate the built-in browser from scripts using `page.asBrowser()` — click elements, fill forms, extract text, run JavaScript, manage tabs, and wait for dynamic content via a CDP-powered API. AI agents can drive the browser directly through MCP browser tools (`browser_navigate`, `browser_click`, `browser_type`, and more) without writing a script.
 
+### Git Integration *(off by default)*
+Optional, built-in git support — enable it with a single checkbox in Settings (requires git on your PATH). Browse a repository's full commit history in the **Git Tree** editor: a swimlane graph across all branches, a Branches & Tags panel, and a Changes panel for staging, unstaging, resetting, and committing. Create and switch branches, and pull, fetch, or push to remotes. A side-by-side **Git Diff** editor compares any tracked file across revisions (unstaged, staged, or any commit). See the [What's New](docs/whats-new.md) notes for details.
+
 ## Download (Windows)
 
 | Format | Link |
@@ -43,12 +46,16 @@ Automate the built-in browser from scripts using `page.asBrowser()` — click el
 | **Text Editor** | all files | Monaco-powered editor with syntax highlighting for 50+ languages |
 | **JSON Grid** | `.json` | Sortable, filterable table view for JSON arrays |
 | **CSV Grid** | `.csv`, `.tsv` | Spreadsheet-like view with auto-detected delimiters |
+| **JSONL Grid** | `.grid.jsonl`, `.jsonl` | Grid view for JSONL/NDJSON data — one JSON object per line |
+| **Log View** | `.log.jsonl` | Structured viewer for JSONL log files with log-level filtering |
 | **Markdown Preview** | `.md` | Rendered markdown with live updates |
 | **Mermaid Diagrams** | `.mmd`, `.mermaid` | Rendered diagram preview with light/dark toggle |
 | **SVG Preview** | `.svg` | Rendered SVG with zoom and pan |
 | **HTML Preview** | `.html` | Sandboxed rendered preview with script support |
 | **Image Viewer** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer with zoom and pan |
+| **Audio / Video Player** | `.mp4`, `.mkv`, `.webm`, `.mov`, `.mp3`, `.flac`, `.wav`, `.m3u8` | Plays local and streamed media, with HLS support and an audio spectrum visualizer |
 | **PDF Viewer** | `.pdf` | Integrated pdf.js document viewer |
+| **Archive** | `.zip`, `.rar`, `.7z`, `.tar`, `.docx`, `.xlsx`, `.epub`, `.iso` | Browse archive contents as a file tree; open entries inline (ZIP-based formats are writable) |
 | **Notebook** | `.note.json` | Structured notes with categories, tags, and search |
 | **Todo** | `.todo.json` | Task lists with multiple lists, drag-to-reorder, and search |
 | **Force Graph** | `.fg.json` | Interactive force-directed graph with node editing, search, and BFS expansion |
@@ -56,6 +63,8 @@ Automate the built-in browser from scripts using `page.asBrowser()` — click el
 | **Links** | `.link.json` | Bookmark/link manager with tiles, list view, categories, and pinned links |
 | **Rest Client** | `.rest.json` | HTTP request builder with collections, body types, and response viewer |
 | **Browser** | — | Web browser with profiles, incognito, Tor, bookmarks, and DRM support |
+| **Git Tree** | — | Commit-history graph with branches & tags, staging, commit, and pull/push *(Git integration)* |
+| **Git Diff** | — | Side-by-side revision comparison for any tracked file *(Git integration)* |
 | **Compare** | any two files | Side-by-side diff view |
 
 ---
