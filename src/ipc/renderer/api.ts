@@ -318,6 +318,10 @@ class ApiCalls implements Api {
     gitPull = async (dir: string, opts?: GitPullOptions) => {
         return executeOnce<GitPullResult>(Endpoint.gitPull, dir, opts);
     };
+
+    gitRemoteUrl = async (dir: string, remote: string) => {
+        return executeOnce<string>(Endpoint.gitRemoteUrl, dir, remote);
+    };
 }
 
 export const api = new ApiCalls();

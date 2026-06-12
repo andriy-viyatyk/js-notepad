@@ -97,6 +97,9 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
     // Icon (see "Editor icons" below)
     noLanguage: boolean;                 // default false
     getIcon?: () => React.ReactNode;     // self-supplied icon for noLanguage editors
+
+    // Page-tab context menu (see "Page-tab context menu" below)
+    onGetMenuItems(): MenuItem[];        // default delegates to contentHost
 }
 ```
 
@@ -119,6 +122,29 @@ This decision is centralized in the shared **`EditorIcon`** resolver ([`componen
 `EditorIcon` accepts a duck-typed `EditorIconSource` (`{ noLanguage?, getIcon?, language?, title? }`) rather than importing `EditorModel`, so `components/icons` stays decoupled from the editors layer. It is the single source of truth shared by the page tab (`PageTab.tsx`) and the sidebar panel headers (`SecondaryViews.tsx`), so the two never drift. It forces **no size and no color**: icons carry their own sizing, and leaving `color` unset lets the surrounding header color cascade — monochrome `currentColor` icons (e.g. `GitIcon`) follow the header state (accent when a panel is active), while explicitly-colored icons (Todo/Link, the folder emoji, the Storybook brand mark) keep their own hue.
 
 The Tools & Editors list keeps its **own** per-item icon in [`tools-editors-registry.ts`](../../src/renderer/ui/sidebar/tools-editors-registry.ts) (it lists editor *types*, not live models), so a new editor icon must be set there too if the editor appears in that list.
+
+## Page-tab context menu
+
+A page tab's right-click menu has two tiers. The **tab-level** items (Close, Close Others, Close to Right, Open in New Window, Duplicate, Pin/Unpin) are built in `PageTab.tsx` and are identical for every editor — they call only page/`PagesModel` operations. The **editor-specific** items come from the editor model itself, through a single hook:
+
+```ts
+onGetMenuItems(): MenuItem[] {           // EditorModel default
+    return this.contentHost?.onGetMenuItems?.() ?? [];
+}
+```
+
+`PageTab.handleContextMenu` appends `mainEditorInstance.onGetMenuItems()` after the tab-level items and stamps `startGroup: true` on the first contributed item, so the tab owns the divider between the two tiers.
+
+The default routes to the content host, which is the extensibility seam:
+
+- **Text-bearing editors** get the full text-file menu for free — `TextFileModel.onGetMenuItems()` returns it, and every editor that wraps a `TextFileModel` host inherits it without per-editor code.
+- **Non-text editors** override `onGetMenuItems()` to contribute their own items (Git Tree → "Open Git Root Folder" / "Copy Remote URL"; PDF/Image/Archive → the file-path items).
+- An editor with nothing to add inherits the base default and a null content host, returning `[]` — so no disabled/irrelevant items appear.
+
+The menu items themselves live in [`editors/shared/editor-menu-items.tsx`](../../src/renderer/editors/shared/editor-menu-items.tsx):
+
+- `textFileMenuItems(host)` — Save / Save As / Rename / file-path items / encryption group. The single home of the text-file menu; `TextFileModel.onGetMenuItems()` returns it, and `TextFileModel` owns `promptRename()` (the rename dialog).
+- `filePathMenuItems(filePath)` — Show in File Explorer + Copy File Path. Reusable by any editor with an on-disk path (the text host, plus standalone PDF / Image / Archive editors). Disabled (not hidden) when the path is absent.
 
 ## IContentHost
 

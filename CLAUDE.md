@@ -324,6 +324,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Content host trait       | `/src/renderer/editors/base/editor-traits.ts`     |
 | Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image) | `/src/renderer/editors/base/IImageExport.ts` |
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
+| Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.tsx` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
 | Grid editor              | `/src/renderer/editors/grid/GridEditor.ts`        |

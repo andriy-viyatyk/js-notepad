@@ -4,10 +4,12 @@ import {
     EditorModel,
     type EditorStateBase,
 } from "../base/EditorModel";
-import { GitIcon } from "../../theme/icons";
+import { GitIcon, FolderOpenIcon, CopyIcon } from "../../theme/icons";
 import { GitTreeModel, GitChangesModel, GitBranchesModel, type GitColumnLayout, type GitRefNodeKind } from "../../components/git-tree";
 import type { IPageHost } from "../../api/pages/IPageHost";
+import type { MenuItem } from "../../uikit";
 import { app } from "../../api/app";
+import { api } from "../../../ipc/renderer/api";
 import { git } from "../../api/git";
 import { ui } from "../../api/ui";
 import { settings } from "../../api/settings";
@@ -116,6 +118,35 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
 
     /** Tab icon — the git glyph (EPIC-030 / US-612). */
     getIcon = (): ReactNode => createElement(GitIcon, { width: 16, height: 16 });
+
+    /** Page-tab context-menu items specific to the Git Tree editor: reveal the
+     *  repository root in the OS file manager, and copy the configured remote's
+     *  URL to the clipboard. */
+    onGetMenuItems(): MenuItem[] {
+        const repoRoot = this.state.get().repoRoot;
+        const remotes = this.branches.state.get().refs.remotes;
+        // Prefer "origin" when present; otherwise the first configured remote.
+        const remote = remotes.includes("origin") ? "origin" : remotes[0];
+        return [
+            {
+                label: "Open Git Root Folder",
+                icon: createElement(FolderOpenIcon),
+                onClick: () => {
+                    if (repoRoot) api.showItemInFolder(repoRoot);
+                },
+                disabled: !repoRoot,
+            },
+            {
+                label: "Copy Remote URL",
+                icon: createElement(CopyIcon),
+                onClick: async () => {
+                    const url = await git.getRemoteUrl(repoRoot, remote);
+                    if (url) navigator.clipboard.writeText(url);
+                },
+                disabled: !remote,
+            },
+        ];
+    }
 
     /** Register the "Changes" sidebar panel when attached to a page (Pattern B —
      *  the main editor is also its own secondary view; secondary-views.md §2). */

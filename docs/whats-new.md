@@ -130,6 +130,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### UI Polish
 
+- **Context-aware tab menu** — The page-tab right-click menu is now context-aware. Each editor contributes only the actions that apply to it:
+  - **Text editor tabs** — unchanged: Save, Save As, Rename, Show in File Explorer, Copy File Path, and the encryption group (Encrypt, Decrypt, Make Unencrypted).
+  - **Git Tree tabs** — show two new items: **Open Git Root Folder** (reveals the repository root in Windows Explorer) and **Copy Remote URL** (copies the configured remote URL — origin preferred — to the clipboard).
+  - **PDF, Image, and Archive tabs** — show Show in File Explorer and Copy File Path for their source file.
+  - **Other editors** (e.g. MCP Inspector) — show only the universal tab items (Close, Pin, Duplicate, Open in New Window) with no greyed-out editor-specific entries.
+
+  The universal tab items (Close Tab, Close Other Tabs, Close Tabs to the Right, Open in New Window, Duplicate Tab, Pin/Unpin Tab) are unchanged for all tabs. See [Tab Context Menu](./tabs-and-navigation.md#tab-context-menu) for the full reference.
+
 - **Sidebar panel header icons** — Each secondary-view panel in the sidebar now shows a small icon at the start of its header row, matching the icon the editor displays on its page tab. This makes it easy to tell panels apart when multiple editors are open at once — for example, the **File Explorer** panel shows a folder icon, the **Search** panel shows a search icon, and the **Changes** and **Branches & Tags** git panels show the git icon.
 
 - **Git sidebar panels — repository badge** — The **Branches & Tags** and **Changes** panel headers now display the repository name as a small bordered badge (matching the style used in the Git Tree toolbar), replacing the plain `[name]` bracket notation used previously.

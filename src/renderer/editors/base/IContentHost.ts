@@ -1,6 +1,7 @@
 import type React from "react";
 import type { IState } from "../../core/state/state";
 import type { HostDescriptor } from "../../../shared/persistence";
+import type { MenuItem } from "../../uikit";
 
 /** Minimal reactive state every host exposes. */
 export interface IContentHostState {
@@ -41,6 +42,11 @@ export interface IContentHost {
      *  class. `TextFileModel` will delegate Ctrl+S / Ctrl+Shift+S / F5 / F2
      *  to its actions submodel; `NoteItemEditModel` may implement a subset. */
     handleKeyDown?(e: React.KeyboardEvent): void;
+
+    /** Optional context-menu items contributed to the page tab on behalf of the
+     *  wrapping editor. `TextFileModel` returns the Save / Rename / encryption
+     *  group; surfaced through `EditorModel.onGetMenuItems()`. */
+    onGetMenuItems?(): MenuItem[];
 
     getEditorState<T>(editorId: string): T | undefined;
 

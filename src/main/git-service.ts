@@ -258,6 +258,22 @@ export async function refs(dir: string): Promise<GitRefs> {
 }
 
 /**
+ * Configured fetch URL of a remote (US-644 — "Copy Remote URL" in the Git Tree
+ * tab menu). Returns "" when git is unavailable, the dir is not a repo, the
+ * remote name is empty, or the remote has no URL. Never throws.
+ */
+export async function remoteUrl(dir: string, remote: string): Promise<string> {
+    if (!remote) return "";
+    try {
+        const git = simpleGit(dir).env("GIT_OPTIONAL_LOCKS", "0");
+        const raw = await git.raw(["remote", "get-url", remote]);
+        return raw.trim();
+    } catch {
+        return "";
+    }
+}
+
+/**
  * Blob content of a file at a revision (EPIC-030 / US-613). `rev` may be:
  *   - ""      → the index (`:path`) — the staged blob if staged, else HEAD,
  *   - "HEAD"  → the last commit,

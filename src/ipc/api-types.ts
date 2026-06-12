@@ -78,6 +78,7 @@ export enum Endpoint {
     gitAheadBehind = "gitAheadBehind",
     gitPush = "gitPush",
     gitPull = "gitPull",
+    gitRemoteUrl = "gitRemoteUrl",
 }
 
 export interface McpStatus {
@@ -158,6 +159,7 @@ export type Api = {
     [Endpoint.gitAheadBehind]: (dir: string) => Promise<GitAheadBehind>;
     [Endpoint.gitPush]: (dir: string, opts?: GitPushOptions) => Promise<GitPushResult>;
     [Endpoint.gitPull]: (dir: string, opts?: GitPullOptions) => Promise<GitPullResult>;
+    [Endpoint.gitRemoteUrl]: (dir: string, remote: string) => Promise<string>;
 };
 
 export enum EventEndpoint {

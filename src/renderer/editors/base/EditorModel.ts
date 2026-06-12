@@ -9,6 +9,7 @@ import type { IContentHost } from "./IContentHost";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import type { IEditorState } from "../../../shared/types";
+import type { MenuItem } from "../../uikit";
 
 export interface EditorStateBase extends Omit<Partial<IEditorState>, "id" | "title" | "modified"> {
     /** Editor instance UUID — cache-file prefix. On switchFrom, the new
@@ -210,6 +211,18 @@ export abstract class EditorModel<
      *  consumed by tab strip, toolbar, switch widget, and `<TextChrome>`. */
     get contentHost(): IContentHost | null {
         return null;
+    }
+
+    // ── Page-tab context-menu contributions ──────────────────────────────
+
+    /** Editor/model-specific context-menu items for the page tab. The default
+     *  routes to the content host, so every text-bearing editor surfaces the
+     *  text-file menu (Save / Rename / encryption) for free. Non-text editors
+     *  override to contribute their own items; an editor with nothing to add
+     *  returns `[]`. The tab keeps only tab-level items (Close / Pin / …) and
+     *  appends these below a separator. */
+    onGetMenuItems(): MenuItem[] {
+        return this.contentHost?.onGetMenuItems?.() ?? [];
     }
 
     // ── Navigation-source accessor (sidebar-owning navigation survival) ───

@@ -63,7 +63,9 @@ Pin tabs to keep them compact and always visible at the left side of the tab bar
 
 ### Tab Context Menu
 
-Right-click any tab to access these options:
+Right-click any tab to open its context menu. The menu is split into two groups: **tab-level items** that are always present, and **editor-specific items** that depend on what the tab contains.
+
+**Tab-level items (always shown):**
 
 | Action | Description |
 |--------|-------------|
@@ -73,6 +75,15 @@ Right-click any tab to access these options:
 | Open in New Window | Move this tab to a new window (not available for pinned tabs) |
 | Duplicate Tab | Create a copy of this tab grouped side-by-side |
 | Pin Tab / Unpin Tab | Pin or unpin the tab |
+
+**Editor-specific items:**
+
+Each editor contributes only the actions that are relevant to it. Editors with no specific actions (e.g. MCP Inspector) show only the tab-level items — no greyed-out entries.
+
+*Text editor tabs:*
+
+| Action | Description |
+|--------|-------------|
 | Save | Save the file |
 | Save As... | Save with a new name |
 | Rename | Rename the file/tab |
@@ -81,6 +92,20 @@ Right-click any tab to access these options:
 | Encrypt / Change Password | Encrypt the file or change its password (see [Encryption](./encryption.md)) |
 | Decrypt | Decrypt an encrypted file |
 | Make Unencrypted | Remove encryption from a file |
+
+*Git Tree tabs:*
+
+| Action | Description |
+|--------|-------------|
+| Open Git Root Folder | Reveal the repository root folder in Windows Explorer |
+| Copy Remote URL | Copy the configured remote URL (origin preferred) to the clipboard |
+
+*PDF, Image, and Archive tabs:*
+
+| Action | Description |
+|--------|-------------|
+| Show in File Explorer | Open the source file's folder in Windows Explorer |
+| Copy File Path | Copy the source file's full path to clipboard |
 
 ## Tab Grouping (Side-by-Side View)
 

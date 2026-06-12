@@ -16,7 +16,9 @@ import { FileProvider } from "../../content/providers/FileProvider";
 import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { IImageExport } from "../base/IImageExport";
+import type { MenuItem } from "../../uikit";
 import { rasterToPngBlob, savePngViaDialog } from "../shared/image-export";
+import { filePathMenuItems } from "../shared/editor-menu-items";
 import {
     buildExcalidrawJsonWithImage,
     getImageDimensions,
@@ -315,4 +317,9 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
             height: 12,
         });
     };
+
+    /** Show in File Explorer / Copy File Path for the image's source path. */
+    onGetMenuItems(): MenuItem[] {
+        return filePathMenuItems(this.state.get().filePath);
+    }
 }

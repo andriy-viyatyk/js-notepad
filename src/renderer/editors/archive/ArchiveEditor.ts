@@ -11,6 +11,8 @@ import { fpBasename } from "../../core/utils/file-path";
 import { ArchiveIcon } from "../../theme/icons";
 import type { NavigationState } from "../base/navigation-state";
 import type { IPageHost } from "../../api/pages/IPageHost";
+import type { MenuItem } from "../../uikit";
+import { filePathMenuItems } from "../shared/editor-menu-items";
 
 export interface ArchiveEditorState extends EditorStateBase {
     /** State-type discriminator (used by `_openZipArchive` for de-dup). */
@@ -136,6 +138,11 @@ export class ArchiveEditor extends EditorModel<ArchiveEditorState> {
      *  (e.g. Monaco) keeps the Archive panel instead of dropping it. */
     private _isOpenedFromThisArchive(model: EditorModel): boolean {
         return model.getNavigationSourceId() === this.id;
+    }
+
+    /** Show in File Explorer / Copy File Path for the archive file. */
+    onGetMenuItems(): MenuItem[] {
+        return filePathMenuItems(this.state.get().archiveUrl);
     }
 
     async dispose(): Promise<void> {

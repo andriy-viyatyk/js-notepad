@@ -231,4 +231,14 @@ export const git = {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(PULL_FAIL);
         return api.gitPull(repoRoot, opts).catch((e): GitPullResult => ({ ok: false, error: String(e) }));
     },
+
+    /**
+     * Configured URL of a remote (US-644 — "Copy Remote URL" in the Git Tree tab
+     * menu). Returns "" (no git spawn) when git is off, no root/remote, or the
+     * remote has no URL. Never throws.
+     */
+    getRemoteUrl(repoRoot: string, remote: string): Promise<string> {
+        if (!settings.get("git.enabled") || !repoRoot || !remote) return Promise.resolve("");
+        return api.gitRemoteUrl(repoRoot, remote).catch((): string => "");
+    },
 };

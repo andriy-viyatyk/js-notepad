@@ -8,15 +8,8 @@ import type { PageModel } from "../../api/pages/PageModel";
 import {
     CircleIcon,
     CloseIcon,
-    CopyIcon,
     DuplicateIcon,
-    FolderOpenIcon,
     GroupIcon,
-    KeyOffIcon,
-    LockIcon,
-    RenameIcon,
-    SaveIcon,
-    UnlockIcon,
     VolumeIcon,
     VolumeMutedIcon,
 } from "../../theme/icons";
@@ -32,7 +25,6 @@ import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } fro
 import { api } from "../../../ipc/renderer/api";
 import { PageDragData } from "../../../shared/types";
 import { parseObject } from "../../core/utils/parse-utils";
-import { ui } from "../../api/ui";
 import { useOptionalState } from "../../core/state/state";
 
 export const minTabWidth = 80;
@@ -254,8 +246,7 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
 
     handleContextMenu = (e: React.MouseEvent) => {
         const page = this.props.model;
-        const editor = page.mainEditor;
-        const textHost = pagesModel.getTextFileHost(page.id);
+        const editorInstance = page.mainEditorInstance;
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "page-tab");
         const isPinned = page.pinned;
         const pinUnpinItem: MenuItem = {
@@ -320,77 +311,15 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
                 startGroup: true,
             });
         }
-        menuItems.push(
-            {
-                startGroup: true,
-                label: "Save",
-                icon: <SaveIcon />,
-                onClick: () => {
-                    textHost?.saveFile(false);
-                },
-                disabled: !textHost,
-            },
-            {
-                label: "Save As...",
-                icon: <SaveIcon />,
-                onClick: () => {
-                    textHost?.saveFile(true);
-                },
-                disabled: !textHost,
-            },
-            {
-                label: "Rename",
-                icon: <RenameIcon />,
-                onClick: this.renameTab,
-                disabled: !textHost,
-            },
-            {
-                label: "Show in File Explorer",
-                icon: <FolderOpenIcon />,
-                onClick: () => {
-                    const fp = (editor?.state.get() as { filePath?: string })?.filePath;
-                    if (fp) api.showItemInFolder(fp);
-                },
-                disabled: !(editor?.state.get() as { filePath?: string })?.filePath,
-            },
-            {
-                label: "Copy File Path",
-                icon: <CopyIcon />,
-                onClick: () => {
-                    const fp = (editor?.state.get() as { filePath?: string })?.filePath;
-                    if (fp) navigator.clipboard.writeText(fp);
-                },
-                disabled: !(editor?.state.get() as { filePath?: string })?.filePath,
-            },
-            {
-                label: "Decrypt",
-                icon: <UnlockIcon />,
-                onClick: () => {
-                    textHost?.showEncryptionDialog();
-                },
-                disabled: !(textHost?.encrypted),
-                startGroup: true,
-            },
-            {
-                label:
-                    textHost && !textHost.withEncryption
-                        ? "Encrypt"
-                        : "Change Password",
-                icon: <LockIcon />,
-                onClick: () => {
-                    textHost?.showEncryptionDialog();
-                },
-                disabled: !textHost || textHost.encrypted,
-            },
-            {
-                label: "Make Unencrypted",
-                icon: <KeyOffIcon />,
-                onClick: () => {
-                    textHost?.makeUnencrypted();
-                },
-                disabled: !textHost?.decrypted,
-            },
-        );
+        // Editor/model-specific items come from the editor model itself
+        // (text editors delegate to their content host; Git Tree etc. override).
+        const editorItems = editorInstance?.onGetMenuItems() ?? [];
+        if (editorItems.length) {
+            // The tab owns the separator between tab-level items and the
+            // editor's own items — stamp it onto the first contributed item.
+            editorItems[0] = { ...editorItems[0], startGroup: true };
+            menuItems.push(...editorItems);
+        }
         ctxEvent.items.push(...menuItems);
     };
 
@@ -403,23 +332,6 @@ class PageTabModel extends TComponentModel<null, PageTabProps> {
             page: page.getDescriptor(),
         };
     };
-
-    private renameTab = async () => {
-        const textHost = pagesModel.getTextFileHost(this.props.model.id);
-        if (textHost) {
-            const pageTitle = textHost.state.get().title;
-            const inputResult = await ui.input("Enter new file name:", {
-                title: "Rename File",
-                value: pageTitle,
-                buttons: ["Rename", "Cancel"],
-                selectAll: true,
-            });
-            if (inputResult?.button === "Rename" && inputResult.value) {
-                const newName = inputResult.value;
-                await textHost.renameFile(newName);
-            }
-        }
-    }
 
     handleDragStart = (e: React.DragEvent) => {
         const page = this.props.model;

@@ -12,6 +12,8 @@ import { fs as appFs } from "../../api/fs";
 import { ContentPipe } from "../../content/ContentPipe";
 import { FileProvider } from "../../content/providers/FileProvider";
 import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
+import type { MenuItem } from "../../uikit";
+import { filePathMenuItems } from "../shared/editor-menu-items";
 
 export interface PdfEditorState extends EditorStateBase {
     /** Discriminator — preserved for legacy `newEditorModelFromState`
@@ -155,4 +157,9 @@ export class PdfEditor extends EditorModel<PdfEditorState> {
             height: 12,
         });
     };
+
+    /** Show in File Explorer / Copy File Path for the PDF's source path. */
+    onGetMenuItems(): MenuItem[] {
+        return filePathMenuItems(this.state.get().filePath);
+    }
 }

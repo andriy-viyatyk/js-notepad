@@ -1,7 +1,10 @@
 import { TComponentState } from "../../core/state/state";
 import { TDialogModel } from "../../core/state/model";
 import { shell } from "../../api/shell";
+import { ui } from "../../api/ui";
 import { fs as appFs } from "../../api/fs";
+import type { MenuItem } from "../../uikit";
+import { textFileMenuItems } from "../shared/editor-menu-items";
 import { IEditorState, EditorView } from "../../../shared/types";
 import { ScriptPanelModel } from "./ScriptPanel";
 import { editorRegistry } from "../base/editorRegistry";
@@ -395,6 +398,25 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     saveFile = (saveAs?: boolean) => this.io.saveFile(saveAs);
     renameFile = (newName: string) => this.io.renameFile(newName);
     applyRenamedPath = (newPath: string) => this.io.applyRenamedPath(newPath);
+
+    /** Prompt for a new file name, then rename. Moved off the page tab so the
+     *  text-file context menu can be contributed by the host (`onGetMenuItems`). */
+    promptRename = async (): Promise<void> => {
+        const inputResult = await ui.input("Enter new file name:", {
+            title: "Rename File",
+            value: this.state.get().title,
+            buttons: ["Rename", "Cancel"],
+            selectAll: true,
+        });
+        if (inputResult?.button === "Rename" && inputResult.value) {
+            await this.renameFile(inputResult.value);
+        }
+    };
+
+    /** Context-menu items for any editor whose content host is this text-file
+     *  model (IContentHost.onGetMenuItems). The single home of the text-file
+     *  menu — Save / Save As / Rename / file-path items / encryption group. */
+    onGetMenuItems = (): MenuItem[] => textFileMenuItems(this);
 
     // Encryption delegates
     encript = (password: string) => this.encryption.encript(password);

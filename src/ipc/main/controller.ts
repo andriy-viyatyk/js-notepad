@@ -335,6 +335,11 @@ class Controller implements MainApi {
         const { pull } = await import("../../main/git-service");
         return pull(dir, opts);
     };
+
+    gitRemoteUrl = async (_event: IpcMainEvent, dir: string, remote: string) => {
+        const { remoteUrl } = await import("../../main/git-service");
+        return remoteUrl(dir, remote);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -418,6 +423,7 @@ const init = () => {
     bindEndpoint(Endpoint.gitAheadBehind, controllerInstance.gitAheadBehind);
     bindEndpoint(Endpoint.gitPush, controllerInstance.gitPush);
     bindEndpoint(Endpoint.gitPull, controllerInstance.gitPull);
+    bindEndpoint(Endpoint.gitRemoteUrl, controllerInstance.gitRemoteUrl);
 
     initRendererEvents();
 }
