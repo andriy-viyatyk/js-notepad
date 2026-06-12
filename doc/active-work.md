@@ -31,6 +31,7 @@ Overview of all active and planned epics and tasks.
   - [x] [US-642: Git Pull — Git Extensions-style split-button (Pull-merge primary + "Fetch all" dropdown, new UIKit `SplitButton`); conflict reporting (depends on US-641)](tasks/US-642-git-pull/README.md)
 
 ## Planned
+- **EPIC-032** — [Wiki / Vector Memory — external knowledge-base service](epics/EPIC-032.md) *(DRAFT — design under discussion; no tasks carved yet)*
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
   - [ ] US-436: Script UI API — expose new component library to scripting engine
   - [ ] US-435: Storybook — script tab for building and testing UI via scripts
