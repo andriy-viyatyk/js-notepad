@@ -146,9 +146,9 @@ impl MnemeServer {
         Ok(ok_text())
     }
 
-    #[tool(description = "Update/switch the embedding model (deferred — text-search build).")]
-    async fn wiki_model_update(&self, Parameters(_p): Parameters<ModelUpdateParams>) -> std::result::Result<CallToolResult, McpError> {
-        Ok(CallToolResult::success(vec![Content::text(self.state.model_update_notice())]))
+    #[tool(description = "Download/verify the configured embedding model into the cache. Synchronous — may take minutes for a first download.")]
+    async fn wiki_model_update(&self, Parameters(p): Parameters<ModelUpdateParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.model_update(false, p.model).await.map_err(to_mcp)?)
     }
 }
 

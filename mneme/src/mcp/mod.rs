@@ -448,7 +448,11 @@ impl ServerState {
                 };
                 roots.push(row);
             }
-            Ok(StatusResult { roots })
+            let model_status = crate::model::status(&st.model).ok();
+            Ok(StatusResult {
+                roots,
+                model: model_status,
+            })
         })
         .await
     }
@@ -487,11 +491,30 @@ impl ServerState {
         .await
     }
 
-    /// `wiki_model_update` notice — model management arrives in US-656 (no embeddings here).
-    pub fn model_update_notice(&self) -> String {
-        "model management arrives in US-656 — this build runs in text-search mode (FTS only), \
-         with no embedding model to download or switch."
-            .to_string()
+    /// Download and verify the configured embedding model.
+    ///
+    /// If `requested_model` is Some but differs from the configured name, returns an error
+    /// explaining that model switching requires a config change (deferred to US-657+).
+    pub async fn model_update(
+        self: &Arc<Self>,
+        force: bool,
+        requested_model: Option<String>,
+    ) -> Result<crate::model::ModelStatus> {
+        if let Some(ref req) = requested_model {
+            let configured_name = self
+                .model
+                .name
+                .as_deref()
+                .unwrap_or(crate::model::DEFAULT_MODEL_NAME);
+            if req != configured_name {
+                return Err(MnemeError::Config(
+                    "switching models is deferred; configure model in mneme.toml and re-run model-update"
+                        .to_string(),
+                ));
+            }
+        }
+        let st = Arc::clone(self);
+        blocking(move || crate::model::provision(&st.model, force)).await
     }
 
     /// Serve a `mneme://{root}/{path}` document/attachment as text or a base64 blob.

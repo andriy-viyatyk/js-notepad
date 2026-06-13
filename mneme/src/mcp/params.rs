@@ -164,6 +164,7 @@ pub struct IndexDeleteParams {
 
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
 pub struct ModelUpdateParams {
-    /// Reserved — model management arrives in US-656.
+    /// Reserved — model switching is deferred (US-657+). Supplying a different model name
+    /// than the configured one returns an error; omit or match the configured name.
     pub model: Option<String>,
 }

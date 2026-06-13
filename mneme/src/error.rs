@@ -60,6 +60,16 @@ pub enum MnemeError {
 
     #[error("{0}")]
     Internal(String),
+
+    #[error("download error: {0}")]
+    Download(String),
+
+    #[error("checksum mismatch for {file}: expected {expected}, got {got}")]
+    Checksum {
+        file: String,
+        expected: String,
+        got: String,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, MnemeError>;

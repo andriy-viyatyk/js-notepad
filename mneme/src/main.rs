@@ -11,6 +11,7 @@ use tracing_subscriber::EnvFilter;
 
 use persephone_mneme::config;
 use persephone_mneme::indexer::IndexManager;
+use persephone_mneme::model;
 use persephone_mneme::store::DocumentStore;
 
 #[derive(Parser)]
@@ -43,6 +44,12 @@ enum Command {
     Watch,
     /// Load config and report roots + indexable file counts.
     Status,
+    /// Download and verify the configured embedding model into the cache (FTS works without it).
+    ModelUpdate {
+        /// Re-download and re-verify even if the model files are already present.
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 fn main() -> std::process::ExitCode {
@@ -131,6 +138,29 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
                     r.name,
                     r.folder.display(),
                     count
+                );
+            }
+            // Model status
+            let ms = model::status(&cfg.model);
+            match ms {
+                Ok(ms) => {
+                    println!(
+                        "  model: {} {} v{}  dir: {}  complete: {}",
+                        ms.name, ms.precision, ms.version, ms.dir, ms.complete
+                    );
+                }
+                Err(e) => println!("  model: (status error: {e})"),
+            }
+        }
+        Command::ModelUpdate { force } => {
+            let ms = model::provision(&cfg.model, force)?;
+            println!("model: {} {} v{}", ms.name, ms.precision, ms.version);
+            println!("  dir: {}", ms.dir);
+            println!("  complete: {}", ms.complete);
+            for f in &ms.files {
+                println!(
+                    "  {} — present: {}, verified: {}, bytes: {}",
+                    f.filename, f.present, f.verified, f.bytes
                 );
             }
         }

@@ -30,11 +30,13 @@ dist`; build it with `cargo` directly during development.
 ## CLI
 
 ```bash
-mneme status            # load config, list roots + indexable file counts
-mneme reindex [path?]   # reconcile the index with the files (sync); path "{root}" scopes
-mneme watch             # watch every root + reconcile on change (runs until Ctrl-C)
-mneme serve [--port N]  # run the MCP server (Streamable HTTP, loopback /mcp) — text-search mode
-mneme --config <path>   # explicit config file (else $MNEME_CONFIG, else the OS config dir)
+mneme status                # load config, list roots + indexable file counts + model status
+mneme reindex [path?]       # reconcile the index with the files (sync); path "{root}" scopes
+mneme watch                 # watch every root + reconcile on change (runs until Ctrl-C)
+mneme serve [--port N]      # run the MCP server (Streamable HTTP, loopback /mcp) — text-search mode
+mneme model-update          # download/verify the configured embedding model (US-656)
+mneme model-update --force  # re-download even if already present
+mneme --config <path>       # explicit config file (else $MNEME_CONFIG, else the OS config dir)
 ```
 
 ## MCP surface (text-search mode)
@@ -47,10 +49,39 @@ spawner waits for it — and logs to stderr. Connect MCP Inspector or a Claude c
 Tools: file-like `wiki_read`/`wiki_write`/`wiki_edit`/`wiki_delete`/`wiki_glob`/`wiki_grep`;
 `wiki_search` (FTS only here — `mode` defaults to `text`; `vector`/`hybrid` degrade to text with a
 note until US-658); views `wiki_tree`/`wiki_timeline`/`wiki_tags`; management `wiki_add_root`/
-`wiki_remove_root`/`wiki_list_roots`/`wiki_reindex`/`wiki_status`/`wiki_index_delete`
-(`wiki_model_update` is deferred to US-656). Resources: documents/attachments at
-`mneme://{root}/{path}` (text or base64 blob) plus the agent guide at `mneme://guide`. Resource
-subscriptions are not advertised yet (US-661/662).
+`wiki_remove_root`/`wiki_list_roots`/`wiki_reindex`/`wiki_status`/`wiki_index_delete`/
+`wiki_model_update` (downloads/verifies the configured model — synchronous, may take minutes on
+first run). Resources: documents/attachments at `mneme://{root}/{path}` (text or base64 blob) plus
+the agent guide at `mneme://guide`. Resource subscriptions are not advertised yet (US-661/662).
+
+## Model provisioning (US-656)
+
+FTS-based `wiki_search` works with no model on disk. Downloading the embedding model enables
+vector/hybrid search (US-657/658 — not yet wired). To download and verify the default model:
+
+```bash
+mneme model-update          # download gte-multilingual-base-int8 to the default cache
+mneme model-update --force  # re-download even if files are already verified
+mneme status                # also shows model dir + complete: true/false
+```
+
+The provisioner:
+- Downloads each file to `<dest>.part`, feeding a SHA-256 hasher as bytes arrive.
+- Sends `Range: bytes=<offset>-` if a `.part` already exists (resume support).
+- If the server returns 200 instead of 206 (ignores Range), discards the stale `.part` and
+  restarts from byte 0.
+- On completion verifies SHA-256; on mismatch deletes `.part` and returns an error.
+- On success renames `.part` → final path (atomic on Windows via `MoveFileEx`/`rename`).
+
+Cache layout:
+```
+<cache_base>/<name>-<precision>-v<version>/
+  model.onnx
+  tokenizer.json
+```
+
+Default cache base: `<os-config-dir>/persephone/data/mneme/models`. Override with
+`[model] path = "..."` in `mneme.toml` (see `mneme.example.toml`).
 
 ## Crate-wide invariants
 
@@ -66,9 +97,11 @@ subscriptions are not advertised yet (US-661/662).
 
 ```
 src/
-├─ main.rs        CLI (clap): serve / reindex / watch / status
+├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update
 ├─ config.rs      Config + figment load (file + env + flags) + save (root add/remove)
 ├─ error.rs       MnemeError
+├─ model/         Model provisioner (US-656) — download/verify embedding model files
+│  └─ mod.rs      manifest, cache_base, model_dir, download_file, provision, status
 ├─ store/         Document Store
 │  ├─ mod.rs      read/write/edit/delete/read_bytes/list/glob/grep over roots
 │  ├─ roots.rs    RootRegistry — name→root, add/remove/validate (exists/unique/no-overlap)

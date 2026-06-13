@@ -274,8 +274,20 @@ async fn index_delete_refuses_the_active_db() {
 }
 
 #[tokio::test]
-async fn model_update_returns_us656_notice() {
+async fn model_update_rejects_unknown_model_name() {
     let (state, _root, _cfg) = setup("mcp_modelupd");
-    let notice = state.model_update_notice();
-    assert!(notice.contains("US-656"));
+    // Requesting a model that differs from the configured name (default "gte-multilingual-base")
+    // must return a Config error explaining that switching is deferred.
+    let result = state
+        .model_update(false, Some("some-other-model".to_string()))
+        .await;
+    assert!(
+        result.is_err(),
+        "requesting a different model name must fail"
+    );
+    let err_msg = result.unwrap_err().to_string();
+    assert!(
+        err_msg.contains("switching models is deferred"),
+        "unexpected error: {err_msg}"
+    );
 }

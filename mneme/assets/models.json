@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "models": [
+    {
+      "name": "gte-multilingual-base",
+      "precision": "int8",
+      "version": "1",
+      "dims": 768,
+      "files": [
+        {
+          "filename": "model.onnx",
+          "url": "https://github.com/andriy-viyatyk/persephone/releases/download/mneme-models-v1/gte-multilingual-base-int8.onnx",
+          "sha256": "ab2bd164ebd8ca9003dc49a981b611e849b5d326f504c8873ba76e07fa6c0082",
+          "bytes": 340000000
+        },
+        {
+          "filename": "tokenizer.json",
+          "url": "https://github.com/andriy-viyatyk/persephone/releases/download/mneme-models-v1/gte-multilingual-base.tokenizer.json",
+          "sha256": "3a56def25aa40facc030ea8b0b87f3688e4b3c39eb8b45d5702b3a1300fe2a20",
+          "bytes": 17000000
+        }
+      ]
+    }
+  ]
+}

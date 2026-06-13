@@ -130,4 +130,6 @@ pub struct StatusRoot {
 #[derive(Debug, Serialize)]
 pub struct StatusResult {
     pub roots: Vec<StatusRoot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<crate::model::ModelStatus>,
 }

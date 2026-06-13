@@ -33,7 +33,11 @@ port  = 7700
 [model]
 # name      = "gte-multilingual-base"
 # precision = "int8"
-# path      = "C:/Users/me/AppData/Roaming/persephone-mneme/models"   # default cache base = persephone-mneme (US-656)
+# path      = "C:/Users/me/AppData/Roaming/persephone/data/mneme/models"
+#             # Cache-base override (US-656). Default: <os-config-dir>/persephone/data/mneme/models.
+#             # The provisioner stores model files under <path>/<name>-<precision>-v<version>/.
+#             # Set this if you want to keep model files on a different drive or share them
+#             # across users. The `mneme model-update` command downloads to this location.
 
 # --- GPU mode (read by US-657): auto | on | off -----------------------------
 gpu = "auto"

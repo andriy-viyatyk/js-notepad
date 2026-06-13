@@ -45,9 +45,13 @@ serde_json = "1"               # structured tool results
 base64 = "0.22"                # binary attachment resources (blob = base64)
 toml = "0.8"                    # config write-back (figment reads but does not serialize)
 
+# --- US-656: model provisioner --------------------------------------------
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
 [dev-dependencies]
 rusqlite = { version = "0.37", features = ["bundled"] }  # tamper meta in the schema-mismatch test
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }  # drive async ServerState in mcp tests
+tiny_http = "0.12"   # local fixture server for provisioner tests (supports Range)
 
 [build-dependencies]
 winres = "0.1"
