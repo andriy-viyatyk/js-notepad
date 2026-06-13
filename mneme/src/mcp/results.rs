@@ -29,7 +29,9 @@ pub struct SearchHit {
     pub title: String,
     pub tags: Vec<String>,
     pub snippet: String,
-    /// FTS5 `bm25()` — lower is better; results are returned best-first.
+    /// Mode-dependent ranking scalar: bm25 (lower-better) for `text`, cosine distance
+    /// (lower-better) for `vector`, RRF (higher-better) for `hybrid`. **Results are returned
+    /// best-first — rely on array order, not on interpreting this value across modes.**
     pub score: f64,
 }
 
@@ -102,6 +104,8 @@ pub struct ReindexRoot {
     pub indexed: usize,
     pub refreshed: usize,
     pub skipped: usize,
+    /// Unchanged docs whose vectors were backfilled this pass (US-658).
+    pub vectorized: usize,
     pub deleted: usize,
     pub errors: usize,
 }

@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use persephone_mneme::config::{Config, RootConfig};
+use persephone_mneme::config::{Config, ModelConfig, RootConfig};
 use persephone_mneme::mcp::params::*;
 use persephone_mneme::mcp::ServerState;
 
@@ -29,6 +29,12 @@ fn setup(name: &str) -> (Arc<ServerState>, PathBuf, PathBuf) {
             include: vec!["*.md".to_string()],
             ignore: Vec::new(),
         }],
+        // Point the model cache at an empty dir so these tests stay hermetic + FTS-only even on
+        // a dev machine where the real model is provisioned (embedder resolves to None).
+        model: ModelConfig {
+            path: Some(base.join("models")),
+            ..Default::default()
+        },
         ..Default::default()
     };
     let state = ServerState::new(cfg, cfg_path.clone()).unwrap();

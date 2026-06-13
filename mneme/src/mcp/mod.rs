@@ -17,13 +17,13 @@ pub use server::{serve, MnemeServer};
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::SystemTime;
 
 use base64::Engine;
 
 use crate::config::{self, Config, ModelConfig};
-use crate::embed::{Embedder, OnnxEmbedder};
+use crate::embed::LazyEmbedder;
 use crate::error::{MnemeError, Result};
 use crate::index::SearchFilter;
 use crate::indexer::{reconcile_root, reindex_file, IndexManager};
@@ -44,9 +44,11 @@ pub struct ServerState {
     config: Mutex<Config>,
     config_path: PathBuf,
     model: ModelConfig,
-    /// Lazily-built embedding engine (US-657). Loaded on first vector use (US-658's
-    /// `wiki_search`), so text mode and a missing model never pay the load cost.
-    embedder: OnceLock<Arc<dyn Embedder>>,
+    /// Shared, build-once embedding engine (US-658). The same `Arc<LazyEmbedder>` is handed to
+    /// the [`IndexManager`] so the model loads once and serves both indexing and search. Built
+    /// lazily (first reconcile or first vector search), so text mode + a missing model pay no
+    /// load cost. `None` from `get()` → degrade to FTS.
+    embedder: Arc<LazyEmbedder>,
 }
 
 /// A resource body to hand back to MCP — text or base64 blob — kept rmcp-type-free so
@@ -60,7 +62,8 @@ impl ServerState {
     /// Open the store + start the index manager (watchers + deferred startup reconcile, US-654).
     pub fn new(cfg: Config, config_path: PathBuf) -> Result<Arc<Self>> {
         let store = DocumentStore::open(&cfg)?;
-        let index = IndexManager::start(store.registry().configs(), &cfg.model)?;
+        let embedder = LazyEmbedder::new(cfg.clone());
+        let index = IndexManager::start(store.registry().configs(), &cfg.model, Arc::clone(&embedder))?;
         let model = cfg.model.clone();
         Ok(Arc::new(Self {
             store: RwLock::new(store),
@@ -68,26 +71,8 @@ impl ServerState {
             config: Mutex::new(cfg),
             config_path,
             model,
-            embedder: OnceLock::new(),
+            embedder,
         }))
-    }
-
-    /// The embedding engine, built on first use (US-658's vector/hybrid `wiki_search` is the
-    /// first consumer). Returns [`MnemeError::ModelMissing`] if the model is not provisioned —
-    /// the caller degrades to FTS, never crashes. Subsequent calls reuse the cached `Arc`.
-    pub async fn embedder(self: &Arc<Self>) -> Result<Arc<dyn Embedder>> {
-        if let Some(e) = self.embedder.get() {
-            return Ok(Arc::clone(e));
-        }
-        let st = Arc::clone(self);
-        let built: Arc<dyn Embedder> = blocking(move || {
-            let cfg = st.config.lock().unwrap().clone();
-            Ok(Arc::new(OnnxEmbedder::load(&cfg)?) as Arc<dyn Embedder>)
-        })
-        .await?;
-        // A concurrent first-caller may have set it; either way return the canonical instance.
-        let _ = self.embedder.set(built);
-        Ok(Arc::clone(self.embedder.get().unwrap()))
     }
 
     // --- file-like tools ---------------------------------------------------------------------
@@ -210,17 +195,55 @@ impl ServerState {
                 created_from: p.date_range.as_ref().and_then(|d| d.from.clone()),
                 created_to: p.date_range.as_ref().and_then(|d| d.to.clone()),
             };
+
+            // Resolve the embedder for vector/hybrid; `None` (no model) → degrade to text.
+            let embedder = match p.mode {
+                SearchMode::Text => None,
+                SearchMode::Vector | SearchMode::Hybrid => st.embedder.get(),
+            };
+            let query_vec = match &embedder {
+                Some(e) => Some(e.embed_query(&p.query)?),
+                None => None,
+            };
+
+            // Effective lane: requested mode, but fall back to text when there's no embedder.
+            let lane = match (&p.mode, &query_vec) {
+                (SearchMode::Vector, Some(_)) => Lane::Vector,
+                (SearchMode::Hybrid, Some(_)) => Lane::Hybrid,
+                _ => Lane::Text,
+            };
+
             let mut hits = Vec::new();
             for root in roots {
                 let handle = { st.index.lock().unwrap().handle(&root) };
                 if let Some(h) = handle {
                     let db = h.lock().unwrap();
-                    hits.extend(db.search_text(&p.query, &filter, top_k)?);
+                    match lane {
+                        Lane::Text => hits.extend(db.search_text(&p.query, &filter, top_k)?),
+                        Lane::Vector => {
+                            hits.extend(db.search_vector(query_vec.as_ref().unwrap(), &filter, top_k)?)
+                        }
+                        Lane::Hybrid => hits.extend(db.search_hybrid(
+                            &p.query,
+                            query_vec.as_ref().unwrap(),
+                            &filter,
+                            top_k,
+                        )?),
+                    }
                 }
             }
-            // bm25: lower is better.
-            hits.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(std::cmp::Ordering::Equal));
+
+            // Cross-root sort by the lane's scalar: text/vector lower-is-better, hybrid higher.
+            match lane {
+                Lane::Hybrid => hits.sort_by(|a, b| {
+                    b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal)
+                }),
+                Lane::Text | Lane::Vector => hits.sort_by(|a, b| {
+                    a.score.partial_cmp(&b.score).unwrap_or(std::cmp::Ordering::Equal)
+                }),
+            }
             hits.truncate(top_k);
+
             let results = hits
                 .into_iter()
                 .map(|h| SearchHit {
@@ -231,13 +254,14 @@ impl ServerState {
                     score: h.score,
                 })
                 .collect();
-            let note = match p.mode {
-                SearchMode::Text => None,
-                SearchMode::Vector | SearchMode::Hybrid => Some(
-                    "vector/hybrid search is unavailable until embeddings (US-658); \
+            // Only note a degrade when the user asked for vector/hybrid but no model was available.
+            let note = match (&p.mode, &query_vec) {
+                (SearchMode::Vector | SearchMode::Hybrid, None) => Some(
+                    "embedding model not provisioned (run wiki_model_update); \
                      returned text-mode results"
                         .to_string(),
                 ),
+                _ => None,
             };
             Ok(SearchResult { results, note })
         })
@@ -379,10 +403,11 @@ impl ServerState {
                 st.index.lock().unwrap().add_root(cfg.clone(), &st.model)?;
             }
             persist_roots(&st)?;
-            // Reconcile the freshly added root synchronously (text mode — fast).
+            // Reconcile the freshly added root synchronously (embeds when a model is present).
             let handle = { st.index.lock().unwrap().handle(&cfg.name) };
             if let Some(h) = handle {
-                reconcile_root(&h.lock().unwrap(), &cfg)?;
+                let emb = st.embedder.get();
+                reconcile_root(&h.lock().unwrap(), &cfg, emb.as_deref())?;
             }
             Ok(AddRootResult {
                 name: cfg.name,
@@ -414,18 +439,20 @@ impl ServerState {
                 None => st.index.lock().unwrap().root_names(),
             };
             let mut roots = Vec::new();
+            let emb = st.embedder.get();
             for name in targets {
                 let cfg = { st.store.read().unwrap().registry().get(&name).cloned() }
                     .ok_or_else(|| MnemeError::UnknownRoot(name.clone()))?;
                 let handle = { st.index.lock().unwrap().handle(&name) }
                     .ok_or_else(|| MnemeError::UnknownRoot(name.clone()))?;
-                let s = reconcile_root(&handle.lock().unwrap(), &cfg)?;
+                let s = reconcile_root(&handle.lock().unwrap(), &cfg, emb.as_deref())?;
                 roots.push(ReindexRoot {
                     name,
                     scanned: s.scanned,
                     indexed: s.indexed,
                     refreshed: s.refreshed,
                     skipped: s.skipped,
+                    vectorized: s.vectorized,
                     deleted: s.deleted,
                     errors: s.errors,
                 });
@@ -560,6 +587,14 @@ impl ServerState {
 
 // --- shared helpers --------------------------------------------------------------------------
 
+/// Which retrieval lane `search` actually runs (the requested mode after the no-model fallback).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Lane {
+    Text,
+    Vector,
+    Hybrid,
+}
+
 /// Run a blocking (fs/SQLite) closure off the async runtime — the only place lock guards live.
 async fn blocking<T, F>(f: F) -> Result<T>
 where
@@ -572,10 +607,12 @@ where
 }
 
 /// Lock the index briefly to clone a root's handle, then lock just that DB and index the file.
+/// Embeds the just-written document into `chunks_vec` when a model is provisioned (US-658).
 fn index_file(st: &Arc<ServerState>, wa: &WikiAddress, abs: &Path) -> Result<()> {
     let handle = { st.index.lock().unwrap().handle(&wa.root) }
         .ok_or_else(|| MnemeError::UnknownRoot(wa.root.clone()))?;
-    reindex_file(&handle.lock().unwrap(), &wa.rest, abs)?;
+    let emb = st.embedder.get();
+    reindex_file(&handle.lock().unwrap(), &wa.rest, abs, emb.as_deref())?;
     Ok(())
 }
 

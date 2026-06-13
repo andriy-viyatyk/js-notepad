@@ -12,8 +12,9 @@
 
 pub mod path;
 pub mod schema;
+pub mod vector;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use rusqlite::types::Value;
@@ -21,6 +22,7 @@ use rusqlite::{params, params_from_iter, Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
 
 use crate::config::ModelConfig;
+use crate::embed::Embedder;
 use crate::error::{MnemeError, Result};
 use crate::markdown::ParsedDoc;
 
@@ -319,9 +321,57 @@ impl IndexDb {
 
     /// Ranked, filtered FTS text search (`wiki_search` text mode). One row per document — the
     /// best-ranking chunk wins the snippet — with the metadata filter applied as SQL predicates
-    /// (subtree prefix, tags include/exclude, `created` range). The vector lane + RRF land in
-    /// US-658; this is the text-mode seed they extend.
+    /// (subtree prefix, tags include/exclude, `created` range). `score` = bm25 (lower is better).
     pub fn search_text(&self, query: &str, filter: &SearchFilter, limit: usize) -> Result<Vec<TextHit>> {
+        Ok(self.text_lane(query, filter, limit)?.into_iter().map(|(_, h)| h).collect())
+    }
+
+    /// Vector KNN lane (`wiki_search` vector mode). Pre-filters candidate chunk-ids by the
+    /// metadata filter, runs a constrained KNN over `chunks_vec`, collapses to one row per
+    /// document (the nearest chunk wins the snippet), best-first by distance. `score` = cosine
+    /// distance (lower is better). `query_vec` must be the normalized query embedding.
+    pub fn search_vector(&self, query_vec: &[f32], filter: &SearchFilter, limit: usize) -> Result<Vec<TextHit>> {
+        Ok(self.vector_lane(query_vec, filter, limit)?.into_iter().map(|(_, h)| h).collect())
+    }
+
+    /// Hybrid lane (`wiki_search` hybrid mode). Runs the text + vector lanes and fuses them
+    /// per-document with Reciprocal Rank Fusion. Best-first by RRF score (**higher is better**).
+    pub fn search_hybrid(
+        &self,
+        query: &str,
+        query_vec: &[f32],
+        filter: &SearchFilter,
+        limit: usize,
+    ) -> Result<Vec<TextHit>> {
+        let text = self.text_lane(query, filter, limit)?;
+        let vecs = self.vector_lane(query_vec, filter, limit)?;
+
+        // Keep the richest hit per doc (prefer the text snippet; fall back to the vector one).
+        let mut by_doc: HashMap<i64, TextHit> = HashMap::new();
+        for (doc_id, hit) in &vecs {
+            by_doc.entry(*doc_id).or_insert_with(|| hit.clone());
+        }
+        for (doc_id, hit) in &text {
+            by_doc.insert(*doc_id, hit.clone()); // text wins the snippet when present
+        }
+
+        let text_ids: Vec<i64> = text.iter().map(|(id, _)| *id).collect();
+        let vec_ids: Vec<i64> = vecs.iter().map(|(id, _)| *id).collect();
+        let fused = vector::rrf_merge(&text_ids, &vec_ids);
+
+        let mut hits = Vec::with_capacity(limit);
+        for (doc_id, rrf) in fused.into_iter().take(limit) {
+            if let Some(mut h) = by_doc.remove(&doc_id) {
+                h.score = rrf; // RRF: higher is better
+                hits.push(h);
+            }
+        }
+        Ok(hits)
+    }
+
+    /// FTS lane keeping the internal `doc_id` so the hybrid lane can fuse on it. One row per
+    /// document, best-first by bm25 (ascending rank).
+    fn text_lane(&self, query: &str, filter: &SearchFilter, limit: usize) -> Result<Vec<(i64, TextHit)>> {
         let mut sql = String::from(
             "SELECT d.id, d.path, d.title, bm25(chunks_fts) AS score,
                     snippet(chunks_fts, 0, '[', ']', '…', 12) AS snip
@@ -331,28 +381,7 @@ impl IndexDb {
              WHERE chunks_fts MATCH ?",
         );
         let mut p: Vec<Value> = vec![Value::Text(query.to_string())];
-
-        if let Some(st) = filter.subtree.as_deref().filter(|s| !s.is_empty()) {
-            sql.push_str(" AND (d.path = ? OR d.path LIKE ?)");
-            p.push(Value::Text(st.to_string()));
-            p.push(Value::Text(format!("{st}/%")));
-        }
-        for tag in &filter.tags {
-            sql.push_str(" AND EXISTS (SELECT 1 FROM doc_tags t WHERE t.doc_id = d.id AND t.tag = ?)");
-            p.push(Value::Text(tag.clone()));
-        }
-        for tag in &filter.exclude_tags {
-            sql.push_str(" AND NOT EXISTS (SELECT 1 FROM doc_tags t WHERE t.doc_id = d.id AND t.tag = ?)");
-            p.push(Value::Text(tag.clone()));
-        }
-        if let Some(from) = &filter.created_from {
-            sql.push_str(" AND d.created >= ?");
-            p.push(Value::Text(from.clone()));
-        }
-        if let Some(to) = &filter.created_to {
-            sql.push_str(" AND d.created <= ?");
-            p.push(Value::Text(to.clone()));
-        }
+        push_filter_sql(&mut sql, &mut p, filter);
         // Headroom so per-document dedup (best chunk wins) can still fill `limit` documents.
         sql.push_str(" ORDER BY rank LIMIT ?");
         p.push(Value::Integer((limit as i64).saturating_mul(8).max(limit as i64)));
@@ -375,18 +404,182 @@ impl IndexDb {
             if !seen.insert(doc_id) {
                 continue; // already kept this document's best chunk
             }
-            hits.push(TextHit {
-                address: format!("{}/{}", self.root_name, path),
-                title,
-                tags: self.tags_for_doc(doc_id)?,
-                snippet,
-                score,
-            });
+            hits.push((
+                doc_id,
+                TextHit {
+                    address: format!("{}/{}", self.root_name, path),
+                    title,
+                    tags: self.tags_for_doc(doc_id)?,
+                    snippet,
+                    score,
+                },
+            ));
             if hits.len() >= limit {
                 break;
             }
         }
         Ok(hits)
+    }
+
+    /// Vector KNN lane keeping the internal `doc_id`. Pre-filters candidate chunk-ids by the
+    /// metadata filter (when present), runs a `rowid IN (…)`-constrained KNN, collapses to one
+    /// row per document (nearest chunk wins), best-first by distance.
+    fn vector_lane(&self, query_vec: &[f32], filter: &SearchFilter, limit: usize) -> Result<Vec<(i64, TextHit)>> {
+        let k = (limit.saturating_mul(8)).max(limit) as i64;
+
+        // Pre-filter: candidate chunk-ids matching the metadata filter (skipped when no filter).
+        let candidates: Option<Vec<i64>> = if filter_is_empty(filter) {
+            None
+        } else {
+            let mut sql =
+                String::from("SELECT c.id FROM chunks c JOIN documents d ON d.id = c.doc_id WHERE 1=1");
+            let mut p: Vec<Value> = Vec::new();
+            push_filter_sql(&mut sql, &mut p, filter);
+            let mut stmt = self.conn.prepare(&sql)?;
+            let ids = stmt
+                .query_map(params_from_iter(p), |r| r.get::<_, i64>(0))?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            if ids.is_empty() {
+                return Ok(Vec::new()); // filter excludes everything → no vector hits
+            }
+            Some(ids)
+        };
+
+        let mut sql = String::from(
+            "SELECT v.distance, c.doc_id, c.heading, c.text, d.path, d.title
+             FROM chunks_vec v
+             JOIN chunks c    ON c.id = v.rowid
+             JOIN documents d ON d.id = c.doc_id
+             WHERE v.embedding MATCH ? AND k = ?",
+        );
+        let mut p: Vec<Value> = vec![Value::Blob(vector::to_blob(query_vec)), Value::Integer(k)];
+        if let Some(ids) = &candidates {
+            sql.push_str(" AND v.rowid IN (");
+            for (i, id) in ids.iter().enumerate() {
+                if i > 0 {
+                    sql.push(',');
+                }
+                sql.push('?');
+                p.push(Value::Integer(*id));
+            }
+            sql.push(')');
+        }
+        sql.push_str(" ORDER BY v.distance");
+
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params_from_iter(p), |r| {
+            Ok((
+                r.get::<_, f64>(0)?,            // distance
+                r.get::<_, i64>(1)?,            // doc_id
+                r.get::<_, Option<String>>(2)?, // heading
+                r.get::<_, String>(3)?,         // chunk text
+                r.get::<_, String>(4)?,         // path
+                r.get::<_, String>(5)?,         // title
+            ))
+        })?;
+
+        let mut seen = HashSet::new();
+        let mut hits = Vec::new();
+        for row in rows {
+            let (distance, doc_id, heading, text, path, title) = row?;
+            if !seen.insert(doc_id) {
+                continue; // already kept this document's nearest chunk
+            }
+            hits.push((
+                doc_id,
+                TextHit {
+                    address: format!("{}/{}", self.root_name, path),
+                    title,
+                    tags: self.tags_for_doc(doc_id)?,
+                    snippet: snippet_from(heading.as_deref(), &text),
+                    score: distance,
+                },
+            ));
+            if hits.len() >= limit {
+                break;
+            }
+        }
+        Ok(hits)
+    }
+
+    /// True if every chunk of `rel_path` already has a `chunks_vec` row. A document with no
+    /// chunks counts as "has vectors" (nothing to embed). Drives the US-658 backfill check.
+    pub fn doc_has_vectors(&self, rel_path: &str) -> Result<bool> {
+        let doc_id = match doc_id_for(&self.conn, rel_path)? {
+            Some(id) => id,
+            None => return Ok(true),
+        };
+        let chunks: i64 = self
+            .conn
+            .query_row("SELECT count(*) FROM chunks WHERE doc_id=?1", [doc_id], |r| r.get(0))?;
+        if chunks == 0 {
+            return Ok(true);
+        }
+        let vecs: i64 = self.conn.query_row(
+            "SELECT count(*) FROM chunks_vec
+             WHERE rowid IN (SELECT id FROM chunks WHERE doc_id=?1)",
+            [doc_id],
+            |r| r.get(0),
+        )?;
+        Ok(vecs >= chunks)
+    }
+
+    /// (Re)build `chunks_vec` rows for one document: read its chunks, embed the texts as
+    /// passages, and replace any existing vec rows in one transaction. Idempotent. Embedding
+    /// runs outside the txn (the slow part); the delete+insert is the only locked work.
+    /// Returns the number of vectors written.
+    pub fn embed_document_chunks(&self, rel_path: &str, embedder: &dyn Embedder) -> Result<usize> {
+        let doc_id = match doc_id_for(&self.conn, rel_path)? {
+            Some(id) => id,
+            None => return Ok(0),
+        };
+        let (ids, texts): (Vec<i64>, Vec<String>) = {
+            let mut stmt = self
+                .conn
+                .prepare("SELECT id, text FROM chunks WHERE doc_id=?1 ORDER BY ordinal")?;
+            let rows = stmt.query_map([doc_id], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+            let mut ids = Vec::new();
+            let mut texts = Vec::new();
+            for row in rows {
+                let (id, text) = row?;
+                ids.push(id);
+                texts.push(text);
+            }
+            (ids, texts)
+        };
+        if ids.is_empty() {
+            return Ok(0);
+        }
+
+        let refs: Vec<&str> = texts.iter().map(String::as_str).collect();
+        let vecs = embedder.embed_passages(&refs)?;
+        if vecs.len() != ids.len() {
+            return Err(MnemeError::Embed(format!(
+                "embedder returned {} vectors for {} chunks",
+                vecs.len(),
+                ids.len()
+            )));
+        }
+        if let Some(v) = vecs.first() {
+            if v.len() != EMBED_DIM as usize {
+                return Err(MnemeError::Embed(format!(
+                    "embedding dim {} != index dim {EMBED_DIM}",
+                    v.len()
+                )));
+            }
+        }
+
+        let tx = self.conn.unchecked_transaction()?;
+        {
+            let mut del = tx.prepare("DELETE FROM chunks_vec WHERE rowid=?1")?;
+            let mut ins = tx.prepare("INSERT INTO chunks_vec (rowid, embedding) VALUES (?1, ?2)")?;
+            for (id, v) in ids.iter().zip(&vecs) {
+                del.execute([id])?;
+                ins.execute(params![id, vector::to_blob(v)])?;
+            }
+        }
+        tx.commit()?;
+        Ok(ids.len())
     }
 
     /// Distinct tags + document counts (`wiki_tags`), optionally scoped to a rel-path prefix.
@@ -453,6 +646,55 @@ impl IndexDb {
             .prepare("SELECT tag FROM doc_tags WHERE doc_id = ?1 ORDER BY tag")?;
         let rows = stmt.query_map([doc_id], |r| r.get::<_, String>(0))?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+}
+
+/// Append the shared `SearchFilter` predicates (subtree prefix, tags include/exclude, `created`
+/// range) to a query that already exposes the `documents` alias `d`. Shared by the text and
+/// vector lanes so both filter identically.
+fn push_filter_sql(sql: &mut String, p: &mut Vec<Value>, filter: &SearchFilter) {
+    if let Some(st) = filter.subtree.as_deref().filter(|s| !s.is_empty()) {
+        sql.push_str(" AND (d.path = ? OR d.path LIKE ?)");
+        p.push(Value::Text(st.to_string()));
+        p.push(Value::Text(format!("{st}/%")));
+    }
+    for tag in &filter.tags {
+        sql.push_str(" AND EXISTS (SELECT 1 FROM doc_tags t WHERE t.doc_id = d.id AND t.tag = ?)");
+        p.push(Value::Text(tag.clone()));
+    }
+    for tag in &filter.exclude_tags {
+        sql.push_str(" AND NOT EXISTS (SELECT 1 FROM doc_tags t WHERE t.doc_id = d.id AND t.tag = ?)");
+        p.push(Value::Text(tag.clone()));
+    }
+    if let Some(from) = &filter.created_from {
+        sql.push_str(" AND d.created >= ?");
+        p.push(Value::Text(from.clone()));
+    }
+    if let Some(to) = &filter.created_to {
+        sql.push_str(" AND d.created <= ?");
+        p.push(Value::Text(to.clone()));
+    }
+}
+
+/// Whether a filter constrains nothing — lets the vector lane skip the candidate-id pre-filter
+/// and run an unconstrained KNN.
+fn filter_is_empty(filter: &SearchFilter) -> bool {
+    filter.subtree.as_deref().map_or(true, str::is_empty)
+        && filter.tags.is_empty()
+        && filter.exclude_tags.is_empty()
+        && filter.created_from.is_none()
+        && filter.created_to.is_none()
+}
+
+/// Build a short search snippet for the vector lane (FTS supplies its own via `snippet()`):
+/// the heading (when present) plus a truncated slice of the chunk text.
+fn snippet_from(heading: Option<&str>, text: &str) -> String {
+    const MAX: usize = 200;
+    let body: String = text.chars().take(MAX).collect();
+    let body = body.trim();
+    match heading {
+        Some(h) if !h.is_empty() => format!("{h} — {body}"),
+        _ => body.to_string(),
     }
 }
 

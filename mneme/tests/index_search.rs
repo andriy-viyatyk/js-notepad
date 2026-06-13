@@ -39,7 +39,7 @@ fn populated(name: &str) -> (PathBuf, IndexDb, RootConfig) {
     write_file(&root, "log/2026/2026-06-13.md", "---\ntags: [log, work]\n---\n# Day\nfooterm logged");
     let c = cfg("wiki", &root);
     let db = IndexDb::open_or_create("wiki", &root, &ModelConfig::default()).unwrap();
-    reconcile_root(&db, &c).unwrap();
+    reconcile_root(&db, &c, None).unwrap();
     (root, db, c)
 }
 

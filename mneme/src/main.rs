@@ -9,7 +9,10 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
+use std::sync::Arc;
+
 use persephone_mneme::config;
+use persephone_mneme::embed::LazyEmbedder;
 use persephone_mneme::indexer::IndexManager;
 use persephone_mneme::model;
 use persephone_mneme::store::DocumentStore;
@@ -57,6 +60,17 @@ enum Command {
         /// Treat the text as a search query (vs an indexed passage/chunk).
         #[arg(long)]
         query: bool,
+    },
+    /// Run a search across all roots and print ranked hits (debug / verification).
+    Search {
+        /// The search query.
+        query: String,
+        /// `text`, `vector`, or `hybrid` (default `hybrid`; degrades to text with no model).
+        #[arg(long, default_value = "hybrid")]
+        mode: String,
+        /// Max results (default 10).
+        #[arg(long = "top-k")]
+        top_k: Option<usize>,
     },
 }
 
@@ -106,7 +120,8 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
             persephone_mneme::mcp::serve(cfg, config_path, &bind, port)?;
         }
         Command::Reindex { path } => {
-            let mgr = IndexManager::open(store.registry().configs(), &cfg.model)?;
+            let embedder = LazyEmbedder::new(cfg.clone());
+            let mgr = IndexManager::open(store.registry().configs(), &cfg.model, embedder)?;
             let results = match path.as_deref() {
                 Some(p) => {
                     // The indexer reconciles a whole root; a "{root}/sub" scope maps to its root.
@@ -117,14 +132,15 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
             };
             for (root, s) in results {
                 println!(
-                    "  {root}: {} scanned, {} indexed, {} refreshed, {} skipped, {} deleted, {} error(s)",
-                    s.scanned, s.indexed, s.refreshed, s.skipped, s.deleted, s.errors
+                    "  {root}: {} scanned, {} indexed, {} refreshed, {} skipped, {} vectorized, {} deleted, {} error(s)",
+                    s.scanned, s.indexed, s.refreshed, s.skipped, s.vectorized, s.deleted, s.errors
                 );
             }
         }
         Command::Watch => {
             let roots = store.registry().configs();
-            let _mgr = IndexManager::start(roots, &cfg.model)?;
+            let embedder = LazyEmbedder::new(cfg.clone());
+            let _mgr = IndexManager::start(roots, &cfg.model, embedder)?;
             eprintln!(
                 "mneme watch: watching {} root(s); press Ctrl-C to stop.",
                 roots.len()
@@ -186,6 +202,56 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
             println!("provider: {}", emb.provider());
             println!("kind: {kind}  dims: {}  L2-norm: {norm:.4}", v.len());
             println!("  [{}, …]", head.join(", "));
+        }
+        Command::Search { query, mode, top_k } => {
+            use persephone_mneme::index::SearchFilter;
+
+            let top_k = top_k.unwrap_or(10);
+            let embedder = LazyEmbedder::new(cfg.clone());
+            let mgr = IndexManager::open(store.registry().configs(), &cfg.model, Arc::clone(&embedder))?;
+            let filter = SearchFilter::default();
+
+            // Embed the query for vector/hybrid; with no model, fall back to text.
+            let emb = if mode == "vector" || mode == "hybrid" { embedder.get() } else { None };
+            let qv = match &emb {
+                Some(e) => Some(e.embed_query(&query)?),
+                None => None,
+            };
+            let effective = match (mode.as_str(), &qv) {
+                ("vector", Some(_)) => "vector",
+                ("hybrid", Some(_)) => "hybrid",
+                _ => "text",
+            };
+
+            let mut hits = Vec::new();
+            for name in mgr.root_names() {
+                if let Some(h) = mgr.handle(&name) {
+                    let db = h.lock().unwrap();
+                    let lane = match (effective, &qv) {
+                        ("vector", Some(v)) => db.search_vector(v, &filter, top_k)?,
+                        ("hybrid", Some(v)) => db.search_hybrid(&query, v, &filter, top_k)?,
+                        _ => db.search_text(&query, &filter, top_k)?,
+                    };
+                    hits.extend(lane);
+                }
+            }
+            if effective == "hybrid" {
+                hits.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+            } else {
+                hits.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(std::cmp::Ordering::Equal));
+            }
+            hits.truncate(top_k);
+
+            if mode != effective {
+                println!("(no model — degraded {mode} → text)");
+            }
+            println!("mode: {effective}  ({} hit(s))", hits.len());
+            for h in hits {
+                println!("  [{:.4}] {}", h.score, h.address);
+                if !h.snippet.is_empty() {
+                    println!("         {}", h.snippet.replace('\n', " "));
+                }
+            }
         }
     }
     Ok(())

@@ -18,6 +18,7 @@ use notify_debouncer_full::notify::RecursiveMode;
 use notify_debouncer_full::{new_debouncer, DebounceEventResult};
 
 use crate::config::RootConfig;
+use crate::embed::LazyEmbedder;
 use crate::error::Result;
 use crate::index::IndexDb;
 use crate::indexer::reconcile_root;
@@ -36,8 +37,9 @@ pub struct RootWatcher {
 }
 
 impl RootWatcher {
-    /// Watch `root.folder` recursively; on each debounced batch, reconcile the root.
-    pub fn start(root: RootConfig, db: Arc<Mutex<IndexDb>>) -> Result<Self> {
+    /// Watch `root.folder` recursively; on each debounced batch, reconcile the root. The shared
+    /// `embedder` is resolved per reconcile so direct-disk edits also (re)build `chunks_vec`.
+    pub fn start(root: RootConfig, db: Arc<Mutex<IndexDb>>, embedder: Arc<LazyEmbedder>) -> Result<Self> {
         let watch_path = root.folder.clone();
         let folder = root.folder.clone();
         let handler = move |result: DebounceEventResult| match result {
@@ -48,7 +50,7 @@ impl RootWatcher {
                         .any(|p| !is_watch_ignored(&folder, p))
                 });
                 if relevant {
-                    reconcile_locked(&db, &root);
+                    reconcile_locked(&db, &root, &embedder);
                 }
             }
             Err(errors) => {
@@ -57,7 +59,7 @@ impl RootWatcher {
                 for e in &errors {
                     tracing::warn!(root = %root.name, "watch error: {e}");
                 }
-                reconcile_locked(&db, &root);
+                reconcile_locked(&db, &root, &embedder);
             }
         };
 
@@ -71,12 +73,13 @@ impl RootWatcher {
 }
 
 /// Lock the root's index and run a reconcile, logging (never panicking) on failure.
-fn reconcile_locked(db: &Arc<Mutex<IndexDb>>, root: &RootConfig) {
+fn reconcile_locked(db: &Arc<Mutex<IndexDb>>, root: &RootConfig, embedder: &LazyEmbedder) {
     let guard = match db.lock() {
         Ok(g) => g,
         Err(poisoned) => poisoned.into_inner(), // a prior panic shouldn't wedge the watcher
     };
-    if let Err(e) = reconcile_root(&guard, root) {
+    let emb = embedder.get();
+    if let Err(e) = reconcile_root(&guard, root, emb.as_deref()) {
         tracing::warn!(root = %root.name, "watcher reconcile failed: {e}");
     }
 }

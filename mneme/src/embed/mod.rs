@@ -14,7 +14,7 @@
 //! model is adopted (D5 upgrade path) — the [`Embedder`] surface does not change.
 
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use ort::execution_providers::{CPUExecutionProvider, DirectMLExecutionProvider};
 use ort::session::{builder::GraphOptimizationLevel, Session};
@@ -214,6 +214,44 @@ impl Embedder for OnnxEmbedder {
 
     fn provider(&self) -> &str {
         &self.provider
+    }
+}
+
+/// Lazily builds (once) the process embedder and shares it across the search + index paths.
+///
+/// The build happens on the first [`LazyEmbedder::get`] — which lands on the deferred-reconcile
+/// thread or the first vector search, whichever comes first — so it stays off the `serve`
+/// startup path. A cached `None` after the build attempt means the model is not provisioned
+/// (logged once); callers degrade to FTS and never crash. Held behind an `Arc` by both
+/// `ServerState` (search) and `IndexManager` (indexing) so the model loads exactly once.
+pub struct LazyEmbedder {
+    cell: OnceLock<Option<Arc<dyn Embedder>>>,
+    config: Config,
+}
+
+impl LazyEmbedder {
+    pub fn new(config: Config) -> Arc<Self> {
+        Arc::new(Self {
+            cell: OnceLock::new(),
+            config,
+        })
+    }
+
+    /// Build-once accessor. Returns a clone of the cached `Option` (cheap after the first call).
+    pub fn get(&self) -> Option<Arc<dyn Embedder>> {
+        self.cell
+            .get_or_init(|| match OnnxEmbedder::load(&self.config) {
+                Ok(e) => Some(Arc::new(e) as Arc<dyn Embedder>),
+                Err(MnemeError::ModelMissing(_)) => {
+                    tracing::info!("embedding model not provisioned — FTS-only");
+                    None
+                }
+                Err(e) => {
+                    tracing::warn!("embedder build failed ({e}) — FTS-only");
+                    None
+                }
+            })
+            .clone()
     }
 }
 

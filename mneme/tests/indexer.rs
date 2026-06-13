@@ -9,7 +9,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use persephone_mneme::config::{ModelConfig, RootConfig};
+use persephone_mneme::config::{Config, ModelConfig, RootConfig};
+use persephone_mneme::embed::LazyEmbedder;
 use persephone_mneme::index::IndexDb;
 use persephone_mneme::indexer::{index_one, reconcile_root, IndexManager, IndexOutcome};
 use persephone_mneme::watcher::is_watch_ignored;
@@ -54,7 +55,7 @@ fn reconcile_indexes_new_files_and_is_idempotent() {
     let cfg = root_config("wiki", &root);
     let db = open_db("wiki", &root);
 
-    let s1 = reconcile_root(&db, &cfg).unwrap();
+    let s1 = reconcile_root(&db, &cfg, None).unwrap();
     assert_eq!(s1.scanned, 2);
     assert_eq!(s1.indexed, 2);
     assert_eq!(s1.deleted, 0);
@@ -65,7 +66,7 @@ fn reconcile_indexes_new_files_and_is_idempotent() {
     assert_eq!(db.search_fts("alphabody", 10).unwrap().len(), 1);
 
     // Second pass: nothing changed → everything fast-path skipped.
-    let s2 = reconcile_root(&db, &cfg).unwrap();
+    let s2 = reconcile_root(&db, &cfg, None).unwrap();
     assert_eq!(s2.scanned, 2);
     assert_eq!(s2.indexed, 0);
     assert_eq!(s2.skipped, 2);
@@ -78,11 +79,11 @@ fn reconcile_reindexes_changed_content() {
     write_file(&root, "a.md", "# A\noldterm here");
     let cfg = root_config("wiki", &root);
     let db = open_db("wiki", &root);
-    reconcile_root(&db, &cfg).unwrap();
+    reconcile_root(&db, &cfg, None).unwrap();
     assert_eq!(db.search_fts("oldterm", 10).unwrap().len(), 1);
 
     write_file(&root, "a.md", "# A\nnewterm here and more text");
-    let s = reconcile_root(&db, &cfg).unwrap();
+    let s = reconcile_root(&db, &cfg, None).unwrap();
     assert_eq!(s.indexed, 1);
     assert_eq!(db.search_fts("oldterm", 10).unwrap().len(), 0);
     assert_eq!(db.search_fts("newterm", 10).unwrap().len(), 1);
@@ -97,11 +98,11 @@ fn reconcile_drops_deleted_files() {
     write_file(&root, "b.md", "# B\ndropme");
     let cfg = root_config("wiki", &root);
     let db = open_db("wiki", &root);
-    reconcile_root(&db, &cfg).unwrap();
+    reconcile_root(&db, &cfg, None).unwrap();
     assert_eq!(db.all_doc_paths().unwrap().len(), 2);
 
     std::fs::remove_file(root.join("b.md")).unwrap();
-    let s = reconcile_root(&db, &cfg).unwrap();
+    let s = reconcile_root(&db, &cfg, None).unwrap();
     assert_eq!(s.deleted, 1);
     assert_eq!(db.all_doc_paths().unwrap(), vec!["a.md".to_string()]);
     assert_eq!(db.search_fts("dropme", 10).unwrap().len(), 0);
@@ -115,22 +116,22 @@ fn index_one_outcomes_indexed_skipped_refreshed() {
     let db = open_db("wiki", &root);
 
     // New file → Indexed.
-    assert_eq!(index_one(&db, "a.md", &abs).unwrap(), IndexOutcome::Indexed);
+    assert_eq!(index_one(&db, "a.md", &abs, None).unwrap(), IndexOutcome::Indexed);
     // Unchanged stat → Skipped.
-    assert_eq!(index_one(&db, "a.md", &abs).unwrap(), IndexOutcome::Skipped);
+    assert_eq!(index_one(&db, "a.md", &abs, None).unwrap(), IndexOutcome::Skipped);
 
     // Rewrite identical bytes (mtime moves, content hash identical) → Refreshed.
     // Sleep briefly so the filesystem mtime is observably different.
     std::thread::sleep(Duration::from_millis(1100));
     std::fs::write(&abs, "# A\nsameterm content").unwrap();
     assert_eq!(
-        index_one(&db, "a.md", &abs).unwrap(),
+        index_one(&db, "a.md", &abs, None).unwrap(),
         IndexOutcome::Refreshed
     );
 
     // Genuine content change → Indexed.
     std::fs::write(&abs, "# A\ndifferentterm now").unwrap();
-    assert_eq!(index_one(&db, "a.md", &abs).unwrap(), IndexOutcome::Indexed);
+    assert_eq!(index_one(&db, "a.md", &abs, None).unwrap(), IndexOutcome::Indexed);
 }
 
 #[test]
@@ -142,7 +143,7 @@ fn reconcile_skips_non_markdown_and_ignored_dirs() {
     let cfg = root_config("wiki", &root);
     let db = open_db("wiki", &root);
 
-    let s = reconcile_root(&db, &cfg).unwrap();
+    let s = reconcile_root(&db, &cfg, None).unwrap();
     assert_eq!(s.indexed, 1);
     assert_eq!(db.all_doc_paths().unwrap(), vec!["doc.md".to_string()]);
 }
@@ -189,7 +190,21 @@ fn watcher_reconciles_on_add_edit_delete() {
     write_file(&root, "seed.md", "# Seed\nseedterm");
     let cfg = root_config("wiki", &root);
 
-    let mut mgr = IndexManager::open(std::slice::from_ref(&cfg), &ModelConfig::default()).unwrap();
+    // Empty model cache → embedder resolves to None (hermetic, FTS-only) even where the real
+    // model is provisioned.
+    let hermetic = Config {
+        model: ModelConfig {
+            path: Some(root.join("_models")),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let mut mgr = IndexManager::open(
+        std::slice::from_ref(&cfg),
+        &ModelConfig::default(),
+        LazyEmbedder::new(hermetic),
+    )
+    .unwrap();
     let db = mgr.handle("wiki").unwrap();
     // Index the seed file first so the DB starts populated.
     mgr.reconcile_all();

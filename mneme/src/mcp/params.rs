@@ -72,9 +72,9 @@ pub struct GrepParams {
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchMode {
-    #[default]
     Text,
     Vector,
+    #[default]
     Hybrid,
 }
 
@@ -89,8 +89,9 @@ pub struct DateRange {
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct SearchParams {
     pub query: String,
-    /// `text` (default in this build), `vector`, or `hybrid`. Vector/hybrid degrade to text
-    /// until embeddings land (US-658) and the result carries a `note`.
+    /// `text` (FTS only), `vector` (semantic KNN), or `hybrid` (FTS + KNN fused with RRF).
+    /// Default `hybrid`. `vector`/`hybrid` degrade to text (with a `note`) when no embedding
+    /// model is provisioned.
     #[serde(default)]
     pub mode: SearchMode,
     /// Optional `{root}` or `{root}/sub` scope (omit = all roots, merged).

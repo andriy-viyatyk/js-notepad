@@ -12,11 +12,13 @@ Azure container build context.
 > **Status:** Phase 1 — config + Document Store (US-652), the markdown layer (frontmatter +
 > heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`), the
 > indexer + always-on file watcher that keep the index in sync with the files (US-654), and the
-> MCP server over Streamable HTTP exposing the `wiki_*` tool surface in **text-search mode**
-> (US-655). Phase 2 in progress — the model provisioner (US-656) and the **embedding engine**
-> (US-657, ONNX Runtime + DirectML→CPU) that turns text into normalized vectors. `chunks_vec` is
-> still empty: wiring vectors into `wiki_search` (vector/hybrid mode) is US-658, so search remains
-> FTS-only for now.
+> MCP server over Streamable HTTP exposing the `wiki_*` tool surface (US-655). Phase 2 — the
+> model provisioner (US-656), the **embedding engine** (US-657, ONNX Runtime + DirectML→CPU),
+> and **hybrid search** (US-658): chunks are embedded into `chunks_vec`, and `wiki_search` now
+> serves real `vector` (KNN) and `hybrid` (FTS + KNN fused with Reciprocal Rank Fusion) modes
+> alongside `text`. FTS still works with no model present; vector/hybrid degrade to text (with a
+> note) until the model is provisioned. Still to come: the dedicated embedding worker + priority
+> queue + cancellable reindex job with progress (US-659).
 
 ## Build & test
 
@@ -40,10 +42,11 @@ mneme model-update          # download/verify the configured embedding model (US
 mneme model-update --force  # re-download even if already present
 mneme embed "<text>"        # embed text + print provider/dims/norm (debug; US-657)
 mneme embed "<text>" --query  #   …treating the text as a search query
+mneme search "<query>"      # ranked search across all roots (debug; --mode text|vector|hybrid, --top-k N)
 mneme --config <path>       # explicit config file (else $MNEME_CONFIG, else the OS config dir)
 ```
 
-## MCP surface (text-search mode)
+## MCP surface
 
 `mneme serve` binds loopback (`127.0.0.1`, no auth) and serves MCP over **Streamable HTTP** at
 `/mcp`. It prints a single stdout readiness line (`listening on <bind>:<port>`) once bound — the
@@ -51,8 +54,9 @@ spawner waits for it — and logs to stderr. Connect MCP Inspector or a Claude c
 `http://127.0.0.1:<port>/mcp` to drive it.
 
 Tools: file-like `wiki_read`/`wiki_write`/`wiki_edit`/`wiki_delete`/`wiki_glob`/`wiki_grep`;
-`wiki_search` (FTS only here — `mode` defaults to `text`; `vector`/`hybrid` degrade to text with a
-note until US-658); views `wiki_tree`/`wiki_timeline`/`wiki_tags`; management `wiki_add_root`/
+`wiki_search` (`mode` `text` | `vector` | `hybrid`, default `hybrid`; `vector`/`hybrid` degrade to
+text with a note when no model is provisioned); views `wiki_tree`/`wiki_timeline`/`wiki_tags`;
+management `wiki_add_root`/
 `wiki_remove_root`/`wiki_list_roots`/`wiki_reindex`/`wiki_status`/`wiki_index_delete`/
 `wiki_model_update` (downloads/verifies the configured model — synchronous, may take minutes on
 first run). Resources: documents/attachments at `mneme://{root}/{path}` (text or base64 blob) plus
@@ -110,9 +114,32 @@ runtime toggle — it does **not** trigger a reindex (only a model/precision cha
 mneme embed "how do I cancel my subscription" --query   # → provider, dims=768, L2-norm≈1, sample
 ```
 
-The engine **produces** vectors only; inserting them into `chunks_vec` and using them for
-vector/hybrid `wiki_search` is US-658, and the dedicated embedding worker + priority queue +
-progress is US-659.
+## Hybrid search (US-658)
+
+During indexing, each chunk's passage embedding is written into `chunks_vec` (keyed by chunk
+rowid). `wiki_search` then offers three modes:
+
+- **text** — FTS5 `bm25()` ranking (works with no model).
+- **vector** — KNN over `chunks_vec`. Metadata filters (subtree / tags / date) become a
+  candidate-id pre-filter (`WHERE rowid IN (…)`) so the KNN only ranks matching chunks. Vectors
+  are L2-normalized, so the default L2 metric orders identically to cosine.
+- **hybrid** (default) — runs both lanes and fuses them per-document with **Reciprocal Rank
+  Fusion** (`score = Σ 1/(60 + rank)`). FTS catches exact identifiers; vector catches paraphrases.
+
+Results are one row per document (best chunk wins the snippet) and **returned best-first** — the
+`score` field is a mode-dependent ranking scalar, so rely on order, not the number. When the model
+is not provisioned, `vector`/`hybrid` degrade to text results with a `note`.
+
+Embedding happens **inline** under the per-root index lock: a first-time bulk reindex is slow
+(the dedicated worker + priority queue + progress notifications that make it responsive are
+US-659); incremental single-document embeds are fast. If the model is provisioned *after* a root
+was already indexed, the next reconcile **backfills** vectors for the existing documents (the
+mtime+size fast-path still re-embeds a document that has no vectors yet) — no full rebuild.
+
+```bash
+mneme embed  "how do I cancel my subscription" --query   # → provider, dims=768, L2-norm≈1, sample
+mneme search "how do I cancel my subscription"           # ranked hits (--mode text|vector|hybrid)
+```
 
 ## Crate-wide invariants
 
@@ -128,10 +155,11 @@ progress is US-659.
 
 ```
 src/
-├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update / embed
+├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update / embed / search
 ├─ config.rs      Config + figment load (file + env + flags) + save (root add/remove)
 ├─ embed/         Embedding engine (US-657) — ort session + tokenizer, DirectML→CPU
-│  └─ mod.rs      Embedder trait, OnnxEmbedder (load/encode/CLS-pool/L2-normalize), EP selection
+│  └─ mod.rs      Embedder trait, OnnxEmbedder (load/encode/CLS-pool/L2-normalize), EP selection,
+│                 LazyEmbedder (shared build-once cell for the index + search paths)
 ├─ error.rs       MnemeError
 ├─ model/         Model provisioner (US-656) — download/verify embedding model files
 │  └─ mod.rs      manifest, cache_base, model_dir, download_file, provision, status
@@ -148,8 +176,10 @@ src/
 │  ├─ frontmatter.rs  split `---` block, resolve title/tags/created/verified (read-time fallbacks)
 │  └─ chunker.rs  heading-based chunker + size cap (pulldown-cmark); plain-text fallback
 ├─ index/         per-root SQLite index (bundled SQLite + FTS5 + sqlite-vec)
-│  ├─ mod.rs      IndexDb — open_or_create / meta / upsert / delete / doc_state / search_fts
+│  ├─ mod.rs      IndexDb — open_or_create / meta / upsert / delete / doc_state;
+│                 search_text (FTS) / search_vector (KNN) / search_hybrid (RRF) + embed_document_chunks
 │  ├─ schema.rs   DDL + SCHEMA_VERSION + sqlite-vec auto-extension registration
+│  ├─ vector.rs   f32 BLOB packing + Reciprocal Rank Fusion (rrf_merge)
 │  └─ path.rs     versioned path + modelId + .mneme/.gitignore
 ├─ indexer/       keeps the index in sync with the files
 │  └─ mod.rs      reconcile_root (mtime+size fast-path → content-hash) / index_one / reindex_file / IndexManager
@@ -176,8 +206,8 @@ The path encodes the `(model+precision, schema version)` identity: a model/preci
 change selects a *new* path → a fresh DB → full rebuild from the files, with old DBs kept (no
 migration code). Tables: `documents` (effective frontmatter + content hash + mtime/size),
 `chunks` (heading + text + ordinal), `chunks_fts` (FTS5), `chunks_vec` (`sqlite-vec` vec0 —
-**empty until vectors are wired into search in US-658**), `meta` (model, precision, dims, schema version).
-FTS-only text search works with no model present.
+one normalized passage embedding per chunk, populated during indexing when a model is present),
+`meta` (model, precision, dims, schema version). FTS-only text search works with no model present.
 
 The index is kept current by the **indexer**: a reconcile (walk → mtime+size fast-path →
 content-hash dedup → index new / re-process changed / drop deleted) runs synchronously
