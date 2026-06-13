@@ -19,7 +19,7 @@ Mneme is decided to be **built in-house** (EPIC-032, Option A) as a single self-
 - **D6** local inference by default (privacy).
 - **D7** hybrid search: FTS5 (BM25) + vector top-K merged with Reciprocal Rank Fusion; filters as SQL predicates.
 - **D8** chunk markdown by headings with a size cap.
-- **D9** single MCP interface (no REST): tools = actions, resources = content; stdio locally, Streamable HTTP (bearer/OAuth) for networked/Azure.
+- **D9** single MCP interface (no REST): tools = actions, resources = content; **Streamable HTTP** for both local (loopback `127.0.0.1`, no auth) and networked/Azure (bearer/OAuth). Stdio dropped — see transport-revision Note in EPIC-032.
 - **D10** native MCP server on Mneme from the start (the sole interface); Persephone consumes it via its MCP client + a `MnemeProvider` in the content pipeline.
 - **D11** model downloaded on first enable; FTS works before the model arrives.
 - **D12** multiple independent wiki roots.
@@ -48,7 +48,7 @@ flowchart TB
     end
 
     subgraph mneme[" Mneme service — single self-contained Rust binary "]
-        MCP["MCP server — sole interface<br/>(stdio local · Streamable HTTP remote, bearer/OAuth)<br/>tools = actions · resources = content"]
+        MCP["MCP server — sole interface<br/>(Streamable HTTP — loopback local · networked remote, bearer/OAuth)<br/>tools = actions · resources = content"]
 
         subgraph core[" Core services "]
             DS["Document Store<br/>(FS over wiki roots)"]
@@ -69,7 +69,7 @@ flowchart TB
         MODEL["ONNX model<br/>+ tokenizer"]
     end
 
-    PR -->|"MCP (stdio local / HTTP remote)"| MCP
+    PR -->|"MCP (Streamable HTTP — loopback local / remote)"| MCP
     PM -.->|spawn / health / shutdown| mneme
     AG -->|MCP| MCP
 
@@ -102,8 +102,8 @@ Mneme exposes **one interface: an MCP server**, consumed identically by Persepho
 - **Tools = management (control plane):** `wiki_add_root`, `wiki_remove_root`, `wiki_list_roots`, `wiki_reindex`, `wiki_model_update`, `wiki_status` (roots, **index inventory** — versioned DBs + sizes — model, reindex progress), `wiki_index_delete` (remove a stale/inactive versioned DB). Long operations (`wiki_reindex`, `wiki_model_update`) emit **MCP progress + log notifications** so Persephone can show live progress; `mneme://status` may also be a subscribable resource.
 - **Access model (D16):** agents get **full access** to *all* tools — data and management alike — so the assistant can fully help the user (initialize roots, update the model, etc.). No hidden methods. Per-client scoping (by transport / auth scope, server-side filter + denial) is a **retained optional capability** for future remote/multi-tenant or read-only-guest needs, not enforced now.
 - **Resources = content:** documents and **binary attachments** addressed by URI (`mneme://{root}/{path}`), fetched via MCP `resources/read`. This is how images embedded in markdown are served — Persephone reads them through `MnemeProvider` (see integration boundary). Binary travels as base64 inside JSON-RPC (~33% inflation) — fine for Mneme's attachment scope (diagrams, PDFs, office files; **not** large media/video, which is out of scope). No escape-hatch needed. Resources are **subscribable** (`resources/subscribe` + `notifications/resources/updated`) so an open document **live-refreshes** when it changes (agent `wiki_write` or any watcher-detected disk edit); `notifications/resources/list_changed` signals tree add/remove/rename — see integration boundary.
-- **Transport:** the MCP server runs over **stdio** (local — Persephone spawns `mneme.exe` and talks over its stdio; zero ports, no local network exposure) and **Streamable HTTP** (remote/Azure — single authenticated endpoint, bearer/OAuth). Persephone's `McpConnectionManager` already supports both; transport is a config choice, the protocol is identical.
-- **Auth:** none needed for local stdio (inherits process/OS isolation); bearer/OAuth on the Streamable HTTP endpoint for any networked deployment — a single security gate.
+- **Transport:** the MCP server runs over **Streamable HTTP only**. Locally, Mneme binds **`127.0.0.1` (loopback only)** on a port assigned by the parent process (Persephone) via a `--config`/CLI flag; Mneme prints a startup readiness line (`listening on 127.0.0.1:<port>`) to stdout so the spawner knows it is ready before connecting. For networked/Azure, the same Streamable HTTP endpoint is used with bearer/OAuth. Persephone's `McpConnectionManager` already supports Streamable HTTP; transport is a config choice, the protocol is identical. (Stdio transport dropped — see EPIC-032 transport-revision Note.)
+- **Auth:** none needed locally (loopback-only bind on the Streamable HTTP transport provides the isolation boundary); bearer/OAuth on the Streamable HTTP endpoint for any networked deployment — a single security gate.
 
 ### Core services
 - **Document Store** — the filesystem abstraction over one or more **wiki roots**. Lists the tree, reads/writes markdown, applies string-replace edits (`wiki_edit`), matches by name pattern (`wiki_glob`) and by literal/regex content (`wiki_grep` — a **streaming scan over the indexed file set**, regex-capable, distinct from the Search Engine's semantic relevance; `wiki_glob`/`wiki_grep` cover indexed files only), resolves paths safely (no traversal outside a root), serves/ignores binary attachments. Applies the per-root **include allowlist** (default `*.md`) + **ignore rules** (built-in defaults `.mneme/`/`.git/`/`node_modules/`/build dirs + the root's `.gitignore`/`.ignore` + a `.mneme/config` list, via the `ignore` crate) — a file is a document iff it matches include AND not ignore — so a root can sit inside a project folder without pulling in vendored/`node_modules` markdown; the walk is pruned accordingly. This is the source of truth; everything else is derived from it.
@@ -119,7 +119,7 @@ Mneme exposes **one interface: an MCP server**, consumed identically by Persepho
 ### Cross-cutting
 - **File Watcher** — `notify`, recursive over each root, debounced (~500 ms); **always-on** while the feature is enabled. It is essential, not optional: because the markdown files are the source of truth on local disk, they can change outside Mneme's write path — the user editing a `.md` in another app, a **local CLI agent/tool editing files directly on disk**, `git pull`, or folder sync. The watcher detects every such change and reindexes (content-hash dedup skips no-ops and `wiki_write` echoes). Service-side, so Mneme is self-contained — it does not depend on Persephone to notify it. It honors the same **include/ignore rules**, so ignored trees (`.git`, `node_modules`, …) are neither watched nor traversed. Only Persephone's own MCP-mediated saves bypass it (they index synchronously on `wiki_write`).
 - **Model Provisioner** — on first run / model change, downloads the vetted ONNX model + tokenizer from **Mneme's own hosted location** — **GitHub Release assets** (separate from git history, not committed to the repo; ideally a dedicated model release/tag for a stable URL) — into the global cache dir, pinned and **sha256-verified** against a `models.json` manifest (`name, version, url, sha256, dims, precision`); resumable, with an offline/local-path override. FTS-only search works before the model is present. (Discovering/downloading *arbitrary other* compatible models is out of scope for v1 — a later enhancement.)
-- **Config** — wiki roots, model name/path, transport (stdio | http) + bind address/port for http, bearer/OAuth token, GPU on/off/auto. Per-root settings include **include globs + ignore patterns**. Sourced from a config file + CLI flags (`clap`) + env.
+- **Config** — wiki roots, model name/path, bind address/port (loopback by default), bearer/OAuth token (for networked/Azure), GPU on/off/auto. Per-root settings include **include globs + ignore patterns**. Sourced from a config file + CLI flags (`clap`) + env.
 
 ### Storage
 - **SQLite index** — one active `.db` per `(model+precision, schema version)` at `.mneme/<modelId>/index-v<schemaVer>.db`: `documents` (path, root_id, **effective** frontmatter fields — `title`/`tags`/`created`/`verified`, fallback-filled — content hash, mtime), `chunks` (doc_id, heading, text, ordinal), `chunks_fts` (FTS5 virtual table), `chunks_vec` (sqlite-vec virtual table holding embeddings), `meta` (embedding model name + version + precision + dims, schema version). Fully rebuildable from the files; a model or schema-version change selects a **new** versioned file (old kept for reversible switch-back).
@@ -199,7 +199,7 @@ Net: view/edit and search stay prompt during a large reindex — edits are a qui
 | Concern | Choice |
 |---------|--------|
 | Async runtime | `tokio` |
-| MCP server (sole interface) | official Rust MCP SDK (`rmcp`) — tools + resources; stdio + Streamable HTTP transports (HTTP built on `axum`/`hyper`). **Verify `rmcp`'s Streamable HTTP maturity at build time; fall back to `axum` + manual JSON-RPC if incomplete.** |
+| MCP server (sole interface) | official Rust MCP SDK (`rmcp`) — tools + resources; **Streamable HTTP transport** (HTTP built on `axum`/`hyper`). **Verify `rmcp`'s Streamable HTTP maturity at build time; fall back to `axum` + manual JSON-RPC if incomplete.** |
 | SQLite + extensions | `rusqlite` (bundled SQLite) + `sqlite-vec` loadable extension; FTS5 built in |
 | ONNX inference | `ort` (ONNX Runtime), execution providers: DirectML + CPU |
 | Tokenizer | `tokenizers` (HuggingFace) |
@@ -219,7 +219,7 @@ Each module maps 1:1 to a box in the component diagram.
 src/
 ├─ main.rs        CLI entry (clap): serve / reindex / status
 ├─ config.rs      config: roots, model, transport, token, gpu (file + flags + env)
-├─ mcp/           MCP server (sole interface) — tool + resource defs over rmcp; stdio + Streamable HTTP
+├─ mcp/           MCP server (sole interface) — tool + resource defs over rmcp; Streamable HTTP
 ├─ store/         Document Store — FS over wiki roots, safe path resolution
 ├─ markdown/      frontmatter parser + heading-based chunker
 ├─ index/         SQLite layer — schema, upsert/delete (rusqlite + sqlite-vec + FTS5)
@@ -268,7 +268,7 @@ So "single binary" holds for all app logic and the entire search/index stack; th
 
 ## Persephone integration boundary
 
-- **Persephone main** spawns and manages the Mneme child process (start, health, graceful shutdown) — like the existing Tor service — and connects to it over MCP **stdio** (no port).
+- **Persephone main** spawns and manages the Mneme child process (start, health, graceful shutdown) — like the existing Tor service — and connects over **loopback HTTP** (the main process assigns the port via a CLI flag and waits for Mneme's stdout readiness line before connecting).
 - **Persephone renderer** consumes Mneme through the existing MCP client (`McpConnectionManager`, official `@modelcontextprotocol/sdk`):
   - **`MnemeProvider`** — a content-pipeline provider (like `FileProvider`) that **reads and writes** document text and **image/attachment bytes** over MCP (`wiki_read` / `resources/read`; `wiki_write` / `wiki_delete`). Persephone's existing editors open and save through it; images resolve to blob/data URLs. It implements `IProvider.watch()` backed by an MCP **`resources/subscribe`** on the open document's URI: on `notifications/resources/updated` it triggers the existing `TextFileIOModel.onFileChanged` reload — **silent when the editor is clean, preserving unsaved edits when dirty** — so an agent's `wiki_write` or any direct-disk change live-refreshes the page (last-write-wins, no locking);
   - **`MnemeTreeProvider`** — a tree provider (like `FileTreeProvider`) that renders the **category / document tree** from `wiki_tree`, shown with Persephone's Explorer-style tree component; refreshes on `notifications/resources/list_changed`;
@@ -280,16 +280,16 @@ So "single binary" holds for all app logic and the entire search/index stack; th
 
 ## Deployment variants (same binary, same MCP contract)
 
-- **Local with Persephone (default):** child process, **stdio transport** (zero ports, no network exposure), DirectML GPU, model auto-downloaded.
-- **Standalone local:** `mneme serve` over Streamable HTTP on loopback (or stdio), run manually or as a Windows service.
+- **Local with Persephone (default):** child process, **loopback HTTP** (`127.0.0.1`, no auth), DirectML GPU, model auto-downloaded.
+- **Standalone local:** `mneme serve` over Streamable HTTP on loopback, run manually or as a Windows service.
 - **Azure (future):** the same binary in a container; **Streamable HTTP** transport with bearer/OAuth (the single security gate); CPU or CUDA execution provider; persistent disk (or object storage) for files + index. MCP contract unchanged.
 
 ## Open questions (carry into design review)
 
 > All resolved — the same decisions are recorded in EPIC-032's dated Notes; kept here as the task's per-question resolution trail.
 
-- [x] **Transport — RESOLVED (2026-06-13):** single MCP protocol; **stdio** locally (zero ports, no network exposure — supersedes the earlier named-pipe-vs-HTTP question) and **Streamable HTTP** for networked/Azure use. Both already supported by Persephone's `McpConnectionManager`.
-- [x] **Editing flow — RESOLVED (2026-06-13):** Persephone reads **and writes** documents through a **`MnemeProvider`** in the content pipeline (mirroring `FileProvider`), over **MCP** — `wiki_read` / `resources/read` for reads, `wiki_write` / `wiki_delete` for writes. So editing is MCP-based **from v1**: one uniform read/write path that works unchanged whether Mneme is local (stdio) or on Azure (HTTP) — no separate "MCP-write phase." The markdown files on disk stay the **source of truth** — `wiki_write` makes *Mneme* write the actual file and index it synchronously (Persephone never writes the OS file directly). The **file watcher stays essential** — it catches every direct-disk change (the user editing a `.md` in any app, a **local CLI agent/tool editing files directly**, `git pull`, sync) and reindexes; only Persephone's own MCP-mediated saves bypass it (they index on write). Content-hash dedup still prevents any double-index.
+- [x] **Transport — RESOLVED (2026-06-13, revised 2026-06-13):** single MCP transport: **Streamable HTTP only** (stdio dropped). Locally, Mneme binds `127.0.0.1` (loopback only, no auth) on a port assigned by the parent via CLI flag; Mneme emits a stdout readiness line so the spawner knows it is ready before connecting. For networked/Azure, the same Streamable HTTP endpoint with bearer/OAuth. HTTP is 1-to-many — one Mneme process serves Persephone and external agents concurrently; stdio would force each client to spawn its own process (conflicting watchers + SQLite writers). This also moots the named-pipe-vs-HTTP question — there is only HTTP. Persephone's `McpConnectionManager` already supports Streamable HTTP. Supersedes the earlier "stdio locally" framing.
+- [x] **Editing flow — RESOLVED (2026-06-13):** Persephone reads **and writes** documents through a **`MnemeProvider`** in the content pipeline (mirroring `FileProvider`), over **MCP** — `wiki_read` / `resources/read` for reads, `wiki_write` / `wiki_delete` for writes. So editing is MCP-based **from v1**: one uniform read/write path that works unchanged whether Mneme is local (loopback HTTP) or on Azure (HTTP) — no separate "MCP-write phase." The markdown files on disk stay the **source of truth** — `wiki_write` makes *Mneme* write the actual file and index it synchronously (Persephone never writes the OS file directly). The **file watcher stays essential** — it catches every direct-disk change (the user editing a `.md` in any app, a **local CLI agent/tool editing files directly**, `git pull`, sync) and reindexes; only Persephone's own MCP-mediated saves bypass it (they index on write). Content-hash dedup still prevents any double-index.
 - [x] **Index location — RESOLVED (2026-06-13):** `.mneme/` inside each wiki root (one per root), holding **versioned index files** (`<modelId>/index-v<schemaVer>.db` — see Schema migrations); travels with the folder; Mneme writes a self-ignoring `.mneme/.gitignore` (`*`). The embedding model stays in the global cache, not per-root.
 - [x] **Binary attachments over MCP — RESOLVED (2026-06-13):** base64-in-JSON-RPC (~33% inflation) is **accepted**; no byte escape-hatch. Mneme's attachments are **documents** — PNG/SVG diagrams, PDFs, office files — which are small enough that the overhead doesn't matter. **Large media (video) is out of scope**: store it in a service built for that and reference it.
 - [x] **Repo location** — RESOLVED: **in-tree `mneme/`** in the Persephone repo (following `launcher/` + `snip-tool/`): built in CI, shipped via electron-builder `extraFiles`, bundled in the installer. Kept a self-contained Cargo project so it stays extraction-ready for a later standalone repo / Azure if needed. (The HTTP boundary means no code coupling, so repo layout is pure build/release logistics.)
@@ -303,7 +303,7 @@ So "single binary" holds for all app logic and the entire search/index stack; th
 ## Acceptance criteria
 
 - [ ] Process model documented and decided: **single binary, in-process ONNX embedding** (this task's central question answered).
-- [ ] Interface decided: **single MCP server** (tools = actions, resources = content) over stdio + Streamable HTTP; consumed by both Persephone (`MnemeProvider` + MCP client) and agents.
+- [ ] Interface decided: **single MCP server** (tools = actions, resources = content) over **Streamable HTTP** (loopback local, bearer/OAuth remote); consumed by both Persephone (`MnemeProvider` + MCP client) and agents.
 - [ ] Component breakdown with clear responsibilities for every box.
 - [ ] Component diagram delivered as a `.mmd` file in this folder and embedded here.
 - [ ] Indexing and search data-flow diagrams included.

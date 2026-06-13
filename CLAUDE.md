@@ -75,6 +75,8 @@ When the user says **"let's create a task for [description]"** (or similar), fol
 
 **Do NOT run completion steps automatically after implementation.** After implementation, the user will test the changes manually. During testing, bugs or adjustments may appear that require additional code changes. Only when the user explicitly says **"let's complete the task"** (or similar) should you proceed with the completion steps below.
 
+**Rust implementations (`mneme/`, `launcher/`, `snip-tool/`) — `/review` & `/userdoc` do not apply.** There are no Rust review rules, so **skip `/review`**; these are standalone binaries (built in CI, shipped beside `persephone.exe`), not user-facing UI, so **skip `/userdoc`**. Verify the build (`cargo build --release`) and tests (`cargo test`) instead. Run **`/document` only** if a developer doc needs a pointer to new top-level structure (e.g. `folder-structure.md`, the Key Files table) — the Rust crate's own `README.md` is its primary documentation.
+
 #### Standalone tasks (no epic)
 
 1. Verify all acceptance criteria are met
@@ -366,6 +368,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | CDP service (main)       | `/src/main/cdp-service.ts`                         |
 | Rust launcher            | `/launcher/src/main.rs`                           |
 | Rust screen snip tool    | `/snip-tool/src/main.rs`                          |
+| Mneme service (Rust)     | `/mneme/` (knowledge-base service; see `/mneme/README.md`) |
 | VMP signing (build hook) | `/scripts/vmp-sign.mjs`                           |
 | Git service (main)       | `/src/main/git-service.ts`                        |
 | Git IPC types            | `/src/ipc/git-ipc.ts`                             |

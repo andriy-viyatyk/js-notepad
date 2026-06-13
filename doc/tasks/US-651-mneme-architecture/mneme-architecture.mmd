@@ -6,7 +6,7 @@ flowchart TB
     end
 
     subgraph mneme[" Mneme service — single self-contained Rust binary "]
-        MCP["MCP server — sole interface<br/>(stdio local · Streamable HTTP remote,<br/>bearer / OAuth auth)<br/>tools = actions · resources = content"]
+        MCP["MCP server — sole interface<br/>(Streamable HTTP — loopback local · networked remote, bearer/OAuth)<br/>tools = actions · resources = content"]
 
         subgraph core[" Core services "]
             DS["Document Store<br/>(FS over wiki roots,<br/>safe path resolution)"]
@@ -27,7 +27,7 @@ flowchart TB
         MODEL["ONNX model<br/>+ tokenizer<br/>(cache dir)"]
     end
 
-    PR -->|"MCP (stdio local / HTTP remote)"| MCP
+    PR -->|"MCP (Streamable HTTP — loopback local / remote)"| MCP
     PM -.->|spawn / health / shutdown| mneme
     AG -->|MCP| MCP
 

@@ -1,0 +1,35 @@
+# Mneme configuration (example).
+#
+# Precedence: built-in defaults < this file < MNEME_-prefixed env vars < CLI flags.
+# Config-path precedence (main.rs): --config flag < $MNEME_CONFIG < <os-config-dir>/persephone-mneme/mneme.toml.
+
+# --- Wiki roots -------------------------------------------------------------
+# Each root is an independent folder + its own derived index (US-653+).
+# A document address is "{name}/{path}" — matching the URI mneme://{name}/{path}.
+
+[[roots]]
+name    = "personal"            # root id used in mneme:// URIs (unique; no '/', '\', whitespace)
+folder  = "C:/Users/me/wiki"    # absolute OS path; must exist
+include = ["*.md"]              # include allowlist (default-deny). Default: ["*.md"]
+ignore  = []                    # extra gitignore-style patterns, on top of the built-in
+                                #   defaults (.git, .mneme, node_modules, target, dist, build)
+                                #   and the root's own .gitignore / .ignore
+
+# [[roots]]
+# name   = "work"
+# folder = "D:/work/knowledge"
+
+# --- Transport (single Streamable HTTP channel; US-655 wires the server) ----
+[transport]
+bind  = "127.0.0.1"   # loopback by default → no auth needed locally
+port  = 7700
+# token = "..."       # only meaningful for a non-loopback (networked/Azure) bind
+
+# --- Embedding model (read by US-656/657; inert in US-652) ------------------
+[model]
+# name      = "gte-multilingual-base"
+# precision = "int8"
+# path      = "C:/Users/me/AppData/Roaming/persephone-mneme/models"   # default cache base = persephone-mneme (US-656)
+
+# --- GPU mode (read by US-657): auto | on | off -----------------------------
+gpu = "auto"

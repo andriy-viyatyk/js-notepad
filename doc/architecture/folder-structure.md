@@ -39,6 +39,13 @@ persephone/
 │   ├── src/overlay.rs      # Fullscreen overlay windows, selection UI
 │   ├── build.rs
 │   └── Cargo.toml
+├── mneme/                  # Rust knowledge-base / vector-memory service (mneme.exe) — standalone, extraction-ready
+│   ├── src/main.rs         # CLI entry (serve / status)
+│   ├── src/config.rs       # config: wiki roots, include/ignore globs, transport, model, gpu
+│   ├── src/store/          # Document Store — filesystem over wiki roots (read/write/edit/glob/grep)
+│   ├── build.rs
+│   ├── Cargo.toml
+│   └── README.md           # crate-local docs (build/test, invariants)
 ├── patches/                # Dependency patches (patch-package)
 ├── .mcp.json               # MCP server config for Claude Code (points to MCP HTTP server)
 ├── doc/                    # Developer documentation

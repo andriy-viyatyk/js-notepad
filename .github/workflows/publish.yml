@@ -25,6 +25,10 @@ jobs:
         run: cargo build --release
         working-directory: snip-tool
 
+      - name: Build Mneme service
+        run: cargo build --release
+        working-directory: mneme
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

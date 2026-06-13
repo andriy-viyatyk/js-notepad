@@ -98,8 +98,10 @@ release/
 /data/
 /temp/
 
-# Rust launcher build artifacts
+# Rust build artifacts
 launcher/target/
+snip-tool/target/
+mneme/target/
 
 # Claude environment temporary files
 tmpclaude-*

@@ -1,0 +1,35 @@
+[package]
+name = "persephone-mneme"
+version = "0.1.0"
+edition = "2021"
+description = "Mneme — knowledge-base / vector-memory service for Persephone"
+
+[[bin]]
+name = "mneme"            # → mneme.exe, matching the architecture docs + CLI
+path = "src/main.rs"
+
+[lib]
+name = "persephone_mneme"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+figment = { version = "0.10", features = ["toml", "env"] }
+ignore = "0.4"            # ripgrep walker — gitignore-style ignore + override allowlist
+globset = "0.4"           # wiki_glob pattern matching
+regex = "1"               # wiki_grep streaming scan (Concern 6 fallback — same call surface as grep-*)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+dirs = "5"                # default config/cache locations for standalone runs
+
+[build-dependencies]
+winres = "0.1"
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true          # Link-time optimization
+codegen-units = 1   # Single codegen unit for better optimization
+strip = true        # Strip debug symbols
+panic = "abort"     # Abort on panic (smaller binary)
