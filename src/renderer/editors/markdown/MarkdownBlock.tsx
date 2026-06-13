@@ -373,6 +373,30 @@ function preprocessFencedContainers(content: string): string {
 }
 
 // =============================================================================
+// YAML frontmatter → ```yaml``` code block
+// =============================================================================
+
+// A leading `---\n…\n---` (or `…\n...`) block is YAML frontmatter. CommonMark
+// renders it as broken thematic-break + paragraph noise, so rewrite it into a
+// ```yaml``` fence — the existing CodeBlock/ColorizedCode path highlights it.
+// Only matches at the very document start (optional BOM allowed, no leading
+// blank lines). Render-only: the file on disk is never touched.
+const FRONTMATTER_RE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n(?:---|\.\.\.)[ \t]*(?=\r?\n|$)/;
+
+function preprocessFrontmatter(content: string): string {
+    // Strip an optional leading BOM so `^---` can anchor at the document start;
+    // re-prepend it (sliced from the source) only if a rewrite actually happened.
+    const hasBom = content.charCodeAt(0) === 0xfeff;
+    const body = hasBom ? content.slice(1) : content;
+    if (body.charCodeAt(0) !== 0x2d /* - */) return content; // fast bail: no leading `---`
+    const rewritten = body.replace(FRONTMATTER_RE, (match, yaml) => {
+        if (!yaml.trim()) return match; // empty frontmatter — leave as-is, don't emit a stray block
+        return `\`\`\`yaml\n${yaml}\n\`\`\``;
+    });
+    return rewritten === body ? content : (hasBom ? content[0] + rewritten : rewritten);
+}
+
+// =============================================================================
 // Components for ReactMarkdown
 // =============================================================================
 
@@ -413,7 +437,7 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
         const mermaidLightMode = !isCurrentThemeDark();
 
         const processedContent = useMemo(
-            () => preprocessFencedContainers(content),
+            () => preprocessFencedContainers(preprocessFrontmatter(content)),
             [content],
         );
         const hasMermaid = processedContent.includes("```mermaid");

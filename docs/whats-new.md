@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.4 (Upcoming)
 
-*No changes yet.*
+### UI Polish
+
+- **Markdown Preview — YAML frontmatter rendered as highlighted code** — When a Markdown file begins with a YAML frontmatter block (`---` … `---` or `---` … `...`), the preview now renders it as a syntax-highlighted `yaml` code block instead of broken text or stray horizontal rules. The source file is never modified — this is a preview-only transform. Documents that do not start with frontmatter are unaffected.
 
 ---
 

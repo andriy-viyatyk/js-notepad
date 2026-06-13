@@ -52,6 +52,7 @@ For `.md` and `.markdown` files — click **Preview** in the toolbar:
 - **Text search** — press `Ctrl+F` to find text, `F3`/`Shift+F3` to navigate matches, `Esc` to close
 - **Syntax highlighting** in fenced code blocks using Monaco's colorize API (supports all Monaco languages including aliases like `ts`, `js`, `py`, `bash`)
 - **Copy-to-clipboard** button on code block hover
+- **YAML frontmatter** — if the document starts with a `---` … `---` (or `---` … `...`) frontmatter block, it renders as a syntax-highlighted YAML code block instead of broken text or stray horizontal rules. The source file is never modified — this is a preview-only transform
 - **Inline Mermaid diagrams** — ` ```mermaid ` code blocks render as SVG diagrams with hover toolbar (copy image to clipboard, open in Mermaid editor). Azure DevOps wiki fenced container syntax (`::: mermaid … :::`) is also recognized and rendered as a diagram
 - **Live preview** updates as you type
 - **Minimap** navigation on the right side
