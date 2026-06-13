@@ -11,17 +11,18 @@
 //! component (`.mneme` first), so the index's own writes can't drive an infinite reconcile loop.
 
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use notify_debouncer_full::notify::RecursiveMode;
 use notify_debouncer_full::{new_debouncer, DebounceEventResult};
+use tokio_util::sync::CancellationToken;
 
 use crate::config::RootConfig;
-use crate::embed::LazyEmbedder;
+use crate::embed::EmbedHandle;
 use crate::error::Result;
-use crate::index::IndexDb;
-use crate::indexer::reconcile_root;
+use crate::index::RootIndex;
+use crate::indexer::JobManager;
 use crate::store::DEFAULT_IGNORES;
 
 /// Debounce window — coalesces a burst (e.g. a `git pull`) into a single reconcile (US-651).
@@ -37,29 +38,39 @@ pub struct RootWatcher {
 }
 
 impl RootWatcher {
-    /// Watch `root.folder` recursively; on each debounced batch, reconcile the root. The shared
-    /// `embedder` is resolved per reconcile so direct-disk edits also (re)build `chunks_vec`.
-    pub fn start(root: RootConfig, db: Arc<Mutex<IndexDb>>, embedder: Arc<LazyEmbedder>) -> Result<Self> {
+    /// Watch `root.folder` recursively; on each debounced batch, trigger a **coalesced** reconcile
+    /// through the shared [`JobManager`] (so a burst collapses to one pass and never runs parallel
+    /// to an in-flight reindex). The embed worker (re)builds `chunks_vec` off the writer lock, so
+    /// a direct-disk edit is indexed without stalling concurrent searches. `cancel` lets shutdown
+    /// stop in-flight reconciles.
+    pub fn start(
+        root: RootConfig,
+        index: Arc<RootIndex>,
+        embed: EmbedHandle,
+        jobs: Arc<JobManager>,
+        cancel: CancellationToken,
+    ) -> Result<Self> {
         let watch_path = root.folder.clone();
         let folder = root.folder.clone();
-        let handler = move |result: DebounceEventResult| match result {
-            Ok(events) => {
-                let relevant = events.iter().any(|ev| {
-                    ev.paths
+        let handler = move |result: DebounceEventResult| {
+            let trigger = || jobs.reconcile_coalesced(&index, &root, &embed, cancel.clone());
+            match result {
+                Ok(events) => {
+                    let relevant = events
                         .iter()
-                        .any(|p| !is_watch_ignored(&folder, p))
-                });
-                if relevant {
-                    reconcile_locked(&db, &root, &embedder);
+                        .any(|ev| ev.paths.iter().any(|p| !is_watch_ignored(&folder, p)));
+                    if relevant {
+                        trigger();
+                    }
                 }
-            }
-            Err(errors) => {
-                // A watch error (incl. buffer overflow / rescan) is recoverable — reconcile
-                // to resync rather than trusting incremental events, and keep watching.
-                for e in &errors {
-                    tracing::warn!(root = %root.name, "watch error: {e}");
+                Err(errors) => {
+                    // A watch error (incl. buffer overflow / rescan) is recoverable — reconcile
+                    // to resync rather than trusting incremental events, and keep watching.
+                    for e in &errors {
+                        tracing::warn!(root = %root.name, "watch error: {e}");
+                    }
+                    trigger();
                 }
-                reconcile_locked(&db, &root, &embedder);
             }
         };
 
@@ -69,18 +80,6 @@ impl RootWatcher {
         Ok(Self {
             _debouncer: debouncer,
         })
-    }
-}
-
-/// Lock the root's index and run a reconcile, logging (never panicking) on failure.
-fn reconcile_locked(db: &Arc<Mutex<IndexDb>>, root: &RootConfig, embedder: &LazyEmbedder) {
-    let guard = match db.lock() {
-        Ok(g) => g,
-        Err(poisoned) => poisoned.into_inner(), // a prior panic shouldn't wedge the watcher
-    };
-    let emb = embedder.get();
-    if let Err(e) = reconcile_root(&guard, root, emb.as_deref()) {
-        tracing::warn!(root = %root.name, "watcher reconcile failed: {e}");
     }
 }
 

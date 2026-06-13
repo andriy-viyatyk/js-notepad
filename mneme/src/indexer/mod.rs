@@ -1,28 +1,33 @@
 //! Indexer — keeps the per-root SQLite index consistent with the files on disk.
 //!
-//! Two complementary paths (EPIC-032 D17 / US-651 "Indexer"):
-//! - **Reconcile** ([`reconcile_root`]) — the authoritative sync: walk the root, skip
-//!   unchanged files via an **mtime+size fast-path**, hash only the candidates, then index
-//!   new files, re-process changed ones, and drop deleted ones. Runs synchronously (CLI
-//!   `reindex`) and as a deferred, non-blocking background job ~[`RECONCILE_DELAY`] after start.
-//! - **Watcher** ([`crate::watcher`]) — wakes a debounced reconcile when files change outside
-//!   Mneme's own write path.
-//!
-//! Scope (US-654): synchronous orchestration + `std::thread`. One [`IndexDb`] per root behind
-//! an `Arc<Mutex<…>>` — the lock is both the single-writer gate and the single-flight gate.
-//! **No** `tokio`, **no** embeddings (`chunks_vec` stays empty — US-657/658), **no** priority
-//! queue / reader pool / cancellable JobManager / progress notifications (US-659 extends this
-//! seam). [`index_one`] is also the primitive US-655's synchronous `wiki_write` will call.
+//! Two reconcile paths share the per-file decision logic ([`index_one`]):
+//! - **Synchronous** ([`reconcile_root`], `&IndexDb` + optional inline embedder) — the simple
+//!   authoritative sync used by tests and one-shot CLI: walk the root, skip unchanged files via an
+//!   **mtime+size fast-path**, hash only the candidates, index new/changed files (embedding inline
+//!   when a model is given), drop deleted ones.
+//! - **Serving** ([`reconcile_job`], `&RootIndex` + an [`EmbedHandle`], US-659) — two-phase so a
+//!   bulk reindex stays responsive: phase 1 upserts document rows under brief per-file writer
+//!   locks; phase 2 embeds off the writer lock on the shared worker (bulk priority, backpressure)
+//!   and writes vectors in brief locked batches. Cancellable + progress-reporting, driven by the
+//!   [`JobManager`] (single-flight per root). The [`crate::watcher`] and the deferred startup
+//!   reconcile both go through it. [`single_doc_index`] is the serving `wiki_write`/`wiki_edit`
+//!   primitive (interactive-priority embed).
+
+pub mod job;
+
+pub use job::{JobManager, Phase, ReindexProgress};
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use tokio_util::sync::CancellationToken;
+
 use crate::config::{ModelConfig, RootConfig};
-use crate::embed::{Embedder, LazyEmbedder};
+use crate::embed::{EmbedHandle, EmbedWorker, Embedder, LazyEmbedder, Priority};
 use crate::error::Result;
-use crate::index::{content_hash, IndexDb};
+use crate::index::{content_hash, IndexDb, RootIndex};
 use crate::markdown::parse_document;
 use crate::store::walk_root;
 use crate::watcher::RootWatcher;
@@ -192,6 +197,176 @@ pub fn reconcile_root(db: &IndexDb, root: &RootConfig, embedder: Option<&dyn Emb
     Ok(stats)
 }
 
+/// What a phase-2 work item needs embedding for — drives the `vectorized` stat.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WorkKind {
+    /// New/changed document (counted in `indexed` during phase 1).
+    Fresh,
+    /// Unchanged document missing vectors — the model arrived after first index (US-658 backfill).
+    Backfill,
+}
+
+/// The serving-path reconcile (US-659): keeps Mneme responsive during a bulk (re)index.
+///
+/// Two phases, so embedding never blocks the writer lock or request handling:
+/// 1. **Scan / upsert** — walk the root; for each file take a *brief* writer lock and index the
+///    document rows (no inline embedding), so an interactive edit can slip between files. Collect
+///    a work-list of documents whose `chunks_vec` must be (re)built.
+/// 2. **Embed / write** — for each work item: read its chunks (pooled), submit them to the embed
+///    worker at **bulk** priority (off the writer lock, with queue backpressure), then take a
+///    brief writer lock to write the vectors. The writer lock is never held across an embed.
+///
+/// `cancel` is polled between every file and every document; on cancel it commits nothing further
+/// and returns the partial stats (already-written rows persist — the next reconcile finishes the
+/// remainder, idempotently). `progress` is the shared snapshot (read by `wiki_status`);
+/// `on_progress` is the live sink (MCP progress / CLI line).
+pub(crate) fn reconcile_job(
+    root: &RootIndex,
+    cfg: &RootConfig,
+    emb: &EmbedHandle,
+    cancel: &CancellationToken,
+    progress: &Mutex<ReindexProgress>,
+    on_progress: &mut dyn FnMut(&ReindexProgress),
+) -> Result<ReconcileStats> {
+    let mut stats = ReconcileStats::default();
+    let walked = walk_root(cfg)?;
+    let total = walked.len();
+    set_progress(progress, on_progress, Phase::Scanning, 0, total);
+
+    // `Some(false)` = model definitively absent → no backfill work, no phase 2. `None` (not yet
+    // resolved) or `Some(true)` → attempt embedding (the worker resolves on the first job).
+    let model_absent = emb.available() == Some(false);
+    let mut work: Vec<(String, WorkKind)> = Vec::new();
+    let mut present: HashSet<String> = HashSet::with_capacity(walked.len());
+
+    for (i, wf) in walked.iter().enumerate() {
+        if cancel.is_cancelled() {
+            return Ok(finish(progress, on_progress, Phase::Cancelled, stats, total));
+        }
+        stats.scanned += 1;
+        present.insert(wf.rel.clone());
+        // Phase 1 upserts rows only (embedder = None) under a brief, per-file writer lock.
+        let outcome = index_one(&root.writer(), &wf.rel, &wf.abs, None);
+        match outcome {
+            Ok(IndexOutcome::Indexed) => {
+                stats.indexed += 1;
+                work.push((wf.rel.clone(), WorkKind::Fresh));
+            }
+            Ok(IndexOutcome::Refreshed) | Ok(IndexOutcome::Skipped) => {
+                if matches!(outcome, Ok(IndexOutcome::Refreshed)) {
+                    stats.refreshed += 1;
+                } else {
+                    stats.skipped += 1;
+                }
+                if !model_absent && !root.read(|db| db.doc_has_vectors(&wf.rel))? {
+                    work.push((wf.rel.clone(), WorkKind::Backfill));
+                }
+            }
+            Ok(IndexOutcome::VectorBackfilled) => unreachable!("phase 1 passes no embedder"),
+            Err(e) => {
+                stats.errors += 1;
+                tracing::warn!(file = %wf.rel, "index failed: {e}");
+            }
+        }
+        set_progress(progress, on_progress, Phase::Scanning, i + 1, total);
+    }
+
+    // Drop documents whose files are gone (brief per-row writer locks). Collect first so the
+    // writer guard is released before the per-row deletes (a held guard + re-lock would deadlock).
+    let existing = root.writer().all_doc_paths()?;
+    for rel in existing {
+        if cancel.is_cancelled() {
+            return Ok(finish(progress, on_progress, Phase::Cancelled, stats, total));
+        }
+        if !present.contains(&rel) {
+            match root.writer().delete_document(&rel) {
+                Ok(()) => stats.deleted += 1,
+                Err(e) => {
+                    stats.errors += 1;
+                    tracing::warn!(file = %rel, "delete failed: {e}");
+                }
+            }
+        }
+    }
+
+    // Phase 2 — embed off the writer lock.
+    if !work.is_empty() && !model_absent {
+        let to_embed = work.len();
+        set_progress(progress, on_progress, Phase::Embedding, 0, to_embed);
+        for (i, (rel, kind)) in work.iter().enumerate() {
+            if cancel.is_cancelled() {
+                return Ok(finish(progress, on_progress, Phase::Cancelled, stats, total));
+            }
+            let chunks = root.read(|db| db.chunk_texts_for(rel))?;
+            if chunks.is_empty() {
+                continue;
+            }
+            let refs: Vec<&str> = chunks.iter().map(|(_, t)| t.as_str()).collect();
+            // Blocks on the worker (bulk lane) — NO writer lock held here (backpressure-safe).
+            match emb.embed_passages(&refs, Priority::Bulk)? {
+                None => break, // model unavailable after all → FTS-only; stop embedding
+                Some(vecs) => {
+                    let items: Vec<(i64, Vec<f32>)> =
+                        chunks.iter().map(|(id, _)| *id).zip(vecs).collect();
+                    root.writer().write_chunk_vectors(&items)?;
+                    if *kind == WorkKind::Backfill {
+                        stats.vectorized += 1;
+                    }
+                }
+            }
+            set_progress(progress, on_progress, Phase::Embedding, i + 1, to_embed);
+        }
+    }
+
+    tracing::info!(root = %cfg.name, ?stats, "reconcile complete");
+    Ok(finish(progress, on_progress, Phase::Done, stats, total))
+}
+
+/// Index a single just-written/edited document on the serving path: brief writer-locked upsert
+/// (always — no fast-path, the caller just changed the bytes), then embed the one document at
+/// **interactive** priority (off the writer lock) and write its vectors. Used by `wiki_write` /
+/// `wiki_edit`.
+pub(crate) fn single_doc_index(root: &RootIndex, rel: &str, abs: &Path, emb: &EmbedHandle) -> Result<IndexOutcome> {
+    let outcome = reindex_file(&root.writer(), rel, abs, None)?;
+    // Embed unless the model is definitively absent (resolve-on-first-job otherwise).
+    if emb.available() != Some(false) {
+        let chunks = root.read(|db| db.chunk_texts_for(rel))?;
+        if !chunks.is_empty() {
+            let refs: Vec<&str> = chunks.iter().map(|(_, t)| t.as_str()).collect();
+            if let Some(vecs) = emb.embed_passages(&refs, Priority::Interactive)? {
+                let items: Vec<(i64, Vec<f32>)> = chunks.iter().map(|(id, _)| *id).zip(vecs).collect();
+                root.writer().write_chunk_vectors(&items)?;
+            }
+        }
+    }
+    Ok(outcome)
+}
+
+/// Write a progress snapshot and notify the live sink.
+fn set_progress(
+    progress: &Mutex<ReindexProgress>,
+    on_progress: &mut dyn FnMut(&ReindexProgress),
+    phase: Phase,
+    processed: usize,
+    total: usize,
+) {
+    let snap = ReindexProgress { phase, processed, total };
+    *progress.lock().unwrap() = snap.clone();
+    on_progress(&snap);
+}
+
+/// Emit a terminal progress snapshot and return the stats unchanged (cancel/done convenience).
+fn finish(
+    progress: &Mutex<ReindexProgress>,
+    on_progress: &mut dyn FnMut(&ReindexProgress),
+    phase: Phase,
+    stats: ReconcileStats,
+    total: usize,
+) -> ReconcileStats {
+    set_progress(progress, on_progress, phase, stats.scanned, total);
+    stats
+}
+
 /// Convert a `SystemTime` to epoch seconds (`documents.mtime` storage + fast-path compare).
 fn system_time_to_secs(t: SystemTime) -> i64 {
     t.duration_since(UNIX_EPOCH)
@@ -199,58 +374,88 @@ fn system_time_to_secs(t: SystemTime) -> i64 {
         .unwrap_or(0)
 }
 
-/// Owns one [`IndexDb`] per root (behind a `Mutex` — single-writer + single-flight) plus the
-/// always-on watchers. The seam US-659 extends with a reader pool + priority embed worker.
+/// Owns one [`RootIndex`] per root (writer + read-only pool), the always-on watchers, the single
+/// embedding worker, and the reindex [`JobManager`]. Together these keep Mneme responsive during
+/// a bulk reindex (US-659): embedding runs off the writer lock at bulk priority, reads use the
+/// pool, and reconciles are cancellable + single-flight per root.
 pub struct IndexManager {
     roots: Vec<RootConfig>,
-    dbs: HashMap<String, Arc<Mutex<IndexDb>>>,
+    dbs: HashMap<String, Arc<RootIndex>>,
     /// Keyed by root name so a single root's watcher can be stopped on `wiki_remove_root`.
     watchers: HashMap<String, RootWatcher>,
-    /// Shared, build-once embedding engine (US-658). Resolved (`get()`) at the top of each
-    /// reconcile; `None` (model not provisioned) keeps `chunks_vec` empty (FTS-only).
-    embedder: Arc<LazyEmbedder>,
+    /// Submit handle for the one embedding worker (clonable; shared with the watcher + search).
+    embed: EmbedHandle,
+    /// Reindex job manager — single-flight per root + progress snapshots + cancellation.
+    jobs: Arc<JobManager>,
+    /// Root cancel token for the watcher + deferred reconciles; cancelled on shutdown.
+    cancel: CancellationToken,
+    /// Held so the worker thread isn't dropped while handles are live.
+    _worker: EmbedWorker,
 }
 
 impl IndexManager {
-    /// Open (or create) the per-root index for every root. Does not walk yet. `embedder` is the
-    /// shared lazy embedder (clone of the one `ServerState` holds, or a CLI-local one).
+    /// Open (or create) the per-root index for every root and start the embedding worker. Does
+    /// not walk yet. `embedder` is the shared lazy embedder the worker resolves on its first job.
     pub fn open(roots: &[RootConfig], model: &ModelConfig, embedder: Arc<LazyEmbedder>) -> Result<Self> {
+        let (worker, embed) = EmbedWorker::start(embedder);
         let mut dbs = HashMap::with_capacity(roots.len());
         for r in roots {
-            let db = IndexDb::open_or_create(&r.name, &r.folder, model)?;
-            dbs.insert(r.name.clone(), Arc::new(Mutex::new(db)));
+            let ri = RootIndex::open_or_create(&r.name, &r.folder, model)?;
+            dbs.insert(r.name.clone(), Arc::new(ri));
         }
         Ok(Self {
             roots: roots.to_vec(),
             dbs,
             watchers: HashMap::new(),
-            embedder,
+            embed,
+            jobs: JobManager::new(),
+            cancel: CancellationToken::new(),
+            _worker: worker,
         })
     }
 
-    /// The per-root index handle — US-655's synchronous `wiki_write` locks this and calls
-    /// [`index_one`] on its just-written file.
-    pub fn handle(&self, root: &str) -> Option<Arc<Mutex<IndexDb>>> {
+    /// The per-root index handle (search via the pool, single-doc index via the writer, status).
+    pub fn handle(&self, root: &str) -> Option<Arc<RootIndex>> {
         self.dbs.get(root).cloned()
     }
 
-    /// Foreground reconcile of one root.
+    /// A clone of the embed submit handle — the search path (query embeds) + serving single-doc
+    /// index path use it directly, without locking the manager.
+    pub fn embed_handle(&self) -> EmbedHandle {
+        self.embed.clone()
+    }
+
+    /// A clone of the reindex job manager (drives `wiki_reindex` + exposes progress).
+    pub fn jobs(&self) -> Arc<JobManager> {
+        Arc::clone(&self.jobs)
+    }
+
+    /// Foreground reconcile of one root, returning stats (no live progress sink).
     pub fn reconcile_root(&self, root: &str) -> Result<ReconcileStats> {
+        self.reconcile_root_cb(root, |_| {})
+    }
+
+    /// Foreground reconcile of one root with a live progress callback (CLI `reindex`).
+    pub fn reconcile_root_cb(
+        &self,
+        root: &str,
+        on_progress: impl FnMut(&ReindexProgress),
+    ) -> Result<ReconcileStats> {
         let cfg = self
             .roots
             .iter()
             .find(|r| r.name == root)
-            .ok_or_else(|| crate::error::MnemeError::UnknownRoot(root.to_string()))?;
-        let db = self
+            .ok_or_else(|| crate::error::MnemeError::UnknownRoot(root.to_string()))?
+            .clone();
+        let ri = self
             .dbs
             .get(root)
             .ok_or_else(|| crate::error::MnemeError::UnknownRoot(root.to_string()))?;
-        let guard = db.lock().unwrap();
-        let emb = self.embedder.get();
-        reconcile_root(&guard, cfg, emb.as_deref())
+        self.jobs
+            .reconcile_blocking(ri, &cfg, &self.embed, CancellationToken::new(), on_progress)
     }
 
-    /// Foreground reconcile of every root (CLI `reindex`, the deferred job, tests).
+    /// Foreground reconcile of every root (CLI `reindex`, tests).
     pub fn reconcile_all(&self) -> Vec<(String, ReconcileStats)> {
         let mut out = Vec::with_capacity(self.roots.len());
         for r in &self.roots {
@@ -265,11 +470,17 @@ impl IndexManager {
         out
     }
 
-    /// Spawn an always-on debounced watcher per root (reconciles that root on change).
+    /// Spawn an always-on debounced watcher per root (coalesced reconcile on change).
     pub fn start_watchers(&mut self) -> Result<()> {
         for r in &self.roots {
-            if let Some(db) = self.dbs.get(&r.name) {
-                let watcher = RootWatcher::start(r.clone(), Arc::clone(db), Arc::clone(&self.embedder))?;
+            if let Some(ri) = self.dbs.get(&r.name) {
+                let watcher = RootWatcher::start(
+                    r.clone(),
+                    Arc::clone(ri),
+                    self.embed.clone(),
+                    Arc::clone(&self.jobs),
+                    self.cancel.clone(),
+                )?;
                 self.watchers.insert(r.name.clone(), watcher);
             }
         }
@@ -278,13 +489,19 @@ impl IndexManager {
 
     /// Register a new root at runtime (`wiki_add_root`): open its index, start its watcher, and
     /// track its config. The caller persists the config and reconciles. Returns the new handle.
-    pub fn add_root(&mut self, cfg: RootConfig, model: &ModelConfig) -> Result<Arc<Mutex<IndexDb>>> {
-        let db = Arc::new(Mutex::new(IndexDb::open_or_create(&cfg.name, &cfg.folder, model)?));
-        let watcher = RootWatcher::start(cfg.clone(), Arc::clone(&db), Arc::clone(&self.embedder))?;
+    pub fn add_root(&mut self, cfg: RootConfig, model: &ModelConfig) -> Result<Arc<RootIndex>> {
+        let ri = Arc::new(RootIndex::open_or_create(&cfg.name, &cfg.folder, model)?);
+        let watcher = RootWatcher::start(
+            cfg.clone(),
+            Arc::clone(&ri),
+            self.embed.clone(),
+            Arc::clone(&self.jobs),
+            self.cancel.clone(),
+        )?;
         self.watchers.insert(cfg.name.clone(), watcher);
-        self.dbs.insert(cfg.name.clone(), Arc::clone(&db));
+        self.dbs.insert(cfg.name.clone(), Arc::clone(&ri));
         self.roots.push(cfg);
-        Ok(db)
+        Ok(ri)
     }
 
     /// Stop + drop a root's watcher and its index handle (`wiki_remove_root`). The on-disk
@@ -304,30 +521,29 @@ impl IndexManager {
         self.roots.iter().map(|r| r.name.clone()).collect()
     }
 
-    /// Spawn the deferred (~[`RECONCILE_DELAY`]) startup reconcile thread; returns immediately
-    /// so startup is never blocked.
+    /// Spawn the deferred (~[`RECONCILE_DELAY`]) startup reconcile thread (coalesced through the
+    /// job manager); returns immediately so startup is never blocked.
     pub fn spawn_deferred_reconcile(&self) {
-        let work: Vec<(RootConfig, Arc<Mutex<IndexDb>>)> = self
+        let work: Vec<(RootConfig, Arc<RootIndex>)> = self
             .roots
             .iter()
-            .filter_map(|r| self.dbs.get(&r.name).map(|db| (r.clone(), Arc::clone(db))))
+            .filter_map(|r| self.dbs.get(&r.name).map(|ri| (r.clone(), Arc::clone(ri))))
             .collect();
-        let embedder = Arc::clone(&self.embedder);
+        let embed = self.embed.clone();
+        let jobs = Arc::clone(&self.jobs);
+        let cancel = self.cancel.clone();
         std::thread::spawn(move || {
             std::thread::sleep(RECONCILE_DELAY);
-            // Resolve once — the first build (when a model is present) happens here, off the
-            // startup path, so the corpus is embedded shortly after serve begins.
-            let emb = embedder.get();
-            for (cfg, db) in &work {
-                let guard = db.lock().unwrap();
-                if let Err(e) = reconcile_root(&guard, cfg, emb.as_deref()) {
-                    tracing::warn!(root = %cfg.name, "deferred reconcile failed: {e}");
+            for (cfg, ri) in &work {
+                if cancel.is_cancelled() {
+                    break;
                 }
+                jobs.reconcile_coalesced(ri, cfg, &embed, cancel.clone());
             }
         });
     }
 
-    /// Convenience for US-655's `serve`: open + start watchers + spawn the deferred reconcile.
+    /// Convenience for `serve`: open + start watchers + spawn the deferred reconcile.
     pub fn start(roots: &[RootConfig], model: &ModelConfig, embedder: Arc<LazyEmbedder>) -> Result<Self> {
         let mut mgr = Self::open(roots, model, embedder)?;
         mgr.start_watchers()?;
@@ -335,8 +551,9 @@ impl IndexManager {
         Ok(mgr)
     }
 
-    /// Stop the watchers (drops the debouncers/threads).
+    /// Stop the watchers + cancel any in-flight background reconciles.
     pub fn shutdown(self) {
+        self.cancel.cancel();
         drop(self.watchers);
     }
 }

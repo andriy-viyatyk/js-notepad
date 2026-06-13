@@ -7,9 +7,12 @@
 //! server over Streamable HTTP exposing the `wiki_*` tool surface in text-search mode (US-655),
 //! the model provisioner (US-656) that downloads/verifies the configured embedding-model
 //! files into a local cache with HTTP range-resume and sha256 verification, and the embedding
-//! engine (US-657) that turns text into normalized vectors via ONNX Runtime (DirectML→CPU).
-//! `chunks_vec` is still empty — wiring vectors into search (vector/hybrid `wiki_search`) is
-//! US-658, so `wiki_search` remains FTS-only for now.
+//! engine (US-657) that turns text into normalized vectors via ONNX Runtime (DirectML→CPU),
+//! hybrid search (US-658) that embeds chunks into `chunks_vec` and serves `wiki_search`'s
+//! vector/hybrid modes (FTS + KNN fused with RRF), and the concurrency layer (US-659) — a
+//! dedicated embedding worker + priority queue, a WAL writer + read-only connection pool per
+//! root, and a cancellable, progress-emitting, single-flight reindex job manager — that keeps
+//! Mneme responsive (search + edit) during a bulk reindex.
 //!
 //! Crate-wide invariant: **stdout is never used for ad-hoc output.** All diagnostics
 //! go through `tracing` to stderr; stdout is reserved for the single startup readiness

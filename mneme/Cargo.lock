@@ -414,6 +414,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.5.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1572,6 +1581,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "clap",
+ "crossbeam-channel",
  "dirs",
  "figment",
  "globset",
@@ -1593,6 +1603,7 @@ dependencies = [
  "tiny_http",
  "tokenizers",
  "tokio",
+ "tokio-util",
  "toml 0.8.23",
  "tracing",
  "tracing-subscriber",

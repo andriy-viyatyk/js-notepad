@@ -6,12 +6,12 @@
 //! test exercises the live watcher, and it polls with a bounded timeout (no fixed sleeps).
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use persephone_mneme::config::{Config, ModelConfig, RootConfig};
 use persephone_mneme::embed::LazyEmbedder;
-use persephone_mneme::index::IndexDb;
+use persephone_mneme::index::{IndexDb, RootIndex};
 use persephone_mneme::indexer::{index_one, reconcile_root, IndexManager, IndexOutcome};
 use persephone_mneme::watcher::is_watch_ignored;
 
@@ -169,15 +169,13 @@ fn watcher_ignores_mneme_and_default_dirs() {
 // Watcher live wiring (eventual consistency, bounded poll)
 // ---------------------------------------------------------------------------------------------
 
-/// Poll `db` until `pred` holds or the timeout elapses; returns whether it held.
-fn poll_until(db: &Arc<Mutex<IndexDb>>, timeout: Duration, pred: impl Fn(&IndexDb) -> bool) -> bool {
+/// Poll `db` until `pred` holds or the timeout elapses; returns whether it held. Reads through
+/// the root's read-only pool (US-659).
+fn poll_until(db: &Arc<RootIndex>, timeout: Duration, pred: impl Fn(&IndexDb) -> bool) -> bool {
     let start = Instant::now();
     while start.elapsed() < timeout {
-        {
-            let guard = db.lock().unwrap();
-            if pred(&guard) {
-                return true;
-            }
+        if db.read(|d| pred(d)) {
+            return true;
         }
         std::thread::sleep(Duration::from_millis(50));
     }

@@ -9,8 +9,6 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
-use std::sync::Arc;
-
 use persephone_mneme::config;
 use persephone_mneme::embed::LazyEmbedder;
 use persephone_mneme::indexer::IndexManager;
@@ -122,15 +120,17 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
         Command::Reindex { path } => {
             let embedder = LazyEmbedder::new(cfg.clone());
             let mgr = IndexManager::open(store.registry().configs(), &cfg.model, embedder)?;
-            let results = match path.as_deref() {
-                Some(p) => {
-                    // The indexer reconciles a whole root; a "{root}/sub" scope maps to its root.
-                    let root = p.split('/').next().unwrap_or(p);
-                    vec![(root.to_string(), mgr.reconcile_root(root)?)]
-                }
-                None => mgr.reconcile_all(),
+            let targets: Vec<String> = match path.as_deref() {
+                // The indexer reconciles a whole root; a "{root}/sub" scope maps to its root.
+                Some(p) => vec![p.split('/').next().unwrap_or(p).to_string()],
+                None => mgr.root_names(),
             };
-            for (root, s) in results {
+            for root in targets {
+                // Live progress to stderr (stdout is reserved); \r overwrites the line in place.
+                let s = mgr.reconcile_root_cb(&root, |pr| {
+                    eprint!("\r  {root}: {} {}/{}        ", pr.phase.as_str(), pr.processed, pr.total);
+                })?;
+                eprintln!();
                 println!(
                     "  {root}: {} scanned, {} indexed, {} refreshed, {} skipped, {} vectorized, {} deleted, {} error(s)",
                     s.scanned, s.indexed, s.refreshed, s.skipped, s.vectorized, s.deleted, s.errors
@@ -208,14 +208,14 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
 
             let top_k = top_k.unwrap_or(10);
             let embedder = LazyEmbedder::new(cfg.clone());
-            let mgr = IndexManager::open(store.registry().configs(), &cfg.model, Arc::clone(&embedder))?;
+            let mgr = IndexManager::open(store.registry().configs(), &cfg.model, embedder)?;
             let filter = SearchFilter::default();
 
-            // Embed the query for vector/hybrid; with no model, fall back to text.
-            let emb = if mode == "vector" || mode == "hybrid" { embedder.get() } else { None };
-            let qv = match &emb {
-                Some(e) => Some(e.embed_query(&query)?),
-                None => None,
+            // Embed the query for vector/hybrid via the worker; with no model, fall back to text.
+            let qv = if mode == "vector" || mode == "hybrid" {
+                mgr.embed_handle().embed_query(&query)?
+            } else {
+                None
             };
             let effective = match (mode.as_str(), &qv) {
                 ("vector", Some(_)) => "vector",
@@ -226,11 +226,10 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
             let mut hits = Vec::new();
             for name in mgr.root_names() {
                 if let Some(h) = mgr.handle(&name) {
-                    let db = h.lock().unwrap();
                     let lane = match (effective, &qv) {
-                        ("vector", Some(v)) => db.search_vector(v, &filter, top_k)?,
-                        ("hybrid", Some(v)) => db.search_hybrid(&query, v, &filter, top_k)?,
-                        _ => db.search_text(&query, &filter, top_k)?,
+                        ("vector", Some(v)) => h.read(|db| db.search_vector(v, &filter, top_k))?,
+                        ("hybrid", Some(v)) => h.read(|db| db.search_hybrid(&query, v, &filter, top_k))?,
+                        _ => h.read(|db| db.search_text(&query, &filter, top_k))?,
                     };
                     hits.extend(lane);
                 }

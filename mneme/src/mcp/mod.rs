@@ -1,8 +1,9 @@
 //! MCP server — the sole interface (EPIC-032 D9/D10). Exposes the `wiki_*` tool surface and
-//! `mneme://` resources over **Streamable HTTP**, bound to loopback. US-655 runs in
-//! **text-search mode**: `wiki_search` is FTS5-only (no embeddings — US-657/658), `wiki_reindex`
-//! is a synchronous reconcile (the cancellable job + progress notifications are US-659), and
-//! resource subscriptions are not advertised (US-661/662).
+//! `mneme://` resources over **Streamable HTTP**, bound to loopback. `wiki_search` serves text /
+//! vector / hybrid modes (US-657/658); `wiki_reindex` is a cancellable, progress-emitting job
+//! driven through the [`JobManager`] (US-659) — query embeds run at interactive priority on the
+//! shared worker, reads use each root's connection pool. Resource subscriptions are not yet
+//! advertised (US-661/662).
 //!
 //! The tool *logic* lives on [`ServerState`] as plain async methods (callable directly in
 //! tests, no HTTP); [`server::MnemeServer`] is the thin rmcp adapter. Every fs/SQLite call runs
@@ -21,12 +22,14 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::SystemTime;
 
 use base64::Engine;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio_util::sync::CancellationToken;
 
 use crate::config::{self, Config, ModelConfig};
-use crate::embed::LazyEmbedder;
+use crate::embed::{EmbedHandle, LazyEmbedder};
 use crate::error::{MnemeError, Result};
 use crate::index::SearchFilter;
-use crate::indexer::{reconcile_root, reindex_file, IndexManager};
+use crate::indexer::{single_doc_index, IndexManager, JobManager, ReindexProgress};
 use crate::markdown::parse_document;
 use crate::store::address::WikiAddress;
 use crate::store::grep::{GrepOptions, GrepResult, OutputMode};
@@ -44,11 +47,13 @@ pub struct ServerState {
     config: Mutex<Config>,
     config_path: PathBuf,
     model: ModelConfig,
-    /// Shared, build-once embedding engine (US-658). The same `Arc<LazyEmbedder>` is handed to
-    /// the [`IndexManager`] so the model loads once and serves both indexing and search. Built
-    /// lazily (first reconcile or first vector search), so text mode + a missing model pay no
-    /// load cost. `None` from `get()` → degrade to FTS.
-    embedder: Arc<LazyEmbedder>,
+    /// Submit handle for the single embedding worker (US-659) — query embeds (interactive) and
+    /// the serving single-doc index path go through it, off the index lock. `embed_query`/
+    /// `embed_passages` return `None` when no model is provisioned → callers degrade to FTS.
+    embed: EmbedHandle,
+    /// Reindex job manager — drives `wiki_reindex` (cancellable + progress) and exposes the
+    /// per-root progress snapshot for `wiki_status`.
+    jobs: Arc<JobManager>,
 }
 
 /// A resource body to hand back to MCP — text or base64 blob — kept rmcp-type-free so
@@ -63,7 +68,9 @@ impl ServerState {
     pub fn new(cfg: Config, config_path: PathBuf) -> Result<Arc<Self>> {
         let store = DocumentStore::open(&cfg)?;
         let embedder = LazyEmbedder::new(cfg.clone());
-        let index = IndexManager::start(store.registry().configs(), &cfg.model, Arc::clone(&embedder))?;
+        let index = IndexManager::start(store.registry().configs(), &cfg.model, embedder)?;
+        let embed = index.embed_handle();
+        let jobs = index.jobs();
         let model = cfg.model.clone();
         Ok(Arc::new(Self {
             store: RwLock::new(store),
@@ -71,7 +78,8 @@ impl ServerState {
             config: Mutex::new(cfg),
             config_path,
             model,
-            embedder,
+            embed,
+            jobs,
         }))
     }
 
@@ -143,7 +151,7 @@ impl ServerState {
             }
             let handle = { st.index.lock().unwrap().handle(&wa.root) };
             if let Some(h) = handle {
-                h.lock().unwrap().delete_document(&wa.rest)?;
+                h.writer().delete_document(&wa.rest)?;
             }
             Ok(())
         })
@@ -196,14 +204,11 @@ impl ServerState {
                 created_to: p.date_range.as_ref().and_then(|d| d.to.clone()),
             };
 
-            // Resolve the embedder for vector/hybrid; `None` (no model) → degrade to text.
-            let embedder = match p.mode {
+            // Embed the query for vector/hybrid at interactive priority (preempts bulk reindex
+            // embeds on the worker). `None` (no model) → degrade to text.
+            let query_vec = match p.mode {
                 SearchMode::Text => None,
-                SearchMode::Vector | SearchMode::Hybrid => st.embedder.get(),
-            };
-            let query_vec = match &embedder {
-                Some(e) => Some(e.embed_query(&p.query)?),
-                None => None,
+                SearchMode::Vector | SearchMode::Hybrid => st.embed.embed_query(&p.query)?,
             };
 
             // Effective lane: requested mode, but fall back to text when there's no embedder.
@@ -217,18 +222,15 @@ impl ServerState {
             for root in roots {
                 let handle = { st.index.lock().unwrap().handle(&root) };
                 if let Some(h) = handle {
-                    let db = h.lock().unwrap();
+                    // Pooled read — runs concurrently with any in-flight reindex writer.
                     match lane {
-                        Lane::Text => hits.extend(db.search_text(&p.query, &filter, top_k)?),
-                        Lane::Vector => {
-                            hits.extend(db.search_vector(query_vec.as_ref().unwrap(), &filter, top_k)?)
-                        }
-                        Lane::Hybrid => hits.extend(db.search_hybrid(
-                            &p.query,
-                            query_vec.as_ref().unwrap(),
-                            &filter,
-                            top_k,
-                        )?),
+                        Lane::Text => hits.extend(h.read(|db| db.search_text(&p.query, &filter, top_k))?),
+                        Lane::Vector => hits.extend(
+                            h.read(|db| db.search_vector(query_vec.as_ref().unwrap(), &filter, top_k))?,
+                        ),
+                        Lane::Hybrid => hits.extend(h.read(|db| {
+                            db.search_hybrid(&p.query, query_vec.as_ref().unwrap(), &filter, top_k)
+                        })?),
                     }
                 }
             }
@@ -312,7 +314,7 @@ impl ServerState {
             for root in &roots {
                 let handle = { st.index.lock().unwrap().handle(root) };
                 if let Some(h) = handle {
-                    let docs = { h.lock().unwrap().docs_with_tag("log", sub)? };
+                    let docs = h.read(|db| db.docs_with_tag("log", sub))?;
                     for d in docs {
                         if !p.tags.iter().all(|t| d.tags.contains(t)) {
                             continue;
@@ -355,7 +357,7 @@ impl ServerState {
             for root in &roots {
                 let handle = { st.index.lock().unwrap().handle(root) };
                 if let Some(h) = handle {
-                    for (tag, c) in h.lock().unwrap().tag_counts(sub)? {
+                    for (tag, c) in h.read(|db| db.tag_counts(sub))? {
                         *counts.entry(tag).or_insert(0) += c;
                     }
                 }
@@ -403,11 +405,11 @@ impl ServerState {
                 st.index.lock().unwrap().add_root(cfg.clone(), &st.model)?;
             }
             persist_roots(&st)?;
-            // Reconcile the freshly added root synchronously (embeds when a model is present).
+            // Reconcile the freshly added root (embeds via the worker when a model is present).
             let handle = { st.index.lock().unwrap().handle(&cfg.name) };
             if let Some(h) = handle {
-                let emb = st.embedder.get();
-                reconcile_root(&h.lock().unwrap(), &cfg, emb.as_deref())?;
+                st.jobs
+                    .reconcile_blocking(&h, &cfg, &st.embed, CancellationToken::new(), |_| {})?;
             }
             Ok(AddRootResult {
                 name: cfg.name,
@@ -431,7 +433,16 @@ impl ServerState {
         .await
     }
 
-    pub async fn reindex(self: &Arc<Self>, p: ReindexParams) -> Result<ReindexResult> {
+    /// Reconcile one or all roots through the [`JobManager`] (cancellable + single-flight). Runs
+    /// the reconcile off the async runtime; `cancel` (the MCP request's `ct`) stops it cleanly
+    /// mid-pass, and each progress snapshot is streamed on `progress_tx` as `(root, snapshot)` for
+    /// the adapter to forward as an MCP `notifications/progress`. Returns the per-root stats.
+    pub async fn reindex(
+        self: &Arc<Self>,
+        p: ReindexParams,
+        cancel: CancellationToken,
+        progress_tx: UnboundedSender<(String, ReindexProgress)>,
+    ) -> Result<ReindexResult> {
         let st = Arc::clone(self);
         blocking(move || {
             let targets: Vec<String> = match p.path.as_deref() {
@@ -439,13 +450,16 @@ impl ServerState {
                 None => st.index.lock().unwrap().root_names(),
             };
             let mut roots = Vec::new();
-            let emb = st.embedder.get();
             for name in targets {
                 let cfg = { st.store.read().unwrap().registry().get(&name).cloned() }
                     .ok_or_else(|| MnemeError::UnknownRoot(name.clone()))?;
                 let handle = { st.index.lock().unwrap().handle(&name) }
                     .ok_or_else(|| MnemeError::UnknownRoot(name.clone()))?;
-                let s = reconcile_root(&handle.lock().unwrap(), &cfg, emb.as_deref())?;
+                let tx = progress_tx.clone();
+                let root_name = name.clone();
+                let s = st.jobs.reconcile_blocking(&handle, &cfg, &st.embed, cancel.clone(), move |pr| {
+                    let _ = tx.send((root_name.clone(), pr.clone()));
+                })?;
                 roots.push(ReindexRoot {
                     name,
                     scanned: s.scanned,
@@ -469,20 +483,22 @@ impl ServerState {
             let mut roots = Vec::new();
             for r in cfgs {
                 let handle = { st.index.lock().unwrap().handle(&r.name) };
+                let reindex = st.jobs.progress_for(&r.name).map(ReindexProgressDto::from);
                 let row = if let Some(h) = handle {
-                    let db = h.lock().unwrap();
-                    let meta = db.meta()?;
-                    let dp = db.db_path().to_path_buf();
+                    let (doc_count, meta, dp) = h.read(|db| -> Result<_> {
+                        Ok((db.doc_count()?, db.meta()?, db.db_path().to_path_buf()))
+                    })?;
                     let bytes = std::fs::metadata(&dp).map(|m| m.len()).unwrap_or(0);
                     StatusRoot {
                         name: r.name,
                         folder: r.folder.display().to_string(),
-                        doc_count: db.doc_count()?,
+                        doc_count,
                         model: meta.model,
                         precision: meta.precision,
                         schema_ver: meta.schema_version,
                         index_path: dp.display().to_string(),
                         index_bytes: bytes,
+                        reindex,
                     }
                 } else {
                     StatusRoot {
@@ -494,6 +510,7 @@ impl ServerState {
                         schema_ver: 0,
                         index_path: String::new(),
                         index_bytes: 0,
+                        reindex,
                     }
                 };
                 roots.push(row);
@@ -606,13 +623,13 @@ where
         .map_err(|e| MnemeError::Internal(format!("blocking task failed: {e}")))?
 }
 
-/// Lock the index briefly to clone a root's handle, then lock just that DB and index the file.
-/// Embeds the just-written document into `chunks_vec` when a model is provisioned (US-658).
+/// Lock the index briefly to clone a root's handle, then index the just-written file: a brief
+/// writer-locked upsert, then embed the one document at interactive priority on the worker (off
+/// the writer lock) when a model is provisioned (US-658/659).
 fn index_file(st: &Arc<ServerState>, wa: &WikiAddress, abs: &Path) -> Result<()> {
     let handle = { st.index.lock().unwrap().handle(&wa.root) }
         .ok_or_else(|| MnemeError::UnknownRoot(wa.root.clone()))?;
-    let emb = st.embedder.get();
-    reindex_file(&handle.lock().unwrap(), &wa.rest, abs, emb.as_deref())?;
+    single_doc_index(&handle, &wa.rest, abs, &st.embed)?;
     Ok(())
 }
 

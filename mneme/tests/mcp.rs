@@ -218,7 +218,11 @@ async fn reindex_picks_up_a_direct_disk_write() {
     // Write straight to disk (bypassing wiki_write — simulates an external edit).
     std::fs::write(root.join("ext.md"), "# Ext\nexternalterm").unwrap();
 
-    let r = state.reindex(ReindexParams { path: None }).await.unwrap();
+    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+    let r = state
+        .reindex(ReindexParams { path: None }, tokio_util::sync::CancellationToken::new(), tx)
+        .await
+        .unwrap();
     assert_eq!(r.roots.len(), 1);
     assert!(r.roots[0].indexed >= 1);
     assert_eq!(state.search(search_params("externalterm")).await.unwrap().results.len(), 1);

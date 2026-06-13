@@ -17,8 +17,11 @@ Azure container build context.
 > and **hybrid search** (US-658): chunks are embedded into `chunks_vec`, and `wiki_search` now
 > serves real `vector` (KNN) and `hybrid` (FTS + KNN fused with Reciprocal Rank Fusion) modes
 > alongside `text`. FTS still works with no model present; vector/hybrid degrade to text (with a
-> note) until the model is provisioned. Still to come: the dedicated embedding worker + priority
-> queue + cancellable reindex job with progress (US-659).
+> note) until the model is provisioned. The concurrency layer (US-659) completes Phase 2: a
+> dedicated embedding worker + priority queue (interactive query/edit embeds preempt bulk
+> reindex), a WAL writer + read-only connection pool per root, and a cancellable,
+> progress-emitting, single-flight reindex job — so search and edit stay responsive during a bulk
+> reindex.
 
 ## Build & test
 
@@ -141,6 +144,31 @@ mneme embed  "how do I cancel my subscription" --query   # → provider, dims=76
 mneme search "how do I cancel my subscription"           # ranked hits (--mode text|vector|hybrid)
 ```
 
+## Concurrency & responsiveness (US-659)
+
+Embedding is CPU/GPU-bound and serialized behind one model session, so Mneme must keep search and
+edit prompt while a bulk reindex runs. Three pieces cooperate:
+
+- **One embedding worker + priority queue.** A dedicated thread (`embed/worker.rs`) owns the model
+  session and drains two lanes: an unbounded **interactive** lane (a search query, a just-edited
+  doc) and a bounded **bulk** lane (reindex batches → backpressure). It serves all queued
+  interactive jobs before each bulk job, so an interactive embed's worst-case wait during a
+  reindex is one in-flight bulk batch. Submit through the cloneable `EmbedHandle`; with no model
+  provisioned every embed returns `None` and callers degrade to FTS.
+- **WAL writer + read-only pool per root.** `index/pool.rs`'s `RootIndex` pairs the single writer
+  (`Mutex<IndexDb>`) with a small pool of read-only connections over the same WAL DB. Searches and
+  `wiki_status` read from the pool — concurrently with the writer, seeing the last committed
+  snapshot (eventually consistent during a reindex). `sqlite-vec` is a process-global
+  auto-extension, so KNN works on pooled readers too.
+- **Cancellable, single-flight reindex job.** `indexer/job.rs`'s `JobManager` runs the two-phase
+  `reconcile_job` (scan/upsert under brief per-file writer locks → embed off the lock on the
+  worker → write vectors in brief locked batches). `wiki_reindex` runs a fresh pass and streams
+  MCP progress notifications (when the client sends a `progressToken`); the client's
+  `notifications/cancelled` (`ctx.ct`) stops it cleanly mid-pass — already-written vectors persist
+  and a follow-up reconcile finishes the remainder idempotently. The watcher and the deferred
+  startup reconcile trigger **coalesced** passes (a burst collapses to one extra pass); `wiki_status`
+  reports each root's latest `{phase, processed, total}` snapshot.
+
 ## Crate-wide invariants
 
 - **stdout is not for ad-hoc output.** All diagnostics go through `tracing` to **stderr**. stdout is
@@ -158,8 +186,9 @@ src/
 ├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update / embed / search
 ├─ config.rs      Config + figment load (file + env + flags) + save (root add/remove)
 ├─ embed/         Embedding engine (US-657) — ort session + tokenizer, DirectML→CPU
-│  └─ mod.rs      Embedder trait, OnnxEmbedder (load/encode/CLS-pool/L2-normalize), EP selection,
-│                 LazyEmbedder (shared build-once cell for the index + search paths)
+│  ├─ mod.rs      Embedder trait, OnnxEmbedder (load/encode/CLS-pool/L2-normalize), EP selection,
+│  │              LazyEmbedder (shared build-once cell for the index + search paths)
+│  └─ worker.rs   EmbedWorker thread + EmbedHandle — priority queue (interactive > bulk), US-659
 ├─ error.rs       MnemeError
 ├─ model/         Model provisioner (US-656) — download/verify embedding model files
 │  └─ mod.rs      manifest, cache_base, model_dir, download_file, provision, status
@@ -176,15 +205,19 @@ src/
 │  ├─ frontmatter.rs  split `---` block, resolve title/tags/created/verified (read-time fallbacks)
 │  └─ chunker.rs  heading-based chunker + size cap (pulldown-cmark); plain-text fallback
 ├─ index/         per-root SQLite index (bundled SQLite + FTS5 + sqlite-vec)
-│  ├─ mod.rs      IndexDb — open_or_create / meta / upsert / delete / doc_state;
-│                 search_text (FTS) / search_vector (KNN) / search_hybrid (RRF) + embed_document_chunks
+│  ├─ mod.rs      IndexDb — open_or_create / open_readonly / meta / upsert / delete / doc_state;
+│  │              search_text (FTS) / search_vector (KNN) / search_hybrid (RRF);
+│  │              chunk_texts_for + write_chunk_vectors (embed split)
+│  ├─ pool.rs     RootIndex (Mutex writer + read-only ReadPool over the WAL DB), US-659
 │  ├─ schema.rs   DDL + SCHEMA_VERSION + sqlite-vec auto-extension registration
 │  ├─ vector.rs   f32 BLOB packing + Reciprocal Rank Fusion (rrf_merge)
 │  └─ path.rs     versioned path + modelId + .mneme/.gitignore
 ├─ indexer/       keeps the index in sync with the files
-│  └─ mod.rs      reconcile_root (mtime+size fast-path → content-hash) / index_one / reindex_file / IndexManager
+│  ├─ mod.rs      reconcile_root (sync, inline embed) / reconcile_job (2-phase, off-lock embed,
+│  │              cancellable + progress) / index_one / single_doc_index / IndexManager
+│  └─ job.rs      JobManager — single-flight per root, progress snapshots, cancellation (US-659)
 ├─ watcher/       always-on debounced notify watcher per root
-│  └─ mod.rs      RootWatcher (reconcile-on-change; .mneme self-trigger guard)
+│  └─ mod.rs      RootWatcher (coalesced reconcile-on-change via JobManager; .mneme self-trigger guard)
 └─ mcp/           MCP server (sole interface) — Streamable HTTP, loopback
    ├─ mod.rs      ServerState (tool logic, spawn_blocking) + serve glue
    ├─ server.rs   MnemeServer — rmcp tool_router + ServerHandler (resources)

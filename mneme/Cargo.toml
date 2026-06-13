@@ -40,6 +40,10 @@ notify-debouncer-full = "0.5"  # coalesced, debounced events; re-exports `notify
 # --- US-655: MCP server (Streamable HTTP) ----------------------------------
 rmcp = { version = "1.7", features = ["server", "macros", "transport-streamable-http-server"] }  # official Rust MCP SDK; re-exports schemars
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+tokio-util = "0.7"              # CancellationToken — composes with rmcp's RequestContext.ct (US-659)
+
+# --- US-659: concurrency & responsiveness ----------------------------------
+crossbeam-channel = "0.5"       # embed-worker priority queue (interactive vs bulk) + reader-pool checkout
 axum = "0.8"                    # StreamableHttpService mounts as a tower service
 serde_json = "1"               # structured tool results
 base64 = "0.22"                # binary attachment resources (blob = base64)

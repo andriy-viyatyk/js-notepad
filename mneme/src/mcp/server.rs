@@ -27,9 +27,10 @@ const INSTRUCTIONS: &str = "\
 Mneme is a markdown knowledge base (\"wiki\"). Files on disk are the source of truth; the index \
 is derived. Address every document as {root}/{path} (matching the resource URI \
 mneme://{root}/{path}). Use the file-like tools (wiki_read/write/edit/glob/grep) exactly as you \
-would local files, and wiki_search for relevance ranking. This instance runs in TEXT-SEARCH mode \
-— wiki_search is full-text only; semantic/vector search is not yet enabled. Read mneme://guide \
-for the full tool reference.";
+would local files, and wiki_search for relevance ranking. wiki_search supports text (FTS), \
+vector (semantic KNN), and hybrid (FTS + vector fused with RRF, the default) modes; vector/hybrid \
+degrade to text with a note until the embedding model is provisioned (wiki_model_update). Read \
+mneme://guide for the full tool reference.";
 
 #[derive(Clone)]
 pub struct MnemeServer {
@@ -130,9 +131,36 @@ impl MnemeServer {
         structured(self.state.list_roots().await.map_err(to_mcp)?)
     }
 
-    #[tool(description = "Reconcile the index with the files (synchronous); path scopes to a {root}. Returns per-root stats.")]
-    async fn wiki_reindex(&self, Parameters(p): Parameters<ReindexParams>) -> std::result::Result<CallToolResult, McpError> {
-        structured(self.state.reindex(p).await.map_err(to_mcp)?)
+    #[tool(description = "Reconcile the index with the files; path scopes to a {root}. Cancellable, \
+                          emits progress notifications (send a progressToken), returns per-root stats.")]
+    async fn wiki_reindex(
+        &self,
+        Parameters(p): Parameters<ReindexParams>,
+        ctx: RequestContext<RoleServer>,
+    ) -> std::result::Result<CallToolResult, McpError> {
+        // Stream reconcile progress to the client when it opted in with a progressToken; cancel
+        // when the client sends notifications/cancelled (ctx.ct).
+        let token = ctx.meta.get_progress_token();
+        let peer = ctx.peer.clone();
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let pump = tokio::spawn(async move {
+            while let Some((root, p)) = rx.recv().await {
+                if let Some(tok) = token.clone() {
+                    let p: crate::indexer::ReindexProgress = p;
+                    let _ = peer
+                        .notify_progress(ProgressNotificationParam {
+                            progress_token: tok,
+                            progress: p.processed as f64,
+                            total: Some(p.total as f64),
+                            message: Some(format!("{root}: {}", p.phase.as_str())),
+                        })
+                        .await;
+                }
+            }
+        });
+        let result = self.state.reindex(p, ctx.ct.clone(), tx).await.map_err(to_mcp)?;
+        let _ = pump.await;
+        structured(result)
     }
 
     #[tool(description = "Roots, index inventory (versioned DB path + size), model, and document counts.")]

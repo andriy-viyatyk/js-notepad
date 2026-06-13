@@ -115,6 +115,25 @@ pub struct ReindexResult {
     pub roots: Vec<ReindexRoot>,
 }
 
+/// Live reindex progress for a root (US-659). `phase` is `idle`/`scanning`/`embedding`/`done`/
+/// `cancelled`/`error`; `processed`/`total` count files while scanning, documents while embedding.
+#[derive(Debug, Serialize)]
+pub struct ReindexProgressDto {
+    pub phase: String,
+    pub processed: usize,
+    pub total: usize,
+}
+
+impl From<crate::indexer::ReindexProgress> for ReindexProgressDto {
+    fn from(p: crate::indexer::ReindexProgress) -> Self {
+        Self {
+            phase: p.phase.as_str().to_string(),
+            processed: p.processed,
+            total: p.total,
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct StatusRoot {
     pub name: String,
@@ -129,6 +148,9 @@ pub struct StatusRoot {
     pub index_path: String,
     #[serde(rename = "indexBytes")]
     pub index_bytes: u64,
+    /// Latest reindex progress for this root, if it has reconciled at least once.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reindex: Option<ReindexProgressDto>,
 }
 
 #[derive(Debug, Serialize)]

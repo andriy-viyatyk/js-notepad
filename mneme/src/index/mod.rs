@@ -11,8 +11,11 @@
 //! that proves the index works and seeds early text search.
 
 pub mod path;
+pub mod pool;
 pub mod schema;
 pub mod vector;
+
+pub use pool::{ReadPool, RootIndex};
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -118,7 +121,12 @@ impl IndexDb {
         }
 
         let conn = Connection::open(&db_path)?;
-        conn.execute_batch("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;")?;
+        // WAL lets the read-only pool (US-659) read concurrently with this writer; NORMAL is the
+        // WAL-recommended durability point; busy_timeout absorbs the rare checkpoint contention.
+        conn.execute_batch(
+            "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; \
+             PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;",
+        )?;
 
         let (model_name, precision) = (
             model.name.as_deref().unwrap_or("gte-multilingual-base"),
@@ -160,6 +168,26 @@ impl IndexDb {
             }
         }
         Ok(db)
+    }
+
+    /// Open an **existing** index DB read-only (a member of the [`pool::ReadPool`], US-659). No
+    /// schema creation — the writer's `open_or_create` owns that. `query_only` + the read-only
+    /// open flags guarantee this connection never writes, so it reads committed WAL snapshots
+    /// concurrently with the writer. `sqlite-vec`'s auto-extension applies to every connection,
+    /// so KNN works here too.
+    pub fn open_readonly(root_name: &str, db_path: &Path) -> Result<Self> {
+        schema::register_sqlite_vec();
+        use rusqlite::OpenFlags;
+        let conn = Connection::open_with_flags(
+            db_path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
+        )?;
+        conn.execute_batch("PRAGMA query_only=ON; PRAGMA busy_timeout=5000;")?;
+        Ok(Self {
+            conn,
+            root_name: root_name.to_string(),
+            db_path: db_path.to_path_buf(),
+        })
     }
 
     pub fn root_name(&self) -> &str {
@@ -524,43 +552,29 @@ impl IndexDb {
         Ok(vecs >= chunks)
     }
 
-    /// (Re)build `chunks_vec` rows for one document: read its chunks, embed the texts as
-    /// passages, and replace any existing vec rows in one transaction. Idempotent. Embedding
-    /// runs outside the txn (the slow part); the delete+insert is the only locked work.
-    /// Returns the number of vectors written.
-    pub fn embed_document_chunks(&self, rel_path: &str, embedder: &dyn Embedder) -> Result<usize> {
+    /// Read one document's chunk `(id, text)` pairs in ordinal order — the embedding input for
+    /// the vector lane. A pure read, so it runs on a pooled read-only connection (US-659). An
+    /// empty result means the document has no chunks (or doesn't exist).
+    pub fn chunk_texts_for(&self, rel_path: &str) -> Result<Vec<(i64, String)>> {
         let doc_id = match doc_id_for(&self.conn, rel_path)? {
             Some(id) => id,
-            None => return Ok(0),
+            None => return Ok(Vec::new()),
         };
-        let (ids, texts): (Vec<i64>, Vec<String>) = {
-            let mut stmt = self
-                .conn
-                .prepare("SELECT id, text FROM chunks WHERE doc_id=?1 ORDER BY ordinal")?;
-            let rows = stmt.query_map([doc_id], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
-            let mut ids = Vec::new();
-            let mut texts = Vec::new();
-            for row in rows {
-                let (id, text) = row?;
-                ids.push(id);
-                texts.push(text);
-            }
-            (ids, texts)
-        };
-        if ids.is_empty() {
-            return Ok(0);
-        }
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, text FROM chunks WHERE doc_id=?1 ORDER BY ordinal")?;
+        let rows = stmt.query_map([doc_id], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
 
-        let refs: Vec<&str> = texts.iter().map(String::as_str).collect();
-        let vecs = embedder.embed_passages(&refs)?;
-        if vecs.len() != ids.len() {
-            return Err(MnemeError::Embed(format!(
-                "embedder returned {} vectors for {} chunks",
-                vecs.len(),
-                ids.len()
-            )));
+    /// Replace `chunks_vec` rows for the given `(chunk_id, embedding)` pairs in one transaction
+    /// (delete-then-insert by rowid — idempotent). Validates the embedding dimension. This is the
+    /// only **write** the embed path performs; embedding itself runs off this lock on the worker.
+    pub fn write_chunk_vectors(&self, items: &[(i64, Vec<f32>)]) -> Result<()> {
+        if items.is_empty() {
+            return Ok(());
         }
-        if let Some(v) = vecs.first() {
+        if let Some((_, v)) = items.first() {
             if v.len() != EMBED_DIM as usize {
                 return Err(MnemeError::Embed(format!(
                     "embedding dim {} != index dim {EMBED_DIM}",
@@ -568,18 +582,42 @@ impl IndexDb {
                 )));
             }
         }
-
         let tx = self.conn.unchecked_transaction()?;
         {
             let mut del = tx.prepare("DELETE FROM chunks_vec WHERE rowid=?1")?;
             let mut ins = tx.prepare("INSERT INTO chunks_vec (rowid, embedding) VALUES (?1, ?2)")?;
-            for (id, v) in ids.iter().zip(&vecs) {
+            for (id, v) in items {
                 del.execute([id])?;
                 ins.execute(params![id, vector::to_blob(v)])?;
             }
         }
         tx.commit()?;
-        Ok(ids.len())
+        Ok(())
+    }
+
+    /// (Re)build `chunks_vec` rows for one document: read its chunks, embed the texts as
+    /// passages, and replace any existing vec rows. Idempotent. Embedding runs outside the txn
+    /// (the slow part); the delete+insert is the only locked work. Returns the number of vectors
+    /// written. The inline-embedding path (synchronous [`crate::indexer::reconcile_root`] + CLI
+    /// + tests); the serving path embeds off-lock via the worker and calls
+    /// [`Self::write_chunk_vectors`] directly.
+    pub fn embed_document_chunks(&self, rel_path: &str, embedder: &dyn Embedder) -> Result<usize> {
+        let chunks = self.chunk_texts_for(rel_path)?;
+        if chunks.is_empty() {
+            return Ok(0);
+        }
+        let refs: Vec<&str> = chunks.iter().map(|(_, t)| t.as_str()).collect();
+        let vecs = embedder.embed_passages(&refs)?;
+        if vecs.len() != chunks.len() {
+            return Err(MnemeError::Embed(format!(
+                "embedder returned {} vectors for {} chunks",
+                vecs.len(),
+                chunks.len()
+            )));
+        }
+        let items: Vec<(i64, Vec<f32>)> = chunks.into_iter().map(|(id, _)| id).zip(vecs).collect();
+        self.write_chunk_vectors(&items)?;
+        Ok(items.len())
     }
 
     /// Distinct tags + document counts (`wiki_tags`), optionally scoped to a rel-path prefix.

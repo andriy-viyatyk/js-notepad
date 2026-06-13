@@ -13,6 +13,10 @@
 //! families). The prefix constants below are the single place to change if a future asymmetric
 //! model is adopted (D5 upgrade path) — the [`Embedder`] surface does not change.
 
+pub mod worker;
+
+pub use worker::{EmbedHandle, EmbedWorker, Priority};
+
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
