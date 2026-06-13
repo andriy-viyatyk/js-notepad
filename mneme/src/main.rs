@@ -50,6 +50,14 @@ enum Command {
         #[arg(long)]
         force: bool,
     },
+    /// Embed a string with the configured model and print the vector (debug / verification).
+    Embed {
+        /// Text to embed.
+        text: String,
+        /// Treat the text as a search query (vs an indexed passage/chunk).
+        #[arg(long)]
+        query: bool,
+    },
 }
 
 fn main() -> std::process::ExitCode {
@@ -163,6 +171,21 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
                     f.filename, f.present, f.verified, f.bytes
                 );
             }
+        }
+        Command::Embed { text, query } => {
+            use persephone_mneme::embed::{Embedder, OnnxEmbedder};
+            let emb = OnnxEmbedder::load(&cfg)?;
+            let kind = if query { "query" } else { "passage" };
+            let v = if query {
+                emb.embed_query(&text)?
+            } else {
+                emb.embed_passages(&[text.as_str()])?.remove(0)
+            };
+            let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+            let head: Vec<String> = v.iter().take(8).map(|x| format!("{x:.4}")).collect();
+            println!("provider: {}", emb.provider());
+            println!("kind: {kind}  dims: {}  L2-norm: {norm:.4}", v.len());
+            println!("  [{}, …]", head.join(", "));
         }
     }
     Ok(())

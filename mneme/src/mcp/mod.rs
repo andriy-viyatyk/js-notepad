@@ -17,12 +17,13 @@ pub use server::{serve, MnemeServer};
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::time::SystemTime;
 
 use base64::Engine;
 
 use crate::config::{self, Config, ModelConfig};
+use crate::embed::{Embedder, OnnxEmbedder};
 use crate::error::{MnemeError, Result};
 use crate::index::SearchFilter;
 use crate::indexer::{reconcile_root, reindex_file, IndexManager};
@@ -43,6 +44,9 @@ pub struct ServerState {
     config: Mutex<Config>,
     config_path: PathBuf,
     model: ModelConfig,
+    /// Lazily-built embedding engine (US-657). Loaded on first vector use (US-658's
+    /// `wiki_search`), so text mode and a missing model never pay the load cost.
+    embedder: OnceLock<Arc<dyn Embedder>>,
 }
 
 /// A resource body to hand back to MCP — text or base64 blob — kept rmcp-type-free so
@@ -64,7 +68,26 @@ impl ServerState {
             config: Mutex::new(cfg),
             config_path,
             model,
+            embedder: OnceLock::new(),
         }))
+    }
+
+    /// The embedding engine, built on first use (US-658's vector/hybrid `wiki_search` is the
+    /// first consumer). Returns [`MnemeError::ModelMissing`] if the model is not provisioned —
+    /// the caller degrades to FTS, never crashes. Subsequent calls reuse the cached `Arc`.
+    pub async fn embedder(self: &Arc<Self>) -> Result<Arc<dyn Embedder>> {
+        if let Some(e) = self.embedder.get() {
+            return Ok(Arc::clone(e));
+        }
+        let st = Arc::clone(self);
+        let built: Arc<dyn Embedder> = blocking(move || {
+            let cfg = st.config.lock().unwrap().clone();
+            Ok(Arc::new(OnnxEmbedder::load(&cfg)?) as Arc<dyn Embedder>)
+        })
+        .await?;
+        // A concurrent first-caller may have set it; either way return the canonical instance.
+        let _ = self.embedder.set(built);
+        Ok(Arc::clone(self.embedder.get().unwrap()))
     }
 
     // --- file-like tools ---------------------------------------------------------------------

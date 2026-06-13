@@ -14,7 +14,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-654: [Phase 1] Indexer + watcher + reconcile](tasks/US-654-mneme-indexer-watcher/README.md)
   - [ ] [US-655: [Phase 1] MCP server (Streamable HTTP, loopback, text-search mode) + agent guide](tasks/US-655-mneme-mcp-server/README.md)
   - [ ] [US-656: [Phase 2] Model Provisioner (download + sha256 + cache)](tasks/US-656-mneme-model-provisioner/README.md)
-  - [ ] US-657: [Phase 2] Embedding Engine (ort, DirectML→CPU)
+  - [ ] [US-657: [Phase 2] Embedding Engine (ort, DirectML→CPU)](tasks/US-657-mneme-embedding-engine/README.md)
   - [ ] US-658: [Phase 2] Hybrid search (sqlite-vec KNN + RRF)
   - [ ] US-659: [Phase 2] Concurrency & responsiveness (worker, WAL, reindex job)
   - [ ] US-660: [Phase 3] Persephone settings + sidecar auto-launch

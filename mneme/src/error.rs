@@ -70,6 +70,12 @@ pub enum MnemeError {
         expected: String,
         got: String,
     },
+
+    #[error("model not provisioned: {0}")]
+    ModelMissing(String),
+
+    #[error("embedding error: {0}")]
+    Embed(String),
 }
 
 pub type Result<T> = std::result::Result<T, MnemeError>;

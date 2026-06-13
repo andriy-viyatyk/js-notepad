@@ -48,6 +48,15 @@ toml = "0.8"                    # config write-back (figment reads but does not 
 # --- US-656: model provisioner --------------------------------------------
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 
+# --- US-657: embedding engine ----------------------------------------------
+# pyke ONNX Runtime bindings (2.0). `download-binaries` fetches a prebuilt runtime (no
+# system install); `directml` enables the DirectML EP on Windows (CPU is the guaranteed
+# fallback). Pinned to the rc — `ort = "2"` would not match a pre-release.
+ort = { version = "=2.0.0-rc.12", features = ["directml"] }
+# HuggingFace tokenizer; `fancy-regex` (pure Rust) avoids a C toolchain dep, and we load
+# `tokenizer.json` from disk so the `http`/`hf-hub` downloaders are off.
+tokenizers = { version = "0.23", default-features = false, features = ["fancy-regex"] }
+
 [dev-dependencies]
 rusqlite = { version = "0.37", features = ["bundled"] }  # tamper meta in the schema-mismatch test
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }  # drive async ServerState in mcp tests

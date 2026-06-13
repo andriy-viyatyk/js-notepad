@@ -13,8 +13,10 @@ Azure container build context.
 > heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`), the
 > indexer + always-on file watcher that keep the index in sync with the files (US-654), and the
 > MCP server over Streamable HTTP exposing the `wiki_*` tool surface in **text-search mode**
-> (US-655). No embeddings (US-657) yet — `chunks_vec` is created but empty, so `wiki_search` is
-> FTS-only.
+> (US-655). Phase 2 in progress — the model provisioner (US-656) and the **embedding engine**
+> (US-657, ONNX Runtime + DirectML→CPU) that turns text into normalized vectors. `chunks_vec` is
+> still empty: wiring vectors into `wiki_search` (vector/hybrid mode) is US-658, so search remains
+> FTS-only for now.
 
 ## Build & test
 
@@ -36,6 +38,8 @@ mneme watch                 # watch every root + reconcile on change (runs until
 mneme serve [--port N]      # run the MCP server (Streamable HTTP, loopback /mcp) — text-search mode
 mneme model-update          # download/verify the configured embedding model (US-656)
 mneme model-update --force  # re-download even if already present
+mneme embed "<text>"        # embed text + print provider/dims/norm (debug; US-657)
+mneme embed "<text>" --query  #   …treating the text as a search query
 mneme --config <path>       # explicit config file (else $MNEME_CONFIG, else the OS config dir)
 ```
 
@@ -83,6 +87,33 @@ Cache layout:
 Default cache base: `<os-config-dir>/persephone/data/mneme/models`. Override with
 `[model] path = "..."` in `mneme.toml` (see `mneme.example.toml`).
 
+## Embedding engine (US-657)
+
+Once the model is provisioned, the embedding engine turns text into a normalized **768-dim**
+vector via ONNX Runtime (`ort`) + HuggingFace `tokenizers`. `gte-multilingual-base` is a GTE
+encoder: the sentence embedding is the **CLS** token of the last hidden state, L2-normalized, with
+**no** instruction prefix (unlike the E5/Qwen families).
+
+Execution provider is chosen from the top-level `gpu` setting:
+
+| `gpu` | Providers (in order) |
+|-------|----------------------|
+| `auto` (default) | DirectML, then CPU fallback |
+| `on`  | DirectML, then CPU fallback |
+| `off` | CPU only |
+
+DirectML runs on any DX12 GPU with no CUDA install; CPU is always available as the guaranteed
+fallback, so session creation never hard-fails on a machine without a GPU. Switching GPU↔CPU is a
+runtime toggle — it does **not** trigger a reindex (only a model/precision change does).
+
+```bash
+mneme embed "how do I cancel my subscription" --query   # → provider, dims=768, L2-norm≈1, sample
+```
+
+The engine **produces** vectors only; inserting them into `chunks_vec` and using them for
+vector/hybrid `wiki_search` is US-658, and the dedicated embedding worker + priority queue +
+progress is US-659.
+
 ## Crate-wide invariants
 
 - **stdout is not for ad-hoc output.** All diagnostics go through `tracing` to **stderr**. stdout is
@@ -97,8 +128,10 @@ Default cache base: `<os-config-dir>/persephone/data/mneme/models`. Override wit
 
 ```
 src/
-├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update
+├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update / embed
 ├─ config.rs      Config + figment load (file + env + flags) + save (root add/remove)
+├─ embed/         Embedding engine (US-657) — ort session + tokenizer, DirectML→CPU
+│  └─ mod.rs      Embedder trait, OnnxEmbedder (load/encode/CLS-pool/L2-normalize), EP selection
 ├─ error.rs       MnemeError
 ├─ model/         Model provisioner (US-656) — download/verify embedding model files
 │  └─ mod.rs      manifest, cache_base, model_dir, download_file, provision, status
@@ -143,7 +176,7 @@ The path encodes the `(model+precision, schema version)` identity: a model/preci
 change selects a *new* path → a fresh DB → full rebuild from the files, with old DBs kept (no
 migration code). Tables: `documents` (effective frontmatter + content hash + mtime/size),
 `chunks` (heading + text + ordinal), `chunks_fts` (FTS5), `chunks_vec` (`sqlite-vec` vec0 —
-**empty until embeddings land in US-657/658**), `meta` (model, precision, dims, schema version).
+**empty until vectors are wired into search in US-658**), `meta` (model, precision, dims, schema version).
 FTS-only text search works with no model present.
 
 The index is kept current by the **indexer**: a reconcile (walk → mtime+size fast-path →

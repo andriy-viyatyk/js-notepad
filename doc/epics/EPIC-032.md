@@ -175,7 +175,7 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | [US-654](../tasks/US-654-mneme-indexer-watcher/README.md) | P1 · Indexer + watcher + reconcile | Planned |
 | [US-655](../tasks/US-655-mneme-mcp-server/README.md) | P1 · MCP server (Streamable HTTP, loopback, text-search mode) + agent guide | Planned |
 | [US-656](../tasks/US-656-mneme-model-provisioner/README.md) | P2 · Model Provisioner (download + sha256 + cache) | Implemented (unreviewed) |
-| US-657 | P2 · Embedding Engine (`ort`, DirectML→CPU) | Planned |
+| [US-657](../tasks/US-657-mneme-embedding-engine/README.md) | P2 · Embedding Engine (`ort`, DirectML→CPU) | Planned |
 | US-658 | P2 · Hybrid search (sqlite-vec KNN + RRF) | Planned |
 | US-659 | P2 · Concurrency & responsiveness (worker, WAL, reindex job) | Planned |
 | US-660 | P3 · Persephone settings + sidecar auto-launch | Planned |
