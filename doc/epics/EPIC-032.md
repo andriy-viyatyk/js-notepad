@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Draft — design under discussion, NOT final. Everything below is provisional and may change before implementation planning starts. No tasks are carved yet.
+**Status:** Design complete — all decisions resolved and independently audited; implementation phases & tasks carved (US-652…US-665). Ready to begin Phase 1.
 **Created:** 2026-06-13
 
 ## Overview
@@ -14,29 +14,31 @@ The motivating use case: organize personal and work information in one searchabl
 ## Core requirements (from discussion)
 
 1. **Documents** — markdown only, organized in a folder tree (folders = categories). Each document (not category) can have tags. Binary files may live alongside, referenced from markdown, but are not indexed. Attachments are **documents** — diagrams (PNG/SVG), PDFs, office files; **large media (video) is out of scope** (use a dedicated service and reference it). A root may also sit inside a project folder; **both** an **include allowlist** (default `*.md`) **and** **ignore rules** (gitignore-style; defaults `.git`/`node_modules`/`.mneme`/build dirs + the root's `.gitignore`) decide which files are indexed — a file counts iff it matches include and not ignore (see D18).
-2. **Files are the source of truth** — the wiki lives in a user-selected folder as plain `.md` files with **YAML frontmatter** (tags, created date, area, …). The search index is a derived, rebuildable artifact: a full rescan of the folder restores all metadata from the documents themselves.
+2. **Files are the source of truth** — the wiki lives in a user-selected folder as plain `.md` files with **YAML frontmatter** (`title`, `tags`, `created`, `verified`). The search index is a derived, rebuildable artifact: a full rescan of the folder restores all metadata from the documents themselves.
 3. **Search** — both simple text match and vector (semantic) search, with filters:
    - restrict to a category / subtree (path prefix)
    - documents that have / do not have specific tags
    - date range
-4. **Persephone editor** — dedicated view showing the document tree (looks like the Explorer panel); click navigates to the document. Plus search UI. MarkdownView enhanced to parse the frontmatter block and display it separately (metadata bar: tag chips, date, area) instead of raw YAML.
+4. **Persephone editor** — dedicated view showing the document tree (looks like the Explorer panel); click navigates to the document. Plus search UI. MarkdownView enhanced to parse the frontmatter block and display it separately (metadata bar: tag chips, created / verified dates) instead of raw YAML.
 5. **MCP exposure** — agents can do everything: create documents, search in different ways, maintain the memory.
-6. **Daily logs** — besides the structured wiki, daily log documents (with an "area" parameter to include/exclude from search) and a timeline view in Persephone.
+6. **Daily logs** — besides the structured wiki, daily log documents stored under `log/YYYY/YYYY-MM-DD.md`, carrying a `log` tag (plus any topic tags) to include/exclude from search, and a timeline view in Persephone.
 7. **Optional for Persephone** — implemented as a completely separate project; Persephone only integrates with it.
 8. **Minimal installation** — the local service must require minimal installation: ideally zero extra steps when enabled from Persephone; optionally a simple dedicated installer for standalone use.
-9. **Azure-compatible** — some day the service may be deployed to Azure; Persephone must work with the deployed version through the same HTTP protocol.
+9. **Azure-compatible** — some day the service may be deployed to Azure; Persephone must work with the deployed version through the same **MCP contract** (Streamable HTTP transport, bearer/OAuth).
 
 ## Provisional design decisions
 
 > All decisions below are the current working position — open to revision during review.
+>
+> Cells are summaries; the dated **Notes** at the end carry the full, final text for each decision (and any later revisions).
 
 | # | Decision | Choice | Rationale |
 |---|----------|--------|-----------|
 | D1 | Document format | Markdown + YAML frontmatter | Ecosystem-standard (Obsidian, GitHub, Jekyll render it); self-describing files; Monaco highlights YAML. JSON `config` code block considered and rejected in favor of the standard. |
 | D2 | Source of truth | Files on disk; index derived + rebuildable | Wiki stays usable without the service (grep, git, OneDrive); index rebuild is a normal operation, not a migration. |
 | D3 | Service language | **Rust**, single self-contained exe | Minimal-install requirement: no runtime deps (vs Python/.NET). Repo already builds Rust (`launcher/`, `snip-tool/`). Service speed itself is irrelevant at personal scale — the choice is about deployment ergonomics. |
-| D4 | Index storage | **SQLite + sqlite-vec + FTS5**; one active `.db` per `(model+precision, schema version)` at `.mneme/<modelId>/index-v<schemaVer>.db` | Zero ops, maintained (sqlite-vec v0.1.9, 2026-03). Hybrid ranking = ~30 lines of app-level RRF. **Versioned path = no migration code**: a model/schema change rebuilds a fresh file; old files kept for reversible switch-back (GC'd by policy / the monitoring UI). Alternative LanceDB noted but heavier; adds nothing at this scale. |
-| D5 | Embedding model | **gte-multilingual-base** ONNX via `ort` — **one artifact for both GPU and CPU** (int8 ~324 MB if it runs on DirectML, else fp16 ~600 MB); the execution provider is a runtime toggle | Multilingual (EN + UK), Apache 2.0. Pluggable embedder; the index `meta` records model **+ precision** — only a model/precision change triggers a rebuild, **not** a GPU↔CPU toggle. Upgrade path: Qwen3-Embedding-0.6B (~620 MB, current MMTEB leader). Use query/passage instruction prefixes from day one; Matryoshka dim-truncation optional. |
+| D4 | Index storage | **SQLite + sqlite-vec + FTS5**; one active `.db` per `(model+precision, schema version)` at `.mneme/<modelId>-<precision>-v<modelVer>/index-v<schemaVer>.db` | Zero ops, maintained (sqlite-vec v0.1.9, 2026-03). Hybrid ranking = ~30 lines of app-level RRF. **Versioned path = no migration code**: a model/schema change rebuilds a fresh file; old files kept for reversible switch-back (GC'd by policy / the monitoring UI). Alternative LanceDB noted but heavier; adds nothing at this scale. |
+| D5 | Embedding model | **gte-multilingual-base** ONNX via `ort` — **one artifact for both GPU and CPU** (int8 ~324 MB if it runs on DirectML, else fp16 ~600 MB); the execution provider is a runtime toggle | Multilingual (EN + UK), Apache 2.0. Pluggable embedder; the index `meta` records model **+ precision** — only a model/precision change triggers a rebuild, **not** a GPU↔CPU toggle. Upgrade path: Qwen3-Embedding-0.6B (~620 MB, current MMTEB leader). Use query/passage instruction prefixes from day one; Matryoshka dim-truncation optional. **Verified locally (2026-06-13):** ONNX from `onnx-community/gte-multilingual-base` (int8 340 MB / fp16 628 MB / fp32 1.25 GB); **embed dim 768**, context 8192, vocab 250k, `model_type: new`. |
 | D6 | Embedding locality | Local inference only by default | Privacy — work data must not go to third-party APIs. Azure OpenAI embeddings become an alternative embedder when deployed. |
 | D7 | Search | Hybrid: FTS5 (BM25) + vector top-K, merged with Reciprocal Rank Fusion; metadata filters as SQL predicates | FTS catches exact identifiers/names vector search misses; vector catches paraphrases. Subtree filter = path-prefix match. |
 | D8 | Chunking | By markdown headings, with a size cap | A hit points at a section — better display and better embedding quality than whole-document vectors. |
@@ -44,38 +46,48 @@ The motivating use case: organize personal and work information in one searchabl
 | D10 | MCP | **Native MCP server on Mneme from the start** — the sole interface. Persephone consumes it via its existing MCP client (`McpConnectionManager`) plus content-pipeline providers: **`MnemeProvider`** (read/write docs + attachments) and **`MnemeTreeProvider`** (category tree), mirroring `FileProvider`/`FileTreeProvider`. Agents hit the same server (directly or surfaced through Persephone's MCP server) | No REST adapter, no proxy, no second contract. Persephone is already an MCP client (Inspector). Revised 2026-06-13 (was: proxy first, native later). |
 | D11 | Distribution | With Persephone: Settings checkbox triggers download (or ships) of service exe + model into app data; Persephone manages process lifecycle (sidecar, like Tor service). Standalone: simple installer / zip later | Zero-install default path; model (~324 MB) downloaded on first enable, not bundled — FTS works before the model arrives. |
 | D12 | Multiple roots | Support multiple independent wiki roots (each its own folder + index) from the start | "Work" and "personal" can be physically separate stores, not just an `area` tag — important for work-data handling. |
-| D13 | Daily logs | `log/YYYY/YYYY-MM-DD.md` with `area:` frontmatter; timeline = date-sorted query | Same document model; no special storage. |
+| D13 | Daily logs | `log/YYYY/YYYY-MM-DD.md` (a `log` tag); timeline = date-sorted query over the `log/` path | Same document model; no special storage. |
 | D14 | Dates | In-document `created` date is authoritative; file mtime only a fallback | File timestamps are unreliable (git checkout, sync, copy all reset mtime). |
 | D15 | GPU acceleration | Use the GPU for embedding inference when available, via the **DirectML** execution provider (`ort` feature flag); automatic fallback to CPU; setting to force CPU | DirectML works with any DX12 GPU (NVIDIA/AMD/Intel) with zero extra installation — no CUDA/cuDNN dependency, preserving minimal-install. Main payoff: initial bulk indexing of thousands of files (~5–20×); incremental re-embeds are fine on CPU. Azure/Linux variant uses CPU (or CUDA EP on GPU SKUs) behind the same embedder interface. |
 | D16 | Access model | **Agents get full access to all tools** — data *and* control-plane (init/add/remove roots, reindex, model update). No hidden methods. Per-client tool scoping (by transport / auth scope, server-side filter + denial) is **retained as an optional capability**, not enforced now | The goal is an assistant that can fully help the user and maintain the memory. Scoping stays available for future needs (remote/multi-tenant Azure, read-only guest, restricting a specific agent) without building it up front; near-term there is one full tool surface on both transports. |
 | D17 | Concurrency & responsiveness | Embedding runs on a **dedicated worker** off the async runtime, fed by a **priority queue** (interactive query/edit embeds > bulk reindex); SQLite in **WAL** with a single writer + reader pool; reindex is a **cancellable background job** with MCP progress + backpressure; **per-root DBs** isolate cross-root work | Mneme must stay responsive during a large reindex — track progress, search any root, view/edit docs. Interactive embeds slip between small bulk batches; WAL + per-root DBs avoid read/write contention. Full detail in US-651's "Concurrency & responsiveness model". |
-| D18 | What gets indexed (include + ignore) | An **include allowlist** of file globs (default `*.md`) picks document types; **ignore rules** prune locations (gitignore-style: built-in defaults `.mneme/`/`.git/`/`node_modules/`/build dirs + the root's `.gitignore`/`.ignore` + a `.mneme/config` list). Indexed iff **matches include AND not ignore**; both configurable per root, applied to the reconcile walk and the watcher | Allowlist = default-deny: cleaner/safer than enumerating everything to exclude, esp. inside a project folder. Path-ignore still needed (e.g. `node_modules/**/*.md`). Uses the `ignore` crate. **Default scope = markdown** (frontmatter + heading-chunking are markdown-specific). Non-md types (`.js`/`.ts`, …) **can be configured** for indexing — they're **plain-text search targets** (size-based chunking, **no frontmatter**, so no tags/date/area); `wiki_search` opts into them via an **`ext`** param (default `.md`). Only `.md` carries frontmatter metadata. |
+| D18 | What gets indexed (include + ignore) | An **include allowlist** of file globs (default `*.md`) picks document types; **ignore rules** prune locations (gitignore-style: built-in defaults `.mneme/`/`.git/`/`node_modules/`/build dirs + the root's `.gitignore`/`.ignore` + a `.mneme/config` list). Indexed iff **matches include AND not ignore**; both configurable per root, applied to the reconcile walk and the watcher | Allowlist = default-deny: cleaner/safer than enumerating everything to exclude, esp. inside a project folder. Path-ignore still needed (e.g. `node_modules/**/*.md`). Uses the `ignore` crate. **Default scope = markdown** (frontmatter + heading-chunking are markdown-specific). Non-md types (`.js`/`.ts`, …) **can be configured** for indexing — they're **plain-text search targets** (size-based chunking, **no frontmatter**, so no tags/created/verified); `wiki_search` opts into them via an **`ext`** param (default `.md`). Only `.md` carries frontmatter metadata. |
 
 ## Draft MCP surface (sketch)
 
-Tools (actions):
+Tools (actions) — shaped after the tools an agent already knows, so the wiki feels native: **file-like** tools mirror Read/Write/Edit/Glob/Grep; **semantic** search is modeled on WebSearch:
 
 ```
-wiki_search   { query, mode: text|vector|hybrid, subtree, tags, excludeTags, area, dateRange, topK, root?, ext? }   # ext omitted = .md only; array or ".*" for other indexed types
-wiki_tree     { root? }                         # category/document tree
-wiki_read     { path, root? }                   # document + parsed frontmatter
-wiki_write    { path, content, frontmatter?, root? }   # create/update
-wiki_delete   { path, root? }
-wiki_timeline { area?, from?, to?, root? }      # daily-log feed
+# File-like — operate on the wiki exactly as on local files.  path = "{root}/{path}".
+wiki_read   { path, offset?, limit? }                       # ≈ Read  — content + parsed frontmatter
+wiki_write  { path, content }                               # ≈ Write — content = the WHOLE file (frontmatter is YAML text at the top)
+wiki_edit   { path, old_string, new_string, replace_all? }  # ≈ Edit  — exact string replacement
+wiki_delete { path }                                        # remove a document
+wiki_glob   { pattern, path? }                              # ≈ Glob  — find docs by path/name pattern ("work/**/*.md")
+wiki_grep   { pattern, path?, -i?, -n?, context?, output_mode?, tags?, dateRange? }   # ≈ Grep — literal/regex match (+ optional wiki filters)
+
+# Semantic — modeled on WebSearch (agents already know it): query in → ranked results
+# out (title + mneme:// link + snippet).  The value raw files don't give.
+wiki_search { query, mode?: text|vector|hybrid, subtree?, tags?, excludeTags?, dateRange?, topK?, ext? }   # semantic/hybrid relevance (mode default hybrid; topK default 10); subtree "{root}/…" scopes (omit = all roots); ext omitted = .md only
+
+# Views.
+wiki_tree     { path? }                        # category/document tree (UI); "{root}/sub" scopes; omit = all roots
+wiki_timeline { tags?, from?, to?, subtree? }  # daily-log feed (date-sorted over log/)
+wiki_tags     { subtree? }                     # distinct tags + counts (autocomplete / free-form vocabulary)
 ```
 
-`root?` is optional — defaults to the sole registered root; required for path-addressed tools when multiple roots exist; `wiki_search`/`wiki_timeline` default to **all roots** (merged) when omitted.
+**Root is part of the path, never a separate tool parameter.** Every document address is `{root}/{path-within-root}` — the same form as the resource/link URI `mneme://{root}/{path}` — where `root` is the registered root **name** (uniqueness enforced by `wiki_add_root`). This makes every `mneme://` link globally unique and self-contained. Path tools (`wiki_read`/`write`/`delete`) take that full path; scope-able tools (`wiki_search`/`wiki_tree`/`wiki_timeline`/`wiki_tags`/`wiki_reindex`) take an **optional `{root}/…` path prefix** — named `subtree` on `wiki_search`/`wiki_timeline`/`wiki_tags`, `path` on `wiki_tree`/`wiki_reindex` — to scope to a root or sub-category, and span **all roots** when omitted (search/timeline merge results). Management tools (`wiki_remove_root` / `wiki_index_delete`) identify a root by its **name** — a root identifier, not a document address.
 
 Management / control-plane tools (also available to agents per D16):
 
 ```
-wiki_add_root     { path, name? }               # register a new wiki root
-wiki_remove_root  { root }
+wiki_add_root     { folder, name? }              # register a new wiki root; folder = OS path, name = root id used in URIs (default: basename)
+wiki_remove_root  { root }                        # root = registered root name
 wiki_list_roots   {}
-wiki_reindex      { root? }                      # emits MCP progress notifications
+wiki_reindex      { path? }                       # path "{root}" or "{root}/sub" scopes; omit = all roots. emits MCP progress notifications
 wiki_model_update { model? }                     # download/switch embedding model + progress
 wiki_status       {}                             # roots, index inventory (versioned DBs + sizes), model, reindex progress
-wiki_index_delete { root, modelId, schemaVer }   # delete a stale/inactive versioned index DB
+wiki_index_delete { root, modelId, schemaVer }   # root = registered root name; delete a stale/inactive versioned index DB
 ```
 
 Resources (content): `mneme://{root}/{path}` — documents and binary attachments, read via `resources/read`. Live status can also be a subscribable resource (`mneme://status`).
@@ -103,41 +115,125 @@ Targeted deep-dive into niche candidates and reusable search engines:
 
 **Conclusion:** adopt-as-is is confirmed dead; the real choice is *build the index ourselves (D4/D5)* vs *reuse Meilisearch (or Typesense) as a managed sidecar engine behind our thin service*. Either way our own interface (now the MCP server — see the MCP-interface decision below) is the stable contract, so the engine is swappable later.
 
-## Rough phase outline (NOT carved into tasks yet)
+## Implementation phases & tasks
 
-1. **Service core** — repo/project setup, file scanning, frontmatter parsing, SQLite + FTS5, MCP server (stdio), text search only. Already a usable wiki; proves the architecture.
-2. **Vectors** — ONNX embedder, heading-based chunking, hybrid search, incremental reindex (file watcher).
-3. **Persephone integration** — Settings toggle + service URL, sidecar lifecycle (download/launch/health), Wiki tree editor (Explorer-like), documents open via existing markdown/text editors.
-4. **Search UI + MarkdownView frontmatter bar** — search panel with filter chips; metadata bar replacing raw frontmatter in rendered view.
-5. **MCP tools** — `wiki_*` tool set + agent guide resource (when/how to file new information, like the existing `mcp-res-*.md` guides).
-6. **Daily logs + timeline view.**
-7. **Later / optional** — standalone installer, native MCP on the service, Azure deployment + auth, Azure OpenAI embedder.
+**Delivery principle (value-first):** Mneme is built to **full functionality first** (Phases 1–2) and is immediately useful via MCP — an AI agent maintains and searches the wiki, while the user reviews/edits the markdown with Persephone's *existing* file editing. Native Persephone integration (Phases 3–6) layers on after. Mneme is testable through MCP at every step — including by connecting its stdio MCP server straight to a Claude chat.
+
+### Phase 1 — Mneme core service (text search, MCP-testable)
+- **US-652** — Project scaffold + config + Document Store: `mneme/` Cargo project + CI build; config (roots, include/ignore globs); Document Store (read/write/edit/glob/grep, root-in-path, safe path resolution, attachment serving).
+- **US-653** — Frontmatter + chunker + SQLite schema: YAML frontmatter parse (title/tags/created/verified + read-time fallbacks materialized in the index), heading chunker, SQLite (bundled + FTS5 + sqlite-vec) schema at the versioned index path, `meta` row.
+- **US-654** — Indexer + watcher + reconcile: always-on `notify` watcher, deferred startup reconcile (mtime+size fast-path → content-hash), content-hash dedup, single-flight per root.
+- **US-655** — MCP server (stdio) + agent guide: full tool surface in **text-search mode** (file-like `read`/`write`/`edit`/`glob`/`grep`, `wiki_search` FTS, `tree`/`timeline`/`tags`, management tools) over `rmcp`; `wiki_*` agent guide resource.
+- ✅ *Milestone: a usable text-search wiki, fully driveable via MCP — connect its stdio server to a Claude chat to test.*
+
+### Phase 2 — Mneme embeddings + hybrid search (full functionality)
+- **US-656** — Model Provisioner: download model + tokenizer from our hosted release (sha256-pinned, resumable, offline/local-path override) into the cache dir; FTS works before it arrives.
+- **US-657** — Embedding Engine: `ort` session + `tokenizers`, DirectML→CPU EP selection, query/passage prefixes, `Embedder` trait.
+- **US-658** — Hybrid search: chunk-vector upserts into sqlite-vec, pre-filter candidate-id KNN, RRF merge, `wiki_search` vector/hybrid modes.
+- **US-659** — Concurrency & responsiveness: dedicated embedding worker + priority queue, WAL single-writer + reader pool, cancellable background reindex job + progress notifications + backpressure.
+- ✅ *Milestone: full Mneme — semantic + hybrid search; agent-complete.*
+
+### Phase 3 — Persephone settings + sidecar auto-launch
+- **US-660** — Settings toggle (off by default) + main-process Mneme child lifecycle (spawn / health / graceful shutdown, Tor-style) over MCP stdio; enabling the feature auto-runs Mneme.
+
+### Phase 4 — Persephone content integration
+- **US-661** — `McpConnectionManager` subscription support (`subscribeResource`/`unsubscribeResource` + `resources/updated` & `list_changed` handlers).
+- **US-662** — `MnemeProvider` (content-pipeline provider): read/write/edit over MCP + live-refresh via the existing reload path.
+- **US-663** — `MnemeTreeProvider` + Explorer-like sidebar panel (tree from `wiki_tree`, `list_changed` refresh). *(Optional: MarkdownView frontmatter metadata bar.)*
+
+### Phase 5 — Mneme config & monitoring editor
+- **US-664** — In-Persephone config / monitoring editor: add/remove/list roots, include/ignore config, reindex trigger + live progress, index inventory + delete stale versioned DBs, model update.
+
+### Phase 6 — Installer + first release
+- **US-665** — Ship it: electron-builder `extraFiles` (mneme.exe + onnxruntime/DirectML DLLs), CI `cargo build --release`, model download-on-first-enable wiring, release process.
+
+### Backlog (deferred — not in the first release)
+Persephone search-UI panel + filter chips; timeline view UI; Streamable HTTP transport + bearer/OAuth; Azure container + Azure OpenAI embedder; multi-type / code indexing (`ext`); frontmatter `created` backfill; per-client tool scoping.
 
 ## Open questions (to resolve during review/discussion)
 
 - [x] **Index engine: build vs reuse — RESOLVED (2026-06-13): Option A, build everything ourselves** (SQLite + sqlite-vec + FTS5 + `ort` embeddings, per D4/D5). Rationale: full control over every layer and the freedom to shape the best possible Persephone integration; single process, single rebuildable `.db` file. The rejected Option B (thin service + **Meilisearch** sidecar engine — single official exe, built-in hybrid search with in-process embeddings, mature REST; Typesense as runner-up) stays recorded as a fallback: because our REST API is the stable contract, the engine could still be swapped later if owning embedding inference / relevance tuning proves too costly.
 - [x] **Service name — RESOLVED (2026-06-13): Mneme** (the Muse of memory; Greek *mnḗmē* = "memory"). Used for the product name, repo/binary name (`mneme`), and CLI command (`mneme serve`, `mneme reindex`). The earlier pick *Mnema* was reverted: *Mneme* is the mythologically/semantically correct name (the Muse of memory; "Mnema" leans "memorial/monument/tomb"). The collisions that originally steered us off *Mneme* don't apply: the **crates.io** clash is irrelevant because Mneme is **not published as a crate** — it's an internal, standalone binary shipped with Persephone, so the `Cargo.toml` package name is purely local. **Trademark:** negligible practical risk — Mneme is an internal service component (the public brand is Persephone), not a marketed commercial product in "Mneme HQ"'s field; trademark concern would only arise from marketing a commercial product branded "Mneme" in that space, which this is not. (Common/mythological words *can* be trademarks within a market class — that's not the reason it's safe; the non-commercial, sub-component, Persephone-branded nature is.)
 - [x] **Repo location — RESOLVED (2026-06-13): in-tree folder `mneme/` in the Persephone repo** (alongside `launcher/` and `snip-tool/`), built in CI (`cargo build --release`) and shipped via electron-builder `extraFiles`. Rationale: an established precedent already exists for in-tree Rust binaries; atomic cross-cutting commits while the REST API + Persephone client co-evolve; and zero architectural lock-in (the HTTP boundary makes repo layout pure build/release logistics). `mneme/` is kept a fully self-contained Cargo project (own README/tests, buildable in isolation) so it stays **extraction-ready** — a later `git subtree split` into its own repo is mechanical if Azure deployment or standalone open-sourcing ever demands it. **Shipping:** bundle `mneme.exe` + DLLs in the installer; download-on-first-enable remains an option if installer size becomes a concern. Azure is not blocked — a container build can use `mneme/` as its Docker context.
-- [ ] **Frontmatter schema** — exact field set (`tags`, `created`, `area`, … what else? `title`? `updated`?) and which are required.
+- [x] **Frontmatter schema — RESOLVED (2026-06-13):** four optional fields — `title`, `tags`, `created`, `verified` — **none required** for v1 (local; the Azure/multi-tenant variant may require some later). All resolved at **read time**: `title` → first H1, else filename; `created` → file birthtime, else mtime; `tags` → `[]`; `verified` = the "valid / verified as of" freshness date. **Reindex stays read-only** — fallbacks are computed, never written back (backfill deferred — see Notes). Open schema (unknown keys preserved on rewrite, for Obsidian/Jekyll interop). `area` was dropped (use a tag and/or a separate wiki root). Full block in the Notes decision below.
 - [x] **Who watches files — RESOLVED (2026-06-13):** Mneme runs its **own always-on** recursive watcher over every root. It's essential because the files are the source of truth on local disk and may be changed outside Mneme — the user editing a `.md` in another app, a **local CLI agent/tool editing files directly**, `git pull`, or sync. Every such change is detected and reindexed (content-hash dedup avoids redundant work and `wiki_write` echoes). Self-contained — Mneme does not rely on Persephone to notify it; `wiki_reindex` remains for a forced/full rebuild. Shortly after **startup**, a **deferred background reconcile** (content-hash compare across all roots; ~5 s, non-blocking) catches any edits made **while Mneme was closed** — the offline counterpart to the watcher — so the index self-heals after downtime without delaying startup.
 - [x] **Index location — RESOLVED (2026-06-13):** a **`.mneme/` folder inside each wiki root** (one per root, per D12), holding **versioned index files** (`<modelId>/index-v<schemaVer>.db` — see the versioned-index decision below). It travels with the folder — copy/sync/clone the wiki and its index comes along (or is rebuilt on first start). Mneme writes a `.mneme/.gitignore` (`*`) so the derived index self-excludes from version control. The embedding **model stays in the global mneme cache** (not per-root — no duplication).
 - [x] **Editing flow — RESOLVED (2026-06-13):** Persephone reads **and writes** through a **`MnemeProvider`** (content-pipeline provider, like `FileProvider`) over **MCP** (`wiki_read`/`resources/read`; `wiki_write`/`wiki_delete`) — editing is MCP-based **from v1**, one uniform path identical for local (stdio) and Azure (HTTP), no separate write phase. Files on disk stay the **source of truth**: `wiki_write` makes *Mneme* write the file and index it synchronously. The **watcher stays essential** — it catches every direct-disk change (the user or a **local agent editing files directly**, other apps, `git pull`, sync) and reindexes; only Persephone's own `wiki_write` saves bypass it. Content-hash dedup prevents double-indexing. (The category tree is rendered by a sibling **`MnemeTreeProvider`**, like `FileTreeProvider`, from `wiki_tree`.)
-- [x] **Multiple-roots addressing — RESOLVED (2026-06-13):** a separate, **optional `root` parameter** on tools (not a path prefix). **Defaults to the sole root** when exactly one is registered (simple setups never pass it). With multiple roots: path-addressed tools (`wiki_read`/`write`/`delete`/`tree`/`reindex`) **require** `root`; `wiki_search`/`wiki_timeline` **default to all roots** (results merged, filters still apply) and accept `root` to scope to one (keeps work/personal separate). Resources are always explicit: `mneme://{root}/{path}`. Roots are registered/removed via `wiki_add_root`/`wiki_remove_root`/`wiki_list_roots`; Persephone's root-selection UI is a separate UI-side detail.
-- [ ] **Auth for local mode** — none on localhost vs same bearer-token mechanism everywhere.
-- [ ] **Tag vocabulary** — free-form tags vs maintained tag list (autocomplete source, rename support).
-- [ ] **Model download source** — where the exe + ONNX model are hosted (GitHub Releases of the service repo?), checksum verification.
-- [ ] **Conflict handling** — concurrent edit via API while the file is open in Persephone (file watcher already covers external-change reload?).
+- [x] **Multiple-roots addressing — RESOLVED (2026-06-13, revised): root is part of the path, not a separate parameter.** Every document address is `{root}/{path-within-root}` — identical to the resource/link URI `mneme://{root}/{path}` — so every link is globally unique and self-contained, never colliding across roots (`root` = registered root **name**, uniqueness enforced by `wiki_add_root`). Path tools (`wiki_read`/`write`/`delete`) take that full path; scope-able tools (`wiki_search`/`wiki_tree`/`wiki_timeline`/`wiki_tags`/`wiki_reindex`) take an **optional `{root}/…` path prefix** (`subtree` / `path`) to scope to a root or sub-category, and span **all roots** when omitted (search/timeline merge). Management tools (`wiki_remove_root` / `wiki_index_delete`) identify a root by **name** (a root identifier, not a document address). **Supersedes** the earlier "separate optional `root` parameter" decision from the same day — the path-embedded form yields unique links and one consistent addressing scheme. Roots are registered/removed via `wiki_add_root`/`wiki_remove_root`/`wiki_list_roots`; Persephone's root-selection UI is a separate UI-side detail.
+- [x] **Auth for local mode — RESOLVED (2026-06-13): no auth for local.** The local **stdio** transport inherits OS/process isolation (zero ports, no network exposure) → no authentication needed. Bearer/OAuth applies **only** to the Streamable HTTP endpoint (networked/Azure) — the single security gate. (US-651 already reflects this.)
+- [x] **Tag vocabulary — RESOLVED (2026-06-13):** free-form for v1 (no maintained list / rename). `wiki_tags { subtree? }` returns distinct tags + counts as the autocomplete source. A curated vocabulary / rename support can be added later without a schema change.
+- [x] **Model download source — RESOLVED (2026-06-13): our own hosted location.** Mneme downloads the vetted, **compatible** ONNX model + tokenizer from a location **we control** — **GitHub Release assets** (stored separately from git history; **not committed to the repo, not part of a clone**), ideally on a **dedicated model release/tag** (e.g. `models-v1`) so the ~300 MB model isn't re-uploaded on every app build and keeps a stable URL — pinned and **sha256-verified** via a `models.json` manifest (`name, version, url, sha256, dims, precision`); resumable, with an offline/local-path override. HuggingFace is only the *upstream we convert/quantize from*, **not** the runtime URL. **Out of scope for this epic:** searching/downloading arbitrary other compatible models — a future enhancement; v1 ships only the model(s) we host.
+- [x] **Conflict handling — RESOLVED (2026-06-13): live refresh via MCP resource subscriptions; last-write-wins, no locking.** Mneme advertises the `resources.subscribe` capability; `MnemeProvider` calls `resources/subscribe { mneme://{root}/{path} }` when a document opens. When that document changes — an **AI agent's `wiki_write`**, or any **direct-disk edit caught by Mneme's always-on watcher** — Mneme emits `notifications/resources/updated { uri }`; `MnemeProvider.watch()` forwards it to Persephone's existing reload path (`ContentPipe.watch` → `TextFileIOModel.onFileChanged`), which **silently reloads a clean editor** and **preserves unsaved local edits** — identical UX to `FileProvider`. Tree add/remove/rename rides `notifications/resources/list_changed` → `MnemeTreeProvider` refresh. No custom protocol — this is MCP's standard subscription primitive. **Small client addition:** `McpConnectionManager` gains `subscribeResource`/`unsubscribeResource` passthroughs + `setNotificationHandler` for the two notifications (the SDK `Client` already exposes them; ~3 wiring points).
 
 ## Linked Tasks
 
 | ID | Title | Status |
 |----|-------|--------|
-| [US-651](../tasks/US-651-mneme-architecture/README.md) | Mneme — App architecture (process model, components, diagrams, tech choices, integration boundary) | 🔨 In progress (design) |
+| [US-651](../tasks/US-651-mneme-architecture/README.md) | Mneme — App architecture (process model, components, diagrams, tech choices, integration boundary) | ✅ Design complete |
+| US-652 | P1 · Project scaffold + config + Document Store | Planned |
+| US-653 | P1 · Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec) | Planned |
+| US-654 | P1 · Indexer + watcher + reconcile | Planned |
+| US-655 | P1 · MCP server (stdio, text-search mode) + agent guide | Planned |
+| US-656 | P2 · Model Provisioner (download + sha256 + cache) | Planned |
+| US-657 | P2 · Embedding Engine (`ort`, DirectML→CPU) | Planned |
+| US-658 | P2 · Hybrid search (sqlite-vec KNN + RRF) | Planned |
+| US-659 | P2 · Concurrency & responsiveness (worker, WAL, reindex job) | Planned |
+| US-660 | P3 · Persephone settings + sidecar auto-launch | Planned |
+| US-661 | P4 · `McpConnectionManager` subscription support | Planned |
+| US-662 | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Planned |
+| US-663 | P4 · `MnemeTreeProvider` + Explorer-like sidebar panel | Planned |
+| US-664 | P5 · Mneme config & monitoring editor | Planned |
+| US-665 | P6 · Installer + first release | Planned |
 
 ## Notes
 
+### 2026-06-13 — design-review pass: tool contracts, gap resolutions, known risks
+An independent fresh-context review of this epic + US-651 produced these resolutions (all now reflected in US-651):
+- **Tool result shapes defined.** `wiki_search` → `{ uri, title, tags, snippet, score }`, one result per document (best chunk wins the snippet), `topK` default 10, `mode` default `hybrid`. `wiki_tree` → flat `{ uri, name, isDir, depth }` (depth-first). `wiki_timeline` → `{ uri, title, date, tags }` newest-first, where `date` is parsed from the `YYYY-MM-DD` filename and entries are files carrying the `log` tag. `wiki_grep` mirrors Grep (`files_with_matches` / `content` with line + context / `count`).
+- **`wiki_grep` backend = a streaming scan over indexed files** (the Grep analogy; regex-capable) — **never** FTS5 (FTS5 backs `wiki_search` text-mode only). `wiki_glob`/`wiki_grep` operate over **indexed files only** (include-allowlist); binary attachments are reached via `resources/read`, not glob/grep.
+- **`wiki_add_root` invariants:** `folder` must already exist; `name` is unique (normalized); overlapping roots (one a path-prefix of another) are rejected at registration.
+- **Versioned-index GC policy:** keep **2 DBs per root** (active + one prior) by default; manual removal via `wiki_index_delete` + the monitoring UI.
+- **Config:** app-data `mneme.toml` (roots, model, transport, token, gpu, per-root include/ignore); as a Persephone sidecar, the config path is passed to `mneme.exe` via a CLI flag.
+- **`wiki_model_update` v1:** re-download / checksum-verify the currently configured model (`model?` reserved; parameterized switching deferred).
+- **Reindex progress payload:** `progressToken = "reindex:{root}"`, `total` = file count, `progress` = files processed, final notification carries status (`complete` / `error`).
+- **Known implementation risks recorded in US-651** (verify at build time — not blockers): sqlite-vec filtered KNN uses a **pre-filter candidate-id** strategy (filtered-KNN isn't free); interactive-embed latency floor = one in-flight bulk batch (no mid-batch preemption); `rmcp` Streamable HTTP maturity to be verified (`axum` + manual JSON-RPC fallback); startup reconcile uses an **mtime+size fast-path** before hashing.
+
+### 2026-06-13 — local dev model downloaded (for testing)
+The int8 ONNX of gte-multilingual-base + tokenizer are downloaded to `temp/mneme-model/` (gitignored) so embedding/tokenization can be exercised before any service code exists. Source: HF **`onnx-community/gte-multilingual-base`** (`onnx/model_int8.onnx` 340 MB, sha256 `ab2bd164ebd8ca9003dc49a981b611e849b5d326f504c8873ba76e07fa6c0082`; `tokenizer.json` 17 MB; `config.json` + tokenizer configs). Facts: **embed dim 768**, max context **8192**, vocab 250k, `model_type: new` (GTE NewModel). Note: the base `Alibaba-NLP/gte-multilingual-base` repo ships **only safetensors** — ONNX comes from the onnx-community export; relevant to the "model download source" decision (we host our own vetted copy, converting/re-quantizing from this upstream). fp16 (628 MB) is available from the same repo if int8 underperforms on DirectML.
+
+### 2026-06-13 — DECISION: tool surface mirrors agent file tools + a WebSearch-like semantic search
+The MCP tools are shaped after the tools an agent already uses, so the wiki feels native — **file-like** `wiki_read`/`wiki_write`/`wiki_edit`/`wiki_glob`/`wiki_grep`/`wiki_delete` (≈ Read/Write/Edit/Glob/Grep), plus **`wiki_search`** modeled on **WebSearch** (query → ranked results with title + `mneme://` link + snippet) for the semantic/hybrid layer raw files don't provide. `wiki_grep` (literal/regex) and `wiki_search` (semantic) stay **separate** — different result shapes, mirroring how an agent picks Grep vs a conceptual search. Each extends with optional wiki filters (`tags`, `dateRange`, `subtree`, `ext`).
+- **`wiki_write` frontmatter semantics RESOLVED:** `content` is the **whole file** (frontmatter is YAML text at the top, exactly like a real file) — the earlier separate `frontmatter?` param is **dropped**. `wiki_edit` (string replace) covers surgical changes without a full rewrite.
+- Views (`wiki_tree`/`wiki_timeline`/`wiki_tags`) and the management/control-plane tools are unchanged.
+
+### 2026-06-13 — DECISION (revised): root embedded in path, not a separate tool parameter
+Reverses the earlier same-day "separate optional `root` parameter" decision. Every document address is now `{root}/{path}`, identical to the resource/link URI `mneme://{root}/{path}` (`root` = registered root **name**). Rationale: a `mneme://` link must be **globally unique and self-contained** — embedding the root in the path guarantees no cross-root collision and gives one consistent addressing scheme. Path tools (`wiki_read`/`write`/`delete`) take the full path; scope-able tools (`wiki_search`/`wiki_tree`/`wiki_timeline`/`wiki_tags`/`wiki_reindex`) take an optional `{root}/…` prefix (`subtree`/`path`) and span all roots when omitted. `wiki_remove_root`/`wiki_index_delete` still name a root by its identifier (name). `wiki_add_root` takes `{ folder, name? }` (folder = OS path; name = the root id used in URIs).
+
+### 2026-06-13 — DECISION: frontmatter schema (`title`, `tags`, `created`, `verified`); `area` dropped
+Four optional fields, **none required** for v1 (local; the Azure/multi-tenant variant may require some later). Open schema — unknown keys preserved verbatim on rewrite (Obsidian/Jekyll interop).
+
+```yaml
+---
+title:    My Document        # optional → read-time fallback: first H1, else filename
+tags:     [work, postgres]   # optional → default []
+created:  2026-01-15         # optional → read-time fallback: file birthtime, else mtime
+verified: 2026-06-13         # optional → "valid / verified as of" freshness / decay date
+---
+```
+
+- **Effective values are materialized into the SQLite index** (`documents` table) at index time: the frontmatter value if present, else the computed fallback (filename / birthtime). All search & filtering (tags, `created`/`verified` date ranges, title) then runs against the index — files are not re-read for filtering.
+- **`area` removed** — a tag (e.g. `work`) plus the multiple-root capability (D12) cover the same need; daily logs (D13) use a `log` tag instead of `area:`. Cascaded through req 1/4/6, D13, `wiki_search`/`wiki_timeline`.
+- **`verified`** chosen over `validAsOf` / `asOf` / `reviewed` — short, pairs with `created`, documented as a date.
+- **`wiki_tags { subtree? }`** added (distinct tags + counts) = the free-form tag vocabulary + autocomplete source.
+
+### 2026-06-13 — DECISION: reindex stays read-only (frontmatter backfill deferred)
+Indexing **never writes to source files**. Missing `title`/`created` are filled from filename / file-create-time **only in the index**, not in the `.md`. Chosen for simplicity — the indexer has no write path, no echo-suppression, and never dirties an in-repo root. **Accepted tradeoff:** the index-stored `created` is a fallback, not pinned in the file, so it could change after a birthtime reset on a content-changing reindex; fine for v1 (users who care set `created:` explicitly). **Deferred enhancement (build if needed):** backfill `created` into the file once to freeze it (echo-suppressed write, per-root opt-in). Supersedes the earlier D19 backfill proposal from the same discussion.
+
+### 2026-06-13 — DECISION: model downloaded from our own hosted location
+The embedding model + tokenizer are downloaded from a location **we control** — **GitHub Release assets** (separate from git history, **never committed to the repo / not in a clone**), ideally a **dedicated model release/tag** so the big binary isn't re-uploaded per app build — not pulled live from HuggingFace. (Alternatives recorded: our own HuggingFace model repo; Azure Blob for the future Azure variant.) We host the exact vetted, **compatible** quantization (int8/fp16 per D5); a `models.json` manifest pins `{name, version, url, sha256, dims, precision}` and the provisioner verifies sha256, supports resume, and accepts an offline/local-path override. HuggingFace is only the upstream we convert/quantize from. **Out of scope for this epic:** searching/downloading arbitrary other compatible models (a future enhancement) — v1 ships only the model(s) we host.
+
 ### 2026-06-13 — DECISION: non-markdown search via `ext` (with metadata limitation)
-- Non-`.md` extensions can be configured for indexing (D18 allowlist) and are **plain-text search targets** (size-based chunking, no frontmatter). `wiki_search` gains an optional **`ext`**: omitted → `.md` only; else an array of extensions or `".*"` for all indexed types. **Only `.md` files have frontmatter** → only they carry `tags`/`date`/`area`; those filters don't apply to non-md (documented limitation). Path/subtree filters still apply to all. The category tree stays markdown-oriented; code files surface through search.
+- Non-`.md` extensions can be configured for indexing (D18 allowlist) and are **plain-text search targets** (size-based chunking, no frontmatter). `wiki_search` gains an optional **`ext`**: omitted → `.md` only; else an array of extensions or `".*"` for all indexed types. **Only `.md` files have frontmatter** → only they carry `tags`/`created`/`verified`; those filters don't apply to non-md (documented limitation). Path/subtree filters still apply to all. The category tree stays markdown-oriented; code files surface through search.
 
 ### 2026-06-13 — DECISION: what gets indexed — include allowlist + ignore rules (D18)
 - Two complementary, per-root configurable filters via the `ignore` crate: an **include allowlist** of file globs (default `*.md`) picks document types, and **ignore rules** (built-in defaults `.mneme`/`.git`/`node_modules`/build dirs + the root's `.gitignore`/`.ignore` + a `.mneme/config` list) prune locations — a file is indexed iff it matches include AND not ignore. Both apply to the reconcile walk and the watcher, so a root can live inside a project folder (e.g. the Persephone repo) without slurping vendored/`node_modules` markdown or walking huge trees. Default scope stays **markdown**; indexing code (`.js`/`.ts`) is configurable in principle but needs frontmatter-less metadata + code-aware chunking — deferred (open question).
@@ -176,4 +272,4 @@ Targeted deep-dive into niche candidates and reusable search engines:
 
 ### 2026-06-13 — epic created (draft)
 - Created from a design discussion + a three-way web-research pass (embedding models, vector stores, reusable projects). Status set to **Draft**: the user will review, the discussion continues, and the design may change before implementation planning starts.
-- Key provisional positions: build-own Rust single-exe service (no suitable adopt/fork candidate found); markdown + YAML frontmatter, files-as-truth; SQLite + sqlite-vec + FTS5 hybrid; gte-multilingual-base ONNX local embeddings; REST/JSON protocol; Persephone-side MCP proxy first; sidecar distribution with model downloaded on first enable.
+- Key provisional positions: build-own Rust single-exe service (no suitable adopt/fork candidate found); markdown + YAML frontmatter, files-as-truth; SQLite + sqlite-vec + FTS5 hybrid; gte-multilingual-base ONNX local embeddings; REST/JSON protocol; Persephone-side MCP proxy first; sidecar distribution with model downloaded on first enable. *(REST/JSON and MCP-proxy-first were superseded by D9/D10 — see the MCP-only decision above; recorded here as history.)*

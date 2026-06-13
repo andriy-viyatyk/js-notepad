@@ -7,30 +7,22 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-032** — [Mneme — Wiki / Vector Memory service](epics/EPIC-032.md) *(DRAFT — design under discussion)*
+- **EPIC-032** — [Mneme — Wiki / Vector Memory service](epics/EPIC-032.md) *(design locked — implementing in phases)*
   - [ ] [US-651: Mneme — App architecture](tasks/US-651-mneme-architecture/README.md)
-- **EPIC-031** — [Git Functionality Enhancements (incremental)](epics/EPIC-031.md) *(rolling epic — small git features added one task at a time, on demand)*
-  - [x] [US-616: Git Tree "Changes" secondary view — status backend + display](tasks/US-616-git-changes-panel/README.md)
-  - [x] [US-617: "Changes" panel — manual "x" close + empty-page + persistence](tasks/US-617-git-changes-close-lifecycle/README.md)
-  - [x] [US-618: Git Diff "File History" panel + filtered-list datetime column + L/R side-select](tasks/US-618-git-diff-revisions-panel/README.md)
-  - [x] [US-619: Allow multiple secondary-view panels of the same type (composite panel keys)](tasks/US-619-multi-panel-secondary-views/README.md)
-  - [x] US-620: "Changes" panel — "Show Git Tree" header button (promote Git Tree back to main view)
-  - [x] US-621: Git Tree editor toolbar — show repository name (folder basename, full path on hover)
-  - [x] US-622: Git Tree grid — generate columns once; preserve user width/reorder across refresh/load-more (re-fit only the graph column)
-  - [x] US-623: Git Tree grid — persist column layout (width + order) in editor descriptor state; survives navigation-away/back and app restart
-  - [x] [US-624: Git Tree auto-refresh — recursive working-tree watcher + `--no-optional-locks` status](tasks/US-624-git-tree-autorefresh/README.md)
-  - [ ] [US-625: Git small enhancements (rolling log — small tweaks recorded as entries, not separate tasks)](tasks/US-625-git-small-enhancements/README.md)
-  - [x] [US-629: Git Tree editor — bottom panel scaffold + "Commit" tab](tasks/US-629-git-tree-commit-panel/README.md)
-  - [x] [US-630: Git Tree editor — "Diff" tab (changed files + per-file diff)](tasks/US-630-git-tree-commit-diff-tab/README.md)
-  - [x] [US-631: "Changes" panel — stage / unstage / reset (buttons + double-click + context menu) + AVGrid-based `FileGrid` (range select)](tasks/US-631-git-stage-unstage/README.md)
-  - [x] [US-632: "Changes" panel — Commit staged files (Commit button + commit dialog)](tasks/US-632-git-commit/README.md)
-  - [x] [US-634: Git Tree "Branches & Tags" secondary view + relocate "x" close to it](tasks/US-634-git-branches-tags-panel/README.md)
-  - [x] [US-635: "Branches & Tags" panel — polish (hover, head-green active branch, AZ/historical order, truncating titles) + click-to-reveal in graph](tasks/US-635-git-branches-panel-polish/README.md)
-  - [x] [US-636: Git Tree — Switch to branch / remote branch / commit (context menus on grid + Branches panel)](tasks/US-636-git-switch-branch-commit/README.md)
-  - [x] [US-637: File Diff — "commits to compare" link metadata (smarter Staged default + "Open in new Tab")](tasks/US-637-git-diff-compare-commits/README.md)
-  - [x] [US-638: Create branch — Git Tree grid "Create branch here" + editable/required branch in Commit dialog](tasks/US-638-git-create-branch/README.md)
-  - [x] [US-641: Git Push — current branch + set-upstream + "Commit and Push" + shared fetch/ahead-behind/auth foundation](tasks/US-641-git-push/README.md)
-  - [x] [US-642: Git Pull — Git Extensions-style split-button (Pull-merge primary + "Fetch all" dropdown, new UIKit `SplitButton`); conflict reporting (depends on US-641)](tasks/US-642-git-pull/README.md)
+  - [ ] US-652: [Phase 1] Project scaffold + config + Document Store
+  - [ ] US-653: [Phase 1] Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec)
+  - [ ] US-654: [Phase 1] Indexer + watcher + reconcile
+  - [ ] US-655: [Phase 1] MCP server (stdio, text-search mode) + agent guide
+  - [ ] US-656: [Phase 2] Model Provisioner (download + sha256 + cache)
+  - [ ] US-657: [Phase 2] Embedding Engine (ort, DirectML→CPU)
+  - [ ] US-658: [Phase 2] Hybrid search (sqlite-vec KNN + RRF)
+  - [ ] US-659: [Phase 2] Concurrency & responsiveness (worker, WAL, reindex job)
+  - [ ] US-660: [Phase 3] Persephone settings + sidecar auto-launch
+  - [ ] US-661: [Phase 4] McpConnectionManager subscription support
+  - [ ] US-662: [Phase 4] MnemeProvider (read/write/edit + live-refresh)
+  - [ ] US-663: [Phase 4] MnemeTreeProvider + Explorer-like sidebar panel
+  - [ ] US-664: [Phase 5] Mneme config & monitoring editor
+  - [ ] US-665: [Phase 6] Installer + first release
 
 ## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
