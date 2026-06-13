@@ -10,6 +10,7 @@ use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
 use persephone_mneme::config;
+use persephone_mneme::indexer::IndexManager;
 use persephone_mneme::store::DocumentStore;
 
 #[derive(Parser)]
@@ -33,6 +34,13 @@ enum Command {
         #[arg(long)]
         port: Option<u16>,
     },
+    /// Reconcile the index with the files on disk (synchronous, foreground).
+    Reindex {
+        /// "{root}" or "{root}/sub" to scope; omit = all roots.
+        path: Option<String>,
+    },
+    /// Watch every root and reconcile on change; runs until interrupted (Ctrl-C).
+    Watch,
     /// Load config and report roots + indexable file counts.
     Status,
 }
@@ -83,6 +91,34 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
                  Would bind {}:{}.",
                 cfg.transport.bind, cfg.transport.port
             );
+        }
+        Command::Reindex { path } => {
+            let mgr = IndexManager::open(store.registry().configs(), &cfg.model)?;
+            let results = match path.as_deref() {
+                Some(p) => {
+                    // The indexer reconciles a whole root; a "{root}/sub" scope maps to its root.
+                    let root = p.split('/').next().unwrap_or(p);
+                    vec![(root.to_string(), mgr.reconcile_root(root)?)]
+                }
+                None => mgr.reconcile_all(),
+            };
+            for (root, s) in results {
+                println!(
+                    "  {root}: {} scanned, {} indexed, {} refreshed, {} skipped, {} deleted, {} error(s)",
+                    s.scanned, s.indexed, s.refreshed, s.skipped, s.deleted, s.errors
+                );
+            }
+        }
+        Command::Watch => {
+            let roots = store.registry().configs();
+            let _mgr = IndexManager::start(roots, &cfg.model)?;
+            eprintln!(
+                "mneme watch: watching {} root(s); press Ctrl-C to stop.",
+                roots.len()
+            );
+            loop {
+                std::thread::park();
+            }
         }
         Command::Status => {
             println!("config: {}", config_path.display());

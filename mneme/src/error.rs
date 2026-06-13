@@ -54,6 +54,9 @@ pub enum MnemeError {
 
     #[error("index schema error: {0}")]
     Schema(String),
+
+    #[error("watch error: {0}")]
+    Notify(#[from] notify::Error),
 }
 
 pub type Result<T> = std::result::Result<T, MnemeError>;

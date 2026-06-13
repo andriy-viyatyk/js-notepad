@@ -13,7 +13,10 @@ pub mod roots;
 
 mod edit;
 mod glob;
-mod walk;
+pub mod walk;
+
+// The indexer (US-654) drives the same authoritative walk that list/glob/grep consume.
+pub use walk::{walk_root, WalkedFile, DEFAULT_IGNORES};
 
 use std::path::{Path, PathBuf};
 

@@ -33,6 +33,10 @@ chrono = "0.4"            # YYYY-MM-DD parse + SystemTime→date (UTC)
 sha2 = "0.10"             # content hash (documents.content_hash)
 hex = "0.4"               # sha2 digest → lowercase hex
 
+# --- US-654: indexer + watcher ---------------------------------------------
+notify = "8"                   # cross-platform fs watcher (ReadDirectoryChangesW on Windows)
+notify-debouncer-full = "0.5"  # coalesced, debounced events; re-exports `notify`
+
 [dev-dependencies]
 rusqlite = { version = "0.37", features = ["bundled"] }  # tamper meta in the schema-mismatch test
 

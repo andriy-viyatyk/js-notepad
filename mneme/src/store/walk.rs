@@ -26,7 +26,9 @@ pub struct WalkedFile {
     pub rel: String,
 }
 
-const DEFAULT_IGNORES: &[&str] = &[".git", ".mneme", "node_modules", "target", "dist", "build"];
+/// Directory names pruned from every walk. Reused by the watcher's coarse event filter
+/// (US-654) so the index's own `.mneme/` WAL/SHM writes never retrigger a reconcile.
+pub const DEFAULT_IGNORES: &[&str] = &[".git", ".mneme", "node_modules", "target", "dist", "build"];
 
 pub fn walk_root(root: &RootConfig) -> Result<Vec<WalkedFile>> {
     let includes = if root.include.is_empty() {

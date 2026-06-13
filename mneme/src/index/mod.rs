@@ -224,6 +224,25 @@ impl IndexDb {
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
+    /// Refresh just the filesystem stat for an unchanged document — the content hash matched
+    /// but `mtime`/`size` moved (e.g. `touch`, `git checkout`). Avoids a redundant re-parse +
+    /// re-upsert on the next reconcile (the mtime+size fast-path then hits). US-654.
+    pub fn update_doc_stat(&self, rel_path: &str, mtime: i64, size: i64) -> Result<()> {
+        self.conn.execute(
+            "UPDATE documents SET mtime=?2, size=?3 WHERE path=?1",
+            params![rel_path, mtime, size],
+        )?;
+        Ok(())
+    }
+
+    /// Count of indexed documents (the `status` index-vs-disk report). US-654.
+    pub fn doc_count(&self) -> Result<usize> {
+        let n: i64 = self
+            .conn
+            .query_row("SELECT count(*) FROM documents", [], |r| r.get(0))?;
+        Ok(n as usize)
+    }
+
     /// Minimal FTS query (proves the index + seeds early text search). Returns hits as full
     /// `{root}/{rel}` addresses with a snippet. The ranked, filtered, hybrid `wiki_search` with
     /// RRF + vectors is US-655/658.

@@ -9,8 +9,9 @@ This crate is **self-contained and extraction-ready**: it builds and tests in is
 dependency on the Persephone repo, so it can later be split into its own repository or used as an
 Azure container build context.
 
-> **Status:** Phase 1 — config + Document Store (US-652), plus the markdown layer (frontmatter +
-> heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`). No MCP
+> **Status:** Phase 1 — config + Document Store (US-652), the markdown layer (frontmatter +
+> heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`), and the
+> indexer + always-on file watcher that keep the index in sync with the files (US-654). No MCP
 > server (US-655) or embeddings (US-657) yet — `chunks_vec` is created but empty until then.
 
 ## Build & test
@@ -28,6 +29,8 @@ dist`; build it with `cargo` directly during development.
 
 ```bash
 mneme status            # load config, list roots + indexable file counts
+mneme reindex [path?]   # reconcile the index with the files (sync); path "{root}" scopes
+mneme watch             # watch every root + reconcile on change (runs until Ctrl-C)
 mneme serve [--port N]  # run the MCP HTTP server  [stub until US-655]
 mneme --config <path>   # explicit config file (else $MNEME_CONFIG, else the OS config dir)
 ```
@@ -46,7 +49,7 @@ mneme --config <path>   # explicit config file (else $MNEME_CONFIG, else the OS 
 
 ```
 src/
-├─ main.rs        CLI (clap): serve [stub] / status
+├─ main.rs        CLI (clap): serve [stub] / reindex / watch / status
 ├─ config.rs      Config + figment load (file + env + flags)
 ├─ error.rs       MnemeError
 ├─ store/         Document Store
@@ -61,10 +64,14 @@ src/
 │  ├─ mod.rs      parse_document → ParsedDoc { meta, chunks }
 │  ├─ frontmatter.rs  split `---` block, resolve title/tags/created/verified (read-time fallbacks)
 │  └─ chunker.rs  heading-based chunker + size cap (pulldown-cmark); plain-text fallback
-└─ index/         per-root SQLite index (bundled SQLite + FTS5 + sqlite-vec)
-   ├─ mod.rs      IndexDb — open_or_create / meta / upsert / delete / doc_state / search_fts
-   ├─ schema.rs   DDL + SCHEMA_VERSION + sqlite-vec auto-extension registration
-   └─ path.rs     versioned path + modelId + .mneme/.gitignore
+├─ index/         per-root SQLite index (bundled SQLite + FTS5 + sqlite-vec)
+│  ├─ mod.rs      IndexDb — open_or_create / meta / upsert / delete / doc_state / search_fts
+│  ├─ schema.rs   DDL + SCHEMA_VERSION + sqlite-vec auto-extension registration
+│  └─ path.rs     versioned path + modelId + .mneme/.gitignore
+├─ indexer/       keeps the index in sync with the files
+│  └─ mod.rs      reconcile_root (mtime+size fast-path → content-hash) / index_one / IndexManager
+└─ watcher/       always-on debounced notify watcher per root
+   └─ mod.rs      RootWatcher (reconcile-on-change; .mneme self-trigger guard)
 ```
 
 ## Index layout
@@ -83,5 +90,10 @@ migration code). Tables: `documents` (effective frontmatter + content hash + mti
 `chunks` (heading + text + ordinal), `chunks_fts` (FTS5), `chunks_vec` (`sqlite-vec` vec0 —
 **empty until embeddings land in US-657/658**), `meta` (model, precision, dims, schema version).
 FTS-only text search works with no model present.
+
+The index is kept current by the **indexer**: a reconcile (walk → mtime+size fast-path →
+content-hash dedup → index new / re-process changed / drop deleted) runs synchronously
+(`mneme reindex`) and as a deferred, non-blocking job shortly after start, while an always-on
+debounced `notify` **watcher** wakes a reconcile whenever files change on disk outside Mneme.
 
 See [`mneme.example.toml`](mneme.example.toml) for the documented config.
