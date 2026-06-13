@@ -4,6 +4,34 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-031 — [Git Functionality Enhancements (incremental)](EPIC-031.md)
+
+Grew git from the read-only v1 (EPIC-030) into day-to-day tooling, built incrementally — one user-requested increment at a time, with a **per-task** review model (not the deferred epic-level pass). Delivered: a **"Changes" panel** (working-tree status → stage / unstage / reset → **commit** via a Commit dialog with editable author + branch), a **"Branches & Tags" panel** (browse, switch, create branch, click-to-reveal in the graph), **Push** and **Pull** (Git-Extensions-style split-button; shared fetch / ahead-behind / `GIT_TERMINAL_PROMPT=0` fail-fast auth foundation; never force-pushes), a Git Tree **bottom panel** (Commit + Diff tabs), **auto-refresh** (recursive watcher + `GIT_OPTIONAL_LOCKS=0`), persisted grid column layout, File Diff compare-commits improvements, and a new UIKit **`SplitButton`**. All mutating ops stay behind the off-by-default "Git integration" setting and degrade gracefully. Small one-off tweaks were logged in the rolling **US-625** (batch-reviewed 2026-06-10). Close-out: all tasks reviewed per-task — no outstanding review at close. Future git work will be filed as separate tasks/epics.
+
+- [x] [US-616: Changes panel — status backend + unstaged/staged display](../tasks/US-616-git-changes-panel/README.md)
+- [x] [US-617: Changes panel — manual close + empty-page + persistence](../tasks/US-617-git-changes-close-lifecycle/README.md)
+- [x] [US-618: Git Diff "File History" panel + datetime column + L/R side-select](../tasks/US-618-git-diff-revisions-panel/README.md)
+- [x] [US-619: Multiple same-type secondary panels (composite panel keys)](../tasks/US-619-multi-panel-secondary-views/README.md)
+- [x] US-620: Changes panel — "Show Git Tree" header button
+- [x] US-621: Git Tree toolbar — repository name (basename + full path on hover)
+- [x] US-622: Git Tree grid — preserve column width/order across refresh/load-more
+- [x] US-623: Git Tree grid — persist column layout in editor state
+- [x] [US-624: Git Tree auto-refresh — recursive watcher + `--no-optional-locks`](../tasks/US-624-git-tree-autorefresh/README.md)
+- [x] [US-625: Rolling log of small git tweaks (closed with epic; entries batch-reviewed)](../tasks/US-625-git-small-enhancements/README.md)
+- [x] [US-629: Git Tree bottom panel + "Commit" tab](../tasks/US-629-git-tree-commit-panel/README.md)
+- [x] [US-630: Git Tree "Diff" tab (changed files + per-file diff)](../tasks/US-630-git-tree-commit-diff-tab/README.md)
+- [x] [US-631: Changes panel — stage / unstage / reset + AVGrid `FileGrid`](../tasks/US-631-git-stage-unstage/README.md)
+- [x] [US-632: Changes panel — Commit staged files (Commit dialog)](../tasks/US-632-git-commit/README.md)
+- [x] [US-634: Git Tree "Branches & Tags" panel + relocate "x" close](../tasks/US-634-git-branches-tags-panel/README.md)
+- [x] [US-635: "Branches & Tags" panel — polish + click-to-reveal in graph](../tasks/US-635-git-branches-panel-polish/README.md)
+- [x] [US-636: Switch to branch / remote branch / commit](../tasks/US-636-git-switch-branch-commit/README.md)
+- [x] [US-637: File Diff — "commits to compare" link metadata](../tasks/US-637-git-diff-compare-commits/README.md)
+- [x] [US-638: Create branch (grid "Create branch here" + Commit dialog)](../tasks/US-638-git-create-branch/README.md)
+- [x] [US-641: Git Push + shared fetch / ahead-behind / auth foundation](../tasks/US-641-git-push/README.md)
+- [x] [US-642: Git Pull — split-button + conflict reporting + UIKit `SplitButton`](../tasks/US-642-git-pull/README.md)
+
+---
+
 ## EPIC-030 — [Git Integration — Git Tree + File Diff editors](EPIC-030.md)
 
 Read-first git tooling, v1. Git access via **simple-git** in the main process (`git-service.ts` + `git-ipc.ts`), exposed to the renderer through a settings-gated, directory-cached API (`api/git.ts`). A new **"Git integration" setting** (off by default) gates everything — when off, zero git activity. Git membership is detected **once on the shared `TextFileModel` host** (`gitRepo` via `rev-parse`), so every text editor inherits the **"Git Diff" switch** with no per-editor code. Two new registered editors: a **Git Tree** editor (opened from the `.git` node in Explorer — branch/commit history on `AVGrid` + an SVG `BranchTreeCell` painting a ported VS Code MIT swimlane layout, paginated via the editor-owned `GitTreeModel`), and a **File Diff** editor (host-adopting, Monaco side-by-side diff with `from`/`to` revision pickers that reuse the Git Tree component in a popover; the Unstaged side is editable and writes back). v1 is strictly read/inspect — no mutating git operations. Close-out: `/review`, `/document`, `/userdoc` run as a single deferred pass over US-610–US-613. **Review disposition:** the `styled.*` usage in `components/git-tree/` was flagged against `coding-style.md:109` but **accepted** as consistent with existing `components/` precedent (`tree-provider/`, `file-search/`, `icons/`); the rule was left unchanged.

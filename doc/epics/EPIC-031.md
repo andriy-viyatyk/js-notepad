@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active
+**Status:** ✅ Completed (2026-06-13)
 **Created:** 2026-06-08
 
 ## Overview
@@ -92,11 +92,16 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 | US-622 | Git Tree grid — generate columns once on first mount; preserve user-dragged widths + column reorder across refresh/load-more; re-fit only the graph (first) column when the branch-lane count (`maxColumns`) shifts. Editor view keeps `<GitTree>` mounted during Refresh (placeholder only on initial load) so column state survives the reload remount | ✅ Done (2026-06-10) |
 | US-623 | Git Tree grid — persist column layout (width + order) in the **owner** model: `columnLayout` on `GitTreeEditorState` (round-trips via `getRestoreData` like `repoRoot`). `<GitTree>` gains `initialColumnLayout` (applied once at mount) + `onColumnLayoutChange` (emitted on user resize/reorder only, not programmatic rebuilds). Survives navigation-away/back and app restart | ✅ Done (2026-06-10) |
 | [US-624](../tasks/US-624-git-tree-autorefresh/README.md) | Git Tree auto-refresh — recursive `fs.watch` on `repoRoot` (Option A, mirrors Explorer) calling `refresh()` debounced 500ms; `git status` via `GIT_OPTIONAL_LOCKS=0` to break the index-rewrite refresh loop. Always-on under `git.enabled`; `DirectoryWatcher` util in `file-watcher.ts`; lifecycle in `GitTreeEditorModel` | ✅ Done (2026-06-10) |
-| [US-625](../tasks/US-625-git-small-enhancements/README.md) | **Rolling log of small git tweaks** — single task; each small enhancement is a row in its log table (no separate `US-XXX` per tweak, per the rule above). Entries so far: from/to popover inline endpoints + left-edge toolbar move; hide Run Script on non-script editors; Changes-panel unique file count | 🔨 Rolling (open) |
+| [US-625](../tasks/US-625-git-small-enhancements/README.md) | **Rolling log of small git tweaks** — single task; each small enhancement is a row in its log table (no separate `US-XXX` per tweak, per the rule above). Entries so far: from/to popover inline endpoints + left-edge toolbar move; hide Run Script on non-script editors; Changes-panel unique file count | ✅ Closed with epic (entries #1–#3 reviewed 2026-06-10) |
 | [US-629](../tasks/US-629-git-tree-commit-panel/README.md) | Git Tree editor — resizable bottom panel (Git-Extensions-style) with "Commit"/"Diff" tab strip + persisted height/active-tab; **"Commit" tab** shows the selected commit's author/email, date, full hash, ref badges, and full message (no parent/child — visible in the graph) | ✅ Done (2026-06-10) |
 | [US-630](../tasks/US-630-git-tree-commit-diff-tab/README.md) | Git Tree editor — **"Diff" tab**: changed-file list (`commitFiles` backend) + per-file inline Monaco diff (parent→commit via `git.show`); persisted file-list width. Depends on US-629 | ✅ Done (2026-06-10) |
 | [US-631](../tasks/US-631-git-stage-unstage/README.md) | "Changes" panel — **stage / unstage / reset** (first mutating ops): arrow buttons + double-click + context menu move files between Unstaged/Staged (`git add` / `git reset`); **Reset** discards changes (`git checkout` / `git clean`) with confirmation; new AVGrid-based **`FileGrid`** (range select + sorting + range-copy) replaces `FileList` in the panel | ✅ Done (2026-06-10) |
 | [US-632](../tasks/US-632-git-commit/README.md) | "Changes" panel — **Commit** staged files: "Commit" button under the Staged grid opens a **Commit dialog** (multi-line message + current branch + editable author Name/Email prepopulated from git config, applied as a per-commit override — no config write) that runs `git commit` of the staged index (`GitMutationResult` reused; `gitCommit`/`gitIdentity` IPC; `GitStatusResult.branch`). Push + branch-create postponed to dedicated tasks | ✅ Done (2026-06-11) |
+| [US-634](../tasks/US-634-git-branches-tags-panel/README.md) | Git Tree "Branches & Tags" secondary view + relocate the "x" close to it | ✅ Done (2026-06-11) |
+| [US-635](../tasks/US-635-git-branches-panel-polish/README.md) | "Branches & Tags" panel — polish (hover, head-green active branch, AZ/historical order, truncating titles) + click-to-reveal in the graph | ✅ Done (2026-06-11) |
+| [US-636](../tasks/US-636-git-switch-branch-commit/README.md) | Switch to branch / remote branch / commit (context menus on grid + Branches panel) | ✅ Done (2026-06-12) |
+| [US-637](../tasks/US-637-git-diff-compare-commits/README.md) | File Diff — "commits to compare" link metadata (smarter Staged default + "Open in new Tab") | ✅ Done (2026-06-12) |
+| [US-638](../tasks/US-638-git-create-branch/README.md) | Create branch — Git Tree grid "Create branch here" + editable/required branch in the Commit dialog | ✅ Done (2026-06-12) |
 | [US-641](../tasks/US-641-git-push/README.md) | **Git Push** — push the current branch to its remote (set-upstream `-u` on first push of a new branch) + "Commit and Push" from the Commit dialog; carries the **shared foundation** Pull reuses: `fetch` (all remotes), current-branch **ahead/behind** badge, the **`GIT_TERMINAL_PROMPT=0`** fail-fast auth strategy (OS/SSH creds only — no credential dialog), and busy+toast progress. Never force-pushes; rejected push → "fetch/pull first" message. Toolbar regrouped: left cluster (`Repo:` + name badge + ↑/↓ + Fetch + Push + divider), Refresh on the right; new `UploadIcon` | ✅ Done (2026-06-12) |
 | [US-642](../tasks/US-642-git-pull/README.md) | **Git Pull** — Git Extensions-style **split-button** (Pull-merge primary + "Fetch all" dropdown) that replaces the standalone Fetch button; new UIKit **`SplitButton`** primitive (composes `IconButton` + `WithMenu`); conflict-state reporting in the Changes panel; reuses the US-641 foundation. **Depends on US-641** | ✅ Done (2026-06-12) |
 
@@ -107,3 +112,8 @@ Tasks are added here **incrementally** as the user describes each enhancement. N
 - North-star goals recorded (status, branches, checkout, create/merge branches, tags, …) as a loose direction, not a commitment.
 - Documented the v1 infrastructure to build on (`git-service.ts`, `git-ipc.ts`, renderer `git.ts`, host detection, Git Tree component/editor, File Diff editor) and the carried-over conventions (git-only-in-main, off-by-default setting, graceful degradation). Flagged that this epic introduces the first **mutating** git operations.
 - Added to the dashboard under **Active**. Awaiting the user's first enhancement description.
+
+### 2026-06-13 — epic completed
+- All increments delivered and reviewed **per-task**; US-625's rolling tweaks (#1–#3) were batch-reviewed on 2026-06-10 — no outstanding review at close. The epic doc's task table was backfilled with US-634–638 (done but previously only on the dashboard).
+- Git now covers the everyday workflow behind the off-by-default "Git integration" setting: working-tree status, stage/unstage/reset, commit, branches & tags, switch, create branch, push, and pull.
+- Moved to [`completed.md`](completed.md) and removed from the dashboard. **Future git work will be filed as separate tasks/epics** (per user).
