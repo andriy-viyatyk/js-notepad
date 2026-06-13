@@ -19,7 +19,8 @@ ignore  = []                    # extra gitignore-style patterns, on top of the 
 # name   = "work"
 # folder = "D:/work/knowledge"
 
-# --- Transport (single Streamable HTTP channel; US-655 wires the server) ----
+# --- Transport (single Streamable HTTP channel) -----------------------------
+# `mneme serve` binds here and serves MCP at http://<bind>:<port>/mcp.
 [transport]
 bind  = "127.0.0.1"   # loopback by default → no auth needed locally
 port  = 7700

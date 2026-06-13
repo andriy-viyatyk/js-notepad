@@ -173,7 +173,7 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | [US-652](../tasks/US-652-mneme-scaffold/README.md) | P1 · Project scaffold + config + Document Store | ✅ Done |
 | [US-653](../tasks/US-653-mneme-index-schema/README.md) | P1 · Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec) | Planned |
 | [US-654](../tasks/US-654-mneme-indexer-watcher/README.md) | P1 · Indexer + watcher + reconcile | Planned |
-| US-655 | P1 · MCP server (Streamable HTTP, loopback, text-search mode) + agent guide | Planned |
+| [US-655](../tasks/US-655-mneme-mcp-server/README.md) | P1 · MCP server (Streamable HTTP, loopback, text-search mode) + agent guide | Planned |
 | US-656 | P2 · Model Provisioner (download + sha256 + cache) | Planned |
 | US-657 | P2 · Embedding Engine (`ort`, DirectML→CPU) | Planned |
 | US-658 | P2 · Hybrid search (sqlite-vec KNN + RRF) | Planned |

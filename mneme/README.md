@@ -10,9 +10,11 @@ dependency on the Persephone repo, so it can later be split into its own reposit
 Azure container build context.
 
 > **Status:** Phase 1 — config + Document Store (US-652), the markdown layer (frontmatter +
-> heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`), and the
-> indexer + always-on file watcher that keep the index in sync with the files (US-654). No MCP
-> server (US-655) or embeddings (US-657) yet — `chunks_vec` is created but empty until then.
+> heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`), the
+> indexer + always-on file watcher that keep the index in sync with the files (US-654), and the
+> MCP server over Streamable HTTP exposing the `wiki_*` tool surface in **text-search mode**
+> (US-655). No embeddings (US-657) yet — `chunks_vec` is created but empty, so `wiki_search` is
+> FTS-only.
 
 ## Build & test
 
@@ -31,9 +33,24 @@ dist`; build it with `cargo` directly during development.
 mneme status            # load config, list roots + indexable file counts
 mneme reindex [path?]   # reconcile the index with the files (sync); path "{root}" scopes
 mneme watch             # watch every root + reconcile on change (runs until Ctrl-C)
-mneme serve [--port N]  # run the MCP HTTP server  [stub until US-655]
+mneme serve [--port N]  # run the MCP server (Streamable HTTP, loopback /mcp) — text-search mode
 mneme --config <path>   # explicit config file (else $MNEME_CONFIG, else the OS config dir)
 ```
+
+## MCP surface (text-search mode)
+
+`mneme serve` binds loopback (`127.0.0.1`, no auth) and serves MCP over **Streamable HTTP** at
+`/mcp`. It prints a single stdout readiness line (`listening on <bind>:<port>`) once bound — the
+spawner waits for it — and logs to stderr. Connect MCP Inspector or a Claude chat to
+`http://127.0.0.1:<port>/mcp` to drive it.
+
+Tools: file-like `wiki_read`/`wiki_write`/`wiki_edit`/`wiki_delete`/`wiki_glob`/`wiki_grep`;
+`wiki_search` (FTS only here — `mode` defaults to `text`; `vector`/`hybrid` degrade to text with a
+note until US-658); views `wiki_tree`/`wiki_timeline`/`wiki_tags`; management `wiki_add_root`/
+`wiki_remove_root`/`wiki_list_roots`/`wiki_reindex`/`wiki_status`/`wiki_index_delete`
+(`wiki_model_update` is deferred to US-656). Resources: documents/attachments at
+`mneme://{root}/{path}` (text or base64 blob) plus the agent guide at `mneme://guide`. Resource
+subscriptions are not advertised yet (US-661/662).
 
 ## Crate-wide invariants
 
@@ -49,8 +66,8 @@ mneme --config <path>   # explicit config file (else $MNEME_CONFIG, else the OS 
 
 ```
 src/
-├─ main.rs        CLI (clap): serve [stub] / reindex / watch / status
-├─ config.rs      Config + figment load (file + env + flags)
+├─ main.rs        CLI (clap): serve / reindex / watch / status
+├─ config.rs      Config + figment load (file + env + flags) + save (root add/remove)
 ├─ error.rs       MnemeError
 ├─ store/         Document Store
 │  ├─ mod.rs      read/write/edit/delete/read_bytes/list/glob/grep over roots
@@ -69,9 +86,14 @@ src/
 │  ├─ schema.rs   DDL + SCHEMA_VERSION + sqlite-vec auto-extension registration
 │  └─ path.rs     versioned path + modelId + .mneme/.gitignore
 ├─ indexer/       keeps the index in sync with the files
-│  └─ mod.rs      reconcile_root (mtime+size fast-path → content-hash) / index_one / IndexManager
-└─ watcher/       always-on debounced notify watcher per root
-   └─ mod.rs      RootWatcher (reconcile-on-change; .mneme self-trigger guard)
+│  └─ mod.rs      reconcile_root (mtime+size fast-path → content-hash) / index_one / reindex_file / IndexManager
+├─ watcher/       always-on debounced notify watcher per root
+│  └─ mod.rs      RootWatcher (reconcile-on-change; .mneme self-trigger guard)
+└─ mcp/           MCP server (sole interface) — Streamable HTTP, loopback
+   ├─ mod.rs      ServerState (tool logic, spawn_blocking) + serve glue
+   ├─ server.rs   MnemeServer — rmcp tool_router + ServerHandler (resources)
+   ├─ params.rs   tool request types (Deserialize + JsonSchema)
+   └─ results.rs  tool result types (Serialize → structured content)
 ```
 
 ## Index layout

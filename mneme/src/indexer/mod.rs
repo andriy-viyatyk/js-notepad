@@ -79,6 +79,27 @@ pub fn index_one(db: &IndexDb, rel: &str, abs: &Path) -> Result<IndexOutcome> {
     Ok(IndexOutcome::Indexed)
 }
 
+/// Like [`index_one`] but **without** the mtime+size fast-path — always reads + content-hashes.
+/// US-655's synchronous `wiki_write`/`wiki_edit` use this: the caller just changed the content,
+/// so the stat-based skip is unsafe (a same-length edit within the filesystem's mtime resolution
+/// would otherwise be wrongly skipped). Content-hash dedup still avoids a redundant upsert when
+/// the bytes are identical.
+pub fn reindex_file(db: &IndexDb, rel: &str, abs: &Path) -> Result<IndexOutcome> {
+    let md = std::fs::metadata(abs)?;
+    let size = md.len() as i64;
+    let mtime = system_time_to_secs(md.modified()?);
+    let bytes = std::fs::read(abs)?;
+    let hash = content_hash(&bytes);
+    if let Some(state) = db.doc_state(rel)? {
+        if hash == state.content_hash {
+            db.update_doc_stat(rel, mtime, size)?;
+            return Ok(IndexOutcome::Refreshed);
+        }
+    }
+    upsert(db, rel, &bytes, &hash, &md, mtime, size)?;
+    Ok(IndexOutcome::Indexed)
+}
+
 fn upsert(
     db: &IndexDb,
     rel: &str,
@@ -149,7 +170,8 @@ fn system_time_to_secs(t: SystemTime) -> i64 {
 pub struct IndexManager {
     roots: Vec<RootConfig>,
     dbs: HashMap<String, Arc<Mutex<IndexDb>>>,
-    watchers: Vec<RootWatcher>,
+    /// Keyed by root name so a single root's watcher can be stopped on `wiki_remove_root`.
+    watchers: HashMap<String, RootWatcher>,
 }
 
 impl IndexManager {
@@ -163,7 +185,7 @@ impl IndexManager {
         Ok(Self {
             roots: roots.to_vec(),
             dbs,
-            watchers: Vec::new(),
+            watchers: HashMap::new(),
         })
     }
 
@@ -208,10 +230,38 @@ impl IndexManager {
         for r in &self.roots {
             if let Some(db) = self.dbs.get(&r.name) {
                 let watcher = RootWatcher::start(r.clone(), Arc::clone(db))?;
-                self.watchers.push(watcher);
+                self.watchers.insert(r.name.clone(), watcher);
             }
         }
         Ok(())
+    }
+
+    /// Register a new root at runtime (`wiki_add_root`): open its index, start its watcher, and
+    /// track its config. The caller persists the config and reconciles. Returns the new handle.
+    pub fn add_root(&mut self, cfg: RootConfig, model: &ModelConfig) -> Result<Arc<Mutex<IndexDb>>> {
+        let db = Arc::new(Mutex::new(IndexDb::open_or_create(&cfg.name, &cfg.folder, model)?));
+        let watcher = RootWatcher::start(cfg.clone(), Arc::clone(&db))?;
+        self.watchers.insert(cfg.name.clone(), watcher);
+        self.dbs.insert(cfg.name.clone(), Arc::clone(&db));
+        self.roots.push(cfg);
+        Ok(db)
+    }
+
+    /// Stop + drop a root's watcher and its index handle (`wiki_remove_root`). The on-disk
+    /// `.mneme` index is left in place (rebuildable; deletion is `wiki_index_delete`'s job).
+    pub fn remove_root(&mut self, name: &str) -> Result<()> {
+        if !self.dbs.contains_key(name) {
+            return Err(crate::error::MnemeError::UnknownRoot(name.to_string()));
+        }
+        self.watchers.remove(name); // dropping the debouncer stops the watch
+        self.dbs.remove(name);
+        self.roots.retain(|r| r.name != name);
+        Ok(())
+    }
+
+    /// The current root names (`wiki_list_roots` / `wiki_reindex` all-roots / `wiki_status`).
+    pub fn root_names(&self) -> Vec<String> {
+        self.roots.iter().map(|r| r.name.clone()).collect()
     }
 
     /// Spawn the deferred (~[`RECONCILE_DELAY`]) startup reconcile thread; returns immediately

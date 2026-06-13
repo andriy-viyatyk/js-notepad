@@ -12,7 +12,7 @@ Overview of all active and planned epics and tasks.
   - [x] [US-652: [Phase 1] Project scaffold + config + Document Store](tasks/US-652-mneme-scaffold/README.md)
   - [ ] [US-653: [Phase 1] Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec)](tasks/US-653-mneme-index-schema/README.md)
   - [ ] [US-654: [Phase 1] Indexer + watcher + reconcile](tasks/US-654-mneme-indexer-watcher/README.md)
-  - [ ] US-655: [Phase 1] MCP server (Streamable HTTP, loopback, text-search mode) + agent guide
+  - [ ] [US-655: [Phase 1] MCP server (Streamable HTTP, loopback, text-search mode) + agent guide](tasks/US-655-mneme-mcp-server/README.md)
   - [ ] US-656: [Phase 2] Model Provisioner (download + sha256 + cache)
   - [ ] US-657: [Phase 2] Embedding Engine (ort, DirectML→CPU)
   - [ ] US-658: [Phase 2] Hybrid search (sqlite-vec KNN + RRF)

@@ -13,9 +13,11 @@
 pub mod path;
 pub mod schema;
 
-use std::path::Path;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::types::Value;
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
 
 use crate::config::ModelConfig;
@@ -27,6 +29,7 @@ use schema::{EMBED_DIM, SCHEMA_VERSION};
 pub struct IndexDb {
     conn: Connection,
     root_name: String,
+    db_path: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,6 +54,43 @@ pub struct FtsHit {
     pub address: String,
     pub heading: Option<String>,
     pub snippet: String,
+}
+
+/// Metadata filters for [`IndexDb::search_text`] / `tag_counts` / `docs_with_tag` (US-655).
+/// All FTS-compatible (plain SQL predicates) — the vector lane + RRF graft on in US-658.
+#[derive(Debug, Clone, Default)]
+pub struct SearchFilter {
+    /// Rel-path prefix within the root (`""`/`None` = whole root).
+    pub subtree: Option<String>,
+    /// Document must carry every one of these tags.
+    pub tags: Vec<String>,
+    /// Document must carry none of these tags.
+    pub exclude_tags: Vec<String>,
+    /// Inclusive `documents.created` lower bound (ISO `YYYY-MM-DD`).
+    pub created_from: Option<String>,
+    /// Inclusive `documents.created` upper bound.
+    pub created_to: Option<String>,
+}
+
+/// One `wiki_search` result row — one per document, best chunk wins the snippet.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TextHit {
+    pub address: String,
+    pub title: String,
+    pub tags: Vec<String>,
+    pub snippet: String,
+    /// FTS5 `bm25()` — **lower is better** (may be negative). Callers sort ascending.
+    pub score: f64,
+}
+
+/// Effective document metadata read back from the index (`wiki_timeline`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DocMeta {
+    pub path: String,
+    pub title: String,
+    pub created: Option<String>,
+    pub verified: Option<String>,
+    pub tags: Vec<String>,
 }
 
 /// SHA-256 of bytes as a lowercase hex string (documents.content_hash). US-654 calls this for
@@ -100,7 +140,11 @@ impl IndexDb {
             }
         }
 
-        let db = Self { conn, root_name: root_name.to_string() };
+        let db = Self {
+            conn,
+            root_name: root_name.to_string(),
+            db_path: db_path.clone(),
+        };
 
         if !is_new {
             let stored = db.meta()?;
@@ -118,6 +162,11 @@ impl IndexDb {
 
     pub fn root_name(&self) -> &str {
         &self.root_name
+    }
+
+    /// The on-disk path of this versioned index DB (`wiki_status` inventory). US-655.
+    pub fn db_path(&self) -> &Path {
+        &self.db_path
     }
 
     pub fn meta(&self) -> Result<Meta> {
@@ -265,6 +314,144 @@ impl IndexDb {
                 snippet: r.get(2)?,
             })
         })?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    /// Ranked, filtered FTS text search (`wiki_search` text mode). One row per document — the
+    /// best-ranking chunk wins the snippet — with the metadata filter applied as SQL predicates
+    /// (subtree prefix, tags include/exclude, `created` range). The vector lane + RRF land in
+    /// US-658; this is the text-mode seed they extend.
+    pub fn search_text(&self, query: &str, filter: &SearchFilter, limit: usize) -> Result<Vec<TextHit>> {
+        let mut sql = String::from(
+            "SELECT d.id, d.path, d.title, bm25(chunks_fts) AS score,
+                    snippet(chunks_fts, 0, '[', ']', '…', 12) AS snip
+             FROM chunks_fts
+             JOIN chunks c    ON c.id = chunks_fts.rowid
+             JOIN documents d ON d.id = c.doc_id
+             WHERE chunks_fts MATCH ?",
+        );
+        let mut p: Vec<Value> = vec![Value::Text(query.to_string())];
+
+        if let Some(st) = filter.subtree.as_deref().filter(|s| !s.is_empty()) {
+            sql.push_str(" AND (d.path = ? OR d.path LIKE ?)");
+            p.push(Value::Text(st.to_string()));
+            p.push(Value::Text(format!("{st}/%")));
+        }
+        for tag in &filter.tags {
+            sql.push_str(" AND EXISTS (SELECT 1 FROM doc_tags t WHERE t.doc_id = d.id AND t.tag = ?)");
+            p.push(Value::Text(tag.clone()));
+        }
+        for tag in &filter.exclude_tags {
+            sql.push_str(" AND NOT EXISTS (SELECT 1 FROM doc_tags t WHERE t.doc_id = d.id AND t.tag = ?)");
+            p.push(Value::Text(tag.clone()));
+        }
+        if let Some(from) = &filter.created_from {
+            sql.push_str(" AND d.created >= ?");
+            p.push(Value::Text(from.clone()));
+        }
+        if let Some(to) = &filter.created_to {
+            sql.push_str(" AND d.created <= ?");
+            p.push(Value::Text(to.clone()));
+        }
+        // Headroom so per-document dedup (best chunk wins) can still fill `limit` documents.
+        sql.push_str(" ORDER BY rank LIMIT ?");
+        p.push(Value::Integer((limit as i64).saturating_mul(8).max(limit as i64)));
+
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params_from_iter(p), |r| {
+            Ok((
+                r.get::<_, i64>(0)?,    // doc_id
+                r.get::<_, String>(1)?, // path
+                r.get::<_, String>(2)?, // title
+                r.get::<_, f64>(3)?,    // score (bm25)
+                r.get::<_, String>(4)?, // snippet
+            ))
+        })?;
+
+        let mut seen = HashSet::new();
+        let mut hits = Vec::new();
+        for row in rows {
+            let (doc_id, path, title, score, snippet) = row?;
+            if !seen.insert(doc_id) {
+                continue; // already kept this document's best chunk
+            }
+            hits.push(TextHit {
+                address: format!("{}/{}", self.root_name, path),
+                title,
+                tags: self.tags_for_doc(doc_id)?,
+                snippet,
+                score,
+            });
+            if hits.len() >= limit {
+                break;
+            }
+        }
+        Ok(hits)
+    }
+
+    /// Distinct tags + document counts (`wiki_tags`), optionally scoped to a rel-path prefix.
+    pub fn tag_counts(&self, subtree: Option<&str>) -> Result<Vec<(String, usize)>> {
+        let mut sql = String::from(
+            "SELECT t.tag, count(*) FROM doc_tags t JOIN documents d ON d.id = t.doc_id",
+        );
+        let mut p: Vec<Value> = Vec::new();
+        if let Some(st) = subtree.filter(|s| !s.is_empty()) {
+            sql.push_str(" WHERE (d.path = ? OR d.path LIKE ?)");
+            p.push(Value::Text(st.to_string()));
+            p.push(Value::Text(format!("{st}/%")));
+        }
+        sql.push_str(" GROUP BY t.tag ORDER BY t.tag");
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params_from_iter(p), |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as usize))
+        })?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    /// Documents carrying `tag` (`wiki_timeline` uses `"log"`), optionally scoped to a rel-path
+    /// prefix. Returns effective metadata; the caller derives the timeline date from the filename.
+    pub fn docs_with_tag(&self, tag: &str, subtree: Option<&str>) -> Result<Vec<DocMeta>> {
+        let mut sql = String::from(
+            "SELECT d.id, d.path, d.title, d.created, d.verified
+             FROM documents d
+             JOIN doc_tags t ON t.doc_id = d.id AND t.tag = ?",
+        );
+        let mut p: Vec<Value> = vec![Value::Text(tag.to_string())];
+        if let Some(st) = subtree.filter(|s| !s.is_empty()) {
+            sql.push_str(" WHERE (d.path = ? OR d.path LIKE ?)");
+            p.push(Value::Text(st.to_string()));
+            p.push(Value::Text(format!("{st}/%")));
+        }
+        sql.push_str(" ORDER BY d.path");
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params_from_iter(p), |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, Option<String>>(4)?,
+            ))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            let (doc_id, path, title, created, verified) = row?;
+            out.push(DocMeta {
+                tags: self.tags_for_doc(doc_id)?,
+                path,
+                title,
+                created,
+                verified,
+            });
+        }
+        Ok(out)
+    }
+
+    fn tags_for_doc(&self, doc_id: i64) -> Result<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT tag FROM doc_tags WHERE doc_id = ?1 ORDER BY tag")?;
+        let rows = stmt.query_map([doc_id], |r| r.get::<_, String>(0))?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 }

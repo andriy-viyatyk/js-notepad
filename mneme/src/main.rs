@@ -28,7 +28,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Run the MCP server (Streamable HTTP, loopback). [stub — implemented in US-655]
+    /// Run the MCP server (Streamable HTTP, loopback) — text-search mode.
     Serve {
         /// Override the configured port.
         #[arg(long)]
@@ -79,18 +79,16 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
             if let Some(p) = port {
                 cfg.transport.port = p;
             }
+            let bind = cfg.transport.bind.clone();
+            let port = cfg.transport.port;
             tracing::info!(
                 roots = store.registry().configs().len(),
                 "config loaded from {}",
                 config_path.display()
             );
-            // Stub: the real Streamable HTTP server (loopback bind, stdout readiness line)
-            // lands in US-655. Notice goes to stderr (stdout stays clean).
-            eprintln!(
-                "mneme serve: MCP HTTP server not yet implemented (US-655). \
-                 Would bind {}:{}.",
-                cfg.transport.bind, cfg.transport.port
-            );
+            // serve reopens its own store/index manager; release this one first.
+            drop(store);
+            persephone_mneme::mcp::serve(cfg, config_path, &bind, port)?;
         }
         Command::Reindex { path } => {
             let mgr = IndexManager::open(store.registry().configs(), &cfg.model)?;

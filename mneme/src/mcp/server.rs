@@ -1,0 +1,250 @@
+//! rmcp adapter — `MnemeServer` maps the `wiki_*` tools and `mneme://` resources onto
+//! [`ServerState`], and `serve` runs the Streamable HTTP server on loopback. Thin by design:
+//! every tool delegates straight to a `ServerState` method (all the real work + blocking I/O
+//! lives there), so the surface is testable without an HTTP transport.
+
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use rmcp::handler::server::router::tool::ToolRouter;
+use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::*;
+use rmcp::service::RequestContext;
+use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
+use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
+use rmcp::{tool, tool_handler, tool_router, ErrorData as McpError, RoleServer, ServerHandler};
+
+use crate::config::Config;
+use crate::error::MnemeError;
+
+use super::params::*;
+use super::{ResourceBody, ServerState};
+
+const GUIDE: &str = include_str!("../../assets/wiki-guide.md");
+const GUIDE_URI: &str = "mneme://guide";
+
+const INSTRUCTIONS: &str = "\
+Mneme is a markdown knowledge base (\"wiki\"). Files on disk are the source of truth; the index \
+is derived. Address every document as {root}/{path} (matching the resource URI \
+mneme://{root}/{path}). Use the file-like tools (wiki_read/write/edit/glob/grep) exactly as you \
+would local files, and wiki_search for relevance ranking. This instance runs in TEXT-SEARCH mode \
+— wiki_search is full-text only; semantic/vector search is not yet enabled. Read mneme://guide \
+for the full tool reference.";
+
+#[derive(Clone)]
+pub struct MnemeServer {
+    state: Arc<ServerState>,
+    tool_router: ToolRouter<MnemeServer>,
+}
+
+impl MnemeServer {
+    pub fn new(state: Arc<ServerState>) -> Self {
+        Self {
+            state,
+            tool_router: Self::tool_router(),
+        }
+    }
+}
+
+fn to_mcp(e: MnemeError) -> McpError {
+    McpError::internal_error(e.to_string(), None)
+}
+
+fn structured<T: serde::Serialize>(value: T) -> std::result::Result<CallToolResult, McpError> {
+    let v = serde_json::to_value(value).map_err(|e| McpError::internal_error(e.to_string(), None))?;
+    Ok(CallToolResult::structured(v))
+}
+
+fn ok_text() -> CallToolResult {
+    CallToolResult::success(vec![Content::text("ok")])
+}
+
+#[tool_router]
+impl MnemeServer {
+    #[tool(description = "Read a wiki document by {root}/{path}; returns content + parsed frontmatter (≈ Read).")]
+    async fn wiki_read(&self, Parameters(p): Parameters<ReadParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.read_doc(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Write a whole wiki document (content includes YAML frontmatter at the top); indexes it (≈ Write).")]
+    async fn wiki_write(&self, Parameters(p): Parameters<WriteParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.write_doc(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = "Exact string replacement in a wiki document; re-indexes it (≈ Edit).")]
+    async fn wiki_edit(&self, Parameters(p): Parameters<EditParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.edit_doc(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = "Delete a wiki document and drop it from the index.")]
+    async fn wiki_delete(&self, Parameters(p): Parameters<DeleteParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.delete_doc(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = "Find documents by path/name glob against the full {root}/{path} (≈ Glob).")]
+    async fn wiki_glob(&self, Parameters(p): Parameters<GlobParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.glob(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Literal/regex content scan over indexed files (≈ Grep); not FTS.")]
+    async fn wiki_grep(&self, Parameters(p): Parameters<GrepParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.grep(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Ranked text search (FTS) with optional subtree/tag/date filters; returns {uri,title,tags,snippet,score}.")]
+    async fn wiki_search(&self, Parameters(p): Parameters<SearchParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.search(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Category/document tree as a flat depth-first list of {uri,name,isDir,depth}.")]
+    async fn wiki_tree(&self, Parameters(p): Parameters<TreeParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.tree(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Daily-log timeline (log-tagged docs, date from filename), newest first.")]
+    async fn wiki_timeline(&self, Parameters(p): Parameters<TimelineParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.timeline(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Distinct tags + document counts (autocomplete / free-form vocabulary).")]
+    async fn wiki_tags(&self, Parameters(p): Parameters<TagsParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.tags(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Register a new wiki root (folder = OS path, name = id used in URIs).")]
+    async fn wiki_add_root(&self, Parameters(p): Parameters<AddRootParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.add_root(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Remove a wiki root by name (the on-disk index is left in place).")]
+    async fn wiki_remove_root(&self, Parameters(p): Parameters<RemoveRootParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.remove_root(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = "List registered wiki roots.")]
+    async fn wiki_list_roots(&self) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.list_roots().await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Reconcile the index with the files (synchronous); path scopes to a {root}. Returns per-root stats.")]
+    async fn wiki_reindex(&self, Parameters(p): Parameters<ReindexParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.reindex(p).await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Roots, index inventory (versioned DB path + size), model, and document counts.")]
+    async fn wiki_status(&self) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.status().await.map_err(to_mcp)?)
+    }
+
+    #[tool(description = "Delete a stale/inactive versioned index DB (refuses the active one).")]
+    async fn wiki_index_delete(&self, Parameters(p): Parameters<IndexDeleteParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.index_delete(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = "Update/switch the embedding model (deferred — text-search build).")]
+    async fn wiki_model_update(&self, Parameters(_p): Parameters<ModelUpdateParams>) -> std::result::Result<CallToolResult, McpError> {
+        Ok(CallToolResult::success(vec![Content::text(self.state.model_update_notice())]))
+    }
+}
+
+#[tool_handler(router = self.tool_router)]
+impl ServerHandler for MnemeServer {
+    fn get_info(&self) -> ServerInfo {
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .build(),
+        )
+        .with_instructions(INSTRUCTIONS)
+    }
+
+    async fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _ctx: RequestContext<RoleServer>,
+    ) -> std::result::Result<ListResourcesResult, McpError> {
+        let guide = RawResource::new(GUIDE_URI, "Mneme wiki agent guide").no_annotation();
+        Ok(ListResourcesResult::with_all_items(vec![guide]))
+    }
+
+    async fn list_resource_templates(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _ctx: RequestContext<RoleServer>,
+    ) -> std::result::Result<ListResourceTemplatesResult, McpError> {
+        let template = RawResourceTemplate {
+            uri_template: "mneme://{root}/{path}".to_string(),
+            name: "Wiki document or attachment".to_string(),
+            title: None,
+            description: Some(
+                "Read a document or binary attachment by its {root}/{path} address.".to_string(),
+            ),
+            mime_type: None,
+            icons: None,
+        }
+        .no_annotation();
+        Ok(ListResourceTemplatesResult::with_all_items(vec![template]))
+    }
+
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _ctx: RequestContext<RoleServer>,
+    ) -> std::result::Result<ReadResourceResult, McpError> {
+        let uri = request.uri;
+        if uri == GUIDE_URI {
+            return Ok(ReadResourceResult::new(vec![ResourceContents::text(GUIDE, uri)]));
+        }
+        let addr = uri.strip_prefix("mneme://").ok_or_else(|| {
+            McpError::resource_not_found("unknown uri scheme", Some(serde_json::json!({ "uri": uri })))
+        })?;
+        let body = self
+            .state
+            .read_resource_body(addr.to_string())
+            .await
+            .map_err(to_mcp)?;
+        let contents = match body {
+            ResourceBody::Text(text) => ResourceContents::text(text, uri),
+            ResourceBody::Blob(b64) => ResourceContents::blob(b64, uri),
+        };
+        Ok(ReadResourceResult::new(vec![contents]))
+    }
+}
+
+/// Run the MCP server over Streamable HTTP on `bind:port` (loopback). Builds a tokio runtime
+/// (so the CLI's other commands stay synchronous), prints the single stdout readiness line once
+/// the listener is bound, and serves until Ctrl-C.
+pub fn serve(cfg: Config, config_path: PathBuf, bind: &str, port: u16) -> crate::error::Result<()> {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+    let bind = bind.to_string();
+    rt.block_on(async move {
+        let state = ServerState::new(cfg, config_path)?;
+        let service = StreamableHttpService::new(
+            {
+                let state = Arc::clone(&state);
+                move || Ok(MnemeServer::new(Arc::clone(&state)))
+            },
+            LocalSessionManager::default().into(),
+            StreamableHttpServerConfig::default(),
+        );
+        let app = axum::Router::new().nest_service("/mcp", service);
+        let listener = tokio::net::TcpListener::bind((bind.as_str(), port)).await?;
+        // The single allowed stdout line — the spawner (Persephone) waits for it before connecting.
+        println!("listening on {bind}:{port}");
+        tracing::info!("mneme MCP server listening on {bind}:{port}/mcp");
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async {
+                let _ = tokio::signal::ctrl_c().await;
+            })
+            .await?;
+        Ok::<(), MnemeError>(())
+    })
+}

@@ -109,6 +109,18 @@ pub fn load(path: &Path) -> Result<Config> {
         .map_err(|e| MnemeError::Config(e.to_string()))
 }
 
+/// Write the config back to a TOML file (US-655 `wiki_add_root`/`wiki_remove_root` persist
+/// runtime root changes). figment reads TOML but does not serialize, so this uses `toml`
+/// directly. Creates the parent directory if needed.
+pub fn save(path: &Path, cfg: &Config) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let text = toml::to_string_pretty(cfg).map_err(|e| MnemeError::Config(e.to_string()))?;
+    std::fs::write(path, text)?;
+    Ok(())
+}
+
 /// Standalone default config path: `<os-config-dir>/persephone-mneme/mneme.toml`.
 pub fn default_config_path() -> PathBuf {
     dirs::config_dir()

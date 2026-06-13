@@ -57,6 +57,9 @@ pub enum MnemeError {
 
     #[error("watch error: {0}")]
     Notify(#[from] notify::Error),
+
+    #[error("{0}")]
+    Internal(String),
 }
 
 pub type Result<T> = std::result::Result<T, MnemeError>;
