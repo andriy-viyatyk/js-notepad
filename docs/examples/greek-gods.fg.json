@@ -357,8 +357,8 @@
       "title": "Muses",
       "level": 3,
       "shape": "diamond",
-      "domain": "Arts (9 sisters)",
-      "description": "Nine sister goddesses of arts and sciences",
+      "domain": "Arts & Sciences",
+      "description": "Goddesses of the arts and sciences. The classical tradition counts nine; an older tradition named three elder Muses — Melete, Mneme, and Aoede",
       "parents": "Daughters of Zeus and Mnemosyne",
       "wiki": "[Muses](https://en.wikipedia.org/wiki/Muses)"
     },
@@ -515,6 +515,126 @@
       "description": "Goddess of discord and strife",
       "parents": "Daughter of Nyx",
       "wiki": "[Eris](https://en.wikipedia.org/wiki/Eris_(mythology))"
+    },
+    {
+      "id": "calliope",
+      "title": "Calliope",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Epic Poetry",
+      "description": "Muse of epic poetry, chief of the nine Muses",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Calliope](https://en.wikipedia.org/wiki/Calliope)"
+    },
+    {
+      "id": "clio",
+      "title": "Clio",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of History",
+      "description": "Muse of history",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Clio](https://en.wikipedia.org/wiki/Clio)"
+    },
+    {
+      "id": "euterpe",
+      "title": "Euterpe",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Music",
+      "description": "Muse of music and lyric poetry",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Euterpe](https://en.wikipedia.org/wiki/Euterpe)"
+    },
+    {
+      "id": "erato",
+      "title": "Erato",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Love Poetry",
+      "description": "Muse of love and erotic poetry",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Erato](https://en.wikipedia.org/wiki/Erato)"
+    },
+    {
+      "id": "melpomene",
+      "title": "Melpomene",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Tragedy",
+      "description": "Muse of tragedy",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Melpomene](https://en.wikipedia.org/wiki/Melpomene)"
+    },
+    {
+      "id": "polyhymnia",
+      "title": "Polyhymnia",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Sacred Hymns",
+      "description": "Muse of sacred poetry and hymns",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Polyhymnia](https://en.wikipedia.org/wiki/Polyhymnia)"
+    },
+    {
+      "id": "terpsichore",
+      "title": "Terpsichore",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Dance",
+      "description": "Muse of dance and chorus",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Terpsichore](https://en.wikipedia.org/wiki/Terpsichore)"
+    },
+    {
+      "id": "thalia",
+      "title": "Thalia",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Comedy",
+      "description": "Muse of comedy and idyllic poetry",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Thalia](https://en.wikipedia.org/wiki/Thalia_(Muse))"
+    },
+    {
+      "id": "urania",
+      "title": "Urania",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Muse of Astronomy",
+      "description": "Muse of astronomy",
+      "parents": "Daughter of Zeus and Mnemosyne",
+      "wiki": "[Urania](https://en.wikipedia.org/wiki/Urania)"
+    },
+    {
+      "id": "melete",
+      "title": "Melete",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Elder Muse of Practice",
+      "description": "One of the three elder Muses (older tradition) — practice and meditation",
+      "parents": "Elder Muses (pre-classical tradition)",
+      "wiki": "[Melete](https://en.wikipedia.org/wiki/Melete)"
+    },
+    {
+      "id": "mneme",
+      "title": "⭐ Mneme",
+      "level": 4,
+      "shape": "star",
+      "domain": "Elder Muse of Memory",
+      "description": "One of the three elder Muses (older tradition) — goddess of memory",
+      "parents": "Elder Muses (pre-classical tradition)",
+      "wiki": "[Mneme](https://en.wikipedia.org/wiki/Mneme)"
+    },
+    {
+      "id": "aoede",
+      "title": "Aoede",
+      "level": 4,
+      "shape": "diamond",
+      "domain": "Elder Muse of Song",
+      "description": "One of the three elder Muses (older tradition) — song",
+      "parents": "Elder Muses (pre-classical tradition)",
+      "wiki": "[Aoede](https://en.wikipedia.org/wiki/Aoede)"
     }
   ],
   "links": [
@@ -817,6 +937,54 @@
     {
       "source": "hephaestus",
       "target": "aphrodite"
+    },
+    {
+      "source": "muses",
+      "target": "calliope"
+    },
+    {
+      "source": "muses",
+      "target": "clio"
+    },
+    {
+      "source": "muses",
+      "target": "euterpe"
+    },
+    {
+      "source": "muses",
+      "target": "erato"
+    },
+    {
+      "source": "muses",
+      "target": "melpomene"
+    },
+    {
+      "source": "muses",
+      "target": "polyhymnia"
+    },
+    {
+      "source": "muses",
+      "target": "terpsichore"
+    },
+    {
+      "source": "muses",
+      "target": "thalia"
+    },
+    {
+      "source": "muses",
+      "target": "urania"
+    },
+    {
+      "source": "muses",
+      "target": "melete"
+    },
+    {
+      "source": "muses",
+      "target": "mneme"
+    },
+    {
+      "source": "muses",
+      "target": "aoede"
     }
   ],
   "options": {
@@ -829,7 +997,8 @@
       "levels": {
         "1": "Major Gods / Primordial",
         "2": "Olympians",
-        "3": "Titans, Heroes, Descendants"
+        "3": "Titans, Heroes, Descendants",
+        "4": "The Muses"
       },
       "shapes": {
         "star": "Key Figures",
