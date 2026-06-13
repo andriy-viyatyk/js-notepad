@@ -45,6 +45,15 @@ pub enum MnemeError {
 
     #[error("config error: {0}")]
     Config(String),
+
+    #[error("sqlite error: {0}")]
+    Sqlite(#[from] rusqlite::Error),
+
+    #[error("frontmatter yaml error: {0}")]
+    Yaml(String),
+
+    #[error("index schema error: {0}")]
+    Schema(String),
 }
 
 pub type Result<T> = std::result::Result<T, MnemeError>;

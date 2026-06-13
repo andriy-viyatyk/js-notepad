@@ -24,6 +24,18 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
 dirs = "5"                # default config/cache locations for standalone runs
 
+# --- US-653: index + markdown layers ---------------------------------------
+rusqlite = { version = "0.37", features = ["bundled"] }  # static SQLite (incl. FTS5); no system lib
+sqlite-vec = "0.1"        # vec0 vector extension (bundles its C source, built via cc)
+serde_yaml_ng = "0.10"    # YAML frontmatter (maintained successor to the archived serde_yaml)
+pulldown-cmark = "0.13"   # markdown parse → heading-aware chunking
+chrono = "0.4"            # YYYY-MM-DD parse + SystemTime→date (UTC)
+sha2 = "0.10"             # content hash (documents.content_hash)
+hex = "0.4"               # sha2 digest → lowercase hex
+
+[dev-dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }  # tamper meta in the schema-mismatch test
+
 [build-dependencies]
 winres = "0.1"
 

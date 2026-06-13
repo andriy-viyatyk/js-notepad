@@ -10,7 +10,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-032** — [Mneme — Wiki / Vector Memory service](epics/EPIC-032.md) *(design locked — implementing in phases)*
   - [ ] [US-651: Mneme — App architecture](tasks/US-651-mneme-architecture/README.md)
   - [x] [US-652: [Phase 1] Project scaffold + config + Document Store](tasks/US-652-mneme-scaffold/README.md)
-  - [ ] US-653: [Phase 1] Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec)
+  - [ ] [US-653: [Phase 1] Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec)](tasks/US-653-mneme-index-schema/README.md)
   - [ ] US-654: [Phase 1] Indexer + watcher + reconcile
   - [ ] US-655: [Phase 1] MCP server (stdio, text-search mode) + agent guide
   - [ ] US-656: [Phase 2] Model Provisioner (download + sha256 + cache)

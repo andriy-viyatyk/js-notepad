@@ -1,8 +1,9 @@
 //! Mneme — knowledge-base / vector-memory service.
 //!
-//! US-652 (Phase 1) scaffold: configuration + the Document Store (the filesystem
-//! abstraction over wiki roots). No SQLite index, no MCP server, no embeddings yet —
-//! those arrive in US-653 / US-655 / US-657.
+//! Phase 1 so far: configuration + the Document Store (US-652), and the markdown layer
+//! (frontmatter + heading chunker) + the per-root SQLite index schema (US-653, FTS5 +
+//! `sqlite-vec`). No MCP server (US-655) or embeddings (US-657) yet — `chunks_vec` is
+//! created but empty until then.
 //!
 //! Crate-wide invariant: **stdout is never used for ad-hoc output.** All diagnostics
 //! go through `tracing` to stderr; stdout is reserved for the single startup readiness
@@ -10,4 +11,6 @@
 
 pub mod config;
 pub mod error;
+pub mod index;
+pub mod markdown;
 pub mod store;

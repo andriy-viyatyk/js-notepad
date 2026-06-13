@@ -25,7 +25,10 @@ bind  = "127.0.0.1"   # loopback by default → no auth needed locally
 port  = 7700
 # token = "..."       # only meaningful for a non-loopback (networked/Azure) bind
 
-# --- Embedding model (read by US-656/657; inert in US-652) ------------------
+# --- Embedding model --------------------------------------------------------
+# `name` + `precision` also derive the index's modelId — the versioned DB path
+# .mneme/<name>-<precision>/index-v<schemaVer>.db (default: gte-multilingual-base-int8).
+# Read by US-656/657 for downloading/inference; the path is used from US-653 on.
 [model]
 # name      = "gte-multilingual-base"
 # precision = "int8"

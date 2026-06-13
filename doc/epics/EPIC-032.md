@@ -171,7 +171,7 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 |----|-------|--------|
 | [US-651](../tasks/US-651-mneme-architecture/README.md) | Mneme — App architecture (process model, components, diagrams, tech choices, integration boundary) | ✅ Design complete |
 | [US-652](../tasks/US-652-mneme-scaffold/README.md) | P1 · Project scaffold + config + Document Store | ✅ Done |
-| US-653 | P1 · Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec) | Planned |
+| [US-653](../tasks/US-653-mneme-index-schema/README.md) | P1 · Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec) | Planned |
 | US-654 | P1 · Indexer + watcher + reconcile | Planned |
 | US-655 | P1 · MCP server (Streamable HTTP, loopback, text-search mode) + agent guide | Planned |
 | US-656 | P2 · Model Provisioner (download + sha256 + cache) | Planned |
