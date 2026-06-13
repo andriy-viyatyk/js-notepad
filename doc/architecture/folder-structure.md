@@ -39,13 +39,20 @@ persephone/
 │   ├── src/overlay.rs      # Fullscreen overlay windows, selection UI
 │   ├── build.rs
 │   └── Cargo.toml
-├── mneme/                  # Rust knowledge-base / vector-memory service (mneme.exe) — standalone, extraction-ready
-│   ├── src/main.rs         # CLI entry (serve / status)
+├── mneme/                  # Rust knowledge-base / vector-memory service (mneme.exe) — standalone, extraction-ready (EPIC-032)
+│   ├── src/main.rs         # CLI: serve / reindex / watch / status / model-update / embed / search
 │   ├── src/config.rs       # config: wiki roots, include/ignore globs, transport, model, gpu
-│   ├── src/store/          # Document Store — filesystem over wiki roots (read/write/edit/glob/grep)
-│   ├── build.rs
+│   ├── src/store/          # Document Store over wiki roots (read/write/edit/glob/grep, {root}/{path})
+│   ├── src/markdown/       # YAML frontmatter parse + heading chunker
+│   ├── src/index/          # per-root SQLite index (FTS5 + sqlite-vec); hybrid search + RRF; versioned DB path
+│   ├── src/indexer/        # reconcile + cancellable reindex job (keeps the index in sync with files)
+│   ├── src/watcher/        # always-on per-root file watcher
+│   ├── src/embed/          # embedding engine (ort + tokenizers, DirectML→CPU) + priority-queue worker
+│   ├── src/model/          # model provisioner (download + sha256 + cache)
+│   ├── src/mcp/            # MCP server (Streamable HTTP) — wiki_* tools + mneme:// resources
+│   ├── assets/             # models.json manifest + wiki-guide.md (agent guide resource)
 │   ├── Cargo.toml
-│   └── README.md           # crate-local docs (build/test, invariants)
+│   └── README.md           # crate-local docs (module layout, build/test, invariants) — primary reference
 ├── patches/                # Dependency patches (patch-package)
 ├── .mcp.json               # MCP server config for Claude Code (points to MCP HTTP server)
 ├── doc/                    # Developer documentation

@@ -306,7 +306,7 @@ async fn status_reports_inventory() {
     let wiki = &st.roots[0];
     assert_eq!(wiki.name, "wiki");
     assert_eq!(wiki.doc_count, 1);
-    assert_eq!(wiki.schema_ver, 1);
+    assert_eq!(wiki.schema_ver, persephone_mneme::index::schema::SCHEMA_VERSION);
     assert!(!wiki.index_path.is_empty());
 }
 
@@ -317,7 +317,7 @@ async fn index_delete_refuses_the_active_db() {
         .index_delete(IndexDeleteParams {
             root: "wiki".to_string(),
             model_id: "gte-multilingual-base-int8".to_string(),
-            schema_ver: 1,
+            schema_ver: persephone_mneme::index::schema::SCHEMA_VERSION,
         })
         .await;
     assert!(err.is_err(), "must refuse deleting the active (modelId, schemaVer)");

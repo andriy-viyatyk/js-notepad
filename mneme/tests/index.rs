@@ -138,7 +138,7 @@ fn open_creates_versioned_db_and_gitignore() {
     let db_path = root
         .join(".mneme")
         .join("gte-multilingual-base-int8")
-        .join("index-v1.db");
+        .join(format!("index-v{}.db", persephone_mneme::index::schema::SCHEMA_VERSION));
     assert!(db_path.exists(), "versioned DB not created at {db_path:?}");
 
     let gi = root.join(".mneme").join(".gitignore");
@@ -152,7 +152,7 @@ fn meta_reports_model_and_schema() {
     assert_eq!(m.model, "gte-multilingual-base");
     assert_eq!(m.precision, "int8");
     assert_eq!(m.dims, 768);
-    assert_eq!(m.schema_version, 1);
+    assert_eq!(m.schema_version, persephone_mneme::index::schema::SCHEMA_VERSION);
 }
 
 #[test]
@@ -183,11 +183,11 @@ fn sqlite_vec_extension_loads() {
 #[test]
 fn schema_version_mismatch_is_an_error() {
     let root = tmp_root("idx_mismatch");
-    open(&root); // create v1
+    open(&root); // create the current-version DB
     let db_path = root
         .join(".mneme")
         .join("gte-multilingual-base-int8")
-        .join("index-v1.db");
+        .join(format!("index-v{}.db", persephone_mneme::index::schema::SCHEMA_VERSION));
     {
         let conn = rusqlite::Connection::open(&db_path).unwrap();
         conn.execute("UPDATE meta SET value='999' WHERE key='schema_version'", [])
@@ -248,7 +248,7 @@ fn tags_are_stored() {
     let db_path = root
         .join(".mneme")
         .join("gte-multilingual-base-int8")
-        .join("index-v1.db");
+        .join(format!("index-v{}.db", persephone_mneme::index::schema::SCHEMA_VERSION));
     let conn = rusqlite::Connection::open(&db_path).unwrap();
     let mut stmt = conn.prepare("SELECT tag FROM doc_tags ORDER BY tag").unwrap();
     let tags: Vec<String> = stmt

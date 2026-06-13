@@ -15,8 +15,9 @@ Every document address is `{root}/{path-within-root}` — the same form as the r
 `work/postgres/indexing.md`, `personal/log/2026/2026-06-13.md`.
 
 - **Path tools** (`wiki_read`/`wiki_write`/`wiki_edit`/`wiki_delete`) take the full `{root}/{path}`.
-- **Scope-able tools** (`wiki_search`/`wiki_tree`/`wiki_timeline`/`wiki_tags`/`wiki_reindex`) take
-  an optional `{root}` or `{root}/sub` prefix to scope, and span **all roots** when omitted.
+- **Scope-able tools** (`wiki_search`/`wiki_tree`/`wiki_timeline`/`wiki_tags`/`wiki_reindex`) take a
+  `{root}` or `{root}/sub` prefix to scope — always provide the root (e.g. `personal` or
+  `personal/contacts`); use `wiki_list_roots` if you don't know it.
 
 ## Documents & frontmatter
 

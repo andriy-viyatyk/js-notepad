@@ -39,9 +39,10 @@ pub struct DeleteParams {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct GlobParams {
-    /// Glob matched against the full `{root}/{path}` address (e.g. `work/**/*.md`).
+    /// Glob matched against the full `{root}/{path}` address (e.g. `personal/contacts/*.md`).
     pub pattern: String,
-    /// Optional `{root}` or `{root}/sub` scope.
+    /// Extra `{root}` or `{root}/sub` narrowing; the `pattern` already carries the root, so this
+    /// is rarely needed (e.g. `personal`).
     pub path: Option<String>,
 }
 
@@ -58,6 +59,7 @@ pub enum GrepOutputMode {
 pub struct GrepParams {
     /// Literal/regex pattern (streaming scan over indexed files — not FTS).
     pub pattern: String,
+    /// The `{root}` or `{root}/sub` to scan (e.g. `personal` or `personal/contacts`).
     pub path: Option<String>,
     /// Case-insensitive match.
     #[serde(default, rename = "-i")]
@@ -103,7 +105,7 @@ pub struct SearchParams {
     /// model is provisioned.
     #[serde(default)]
     pub mode: SearchMode,
-    /// Optional `{root}` or `{root}/sub` scope (omit = all roots, merged).
+    /// Scope to a `{root}` or `{root}/sub` (e.g. `personal` or `personal/contacts`).
     pub subtree: Option<String>,
     #[serde(default)]
     pub tags: Vec<String>,
@@ -120,7 +122,7 @@ pub struct SearchParams {
 
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
 pub struct TreeParams {
-    /// Optional `{root}` or `{root}/sub` scope (omit = all roots).
+    /// The `{root}` or `{root}/sub` to list (e.g. `personal` or `personal/contacts`).
     pub path: Option<String>,
 }
 
@@ -132,11 +134,13 @@ pub struct TimelineParams {
     /// Inclusive date lower bound (ISO `YYYY-MM-DD`, parsed from the filename).
     pub from: Option<String>,
     pub to: Option<String>,
+    /// Scope to a `{root}` or `{root}/sub` (e.g. `personal`).
     pub subtree: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
 pub struct TagsParams {
+    /// Scope to a `{root}` or `{root}/sub` (e.g. `personal`).
     pub subtree: Option<String>,
 }
 
@@ -156,7 +160,7 @@ pub struct RemoveRootParams {
 
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
 pub struct ReindexParams {
-    /// `{root}` or `{root}/sub` to scope (omit = all roots).
+    /// The `{root}` or `{root}/sub` to reconcile (e.g. `personal`).
     pub path: Option<String>,
 }
 

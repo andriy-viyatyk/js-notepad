@@ -259,10 +259,25 @@ impl IndexDb {
                 "INSERT INTO chunks (doc_id, ordinal, heading, text) VALUES (?1, ?2, ?3, ?4)",
             )?;
             let mut ins_fts = tx.prepare("INSERT INTO chunks_fts (rowid, text) VALUES (?1, ?2)")?;
-            for c in &doc.chunks {
+            for (i, c) in doc.chunks.iter().enumerate() {
                 ins_chunk.execute(params![doc_id, c.ordinal as i64, c.heading, c.text])?;
                 let chunk_id = tx.last_insert_rowid();
-                ins_fts.execute(params![chunk_id, c.text])?;
+                // The FTS copy is enriched with the chunk heading — and the document title on
+                // the first chunk — so a term that appears only in a heading or the title is
+                // still matched by text-mode search (the body alone misses it, e.g. an H1
+                // "Docker …" when the body only says "Dockerfile"). The stored `chunks.text`
+                // stays body-only (used for display + the vector snippet).
+                let mut fts = String::new();
+                if i == 0 && !doc.meta.title.is_empty() {
+                    fts.push_str(&doc.meta.title);
+                    fts.push('\n');
+                }
+                if let Some(h) = &c.heading {
+                    fts.push_str(h);
+                    fts.push('\n');
+                }
+                fts.push_str(&c.text);
+                ins_fts.execute(params![chunk_id, fts])?;
             }
         }
 

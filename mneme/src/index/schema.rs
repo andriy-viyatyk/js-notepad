@@ -6,8 +6,10 @@
 
 use std::sync::Once;
 
-/// Bump when the table layout changes — selects a new `index-v<N>.db` path (full rebuild).
-pub const SCHEMA_VERSION: u32 = 1;
+/// Bump when the table layout *or* the indexed content changes — selects a new `index-v<N>.db`
+/// path (full rebuild from the source files), no in-place migration.
+/// v2: FTS rows now include the chunk heading + the doc title, not just the body.
+pub const SCHEMA_VERSION: u32 = 2;
 
 /// Embedding dimension for the `chunks_vec` table. D5 (gte-multilingual-base = 768). The table
 /// stays empty until US-657/658; if the real model reports different dims, that's a different

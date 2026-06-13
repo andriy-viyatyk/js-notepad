@@ -178,7 +178,7 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | [US-657](../tasks/US-657-mneme-embedding-engine/README.md) | P2 · Embedding Engine (`ort`, DirectML→CPU) | Implemented (unreviewed) |
 | [US-658](../tasks/US-658-mneme-hybrid-search/README.md) | P2 · Hybrid search (sqlite-vec KNN + RRF) | Implemented (unreviewed) |
 | [US-659](../tasks/US-659-mneme-concurrency/README.md) | P2 · Concurrency & responsiveness (worker, WAL, reindex job) | Implemented (unreviewed) |
-| [US-666](../tasks/US-666-mneme-grep-filters-status-resource/README.md) | P1/2 gap · `wiki_grep` tags/dateRange/-n + `mneme://status` resource | Implemented (unreviewed) |
+| [US-666](../tasks/US-666-mneme-grep-filters-status-resource/README.md) | P1/2 gap · `wiki_grep` tags/dateRange/-n + `mneme://status` resource (+ FTS heading/title indexing, server identity, tool-description examples) | ✅ Done |
 | US-660 | P3 · Persephone settings + sidecar auto-launch | Planned |
 | US-661 | P4 · `McpConnectionManager` subscription support | Planned |
 | US-662 | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Planned |

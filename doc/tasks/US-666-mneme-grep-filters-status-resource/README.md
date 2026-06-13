@@ -1,7 +1,7 @@
 # US-666: Mneme — `wiki_grep` metadata filters + `mneme://status` resource
 
 **Epic:** [EPIC-032 — Mneme](../../epics/EPIC-032.md) · Phase 1/2 gap-closing
-**Status:** Implemented (unreviewed) — awaiting user testing
+**Status:** Done (verified end-to-end over MCP; `/review` + `/userdoc` N/A for the Rust crate)
 
 ## Goal
 
@@ -177,18 +177,18 @@ readable resource and note `wiki_grep`'s new filters.
 
 ## Acceptance criteria
 
-- [ ] `wiki_grep` accepts `tags`, `dateRange`, and `-n`; their JSON schema is published in the
+- [x] `wiki_grep` accepts `tags`, `dateRange`, and `-n`; their JSON schema is published in the
       tool's `inputSchema`.
-- [ ] `wiki_grep { pattern, tags: ["x"] }` returns only matches in documents carrying tag `x`;
+- [x] `wiki_grep { pattern, tags: ["x"] }` returns only matches in documents carrying tag `x`;
       `dateRange` restricts by `created`; both compose with `path` scope and all three output modes.
-- [ ] `wiki_grep` with no `tags`/`dateRange` is byte-identical to current behavior (no index hit).
-- [ ] `-n: false` omits line numbers from Content-mode output; default/`true` keeps them.
-- [ ] `resources/list` includes `mneme://status`; `resources/read { uri: "mneme://status" }`
+- [x] `wiki_grep` with no `tags`/`dateRange` is byte-identical to current behavior (no index hit).
+- [x] `-n: false` omits line numbers from Content-mode output; default/`true` keeps them.
+- [x] `resources/list` includes `mneme://status`; `resources/read { uri: "mneme://status" }`
       returns the same payload as the `wiki_status` tool as JSON text.
-- [ ] Server capabilities still advertise tools + resources only (no subscriptions).
-- [ ] `cargo build --release` and `cargo test` pass; a test covers `docs_matching` + a
+- [x] Server capabilities still advertise tools + resources only (no subscriptions).
+- [x] `cargo build --release` and `cargo test` pass; a test covers `docs_matching` + a
       tag-filtered grep.
-- [ ] `mneme/assets/wiki-guide.md` and `mneme/README.md` updated.
+- [x] `mneme/assets/wiki-guide.md` and `mneme/README.md` updated.
 
 ## Files changed (planned)
 
@@ -204,5 +204,31 @@ readable resource and note `wiki_grep`'s new filters.
 
 ### Files that need NO change
 - `mneme/src/mcp/results.rs` — `StatusResult` is already `Serialize`.
-- `mneme/src/index/pool.rs`, `index/schema.rs`, `embed/*`, `indexer/*`, `watcher/*` — untouched.
-- Capabilities builder in `server.rs:185-192` — unchanged (no subscriptions).
+- `mneme/src/index/pool.rs`, `embed/*`, `indexer/*`, `watcher/*` — untouched.
+- Capabilities builder in `server.rs` — unchanged (no subscriptions).
+
+## Post-implementation additions (testing pass)
+
+End-to-end testing against a live `mneme serve` (real model on DirectML, driven via the official MCP
+SDK client + the Persephone MCP Inspector) surfaced a few improvements, done in the same pass:
+
+1. **FTS now indexes chunk headings + the document title**, not just body text — a term that
+   appears only in a heading/title (e.g. an H1 "Docker layer caching" when the body says
+   "Dockerfile") was previously unfindable by `wiki_search mode:text`. `chunks_fts` rows are now
+   `title (first chunk) + heading + body`; stored `chunks.text` stays body-only. (`index/mod.rs`)
+   - **Bumped `SCHEMA_VERSION` 1 → 2** (`index/schema.rs`) so existing indexes rebuild via the
+     versioned-DB path (no migration code) — content of the FTS index changed.
+2. **Server identity** → `persephone-mneme` / title `Mneme` / crate version (was rmcp's
+   `from_build_env()` default `rmcp`/`1.7.0`, shown to every client incl. the Inspector). (`mcp/server.rs`)
+3. **Every `wiki_*` tool description now carries a coherent `call → result` example** — one
+   running scenario (register root `personal` → add `personal/contacts/jane.md` → find/view/admin).
+   Raw-string literals use `r##"…"##` (a `"#` inside JSON like `"content":"#` closes `r#"…"#`
+   early). (`mcp/server.rs`)
+4. **Scope params reworded** — dropped the confusing *"Optional `{root}` … (omit = all roots)"*;
+   they now read e.g. *"The `{root}` or `{root}/sub` to list (e.g. `personal`)"* and the guide tells
+   agents to always provide the root (`wiki_list_roots` if unknown). Fields stay `Option` (Persephone
+   keeps the all-roots fallback internally). (`mcp/params.rs`, `mcp/server.rs`, `assets/wiki-guide.md`)
+
+Additional files changed beyond the planned table: `mneme/src/index/schema.rs`,
+`mneme/src/mcp/server.rs`, `mneme/src/mcp/params.rs`, `mneme/assets/wiki-guide.md`, plus version-assert
+updates in `mneme/tests/index.rs` and `mneme/tests/mcp.rs` (now reference `SCHEMA_VERSION`).

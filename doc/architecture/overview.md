@@ -219,6 +219,16 @@ See [trait-system.md](./trait-system.md).
 - Monaco editor has separate theme integration via `onMonacoThemeChange` callback
 - Startup: synchronous `fs.readFileSync` + inline `<script>` in `index.html` for flash-free startup
 
+### 8. Mneme Knowledge-Base Service (EPIC-032)
+
+**Mneme** is a standalone, single-binary **Rust** service (`mneme/`, alongside `launcher/` and `snip-tool/`) that indexes a tree of markdown documents for full-text and semantic search and exposes a **single MCP interface**. The files on disk are the source of truth; the SQLite index is a derived, rebuildable artifact.
+
+- **Separate process, not in the Electron bundle.** Built in CI via `cargo build --release` and shipped beside `persephone.exe`; not wired into `npm start` / `npm run dist`. Persephone will manage it as a Tor-style sidecar (Phase 3, US-660 — not yet implemented).
+- **One transport — Streamable HTTP on loopback** (`127.0.0.1/mcp`, no auth locally). The same server serves Persephone *and* external agents (e.g. Claude Code) concurrently. Persephone consumes it via its existing MCP client (`McpConnectionManager`) — Phase 4.
+- **Tool surface** (`wiki_*`): file-like `read`/`write`/`edit`/`delete`/`glob`/`grep` (addresses are `{root}/{path}`), `wiki_search` (`text` FTS5 / `vector` sqlite-vec KNN / `hybrid` RRF, model on DirectML→CPU via `ort`), views `tree`/`timeline`/`tags`, and management `add_root`/`reindex`/`status`/`model_update`/… Resources: documents/attachments at `mneme://{root}/{path}`, the agent guide at `mneme://guide`, and a status snapshot at `mneme://status`.
+- **Index is versioned & rebuildable** — `.mneme/<model>-<precision>/index-v<schemaVer>.db` per root; a model/precision or schema-version change selects a fresh DB (full rebuild from files), no migration code.
+- **Design & detail live elsewhere** — this is only an architectural pointer. See the epic [EPIC-032](../epics/EPIC-032.md) (all design decisions), the architecture task [US-651](../tasks/US-651-mneme-architecture/README.md), and the crate's own [`mneme/README.md`](../../mneme/README.md) (module layout, build/test, invariants) — the primary reference. Mneme is kept self-contained / extraction-ready, so it follows its own Rust conventions, not the renderer coding standards.
+
 ## Design Principles
 
 ### 1. Core First
