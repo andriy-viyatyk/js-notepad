@@ -1,6 +1,6 @@
 import { PageDescriptor } from "../../shared/types";
 import { DownloadEntry, UpdateCheckResult } from "../api-param-types";
-import { EventApi, EventEndpoint, EventObject, McpStatus } from "../api-types";
+import { EventApi, EventEndpoint, EventObject, McpStatus, MnemeStatus } from "../api-types";
 
 class RendererEventObject<T> implements EventObject<T> {
     private subscribers: Array<(data: T) => void> = [];
@@ -113,6 +113,10 @@ class RendererEvents implements EventApi {
 
     [EventEndpoint.eMcpStatusChanged] = new RendererEventObject<McpStatus>(
         EventEndpoint.eMcpStatusChanged
+    );
+
+    [EventEndpoint.eMnemeStatusChanged] = new RendererEventObject<MnemeStatus>(
+        EventEndpoint.eMnemeStatusChanged
     );
 }
 

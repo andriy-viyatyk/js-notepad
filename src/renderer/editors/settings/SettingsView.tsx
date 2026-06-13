@@ -679,13 +679,21 @@ function McpSection() {
     const mcpEnabled = settings.use("mcp.enabled");
     const mcpPort = settings.use("mcp.port");
     const browserToolsEnabled = settings.use("mcp.browser-tools.enabled");
+    const mnemeEnabled = settings.use("mneme.enabled");
+    const mnemePort = settings.use("mneme.port");
     const [status, setStatus] = useState<{ running: boolean; url: string; clientCount: number } | null>(null);
+    const [mnemeStatus, setMnemeStatus] = useState<{ running: boolean; url: string } | null>(null);
     const [portValue, setPortValue] = useState(String(mcpPort));
+    const [mnemePortValue, setMnemePortValue] = useState(String(mnemePort));
     const [copied, setCopied] = useState<string | null>(null);
 
     useEffect(() => {
         setPortValue(String(mcpPort));
     }, [mcpPort]);
+
+    useEffect(() => {
+        setMnemePortValue(String(mnemePort));
+    }, [mnemePort]);
 
     useEffect(() => {
         api.getMcpStatus().then(setStatus).catch(() => setStatus(null));
@@ -696,6 +704,16 @@ function McpSection() {
 
         return () => sub.unsubscribe();
     }, [mcpEnabled]);
+
+    useEffect(() => {
+        api.getMnemeStatus().then(setMnemeStatus).catch(() => setMnemeStatus(null));
+
+        const sub = rendererEvents.eMnemeStatusChanged.subscribe((s) => {
+            setMnemeStatus(s);
+        });
+
+        return () => sub.unsubscribe();
+    }, [mnemeEnabled]);
 
     const handleToggle = () => {
         settings.set("mcp.enabled", !mcpEnabled);
@@ -714,6 +732,19 @@ function McpSection() {
         }
     };
 
+    const handleMnemeToggle = () => {
+        settings.set("mneme.enabled", !mnemeEnabled);
+    };
+
+    const handleMnemePortBlur = () => {
+        const num = parseInt(mnemePortValue, 10);
+        if (num >= 1024 && num <= 65535) {
+            settings.set("mneme.port", num);
+        } else {
+            setMnemePortValue(String(mnemePort));
+        }
+    };
+
     const handlePortKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             (e.target as HTMLInputElement).blur();
@@ -727,14 +758,20 @@ function McpSection() {
     };
 
     const mcpUrl = `http://localhost:${mcpPort}/mcp`;
-    const configJson = JSON.stringify({
-        mcpServers: {
-            "persephone": {
-                type: "http",
-                url: mcpUrl,
-            },
+    const mnemeUrl = `http://localhost:${mnemePort}/mcp`;
+    const mcpServers: Record<string, { type: string; url: string }> = {
+        "persephone": {
+            type: "http",
+            url: mcpUrl,
         },
-    }, null, 2);
+    };
+    if (mnemeEnabled) {
+        mcpServers["mneme"] = {
+            type: "http",
+            url: mnemeUrl,
+        };
+    }
+    const configJson = JSON.stringify({ mcpServers }, null, 2);
 
     return (
         <>
@@ -790,6 +827,51 @@ function McpSection() {
                         <span style={monoTextStyle}>{status.url}</span>
                         <Button variant="default" size="sm" background="light" onClick={() => handleCopy(status.url, "url")}>
                             {copied === "url" ? "Copied!" : "Copy URL"}
+                        </Button>
+                    </Panel>
+                </>
+            )}
+
+            <Panel paddingTop="sm" paddingBottom="lg"><Text bold size="sm">Mneme (vector memory)</Text></Panel>
+            <Panel paddingBottom="md">
+                <Text color="light" size="xs">
+                    Local knowledge-base / memory service. Persephone launches it as a sidecar and serves it over loopback HTTP.
+                </Text>
+            </Panel>
+
+            <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                <Checkbox checked={mnemeEnabled} onChange={handleMnemeToggle}>
+                    Enable Mneme
+                </Checkbox>
+            </Panel>
+
+            <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                <Text size="sm">Port:</Text>
+                <Input
+                    size="sm"
+                    width={72}
+                    type="text"
+                    value={mnemePortValue}
+                    onChange={setMnemePortValue}
+                    onBlur={handleMnemePortBlur}
+                    onKeyDown={handlePortKeyDown}
+                    disabled={mnemeEnabled}
+                />
+            </Panel>
+
+            {mnemeEnabled && mnemeStatus && (
+                <>
+                    <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                        <Dot size="sm" color={mnemeStatus.running ? "success" : "neutral"} />
+                        <Text size="sm" color="light">
+                            {mnemeStatus.running ? "Running" : "Stopped"}
+                        </Text>
+                    </Panel>
+
+                    <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                        <span style={monoTextStyle}>{mnemeStatus.url}</span>
+                        <Button variant="default" size="sm" background="light" onClick={() => handleCopy(mnemeStatus.url, "mneme-url")}>
+                            {copied === "mneme-url" ? "Copied!" : "Copy URL"}
                         </Button>
                     </Panel>
                 </>

@@ -10,7 +10,7 @@ import {
     VideoStreamSessionConfig,
     VideoStreamSessionResult,
 } from "../api-param-types";
-import { Api, Endpoint, McpStatus } from "../api-types";
+import { Api, Endpoint, McpStatus, MnemeStatus } from "../api-types";
 import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../git-ipc";
 
 let idGen = 0;
@@ -221,6 +221,14 @@ class ApiCalls implements Api {
 
     getMcpStatus = async () => {
         return executeOnce<McpStatus>(Endpoint.getMcpStatus);
+    }
+
+    setMnemeEnabled = async (enabled: boolean, port?: number) => {
+        return executeOnce<MnemeStatus>(Endpoint.setMnemeEnabled, enabled, port);
+    }
+
+    getMnemeStatus = async () => {
+        return executeOnce<MnemeStatus>(Endpoint.getMnemeStatus);
     }
 
     startScreenSnip = async (): Promise<string | null> => {

@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell } from "electron";
-import { Api, Endpoint, EventEndpoint, McpStatus } from "../api-types";
+import { Api, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
 import { getAssetPath, getAppRootPath } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
 import { getFileToOpen, getUrlToOpen, windowReady } from "./window-handlers";
@@ -13,6 +13,7 @@ import { versionService } from "../../main/version-service";
 import * as browserRegistration from "../../main/browser-registration";
 import { downloadService } from "../../main/download-service";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
+import { startMneme, stopMneme, getMnemeStatus as getMnemeServiceStatus } from "../../main/mneme-service";
 import { GitFetchOptions, GitIdentity, GitLogOptions, GitPullOptions, GitPushOptions, GitSwitchTarget } from "../git-ipc";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
@@ -212,6 +213,18 @@ class Controller implements MainApi {
         };
     }
 
+    setMnemeEnabled = async (event: IpcMainEvent, enabled: boolean, port?: number): Promise<MnemeStatus> => {
+        if (enabled) {
+            return startMneme(port);
+        }
+        stopMneme();
+        return getMnemeServiceStatus();
+    }
+
+    getMnemeStatus = async (_event: IpcMainEvent): Promise<MnemeStatus> => {
+        return getMnemeServiceStatus();
+    }
+
     startScreenSnip = async (): Promise<string | null> => {
         const { startScreenSnip } = await import("../../main/snip-service");
         return startScreenSnip();
@@ -398,6 +411,8 @@ const init = () => {
     bindEndpoint(Endpoint.clearCompletedDownloads, controllerInstance.clearCompletedDownloads);
     bindEndpoint(Endpoint.setMcpEnabled, controllerInstance.setMcpEnabled);
     bindEndpoint(Endpoint.getMcpStatus, controllerInstance.getMcpStatus);
+    bindEndpoint(Endpoint.setMnemeEnabled, controllerInstance.setMnemeEnabled);
+    bindEndpoint(Endpoint.getMnemeStatus, controllerInstance.getMnemeStatus);
     bindEndpoint(Endpoint.setBrowserToolsEnabled, controllerInstance.setBrowserToolsEnabled);
     bindEndpoint(Endpoint.startScreenSnip, controllerInstance.startScreenSnip);
     bindEndpoint(Endpoint.createVideoStreamSession, controllerInstance.createVideoStreamSession);

@@ -53,6 +53,8 @@ export enum Endpoint {
     clearCompletedDownloads = "clearCompletedDownloads",
     setMcpEnabled = "setMcpEnabled",
     getMcpStatus = "getMcpStatus",
+    setMnemeEnabled = "setMnemeEnabled",
+    getMnemeStatus = "getMnemeStatus",
     setBrowserToolsEnabled = "setBrowserToolsEnabled",
     startScreenSnip = "startScreenSnip",
     createVideoStreamSession = "createVideoStreamSession",
@@ -85,6 +87,13 @@ export interface McpStatus {
     running: boolean;
     url: string;
     clientCount: number;
+}
+
+export interface MnemeStatus {
+    running: boolean;
+    url: string;
+    /** Set only on a failed start or an unexpected exit; drives the error toast. */
+    error?: string;
 }
 
 export type Api = {
@@ -134,6 +143,8 @@ export type Api = {
     [Endpoint.clearCompletedDownloads]: () => Promise<void>;
     [Endpoint.setMcpEnabled]: (enabled: boolean, port?: number) => Promise<void>;
     [Endpoint.getMcpStatus]: () => Promise<McpStatus>;
+    [Endpoint.setMnemeEnabled]: (enabled: boolean, port?: number) => Promise<MnemeStatus>;
+    [Endpoint.getMnemeStatus]: () => Promise<MnemeStatus>;
     [Endpoint.setBrowserToolsEnabled]: (enabled: boolean) => Promise<void>;
     [Endpoint.startScreenSnip]: () => Promise<string | null>;
     [Endpoint.createVideoStreamSession]: (config: VideoStreamSessionConfig, port?: number) => Promise<VideoStreamSessionResult>;
@@ -180,6 +191,7 @@ export enum EventEndpoint {
     eDownloadFailed = "eDownloadFailed",
     eDownloadCleared = "eDownloadCleared",
     eMcpStatusChanged = "eMcpStatusChanged",
+    eMnemeStatusChanged = "eMnemeStatusChanged",
 }
 
 export interface EventSubscription {
@@ -209,6 +221,7 @@ export type EventApi = {
     [EventEndpoint.eDownloadFailed]: EventObject<{ id: string; error: string }>;
     [EventEndpoint.eDownloadCleared]: EventObject<DownloadEntry[]>;
     [EventEndpoint.eMcpStatusChanged]: EventObject<McpStatus>;
+    [EventEndpoint.eMnemeStatusChanged]: EventObject<MnemeStatus>;
 };
 
 export enum RendererEvent {

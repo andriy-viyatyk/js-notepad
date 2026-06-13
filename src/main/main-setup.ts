@@ -14,6 +14,7 @@ import { initTorHandlers, torService } from "./tor-service";
 import { initWorkerHost } from "./worker-host";
 import { startPipeServer, stopPipeServer } from "./pipe-server";
 import { stopMcpHttpServer } from "./mcp-http-server";
+import { shutdownMneme } from "./mneme-service";
 import { stopVideoStreamServer } from "./video-stream-server";
 import { downloadService } from "./download-service";
 
@@ -128,6 +129,7 @@ export function setupMainProcess() {
         stopPipeServer();
         stopMcpHttpServer();
         stopVideoStreamServer();
+        shutdownMneme();
     });
 
     app.on("window-all-closed", () => {

@@ -1,4 +1,5 @@
 import { api } from "../../ipc/renderer/api";
+import ipcRendererEvents from "../../ipc/renderer/renderer-events";
 import type { ISettings } from "./types/settings";
 import type { IEditorRegistry } from "./types/editors";
 import type { IRecentFiles } from "./types/recent";
@@ -236,6 +237,17 @@ class App {
             const browserToolsEnabled = this._settings.get("mcp.browser-tools.enabled");
             api.setBrowserToolsEnabled(!!browserToolsEnabled);
 
+            // Auto-start Mneme if enabled. Toast only on failure here (success on every
+            // launch would be noisy); user-initiated toggles toast success below.
+            if (this._settings.get("mneme.enabled")) {
+                const mnemePort = this._settings.get("mneme.port") as number | undefined;
+                api.setMnemeEnabled(true, mnemePort || undefined).then((status) => {
+                    if (!status.running) {
+                        this._ui.notify(`Mneme failed to start: ${status.error ?? "unknown error"}`, "error");
+                    }
+                });
+            }
+
             // Load autoload scripts from Script Library
             try {
                 const { autoloadService } = await import("./autoload-service");
@@ -253,6 +265,24 @@ class App {
             }
             if (key === "mcp.browser-tools.enabled") {
                 api.setBrowserToolsEnabled(value !== false);
+            }
+            if (key === "mneme.enabled") {
+                const mnemePort = this._settings.get("mneme.port") as number | undefined;
+                api.setMnemeEnabled(!!value, mnemePort || undefined).then((status) => {
+                    if (!value) return; // silent on intentional stop
+                    if (status.running) {
+                        this._ui.notify("Mneme started", "success");
+                    } else {
+                        this._ui.notify(`Mneme failed to start: ${status.error ?? "unknown error"}`, "error");
+                    }
+                });
+            }
+        });
+
+        // Toast unexpected Mneme exits (crash after a successful start).
+        ipcRendererEvents.eMnemeStatusChanged.subscribe((s) => {
+            if (s.error) {
+                this._ui.notify(`Mneme: ${s.error}`, "error");
             }
         });
     }

@@ -12,6 +12,8 @@
     "dist:publish": "node scripts/build-prod.mjs && electron-builder --win --publish always",
     "lint": "eslint --ext .ts,.tsx .",
     "typecheck": "tsc --noEmit",
+    "mneme:build": "cargo build --release --manifest-path mneme/Cargo.toml",
+    "mneme:model": "node scripts/dev-mneme-model.mjs",
     "postinstall": "patch-package"
   },
   "keywords": [],
