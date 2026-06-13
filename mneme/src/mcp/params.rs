@@ -62,11 +62,20 @@ pub struct GrepParams {
     /// Case-insensitive match.
     #[serde(default, rename = "-i")]
     pub ignore_case: bool,
+    /// Show line numbers in Content mode (default true). `-n: false` suppresses them.
+    #[serde(rename = "-n")]
+    pub line_numbers: Option<bool>,
     /// Lines of context before/after each match (Content mode).
     #[serde(default)]
     pub context: usize,
     #[serde(default)]
     pub output_mode: GrepOutputMode,
+    /// Document must carry every one of these tags (`.md` frontmatter only).
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// Restrict to documents whose `created` date is in range (`.md` frontmatter only).
+    #[serde(rename = "dateRange")]
+    pub date_range: Option<DateRange>,
 }
 
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]

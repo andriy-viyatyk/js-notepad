@@ -56,14 +56,16 @@ mneme --config <path>       # explicit config file (else $MNEME_CONFIG, else the
 spawner waits for it — and logs to stderr. Connect MCP Inspector or a Claude chat to
 `http://127.0.0.1:<port>/mcp` to drive it.
 
-Tools: file-like `wiki_read`/`wiki_write`/`wiki_edit`/`wiki_delete`/`wiki_glob`/`wiki_grep`;
-`wiki_search` (`mode` `text` | `vector` | `hybrid`, default `hybrid`; `vector`/`hybrid` degrade to
-text with a note when no model is provisioned); views `wiki_tree`/`wiki_timeline`/`wiki_tags`;
+Tools: file-like `wiki_read`/`wiki_write`/`wiki_edit`/`wiki_delete`/`wiki_glob`/`wiki_grep`
+(`wiki_grep` adds `tags`/`dateRange` metadata filters over `.md` docs and a `-n` line-number
+toggle); `wiki_search` (`mode` `text` | `vector` | `hybrid`, default `hybrid`; `vector`/`hybrid`
+degrade to text with a note when no model is provisioned); views `wiki_tree`/`wiki_timeline`/`wiki_tags`;
 management `wiki_add_root`/
 `wiki_remove_root`/`wiki_list_roots`/`wiki_reindex`/`wiki_status`/`wiki_index_delete`/
 `wiki_model_update` (downloads/verifies the configured model — synchronous, may take minutes on
-first run). Resources: documents/attachments at `mneme://{root}/{path}` (text or base64 blob) plus
-the agent guide at `mneme://guide`. Resource subscriptions are not advertised yet (US-661/662).
+first run). Resources: documents/attachments at `mneme://{root}/{path}` (text or base64 blob), the
+agent guide at `mneme://guide`, and a JSON `wiki_status` snapshot at `mneme://status`. Resource
+subscriptions are not advertised yet (US-661/662).
 
 ## Model provisioning (US-656)
 

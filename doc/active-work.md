@@ -17,6 +17,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-657: [Phase 2] Embedding Engine (ort, DirectML→CPU)](tasks/US-657-mneme-embedding-engine/README.md)
   - [ ] [US-658: [Phase 2] Hybrid search (sqlite-vec KNN + RRF)](tasks/US-658-mneme-hybrid-search/README.md)
   - [ ] [US-659: [Phase 2] Concurrency & responsiveness (worker, WAL, reindex job)](tasks/US-659-mneme-concurrency/README.md)
+  - [ ] [US-666: [Phase 1/2 gap] wiki_grep tags/dateRange/-n + mneme://status resource](tasks/US-666-mneme-grep-filters-status-resource/README.md)
   - [ ] US-660: [Phase 3] Persephone settings + sidecar auto-launch
   - [ ] US-661: [Phase 4] McpConnectionManager subscription support
   - [ ] US-662: [Phase 4] MnemeProvider (read/write/edit + live-refresh)

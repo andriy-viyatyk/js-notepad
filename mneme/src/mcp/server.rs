@@ -22,6 +22,8 @@ use super::{ResourceBody, ServerState};
 
 const GUIDE: &str = include_str!("../../assets/wiki-guide.md");
 const GUIDE_URI: &str = "mneme://guide";
+/// Readable (not yet subscribable — US-661/662) snapshot of `wiki_status` as JSON.
+const STATUS_URI: &str = "mneme://status";
 
 const INSTRUCTIONS: &str = "\
 Mneme is a markdown knowledge base (\"wiki\"). Files on disk are the source of truth; the index \
@@ -198,7 +200,8 @@ impl ServerHandler for MnemeServer {
         _ctx: RequestContext<RoleServer>,
     ) -> std::result::Result<ListResourcesResult, McpError> {
         let guide = RawResource::new(GUIDE_URI, "Mneme wiki agent guide").no_annotation();
-        Ok(ListResourcesResult::with_all_items(vec![guide]))
+        let status = RawResource::new(STATUS_URI, "Mneme service status").no_annotation();
+        Ok(ListResourcesResult::with_all_items(vec![guide, status]))
     }
 
     async fn list_resource_templates(
@@ -228,6 +231,16 @@ impl ServerHandler for MnemeServer {
         let uri = request.uri;
         if uri == GUIDE_URI {
             return Ok(ReadResourceResult::new(vec![ResourceContents::text(GUIDE, uri)]));
+        }
+        if uri == STATUS_URI {
+            let status = self.state.status().await.map_err(to_mcp)?;
+            let json = serde_json::to_string_pretty(&status).map_err(|e| {
+                McpError::internal_error(
+                    "failed to serialize status",
+                    Some(serde_json::json!({ "error": e.to_string() })),
+                )
+            })?;
+            return Ok(ReadResourceResult::new(vec![ResourceContents::text(json, uri)]));
         }
         let addr = uri.strip_prefix("mneme://").ok_or_else(|| {
             McpError::resource_not_found("unknown uri scheme", Some(serde_json::json!({ "uri": uri })))

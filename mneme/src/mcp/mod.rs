@@ -16,7 +16,7 @@ mod server;
 
 pub use server::{serve, MnemeServer};
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::SystemTime;
@@ -177,14 +177,50 @@ impl ServerState {
                 GrepOutputMode::Content => OutputMode::Content,
                 GrepOutputMode::Count => OutputMode::Count,
             };
+            let line_numbers = p.line_numbers.unwrap_or(true);
             let opts = GrepOptions {
                 ignore_case: p.ignore_case,
                 context: p.context,
                 output_mode,
+                line_numbers,
             };
-            let store = st.store.read().unwrap();
-            let result = store.grep(&p.pattern, p.path.as_deref(), &opts)?;
-            Ok(grep_to_json(result))
+
+            // Optional metadata pre-filter: when tags/dateRange are given, restrict the scan to
+            // documents the index says match. These come from `.md` frontmatter, so non-`.md`
+            // indexed files (a future `ext` capability) are excluded — same limitation as
+            // `wiki_search`. Without these filters there is no index round-trip.
+            let allowed = if !p.tags.is_empty() || p.date_range.is_some() {
+                let (roots, subtree_prefix) = scope(&st, p.path.as_deref())?;
+                let filter = SearchFilter {
+                    subtree: non_empty(subtree_prefix),
+                    tags: p.tags.clone(),
+                    exclude_tags: Vec::new(),
+                    created_from: p.date_range.as_ref().and_then(|d| d.from.clone()),
+                    created_to: p.date_range.as_ref().and_then(|d| d.to.clone()),
+                };
+                let mut set = HashSet::new();
+                for root in roots {
+                    let handle = { st.index.lock().unwrap().handle(&root) };
+                    if let Some(h) = handle {
+                        for rel in h.read(|db| db.docs_matching(&filter))? {
+                            set.insert(format!("{root}/{rel}"));
+                        }
+                    }
+                }
+                Some(set)
+            } else {
+                None
+            };
+
+            let result = {
+                let store = st.store.read().unwrap();
+                store.grep(&p.pattern, p.path.as_deref(), &opts)?
+            };
+            let result = match allowed {
+                Some(set) => filter_grep_result(result, &set),
+                None => result,
+            };
+            Ok(grep_to_json(result, line_numbers))
         })
         .await
     }
@@ -690,7 +726,22 @@ fn is_text_addr(addr: &str) -> bool {
     TEXT.iter().any(|e| lower.ends_with(e))
 }
 
-fn grep_to_json(result: GrepResult) -> serde_json::Value {
+/// Retain only the grep entries whose `{root}/{path}` address is in `allowed` (metadata filter).
+fn filter_grep_result(result: GrepResult, allowed: &HashSet<String>) -> GrepResult {
+    match result {
+        GrepResult::Files(files) => {
+            GrepResult::Files(files.into_iter().filter(|a| allowed.contains(a)).collect())
+        }
+        GrepResult::Counts(counts) => {
+            GrepResult::Counts(counts.into_iter().filter(|(a, _)| allowed.contains(a)).collect())
+        }
+        GrepResult::Content(items) => {
+            GrepResult::Content(items.into_iter().filter(|(a, _)| allowed.contains(a)).collect())
+        }
+    }
+}
+
+fn grep_to_json(result: GrepResult, line_numbers: bool) -> serde_json::Value {
     use serde_json::json;
     match result {
         GrepResult::Files(files) => json!({ "mode": "files_with_matches", "files": files }),
@@ -709,11 +760,15 @@ fn grep_to_json(result: GrepResult) -> serde_json::Value {
                     "uri": uri,
                     "lines": lines
                         .into_iter()
-                        .map(|l| json!({
-                            "lineNumber": l.line_number,
-                            "text": l.text,
-                            "isMatch": l.is_match,
-                        }))
+                        .map(|l| {
+                            let mut obj = serde_json::Map::new();
+                            if line_numbers {
+                                obj.insert("lineNumber".to_string(), json!(l.line_number));
+                            }
+                            obj.insert("text".to_string(), json!(l.text));
+                            obj.insert("isMatch".to_string(), json!(l.is_match));
+                            serde_json::Value::Object(obj)
+                        })
                         .collect::<Vec<_>>(),
                 }))
                 .collect::<Vec<_>>(),

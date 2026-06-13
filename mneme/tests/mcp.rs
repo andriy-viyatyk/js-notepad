@@ -156,14 +156,54 @@ async fn glob_and_grep() {
             pattern: "hitword".to_string(),
             path: None,
             ignore_case: false,
+            line_numbers: None,
             context: 0,
             output_mode: GrepOutputMode::FilesWithMatches,
+            tags: Vec::new(),
+            date_range: None,
         })
         .await
         .unwrap();
     let files = grep.get("files").and_then(|v| v.as_array()).unwrap();
     assert_eq!(files.len(), 1);
     assert_eq!(files[0], "wiki/a.md");
+}
+
+#[tokio::test]
+async fn grep_tag_filter_and_line_number_toggle() {
+    let (state, _root, _cfg) = setup("mcp_grep_filters");
+    state.write_doc(write_params("wiki/a.md", "---\ntags: [keep]\n---\n# A\nhitword")).await.unwrap();
+    state.write_doc(write_params("wiki/b.md", "---\ntags: [drop]\n---\n# B\nhitword")).await.unwrap();
+
+    let params = |tags: Vec<String>, output_mode, line_numbers| GrepParams {
+        pattern: "hitword".to_string(),
+        path: None,
+        ignore_case: false,
+        line_numbers,
+        context: 0,
+        output_mode,
+        tags,
+        date_range: None,
+    };
+
+    // Both docs contain "hitword"…
+    let all = state.grep(params(Vec::new(), GrepOutputMode::FilesWithMatches, None)).await.unwrap();
+    assert_eq!(all["files"].as_array().unwrap().len(), 2);
+
+    // …but a tag filter narrows to the document carrying `keep`.
+    let kept = state
+        .grep(params(vec!["keep".to_string()], GrepOutputMode::FilesWithMatches, None))
+        .await
+        .unwrap();
+    let files = kept["files"].as_array().unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0], "wiki/a.md");
+
+    // Default content output carries lineNumber; `-n: false` omits it.
+    let with_n = state.grep(params(Vec::new(), GrepOutputMode::Content, None)).await.unwrap();
+    assert!(with_n["matches"][0]["lines"][0].get("lineNumber").is_some());
+    let no_n = state.grep(params(Vec::new(), GrepOutputMode::Content, Some(false))).await.unwrap();
+    assert!(no_n["matches"][0]["lines"][0].get("lineNumber").is_none());
 }
 
 #[tokio::test]

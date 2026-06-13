@@ -38,7 +38,7 @@ The motivating use case: organize personal and work information in one searchabl
 | D2 | Source of truth | Files on disk; index derived + rebuildable | Wiki stays usable without the service (grep, git, OneDrive); index rebuild is a normal operation, not a migration. |
 | D3 | Service language | **Rust**, single self-contained exe | Minimal-install requirement: no runtime deps (vs Python/.NET). Repo already builds Rust (`launcher/`, `snip-tool/`). Service speed itself is irrelevant at personal scale — the choice is about deployment ergonomics. |
 | D4 | Index storage | **SQLite + sqlite-vec + FTS5**; one active `.db` per `(model+precision, schema version)` at `.mneme/<modelId>-<precision>-v<modelVer>/index-v<schemaVer>.db` | Zero ops, maintained (sqlite-vec v0.1.9, 2026-03). Hybrid ranking = ~30 lines of app-level RRF. **Versioned path = no migration code**: a model/schema change rebuilds a fresh file; old files kept for reversible switch-back (GC'd by policy / the monitoring UI). Alternative LanceDB noted but heavier; adds nothing at this scale. |
-| D5 | Embedding model | **gte-multilingual-base** ONNX via `ort` — **one artifact for both GPU and CPU** (int8 ~324 MB if it runs on DirectML, else fp16 ~600 MB); the execution provider is a runtime toggle | Multilingual (EN + UK), Apache 2.0. Pluggable embedder; the index `meta` records model **+ precision** — only a model/precision change triggers a rebuild, **not** a GPU↔CPU toggle. Upgrade path: Qwen3-Embedding-0.6B (~620 MB, current MMTEB leader). Use query/passage instruction prefixes from day one; Matryoshka dim-truncation optional. **Verified locally (2026-06-13):** ONNX from `onnx-community/gte-multilingual-base` (int8 340 MB / fp16 628 MB / fp32 1.25 GB); **embed dim 768**, context 8192, vocab 250k, `model_type: new`. |
+| D5 | Embedding model | **gte-multilingual-base** ONNX via `ort` — **one artifact for both GPU and CPU** (int8 ~324 MB if it runs on DirectML, else fp16 ~600 MB); the execution provider is a runtime toggle | Multilingual (EN + UK), Apache 2.0. Pluggable embedder; the index `meta` records model **+ precision** — only a model/precision change triggers a rebuild, **not** a GPU↔CPU toggle. Upgrade path: Qwen3-Embedding-0.6B (~620 MB, current MMTEB leader). **Instruction prefixes: NONE for gte (revised — see Note 2026-06-13 "embedding has no instruction prefix").** gte-multilingual-base is a symmetric GTE encoder (CLS-pool + L2-norm) that uses **no** `query:`/`passage:` prefix — the prefix technique applies to the E5/Qwen families, not the chosen model. The `EmbedKind` query/passage split + empty prefix constants are retained as the upgrade seam for a future asymmetric model. Matryoshka dim-truncation optional. **Verified locally (2026-06-13):** ONNX from `onnx-community/gte-multilingual-base` (int8 340 MB / fp16 628 MB / fp32 1.25 GB); **embed dim 768**, context 8192, vocab 250k, `model_type: new`. |
 | D6 | Embedding locality | Local inference only by default | Privacy — work data must not go to third-party APIs. Azure OpenAI embeddings become an alternative embedder when deployed. |
 | D7 | Search | Hybrid: FTS5 (BM25) + vector top-K, merged with Reciprocal Rank Fusion; metadata filters as SQL predicates | FTS catches exact identifiers/names vector search misses; vector catches paraphrases. Subtree filter = path-prefix match. |
 | D8 | Chunking | By markdown headings, with a size cap | A hit points at a section — better display and better embedding quality than whole-document vectors. |
@@ -171,13 +171,14 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 |----|-------|--------|
 | [US-651](../tasks/US-651-mneme-architecture/README.md) | Mneme — App architecture (process model, components, diagrams, tech choices, integration boundary) | ✅ Design complete |
 | [US-652](../tasks/US-652-mneme-scaffold/README.md) | P1 · Project scaffold + config + Document Store | ✅ Done |
-| [US-653](../tasks/US-653-mneme-index-schema/README.md) | P1 · Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec) | Planned |
-| [US-654](../tasks/US-654-mneme-indexer-watcher/README.md) | P1 · Indexer + watcher + reconcile | Planned |
-| [US-655](../tasks/US-655-mneme-mcp-server/README.md) | P1 · MCP server (Streamable HTTP, loopback, text-search mode) + agent guide | Planned |
+| [US-653](../tasks/US-653-mneme-index-schema/README.md) | P1 · Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec) | Implemented (unreviewed) |
+| [US-654](../tasks/US-654-mneme-indexer-watcher/README.md) | P1 · Indexer + watcher + reconcile | Implemented (unreviewed) |
+| [US-655](../tasks/US-655-mneme-mcp-server/README.md) | P1 · MCP server (Streamable HTTP, loopback, text-search mode) + agent guide | Implemented (unreviewed) |
 | [US-656](../tasks/US-656-mneme-model-provisioner/README.md) | P2 · Model Provisioner (download + sha256 + cache) | Implemented (unreviewed) |
-| [US-657](../tasks/US-657-mneme-embedding-engine/README.md) | P2 · Embedding Engine (`ort`, DirectML→CPU) | Planned |
+| [US-657](../tasks/US-657-mneme-embedding-engine/README.md) | P2 · Embedding Engine (`ort`, DirectML→CPU) | Implemented (unreviewed) |
 | [US-658](../tasks/US-658-mneme-hybrid-search/README.md) | P2 · Hybrid search (sqlite-vec KNN + RRF) | Implemented (unreviewed) |
 | [US-659](../tasks/US-659-mneme-concurrency/README.md) | P2 · Concurrency & responsiveness (worker, WAL, reindex job) | Implemented (unreviewed) |
+| [US-666](../tasks/US-666-mneme-grep-filters-status-resource/README.md) | P1/2 gap · `wiki_grep` tags/dateRange/-n + `mneme://status` resource | Implemented (unreviewed) |
 | US-660 | P3 · Persephone settings + sidecar auto-launch | Planned |
 | US-661 | P4 · `McpConnectionManager` subscription support | Planned |
 | US-662 | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Planned |
@@ -186,6 +187,9 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | US-665 | P6 · Installer + first release | Planned |
 
 ## Notes
+
+### 2026-06-13 — REVISION (post-implementation review): embedding has no instruction prefix
+The original D5 / research line "use query/passage instruction prefixes from day one" was written when the model choice was still generic and the research surveyed prefix-using families (E5, Qwen3). The chosen model — **gte-multilingual-base** — is a **symmetric GTE encoder** (sentence embedding = CLS token, L2-normalized) that takes **no** `query:`/`passage:` prefix; prepending one would *degrade* relevance. The implementation (`embed/mod.rs`) therefore sets both `QUERY_PREFIX` and `PASSAGE_PREFIX` to `""` and keeps the `EmbedKind::Query`/`Passage` split + the two empty constants purely as the **upgrade seam** for a future asymmetric model (e.g. Qwen3). This is the correct behaviour for the chosen model — D5 amended accordingly; the code is **not** a defect.
 
 ### 2026-06-13 — design-review pass: tool contracts, gap resolutions, known risks
 An independent fresh-context review of this epic + US-651 produced these resolutions (all now reflected in US-651):

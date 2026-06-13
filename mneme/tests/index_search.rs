@@ -132,3 +132,37 @@ fn tag_counts_and_docs_with_tag() {
     assert_eq!(logs[0].path, "log/2026/2026-06-13.md");
     assert!(logs[0].tags.contains(&"work".to_string()));
 }
+
+#[test]
+fn docs_matching_filters_by_tag_date_and_subtree() {
+    // `docs_matching` powers wiki_grep's tags/dateRange pre-filter — returns rel-paths.
+    let (_root, db, _c) = populated("idxsearch_docsmatching");
+
+    // No filter → every indexed document.
+    let all = db.docs_matching(&SearchFilter::default()).unwrap();
+    assert_eq!(all.len(), 3);
+
+    // Tag include (AND).
+    let work = db
+        .docs_matching(&SearchFilter { tags: vec!["work".to_string()], ..Default::default() })
+        .unwrap();
+    let mut work = work;
+    work.sort();
+    assert_eq!(work, vec!["a.md".to_string(), "log/2026/2026-06-13.md".to_string()]);
+
+    // Date lower bound excludes a.md (created 2026-01-01); b.md (2026-05-01) stays.
+    let recent = db
+        .docs_matching(&SearchFilter {
+            created_from: Some("2026-04-01".to_string()),
+            ..Default::default()
+        })
+        .unwrap();
+    assert!(!recent.contains(&"a.md".to_string()));
+    assert!(recent.contains(&"b.md".to_string()));
+
+    // Subtree prefix scopes to the daily log.
+    let in_log = db
+        .docs_matching(&SearchFilter { subtree: Some("log".to_string()), ..Default::default() })
+        .unwrap();
+    assert_eq!(in_log, vec!["log/2026/2026-06-13.md".to_string()]);
+}

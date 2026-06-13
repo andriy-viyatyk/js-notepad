@@ -22,6 +22,8 @@ pub struct GrepOptions {
     /// Lines of context before/after each match (Content mode).
     pub context: usize,
     pub output_mode: OutputMode,
+    /// Emit line numbers in Content-mode output (default true).
+    pub line_numbers: bool,
 }
 
 impl Default for GrepOptions {
@@ -30,6 +32,7 @@ impl Default for GrepOptions {
             ignore_case: false,
             context: 0,
             output_mode: OutputMode::FilesWithMatches,
+            line_numbers: true,
         }
     }
 }

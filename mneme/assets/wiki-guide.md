@@ -43,7 +43,9 @@ string replacement for surgical changes. Daily logs live at `log/YYYY/YYYY-MM-DD
 - `wiki_edit { path, old_string, new_string, replace_all? }` — exact replacement.
 - `wiki_delete { path }`.
 - `wiki_glob { pattern, path? }` — find by path/name (`work/**/*.md`).
-- `wiki_grep { pattern, path?, -i?, context?, output_mode? }` — literal/regex content scan.
+- `wiki_grep { pattern, path?, -i?, -n?, context?, output_mode?, tags?, dateRange? }` — literal/regex
+  content scan. `tags`/`dateRange` restrict to matching `.md` documents (frontmatter only); `-n`
+  toggles line numbers in `content` output (default on).
 
 **Search & views**:
 - `wiki_search { query, mode?, subtree?, tags?, excludeTags?, dateRange?, topK? }` — ranked text
@@ -64,4 +66,4 @@ string replacement for surgical changes. Daily logs live at `log/YYYY/YYYY-MM-DD
 
 Read any document or binary attachment by URI via `resources/read`:
 `mneme://{root}/{path}` (text for markdown/UTF-8, base64 blob for binary). This guide is at
-`mneme://guide`.
+`mneme://guide`. A JSON snapshot of `wiki_status` is at `mneme://status`.

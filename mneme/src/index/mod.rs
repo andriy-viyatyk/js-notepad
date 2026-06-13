@@ -397,6 +397,18 @@ impl IndexDb {
         Ok(hits)
     }
 
+    /// Rel-paths (`documents.path`) of every document matching the metadata filter — for callers
+    /// (e.g. `wiki_grep`) that need to restrict a non-FTS scan to tag/date/subtree-matching docs.
+    /// Reuses the shared [`push_filter_sql`] predicates so the filter semantics match `wiki_search`.
+    pub fn docs_matching(&self, filter: &SearchFilter) -> Result<Vec<String>> {
+        let mut sql = String::from("SELECT d.path FROM documents d WHERE 1=1");
+        let mut p: Vec<Value> = Vec::new();
+        push_filter_sql(&mut sql, &mut p, filter);
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params_from_iter(p), |r| r.get::<_, String>(0))?;
+        Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+
     /// FTS lane keeping the internal `doc_id` so the hybrid lane can fuse on it. One row per
     /// document, best-first by bm25 (ascending rank).
     fn text_lane(&self, query: &str, filter: &SearchFilter, limit: usize) -> Result<Vec<(i64, TextHit)>> {
