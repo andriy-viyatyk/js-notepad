@@ -3,9 +3,29 @@
 **Epic:** [EPIC-032 — Mneme](../../epics/EPIC-032.md) · Phase 4 (Persephone content integration)
 **Status:** Planned (design for review)
 **Spans:** Renderer (`src/renderer/`) only
-**Depends on:** [US-670](../US-670-mneme-resource-subscription-emit/README.md) — the Mneme server
-must advertise `resources.subscribe` and emit `resources/updated` / `resources/list_changed` before
-this wiring can be exercised end-to-end.
+**Status:** Implemented — `tsc --noEmit` + `eslint` clean; pending manual smoke
+**Depends on:** [US-670](../US-670-mneme-resource-subscription-emit/README.md) — landed (the Mneme
+server now advertises `resources.subscribe` and emits `resources/updated` / `resources/list_changed`).
+
+## Implementation notes (as built)
+
+All in `src/renderer/editors/mcp-inspector/McpConnectionManager.ts`, composing cleanly with the
+US-671 auto-reconnect:
+
+- `loadSdk()` also loads `ResourceUpdatedNotificationSchema` / `ResourceListChangedNotificationSchema`
+  from `@modelcontextprotocol/sdk/types.js` (module-level refs typed via `typeof import(...)`).
+- New public surface: `subscribeResource(uri)` / `unsubscribeResource(uri)` (idempotent against a
+  `subscriptions: Set<string>`; issue the SDK call when connected, else just record for replay), and
+  `onResourceUpdated(uri)` / `onResourceListChanged()` callbacks (default no-ops, like
+  `onStatusChange`).
+- `connect()` registers both notification handlers **before** `client.connect()` (so an immediate
+  notification isn't missed), and **after** a successful connect replays the subscription set —
+  gated on `serverInfo.capabilities.resources`, each call wrapped in try/catch. Because US-671's
+  auto-reconnect calls `connect()` again, a dropped-and-reconnected session **re-subscribes
+  automatically**.
+- `disconnect()` keeps the set (so reconnect replays); `dispose()` clears it and resets the two
+  callbacks to no-ops.
+- No UI and no other files changed — `MnemeConfigEditorModel` is untouched (the consumer is US-662).
 
 ## Goal
 
@@ -141,15 +161,16 @@ the happy path is unaffected.)
 
 ## Acceptance criteria
 
-- [ ] `McpConnectionManager.subscribeResource(uri)` / `unsubscribeResource(uri)` issue the SDK calls
-      when connected and update the replay set when disconnected.
-- [ ] `onResourceUpdated(uri)` fires on `notifications/resources/updated`; `onResourceListChanged()`
-      fires on `notifications/resources/list_changed`.
-- [ ] After a disconnect + reconnect, prior subscriptions are **re-issued** automatically; `dispose()`
-      clears the set and resets the callbacks.
-- [ ] `tsc --noEmit` and `eslint` are clean.
-- [ ] Manual smoke (optional): against the live Mneme sidecar (US-670 landed), subscribing a doc URI
-      and editing the file on disk triggers `onResourceUpdated` with that URI.
+- [x] `McpConnectionManager.subscribeResource(uri)` / `unsubscribeResource(uri)` issue the SDK calls
+      when connected and update the replay set when disconnected. *(code-complete)*
+- [x] `onResourceUpdated(uri)` fires on `notifications/resources/updated`; `onResourceListChanged()`
+      fires on `notifications/resources/list_changed`. *(handlers registered; verify live)*
+- [x] After a disconnect + reconnect, prior subscriptions are **re-issued** automatically (replay in
+      `connect()`); `dispose()` clears the set and resets the callbacks. *(code-complete)*
+- [x] `tsc --noEmit` and `eslint` are clean.
+- [ ] **Manual smoke (yours):** against the live Mneme sidecar (US-670), subscribing a doc URI and
+      editing the file on disk triggers `onResourceUpdated` with that URI — e.g. via an
+      `execute_script` snippet, since there's no UI consumer until US-662.
 
 > **Renderer task** — in scope for `/review`; run `/document` only if a developer-doc pointer is
 > warranted; `/userdoc` only if user-facing behavior changes (it does not here — no UI). **Epic

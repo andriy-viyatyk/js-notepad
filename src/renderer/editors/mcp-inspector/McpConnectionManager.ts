@@ -46,6 +46,9 @@ export interface McpServerInfo {
 let ClientClass: typeof Client;
 let StreamableHTTPClientTransportClass: typeof StreamableHTTPClientTransport;
 let StdioClientTransportClass: typeof StdioClientTransport;
+// Notification schemas for resource subscriptions (US-661); loaded alongside the client.
+let ResourceUpdatedNotificationSchemaRef: typeof import("@modelcontextprotocol/sdk/types.js").ResourceUpdatedNotificationSchema;
+let ResourceListChangedNotificationSchemaRef: typeof import("@modelcontextprotocol/sdk/types.js").ResourceListChangedNotificationSchema;
 
 function loadSdk(): void {
     if (ClientClass) return;
@@ -53,6 +56,9 @@ function loadSdk(): void {
     ClientClass = require("@modelcontextprotocol/sdk/client/index.js").Client;
     StreamableHTTPClientTransportClass = require("@modelcontextprotocol/sdk/client/streamableHttp.js").StreamableHTTPClientTransport;
     StdioClientTransportClass = require("@modelcontextprotocol/sdk/client/stdio.js").StdioClientTransport;
+    const types = require("@modelcontextprotocol/sdk/types.js");
+    ResourceUpdatedNotificationSchemaRef = types.ResourceUpdatedNotificationSchema;
+    ResourceListChangedNotificationSchemaRef = types.ResourceListChangedNotificationSchema;
     /* eslint-enable @typescript-eslint/no-require-imports */
 }
 
@@ -71,9 +77,15 @@ export class McpConnectionManager {
     private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     /** Index into the backoff schedule; reset to 0 on a successful connect. */
     private _reconnectAttempt = 0;
+    /** Resource URIs to (re)subscribe on connect; survives reconnects, cleared on dispose (US-661). */
+    private subscriptions = new Set<string>();
 
     /** Callback fired whenever connection status changes. */
     onStatusChange: (status: McpConnectionStatus, error?: string) => void = () => {};
+    /** Fired when the server emits notifications/resources/updated for a subscribed URI (US-661). */
+    onResourceUpdated: (uri: string) => void = () => {};
+    /** Fired when the server emits notifications/resources/list_changed (US-661). */
+    onResourceListChanged: () => void = () => {};
 
     get status(): McpConnectionStatus { return this._status; }
     get serverInfo(): McpServerInfo | null { return this._serverInfo; }
@@ -82,6 +94,32 @@ export class McpConnectionManager {
     /** Returns the connected MCP Client instance, or null if disconnected. */
     getClient(): Client | null {
         return this._status === "connected" ? this.client : null;
+    }
+
+    /** Subscribe to a resource URI's `resources/updated` notifications (US-661). The URI is
+     *  remembered and re-subscribed on every (re)connect; calling while disconnected just records
+     *  it for replay. Failures (missing capability / unknown doc) are swallowed. */
+    async subscribeResource(uri: string): Promise<void> {
+        this.subscriptions.add(uri);
+        if (this._status === "connected" && this.client) {
+            try {
+                await this.client.subscribeResource({ uri });
+            } catch {
+                // Missing capability or unknown doc — keep it in the set for a later replay.
+            }
+        }
+    }
+
+    /** Stop receiving `resources/updated` for a URI and drop it from the replay set (US-661). */
+    async unsubscribeResource(uri: string): Promise<void> {
+        this.subscriptions.delete(uri);
+        if (this._status === "connected" && this.client) {
+            try {
+                await this.client.unsubscribeResource({ uri });
+            } catch {
+                // Best-effort — the connection may already be gone.
+            }
+        }
     }
 
     async connect(config: McpConnectionConfig): Promise<void> {
@@ -132,6 +170,15 @@ export class McpConnectionManager {
                 { capabilities: {} },
             );
 
+            // Resource-subscription notifications (US-661) — register before connect so a
+            // notification arriving immediately after the stream opens isn't missed.
+            this.client.setNotificationHandler(ResourceUpdatedNotificationSchemaRef, (n) => {
+                this.onResourceUpdated(n.params.uri);
+            });
+            this.client.setNotificationHandler(ResourceListChangedNotificationSchemaRef, () => {
+                this.onResourceListChanged();
+            });
+
             // Wire transport close/error events
             const origOnClose = this.transport.onclose;
             this.transport.onclose = () => {
@@ -172,6 +219,18 @@ export class McpConnectionManager {
                 },
             };
 
+            // Replay subscriptions across (re)connects — the prior Client was destroyed on
+            // disconnect, and an auto-reconnect (US-671) lands here too (US-661).
+            if (this.subscriptions.size > 0 && this._serverInfo.capabilities.resources) {
+                for (const uri of this.subscriptions) {
+                    try {
+                        await this.client.subscribeResource({ uri });
+                    } catch {
+                        // The doc may no longer exist, or the server lacks the capability — skip.
+                    }
+                }
+            }
+
             this._reconnectAttempt = 0;
             this.setStatus("connected");
         } catch (err) {
@@ -208,7 +267,10 @@ export class McpConnectionManager {
 
     async dispose(): Promise<void> {
         await this.disconnect();
+        this.subscriptions.clear();
         this.onStatusChange = () => {};
+        this.onResourceUpdated = () => {};
+        this.onResourceListChanged = () => {};
     }
 
     /** On an unexpected transport drop (not an intentional disconnect/dispose), retry the last
