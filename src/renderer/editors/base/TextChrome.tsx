@@ -10,7 +10,17 @@ import { Spacer } from "../../uikit/Spacer/Spacer";
 import { Divider } from "../../uikit/Divider/Divider";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { Button } from "../../uikit/Button/Button";
-import { CompareIcon, RunAllIcon, RunIcon, WebScraperIcon } from "../../theme/icons";
+import {
+    ArchiveIcon,
+    CompareIcon,
+    FolderOpenIcon,
+    GlobeIcon,
+    MemoryIcon,
+    RunAllIcon,
+    RunIcon,
+    WebScraperIcon,
+} from "../../theme/icons";
+import { DEFAULT_BROWSER_COLOR, MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 import { pagesModel } from "../../api/pages";
 import { ui } from "../../api/ui";
 import { isScriptLanguage } from "../../scripting/transpile";
@@ -111,6 +121,7 @@ export function TextChrome({
                     <Spacer />
                     {footerContributions}
                     <Divider orientation="vertical" />
+                    <ProviderIcon host={textHost} />
                     <EncodingLabel host={textHost} />
                 </EditorToolbar>
             )}
@@ -218,6 +229,37 @@ function EncodingLabel({ host }: { host: TextFileModel }) {
     return (
         <span style={{ color: color.text.light, padding: "0 4px", fontSize: 13 }}>
             {encoding || "utf-8"}
+        </span>
+    );
+}
+
+/** Base icon for the pipe's provider; cache/data/no-pipe render nothing. */
+const PROVIDER_META: Record<string, { label: string; render: () => ReactNode }> = {
+    file: { label: "Local file", render: () => <FolderOpenIcon width={16} height={16} color={color.text.light} /> },
+    http: { label: "HTTP", render: () => <GlobeIcon width={16} height={16} color={DEFAULT_BROWSER_COLOR} /> },
+    mneme: { label: "Mneme", render: () => <MemoryIcon width={16} height={16} color={MEMORY_ICON_COLOR} /> },
+};
+
+/** Provider badge shown before the encoding: a base provider icon, plus an
+ *  archive icon when the pipe carries an ArchiveTransformer (an archive entry
+ *  is a FileProvider + ArchiveTransformer, not a provider of its own). */
+function ProviderIcon({ host }: { host: TextFileModel }) {
+    // Touch state so the footer re-renders normally; pipe is stable per page.
+    host.state.use((s) => s.filePath);
+    const pipe = host.pipe;
+    if (!pipe) return null;
+
+    const meta = PROVIDER_META[pipe.provider.type];
+    const isArchive = pipe.transformers.some((t) => t.type === "archive");
+    if (!meta && !isArchive) return null;
+
+    const title = [meta?.label, isArchive ? "Archive" : null].filter(Boolean).join(" · ")
+        + (pipe.provider.sourceUrl ? ` — ${pipe.provider.sourceUrl}` : "");
+
+    return (
+        <span title={title} style={{ display: "inline-flex", alignItems: "center", gap: 2, padding: "0 2px" }}>
+            {meta?.render()}
+            {isArchive && <ArchiveIcon width={16} height={16} />}
         </span>
     );
 }

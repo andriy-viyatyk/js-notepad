@@ -7,6 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
+- [ ] [US-672: Provider icon in the text-editor footer](tasks/US-672-provider-icon-footer/README.md) *(design for review)*
 - **EPIC-032** — [Mneme — Wiki / Vector Memory service](epics/EPIC-032.md) *(design locked — implementing in phases)*
   - [ ] [US-651: Mneme — App architecture](tasks/US-651-mneme-architecture/README.md)
   - [x] [US-652: [Phase 1] Project scaffold + config + Document Store](tasks/US-652-mneme-scaffold/README.md)
