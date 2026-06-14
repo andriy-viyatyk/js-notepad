@@ -2,8 +2,10 @@
 //!
 //! On each debounced batch of filesystem events (after a coarse ignore filter), it locks the
 //! root's [`IndexDb`] and runs [`reconcile_root`] — the authoritative sync. The watcher only
-//! needs to (a) avoid self-trigger and (b) wake a reconcile; it does **not** decide
-//! per-file indexability (the reconcile's `walk_root` is authoritative — US-654 Concern 3).
+//! needs to (a) avoid self-trigger, (b) wake a reconcile, and (c) hand changed
+//! `mneme://{root}/{path}` URIs to the MCP subscription fan-out (US-670, via an optional
+//! [`WatchNotifier`]); it does **not** decide per-file indexability (the reconcile's `walk_root`
+//! is authoritative — US-654 Concern 3).
 //!
 //! **Self-trigger guard (Concern 2):** the per-root index lives at `<root>/.mneme/…` and, in
 //! WAL mode, SQLite continuously writes `*.db-wal`/`*.db-shm` *inside the watched tree*.
@@ -14,7 +16,8 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use notify_debouncer_full::notify::RecursiveMode;
+use notify_debouncer_full::notify::event::ModifyKind;
+use notify_debouncer_full::notify::{EventKind, RecursiveMode};
 use notify_debouncer_full::{new_debouncer, DebounceEventResult};
 use tokio_util::sync::CancellationToken;
 
@@ -23,6 +26,7 @@ use crate::embed::EmbedHandle;
 use crate::error::Result;
 use crate::index::RootIndex;
 use crate::indexer::JobManager;
+use crate::mcp::subscriptions::WatchNotifier;
 use crate::store::DEFAULT_IGNORES;
 
 /// Debounce window — coalesces a burst (e.g. a `git pull`) into a single reconcile (US-651).
@@ -49,6 +53,7 @@ impl RootWatcher {
         embed: EmbedHandle,
         jobs: Arc<JobManager>,
         cancel: CancellationToken,
+        notifier: Option<WatchNotifier>,
     ) -> Result<Self> {
         let watch_path = root.folder.clone();
         let folder = root.folder.clone();
@@ -56,18 +61,54 @@ impl RootWatcher {
             let trigger = || jobs.reconcile_coalesced(&index, &root, &embed, cancel.clone());
             match result {
                 Ok(events) => {
-                    let relevant = events
-                        .iter()
-                        .any(|ev| ev.paths.iter().any(|p| !is_watch_ignored(&folder, p)));
+                    // Walk the batch once: collect the (deduped) changed resource URIs to notify
+                    // subscribers (US-670) and decide whether the document set changed structurally.
+                    let mut relevant = false;
+                    let mut structural = false;
+                    for ev in &events {
+                        for p in &ev.paths {
+                            if is_watch_ignored(&folder, p) {
+                                continue;
+                            }
+                            relevant = true;
+                            if let Some(n) = &notifier {
+                                if let Ok(rel) = p.strip_prefix(&folder) {
+                                    let uri = format!(
+                                        "mneme://{}/{}",
+                                        root.name,
+                                        rel.to_string_lossy().replace('\\', "/")
+                                    );
+                                    n.updated(uri);
+                                }
+                            }
+                        }
+                        if matches!(
+                            ev.kind,
+                            EventKind::Create(_)
+                                | EventKind::Remove(_)
+                                | EventKind::Modify(ModifyKind::Name(_))
+                        ) {
+                            structural = true;
+                        }
+                    }
                     if relevant {
+                        if structural {
+                            if let Some(n) = &notifier {
+                                n.list_changed();
+                            }
+                        }
                         trigger();
                     }
                 }
                 Err(errors) => {
                     // A watch error (incl. buffer overflow / rescan) is recoverable — reconcile
-                    // to resync rather than trusting incremental events, and keep watching.
+                    // to resync rather than trusting incremental events, and keep watching. The
+                    // document set may have shifted, so nudge subscribers to re-list (US-670).
                     for e in &errors {
                         tracing::warn!(root = %root.name, "watch error: {e}");
+                    }
+                    if let Some(n) = &notifier {
+                        n.list_changed();
                     }
                     trigger();
                 }

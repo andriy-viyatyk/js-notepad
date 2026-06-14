@@ -2,8 +2,10 @@
 //! `mneme://` resources over **Streamable HTTP**, bound to loopback. `wiki_search` serves text /
 //! vector / hybrid modes (US-657/658); `wiki_reindex` is a cancellable, progress-emitting job
 //! driven through the [`JobManager`] (US-659) — query embeds run at interactive priority on the
-//! shared worker, reads use each root's connection pool. Resource subscriptions are not yet
-//! advertised (US-661/662).
+//! shared worker, reads use each root's connection pool. Resource subscriptions (US-670) are
+//! advertised and emitted: the watcher derives changed `mneme://{root}/{path}` URIs and an async
+//! fan-out task pushes `resources/updated` / `resources/list_changed` to subscribed sessions (see
+//! [`subscriptions`]).
 //!
 //! The tool *logic* lives on [`ServerState`] as plain async methods (callable directly in
 //! tests, no HTTP); [`server::MnemeServer`] is the thin rmcp adapter. Every fs/SQLite call runs
@@ -13,13 +15,17 @@
 pub mod params;
 pub mod results;
 mod server;
+pub mod subscriptions;
 
 pub use server::{serve, MnemeServer};
 
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
+
+use self::subscriptions::{SubscriptionRegistry, WatchEvent, WatchNotifier};
+use tokio::sync::mpsc::UnboundedReceiver;
 use std::time::SystemTime;
 
 use base64::Engine;
@@ -58,6 +64,13 @@ pub struct ServerState {
     /// Tracks the single background model-download job so `wiki_model_update` returns immediately
     /// and `wiki_status.model.download` can report progress.
     model_job: Arc<ModelJob>,
+    /// Resource-subscription registry (US-670). Shared across all per-session handlers and the
+    /// watcher fan-out task; maps a session id → its peer + subscribed URIs.
+    subscriptions: Arc<SubscriptionRegistry>,
+    /// Monotonic session-id source — each `MnemeServer` (one per MCP session) claims one in `new`.
+    next_session: AtomicU64,
+    /// Receiver end of the watcher→fan-out channel; claimed once by `spawn_fanout` at serve start.
+    watch_rx: Mutex<Option<UnboundedReceiver<WatchEvent>>>,
 }
 
 /// Background model-download job state. `run_lock` serializes downloads; `in_flight` gates a second
@@ -82,7 +95,11 @@ impl ServerState {
     pub fn new(cfg: Config, config_path: PathBuf) -> Result<Arc<Self>> {
         let store = DocumentStore::open(&cfg)?;
         let embedder = LazyEmbedder::new(cfg.clone());
-        let index = IndexManager::start(store.registry().configs(), &cfg.model, embedder)?;
+        // Wire the watcher's resource-change fan-out (US-670): the watcher sends changed URIs on
+        // this channel; `spawn_fanout` drains it into the subscription registry at serve start.
+        let (notifier, watch_rx) = WatchNotifier::new();
+        let index =
+            IndexManager::start(store.registry().configs(), &cfg.model, embedder, Some(notifier))?;
         let embed = index.embed_handle();
         let jobs = index.jobs();
         let model = cfg.model.clone();
@@ -95,7 +112,37 @@ impl ServerState {
             embed,
             jobs,
             model_job: Arc::new(ModelJob::default()),
+            subscriptions: Arc::new(SubscriptionRegistry::default()),
+            next_session: AtomicU64::new(0),
+            watch_rx: Mutex::new(Some(watch_rx)),
         }))
+    }
+
+    /// Claim a unique session id for a new `MnemeServer` (one per MCP session).
+    pub fn next_session_id(&self) -> u64 {
+        self.next_session.fetch_add(1, Ordering::Relaxed)
+    }
+
+    /// The shared resource-subscription registry (US-670).
+    pub fn subscriptions(&self) -> Arc<SubscriptionRegistry> {
+        Arc::clone(&self.subscriptions)
+    }
+
+    /// Spawn the watcher→subscriber fan-out task (US-670). Idempotent: the receiver is taken once;
+    /// subsequent calls are no-ops. Must run inside the tokio runtime (called from `serve`).
+    pub fn spawn_fanout(self: &Arc<Self>) {
+        let Some(mut rx) = self.watch_rx.lock().unwrap().take() else {
+            return;
+        };
+        let subs = Arc::clone(&self.subscriptions);
+        tokio::spawn(async move {
+            while let Some(ev) = rx.recv().await {
+                match ev {
+                    WatchEvent::Updated(uri) => subs.notify_updated(&uri).await,
+                    WatchEvent::ListChanged => subs.notify_list_changed().await,
+                }
+            }
+        });
     }
 
     /// Build the full model status (`status()` + live download progress derived from the

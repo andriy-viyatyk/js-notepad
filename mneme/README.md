@@ -65,7 +65,9 @@ management `wiki_add_root`/
 `wiki_model_update` (downloads/verifies the configured model — synchronous, may take minutes on
 first run). Resources: documents/attachments at `mneme://{root}/{path}` (text or base64 blob), the
 agent guide at `mneme://guide`, and a JSON `wiki_status` snapshot at `mneme://status`. Resource
-subscriptions are not advertised yet (US-661/662).
+subscriptions are advertised (`resources.subscribe` + `listChanged`): subscribe to a document URI
+and the always-on watcher emits `notifications/resources/updated { uri }` when that file changes on
+disk; add/remove/rename emit `notifications/resources/list_changed`.
 
 ## Model provisioning (US-656)
 

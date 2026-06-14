@@ -29,6 +29,7 @@ use crate::embed::{EmbedHandle, EmbedWorker, Embedder, LazyEmbedder, Priority};
 use crate::error::Result;
 use crate::index::{content_hash, IndexDb, RootIndex};
 use crate::markdown::parse_document;
+use crate::mcp::subscriptions::WatchNotifier;
 use crate::store::walk_root;
 use crate::watcher::RootWatcher;
 
@@ -391,6 +392,9 @@ pub struct IndexManager {
     cancel: CancellationToken,
     /// Held so the worker thread isn't dropped while handles are live.
     _worker: EmbedWorker,
+    /// Resource-change fan-out for MCP subscriptions (US-670). `None` for the CLI `reindex`/`watch`
+    /// commands and tests that don't serve MCP; `Some` only on the `serve` path.
+    watch_notifier: Option<WatchNotifier>,
 }
 
 impl IndexManager {
@@ -411,6 +415,7 @@ impl IndexManager {
             jobs: JobManager::new(),
             cancel: CancellationToken::new(),
             _worker: worker,
+            watch_notifier: None,
         })
     }
 
@@ -480,6 +485,7 @@ impl IndexManager {
                     self.embed.clone(),
                     Arc::clone(&self.jobs),
                     self.cancel.clone(),
+                    self.watch_notifier.clone(),
                 )?;
                 self.watchers.insert(r.name.clone(), watcher);
             }
@@ -497,6 +503,7 @@ impl IndexManager {
             self.embed.clone(),
             Arc::clone(&self.jobs),
             self.cancel.clone(),
+            self.watch_notifier.clone(),
         )?;
         self.watchers.insert(cfg.name.clone(), watcher);
         self.dbs.insert(cfg.name.clone(), Arc::clone(&ri));
@@ -538,6 +545,7 @@ impl IndexManager {
             self.embed.clone(),
             Arc::clone(&self.jobs),
             self.cancel.clone(),
+            self.watch_notifier.clone(),
         )?;
         self.watchers.insert(name.to_string(), watcher);
         Ok(ri)
@@ -603,9 +611,17 @@ impl IndexManager {
         });
     }
 
-    /// Convenience for `serve`: open + start watchers + spawn the deferred reconcile.
-    pub fn start(roots: &[RootConfig], model: &ModelConfig, embedder: Arc<LazyEmbedder>) -> Result<Self> {
+    /// Convenience for `serve`: open + start watchers + spawn the deferred reconcile. `notifier`
+    /// wires the watcher's MCP resource-change fan-out (US-670); pass `None` for the CLI
+    /// `watch`/`reindex` commands and tests that don't serve MCP.
+    pub fn start(
+        roots: &[RootConfig],
+        model: &ModelConfig,
+        embedder: Arc<LazyEmbedder>,
+        notifier: Option<WatchNotifier>,
+    ) -> Result<Self> {
         let mut mgr = Self::open(roots, model, embedder)?;
+        mgr.watch_notifier = notifier;
         mgr.start_watchers()?;
         mgr.spawn_deferred_reconcile();
         Ok(mgr)

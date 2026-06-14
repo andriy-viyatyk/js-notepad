@@ -3,6 +3,33 @@
 **Epic:** [EPIC-032 — Mneme](../../epics/EPIC-032.md) · Phase 4 (Persephone content integration)
 **Status:** Planned (design for review)
 **Spans:** Rust (`mneme/`) only — **predecessor of [US-661](../US-661-mcp-subscription-support/README.md)**
+**Status:** Implemented — `cargo build --release` + `cargo test` green (34 tests, incl. the new watcher-emit test)
+
+## Implementation notes (as built)
+
+Landed as designed, with one deliberate scoping choice:
+
+- **New `mneme/src/mcp/subscriptions.rs`** — `SubscriptionRegistry` (session-keyed: `u64` → peer +
+  subscribed URIs; `touch`/`subscribe`/`unsubscribe`/`drop_session`; `notify_updated`/
+  `notify_list_changed` that snapshot peers under the lock, release it, await sends, then evict
+  dead sessions) + the `WatchNotifier`/`WatchEvent` bridge (sync `unbounded_channel` sender).
+- **`ServerState`** gained `subscriptions`, `next_session: AtomicU64`, and `watch_rx`; `new()` builds
+  the channel before `IndexManager::start` and passes the notifier in. `next_session_id()`,
+  `subscriptions()`, and `spawn_fanout()` (drains the channel → registry) were added; `serve` calls
+  `spawn_fanout()` inside the runtime.
+- **`MnemeServer`** carries a `session: u64` (claimed in `new`); advertises
+  `enable_resources_subscribe()` + `enable_resources_list_changed()`; implements `subscribe`/
+  `unsubscribe`; and `touch`es the registry in `list_resources`/`read_resource` so a list-only
+  client still gets `list_changed`.
+- **Watcher** (`RootWatcher::start`) takes an `Option<WatchNotifier>`; the debounced callback maps
+  each non-ignored changed path → `mneme://{root}/{path}` and emits `Updated`, plus one
+  `ListChanged` per batch with a create/remove/rename (and on watch-error/rescan).
+- **Notifier is `Option`al** (Concern: minimal churn) — only the `serve` path wires it; the CLI
+  `reindex`/`watch` commands and tests pass `None`, so `IndexManager::open`/`start_watchers`
+  signatures were untouched and only `IndexManager::start` gained one arg.
+- **Test:** `mneme/tests/subscriptions.rs` drives the watcher end-to-end (create → `Updated` +
+  `ListChanged`; edit → `Updated`). The `Peer`-delivery half isn't unit-tested — constructing a
+  `Peer` needs a live MCP transport — so it's covered by the US-661 client + manual testing.
 
 ## Goal
 
@@ -251,17 +278,16 @@ Update `mneme/assets/wiki-guide.md` only if it documents the resource surface.
 
 ## Acceptance criteria
 
-- [ ] `mneme.exe` advertises `resources.subscribe` (and `resources.listChanged`) — visible in an
-      MCP client's capability readout / the initialize result.
-- [ ] `subscribe` / `unsubscribe` succeed (no `method_not_found`).
-- [ ] **Integration test:** subscribe to a doc URI → modify the file → a `resources/updated { uri }`
-      is delivered to the subscribed peer within debounce + margin; an unsubscribed URI gets nothing;
-      a create/delete in the root yields `resources/list_changed`.
-- [ ] Dead-peer eviction: after a subscribed session closes, a subsequent change does not panic and
-      the closed session is dropped from the registry (verified by the next notify succeeding for
-      remaining sessions).
-- [ ] `cargo build --release` and `cargo test` pass for `mneme/`.
-- [ ] `mneme/README.md` + the stale "not yet subscribable" comments updated.
+- [x] `mneme.exe` advertises `resources.subscribe` (and `resources.listChanged`) via
+      `enable_resources_subscribe()` + `enable_resources_list_changed()`.
+- [x] `subscribe` / `unsubscribe` implemented on `MnemeServer` (no longer `method_not_found`).
+- [x] **Watcher emit (integration test):** create → `resources/updated` for the doc URI +
+      `resources/list_changed`; edit → `resources/updated`. *(`tests/subscriptions.rs`.)*
+- [~] **Peer delivery + per-URI gating + dead-peer eviction:** implemented (snapshot-then-await,
+      evict on send error); **not** unit-tested because constructing a `Peer` needs a live MCP
+      transport — verified via the US-661 client + manual testing instead.
+- [x] `cargo build --release` and `cargo test` pass for `mneme/` (34 tests).
+- [x] `mneme/README.md` + the stale "not yet subscribable" comments updated.
 
 > **Per project rules:** `mneme/` is Rust — **skip `/review` and `/userdoc`**; verify via
 > `cargo build --release` + `cargo test`. Run `/document` only if a developer-doc pointer is

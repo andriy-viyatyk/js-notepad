@@ -22,7 +22,8 @@ use super::{ResourceBody, ServerState};
 
 const GUIDE: &str = include_str!("../../assets/wiki-guide.md");
 const GUIDE_URI: &str = "mneme://guide";
-/// Readable (not yet subscribable — US-661/662) snapshot of `wiki_status` as JSON.
+/// Readable snapshot of `wiki_status` as JSON. (Subscriptions, US-670, fire for document URIs
+/// `mneme://{root}/{path}` via the watcher — not for this synthetic status resource.)
 const STATUS_URI: &str = "mneme://status";
 
 const INSTRUCTIONS: &str = "\
@@ -38,13 +39,18 @@ mneme://guide for the full tool reference.";
 pub struct MnemeServer {
     state: Arc<ServerState>,
     tool_router: ToolRouter<MnemeServer>,
+    /// Stable id for this MCP session (US-670) — keys its resource subscriptions in the registry.
+    /// `#[derive(Clone)]` copies it, so rmcp-internal clones stay the same session.
+    session: u64,
 }
 
 impl MnemeServer {
     pub fn new(state: Arc<ServerState>) -> Self {
+        let session = state.next_session_id();
         Self {
             state,
             tool_router: Self::tool_router(),
+            session,
         }
     }
 }
@@ -195,6 +201,10 @@ impl ServerHandler for MnemeServer {
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
+                // Live refresh (US-670): clients subscribe to mneme://{root}/{path}; the watcher
+                // emits resources/updated, and add/remove/rename emit resources/list_changed.
+                .enable_resources_subscribe()
+                .enable_resources_list_changed()
                 .build(),
         )
         .with_server_info(
@@ -206,8 +216,11 @@ impl ServerHandler for MnemeServer {
     async fn list_resources(
         &self,
         _request: Option<PaginatedRequestParams>,
-        _ctx: RequestContext<RoleServer>,
+        ctx: RequestContext<RoleServer>,
     ) -> std::result::Result<ListResourcesResult, McpError> {
+        // Register this session's peer so it receives resources/list_changed broadcasts even if it
+        // never subscribes to a specific document (US-670 — e.g. a tree view).
+        self.state.subscriptions().touch(self.session, &ctx.peer);
         let guide = RawResource::new(GUIDE_URI, "Mneme wiki agent guide").no_annotation();
         let status = RawResource::new(STATUS_URI, "Mneme service status").no_annotation();
         Ok(ListResourcesResult::with_all_items(vec![guide, status]))
@@ -235,8 +248,9 @@ impl ServerHandler for MnemeServer {
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
-        _ctx: RequestContext<RoleServer>,
+        ctx: RequestContext<RoleServer>,
     ) -> std::result::Result<ReadResourceResult, McpError> {
+        self.state.subscriptions().touch(self.session, &ctx.peer);
         let uri = request.uri;
         if uri == GUIDE_URI {
             return Ok(ReadResourceResult::new(vec![ResourceContents::text(GUIDE, uri)]));
@@ -265,6 +279,29 @@ impl ServerHandler for MnemeServer {
         };
         Ok(ReadResourceResult::new(vec![contents]))
     }
+
+    async fn subscribe(
+        &self,
+        request: SubscribeRequestParams,
+        ctx: RequestContext<RoleServer>,
+    ) -> std::result::Result<(), McpError> {
+        // Record (session, uri) → peer; the watcher fan-out pushes resources/updated for it (US-670).
+        self.state
+            .subscriptions()
+            .subscribe(self.session, &ctx.peer, request.uri);
+        Ok(())
+    }
+
+    async fn unsubscribe(
+        &self,
+        request: UnsubscribeRequestParams,
+        _ctx: RequestContext<RoleServer>,
+    ) -> std::result::Result<(), McpError> {
+        self.state
+            .subscriptions()
+            .unsubscribe(self.session, &request.uri);
+        Ok(())
+    }
 }
 
 /// Run the MCP server over Streamable HTTP on `bind:port` (loopback). Builds a tokio runtime
@@ -277,6 +314,8 @@ pub fn serve(cfg: Config, config_path: PathBuf, bind: &str, port: u16) -> crate:
     let bind = bind.to_string();
     rt.block_on(async move {
         let state = ServerState::new(cfg, config_path)?;
+        // Start the watcher→subscriber fan-out (US-670) now that we're inside the tokio runtime.
+        state.spawn_fanout();
         let service = StreamableHttpService::new(
             {
                 let state = Arc::clone(&state);

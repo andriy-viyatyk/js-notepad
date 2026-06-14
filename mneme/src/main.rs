@@ -215,7 +215,7 @@ fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
         Command::Watch => {
             let roots = store.registry().configs();
             let embedder = LazyEmbedder::new(cfg.clone());
-            let _mgr = IndexManager::start(roots, &cfg.model, embedder)?;
+            let _mgr = IndexManager::start(roots, &cfg.model, embedder, None)?;
             eprintln!(
                 "mneme watch: watching {} root(s); press Ctrl-C to stop.",
                 roots.len()

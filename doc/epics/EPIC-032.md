@@ -184,7 +184,7 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | [US-666](../tasks/US-666-mneme-grep-filters-status-resource/README.md) | P1/2 gap · `wiki_grep` tags/dateRange/-n + `mneme://status` resource (+ FTS heading/title indexing, server identity, tool-description examples) | ✅ Done |
 | [US-660](../tasks/US-660-mneme-settings-sidecar/README.md) | P3 · Persephone settings + sidecar auto-launch | Implemented (unreviewed) |
 | [US-671](../tasks/US-671-mcp-connection-auto-reconnect/README.md) | Bug · MCP connection auto-reconnect (Mneme editor drops to "Disconnected" after ~5 min; SSE session drop + SDK gives up after 2 retries) | Planned (not started) |
-| [US-670](../tasks/US-670-mneme-resource-subscription-emit/README.md) | P4 prereq · *(Mneme, Rust)* resource-subscription emit (capability + subscribe/unsubscribe + watcher fan-out) — **blocks US-661** | Planned (design for review) |
+| [US-670](../tasks/US-670-mneme-resource-subscription-emit/README.md) | P4 prereq · *(Mneme, Rust)* resource-subscription emit (capability + subscribe/unsubscribe + watcher fan-out) — **blocks US-661** | Implemented (unreviewed) |
 | [US-661](../tasks/US-661-mcp-subscription-support/README.md) | P4 · `McpConnectionManager` subscription support (client wiring) — **needs US-670** | Planned (design for review) |
 | US-662 | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Planned |
 | US-663 | P4 · `MnemeTreeProvider` + Explorer-like sidebar panel | Planned |
