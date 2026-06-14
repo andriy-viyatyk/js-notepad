@@ -108,7 +108,7 @@ impl MnemeServer {
         structured(self.state.search(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Category/document tree as a flat depth-first list of {uri,name,isDir,depth}; path scopes to a {root} or sub-category (e.g. personal or personal/contacts). Example: wiki_tree {"path":"personal/contacts"} → {"entries":[{"uri":"mneme://personal/contacts","name":"contacts","isDir":true,"depth":0},{"uri":"mneme://personal/contacts/jane.md","name":"jane.md","isDir":false,"depth":1}]}"##)]
+    #[tool(description = r##"Category/document tree as a flat depth-first list of {uri,name,isDir,depth} (depth = absolute slash count of the address); path scopes to a {root} or sub-category (e.g. personal or personal/contacts); optional depth limits levels below path (1 = the path node + its immediate children; omit for the whole subtree). Example: wiki_tree {"path":"personal/contacts","depth":1} → {"entries":[{"uri":"mneme://personal/contacts","name":"contacts","isDir":true,"depth":1},{"uri":"mneme://personal/contacts/jane.md","name":"jane.md","isDir":false,"depth":2}]}"##)]
     async fn wiki_tree(&self, Parameters(p): Parameters<TreeParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.tree(p).await.map_err(to_mcp)?)
     }

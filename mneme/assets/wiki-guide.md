@@ -52,7 +52,8 @@ string replacement for surgical changes. Daily logs live at `log/YYYY/YYYY-MM-DD
 - `wiki_search { query, mode?, subtree?, tags?, excludeTags?, dateRange?, topK? }` — ranked text
   search → `{ uri, title, tags, snippet, score }` (one per document; `score` is bm25, lower is
   better). `mode` defaults to `text`; `vector`/`hybrid` return text results with a note here.
-- `wiki_tree { path? }` — flat depth-first `{ uri, name, isDir, depth }`.
+- `wiki_tree { path?, depth? }` — flat depth-first `{ uri, name, isDir, depth }` (`depth` = absolute slash
+  count). The `depth` arg limits levels below `path` (`1` = path node + immediate children; omit = whole subtree).
 - `wiki_timeline { tags?, from?, to?, subtree? }` — daily-log feed, newest first.
 - `wiki_tags { subtree? }` — distinct tags + counts.
 

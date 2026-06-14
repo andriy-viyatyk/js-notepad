@@ -382,6 +382,15 @@ impl ServerState {
         let st = Arc::clone(self);
         blocking(move || {
             let addrs = { st.store.read().unwrap().list(p.path.as_deref())? };
+            // Cap on the absolute depth (slash count) to emit. `depth` is relative to the requested
+            // `path`, so add the path's own depth as the base; `None` = unbounded (full subtree).
+            // NOTE: we still list the whole subtree and filter here — fine for the local store; a
+            // future remote/Azure backend should push this limit into `store.list` to enumerate
+            // shallowly instead.
+            let max_depth = p.depth.map(|d| {
+                let base = p.path.as_deref().map_or(0, |s| s.matches('/').count());
+                base + d
+            });
             // BTreeMap iterates keys sorted → DFS pre-order (a dir sorts before its children).
             let mut nodes: BTreeMap<String, bool> = BTreeMap::new();
             for addr in &addrs {
@@ -393,15 +402,18 @@ impl ServerState {
             }
             let entries = nodes
                 .into_iter()
-                .map(|(path, is_dir)| {
+                .filter_map(|(path, is_dir)| {
                     let depth = path.matches('/').count();
+                    if max_depth.is_some_and(|max| depth > max) {
+                        return None;
+                    }
                     let name = path.rsplit('/').next().unwrap_or(&path).to_string();
-                    TreeEntry {
+                    Some(TreeEntry {
                         uri: format!("mneme://{path}"),
                         name,
                         is_dir,
                         depth,
-                    }
+                    })
                 })
                 .collect();
             Ok(TreeResult { entries })

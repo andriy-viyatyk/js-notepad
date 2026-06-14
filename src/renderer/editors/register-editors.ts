@@ -89,6 +89,13 @@ secondaryViewRegistry.register({
     loadComponent: () => import("./file-diff/GitDiffRevisionsSecondaryView"),
 });
 
+secondaryViewRegistry.register({
+    id: "mneme-tree",
+    label: "Wiki",
+    // No icon override → falls back to the editor's MemoryIcon (EPIC-032 / US-663).
+    loadComponent: () => import("./mneme-root/MnemeTreeSecondaryView"),
+});
+
 editorRegistry.register({
     id: "monaco",
     name: "Text Editor",
@@ -412,6 +419,17 @@ editorRegistry.register({
     loadModule: async () => {
         const { gitTreeModule } = await import("./git-tree");
         return gitTreeModule;
+    },
+});
+
+editorRegistry.register({
+    id: "mneme-root",
+    name: "Mneme",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { mnemeRootModule } = await import("./mneme-root");
+        return mnemeRootModule;
     },
 });
 

@@ -310,6 +310,10 @@ export class PagesLifecycleModel {
                 const mod = await import("../../editors/git-tree");
                 return mod.default.newEditorModel(filePath);
             }
+            case "mneme-root": {
+                const mod = await import("../../editors/mneme-root");
+                return mod.default.newEditorModel(filePath);
+            }
             default:
                 // Unknown no-host id — fall back to Monaco text host.
                 return newTextFileModel(filePath) as unknown as EditorOrHost;

@@ -51,6 +51,7 @@ export type EditorView =
     | "video-view"
     | "storybook-view"
     | "git-tree"
+    | "mneme-root"
     | "file-diff";
 
 /** Monaco language identifier. */

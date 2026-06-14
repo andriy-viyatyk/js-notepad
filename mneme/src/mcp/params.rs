@@ -124,6 +124,11 @@ pub struct SearchParams {
 pub struct TreeParams {
     /// The `{root}` or `{root}/sub` to list (e.g. `personal` or `personal/contacts`).
     pub path: Option<String>,
+    /// Max levels below `path` to return: `1` = the `path` node plus its immediate children,
+    /// `2` = two levels down, etc. Omit for the full subtree (every descendant). A UI tree view
+    /// sends `1` and loads deeper levels lazily on expand; agents may pass a larger value or omit
+    /// it to pull everything in one call.
+    pub depth: Option<usize>,
 }
 
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]

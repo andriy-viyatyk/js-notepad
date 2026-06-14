@@ -212,13 +212,43 @@ async fn tree_synthesizes_dirs_with_depth() {
     state.write_doc(write_params("wiki/note.md", "# N\nx")).await.unwrap();
     state.write_doc(write_params("wiki/sub/deep.md", "# D\ny")).await.unwrap();
 
-    let t = state.tree(TreeParams { path: None }).await.unwrap();
+    let t = state.tree(TreeParams { path: None, depth: None }).await.unwrap();
     let dir = t.entries.iter().find(|e| e.uri == "mneme://wiki/sub").unwrap();
     assert!(dir.is_dir);
     assert_eq!(dir.depth, 1);
     let file = t.entries.iter().find(|e| e.uri == "mneme://wiki/sub/deep.md").unwrap();
     assert!(!file.is_dir);
     assert_eq!(file.depth, 2);
+}
+
+#[tokio::test]
+async fn tree_depth_limits_levels() {
+    let (state, _root, _cfg) = setup("mcp_tree_depth");
+    state.write_doc(write_params("wiki/note.md", "# N\nx")).await.unwrap();
+    state.write_doc(write_params("wiki/sub/deep.md", "# D\ny")).await.unwrap();
+
+    // "wiki" has no slash → absolute depth 0; its immediate children are at depth 1. depth: 1
+    // keeps the "wiki" node (0) + children (1: wiki/note.md, wiki/sub) but NOT the grandchild
+    // wiki/sub/deep.md (depth 2).
+    let t = state
+        .tree(TreeParams { path: Some("wiki".into()), depth: Some(1) })
+        .await
+        .unwrap();
+    assert!(t.entries.iter().any(|e| e.uri == "mneme://wiki/sub"));
+    assert!(t.entries.iter().any(|e| e.uri == "mneme://wiki/note.md"));
+    assert!(
+        !t.entries.iter().any(|e| e.uri == "mneme://wiki/sub/deep.md"),
+        "depth:1 must not include the grandchild document",
+    );
+    // The deepest emitted entry is at absolute depth 1 (immediate children of "wiki").
+    assert_eq!(t.entries.iter().map(|e| e.depth).max(), Some(1));
+
+    // Omitting depth still returns the full subtree (grandchild present).
+    let full = state
+        .tree(TreeParams { path: Some("wiki".into()), depth: None })
+        .await
+        .unwrap();
+    assert!(full.entries.iter().any(|e| e.uri == "mneme://wiki/sub/deep.md"));
 }
 
 #[tokio::test]

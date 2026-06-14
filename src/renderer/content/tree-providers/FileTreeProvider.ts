@@ -7,6 +7,7 @@ import type {
 import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink } from "./tree-provider-link";
 import { encodeGitTreeLink } from "../git-tree-link";
+import { encodeMnemeFolderLink } from "../mneme-folder-link";
 import { settings } from "../../api/settings";
 import { debounce } from "../../../shared/utils";
 
@@ -60,6 +61,11 @@ export class FileTreeProvider implements ITreeProvider {
             if (isDir) {
                 // A real `.git` repo dir → Git Tree entry point (EPIC-030 / US-612).
                 const isGit = entry.name === ".git" && this.isGitRepoDir(fullPath);
+                // A `.mneme` dir (a Mneme root's per-root store) → Mneme root editor
+                // (EPIC-032 / US-663). Name-only detection, gated on `mneme.enabled`.
+                const isMneme = !isGit
+                    && entry.name === ".mneme"
+                    && !!settings.get("mneme.enabled");
                 folders.push({
                     title: entry.name,
                     href: fullPath,
@@ -67,6 +73,7 @@ export class FileTreeProvider implements ITreeProvider {
                     tags: [],
                     isDirectory: true,
                     ...(isGit ? { target: "git-tree", icon: "git" } : {}),
+                    ...(isMneme ? { target: "mneme-root", icon: "mneme" } : {}),
                 });
             } else {
                 const ext = path.extname(entry.name).toLowerCase();
@@ -130,6 +137,10 @@ export class FileTreeProvider implements ITreeProvider {
         // `.git` repo dir → open the Git Tree editor (repoRoot = parent of .git).
         if (item.target === "git-tree") {
             return encodeGitTreeLink(path.dirname(item.href));
+        }
+        // `.mneme` dir → open the Mneme root editor (rootFolder = parent of .mneme).
+        if (item.target === "mneme-root") {
+            return encodeMnemeFolderLink(path.dirname(item.href));
         }
         if (!item.isDirectory) return item.href;
         return encodeCategoryLink({ type: this.type, url: this.sourceUrl, category: item.href });

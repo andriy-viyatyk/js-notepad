@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import { FileTypeIcon } from "../icons/LanguageIcon";
 import { FolderIcon } from "../icons/FileIcon";
-import { GitIcon } from "../../theme/icons";
+import { GitIcon, MemoryIcon } from "../../theme/icons";
+import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 import { getFaviconPathSync } from "./favicon-cache";
 import { fpExtname } from "../../core/utils/file-path";
 
@@ -22,6 +23,10 @@ export function TreeProviderItemIcon({ item }: { item: ITreeProviderItem }) {
 
     if (item.icon === "git") {
         return <GitIcon width={16} height={16} />;
+    }
+
+    if (item.icon === "mneme") {
+        return <MemoryIcon width={16} height={16} color={MEMORY_ICON_COLOR} />;
     }
 
     if (item.isDirectory) {
