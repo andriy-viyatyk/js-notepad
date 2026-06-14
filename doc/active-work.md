@@ -26,6 +26,9 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-662: [Phase 4] MnemeProvider (read/write/edit + live-refresh)](tasks/US-662-mneme-provider/README.md)
   - [ ] [US-673: [Phase 4][Bug] Mneme MCP client — single shared connection (fix wiki_status timeouts / yellow indicator)](tasks/US-673-mneme-single-connection/README.md)
   - [ ] [US-663: [Phase 4] MnemeTreeProvider + Explorer-like sidebar panel (open Mneme editor on `.mneme` folder click)](tasks/US-663-mneme-tree-provider/README.md)
+  - [ ] [US-674: [Phase 4] Mneme tree editing — create/rename/delete files & folders](tasks/US-674-mneme-tree-editing/README.md) *(placeholder)*
+  - [ ] [US-675: [Phase 4] Mneme tree — drag-and-drop file upload from the OS](tasks/US-675-mneme-tree-file-drop/README.md) *(placeholder)*
+  - [ ] [US-676: [Phase 4] Mneme root main view — search with displayed results](tasks/US-676-mneme-root-search-view/README.md) *(placeholder)*
   - [ ] [US-668: [Phase 5 prereq] Mneme wiki_root_config tool (live include/ignore) — blocks US-664](tasks/US-668-mneme-root-config-tool/README.md)
   - [ ] [US-664: [Phase 5] Mneme config & monitoring editor (+ header indicator) — needs US-668](tasks/US-664-mneme-config-editor/README.md)
   - [ ] [US-669: [Phase 5] Mneme async long-running ops + live progress (add-root, model download, log file)](tasks/US-669-mneme-async-add-root-indexing/README.md)

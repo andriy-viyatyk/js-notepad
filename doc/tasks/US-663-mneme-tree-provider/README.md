@@ -216,7 +216,7 @@ Implements `ITreeProvider`, read-only, per single root:
 1. **Unregistered `.mneme` root** — open the editor anyway; panel shows **"Not a registered Mneme root."** ✅ confirmed.
 2. **Detection is name-only** (`entry.name === ".mneme"`, no content probe like `.git`) — ✅ accepted.
 3. **Mneme disabled / sidecar down at click** — tree empty + "Mneme not connected"; **self-heals** via `onStatusChange("connected")` → `resolveRoot()` + refresh. ✅ confirmed.
-4. **Full-subtree fetch** — ❌ rejected; resolved by **per-level lazy loading** backed by the new `wiki_tree` `depth` param (Dependencies / prereq `US-674`). The provider's `list()` fetches one level per expand.
+4. **Full-subtree fetch** — ❌ rejected; resolved by **per-level lazy loading** backed by the new `wiki_tree` `depth` param (Phase 1). The provider's `list()` fetches one level per expand.
 5. **Path normalization** (`rootFolder` ↔ `root.folder`: backslashes, drive-letter case, trailing slash) — use `file-path` util, case-insensitive compare. ✅
 6. **Multiple roots / two editors** — ✅ required and supported: per-root `MnemeRootEditorModel` instances survive navigation and each contributes a distinct `mneme-tree` panel (key `mneme-root-<id>::mneme-tree`); `matchesNavigationTarget` reuses per `rootFolder`. Header badge + tree `rootLabel` both show the root name. Note: only one instance is "main" at a time (its placeholder shows); the others live as panel-only survivors — fine while the main view is a placeholder. *Future:* once the search view lands, decide which root the main view targets.
 7. **Naming** — ✅ editor id `mneme-root`, module `editors/mneme-root/`, panel `mneme-tree`.
