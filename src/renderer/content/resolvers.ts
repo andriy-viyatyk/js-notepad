@@ -96,6 +96,23 @@ export function registerResolvers(): void {
         data.handled = true;
     });
 
+    // mneme:// resolver — route Mneme wiki documents to MnemeProvider (EPIC-032).
+    // Registered after the file resolver so it runs first (LIFO) and intercepts
+    // the scheme before the file fallback wraps it in a file pipe.
+    app.events.openLink.subscribe(async (data) => {
+        if (!data.url?.startsWith("mneme://")) return;
+        const path = data.url.slice("mneme://".length); // "{root}/{path}"
+        data.target = data.target || editorRegistry.resolveId(path) || "monaco";
+        data.pipeDescriptor = {
+            provider: { type: "mneme", config: { path } },
+            transformers: [],
+        };
+        data.pipe = createPipeFromDescriptor(data.pipeDescriptor);
+        data.handled = false;
+        await app.events.openContent.sendAsync(data);
+        data.handled = true;
+    });
+
     // HTTP resolver — handles http:// and https:// URLs.
     // URLs with recognized text extensions → open as content via HttpProvider.
     // Everything else → open in browser tab.

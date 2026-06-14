@@ -139,7 +139,7 @@ Targeted deep-dive into niche candidates and reusable search engines:
 ### Phase 4 — Persephone content integration
 - **US-670** — *(Mneme, Rust — predecessor of US-661)* resource-subscription emit: advertise `resources.subscribe`, implement `subscribe`/`unsubscribe`, and wire the watcher to emit `notifications/resources/updated` / `resources/list_changed`. **Blocks US-661.**
 - **US-661** — `McpConnectionManager` subscription support (`subscribeResource`/`unsubscribeResource` + `resources/updated` & `list_changed` handlers). **Needs US-670.**
-- **US-662** — `MnemeProvider` (content-pipeline provider): read/write/edit over MCP + live-refresh via the existing reload path.
+- **US-662** — [`MnemeProvider`](../tasks/US-662-mneme-provider/README.md) (content-pipeline provider): read/write/edit over MCP + live-refresh via the existing reload path.
 - **US-663** — `MnemeTreeProvider` + Explorer-like sidebar panel (tree from `wiki_tree`, `list_changed` refresh). *(Optional: MarkdownView frontmatter metadata bar.)*
 
 ### Phase 5 — Mneme config & monitoring editor
@@ -186,7 +186,7 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | [US-671](../tasks/US-671-mcp-connection-auto-reconnect/README.md) | Bug · MCP connection auto-reconnect (Mneme editor drops to "Disconnected" after ~5 min; SSE session drop + SDK gives up after 2 retries) | Planned (not started) |
 | [US-670](../tasks/US-670-mneme-resource-subscription-emit/README.md) | P4 prereq · *(Mneme, Rust)* resource-subscription emit (capability + subscribe/unsubscribe + watcher fan-out) — **blocks US-661** | Implemented (unreviewed) |
 | [US-661](../tasks/US-661-mcp-subscription-support/README.md) | P4 · `McpConnectionManager` subscription support (client wiring) — **needs US-670** | Implemented (unreviewed) |
-| US-662 | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Planned |
+| [US-662](../tasks/US-662-mneme-provider/README.md) | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Implemented (unreviewed) |
 | US-663 | P4 · `MnemeTreeProvider` + Explorer-like sidebar panel | Planned |
 | [US-668](../tasks/US-668-mneme-root-config-tool/README.md) | P5 prereq · Mneme `wiki_root_config` tool (live include/ignore) — **blocks US-664** | Planned (design for review) |
 | [US-664](../tasks/US-664-mneme-config-editor/README.md) | P5 · Mneme config & monitoring editor (+ header indicator) — **needs US-668** | Implemented (unreviewed) |

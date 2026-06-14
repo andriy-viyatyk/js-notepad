@@ -64,6 +64,17 @@ export function registerRawLinkParsers(): void {
         data.handled = true;
     });
 
+    // mneme:// parser — Mneme wiki documents (EPIC-032). Routes to MnemeProvider
+    // via the mneme:// resolver. Registered after the file fallback so it runs
+    // first (LIFO) and the file parser never sees the scheme.
+    app.events.openRawLink.subscribe(async (data) => {
+        if (!data.href.startsWith("mneme://")) return;
+        data.url = data.href;
+        data.handled = false;
+        await app.events.openLink.sendAsync(data);
+        data.handled = true;
+    });
+
     // tree-category:// parser — detects category links for folder/category navigation
     app.events.openRawLink.subscribe(async (data) => {
         if (!data.href.startsWith(TREE_CATEGORY_PREFIX)) return;

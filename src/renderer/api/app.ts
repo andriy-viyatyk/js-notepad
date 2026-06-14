@@ -253,6 +253,8 @@ class App {
             try {
                 const { mnemeStatusModel } = await import("./mneme-status");
                 mnemeStatusModel.init();
+                const { mnemeConnection } = await import("./mneme-connection");
+                mnemeConnection.init();
             } catch (error) {
                 console.error("Mneme status model init failed:", error);
             }
