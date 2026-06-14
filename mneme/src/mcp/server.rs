@@ -133,6 +133,11 @@ impl MnemeServer {
         structured(self.state.list_roots().await.map_err(to_mcp)?)
     }
 
+    #[tool(description = r##"Read or update a wiki root's include/ignore glob filters. Omit both include and ignore to read; provide either to update (the given list replaces that filter, the omitted one is kept). Updates apply live — re-applied, watcher restarted, root reindexed (newly-matching files added, no-longer-matching removed) — and persist to mneme.toml. include defaults to ["*.md"] (an empty include falls back to that default); ignore is gitignore-style on top of the built-in defaults (.git, .mneme, node_modules, target, dist, build). Example: wiki_root_config {"root":"personal","include":["*.md","*.txt"]} → {"name":"personal","folder":"C:/Users/me/personal","include":["*.md","*.txt"],"ignore":[]}"##)]
+    async fn wiki_root_config(&self, Parameters(p): Parameters<RootConfigParams>) -> std::result::Result<CallToolResult, McpError> {
+        structured(self.state.root_config(p).await.map_err(to_mcp)?)
+    }
+
     #[tool(description = r##"Reconcile the index with the files; path scopes to a {root}. Cancellable, emits progress notifications (send a progressToken), returns per-root stats. Example: wiki_reindex {"path":"personal"} → {"roots":[{"name":"personal","scanned":1,"indexed":0,"refreshed":0,"skipped":1,"vectorized":0,"deleted":0,"errors":0}]}"##)]
     async fn wiki_reindex(
         &self,

@@ -11,7 +11,7 @@
 //!
 //! Every `list`/`glob`/`grep` consumes this one walk, so the indexable set is defined here.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use ignore::gitignore::GitignoreBuilder;
 use ignore::overrides::OverrideBuilder;
@@ -29,6 +29,27 @@ pub struct WalkedFile {
 /// Directory names pruned from every walk. Reused by the watcher's coarse event filter
 /// (US-654) so the index's own `.mneme/` WAL/SHM writes never retrigger a reconcile.
 pub const DEFAULT_IGNORES: &[&str] = &[".git", ".mneme", "node_modules", "target", "dist", "build"];
+
+/// Validate include/ignore globs by building the same matchers [`walk_root`] uses, without
+/// walking. Used by `wiki_root_config` to reject a bad pattern *before* persisting/applying it,
+/// so a live filter update never leaves an unreconcilable config on disk.
+pub fn validate_filters(folder: &Path, include: &[String], ignore: &[String]) -> Result<()> {
+    let mut inc_builder = GitignoreBuilder::new(folder);
+    for g in include {
+        inc_builder.add_line(None, g)?;
+    }
+    inc_builder.build()?;
+
+    let mut ob = OverrideBuilder::new(folder);
+    for ig in DEFAULT_IGNORES {
+        ob.add(&format!("!{ig}"))?;
+    }
+    for ig in ignore {
+        ob.add(&format!("!{ig}"))?;
+    }
+    ob.build()?;
+    Ok(())
+}
 
 pub fn walk_root(root: &RootConfig) -> Result<Vec<WalkedFile>> {
     let includes = if root.include.is_empty() {

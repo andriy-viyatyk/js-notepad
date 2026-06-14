@@ -69,6 +69,24 @@ impl RootRegistry {
         Ok(())
     }
 
+    /// Replace a root's `include`/`ignore` filter lists in place (`wiki_root_config` SET).
+    /// Returns the updated config (folder/name are unchanged). Errors if the name is unknown.
+    pub fn update_filters(
+        &mut self,
+        name: &str,
+        include: Vec<String>,
+        ignore: Vec<String>,
+    ) -> Result<RootConfig> {
+        let r = self
+            .roots
+            .iter_mut()
+            .find(|r| r.name == name)
+            .ok_or_else(|| MnemeError::UnknownRoot(name.to_string()))?;
+        r.include = include;
+        r.ignore = ignore;
+        Ok(r.clone())
+    }
+
     fn insert(&mut self, mut r: RootConfig) -> Result<()> {
         r.name = normalize_name(&r.name)?;
         if self.get(&r.name).is_some() {

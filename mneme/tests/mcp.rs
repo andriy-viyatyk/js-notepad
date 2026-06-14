@@ -297,6 +297,97 @@ async fn add_remove_list_roots_persists_config() {
 }
 
 #[tokio::test]
+async fn root_config_get_returns_defaults() {
+    let (state, root, _cfg) = setup("mcp_rootcfg_get");
+    let r = state
+        .root_config(RootConfigParams {
+            root: "wiki".to_string(),
+            include: None,
+            ignore: None,
+        })
+        .await
+        .unwrap();
+    assert_eq!(r.name, "wiki");
+    assert_eq!(r.include, vec!["*.md".to_string()]);
+    assert!(r.ignore.is_empty());
+    assert_eq!(r.folder, root.display().to_string());
+}
+
+#[tokio::test]
+async fn root_config_set_filters_reindex_and_persist() {
+    let (state, _root, cfg_path) = setup("mcp_rootcfg_set");
+    state.write_doc(write_params("wiki/a.md", "# A\nalpha")).await.unwrap();
+    state.write_doc(write_params("wiki/b.md", "# B\nbeta")).await.unwrap();
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 2);
+
+    // Narrow the include to only `a.md` → the SET reindexes and drops `b.md`.
+    let r = state
+        .root_config(RootConfigParams {
+            root: "wiki".to_string(),
+            include: Some(vec!["a.md".to_string()]),
+            ignore: None,
+        })
+        .await
+        .unwrap();
+    assert_eq!(r.include, vec!["a.md".to_string()]);
+    assert!(r.ignore.is_empty(), "omitted ignore is kept");
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 1);
+
+    // Persisted to the config file.
+    let saved = std::fs::read_to_string(&cfg_path).unwrap();
+    assert!(saved.contains("a.md"), "config persisted the new include: {saved}");
+
+    // Widen back to `*.md` → `b.md` (still on disk) is re-indexed.
+    state
+        .root_config(RootConfigParams {
+            root: "wiki".to_string(),
+            include: Some(vec!["*.md".to_string()]),
+            ignore: None,
+        })
+        .await
+        .unwrap();
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 2);
+}
+
+#[tokio::test]
+async fn root_config_unknown_root_errors() {
+    let (state, _root, _cfg) = setup("mcp_rootcfg_unknown");
+    assert!(state
+        .root_config(RootConfigParams {
+            root: "nope".to_string(),
+            include: None,
+            ignore: None,
+        })
+        .await
+        .is_err());
+}
+
+#[tokio::test]
+async fn root_config_invalid_glob_rejected() {
+    let (state, _root, _cfg) = setup("mcp_rootcfg_badglob");
+    let res = state
+        .root_config(RootConfigParams {
+            root: "wiki".to_string(),
+            include: None,
+            ignore: Some(vec!["a[".to_string()]), // unclosed character class
+        })
+        .await;
+    assert!(res.is_err(), "invalid glob must be rejected");
+
+    // Validation runs before any mutation, so the config is unchanged.
+    let r = state
+        .root_config(RootConfigParams {
+            root: "wiki".to_string(),
+            include: None,
+            ignore: None,
+        })
+        .await
+        .unwrap();
+    assert_eq!(r.include, vec!["*.md".to_string()]);
+    assert!(r.ignore.is_empty());
+}
+
+#[tokio::test]
 async fn status_reports_inventory() {
     let (state, _root, _cfg) = setup("mcp_status");
     state.write_doc(write_params("wiki/s.md", "# S\nx")).await.unwrap();

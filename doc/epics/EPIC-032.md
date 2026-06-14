@@ -142,7 +142,8 @@ Targeted deep-dive into niche candidates and reusable search engines:
 - **US-663** — `MnemeTreeProvider` + Explorer-like sidebar panel (tree from `wiki_tree`, `list_changed` refresh). *(Optional: MarkdownView frontmatter metadata bar.)*
 
 ### Phase 5 — Mneme config & monitoring editor
-- **US-664** — In-Persephone config / monitoring editor: add/remove/list roots, include/ignore config, reindex trigger + live progress, index inventory + delete stale versioned DBs, model update.
+- **US-668** — *(Mneme, Rust — predecessor of US-664)* `wiki_root_config` MCP tool: read + live-update per-root `include`/`ignore` (re-apply filters, restart watcher, reconcile, persist) — closes the control-plane gap so US-664 can edit filters.
+- **US-664** — In-Persephone config / monitoring editor: add/remove/list roots, include/ignore config (via US-668), reindex trigger + live progress, index inventory + delete stale versioned DBs, model update. **Depends on US-668.**
 
 ### Phase 6 — Installer + first release
 - **US-665** — Ship it: electron-builder `extraFiles` (mneme.exe + onnxruntime/DirectML DLLs), CI `cargo build --release`, model download-on-first-enable wiring, release process.
@@ -183,7 +184,8 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | US-661 | P4 · `McpConnectionManager` subscription support | Planned |
 | US-662 | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Planned |
 | US-663 | P4 · `MnemeTreeProvider` + Explorer-like sidebar panel | Planned |
-| US-664 | P5 · Mneme config & monitoring editor | Planned |
+| [US-668](../tasks/US-668-mneme-root-config-tool/README.md) | P5 prereq · Mneme `wiki_root_config` tool (live include/ignore) — **blocks US-664** | Planned (design for review) |
+| [US-664](../tasks/US-664-mneme-config-editor/README.md) | P5 · Mneme config & monitoring editor (+ header indicator) — **needs US-668** | Planned (design for review) |
 | US-665 | P6 · Installer + first release | Planned |
 
 ## Notes

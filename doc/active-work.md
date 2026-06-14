@@ -22,7 +22,8 @@ Overview of all active and planned epics and tasks.
   - [ ] US-661: [Phase 4] McpConnectionManager subscription support
   - [ ] US-662: [Phase 4] MnemeProvider (read/write/edit + live-refresh)
   - [ ] US-663: [Phase 4] MnemeTreeProvider + Explorer-like sidebar panel
-  - [ ] US-664: [Phase 5] Mneme config & monitoring editor
+  - [ ] [US-668: [Phase 5 prereq] Mneme wiki_root_config tool (live include/ignore) — blocks US-664](tasks/US-668-mneme-root-config-tool/README.md)
+  - [ ] [US-664: [Phase 5] Mneme config & monitoring editor (+ header indicator) — needs US-668](tasks/US-664-mneme-config-editor/README.md)
   - [ ] US-665: [Phase 6] Installer + first release
 
 ## Planned

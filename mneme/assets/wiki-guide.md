@@ -58,6 +58,9 @@ string replacement for surgical changes. Daily logs live at `log/YYYY/YYYY-MM-DD
 
 **Management**:
 - `wiki_add_root { folder, name? }`, `wiki_remove_root { root }`, `wiki_list_roots {}`.
+- `wiki_root_config { root, include?, ignore? }` — read (omit both) or live-update a root's
+  include/ignore globs; a SET re-applies filters, restarts the watcher, reindexes the root, and
+  persists to the config.
 - `wiki_reindex { path? }` — synchronous reconcile; returns per-root stats.
 - `wiki_status {}` — roots, index inventory, model, document counts.
 - `wiki_index_delete { root, modelId, schemaVer }` — remove a stale versioned index DB.

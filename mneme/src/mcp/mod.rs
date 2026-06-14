@@ -469,6 +469,72 @@ impl ServerState {
         .await
     }
 
+    /// Read or update a root's `include`/`ignore` filters. With both `include` and `ignore`
+    /// omitted this is a pure read; otherwise the given list(s) replace the filter(s) (an omitted
+    /// one is kept), the globs are validated, the change is applied to the registry + index +
+    /// watcher, persisted to `mneme.toml`, and the root reconciled (newly-matching files indexed,
+    /// no-longer-matching dropped) — all without a restart.
+    pub async fn root_config(self: &Arc<Self>, p: RootConfigParams) -> Result<RootConfigResult> {
+        let st = Arc::clone(self);
+        blocking(move || {
+            // GET — no mutation, no persist, no reconcile.
+            if p.include.is_none() && p.ignore.is_none() {
+                let store = st.store.read().unwrap();
+                let r = store
+                    .registry()
+                    .get(&p.root)
+                    .ok_or_else(|| MnemeError::UnknownRoot(p.root.clone()))?;
+                return Ok(RootConfigResult {
+                    name: r.name.clone(),
+                    folder: r.folder.display().to_string(),
+                    include: r.include.clone(),
+                    ignore: r.ignore.clone(),
+                });
+            }
+
+            // SET — resolve effective lists (an omitted field keeps the current value).
+            let (new_include, new_ignore, folder) = {
+                let store = st.store.read().unwrap();
+                let r = store
+                    .registry()
+                    .get(&p.root)
+                    .ok_or_else(|| MnemeError::UnknownRoot(p.root.clone()))?;
+                let inc = p.include.clone().unwrap_or_else(|| r.include.clone());
+                let ign = p.ignore.clone().unwrap_or_else(|| r.ignore.clone());
+                (inc, ign, r.folder.clone())
+            };
+            // Validate before mutating anything — never persist an unreconcilable config.
+            crate::store::walk::validate_filters(&folder, &new_include, &new_ignore)?;
+
+            // Apply to the registry copy, then to the index manager (updates its live config +
+            // restarts the watcher) which returns the handle to reconcile.
+            let cfg = {
+                let mut store = st.store.write().unwrap();
+                store
+                    .registry_mut()
+                    .update_filters(&p.root, new_include.clone(), new_ignore.clone())?
+            };
+            let handle = {
+                st.index
+                    .lock()
+                    .unwrap()
+                    .update_root_filters(&p.root, new_include, new_ignore)?
+            };
+            persist_roots(&st)?;
+            // Re-walk with the new filters (adds newly-included docs, deletes excluded ones).
+            st.jobs
+                .reconcile_blocking(&handle, &cfg, &st.embed, CancellationToken::new(), |_| {})?;
+
+            Ok(RootConfigResult {
+                name: cfg.name,
+                folder: cfg.folder.display().to_string(),
+                include: cfg.include,
+                ignore: cfg.ignore,
+            })
+        })
+        .await
+    }
+
     /// Reconcile one or all roots through the [`JobManager`] (cancellable + single-flight). Runs
     /// the reconcile off the async runtime; `cancel` (the MCP request's `ct`) stops it cleanly
     /// mid-pass, and each progress snapshot is streamed on `progress_tx` as `(root, snapshot)` for

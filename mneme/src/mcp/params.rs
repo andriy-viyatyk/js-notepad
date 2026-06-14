@@ -158,6 +158,18 @@ pub struct RemoveRootParams {
     pub root: String,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct RootConfigParams {
+    /// Registered root name.
+    pub root: String,
+    /// New include allowlist globs. Omit (together with `ignore`) to read the current config;
+    /// provide it to replace the include list (the omitted filter is left unchanged).
+    pub include: Option<Vec<String>>,
+    /// New ignore globs (gitignore-style, on top of the built-in defaults). Omit (together with
+    /// `include`) to read; provide it to replace the ignore list.
+    pub ignore: Option<Vec<String>>,
+}
+
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
 pub struct ReindexParams {
     /// The `{root}` or `{root}/sub` to reconcile (e.g. `personal`).

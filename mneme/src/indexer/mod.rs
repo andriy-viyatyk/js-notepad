@@ -504,6 +504,45 @@ impl IndexManager {
         Ok(ri)
     }
 
+    /// Update a root's `include`/`ignore` filters at runtime (`wiki_root_config` SET) and restart
+    /// its watcher so the new filters take effect (the watcher captures its `RootConfig` by value,
+    /// so a snapshot change requires a restart). The index handle is kept alive. Returns the handle
+    /// so the caller can reconcile with the new filters. The walk itself re-reads filters from the
+    /// `RootConfig` on every pass, so no cached matcher needs invalidating.
+    pub fn update_root_filters(
+        &mut self,
+        name: &str,
+        include: Vec<String>,
+        ignore: Vec<String>,
+    ) -> Result<Arc<RootIndex>> {
+        let ri = self
+            .dbs
+            .get(name)
+            .cloned()
+            .ok_or_else(|| crate::error::MnemeError::UnknownRoot(name.to_string()))?;
+        let cfg = {
+            let r = self
+                .roots
+                .iter_mut()
+                .find(|r| r.name == name)
+                .ok_or_else(|| crate::error::MnemeError::UnknownRoot(name.to_string()))?;
+            r.include = include;
+            r.ignore = ignore;
+            r.clone()
+        };
+        // Restart the watcher with the updated config (dropping the old debouncer stops the watch).
+        self.watchers.remove(name);
+        let watcher = RootWatcher::start(
+            cfg,
+            Arc::clone(&ri),
+            self.embed.clone(),
+            Arc::clone(&self.jobs),
+            self.cancel.clone(),
+        )?;
+        self.watchers.insert(name.to_string(), watcher);
+        Ok(ri)
+    }
+
     /// Stop + drop a root's watcher and its index handle (`wiki_remove_root`). The on-disk
     /// `.mneme` index is left in place (rebuildable; deletion is `wiki_index_delete`'s job).
     pub fn remove_root(&mut self, name: &str) -> Result<()> {

@@ -97,6 +97,15 @@ pub struct AddRootResult {
     pub folder: String,
 }
 
+/// Effective per-root filter config after a `wiki_root_config` read or update.
+#[derive(Debug, Serialize)]
+pub struct RootConfigResult {
+    pub name: String,
+    pub folder: String,
+    pub include: Vec<String>,
+    pub ignore: Vec<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ReindexRoot {
     pub name: String,
