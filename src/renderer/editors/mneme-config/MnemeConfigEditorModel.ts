@@ -144,6 +144,10 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
                     name: "Mneme",
                     transport: "http",
                     url,
+                    // Recover automatically from transient SSE session drops (US-671) — the sidecar
+                    // stays up, so a dropped MCP session should silently reconnect, not latch on
+                    // "Disconnected". Stopping the sidecar disposes this connection (cancels retries).
+                    autoReconnect: true,
                 });
             }
         } else {

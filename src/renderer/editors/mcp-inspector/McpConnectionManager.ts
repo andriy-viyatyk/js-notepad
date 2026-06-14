@@ -18,6 +18,8 @@ export interface McpConnectionConfig {
     command?: string;
     args?: string[];
     env?: Record<string, string>;
+    /** Auto-reconnect with capped backoff on unexpected transport drops (US-671). Default false. */
+    autoReconnect?: boolean;
 }
 
 export type McpConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
@@ -61,6 +63,14 @@ export class McpConnectionManager {
     private _serverInfo: McpServerInfo | null = null;
     private _error = "";
     private _disconnecting = false;
+    /** Last config passed to connect(), replayed by auto-reconnect (US-671). */
+    private _lastConfig: McpConnectionConfig | null = null;
+    /** Whether to auto-reconnect on unexpected transport drops (opt-in per connection). */
+    private _autoReconnect = false;
+    /** Pending backoff timer for an auto-reconnect attempt, if any. */
+    private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    /** Index into the backoff schedule; reset to 0 on a successful connect. */
+    private _reconnectAttempt = 0;
 
     /** Callback fired whenever connection status changes. */
     onStatusChange: (status: McpConnectionStatus, error?: string) => void = () => {};
@@ -80,6 +90,12 @@ export class McpConnectionManager {
             await this.disconnect();
         }
 
+        // Remember the target so an unexpected drop can be retried (US-671). Set after the guard's
+        // disconnect(), which clears these. A scheduled retry is superseded by this explicit attempt.
+        this._lastConfig = config;
+        this._autoReconnect = !!config.autoReconnect;
+        this.cancelReconnect();
+
         this.setStatus("connecting");
 
         try {
@@ -90,6 +106,16 @@ export class McpConnectionManager {
                 if (!config.url) throw new Error("URL is required for HTTP transport");
                 this.transport = new StreamableHTTPClientTransportClass(
                     new URL(config.url),
+                    {
+                        // Harden the SSE stream against transient drops before the app-level
+                        // auto-reconnect (US-671) has to step in — the SDK default is only 2 retries.
+                        reconnectionOptions: {
+                            initialReconnectionDelay: 1000,
+                            maxReconnectionDelay: 15000,
+                            reconnectionDelayGrowFactor: 1.5,
+                            maxRetries: 10,
+                        },
+                    },
                 );
             } else {
                 if (!config.command) throw new Error("Command is required for stdio transport");
@@ -113,6 +139,7 @@ export class McpConnectionManager {
                 if (this._status === "connected") {
                     this._serverInfo = null;
                     this.setStatus("disconnected");
+                    this.scheduleReconnect();
                 }
             };
             const origOnError = this.transport.onerror;
@@ -122,6 +149,7 @@ export class McpConnectionManager {
                 if (this._disconnecting || this._status === "disconnected") return;
                 this._error = err.message;
                 this.setStatus("error", err.message);
+                this.scheduleReconnect();
             };
 
             await this.client.connect(this.transport);
@@ -144,6 +172,7 @@ export class McpConnectionManager {
                 },
             };
 
+            this._reconnectAttempt = 0;
             this.setStatus("connected");
         } catch (err) {
             this._error = (err as Error)?.message || String(err);
@@ -151,10 +180,16 @@ export class McpConnectionManager {
             this.client = null;
             this.transport = null;
             this.setStatus("error", this._error);
+            // A failed (re)connect surfaces here, not via transport.onerror — keep retrying.
+            this.scheduleReconnect();
         }
     }
 
     async disconnect(): Promise<void> {
+        // Intentional disconnect — stop any auto-reconnect (re-armed by the next connect()).
+        this.cancelReconnect();
+        this._autoReconnect = false;
+        this._reconnectAttempt = 0;
         this._disconnecting = true;
         try {
             if (this.client) {
@@ -174,6 +209,33 @@ export class McpConnectionManager {
     async dispose(): Promise<void> {
         await this.disconnect();
         this.onStatusChange = () => {};
+    }
+
+    /** On an unexpected transport drop (not an intentional disconnect/dispose), retry the last
+     *  connection with capped backoff. Active only when the connection opted in via `autoReconnect`.
+     *  Cancelled by disconnect()/dispose() — e.g. when the sidecar is stopped (no reconnect storm).
+     *  Retries continue indefinitely at the capped delay; the consumer disposes the manager when the
+     *  server is gone, which stops the loop. */
+    private scheduleReconnect(): void {
+        if (!this._autoReconnect || this._disconnecting || this._reconnectTimer || !this._lastConfig) {
+            return;
+        }
+        const delays = [1000, 2000, 5000, 10000, 15000];
+        const delay = delays[Math.min(this._reconnectAttempt, delays.length - 1)];
+        this._reconnectAttempt += 1;
+        const config = this._lastConfig;
+        this._reconnectTimer = setTimeout(() => {
+            this._reconnectTimer = null;
+            if (this._disconnecting || !this._autoReconnect) return;
+            void this.connect(config);
+        }, delay);
+    }
+
+    private cancelReconnect(): void {
+        if (this._reconnectTimer) {
+            clearTimeout(this._reconnectTimer);
+            this._reconnectTimer = null;
+        }
     }
 
     private setStatus(status: McpConnectionStatus, error?: string): void {
