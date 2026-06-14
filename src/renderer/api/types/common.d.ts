@@ -44,6 +44,7 @@ export type EditorView =
     | "graph-view"
     | "draw-view"
     | "mcp-view"
+    | "mneme-config"
     | "archive-view"
     | "category-view"
     | "rest-client"

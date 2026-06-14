@@ -1353,6 +1353,15 @@ export const McpIcon = createIcon(24)(
     <circle cx="12" cy="12" r="7" fill="none" stroke="#4ec964" strokeWidth="2.5" />,
 );
 
+// Memory chip — used for the Mneme knowledge-base editor (tab + sidebar +
+// header indicator). currentColor so it adapts to the active theme.
+export const MemoryIcon = createIconWithViewBox("0 0 48 48")(
+    <g fill="currentColor">
+        <path d="M32,16H16V32H32ZM28,28H20V20h8Z" />
+        <path d="M44,28H40V20h4a2,2,0,0,0,0-4H40V10a2,2,0,0,0-2-2H32V4a2,2,0,0,0-4,0V8H20V4a2,2,0,0,0-4,0V8H10a2,2,0,0,0-2,2v6H4a2,2,0,0,0,0,4H8v8H4a2,2,0,0,0,0,4H8v6a2,2,0,0,0,2,2h6v4a2,2,0,0,0,4,0V40h8v4a2,2,0,0,0,4,0V40h6a2,2,0,0,0,2-2V32h4a2,2,0,0,0,0-4Zm-8,8H12V12H36Z" />
+    </g>,
+);
+
 export const ArchiveIcon = createIcon(24)(
     <>
         {/* 3x3 colored blocks — WinRAR-style */}

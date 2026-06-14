@@ -54,6 +54,7 @@ export enum Endpoint {
     setMcpEnabled = "setMcpEnabled",
     getMcpStatus = "getMcpStatus",
     setMnemeEnabled = "setMnemeEnabled",
+    restartMneme = "restartMneme",
     getMnemeStatus = "getMnemeStatus",
     setBrowserToolsEnabled = "setBrowserToolsEnabled",
     startScreenSnip = "startScreenSnip",
@@ -144,6 +145,7 @@ export type Api = {
     [Endpoint.setMcpEnabled]: (enabled: boolean, port?: number) => Promise<void>;
     [Endpoint.getMcpStatus]: () => Promise<McpStatus>;
     [Endpoint.setMnemeEnabled]: (enabled: boolean, port?: number) => Promise<MnemeStatus>;
+    [Endpoint.restartMneme]: (port?: number) => Promise<MnemeStatus>;
     [Endpoint.getMnemeStatus]: () => Promise<MnemeStatus>;
     [Endpoint.setBrowserToolsEnabled]: (enabled: boolean) => Promise<void>;
     [Endpoint.startScreenSnip]: () => Promise<string | null>;

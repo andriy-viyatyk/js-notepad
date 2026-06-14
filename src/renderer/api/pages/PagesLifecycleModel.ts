@@ -1044,6 +1044,13 @@ export class PagesLifecycleModel {
         }
     };
 
+    showMnemeConfigPage = async (): Promise<void> => {
+        const { MNEME_CONFIG_PAGE_ID } = await import("../../editors/mneme-config");
+        const model = await editorRegistry.createEditor("mneme-config");
+        const page = new PageModel(MNEME_CONFIG_PAGE_ID);
+        this.addPage(wrap(model), page);
+    };
+
     showBrowserPage = async (options?: {
         profileName?: string;
         incognito?: boolean;

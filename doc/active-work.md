@@ -24,6 +24,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-663: [Phase 4] MnemeTreeProvider + Explorer-like sidebar panel
   - [ ] [US-668: [Phase 5 prereq] Mneme wiki_root_config tool (live include/ignore) — blocks US-664](tasks/US-668-mneme-root-config-tool/README.md)
   - [ ] [US-664: [Phase 5] Mneme config & monitoring editor (+ header indicator) — needs US-668](tasks/US-664-mneme-config-editor/README.md)
+  - [ ] [US-669: [Phase 5] Mneme async add-root + background indexing with per-root progress (+ default log file)](tasks/US-669-mneme-async-add-root-indexing/README.md)
   - [ ] US-665: [Phase 6] Installer + first release
 
 ## Planned

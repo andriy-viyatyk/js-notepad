@@ -13,7 +13,7 @@ import { versionService } from "../../main/version-service";
 import * as browserRegistration from "../../main/browser-registration";
 import { downloadService } from "../../main/download-service";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
-import { startMneme, stopMneme, getMnemeStatus as getMnemeServiceStatus } from "../../main/mneme-service";
+import { startMneme, stopMneme, restartMneme, getMnemeStatus as getMnemeServiceStatus } from "../../main/mneme-service";
 import { GitFetchOptions, GitIdentity, GitLogOptions, GitPullOptions, GitPushOptions, GitSwitchTarget } from "../git-ipc";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
@@ -221,6 +221,10 @@ class Controller implements MainApi {
         return getMnemeServiceStatus();
     }
 
+    restartMneme = async (_event: IpcMainEvent, port?: number): Promise<MnemeStatus> => {
+        return restartMneme(port);
+    }
+
     getMnemeStatus = async (_event: IpcMainEvent): Promise<MnemeStatus> => {
         return getMnemeServiceStatus();
     }
@@ -412,6 +416,7 @@ const init = () => {
     bindEndpoint(Endpoint.setMcpEnabled, controllerInstance.setMcpEnabled);
     bindEndpoint(Endpoint.getMcpStatus, controllerInstance.getMcpStatus);
     bindEndpoint(Endpoint.setMnemeEnabled, controllerInstance.setMnemeEnabled);
+    bindEndpoint(Endpoint.restartMneme, controllerInstance.restartMneme);
     bindEndpoint(Endpoint.getMnemeStatus, controllerInstance.getMnemeStatus);
     bindEndpoint(Endpoint.setBrowserToolsEnabled, controllerInstance.setBrowserToolsEnabled);
     bindEndpoint(Endpoint.startScreenSnip, controllerInstance.startScreenSnip);

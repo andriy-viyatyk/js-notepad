@@ -227,6 +227,10 @@ class ApiCalls implements Api {
         return executeOnce<MnemeStatus>(Endpoint.setMnemeEnabled, enabled, port);
     }
 
+    restartMneme = async (port?: number) => {
+        return executeOnce<MnemeStatus>(Endpoint.restartMneme, port);
+    }
+
     getMnemeStatus = async () => {
         return executeOnce<MnemeStatus>(Endpoint.getMnemeStatus);
     }

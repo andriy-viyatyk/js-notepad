@@ -1,8 +1,8 @@
 # US-664 — Mneme config & monitoring editor (+ header indicator)
 
 **Epic:** [EPIC-032 — Mneme (vector memory)](../../epics/EPIC-032.md) · Phase 5
-**Status:** Planned — design for review (not yet implemented)
-**Depends on:** [US-668 — Mneme `wiki_root_config` tool](../US-668-mneme-root-config-tool/README.md) (implement first; this editor's per-root Filters section consumes it)
+**Status:** Implemented — pending manual test (typecheck + lint green; review/docs deferred to epic close per the EPIC-032 deferred-review model)
+**Depends on:** [US-668 — Mneme `wiki_root_config` tool](../US-668-mneme-root-config-tool/README.md) — ✅ **implemented & committed** (`0468c158`); the per-root Filters section can consume it now.
 
 ## Goal
 
@@ -72,6 +72,11 @@ New folder, mirroring `mcp-inspector/`. No Rust changes (see Concern 1 for inclu
    - `updateModel()` → `showProgress(callTool wiki_model_update, "Updating model — this may take several minutes…")` (indeterminate; Concern 2), then `refreshStatus`, toast.
    - `getRootConfig(root)` / `setRootConfig(root, include, ignore)` → `callTool wiki_root_config` (**US-668**); GET on Filters expand, SET on save (wrap SET in `showProgress` — server reindexes), then `refreshStatus`, toast.
    - `dispose()` → `connection.dispose()` then `super.dispose()`.
+
+   **Verified API details (from pre-impl review — get these exact):**
+   - `McpConnectionManager` API: `connect(config: McpConnectionConfig)` where config is `{ name, transport: "http", url, … }`; `getClient(): Client | null`; `dispose()`. The returned `Client` is the raw `@modelcontextprotocol/sdk@1.27.1` client. The current call site uses `client.callTool(callParams)` (2-arg not used); the **progress** form `client.callTool(params, undefined, { onprogress })` is the SDK's documented signature (`callTool(params, resultSchema?, options?)`) — it's supported by the SDK but **not yet exercised in this codebase**, so smoke-test it once when wiring `reindex`.
+   - `showConfirmationDialog` is **not** exported from the UIKit barrel — import it from `src/renderer/ui/dialogs/ConfirmationDialog.tsx` (dynamic import, e.g. `(await import("../../ui/dialogs/ConfirmationDialog")).showConfirmationDialog`). `showProgress`/`createProgress` **are** in the UIKit barrel.
+   - `wiki_status` JSON: `roots[].model` is a **plain string** (model name); the **top-level** `model` is the `ModelStatus` object `{ name, precision, version, dir, complete, files:[{filename,present,verified,bytes}] }` (all fields serialize as-is, no camelCase rename — `docCount`/`schemaVer`/`indexPath`/`indexBytes` on roots are explicitly renamed to camelCase). `modelReady = !!status.model && status.model.complete === true`.
 3. **Views** (`MnemeConfigView.tsx` + sub-panels `RootsPanel.tsx`, `IndexPanel.tsx`, `ModelPanel.tsx`): receive `{ model }`, subscribe via `model.state.use()`. Persistent status header (connection dot + URL + Refresh + Reindex-all + model summary) above a `SegmentedControl` (Roots / Index / Model). Not-running state shows a message + **Open Settings** button (`pagesModel.showSettingsPage()`). Built from UIKit: `Panel`, `Text`, `Button`/`IconButton`, `Dot`, `ProgressBar`, `Input`, `Select`, `Tag`. See mockup below.
    - **Per-root Filters** (RootsPanel, via **US-668**): an expandable "Filters" area per root showing `include`/`ignore` glob lists (`Tag` chips with add/remove, or an editable list). Read on load via `wiki_root_config { root }` (GET); save via `wiki_root_config { root, include, ignore }` (SET) → toast + `refreshStatus`. The SET reindexes server-side, so wrap in `showProgress`.
 4. **`index.tsx`** — export `const mnemeConfigModule: EditorModule = { createEditor: () => new MnemeConfigEditorModel(new TComponentState(getDefaultMnemeConfigEditorState())), Component: MnemeConfigView }`.
@@ -89,20 +94,20 @@ New folder, mirroring `mcp-inspector/`. No Rust changes (see Concern 1 for inclu
    });
    ```
 6. **No-host persistence**: add `"mneme-config"` to `NO_HOST_EDITOR_IDS` in `src/renderer/api/pages/PagesPersistenceModel.ts`.
-7. **Open method** `showMnemeConfigPage()` on `PagesLifecycleModel` (mirror `showSettingsPage` — **singleton** via a fixed `MNEME_CONFIG_PAGE_ID = "mneme-config-page"`), surfaced on `PagesModel`. Optionally expose on the script API (`PageCollectionWrapper`) and the sidebar Tools registry (`tools-editors-registry.ts`).
+7. **Open method** `showMnemeConfigPage()` on `PagesLifecycleModel` (mirror **`showSettingsPage`**, *not* `showMcpInspectorPage` — the latter creates a fresh page each call). Singleton is achieved by constructing `new PageModel(MNEME_CONFIG_PAGE_ID)` with a fixed id (`MNEME_CONFIG_PAGE_ID = "mneme-config-page"`); `addPage` dedups via `findPage(page.id)` and re-shows the existing page if the id already exists. Surface the method on `PagesModel` (where `showSettingsPage`/`showMcpInspectorPage` are already exposed). Optionally expose on the script API (`PageCollectionWrapper`) and the sidebar Tools registry (`tools-editors-registry.ts`). (Editor-id precedent: the MCP Inspector registers as `"mcp-view"`; mneme-config uses its own id `"mneme-config"`.)
 
 ### Part C — shared status model + header indicator
 
 The header indicator must show model health even when the editor is **not** open, so it can't read the editor's state. Model health only comes from `wiki_status` over MCP. So introduce a small always-available shared status model that owns the MCP probe; both the indicator and the editor read it.
 
 8. **Shared status model** — `src/renderer/api/mneme-status.ts` (or `src/renderer/editors/mneme-config/mnemeStatusModel.ts`), a singleton over a state primitive exposing reactive `{ enabled, running, modelReady }`:
-   - `enabled` from `settings` (`mneme.enabled`); `running` + `url` from `api.getMnemeStatus()` and the `rendererEvents.eMnemeStatusChanged` subscription.
+   - `enabled` from `settings.get("mneme.enabled")` (and `settings.get("mneme.port")` for the URL — access is via `settings.get(key)`, **not** a `settings.value.*` path); `running` + `url` from `api.getMnemeStatus()` (returns `MnemeStatus { running, url, error? }`, `src/ipc/api-types.ts`) and the `rendererEvents.eMnemeStatusChanged` subscription (payload is `MnemeStatus`, `src/ipc/renderer/renderer-events.ts`).
    - While `enabled && running`: keep a lightweight `McpConnectionManager` to the URL, call `wiki_status`, set `modelReady = !!status.model && status.model.complete`. Refresh on: connect / `eMnemeStatusChanged` (start), a modest poll (~30 s) while running, and an explicit `refresh()`.
    - `refresh()` is **called by the editor** after model-affecting actions (`updateModel`, `reindex`) so the indicator updates promptly. (The editor keeps its own connection for interactive work — Concern 5; it just nudges this model to re-probe.)
    - Initialized once at app startup (in `app.ts`, alongside the existing mneme auto-start / event wiring).
 9. **`MnemeIndicator`** component in `MainPage.tsx` (same file, like `AutoloadReloadButton`), reading `mnemeStatusModel`:
    - Render nothing when `!enabled` (visibility gated on the **setting**, not on running).
-   - Dot colour (UIKit `Dot` colours): **green/`success`** when `running && modelReady`; **yellow/`warning`** when `running && !modelReady`; **grey/`neutral`** when `enabled && !running`.
+   - Dot colour via the `Dot` **`color`** prop (not `variant`; accepts `"success" | "warning" | "error" | "info" | "neutral" | "active"`): **green/`success`** when `running && modelReady`; **yellow/`warning`** when `running && !modelReady`; **grey/`neutral`** when `enabled && !running`.
    - `title` reflects the state — e.g. running+ready: *"Mneme active — vector memory ready"*; running+no-model: *"Mneme is running without an embedding model — semantic search unavailable (text/grep fallback only). Click to fix in Mneme settings."*; not running: *"Mneme is enabled but not running."*
    - `onClick` → `pagesModel.showMnemeConfigPage()`.
 10. Place it **next to** the MCP indicator. The current `.mcp-indicator` is `position:absolute; bottom:1; right:4`. Wrap both in a flex row container (`.status-indicators`, absolute bottom-right, `gap`) so Mneme sits to the left of MCP without overlap; move the existing MCP span inside it. Styles mirror `.mcp-indicator`.
@@ -111,7 +116,7 @@ The editor's **status header** mirrors the same health: when `running && !modelR
 
 ### Part D — icon
 
-11. Add a `MnemeIcon` to `src/renderer/theme/icons.tsx` (used by the tab via `getIcon()` and the header indicator), or reuse an existing memory/brain glyph if one fits. Confirm with user during review.
+11. Add a `MemoryIcon` (a memory-chip glyph, `0 0 48 48` viewBox, `currentColor`) to `src/renderer/theme/icons.tsx`, used by the tab via `getIcon()` and the sidebar Tools entry. The header indicator uses a coloured CSS dot, not this icon.
 
 ### Part E — dashboard / docs
 
@@ -220,6 +225,19 @@ Header indicator (bottom-right of the title bar, Mneme left of MCP; shown only w
 - [ ] The yellow/warning state appears when `wiki_status.model` is absent or `complete === false`, and clears (turns green) after a successful `Update model`; the editor's status header shows the matching warning + a fix action.
 - [ ] Per-root Filters section reads `include`/`ignore` and saves edits via `wiki_root_config` (US-668); a save re-applies filters and the view reflects the new doc count.
 
+## Implementation notes (2026-06-14)
+
+Built per the plan. Deviations / decisions worth recording:
+- **Open path** uses `editorRegistry.createEditor("mneme-config")` + a fixed `PageModel(MNEME_CONFIG_PAGE_ID)` in `showMnemeConfigPage` (dedup happens in `addPage` via `findPage(page.id)`) — avoids the legacy `newEmptyEditorModel`/`default`-export indirection that `showSettingsPage` carries. `MNEME_CONFIG_PAGE_ID` is exported from `editors/mneme-config/index.tsx`.
+- **`parseToolResult<T>(result: unknown)`** (in `mnemeTypes.ts`) prefers `structuredContent`, falls back to the text block. Typed `unknown` because the SDK's `callTool` return is a union of the structured-content result and the legacy `{ toolResult }` shape.
+- **Reindex progress/cancel** via `client.callTool(params, undefined, { signal, onprogress })`; the `onprogress` message `"{root}: {phase}"` is parsed to key per-root progress; Cancel calls `AbortController.abort()`.
+- **`getRestoreData()` override** resets transient fields (connection, status snapshot, in-flight reindex progress) so a restored page never shows phantom state — the page is in `NO_HOST_EDITOR_IDS`, so its state is persisted.
+- **Sidebar Tools entry** added (`id: "mneme-config"`, label "Mneme") for discoverability when the header indicator is hidden (Mneme disabled).
+- **Concern 8** shipped with `wiki_status.model.complete` as the `modelReady` signal (the documented v1 choice). The opportunistic `wiki_search` degrade-note runtime signal is **not** wired yet — revisit only if a "complete on disk but won't load at runtime" case is observed.
+- **Editor `type`/`editor` discriminants** registered: `"mnemeConfigPage"` in `src/shared/types.ts` `EditorType`; `"mneme-config"` in `src/renderer/api/types/common.d.ts` `EditorView`.
+
+Verified: `tsc --noEmit` and `eslint` clean. Manual/runtime testing pending.
+
 ## Files changed (planned)
 
 | File | Change |
@@ -237,7 +255,7 @@ Header indicator (bottom-right of the title bar, Mneme left of MCP; shown only w
 | `src/renderer/api/mneme-status.ts` | **new** — shared `mnemeStatusModel` singleton: `{ enabled, running, modelReady }` via MCP `wiki_status` probe; drives the indicator colour |
 | `src/renderer/api/app.ts` | initialize `mnemeStatusModel` at startup (alongside existing mneme event/auto-start wiring) |
 | `src/renderer/ui/app/MainPage.tsx` | `MnemeIndicator` (tri-state colour from `mnemeStatusModel`) + status-indicators container |
-| `src/renderer/theme/icons.tsx` | `MnemeIcon` (or reuse) |
+| `src/renderer/theme/icons.tsx` | `MemoryIcon` (memory-chip glyph) |
 | `src/renderer/ui/sidebar/tools-editors-registry.ts` | (optional) Tools entry |
 | `src/renderer/scripting/api-wrapper/PageCollectionWrapper.ts` | (optional) script API |
 | `doc/active-work.md`, `doc/epics/EPIC-032.md` | link this task |

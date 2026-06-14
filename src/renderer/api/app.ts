@@ -248,6 +248,15 @@ class App {
                 });
             }
 
+            // Initialize the shared Mneme health model that drives the header
+            // indicator (and is read by the Mneme config editor).
+            try {
+                const { mnemeStatusModel } = await import("./mneme-status");
+                mnemeStatusModel.init();
+            } catch (error) {
+                console.error("Mneme status model init failed:", error);
+            }
+
             // Load autoload scripts from Script Library
             try {
                 const { autoloadService } = await import("./autoload-service");

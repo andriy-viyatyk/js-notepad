@@ -12,6 +12,8 @@ import {
 import { app } from "../../api/app";
 import { showMcpRequestLog } from "../../api/mcp-handler";
 import { autoloadService } from "../../api/autoload-service";
+import { mnemeStatusModel } from "../../api/mneme-status";
+import { pagesModel } from "../../api/pages";
 import { Pages } from "./Pages";
 import { PageTabs } from "../tabs/PageTabs";
 import { clsx } from "clsx";
@@ -118,10 +120,17 @@ const AppRoot = styled.div({
             display: "flex",
         },
     },
-    "& .mcp-indicator": {
+    "& .status-indicators": {
         position: "absolute",
         bottom: 1,
         right: 4,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        WebkitAppRegion: "no-drag",
+        pointerEvents: "auto",
+    },
+    "& .mcp-indicator, & .mneme-indicator": {
         fontSize: 9,
         lineHeight: 1,
         color: color.text.light,
@@ -129,8 +138,6 @@ const AppRoot = styled.div({
         display: "flex",
         alignItems: "center",
         gap: 3,
-        WebkitAppRegion: "no-drag",
-        pointerEvents: "auto",
         cursor: "pointer",
         "&:hover": {
             opacity: 1,
@@ -145,6 +152,15 @@ const AppRoot = styled.div({
             marginLeft: 1,
             fontSize: 11,
             color: color.misc.green,
+        },
+        "& .mneme-dot": {
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            backgroundColor: color.text.light,
+            "&.success": { backgroundColor: color.misc.green },
+            "&.warning": { backgroundColor: color.misc.yellow },
+            "&.neutral": { backgroundColor: color.text.light },
         },
     },
 });
@@ -206,21 +222,24 @@ export function MainPage() {
                 >
                     <CloseIcon />
                 </button>
-                {state.mcpRunning && (
-                    <span
-                        className="mcp-indicator"
-                        title={state.mcpClientCount > 0
-                            ? `MCP is active, ${state.mcpClientCount} active connection${state.mcpClientCount !== 1 ? "s" : ""} — click to view request log`
-                            : "MCP server is running — click to view request log"
-                        }
-                        onClick={() => showMcpRequestLog()}
-                    >
-                        {state.mcpClientCount > 0
-                            ? <><span className="mcp-count">{state.mcpClientCount}</span> MCP</>
-                            : <><span className="mcp-dot" /> MCP</>
-                        }
-                    </span>
-                )}
+                <div className="status-indicators">
+                    <MnemeIndicator />
+                    {state.mcpRunning && (
+                        <span
+                            className="mcp-indicator"
+                            title={state.mcpClientCount > 0
+                                ? `MCP is active, ${state.mcpClientCount} active connection${state.mcpClientCount !== 1 ? "s" : ""} — click to view request log`
+                                : "MCP server is running — click to view request log"
+                            }
+                            onClick={() => showMcpRequestLog()}
+                        >
+                            {state.mcpClientCount > 0
+                                ? <><span className="mcp-count">{state.mcpClientCount}</span> MCP</>
+                                : <><span className="mcp-dot" /> MCP</>
+                            }
+                        </span>
+                    )}
+                </div>
             </div>
             <div className="app-content">
                 <div className="pages-container">
@@ -232,6 +251,28 @@ export function MainPage() {
                 />
             </div>
         </AppRoot>
+    );
+}
+
+function MnemeIndicator() {
+    const s = mnemeStatusModel.state.use();
+    if (!s.enabled) return null;
+
+    const dotClass = s.running ? (s.modelReady ? "success" : "warning") : "neutral";
+    const title = s.running
+        ? s.modelReady
+            ? "Mneme active — vector memory ready. Click to manage."
+            : "Mneme is running without an embedding model — semantic search unavailable (text/grep fallback only). Click to fix in Mneme settings."
+        : "Mneme is enabled but not running. Click to manage.";
+
+    return (
+        <span
+            className="mneme-indicator"
+            title={title}
+            onClick={() => pagesModel.showMnemeConfigPage()}
+        >
+            <span className={clsx("mneme-dot", dotClass)} /> Mneme
+        </span>
     );
 }
 

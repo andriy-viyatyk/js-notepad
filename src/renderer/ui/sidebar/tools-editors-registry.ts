@@ -5,7 +5,7 @@ import {
     DrawIcon, GraphIcon, GridIcon, IncognitoIcon, RestClientIcon, TorIcon,
     JavascriptIcon, LinkIcon, NotebookIcon, TodoIcon, TypescriptIcon,
 } from "../../theme/language-icons";
-import { GlobeIcon, McpIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
+import { GlobeIcon, McpIcon, MemoryIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
 import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
 
 // =============================================================================
@@ -134,6 +134,13 @@ const staticItems: CreatableItem[] = [
         label: "MCP Inspector",
         icon: React.createElement(McpIcon),
         create: () => { pagesModel.showMcpInspectorPage(); },
+        category: "tool",
+    },
+    {
+        id: "mneme-config",
+        label: "Mneme",
+        icon: React.createElement(MemoryIcon),
+        create: () => { pagesModel.showMnemeConfigPage(); },
         category: "tool",
     },
     {

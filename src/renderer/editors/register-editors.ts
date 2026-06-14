@@ -371,6 +371,17 @@ editorRegistry.register({
 });
 
 editorRegistry.register({
+    id: "mneme-config",
+    name: "Mneme",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { mnemeConfigModule } = await import("./mneme-config");
+        return mnemeConfigModule;
+    },
+});
+
+editorRegistry.register({
     id: "storybook-view",
     name: "Storybook",
     hasContentHost: false,

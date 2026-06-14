@@ -138,6 +138,9 @@ export function startMneme(port?: number): Promise<MnemeStatus> {
 
         proc.on("close", (code) => {
             log(`Mneme process exited with code ${code}`);
+            // Ignore the close of a process we've already replaced (e.g. during a
+            // restart) — only the current child drives module state.
+            if (child !== proc && settled) return;
             const wasRunning = running;
             running = false;
             child = null;
@@ -167,6 +170,36 @@ export function stopMneme(): void {
     const wasRunning = running;
     running = false;
     if (wasRunning) broadcastMnemeStatus();
+}
+
+/** Stop the running process and resolve once it has actually exited (so a
+ *  subsequent start spawns cleanly). Safety-capped at 5 s. */
+function stopMnemeAndWait(): Promise<void> {
+    const proc = child;
+    if (!proc) {
+        stopMneme();
+        return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+        let done = false;
+        const finish = (): void => {
+            if (done) return;
+            done = true;
+            resolve();
+        };
+        proc.once("close", finish);
+        stopMneme();
+        setTimeout(finish, 5_000);
+    });
+}
+
+/** Restart the sidecar: stop the current process (waiting for it to exit), then
+ *  start a fresh one. Used to recover from a wedged MCP session or a crash. */
+export async function restartMneme(port?: number): Promise<MnemeStatus> {
+    const targetPort = port ?? currentPort;
+    log("Restarting Mneme...");
+    await stopMnemeAndWait();
+    return startMneme(targetPort);
 }
 
 export function shutdownMneme(): void {
