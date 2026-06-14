@@ -2,7 +2,7 @@ import { TGlobalState } from "../core/state/state";
 import { api } from "../../ipc/renderer/api";
 import ipcRendererEvents from "../../ipc/renderer/renderer-events";
 import { settings } from "./settings";
-import { McpConnectionManager } from "../editors/mcp-inspector/McpConnectionManager";
+import { mnemeConnection } from "./mneme-connection";
 import { WikiStatus, isModelReady, parseToolResult } from "../editors/mneme-config/mnemeTypes";
 
 /**
@@ -16,6 +16,11 @@ import { WikiStatus, isModelReady, parseToolResult } from "../editors/mneme-conf
  *  - `enabled`    — `mneme.enabled` setting (drives indicator *visibility*).
  *  - `running`    — sidecar process up (from the main process).
  *  - `modelReady` — a working embedding model is provisioned (green vs yellow).
+ *
+ * The probe runs over the **shared** `mnemeConnection` client rather than its own
+ * MCP session — a second session to the same loopback sidecar (plus the config
+ * editor's) starved the renderer's HTTP connection pool and made `wiki_status`
+ * hang to the 60 s timeout (US-673).
  */
 export interface MnemeStatusState {
     enabled: boolean;
@@ -34,7 +39,6 @@ class MnemeStatusModel {
         modelReady: false,
     });
 
-    private connection: McpConnectionManager | null = null;
     private pollTimer: ReturnType<typeof setInterval> | null = null;
     private probing = false;
     private initialized = false;
@@ -54,6 +58,12 @@ class MnemeStatusModel {
 
         ipcRendererEvents.eMnemeStatusChanged.subscribe((s) => {
             this.applySidecar(!!s.running, s.url || "");
+        });
+
+        // Probe as soon as the shared connection is up so the indicator turns
+        // green promptly instead of waiting for the next 30 s tick.
+        mnemeConnection.onStatusChange((status) => {
+            if (status === "connected") void this.probe();
         });
 
         void api.getMnemeStatus().then((s) => {
@@ -86,42 +96,32 @@ class MnemeStatusModel {
                 clearInterval(this.pollTimer);
                 this.pollTimer = null;
             }
-            void this.dropConnection();
             this.state.update((s) => { s.modelReady = false; });
         }
     }
 
-    private async dropConnection(): Promise<void> {
-        if (!this.connection) return;
-        const c = this.connection;
-        this.connection = null;
-        await c.dispose();
-    }
-
     private async probe(): Promise<void> {
-        const { enabled, running, url } = this.state.get();
-        if (!enabled || !running || !url || this.probing) return;
+        const { enabled, running } = this.state.get();
+        if (!enabled || !running || this.probing) return;
+        // Reuse the shared content connection — the prober no longer opens its own
+        // MCP session (US-673). `mnemeConnection` owns the connection lifecycle; if
+        // it isn't connected yet, the model is simply not ready for this tick and the
+        // onStatusChange hook re-probes once it connects.
+        const client = mnemeConnection.getClient();
+        if (!client) {
+            this.state.update((s) => { s.modelReady = false; });
+            return;
+        }
         this.probing = true;
         try {
-            if (!this.connection) this.connection = new McpConnectionManager();
-            let client = this.connection.getClient();
-            if (!client) {
-                await this.connection.connect({ name: "Mneme (status)", transport: "http", url });
-                client = this.connection.getClient();
-            }
-            if (!client) {
-                this.state.update((s) => { s.modelReady = false; });
-                return;
-            }
-            const result = await client.callTool({ name: "wiki_status", arguments: {} });
+            const result = await client.callTool({ name: "wiki_status", arguments: {} }, undefined, { timeout: 10_000 });
             const status = parseToolResult<WikiStatus>(result);
             const ready = isModelReady(status);
             this.state.update((s) => { s.modelReady = ready; });
         } catch {
-            // Probe failed — treat the model as not ready and drop the client so
-            // the next probe reconnects cleanly.
+            // Probe failed (or timed out) — treat the model as not ready; the shared
+            // connection's auto-reconnect handles recovery.
             this.state.update((s) => { s.modelReady = false; });
-            await this.dropConnection();
         } finally {
             this.probing = false;
         }

@@ -3,7 +3,11 @@ import type { ISubscriptionObject } from "./types/events";
 import { api } from "../../ipc/renderer/api";
 import ipcRendererEvents from "../../ipc/renderer/renderer-events";
 import { settings } from "./settings";
-import { McpConnectionManager } from "../editors/mcp-inspector/McpConnectionManager";
+import {
+    McpConnectionManager,
+    type McpConnectionStatus,
+    type McpServerInfo,
+} from "../editors/mcp-inspector/McpConnectionManager";
 
 /**
  * Shared, persistent Mneme content connection.
@@ -31,6 +35,8 @@ class MnemeConnectionService {
     private watchers = new Map<string, Set<(event: string) => void>>();
     /** `resources/list_changed` listeners (consumed by MnemeTreeProvider). */
     private listChangedWatchers = new Set<() => void>();
+    /** Connection-status listeners (consumed by the health prober + config editor). */
+    private statusWatchers = new Set<(status: McpConnectionStatus, error?: string) => void>();
 
     /** Wire settings + sidecar events. Call once at app startup. */
     init(): void {
@@ -61,6 +67,34 @@ class MnemeConnectionService {
     /** Connected MCP client for content I/O, or null when not connected. */
     getClient(): Client | null {
         return this.manager?.getClient() ?? null;
+    }
+
+    /** Live status of the shared connection (drives the header indicator + config editor). */
+    get status(): McpConnectionStatus {
+        return this.manager?.status ?? "disconnected";
+    }
+
+    get error(): string {
+        return this.manager?.error ?? "";
+    }
+
+    get serverInfo(): McpServerInfo | null {
+        return this.manager?.serverInfo ?? null;
+    }
+
+    /** Listen for connection-status changes. Multiple consumers may subscribe. */
+    onStatusChange(callback: (status: McpConnectionStatus, error?: string) => void): ISubscriptionObject {
+        this.statusWatchers.add(callback);
+        return {
+            unsubscribe: () => { this.statusWatchers.delete(callback); },
+        };
+    }
+
+    /** Force a fresh connect (used by the config editor's manual reconnect / restart). */
+    async reconnect(): Promise<void> {
+        this.connectedUrl = "";
+        await this.manager?.disconnect();
+        this.sync();
     }
 
     /** Subscribe to `resources/updated` for a document URI. Refcounted: the server
@@ -107,6 +141,9 @@ class MnemeConnectionService {
         manager.onResourceUpdated = (uri) => this.dispatchUpdated(uri);
         manager.onResourceListChanged = () => {
             for (const cb of [...this.listChangedWatchers]) cb();
+        };
+        manager.onStatusChange = (status, error) => {
+            for (const cb of [...this.statusWatchers]) cb(status, error);
         };
         this.manager = manager;
         return manager;

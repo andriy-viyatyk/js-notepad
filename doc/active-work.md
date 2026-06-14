@@ -24,6 +24,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-670: [Phase 4 prereq] Mneme resource-subscription emit (capability + subscribe/unsubscribe + watcher fan-out) — blocks US-661](tasks/US-670-mneme-resource-subscription-emit/README.md)
   - [ ] [US-661: [Phase 4] McpConnectionManager subscription support (client wiring) — needs US-670](tasks/US-661-mcp-subscription-support/README.md)
   - [ ] [US-662: [Phase 4] MnemeProvider (read/write/edit + live-refresh)](tasks/US-662-mneme-provider/README.md)
+  - [ ] [US-673: [Phase 4][Bug] Mneme MCP client — single shared connection (fix wiki_status timeouts / yellow indicator)](tasks/US-673-mneme-single-connection/README.md)
   - [ ] US-663: [Phase 4] MnemeTreeProvider + Explorer-like sidebar panel
   - [ ] [US-668: [Phase 5 prereq] Mneme wiki_root_config tool (live include/ignore) — blocks US-664](tasks/US-668-mneme-root-config-tool/README.md)
   - [ ] [US-664: [Phase 5] Mneme config & monitoring editor (+ header indicator) — needs US-668](tasks/US-664-mneme-config-editor/README.md)

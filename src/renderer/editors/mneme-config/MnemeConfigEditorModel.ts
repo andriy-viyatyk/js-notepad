@@ -4,10 +4,7 @@ import type { EditorDescriptor } from "../../../shared/persistence";
 import { TComponentState } from "../../core/state/state";
 import { MemoryIcon } from "../../theme/icons";
 import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
-import {
-    McpConnectionManager,
-    McpConnectionStatus,
-} from "../mcp-inspector/McpConnectionManager";
+import type { McpConnectionStatus } from "../mcp-inspector/McpConnectionManager";
 import { api } from "../../../ipc/renderer/api";
 import ipcRendererEvents from "../../../ipc/renderer/renderer-events";
 import { ui } from "../../api/ui";
@@ -16,6 +13,7 @@ import { settings } from "../../api/settings";
 import { fpJoin, fpBasename } from "../../core/utils/file-path";
 import { showProgress } from "../../uikit";
 import { mnemeStatusModel } from "../../api/mneme-status";
+import { mnemeConnection } from "../../api/mneme-connection";
 import {
     WikiStatus,
     WikiRootConfig,
@@ -75,8 +73,8 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     noLanguage = true;
     skipSave = true;
 
-    readonly connection = new McpConnectionManager();
     private _statusSub: { unsubscribe: () => void } | null = null;
+    private _connSub: { unsubscribe: () => void } | null = null;
     private _aborts: Record<string, AbortController> = {};
 
     /** Background-job status poll (US-669): while any root is indexing or the
@@ -92,28 +90,39 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
 
     constructor(state: TComponentState<MnemeConfigEditorState>) {
         super(state);
-        this.connection.onStatusChange = (status, error) => {
-            this.state.update((s) => {
-                s.connectionStatus = status;
-                s.errorMessage = error || "";
-            });
-            if (status === "connected") {
-                this.refreshStatus();
-            } else if (status === "disconnected" || status === "error") {
-                this.stopPolling();
-                this.state.update((s) => {
-                    s.status = null;
-                    s.reindexProgress = {};
-                    s.rootConfigs = {};
-                    s.staleIndexes = {};
-                });
-            }
-        };
-        // Auto-connect on open (config monitor; safe to fire-and-forget).
+        // Reuse the shared Mneme connection (US-673) instead of opening a third MCP
+        // session to the same loopback sidecar (which starved the connection pool and
+        // hung wiki_status). The shared connection owns the lifecycle; the editor only
+        // mirrors its status and issues tool calls through its client.
+        this._connSub = mnemeConnection.onStatusChange((status, error) => {
+            this.applyConnectionStatus(status, error);
+        });
+        // Seed from the current status — the editor can open after the shared
+        // connection is already connected, so no fresh "connected" callback arrives.
+        this.applyConnectionStatus(mnemeConnection.status, mnemeConnection.error);
+        // Reflect sidecar running/url for display + manual reconnect/restart.
         void this.initConnection();
         this._statusSub = ipcRendererEvents.eMnemeStatusChanged.subscribe((s) => {
             this.applySidecarStatus(!!s.running, s.url || "");
         });
+    }
+
+    private applyConnectionStatus(status: McpConnectionStatus, error?: string): void {
+        this.state.update((s) => {
+            s.connectionStatus = status;
+            s.errorMessage = error || "";
+        });
+        if (status === "connected") {
+            void this.refreshStatus();
+        } else if (status === "disconnected" || status === "error") {
+            this.stopPolling();
+            this.state.update((s) => {
+                s.status = null;
+                s.reindexProgress = {};
+                s.rootConfigs = {};
+                s.staleIndexes = {};
+            });
+        }
     }
 
     setTab = (tab: MnemeConfigTab): void => {
@@ -133,36 +142,20 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     }
 
     private applySidecarStatus(running: boolean, url: string): void {
+        // Only mirror sidecar running/url for display. The shared mnemeConnection
+        // owns connecting/disconnecting (driven by the same sidecar IPC + the
+        // mneme.enabled setting); our connectionStatus follows via onStatusChange.
         this.state.update((s) => {
             s.running = running;
             s.url = url;
         });
-        if (running && url) {
-            const current = this.connection.getClient();
-            if (!current) {
-                void this.connection.connect({
-                    name: "Mneme",
-                    transport: "http",
-                    url,
-                    // Recover automatically from transient SSE session drops (US-671) — the sidecar
-                    // stays up, so a dropped MCP session should silently reconnect, not latch on
-                    // "Disconnected". Stopping the sidecar disposes this connection (cancels retries).
-                    autoReconnect: true,
-                });
-            }
-        } else {
-            void this.connection.dispose();
-            this.state.update((s) => {
-                s.connectionStatus = "disconnected";
-                s.status = null;
-            });
-        }
     }
 
     /** Reconnect after a manual stop/start or transient drop. */
     reconnect = async (): Promise<void> => {
         const s = await api.getMnemeStatus();
         this.applySidecarStatus(!!s.running, s.url || "");
+        await mnemeConnection.reconnect();
     };
 
     /** Restart the Mneme sidecar process (recovers from a wedged MCP session or
@@ -172,6 +165,9 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             const port = settings.get("mneme.port") as number | undefined;
             const status = await showProgress(api.restartMneme(port), "Restarting Mneme…");
             this.applySidecarStatus(!!status.running, status.url || "");
+            // The restarted sidecar has a fresh MCP session; force the shared
+            // connection to drop the dead one and reconnect immediately.
+            await mnemeConnection.reconnect();
             mnemeStatusModel.refresh();
             if (status.running) {
                 ui.notify("Mneme restarted", "success");
@@ -186,11 +182,11 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     /** Fetch `wiki_status`. `silent` (used by the background poll) skips the
      *  `refreshing` flag so the timer-driven refresh doesn't flicker the UI. */
     refreshStatus = async (silent = false): Promise<void> => {
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         if (!silent) this.state.update((s) => { s.refreshing = true; });
         try {
-            const result = await client.callTool({ name: "wiki_status", arguments: {} });
+            const result = await client.callTool({ name: "wiki_status", arguments: {} }, undefined, { timeout: 10_000 });
             const status = parseToolResult<WikiStatus>(result);
             this.state.update((s) => { s.status = status; });
             this.syncPolling();
@@ -234,7 +230,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     }
 
     private async pollTick(): Promise<void> {
-        if (this.state.get().connectionStatus !== "connected" || !this.connection.getClient()) {
+        if (this.state.get().connectionStatus !== "connected" || !mnemeConnection.getClient()) {
             this.stopPolling();
             return;
         }
@@ -266,7 +262,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             return;
         }
 
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         try {
             // Returns immediately — Mneme indexes the new root in the background
@@ -288,7 +284,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             "Remove",
         );
         if (!choice) return;
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         try {
             await client.callTool({ name: "wiki_remove_root", arguments: { root } });
@@ -301,7 +297,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
 
     /** Reindex a root (`root` = its name) or the whole index (`root` omitted). */
     reindex = async (root?: string): Promise<void> => {
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         const key = root ?? REINDEX_ALL_KEY;
         if (this._aborts[key]) return; // already running
@@ -365,7 +361,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     // ── Per-root filters (wiki_root_config — US-668) ──────────────────────
 
     getRootConfig = async (root: string): Promise<void> => {
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         try {
             const result = await client.callTool({ name: "wiki_root_config", arguments: { root } });
@@ -379,7 +375,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     };
 
     setRootConfig = async (root: string, include: string[], ignore: string[]): Promise<void> => {
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         try {
             const result = await showProgress(
@@ -403,7 +399,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     // ── Model ─────────────────────────────────────────────────────────────
 
     updateModel = async (): Promise<void> => {
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         try {
             // Returns immediately — Mneme downloads in the background (US-669).
@@ -475,7 +471,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             "Delete",
         );
         if (!choice) return;
-        const client = this.connection.getClient();
+        const client = mnemeConnection.getClient();
         if (!client) return;
         try {
             await client.callTool({
@@ -535,8 +531,10 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         this.stopPolling();
         this._statusSub?.unsubscribe();
         this._statusSub = null;
+        this._connSub?.unsubscribe();
+        this._connSub = null;
         for (const a of Object.values(this._aborts)) a.abort();
-        await this.connection.dispose();
+        // Do NOT dispose mnemeConnection — it's shared (providers + the health prober).
         await super.dispose();
     }
 }
