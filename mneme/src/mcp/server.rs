@@ -180,7 +180,7 @@ impl MnemeServer {
         Ok(ok_text())
     }
 
-    #[tool(description = r##"Download/verify the configured embedding model into the cache; enables vector/hybrid search. Synchronous — may take minutes for a first download. Example: wiki_model_update {} → {"name":"gte-multilingual-base","precision":"int8","version":"1","complete":true,"files":[{"filename":"model.onnx","present":true,"verified":true},{"filename":"tokenizer.json","present":true,"verified":true}]}"##)]
+    #[tool(description = r##"Download/verify the configured embedding model into the cache (enables vector/hybrid search). Returns immediately and downloads in the background; poll wiki_status.model (download.{phase,bytesDone,bytesTotal}, and complete=true when done) for progress. Calling again while a download is in flight is a no-op. Example: wiki_model_update {} → {"name":"gte-multilingual-base","precision":"int8","version":"1","complete":false,"files":[...],"download":{"phase":"downloading","bytesDone":12345678,"bytesTotal":357000000}}"##)]
     async fn wiki_model_update(&self, Parameters(p): Parameters<ModelUpdateParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.model_update(false, p.model).await.map_err(to_mcp)?)
     }

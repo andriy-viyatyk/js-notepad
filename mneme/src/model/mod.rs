@@ -68,6 +68,18 @@ pub struct ModelFileStatus {
     pub bytes: u64,
 }
 
+/// Live model-download progress, derived from the filesystem (present files + `.part` sidecars)
+/// against the manifest's total bytes. `phase` is `idle`/`downloading`/`verifying`/`done`/`error`.
+/// Surfaced on `wiki_status.model.download` so the editor can show a progress bar without holding
+/// the (now background) `wiki_model_update` call open.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelDownloadStatus {
+    pub phase: String,
+    pub bytes_done: u64,
+    pub bytes_total: u64,
+}
+
 /// Overall model status returned by `status()` and `provision()`.
 #[derive(Debug, Clone, Serialize)]
 pub struct ModelStatus {
@@ -77,6 +89,10 @@ pub struct ModelStatus {
     pub dir: String,
     pub complete: bool,
     pub files: Vec<ModelFileStatus>,
+    /// Live download progress when a background `wiki_model_update` is in flight (or errored).
+    /// `None` from the pure `status()` / `provision()` helpers — the MCP server fills it in.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub download: Option<ModelDownloadStatus>,
 }
 
 // --- public helpers ----------------------------------------------------------
@@ -143,6 +159,13 @@ fn verify_file(path: &Path, expected_sha256: &str) -> bool {
     got == expected_sha256
 }
 
+/// The in-progress download sidecar path for a final destination (`model.onnx` → `model.onnx.part`).
+fn part_path(dest_path: &Path) -> PathBuf {
+    let mut p = dest_path.as_os_str().to_owned();
+    p.push(".part");
+    PathBuf::from(p)
+}
+
 /// Download a single file with resume support and atomic rename on success.
 ///
 /// - `dest_path`: the final destination (e.g. `model_dir/model.onnx`)
@@ -156,11 +179,7 @@ pub fn download_file(
     expected_sha256: &str,
     _expected_bytes: u64,
 ) -> Result<()> {
-    let part_path = {
-        let mut p = dest_path.as_os_str().to_owned();
-        p.push(".part");
-        PathBuf::from(p)
-    };
+    let part_path = part_path(dest_path);
 
     // Pre-seed hasher from existing .part and compute resume offset.
     let (mut hasher, range_start) = if part_path.exists() {
@@ -301,6 +320,7 @@ pub fn provision_entry(entry: &ModelEntry, base_dir: &Path, force: bool) -> Resu
         dir: base_dir.display().to_string(),
         complete,
         files: file_statuses,
+        download: None,
     })
 }
 
@@ -349,5 +369,57 @@ pub fn status(cfg: &ModelConfig) -> Result<ModelStatus> {
         dir: dir.display().to_string(),
         complete,
         files: file_statuses,
+        download: None,
+    })
+}
+
+/// Compute download progress from the filesystem: sum the bytes of present final files plus any
+/// `.part` sidecars, against the manifest's total bytes. The caller supplies `in_flight`/`errored`
+/// (it owns the background-job state) — the filesystem alone can't tell an active download from a
+/// stale `.part`. Phase: `error` if errored; while in flight, `verifying` once a `.part` is at full
+/// size (sha256 + rename pending) else `downloading`; otherwise `done` when all files are present,
+/// else `idle`.
+pub fn download_progress(cfg: &ModelConfig, in_flight: bool, errored: bool) -> Result<ModelDownloadStatus> {
+    let entry = target_entry(cfg)?;
+    let dir = model_dir(cfg, &entry)?;
+
+    let mut bytes_done = 0u64;
+    let mut bytes_total = 0u64;
+    let mut all_present = true;
+    let mut any_part_full = false;
+    for mf in &entry.files {
+        bytes_total += mf.bytes;
+        let dest = dir.join(&mf.filename);
+        if dest.exists() {
+            bytes_done += std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+        } else {
+            all_present = false;
+            if let Ok(m) = std::fs::metadata(part_path(&dest)) {
+                bytes_done += m.len();
+                if m.len() >= mf.bytes {
+                    any_part_full = true;
+                }
+            }
+        }
+    }
+
+    let phase = if errored {
+        "error"
+    } else if in_flight {
+        if any_part_full {
+            "verifying"
+        } else {
+            "downloading"
+        }
+    } else if all_present {
+        "done"
+    } else {
+        "idle"
+    };
+
+    Ok(ModelDownloadStatus {
+        phase: phase.to_string(),
+        bytes_done,
+        bytes_total,
     })
 }

@@ -4,6 +4,7 @@
 //! loading + the Document Store walk end-to-end. All logs go to stderr; stdout is reserved
 //! for the (future) server's single startup readiness line.
 
+use std::io::Write;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
@@ -75,12 +76,16 @@ enum Command {
 fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(if cli.verbose { "debug" } else { "info" }));
-    tracing_subscriber::fmt()
-        .with_writer(std::io::stderr)
-        .with_env_filter(filter)
-        .init();
+    // For the long-running server, mirror logs into a truncate-on-start file beside the config
+    // (e.g. <userData>/data/mneme/mneme.log) — the spawning app captures stdout/stderr but exposes
+    // them nowhere, so this is the only post-hoc record. One-shot CLI commands log to stderr only
+    // (writing the file each run would clobber the server's log).
+    let log_file = if matches!(cli.command, Command::Serve { .. }) {
+        log_path(&cli)
+    } else {
+        None
+    };
+    init_logging(cli.verbose, log_file);
 
     match run(cli) {
         Ok(()) => std::process::ExitCode::SUCCESS,
@@ -92,11 +97,81 @@ fn main() -> std::process::ExitCode {
     }
 }
 
-fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
-    let config_path = cli
-        .config
+/// Resolve the config file path (CLI flag, else `$MNEME_CONFIG`, else the OS default).
+fn resolve_config_path(cli: &Cli) -> PathBuf {
+    cli.config
+        .clone()
         .or_else(|| std::env::var_os("MNEME_CONFIG").map(PathBuf::from))
-        .unwrap_or_else(config::default_config_path);
+        .unwrap_or_else(config::default_config_path)
+}
+
+/// The default Mneme log path: `mneme.log` beside the resolved config file.
+fn log_path(cli: &Cli) -> Option<PathBuf> {
+    resolve_config_path(cli)
+        .parent()
+        .map(|d| d.join("mneme.log"))
+}
+
+/// Initialize tracing: always to stderr (the existing `[Mneme]` capture), and — when `log_file` is
+/// set — additionally to a truncating file layer so both sinks receive the same events.
+fn init_logging(verbose: bool, log_file: Option<PathBuf>) {
+    use tracing_subscriber::prelude::*;
+
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(if verbose { "debug" } else { "info" }));
+    let stderr_layer = tracing_subscriber::fmt::layer().with_writer(std::io::stderr);
+    let registry = tracing_subscriber::registry().with(filter).with(stderr_layer);
+
+    match log_file.and_then(open_log_writer) {
+        Some(writer) => registry
+            .with(tracing_subscriber::fmt::layer().with_ansi(false).with_writer(writer))
+            .init(),
+        None => registry.init(),
+    }
+}
+
+/// Create (truncating) the log file and return a thread-safe `MakeWriter`. Failures are reported to
+/// stderr and logging falls back to stderr-only.
+fn open_log_writer(path: PathBuf) -> Option<FileMakeWriter> {
+    if let Some(dir) = path.parent() {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            eprintln!("mneme: cannot create log dir {}: {e}", dir.display());
+            return None;
+        }
+    }
+    match std::fs::File::create(&path) {
+        Ok(f) => Some(FileMakeWriter(std::sync::Arc::new(std::sync::Mutex::new(f)))),
+        Err(e) => {
+            eprintln!("mneme: cannot open log file {}: {e}", path.display());
+            None
+        }
+    }
+}
+
+/// A `MakeWriter` over a shared, mutex-guarded file: every event locks, writes its line, unlocks
+/// (no interleaving between threads). The file is opened with truncation, so each `serve` start
+/// overwrites the previous session's log.
+#[derive(Clone)]
+struct FileMakeWriter(std::sync::Arc<std::sync::Mutex<std::fs::File>>);
+
+impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for FileMakeWriter {
+    type Writer = FileMakeWriter;
+    fn make_writer(&'a self) -> Self::Writer {
+        self.clone()
+    }
+}
+
+impl Write for FileMakeWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0.lock().unwrap().write(buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.0.lock().unwrap().flush()
+    }
+}
+
+fn run(cli: Cli) -> persephone_mneme::error::Result<()> {
+    let config_path = resolve_config_path(&cli);
 
     let mut cfg = config::load(&config_path)?;
     let store = DocumentStore::open(&cfg)?;

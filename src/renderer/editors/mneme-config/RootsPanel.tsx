@@ -7,7 +7,7 @@ import { Tag } from "../../uikit/Tag";
 import { ProgressBar } from "../../uikit/ProgressBar";
 import { Divider } from "../../uikit/Divider";
 import { MnemeConfigEditorModel } from "./MnemeConfigEditorModel";
-import { WikiRootStatus, formatBytes } from "./mnemeTypes";
+import { WikiRootStatus, formatBytes, isReindexActive } from "./mnemeTypes";
 
 interface RootsPanelProps {
     model: MnemeConfigEditorModel;
@@ -46,8 +46,16 @@ interface RootRowProps {
 function RootRow({ model, root }: RootRowProps) {
     const s = model.state.use();
     const [expanded, setExpanded] = useState(false);
-    const progress = s.reindexProgress[root.name];
-    const reindexing = !!progress;
+    // Two progress sources: a user-triggered reindex (cancellable, via the
+    // reindexProgress map) and a background pass surfaced on wiki_status
+    // (add-root / watcher, US-669). Manual takes precedence when both exist.
+    const manual = s.reindexProgress[root.name];
+    const bg = root.reindex;
+    const bgActive = isReindexActive(bg);
+    const progress = manual ?? (bgActive ? bg : undefined);
+    const reindexing = !!manual; // only the manual reindex is cancellable
+    const busy = reindexing || bgActive;
+    const errored = !manual && bg?.phase === "error";
 
     const toggleFilters = () => {
         const next = !expanded;
@@ -87,23 +95,24 @@ function RootRow({ model, root }: RootRowProps) {
                         name={`mneme-reindex-${root.name}`}
                         size="sm"
                         variant="default"
+                        disabled={bgActive}
                         onClick={() => model.reindex(root.name)}
                     >
-                        Reindex
+                        {bgActive ? "Indexing…" : "Reindex"}
                     </Button>
                 )}
                 <Button
                     name={`mneme-remove-${root.name}`}
                     size="sm"
                     variant="danger"
-                    disabled={reindexing}
+                    disabled={busy}
                     onClick={() => model.removeRoot(root.name)}
                 >
                     Remove
                 </Button>
             </Panel>
 
-            {reindexing && (
+            {progress && (
                 <Panel direction="row" align="center" gap="sm">
                     <Panel flex={1}>
                         <ProgressBar
@@ -116,6 +125,12 @@ function RootRow({ model, root }: RootRowProps) {
                         {progress.total > 0 ? ` ${progress.processed}/${progress.total}` : ""}
                     </Text>
                 </Panel>
+            )}
+
+            {errored && (
+                <Text size="xs" color="error">
+                    Background indexing failed — check the Mneme log; try Reindex.
+                </Text>
             )}
 
             {expanded && <FiltersEditor model={model} root={root.name} />}

@@ -23,6 +23,7 @@ import {
     StaleIndexEntry,
     parseToolResult,
     isModelReady,
+    isStatusBusy,
 } from "./mnemeTypes";
 
 export type MnemeConfigTab = "roots" | "index" | "model";
@@ -78,6 +79,17 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     private _statusSub: { unsubscribe: () => void } | null = null;
     private _aborts: Record<string, AbortController> = {};
 
+    /** Background-job status poll (US-669): while any root is indexing or the
+     *  model is downloading, re-`wiki_status` on a timer so the editor shows
+     *  live progress without holding the originating MCP call open. */
+    private _pollTimer: ReturnType<typeof setInterval> | null = null;
+    /** Keep polling until at least this time (ms epoch) even if status looks
+     *  idle — covers the gap after add-root where the background pass is still
+     *  walking the tree (phase `idle`) before it flips to `scanning`. */
+    private _pollUntil = 0;
+    private static readonly POLL_MS = 1500;
+    private static readonly POLL_GRACE_MS = 30000;
+
     constructor(state: TComponentState<MnemeConfigEditorState>) {
         super(state);
         this.connection.onStatusChange = (status, error) => {
@@ -88,6 +100,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             if (status === "connected") {
                 this.refreshStatus();
             } else if (status === "disconnected" || status === "error") {
+                this.stopPolling();
                 this.state.update((s) => {
                     s.status = null;
                     s.reindexProgress = {};
@@ -166,20 +179,63 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         }
     };
 
-    refreshStatus = async (): Promise<void> => {
+    /** Fetch `wiki_status`. `silent` (used by the background poll) skips the
+     *  `refreshing` flag so the timer-driven refresh doesn't flicker the UI. */
+    refreshStatus = async (silent = false): Promise<void> => {
         const client = this.connection.getClient();
         if (!client) return;
-        this.state.update((s) => { s.refreshing = true; });
+        if (!silent) this.state.update((s) => { s.refreshing = true; });
         try {
             const result = await client.callTool({ name: "wiki_status", arguments: {} });
             const status = parseToolResult<WikiStatus>(result);
             this.state.update((s) => { s.status = status; });
+            this.syncPolling();
         } catch (err) {
-            ui.notify(`Mneme status failed: ${(err as Error)?.message || err}`, "error");
+            if (!silent) ui.notify(`Mneme status failed: ${(err as Error)?.message || err}`, "error");
         } finally {
-            this.state.update((s) => { s.refreshing = false; });
+            if (!silent) this.state.update((s) => { s.refreshing = false; });
         }
     };
+
+    /** Force the poll loop to run for a grace window after kicking off a
+     *  background job (add-root / model download), before its progress shows. */
+    private kickPolling(): void {
+        this._pollUntil = Date.now() + MnemeConfigEditorModel.POLL_GRACE_MS;
+        this.startPolling();
+    }
+
+    /** Start/stop the poll loop based on whether a background job is active (or
+     *  a recent kick's grace window is still open). Called after every status
+     *  refresh so the loop self-terminates when everything goes idle. */
+    private syncPolling(): void {
+        const connected = this.state.get().connectionStatus === "connected";
+        const busy = isStatusBusy(this.state.get().status) || Date.now() < this._pollUntil;
+        if (connected && busy) {
+            this.startPolling();
+        } else {
+            this.stopPolling();
+        }
+    }
+
+    private startPolling(): void {
+        if (this._pollTimer) return;
+        this._pollTimer = setInterval(() => { void this.pollTick(); }, MnemeConfigEditorModel.POLL_MS);
+    }
+
+    private stopPolling(): void {
+        if (this._pollTimer) {
+            clearInterval(this._pollTimer);
+            this._pollTimer = null;
+        }
+    }
+
+    private async pollTick(): Promise<void> {
+        if (this.state.get().connectionStatus !== "connected" || !this.connection.getClient()) {
+            this.stopPolling();
+            return;
+        }
+        await this.refreshStatus(true); // sets status, then syncPolling() decides continue/stop
+    }
 
     addRoot = async (): Promise<void> => {
         const picked = await fs.showFolderDialog({ title: "Add wiki root folder" });
@@ -209,13 +265,13 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         const client = this.connection.getClient();
         if (!client) return;
         try {
-            await showProgress(
-                client.callTool({ name: "wiki_add_root", arguments: { folder, name } }),
-                "Adding root — indexing…",
-            );
+            // Returns immediately — Mneme indexes the new root in the background
+            // (US-669). Poll wiki_status so the per-root progress bar fills in.
+            await client.callTool({ name: "wiki_add_root", arguments: { folder, name } });
             await this.refreshStatus();
             mnemeStatusModel.refresh();
-            ui.notify("Root added", "success");
+            this.kickPolling();
+            ui.notify("Root added — indexing in background", "success");
         } catch (err) {
             ui.notify(`Add root failed: ${(err as Error)?.message || err}`, "error");
         }
@@ -346,13 +402,18 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         const client = this.connection.getClient();
         if (!client) return;
         try {
-            await showProgress(
-                client.callTool({ name: "wiki_model_update", arguments: {} }),
-                "Updating model — this may take several minutes…",
-            );
+            // Returns immediately — Mneme downloads in the background (US-669).
+            // Poll wiki_status so the Model panel's download bar fills in.
+            await client.callTool({ name: "wiki_model_update", arguments: {} });
             await this.refreshStatus();
             mnemeStatusModel.refresh();
-            ui.notify("Model updated", "success");
+            this.kickPolling();
+            const dl = this.state.get().status?.model?.download?.phase;
+            if (dl === "downloading" || dl === "verifying") {
+                ui.notify("Model download started", "info");
+            } else if (this.modelReady) {
+                ui.notify("Model is up to date", "success");
+            }
         } catch (err) {
             ui.notify(`Model update failed: ${(err as Error)?.message || err}`, "error");
         }
@@ -467,6 +528,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     getIcon = (): ReactNode => createElement(MemoryIcon, { color: MEMORY_ICON_COLOR });
 
     async dispose(): Promise<void> {
+        this.stopPolling();
         this._statusSub?.unsubscribe();
         this._statusSub = null;
         for (const a of Object.values(this._aborts)) a.abort();

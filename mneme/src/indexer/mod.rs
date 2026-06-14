@@ -582,6 +582,27 @@ impl IndexManager {
         });
     }
 
+    /// Spawn a one-shot background reconcile of a single root (coalesced through the job manager)
+    /// and return immediately. Used by `wiki_add_root` so registering a large root doesn't block
+    /// the MCP call on the full walk+embed — progress is observable via `wiki_status`. A
+    /// brand-new root has no in-flight pass, so the coalesced call genuinely starts one.
+    pub fn spawn_reconcile(&self, name: &str) {
+        let Some((cfg, ri)) = self
+            .roots
+            .iter()
+            .find(|r| r.name == name)
+            .and_then(|r| self.dbs.get(name).map(|ri| (r.clone(), Arc::clone(ri))))
+        else {
+            return;
+        };
+        let embed = self.embed.clone();
+        let jobs = Arc::clone(&self.jobs);
+        let cancel = self.cancel.clone();
+        std::thread::spawn(move || {
+            jobs.reconcile_coalesced(&ri, &cfg, &embed, cancel);
+        });
+    }
+
     /// Convenience for `serve`: open + start watchers + spawn the deferred reconcile.
     pub fn start(roots: &[RootConfig], model: &ModelConfig, embedder: Arc<LazyEmbedder>) -> Result<Self> {
         let mut mgr = Self::open(roots, model, embedder)?;

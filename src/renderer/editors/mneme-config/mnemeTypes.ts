@@ -31,6 +31,14 @@ export interface WikiModelFile {
     bytes: number;
 }
 
+/** Live model-download progress (US-669), present while a background
+ *  `wiki_model_update` is in flight or errored. Mirrors Rust `ModelDownloadStatus`. */
+export interface WikiModelDownload {
+    phase: "idle" | "downloading" | "verifying" | "done" | "error" | string;
+    bytesDone: number;
+    bytesTotal: number;
+}
+
 export interface WikiModelStatus {
     name: string;
     precision: string;
@@ -38,6 +46,7 @@ export interface WikiModelStatus {
     dir: string;
     complete: boolean;
     files: WikiModelFile[];
+    download?: WikiModelDownload;
 }
 
 /** Result of `wiki_status` — the primary monitoring source. */
@@ -86,6 +95,27 @@ export interface StaleIndexEntry {
  *  iff `wiki_status.model` is present and fully provisioned (`complete`). */
 export function isModelReady(status: WikiStatus | null): boolean {
     return !!status?.model && status.model.complete === true;
+}
+
+/** True while a root's background reindex pass is active (US-669) —
+ *  `scanning`/`embedding`, as opposed to `idle`/`done`/`cancelled`/`error`. */
+export function isReindexActive(p?: WikiReindexProgress): boolean {
+    return !!p && (p.phase === "scanning" || p.phase === "embedding");
+}
+
+/** True while a background model download is active (US-669). */
+export function isDownloadActive(d?: WikiModelDownload): boolean {
+    return !!d && (d.phase === "downloading" || d.phase === "verifying");
+}
+
+/** Whether any background job (reindex of any root, or model download) is
+ *  running — drives the editor's status-poll loop. */
+export function isStatusBusy(status: WikiStatus | null): boolean {
+    if (!status) return false;
+    return (
+        status.roots.some((r) => isReindexActive(r.reindex)) ||
+        isDownloadActive(status.model?.download)
+    );
 }
 
 /** Extract a typed payload from an MCP tool result. Mneme tools that return

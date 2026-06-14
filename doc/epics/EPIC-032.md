@@ -144,7 +144,7 @@ Targeted deep-dive into niche candidates and reusable search engines:
 ### Phase 5 — Mneme config & monitoring editor
 - **US-668** — *(Mneme, Rust — predecessor of US-664)* `wiki_root_config` MCP tool: read + live-update per-root `include`/`ignore` (re-apply filters, restart watcher, reconcile, persist) — closes the control-plane gap so US-664 can edit filters.
 - **US-664** — In-Persephone config / monitoring editor: add/remove/list roots, include/ignore config (via US-668), reindex trigger + live progress, index inventory + delete stale versioned DBs, model update. **Depends on US-668.**
-- **US-669** — *(Mneme, Rust)* Async add-root + background indexing with per-root progress: `wiki_add_root` returns immediately and indexes in the background (today's blocking reconcile times out on large wikis); per-root status surfaced via `wiki_status` and shown in the US-664 editor. **Also** adds a default Mneme **log file** (truncated each start, under the data dir) for troubleshooting. *(Description only — investigation deferred.)*
+- **US-669** — *(Mneme, Rust + US-664 editor)* Async long-running ops + live progress: `wiki_add_root` returns immediately and indexes in the background (today's blocking reconcile times out on large wikis), and `wiki_model_update` returns immediately and downloads in the background (today's blocking download times out on the ~340 MB model). Both surface progress via `wiki_status` — per-root `reindex {phase,processed,total}` and `model.download {phase,bytesDone,bytesTotal}` — shown live in the US-664 editor. **Also** adds a default Mneme **log file** (truncated each start, under the data dir) for troubleshooting. *(Design locked — ready for implementation.)*
 
 ### Phase 6 — Installer + first release
 - **US-665** — Ship it: electron-builder `extraFiles` (mneme.exe + onnxruntime/DirectML DLLs), CI `cargo build --release`, model download-on-first-enable wiring, release process.
@@ -187,7 +187,7 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | US-663 | P4 · `MnemeTreeProvider` + Explorer-like sidebar panel | Planned |
 | [US-668](../tasks/US-668-mneme-root-config-tool/README.md) | P5 prereq · Mneme `wiki_root_config` tool (live include/ignore) — **blocks US-664** | Planned (design for review) |
 | [US-664](../tasks/US-664-mneme-config-editor/README.md) | P5 · Mneme config & monitoring editor (+ header indicator) — **needs US-668** | Implemented (unreviewed) |
-| [US-669](../tasks/US-669-mneme-async-add-root-indexing/README.md) | P5 · Mneme async add-root + background indexing with per-root progress (+ default log file) | Planned (description only) |
+| [US-669](../tasks/US-669-mneme-async-add-root-indexing/README.md) | P5 · Mneme async long-running ops + live progress (add-root, model download, log file) | Planned (design locked) |
 | US-665 | P6 · Installer + first release | Planned |
 
 ## Notes

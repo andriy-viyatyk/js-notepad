@@ -18,6 +18,7 @@ pub use server::{serve, MnemeServer};
 
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::SystemTime;
 
@@ -54,6 +55,19 @@ pub struct ServerState {
     /// Reindex job manager — drives `wiki_reindex` (cancellable + progress) and exposes the
     /// per-root progress snapshot for `wiki_status`.
     jobs: Arc<JobManager>,
+    /// Tracks the single background model-download job so `wiki_model_update` returns immediately
+    /// and `wiki_status.model.download` can report progress.
+    model_job: Arc<ModelJob>,
+}
+
+/// Background model-download job state. `run_lock` serializes downloads; `in_flight` gates a second
+/// `wiki_model_update` (coalesce — don't start a parallel download) and drives the `downloading`
+/// phase; `errored` flips on a failed provision so `wiki_status` can show `download.phase = error`.
+#[derive(Default)]
+struct ModelJob {
+    run_lock: Mutex<()>,
+    in_flight: AtomicBool,
+    errored: AtomicBool,
 }
 
 /// A resource body to hand back to MCP — text or base64 blob — kept rmcp-type-free so
@@ -80,7 +94,18 @@ impl ServerState {
             model,
             embed,
             jobs,
+            model_job: Arc::new(ModelJob::default()),
         }))
+    }
+
+    /// Build the full model status (`status()` + live download progress derived from the
+    /// background job state). Used by `wiki_status` and `wiki_model_update`.
+    fn build_model_status(&self) -> Option<crate::model::ModelStatus> {
+        let mut ms = crate::model::status(&self.model).ok()?;
+        let in_flight = self.model_job.in_flight.load(Ordering::SeqCst);
+        let errored = self.model_job.errored.load(Ordering::SeqCst);
+        ms.download = crate::model::download_progress(&self.model, in_flight, errored).ok();
+        Some(ms)
     }
 
     // --- file-like tools ---------------------------------------------------------------------
@@ -438,15 +463,14 @@ impl ServerState {
                 store.registry_mut().add(folder, p.name.clone())?.clone()
             };
             {
-                st.index.lock().unwrap().add_root(cfg.clone(), &st.model)?;
+                let mut index = st.index.lock().unwrap();
+                index.add_root(cfg.clone(), &st.model)?;
+                // Index the freshly added root in the **background** and return immediately — a
+                // real wiki holds thousands of docs and a synchronous reconcile would outrun the
+                // MCP request timeout. Progress is observable via `wiki_status.roots[].reindex`.
+                index.spawn_reconcile(&cfg.name);
             }
             persist_roots(&st)?;
-            // Reconcile the freshly added root (embeds via the worker when a model is present).
-            let handle = { st.index.lock().unwrap().handle(&cfg.name) };
-            if let Some(h) = handle {
-                st.jobs
-                    .reconcile_blocking(&h, &cfg, &st.embed, CancellationToken::new(), |_| {})?;
-            }
             Ok(AddRootResult {
                 name: cfg.name,
                 folder: cfg.folder.display().to_string(),
@@ -617,7 +641,7 @@ impl ServerState {
                 };
                 roots.push(row);
             }
-            let model_status = crate::model::status(&st.model).ok();
+            let model_status = st.build_model_status();
             Ok(StatusResult {
                 roots,
                 model: model_status,
@@ -682,8 +706,40 @@ impl ServerState {
                 ));
             }
         }
+        // Already downloading → don't start a parallel download; just report current status.
+        if self.model_job.in_flight.swap(true, Ordering::SeqCst) {
+            let st = Arc::clone(self);
+            return blocking(move || {
+                st.build_model_status()
+                    .ok_or_else(|| MnemeError::Internal("model status unavailable".to_string()))
+            })
+            .await;
+        }
+
+        // Dispatch the download on a background thread and return immediately — a fresh model is
+        // ~340 MB and a synchronous download would outrun the MCP request timeout. Progress is
+        // observable via `wiki_status.model.download`.
+        self.model_job.errored.store(false, Ordering::SeqCst);
+        {
+            let st = Arc::clone(self);
+            let job = Arc::clone(&self.model_job);
+            std::thread::spawn(move || {
+                let _run = job.run_lock.lock().unwrap_or_else(|p| p.into_inner());
+                if let Err(e) = crate::model::provision(&st.model, force) {
+                    tracing::warn!("model provision failed: {e}");
+                    job.errored.store(true, Ordering::SeqCst);
+                }
+                job.in_flight.store(false, Ordering::SeqCst);
+            });
+        }
+
+        // Immediate snapshot (final files still absent → `download.phase = downloading`).
         let st = Arc::clone(self);
-        blocking(move || crate::model::provision(&st.model, force)).await
+        blocking(move || {
+            st.build_model_status()
+                .ok_or_else(|| MnemeError::Internal("model status unavailable".to_string()))
+        })
+        .await
     }
 
     /// Serve a `mneme://{root}/{path}` document/attachment as text or a base64 blob.

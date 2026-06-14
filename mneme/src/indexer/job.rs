@@ -143,6 +143,10 @@ impl JobManager {
             let mut noop = |_: &ReindexProgress| {};
             if let Err(e) = reconcile_job(root, cfg, emb, &token, &job.progress, &mut noop) {
                 tracing::warn!(root = %cfg.name, "reconcile failed: {e}");
+                // Surface the failure on `wiki_status` — this is a background pass (add-root /
+                // watcher), so the error can't propagate to any caller. Keep the last
+                // processed/total counts; just flip the phase.
+                job.progress.lock().unwrap().phase = Phase::Error;
             }
             if token.is_cancelled() || !job.rerun.load(Ordering::SeqCst) {
                 break;

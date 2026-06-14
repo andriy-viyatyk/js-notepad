@@ -2,8 +2,9 @@ import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
 import { Dot } from "../../uikit/Dot";
+import { ProgressBar } from "../../uikit/ProgressBar";
 import { MnemeConfigEditorModel } from "./MnemeConfigEditorModel";
-import { isModelReady, formatBytes } from "./mnemeTypes";
+import { isModelReady, formatBytes, isDownloadActive } from "./mnemeTypes";
 
 interface ModelPanelProps {
     model: MnemeConfigEditorModel;
@@ -13,16 +14,44 @@ export function ModelPanel({ model }: ModelPanelProps) {
     const s = model.state.use();
     const m = s.status?.model;
     const ready = isModelReady(s.status);
+    const download = m?.download;
+    const downloading = isDownloadActive(download);
 
     return (
         <Panel direction="column" gap="md" padding="lg">
             <Panel direction="row" align="center" gap="md">
                 <Text size="base" bold>Embedding model</Text>
                 <Panel flex={1} />
-                <Button name="mneme-update-model" size="sm" variant="default" onClick={() => model.updateModel()}>
-                    Update model
+                <Button
+                    name="mneme-update-model"
+                    size="sm"
+                    variant="default"
+                    disabled={downloading}
+                    onClick={() => model.updateModel()}
+                >
+                    {downloading ? "Downloading…" : "Update model"}
                 </Button>
             </Panel>
+
+            {download && (downloading || download.phase === "error") && (
+                <Panel direction="column" gap="xs">
+                    <Panel direction="row" align="center" gap="sm">
+                        <Panel flex={1}>
+                            <ProgressBar
+                                value={download.bytesTotal > 0 ? download.bytesDone : undefined}
+                                max={download.bytesTotal > 0 ? download.bytesTotal : undefined}
+                            />
+                        </Panel>
+                        <Text size="xs" color={download.phase === "error" ? "error" : "light"}>
+                            {download.phase === "verifying"
+                                ? "verifying…"
+                                : download.phase === "error"
+                                  ? "download failed"
+                                  : `${formatBytes(download.bytesDone)} / ${formatBytes(download.bytesTotal)}`}
+                        </Text>
+                    </Panel>
+                </Panel>
+            )}
 
             {!m && (
                 <Panel direction="row" align="center" gap="sm">
