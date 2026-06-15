@@ -1,4 +1,4 @@
-//! `wiki_grep` — a streaming regex scan over the indexable file set (≈ Grep).
+//! `grep` — a streaming regex scan over the indexable file set (≈ Grep).
 //!
 //! Distinct from the future semantic Search Engine (US-658). Mirrors Grep's output modes.
 //! Implemented with the `regex` crate (Concern 6: the documented fallback to the ripgrep

@@ -65,6 +65,7 @@ tokenizers = { version = "0.23", default-features = false, features = ["fancy-re
 rusqlite = { version = "0.37", features = ["bundled"] }  # tamper meta in the schema-mismatch test
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }  # drive async ServerState in mcp tests
 tiny_http = "0.12"   # local fixture server for provisioner tests (supports Range)
+base64 = "0.22"      # encode binary fixtures for wiki_upload tests
 
 [build-dependencies]
 winres = "0.1"

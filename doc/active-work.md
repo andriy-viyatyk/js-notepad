@@ -26,9 +26,18 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-662: [Phase 4] MnemeProvider (read/write/edit + live-refresh)](tasks/US-662-mneme-provider/README.md)
   - [ ] [US-673: [Phase 4][Bug] Mneme MCP client — single shared connection (fix wiki_status timeouts / yellow indicator)](tasks/US-673-mneme-single-connection/README.md)
   - [ ] [US-663: [Phase 4] MnemeTreeProvider + Explorer-like sidebar panel (open Mneme editor on `.mneme` folder click)](tasks/US-663-mneme-tree-provider/README.md)
-  - [ ] [US-674: [Phase 4] Mneme tree editing — create/rename/delete files & folders](tasks/US-674-mneme-tree-editing/README.md) *(placeholder)*
-  - [ ] [US-675: [Phase 4] Mneme tree — drag-and-drop file upload from the OS](tasks/US-675-mneme-tree-file-drop/README.md) *(placeholder)*
-  - [ ] [US-676: [Phase 4] Mneme root main view — search with displayed results](tasks/US-676-mneme-root-search-view/README.md) *(placeholder)*
+  - [ ] [US-674: [Phase 4] Mneme tree editing — create/rename/delete files & folders](tasks/US-674-mneme-tree-editing/README.md) *(implemented, unreviewed)*
+  - [ ] [US-675: [Phase 4] Mneme tree — drag-and-drop file upload from the OS](tasks/US-675-mneme-tree-file-drop/README.md) *(implemented, unreviewed)*
+  - [ ] [US-688: [Phase 4] Mneme tree — own drag-drop via `IMnemeLink` (intra-tree move + cross-root copy)](tasks/US-688-mneme-tree-cross-root-dnd/README.md) *(planned — follow-up to US-675)*
+  - [ ] [US-676: [Phase 4] Mneme root main view — search with displayed results](tasks/US-676-mneme-root-search-view/README.md)
+  - [ ] [US-678: [Phase 4] Mneme search — tag & date filters (follow-up to US-676)](tasks/US-678-mneme-search-filters/README.md)
+  - [ ] US-679: [Phase 4][Bug] Mneme `wiki_search` — sanitize FTS5 query (hyphens/operators no longer error text & hybrid modes); `mneme/src/index/mod.rs` `to_fts_match` + regression test
+  - [ ] [US-680: [Phase 4] Mneme search results — render as markdown via MarkdownBlock](tasks/US-680-mneme-search-results-markdown/README.md)
+  - [ ] US-681: [Phase 4] Mneme `wiki_search` — lower default `topK` 10→5 (conserve agent context) + document `topK` default and `subtree` sub-path scoping in the tool description; `mneme/src/mcp/{mod,params,server}.rs`
+  - [ ] [US-685: [Phase 4] Mneme — decouple wiki file set from index set (full filesystem navigability)](tasks/US-685-mneme-filesystem-navigability/README.md) *(implemented, unreviewed)*
+  - [ ] [US-686: [Phase 4] Mneme — `wiki_read` returns images as vision blocks (like `Read`) + `wiki_upload`](tasks/US-686-mneme-binary-tools/README.md) *(implemented, unreviewed)*
+  - [ ] [US-687: [Phase 4] Mneme — relative `mneme://` links open attachments in the Image viewer (+ `writeBinary` → `wiki_upload`)](tasks/US-687-mneme-relative-links/README.md) *(implemented, unreviewed)*
+  - [ ] [US-683: [Phase 4] Mneme — rename `wiki_*` tools to bare names (`read`/`write`/…) + de-wiki wording](tasks/US-683-mneme-wiki-naming-generalization/README.md) *(implemented, unreviewed)*
   - [ ] [US-668: [Phase 5 prereq] Mneme wiki_root_config tool (live include/ignore) — blocks US-664](tasks/US-668-mneme-root-config-tool/README.md)
   - [ ] [US-664: [Phase 5] Mneme config & monitoring editor (+ header indicator) — needs US-668](tasks/US-664-mneme-config-editor/README.md)
   - [ ] [US-677: [Phase 5] Mneme config editor — single-page redesign + toolbar cleanup](tasks/US-677-mneme-config-redesign/README.md)

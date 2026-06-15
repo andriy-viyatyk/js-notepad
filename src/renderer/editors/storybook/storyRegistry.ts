@@ -12,6 +12,7 @@ import { breadcrumbStory }       from "../../uikit/Breadcrumb/Breadcrumb.story";
 import { buttonStory }           from "../../uikit/Button/Button.story";
 import { iconButtonStory }       from "../../uikit/IconButton/IconButton.story";
 import { inputStory }            from "../../uikit/Input/Input.story";
+import { dateInputStory }        from "../../uikit/DateInput/DateInput.story";
 import { labelStory }            from "../../uikit/Label/Label.story";
 import { checkboxStory }         from "../../uikit/Checkbox/Checkbox.story";
 import { dividerStory }          from "../../uikit/Divider/Divider.story";
@@ -51,7 +52,7 @@ import { gitTreeStory }          from "../../components/git-tree/GitTree.story";
 export const ALL_STORIES: Story[] = [
     collapsiblePanelStackStory, panelStory, spacerStory, splitterStory, toolbarStory,
     breadcrumbStory,
-    buttonStory, iconButtonStory, splitButtonStory, inputStory, labelStory, checkboxStory, dividerStory, dotStory, textStory,
+    buttonStory, iconButtonStory, splitButtonStory, inputStory, dateInputStory, labelStory, checkboxStory, dividerStory, dotStory, textStory,
     segmentedControlStory, radioGroupStory, sliderStory, progressBarStory, spinnerStory, textareaStory, pathInputStory,
     truncatedTextStory,
     tagStory, tagsInputStory,

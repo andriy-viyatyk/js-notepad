@@ -3,8 +3,9 @@ import { TComponentModel } from "../../core/state/model";
 import { isTraited, Traited, TraitType } from "../../core/traits/traits";
 import {
     setTraitDragData,
-    getTraitDragData,
     hasTraitDragData,
+    isFileDrag,
+    getTraitDragDataFromEvent,
 } from "../../core/traits/dnd";
 import { RenderGridModel } from "../RenderGrid";
 import type { RowAlign } from "../RenderGrid";
@@ -464,13 +465,20 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         });
     };
 
+    /** Accept a drag if it carries trait data, OR it's an OS file drag and this Tree
+     *  opted into file drops (`acceptsFileDrop`). Keeps the Tree from reading `files`. */
+    private acceptsDrag(dataTransfer: DataTransfer): boolean {
+        return hasTraitDragData(dataTransfer)
+            || (!!this.props.acceptsFileDrop && isFileDrag(dataTransfer));
+    }
+
     onDragEnter = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
         if (!this.canDropRow(rowIndex)) return;
-        if (!hasTraitDragData(e.dataTransfer)) return;
+        if (!this.acceptsDrag(e.dataTransfer)) return;
         const r = this.rows.value[rowIndex];
         if (!r) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
+        e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
 
         const cur = this.dragEnterCounts.get(r.value) ?? 0;
         this.dragEnterCounts.set(r.value, cur + 1);
@@ -487,9 +495,9 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
     onDragOver = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
         if (!this.canDropRow(rowIndex)) return;
-        if (!hasTraitDragData(e.dataTransfer)) return;
+        if (!this.acceptsDrag(e.dataTransfer)) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
+        e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
     };
 
     onDragLeave = (_e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
@@ -518,7 +526,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         this.dragEnterCounts.clear();
         this.cancelHoverExpandTimer();
 
-        const payload = getTraitDragData(e.dataTransfer);
+        const payload = getTraitDragDataFromEvent(e);
         queueMicrotask(() => {
             if (!this.isLive) return;
             this.state.update((s) => {

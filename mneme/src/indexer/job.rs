@@ -2,14 +2,14 @@
 //!
 //! Reconciling a root is serialized per root (two passes over the same DB would double-process).
 //! Two entry points sit on that serialization:
-//! - [`JobManager::reconcile_blocking`] — explicit `wiki_reindex` / CLI / `add_root`: waits for
+//! - [`JobManager::reconcile_blocking`] — explicit `reindex` / CLI / `add_root`: waits for
 //!   any in-flight pass, then runs a fresh one and returns its stats. The caller's
 //!   `CancellationToken` (e.g. the MCP request's `ct`) cancels the pass.
 //! - [`JobManager::reconcile_coalesced`] — watcher / deferred startup: if a pass is already
 //!   running, flag a **rerun** and return, so a burst of filesystem events collapses to one extra
 //!   pass (the mtime+size fast-path makes it cheap) instead of piling up.
 //!
-//! [`JobManager::progress_for`] exposes the latest per-root snapshot for `wiki_status`.
+//! [`JobManager::progress_for`] exposes the latest per-root snapshot for `status`.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -24,7 +24,7 @@ use crate::index::RootIndex;
 
 use super::{reconcile_job, ReconcileStats};
 
-/// Coarse reconcile phase, surfaced in `wiki_status`.
+/// Coarse reconcile phase, surfaced in `status`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
     Idle,
@@ -42,7 +42,7 @@ impl Default for Phase {
 }
 
 impl Phase {
-    /// Lowercase label for the `wiki_status` DTO.
+    /// Lowercase label for the `status` DTO.
     pub fn as_str(self) -> &'static str {
         match self {
             Phase::Idle => "idle",
@@ -143,7 +143,7 @@ impl JobManager {
             let mut noop = |_: &ReindexProgress| {};
             if let Err(e) = reconcile_job(root, cfg, emb, &token, &job.progress, &mut noop) {
                 tracing::warn!(root = %cfg.name, "reconcile failed: {e}");
-                // Surface the failure on `wiki_status` — this is a background pass (add-root /
+                // Surface the failure on `status` — this is a background pass (add-root /
                 // watcher), so the error can't propagate to any caller. Keep the last
                 // processed/total counts; just flip the phase.
                 job.progress.lock().unwrap().phase = Phase::Error;
@@ -154,7 +154,7 @@ impl JobManager {
         }
     }
 
-    /// The latest progress snapshot for a root (`wiki_status`), or `None` if it never reconciled.
+    /// The latest progress snapshot for a root (`status`), or `None` if it never reconciled.
     pub fn progress_for(&self, root: &str) -> Option<ReindexProgress> {
         let jobs = self.jobs.lock().unwrap();
         jobs.get(root).map(|j| j.progress.lock().unwrap().clone())

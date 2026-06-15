@@ -7,9 +7,12 @@ import { fs } from "../fs";
 import { appWindow } from "../window";
 import { RendererEvent } from "../../../ipc/api-types";
 import { pagesModel } from "../pages";
+import { getClipboardImageFile, openPastedImage } from "./clipboard-image";
 import { windowClosing } from "../../core/state/events";
 import type { ILink } from "../types/io.tree";
 import { fpBasename, fpJoin } from "../../core/utils/file-path";
+import { isFileDrag, setEventTraitDragData } from "../../core/traits/dnd";
+import { makeOsFileDescriptor } from "../../core/traits/fileLinkTraits";
 
 /**
  * Expand a list of dropped file/folder paths into ILink items.
@@ -68,9 +71,14 @@ export class GlobalEventService {
     async init(): Promise<void> {
         document.addEventListener("contextmenu", this.handleContextMenu);
         document.addEventListener("dragover", this.handleDragOver);
+        // Capture: tag OS file drops with an IFileLink descriptor (no consume) so
+        // trait-aware targets (e.g. the Mneme tree) can import them.
         document.addEventListener("drop", this.captureDrop, true);
         document.addEventListener("drop", this.handleDrop);
+        // Bubble (runs last): open dropped files as tabs unless a target handled the drop.
+        document.addEventListener("drop", this.handleFileDropFallback);
         document.addEventListener("wheel", this.handleWheel, { passive: false });
+        document.addEventListener("paste", this.handlePaste, true);
         window.addEventListener("unhandledrejection", this.handleUnhandledRejection);
         window.addEventListener("beforeunload", this.handleBeforeUnload);
     }
@@ -105,7 +113,26 @@ export class GlobalEventService {
         }
     };
 
+    /**
+     * Capture phase: tag the native event with an IFileLink trait descriptor so
+     * trait-aware drop targets (e.g. the Mneme tree) can import the dropped files.
+     * Does NOT consume the event — open-as-tab is the bubble-phase fallback below,
+     * which only fires if no descendant handled (and stopped) the drop.
+     */
     private captureDrop = (e: DragEvent) => {
+        if (!isFileDrag(e.dataTransfer)) return;
+        const entries = Array.from(e.dataTransfer.files)
+            .map((f) => ({ name: f.name, path: window.electron.getPathForFile(f) }))
+            .filter((f) => !!f.path);
+        if (entries.length) setEventTraitDragData(e, makeOsFileDescriptor(entries));
+    };
+
+    /**
+     * Bubble phase (runs last): open OS-dropped files/folders as tabs — the original
+     * drop-to-open behavior, relocated from capture so trait-aware targets (which
+     * call stopPropagation when they handle the drop) get first chance.
+     */
+    private handleFileDropFallback = (e: DragEvent) => {
         const filePaths: string[] = [];
 
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -161,6 +188,22 @@ export class GlobalEventService {
             const delta = e.deltaY < 0 ? 0.5 : -0.5;
             api.zoom(delta);
         }
+    };
+
+    /**
+     * Open image pastes in the Image viewer. Registered in the **capture** phase
+     * on `document` so it runs before any focused editor — notably Monaco, which
+     * otherwise consumes (and `preventDefault`s) the paste at its textarea before
+     * a bubble-phase listener could ever see it. For an image we `stopPropagation()`
+     * so the focused editor never receives the paste; non-image pastes fall
+     * through untouched, so text editors paste text as usual.
+     */
+    private handlePaste = (e: ClipboardEvent) => {
+        const file = getClipboardImageFile(e);
+        if (!file) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openPastedImage(file);
     };
 
     private handleUnhandledRejection = (e: PromiseRejectionEvent) => {

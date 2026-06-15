@@ -10,7 +10,7 @@ import { WikiStatus, isModelReady, parseToolResult } from "../editors/mneme-conf
  *
  * The header indicator must reflect model health even when the config editor is
  * not open, so health can't live in the editor's state. This singleton owns a
- * lightweight `wiki_status` probe over loopback MCP and exposes a reactive
+ * lightweight `status` probe over loopback MCP and exposes a reactive
  * `{ enabled, running, modelReady }` for the header indicator and the editor.
  *
  *  - `enabled`    — `mneme.enabled` setting (drives indicator *visibility*).
@@ -19,7 +19,7 @@ import { WikiStatus, isModelReady, parseToolResult } from "../editors/mneme-conf
  *
  * The probe runs over the **shared** `mnemeConnection` client rather than its own
  * MCP session — a second session to the same loopback sidecar (plus the config
- * editor's) starved the renderer's HTTP connection pool and made `wiki_status`
+ * editor's) starved the renderer's HTTP connection pool and made `status`
  * hang to the 60 s timeout (US-673).
  */
 export interface MnemeStatusState {
@@ -114,7 +114,7 @@ class MnemeStatusModel {
         }
         this.probing = true;
         try {
-            const result = await client.callTool({ name: "wiki_status", arguments: {} }, undefined, { timeout: 10_000 });
+            const result = await client.callTool({ name: "status", arguments: {} }, undefined, { timeout: 10_000 });
             const status = parseToolResult<WikiStatus>(result);
             const ready = isModelReady(status);
             this.state.update((s) => { s.modelReady = ready; });

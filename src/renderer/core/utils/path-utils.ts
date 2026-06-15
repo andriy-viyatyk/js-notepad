@@ -14,10 +14,18 @@ export function resolveRelatedLink(currentFilePath?: string, link?: string): str
         lowerLink.startsWith("http://") ||
         lowerLink.startsWith("https://") ||
         lowerLink.startsWith("file://") ||
+        lowerLink.startsWith("mneme://") ||
         lowerLink.startsWith("mailto:") ||
         lowerLink.startsWith("#")
     ) {
         return link;
+    }
+
+    // Mneme documents address attachments within the mneme:// namespace, not the OS filesystem,
+    // so a relative link resolves with forward-slash segment math (fpResolve would emit OS
+    // separators / backslashes). The on-disk path logic below is unchanged.
+    if (currentFilePath.toLowerCase().startsWith("mneme://")) {
+        return resolveMnemeLink(currentFilePath, link);
     }
 
     try {
@@ -36,6 +44,36 @@ export function resolveRelatedLink(currentFilePath?: string, link?: string): str
     } catch {
         return link;
     }
+}
+
+/**
+ * Resolve a relative link inside a `mneme://{root}/{path}` document.
+ * - leading "/"  → relative to the root top:    mneme://{root}/{link}
+ * - otherwise    → relative to the document's directory.
+ * "." / ".." are honored but clamped at {root} (Mneme rejects traversal above a root).
+ * A "#fragment" is preserved.
+ */
+function resolveMnemeLink(currentMnemeUrl: string, link: string): string {
+    const decoded = decodeURIComponent(link);
+    const hashIndex = decoded.indexOf("#");
+    const pathPart = hashIndex >= 0 ? decoded.slice(0, hashIndex) : decoded;
+    const fragment = hashIndex >= 0 ? decoded.slice(hashIndex) : "";
+
+    const addr = currentMnemeUrl.slice("mneme://".length); // {root}/{path}/guide.md
+    const segs = addr.split("/").filter(Boolean);
+    const root = segs[0] ?? "";
+    const docDirSegs = segs.slice(1, -1); // path within the root, minus the filename
+
+    const baseSegs = pathPart.startsWith("/") ? [] : docDirSegs.slice();
+    for (const seg of pathPart.split("/")) {
+        if (seg === "" || seg === ".") continue;
+        if (seg === "..") {
+            if (baseSegs.length) baseSegs.pop(); // clamp at root
+            continue;
+        }
+        baseSegs.push(seg);
+    }
+    return `mneme://${[root, ...baseSegs].join("/")}${fragment}`;
 }
 
 /**

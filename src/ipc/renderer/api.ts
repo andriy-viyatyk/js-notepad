@@ -10,7 +10,7 @@ import {
     VideoStreamSessionConfig,
     VideoStreamSessionResult,
 } from "../api-param-types";
-import { Api, Endpoint, McpStatus, MnemeStatus } from "../api-types";
+import { Api, CaptureRect, Endpoint, McpStatus, MnemeStatus } from "../api-types";
 import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../git-ipc";
 
 let idGen = 0;
@@ -333,6 +333,10 @@ class ApiCalls implements Api {
 
     gitRemoteUrl = async (dir: string, remote: string) => {
         return executeOnce<string>(Endpoint.gitRemoteUrl, dir, remote);
+    };
+
+    capturePageRegion = async (rect: CaptureRect) => {
+        return executeOnce<Uint8Array>(Endpoint.capturePageRegion, rect);
     };
 }
 

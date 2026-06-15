@@ -142,7 +142,13 @@ export function MonacoBody({ model }: MonacoBodyProps) {
                 onMount={handleMount}
                 onChange={handleChange}
                 theme="custom-dark"
-                options={{ automaticLayout: true, readOnly: !!sliced.encrypted }}
+                options={{
+                    automaticLayout: true,
+                    readOnly: !!sliced.encrypted,
+                    // OS file drops are handled app-wide (open as tab / import into trees);
+                    // don't let Monaco insert a dropped file into the editor text.
+                    dropIntoEditor: { enabled: false },
+                }}
             />
         </MonacoBodyRoot>
     );

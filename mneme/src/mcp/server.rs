@@ -1,4 +1,4 @@
-//! rmcp adapter — `MnemeServer` maps the `wiki_*` tools and `mneme://` resources onto
+//! rmcp adapter — `MnemeServer` maps the tools and `mneme://` resources onto
 //! [`ServerState`], and `serve` runs the Streamable HTTP server on loopback. Thin by design:
 //! every tool delegates straight to a `ServerState` method (all the real work + blocking I/O
 //! lives there), so the surface is testable without an HTTP transport.
@@ -18,21 +18,26 @@ use crate::config::Config;
 use crate::error::MnemeError;
 
 use super::params::*;
-use super::{ResourceBody, ServerState};
+use super::{ReadOutcome, ResourceBody, ServerState};
 
 const GUIDE: &str = include_str!("../../assets/wiki-guide.md");
 const GUIDE_URI: &str = "mneme://guide";
-/// Readable snapshot of `wiki_status` as JSON. (Subscriptions, US-670, fire for document URIs
+/// Readable snapshot of the `status` tool as JSON. (Subscriptions, US-670, fire for document URIs
 /// `mneme://{root}/{path}` via the watcher — not for this synthetic status resource.)
 const STATUS_URI: &str = "mneme://status";
 
 const INSTRUCTIONS: &str = "\
-Mneme is a markdown knowledge base (\"wiki\"). Files on disk are the source of truth; the index \
-is derived. Address every document as {root}/{path} (matching the resource URI \
-mneme://{root}/{path}). Use the file-like tools (wiki_read/write/edit/glob/grep) exactly as you \
-would local files, and wiki_search for relevance ranking. wiki_search supports text (FTS), \
+Mneme is a markdown knowledge base. A root may be a wiki, notes, worklog, or any markdown folder. \
+Files on disk are the source of truth; the index is derived. Address every document as {root}/{path} \
+(matching the resource URI mneme://{root}/{path}). Use the file-like tools (read/write/edit/glob/grep) \
+exactly as you would local files, and search for relevance ranking. read returns images as viewable \
+pictures; upload stores a binary file (image/PDF/diagram) from base64. Reorganize like a filesystem: \
+mkdir creates a folder, rename moves/renames a file or folder, and delete removes a file or a whole \
+folder (recursive). The file tools \
+(read/write/edit/glob/grep/tree) see the entire root like a filesystem (only .mneme/ is hidden); \
+include/ignore configure indexing/search only, not file visibility. search supports text (FTS), \
 vector (semantic KNN), and hybrid (FTS + vector fused with RRF, the default) modes; vector/hybrid \
-degrade to text with a note until the embedding model is provisioned (wiki_model_update). Read \
+degrade to text with a note until the embedding model is provisioned (model_update). Read \
 mneme://guide for the full tool reference.";
 
 #[derive(Clone)]
@@ -70,82 +75,107 @@ fn ok_text() -> CallToolResult {
 
 #[tool_router]
 impl MnemeServer {
-    #[tool(description = r##"Read a wiki document by {root}/{path}; returns content + parsed frontmatter (≈ Read). Example: wiki_read {"path":"personal/contacts/jane.md"} → {"content":"# Jane Doe\nReach Jane at jane.doe@acme.com.","frontmatter":{"title":"Jane Doe","tags":["contact","work"],"created":"2026-06-13","verified":null}}"##)]
-    async fn wiki_read(&self, Parameters(p): Parameters<ReadParams>) -> std::result::Result<CallToolResult, McpError> {
-        structured(self.state.read_doc(p).await.map_err(to_mcp)?)
+    #[tool(description = r##"Read a document by {root}/{path} (≈ Read). A root may be a wiki, notes, worklog, or any markdown folder. UTF-8 text (markdown or not) returns content + parsed frontmatter. Images (png/jpg/gif/webp) are returned as a viewable image. Other binary (pdf/zip/…) returns a short notice — fetch such files through the UI, not as text. Example: read {"path":"personal/contacts/jane.md"} → {"content":"# Jane Doe\nReach Jane at jane.doe@acme.com.","frontmatter":{"title":"Jane Doe","tags":["contact","work"],"created":"2026-06-13","verified":null}}"##)]
+    async fn read(&self, Parameters(p): Parameters<ReadParams>) -> std::result::Result<CallToolResult, McpError> {
+        match self.state.read_doc(p).await.map_err(to_mcp)? {
+            ReadOutcome::Text(r) => structured(r),
+            ReadOutcome::Image { base64, mime, note } => Ok(CallToolResult::success(vec![
+                Content::image(base64, mime.to_string()),
+                Content::text(note),
+            ])),
+            ReadOutcome::Binary { note } => Ok(CallToolResult::success(vec![Content::text(note)])),
+        }
     }
 
-    #[tool(description = r##"Write a whole wiki document (content includes YAML frontmatter at the top); indexes it synchronously (≈ Write). Example: wiki_write {"path":"personal/contacts/jane.md","content":"---\ntitle: Jane Doe\ntags: [contact, work]\n---\n# Jane Doe\nReach Jane at jane@acme.com."} → "ok""##)]
-    async fn wiki_write(&self, Parameters(p): Parameters<WriteParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Write a whole document (content includes YAML frontmatter at the top); indexes it synchronously (≈ Write). Text/markdown only — for binary files (images/PDFs/diagrams) use upload. Example: write {"path":"personal/contacts/jane.md","content":"---\ntitle: Jane Doe\ntags: [contact, work]\n---\n# Jane Doe\nReach Jane at jane@acme.com."} → "ok""##)]
+    async fn write(&self, Parameters(p): Parameters<WriteParams>) -> std::result::Result<CallToolResult, McpError> {
         self.state.write_doc(p).await.map_err(to_mcp)?;
         Ok(ok_text())
     }
 
-    #[tool(description = r##"Exact string replacement in a wiki document; re-indexes it (≈ Edit). Example: wiki_edit {"path":"personal/contacts/jane.md","old_string":"jane@acme.com","new_string":"jane.doe@acme.com"} → "ok""##)]
-    async fn wiki_edit(&self, Parameters(p): Parameters<EditParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Create/overwrite a BINARY file (image/PDF/diagram) from base64 bytes. For text/markdown use write. The file is stored and listable (glob) but not indexed/searched. Example: upload {"path":"work/diagrams/arch.png","contentBase64":"iVBORw0KGgo…"} → "ok""##)]
+    async fn upload(&self, Parameters(p): Parameters<UploadParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.upload(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = r##"Exact string replacement in a document; re-indexes it (≈ Edit). Example: edit {"path":"personal/contacts/jane.md","old_string":"jane@acme.com","new_string":"jane.doe@acme.com"} → "ok""##)]
+    async fn edit(&self, Parameters(p): Parameters<EditParams>) -> std::result::Result<CallToolResult, McpError> {
         self.state.edit_doc(p).await.map_err(to_mcp)?;
         Ok(ok_text())
     }
 
-    #[tool(description = r##"Delete a wiki document and drop it from the index. Example: wiki_delete {"path":"personal/contacts/jane.md"} → "ok""##)]
-    async fn wiki_delete(&self, Parameters(p): Parameters<DeleteParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Delete a file, OR a folder and everything under it (recursive — like rm -r); the index follows. Example: delete {"path":"personal/contacts/jane.md"} → "ok"; delete {"path":"personal/old-notes"} → "ok" (removes the folder and all its documents)."##)]
+    async fn delete(&self, Parameters(p): Parameters<DeleteParams>) -> std::result::Result<CallToolResult, McpError> {
         self.state.delete_doc(p).await.map_err(to_mcp)?;
         Ok(ok_text())
     }
 
-    #[tool(description = r##"Find documents by path/name glob against the full {root}/{path} (≈ Glob). Example: wiki_glob {"pattern":"personal/contacts/*.md"} → {"matches":["personal/contacts/jane.md"]}"##)]
-    async fn wiki_glob(&self, Parameters(p): Parameters<GlobParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Create an empty folder (≈ mkdir -p; parents created as needed). Folders aren't indexed; the new folder shows up in tree right away. Files are created with write/upload — you don't need mkdir first (write creates parent folders). Example: mkdir {"path":"personal/projects/2026"} → "ok""##)]
+    async fn mkdir(&self, Parameters(p): Parameters<MkdirParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.mkdir(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = r##"Move or rename a file or folder within a root (atomic; also handles extension changes — the index follows). Refuses to overwrite an existing destination. Example: rename {"from":"personal/draft.md","to":"personal/notes/2026/plan.md"} → "ok" (moves + renames); rename {"from":"personal/old","to":"personal/archive"} → "ok" (renames a folder and all its contents)."##)]
+    async fn rename(&self, Parameters(p): Parameters<RenameParams>) -> std::result::Result<CallToolResult, McpError> {
+        self.state.rename(p).await.map_err(to_mcp)?;
+        Ok(ok_text())
+    }
+
+    #[tool(description = r##"Find files by path/name glob against the full {root}/{path} (≈ Glob). Lists EVERY file in the root — markdown and non-markdown alike (.html/.png/.pdf/…), like a filesystem; only .mneme/ is hidden. (include/ignore configure indexing/search, not file listing.) Example: glob {"pattern":"personal/contacts/*"} → {"matches":["personal/contacts/jane.md","personal/contacts/jane.png"]}"##)]
+    async fn glob(&self, Parameters(p): Parameters<GlobParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.glob(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Literal/regex content scan over indexed files (≈ Grep); not FTS. Optional tags/dateRange restrict to matching .md docs; -n toggles line numbers. Example: wiki_grep {"pattern":"acme\\.com","path":"personal"} → {"mode":"files_with_matches","files":["personal/contacts/jane.md"]}"##)]
-    async fn wiki_grep(&self, Parameters(p): Parameters<GrepParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Literal/regex content scan over the root's text files (≈ Grep); binary files are skipped; not FTS. Optional tags/dateRange restrict to matching .md docs; -n toggles line numbers. Example: grep {"pattern":"acme\\.com","path":"personal"} → {"mode":"files_with_matches","files":["personal/contacts/jane.md"]}"##)]
+    async fn grep(&self, Parameters(p): Parameters<GrepParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.grep(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Ranked search (mode text|vector|hybrid, default hybrid) with optional subtree/tags/excludeTags/dateRange/topK filters; one row per doc {uri,title,tags,snippet,score}, best-first (rely on order, not the score). vector/hybrid degrade to text when no model is provisioned. Example: wiki_search {"query":"how do I reach Jane","mode":"hybrid","subtree":"personal"} → {"results":[{"uri":"mneme://personal/contacts/jane.md","title":"Jane Doe","tags":["contact","work"],"snippet":"Jane Doe — Reach Jane at jane.doe@acme.com.","score":0.0166}]}"##)]
-    async fn wiki_search(&self, Parameters(p): Parameters<SearchParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Ranked search (mode text|vector|hybrid, default hybrid) with optional subtree/tags/excludeTags/dateRange filters; subtree scopes to a {root} or sub-path within it (e.g. personal or personal/contacts; omit to search all roots); topK caps the result count (default 5, kept small to conserve context — pass a higher topK when you need more breadth); one row per doc {uri,title,tags,snippet,score}, best-first (rely on order, not the score). vector/hybrid degrade to text when no model is provisioned. Example: search {"query":"how do I reach Jane","mode":"hybrid","subtree":"personal"} → {"results":[{"uri":"mneme://personal/contacts/jane.md","title":"Jane Doe","tags":["contact","work"],"snippet":"Jane Doe — Reach Jane at jane.doe@acme.com.","score":0.0166}]}"##)]
+    async fn search(&self, Parameters(p): Parameters<SearchParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.search(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Category/document tree as a flat depth-first list of {uri,name,isDir,depth} (depth = absolute slash count of the address); path scopes to a {root} or sub-category (e.g. personal or personal/contacts); optional depth limits levels below path (1 = the path node + its immediate children; omit for the whole subtree). Example: wiki_tree {"path":"personal/contacts","depth":1} → {"entries":[{"uri":"mneme://personal/contacts","name":"contacts","isDir":true,"depth":1},{"uri":"mneme://personal/contacts/jane.md","name":"jane.md","isDir":false,"depth":2}]}"##)]
-    async fn wiki_tree(&self, Parameters(p): Parameters<TreeParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Category/document tree as a flat depth-first list of {uri,name,isDir,depth} (depth = absolute slash count of the address); path scopes to a {root} or sub-category (e.g. personal or personal/contacts); optional depth limits levels below path (1 = the path node + its immediate children; omit for the whole subtree). Example: tree {"path":"personal/contacts","depth":1} → {"entries":[{"uri":"mneme://personal/contacts","name":"contacts","isDir":true,"depth":1},{"uri":"mneme://personal/contacts/jane.md","name":"jane.md","isDir":false,"depth":2}]}"##)]
+    async fn tree(&self, Parameters(p): Parameters<TreeParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.tree(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Daily-log timeline (log-tagged docs under log/, date parsed from filename), newest first; subtree/tags/from/to filter. Example: wiki_timeline {"subtree":"personal"} → {"entries":[{"uri":"mneme://personal/log/2026/2026-06-13.md","title":"2026-06-13","date":"2026-06-13","tags":["log"]}]}"##)]
-    async fn wiki_timeline(&self, Parameters(p): Parameters<TimelineParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Daily-log timeline (log-tagged docs under log/, date parsed from filename), newest first; subtree/tags/from/to filter. Example: timeline {"subtree":"personal"} → {"entries":[{"uri":"mneme://personal/log/2026/2026-06-13.md","title":"2026-06-13","date":"2026-06-13","tags":["log"]}]}"##)]
+    async fn timeline(&self, Parameters(p): Parameters<TimelineParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.timeline(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Distinct tags + document counts (autocomplete / free-form vocabulary); subtree scopes. Example: wiki_tags {"subtree":"personal"} → {"tags":[{"tag":"contact","count":1},{"tag":"work","count":1}]}"##)]
-    async fn wiki_tags(&self, Parameters(p): Parameters<TagsParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Distinct tags + document counts (autocomplete / free-form vocabulary); subtree scopes. Example: tags {"subtree":"personal"} → {"tags":[{"tag":"contact","count":1},{"tag":"work","count":1}]}"##)]
+    async fn tags(&self, Parameters(p): Parameters<TagsParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.tags(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Register a new wiki root (folder = existing OS path; name = the id used in mneme:// URIs — unique, non-overlapping; defaults to the folder basename). Example: wiki_add_root {"folder":"C:/Users/me/personal","name":"personal"} → {"name":"personal","folder":"C:/Users/me/personal"}"##)]
-    async fn wiki_add_root(&self, Parameters(p): Parameters<AddRootParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Register a new root (folder = existing OS path; name = the id used in mneme:// URIs — unique, non-overlapping; defaults to the folder basename). Example: add_root {"folder":"C:/Users/me/personal","name":"personal"} → {"name":"personal","folder":"C:/Users/me/personal"}"##)]
+    async fn add_root(&self, Parameters(p): Parameters<AddRootParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.add_root(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Remove a wiki root by name (the on-disk index is left in place). Example: wiki_remove_root {"root":"personal"} → "ok""##)]
-    async fn wiki_remove_root(&self, Parameters(p): Parameters<RemoveRootParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Remove a root by name (the on-disk index is left in place). Example: remove_root {"root":"personal"} → "ok""##)]
+    async fn remove_root(&self, Parameters(p): Parameters<RemoveRootParams>) -> std::result::Result<CallToolResult, McpError> {
         self.state.remove_root(p).await.map_err(to_mcp)?;
         Ok(ok_text())
     }
 
-    #[tool(description = r##"List registered wiki roots. Example: wiki_list_roots {} → {"roots":[{"name":"personal","folder":"C:/Users/me/personal"}]}"##)]
-    async fn wiki_list_roots(&self) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"List registered roots. Example: list_roots {} → {"roots":[{"name":"personal","folder":"C:/Users/me/personal"}]}"##)]
+    async fn list_roots(&self) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.list_roots().await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Read or update a wiki root's include/ignore glob filters. Omit both include and ignore to read; provide either to update (the given list replaces that filter, the omitted one is kept). Updates apply live — re-applied, watcher restarted, root reindexed (newly-matching files added, no-longer-matching removed) — and persist to mneme.toml. include defaults to ["*.md"] (an empty include falls back to that default); ignore is gitignore-style on top of the built-in defaults (.git, .mneme, node_modules, target, dist, build). Example: wiki_root_config {"root":"personal","include":["*.md","*.txt"]} → {"name":"personal","folder":"C:/Users/me/personal","include":["*.md","*.txt"],"ignore":[]}"##)]
-    async fn wiki_root_config(&self, Parameters(p): Parameters<RootConfigParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Read or update a root's include/ignore glob filters. These are INDEXING filters only — they decide what search/FTS index, NOT what the file tools (glob/grep/tree/read) list or read (those see the whole root). Omit both include and ignore to read; provide either to update (the given list replaces that filter, the omitted one is kept). Updates apply live — re-applied, watcher restarted, root reindexed (newly-matching files added, no-longer-matching removed) — and persist to mneme.toml. include defaults to ["*.md"] (an empty include falls back to that default); ignore is gitignore-style on top of the built-in defaults (.git, .mneme, node_modules, target, dist, build). Example: root_config {"root":"personal","include":["*.md","*.txt"]} → {"name":"personal","folder":"C:/Users/me/personal","include":["*.md","*.txt"],"ignore":[]}"##)]
+    async fn root_config(&self, Parameters(p): Parameters<RootConfigParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.root_config(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Reconcile the index with the files; path scopes to a {root}. Cancellable, emits progress notifications (send a progressToken), returns per-root stats. Example: wiki_reindex {"path":"personal"} → {"roots":[{"name":"personal","scanned":1,"indexed":0,"refreshed":0,"skipped":1,"vectorized":0,"deleted":0,"errors":0}]}"##)]
-    async fn wiki_reindex(
+    #[tool(description = r##"Reconcile the index with the files; path scopes to a {root}. Cancellable, emits progress notifications (send a progressToken), returns per-root stats. Example: reindex {"path":"personal"} → {"roots":[{"name":"personal","scanned":1,"indexed":0,"refreshed":0,"skipped":1,"vectorized":0,"deleted":0,"errors":0}]}"##)]
+    async fn reindex(
         &self,
         Parameters(p): Parameters<ReindexParams>,
         ctx: RequestContext<RoleServer>,
@@ -175,19 +205,19 @@ impl MnemeServer {
         structured(result)
     }
 
-    #[tool(description = r##"Roots, index inventory (versioned DB path + size), model, and document counts. Example: wiki_status {} → {"roots":[{"name":"personal","folder":"C:/Users/me/personal","docCount":1,"model":"gte-multilingual-base","precision":"int8","schemaVer":2,"indexPath":"C:/Users/me/personal/.mneme/gte-multilingual-base-int8/index-v2.db","indexBytes":4096}],"model":{"name":"gte-multilingual-base","precision":"int8","complete":true}}"##)]
-    async fn wiki_status(&self) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Roots, index inventory (versioned DB path + size), model, and document counts. Example: status {} → {"roots":[{"name":"personal","folder":"C:/Users/me/personal","docCount":1,"model":"gte-multilingual-base","precision":"int8","schemaVer":2,"indexPath":"C:/Users/me/personal/.mneme/gte-multilingual-base-int8/index-v2.db","indexBytes":4096}],"model":{"name":"gte-multilingual-base","precision":"int8","complete":true}}"##)]
+    async fn status(&self) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.status().await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Delete a stale/inactive versioned index DB (refuses the active one); identify it by the modelId + schemaVer from wiki_status. Example: wiki_index_delete {"root":"personal","modelId":"gte-multilingual-base-int8","schemaVer":1} → "ok""##)]
-    async fn wiki_index_delete(&self, Parameters(p): Parameters<IndexDeleteParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Delete a stale/inactive versioned index DB (refuses the active one); identify it by the modelId + schemaVer from status. Example: index_delete {"root":"personal","modelId":"gte-multilingual-base-int8","schemaVer":1} → "ok""##)]
+    async fn index_delete(&self, Parameters(p): Parameters<IndexDeleteParams>) -> std::result::Result<CallToolResult, McpError> {
         self.state.index_delete(p).await.map_err(to_mcp)?;
         Ok(ok_text())
     }
 
-    #[tool(description = r##"Download/verify the configured embedding model into the cache (enables vector/hybrid search). Returns immediately and downloads in the background; poll wiki_status.model (download.{phase,bytesDone,bytesTotal}, and complete=true when done) for progress. Calling again while a download is in flight is a no-op. Example: wiki_model_update {} → {"name":"gte-multilingual-base","precision":"int8","version":"1","complete":false,"files":[...],"download":{"phase":"downloading","bytesDone":12345678,"bytesTotal":357000000}}"##)]
-    async fn wiki_model_update(&self, Parameters(p): Parameters<ModelUpdateParams>) -> std::result::Result<CallToolResult, McpError> {
+    #[tool(description = r##"Download/verify the configured embedding model into the cache (enables vector/hybrid search). Returns immediately and downloads in the background; poll wiki_status.model (download.{phase,bytesDone,bytesTotal}, and complete=true when done) for progress. Calling again while a download is in flight is a no-op. Example: model_update {} → {"name":"gte-multilingual-base","precision":"int8","version":"1","complete":false,"files":[...],"download":{"phase":"downloading","bytesDone":12345678,"bytesTotal":357000000}}"##)]
+    async fn model_update(&self, Parameters(p): Parameters<ModelUpdateParams>) -> std::result::Result<CallToolResult, McpError> {
         structured(self.state.model_update(false, p.model).await.map_err(to_mcp)?)
     }
 }
@@ -221,7 +251,7 @@ impl ServerHandler for MnemeServer {
         // Register this session's peer so it receives resources/list_changed broadcasts even if it
         // never subscribes to a specific document (US-670 — e.g. a tree view).
         self.state.subscriptions().touch(self.session, &ctx.peer);
-        let guide = RawResource::new(GUIDE_URI, "Mneme wiki agent guide").no_annotation();
+        let guide = RawResource::new(GUIDE_URI, "Mneme agent guide").no_annotation();
         let status = RawResource::new(STATUS_URI, "Mneme service status").no_annotation();
         Ok(ListResourcesResult::with_all_items(vec![guide, status]))
     }
@@ -233,7 +263,7 @@ impl ServerHandler for MnemeServer {
     ) -> std::result::Result<ListResourceTemplatesResult, McpError> {
         let template = RawResourceTemplate {
             uri_template: "mneme://{root}/{path}".to_string(),
-            name: "Wiki document or attachment".to_string(),
+            name: "Document or attachment".to_string(),
             title: None,
             description: Some(
                 "Read a document or binary attachment by its {root}/{path} address.".to_string(),

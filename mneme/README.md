@@ -14,7 +14,7 @@ Azure container build context.
 > indexer + always-on file watcher that keep the index in sync with the files (US-654), and the
 > MCP server over Streamable HTTP exposing the `wiki_*` tool surface (US-655). Phase 2 — the
 > model provisioner (US-656), the **embedding engine** (US-657, ONNX Runtime + DirectML→CPU),
-> and **hybrid search** (US-658): chunks are embedded into `chunks_vec`, and `wiki_search` now
+> and **hybrid search** (US-658): chunks are embedded into `chunks_vec`, and `search` now
 > serves real `vector` (KNN) and `hybrid` (FTS + KNN fused with Reciprocal Rank Fusion) modes
 > alongside `text`. FTS still works with no model present; vector/hybrid degrade to text (with a
 > note) until the model is provisioned. The concurrency layer (US-659) completes Phase 2: a
@@ -56,22 +56,29 @@ mneme --config <path>       # explicit config file (else $MNEME_CONFIG, else the
 spawner waits for it — and logs to stderr. Connect MCP Inspector or a Claude chat to
 `http://127.0.0.1:<port>/mcp` to drive it.
 
-Tools: file-like `wiki_read`/`wiki_write`/`wiki_edit`/`wiki_delete`/`wiki_glob`/`wiki_grep`
-(`wiki_grep` adds `tags`/`dateRange` metadata filters over `.md` docs and a `-n` line-number
-toggle); `wiki_search` (`mode` `text` | `vector` | `hybrid`, default `hybrid`; `vector`/`hybrid`
-degrade to text with a note when no model is provisioned); views `wiki_tree`/`wiki_timeline`/`wiki_tags`;
-management `wiki_add_root`/
-`wiki_remove_root`/`wiki_list_roots`/`wiki_reindex`/`wiki_status`/`wiki_index_delete`/
-`wiki_model_update` (downloads/verifies the configured model — synchronous, may take minutes on
+Tools: file-like `read`/`write`/`upload`/`edit`/`delete`/`mkdir`/`rename`/`glob`/`grep`
+(these present the **whole root** like a filesystem — every file, markdown or not, only `.mneme/`
+hidden; `include`/`ignore` configure indexing/search, not file visibility. `read` returns
+images (png/jpg/gif/webp) as a viewable picture and other binary as a notice; `upload` stores a
+binary file from base64 (listable, not indexed). `delete` removes a file **or a folder
+recursively**; `mkdir` creates an empty folder; `rename` moves/renames a file or folder (atomic,
+index follows). `grep` scans text
+files only (binary skipped) and adds `tags`/`dateRange` metadata filters over `.md` docs + a `-n`
+line-number toggle); `search` (`mode` `text` | `vector` | `hybrid`, default `hybrid`; `vector`/`hybrid`
+degrade to text with a note when no model is provisioned); views `tree` (lists directories incl.
+empty ones)/`timeline`/`tags`;
+management `add_root`/
+`remove_root`/`list_roots`/`reindex`/`status`/`index_delete`/
+`model_update` (downloads/verifies the configured model — synchronous, may take minutes on
 first run). Resources: documents/attachments at `mneme://{root}/{path}` (text or base64 blob), the
-agent guide at `mneme://guide`, and a JSON `wiki_status` snapshot at `mneme://status`. Resource
+agent guide at `mneme://guide`, and a JSON `status` snapshot at `mneme://status`. Resource
 subscriptions are advertised (`resources.subscribe` + `listChanged`): subscribe to a document URI
 and the always-on watcher emits `notifications/resources/updated { uri }` when that file changes on
 disk; add/remove/rename emit `notifications/resources/list_changed`.
 
 ## Model provisioning (US-656)
 
-FTS-based `wiki_search` works with no model on disk. Downloading the embedding model enables
+FTS-based `search` works with no model on disk. Downloading the embedding model enables
 vector/hybrid search (US-657/658 — not yet wired). To download and verify the default model:
 
 ```bash
@@ -124,7 +131,7 @@ mneme embed "how do I cancel my subscription" --query   # → provider, dims=768
 ## Hybrid search (US-658)
 
 During indexing, each chunk's passage embedding is written into `chunks_vec` (keyed by chunk
-rowid). `wiki_search` then offers three modes:
+rowid). `search` then offers three modes:
 
 - **text** — FTS5 `bm25()` ranking (works with no model).
 - **vector** — KNN over `chunks_vec`. Metadata filters (subtree / tags / date) become a
@@ -161,16 +168,16 @@ edit prompt while a bulk reindex runs. Three pieces cooperate:
   provisioned every embed returns `None` and callers degrade to FTS.
 - **WAL writer + read-only pool per root.** `index/pool.rs`'s `RootIndex` pairs the single writer
   (`Mutex<IndexDb>`) with a small pool of read-only connections over the same WAL DB. Searches and
-  `wiki_status` read from the pool — concurrently with the writer, seeing the last committed
+  `status` read from the pool — concurrently with the writer, seeing the last committed
   snapshot (eventually consistent during a reindex). `sqlite-vec` is a process-global
   auto-extension, so KNN works on pooled readers too.
 - **Cancellable, single-flight reindex job.** `indexer/job.rs`'s `JobManager` runs the two-phase
   `reconcile_job` (scan/upsert under brief per-file writer locks → embed off the lock on the
-  worker → write vectors in brief locked batches). `wiki_reindex` runs a fresh pass and streams
+  worker → write vectors in brief locked batches). `reindex` runs a fresh pass and streams
   MCP progress notifications (when the client sends a `progressToken`); the client's
   `notifications/cancelled` (`ctx.ct`) stops it cleanly mid-pass — already-written vectors persist
   and a follow-up reconcile finishes the remainder idempotently. The watcher and the deferred
-  startup reconcile trigger **coalesced** passes (a burst collapses to one extra pass); `wiki_status`
+  startup reconcile trigger **coalesced** passes (a burst collapses to one extra pass); `status`
   reports each root's latest `{phase, processed, total}` snapshot.
 
 ## Crate-wide invariants
@@ -201,8 +208,8 @@ src/
 │  ├─ roots.rs    RootRegistry — name→root, add/remove/validate (exists/unique/no-overlap)
 │  ├─ address.rs  {root}/{path} parsing + safe (no-traversal) resolution
 │  ├─ walk.rs     include-allowlist + ignore-rules walk (the `ignore` crate)
-│  ├─ glob.rs     wiki_glob (globset)
-│  ├─ grep.rs     wiki_grep streaming regex scan + output modes
+│  ├─ glob.rs     glob (globset)
+│  ├─ grep.rs     grep streaming regex scan + output modes
 │  └─ edit.rs     string-replace edit
 ├─ markdown/      frontmatter parse + heading chunker
 │  ├─ mod.rs      parse_document → ParsedDoc { meta, chunks }

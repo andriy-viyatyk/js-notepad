@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { TreeProviderView } from "../../components/tree-provider";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
@@ -9,8 +9,8 @@ import { IconButton } from "../../uikit/IconButton";
 import { Tag } from "../../uikit/Tag";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { CloseIcon } from "../../theme/icons";
-import { mnemeConnection } from "../../api/mneme-connection";
+import { CloseIcon, ChevronRightIcon } from "../../theme/icons";
+import { useOptionalState } from "../../core/state/state";
 import type { MnemeRootEditorModel } from "./MnemeRootEditorModel";
 
 export default function MnemeTreeSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
@@ -22,14 +22,15 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
         error: s.error,
     }));
     const [selectedHref, setSelectedHref] = useState<string | undefined>(undefined);
-    const [refreshKey, setRefreshKey] = useState(0);
     const provider = mnemeModel.treeProvider;
 
-    // Live-refresh the tree on external add/remove/rename (resources/list_changed).
-    useEffect(() => {
-        const sub = mnemeConnection.onListChanged(() => setRefreshKey((k) => k + 1));
-        return () => sub.unsubscribe();
-    }, []);
+    // Subscribe to page.state so the chevron hides/shows when this editor is
+    // promoted to / demoted from the page's main view (mirrors the Collections
+    // panel's show-main control — see LinkCategorySecondaryView).
+    const isMainEditor = useOptionalState(mnemeModel.page?.state, () => mnemeModel.isMain, false);
+
+    // The tree live-refreshes on add/remove/rename via the provider's `watch()`
+    // (resources/list_changed), wired automatically by TreeProviderViewModel.
 
     const handleItemClick = useCallback((item: ITreeProviderItem) => {
         // Folders expand in place (handled by the tree); only files open.
@@ -43,16 +44,30 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
     }, [provider, mnemeModel]);
 
     const actions = (
-        <IconButton
-            name="mneme-tree-close"
-            size="sm"
-            title="Close"
-            icon={<CloseIcon />}
-            onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                void mnemeModel.requestClose();
-            }}
-        />
+        <>
+            {!isMainEditor && (
+                <IconButton
+                    name="mneme-tree-show-main"
+                    size="sm"
+                    title="Open Mneme search"
+                    icon={<ChevronRightIcon width={14} height={14} />}
+                    onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        void mnemeModel.page?.promoteSecondaryToMain?.(mnemeModel);
+                    }}
+                />
+            )}
+            <IconButton
+                name="mneme-tree-close"
+                size="sm"
+                title="Close"
+                icon={<CloseIcon />}
+                onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    void mnemeModel.requestClose();
+                }}
+            />
+        </>
     );
 
     return (
@@ -78,7 +93,6 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
                     provider={provider}
                     rootLabel={rootName}
                     selectedHref={selectedHref}
-                    refreshKey={refreshKey}
                     onItemClick={handleItemClick}
                     onItemDoubleClick={handleItemClick}
                 />

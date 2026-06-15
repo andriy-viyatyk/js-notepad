@@ -1,4 +1,4 @@
-//! `wiki_glob` — compile a path/name pattern matched against `{root}/{path}` addresses.
+//! `glob` — compile a path/name pattern matched against `{root}/{path}` addresses.
 //! `literal_separator(true)` so `*` does not cross `/` and `**` is the recursive wildcard.
 
 use globset::{GlobBuilder, GlobMatcher};

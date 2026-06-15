@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell } from "electron";
-import { Api, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
+import { Api, CaptureRect, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
 import { getAssetPath, getAppRootPath } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
 import { getFileToOpen, getUrlToOpen, windowReady } from "./window-handlers";
@@ -357,6 +357,20 @@ class Controller implements MainApi {
         const { remoteUrl } = await import("../../main/git-service");
         return remoteUrl(dir, remote);
     };
+
+    capturePageRegion = async (event: IpcMainEvent, rect: CaptureRect): Promise<Uint8Array> => {
+        const wc = event.sender;
+        // getBoundingClientRect() reports CSS pixels; capturePage() expects DIP.
+        // When the user has zoomed (Ctrl +/-), scale the rect so the capture stays aligned.
+        const zf = wc.getZoomFactor();
+        const image = await wc.capturePage({
+            x: Math.round(rect.x * zf),
+            y: Math.round(rect.y * zf),
+            width: Math.round(rect.width * zf),
+            height: Math.round(rect.height * zf),
+        });
+        return image.toPNG();
+    };
 }
 
 const controllerInstance = new Controller();
@@ -444,6 +458,7 @@ const init = () => {
     bindEndpoint(Endpoint.gitPush, controllerInstance.gitPush);
     bindEndpoint(Endpoint.gitPull, controllerInstance.gitPull);
     bindEndpoint(Endpoint.gitRemoteUrl, controllerInstance.gitRemoteUrl);
+    bindEndpoint(Endpoint.capturePageRegion, controllerInstance.capturePageRegion);
 
     initRendererEvents();
 }

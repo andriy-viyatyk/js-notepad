@@ -4,8 +4,11 @@
 //! string-replace edits, matches by name pattern (`glob`) and by literal/regex content
 //! (`grep` — a streaming scan, distinct from the future semantic Search Engine), resolves
 //! `{root}/{path}` addresses safely (no traversal outside a root), and serves binary
-//! attachment bytes. A single include-allowlist + ignore-rules walk (see [`walk`]) defines
-//! the indexable file set that `list`/`glob`/`grep` operate over.
+//! attachment bytes. The file tools (`list`/`glob`/`grep`/`read`) present the **whole root** like
+//! a real filesystem — every file except `.mneme/` (see [`walk::walk_all`]). The narrower
+//! include-allowlist + ignore-rules walk ([`walk::walk_root`]) defines the **index set** the
+//! indexer/search operate over; `include`/`ignore` are indexing-only and do not affect file
+//! visibility here.
 
 pub mod address;
 pub mod grep;
@@ -15,8 +18,9 @@ mod edit;
 mod glob;
 pub mod walk;
 
-// The indexer (US-654) drives the same authoritative walk that list/glob/grep consume.
-pub use walk::{walk_root, WalkedFile, DEFAULT_IGNORES};
+// The indexer drives `walk_root` (the index set); the store's file tools drive `walk_all` (the
+// whole root minus `.mneme/`). `is_indexable` lets the write path skip indexing non-index files.
+pub use walk::{is_indexable, walk_all, walk_dirs, walk_root, WalkedFile, DEFAULT_IGNORES};
 
 use std::path::{Path, PathBuf};
 
@@ -86,6 +90,17 @@ impl DocumentStore {
         Ok(())
     }
 
+    /// Write raw bytes (binary upload — `upload`). Creates parent dirs; `.mneme/` is already
+    /// rejected by `WikiAddress::parse`.
+    pub fn write_bytes(&self, addr: &str, bytes: &[u8]) -> Result<()> {
+        let p = self.resolve(addr)?;
+        if let Some(parent) = p.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&p, bytes)?;
+        Ok(())
+    }
+
     /// Exact string replacement (≈ Edit). Errors if `old` is absent, or — unless
     /// `replace_all` — non-unique.
     pub fn edit(&self, addr: &str, old: &str, new: &str, replace_all: bool) -> Result<()> {
@@ -99,6 +114,60 @@ impl DocumentStore {
     pub fn delete(&self, addr: &str) -> Result<()> {
         std::fs::remove_file(self.resolve(addr)?)?;
         Ok(())
+    }
+
+    /// Create an (empty) directory at `addr`, parents included (≈ `mkdir -p`). `.mneme/` and
+    /// traversal are already rejected by `resolve` → `WikiAddress::parse`.
+    pub fn mkdir(&self, addr: &str) -> Result<()> {
+        std::fs::create_dir_all(self.resolve(addr)?)?;
+        Ok(())
+    }
+
+    /// Move/rename a file **or** directory within the store. Refuses an existing destination (no
+    /// silent overwrite) and creates the destination's parent dirs. Both addresses are
+    /// traversal-checked by `resolve`.
+    pub fn rename(&self, from: &str, to: &str) -> Result<()> {
+        let from_p = self.resolve(from)?;
+        let to_p = self.resolve(to)?;
+        if to_p.exists() {
+            return Err(MnemeError::Internal(format!(
+                "destination already exists: {to}"
+            )));
+        }
+        if let Some(parent) = to_p.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::rename(&from_p, &to_p)?;
+        Ok(())
+    }
+
+    /// Delete a file, or a directory and all its contents (≈ `rm` / `rm -r`). `resolve` rejects
+    /// `.mneme/` and traversal.
+    pub fn delete_path(&self, addr: &str) -> Result<()> {
+        let p = self.resolve(addr)?;
+        if p.is_dir() {
+            std::fs::remove_dir_all(&p)?;
+        } else {
+            std::fs::remove_file(&p)?;
+        }
+        Ok(())
+    }
+
+    /// List directories (the folder skeleton, **including empty ones**) as `{root}/{path}`
+    /// addresses; `path` scopes to a `{root}` or `{root}/sub` prefix (omitted = all roots). Feeds
+    /// the directory-aware `tree` so empty folders are visible.
+    pub fn list_dirs(&self, path: Option<&str>) -> Result<Vec<String>> {
+        let mut out = Vec::new();
+        for (root, base) in self.resolve_scope(path)? {
+            let prefix = format!("{base}/");
+            for wf in walk::walk_dirs(root)? {
+                if base.is_empty() || wf.rel == base || wf.rel.starts_with(&prefix) {
+                    out.push(format!("{}/{}", root.name, wf.rel));
+                }
+            }
+        }
+        out.sort();
+        Ok(out)
     }
 
     /// List indexable documents as `{root}/{path}` addresses; `path` scopes to a
@@ -128,8 +197,10 @@ impl DocumentStore {
             OutputMode::FilesWithMatches => {
                 let mut out = Vec::new();
                 for (addr, abs) in files {
-                    if grep::has_match(&read_lossy(&abs)?, &re) {
-                        out.push(addr);
+                    if let Some(text) = read_text_or_skip(&abs)? {
+                        if grep::has_match(&text, &re) {
+                            out.push(addr);
+                        }
                     }
                 }
                 Ok(GrepResult::Files(out))
@@ -137,9 +208,11 @@ impl DocumentStore {
             OutputMode::Count => {
                 let mut out = Vec::new();
                 for (addr, abs) in files {
-                    let c = grep::count_matches(&read_lossy(&abs)?, &re);
-                    if c > 0 {
-                        out.push((addr, c));
+                    if let Some(text) = read_text_or_skip(&abs)? {
+                        let c = grep::count_matches(&text, &re);
+                        if c > 0 {
+                            out.push((addr, c));
+                        }
                     }
                 }
                 Ok(GrepResult::Counts(out))
@@ -147,9 +220,11 @@ impl DocumentStore {
             OutputMode::Content => {
                 let mut out = Vec::new();
                 for (addr, abs) in files {
-                    let lines = grep::scan_content(&read_lossy(&abs)?, &re, opts.context);
-                    if !lines.is_empty() {
-                        out.push((addr, lines));
+                    if let Some(text) = read_text_or_skip(&abs)? {
+                        let lines = grep::scan_content(&text, &re, opts.context);
+                        if !lines.is_empty() {
+                            out.push((addr, lines));
+                        }
                     }
                 }
                 Ok(GrepResult::Content(out))
@@ -163,7 +238,7 @@ impl DocumentStore {
         let mut out = Vec::new();
         for (root, base) in self.resolve_scope(path)? {
             let prefix = format!("{base}/");
-            for wf in walk::walk_root(root)? {
+            for wf in walk::walk_all(root)? {
                 if base.is_empty() || wf.rel == base || wf.rel.starts_with(&prefix) {
                     out.push((format!("{}/{}", root.name, wf.rel), wf.abs));
                 }
@@ -195,4 +270,15 @@ impl DocumentStore {
 
 fn read_lossy(p: &Path) -> Result<String> {
     Ok(String::from_utf8_lossy(&std::fs::read(p)?).into_owned())
+}
+
+/// Read a file as text, returning `None` if it looks binary (a NUL byte in the first 8 KiB — the
+/// cheap heuristic ripgrep uses). Keeps `grep` from scanning images/PDFs now that the file tools
+/// list every file in the root.
+fn read_text_or_skip(p: &Path) -> Result<Option<String>> {
+    let bytes = std::fs::read(p)?;
+    if bytes.iter().take(8192).any(|&b| b == 0) {
+        return Ok(None);
+    }
+    Ok(Some(String::from_utf8_lossy(&bytes).into_owned()))
 }

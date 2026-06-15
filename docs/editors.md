@@ -128,6 +128,7 @@ For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — o
   - **Save as .png** — re-encodes the image to PNG (useful for converting JPG, GIF, etc. to PNG)
   - **Save original** — writes the source bytes in their original format with no re-encoding
 - **Open in Drawing Editor** — toolbar button embeds the image into a new Excalidraw drawing tab for annotation
+- **Paste image from clipboard** — press `Ctrl+V` anywhere in Persephone (even when a text editor is focused) to open a clipboard image in a new Image Viewer tab titled **"Pasted image"**. Works with screenshots and images copied from Teams, browsers, and other apps. The tab survives an app restart. Pasting text content behaves normally.
 
 **Scripting:** `const img = await page.asImage()` — exposes `savePngToFile(filePath)` to write the image to disk as PNG. See [`asImage()` API reference](./api/page.md#asimage--promiseimageeditor).
 
@@ -167,6 +168,18 @@ For `.html` files — click **Preview** in the toolbar:
 - **Sandboxed rendering** — preview is isolated from the application
 - **Show Resources** — click the web-scraper toolbar button (or use the right-click context menu in the Browser) to extract all resource URLs from the page (images, scripts, stylesheets, media, fonts, iframes, favicons, and links). Results open as a categorized link collection.
 - Switch between text editor and preview anytime
+
+**Image export toolbar:**
+
+The HTML Preview toolbar includes image-capture buttons for sharing or annotating the rendered page:
+
+- **Copy** (clipboard icon) — captures the rendered page exactly as shown on screen and copies it as a PNG image to the clipboard. Paste directly into Teams, Slack, Outlook, Word, or any app that accepts images.
+- **… (more actions)** — opens a menu with three additional options:
+  - **Save as PNG** — captures the rendered page and opens a save dialog to write it as a PNG file.
+  - **Open in Image View** — captures the rendered page and opens the PNG in a new Image Viewer tab.
+  - **Edit Image** — captures the rendered page and opens the PNG in a new Drawing Editor (Excalidraw) tab for annotation.
+
+**WYSIWYG capture:** The capture is pixel-perfect — it takes exactly what is shown on screen at the current window size, including any JavaScript-rendered content. To control the output dimensions, resize the Persephone window (or the editor pane) to your desired size before capturing. This makes the HTML Preview a convenient mockup tool: build your layout in HTML, resize the window to the target dimensions, then capture.
 
 ## Browser
 

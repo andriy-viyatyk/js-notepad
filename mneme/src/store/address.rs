@@ -37,6 +37,14 @@ impl WikiAddress {
                 ));
             }
         }
+        // `.mneme/` is Mneme's own derived index — not addressable wiki content. Reject it as the
+        // first path segment so no file tool can read/write/delete into the index dir.
+        if rest.split('/').next() == Some(".mneme") {
+            return Err(MnemeError::InvalidAddress(
+                s.to_string(),
+                ".mneme is reserved for the index",
+            ));
+        }
         Ok(Self { root, rest })
     }
 

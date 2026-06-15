@@ -2,7 +2,7 @@
 //!
 //! Invariants enforced on registration: the folder must exist; the name is normalized and
 //! unique; a new root may not overlap an existing one (neither a path-prefix of the other).
-//! The MCP `wiki_add_root`/`wiki_remove_root` tools (US-655) call these; persistence of a
+//! The MCP `add_root`/`remove_root` tools (US-655) call these; persistence of a
 //! dynamic change back to the config file is wired there — US-652 exposes the in-memory
 //! registry + validation, and [`RootRegistry::configs`] is the persistence hook.
 
@@ -69,7 +69,7 @@ impl RootRegistry {
         Ok(())
     }
 
-    /// Replace a root's `include`/`ignore` filter lists in place (`wiki_root_config` SET).
+    /// Replace a root's `include`/`ignore` filter lists in place (`root_config` SET).
     /// Returns the updated config (folder/name are unchanged). Errors if the name is unknown.
     pub fn update_filters(
         &mut self,

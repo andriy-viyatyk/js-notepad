@@ -288,6 +288,14 @@ export interface TreeProps<T = ITreeItem>
      */
     acceptsDrop?: boolean;
     /**
+     * When true, rows also accept native OS file drags (in addition to trait drags).
+     * The file drop is read via the event-expando descriptor (set by the global
+     * capture handler) and flows through the same `canTraitDrop`/`onTraitDrop` props
+     * as a trait drag — the Tree never reads `dataTransfer.files` itself. Opt-in so
+     * trees that can't import files don't light up on a file drag.
+     */
+    acceptsFileDrop?: boolean;
+    /**
      * Per-row drop predicate. Invoked on `dragenter` and again on `drop`. When omitted,
      * defaults to `true`. Use to reject self-drop and ancestor-into-descendant moves.
      */

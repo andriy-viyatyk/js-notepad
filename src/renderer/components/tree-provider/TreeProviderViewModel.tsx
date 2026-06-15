@@ -8,6 +8,7 @@ import { app } from "../../api/app";
 import { ui } from "../../api/ui";
 import { fpDirname } from "../../core/utils/file-path";
 import { isUrlOrCurl } from "../../content/link-utils";
+import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import {
     CopyIcon,
     DeleteIcon,
@@ -767,6 +768,37 @@ export class TreeProviderViewModel extends TComponentModel<
             return;
         }
 
+        await this.buildTree();
+    };
+
+    /** Import dropped file-like items (IFileLink) into the drop target's folder.
+     *  Drop on a folder → into it; drop on a file → its parent folder. Confirms before
+     *  overwriting same-named files. */
+    importFiles = async (items: IFileLink[], dropNode: TreeProviderNode) => {
+        const { provider } = this.props;
+        if (!provider.importFiles || !items.length) return;
+
+        const targetCategory = dropNode.data.isDirectory
+            ? dropNode.data.href
+            : (dropNode.data.category || provider.rootPath);
+
+        // Collision check via the provider's existing list(); confirm overwrite.
+        const existing = new Set((await provider.list(targetCategory)).map((l) => l.title));
+        const clashing = items.filter((i) => existing.has(i.name)).map((i) => i.name);
+        if (clashing.length) {
+            const bt = await ui.confirm(
+                `${clashing.length} file(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
+                { title: "Overwrite files?", buttons: ["Overwrite", "Cancel"] },
+            );
+            if (bt !== "Overwrite") return;
+        }
+
+        try {
+            await provider.importFiles(items, targetCategory);
+        } catch (err) {
+            ui.notify(err.message || "Failed to import files.", "warning");
+            return;
+        }
         await this.buildTree();
     };
 }

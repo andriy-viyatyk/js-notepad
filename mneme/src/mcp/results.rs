@@ -97,7 +97,7 @@ pub struct AddRootResult {
     pub folder: String,
 }
 
-/// Effective per-root filter config after a `wiki_root_config` read or update.
+/// Effective per-root filter config after a `root_config` read or update.
 #[derive(Debug, Serialize)]
 pub struct RootConfigResult {
     pub name: String,

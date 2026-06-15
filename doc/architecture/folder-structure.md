@@ -97,7 +97,8 @@ persephone/
 │   │   └── well-known-pages.ts     # Singleton page definitions (MCP Log, etc.)
 │   │
 │   ├── internal/           # Event services (init-only, not public API)
-│   │   ├── GlobalEventService.ts    # contextmenu, dragover, drop, unhandled rejections
+│   │   ├── GlobalEventService.ts    # contextmenu, dragover, drop, paste (image), unhandled rejections
+│   │   ├── clipboard-image.ts       # Helpers: extract pasted image, open it in the Image viewer
 │   │   ├── KeyboardService.ts       # Global keyboard shortcuts
 │   │   ├── WindowStateService.ts    # Window maximize/zoom state tracking
 │   │   └── RendererEventsService.ts # IPC event subscriptions (open file, quit, etc.)

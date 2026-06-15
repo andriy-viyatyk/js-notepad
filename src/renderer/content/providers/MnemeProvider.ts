@@ -5,10 +5,12 @@ import { mnemeConnection } from "../../api/mneme-connection";
 /**
  * MnemeProvider — reads/writes Mneme wiki documents over MCP.
  *
- * Reads the whole document (including YAML frontmatter) via `resources/read`;
- * writes the whole file via the `wiki_write` tool. Live-refresh rides the shared
- * connection's resource subscriptions (`mnemeConnection`). `path` is the
- * scheme-less `{root}/{path}` address; the resource URI is `mneme://{path}`.
+ * Reads the whole document (including YAML frontmatter) via `resources/read`.
+ * Writes go through `write` for text/markdown (indexed) and `upload`
+ * for binary attachments (base64, not indexed) — `writeBinary` picks by content.
+ * Live-refresh rides the shared connection's resource subscriptions
+ * (`mnemeConnection`). `path` is the scheme-less `{root}/{path}` address; the
+ * resource URI is `mneme://{path}`.
  *
  * Self-echo is intentionally NOT suppressed — like `FileProvider`, a write
  * triggers the watcher and the editor re-reads identical content (a no-op).
@@ -46,10 +48,19 @@ export class MnemeProvider implements IProvider {
     async writeBinary(data: Buffer): Promise<void> {
         const client = mnemeConnection.getClient();
         if (!client) throw new Error("Mneme is not connected");
-        await client.callTool({
-            name: "wiki_write",
-            arguments: { path: this.path, content: data.toString("utf8") },
-        });
+        if (looksBinary(data)) {
+            // Binary attachment (image/PDF/diagram) → upload (base64; not indexed).
+            await client.callTool({
+                name: "upload",
+                arguments: { path: this.path, contentBase64: data.toString("base64") },
+            });
+        } else {
+            // Text/markdown → write (whole-file UTF-8; indexed synchronously).
+            await client.callTool({
+                name: "write",
+                arguments: { path: this.path, content: data.toString("utf8") },
+            });
+        }
     }
 
     watch(callback: (event: string) => void): ISubscriptionObject {
@@ -61,5 +72,16 @@ export class MnemeProvider implements IProvider {
             type: "mneme",
             config: { path: this.path },
         };
+    }
+}
+
+/** A NUL byte or invalid UTF-8 ⇒ treat as binary (mirrors the Rust `looks_binary`). */
+function looksBinary(data: Buffer): boolean {
+    if (data.includes(0)) return true;
+    try {
+        new TextDecoder("utf-8", { fatal: true }).decode(data);
+        return false;
+    } catch {
+        return true;
     }
 }

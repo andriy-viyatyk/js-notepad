@@ -70,8 +70,8 @@ pub struct ModelFileStatus {
 
 /// Live model-download progress, derived from the filesystem (present files + `.part` sidecars)
 /// against the manifest's total bytes. `phase` is `idle`/`downloading`/`verifying`/`done`/`error`.
-/// Surfaced on `wiki_status.model.download` so the editor can show a progress bar without holding
-/// the (now background) `wiki_model_update` call open.
+/// Surfaced on `status.model.download` so the editor can show a progress bar without holding
+/// the (now background) `model_update` call open.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelDownloadStatus {
@@ -89,7 +89,7 @@ pub struct ModelStatus {
     pub dir: String,
     pub complete: bool,
     pub files: Vec<ModelFileStatus>,
-    /// Live download progress when a background `wiki_model_update` is in flight (or errored).
+    /// Live download progress when a background `model_update` is in flight (or errored).
     /// `None` from the pure `status()` / `provision()` helpers — the MCP server fills it in.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub download: Option<ModelDownloadStatus>,

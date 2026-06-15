@@ -82,6 +82,17 @@ export enum Endpoint {
     gitPush = "gitPush",
     gitPull = "gitPull",
     gitRemoteUrl = "gitRemoteUrl",
+    capturePageRegion = "capturePageRegion",
+}
+
+/** A rectangle (CSS pixels, viewport-relative) to capture from the calling
+ *  window's web contents. The main handler scales it by the window zoom factor
+ *  before calling `webContents.capturePage`. */
+export interface CaptureRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 }
 
 export interface McpStatus {
@@ -173,6 +184,7 @@ export type Api = {
     [Endpoint.gitPush]: (dir: string, opts?: GitPushOptions) => Promise<GitPushResult>;
     [Endpoint.gitPull]: (dir: string, opts?: GitPullOptions) => Promise<GitPullResult>;
     [Endpoint.gitRemoteUrl]: (dir: string, remote: string) => Promise<string>;
+    [Endpoint.capturePageRegion]: (rect: CaptureRect) => Promise<Uint8Array>;
 };
 
 export enum EventEndpoint {

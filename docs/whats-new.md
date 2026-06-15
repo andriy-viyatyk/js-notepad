@@ -8,6 +8,19 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.4 (Upcoming)
 
+### New Features
+
+- **Global image paste** — Press `Ctrl+V` anywhere in Persephone when the clipboard contains an image (a screenshot, an image copied from Microsoft Teams, a web browser, or any other app) to open that image in a new **Image Viewer** tab titled **"Pasted image"**. The paste is intercepted globally — it works even when a code editor (Monaco) has focus, so the image opens in the viewer rather than being silently ignored. Pasting text or non-image content behaves exactly as before and continues to paste into the focused editor. The pasted-image tab survives an app restart.
+
+  > **Tip:** Combine with the **HTML Preview image-export** feature (see below): capture an HTML mockup to the clipboard, then immediately `Ctrl+V` to open the PNG in a new Image Viewer tab — from there you can annotate it in the Drawing Editor or share it further.
+
+- **HTML Preview — image-export toolbar** — The HTML Preview (`.html` files, **Preview** toolbar button) now has a toolbar for capturing the rendered page as an image:
+
+  - **Copy** (clipboard icon) — captures the rendered page exactly as shown on screen and copies it as a PNG to the clipboard. Paste directly into Teams, Slack, Outlook, Word, or any app that accepts images.
+  - **… (more actions)** — opens a menu with three additional options: **Save as PNG** (opens a save dialog), **Open in Image View** (opens the PNG in a new Image Viewer tab), and **Edit Image** (opens the PNG in Excalidraw for annotation).
+
+  The capture is WYSIWYG — it takes exactly what is shown on screen at the current window size, including any JavaScript-rendered content. Resize the window before capturing to control the output dimensions. This makes the HTML Preview a convenient mockup tool: build a layout in HTML, resize the window to the target size, then copy the result.
+
 ### UI Polish
 
 - **Markdown Preview — YAML frontmatter rendered as highlighted code** — When a Markdown file begins with a YAML frontmatter block (`---` … `---` or `---` … `...`), the preview now renders it as a syntax-highlighted `yaml` code block instead of broken text or stray horizontal rules. The source file is never modified — this is a preview-only transform. Documents that do not start with frontmatter are unaffected.

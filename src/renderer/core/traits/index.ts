@@ -7,5 +7,11 @@ export {
     hasTraitDragData,
     resolveTraits,
     allowDrop,
+    isFileDrag,
+    isLinkDroppable,
+    setEventTraitDragData,
+    getTraitDragDataFromEvent,
 } from './dnd';
 export type { TraitDragPayload } from './dnd';
+export { FILE_LINK, makeOsFileDescriptor } from './fileLinkTraits';
+export type { IFileLink, FileLinkTrait, OsFileData } from './fileLinkTraits';

@@ -18,6 +18,8 @@ export enum TraitTypeId {
     GridColumn = "GridColumn",
     MenuFolder = "MenuFolder",
     PinnedEditor = "PinnedEditor",
+    // OS files dropped from the desktop (synthesized in the capture-phase drop handler).
+    OsFile = "OsFile",
 }
 
 /**

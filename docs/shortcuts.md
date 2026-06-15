@@ -24,6 +24,7 @@ These shortcuts work regardless of which editor is active.
 | `Ctrl+Alt+]` | Next theme |
 | `Ctrl+Alt+[` | Previous theme |
 | `F5` | Run script (JavaScript or TypeScript) |
+| `Ctrl+V` | Paste clipboard image into a new Image Viewer tab (when clipboard contains an image) |
 
 ## Text Editor (Monaco)
 

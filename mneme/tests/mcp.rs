@@ -5,9 +5,30 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use base64::Engine;
 use persephone_mneme::config::{Config, ModelConfig, RootConfig};
 use persephone_mneme::mcp::params::*;
-use persephone_mneme::mcp::ServerState;
+use persephone_mneme::mcp::results::ReadResult;
+use persephone_mneme::mcp::{ReadOutcome, ServerState};
+
+/// Minimal PNG-ish bytes: the real 8-byte PNG signature + the start of an IHDR chunk. Contains
+/// NUL bytes, so the UTF-8/NUL heuristic classifies it as binary (matching a real PNG).
+const PNG_BYTES: &[u8] = &[
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // signature
+    0x00, 0x00, 0x00, 0x0D, b'I', b'H', b'D', b'R', // IHDR length + type (NULs present)
+];
+
+fn b64(bytes: &[u8]) -> String {
+    base64::engine::general_purpose::STANDARD.encode(bytes)
+}
+
+/// Unwrap a `wiki_read` outcome that must be a text document.
+fn expect_text(o: ReadOutcome) -> ReadResult {
+    match o {
+        ReadOutcome::Text(r) => r,
+        _ => panic!("expected a text read outcome"),
+    }
+}
 
 fn tmp_dir(name: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(name);
@@ -72,14 +93,16 @@ async fn write_read_search_roundtrip() {
         .await
         .unwrap();
 
-    let r = state
-        .read_doc(ReadParams {
-            path: "wiki/note.md".to_string(),
-            offset: None,
-            limit: None,
-        })
-        .await
-        .unwrap();
+    let r = expect_text(
+        state
+            .read_doc(ReadParams {
+                path: "wiki/note.md".to_string(),
+                offset: None,
+                limit: None,
+            })
+            .await
+            .unwrap(),
+    );
     assert!(r.content.contains("findme"));
     assert_eq!(r.frontmatter.title, "Title");
     assert!(r.frontmatter.tags.contains(&"alpha".to_string()));
@@ -167,6 +190,31 @@ async fn glob_and_grep() {
     let files = grep.get("files").and_then(|v| v.as_array()).unwrap();
     assert_eq!(files.len(), 1);
     assert_eq!(files[0], "wiki/a.md");
+}
+
+#[tokio::test]
+async fn nonmarkdown_write_is_listable_but_not_indexed() {
+    let (state, _root, _cfg) = setup("mcp_nonmd");
+    // A non-`.md` file written through wiki_write is stored + listable + readable…
+    state.write_doc(write_params("wiki/page.html", "<h1>uniquetoken</h1>")).await.unwrap();
+
+    let g = state
+        .glob(GlobParams { pattern: "wiki/*.html".to_string(), path: None })
+        .await
+        .unwrap();
+    assert_eq!(g.matches, vec!["wiki/page.html"]);
+
+    let r = expect_text(
+        state
+            .read_doc(ReadParams { path: "wiki/page.html".to_string(), offset: None, limit: None })
+            .await
+            .unwrap(),
+    );
+    assert!(r.content.contains("uniquetoken"));
+
+    // …but it is NOT indexed (default include is *.md), so search finds nothing — and no orphan
+    // index row remains for the next reconcile to churn.
+    assert_eq!(state.search(search_params("uniquetoken")).await.unwrap().results.len(), 0);
 }
 
 #[tokio::test]
@@ -461,4 +509,221 @@ async fn model_update_rejects_unknown_model_name() {
         err_msg.contains("switching models is deferred"),
         "unexpected error: {err_msg}"
     );
+}
+
+#[tokio::test]
+async fn upload_lists_and_roundtrips_binary() {
+    let (state, root, _cfg) = setup("mcp_upload");
+    state
+        .upload(UploadParams {
+            path: "wiki/img/logo.png".to_string(),
+            content_base64: b64(PNG_BYTES),
+        })
+        .await
+        .unwrap();
+
+    // Listable like a filesystem (US-685)…
+    let g = state
+        .glob(GlobParams { pattern: "wiki/**/*.png".to_string(), path: None })
+        .await
+        .unwrap();
+    assert_eq!(g.matches, vec!["wiki/img/logo.png"]);
+    // …and the stored bytes round-trip exactly.
+    assert_eq!(std::fs::read(root.join("img/logo.png")).unwrap(), PNG_BYTES);
+}
+
+#[tokio::test]
+async fn read_image_returns_image_outcome() {
+    let (state, _root, _cfg) = setup("mcp_read_image");
+    let encoded = b64(PNG_BYTES);
+    state
+        .upload(UploadParams { path: "wiki/logo.png".to_string(), content_base64: encoded.clone() })
+        .await
+        .unwrap();
+
+    match state
+        .read_doc(ReadParams { path: "wiki/logo.png".to_string(), offset: None, limit: None })
+        .await
+        .unwrap()
+    {
+        ReadOutcome::Image { mime, base64, .. } => {
+            assert_eq!(mime, "image/png");
+            assert_eq!(base64, encoded);
+        }
+        _ => panic!("a png must read as an image outcome"),
+    }
+}
+
+#[tokio::test]
+async fn read_svg_is_text_not_image() {
+    let (state, _root, _cfg) = setup("mcp_read_svg");
+    // SVG is valid UTF-8 → the text path, even though it is an "image" type.
+    state
+        .write_doc(write_params("wiki/icon.svg", "<svg><title>uniqueword</title></svg>"))
+        .await
+        .unwrap();
+    let r = expect_text(
+        state
+            .read_doc(ReadParams { path: "wiki/icon.svg".to_string(), offset: None, limit: None })
+            .await
+            .unwrap(),
+    );
+    assert!(r.content.contains("uniqueword"));
+}
+
+#[tokio::test]
+async fn read_nonimage_binary_returns_notice() {
+    let (state, root, _cfg) = setup("mcp_read_bin");
+    std::fs::write(root.join("blob.bin"), [0u8, 1, 2, 3, 255]).unwrap();
+    match state
+        .read_doc(ReadParams { path: "wiki/blob.bin".to_string(), offset: None, limit: None })
+        .await
+        .unwrap()
+    {
+        ReadOutcome::Binary { note } => assert!(note.contains("not displayable"), "note: {note}"),
+        _ => panic!("a non-image binary must return a notice"),
+    }
+}
+
+#[tokio::test]
+async fn upload_binary_is_not_indexed() {
+    let (state, _root, _cfg) = setup("mcp_upload_noindex");
+    state
+        .upload(UploadParams { path: "wiki/a.png".to_string(), content_base64: b64(PNG_BYTES) })
+        .await
+        .unwrap();
+    // The upload creates no index row…
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 0);
+
+    // …and a reconcile (which walks the index set = *.md) doesn't pick it up either.
+    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+    state
+        .reindex(ReindexParams { path: None }, tokio_util::sync::CancellationToken::new(), tx)
+        .await
+        .unwrap();
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 0);
+}
+
+// --- US-674 tree editing: mkdir / rename / recursive delete -----------------------------------
+
+#[tokio::test]
+async fn mkdir_creates_empty_folder_visible_in_tree() {
+    let (state, root, _cfg) = setup("mcp_mkdir");
+    state
+        .mkdir(MkdirParams { path: "wiki/projects/2026".to_string() })
+        .await
+        .unwrap();
+
+    // On disk…
+    assert!(root.join("projects/2026").is_dir());
+    // …and visible in the directory-aware tree, even with no files inside.
+    let t = state.tree(TreeParams { path: None, depth: None }).await.unwrap();
+    assert!(
+        t.entries.iter().any(|e| e.uri == "mneme://wiki/projects/2026" && e.is_dir),
+        "empty folder must appear as a dir node",
+    );
+    assert!(t.entries.iter().any(|e| e.uri == "mneme://wiki/projects" && e.is_dir));
+    // glob lists files only → the empty folder is not a match.
+    let g = state
+        .glob(GlobParams { pattern: "wiki/**/*".to_string(), path: None })
+        .await
+        .unwrap();
+    assert!(g.matches.is_empty(), "no files yet: {:?}", g.matches);
+}
+
+#[tokio::test]
+async fn rename_file_moves_and_updates_index() {
+    let (state, _root, _cfg) = setup("mcp_rename_file");
+    state.write_doc(write_params("wiki/a.md", "# A\nmovetoken")).await.unwrap();
+
+    state
+        .rename(RenameParams { from: "wiki/a.md".to_string(), to: "wiki/sub/b.md".to_string() })
+        .await
+        .unwrap();
+
+    // Searchable at the new address, count unchanged, old path gone.
+    let s = state.search(search_params("movetoken")).await.unwrap();
+    assert_eq!(s.results.len(), 1);
+    assert_eq!(s.results[0].uri, "wiki/sub/b.md");
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 1);
+    assert!(state
+        .read_doc(ReadParams { path: "wiki/a.md".to_string(), offset: None, limit: None })
+        .await
+        .is_err());
+}
+
+#[tokio::test]
+async fn rename_to_nonindexed_extension_drops_from_index() {
+    let (state, _root, _cfg) = setup("mcp_rename_ext");
+    state.write_doc(write_params("wiki/note.md", "# N\nextword")).await.unwrap();
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 1);
+
+    // Renaming `.md` → `.txt` leaves the file on disk but drops it from the index (Decision 8).
+    state
+        .rename(RenameParams { from: "wiki/note.md".to_string(), to: "wiki/note.txt".to_string() })
+        .await
+        .unwrap();
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 0);
+    let g = state
+        .glob(GlobParams { pattern: "wiki/*.txt".to_string(), path: None })
+        .await
+        .unwrap();
+    assert_eq!(g.matches, vec!["wiki/note.txt"]);
+}
+
+#[tokio::test]
+async fn rename_folder_moves_contents_and_index() {
+    let (state, _root, _cfg) = setup("mcp_rename_folder");
+    state.write_doc(write_params("wiki/old/x.md", "# X\nfoldertoken")).await.unwrap();
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 1);
+
+    state
+        .rename(RenameParams { from: "wiki/old".to_string(), to: "wiki/new".to_string() })
+        .await
+        .unwrap();
+
+    // The contents (and their index rows) followed the folder; the old path is gone.
+    let s = state.search(search_params("foldertoken")).await.unwrap();
+    assert_eq!(s.results.len(), 1);
+    assert_eq!(s.results[0].uri, "wiki/new/x.md");
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 1);
+
+    let t = state.tree(TreeParams { path: None, depth: None }).await.unwrap();
+    assert!(t.entries.iter().any(|e| e.uri == "mneme://wiki/new"));
+    assert!(!t.entries.iter().any(|e| e.uri == "mneme://wiki/old"));
+}
+
+#[tokio::test]
+async fn rename_refuses_existing_destination() {
+    let (state, _root, _cfg) = setup("mcp_rename_conflict");
+    state.write_doc(write_params("wiki/a.md", "# A\naa")).await.unwrap();
+    state.write_doc(write_params("wiki/b.md", "# B\nbb")).await.unwrap();
+
+    assert!(
+        state
+            .rename(RenameParams { from: "wiki/a.md".to_string(), to: "wiki/b.md".to_string() })
+            .await
+            .is_err(),
+        "must refuse to overwrite an existing destination",
+    );
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 2);
+}
+
+#[tokio::test]
+async fn delete_folder_recursively_removes_files_and_index() {
+    let (state, root, _cfg) = setup("mcp_delete_folder");
+    state.write_doc(write_params("wiki/dir/x.md", "# X\naa")).await.unwrap();
+    state.write_doc(write_params("wiki/dir/y.md", "# Y\nbb")).await.unwrap();
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 2);
+
+    // Deleting the folder removes its files from disk AND their index rows (via scoped reconcile).
+    state.delete_doc(DeleteParams { path: "wiki/dir".to_string() }).await.unwrap();
+
+    assert!(!root.join("dir").exists(), "folder removed from disk");
+    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 0);
+    let g = state
+        .glob(GlobParams { pattern: "wiki/**/*.md".to_string(), path: None })
+        .await
+        .unwrap();
+    assert!(g.matches.is_empty(), "no markdown left: {:?}", g.matches);
 }

@@ -65,6 +65,12 @@ export interface ITreeProvider {
     /** Delete multiple items in one batch. */
     deleteItems?(hrefs: string[]): Promise<void>;
 
+    /** Import dropped file-like items (e.g. OS files) into `targetCategory`. The provider
+     *  reads each item's bytes and stores them. Optional — providers without import support
+     *  omit it (and the tree won't advertise a file-drop zone). Takes `IFileLink[]`, never
+     *  DOM `File` — provider-agnostic. */
+    importFiles?(items: IFileLink[], targetCategory: string): Promise<void>;
+
     /** Search items — async, yields results progressively. */
     search?(query: string, options: ITreeSearchOptions): ITreeSearchHandle;
 
@@ -140,6 +146,22 @@ export interface ILink {
 
 /** @deprecated Use ILink instead. */
 export type ITreeProviderItem = ILink;
+
+/**
+ * A droppable file-like item — the data shape behind the `IFileLink` trait
+ * (`/src/renderer/core/traits/fileLinkTraits.ts`). Produced by OS file drops (and,
+ * later, other sources); consumed by trees that import files. `getBytes` works for
+ * every producer; `filePath` is the OS path when known.
+ *
+ * Declared here (alongside ILink) rather than in `fileLinkTraits.ts` so this
+ * script-API type file stays a self-contained leaf — the editor-types bundler only
+ * follows imports within `api/types/`, never into runtime modules.
+ */
+export interface IFileLink {
+    name: string;
+    filePath?: string;
+    getBytes(): Promise<Uint8Array>;
+}
 
 /** One breadcrumb segment: a folder on the path from root to the current category. */
 export interface ICategorySegment {

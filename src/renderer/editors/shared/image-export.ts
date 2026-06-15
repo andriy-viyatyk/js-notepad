@@ -48,6 +48,23 @@ export async function blobToBuffer(blob: Blob): Promise<Buffer> {
     return Buffer.from(await blob.arrayBuffer());
 }
 
+/** Read a Blob as a `data:` URL (e.g. to hand a PNG blob to `addDrawPage`). */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            if (typeof result !== "string") {
+                reject(new Error("Unexpected FileReader result type"));
+                return;
+            }
+            resolve(result);
+        };
+        reader.onerror = () => reject(new Error("Failed to read image blob"));
+        reader.readAsDataURL(blob);
+    });
+}
+
 /** Write `source`'s rendered PNG directly to `filePath` (no dialog). Backs the
  *  `savePngToFile(filePath)` script-facade method on image-capable editors. */
 export async function writePngToFile(source: IImageExport, filePath: string): Promise<string> {

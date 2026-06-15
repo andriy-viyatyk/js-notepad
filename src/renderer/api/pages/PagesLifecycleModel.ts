@@ -1136,7 +1136,7 @@ export class PagesLifecycleModel {
         }
     };
 
-    openImageInNewTab = async (imageUrl: string): Promise<void> => {
+    openImageInNewTab = async (imageUrl: string, title?: string): Promise<void> => {
         const imgModule = await import("../../editors/image");
         const imgModel =
             await imgModule.default.newEmptyEditorModel("imageFile");
@@ -1144,7 +1144,7 @@ export class PagesLifecycleModel {
             imgModel.state.update(
                 (s: { title: string; url?: string }) => {
                     s.title =
-                        imageUrl.split("/").pop()?.split("?")[0] || "Image";
+                        title || imageUrl.split("/").pop()?.split("?")[0] || "Image";
                     s.url = imageUrl;
                 },
             );

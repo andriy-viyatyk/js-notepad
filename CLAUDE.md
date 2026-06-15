@@ -325,7 +325,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Editor base class        | `/src/renderer/editors/base/EditorModel.ts`       |
 | Content host interface   | `/src/renderer/editors/base/IContentHost.ts`      |
 | Content host trait       | `/src/renderer/editors/base/editor-traits.ts`     |
-| Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image) | `/src/renderer/editors/base/IImageExport.ts` |
+| Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image/HTML) | `/src/renderer/editors/base/IImageExport.ts` |
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
 | Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.tsx` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |

@@ -4,11 +4,13 @@ import type {
     ITreeStat,
     ICategorySegment,
 } from "../../api/types/io.tree";
+import type { ISubscriptionObject } from "../../api/types/events";
+import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import { mnemeConnection } from "../../api/mneme-connection";
 import { parseToolResult } from "../../editors/mneme-config/mnemeTypes";
 import { fpExtname } from "../../core/utils/file-path";
 
-/** One `wiki_tree` entry (flat depth-first node). `depth` is the absolute
+/** One `tree` entry (flat depth-first node). `depth` is the absolute
  *  slash count of the address; `uri` is `mneme://{root}/{path}`. */
 interface MnemeTreeEntry {
     uri: string;
@@ -20,7 +22,7 @@ interface MnemeTreeEntry {
 /**
  * Read-only ITreeProvider for a single Mneme root (EPIC-032 / US-663).
  *
- * Lists one level per call via the `wiki_tree` MCP tool with `depth: 1` (the
+ * Lists one level per call via the `tree` MCP tool with `depth: 1` (the
  * sidecar then returns only the requested node + its immediate children — the
  * tree view loads deeper levels lazily on expand). File nodes open as
  * `mneme://{root}/{path}` documents through the existing open pipeline;
@@ -29,7 +31,11 @@ interface MnemeTreeEntry {
  * `getNavigationUrl` for files) so they stay consistent with the tree view's
  * `category + "/" + title` child-path reconstruction.
  *
- * No write surface — file create/delete/rename is out of scope for this task.
+ * Writable (US-674): `addItem`/`mkdir`/`rename`/`deleteItem` map onto the Mneme
+ * MCP tools (`write`/`mkdir`/`rename`/`delete`) over the shared connection — the
+ * generic tree view supplies the New File / New Folder / Rename / Delete / DnD-move
+ * UX once `writable` is set. `watch` rides the connection's `resources/list_changed`
+ * so the tree live-refreshes after any create/rename/delete (ours or an agent's).
  */
 export class MnemeTreeProvider implements ITreeProvider {
     readonly type = "mneme";
@@ -38,7 +44,7 @@ export class MnemeTreeProvider implements ITreeProvider {
     readonly rootPath: string;
 
     readonly navigable = false;
-    readonly writable = false;
+    readonly writable = true;
     readonly hasTags = false;
     readonly hasHostnames = false;
     readonly pinnable = false;
@@ -56,7 +62,7 @@ export class MnemeTreeProvider implements ITreeProvider {
         let entries: MnemeTreeEntry[] = [];
         try {
             const result = await client.callTool(
-                { name: "wiki_tree", arguments: { path, depth: 1 } },
+                { name: "tree", arguments: { path, depth: 1 } },
                 undefined,
                 { timeout: 10_000 },
             );
@@ -115,6 +121,69 @@ export class MnemeTreeProvider implements ITreeProvider {
             label,
             category: root + "/" + parts.slice(0, i + 1).join("/"),
         }));
+    }
+
+    // --- Write surface (US-674) — maps onto the Mneme MCP tools ----------------
+
+    /** Create a new (empty) document. `item.href` is the scheme-less `{root}/{path}`
+     *  address the tree view built from `category + "/" + name`. */
+    async addItem(item: Partial<ILink> & { href: string }): Promise<ILink> {
+        const client = this.requireClient();
+        await client.callTool({ name: "write", arguments: { path: item.href, content: "" } });
+        const name = item.title || item.href.split("/").pop() || item.href;
+        const ext = fpExtname(name).toLowerCase();
+        return {
+            title: name,
+            href: item.href,
+            category: item.category ?? "",
+            tags: ext ? [ext] : [],
+            isDirectory: false,
+        };
+    }
+
+    /** Create an empty folder (≈ mkdir -p). */
+    async mkdir(path: string): Promise<void> {
+        const client = this.requireClient();
+        await client.callTool({ name: "mkdir", arguments: { path } });
+    }
+
+    /** Rename or move a file or folder (also serves DnD move). Both paths are
+     *  scheme-less `{root}/{path}` addresses. */
+    async rename(oldPath: string, newPath: string): Promise<void> {
+        const client = this.requireClient();
+        await client.callTool({ name: "rename", arguments: { from: oldPath, to: newPath } });
+    }
+
+    /** Delete a file, or a folder and everything under it (the `delete` tool is recursive). */
+    async deleteItem(href: string): Promise<void> {
+        const client = this.requireClient();
+        await client.callTool({ name: "delete", arguments: { path: href } });
+    }
+
+    /** Import dropped files into `targetCategory`. Always `upload` (binary-safe, no
+     *  extension sniffing); the mneme watcher/reconcile indexes any `.md` shortly after. */
+    async importFiles(items: IFileLink[], targetCategory: string): Promise<void> {
+        const client = this.requireClient();
+        for (const item of items) {
+            const path = `${targetCategory}/${item.name}`;
+            const bytes = Buffer.from(await item.getBytes());
+            await client.callTool({
+                name: "upload",
+                arguments: { path, contentBase64: bytes.toString("base64") },
+            });
+        }
+    }
+
+    /** Live-refresh: rebuild the tree on any `resources/list_changed` (create/rename/delete),
+     *  whether triggered by our own mutations or an external/agent change. */
+    watch(callback: () => void): ISubscriptionObject {
+        return mnemeConnection.onListChanged(callback);
+    }
+
+    private requireClient() {
+        const client = mnemeConnection.getClient();
+        if (!client) throw new Error("Mneme is not connected");
+        return client;
     }
 
     dispose(): void {

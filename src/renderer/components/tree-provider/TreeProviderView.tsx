@@ -14,7 +14,7 @@ import {
 import type { TreeRef, TreeItemRenderContext } from "../../uikit";
 import { CloseIcon } from "../../theme/icons";
 import { LINK } from "../../editors/link-editor/linkTraits";
-import { TraitTypeId, resolveTraits } from "../../core/traits";
+import { TraitTypeId, resolveTraits, FILE_LINK } from "../../core/traits";
 import type { TraitDragPayload } from "../../core/traits";
 import { TreeProviderItemIcon } from "./TreeProviderItemIcon";
 import {
@@ -166,6 +166,9 @@ export function TreeProviderView(
     const canTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
         if (!writable) return false;
         const traits = resolveTraits(payload.typeId);
+        // File import (any IFileLink producer, e.g. OS file drop).
+        if (traits?.get(FILE_LINK)) return true;
+        // Internal link move (existing trait path).
         const linkTrait = traits?.get(LINK);
         if (!linkTrait) return false;
         const items = linkTrait.getItems(payload.data);
@@ -175,6 +178,12 @@ export function TreeProviderView(
 
     const onTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
         const traits = resolveTraits(payload.typeId);
+        // Dispatch by trait — one handler per trait, no origin check.
+        const fileLink = traits?.get(FILE_LINK);
+        if (fileLink) {
+            void model.importFiles(fileLink.getFiles(payload.data), dropNode);
+            return;
+        }
         const linkTrait = traits?.get(LINK);
         if (!linkTrait) return;
         const items = linkTrait.getItems(payload.data);
@@ -311,6 +320,7 @@ export function TreeProviderView(
                 traitTypeId={writable ? TraitTypeId.ILink : undefined}
                 getDragData={writable ? getDragData : undefined}
                 acceptsDrop={writable}
+                acceptsFileDrop={writable && !!props.provider.importFiles}
                 canTraitDrop={writable ? canTraitDrop : undefined}
                 onTraitDrop={writable ? onTraitDrop : undefined}
                 renderItem={renderItem}

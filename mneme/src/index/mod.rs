@@ -7,7 +7,7 @@
 //!
 //! Scope (US-653): schema + frontmatter/chunk persistence + the read seam reconcile (US-654)
 //! needs. Embeddings populate `chunks_vec` in US-657/658; the orchestrating walk/watcher is
-//! US-654; ranked hybrid `wiki_search` is US-655/658. `search_fts` here is a minimal FTS query
+//! US-654; ranked hybrid `search` is US-655/658. `search_fts` here is a minimal FTS query
 //! that proves the index works and seeds early text search.
 
 pub mod path;
@@ -77,7 +77,7 @@ pub struct SearchFilter {
     pub created_to: Option<String>,
 }
 
-/// One `wiki_search` result row — one per document, best chunk wins the snippet.
+/// One `search` result row — one per document, best chunk wins the snippet.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextHit {
     pub address: String,
@@ -88,7 +88,7 @@ pub struct TextHit {
     pub score: f64,
 }
 
-/// Effective document metadata read back from the index (`wiki_timeline`).
+/// Effective document metadata read back from the index (`timeline`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocMeta {
     pub path: String,
@@ -194,7 +194,7 @@ impl IndexDb {
         &self.root_name
     }
 
-    /// The on-disk path of this versioned index DB (`wiki_status` inventory). US-655.
+    /// The on-disk path of this versioned index DB (`status` inventory). US-655.
     pub fn db_path(&self) -> &Path {
         &self.db_path
     }
@@ -338,9 +338,13 @@ impl IndexDb {
     }
 
     /// Minimal FTS query (proves the index + seeds early text search). Returns hits as full
-    /// `{root}/{rel}` addresses with a snippet. The ranked, filtered, hybrid `wiki_search` with
+    /// `{root}/{rel}` addresses with a snippet. The ranked, filtered, hybrid `search` with
     /// RRF + vectors is US-655/658.
     pub fn search_fts(&self, query: &str, limit: usize) -> Result<Vec<FtsHit>> {
+        let match_expr = to_fts_match(query);
+        if match_expr.is_empty() {
+            return Ok(Vec::new());
+        }
         let mut stmt = self.conn.prepare(
             "SELECT d.path, c.heading, snippet(chunks_fts, 0, '[', ']', '…', 12)
              FROM chunks_fts
@@ -351,7 +355,7 @@ impl IndexDb {
              LIMIT ?2",
         )?;
         let root = self.root_name.clone();
-        let rows = stmt.query_map(params![query, limit as i64], move |r| {
+        let rows = stmt.query_map(params![match_expr, limit as i64], move |r| {
             let path: String = r.get(0)?;
             Ok(FtsHit {
                 address: format!("{root}/{path}"),
@@ -362,14 +366,14 @@ impl IndexDb {
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
-    /// Ranked, filtered FTS text search (`wiki_search` text mode). One row per document — the
+    /// Ranked, filtered FTS text search (`search` text mode). One row per document — the
     /// best-ranking chunk wins the snippet — with the metadata filter applied as SQL predicates
     /// (subtree prefix, tags include/exclude, `created` range). `score` = bm25 (lower is better).
     pub fn search_text(&self, query: &str, filter: &SearchFilter, limit: usize) -> Result<Vec<TextHit>> {
         Ok(self.text_lane(query, filter, limit)?.into_iter().map(|(_, h)| h).collect())
     }
 
-    /// Vector KNN lane (`wiki_search` vector mode). Pre-filters candidate chunk-ids by the
+    /// Vector KNN lane (`search` vector mode). Pre-filters candidate chunk-ids by the
     /// metadata filter, runs a constrained KNN over `chunks_vec`, collapses to one row per
     /// document (the nearest chunk wins the snippet), best-first by distance. `score` = cosine
     /// distance (lower is better). `query_vec` must be the normalized query embedding.
@@ -377,7 +381,7 @@ impl IndexDb {
         Ok(self.vector_lane(query_vec, filter, limit)?.into_iter().map(|(_, h)| h).collect())
     }
 
-    /// Hybrid lane (`wiki_search` hybrid mode). Runs the text + vector lanes and fuses them
+    /// Hybrid lane (`search` hybrid mode). Runs the text + vector lanes and fuses them
     /// per-document with Reciprocal Rank Fusion. Best-first by RRF score (**higher is better**).
     pub fn search_hybrid(
         &self,
@@ -413,8 +417,8 @@ impl IndexDb {
     }
 
     /// Rel-paths (`documents.path`) of every document matching the metadata filter — for callers
-    /// (e.g. `wiki_grep`) that need to restrict a non-FTS scan to tag/date/subtree-matching docs.
-    /// Reuses the shared [`push_filter_sql`] predicates so the filter semantics match `wiki_search`.
+    /// (e.g. `grep`) that need to restrict a non-FTS scan to tag/date/subtree-matching docs.
+    /// Reuses the shared [`push_filter_sql`] predicates so the filter semantics match `search`.
     pub fn docs_matching(&self, filter: &SearchFilter) -> Result<Vec<String>> {
         let mut sql = String::from("SELECT d.path FROM documents d WHERE 1=1");
         let mut p: Vec<Value> = Vec::new();
@@ -427,6 +431,10 @@ impl IndexDb {
     /// FTS lane keeping the internal `doc_id` so the hybrid lane can fuse on it. One row per
     /// document, best-first by bm25 (ascending rank).
     fn text_lane(&self, query: &str, filter: &SearchFilter, limit: usize) -> Result<Vec<(i64, TextHit)>> {
+        let match_expr = to_fts_match(query);
+        if match_expr.is_empty() {
+            return Ok(Vec::new());
+        }
         let mut sql = String::from(
             "SELECT d.id, d.path, d.title, bm25(chunks_fts) AS score,
                     snippet(chunks_fts, 0, '[', ']', '…', 12) AS snip
@@ -435,7 +443,7 @@ impl IndexDb {
              JOIN documents d ON d.id = c.doc_id
              WHERE chunks_fts MATCH ?",
         );
-        let mut p: Vec<Value> = vec![Value::Text(query.to_string())];
+        let mut p: Vec<Value> = vec![Value::Text(match_expr)];
         push_filter_sql(&mut sql, &mut p, filter);
         // Headroom so per-document dedup (best chunk wins) can still fill `limit` documents.
         sql.push_str(" ORDER BY rank LIMIT ?");
@@ -647,7 +655,7 @@ impl IndexDb {
         Ok(items.len())
     }
 
-    /// Distinct tags + document counts (`wiki_tags`), optionally scoped to a rel-path prefix.
+    /// Distinct tags + document counts (`tags`), optionally scoped to a rel-path prefix.
     pub fn tag_counts(&self, subtree: Option<&str>) -> Result<Vec<(String, usize)>> {
         let mut sql = String::from(
             "SELECT t.tag, count(*) FROM doc_tags t JOIN documents d ON d.id = t.doc_id",
@@ -666,7 +674,7 @@ impl IndexDb {
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
-    /// Documents carrying `tag` (`wiki_timeline` uses `"log"`), optionally scoped to a rel-path
+    /// Documents carrying `tag` (`timeline` uses `"log"`), optionally scoped to a rel-path
     /// prefix. Returns effective metadata; the caller derives the timeline date from the filename.
     pub fn docs_with_tag(&self, tag: &str, subtree: Option<&str>) -> Result<Vec<DocMeta>> {
         let mut sql = String::from(
@@ -739,6 +747,31 @@ fn push_filter_sql(sql: &mut String, p: &mut Vec<Value>, filter: &SearchFilter) 
         sql.push_str(" AND d.created <= ?");
         p.push(Value::Text(to.clone()));
     }
+}
+
+/// Sanitize a free-form user query into a safe SQLite FTS5 `MATCH` expression.
+///
+/// `search` accepts ordinary prose, but FTS5 parses the `MATCH` string as a
+/// query *expression* — so metacharacters that appear in normal text (hyphens,
+/// colons, quotes, `*`, parentheses, and the bareword operators `AND`/`OR`/`NOT`/
+/// `NEAR`) are interpreted as syntax and make the query error out. For example
+/// `CDI-Tracker EDW` fails with `no such column: Tracker` because FTS5 reads the
+/// hyphen as a column-filter operator.
+///
+/// We tokenize on whitespace and wrap each token in double quotes (doubling any
+/// embedded `"`), turning every token into a literal phrase. FTS5 implicitly ANDs
+/// the phrases, so normal multi-term search semantics are preserved while every
+/// operator is neutralized. Tokens with no alphanumeric content tokenize to an
+/// empty phrase (which FTS5 rejects), so they are dropped. An all-whitespace or
+/// operator-only query yields an empty string; callers treat that as "no FTS
+/// match" (the vector lane still contributes in hybrid mode).
+fn to_fts_match(query: &str) -> String {
+    query
+        .split_whitespace()
+        .filter(|tok| tok.chars().any(char::is_alphanumeric))
+        .map(|tok| format!("\"{}\"", tok.replace('"', "\"\"")))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Whether a filter constrains nothing — lets the vector lane skip the candidate-id pre-filter

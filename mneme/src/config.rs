@@ -109,7 +109,7 @@ pub fn load(path: &Path) -> Result<Config> {
         .map_err(|e| MnemeError::Config(e.to_string()))
 }
 
-/// Write the config back to a TOML file (US-655 `wiki_add_root`/`wiki_remove_root` persist
+/// Write the config back to a TOML file (US-655 `add_root`/`remove_root` persist
 /// runtime root changes). figment reads TOML but does not serialize, so this uses `toml`
 /// directly. Creates the parent directory if needed.
 pub fn save(path: &Path, cfg: &Config) -> Result<()> {

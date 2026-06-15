@@ -13,7 +13,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ignore::gitignore::GitignoreBuilder;
+use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use ignore::overrides::OverrideBuilder;
 use ignore::WalkBuilder;
 
@@ -31,7 +31,7 @@ pub struct WalkedFile {
 pub const DEFAULT_IGNORES: &[&str] = &[".git", ".mneme", "node_modules", "target", "dist", "build"];
 
 /// Validate include/ignore globs by building the same matchers [`walk_root`] uses, without
-/// walking. Used by `wiki_root_config` to reject a bad pattern *before* persisting/applying it,
+/// walking. Used by `root_config` to reject a bad pattern *before* persisting/applying it,
 /// so a live filter update never leaves an unreconcilable config on disk.
 pub fn validate_filters(folder: &Path, include: &[String], ignore: &[String]) -> Result<()> {
     let mut inc_builder = GitignoreBuilder::new(folder);
@@ -51,18 +51,33 @@ pub fn validate_filters(folder: &Path, include: &[String], ignore: &[String]) ->
     Ok(())
 }
 
-pub fn walk_root(root: &RootConfig) -> Result<Vec<WalkedFile>> {
+/// Build the per-root include matcher (default `*.md`) used by [`walk_root`] / the indexer.
+/// Gitignore-style, so a bare `*.md` matches at any depth.
+pub fn include_matcher(root: &RootConfig) -> Result<Gitignore> {
     let includes = if root.include.is_empty() {
         vec!["*.md".to_string()]
     } else {
         root.include.clone()
     };
-    // Include allowlist as a gitignore-style matcher (post-filter, applied after pruning).
     let mut inc_builder = GitignoreBuilder::new(&root.folder);
     for g in &includes {
         inc_builder.add_line(None, g)?;
     }
-    let include = inc_builder.build()?;
+    Ok(inc_builder.build()?)
+}
+
+/// True when `rel` (forward-slash path within the root) is part of the **index set** — i.e. the
+/// indexer would chunk/embed it. Used to keep `write`/`edit` from indexing a file the
+/// next reconcile (which uses [`walk_root`]) would just drop.
+pub fn is_indexable(root: &RootConfig, rel: &str) -> Result<bool> {
+    Ok(include_matcher(root)?
+        .matched(Path::new(rel), false)
+        .is_ignore())
+}
+
+pub fn walk_root(root: &RootConfig) -> Result<Vec<WalkedFile>> {
+    // Include allowlist as a gitignore-style matcher (post-filter, applied after pruning).
+    let include = include_matcher(root)?;
 
     // Ignore rules added as `!`-globs (Override "ignore"). These prune the walk; the
     // native .gitignore/.ignore are honored by WalkBuilder directly.
@@ -103,6 +118,82 @@ pub fn walk_root(root: &RootConfig) -> Result<Vec<WalkedFile>> {
                 rel: rel.to_string_lossy().replace('\\', "/"),
             });
         }
+    }
+    Ok(out)
+}
+
+/// Walk EVERY file under the root — the "wiki set" the file tools present, independent of the
+/// index filters. The root is browsable like a real filesystem; the **only** pruned path is
+/// `.mneme/` (Mneme's own derived index — not user content, and writing into it would corrupt the
+/// index). `.gitignore`, the built-in [`DEFAULT_IGNORES`], and the per-root `include`/`ignore` are
+/// **indexing** concerns and do NOT apply here — see [`walk_root`] for the index set.
+pub fn walk_all(root: &RootConfig) -> Result<Vec<WalkedFile>> {
+    let mut builder = WalkBuilder::new(&root.folder);
+    builder
+        .standard_filters(false) // no .gitignore/.ignore/hidden/parents/global
+        .hidden(false)
+        .parents(false)
+        .git_global(false)
+        .git_ignore(false)
+        .git_exclude(false)
+        .ignore(false)
+        .follow_links(false) // never escape the root via a symlinked dir
+        .filter_entry(|e| e.file_name() != ".mneme"); // prune the index dir (never descend)
+
+    let mut out = Vec::new();
+    for result in builder.build() {
+        let entry = result?;
+        if !entry.file_type().map_or(false, |ft| ft.is_file()) {
+            continue;
+        }
+        let rel = entry
+            .path()
+            .strip_prefix(&root.folder)
+            .unwrap_or_else(|_| entry.path());
+        out.push(WalkedFile {
+            abs: entry.path().to_path_buf(),
+            rel: rel.to_string_lossy().replace('\\', "/"),
+        });
+    }
+    Ok(out)
+}
+
+/// Walk EVERY directory under the root — the folder skeleton the tree view shows, **including
+/// empty directories** (so a freshly-created or just-emptied folder is still visible). Mirrors
+/// [`walk_all`]'s "whole filesystem" rules (no index filters; only `.mneme/` pruned) but yields
+/// directory entries; the root folder itself (empty `rel`) is excluded.
+pub fn walk_dirs(root: &RootConfig) -> Result<Vec<WalkedFile>> {
+    let mut builder = WalkBuilder::new(&root.folder);
+    builder
+        .standard_filters(false)
+        .hidden(false)
+        .parents(false)
+        .git_global(false)
+        .git_ignore(false)
+        .git_exclude(false)
+        .ignore(false)
+        .follow_links(false)
+        .filter_entry(|e| e.file_name() != ".mneme");
+
+    let mut out = Vec::new();
+    for result in builder.build() {
+        let entry = result?;
+        if !entry.file_type().map_or(false, |ft| ft.is_dir()) {
+            continue;
+        }
+        let rel = entry
+            .path()
+            .strip_prefix(&root.folder)
+            .unwrap_or_else(|_| entry.path())
+            .to_string_lossy()
+            .replace('\\', "/");
+        if rel.is_empty() {
+            continue; // the root directory itself is not a child node
+        }
+        out.push(WalkedFile {
+            abs: entry.path().to_path_buf(),
+            rel,
+        });
     }
     Ok(out)
 }

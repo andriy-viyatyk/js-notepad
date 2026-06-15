@@ -4,7 +4,7 @@
  * Manages the `mneme.exe` knowledge-base sidecar (one child process), Tor-style:
  * spawn → wait for the stdout readiness line (`listening on <bind>:<port>`) →
  * graceful shutdown. Persephone assigns the port via `--port` and passes a stable
- * `--config` path so roots added at runtime (via MCP `wiki_add_root`) persist
+ * `--config` path so roots added at runtime (via MCP `add_root`) persist
  * across restarts. There is no auto-restart — an unexpected exit broadcasts an
  * error so the renderer can toast it.
  */

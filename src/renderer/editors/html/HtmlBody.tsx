@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { HtmlEditor } from "./HtmlEditor";
 import { useEditorConfig } from "../base";
 
@@ -28,8 +28,17 @@ export function HtmlBody({ model }: HtmlBodyProps) {
 
     const maxH = useEditorConfig().maxEditorHeight;
 
+    // Report the live iframe to the model so its image-export actions can capture
+    // the on-screen region (HC1). Cleared on unmount to avoid a stale ref.
+    const iframeRef = useRef<HTMLIFrameElement | null>(null);
+    useEffect(() => {
+        model.setCaptureElement(iframeRef.current);
+        return () => model.setCaptureElement(null);
+    }, [model]);
+
     return (
         <iframe
+            ref={iframeRef}
             srcDoc={safeSrcDoc}
             sandbox="allow-scripts"
             title="HTML Preview"

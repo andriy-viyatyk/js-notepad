@@ -4,7 +4,7 @@
 // (`mneme/src/mcp/results.rs`). Field names match the serialized JSON exactly
 // (camelCase where Rust applies `#[serde(rename)]`, otherwise as-is).
 
-/** Per-root entry of `wiki_status`. Note: `model` here is the model *name*
+/** Per-root entry of `status`. Note: `model` here is the model *name*
  *  (a plain string), not the model object — that lives at the top level. */
 export interface WikiRootStatus {
     name: string;
@@ -32,7 +32,7 @@ export interface WikiModelFile {
 }
 
 /** Live model-download progress (US-669), present while a background
- *  `wiki_model_update` is in flight or errored. Mirrors Rust `ModelDownloadStatus`. */
+ *  `model_update` is in flight or errored. Mirrors Rust `ModelDownloadStatus`. */
 export interface WikiModelDownload {
     phase: "idle" | "downloading" | "verifying" | "done" | "error" | string;
     bytesDone: number;
@@ -49,13 +49,13 @@ export interface WikiModelStatus {
     download?: WikiModelDownload;
 }
 
-/** Result of `wiki_status` — the primary monitoring source. */
+/** Result of `status` — the primary monitoring source. */
 export interface WikiStatus {
     roots: WikiRootStatus[];
     model?: WikiModelStatus;
 }
 
-/** Result of `wiki_root_config` (US-668). */
+/** Result of `root_config` (US-668). */
 export interface WikiRootConfig {
     name: string;
     folder: string;
@@ -63,7 +63,7 @@ export interface WikiRootConfig {
     ignore: string[];
 }
 
-/** Per-root stats from `wiki_reindex`. */
+/** Per-root stats from `reindex`. */
 export interface WikiReindexRootStat {
     name: string;
     scanned: number;
@@ -81,7 +81,7 @@ export interface WikiReindexResult {
 
 /** A discovered on-disk index DB under `{folder}/.mneme/`. */
 export interface StaleIndexEntry {
-    /** `{model}-{precision}` — the `modelId` arg for `wiki_index_delete`. */
+    /** `{model}-{precision}` — the `modelId` arg for `index_delete`. */
     modelId: string;
     /** schema version `N` from `index-v{N}.db`. */
     schemaVer: number;

@@ -24,6 +24,15 @@ pub struct WriteParams {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct UploadParams {
+    /// `{root}/{path}` address to write.
+    pub path: String,
+    /// File bytes, base64 (STANDARD).
+    #[serde(rename = "contentBase64")]
+    pub content_base64: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct EditParams {
     pub path: String,
     pub old_string: String,
@@ -35,6 +44,20 @@ pub struct EditParams {
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct DeleteParams {
     pub path: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct MkdirParams {
+    /// `{root}/{path}` address of the (empty) folder to create.
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct RenameParams {
+    /// Current `{root}/{path}` address of the file or folder.
+    pub from: String,
+    /// New `{root}/{path}` address (within the same root). Must not already exist.
+    pub to: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -57,7 +80,7 @@ pub enum GrepOutputMode {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct GrepParams {
-    /// Literal/regex pattern (streaming scan over indexed files — not FTS).
+    /// Literal/regex pattern (streaming scan over the root's text files; binary skipped — not FTS).
     pub pattern: String,
     /// The `{root}` or `{root}/sub` to scan (e.g. `personal` or `personal/contacts`).
     pub path: Option<String>,
@@ -113,7 +136,8 @@ pub struct SearchParams {
     pub exclude_tags: Vec<String>,
     #[serde(rename = "dateRange")]
     pub date_range: Option<DateRange>,
-    /// Max results (default 10).
+    /// Max results (default 5 — small by default to keep agent context lean; callers
+    /// that need breadth pass an explicit higher value). The Persephone UI sends 20.
     #[serde(rename = "topK")]
     pub top_k: Option<usize>,
     /// Reserved — only `.md` is indexed today (multi-type is backlog); ignored.

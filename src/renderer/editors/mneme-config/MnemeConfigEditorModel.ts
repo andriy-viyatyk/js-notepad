@@ -32,7 +32,7 @@ export interface MnemeConfigEditorState extends EditorStateBase {
     /** Whether the sidecar is reported running by the main process. */
     running: boolean;
     url: string;
-    /** Last `wiki_status` snapshot (null until first refresh). */
+    /** Last `status` snapshot (null until first refresh). */
     status: WikiStatus | null;
     /** Per-root reindex progress, keyed by root name (and `__all__` for a
      *  whole-index reindex). Presence indicates an active reindex. */
@@ -74,7 +74,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     private _aborts: Record<string, AbortController> = {};
 
     /** Background-job status poll (US-669): while any root is indexing or the
-     *  model is downloading, re-`wiki_status` on a timer so the editor shows
+     *  model is downloading, re-`status` on a timer so the editor shows
      *  live progress without holding the originating MCP call open. */
     private _pollTimer: ReturnType<typeof setInterval> | null = null;
     /** Keep polling until at least this time (ms epoch) even if status looks
@@ -88,7 +88,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         super(state);
         // Reuse the shared Mneme connection (US-673) instead of opening a third MCP
         // session to the same loopback sidecar (which starved the connection pool and
-        // hung wiki_status). The shared connection owns the lifecycle; the editor only
+        // hung status). The shared connection owns the lifecycle; the editor only
         // mirrors its status and issues tool calls through its client.
         this._connSub = mnemeConnection.onStatusChange((status, error) => {
             this.applyConnectionStatus(status, error);
@@ -170,14 +170,14 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         }
     };
 
-    /** Fetch `wiki_status`. `silent` (used by the background poll) skips the
+    /** Fetch `status`. `silent` (used by the background poll) skips the
      *  `refreshing` flag so the timer-driven refresh doesn't flicker the UI. */
     refreshStatus = async (silent = false): Promise<void> => {
         const client = mnemeConnection.getClient();
         if (!client) return;
         if (!silent) this.state.update((s) => { s.refreshing = true; });
         try {
-            const result = await client.callTool({ name: "wiki_status", arguments: {} }, undefined, { timeout: 10_000 });
+            const result = await client.callTool({ name: "status", arguments: {} }, undefined, { timeout: 10_000 });
             const status = parseToolResult<WikiStatus>(result);
             this.state.update((s) => { s.status = status; });
             this.syncPolling();
@@ -257,8 +257,8 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         if (!client) return;
         try {
             // Returns immediately — Mneme indexes the new root in the background
-            // (US-669). Poll wiki_status so the per-root progress bar fills in.
-            await client.callTool({ name: "wiki_add_root", arguments: { folder, name } });
+            // (US-669). Poll status so the per-root progress bar fills in.
+            await client.callTool({ name: "add_root", arguments: { folder, name } });
             await this.refreshStatus();
             mnemeStatusModel.refresh();
             this.kickPolling();
@@ -278,7 +278,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         const client = mnemeConnection.getClient();
         if (!client) return;
         try {
-            await client.callTool({ name: "wiki_remove_root", arguments: { root } });
+            await client.callTool({ name: "remove_root", arguments: { root } });
             await this.refreshStatus();
             ui.notify(`Root "${root}" removed`, "success");
         } catch (err) {
@@ -297,7 +297,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         this.setProgress(key, { phase: "scanning", processed: 0, total: 0 });
         try {
             await client.callTool(
-                { name: "wiki_reindex", arguments: root ? { path: root } : {} },
+                { name: "reindex", arguments: root ? { path: root } : {} },
                 undefined,
                 {
                     signal: abort.signal,
@@ -349,13 +349,13 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         });
     }
 
-    // ── Per-root filters (wiki_root_config — US-668) ──────────────────────
+    // ── Per-root filters (root_config — US-668) ──────────────────────
 
     getRootConfig = async (root: string): Promise<void> => {
         const client = mnemeConnection.getClient();
         if (!client) return;
         try {
-            const result = await client.callTool({ name: "wiki_root_config", arguments: { root } });
+            const result = await client.callTool({ name: "root_config", arguments: { root } });
             const cfg = parseToolResult<WikiRootConfig>(result);
             if (cfg) {
                 this.state.update((s) => { s.rootConfigs = { ...s.rootConfigs, [root]: cfg }; });
@@ -371,7 +371,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         try {
             const result = await showProgress(
                 client.callTool({
-                    name: "wiki_root_config",
+                    name: "root_config",
                     arguments: { root, include, ignore },
                 }),
                 "Applying filters — reindexing…",
@@ -394,8 +394,8 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         if (!client) return;
         try {
             // Returns immediately — Mneme downloads in the background (US-669).
-            // Poll wiki_status so the Model panel's download bar fills in.
-            await client.callTool({ name: "wiki_model_update", arguments: {} });
+            // Poll status so the Model panel's download bar fills in.
+            await client.callTool({ name: "model_update", arguments: {} });
             await this.refreshStatus();
             mnemeStatusModel.refresh();
             this.kickPolling();
@@ -410,7 +410,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         }
     };
 
-    // ── Index inventory (app.fs walk + wiki_index_delete) ─────────────────
+    // ── Index inventory (app.fs walk + index_delete) ─────────────────
 
     loadIndexInventory = async (): Promise<void> => {
         const status = this.state.get().status;
@@ -466,7 +466,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         if (!client) return;
         try {
             await client.callTool({
-                name: "wiki_index_delete",
+                name: "index_delete",
                 arguments: { root, modelId, schemaVer },
             });
             await this.loadIndexInventory();

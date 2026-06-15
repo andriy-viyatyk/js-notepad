@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use persephone_mneme::config::ModelConfig;
-use persephone_mneme::index::{content_hash, IndexDb};
+use persephone_mneme::index::{content_hash, IndexDb, SearchFilter};
 use persephone_mneme::markdown::{chunker, parse_document};
 
 fn tmp_root(name: &str) -> PathBuf {
@@ -217,6 +217,43 @@ fn upsert_then_fts_finds_document() {
     assert_eq!(hits.len(), 1);
     assert_eq!(hits[0].address, "personal/notes.md");
     assert!(hits[0].snippet.contains("brown"));
+}
+
+#[test]
+fn fts_query_with_special_chars_is_sanitized_not_errored() {
+    // Regression (US-679): a free-form query containing FTS5 metacharacters used to be
+    // injected raw into MATCH, so `CDI-Tracker EDW` failed with `no such column: Tracker`.
+    let root = tmp_root("idx_fts_special");
+    let db = open(&root);
+    let parsed = parse_document(
+        "edw",
+        "# EDW\nCDI-Tracker syncs with the EDW warehouse nightly.",
+        None,
+        epoch(),
+    );
+    db.upsert_document("edw.md", &parsed, &content_hash(b"v1"), 10, 20).unwrap();
+
+    // The hyphenated query now matches instead of erroring — via both the raw FTS helper
+    // and the ranked `wiki_search` text path (text_lane).
+    let hits = db.search_fts("CDI-Tracker EDW", 10).unwrap();
+    assert_eq!(hits.len(), 1, "hyphenated query should match, not error");
+    assert_eq!(hits[0].address, "personal/edw.md");
+
+    let filter = SearchFilter::default();
+    let text_hits = db.search_text("CDI-Tracker EDW", &filter, 10).unwrap();
+    assert_eq!(text_hits.len(), 1, "wiki_search text mode should match the hyphenated query");
+    assert_eq!(text_hits[0].address, "personal/edw.md");
+
+    // Every other FTS5 operator must be neutralized rather than raising a SQLite error.
+    for q in ["AND", "foo:bar", "wild*", "(paren)", "a OR b", "NEAR/2", "\"unbalanced"] {
+        assert!(db.search_fts(q, 10).is_ok(), "query {q:?} should not error");
+        assert!(db.search_text(q, &filter, 10).is_ok(), "text mode {q:?} should not error");
+    }
+
+    // Operator-only / blank queries produce no hits and no error.
+    assert!(db.search_fts("   ", 10).unwrap().is_empty());
+    assert!(db.search_fts("-", 10).unwrap().is_empty());
+    assert!(db.search_text("", &filter, 10).unwrap().is_empty());
 }
 
 #[test]

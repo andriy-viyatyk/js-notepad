@@ -10,7 +10,7 @@
 //!   locks; phase 2 embeds off the writer lock on the shared worker (bulk priority, backpressure)
 //!   and writes vectors in brief locked batches. Cancellable + progress-reporting, driven by the
 //!   [`JobManager`] (single-flight per root). The [`crate::watcher`] and the deferred startup
-//!   reconcile both go through it. [`single_doc_index`] is the serving `wiki_write`/`wiki_edit`
+//!   reconcile both go through it. [`single_doc_index`] is the serving `write`/`edit`
 //!   primitive (interactive-priority embed).
 
 pub mod job;
@@ -116,7 +116,7 @@ fn maybe_backfill(
 }
 
 /// Like [`index_one`] but **without** the mtime+size fast-path — always reads + content-hashes.
-/// US-655's synchronous `wiki_write`/`wiki_edit` use this: the caller just changed the content,
+/// US-655's synchronous `write`/`edit` use this: the caller just changed the content,
 /// so the stat-based skip is unsafe (a same-length edit within the filesystem's mtime resolution
 /// would otherwise be wrongly skipped). Content-hash dedup still avoids a redundant upsert when
 /// the bytes are identical.
@@ -164,7 +164,7 @@ fn upsert(
 /// drop deleted ones. Per-file errors are logged + counted, never fatal.
 pub fn reconcile_root(db: &IndexDb, root: &RootConfig, embedder: Option<&dyn Embedder>) -> Result<ReconcileStats> {
     let mut stats = ReconcileStats::default();
-    let walked = walk_root(root)?; // authoritative include/ignore set
+    let walked = walk_root(root)?; // the index set (include/ignore); file tools use walk_all
     let mut present: HashSet<String> = HashSet::with_capacity(walked.len());
 
     for wf in &walked {
@@ -219,7 +219,7 @@ enum WorkKind {
 ///
 /// `cancel` is polled between every file and every document; on cancel it commits nothing further
 /// and returns the partial stats (already-written rows persist — the next reconcile finishes the
-/// remainder, idempotently). `progress` is the shared snapshot (read by `wiki_status`);
+/// remainder, idempotently). `progress` is the shared snapshot (read by `status`);
 /// `on_progress` is the live sink (MCP progress / CLI line).
 pub(crate) fn reconcile_job(
     root: &RootIndex,
@@ -325,8 +325,8 @@ pub(crate) fn reconcile_job(
 
 /// Index a single just-written/edited document on the serving path: brief writer-locked upsert
 /// (always — no fast-path, the caller just changed the bytes), then embed the one document at
-/// **interactive** priority (off the writer lock) and write its vectors. Used by `wiki_write` /
-/// `wiki_edit`.
+/// **interactive** priority (off the writer lock) and write its vectors. Used by `write` /
+/// `edit`.
 pub(crate) fn single_doc_index(root: &RootIndex, rel: &str, abs: &Path, emb: &EmbedHandle) -> Result<IndexOutcome> {
     let outcome = reindex_file(&root.writer(), rel, abs, None)?;
     // Embed unless the model is definitively absent (resolve-on-first-job otherwise).
@@ -382,7 +382,7 @@ fn system_time_to_secs(t: SystemTime) -> i64 {
 pub struct IndexManager {
     roots: Vec<RootConfig>,
     dbs: HashMap<String, Arc<RootIndex>>,
-    /// Keyed by root name so a single root's watcher can be stopped on `wiki_remove_root`.
+    /// Keyed by root name so a single root's watcher can be stopped on `remove_root`.
     watchers: HashMap<String, RootWatcher>,
     /// Submit handle for the one embedding worker (clonable; shared with the watcher + search).
     embed: EmbedHandle,
@@ -430,7 +430,7 @@ impl IndexManager {
         self.embed.clone()
     }
 
-    /// A clone of the reindex job manager (drives `wiki_reindex` + exposes progress).
+    /// A clone of the reindex job manager (drives `reindex` + exposes progress).
     pub fn jobs(&self) -> Arc<JobManager> {
         Arc::clone(&self.jobs)
     }
@@ -493,7 +493,7 @@ impl IndexManager {
         Ok(())
     }
 
-    /// Register a new root at runtime (`wiki_add_root`): open its index, start its watcher, and
+    /// Register a new root at runtime (`add_root`): open its index, start its watcher, and
     /// track its config. The caller persists the config and reconciles. Returns the new handle.
     pub fn add_root(&mut self, cfg: RootConfig, model: &ModelConfig) -> Result<Arc<RootIndex>> {
         let ri = Arc::new(RootIndex::open_or_create(&cfg.name, &cfg.folder, model)?);
@@ -511,7 +511,7 @@ impl IndexManager {
         Ok(ri)
     }
 
-    /// Update a root's `include`/`ignore` filters at runtime (`wiki_root_config` SET) and restart
+    /// Update a root's `include`/`ignore` filters at runtime (`root_config` SET) and restart
     /// its watcher so the new filters take effect (the watcher captures its `RootConfig` by value,
     /// so a snapshot change requires a restart). The index handle is kept alive. Returns the handle
     /// so the caller can reconcile with the new filters. The walk itself re-reads filters from the
@@ -551,8 +551,8 @@ impl IndexManager {
         Ok(ri)
     }
 
-    /// Stop + drop a root's watcher and its index handle (`wiki_remove_root`). The on-disk
-    /// `.mneme` index is left in place (rebuildable; deletion is `wiki_index_delete`'s job).
+    /// Stop + drop a root's watcher and its index handle (`remove_root`). The on-disk
+    /// `.mneme` index is left in place (rebuildable; deletion is `index_delete`'s job).
     pub fn remove_root(&mut self, name: &str) -> Result<()> {
         if !self.dbs.contains_key(name) {
             return Err(crate::error::MnemeError::UnknownRoot(name.to_string()));
@@ -563,7 +563,7 @@ impl IndexManager {
         Ok(())
     }
 
-    /// The current root names (`wiki_list_roots` / `wiki_reindex` all-roots / `wiki_status`).
+    /// The current root names (`list_roots` / `reindex` all-roots / `status`).
     pub fn root_names(&self) -> Vec<String> {
         self.roots.iter().map(|r| r.name.clone()).collect()
     }
@@ -591,8 +591,8 @@ impl IndexManager {
     }
 
     /// Spawn a one-shot background reconcile of a single root (coalesced through the job manager)
-    /// and return immediately. Used by `wiki_add_root` so registering a large root doesn't block
-    /// the MCP call on the full walk+embed — progress is observable via `wiki_status`. A
+    /// and return immediately. Used by `add_root` so registering a large root doesn't block
+    /// the MCP call on the full walk+embed — progress is observable via `status`. A
     /// brand-new root has no in-flight pass, so the coalesced call genuinely starts one.
     pub fn spawn_reconcile(&self, name: &str) {
         let Some((cfg, ri)) = self

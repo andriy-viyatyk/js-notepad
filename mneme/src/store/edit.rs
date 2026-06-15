@@ -1,4 +1,4 @@
-//! `wiki_edit` — exact string replacement (≈ Edit).
+//! `edit` — exact string replacement (≈ Edit).
 
 use crate::error::{MnemeError, Result};
 

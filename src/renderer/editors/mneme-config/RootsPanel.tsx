@@ -68,7 +68,7 @@ function RootRow({ model, root }: RootRowProps) {
     const s = model.state.use();
     const [expanded, setExpanded] = useState(false);
     // Two progress sources: a user-triggered reindex (cancellable, via the
-    // reindexProgress map) and a background pass surfaced on wiki_status
+    // reindexProgress map) and a background pass surfaced on status
     // (add-root / watcher, US-669). Manual takes precedence when both exist.
     const manual = s.reindexProgress[root.name];
     const bg = root.reindex;

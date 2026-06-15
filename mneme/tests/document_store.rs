@@ -27,6 +27,7 @@ fn setup(name: &str) -> (DocumentStore, PathBuf) {
     fs::create_dir_all(personal.join("notes")).unwrap();
     fs::create_dir_all(work.join("sub")).unwrap();
     fs::create_dir_all(work.join("node_modules")).unwrap();
+    fs::create_dir_all(work.join(".mneme")).unwrap();
 
     fs::write(personal.join("index.md"), "# Personal\n\nhello world\n").unwrap();
     fs::write(personal.join("notes/day.md"), "# Day\n\nthe quick brown fox\n").unwrap();
@@ -41,7 +42,18 @@ fn setup(name: &str) -> (DocumentStore, PathBuf) {
     fs::write(work.join("node_modules/junk.md"), "# Junk\n").unwrap();
     fs::write(work.join(".gitignore"), "secret.md\n").unwrap();
     fs::write(work.join("secret.md"), "# Secret\n").unwrap();
-    fs::write(work.join("logo.png"), [0x89u8, 0x50, 0x4e, 0x47]).unwrap();
+    // Realistic PNG header (8-byte signature + IHDR chunk) — contains NUL bytes, so grep treats it
+    // as binary and skips it.
+    fs::write(
+        work.join("logo.png"),
+        [
+            0x89u8, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, b'I', b'H',
+            b'D', b'R',
+        ],
+    )
+    .unwrap();
+    // Mneme's own derived index — must stay hidden from the file tools.
+    fs::write(work.join(".mneme/index.db"), [0x00u8, 0x01, 0x02]).unwrap();
 
     let store = DocumentStore::from_roots(vec![
         RootConfig {
@@ -62,47 +74,58 @@ fn setup(name: &str) -> (DocumentStore, PathBuf) {
 }
 
 #[test]
-fn include_allowlist_yields_only_markdown() {
-    let (store, _b) = setup("include");
+fn list_shows_all_files_like_a_filesystem() {
+    let (store, _b) = setup("listall");
+    // The file tools present the whole root — markdown AND non-markdown — not the index allowlist.
     let personal = store.list(Some("personal")).unwrap();
-    assert!(personal.contains(&"personal/index.md".to_string()));
-    assert!(personal.contains(&"personal/notes/day.md".to_string()));
-    // The .txt is not in the include allowlist.
-    assert!(!personal.iter().any(|a| a.ends_with(".txt")));
-    assert_eq!(personal.len(), 2);
+    assert_eq!(
+        personal,
+        vec!["personal/ignore-me.txt", "personal/index.md", "personal/notes/day.md"]
+    );
 }
 
 #[test]
-fn ignore_rules_prune_node_modules_and_gitignore() {
-    let (store, _b) = setup("ignore");
+fn list_includes_ignored_and_nonmarkdown_but_not_mneme() {
+    let (store, _b) = setup("listwork");
     let work = store.list(Some("work")).unwrap();
-    assert!(work.contains(&"work/readme.md".to_string()));
-    assert!(work.contains(&"work/sub/deep.md".to_string()));
-    // node_modules pruned, .gitignore'd secret.md pruned, non-md logo.png excluded.
-    assert!(!work.iter().any(|a| a.contains("node_modules")));
-    assert!(!work.iter().any(|a| a.ends_with("secret.md")));
-    assert!(!work.iter().any(|a| a.ends_with("logo.png")));
-    assert_eq!(work.len(), 2);
+    // `.gitignore`'d secret.md, node_modules, dotfiles, and binary logo.png are ALL listed —
+    // only `.mneme/` (the derived index) is hidden.
+    assert_eq!(
+        work,
+        vec![
+            "work/.gitignore",
+            "work/logo.png",
+            "work/node_modules/junk.md",
+            "work/readme.md",
+            "work/secret.md",
+            "work/sub/deep.md",
+        ]
+    );
+    assert!(!work.iter().any(|a| a.contains(".mneme")));
 }
 
 #[test]
 fn glob_matches_addresses() {
     let (store, _b) = setup("glob");
+    // Glob now spans every file in the root, so node_modules/secret markdown surface too
+    // (the index still ignores them — that's `walk_root`, not the file tools).
     let all = store.glob("**/*.md", None).unwrap();
     assert_eq!(
         all,
         vec![
             "personal/index.md",
             "personal/notes/day.md",
+            "work/node_modules/junk.md",
             "work/readme.md",
+            "work/secret.md",
             "work/sub/deep.md",
         ]
     );
     let personal = store.glob("personal/**/*.md", None).unwrap();
     assert_eq!(personal, vec!["personal/index.md", "personal/notes/day.md"]);
-    // literal_separator: `*` does not cross `/`, so only the top-level work doc matches.
+    // literal_separator: `*` does not cross `/`, so only the top-level work docs match.
     let work_top = store.glob("work/*.md", Some("work")).unwrap();
-    assert_eq!(work_top, vec!["work/readme.md"]);
+    assert_eq!(work_top, vec!["work/readme.md", "work/secret.md"]);
 }
 
 #[test]
@@ -195,9 +218,40 @@ fn read_write_delete_roundtrip() {
 #[test]
 fn read_bytes_serves_binary_attachment() {
     let (store, _b) = setup("bytes");
-    // logo.png is excluded from the walk (not in the allowlist) but reachable by address.
+    // logo.png is now listed by the file tools and reachable by address.
     let bytes = store.read_bytes("work/logo.png").unwrap();
-    assert_eq!(bytes, vec![0x89, 0x50, 0x4e, 0x47]);
+    assert_eq!(&bytes[..4], &[0x89, 0x50, 0x4e, 0x47]);
+}
+
+#[test]
+fn read_returns_nonmarkdown_text() {
+    let (store, _b) = setup("readtext");
+    assert_eq!(store.read("personal/ignore-me.txt", None, None).unwrap(), "not markdown\n");
+}
+
+#[test]
+fn mneme_dir_hidden_and_address_rejected() {
+    let (store, _b) = setup("mnemeguard");
+    // Never listed/globbed…
+    assert!(!store.list(Some("work")).unwrap().iter().any(|a| a.contains(".mneme")));
+    assert!(!store.glob("**/*", None).unwrap().iter().any(|a| a.contains(".mneme")));
+    // …and not addressable directly (read/write/delete all go through WikiAddress::parse).
+    assert!(WikiAddress::parse("work/.mneme/index.db").is_err());
+    assert!(store.read("work/.mneme/index.db", None, None).is_err());
+}
+
+#[test]
+fn grep_skips_binary_files() {
+    let (store, _b) = setup("grepbin");
+    // logo.png contains the literal "IHDR" but is binary (NUL bytes) → skipped, no match.
+    let opts = GrepOptions {
+        output_mode: OutputMode::FilesWithMatches,
+        ..Default::default()
+    };
+    match store.grep("IHDR", None, &opts).unwrap() {
+        GrepResult::Files(f) => assert!(f.is_empty(), "binary file should be skipped, got {f:?}"),
+        other => panic!("expected Files, got {other:?}"),
+    }
 }
 
 #[test]

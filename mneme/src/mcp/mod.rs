@@ -1,6 +1,6 @@
-//! MCP server — the sole interface (EPIC-032 D9/D10). Exposes the `wiki_*` tool surface and
-//! `mneme://` resources over **Streamable HTTP**, bound to loopback. `wiki_search` serves text /
-//! vector / hybrid modes (US-657/658); `wiki_reindex` is a cancellable, progress-emitting job
+//! MCP server — the sole interface (EPIC-032 D9/D10). Exposes the MCP tool surface and
+//! `mneme://` resources over **Streamable HTTP**, bound to loopback. `search` serves text /
+//! vector / hybrid modes (US-657/658); `reindex` is a cancellable, progress-emitting job
 //! driven through the [`JobManager`] (US-659) — query embeds run at interactive priority on the
 //! shared worker, reads use each root's connection pool. Resource subscriptions (US-670) are
 //! advertised and emitted: the watcher derives changed `mneme://{root}/{path}` URIs and an async
@@ -58,11 +58,11 @@ pub struct ServerState {
     /// the serving single-doc index path go through it, off the index lock. `embed_query`/
     /// `embed_passages` return `None` when no model is provisioned → callers degrade to FTS.
     embed: EmbedHandle,
-    /// Reindex job manager — drives `wiki_reindex` (cancellable + progress) and exposes the
-    /// per-root progress snapshot for `wiki_status`.
+    /// Reindex job manager — drives `reindex` (cancellable + progress) and exposes the
+    /// per-root progress snapshot for `status`.
     jobs: Arc<JobManager>,
-    /// Tracks the single background model-download job so `wiki_model_update` returns immediately
-    /// and `wiki_status.model.download` can report progress.
+    /// Tracks the single background model-download job so `model_update` returns immediately
+    /// and `status.model.download` can report progress.
     model_job: Arc<ModelJob>,
     /// Resource-subscription registry (US-670). Shared across all per-session handlers and the
     /// watcher fan-out task; maps a session id → its peer + subscribed URIs.
@@ -74,8 +74,8 @@ pub struct ServerState {
 }
 
 /// Background model-download job state. `run_lock` serializes downloads; `in_flight` gates a second
-/// `wiki_model_update` (coalesce — don't start a parallel download) and drives the `downloading`
-/// phase; `errored` flips on a failed provision so `wiki_status` can show `download.phase = error`.
+/// `model_update` (coalesce — don't start a parallel download) and drives the `downloading`
+/// phase; `errored` flips on a failed provision so `status` can show `download.phase = error`.
 #[derive(Default)]
 struct ModelJob {
     run_lock: Mutex<()>,
@@ -88,6 +88,21 @@ struct ModelJob {
 pub enum ResourceBody {
     Text(String),
     Blob(String),
+}
+
+/// What `read_doc` produced — the `server.rs` adapter maps each arm to MCP tool content. Kept
+/// rmcp-type-free so [`ServerState`] stays decoupled from the SDK.
+pub enum ReadOutcome {
+    /// UTF-8 text file: content + parsed frontmatter (the historical `read` behavior).
+    Text(ReadResult),
+    /// A vision-supported image: base64 bytes + MIME + a short human note. The agent *sees* it.
+    Image {
+        base64: String,
+        mime: &'static str,
+        note: String,
+    },
+    /// Non-displayable binary (PDF/zip/office) or an oversized image: a typed notice, no bytes.
+    Binary { note: String },
 }
 
 impl ServerState {
@@ -146,7 +161,7 @@ impl ServerState {
     }
 
     /// Build the full model status (`status()` + live download progress derived from the
-    /// background job state). Used by `wiki_status` and `wiki_model_update`.
+    /// background job state). Used by `status` and `model_update`.
     fn build_model_status(&self) -> Option<crate::model::ModelStatus> {
         let mut ms = crate::model::status(&self.model).ok()?;
         let in_flight = self.model_job.in_flight.load(Ordering::SeqCst);
@@ -157,31 +172,55 @@ impl ServerState {
 
     // --- file-like tools ---------------------------------------------------------------------
 
-    pub async fn read_doc(self: &Arc<Self>, p: ReadParams) -> Result<ReadResult> {
+    pub async fn read_doc(self: &Arc<Self>, p: ReadParams) -> Result<ReadOutcome> {
         let st = Arc::clone(self);
         blocking(move || {
             let store = st.store.read().unwrap();
             let wa = WikiAddress::parse(&p.path)?;
             let abs = store.registry().resolve(&wa)?;
-            let content = store.read(&p.path, p.offset, p.limit)?;
-            let full = store.read(&p.path, None, None)?;
-            let stem = file_stem(&wa.rest);
-            let md = std::fs::metadata(&abs).ok();
-            let birthtime = md.as_ref().and_then(|m| m.created().ok());
-            let mtime = md
-                .as_ref()
-                .and_then(|m| m.modified().ok())
-                .unwrap_or_else(SystemTime::now);
-            let parsed = parse_document(&stem, &full, birthtime, mtime);
-            Ok(ReadResult {
-                content,
-                frontmatter: Frontmatter {
-                    title: parsed.meta.title,
-                    tags: parsed.meta.tags,
-                    created: parsed.meta.created,
-                    verified: parsed.meta.verified,
-                },
-            })
+            let bytes = std::fs::read(&abs)?;
+
+            // Text path (incl. .svg/.mmd/.html/.json) — the historical behavior, unchanged.
+            if !looks_binary(&bytes) {
+                let content = store.read(&p.path, p.offset, p.limit)?;
+                let full = store.read(&p.path, None, None)?;
+                let stem = file_stem(&wa.rest);
+                let md = std::fs::metadata(&abs).ok();
+                let birthtime = md.as_ref().and_then(|m| m.created().ok());
+                let mtime = md
+                    .as_ref()
+                    .and_then(|m| m.modified().ok())
+                    .unwrap_or_else(SystemTime::now);
+                let parsed = parse_document(&stem, &full, birthtime, mtime);
+                return Ok(ReadOutcome::Text(ReadResult {
+                    content,
+                    frontmatter: Frontmatter {
+                        title: parsed.meta.title,
+                        tags: parsed.meta.tags,
+                        created: parsed.meta.created,
+                        verified: parsed.meta.verified,
+                    },
+                }));
+            }
+
+            // Binary: a vision-supported image within the cap → image block; else a typed notice.
+            let kb = bytes.len().div_ceil(1024);
+            match image_mime(&wa.rest) {
+                Some(mime) if bytes.len() <= MAX_INLINE_IMAGE_BYTES => Ok(ReadOutcome::Image {
+                    base64: base64::engine::general_purpose::STANDARD.encode(&bytes),
+                    mime,
+                    note: format!("{} ({mime}, {kb} KB)", wa.rest),
+                }),
+                Some(mime) => Ok(ReadOutcome::Binary {
+                    note: format!(
+                        "<image too large to inline: {} {kb} KB ({mime}); read it via the UI>",
+                        wa.rest
+                    ),
+                }),
+                None => Ok(ReadOutcome::Binary {
+                    note: format!("<binary file: {} {kb} KB — not displayable as text>", wa.rest),
+                }),
+            }
         })
         .await
     }
@@ -195,7 +234,7 @@ impl ServerState {
                 store.write(&p.path, &p.content)?;
                 store.registry().resolve(&wa)?
             };
-            index_file(&st, &wa, &abs)
+            index_if_indexable(&st, &wa, &abs)
         })
         .await
     }
@@ -209,22 +248,90 @@ impl ServerState {
                 store.edit(&p.path, &p.old_string, &p.new_string, p.replace_all)?;
                 store.registry().resolve(&wa)?
             };
-            index_file(&st, &wa, &abs)
+            index_if_indexable(&st, &wa, &abs)
         })
         .await
     }
 
+    /// Delete a file **or** a folder (recursive). For a file: drop the one index row (today's
+    /// behavior). For a folder: `remove_dir_all` + a scoped reconcile, which drops every index row
+    /// whose file is now gone (no per-prefix index surgery — the reconcile self-heals; Decision 3).
     pub async fn delete_doc(self: &Arc<Self>, p: DeleteParams) -> Result<()> {
         let st = Arc::clone(self);
         blocking(move || {
             let wa = WikiAddress::parse(&p.path)?;
-            {
-                st.store.read().unwrap().delete(&p.path)?;
+            let was_dir = {
+                let store = st.store.read().unwrap();
+                let is_dir = store.registry().resolve(&wa)?.is_dir();
+                store.delete_path(&p.path)?;
+                is_dir
+            };
+            if was_dir {
+                reconcile_root_now(&st, &wa.root)?;
+            } else {
+                let handle = { st.index.lock().unwrap().handle(&wa.root) };
+                if let Some(h) = handle {
+                    h.writer().delete_document(&wa.rest)?;
+                }
             }
-            let handle = { st.index.lock().unwrap().handle(&wa.root) };
-            if let Some(h) = handle {
-                h.writer().delete_document(&wa.rest)?;
+            Ok(())
+        })
+        .await
+    }
+
+    /// Create an empty folder (`mkdir`). Folders are not indexed, so there's no index follow-up;
+    /// the directory-aware `tree` surfaces it immediately.
+    pub async fn mkdir(self: &Arc<Self>, p: MkdirParams) -> Result<()> {
+        let st = Arc::clone(self);
+        blocking(move || {
+            st.store.read().unwrap().mkdir(&p.path)?;
+            Ok(())
+        })
+        .await
+    }
+
+    /// Move/rename a file or folder within a root (`rename`; also covers DnD move + extension
+    /// change). File: targeted index update (drop old row, index the new path if indexable — an
+    /// extension change to a non-indexed type just drops it). Folder (or cross-root): scoped
+    /// reconcile of the affected root(s) so the index follows the filesystem (Decision 3/5/6/8).
+    pub async fn rename(self: &Arc<Self>, p: RenameParams) -> Result<()> {
+        let st = Arc::clone(self);
+        blocking(move || {
+            let from = WikiAddress::parse(&p.from)?;
+            let to = WikiAddress::parse(&p.to)?;
+            let to_abs = {
+                let store = st.store.read().unwrap();
+                store.rename(&p.from, &p.to)?;
+                store.registry().resolve(&to)?
+            };
+            let same_root = from.root == to.root;
+            if to_abs.is_dir() || !same_root {
+                reconcile_root_now(&st, &from.root)?;
+                if !same_root {
+                    reconcile_root_now(&st, &to.root)?;
+                }
+            } else {
+                let handle = { st.index.lock().unwrap().handle(&from.root) };
+                if let Some(h) = handle {
+                    h.writer().delete_document(&from.rest)?;
+                }
+                index_if_indexable(&st, &to, &to_abs)?;
             }
+            Ok(())
+        })
+        .await
+    }
+
+    /// Write a binary file from base64 bytes (`upload`). Stored + listable, never indexed
+    /// (binary is not part of the index set). `.mneme/` and traversal are rejected inside
+    /// `write_bytes` → `resolve` → `WikiAddress::parse`.
+    pub async fn upload(self: &Arc<Self>, p: UploadParams) -> Result<()> {
+        let st = Arc::clone(self);
+        blocking(move || {
+            let bytes = base64::engine::general_purpose::STANDARD
+                .decode(p.content_base64.as_bytes())
+                .map_err(|e| MnemeError::Internal(format!("invalid base64: {e}")))?;
+            st.store.read().unwrap().write_bytes(&p.path, &bytes)?;
             Ok(())
         })
         .await
@@ -260,7 +367,7 @@ impl ServerState {
             // Optional metadata pre-filter: when tags/dateRange are given, restrict the scan to
             // documents the index says match. These come from `.md` frontmatter, so non-`.md`
             // indexed files (a future `ext` capability) are excluded — same limitation as
-            // `wiki_search`. Without these filters there is no index round-trip.
+            // `search`. Without these filters there is no index round-trip.
             let allowed = if !p.tags.is_empty() || p.date_range.is_some() {
                 let (roots, subtree_prefix) = scope(&st, p.path.as_deref())?;
                 let filter = SearchFilter {
@@ -302,7 +409,7 @@ impl ServerState {
     pub async fn search(self: &Arc<Self>, p: SearchParams) -> Result<SearchResult> {
         let st = Arc::clone(self);
         blocking(move || {
-            let top_k = p.top_k.unwrap_or(10);
+            let top_k = p.top_k.unwrap_or(5);
             let (roots, subtree_prefix) = scope(&st, p.subtree.as_deref())?;
             let filter = SearchFilter {
                 subtree: non_empty(subtree_prefix),
@@ -367,7 +474,7 @@ impl ServerState {
             // Only note a degrade when the user asked for vector/hybrid but no model was available.
             let note = match (&p.mode, &query_vec) {
                 (SearchMode::Vector | SearchMode::Hybrid, None) => Some(
-                    "embedding model not provisioned (run wiki_model_update); \
+                    "embedding model not provisioned (run model_update); \
                      returned text-mode results"
                         .to_string(),
                 ),
@@ -381,7 +488,10 @@ impl ServerState {
     pub async fn tree(self: &Arc<Self>, p: TreeParams) -> Result<TreeResult> {
         let st = Arc::clone(self);
         blocking(move || {
-            let addrs = { st.store.read().unwrap().list(p.path.as_deref())? };
+            let (addrs, dirs) = {
+                let store = st.store.read().unwrap();
+                (store.list(p.path.as_deref())?, store.list_dirs(p.path.as_deref())?)
+            };
             // Cap on the absolute depth (slash count) to emit. `depth` is relative to the requested
             // `path`, so add the path's own depth as the base; `None` = unbounded (full subtree).
             // NOTE: we still list the whole subtree and filter here — fine for the local store; a
@@ -393,6 +503,11 @@ impl ServerState {
             });
             // BTreeMap iterates keys sorted → DFS pre-order (a dir sorts before its children).
             let mut nodes: BTreeMap<String, bool> = BTreeMap::new();
+            // Real directories first (incl. empty ones the file paths can't reveal), then files;
+            // a file's intermediate path segments only fill gaps a real dir didn't already cover.
+            for dir in &dirs {
+                nodes.insert(dir.clone(), true);
+            }
             for addr in &addrs {
                 let segs: Vec<&str> = addr.split('/').collect();
                 for i in 1..segs.len() {
@@ -526,7 +641,7 @@ impl ServerState {
                 index.add_root(cfg.clone(), &st.model)?;
                 // Index the freshly added root in the **background** and return immediately — a
                 // real wiki holds thousands of docs and a synchronous reconcile would outrun the
-                // MCP request timeout. Progress is observable via `wiki_status.roots[].reindex`.
+                // MCP request timeout. Progress is observable via `status.roots[].reindex`.
                 index.spawn_reconcile(&cfg.name);
             }
             persist_roots(&st)?;
@@ -777,7 +892,7 @@ impl ServerState {
 
         // Dispatch the download on a background thread and return immediately — a fresh model is
         // ~340 MB and a synchronous download would outrun the MCP request timeout. Progress is
-        // observable via `wiki_status.model.download`.
+        // observable via `status.model.download`.
         self.model_job.errored.store(false, Ordering::SeqCst);
         {
             let st = Arc::clone(self);
@@ -850,6 +965,38 @@ fn index_file(st: &Arc<ServerState>, wa: &WikiAddress, abs: &Path) -> Result<()>
     Ok(())
 }
 
+/// Index the just-written file only when it is part of the **index set** (matches the root's
+/// include allowlist). Non-indexable files (binary, non-md text) are stored + listable but never
+/// indexed, so the next reconcile — which walks the index set — won't drop a row this write
+/// created.
+fn index_if_indexable(st: &Arc<ServerState>, wa: &WikiAddress, abs: &Path) -> Result<()> {
+    let indexable = {
+        let store = st.store.read().unwrap();
+        match store.registry().get(&wa.root) {
+            Some(r) => crate::store::is_indexable(r, &wa.rest)?,
+            None => return Err(MnemeError::UnknownRoot(wa.root.clone())),
+        }
+    };
+    if indexable {
+        index_file(st, wa, abs)?;
+    }
+    Ok(())
+}
+
+/// Scoped synchronous reconcile of one root — run after a folder-level mutation (recursive delete,
+/// folder/cross-root rename) so the index follows the filesystem. The reconcile drops rows for
+/// files no longer present and indexes any new ones, so no per-prefix index surgery is needed. A
+/// missing root/handle is a no-op (nothing to reconcile).
+fn reconcile_root_now(st: &Arc<ServerState>, root: &str) -> Result<()> {
+    let cfg = { st.store.read().unwrap().registry().get(root).cloned() };
+    let handle = { st.index.lock().unwrap().handle(root) };
+    if let (Some(cfg), Some(handle)) = (cfg, handle) {
+        st.jobs
+            .reconcile_blocking(&handle, &cfg, &st.embed, CancellationToken::new(), |_| {})?;
+    }
+    Ok(())
+}
+
 /// Resolve a scope: `Some("{root}/sub")` → (that root, "sub"); `None` → (all roots, "").
 fn scope(st: &Arc<ServerState>, subtree: Option<&str>) -> Result<(Vec<String>, String)> {
     match subtree.filter(|s| !s.is_empty()) {
@@ -905,6 +1052,30 @@ fn is_text_addr(addr: &str) -> bool {
     ];
     let lower = addr.to_ascii_lowercase();
     TEXT.iter().any(|e| lower.ends_with(e))
+}
+
+/// Max image bytes inlined as a vision block in a tool result (Claude vision is ~5 MB/image).
+/// Larger images return a notice instead — they remain readable through the UI's `resources/read`.
+const MAX_INLINE_IMAGE_BYTES: usize = 5 * 1024 * 1024;
+
+/// Vision-supported image MIME for a path's extension, or `None`. `image/*` only — these are the
+/// types a Claude Code MCP client renders as a vision block from a tool result. SVG is omitted on
+/// purpose: it is UTF-8 text (handled by the text path) and not a vision MIME.
+fn image_mime(rel: &str) -> Option<&'static str> {
+    match rel.rsplit('.').next().map(str::to_ascii_lowercase).as_deref() {
+        Some("png") => Some("image/png"),
+        Some("jpg" | "jpeg") => Some("image/jpeg"),
+        Some("gif") => Some("image/gif"),
+        Some("webp") => Some("image/webp"),
+        _ => None,
+    }
+}
+
+/// True when bytes are not valid UTF-8 or contain a NUL — treat as binary. SVG/mermaid/HTML/JSON
+/// are valid UTF-8 and therefore stay on the `read` text path. Mirrors the store's
+/// `read_text_or_skip` heuristic (NUL byte) but is also strict about invalid UTF-8.
+fn looks_binary(bytes: &[u8]) -> bool {
+    bytes.contains(&0) || std::str::from_utf8(bytes).is_err()
 }
 
 /// Retain only the grep entries whose `{root}/{path}` address is in `allowed` (metadata filter).

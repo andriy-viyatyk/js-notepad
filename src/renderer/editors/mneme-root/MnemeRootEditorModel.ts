@@ -10,6 +10,27 @@ import { decodeMnemeFolderLink } from "../../content/mneme-folder-link";
 import { parseToolResult } from "../mneme-config/mnemeTypes";
 import { MnemeTreeProvider } from "../../content/tree-providers/MnemeTreeProvider";
 
+/** Search mode passed to `search`. Hybrid (FTS + vector) is the default; it
+ *  degrades to text until the embedding model is provisioned. */
+export type MnemeSearchMode = "text" | "vector" | "hybrid";
+
+/** One ranked `search` result. `uri` is a scheme-less `{root}/{path}` (e.g.
+ *  "TestWiki/work/docker.md"); the markdown renderer prepends `mneme://` to build the
+ *  document link. Results arrive already ranked — render in order. */
+export interface WikiSearchHit {
+    uri: string;
+    title: string;
+    tags: string[];
+    snippet: string;
+    score: number;
+}
+
+/** `search` structured result. `note` is set when vector/hybrid degraded to text. */
+export interface WikiSearchResult {
+    results: WikiSearchHit[];
+    note?: string;
+}
+
 export interface MnemeRootEditorState extends EditorStateBase {
     /** State-type discriminator. */
     type: "mnemeRootPage";
@@ -21,6 +42,36 @@ export interface MnemeRootEditorState extends EditorStateBase {
     resolving: boolean;
     /** Set when the root can't be resolved (not registered / not connected). */
     error?: string;
+
+    // --- Search (US-676) — all transient (skipSave); reset on restore. ---
+    /** Current query text. */
+    searchQuery: string;
+    /** Selected search mode (default "hybrid"). */
+    searchMode: MnemeSearchMode;
+    /** True while a `search` call is in flight. */
+    searching: boolean;
+    /** Last result set (already ranked; render in order). */
+    results: WikiSearchHit[];
+    /** Degraded-mode note from the tool (e.g. "semantic search unavailable"). */
+    searchNote?: string;
+    /** Set when a search call fails / the connection is down. */
+    searchError?: string;
+    /** False until the first search runs — distinguishes the initial hint from "no results". */
+    hasSearched: boolean;
+
+    // --- Filters (US-678) — all transient; folded into search on the next run. ---
+    /** Include tags — a result must carry all of these. */
+    filterTags: string[];
+    /** Exclude tags — a result must carry none of these. */
+    filterExcludeTags: string[];
+    /** Inclusive `created` lower bound, ISO `YYYY-MM-DD` or "" (unset). */
+    dateFrom: string;
+    /** Inclusive `created` upper bound, ISO `YYYY-MM-DD` or "" (unset). */
+    dateTo: string;
+    /** Tag vocabulary for this root (from `tags`) — feeds the tag pickers' autocomplete. */
+    tagVocab: string[];
+    /** Guards the one-shot lazy `tags` load (on first filter expand). */
+    tagVocabLoaded: boolean;
 }
 
 /** Folder name (basename) of a root folder path, or "Mneme" when empty. */
@@ -44,6 +95,17 @@ export const getDefaultMnemeRootEditorState = (): MnemeRootEditorState => ({
     rootFolder: "",
     rootName: "",
     resolving: false,
+    searchQuery: "",
+    searchMode: "hybrid",
+    searching: false,
+    results: [],
+    hasSearched: false,
+    filterTags: [],
+    filterExcludeTags: [],
+    dateFrom: "",
+    dateTo: "",
+    tagVocab: [],
+    tagVocabLoaded: false,
 });
 
 /**
@@ -130,7 +192,7 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
     }
 
     /** Resolve the root name by matching `rootFolder` against the sidecar's
-     *  registered roots (`wiki_list_roots`), then build the tree provider. */
+     *  registered roots (`list_roots`), then build the tree provider. */
     private async resolveRoot(): Promise<void> {
         const rootFolder = this.state.get().rootFolder;
         if (!rootFolder || this.state.get().rootName) return;
@@ -144,7 +206,7 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
         this.state.update((s) => { s.resolving = true; s.error = undefined; });
         try {
             const result = await client.callTool(
-                { name: "wiki_list_roots", arguments: {} },
+                { name: "list_roots", arguments: {} },
                 undefined,
                 { timeout: 10_000 },
             );
@@ -164,6 +226,117 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
             });
         } catch {
             this.state.update((s) => { s.resolving = false; s.error = "Failed to reach Mneme."; });
+        }
+    }
+
+    /** Update the query text (no auto-search — submit is explicit). */
+    setQuery(query: string): void {
+        this.state.update((s) => { s.searchQuery = query; });
+    }
+
+    /** Update the search mode; takes effect on the next `runSearch()`. */
+    setMode(mode: MnemeSearchMode): void {
+        this.state.update((s) => { s.searchMode = mode; });
+    }
+
+    /** Set the include-tags filter (applied on the next `runSearch()`). */
+    setFilterTags(tags: string[]): void {
+        this.state.update((s) => { s.filterTags = tags; });
+    }
+
+    /** Set the exclude-tags filter (applied on the next `runSearch()`). */
+    setExcludeTags(tags: string[]): void {
+        this.state.update((s) => { s.filterExcludeTags = tags; });
+    }
+
+    /** Set the inclusive `created` lower bound (ISO `YYYY-MM-DD`, or "" to clear). */
+    setDateFrom(date: string): void {
+        this.state.update((s) => { s.dateFrom = date; });
+    }
+
+    /** Set the inclusive `created` upper bound (ISO `YYYY-MM-DD`, or "" to clear). */
+    setDateTo(date: string): void {
+        this.state.update((s) => { s.dateTo = date; });
+    }
+
+    /** Clear all filters (tags + dates). Does not auto-search. */
+    clearFilters(): void {
+        this.state.update((s) => {
+            s.filterTags = [];
+            s.filterExcludeTags = [];
+            s.dateFrom = "";
+            s.dateTo = "";
+        });
+    }
+
+    /** Lazily load this root's tag vocabulary (`tags`) for the filter pickers'
+     *  autocomplete. One-shot; best-effort (a failed load leaves it retryable). */
+    async loadTagVocab(): Promise<void> {
+        const { rootName, tagVocabLoaded } = this.state.get();
+        if (tagVocabLoaded || !rootName) return;
+        const client = mnemeConnection.getClient();
+        if (!client) return;
+        try {
+            const result = await client.callTool(
+                { name: "tags", arguments: { subtree: rootName } },
+                undefined,
+                { timeout: 10_000 },
+            );
+            const data = parseToolResult<{ tags: { tag: string; count: number }[] }>(result);
+            const vocab = (data?.tags ?? []).map((t) => t.tag);
+            this.state.update((s) => { s.tagVocab = vocab; s.tagVocabLoaded = true; });
+        } catch {
+            // Best-effort: leave tagVocabLoaded false so a later expand can retry.
+        }
+    }
+
+    /** Run a `search` scoped to this root and store the ranked results. */
+    async runSearch(): Promise<void> {
+        const { searchQuery, searchMode, rootName, filterTags, filterExcludeTags, dateFrom, dateTo } =
+            this.state.get();
+        const query = searchQuery.trim();
+        if (!query || !rootName) return;
+
+        const client = mnemeConnection.getClient();
+        if (!client) {
+            this.state.update((s) => {
+                s.searching = false;
+                s.hasSearched = true;
+                s.results = [];
+                s.searchNote = undefined;
+                s.searchError = "Mneme is not connected.";
+            });
+            return;
+        }
+
+        // Build the payload, omitting empty filters so the tool gets a clean request.
+        const args: Record<string, unknown> = { query, mode: searchMode, subtree: rootName, topK: 20 };
+        if (filterTags.length) args.tags = filterTags;
+        if (filterExcludeTags.length) args.excludeTags = filterExcludeTags;
+        if (dateFrom || dateTo) args.dateRange = { from: dateFrom || null, to: dateTo || null };
+
+        this.state.update((s) => { s.searching = true; s.searchError = undefined; });
+        try {
+            const result = await client.callTool(
+                { name: "search", arguments: args },
+                undefined,
+                { timeout: 15_000 },
+            );
+            const data = parseToolResult<WikiSearchResult>(result);
+            this.state.update((s) => {
+                s.results = data?.results ?? [];
+                s.searchNote = data?.note;
+                s.hasSearched = true;
+            });
+        } catch {
+            this.state.update((s) => {
+                s.results = [];
+                s.searchNote = undefined;
+                s.searchError = "Search failed.";
+                s.hasSearched = true;
+            });
+        } finally {
+            this.state.update((s) => { s.searching = false; });
         }
     }
 
