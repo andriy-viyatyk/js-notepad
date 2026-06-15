@@ -183,20 +183,28 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | [US-659](../tasks/US-659-mneme-concurrency/README.md) | P2 · Concurrency & responsiveness (worker, WAL, reindex job) | Implemented (unreviewed) |
 | [US-666](../tasks/US-666-mneme-grep-filters-status-resource/README.md) | P1/2 gap · `wiki_grep` tags/dateRange/-n + `mneme://status` resource (+ FTS heading/title indexing, server identity, tool-description examples) | ✅ Done |
 | [US-660](../tasks/US-660-mneme-settings-sidecar/README.md) | P3 · Persephone settings + sidecar auto-launch | Implemented (unreviewed) |
-| [US-671](../tasks/US-671-mcp-connection-auto-reconnect/README.md) | Bug · MCP connection auto-reconnect (Mneme editor drops to "Disconnected" after ~5 min; SSE session drop + SDK gives up after 2 retries) | Planned (not started) |
+| [US-671](../tasks/US-671-mcp-connection-auto-reconnect/README.md) | Bug · MCP connection auto-reconnect (Mneme editor drops to "Disconnected" after ~5 min; SSE session drop + SDK gives up after 2 retries) | Implemented (unreviewed) |
 | [US-670](../tasks/US-670-mneme-resource-subscription-emit/README.md) | P4 prereq · *(Mneme, Rust)* resource-subscription emit (capability + subscribe/unsubscribe + watcher fan-out) — **blocks US-661** | Implemented (unreviewed) |
 | [US-661](../tasks/US-661-mcp-subscription-support/README.md) | P4 · `McpConnectionManager` subscription support (client wiring) — **needs US-670** | Implemented (unreviewed) |
 | [US-662](../tasks/US-662-mneme-provider/README.md) | P4 · `MnemeProvider` (read/write/edit + live-refresh) | Implemented (unreviewed) |
-| US-663 | P4 · `MnemeTreeProvider` + Explorer-like sidebar panel | Planned |
+| [US-673](../tasks/US-673-mneme-single-connection/README.md) | P4 · Bug · Mneme MCP client — single shared connection (fix `wiki_status` timeouts / yellow indicator) | Implemented (unreviewed) |
+| [US-663](../tasks/US-663-mneme-tree-provider/README.md) | P4 · `MnemeTreeProvider` + Explorer-like sidebar panel | Implemented (unreviewed) |
 | [US-685](../tasks/US-685-mneme-filesystem-navigability/README.md) | P4 · Decouple the wiki file set from the index set (file tools see the whole root; `include`/`ignore` are indexing-only) | Implemented (unreviewed) |
 | [US-686](../tasks/US-686-mneme-binary-tools/README.md) | P4 · `wiki_read` returns images as vision blocks (like `Read`) + `wiki_upload` | Implemented (unreviewed) |
 | [US-687](../tasks/US-687-mneme-relative-links/README.md) | P4 · Relative `mneme://` links in markdown open attachments in the Image viewer (+ `MnemeProvider.writeBinary` → `wiki_upload`) | Implemented (unreviewed) |
 | [US-683](../tasks/US-683-mneme-wiki-naming-generalization/README.md) | P4 · Rename `wiki_*` tools to bare names (`read`/`write`/…) + de-wiki wording | Implemented (unreviewed) |
 | [US-674](../tasks/US-674-mneme-tree-editing/README.md) | P4 · Mneme tree editing — create/rename/delete files & folders (new `mkdir`/`rename` tools, recursive `delete`, directory-aware `tree`) | Implemented (unreviewed) |
 | [US-675](../tasks/US-675-mneme-tree-file-drop/README.md) | P4 · Mneme tree — OS file drag-drop import via new `IFileLink` trait (descriptor+registry foundation, `getTraitDragDataFromEvent`, Monaco drop disabled, bubble open-as-tab fallback) | Implemented (unreviewed) |
-| [US-688](../tasks/US-688-mneme-tree-cross-root-dnd/README.md) | P4 · Mneme tree own drag-drop via `IMnemeLink` (intra-tree move + cross-root download→upload copy) — **follow-up to US-675** | Planned |
+| [US-676](../tasks/US-676-mneme-root-search-view/README.md) | P4 · Mneme root main view — search with displayed results | Implemented (unreviewed) |
+| [US-678](../tasks/US-678-mneme-search-filters/README.md) | P4 · Mneme search — tag & date filters (expandable filter toolbar) | Implemented (unreviewed) |
+| US-679 | P4 · Bug · `wiki_search` — sanitize FTS5 query (hyphens/operators) | Implemented (unreviewed) |
+| [US-680](../tasks/US-680-mneme-search-results-markdown/README.md) | P4 · Mneme search results — render as markdown via MarkdownBlock | Implemented (unreviewed) |
+| US-681 | P4 · `wiki_search` — lower default `topK` 10→5 + document `topK`/`subtree` | Implemented (unreviewed) |
+| [US-668](../tasks/US-668-mneme-root-config-tool/README.md) | P5 prereq · `root_config` MCP tool (live include/ignore) — **blocks US-664** | Implemented (unreviewed) |
 | [US-664](../tasks/US-664-mneme-config-editor/README.md) | P5 · Mneme config & monitoring editor (+ header indicator) — **needs US-668** | Implemented (unreviewed) |
-| [US-669](../tasks/US-669-mneme-async-add-root-indexing/README.md) | P5 · Mneme async long-running ops + live progress (add-root, model download, log file) | Planned (design locked) |
+| [US-677](../tasks/US-677-mneme-config-redesign/README.md) | P5 · Mneme config editor — single-page redesign + toolbar cleanup | Implemented (unreviewed) |
+| [US-669](../tasks/US-669-mneme-async-add-root-indexing/README.md) | P5 · Mneme async long-running ops + live progress (add-root, model download, log file) | Implemented (unreviewed) |
+| [US-688](../tasks/US-688-mneme-tree-cross-root-dnd/README.md) | P4 · Mneme tree own drag-drop (intra-root move + cross-root / cross-window copy) — **follow-up to US-675** | Implemented (unreviewed) |
 | US-665 | P6 · Installer + first release | Planned |
 
 ## Notes

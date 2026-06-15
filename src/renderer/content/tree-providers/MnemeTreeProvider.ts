@@ -9,6 +9,8 @@ import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import { mnemeConnection } from "../../api/mneme-connection";
 import { parseToolResult } from "../../editors/mneme-config/mnemeTypes";
 import { fpExtname } from "../../core/utils/file-path";
+import { TraitTypeId } from "../../core/traits";
+import "./mnemeLinkTraits"; // side-effect: registers the MnemeLink TraitSet (LINK + IFileLink)
 
 /** One `tree` entry (flat depth-first node). `depth` is the absolute
  *  slash count of the address; `uri` is `mneme://{root}/{path}`. */
@@ -45,6 +47,9 @@ export class MnemeTreeProvider implements ITreeProvider {
 
     readonly navigable = false;
     readonly writable = true;
+    // Drag as MnemeLink (LINK + IFileLink) so a dragged node can move within the root and
+    // copy across roots / windows. See mnemeLinkTraits.ts.
+    readonly dragTraitTypeId = TraitTypeId.MnemeLink;
     readonly hasTags = false;
     readonly hasHostnames = false;
     readonly pinnable = false;

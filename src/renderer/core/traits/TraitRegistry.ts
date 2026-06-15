@@ -20,6 +20,8 @@ export enum TraitTypeId {
     PinnedEditor = "PinnedEditor",
     // OS files dropped from the desktop (synthesized in the capture-phase drop handler).
     OsFile = "OsFile",
+    // Mneme tree node — carries LINK (same-root move) + IFileLink (cross-root/cross-window copy).
+    MnemeLink = "MnemeLink",
 }
 
 /**

@@ -178,19 +178,26 @@ export function TreeProviderView(
 
     const onTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
         const traits = resolveTraits(payload.typeId);
-        // Dispatch by trait — one handler per trait, no origin check.
+        // Dispatch by trait + source — no "what kind of object" check.
+        const linkTrait = traits?.get(LINK);
+        const items = linkTrait?.getItems(payload.data) ?? [];
+        // 1. Same source → move (intra-provider rename). Same root, even across windows.
+        if (linkTrait && items.length
+            && linkTrait.getSourceId?.(payload.data) === props.provider.sourceUrl) {
+            model.moveItems(items, dropNode);
+            return;
+        }
+        // 2. File trait → import/copy (OS file, cross-root Mneme node, future http link).
         const fileLink = traits?.get(FILE_LINK);
         if (fileLink) {
             void model.importFiles(fileLink.getFiles(payload.data), dropNode);
             return;
         }
-        const linkTrait = traits?.get(LINK);
-        if (!linkTrait) return;
-        const items = linkTrait.getItems(payload.data);
-        if (items.length) {
+        // 3. Fallback: cross-source link without file content (other providers, unchanged).
+        if (linkTrait && items.length) {
             model.moveItems(items, dropNode);
         }
-    }, [model]);
+    }, [model, props.provider]);
 
     // Tree's onExpandChange emits string|number; our values are always strings (hrefs).
     const handleExpandChange = useCallback(
@@ -317,7 +324,7 @@ export function TreeProviderView(
                 defaultExpandAll={isDeepSearch}
                 onExpandChange={handleExpandChange}
                 getHasChildren={getHasChildren}
-                traitTypeId={writable ? TraitTypeId.ILink : undefined}
+                traitTypeId={writable ? ((props.provider.dragTraitTypeId as TraitTypeId) ?? TraitTypeId.ILink) : undefined}
                 getDragData={writable ? getDragData : undefined}
                 acceptsDrop={writable}
                 acceptsFileDrop={writable && !!props.provider.importFiles}

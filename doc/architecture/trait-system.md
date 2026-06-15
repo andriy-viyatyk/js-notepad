@@ -130,7 +130,7 @@ Registration happens once, at module load time, in the file that defines the tra
 traitRegistry.register(TraitTypeId.ILink, linkTraits);
 ```
 
-> **Currently only ILink is registered.** The remaining `TraitTypeId` values (`TodoItem`, `Note`, etc.) are used as type discriminators but their TraitSets are not registered yet. Cross-type drops exist only for ILink (e.g., dropping links into the Notes category tree).
+> **Registered TraitSets:** `ILink` (the `LINK` trait), `OsFile` (the `FILE_LINK` trait), and `MnemeLink` (both `LINK` *and* `FILE_LINK`). The remaining `TraitTypeId` values (`TodoItem`, `Note`, etc.) are type discriminators only — their TraitSets are not registered. Cross-type drops include dropping links into the Notes category tree, and dropping **OS files or Mneme nodes into the Mneme tree** via the `FILE_LINK` trait (see "File content drops" below).
 
 ---
 
@@ -389,6 +389,33 @@ const handleDragEnd = useCallback(() => {
 
 The `Tree` internally uses the same native HTML5 handlers (`onDragStart`, `onDragEnter`, etc.) with `dragEnterCount` for visual feedback. Return `null` from `getDragData` to prevent dragging a specific node.
 
+A drag source can choose its **trait-type id** instead of defaulting to `ILink`. `TreeProviderView` passes `provider.dragTraitTypeId ?? TraitTypeId.ILink`, so a provider whose nodes carry extra capabilities drags under its own registered TraitSet — e.g. `MnemeTreeProvider` returns `MnemeLink`, whose set implements `LINK` *and* `FILE_LINK`.
+
+---
+
+## Pattern: File Content Drops (`FILE_LINK`)
+
+The `FILE_LINK` trait (`core/traits/fileLinkTraits.ts`) marks an object that can **yield file content**:
+
+```typescript
+interface IFileLink { name: string; filePath?: string; getBytes(): Promise<Uint8Array>; }
+interface FileLinkTrait { getFiles(data: unknown): IFileLink[]; }
+export const FILE_LINK = new TraitKey<FileLinkTrait>("FileLink");
+```
+
+A drop target that accepts file content dispatches **purely by trait + source** — it never checks "what kind of object is this":
+
+1. `LINK` present **and** `getSourceId(data) === provider.sourceUrl` → **move** (intra-provider rename) — same store, even across windows.
+2. else `FILE_LINK` present → **import/copy** (`getBytes()` → store the bytes).
+3. else `LINK` present → existing cross-source link handling.
+
+Because dispatch keys on the trait, any `FILE_LINK` producer becomes droppable with **zero target changes**:
+
+- **`OsFile`** — OS desktop files; `FILE_LINK` only; `getBytes` reads from disk.
+- **`MnemeLink`** — a Mneme tree node; `LINK` (so a same-root drop moves) **+** `FILE_LINK` (so a drop into a *different* Mneme root — or another window — copies the document via download → upload; `getBytes` reads the source over MCP through the shared connection).
+
+The `LINK`/`FILE_LINK` split keeps each trait single-purpose: identity lives in `LINK`, content in `FILE_LINK`. A future `http://` link could add a `FILE_LINK` impl (where `getBytes` fetches the URL) and instantly become droppable into the Mneme tree.
+
 ---
 
 ## Current Registration Map
@@ -406,6 +433,8 @@ The `Tree` internally uses the same native HTML5 handlers (`onDragStart`, `onDra
 | `GridColumn` | `HeaderCell` | `HeaderCell` (reorder) | No |
 | `MenuFolder` | `FolderItem` (sidebar) | `FolderItem` (reorder) | No |
 | `PinnedEditor` | `ToolsEditorsPanel` | `ToolsEditorsPanel` (reorder) | No |
+| `OsFile` | OS desktop file drag (synthesized in the capture-phase drop handler) | `TreeProviderView` (Mneme tree import) | Yes — `FILE_LINK` trait |
+| `MnemeLink` | `TreeProviderView` (Mneme tree) | `TreeProviderView` (Mneme tree) | Yes — `LINK` + `FILE_LINK` traits |
 
 ---
 

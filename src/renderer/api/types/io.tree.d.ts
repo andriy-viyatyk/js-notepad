@@ -46,6 +46,11 @@ export interface ITreeProvider {
     /** Whether this tree supports write operations. */
     readonly writable: boolean;
 
+    /** Trait type id used when DRAGGING a node from this provider's tree. Defaults to
+     *  `"ILink"` (LINK-only). A provider returns its own id to attach extra traits — e.g.
+     *  Mneme returns `"MnemeLink"` so its drag also carries `IFileLink` (cross-root copy). */
+    readonly dragTraitTypeId?: string;
+
     /** Create a directory at the given path. */
     mkdir?(path: string): Promise<void>;
     /** Rename or move a file/directory. */
