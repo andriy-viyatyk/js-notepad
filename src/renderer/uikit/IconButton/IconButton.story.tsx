@@ -35,6 +35,7 @@ export const iconButtonStory: Story = {
         { name: "variant", type: "enum", options: ["default", "chip"], default: "default" },
         { name: "title", type: "string", default: "" },
         { name: "active", type: "boolean", default: false },
+        { name: "warning", type: "boolean", default: false },
         { name: "disabled", type: "boolean", default: false },
         { name: "strikethrough", type: "boolean", default: false, label: "Strikethrough (diagonal line over icon)" },
         { name: "hideUntilParentHover", type: "boolean", default: false, label: "Hide until parent hover (wraps in a hover-reveal Panel)" },

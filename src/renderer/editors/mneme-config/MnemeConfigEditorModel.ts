@@ -24,11 +24,8 @@ import {
     isStatusBusy,
 } from "./mnemeTypes";
 
-export type MnemeConfigTab = "roots" | "index" | "model";
-
 export interface MnemeConfigEditorState extends EditorStateBase {
     type: "mnemeConfigPage";
-    tab: MnemeConfigTab;
     /** Live MCP connection state to the Mneme sidecar. */
     connectionStatus: McpConnectionStatus;
     errorMessage: string;
@@ -54,7 +51,6 @@ export const getDefaultMnemeConfigEditorState = (): MnemeConfigEditorState => ({
     modified: false,
     type: "mnemeConfigPage",
     editor: "mneme-config",
-    tab: "roots",
     connectionStatus: "disconnected",
     errorMessage: "",
     running: false,
@@ -124,11 +120,6 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             });
         }
     }
-
-    setTab = (tab: MnemeConfigTab): void => {
-        this.state.update((s) => { s.tab = tab; });
-        if (tab === "index") void this.loadIndexInventory();
-    };
 
     private async initConnection(): Promise<void> {
         try {

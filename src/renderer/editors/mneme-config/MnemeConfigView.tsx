@@ -4,26 +4,14 @@ import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
 import { IconButton } from "../../uikit/IconButton";
 import { Dot, DotColor } from "../../uikit/Dot";
-import { Divider } from "../../uikit/Divider";
-import { SegmentedControl, ISegment } from "../../uikit/SegmentedControl";
 import { EditorToolbar } from "../base/EditorToolbar";
 import { RefreshIcon } from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import type { EditorModel } from "../base";
-import {
-    MnemeConfigEditorModel,
-    MnemeConfigTab,
-} from "./MnemeConfigEditorModel";
+import { MnemeConfigEditorModel } from "./MnemeConfigEditorModel";
 import { isModelReady } from "./mnemeTypes";
 import { RootsPanel } from "./RootsPanel";
-import { IndexPanel } from "./IndexPanel";
 import { ModelPanel } from "./ModelPanel";
-
-const TAB_ITEMS: ISegment[] = [
-    { value: "roots", label: "Roots" },
-    { value: "index", label: "Index" },
-    { value: "model", label: "Model" },
-];
 
 function connectionDotColor(status: string): DotColor {
     switch (status) {
@@ -42,12 +30,11 @@ function MnemeConfigView({ model }: MnemeConfigViewProps) {
     const s = model.state.use();
     const connected = s.connectionStatus === "connected";
     const modelReady = isModelReady(s.status);
-    const modelStatus = s.status?.model;
 
     useEffect(() => {
-        if (s.tab === "index" && connected) void model.loadIndexInventory();
+        if (connected) void model.loadIndexInventory();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [s.tab, connected]);
+    }, [connected]);
 
     if (!s.running) {
         return (
@@ -84,48 +71,18 @@ function MnemeConfigView({ model }: MnemeConfigViewProps) {
                     <Text size="md" color="default">
                         {connected ? "Connected" : s.connectionStatus === "connecting" ? "Connecting…" : "Disconnected"}
                     </Text>
+                    {!connected && (
+                        <IconButton
+                            name="mneme-restart"
+                            size="sm"
+                            warning
+                            icon={<RefreshIcon />}
+                            title="Restart Mneme"
+                            onClick={() => model.restartMneme()}
+                        />
+                    )}
                     {s.url && <Text size="md" color="light">{s.url}</Text>}
                     <Panel flex={1} />
-                    {modelStatus && (
-                        <>
-                            <Text size="md" color="light">
-                                {modelStatus.name} · {modelStatus.precision} · {modelReady ? "ready" : "not loaded"}
-                            </Text>
-                            <Divider orientation="vertical" />
-                        </>
-                    )}
-                    <IconButton
-                        name="mneme-refresh"
-                        size="sm"
-                        icon={<RefreshIcon />}
-                        title="Refresh status"
-                        onClick={() => model.refreshStatus()}
-                    />
-                    <Button
-                        name="mneme-reindex-all"
-                        size="sm"
-                        variant="default"
-                        disabled={!connected || !!s.reindexProgress["__all__"]}
-                        onClick={() => model.reindex()}
-                    >
-                        Reindex all
-                    </Button>
-                    <Button
-                        name="mneme-restart"
-                        size="sm"
-                        variant="default"
-                        onClick={() => model.restartMneme()}
-                    >
-                        Restart Mneme
-                    </Button>
-                    <Divider orientation="vertical" />
-                    <SegmentedControl
-                        name="mneme-tab-switch"
-                        items={TAB_ITEMS}
-                        value={s.tab}
-                        onChange={(v) => model.setTab(v as MnemeConfigTab)}
-                        size="sm"
-                    />
                 </Panel>
             </EditorToolbar>
 
@@ -147,11 +104,10 @@ function MnemeConfigView({ model }: MnemeConfigViewProps) {
                 </Panel>
             )}
 
-            {/* Body */}
+            {/* Body — single scrollable page: Model section on top, Roots below. */}
             <Panel name="mneme-body" direction="column" flex={1} overflow="auto" height={0}>
-                {s.tab === "roots" && <RootsPanel model={model} />}
-                {s.tab === "index" && <IndexPanel model={model} />}
-                {s.tab === "model" && <ModelPanel model={model} />}
+                <ModelPanel model={model} />
+                <RootsPanel model={model} />
             </Panel>
         </Panel>
     );

@@ -18,8 +18,16 @@ export function ModelPanel({ model }: ModelPanelProps) {
     const downloading = isDownloadActive(download);
 
     return (
-        <Panel direction="column" gap="md" padding="lg">
-            <Panel direction="row" align="center" gap="md">
+        <Panel direction="column">
+            <Panel
+                background="dark"
+                borderBottom
+                direction="row"
+                align="center"
+                gap="sm"
+                paddingX="lg"
+                paddingY="sm"
+            >
                 <Text size="base" bold>Embedding model</Text>
                 <Panel flex={1} />
                 <Button
@@ -33,7 +41,8 @@ export function ModelPanel({ model }: ModelPanelProps) {
                 </Button>
             </Panel>
 
-            {download && (downloading || download.phase === "error") && (
+            <Panel direction="column" gap="md" padding="lg">
+                {download && (downloading || download.phase === "error") && (
                 <Panel direction="column" gap="xs">
                     <Panel direction="row" align="center" gap="sm">
                         <Panel flex={1}>
@@ -88,6 +97,7 @@ export function ModelPanel({ model }: ModelPanelProps) {
                     </Panel>
                 </Panel>
             )}
+            </Panel>
         </Panel>
     );
 }

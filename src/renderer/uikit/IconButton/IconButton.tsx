@@ -36,6 +36,13 @@ export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBut
      */
     active?: boolean;
     /**
+     * Warning/attention state. When true, the icon is tinted with `color.warning.text` and that
+     * color overrides the hover/press feedback. Overrides `active` when both are set. Use for
+     * recovery/restart affordances that should draw attention (e.g. a "Restart" control shown
+     * only while disconnected).
+     */
+    warning?: boolean;
+    /**
      * Sets `data-visibility="parent-hover"` so an ancestor `Panel` with
      * `revealChildrenOnHover` keeps this button hidden until the panel is hovered or contains
      * keyboard focus. Outside such a panel the prop has no effect.
@@ -113,6 +120,12 @@ const Root = styled.button(
             color: color.icon.active,
         },
 
+        // Placed after [data-active] so warning wins on rule order; the component
+        // also suppresses data-active when warning is set as a belt-and-braces override.
+        "&[data-warning]": {
+            color: color.warning.text,
+        },
+
         // Chip variant — bordered + backgrounded toggle chip.
         '&[data-variant="chip"]': {
             border: `1px solid ${color.border.default}`,
@@ -139,7 +152,7 @@ const Root = styled.button(
 // --- Component ---
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-    function IconButton({ name, icon, size = "md", variant = "default", active, disabled, title, hideUntilParentHover, strikethrough, ...rest }, ref) {
+    function IconButton({ name, icon, size = "md", variant = "default", active, warning, disabled, title, hideUntilParentHover, strikethrough, ...rest }, ref) {
         const button = (
             <Root
                 ref={ref}
@@ -147,7 +160,8 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
                 data-name={name}
                 data-size={size}
                 data-variant={variant}
-                data-active={active || undefined}
+                data-active={(active && !warning) || undefined}
+                data-warning={warning || undefined}
                 data-disabled={disabled || undefined}
                 data-strikethrough={strikethrough || undefined}
                 data-visibility={hideUntilParentHover ? "parent-hover" : undefined}

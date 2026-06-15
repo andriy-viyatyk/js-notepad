@@ -17,4 +17,4 @@ export const mnemeConfigModule: EditorModule = {
 };
 
 export { MnemeConfigEditorModel, getDefaultMnemeConfigEditorState } from "./MnemeConfigEditorModel";
-export type { MnemeConfigEditorState, MnemeConfigTab } from "./MnemeConfigEditorModel";
+export type { MnemeConfigEditorState } from "./MnemeConfigEditorModel";

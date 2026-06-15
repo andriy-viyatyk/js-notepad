@@ -4,6 +4,7 @@ import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
 import { Input } from "../../uikit/Input";
 import { Tag } from "../../uikit/Tag";
+import { Dot } from "../../uikit/Dot";
 import { ProgressBar } from "../../uikit/ProgressBar";
 import { Divider } from "../../uikit/Divider";
 import { MnemeConfigEditorModel } from "./MnemeConfigEditorModel";
@@ -16,24 +17,44 @@ interface RootsPanelProps {
 export function RootsPanel({ model }: RootsPanelProps) {
     const s = model.state.use();
     const roots = s.status?.roots ?? [];
+    const connected = s.connectionStatus === "connected";
 
     return (
-        <Panel direction="column" gap="sm" padding="lg">
-            <Panel direction="row" align="center">
+        <Panel direction="column">
+            <Panel
+                background="dark"
+                borderBottom
+                direction="row"
+                align="center"
+                gap="sm"
+                paddingX="lg"
+                paddingY="sm"
+            >
                 <Text size="base" bold>Roots</Text>
                 <Panel flex={1} />
                 <Button name="mneme-add-root" size="sm" variant="default" onClick={() => model.addRoot()}>
                     + Add root
                 </Button>
+                <Button
+                    name="mneme-reindex-all"
+                    size="sm"
+                    variant="default"
+                    disabled={!connected || !!s.reindexProgress["__all__"]}
+                    onClick={() => model.reindex()}
+                >
+                    Reindex all
+                </Button>
             </Panel>
 
-            {roots.length === 0 && (
-                <Text size="md" color="light">No roots configured. Add one to start indexing.</Text>
-            )}
+            <Panel direction="column" gap="sm" padding="lg">
+                {roots.length === 0 && (
+                    <Text size="md" color="light">No roots configured. Add one to start indexing.</Text>
+                )}
 
-            {roots.map((root) => (
-                <RootRow key={root.name} model={model} root={root} />
-            ))}
+                {roots.map((root) => (
+                    <RootRow key={root.name} model={model} root={root} />
+                ))}
+            </Panel>
         </Panel>
     );
 }
@@ -56,6 +77,9 @@ function RootRow({ model, root }: RootRowProps) {
     const reindexing = !!manual; // only the manual reindex is cancellable
     const busy = reindexing || bgActive;
     const errored = !manual && bg?.phase === "error";
+    // Extra index DBs left on disk from a previous model/schema (rare — after a
+    // model change). The active one is shown inline above; offer Delete for the rest.
+    const staleEntries = (s.staleIndexes[root.name] ?? []).filter((e) => !e.active);
 
     const toggleFilters = () => {
         const next = !expanded;
@@ -77,6 +101,8 @@ function RootRow({ model, root }: RootRowProps) {
                 <Text size="xs" color="light">
                     index: {root.model}-{root.precision} · v{root.schemaVer}
                 </Text>
+                <Dot size="xs" color="success" />
+                <Text size="xs" color="success">active</Text>
                 <Panel flex={1} />
                 <Button name={`mneme-filters-${root.name}`} size="sm" variant="link" onClick={toggleFilters}>
                     {expanded ? "Hide filters" : "Filters"}
@@ -131,6 +157,28 @@ function RootRow({ model, root }: RootRowProps) {
                 <Text size="xs" color="error">
                     Background indexing failed — check the Mneme log; try Reindex.
                 </Text>
+            )}
+
+            {staleEntries.length > 0 && (
+                <Panel direction="column" gap="xs" paddingTop="xs">
+                    {staleEntries.map((e) => (
+                        <Panel key={e.path} direction="row" align="center" gap="sm">
+                            <Text size="xs" color="light">
+                                stale: {e.modelId} / v{e.schemaVer}
+                            </Text>
+                            <Text size="xs" color="light">{formatBytes(e.bytes)}</Text>
+                            <Panel flex={1} />
+                            <Button
+                                name={`mneme-delidx-${root.name}-${e.modelId}-${e.schemaVer}`}
+                                size="sm"
+                                variant="danger"
+                                onClick={() => model.deleteIndex(root.name, e.modelId, e.schemaVer)}
+                            >
+                                Delete
+                            </Button>
+                        </Panel>
+                    ))}
+                </Panel>
             )}
 
             {expanded && <FiltersEditor model={model} root={root.name} />}
