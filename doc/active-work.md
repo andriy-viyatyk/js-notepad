@@ -9,6 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 ## Planned
+- **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(🗣 in discussion — design phase; no tasks planned)*
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
   - [ ] US-436: Script UI API — expose new component library to scripting engine
   - [ ] US-435: Storybook — script tab for building and testing UI via scripts
