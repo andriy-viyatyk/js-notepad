@@ -6,13 +6,19 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 4.0.4 (Upcoming)
+## Version 4.0.5 (Upcoming)
+
+*No changes yet.*
+
+---
+
+## Version 4.0.4
 
 ### New Features
 
 - **Mneme — built-in knowledge base (off by default)** — Persephone now ships with **Mneme**, an optional local knowledge base. Point it at one or more folders of Markdown documents and it indexes them for fast **full-text** and **semantic** (meaning-based) search. Enable it in **Settings → Mneme (vector memory)** with **Enable Mneme** — Persephone launches the `mneme.exe` service in the background and connects over loopback HTTP (default port `7700`; a Running/Stopped status, server URL, and Copy URL appear below the toggle). When disabled (the default), nothing runs.
 
-  - **Config & monitoring editor** — open from the **Tools & Editors** panel → **Mneme**. Add/remove indexed roots, set per-root include/ignore patterns, reindex with live progress, and download the embedding model that powers semantic search. Toolbar buttons restart the service, open it in the MCP Inspector, and open its log.
+  - **Config & monitoring editor** — open from the **Tools & Editors** panel → **Mneme**. Add/remove indexed roots, set per-root include/ignore patterns, reindex with live progress, and download the embedding model that powers semantic search. Toolbar buttons restart the service, open it in the MCP Inspector, and open its log. On first run, if Mneme is enabled but no embedding model is present yet, this editor opens automatically (once per session); its model panel shows a yellow **"Model not loaded — semantic search unavailable"** note and a highlighted **Load model** button until you download it.
   - **Search & browse** — any indexed folder shows a **`.mneme`** entry in the **File Explorer** (mirroring `.git`); click it to open the Mneme root editor. Search in **Text**, **Vector**, or **Hybrid** mode (hybrid is the default), narrow results with **tag** and **creation-date** filters, and read ranked results rendered as Markdown. An Explorer-like sidebar tree lets you open, create, rename, delete, and drag-drop documents — including importing files from Windows Explorer and moving/copying between roots.
   - **AI agent integration** — Mneme exposes a single MCP interface, so agents (Claude Desktop, Claude Code, and others) can read, search, and maintain the same knowledge base. The Settings page shows a ready-to-paste server entry. Everything runs locally; enabling semantic search downloads an embedding model once, after which no document data leaves your machine.
 
@@ -30,8 +36,6 @@ Release notes and changelog for Persephone (formerly js-notepad).
   The capture is WYSIWYG — it takes exactly what is shown on screen at the current window size, including any JavaScript-rendered content. Resize the window before capturing to control the output dimensions. This makes the HTML Preview a convenient mockup tool: build a layout in HTML, resize the window to the target size, then copy the result.
 
 ### UI Polish
-
-- **Mneme — first-run model prompt** — When Mneme is enabled but no embedding model has been downloaded yet, Persephone now automatically opens the Mneme config editor shortly after start so you can set it up. This happens once per session. Once the model is provisioned, it no longer auto-opens. In addition, the model panel header now shows a yellow **"Model not loaded — semantic search unavailable"** warning and the button reads **Load model** (highlighted) instead of **Update model** when no model is present — making it clear what action is needed and why.
 
 - **Markdown Preview — YAML frontmatter rendered as highlighted code** — When a Markdown file begins with a YAML frontmatter block (`---` … `---` or `---` … `...`), the preview now renders it as a syntax-highlighted `yaml` code block instead of broken text or stray horizontal rules. The source file is never modified — this is a preview-only transform. Documents that do not start with frontmatter are unaffected.
 
