@@ -15,6 +15,7 @@ import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity,
 export enum Endpoint {
     getAppRootPath = "getAppRootPath",
     getAssetsPath = "getAssetsPath",
+    getDataFolder = "getDataFolder",
     maximizeWindow = "maximizeWindow",
     minimizeWindow = "minimizeWindow",
     restoreWindow = "restoreWindow",
@@ -111,6 +112,7 @@ export interface MnemeStatus {
 export type Api = {
     [Endpoint.getAppRootPath]: () => Promise<string>;
     [Endpoint.getAssetsPath]: (fileName: string) => Promise<string>;
+    [Endpoint.getDataFolder]: () => Promise<string>;
     [Endpoint.maximizeWindow]: () => Promise<void>;
     [Endpoint.minimizeWindow]: () => Promise<void>;
     [Endpoint.restoreWindow]: () => Promise<void>;

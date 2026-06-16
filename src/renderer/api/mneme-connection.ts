@@ -135,6 +135,14 @@ class MnemeConnectionService {
         for (const cb of [...set]) cb("change");
     }
 
+    /** Re-fire every document watcher (used on (re)connect so content that
+     *  couldn't load before the connection was up re-reads now). */
+    private refreshAllWatchers(): void {
+        for (const set of this.watchers.values()) {
+            for (const cb of [...set]) cb("change");
+        }
+    }
+
     private ensureManager(): McpConnectionManager {
         if (this.manager) return this.manager;
         const manager = new McpConnectionManager();
@@ -143,6 +151,11 @@ class MnemeConnectionService {
             for (const cb of [...this.listChangedWatchers]) cb();
         };
         manager.onStatusChange = (status, error) => {
+            // On (re)connect, re-fire every document watcher so editors that
+            // restored before the connection was up (app start / cross-window
+            // drag) re-read their content now. Watchers no-op when the document
+            // is unchanged or has unsaved local edits.
+            if (status === "connected") this.refreshAllWatchers();
             for (const cb of [...this.statusWatchers]) cb(status, error);
         };
         this.manager = manager;

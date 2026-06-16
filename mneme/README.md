@@ -12,8 +12,8 @@ Azure container build context.
 > **Status:** Phase 1 — config + Document Store (US-652), the markdown layer (frontmatter +
 > heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`), the
 > indexer + always-on file watcher that keep the index in sync with the files (US-654), and the
-> MCP server over Streamable HTTP exposing the `wiki_*` tool surface (US-655). Phase 2 — the
-> model provisioner (US-656), the **embedding engine** (US-657, ONNX Runtime + DirectML→CPU),
+> MCP server over Streamable HTTP exposing the file-like tool surface (US-655). Phase 2 — the
+> model provisioner (US-656), the **embedding engine** (US-657, ONNX Runtime, CPU),
 > and **hybrid search** (US-658): chunks are embedded into `chunks_vec`, and `search` now
 > serves real `vector` (KNN) and `hybrid` (FTS + KNN fused with Reciprocal Rank Fusion) modes
 > alongside `text`. FTS still works with no model present; vector/hybrid degrade to text (with a
@@ -68,7 +68,7 @@ line-number toggle); `search` (`mode` `text` | `vector` | `hybrid`, default `hyb
 degrade to text with a note when no model is provisioned); views `tree` (lists directories incl.
 empty ones)/`timeline`/`tags`;
 management `add_root`/
-`remove_root`/`list_roots`/`reindex`/`status`/`index_delete`/
+`remove_root` (also deletes the root's `.mneme` index folder)/`list_roots`/`reindex`/`status`/`index_delete`/
 `model_update` (downloads/verifies the configured model — synchronous, may take minutes on
 first run). Resources: documents/attachments at `mneme://{root}/{path}` (text or base64 blob), the
 agent guide at `mneme://guide`, and a JSON `status` snapshot at `mneme://status`. Resource
@@ -79,7 +79,7 @@ disk; add/remove/rename emit `notifications/resources/list_changed`.
 ## Model provisioning (US-656)
 
 FTS-based `search` works with no model on disk. Downloading the embedding model enables
-vector/hybrid search (US-657/658 — not yet wired). To download and verify the default model:
+vector/hybrid search (US-657/658). To download and verify the default model:
 
 ```bash
 mneme model-update          # download gte-multilingual-base-int8 to the default cache
@@ -112,17 +112,11 @@ vector via ONNX Runtime (`ort`) + HuggingFace `tokenizers`. `gte-multilingual-ba
 encoder: the sentence embedding is the **CLS** token of the last hidden state, L2-normalized, with
 **no** instruction prefix (unlike the E5/Qwen families).
 
-Execution provider is chosen from the top-level `gpu` setting:
-
-| `gpu` | Providers (in order) |
-|-------|----------------------|
-| `auto` (default) | DirectML, then CPU fallback |
-| `on`  | DirectML, then CPU fallback |
-| `off` | CPU only |
-
-DirectML runs on any DX12 GPU with no CUDA install; CPU is always available as the guaranteed
-fallback, so session creation never hard-fails on a machine without a GPU. Switching GPU↔CPU is a
-runtime toggle — it does **not** trigger a reindex (only a model/precision change does).
+Inference runs on the **CPU** execution provider — there is no GPU setting. A DirectML/GPU path
+was implemented and benchmarked (US-694), but for this small int8 model with dynamically-shaped
+per-document batches, DirectML repeatedly recompiled kernels per input shape (stalling with the GPU
+idle) and came out **slower** than CPU, which already runs int8 inference fast. It was removed —
+simpler, and the install carries no DirectML dependency.
 
 ```bash
 mneme embed "how do I cancel my subscription" --query   # → provider, dims=768, L2-norm≈1, sample
@@ -196,7 +190,7 @@ edit prompt while a bulk reindex runs. Three pieces cooperate:
 src/
 ├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update / embed / search
 ├─ config.rs      Config + figment load (file + env + flags) + save (root add/remove)
-├─ embed/         Embedding engine (US-657) — ort session + tokenizer, DirectML→CPU
+├─ embed/         Embedding engine (US-657) — ort session + tokenizer, CPU
 │  ├─ mod.rs      Embedder trait, OnnxEmbedder (load/encode/CLS-pool/L2-normalize), EP selection,
 │  │              LazyEmbedder (shared build-once cell for the index + search paths)
 │  └─ worker.rs   EmbedWorker thread + EmbedHandle — priority queue (interactive > bulk), US-659

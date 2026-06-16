@@ -4,6 +4,55 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-032 — [Mneme — Wiki / Vector Memory service](EPIC-032.md)
+
+Built **Mneme**, a standalone Rust knowledge-base service that turns any folder of Markdown into a locally-indexed, searchable **vector memory** (SQLite FTS5 + `sqlite-vec`, on-device int8 ONNX embedding via `ort`), exposing hybrid full-text + semantic search and file-like read/write/edit/glob/grep tools over MCP. Integrated into Persephone end-to-end: a single shared auto-reconnecting MCP client with resource-subscription live-refresh, a `MnemeProvider` (read/write/edit), an Explorer-like tree sidebar with create/rename/delete + OS and cross-root drag-drop, a root search view (markdown-rendered results, tag/date filters), a config & monitoring editor (roots, include/ignore, reindex progress, model download/inventory, log), a Settings toggle with sidecar auto-launch, a tri-state header indicator, and first-run routing to download the model. Inference is **CPU-only** (DirectML/GPU benchmarked and removed). Shipped via electron-builder `extraFiles` (`mneme.exe`, ONNX statically linked, no bundled DLLs); the ~357 MB embedding model is a **separate GitHub release** (`mneme-models-v1`) downloaded on first use. Reviewed at epic level (US-690/691/692) and per-task for the Rust crate.
+
+- [x] [US-651: Mneme — App architecture](../tasks/US-651-mneme-architecture/README.md)
+- [x] [US-652: Project scaffold + config + Document Store](../tasks/US-652-mneme-scaffold/README.md)
+- [x] [US-653: Frontmatter + chunker + SQLite schema (FTS5 + sqlite-vec)](../tasks/US-653-mneme-index-schema/README.md)
+- [x] [US-654: Indexer + watcher + reconcile](../tasks/US-654-mneme-indexer-watcher/README.md)
+- [x] [US-655: MCP server (Streamable HTTP, loopback, text-search) + agent guide](../tasks/US-655-mneme-mcp-server/README.md)
+- [x] [US-656: Model Provisioner (download + sha256 + cache)](../tasks/US-656-mneme-model-provisioner/README.md)
+- [x] [US-657: Embedding Engine (ort, CPU)](../tasks/US-657-mneme-embedding-engine/README.md)
+- [x] [US-658: Hybrid search (sqlite-vec KNN + RRF)](../tasks/US-658-mneme-hybrid-search/README.md)
+- [x] [US-659: Concurrency & responsiveness (worker, WAL, reindex job)](../tasks/US-659-mneme-concurrency/README.md)
+- [x] [US-666: grep tags/dateRange/-n + mneme://status resource](../tasks/US-666-mneme-grep-filters-status-resource/README.md)
+- [x] [US-660: Persephone settings + sidecar auto-launch](../tasks/US-660-mneme-settings-sidecar/README.md)
+- [x] [US-671: MCP connection auto-reconnect](../tasks/US-671-mcp-connection-auto-reconnect/README.md)
+- [x] [US-670: Resource-subscription emit (capability + subscribe/unsubscribe + watcher fan-out)](../tasks/US-670-mneme-resource-subscription-emit/README.md)
+- [x] [US-661: McpConnectionManager subscription support (client wiring)](../tasks/US-661-mcp-subscription-support/README.md)
+- [x] [US-662: MnemeProvider (read/write/edit + live-refresh)](../tasks/US-662-mneme-provider/README.md)
+- [x] [US-673: Single shared MCP connection (fix status timeouts)](../tasks/US-673-mneme-single-connection/README.md)
+- [x] [US-663: MnemeTreeProvider + Explorer-like sidebar panel](../tasks/US-663-mneme-tree-provider/README.md)
+- [x] [US-674: Tree editing — create/rename/delete files & folders](../tasks/US-674-mneme-tree-editing/README.md)
+- [x] [US-675: Tree — drag-and-drop file upload from the OS](../tasks/US-675-mneme-tree-file-drop/README.md)
+- [x] [US-676: Root main view — search with displayed results](../tasks/US-676-mneme-root-search-view/README.md)
+- [x] [US-678: Search — tag & date filters](../tasks/US-678-mneme-search-filters/README.md)
+- [x] US-679: Sanitize FTS5 query (hyphens/operators no longer error)
+- [x] [US-680: Search results — render as markdown via MarkdownBlock](../tasks/US-680-mneme-search-results-markdown/README.md)
+- [x] US-681: Lower default `topK` 10→5 + document `topK`/`subtree` in tool description
+- [x] [US-685: Decouple wiki file set from index set (full filesystem navigability)](../tasks/US-685-mneme-filesystem-navigability/README.md)
+- [x] [US-686: `read` returns images as vision blocks + `upload`](../tasks/US-686-mneme-binary-tools/README.md)
+- [x] [US-687: Relative `mneme://` links open attachments in the Image viewer](../tasks/US-687-mneme-relative-links/README.md)
+- [x] [US-683: Rename `wiki_*` tools to bare names + de-wiki wording](../tasks/US-683-mneme-wiki-naming-generalization/README.md)
+- [x] [US-668: `root_config` tool (live include/ignore)](../tasks/US-668-mneme-root-config-tool/README.md)
+- [x] [US-664: Config & monitoring editor (+ header indicator)](../tasks/US-664-mneme-config-editor/README.md)
+- [x] [US-677: Config editor — single-page redesign + toolbar cleanup](../tasks/US-677-mneme-config-redesign/README.md)
+- [x] [US-669: Async long-running ops + live progress (add-root, model download, log file)](../tasks/US-669-mneme-async-add-root-indexing/README.md)
+- [x] [US-688: Tree — own drag-drop (intra-root move + cross-root / cross-window copy)](../tasks/US-688-mneme-tree-cross-root-dnd/README.md)
+- [x] [US-689: Small enhancements (Log button → mneme.log; +`getDataFolder` IPC)](../tasks/US-689-mneme-small-enhancements/README.md)
+- [x] [US-690: Epic completion — code review](../tasks/US-690-epic032-review/README.md)
+- [x] [US-691: Epic completion — developer docs](../tasks/US-691-epic032-document/README.md)
+- [x] [US-692: Epic completion — user docs](../tasks/US-692-epic032-userdoc/README.md)
+- [x] [US-693: Make "Apply & reindex" async (non-blocking)](../tasks/US-693-mneme-async-apply-filters/README.md)
+- [x] [US-694: CPU-only embedding (GPU/DirectML benchmarked & removed) + folder opens in Explorer](../tasks/US-694-mneme-adaptive-gpu-embedding/README.md)
+- [x] [US-695: "Remove root" deletes the on-disk `.mneme` index folder](../tasks/US-695-mneme-remove-root-delete-index/README.md)
+- [x] US-696: Quiet the host console (stderr capped at WARN+ when `mneme.log` sink exists)
+- [x] [US-665: Installer + first release (electron-builder `extraFiles` mneme.exe; model GitHub release)](../tasks/US-665-mneme-installer-release/README.md)
+
+---
+
 ## EPIC-031 — [Git Functionality Enhancements (incremental)](EPIC-031.md)
 
 Grew git from the read-only v1 (EPIC-030) into day-to-day tooling, built incrementally — one user-requested increment at a time, with a **per-task** review model (not the deferred epic-level pass). Delivered: a **"Changes" panel** (working-tree status → stage / unstage / reset → **commit** via a Commit dialog with editable author + branch), a **"Branches & Tags" panel** (browse, switch, create branch, click-to-reveal in the graph), **Push** and **Pull** (Git-Extensions-style split-button; shared fetch / ahead-behind / `GIT_TERMINAL_PROMPT=0` fail-fast auth foundation; never force-pushes), a Git Tree **bottom panel** (Commit + Diff tabs), **auto-refresh** (recursive watcher + `GIT_OPTIONAL_LOCKS=0`), persisted grid column layout, File Diff compare-commits improvements, and a new UIKit **`SplitButton`**. All mutating ops stay behind the off-by-default "Git integration" setting and degrade gracefully. Small one-off tweaks were logged in the rolling **US-625** (batch-reviewed 2026-06-10). Close-out: all tasks reviewed per-task — no outstanding review at close. Future git work will be filed as separate tasks/epics.

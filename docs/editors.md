@@ -704,6 +704,19 @@ Open an MCP Inspector page programmatically:
 await app.pages.showMcpInspectorPage({ url: "http://localhost:7865/mcp" });
 ```
 
+## Mneme Knowledge Base
+
+Requires **Mneme** to be enabled (Settings → **Mneme (vector memory)** → **Enable Mneme**; off by default).
+
+Mneme is an optional, local knowledge base that indexes folders of Markdown for full-text and semantic search. It surfaces as two editors:
+
+- **Config & monitoring editor** — open from the **Tools & Editors** panel → **Mneme**. Manage indexed roots, include/ignore patterns, reindexing (with live progress), and the semantic-search embedding model. Toolbar buttons restart the service, open it in the MCP Inspector, and open its log.
+- **Mneme root editor** — click a **`.mneme`** entry in the **File Explorer** (shown for any indexed folder while Mneme is enabled, mirroring the `.git` entry). It opens a search view (Text / Vector / Hybrid modes, tag and date filters, Markdown results) with an Explorer-like document tree in the sidebar for browsing, editing, and organizing documents.
+
+AI agents can read, search, and maintain the same knowledge base over MCP.
+
+See **[Mneme — Knowledge Base](./mneme.md)** for complete documentation.
+
 ## Switching Editors
 
 Some files support multiple editors:

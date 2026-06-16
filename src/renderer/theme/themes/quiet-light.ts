@@ -61,6 +61,7 @@ export const quietLight: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#4B69C6",
+        "--color-misc-link": "#3f4e7d",
         "--color-misc-green": "#50A14F",
         "--color-misc-red": "#E45649",
         "--color-misc-yellow": "#C18401",

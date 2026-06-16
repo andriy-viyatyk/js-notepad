@@ -2,7 +2,7 @@
 //!
 //! The full config the service will eventually use is defined here; US-652 only acts on
 //! `roots` (+ their `include`/`ignore` globs). Later tasks read the fields they own:
-//! `model` (US-656/657), `transport` (US-655), `gpu` (US-657).
+//! `model` (US-656/657), `transport` (US-655).
 //!
 //! Sources, in increasing precedence: built-in defaults → TOML file → `MNEME_`-prefixed
 //! env vars → CLI flags (applied by the caller). Config-path precedence is resolved in
@@ -24,8 +24,6 @@ pub struct Config {
     pub model: ModelConfig,
     #[serde(default)]
     pub transport: TransportConfig,
-    #[serde(default)]
-    pub gpu: GpuMode,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -83,15 +81,6 @@ impl Default for TransportConfig {
             token: None,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum GpuMode {
-    #[default]
-    Auto,
-    On,
-    Off,
 }
 
 /// Load config, merging an optional TOML file with `MNEME_`-prefixed env vars.

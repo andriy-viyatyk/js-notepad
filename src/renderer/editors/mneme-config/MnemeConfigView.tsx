@@ -3,9 +3,10 @@ import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
 import { IconButton } from "../../uikit/IconButton";
+import { Spacer } from "../../uikit/Spacer";
 import { Dot, DotColor } from "../../uikit/Dot";
 import { EditorToolbar } from "../base/EditorToolbar";
-import { RefreshIcon } from "../../theme/icons";
+import { RefreshIcon, LogIcon, McpIcon } from "../../theme/icons";
 import { pagesModel } from "../../api/pages";
 import type { EditorModel } from "../base";
 import { MnemeConfigEditorModel } from "./MnemeConfigEditorModel";
@@ -64,6 +65,7 @@ function MnemeConfigView({ model }: MnemeConfigViewProps) {
                     align="center"
                     gap="sm"
                     paddingLeft="lg"
+                    paddingRight="lg"
                     paddingY="sm"
                     flex={1}
                 >
@@ -82,7 +84,21 @@ function MnemeConfigView({ model }: MnemeConfigViewProps) {
                         />
                     )}
                     {s.url && <Text size="md" color="light">{s.url}</Text>}
-                    <Panel flex={1} />
+                    <Spacer />
+                    <IconButton
+                        name="mneme-open-mcp-inspector"
+                        size="sm"
+                        icon={<McpIcon />}
+                        title="Open in MCP Inspector"
+                        onClick={() => model.openInMcpInspector()}
+                    />
+                    <IconButton
+                        name="mneme-open-log"
+                        size="sm"
+                        icon={<LogIcon />}
+                        title="Open Mneme log"
+                        onClick={() => model.openLog()}
+                    />
                 </Panel>
             </EditorToolbar>
 

@@ -551,14 +551,17 @@ impl IndexManager {
         Ok(ri)
     }
 
-    /// Stop + drop a root's watcher and its index handle (`remove_root`). The on-disk
-    /// `.mneme` index is left in place (rebuildable; deletion is `index_delete`'s job).
+    /// Stop + drop a root's watcher and its index handle (`remove_root`), cancelling any in-flight
+    /// reconcile first so the SQLite handle is released. The caller (`ServerState::remove_root`)
+    /// then deletes the on-disk `.mneme` folder; the ordering here (watcher → drain job → drop Arc)
+    /// closes the DB before that delete runs.
     pub fn remove_root(&mut self, name: &str) -> Result<()> {
         if !self.dbs.contains_key(name) {
             return Err(crate::error::MnemeError::UnknownRoot(name.to_string()));
         }
-        self.watchers.remove(name); // dropping the debouncer stops the watch
-        self.dbs.remove(name);
+        self.watchers.remove(name); // dropping the debouncer stops new watcher-triggered reconciles
+        self.jobs.cancel_and_wait(name); // stop + drain any running pass → releases the DB handle
+        self.dbs.remove(name); // drop the manager's RootIndex Arc → closes DB connections
         self.roots.retain(|r| r.name != name);
         Ok(())
     }

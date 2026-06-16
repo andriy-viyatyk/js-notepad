@@ -44,6 +44,7 @@ import { ThemeDefinition } from "./types";
 // --color-grid-*                  (custom — derived from bg/text/border tokens)
 //
 // --color-misc-blue               textLink.foreground
+// --color-misc-link               (custom — softened link color: 50/50 blend of text.default + misc.blue)
 // --color-misc-green              terminal.ansiGreen, testing.iconPassed
 // --color-misc-red                errorForeground, testing.iconFailed
 // --color-misc-yellow             editorWarning.foreground
@@ -113,6 +114,7 @@ export const defaultDark: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#3794ff",
+        "--color-misc-link": "#82b0e6",
         "--color-misc-green": "#89d185",
         "--color-misc-red": "#f88070",
         "--color-misc-yellow": "#cca700",

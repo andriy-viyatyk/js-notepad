@@ -76,7 +76,7 @@ string replacement for surgical changes. Daily logs live at `log/YYYY/YYYY-MM-DD
 - `tags { subtree? }` — distinct tags + counts.
 
 **Management**:
-- `add_root { folder, name? }`, `remove_root { root }`, `list_roots {}`.
+- `add_root { folder, name? }`, `remove_root { root }` (also deletes the root's `.mneme` index folder — rebuilt on re-add), `list_roots {}`.
 - `root_config { root, include?, ignore? }` — read (omit both) or live-update a root's
   include/ignore globs; a SET re-applies filters, restarts the watcher, reindexes the root, and
   persists to the config.

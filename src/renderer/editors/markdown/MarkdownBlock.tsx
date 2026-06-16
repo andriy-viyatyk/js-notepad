@@ -198,13 +198,13 @@ const MarkdownBlockRoot = styled.div({
         boxSizing: "content-box",
     },
     "& a": {
-        color: color.misc.blue,
+        color: color.misc.link,
         textDecoration: "none",
         "&:hover": {
             textDecoration: "underline",
         },
         "& strong": {
-            color: color.misc.blue,
+            color: color.misc.link,
         },
     },
 

@@ -260,7 +260,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         tor?: boolean;
         url?: string;
     }) => this.lifecycle.showBrowserPage(options);
-    showMcpInspectorPage = (options?: { url?: string }) =>
+    showMcpInspectorPage = (options?: { url?: string; name?: string; autoConnect?: boolean }) =>
         this.lifecycle.showMcpInspectorPage(options);
     showMnemeConfigPage = () => this.lifecycle.showMnemeConfigPage();
     showStorybookPage = () => this.lifecycle.showStorybookPage();

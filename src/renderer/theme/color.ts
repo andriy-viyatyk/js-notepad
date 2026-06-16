@@ -48,6 +48,7 @@ const color = {
     },
     misc: {
         blue: "var(--color-misc-blue)",
+        link: "var(--color-misc-link)",
         green: "var(--color-misc-green)",
         red: "var(--color-misc-red)",
         yellow: "var(--color-misc-yellow)",

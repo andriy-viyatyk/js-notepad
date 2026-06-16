@@ -1,10 +1,12 @@
 import { createElement, type ReactNode } from "react";
 
-import { EditorModel, type EditorStateBase } from "../base/EditorModel";
+import { EditorModel, type EditorStateBase, type RestoreData } from "../base/EditorModel";
 import { MemoryIcon } from "../../theme/icons";
 import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import type { ISubscriptionObject } from "../../api/types/events";
+import type { EditorDescriptor } from "../../../shared/persistence";
+import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import { mnemeConnection } from "../../api/mneme-connection";
 import { decodeMnemeFolderLink } from "../../content/mneme-folder-link";
 import { parseToolResult } from "../mneme-config/mnemeTypes";
@@ -42,6 +44,13 @@ export interface MnemeRootEditorState extends EditorStateBase {
     resolving: boolean;
     /** Set when the root can't be resolved (not registered / not connected). */
     error?: string;
+
+    // --- Sidebar tree (persisted across restart / cross-window) ---
+    /** Tree expansion snapshot for the `mneme-tree` panel — re-applied after the
+     *  root re-resolves on restore. @see TreeProviderViewSavedState */
+    treeState?: TreeProviderViewSavedState;
+    /** Selected file href in the tree — highlighted on restore. */
+    selectedHref?: string;
 
     // --- Search (US-676) — all transient (skipSave); reset on restore. ---
     /** Current query text. */
@@ -129,6 +138,11 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
     /** Tree provider for the resolved root — null until `resolveRoot` succeeds. */
     treeProvider: MnemeTreeProvider | null = null;
 
+    /** Tree expansion snapshot (sidebar panel) — persisted via `state.treeState`,
+     *  set by the panel view's `onStateChange`. Plain field (not reactive) to
+     *  avoid re-render churn on every expand toggle. */
+    treeState: TreeProviderViewSavedState | undefined = undefined;
+
     /** Connection-status subscription, so a late connection self-resolves. */
     private _statusSub: ISubscriptionObject | null = null;
 
@@ -180,6 +194,43 @@ export class MnemeRootEditorModel extends EditorModel<MnemeRootEditorState> {
     restoreFromState(): void {
         this.ensureStatusSub();
         void this.resolveRoot();
+    }
+
+    /** Persistence restore (app restart + cross-window drag). The no-host restore
+     *  path assigns the persisted state then calls `restore()`. Re-resolve from the
+     *  sidecar: clear any stale persisted `rootName` so `resolveRoot()` runs (it
+     *  short-circuits when `rootName` is already set) and rebuilds the tree
+     *  provider. `ensureStatusSub` makes it self-heal if Mneme connects late. */
+    async restore(): Promise<void> {
+        if (!this.state.get().rootFolder) return;
+        this.state.update((s) => { s.rootName = ""; });
+        this.restoreFromState();
+    }
+
+    /** Panel view → model: store the tree expansion snapshot for persistence. */
+    setTreeState(state: TreeProviderViewSavedState): void {
+        this.treeState = state;
+    }
+
+    /** Panel view → model: the selected file href (persisted + drives highlight). */
+    setSelectedHref(href: string | undefined): void {
+        this.state.update((s) => { s.selectedHref = href; });
+    }
+
+    /** Inject the tree expansion snapshot (a plain field) into the persisted
+     *  state alongside the reactive state (which already carries `selectedHref`). */
+    getRestoreData(): EditorDescriptor {
+        const s = this.state.get();
+        return {
+            editorId: this.editorId,
+            id: s.id,
+            state: { ...s, treeState: this.treeState } as unknown as Record<string, unknown>,
+        };
+    }
+
+    applyRestoreData(data: RestoreData<MnemeRootEditorState>): void {
+        super.applyRestoreData(data);
+        if (data.treeState) this.treeState = data.treeState;
     }
 
     /** Subscribe once to connection status so a root opened while Mneme is down

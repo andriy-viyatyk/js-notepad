@@ -158,7 +158,7 @@ impl MnemeServer {
         structured(self.state.add_root(p).await.map_err(to_mcp)?)
     }
 
-    #[tool(description = r##"Remove a root by name (the on-disk index is left in place). Example: remove_root {"root":"personal"} → "ok""##)]
+    #[tool(description = r##"Remove a root by name and delete its on-disk .mneme index folder (the index is derived — re-add the folder to rebuild it). Example: remove_root {"root":"personal"} → "ok""##)]
     async fn remove_root(&self, Parameters(p): Parameters<RemoveRootParams>) -> std::result::Result<CallToolResult, McpError> {
         self.state.remove_root(p).await.map_err(to_mcp)?;
         Ok(ok_text())

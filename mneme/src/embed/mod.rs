@@ -1,8 +1,10 @@
 //! Embedding engine (US-657).
 //!
 //! Turns text into a normalized 768-dim embedding vector using the ONNX model + tokenizer
-//! that the provisioner (US-656) places on disk, via ONNX Runtime (`ort`) with the DirectML
-//! execution provider when available and an automatic CPU fallback (driven by [`GpuMode`]).
+//! that the provisioner (US-656) places on disk, via ONNX Runtime (`ort`) on the CPU execution
+//! provider. (GPU/DirectML was benchmarked and removed — US-694: for this small int8 model with
+//! dynamically-shaped per-document batches, DirectML's per-shape kernel recompilation made it
+//! slower than CPU, which int8 inference already runs fast.)
 //!
 //! This task produces vectors only. Writing them into `chunks_vec`, KNN, and RRF merge is
 //! US-658; the dedicated embedding worker + priority queue + progress is US-659. Inference is
@@ -20,12 +22,12 @@ pub use worker::{EmbedHandle, EmbedWorker, Priority};
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use ort::execution_providers::{CPUExecutionProvider, DirectMLExecutionProvider};
+use ort::execution_providers::CPUExecutionProvider;
 use ort::session::{builder::GraphOptimizationLevel, Session};
 use ort::value::Tensor;
 use tokenizers::Tokenizer;
 
-use crate::config::{Config, GpuMode};
+use crate::config::Config;
 use crate::error::{MnemeError, Result};
 use crate::model;
 
@@ -52,7 +54,7 @@ pub trait Embedder: Send + Sync {
     fn embed_passages(&self, texts: &[&str]) -> Result<Vec<Vec<f32>>>;
     /// Output dimension (768 for gte-multilingual-base).
     fn dims(&self) -> usize;
-    /// Active execution provider, for status/logs (e.g. `"DirectML (CPU fallback)"` / `"CPU"`).
+    /// Active execution provider, for status/logs (always `"CPU"`).
     fn provider(&self) -> &str;
 }
 
@@ -70,7 +72,7 @@ impl OnnxEmbedder {
     /// Load the configured model from the provisioner cache and build an inference session.
     ///
     /// Returns [`MnemeError::ModelMissing`] if the model files are not present
-    /// (run `mneme model-update` first). The execution provider is selected from `cfg.gpu`.
+    /// (run `mneme model-update` first). Inference always runs on the CPU execution provider.
     pub fn load(cfg: &Config) -> Result<Self> {
         let entry = model::target_entry(&cfg.model)?;
         let dir = model::model_dir(&cfg.model, &entry)?;
@@ -86,26 +88,21 @@ impl OnnxEmbedder {
             )));
         }
 
-        Self::load_from_files(&onnx_path, &tok_path, entry.dims as usize, cfg.gpu)
+        Self::load_from_files(&onnx_path, &tok_path, entry.dims as usize)
     }
 
-    /// Build an embedder from explicit file paths (used by `load` and by tests).
-    pub fn load_from_files(
-        onnx_path: &Path,
-        tok_path: &Path,
-        dims: usize,
-        gpu: GpuMode,
-    ) -> Result<Self> {
+    /// Build an embedder from explicit file paths (used by `load` and by tests). The session runs
+    /// on the CPU execution provider (US-694 removed the DirectML/GPU path — see the module docs).
+    pub fn load_from_files(onnx_path: &Path, tok_path: &Path, dims: usize) -> Result<Self> {
         let mut tokenizer =
             Tokenizer::from_file(tok_path).map_err(|e| MnemeError::Embed(e.to_string()))?;
         // Pad to the longest sequence in each batch so tensor rows align; truncate to the
         // model's max context. Chunks are ~500 tokens, well under the cap.
         configure_tokenizer(&mut tokenizer);
 
-        let (eps, provider) = execution_providers(gpu);
         let session = Session::builder()
             .map_err(embed_err)?
-            .with_execution_providers(eps)
+            .with_execution_providers([CPUExecutionProvider::default().build()])
             .map_err(embed_err)?
             .with_optimization_level(GraphOptimizationLevel::Level3)
             .map_err(embed_err)?
@@ -113,6 +110,7 @@ impl OnnxEmbedder {
             .map_err(embed_err)?;
 
         let input_names = session.inputs().iter().map(|i| i.name().to_string()).collect();
+        let provider = "CPU".to_string();
         tracing::info!(provider = %provider, dims, "embedding session ready");
 
         Ok(Self {
@@ -281,27 +279,6 @@ fn configure_tokenizer(tokenizer: &mut Tokenizer) {
 /// Model max context (gte-multilingual-base supports 8192 with NTK RoPE scaling).
 const MAX_SEQ_LEN: usize = 8192;
 
-/// Build the execution-provider list for the configured GPU mode, plus a human label.
-/// CPU is always appended as the guaranteed fallback so session creation never hard-fails on
-/// a machine without DirectML.
-fn execution_providers(
-    mode: GpuMode,
-) -> (Vec<ort::execution_providers::ExecutionProviderDispatch>, String) {
-    match mode {
-        GpuMode::Auto | GpuMode::On => (
-            vec![
-                DirectMLExecutionProvider::default().build(),
-                CPUExecutionProvider::default().build(),
-            ],
-            "DirectML (CPU fallback)".to_string(),
-        ),
-        GpuMode::Off => (
-            vec![CPUExecutionProvider::default().build()],
-            "CPU".to_string(),
-        ),
-    }
-}
-
 /// L2-normalize in place. A zero vector is left untouched (no NaN).
 pub fn l2_normalize(v: &mut [f32]) {
     let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
@@ -331,14 +308,5 @@ mod tests {
         let mut v = vec![0.0f32, 0.0, 0.0];
         l2_normalize(&mut v);
         assert!(v.iter().all(|x| *x == 0.0));
-    }
-
-    #[test]
-    fn ep_list_matches_mode() {
-        assert_eq!(execution_providers(GpuMode::Off).0.len(), 1);
-        assert_eq!(execution_providers(GpuMode::Off).1, "CPU");
-        assert_eq!(execution_providers(GpuMode::Auto).0.len(), 2);
-        assert_eq!(execution_providers(GpuMode::On).0.len(), 2);
-        assert!(execution_providers(GpuMode::Auto).1.contains("DirectML"));
     }
 }

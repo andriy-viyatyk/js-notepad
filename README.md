@@ -23,6 +23,9 @@ An extensible event channel system (`app.events`) lets scripts subscribe to appl
 ### AI Agent Integration (MCP Server)
 A built-in [MCP](https://modelcontextprotocol.io/) HTTP server lets AI agents (Claude, ChatGPT, Gemini, etc.) create pages, execute scripts, display diagrams and grids, and manipulate documents — all programmatically. Enable with a single checkbox in Settings. See the [MCP Setup Guide](docs/mcp-setup.md).
 
+### Mneme — Vector Memory *(off by default)*
+A built-in knowledge-base service that turns any folder of Markdown notes into a searchable **vector memory**. Mneme indexes your files locally (SQLite + an on-device embedding model) and exposes hybrid full-text + semantic search over MCP — so AI agents can read, write, and search a persistent knowledge base across sessions. Browse and edit roots in an Explorer-like sidebar, search with a dedicated results view, and manage indexing from a config editor. Files on disk stay the source of truth; the index is derived. Enable in Settings — the embedding model (~357 MB) downloads on first use. See the [Mneme guide](docs/mneme.md).
+
 ### Built-in Web Browser
 Browse the web in a dedicated tab with profiles, incognito mode, Tor routing, bookmarks, and DRM video support. Links from Markdown and Monaco open in the nearest browser tab automatically.
 
@@ -75,6 +78,7 @@ Optional, built-in git support — enable it with a single checkbox in Settings 
 * **[Scripting Guide](docs/scripting.md)** — Script execution, `page`/`app` API, autoload scripts
 * **[API Reference](docs/api/index.md)** — `app.pages`, `app.fs`, `app.settings`, `app.ui`, `app.fetch`
 * **[MCP Setup](docs/mcp-setup.md)** — Configure AI agents to control Persephone
+* **[Mneme Guide](docs/mneme.md)** — Vector memory / Markdown knowledge base for AI agents
 
 ---
 

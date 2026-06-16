@@ -83,6 +83,8 @@ persephone/
 │   ├── autoload-service.ts # Thin wrapper exposing AutoloadRunner to app lifecycle
 │   ├── pages.ts            # PagesModel singleton export
 │   ├── mcp-handler.ts      # MCP command handler (receives IPC from main, dispatches commands)
+│   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers
+│   ├── mneme-status.ts     # Mneme health prober + reactive status (shared MCP connection; drives sidecar launch, indicators, and auto-opens the config editor when no model is provisioned)
 │   ├── internal.ts         # Disposable utilities (wrapSubscription, etc.)
 │   │
 │   ├── pages/              # Page collection — composed submodels
@@ -168,18 +170,22 @@ persephone/
 │   ├── resolvers.ts        # Layer 2: pipe resolvers (file, HTTP, archive) on openLink
 │   ├── link-utils.ts       # URL → pipe descriptor resolution (used by resolvers + tree providers)
 │   ├── open-handler.ts     # Layer 3: open handler on openContent — creates/navigates pages
+│   ├── mneme-folder-link.ts # mneme-folder:// link encode/decode (addresses a Mneme root)
 │   ├── providers/
 │   │   ├── FileProvider.ts      # IProvider for local binary files (read/write/watch/stat)
 │   │   ├── CacheFileProvider.ts # IProvider for cache files by page ID (auto-save)
 │   │   ├── HttpProvider.ts      # IProvider for HTTP/HTTPS URLs (read-only)
-│   │   └── DataUrlProvider.ts  # IProvider for data: URLs (inline content, read-only)
+│   │   ├── DataUrlProvider.ts  # IProvider for data: URLs (inline content, read-only)
+│   │   └── MnemeProvider.ts    # IProvider over the shared Mneme connection — read/write/edit a document, live-refresh on resource updates
 │   ├── transformers/
 │   │   ├── ArchiveTransformer.ts # ITransformer for archive entry extraction/replacement
 │   │   └── DecryptTransformer.ts # ITransformer for AES-GCM decrypt/encrypt (non-persistent)
 │   ├── tree-providers/           # ITreeProvider implementations (EPIC-015)
 │   │   ├── FileTreeProvider.ts  # Local filesystem directories
 │   │   ├── ArchiveTreeProvider.ts # Archives (ZIP, RAR, 7z, TAR, cab, ISO — read-only)
-│   │   └── tree-provider-link.ts # tree-category:// link format (encode/decode)
+│   │   ├── tree-provider-link.ts # tree-category:// link format (encode/decode)
+│   │   ├── MnemeTreeProvider.ts  # ITreeProvider over a Mneme root — browse like a filesystem; create/rename/delete; drag-drop import
+│   │   └── mnemeLinkTraits.ts    # MnemeLink TraitSet (LINK + FILE_LINK) for tree drag-drop (move within / copy across roots)
 │   └── tree-context-menus.tsx   # Default context menu handlers for tree provider items (EPIC-015)
 │
 ├── ui/                     # Application Shell
@@ -475,6 +481,19 @@ persephone/
 │   │   ├── ExplorerSecondaryView.tsx # "explorer" panel — tree view with portaled header
 │   │   ├── SearchSecondaryView.tsx # "search" panel — file search with portaled header
 │   │   └── index.ts
+│   ├── mneme-config/       # Mneme config & monitoring editor (non-text, no trait)
+│   │   ├── MnemeConfigEditorModel.ts # EditorModel — roots, include/ignore, reindex + progress, model, status polling
+│   │   ├── MnemeConfigView.tsx       # Main view (single page)
+│   │   ├── RootsPanel.tsx            # Roots + include/ignore + reindex/progress
+│   │   ├── ModelPanel.tsx            # Embedding-model status + update
+│   │   ├── mnemeTypes.ts             # Shared types + parseToolResult helper
+│   │   └── index.tsx
+│   ├── mneme-root/         # Mneme root — search main view + Explorer-like tree sidebar (Pattern B navigation-singleton, per-folder)
+│   │   ├── MnemeRootEditorModel.ts   # EditorModel — root resolve, search (text/vector/hybrid), tree state
+│   │   ├── MnemeRootEditorView.tsx   # Search UI + ranked results
+│   │   ├── MnemeTreeSecondaryView.tsx # "mneme-tree" sidebar panel (browse/create/rename/delete/drop)
+│   │   ├── results-to-markdown.ts    # Render search hits as markdown
+│   │   └── index.tsx
 │   ├── shared/             # Shared editor utilities
 │   │   ├── link-open-menu.tsx
 │   │   └── ColorizedCode.tsx         # Syntax-highlighted code via Monaco colorize()

@@ -62,6 +62,7 @@ export const solarizedDark: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#268bd2",
+        "--color-misc-link": "#5590b4",
         "--color-misc-green": "#859900",
         "--color-misc-red": "#dc322f",
         "--color-misc-yellow": "#b58900",

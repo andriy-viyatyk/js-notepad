@@ -63,6 +63,7 @@ export const red: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#6c9ef8",
+        "--color-misc-link": "#b2cbf8",
         "--color-misc-green": "#7cc47c",
         "--color-misc-red": "#ff6666",
         "--color-misc-yellow": "#e8c87c",

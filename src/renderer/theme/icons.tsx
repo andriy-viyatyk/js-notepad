@@ -1108,6 +1108,15 @@ export const ViewListIcon = createIcon(24)(
     <path d="M3,5h18 M3,9h18 M3,13h18 M3,17h18 M3,21h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />,
 );
 
+// "log" in a bordered box — used for the Open-Log toolbar action. Sized to fill
+// the viewBox so it reads clearly at small toolbar sizes.
+export const LogIcon = createIcon(24)(
+    <>
+        <rect x="1" y="4" width="22" height="16" rx="3" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <text x="12" y="12.7" textAnchor="middle" dominantBaseline="central" fontSize="11.5" fontWeight="700" fontFamily="inherit" fill="currentColor">log</text>
+    </>,
+);
+
 export const ViewLandscapeIcon = createIcon(24)(
     <>
         <rect x="2" y="3" width="6" height="4" rx="1" fill="currentColor" />

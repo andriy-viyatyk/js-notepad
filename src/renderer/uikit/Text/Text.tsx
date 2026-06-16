@@ -54,6 +54,12 @@ export interface TextStyleProps {
      * when the Text spans multiple lines and you need the wrapped lines aligned.
      */
     align?: "left" | "center" | "right";
+    /**
+     * Show a pointer cursor and underline the text on hover, **without** applying the
+     * `link` variant's primary colour. Use for subtly-clickable text (e.g. a file path that
+     * opens in Explorer) that should keep its own colour and not read as a primary link.
+     */
+    hoverUnderline?: boolean;
 }
 
 export interface TextProps extends
@@ -100,6 +106,13 @@ const Root = styled.span(
         '&[data-variant="link"]:hover': {
             textDecoration: "underline",
         },
+        "&[data-hover-underline]": {
+            cursor: "pointer",
+            textDecoration: "none",
+        },
+        "&[data-hover-underline]:hover": {
+            textDecoration: "underline",
+        },
 
         // --- Modifiers ---
         "&[data-bold]":     { fontWeight: 600 },
@@ -144,6 +157,7 @@ export function Text({
     preWrap,
     truncate,
     align,
+    hoverUnderline,
     children,
     ...rest
 }: TextProps) {
@@ -162,6 +176,7 @@ export function Text({
             data-pre-wrap={preWrap || undefined}
             data-truncate={truncate || undefined}
             data-align={align || undefined}
+            data-hover-underline={hoverUnderline || undefined}
             style={style}
             {...rest}
         >

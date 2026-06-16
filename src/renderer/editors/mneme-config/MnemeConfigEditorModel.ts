@@ -170,6 +170,40 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         }
     };
 
+    /** Open the Mneme sidecar log (`<userData>/data/mneme/mneme.log`) in a new
+     *  page. The open pipeline picks Monaco + the log language from the `.log`
+     *  extension; a missing file surfaces a notification and opens nothing. */
+    openLog = async (): Promise<void> => {
+        const dataFolder = await api.getDataFolder();
+        const logPath = fpJoin(dataFolder, "mneme", "mneme.log");
+        const { app } = await import("../../api/app");
+        const { createLinkData } = await import("../../../shared/link-data");
+        await app.events.openRawLink.sendAsync(createLinkData(logPath));
+    };
+
+    /** Open the MCP Inspector pre-connected to the Mneme MCP server. */
+    openInMcpInspector = async (): Promise<void> => {
+        const url = this.state.get().url || (await api.getMnemeStatus()).url;
+        if (!url) return;
+        const { pagesModel } = await import("../../api/pages");
+        await pagesModel.showMcpInspectorPage({ url, name: "Mneme", autoConnect: true });
+    };
+
+    /** Open the Mneme Root (Search) editor for a root, by its on-disk folder.
+     *  Reuses the Explorer's `mneme-folder://` open flow (opens a new page; the
+     *  root editor's per-root singleton dedupes if it is already open). */
+    openRoot = async (rootFolder: string): Promise<void> => {
+        const { app } = await import("../../api/app");
+        const { createLinkData } = await import("../../../shared/link-data");
+        const { encodeMnemeFolderLink } = await import("../../content/mneme-folder-link");
+        await app.events.openRawLink.sendAsync(createLinkData(encodeMnemeFolderLink(rootFolder)));
+    };
+
+    /** Open the root's folder in the OS file explorer (`shell.openPath`, via `fs.showFolder`). */
+    showRootInExplorer = (rootFolder: string): void => {
+        fs.showFolder(rootFolder);
+    };
+
     /** Fetch `status`. `silent` (used by the background poll) skips the
      *  `refreshing` flag so the timer-driven refresh doesn't flicker the UI. */
     refreshStatus = async (silent = false): Promise<void> => {
@@ -271,7 +305,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
     removeRoot = async (root: string): Promise<void> => {
         const choice = await this.confirm(
             "Remove root",
-            `Remove root "${root}"? The on-disk .mneme index folder is left in place.`,
+            `Remove root "${root}"?`,
             "Remove",
         );
         if (!choice) return;
@@ -369,19 +403,20 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         const client = mnemeConnection.getClient();
         if (!client) return;
         try {
-            const result = await showProgress(
-                client.callTool({
-                    name: "root_config",
-                    arguments: { root, include, ignore },
-                }),
-                "Applying filters — reindexing…",
-            );
+            // Returns immediately — Mneme reindexes the root in the background
+            // (US-693). Poll status so the per-root progress bar fills in.
+            const result = await client.callTool({
+                name: "root_config",
+                arguments: { root, include, ignore },
+            });
             const cfg = parseToolResult<WikiRootConfig>(result);
             if (cfg) {
                 this.state.update((s) => { s.rootConfigs = { ...s.rootConfigs, [root]: cfg }; });
             }
             await this.refreshStatus();
-            ui.notify("Filters applied", "success");
+            mnemeStatusModel.refresh();
+            this.kickPolling();
+            ui.notify("Filters applied — reindexing in background", "success");
         } catch (err) {
             ui.notify(`Apply filters failed: ${(err as Error)?.message || err}`, "error");
         }
@@ -514,8 +549,8 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
         };
     }
 
-    // Warm green page-tab icon (a fixed icon accent, like the browser-profile
-    // colors). The sidebar entry keeps the theme `currentColor`.
+    // Warm green icon accent (a fixed icon color, like the browser-profile colors),
+    // shared by the page tab and the Tools & Editors sidebar entry.
     getIcon = (): ReactNode => createElement(MemoryIcon, { color: MEMORY_ICON_COLOR });
 
     async dispose(): Promise<void> {

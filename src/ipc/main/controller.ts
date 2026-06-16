@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell } from "electron";
 import { Api, CaptureRect, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
-import { getAssetPath, getAppRootPath } from "../../main/utils";
+import { getAssetPath, getAppRootPath, getDataFolder } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
 import { getFileToOpen, getUrlToOpen, windowReady } from "./window-handlers";
 import { DownloadEntry, OpenFileDialogParams, RuntimeVersions, SaveFileDialogParams, UpdateCheckResult, VideoStreamSessionConfig, VideoStreamSessionResult } from "../api-param-types";
@@ -31,6 +31,10 @@ class Controller implements MainApi {
 
     getAssetsPath = async (event: IpcMainEvent, fileName: string): Promise<string> => {
         return getAssetPath() + `/${fileName}`;
+    }
+
+    getDataFolder = async (_event: IpcMainEvent): Promise<string> => {
+        return getDataFolder();
     }
 
     maximizeWindow = async (event: IpcMainEvent): Promise<void> => {
@@ -391,6 +395,7 @@ function bindEndpoint(command: Endpoint, handler: (...args: unknown[]) => unknow
 const init = () => {
     bindEndpoint(Endpoint.getAppRootPath, controllerInstance.getAppRootPath);
     bindEndpoint(Endpoint.getAssetsPath, controllerInstance.getAssetsPath);
+    bindEndpoint(Endpoint.getDataFolder, controllerInstance.getDataFolder);
     bindEndpoint(Endpoint.maximizeWindow, controllerInstance.maximizeWindow);
     bindEndpoint(Endpoint.minimizeWindow, controllerInstance.minimizeWindow);
     bindEndpoint(Endpoint.restoreWindow, controllerInstance.restoreWindow);

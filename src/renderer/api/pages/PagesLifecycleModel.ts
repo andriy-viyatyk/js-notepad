@@ -1107,15 +1107,26 @@ export class PagesLifecycleModel {
         }
     };
 
-    showMcpInspectorPage = async (options?: { url?: string }): Promise<void> => {
+    showMcpInspectorPage = async (
+        options?: { url?: string; name?: string; autoConnect?: boolean },
+    ): Promise<void> => {
         const mcpModule = await import("../../editors/mcp-inspector");
         const model =
             await mcpModule.default.newEmptyEditorModel("mcpInspectorPage");
         if (model) {
-            if (options?.url) {
-                model.state.update((s) => { (s as unknown as { url?: string }).url = options.url; });
+            if (options?.url || options?.name) {
+                model.state.update((s) => {
+                    const cs = s as unknown as { url?: string; connectionName?: string };
+                    if (options.url) cs.url = options.url;
+                    if (options.name) cs.connectionName = options.name;
+                });
             }
             this.addPage(wrap(model));
+            // Auto-connect (HTTP transport is the default state) — fire-and-forget so
+            // the page opens immediately and shows the "connecting" state itself.
+            if (options?.autoConnect && options?.url) {
+                void (model as unknown as { connect?: () => Promise<void> }).connect?.();
+            }
         }
     };
 

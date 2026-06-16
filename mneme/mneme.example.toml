@@ -39,12 +39,6 @@ port  = 7700
 #             # Set this if you want to keep model files on a different drive or share them
 #             # across users. The `mneme model-update` command downloads to this location.
 
-# --- GPU mode (embedding execution provider): auto | on | off ---------------
-# Selects the ONNX Runtime execution provider for embedding inference:
-#   auto (default) → try DirectML (any DX12 GPU, no CUDA install), fall back to CPU
-#   on             → same as auto (DirectML preferred, CPU still available as fallback)
-#   off            → CPU only
-# CPU is always the guaranteed fallback, so a machine without a GPU still works.
-# Switching auto↔off is a runtime toggle — it does NOT trigger a reindex (only a
-# model/precision change does).
-gpu = "auto"
+# Embedding inference runs on the CPU (ONNX Runtime CPU execution provider). There is no GPU
+# setting: GPU/DirectML was benchmarked and removed (slower than CPU for this small int8 model),
+# which also keeps the install free of the DirectML dependency.

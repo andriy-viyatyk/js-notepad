@@ -1,6 +1,6 @@
 //! Embedding worker + priority queue (US-659).
 //!
-//! ONNX inference is CPU/GPU-bound and serialized behind one model session, so it must not run
+//! ONNX inference is CPU-bound and serialized behind one model session, so it must not run
 //! inline on the request/reconcile path (where it would hold the per-root index lock for the
 //! whole bulk reindex — US-658's behaviour). This module moves all embedding onto **one
 //! dedicated worker thread** that owns the [`Embedder`], fed by a **priority queue**:

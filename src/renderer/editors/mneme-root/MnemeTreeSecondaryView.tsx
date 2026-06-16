@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { TreeProviderView } from "../../components/tree-provider";
+import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
@@ -15,14 +16,25 @@ import type { MnemeRootEditorModel } from "./MnemeRootEditorModel";
 
 export default function MnemeTreeSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     const mnemeModel = model as MnemeRootEditorModel;
-    const { rootName, rootFolder, resolving, error } = mnemeModel.state.use((s) => ({
+    const { rootName, rootFolder, resolving, error, selectedHref } = mnemeModel.state.use((s) => ({
         rootName: s.rootName,
         rootFolder: s.rootFolder,
         resolving: s.resolving,
         error: s.error,
+        selectedHref: s.selectedHref,
     }));
-    const [selectedHref, setSelectedHref] = useState<string | undefined>(undefined);
     const provider = mnemeModel.treeProvider;
+
+    // Captured once: the persisted expansion snapshot (restore re-applies it after
+    // the root re-resolves and the tree mounts fresh).
+    const initialState = useMemo<TreeProviderViewSavedState | undefined>(
+        () => mnemeModel.treeState,
+        [], // eslint-disable-line react-hooks/exhaustive-deps -- capture once on mount
+    );
+    const handleStateChange = useCallback(
+        (state: TreeProviderViewSavedState) => mnemeModel.setTreeState(state),
+        [mnemeModel],
+    );
 
     // Subscribe to page.state so the chevron hides/shows when this editor is
     // promoted to / demoted from the page's main view (mirrors the Collections
@@ -35,7 +47,7 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
     const handleItemClick = useCallback((item: ITreeProviderItem) => {
         // Folders expand in place (handled by the tree); only files open.
         if (item.isDirectory) return;
-        setSelectedHref(item.href);
+        mnemeModel.setSelectedHref(item.href);
         const url = provider?.getNavigationUrl(item);
         if (!url) return;
         app.events.openRawLink.sendAsync(
@@ -95,6 +107,8 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
                     selectedHref={selectedHref}
                     onItemClick={handleItemClick}
                     onItemDoubleClick={handleItemClick}
+                    initialState={initialState}
+                    onStateChange={handleStateChange}
                 />
             ) : (
                 <Panel padding="md">

@@ -7,7 +7,7 @@
 //! server over Streamable HTTP exposing the MCP tool surface in text-search mode (US-655),
 //! the model provisioner (US-656) that downloads/verifies the configured embedding-model
 //! files into a local cache with HTTP range-resume and sha256 verification, and the embedding
-//! engine (US-657) that turns text into normalized vectors via ONNX Runtime (DirectML→CPU),
+//! engine (US-657) that turns text into normalized vectors via ONNX Runtime (CPU),
 //! hybrid search (US-658) that embeds chunks into `chunks_vec` and serves `search`'s
 //! vector/hybrid modes (FTS + KNN fused with RRF), and the concurrency layer (US-659) — a
 //! dedicated embedding worker + priority queue, a WAL writer + read-only connection pool per

@@ -30,14 +30,20 @@ export function ModelPanel({ model }: ModelPanelProps) {
             >
                 <Text size="base" bold>Embedding model</Text>
                 <Panel flex={1} />
+                {!ready && !downloading && (
+                    <Panel direction="row" align="center" gap="xs">
+                        <Dot size="xs" color="warning" />
+                        <Text size="md" color="warning">Model not loaded — semantic search unavailable</Text>
+                    </Panel>
+                )}
                 <Button
                     name="mneme-update-model"
                     size="sm"
-                    variant="default"
+                    variant={ready ? "default" : "primary"}
                     disabled={downloading}
                     onClick={() => model.updateModel()}
                 >
-                    {downloading ? "Downloading…" : "Update model"}
+                    {downloading ? "Downloading…" : ready ? "Update model" : "Load model"}
                 </Button>
             </Panel>
 

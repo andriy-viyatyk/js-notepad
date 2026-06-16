@@ -62,6 +62,7 @@ export const monokai: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#66d9ef",
+        "--color-misc-link": "#afe9f1",
         "--color-misc-green": "#a6e22e",
         "--color-misc-red": "#f92672",
         "--color-misc-yellow": "#e6db74",

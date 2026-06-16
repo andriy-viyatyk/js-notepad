@@ -53,10 +53,13 @@ toml = "0.8"                    # config write-back (figment reads but does not 
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 
 # --- US-657: embedding engine ----------------------------------------------
-# pyke ONNX Runtime bindings (2.0). `download-binaries` fetches a prebuilt runtime (no
-# system install); `directml` enables the DirectML EP on Windows (CPU is the guaranteed
-# fallback). Pinned to the rc — `ort = "2"` would not match a pre-release.
-ort = { version = "=2.0.0-rc.12", features = ["directml"] }
+# pyke ONNX Runtime bindings (2.0). Default features fetch a prebuilt runtime (no system
+# install) with ONNX Runtime statically linked into the binary (no onnxruntime.dll). Inference
+# is CPU-only — the DirectML/GPU EP was benchmarked and removed (US-694: slower than CPU for this
+# small int8 model). The prebuilt runtime still references directml.dll/d3d12.dll/dxgi.dll in the
+# import table (a link-time leftover, never called), satisfied at load from Windows System32 — so
+# no DLLs are bundled with the installer. Pinned to the rc — `ort = "2"` would not match a pre-release.
+ort = { version = "=2.0.0-rc.12" }
 # HuggingFace tokenizer; `fancy-regex` (pure Rust) avoids a C toolchain dep, and we load
 # `tokenizer.json` from disk so the `http`/`hf-hub` downloaders are off.
 tokenizers = { version = "0.23", default-features = false, features = ["fancy-regex"] }

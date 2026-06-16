@@ -23,6 +23,11 @@ extraFiles:
     to: persephone-launcher.exe
   - from: snip-tool/target/release/persephone-snip.exe
     to: persephone-snip.exe
+  # Mneme sidecar. ONNX Runtime is statically linked; the leftover directml.dll
+  # import is resolved from Windows System32 (CPU-only inference, no GPU), so no
+  # DLLs are bundled alongside. Spawned via getMnemeExePath() in mneme-service.ts.
+  - from: mneme/target/release/mneme.exe
+    to: mneme.exe
 
 asar: true
 

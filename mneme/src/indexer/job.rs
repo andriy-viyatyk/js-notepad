@@ -159,4 +159,23 @@ impl JobManager {
         let jobs = self.jobs.lock().unwrap();
         jobs.get(root).map(|j| j.progress.lock().unwrap().clone())
     }
+
+    /// Cancel any in-flight reconcile for `root` and block until the pass exits, then forget the
+    /// job. Used by `remove_root` before deleting the on-disk `.mneme` folder: the running pass
+    /// holds the `RootIndex` (and its SQLite handle), so we must stop it and wait for it to release
+    /// the run-lock before the handle can be dropped and the folder deleted. No-op if the root
+    /// never reconciled.
+    pub fn cancel_and_wait(&self, root: &str) {
+        let job = { self.jobs.lock().unwrap().get(root).cloned() };
+        if let Some(job) = job {
+            // Stop a coalesced pass from looping into another run, then cancel the active pass —
+            // reconcile_job polls the token between every file/document, so it returns promptly.
+            job.rerun.store(false, Ordering::SeqCst);
+            job.cancel.lock().unwrap().cancel();
+            // Acquiring the run-lock means the in-flight pass released it (reconcile_job returned);
+            // we only need the wait, so drop the guard immediately.
+            drop(job.run_lock.lock().unwrap_or_else(|p| p.into_inner()));
+        }
+        self.jobs.lock().unwrap().remove(root);
+    }
 }

@@ -58,6 +58,10 @@ class ApiCalls implements Api {
         return executeOnce<string>(Endpoint.getAssetsPath, fileName);
     };
 
+    getDataFolder = async () => {
+        return executeOnce<string>(Endpoint.getDataFolder);
+    };
+
     maximizeWindow = async () => {
         return executeOnce<void>(Endpoint.maximizeWindow);
     };

@@ -376,9 +376,9 @@ In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/P
 8. onShow / onFocus / saveState
 ```
 
-**Step 3 — navigation-singleton reuse (US-617).** A Pattern B editor that survives navigation (currently only `GitTreeEditorModel`) is a **per-page singleton**: navigating *back* to it must reuse the surviving instance, not build a second one (duplicates would pile up as redundant surviving panels). Two optional `EditorModel` hooks express this — declared like the existing optional `hasTextSelection?()`:
+**Step 3 — navigation-singleton reuse.** A Pattern B editor that survives navigation (`GitTreeEditorModel` and `MnemeRootEditorModel`) is a **per-page singleton**: navigating *back* to it must reuse the surviving instance, not build a second one (duplicates would pile up as redundant surviving panels). Two optional `EditorModel` hooks express this — declared like the existing optional `hasTextSelection?()`:
 
-- `matchesNavigationTarget?(target, filePath)` — the editor returns `true` when a navigation request names the same logical resource it already represents. `GitTreeEditorModel` matches a `git-tree` target whose decoded `repoRoot` equals its own.
+- `matchesNavigationTarget?(target, filePath)` — the editor returns `true` when a navigation request names the same logical resource it already represents. `GitTreeEditorModel` matches a `git-tree` target whose decoded `repoRoot` equals its own; `MnemeRootEditorModel` matches a `mneme-root` target whose root folder equals its own (so a *different* Mneme root opens a second instance + panel).
 - `onNavigationReuse?()` — called after the reused instance is promoted back to main, so it can refresh data that may have gone stale. `GitTreeEditorModel` calls `refresh()`.
 
 `navigatePageTo()` scans `page.editors` for a `matchesNavigationTarget` hit *before* creating an editor. On a hit it promotes that instance with `setMainEditor` (or just refreshes if it is already main) and returns — no duplicate is created. The hooks are generic; any future survivable singleton editor can opt in without touching the page layer.

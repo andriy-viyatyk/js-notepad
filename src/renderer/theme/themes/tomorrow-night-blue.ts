@@ -62,6 +62,7 @@ export const tomorrowNightBlue: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#bbdaff",
+        "--color-misc-link": "#ddedff",
         "--color-misc-green": "#d1f1a9",
         "--color-misc-red": "#ff9da4",
         "--color-misc-yellow": "#ffeead",

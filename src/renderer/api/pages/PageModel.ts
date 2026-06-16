@@ -507,6 +507,32 @@ export class PageModel implements IPageHost {
             this.ensureSecondaryViewsModel().setStateQuiet({ open: true });
         }
         this._maybeAutoInitExplorer();
+        this._enforceActivePanelExpanded();
+    }
+
+    /** Invariant: whenever the sidebar has panels, exactly one is expanded — no
+     *  empty sidebar space. If the current `activePanel` doesn't resolve to a
+     *  present panel (e.g. the seed "explorer" on a page with no Explorer, or the
+     *  previously-active panel's editor was detached), expand the first available
+     *  panel. `panelEditors` orders Explorer first, so an Explorer (when present)
+     *  is preferred; otherwise the next panel (Link/Mneme/…) is expanded.
+     *  No-op when there are no panels — leaving the seed untouched so a last-panel
+     *  detach doesn't resurrect the sidebar. */
+    private _enforceActivePanelExpanded(): void {
+        const panels: { key: string; panelId: string }[] = [];
+        for (const e of this.panelEditors) {
+            const views = (e.state.get() as { secondaryView?: string[] }).secondaryView ?? [];
+            for (const pId of views) panels.push({ key: panelKey(e.id, pId), panelId: pId });
+        }
+        if (!panels.length) return; // no panels — nothing to keep expanded
+
+        const active = parsePanelKey(this.activePanel);
+        const resolves = active.editorId
+            ? panels.some((p) => p.key === this.activePanel)
+            : panels.some((p) => p.panelId === active.panelId);
+        if (resolves) return;
+
+        this.setActivePanel(panels[0].key);
     }
 
     /** When the sidebar is mandatory (a panel editor like Links is present) and

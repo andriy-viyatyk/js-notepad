@@ -148,7 +148,7 @@ Targeted deep-dive into niche candidates and reusable search engines:
 - **US-669** — *(Mneme, Rust + US-664 editor)* Async long-running ops + live progress: `wiki_add_root` returns immediately and indexes in the background (today's blocking reconcile times out on large wikis), and `wiki_model_update` returns immediately and downloads in the background (today's blocking download times out on the ~340 MB model). Both surface progress via `wiki_status` — per-root `reindex {phase,processed,total}` and `model.download {phase,bytesDone,bytesTotal}` — shown live in the US-664 editor. **Also** adds a default Mneme **log file** (truncated each start, under the data dir) for troubleshooting. *(Design locked — ready for implementation.)*
 
 ### Phase 6 — Installer + first release
-- **US-665** — Ship it: electron-builder `extraFiles` (mneme.exe + onnxruntime/DirectML DLLs), CI `cargo build --release`, model download-on-first-enable wiring, release process.
+- **US-665** — Ship it: electron-builder `extraFiles` adds `mneme.exe` (ONNX Runtime statically linked; no DLLs bundled — the leftover `directml.dll` import is satisfied from Windows System32, CPU-only inference). CI `cargo build --release` and first-run download routing (US-698) already in place; publish the `mneme-models-v1` model release; release process.
 
 ### Backlog (deferred — not in the first release)
 Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for networked/Azure HTTP; Azure container + Azure OpenAI embedder; multi-type / code indexing (`ext`); frontmatter `created` backfill; per-client tool scoping.
@@ -205,6 +205,12 @@ Persephone search-UI panel + filter chips; timeline view UI; bearer/OAuth for ne
 | [US-677](../tasks/US-677-mneme-config-redesign/README.md) | P5 · Mneme config editor — single-page redesign + toolbar cleanup | Implemented (unreviewed) |
 | [US-669](../tasks/US-669-mneme-async-add-root-indexing/README.md) | P5 · Mneme async long-running ops + live progress (add-root, model download, log file) | Implemented (unreviewed) |
 | [US-688](../tasks/US-688-mneme-tree-cross-root-dnd/README.md) | P4 · Mneme tree own drag-drop (intra-root move + cross-root / cross-window copy) — **follow-up to US-675** | Implemented (unreviewed) |
+| [US-689](../tasks/US-689-mneme-small-enhancements/README.md) | Small enhancements (Log button → opens mneme.log in Monaco; +`getDataFolder` IPC) | Implemented (unreviewed) |
+| [US-690](../tasks/US-690-epic032-review/README.md) | Epic completion · code review (`/review`, TS side; Rust = build/test gate) | Done |
+| [US-691](../tasks/US-691-epic032-document/README.md) | Epic completion · developer docs (`/document`) | Done |
+| [US-692](../tasks/US-692-epic032-userdoc/README.md) | Epic completion · user docs (`/userdoc`) | Done |
+| [US-693](../tasks/US-693-mneme-async-apply-filters/README.md) | P5 · Bug · make "Apply & reindex" async (non-blocking) | Done |
+| [US-694](../tasks/US-694-mneme-adaptive-gpu-embedding/README.md) | P7 · CPU-only embedding (GPU/DirectML benchmarked & removed) + folder-path opens in Explorer | Implemented (unreviewed) |
 | US-665 | P6 · Installer + first release | Planned |
 
 ## Notes

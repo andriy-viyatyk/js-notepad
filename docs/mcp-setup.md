@@ -2,6 +2,8 @@
 
 persephone includes a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows AI agents to control the application — execute scripts, create and read pages, and more.
 
+> **Two separate servers:** this page covers the **app-control** server (drive Persephone itself). The optional [Mneme knowledge base](./mneme.md) exposes its *own* MCP server on a different port for reading and maintaining a document store. They are configured independently and can both run at once.
+
 ## Quick Start
 
 1. Open persephone Settings (`Ctrl+,` or Settings tab)

@@ -112,17 +112,33 @@ fn log_path(cli: &Cli) -> Option<PathBuf> {
         .map(|d| d.join("mneme.log"))
 }
 
-/// Initialize tracing: always to stderr (the existing `[Mneme]` capture), and — when `log_file` is
-/// set — additionally to a truncating file layer so both sinks receive the same events.
+/// Initialize tracing. stderr is captured by the spawning app (Persephone, the `[Mneme]` console
+/// lines); when a `log_file` is set it additionally feeds a truncating file layer.
+///
+/// To keep the host console clean, stderr is capped at WARN (warnings + errors only) whenever the
+/// file sink is present — `mneme.log` keeps the full INFO+ record, so nothing is lost. With no file
+/// sink (one-shot CLI commands, or the file failed to open) or `--verbose`, stderr stays at the full
+/// level so logs aren't dropped on the floor.
 fn init_logging(verbose: bool, log_file: Option<PathBuf>) {
+    use tracing_subscriber::filter::LevelFilter;
     use tracing_subscriber::prelude::*;
+    use tracing_subscriber::Layer;
 
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new(if verbose { "debug" } else { "info" }));
-    let stderr_layer = tracing_subscriber::fmt::layer().with_writer(std::io::stderr);
+    let writer = log_file.and_then(open_log_writer);
+
+    let stderr_cap = if verbose || writer.is_none() {
+        LevelFilter::TRACE // no extra cap — show everything the global filter allows
+    } else {
+        LevelFilter::WARN // quiet host console: warnings + errors only (full detail in mneme.log)
+    };
+    let stderr_layer = tracing_subscriber::fmt::layer()
+        .with_writer(std::io::stderr)
+        .with_filter(stderr_cap);
     let registry = tracing_subscriber::registry().with(filter).with(stderr_layer);
 
-    match log_file.and_then(open_log_writer) {
+    match writer {
         Some(writer) => registry
             .with(tracing_subscriber::fmt::layer().with_ansi(false).with_writer(writer))
             .init(),

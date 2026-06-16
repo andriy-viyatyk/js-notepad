@@ -6,7 +6,7 @@ import {
     JavascriptIcon, LinkIcon, NotebookIcon, TodoIcon, TypescriptIcon,
 } from "../../theme/language-icons";
 import { GlobeIcon, McpIcon, MemoryIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
-import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
+import { DEFAULT_BROWSER_COLOR, MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 
 // =============================================================================
 // Types
@@ -139,7 +139,7 @@ const staticItems: CreatableItem[] = [
     {
         id: "mneme-config",
         label: "Mneme",
-        icon: React.createElement(MemoryIcon),
+        icon: React.createElement(MemoryIcon, { color: MEMORY_ICON_COLOR }),
         create: () => { pagesModel.showMnemeConfigPage(); },
         category: "tool",
     },

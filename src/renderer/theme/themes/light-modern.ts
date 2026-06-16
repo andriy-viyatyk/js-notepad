@@ -61,6 +61,7 @@ export const lightModern: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#005FB8",
+        "--color-misc-link": "#1e4d7a",
         "--color-misc-green": "#1A7F37",
         "--color-misc-red": "#CF222E",
         "--color-misc-yellow": "#9A6700",

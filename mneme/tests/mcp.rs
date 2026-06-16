@@ -62,6 +62,20 @@ fn setup(name: &str) -> (Arc<ServerState>, PathBuf, PathBuf) {
     (state, root, cfg_path)
 }
 
+/// Poll `status` until the (single) root's `doc_count` settles at `expected`, or panic after a
+/// short timeout. `root_config` SET reindexes in the background (US-693), so callers that change
+/// filters must wait for the reconcile rather than reading `doc_count` synchronously.
+async fn wait_doc_count(state: &Arc<ServerState>, expected: usize) {
+    for _ in 0..200 {
+        if state.status().await.unwrap().roots[0].doc_count == expected {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    let got = state.status().await.unwrap().roots[0].doc_count;
+    panic!("doc_count did not reach {expected} within the timeout (last = {got})");
+}
+
 fn write_params(path: &str, content: &str) -> WriteParams {
     WriteParams {
         path: path.to_string(),
@@ -364,6 +378,11 @@ async fn add_remove_list_roots_persists_config() {
     assert_eq!(roots.roots.len(), 2);
     let saved = std::fs::read_to_string(&cfg_path).unwrap();
     assert!(saved.contains("extra"), "config persisted the new root");
+    // add_root opens/creates the per-root index, so the `.mneme` folder exists on disk.
+    assert!(
+        extra.join(".mneme").exists(),
+        "add_root created the .mneme index folder"
+    );
 
     state
         .remove_root(RemoveRootParams {
@@ -372,6 +391,11 @@ async fn add_remove_list_roots_persists_config() {
         .await
         .unwrap();
     assert_eq!(state.list_roots().await.unwrap().roots.len(), 1);
+    // remove_root deletes the now-orphaned on-disk index (the root folder itself is left alone).
+    assert!(
+        !extra.join(".mneme").exists(),
+        "remove_root deleted the .mneme index folder"
+    );
 }
 
 #[tokio::test]
@@ -409,13 +433,14 @@ async fn root_config_set_filters_reindex_and_persist() {
         .unwrap();
     assert_eq!(r.include, vec!["a.md".to_string()]);
     assert!(r.ignore.is_empty(), "omitted ignore is kept");
-    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 1);
+    // SET reindexes in the background (US-693) — wait for the reconcile to drop `b.md`.
+    wait_doc_count(&state, 1).await;
 
-    // Persisted to the config file.
+    // Persisted to the config file (persist is synchronous; happens before the call returns).
     let saved = std::fs::read_to_string(&cfg_path).unwrap();
     assert!(saved.contains("a.md"), "config persisted the new include: {saved}");
 
-    // Widen back to `*.md` → `b.md` (still on disk) is re-indexed.
+    // Widen back to `*.md` → `b.md` (still on disk) is re-indexed in the background.
     state
         .root_config(RootConfigParams {
             root: "wiki".to_string(),
@@ -424,7 +449,7 @@ async fn root_config_set_filters_reindex_and_persist() {
         })
         .await
         .unwrap();
-    assert_eq!(state.status().await.unwrap().roots[0].doc_count, 2);
+    wait_doc_count(&state, 2).await;
 }
 
 #[tokio::test]

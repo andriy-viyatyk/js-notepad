@@ -6,7 +6,7 @@ export const TOR_BROWSER_COLOR = "#7D4698";
 
 /** Memory-chip (Mneme) page-tab icon — a warm green (green-dominant with a
  *  touch of red). Fixed across themes, like the browser-profile colors. */
-export const MEMORY_ICON_COLOR = "yellowgreen";
+export const MEMORY_ICON_COLOR = "#9ACD32";
 
 /** Predefined color palette — uses named browser colors for simplicity.
  *  Shared across features: todo tags, browser profiles. */

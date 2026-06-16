@@ -42,6 +42,10 @@ class MnemeStatusModel {
     private pollTimer: ReturnType<typeof setInterval> | null = null;
     private probing = false;
     private initialized = false;
+    /** One-shot per enabled session: once the sidecar is up and connected and a
+     *  probe confirms no embedding model is provisioned, route the user to the
+     *  config editor (where they can download it). Re-armed when Mneme is disabled. */
+    private autoOpenedConfig = false;
 
     /** Wire settings + sidecar events. Call once at app startup. */
     init(): void {
@@ -52,7 +56,10 @@ class MnemeStatusModel {
 
         settings.onChanged.subscribe(({ key }: { key: string }) => {
             if (key !== "mneme.enabled") return;
-            this.state.update((s) => { s.enabled = !!settings.get("mneme.enabled"); });
+            const enabled = !!settings.get("mneme.enabled");
+            this.state.update((s) => { s.enabled = enabled; });
+            // Re-arm the auto-open so a fresh enable can route to the config editor again.
+            if (!enabled) this.autoOpenedConfig = false;
             this.sync();
         });
 
@@ -74,6 +81,13 @@ class MnemeStatusModel {
     /** Re-probe model health now (called by the editor after model-affecting
      *  actions so the indicator updates without waiting for the poll). */
     refresh = (): void => { void this.probe(); };
+
+    /** Open the Mneme config editor (focuses an existing one — `addPage` dedupes
+     *  by the fixed config page id). Fire-and-forget; lazy import avoids a startup
+     *  import cycle. */
+    private openConfigEditor(): void {
+        void import("./pages").then(({ pagesModel }) => pagesModel.showMnemeConfigPage());
+    }
 
     private applySidecar(running: boolean, url: string): void {
         this.state.update((s) => {
@@ -118,6 +132,16 @@ class MnemeStatusModel {
             const status = parseToolResult<WikiStatus>(result);
             const ready = isModelReady(status);
             this.state.update((s) => { s.modelReady = ready; });
+            // Mneme without an embedding model is useless, so route the user to the
+            // config editor where they can download it. A non-null `status` means this
+            // is a definitive read (not a transient probe failure). Once per session
+            // (re-armed on disable) → pops once per Persephone start while unprovisioned.
+            // `addPage` dedupes by the fixed config page id, so this focuses an existing
+            // config page rather than duplicating it.
+            if (status && !ready && !this.autoOpenedConfig) {
+                this.autoOpenedConfig = true;
+                setTimeout(() => this.openConfigEditor(), 500);
+            }
         } catch {
             // Probe failed (or timed out) — treat the model as not ready; the shared
             // connection's auto-reconnect handles recovery.

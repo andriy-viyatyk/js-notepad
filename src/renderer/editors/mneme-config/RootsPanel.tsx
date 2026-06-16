@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Panel } from "../../uikit/Panel";
+import { Spacer } from "../../uikit/Spacer";
 import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
 import { Input } from "../../uikit/Input";
@@ -90,9 +91,18 @@ function RootRow({ model, root }: RootRowProps) {
     return (
         <Panel direction="column" gap="xs" paddingY="sm" border rounded="md" paddingX="md">
             <Panel direction="row" align="center" gap="md">
-                <Text size="md" bold>{root.name}</Text>
-                <Text size="md" color="light" truncate>{root.folder}</Text>
-                <Panel flex={1} />
+                <Text size="md" bold variant="link" onClick={() => model.openRoot(root.folder)}>{root.name}</Text>
+                <Text
+                    size="md"
+                    color="light"
+                    truncate
+                    hoverUnderline
+                    title={`Open in Explorer: ${root.folder}`}
+                    onClick={() => model.showRootInExplorer(root.folder)}
+                >
+                    {root.folder}
+                </Text>
+                <Spacer />
                 <Text size="md" color="light">{root.docCount} docs</Text>
                 <Text size="md" color="light">{formatBytes(root.indexBytes)}</Text>
             </Panel>

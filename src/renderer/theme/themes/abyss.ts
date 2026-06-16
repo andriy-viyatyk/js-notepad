@@ -62,6 +62,9 @@ export const abyss: ThemeDefinition = {
 
         // misc
         "--color-misc-blue": "#6688cc",
+        // text.default is also #6688cc, so a 50/50 blend would be invisible —
+        // brighten instead so links stand out against the body text.
+        "--color-misc-link": "#9fc4f5",
         "--color-misc-green": "#22aa44",
         "--color-misc-red": "#ff4444",
         "--color-misc-yellow": "#ddbb88",

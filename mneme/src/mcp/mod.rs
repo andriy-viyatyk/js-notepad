@@ -656,13 +656,41 @@ impl ServerState {
     pub async fn remove_root(self: &Arc<Self>, p: RemoveRootParams) -> Result<()> {
         let st = Arc::clone(self);
         blocking(move || {
+            // Capture the folder before unregistering — registry.remove() drops the config entry.
+            let folder = {
+                let store = st.store.read().unwrap();
+                store
+                    .registry()
+                    .configs()
+                    .iter()
+                    .find(|c| c.name == p.root)
+                    .map(|c| c.folder.clone())
+            };
             {
                 st.store.write().unwrap().registry_mut().remove(&p.root)?;
             }
             {
+                // Cancels any in-flight reconcile + drops the RootIndex Arc → closes the SQLite DB,
+                // so the on-disk index folder can be deleted below.
                 st.index.lock().unwrap().remove_root(&p.root)?;
             }
-            persist_roots(&st)
+            persist_roots(&st)?;
+            // Delete the now-orphaned on-disk index. Best-effort: the index is derived (rebuilt when
+            // the folder is re-added), so a failure that outlasts the retry (e.g. a stubborn file
+            // lock) is logged to the Mneme log and skipped — the root is unregistered regardless.
+            if let Some(folder) = folder {
+                let mneme = folder.join(".mneme");
+                if mneme.exists() {
+                    if let Err(e) = remove_dir_all_retry(&mneme) {
+                        tracing::warn!(
+                            root = %p.root,
+                            dir = %mneme.display(),
+                            "removed root but failed to delete index folder: {e}"
+                        );
+                    }
+                }
+            }
+            Ok(())
         })
         .await
     }
@@ -712,16 +740,16 @@ impl ServerState {
                     .registry_mut()
                     .update_filters(&p.root, new_include.clone(), new_ignore.clone())?
             };
-            let handle = {
-                st.index
-                    .lock()
-                    .unwrap()
-                    .update_root_filters(&p.root, new_include, new_ignore)?
-            };
+            {
+                let mut index = st.index.lock().unwrap();
+                index.update_root_filters(&p.root, new_include, new_ignore)?;
+                // Re-walk with the new filters in the **background** and return immediately —
+                // newly-matching files are indexed and no-longer-matching ones dropped. A large
+                // root would outrun the MCP request timeout (and lock the UI) under a synchronous
+                // reconcile; progress is observable via `status.roots[].reindex`. Mirrors `add_root`.
+                index.spawn_reconcile(&p.root);
+            }
             persist_roots(&st)?;
-            // Re-walk with the new filters (adds newly-included docs, deletes excluded ones).
-            st.jobs
-                .reconcile_blocking(&handle, &cfg, &st.embed, CancellationToken::new(), |_| {})?;
 
             Ok(RootConfigResult {
                 name: cfg.name,
@@ -1014,6 +1042,25 @@ fn persist_roots(st: &Arc<ServerState>) -> Result<()> {
     let mut config = st.config.lock().unwrap();
     config.roots = configs;
     config::save(&st.config_path, &config)
+}
+
+/// Recursively delete a directory, retrying briefly on a transient lock. On Windows a SQLite handle
+/// that was just closed (or a reconcile thread dropping its `Arc` a moment after `remove_root`
+/// drained it) can keep the index DB locked for an instant (`os error 32`); a few short retries
+/// clear that window. Returns the last error if the lock outlasts the retries.
+fn remove_dir_all_retry(dir: &std::path::Path) -> std::io::Result<()> {
+    let mut attempt = 0;
+    loop {
+        match std::fs::remove_dir_all(dir) {
+            Ok(()) => return Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(e) if attempt < 10 && e.raw_os_error() == Some(32) => {
+                attempt += 1;
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 fn non_empty(s: String) -> Option<String> {
