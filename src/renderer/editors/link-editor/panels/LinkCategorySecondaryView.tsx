@@ -30,8 +30,8 @@ function LinkCategorySecondaryViewBody({
     // from editor.isMain (US-600 / EPIC-029 Concern 2b).
     const isMainEditor = useOptionalState(editor.page?.state, () => editor.isMain, false);
 
-    // Track host modified flag for the Save button (only visible in
-    // standalone-secondary mode when modifications are pending).
+    // Track host modified flag for the Save button (visible whenever
+    // modifications are pending, main or demoted).
     const host = editor.host;
     const modified = useSyncExternalStore(
         host ? (cb) => host.state.subscribe(cb) : () => () => undefined,
@@ -53,7 +53,10 @@ function LinkCategorySecondaryViewBody({
         editor.page?.promoteSecondaryToMain?.(editor);
     }, [editor]);
 
-    const actions = !isMainEditor && (
+    // Save shows whenever there are pending modifications — whether the editor
+    // is main or demoted to a panel (US-718). "Show links" only when demoted
+    // (nothing to return to when already main).
+    const actions = (modified || !isMainEditor) && (
         <>
             {modified && (
                 <IconButton
@@ -64,13 +67,15 @@ function LinkCategorySecondaryViewBody({
                     onClick={handleSave}
                 />
             )}
-            <IconButton
-                name="link-category-secondary-show-main"
-                size="sm"
-                title="Show links"
-                icon={<ChevronRightIcon width={14} height={14} />}
-                onClick={handleShowMain}
-            />
+            {!isMainEditor && (
+                <IconButton
+                    name="link-category-secondary-show-main"
+                    size="sm"
+                    title="Show links"
+                    icon={<ChevronRightIcon width={14} height={14} />}
+                    onClick={handleShowMain}
+                />
+            )}
         </>
     );
 

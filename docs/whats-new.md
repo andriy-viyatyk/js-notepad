@@ -28,6 +28,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Link editor — panel selection after link navigation** — Clicking a link in the Tags or Collections panel and then navigating to it no longer breaks subsequent panel selection. Previously a workaround was needed to restore normal panel behavior after such a navigation.
 
+- **Link editor — no spurious "save changes?" dialog when clicking links** — Clicking a link inside the Collections, Tags, or Hostnames sidebar panels no longer triggers a "Do you want to save changes?" dialog. The Link editor lives in the sidebar, so navigating from it never discards anything; the dialog now only appears when you genuinely close the Link editor tab.
+
+- **Link editor — unsaved collection edits survive navigation** — A modified Link editor (with unsaved changes to the collection) now persists across any navigation event, including opening an unrelated file from Windows Explorer or switching to a different tab. The editor remains in the sidebar until you explicitly save or close its panel — unsaved edits are no longer silently discarded.
+
+- **Link editor — Save button visible in both main and sidebar modes** — The Collections panel's **Save** button now appears whenever the editor has unsaved changes, regardless of whether the editor is displayed as the main tab content or demoted to a sidebar panel. Previously the Save button was only shown in the demoted (sidebar-only) state.
+
 ---
 
 ## Version 4.0.4

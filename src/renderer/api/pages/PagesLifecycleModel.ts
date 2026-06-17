@@ -714,7 +714,17 @@ export class PagesLifecycleModel {
         if (!page) return false;
 
         const oldEditor = page.mainEditor;
-        if (oldEditor) {
+        // Skip the "save changes?" prompt when the current main editor will
+        // survive this navigation (demote to a sidebar panel) rather than be
+        // released — nothing is being discarded. A Link editor navigating to
+        // one of its own links, or any modified Link editor, stays on the page
+        // (US-718). The prompt still fires on a genuine close (separate path).
+        // The survives check reads `mainEditorInstance` (the EditorModel subclass
+        // that carries the override); `confirmRelease` is intentionally called on
+        // `oldEditor` (the unwrapped host) so it routes to the host's save dialog
+        // for text-bearing editors, matching the pre-existing pattern.
+        const survives = page.mainEditorInstance?.survivesNavigation(options?.sourceLink) ?? false;
+        if (oldEditor && !survives) {
             const released = await oldEditor.confirmRelease();
             if (!released) return false;
         }

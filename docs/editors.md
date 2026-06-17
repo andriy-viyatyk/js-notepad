@@ -397,6 +397,10 @@ For `.link.json` files — a structured link manager:
   - **Drop onto Mneme** — drag a file link from the Link editor onto a Mneme knowledge-base tree node to copy that file into Mneme. Non-file links (web URLs) are ignored when dropped onto Mneme.
 - **Tag editing in tooltips** — Hover over any link to see its tooltip. The tooltip includes a tag section: all available tags appear as clickable badges (highlighted when assigned to the link). Click a badge to toggle the tag on or off. An inline input at the end of the badge row lets you type a new tag name and press Enter to add it.
 - **Pinned links panel** — pin important links for quick access; pinned panel appears on the right edge, auto-hides when empty, resizable, with drag-to-reorder support. Double-click a pinned link to open it. Right-click for a context menu: Edit, Open in Default Browser, browser profiles, Open in Incognito, Copy URL, Unpin, Delete. Hover a pinned link to see a rich tooltip with title, URL, and thumbnail image.
+- **Save behavior and navigation safety**
+  - The **Collections** panel shows a **Save** button whenever the collection has unsaved changes — whether the Link editor is the active main-area tab or demoted to a sidebar-only panel (via the ⇄ swap button).
+  - A modified Link editor (with pending collection changes) is preserved across any navigation: opening a file from Windows Explorer, switching tabs, or clicking links in the Tags, Collections, or Hostnames panels. The editor stays in the sidebar until you save or explicitly close its panel.
+  - The "Do you want to save changes?" dialog appears only when you close the Link editor tab itself, not when navigating within or away from it while it remains in the sidebar.
 - **Session state persistence** — selected category, tag, hostname, and expanded panel are remembered across app restarts
 - Can switch to Monaco for raw JSON editing
 

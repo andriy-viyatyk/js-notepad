@@ -9,6 +9,7 @@ import type { IContentHost } from "./IContentHost";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import type { IEditorState } from "../../../shared/types";
+import type { ILinkData } from "../../../shared/link-data";
 import type { MenuItem } from "../../uikit";
 
 export interface EditorStateBase extends Omit<Partial<IEditorState>, "id" | "title" | "modified"> {
@@ -134,6 +135,15 @@ export abstract class EditorModel<
      *  when the page's mainEditor changes. */
     onMainEditorChanged(_newMainEditor: EditorModel | null): void {
         // Override in subclasses.
+    }
+
+    /** Will this editor remain on the page across the incoming navigation
+     *  (e.g. demote to a sidebar panel) rather than be released? When true,
+     *  `navigatePageTo` skips the "save changes?" prompt — nothing is being
+     *  lost. `sourceLink` is the link being navigated to (its `sourceId`
+     *  identifies the navigation origin). Base: false. */
+    survivesNavigation(_sourceLink?: ILinkData): boolean {
+        return false;
     }
 
     /** Called when `activePanel` changes to one this editor owns. */

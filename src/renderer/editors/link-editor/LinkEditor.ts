@@ -377,23 +377,34 @@ export class LinkEditor
      *  stale Categories/Tags/Hostnames panels don't leak into the new file's
      *  SecondaryViews. Mirrors `ArchiveEditorModel.beforeNavigateAway`. */
     beforeNavigateAway(newModel: EditorModel): void {
-        if (this._isOpenedFromMe(newModel)) {
+        // A modified editor survives any navigation so unsaved work is never
+        // lost (US-718); an unmodified one survives only own-link navigation.
+        if (this.modified || this._isOpenedFromMe(newModel)) {
             return;
         }
         this.secondaryView = undefined;
     }
 
     /** On demote, keep the full panel set (Concern 4 — no reshape). Evicts
-     *  only when the new main wasn't opened from us (external navigation). */
+     *  only when the editor is unmodified AND the new main wasn't opened from
+     *  us (external navigation). A modified editor always keeps its panels. */
     onMainEditorChanged(newMainEditor: EditorModel | null): void {
         if (newMainEditor === this) return;
         if (newMainEditor === null) return;
         if (!this.contributesPanels()) return;
-        if (!this._isOpenedFromMe(newMainEditor)) {
+        if (!this.modified && !this._isOpenedFromMe(newMainEditor)) {
             this.secondaryView = undefined;
             return;
         }
         this.secondaryView = LINK_PANELS;
+    }
+
+    /** A modified Link editor survives any navigation (its panels stay; unsaved
+     *  work is preserved); an unmodified one survives own-link navigation. In
+     *  both cases the editor is not released, so the navigation save-prompt is
+     *  skipped (US-718). */
+    survivesNavigation(sourceLink?: ILinkData): boolean {
+        return this.modified || this.isOwnNavigationSourceId(sourceLink?.sourceId);
     }
 
     /** Sidebar active-panel changed to one we own → sync `expandedPanel` (drives the
@@ -422,7 +433,15 @@ export class LinkEditor
      *  on the editor's own state and there is no content host) keep the Link
      *  panels instead of dropping them. */
     private _isOpenedFromMe(model: EditorModel): boolean {
-        const sourceId = model.getNavigationSourceId();
+        return this.isOwnNavigationSourceId(model.getNavigationSourceId());
+    }
+
+    /** True when a navigation `sourceId` originated from this LinkEditor's own
+     *  UI — its own id, or a panel click (`link-category` / `link-tag` /
+     *  `link-hostname`). Single source of truth for own-link detection,
+     *  shared by `_isOpenedFromMe` (reads a model) and `survivesNavigation`
+     *  (reads the incoming `sourceLink`). */
+    private isOwnNavigationSourceId(sourceId?: string): boolean {
         if (!sourceId) return false;
         if (sourceId === this.id) return true;
         return (

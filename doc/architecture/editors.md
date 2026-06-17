@@ -85,6 +85,7 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
     setPage(page: IPageHost | null): void;
     beforeNavigateAway(newEditor: EditorModel): void;
     onMainEditorChanged(newMainEditor: EditorModel | null): void;
+    survivesNavigation(sourceLink?: ILinkData): boolean;  // true → skip save-prompt (editor stays on page)
 
     // Persistence
     getDescriptor(): HostDescriptor;

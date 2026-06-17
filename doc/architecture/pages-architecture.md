@@ -87,6 +87,7 @@ EditorModel (the content inside a page — replaceable during navigation)
 ├── modified: boolean                   // has unsaved changes
 ├── setPage(page) / onMainEditorChanged() // lifecycle hooks
 ├── beforeNavigateAway(newEditor)       // secondary survival check
+├── survivesNavigation(sourceLink)      // skip save-prompt when editor stays on page
 ├── restore() / dispose()               // editor lifecycle
 └── getRestoreData() / applyRestoreData() // serialization
 ```
@@ -367,7 +368,7 @@ In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/P
 
 ```
 1. page = findPage(pageId)                    // PageModel stays in arrays
-2. oldEditor.confirmRelease()                 // check for unsaved changes
+2. survivesNavigation? skip confirmRelease    // else check for unsaved changes
 3. reuse a surviving navigation-singleton?    // short-circuit (see below)
 4. ... create newEditor (with sourceLink) ...
 5. await page.setMainEditor(newEditor)        // full lifecycle swap (see below)
@@ -375,6 +376,8 @@ In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/P
 7. auto-select preview editor (if textFile)
 8. onShow / onFocus / saveState
 ```
+
+**Step 2 — save-prompt gate.** `confirmRelease()` prompts to save unsaved changes, but it fires *before* the page knows whether the old editor will actually be released. An editor that demotes to a sidebar panel instead of being disposed (see Step 4) is not losing anything, so prompting would be spurious. The optional `survivesNavigation(sourceLink)` hook lets the old editor declare it will stay on the page; when it returns `true`, the prompt is skipped. The base implementation returns `false` (prompt as before). `LinkEditor` returns `true` when the editor is modified (a dirty collection survives *any* navigation so unsaved work is never lost) or when the incoming `sourceLink.sourceId` identifies one of its own panel clicks — the same `modified || own-source` predicate that drives its `beforeNavigateAway` / `onMainEditorChanged` panel-survival decision, keeping the gate and the survival outcome consistent. The save prompt still fires on a genuine close, which routes through `confirmRelease()` on a separate path.
 
 **Step 3 — navigation-singleton reuse.** A Pattern B editor that survives navigation (`GitTreeEditorModel` and `MnemeRootEditorModel`) is a **per-page singleton**: navigating *back* to it must reuse the surviving instance, not build a second one (duplicates would pile up as redundant surviving panels). Two optional `EditorModel` hooks express this — declared like the existing optional `hasTextSelection?()`:
 
