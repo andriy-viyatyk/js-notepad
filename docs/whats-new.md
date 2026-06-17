@@ -10,6 +10,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Mneme → Link editor drag-and-drop** — You can now drag a document node from the **Mneme tree** (the sidebar panel in the Mneme root or search editor) and drop it onto a **Link editor** — either onto a category in the Collections panel or onto the main links area. A working `mneme://` link is created automatically; clicking it opens the document in Persephone. Previously, dropping a Mneme node onto a Link editor did nothing.
+
+- **Mneme tree — Copy Path yields a `mneme://` URL** — Right-clicking a node in the Mneme tree and choosing **Copy Path** now copies the full `mneme://{root}/{path}` URL, not a bare filesystem path. Paste the URL into any editor, message, or script to get a clickable link that opens the document directly.
+
+- **Link editor — Mneme links no longer grouped under a hostname** — The **Hostnames** sidebar panel in the Link editor now correctly excludes `mneme://` links. Previously these links were grouped under a spurious `mneme` hostname entry that served no useful purpose.
+
 - **Link editor — richer drag-and-drop** — The Collections panel and the link list now accept more drag sources and handle them more precisely:
 
   - **Drop files/folders onto a Collections category** — Drag one or more files (or folders) from Windows Explorer directly onto a category folder in the **Collections** sidebar panel. Each file becomes a new link under that category; a dropped folder imports all of its files (including those in subfolders) into that same category — the folder's internal structure is flattened, not recreated as sub-categories. A confirmation dialog appears when more than 100 files would be imported.

@@ -7,6 +7,7 @@ import type {
 import type { ISubscriptionObject } from "../../api/types/events";
 import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import { mnemeConnection } from "../../api/mneme-connection";
+import { toMnemeAddress, toMnemeHref } from "../mneme-link";
 import { parseToolResult } from "../../editors/mneme-config/mnemeTypes";
 import { fpExtname } from "../../core/utils/file-path";
 import { TraitTypeId } from "../../core/traits";
@@ -28,10 +29,15 @@ interface MnemeTreeEntry {
  * sidecar then returns only the requested node + its immediate children — the
  * tree view loads deeper levels lazily on expand). File nodes open as
  * `mneme://{root}/{path}` documents through the existing open pipeline;
- * directories are expand-only (the provider is not navigable). All addresses
- * are scheme-less `{root}/{path}` (the `mneme://` prefix is added only by
- * `getNavigationUrl` for files) so they stay consistent with the tree view's
- * `category + "/" + title` child-path reconstruction.
+ * directories are expand-only (the provider is not navigable).
+ *
+ * Every node `href` this provider emits is the canonical qualified
+ * `mneme://{root}/{path}` link, so a dragged node carries an openable URL into
+ * a Link editor / clipboard. This provider is the single translation boundary:
+ * it strips the scheme to the plain `{root}/{path}` *address* (`toMnemeAddress`)
+ * at every MCP tool call, since the tools speak addresses. `category` stays
+ * scheme-less so the tree view's `category + "/" + title` child-path
+ * reconstruction is unaffected.
  *
  * Writable (US-674): `addItem`/`mkdir`/`rename`/`deleteItem` map onto the Mneme
  * MCP tools (`write`/`mkdir`/`rename`/`delete`) over the shared connection — the
@@ -83,7 +89,7 @@ export class MnemeTreeProvider implements ITreeProvider {
         const files: ILink[] = [];
         for (const e of entries) {
             if (e.depth !== childDepth) continue;
-            const href = e.uri.startsWith("mneme://") ? e.uri.slice("mneme://".length) : e.uri;
+            const href = toMnemeHref(e.uri);
             if (e.isDir) {
                 folders.push({ title: e.name, href, category: path, tags: [], isDirectory: true });
             } else {
@@ -103,18 +109,21 @@ export class MnemeTreeProvider implements ITreeProvider {
     }
 
     resolveLink(path: string): string {
-        return path;
+        // Match list()'s canonical form so a freshly-created node's id (its href)
+        // stays stable across the next tree refresh.
+        return toMnemeHref(path);
     }
 
     getNavigationUrl(item: ILink): string {
         // Files open as mneme:// documents; directories expand in place (the
-        // provider is not navigable), so they have no navigation URL.
+        // provider is not navigable), so they have no navigation URL. The href
+        // is already the canonical qualified form.
         if (item.isDirectory) return "";
-        return `mneme://${item.href}`;
+        return item.href;
     }
 
     async getNavigationUrlByHref(href: string): Promise<string> {
-        return `mneme://${href}`;
+        return toMnemeHref(href);
     }
 
     getCategorySegments(category: string): ICategorySegment[] {
@@ -130,16 +139,17 @@ export class MnemeTreeProvider implements ITreeProvider {
 
     // --- Write surface (US-674) — maps onto the Mneme MCP tools ----------------
 
-    /** Create a new (empty) document. `item.href` is the scheme-less `{root}/{path}`
-     *  address the tree view built from `category + "/" + name`. */
+    /** Create a new (empty) document. `item.href` is the canonical `mneme://{root}/{path}`
+     *  the tree view built from `category + "/" + name` via `resolveLink`; the scheme is
+     *  stripped for the `write` tool. */
     async addItem(item: Partial<ILink> & { href: string }): Promise<ILink> {
         const client = this.requireClient();
-        await client.callTool({ name: "write", arguments: { path: item.href, content: "" } });
+        await client.callTool({ name: "write", arguments: { path: toMnemeAddress(item.href), content: "" } });
         const name = item.title || item.href.split("/").pop() || item.href;
         const ext = fpExtname(name).toLowerCase();
         return {
             title: name,
-            href: item.href,
+            href: toMnemeHref(item.href),
             category: item.category ?? "",
             tags: ext ? [ext] : [],
             isDirectory: false,
@@ -149,28 +159,35 @@ export class MnemeTreeProvider implements ITreeProvider {
     /** Create an empty folder (≈ mkdir -p). */
     async mkdir(path: string): Promise<void> {
         const client = this.requireClient();
-        await client.callTool({ name: "mkdir", arguments: { path } });
+        await client.callTool({ name: "mkdir", arguments: { path: toMnemeAddress(path) } });
     }
 
-    /** Rename or move a file or folder (also serves DnD move). Both paths are
-     *  scheme-less `{root}/{path}` addresses. */
+    /** Rename or move a file or folder (also serves DnD move). The `oldPath` arrives as the
+     *  canonical href from the move dispatch and `newPath` as a `category`-derived address;
+     *  both are normalized to the scheme-less form the `rename` tool expects. */
     async rename(oldPath: string, newPath: string): Promise<void> {
         const client = this.requireClient();
-        await client.callTool({ name: "rename", arguments: { from: oldPath, to: newPath } });
+        await client.callTool({
+            name: "rename",
+            arguments: { from: toMnemeAddress(oldPath), to: toMnemeAddress(newPath) },
+        });
     }
 
     /** Delete a file, or a folder and everything under it (the `delete` tool is recursive). */
     async deleteItem(href: string): Promise<void> {
         const client = this.requireClient();
-        await client.callTool({ name: "delete", arguments: { path: href } });
+        await client.callTool({ name: "delete", arguments: { path: toMnemeAddress(href) } });
     }
 
     /** Import dropped files into `targetCategory`. Always `upload` (binary-safe, no
-     *  extension sniffing); the mneme watcher/reconcile indexes any `.md` shortly after. */
+     *  extension sniffing); the mneme watcher/reconcile indexes any `.md` shortly after.
+     *  `targetCategory` may arrive scheme-less (root) or qualified (a folder node's href),
+     *  so it is normalized before building the upload path. */
     async importFiles(items: IFileLink[], targetCategory: string): Promise<void> {
         const client = this.requireClient();
+        const cat = toMnemeAddress(targetCategory);
         for (const item of items) {
-            const path = `${targetCategory}/${item.name}`;
+            const path = `${cat}/${item.name}`;
             const bytes = Buffer.from(await item.getBytes());
             await client.callTool({
                 name: "upload",

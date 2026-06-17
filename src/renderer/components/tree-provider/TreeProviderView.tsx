@@ -202,22 +202,23 @@ export function TreeProviderView(
             model.moveItems(items, dropNode);
             return;
         }
-        // 2. File content present → import/copy (OS file, cross-root Mneme node,
-        //    local-file link). Checked before the link branch so a file-backed target
-        //    copies bytes and a Mneme node (bytes, no usable link href) does not become
-        //    a broken link in a collection.
+        // 2. Target that catalogs links by reference (a link collection) → store the
+        //    dragged item's href. Preferred over byte-copy so any node exposing a
+        //    usable link href — a Mneme document, an http link, a local-file path —
+        //    becomes a proper link in the collection rather than being copied as bytes.
+        //    Only catalog providers implement importLinks; file-backed targets fall
+        //    through to the byte-copy branch below.
+        if (props.provider.importLinks && linkTrait && items.length) {
+            void model.importLinksTo(items, dropNode);
+            return;
+        }
+        // 3. File content present → import/copy bytes into a file-backed target (OS
+        //    file, or a cross-root Mneme node dropped on a folder). A file-backed
+        //    provider has no importLinks, so it lands here.
         const fileLink = traits?.get(FILE_LINK);
         const files = fileLink?.getFiles(payload.data) ?? [];
         if (props.provider.importFiles && files.length) {
             void model.importFiles(files, dropNode);
-            return;
-        }
-        // 3. Cross-source link without file bytes (e.g. an http link from another
-        //    window) → catalog add/move by href. No rename fallback, so a file-backed
-        //    provider (Mneme) simply ignores it instead of renaming a foreign href
-        //    ("unknown root").
-        if (props.provider.importLinks && linkTrait && items.length) {
-            void model.importLinksTo(items, dropNode);
         }
     }, [model, props.provider]);
 

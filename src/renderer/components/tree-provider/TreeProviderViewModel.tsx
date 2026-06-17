@@ -179,6 +179,12 @@ export class TreeProviderViewModel extends TComponentModel<
             const items = filterTreeItems(await provider.list(provider.rootPath));
             let workingTree: TreeProviderNode = {
                 data: {
+                    // The root node's href is the provider's rootPath verbatim. Some
+                    // providers (e.g. Mneme) emit a scheme-qualified href for child
+                    // nodes while keeping rootPath scheme-less — leave this as-is: the
+                    // root is expand-only (never navigated or stored as a link) and all
+                    // equality checks compare against rootPath, so the asymmetry is
+                    // intentional, not a bug to "fix".
                     title: this.props.rootLabel ?? provider.displayName,
                     href: provider.rootPath,
                     category: "",

@@ -375,6 +375,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Mneme tree provider (browse a root like a filesystem; create/rename/delete; drag-drop import) | `/src/renderer/content/tree-providers/MnemeTreeProvider.ts` |
 | Mneme link traits (`MnemeLink`: `LINK` + `FILE_LINK`) | `/src/renderer/content/tree-providers/mnemeLinkTraits.ts` |
 | `mneme-folder://` link format (encode/decode a root) | `/src/renderer/content/mneme-folder-link.ts` |
+| `mneme://` document scheme — canonical href ⇄ MCP address (`toMnemeHref`/`toMnemeAddress`) | `/src/renderer/content/mneme-link.ts` |
 | Mneme config & monitoring editor (roots, include/ignore, reindex + progress, model, log) | `/src/renderer/editors/mneme-config/MnemeConfigEditorModel.ts` |
 | Mneme root/search editor (+ Explorer-like tree sidebar; Pattern B per-folder singleton) | `/src/renderer/editors/mneme-root/MnemeRootEditorModel.ts` |
 | VMP signing (build hook) | `/scripts/vmp-sign.mjs`                           |

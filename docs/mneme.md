@@ -64,10 +64,12 @@ The **Mneme** sidebar panel shows the root as a navigable tree — like the File
 - **Create, rename, delete** files and folders directly in the tree (deleting a folder removes it and its contents).
 - **Drag-and-drop import** — drop files from Windows Explorer onto the tree to add them to the knowledge base.
 - **Move & copy** — drag documents within a root to move them; drag between two different roots (even across separate windows) to copy them.
+- **Drag to Link editor** — drag a document node from the Mneme tree onto a category in the Collections panel (or onto the main links area) of an open Link editor to create a `mneme://` link to that document.
+- **Copy Path** — right-click a tree node and choose **Copy Path** to copy its full `mneme://{root}/{path}` URL to the clipboard.
 
 ## Opening documents & `mneme://` links
 
-Documents and attachments are addressed as `mneme://{root}/{path}`. A relative `mneme://` link inside a document opens its target in Persephone — Markdown in Preview, images and PDFs in the Image / PDF viewer.
+Documents and attachments are addressed as `mneme://{root}/{path}`. A relative `mneme://` link inside a document opens its target in Persephone — Markdown in Preview, images and PDFs in the Image / PDF viewer. Right-clicking a node in the Mneme tree and choosing **Copy Path** copies this full URL to the clipboard so you can paste it anywhere.
 
 ## AI agent integration (MCP)
 

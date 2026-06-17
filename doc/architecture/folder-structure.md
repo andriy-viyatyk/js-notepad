@@ -171,6 +171,7 @@ persephone/
 │   ├── link-utils.ts       # URL → pipe descriptor resolution (used by resolvers + tree providers)
 │   ├── open-handler.ts     # Layer 3: open handler on openContent — creates/navigates pages
 │   ├── mneme-folder-link.ts # mneme-folder:// link encode/decode (addresses a Mneme root)
+│   ├── mneme-link.ts        # mneme:// document scheme — canonical href ⇄ MCP address (toMnemeHref / toMnemeAddress)
 │   ├── providers/
 │   │   ├── FileProvider.ts      # IProvider for local binary files (read/write/watch/stat)
 │   │   ├── CacheFileProvider.ts # IProvider for cache files by page ID (auto-save)

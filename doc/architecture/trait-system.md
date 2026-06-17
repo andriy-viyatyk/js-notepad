@@ -406,16 +406,16 @@ export const FILE_LINK = new TraitKey<FileLinkTrait>("FileLink");
 A drop target dispatches **by trait + source + its own capability** — it never checks "what kind of object is this". `TreeProviderView` (the shared drop router for the Mneme, File, Archive, and link-collection trees) resolves the payload's traits and dispatches in this order:
 
 1. `LINK` present **and** `getSourceId(data) === provider.sourceUrl` → **move** within the provider (file rename, or category reassign for a collection) — same store, even across windows.
-2. else file content present (`FILE_LINK.getFiles(data).length > 0`) **and** the target implements `importFiles` → **import/copy** the bytes (`getBytes()` → store).
-3. else `LINK` present **and** the target implements `importLinks` → **catalog add/move** by href (store link metadata; a duplicate href is *moved* into the target category, not duplicated).
+2. else `LINK` present **and** the target implements `importLinks` → **catalog add/move** by href (store link metadata; a duplicate href is *moved* into the target category, not duplicated).
+3. else file content present (`FILE_LINK.getFiles(data).length > 0`) **and** the target implements `importFiles` → **import/copy** the bytes (`getBytes()` → store).
 4. else **ignore** — there is no rename fallback, so a file-backed target never feeds a foreign href to `rename`.
 
 Two target capabilities decide branches 2 and 3:
 
-- **`importFiles`** (byte-backed targets — Mneme uploads, File tree writes) — copies file content.
 - **`importLinks`** (catalog targets — a link collection) — stores link metadata by href.
+- **`importFiles`** (byte-backed targets — Mneme uploads, File tree writes) — copies file content.
 
-**File content is checked before links (branch 2 before 3)** for a reason: a file-backed target copies bytes, and an object that has bytes but *no usable link href* (a Mneme node, whose href is a scheme-less `{root}/{path}`) is consumed by `importFiles` rather than turning into a broken link in a collection.
+**Links are checked before file content (branch 2 before 3)** so that any node exposing a usable link href — a Mneme document, an http link, a local-file path — becomes a proper link when dropped on a target that catalogs by reference, rather than being copied as bytes. Only catalog providers implement `importLinks`; file-backed targets (File, Mneme, Archive) have no `importLinks` and fall through to the byte-copy branch, so dropping a node *into* a Mneme root still copies the document. Every link href is a usable, openable URL (a Mneme node's href is the canonical `mneme://{root}/{path}` — see [`mneme-link.ts`](../../src/renderer/content/mneme-link.ts)), so there is no "broken href" case to guard against.
 
 Because dispatch keys on traits + capability, a producer becomes droppable with **zero target changes**:
 

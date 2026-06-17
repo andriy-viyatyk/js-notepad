@@ -44,6 +44,10 @@ export function consumeFaviconSaveRequest(hostname: string): boolean {
 
 /** Extract hostname from a URL. Returns empty string on failure. */
 export function getHostname(url: string): string {
+    // Hostname grouping / favicons are meaningful only for web links. A canonical
+    // mneme:// document link parses to a bogus host (the root name) and must not
+    // enter the Hostnames panel or trigger a favicon fetch.
+    if (url.startsWith("mneme://")) return "";
     try {
         return new URL(url).hostname;
     } catch {
