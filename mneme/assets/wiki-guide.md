@@ -5,9 +5,11 @@ wiki, notes, worklog, or any markdown folder. The **files on disk are the source
 search index is derived and rebuildable. You interact with it through the MCP tools and
 `mneme://` resources.
 
-> **This instance runs in TEXT-SEARCH mode.** `search` is full-text (FTS) only — semantic /
-> vector search is not yet enabled. Everything else (read/write/edit, filters, tree, timeline,
-> tags, root management) works fully.
+> **Search modes.** `search` supports `text` (full-text / FTS), `vector` (semantic KNN), and
+> `hybrid` (FTS + vector fused with Reciprocal Rank Fusion) — **`hybrid` is the default**.
+> `vector`/`hybrid` need the embedding model: until it is provisioned (`model_update`) they
+> automatically fall back to text results with a `note`. Everything else (read/write/edit,
+> filters, tree, timeline, tags, root management) always works.
 
 ## Addressing
 
@@ -66,9 +68,11 @@ string replacement for surgical changes. Daily logs live at `log/YYYY/YYYY-MM-DD
   output (default on).
 
 **Search & views**:
-- `search { query, mode?, subtree?, tags?, excludeTags?, dateRange?, topK? }` — ranked text
-  search → `{ uri, title, tags, snippet, score }` (one per document; `score` is bm25, lower is
-  better). `mode` defaults to `text`; `vector`/`hybrid` return text results with a note here.
+- `search { query, mode?, subtree?, tags?, excludeTags?, dateRange?, topK? }` — ranked
+  search → `{ uri, title, tags, snippet, score }` (one per document, **returned best-first**;
+  `score` is a mode-dependent ranking scalar — rely on the order, not the number). `mode` is
+  `text` | `vector` | `hybrid` and **defaults to `hybrid`**; `vector`/`hybrid` need the embedding
+  model and fall back to text (with a note) until it is provisioned (`model_update`).
 - `tree { path?, depth? }` — flat depth-first `{ uri, name, isDir, depth }` (`depth` = absolute slash
   count); lists real directories, **including empty ones**. The `depth` arg limits levels below `path`
   (`1` = path node + immediate children; omit = whole subtree).
