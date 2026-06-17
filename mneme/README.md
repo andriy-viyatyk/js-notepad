@@ -1,27 +1,25 @@
 # Mneme
 
 **Mneme** is Persephone's knowledge-base / vector-memory service — a standalone, single-binary
-Rust application that indexes a tree of markdown documents for full-text and (later) semantic
-search, exposed over a single MCP interface. Files on disk are the source of truth; the index is
-a derived, rebuildable artifact.
+Rust application that indexes a tree of markdown documents for full-text and semantic search,
+exposed over a single MCP interface. Files on disk are the source of truth; the index is a
+derived, rebuildable artifact.
 
 This crate is **self-contained and extraction-ready**: it builds and tests in isolation with no
 dependency on the Persephone repo, so it can later be split into its own repository or used as an
 Azure container build context.
 
-> **Status:** Phase 1 — config + Document Store (US-652), the markdown layer (frontmatter +
-> heading chunker) and the per-root SQLite index schema (US-653, FTS5 + `sqlite-vec`), the
-> indexer + always-on file watcher that keep the index in sync with the files (US-654), and the
-> MCP server over Streamable HTTP exposing the file-like tool surface (US-655). Phase 2 — the
-> model provisioner (US-656), the **embedding engine** (US-657, ONNX Runtime, CPU),
-> and **hybrid search** (US-658): chunks are embedded into `chunks_vec`, and `search` now
-> serves real `vector` (KNN) and `hybrid` (FTS + KNN fused with Reciprocal Rank Fusion) modes
-> alongside `text`. FTS still works with no model present; vector/hybrid degrade to text (with a
-> note) until the model is provisioned. The concurrency layer (US-659) completes Phase 2: a
-> dedicated embedding worker + priority queue (interactive query/edit embeds preempt bulk
-> reindex), a WAL writer + read-only connection pool per root, and a cancellable,
-> progress-emitting, single-flight reindex job — so search and edit stay responsive during a bulk
-> reindex.
+> **What it does:** loads its config and a set of markdown roots; parses each document
+> (frontmatter + heading chunker) into a per-root SQLite index (FTS5 + `sqlite-vec`); keeps that
+> index in sync with the files via an indexer + always-on file watcher; and exposes a file-like
+> tool surface over an MCP server (Streamable HTTP). Semantic search is backed by an embedding
+> engine (ONNX Runtime, CPU): chunks are embedded into `chunks_vec`, and `search` serves `text`
+> (FTS5 `bm25`), `vector` (KNN), and `hybrid` (FTS + KNN fused with Reciprocal Rank Fusion — the
+> default) modes. FTS works with no model present; `vector`/`hybrid` degrade to text (with a note)
+> until the embedding model is provisioned. A dedicated embedding worker + priority queue
+> (interactive query/edit embeds preempt bulk reindex), a WAL writer + read-only connection pool
+> per root, and a cancellable, progress-emitting, single-flight reindex job keep search and edit
+> responsive during a bulk reindex.
 
 ## Build & test
 
@@ -30,9 +28,9 @@ cargo build --release    # → target/release/mneme.exe
 cargo test               # Document Store integration tests
 ```
 
-The binary is built in CI (`.github/workflows/publish.yml`) and — from US-665 — shipped beside
-`persephone.exe` via electron-builder `extraFiles`. It is **not** wired into `npm start` / `npm run
-dist`; build it with `cargo` directly during development.
+The binary is built in CI (`.github/workflows/publish.yml`) and shipped beside `persephone.exe`
+via electron-builder `extraFiles`. It is **not** wired into `npm start` / `npm run dist`; build it
+with `cargo` directly during development.
 
 ## CLI
 
@@ -41,9 +39,9 @@ mneme status                # load config, list roots + indexable file counts + 
 mneme reindex [path?]       # reconcile the index with the files (sync); path "{root}" scopes
 mneme watch                 # watch every root + reconcile on change (runs until Ctrl-C)
 mneme serve [--port N]      # run the MCP server (Streamable HTTP, loopback /mcp) — text-search mode
-mneme model-update          # download/verify the configured embedding model (US-656)
+mneme model-update          # download/verify the configured embedding model
 mneme model-update --force  # re-download even if already present
-mneme embed "<text>"        # embed text + print provider/dims/norm (debug; US-657)
+mneme embed "<text>"        # embed text + print provider/dims/norm (debug)
 mneme embed "<text>" --query  #   …treating the text as a search query
 mneme search "<query>"      # ranked search across all roots (debug; --mode text|vector|hybrid, --top-k N)
 mneme --config <path>       # explicit config file (else $MNEME_CONFIG, else the OS config dir)
@@ -76,10 +74,10 @@ subscriptions are advertised (`resources.subscribe` + `listChanged`): subscribe 
 and the always-on watcher emits `notifications/resources/updated { uri }` when that file changes on
 disk; add/remove/rename emit `notifications/resources/list_changed`.
 
-## Model provisioning (US-656)
+## Model provisioning
 
 FTS-based `search` works with no model on disk. Downloading the embedding model enables
-vector/hybrid search (US-657/658). To download and verify the default model:
+vector/hybrid search. To download and verify the default model:
 
 ```bash
 mneme model-update          # download gte-multilingual-base-int8 to the default cache
@@ -105,7 +103,7 @@ Cache layout:
 Default cache base: `<os-config-dir>/persephone/data/mneme/models`. Override with
 `[model] path = "..."` in `mneme.toml` (see `mneme.example.toml`).
 
-## Embedding engine (US-657)
+## Embedding engine
 
 Once the model is provisioned, the embedding engine turns text into a normalized **768-dim**
 vector via ONNX Runtime (`ort`) + HuggingFace `tokenizers`. `gte-multilingual-base` is a GTE
@@ -113,7 +111,7 @@ encoder: the sentence embedding is the **CLS** token of the last hidden state, L
 **no** instruction prefix (unlike the E5/Qwen families).
 
 Inference runs on the **CPU** execution provider — there is no GPU setting. A DirectML/GPU path
-was implemented and benchmarked (US-694), but for this small int8 model with dynamically-shaped
+was implemented and benchmarked, but for this small int8 model with dynamically-shaped
 per-document batches, DirectML repeatedly recompiled kernels per input shape (stalling with the GPU
 idle) and came out **slower** than CPU, which already runs int8 inference fast. It was removed —
 simpler, and the install carries no DirectML dependency.
@@ -122,7 +120,7 @@ simpler, and the install carries no DirectML dependency.
 mneme embed "how do I cancel my subscription" --query   # → provider, dims=768, L2-norm≈1, sample
 ```
 
-## Hybrid search (US-658)
+## Hybrid search
 
 During indexing, each chunk's passage embedding is written into `chunks_vec` (keyed by chunk
 rowid). `search` then offers three modes:
@@ -138,9 +136,10 @@ Results are one row per document (best chunk wins the snippet) and **returned be
 `score` field is a mode-dependent ranking scalar, so rely on order, not the number. When the model
 is not provisioned, `vector`/`hybrid` degrade to text results with a `note`.
 
-Embedding happens **inline** under the per-root index lock: a first-time bulk reindex is slow
-(the dedicated worker + priority queue + progress notifications that make it responsive are
-US-659); incremental single-document embeds are fast. If the model is provisioned *after* a root
+Embedding happens **inline** under the per-root index lock: a first-time bulk reindex is slow (the
+dedicated worker + priority queue + progress notifications that make it responsive are described in
+[Concurrency & responsiveness](#concurrency--responsiveness)); incremental single-document embeds
+are fast. If the model is provisioned *after* a root
 was already indexed, the next reconcile **backfills** vectors for the existing documents (the
 mtime+size fast-path still re-embeds a document that has no vectors yet) — no full rebuild.
 
@@ -149,9 +148,9 @@ mneme embed  "how do I cancel my subscription" --query   # → provider, dims=76
 mneme search "how do I cancel my subscription"           # ranked hits (--mode text|vector|hybrid)
 ```
 
-## Concurrency & responsiveness (US-659)
+## Concurrency & responsiveness
 
-Embedding is CPU/GPU-bound and serialized behind one model session, so Mneme must keep search and
+Embedding is CPU-bound and serialized behind one model session, so Mneme must keep search and
 edit prompt while a bulk reindex runs. Three pieces cooperate:
 
 - **One embedding worker + priority queue.** A dedicated thread (`embed/worker.rs`) owns the model
@@ -177,7 +176,7 @@ edit prompt while a bulk reindex runs. Three pieces cooperate:
 ## Crate-wide invariants
 
 - **stdout is not for ad-hoc output.** All diagnostics go through `tracing` to **stderr**. stdout is
-  reserved for the single startup readiness line the (future) MCP HTTP server prints so a parent
+  reserved for the single startup readiness line the MCP HTTP server prints so a parent
   process (Persephone) knows it is listening before connecting. Never `println!` outside that
   readiness handshake or the `status` command's human-facing report.
 - **Single transport.** Mneme speaks MCP over **Streamable HTTP** only — used by both Persephone and
@@ -190,12 +189,12 @@ edit prompt while a bulk reindex runs. Three pieces cooperate:
 src/
 ├─ main.rs        CLI (clap): serve / reindex / watch / status / model-update / embed / search
 ├─ config.rs      Config + figment load (file + env + flags) + save (root add/remove)
-├─ embed/         Embedding engine (US-657) — ort session + tokenizer, CPU
+├─ embed/         Embedding engine — ort session + tokenizer, CPU
 │  ├─ mod.rs      Embedder trait, OnnxEmbedder (load/encode/CLS-pool/L2-normalize), EP selection,
 │  │              LazyEmbedder (shared build-once cell for the index + search paths)
-│  └─ worker.rs   EmbedWorker thread + EmbedHandle — priority queue (interactive > bulk), US-659
+│  └─ worker.rs   EmbedWorker thread + EmbedHandle — priority queue (interactive > bulk)
 ├─ error.rs       MnemeError
-├─ model/         Model provisioner (US-656) — download/verify embedding model files
+├─ model/         Model provisioner — download/verify embedding model files
 │  └─ mod.rs      manifest, cache_base, model_dir, download_file, provision, status
 ├─ store/         Document Store
 │  ├─ mod.rs      read/write/edit/delete/read_bytes/list/glob/grep over roots
@@ -213,14 +212,14 @@ src/
 │  ├─ mod.rs      IndexDb — open_or_create / open_readonly / meta / upsert / delete / doc_state;
 │  │              search_text (FTS) / search_vector (KNN) / search_hybrid (RRF);
 │  │              chunk_texts_for + write_chunk_vectors (embed split)
-│  ├─ pool.rs     RootIndex (Mutex writer + read-only ReadPool over the WAL DB), US-659
+│  ├─ pool.rs     RootIndex (Mutex writer + read-only ReadPool over the WAL DB)
 │  ├─ schema.rs   DDL + SCHEMA_VERSION + sqlite-vec auto-extension registration
 │  ├─ vector.rs   f32 BLOB packing + Reciprocal Rank Fusion (rrf_merge)
 │  └─ path.rs     versioned path + modelId + .mneme/.gitignore
 ├─ indexer/       keeps the index in sync with the files
 │  ├─ mod.rs      reconcile_root (sync, inline embed) / reconcile_job (2-phase, off-lock embed,
 │  │              cancellable + progress) / index_one / single_doc_index / IndexManager
-│  └─ job.rs      JobManager — single-flight per root, progress snapshots, cancellation (US-659)
+│  └─ job.rs      JobManager — single-flight per root, progress snapshots, cancellation
 ├─ watcher/       always-on debounced notify watcher per root
 │  └─ mod.rs      RootWatcher (coalesced reconcile-on-change via JobManager; .mneme self-trigger guard)
 └─ mcp/           MCP server (sole interface) — Streamable HTTP, loopback
