@@ -86,7 +86,14 @@ EditorModel provides lifecycle hooks that PageModel calls at specific moments:
 | `setPage(page)` | `addSecondaryView()`, `setMainEditor()` | Model attached to / detached from a page | Stores reference | Registration (e.g., ArchiveEditorModel sets `secondaryView` here) |
 | `beforeNavigateAway(newEditor)` | `setMainEditor()` | Old mainEditor is about to be replaced | Clears `secondaryView` (remove self) | Conditional survival (check `newEditor.sourceLink`) |
 | `onMainEditorChanged(newMainEditor)` | `notifyMainEditorChanged()` | After mainEditor was replaced | No-op | React to new content: highlight file in tree, clear selection, or remove self |
-| `onPanelExpanded(panelId)` | `setActivePanel()` | A panel belonging to this model was expanded | No-op | Deferred reveal (scroll to highlighted item) |
+| `onPanelExpanded(panelId)` | `setActivePanel()` | A panel belonging to this model was expanded | No-op | Deferred reveal (scroll to highlighted item); sync derived state from the active panel |
+
+`onPanelExpanded` runs on the **model**, so it fires whenever the active panel changes —
+regardless of whether the editor's main-view component is mounted. Prefer it over a
+view-level subscription for any state that must stay in sync while the editor is demoted to a
+sidebar (its main view unmounts then). For example, the Link editor maps the expanded panel
+(Collections / Tags / Hostnames) to its current filter + breadcrumb here, so switching panels
+keeps working after navigating away to one of its links.
 
 ---
 

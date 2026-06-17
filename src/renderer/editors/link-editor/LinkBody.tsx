@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, Splitter, Text } from "../../uikit";
 import { HighlightedTextProvider } from "../../uikit/shared/highlight";
-import { panelExpanded } from "../../core/state/events";
 import { hasTraitDragData, getTraitDragData, resolveTraits } from "../../core/traits";
 import { LINK } from "./linkTraits";
 import { LinkItemList } from "./LinkItemList";
@@ -21,27 +20,9 @@ export function LinkBody({ model }: { model: LinkEditor }) {
         pinnedPanelWidth: s.data.state.pinnedPanelWidth ?? 100,
     }));
 
-    const pageId = model.page?.id;
-
-    // panelExpanded global event → maps sidebar panel IDs to expandedPanel state
-    // (drives the breadcrumb + center-list filter when the user switches the
-    // active sidebar panel).
-    useEffect(() => {
-        if (!pageId) return;
-        const sub = panelExpanded.subscribe((event) => {
-            if (event?.pageId !== pageId) return;
-            const map: Record<string, string> = {
-                "link-category": "categories",
-                "link-tags": "tags",
-                "link-hostnames": "hostnames",
-            };
-            const expandedPanel = map[event.panelId];
-            if (expandedPanel) {
-                model.setExpandedPanel(expandedPanel);
-            }
-        });
-        return () => sub.unsubscribe();
-    }, [pageId, model]);
+    // The sidebar active-panel → `expandedPanel` sync lives on the model
+    // (`LinkEditor.onPanelExpanded`), not here — it must keep working while the
+    // editor is demoted to a sidebar and this body is unmounted.
 
     // Queue focus event: refocus container element on `focus` event.
     model.queue.use((ev) => {

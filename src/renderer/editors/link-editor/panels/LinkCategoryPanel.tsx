@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useMemo } from "react";
 import { Panel, Tooltip } from "../../../uikit";
 import { highlight } from "../../../uikit/shared/highlight";
 import { TreeProviderView } from "../../../components/tree-provider/TreeProviderView";
@@ -17,16 +17,21 @@ interface LinkCategoryPanelProps {
 }
 
 export function LinkCategoryPanel({ vm }: LinkCategoryPanelProps) {
-    // Derive selected item href from LinkViewModel's selectedLinkId (single source of truth)
-    const selectedLinkId = useSyncExternalStore(
-        (cb) => vm.state.subscribe(cb),
-        () => vm.state.get().selectedLinkId,
-    );
+    // Tree selection highlight: a selected link's href wins (the user navigated to a
+    // specific link); otherwise the selected category folder is highlighted. Selecting
+    // a category clears `selectedLinkId` (see LinkEditor.setSelectedCategory), so the
+    // two stay mutually exclusive — last click wins.
+    const { selectedLinkId, selectedCategory } = vm.state.use((s) => ({
+        selectedLinkId: s.selectedLinkId,
+        selectedCategory: s.selectedCategory,
+    }));
     const selectedItemHref = useMemo(() => {
-        if (!selectedLinkId) return undefined;
-        const link = vm.state.get().data.links.find((l) => l.id === selectedLinkId);
-        return link?.href;
-    }, [selectedLinkId, vm]);
+        if (selectedLinkId) {
+            const link = vm.state.get().data.links.find((l) => l.id === selectedLinkId);
+            if (link?.href) return link.href;
+        }
+        return selectedCategory || undefined;
+    }, [selectedLinkId, selectedCategory, vm]);
 
     // Unified click: a category folder filters the Link main view (promoting
     // the Link editor back to main if a file is currently shown); a link opens
@@ -86,8 +91,12 @@ export function LinkCategoryPanel({ vm }: LinkCategoryPanelProps) {
                     </span>
                 );
             }
+            // The tree row itself carries a path tooltip (TreeItem `tooltip` prop). This
+            // richer tooltip lives on the nested label span — the tooltip singleton's
+            // "innermost wins" rule lets it beat the row's path tooltip, so only this one
+            // shows. Match the row tooltip's default delay so the swap is flash-free.
             return (
-                <Tooltip content={<LinkTooltipContent link={item} showCopyJson />} delayShow={1200}>
+                <Tooltip content={<LinkTooltipContent link={item} showCopyJson />}>
                     <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {label}
                     </span>

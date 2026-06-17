@@ -12,6 +12,7 @@ import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { fontSize, radius, spacing } from "../tokens";
 import { overlayRegistry } from "../shared/overlayRegistry";
+import { tooltipRegistry } from "../shared/tooltipRegistry";
 
 // --- Types ---
 
@@ -74,6 +75,7 @@ export function Tooltip({
     disabled,
 }: TooltipProps) {
     const [open, setOpen] = useState(false);
+    const [id] = useState(tooltipRegistry.nextId);
     const showTimerRef = useRef<number | null>(null);
     const hideTimerRef = useRef<number | null>(null);
     const triggerElRef = useRef<Element | null>(null);
@@ -81,6 +83,10 @@ export function Tooltip({
     // Re-render when the overlay registry changes so suppression state updates live.
     useSyncExternalStore(overlayRegistry.subscribe, overlayRegistry.getVersion);
     const suppressedByOverlay = overlayRegistry.isSuppressed(triggerElRef.current);
+
+    // Re-render when a drag starts/ends so tooltips stay suppressed for its duration.
+    useSyncExternalStore(tooltipRegistry.subscribe, tooltipRegistry.getVersion);
+    const suppressedByDrag = tooltipRegistry.isDragging();
 
     const middleware = useMemo(
         () => [
@@ -132,15 +138,28 @@ export function Tooltip({
         }, delayHide);
     }, [clearTimers, delayHide]);
 
-    const suppressed = disabled || content === null || content === undefined || content === false || suppressedByOverlay;
+    const suppressed = disabled || content === null || content === undefined || content === false || suppressedByOverlay || suppressedByDrag;
 
-    // Close an already-open tooltip the moment an overlay covers it.
+    // Close an already-open tooltip the moment an overlay covers it or a drag begins.
     useEffect(() => {
-        if (open && suppressedByOverlay) {
+        if (open && (suppressedByOverlay || suppressedByDrag)) {
             clearTimers();
             setOpen(false);
         }
-    }, [open, suppressedByOverlay, clearTimers]);
+    }, [open, suppressedByOverlay, suppressedByDrag, clearTimers]);
+
+    // Singleton: at most one tooltip visible at a time. On open, claim the shared slot
+    // (closing any other open tooltip); release it on close/unmount. If a more-specific
+    // (nested) tooltip already owns the slot, this one loses and stays closed.
+    useEffect(() => {
+        if (!open) return;
+        const claimed = tooltipRegistry.open(id, triggerElRef.current, () => setOpen(false));
+        if (!claimed) {
+            setOpen(false);
+            return;
+        }
+        return () => tooltipRegistry.close(id);
+    }, [open, id]);
 
     // React 19: ref is a regular prop — read it from `props.ref`. Accessing
     // `children.ref` triggers a deprecation warning ("Accessing element.ref was

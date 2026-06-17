@@ -8,7 +8,17 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.5 (Upcoming)
 
-*No changes yet.*
+### UI Polish
+
+- **Sidebar stays put when opening files** — Opening a Link, Todo, Notebook, or Rest Client file from the **File Explorer** sidebar panel no longer switches the sidebar to that editor's own panel (Collections, Todo, Categories, or Rest). The sidebar remains on whichever panel you had open, so you can click through files one by one in the Explorer without losing your place.
+
+### Bug Fixes
+
+- **Tooltips — one at a time** — At most one tooltip is visible at any moment. When two tooltips would previously overlap (for example, a row tooltip and a richer label tooltip inside it), only the innermost, more-specific tooltip now shows. Tooltips are also automatically suppressed while you are dragging, so they no longer cover drop targets mid-drag.
+
+- **Link editor — Collections panel highlights the selected category** — The selected category (folder) is now visually highlighted in the **Collections** sidebar panel even when no individual link is selected.
+
+- **Link editor — panel selection after link navigation** — Clicking a link in the Tags or Collections panel and then navigating to it no longer breaks subsequent panel selection. Previously a workaround was needed to restore normal panel behavior after such a navigation.
 
 ---
 

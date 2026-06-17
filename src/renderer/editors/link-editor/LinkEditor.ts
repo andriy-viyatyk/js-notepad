@@ -362,33 +362,11 @@ export class LinkEditor
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
         if (this.page) host.setPage(this.page);
-        // Restore the previously-expanded panel as the sidebar's active panel.
-        // Covers the restore path (page already set when restore→adoptHost
-        // runs); the fresh-open path seeds via setPage (which fires after
-        // adoptHost when the page attaches the editor).
-        this._seedActivePanel();
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
-        // Fresh-open path: adoptHost ran before the page was attached, so the
-        // panels are already registered by the time the page calls setPage —
-        // seed the active panel now.
-        if (page && this.contributesPanels()) this._seedActivePanel();
-    }
-
-    /** Map the saved `expandedPanel` to its sidebar panel ID and make it the
-     *  active panel. No-op when no page is attached or the panel isn't
-     *  registered (expandPanel guards both). */
-    private _seedActivePanel(): void {
-        if (!this.page) return;
-        const map: Record<ExpandedPanel, string> = {
-            categories: "link-category",
-            tags: "link-tags",
-            hostnames: "link-hostnames",
-        };
-        this.page.expandPanel(map[this.state.get().expandedPanel] ?? "link-category");
     }
 
     // ── LK6 — Sidebar lifecycle hooks ───────────────────────────────────
@@ -416,6 +394,23 @@ export class LinkEditor
             return;
         }
         this.secondaryView = LINK_PANELS;
+    }
+
+    /** Sidebar active-panel changed to one we own → sync `expandedPanel` (drives the
+     *  toolbar breadcrumb + the center-list filter). This lives on the model — not in
+     *  the LinkBody view — because PageModel calls it on the owning editor regardless
+     *  of whether the body is mounted. After navigating to a link the editor is demoted
+     *  to a sidebar and LinkBody unmounts; handling the switch here keeps tag/category
+     *  panel selection working in that state. Maps the sidebar panel id back to
+     *  `expandedPanel`. */
+    onPanelExpanded(panelId: string): void {
+        const map: Record<string, ExpandedPanel> = {
+            "link-category": "categories",
+            "link-tags": "tags",
+            "link-hostnames": "hostnames",
+        };
+        const expandedPanel = map[panelId];
+        if (expandedPanel) this.setExpandedPanel(expandedPanel);
     }
 
     /** Check if a model was opened via this LinkEditor's own UI (own-id
@@ -515,6 +510,11 @@ export class LinkEditor
     setSelectedCategory = (category: string): void => {
         this.state.update((s) => {
             s.selectedCategory = category;
+            // Selecting a category folder is a fresh selection in the Collections
+            // tree — drop any selected-link highlight so the category shows as the
+            // selected node (last click wins). The category panel highlights
+            // `selectedLinkId`'s link when set, else `selectedCategory`.
+            s.selectedLinkId = "";
         });
         this.applyFilters();
     };

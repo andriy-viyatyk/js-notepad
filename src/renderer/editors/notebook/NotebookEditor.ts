@@ -377,31 +377,11 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
         if (this.page) host.setPage(this.page);
-        // Restore the previously-expanded panel as the sidebar's active panel.
-        // Covers the restore path (page already set when restore→adoptHost runs);
-        // the fresh-open path seeds via setPage (which fires after adoptHost when
-        // the page attaches the editor).
-        this._seedActivePanel();
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
-        // Fresh-open path: adoptHost ran before the page was attached, so seed
-        // the active panel once the page is present and panels are registered.
-        if (page && this.contributesPanels()) this._seedActivePanel();
-    }
-
-    /** Map the saved `expandedPanel` to its sidebar panel ID and make it the
-     *  active panel. No-op when no page is attached or the panel isn't
-     *  registered (expandPanel guards both). */
-    private _seedActivePanel(): void {
-        if (!this.page) return;
-        const map: Record<ExpandedPanel, string> = {
-            tags: "notebook-tags",
-            categories: "notebook-categories",
-        };
-        this.page.expandPanel(map[this.state.get().expandedPanel] ?? "notebook-categories");
     }
 
     // ────────────────────────────────────────────────────────────────────

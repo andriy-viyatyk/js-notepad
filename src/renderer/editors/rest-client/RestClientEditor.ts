@@ -326,24 +326,11 @@ export class RestClientEditor extends EditorModel<RestClientEditorState, void, R
             if (s.editor !== this.editorId) s.editor = this.editorId;
         });
         if (this.page) host.setPage(this.page);
-        this._seedActivePanel();
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         this._host?.setPage(page);
-        // Fresh-open path: adoptHost ran before the page was attached, so make
-        // the single Rest panel the active (expanded) one once the page is
-        // present and the panel is registered.
-        if (page && this.contributesPanels()) this._seedActivePanel();
-    }
-
-    /** Make the single Rest panel the active/expanded one. CollapsiblePanelStack
-     *  collapses any panel whose id !== activePanel, so a lone panel still needs
-     *  this. No-op when no page is attached. */
-    private _seedActivePanel(): void {
-        if (!this.page) return;
-        this.page.expandPanel("rest-panel");
     }
 
     // ────────────────────────────────────────────────────────────────────
