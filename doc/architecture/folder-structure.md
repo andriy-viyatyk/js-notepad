@@ -328,9 +328,9 @@ persephone/
 │   ├── link-editor/        # Link collection editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── LinkEditor.ts             # EditorModel — links, categories, tags, filters
 │   │   ├── LinkBody.tsx              # React component
-│   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state
+│   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state; drag-drop import (files→links, links across windows)
 │   │   ├── linkTypes.ts
-│   │   ├── linkTraits.ts             # ILink trait definition + registration (TraitTypeId.ILink)
+│   │   ├── linkTraits.ts             # ILink trait definition + registration (LINK + FILE_LINK — local-file links yield bytes)
 │   │   ├── panels/                   # Shared panel components (inline + secondary view)
 │   │   │   ├── LinkCategoryPanel.tsx       # Categories tree panel
 │   │   │   ├── LinkTagsPanel.tsx           # Tags list panel

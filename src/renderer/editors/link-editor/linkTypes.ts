@@ -67,6 +67,10 @@ export interface ILinkSource {
         subscribe(listener: () => void): () => void;
     };
     addLink(link?: Partial<LinkItem>): LinkItem;
+    importLinks(
+        items: ILink[],
+        opts?: { moveExistingToCategory?: string },
+    ): Promise<void>;
     getLinkById(id: string): LinkItem | undefined;
     updateLink(id: string, updates: Partial<Omit<LinkItem, "id">>): void;
     deleteLink(id: string, skipConfirm?: boolean): Promise<void>;

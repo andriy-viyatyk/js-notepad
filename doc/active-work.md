@@ -46,6 +46,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-391: PowerShell shortcut (Ctrl+\`) — open shell at cwd
 - **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
 - *(no epic)*
+  - [ ] [US-717: Canonical `mneme://` href for Mneme tree nodes](tasks/US-717-mneme-href-scheme/README.md) *(placeholder)*
   - [ ] [US-454: DrawIO Viewer — read-only viewer for `.drawio` files](tasks/US-454-drawio-viewer/README.md)
 
 

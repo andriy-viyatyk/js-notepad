@@ -783,20 +783,44 @@ export class TreeProviderViewModel extends TComponentModel<
             : (dropNode.data.category || provider.rootPath);
 
         // Collision check via the provider's existing list(); confirm overwrite.
-        const existing = new Set((await provider.list(targetCategory)).map((l) => l.title));
-        const clashing = items.filter((i) => existing.has(i.name)).map((i) => i.name);
-        if (clashing.length) {
-            const bt = await ui.confirm(
-                `${clashing.length} file(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
-                { title: "Overwrite files?", buttons: ["Overwrite", "Cancel"] },
-            );
-            if (bt !== "Overwrite") return;
+        // Only meaningful for file-backed providers (those with fs rename) where a
+        // same-named file would be overwritten. Catalog providers (link collections)
+        // dedupe by href inside importFiles, so skip the title-based overwrite prompt.
+        if (provider.rename) {
+            const existing = new Set((await provider.list(targetCategory)).map((l) => l.title));
+            const clashing = items.filter((i) => existing.has(i.name)).map((i) => i.name);
+            if (clashing.length) {
+                const bt = await ui.confirm(
+                    `${clashing.length} file(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
+                    { title: "Overwrite files?", buttons: ["Overwrite", "Cancel"] },
+                );
+                if (bt !== "Overwrite") return;
+            }
         }
 
         try {
             await provider.importFiles(items, targetCategory);
         } catch (err) {
             ui.notify(err.message || "Failed to import files.", "warning");
+            return;
+        }
+        await this.buildTree();
+    };
+
+    /** Import links dragged from another collection into the drop target's category.
+     *  Catalog providers only (those implementing `importLinks`). */
+    importLinksTo = async (items: ILink[], dropNode: TreeProviderNode) => {
+        const { provider } = this.props;
+        if (!provider.importLinks || !items.length) return;
+
+        const targetCategory = dropNode.data.isDirectory
+            ? dropNode.data.href
+            : (dropNode.data.category || provider.rootPath);
+
+        try {
+            await provider.importLinks(items, targetCategory);
+        } catch (err) {
+            ui.notify(err.message || "Failed to import links.", "warning");
             return;
         }
         await this.buildTree();

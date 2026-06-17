@@ -130,7 +130,7 @@ Registration happens once, at module load time, in the file that defines the tra
 traitRegistry.register(TraitTypeId.ILink, linkTraits);
 ```
 
-> **Registered TraitSets:** `ILink` (the `LINK` trait), `OsFile` (the `FILE_LINK` trait), and `MnemeLink` (both `LINK` *and* `FILE_LINK`). The remaining `TraitTypeId` values (`TodoItem`, `Note`, etc.) are type discriminators only — their TraitSets are not registered. Cross-type drops include dropping links into the Notes category tree, and dropping **OS files or Mneme nodes into the Mneme tree** via the `FILE_LINK` trait (see "File content drops" below).
+> **Registered TraitSets:** `ILink` (`LINK` *and* `FILE_LINK` — a link to a local file also yields its bytes), `OsFile` (the `FILE_LINK` trait), and `MnemeLink` (both `LINK` *and* `FILE_LINK`). The remaining `TraitTypeId` values (`TodoItem`, `Note`, etc.) are type discriminators only — their TraitSets are not registered. Cross-type drops include dropping links into the Notes category tree, dropping **OS files, file-tree nodes, or links into a link collection**, and dropping **OS files, local-file links, or Mneme nodes into the Mneme tree** via the `FILE_LINK` trait (see "File content drops" below).
 
 ---
 
@@ -403,18 +403,27 @@ interface FileLinkTrait { getFiles(data: unknown): IFileLink[]; }
 export const FILE_LINK = new TraitKey<FileLinkTrait>("FileLink");
 ```
 
-A drop target that accepts file content dispatches **purely by trait + source** — it never checks "what kind of object is this":
+A drop target dispatches **by trait + source + its own capability** — it never checks "what kind of object is this". `TreeProviderView` (the shared drop router for the Mneme, File, Archive, and link-collection trees) resolves the payload's traits and dispatches in this order:
 
-1. `LINK` present **and** `getSourceId(data) === provider.sourceUrl` → **move** (intra-provider rename) — same store, even across windows.
-2. else `FILE_LINK` present → **import/copy** (`getBytes()` → store the bytes).
-3. else `LINK` present → existing cross-source link handling.
+1. `LINK` present **and** `getSourceId(data) === provider.sourceUrl` → **move** within the provider (file rename, or category reassign for a collection) — same store, even across windows.
+2. else file content present (`FILE_LINK.getFiles(data).length > 0`) **and** the target implements `importFiles` → **import/copy** the bytes (`getBytes()` → store).
+3. else `LINK` present **and** the target implements `importLinks` → **catalog add/move** by href (store link metadata; a duplicate href is *moved* into the target category, not duplicated).
+4. else **ignore** — there is no rename fallback, so a file-backed target never feeds a foreign href to `rename`.
 
-Because dispatch keys on the trait, any `FILE_LINK` producer becomes droppable with **zero target changes**:
+Two target capabilities decide branches 2 and 3:
 
-- **`OsFile`** — OS desktop files; `FILE_LINK` only; `getBytes` reads from disk.
+- **`importFiles`** (byte-backed targets — Mneme uploads, File tree writes) — copies file content.
+- **`importLinks`** (catalog targets — a link collection) — stores link metadata by href.
+
+**File content is checked before links (branch 2 before 3)** for a reason: a file-backed target copies bytes, and an object that has bytes but *no usable link href* (a Mneme node, whose href is a scheme-less `{root}/{path}`) is consumed by `importFiles` rather than turning into a broken link in a collection.
+
+Because dispatch keys on traits + capability, a producer becomes droppable with **zero target changes**:
+
+- **`ILink`** — any link; `LINK` (identity) **+** `FILE_LINK` (a link whose href is a *local file* yields its bytes via `fs`; a URL yields none). So a local-file link copies into Mneme, while a URL link is ignored there; a file dragged from the File tree creates a link in a collection or copies into Mneme.
+- **`OsFile`** — OS desktop files/folders; `FILE_LINK` only; `getBytes` reads from disk.
 - **`MnemeLink`** — a Mneme tree node; `LINK` (so a same-root drop moves) **+** `FILE_LINK` (so a drop into a *different* Mneme root — or another window — copies the document via download → upload; `getBytes` reads the source over MCP through the shared connection).
 
-The `LINK`/`FILE_LINK` split keeps each trait single-purpose: identity lives in `LINK`, content in `FILE_LINK`. A future `http://` link could add a `FILE_LINK` impl (where `getBytes` fetches the URL) and instantly become droppable into the Mneme tree.
+The `LINK`/`FILE_LINK` split keeps each trait single-purpose: identity lives in `LINK`, content in `FILE_LINK`. A node can carry both; the dispatch order and the target's declared capabilities decide what actually happens.
 
 ---
 
@@ -422,7 +431,7 @@ The `LINK`/`FILE_LINK` split keeps each trait single-purpose: identity lives in 
 
 | TraitTypeId | Drag source | Drop targets | TraitSet registered |
 |---|---|---|---|
-| `ILink` | `LinksList`, `LinksTiles`, `TreeProviderView` | `TreeProviderView` (link editor), `NotebookEditor` | Yes — `LINK` trait |
+| `ILink` | `LinksList`, `LinksTiles`, `TreeProviderView` | `TreeProviderView` (link collection, Mneme tree), `NotebookEditor` | Yes — `LINK` + `FILE_LINK` traits |
 | `TodoItem` | `TodoItemView` | `TodoItemView` (reorder) | No |
 | `Note` | `NoteItemView` | `NotebookEditor` category tree | No |
 | `NotebookCategory` | `NotebookEditor` category tree (via Tree) | `NotebookEditor` category tree | No |
@@ -433,7 +442,7 @@ The `LINK`/`FILE_LINK` split keeps each trait single-purpose: identity lives in 
 | `GridColumn` | `HeaderCell` | `HeaderCell` (reorder) | No |
 | `MenuFolder` | `FolderItem` (sidebar) | `FolderItem` (reorder) | No |
 | `PinnedEditor` | `ToolsEditorsPanel` | `ToolsEditorsPanel` (reorder) | No |
-| `OsFile` | OS desktop file drag (synthesized in the capture-phase drop handler) | `TreeProviderView` (Mneme tree import) | Yes — `FILE_LINK` trait |
+| `OsFile` | OS desktop file drag (synthesized in the capture-phase drop handler) | `TreeProviderView` (Mneme tree, link collection import) | Yes — `FILE_LINK` trait |
 | `MnemeLink` | `TreeProviderView` (Mneme tree) | `TreeProviderView` (Mneme tree) | Yes — `LINK` + `FILE_LINK` traits |
 
 ---

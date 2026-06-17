@@ -802,7 +802,10 @@ export class LinkEditor
      * a confirmation dialog asks the user before proceeding.
      * Duplicate hrefs (already in collection) are skipped.
      */
-    importLinks = async (items: ILink[]): Promise<void> => {
+    importLinks = async (
+        items: ILink[],
+        opts?: { moveExistingToCategory?: string },
+    ): Promise<void> => {
         const fp = await import("../../core/utils/file-path");
         const existingHrefs = new Set(
             this.state.get().data.links.map((l) => l.href.toLowerCase()),
@@ -810,12 +813,26 @@ export class LinkEditor
 
         const directLinks: Partial<LinkItem>[] = [];
         const foldersToScan: ILink[] = [];
+        let movedCount = 0;
 
         for (const item of items) {
             if (item.isDirectory) {
                 foldersToScan.push(item);
             } else {
-                if (existingHrefs.has(item.href.toLowerCase())) continue;
+                if (existingHrefs.has(item.href.toLowerCase())) {
+                    // Move-on-duplicate: reassign the existing link to the drop
+                    // target instead of creating a duplicate or silently skipping.
+                    if (opts?.moveExistingToCategory !== undefined) {
+                        const existing = this.state.get().data.links.find(
+                            (l) => l.href.toLowerCase() === item.href.toLowerCase(),
+                        );
+                        if (existing && existing.category !== opts.moveExistingToCategory) {
+                            this.moveLinkToCategory(existing.id, opts.moveExistingToCategory);
+                            movedCount++;
+                        }
+                    }
+                    continue;
+                }
                 existingHrefs.add(item.href.toLowerCase());
                 directLinks.push({
                     title: item.title,
@@ -867,7 +884,12 @@ export class LinkEditor
 
         if (!allLinks.length) {
             const { app } = await import("../../api/app");
-            app.ui.notify("All items already exist in this collection", "info");
+            app.ui.notify(
+                movedCount
+                    ? `Moved ${movedCount} link(s)`
+                    : "All items already exist in this collection",
+                "info",
+            );
             return;
         }
 

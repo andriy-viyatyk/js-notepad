@@ -166,36 +166,58 @@ export function TreeProviderView(
     const canTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
         if (!writable) return false;
         const traits = resolveTraits(payload.typeId);
-        // File import (any IFileLink producer, e.g. OS file drop).
-        if (traits?.get(FILE_LINK)) return true;
-        // Internal link move (existing trait path).
         const linkTrait = traits?.get(LINK);
-        if (!linkTrait) return false;
-        const items = linkTrait.getItems(payload.data);
-        if (items.length === 1 && items[0].href === dropNode.data.href) return false;
-        return true;
-    }, [writable]);
+        const items = linkTrait?.getItems(payload.data) ?? [];
+        const sameSource = !!linkTrait
+            && linkTrait.getSourceId?.(payload.data) === props.provider.sourceUrl;
+        // Same-source move (intra-provider). Reject dropping a single item on its own row.
+        if (sameSource && items.length) {
+            if (items.length === 1 && items[0].href === dropNode.data.href) return false;
+            return true;
+        }
+        // Cross-source / OS drop: file content this provider can import (copy), …
+        const fileLink = traits?.get(FILE_LINK);
+        if (props.provider.importFiles
+            && (fileLink?.getFiles(payload.data).length ?? 0) > 0) {
+            return true;
+        }
+        // … or a link this catalog provider can ingest by href (e.g. an http link
+        // dragged from another window's collection).
+        if (props.provider.importLinks && linkTrait && items.length) {
+            return true;
+        }
+        return false;
+    }, [writable, props.provider]);
 
     const onTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
         const traits = resolveTraits(payload.typeId);
-        // Dispatch by trait + source — no "what kind of object" check.
+        // Dispatch by trait + target capability — no "what kind of object" check.
         const linkTrait = traits?.get(LINK);
         const items = linkTrait?.getItems(payload.data) ?? [];
-        // 1. Same source → move (intra-provider rename). Same root, even across windows.
-        if (linkTrait && items.length
-            && linkTrait.getSourceId?.(payload.data) === props.provider.sourceUrl) {
+        const sameSource = !!linkTrait
+            && linkTrait.getSourceId?.(payload.data) === props.provider.sourceUrl;
+        // 1. Same source → move (intra-provider rename / category reassign). Same root,
+        //    even across windows.
+        if (sameSource && items.length) {
             model.moveItems(items, dropNode);
             return;
         }
-        // 2. File trait → import/copy (OS file, cross-root Mneme node, future http link).
+        // 2. File content present → import/copy (OS file, cross-root Mneme node,
+        //    local-file link). Checked before the link branch so a file-backed target
+        //    copies bytes and a Mneme node (bytes, no usable link href) does not become
+        //    a broken link in a collection.
         const fileLink = traits?.get(FILE_LINK);
-        if (fileLink) {
-            void model.importFiles(fileLink.getFiles(payload.data), dropNode);
+        const files = fileLink?.getFiles(payload.data) ?? [];
+        if (props.provider.importFiles && files.length) {
+            void model.importFiles(files, dropNode);
             return;
         }
-        // 3. Fallback: cross-source link without file content (other providers, unchanged).
-        if (linkTrait && items.length) {
-            model.moveItems(items, dropNode);
+        // 3. Cross-source link without file bytes (e.g. an http link from another
+        //    window) → catalog add/move by href. No rename fallback, so a file-backed
+        //    provider (Mneme) simply ignores it instead of renaming a foreign href
+        //    ("unknown root").
+        if (props.provider.importLinks && linkTrait && items.length) {
+            void model.importLinksTo(items, dropNode);
         }
     }, [model, props.provider]);
 

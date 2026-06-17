@@ -76,6 +76,12 @@ export interface ITreeProvider {
      *  DOM `File` — provider-agnostic. */
     importFiles?(items: IFileLink[], targetCategory: string): Promise<void>;
 
+    /** Import dropped link items (e.g. links dragged from another window's collection)
+     *  into `targetCategory`. Unlike `importFiles`, this stores link metadata by href
+     *  (no byte copy) and is implemented by catalog providers (link collections). A
+     *  duplicate href is moved into `targetCategory` rather than duplicated. */
+    importLinks?(items: ILink[], targetCategory: string): Promise<void>;
+
     /** Search items — async, yields results progressively. */
     search?(query: string, options: ITreeSearchOptions): ITreeSearchHandle;
 

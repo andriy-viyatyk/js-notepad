@@ -1,6 +1,7 @@
 import type {
     ITreeProvider,
     ILink,
+    IFileLink,
     ITreeStat,
     ITreeTagInfo,
     ICategorySegment,
@@ -9,6 +10,7 @@ import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink, relativeCategorySegments } from "../../content/tree-providers/tree-provider-link";
 import { getHostname } from "../../components/tree-provider/favicon-cache";
 import { fpBasename } from "../../core/utils/file-path";
+import { fs } from "../../api/fs";
 import type { ILinkSource, LinkItem } from "./linkTypes";
 
 export class LinkTreeProvider implements ITreeProvider {
@@ -162,6 +164,48 @@ export class LinkTreeProvider implements ITreeProvider {
                 this.source.moveLinkToCategory(link.id, targetCategory);
             }
         }
+    }
+
+    /**
+     * Import dropped files/folders as links under `targetCategory`. Each file with a
+     * local path becomes a link to that path; folders are scanned recursively by the
+     * editor's `importLinks`. Items without a `filePath` (e.g. a Mneme node, which has
+     * bytes but no local path) are skipped. Duplicate hrefs are moved into the target
+     * category rather than duplicated.
+     */
+    async importFiles(items: IFileLink[], targetCategory: string): Promise<void> {
+        const withPath = items.filter(i => i.filePath);
+        if (!withPath.length) return;
+
+        const links: ILink[] = [];
+        for (const item of withPath) {
+            let isDirectory = false;
+            try {
+                isDirectory = (await fs.stat(item.filePath)).isDirectory;
+            } catch {
+                // Unreadable path — treat as a plain file link.
+            }
+            links.push({
+                title: item.name || fpBasename(item.filePath),
+                href: item.filePath,
+                category: targetCategory,
+                tags: [],
+                isDirectory,
+            });
+        }
+
+        await this.source.importLinks(links, { moveExistingToCategory: targetCategory });
+    }
+
+    /**
+     * Import links dragged from another collection (e.g. a Link editor in another
+     * window) under `targetCategory`. Stores link metadata as-is by href (no byte
+     * copy); folders are scanned recursively and duplicate hrefs are moved into the
+     * target category rather than duplicated.
+     */
+    async importLinks(items: ILink[], targetCategory: string): Promise<void> {
+        const links = items.map(i => ({ ...i, category: targetCategory }));
+        await this.source.importLinks(links, { moveExistingToCategory: targetCategory });
     }
 
     /**

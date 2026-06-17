@@ -8,6 +8,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.5 (Upcoming)
 
+### Improvements
+
+- **Link editor — richer drag-and-drop** — The Collections panel and the link list now accept more drag sources and handle them more precisely:
+
+  - **Drop files/folders onto a Collections category** — Drag one or more files (or folders) from Windows Explorer directly onto a category folder in the **Collections** sidebar panel. Each file becomes a new link under that category; a dropped folder imports all of its files (including those in subfolders) into that same category — the folder's internal structure is flattened, not recreated as sub-categories. A confirmation dialog appears when more than 100 files would be imported.
+  - **Cross-window link dragging** — Drag links from a Link editor open in one Persephone window and drop them onto a category in another window's Link editor to file them there. If a link with the same target already exists in the destination collection, it is **moved** to that category rather than duplicated.
+  - **Drop files onto Mneme** — Drag a file link from the Link editor onto a node in the Mneme tree to copy that file into your Mneme knowledge base. Dropping a non-file link (a web URL) onto Mneme is silently ignored (previously this produced an error).
+
 ### UI Polish
 
 - **Sidebar stays put when opening files** — Opening a Link, Todo, Notebook, or Rest Client file from the **File Explorer** sidebar panel no longer switches the sidebar to that editor's own panel (Collections, Todo, Categories, or Rest). The sidebar remains on whichever panel you had open, so you can click through files one by one in the Explorer without losing your place.
