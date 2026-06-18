@@ -37,6 +37,12 @@ interface Job {
 /** Live jobs keyed by jobId (mirrors worker-host's `activeWorkers`). */
 const activeJobs = new Map<string, Job>();
 
+/** jobIds grouped by their owning WebContents id — for reaping on close/crash. */
+const jobsBySender = new Map<number, Set<string>>();
+
+/** Per-sender reap wiring (so we attach lifecycle listeners exactly once). */
+const senderReapers = new Map<number, { wc: WebContents; reap: () => void }>();
+
 /** Send to a WebContents that may have been destroyed (window/webview closed). */
 function safeSend(sender: WebContents, channel: RunnerChannel, payload: unknown): void {
     try {
@@ -44,6 +50,76 @@ function safeSend(sender: WebContents, channel: RunnerChannel, payload: unknown)
     } catch {
         // sender gone — ignore
     }
+}
+
+/**
+ * Kill a child process and its entire descendant tree.
+ *
+ * Windows: `taskkill /PID <pid> /T /F` — /T walks the child tree, /F forces.
+ *   Closes the US-719 gap: with `shell: true` the tracked child is cmd.exe
+ *   and the real workload is a grandchild; a plain proc.kill() only ends
+ *   cmd.exe and orphans the grandchild (which holds the stdio pipes open, so
+ *   `close` never fires). taskkill /T kills the whole tree → pipes close →
+ *   our existing proc.on("close") fires and the job settles.
+ * POSIX: process.kill(-pid, signal) signals the child's process group (the
+ *   child is the group leader via detached:true at spawn).
+ */
+function treeKill(proc: ChildProcessWithoutNullStreams, signal?: string): void {
+    const pid = proc.pid;
+    if (pid == null) {
+        try { proc.kill(); } catch { /* already dead */ }
+        return;
+    }
+    if (process.platform === "win32") {
+        try {
+            // Fire-and-forget; taskkill is short-lived and self-cleaning.
+            spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true });
+        } catch {
+            try { proc.kill(); } catch { /* already dead */ }
+        }
+    } else {
+        try {
+            process.kill(-pid, (signal as NodeJS.Signals) || "SIGTERM");
+        } catch {
+            try { proc.kill((signal as NodeJS.Signals) || undefined); } catch { /* already dead */ }
+        }
+    }
+}
+
+function indexJob(jobId: string, sender: WebContents): void {
+    let set = jobsBySender.get(sender.id);
+    if (!set) {
+        set = new Set();
+        jobsBySender.set(sender.id, set);
+    }
+    set.add(jobId);
+}
+
+/** Reap every job owned by a WebContents whose window/webview is gone or crashed. */
+function reapSender(senderId: number): void {
+    const entry = senderReapers.get(senderId);
+    if (entry) {
+        try { entry.wc.removeListener("render-process-gone", entry.reap); } catch { /* gone */ }
+        // 'destroyed' was once() — already removed if it fired.
+        senderReapers.delete(senderId);
+    }
+    const set = jobsBySender.get(senderId);
+    if (!set) return;
+    for (const jobId of [...set]) {
+        const job = activeJobs.get(jobId);
+        if (job) treeKill(job.proc);
+        cleanup(jobId); // sender is gone — nobody will receive `exit`
+    }
+    jobsBySender.delete(senderId);
+}
+
+/** Attach destroyed / crash reaping to a sender exactly once. */
+function wireSenderReaping(sender: WebContents): void {
+    if (senderReapers.has(sender.id)) return;
+    const reap = () => reapSender(sender.id);
+    senderReapers.set(sender.id, { wc: sender, reap });
+    sender.once("destroyed", reap);
+    sender.on("render-process-gone", reap);
 }
 
 function flush(jobId: string): void {
@@ -74,6 +150,13 @@ function scheduleFlush(jobId: string): void {
 function cleanup(jobId: string): void {
     const job = activeJobs.get(jobId);
     if (job?.flushTimer) clearTimeout(job.flushTimer);
+    if (job) {
+        const set = jobsBySender.get(job.sender.id);
+        if (set) {
+            set.delete(jobId);
+            if (!set.size) jobsBySender.delete(job.sender.id);
+        }
+    }
     activeJobs.delete(jobId);
 }
 
@@ -87,6 +170,11 @@ function startJob(event: IpcMainEvent, msg: RunnerStartMsg): void {
             cwd: opts?.cwd,
             env: { ...process.env, ...(opts?.env ?? {}) },
             windowsHide: true,
+            // POSIX: become a process-group leader so the whole group can be
+            // signalled via process.kill(-pid) in treeKill(). Windows uses
+            // taskkill /T instead, and detached there would spawn a console —
+            // so it is Windows-excluded. We never unref(): the job stays tracked.
+            detached: process.platform !== "win32",
         });
     } catch (err) {
         // Synchronous spawn failure (e.g. bad cwd).
@@ -105,6 +193,8 @@ function startJob(event: IpcMainEvent, msg: RunnerStartMsg): void {
         flushTimer: null,
     };
     activeJobs.set(jobId, job);
+    indexJob(jobId, event.sender);
+    wireSenderReaping(event.sender);
 
     proc.stdout.on("data", (data: Buffer) => {
         job.stdoutBuf.push(data);
@@ -160,15 +250,11 @@ export function initCommandRunner(): void {
     });
 
     ipcMain.on(RunnerChannel.kill, (_event, msg: RunnerKillMsg) => {
-        // Direct-child kill only. US-720 replaces this body with a Windows
-        // Job-Object / `taskkill /T` whole-tree kill over the same registry.
         const job = activeJobs.get(msg.jobId);
         if (!job) return;
-        try {
-            job.proc.kill((msg.signal as NodeJS.Signals) || undefined);
-        } catch {
-            // already dead — ignore
-        }
+        treeKill(job.proc, msg.signal);
+        // Do not cleanup here — taskkill/group-kill closes the child's stdio,
+        // so proc.on("close") fires and runs the normal exit + cleanup path.
     });
 }
 
@@ -176,11 +262,9 @@ export function initCommandRunner(): void {
 export function killAllCommands(): void {
     for (const job of activeJobs.values()) {
         if (job.flushTimer) clearTimeout(job.flushTimer);
-        try {
-            job.proc.kill();
-        } catch {
-            // already dead — ignore
-        }
+        treeKill(job.proc);
     }
     activeJobs.clear();
+    jobsBySender.clear();
+    senderReapers.clear();
 }

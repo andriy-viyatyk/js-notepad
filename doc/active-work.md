@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 - **EPIC-034** — [Web Board — HTML-page board with `persephone.execute` + board scripts](epics/EPIC-034.md) *(design consolidated; placeholder tasks in build order — each investigated before implementation)*
   - [ ] [US-719: Command runner — shared main-process streaming spawn service (IPC interface; consumed by board preload, renderer `app` API, and optional MCP tool)](tasks/US-719-command-runner/README.md)
-  - [ ] US-720: Process lifecycle / tree-kill (Windows Job Object; per-board reaping)
+  - [ ] [US-720: Process lifecycle — whole-tree kill (`taskkill /T`) + per-owner reaping](tasks/US-720-process-lifecycle/README.md)
   - [ ] US-721: Project trust gate + dialog (per `.persephone`; `trustedProjects.txt`; RCE-explicit confirmation)
   - [ ] US-722: `.persephone` folder + Board editor + folder-click routing (sidebar board list + main management)
   - [ ] US-723: `board://` protocol + locked-down webview + bridge injection + CSP

@@ -14,7 +14,7 @@ Placeholders in **build order** (foundations first — see *Foundations & build 
 | Task | Title |
 |------|-------|
 | US-719 | Command runner — **shared main-process streaming spawn service** + IPC interface (stdout/stderr/exit/error stream, stdin write, kill; buffered one-shot on top). Spawn always in main (boards are sandboxed → no Node). Consumed by three front-ends: the **board preload** (US-724), the **renderer `app` API** (Persephone scripts), and *(optional)* an **MCP tool** (agent testing). **[Investigated — doc ready.](../tasks/US-719-command-runner/README.md)** |
-| US-720 | Process lifecycle / tree-kill — per-board process registry; whole-**tree** kill (Windows **Job Object**; `taskkill /T` fallback); reap on board close/reload/crash |
+| US-720 | Process lifecycle / tree-kill — per-board process registry; whole-**tree** kill (Windows **Job Object**; `taskkill /T` fallback); reap on board close/reload/crash. **[Investigated — doc ready.](../tasks/US-720-process-lifecycle/README.md)** |
 | US-721 | Project trust gate + dialog — per-`.persephone` trust; `trustedProjects.txt` (`userData`); untrusted UX + "Trust project" confirmation (wording states the RCE implication) |
 | US-722 | `.persephone` folder + Board editor + folder-click routing — `persephone-folder://` scheme/parser + `FileTreeProvider` check + editor registration + `restore()`; side-panel board list + main management (create/delete) view |
 | US-723 | `board://` protocol + locked-down webview + bridge injection + CSP — global privileged registration + per-board-partition `protocol.handle` (traversal guard); webview `nodeIntegration:false`/`contextIsolation:true`/`sandbox:true`; preload `contextBridge` |
