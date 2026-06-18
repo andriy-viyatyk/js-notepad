@@ -7,6 +7,7 @@ import type { IShell } from "./shell";
 import type { IUserInterface } from "./ui";
 import type { IDownloads } from "./downloads";
 import type { IMenuFolders } from "./menu-folders";
+import type { IProc } from "./proc";
 import type { IPageCollection } from "./pages";
 import type { IAppEvents } from "./events";
 
@@ -50,6 +51,9 @@ export interface IApp {
 
     /** User-configured sidebar folders. */
     readonly menuFolders: IMenuFolders;
+
+    /** Spawn external programs and stream their output. */
+    readonly proc: IProc;
 
     /** Open pages (tabs) in the current window. */
     readonly pages: IPageCollection;

@@ -12,6 +12,7 @@ import { initSearchHandlers } from "./search-service";
 import { initBrowserHandlers } from "./browser-service";
 import { initTorHandlers, torService } from "./tor-service";
 import { initWorkerHost } from "./worker-host";
+import { initCommandRunner, killAllCommands } from "./command-runner";
 import { startPipeServer, stopPipeServer } from "./pipe-server";
 import { stopMcpHttpServer } from "./mcp-http-server";
 import { shutdownMneme } from "./mneme-service";
@@ -45,6 +46,7 @@ export function setupMainProcess() {
     initBrowserHandlers();
     initTorHandlers();
     initWorkerHost();
+    initCommandRunner();
     downloadService.init();
 
     function registerAssetProtocol(partition: string) {
@@ -126,6 +128,7 @@ export function setupMainProcess() {
 
     app.on("will-quit", () => {
         torService.shutdown();
+        killAllCommands();
         stopPipeServer();
         stopMcpHttpServer();
         stopVideoStreamServer();

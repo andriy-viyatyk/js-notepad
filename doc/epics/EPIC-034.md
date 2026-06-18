@@ -13,12 +13,12 @@ Placeholders in **build order** (foundations first — see *Foundations & build 
 
 | Task | Title |
 |------|-------|
-| US-719 | Command runner — main-process **streaming** spawn service + IPC handle (stdout/stderr/exit/error stream, stdin write, kill; buffered one-shot convenience on top) |
+| US-719 | Command runner — **shared main-process streaming spawn service** + IPC interface (stdout/stderr/exit/error stream, stdin write, kill; buffered one-shot on top). Spawn always in main (boards are sandboxed → no Node). Consumed by three front-ends: the **board preload** (US-724), the **renderer `app` API** (Persephone scripts), and *(optional)* an **MCP tool** (agent testing). **[Investigated — doc ready.](../tasks/US-719-command-runner/README.md)** |
 | US-720 | Process lifecycle / tree-kill — per-board process registry; whole-**tree** kill (Windows **Job Object**; `taskkill /T` fallback); reap on board close/reload/crash |
 | US-721 | Project trust gate + dialog — per-`.persephone` trust; `trustedProjects.txt` (`userData`); untrusted UX + "Trust project" confirmation (wording states the RCE implication) |
 | US-722 | `.persephone` folder + Board editor + folder-click routing — `persephone-folder://` scheme/parser + `FileTreeProvider` check + editor registration + `restore()`; side-panel board list + main management (create/delete) view |
 | US-723 | `board://` protocol + locked-down webview + bridge injection + CSP — global privileged registration + per-board-partition `protocol.handle` (traversal guard); webview `nodeIntegration:false`/`contextIsolation:true`/`sandbox:true`; preload `contextBridge` |
-| US-724 | `persephone` bridge API — `execute()` handle (proxy + stream over IPC) + integration tier (`openRawLink`, `notify`, open-file/save-file/open-folder dialogs) |
+| US-724 | `persephone` bridge (board preload) — exposes the `persephone` object to the board page via `contextBridge`: the `execute()` **handle** (a thin client that forwards to the US-719 engine over IPC) + integration tier (`openRawLink`, `notify`, open-file/save-file/open-folder dialogs — separate calls to main, not the runner). **Consumes US-719.** |
 | US-725 | Theme contract — `--p-*` CSS-variable contract (mapped from `color.ts`) + `persephone.theme`/`onThemeChange`; inject + live-update on theme switch |
 | US-726 | `config.json` load/watch + templates & scaffolding + `ui.log` + dev-shim — per-board folder lifecycle; bundled `web-board-template`; recursive copy on create; error logging + on-board indicator |
 | US-727 | Recommended-components manifest + first skin (Tabulator) — `boards-assets/` skin (version-stamped, per-block comments) + manifest; agent fetch-into-folder |
@@ -174,7 +174,7 @@ This is *not* a thin feature — it owns the foundation layer below. Sensible bu
 
 | # | Foundation | Notes |
 |---|-----------|-------|
-| 1 | **Command runner** (main-process spawn + IPC) | A **streaming, long-lived handle with tree-kill** — backs `execute()`. (A buffered one-shot mode is a thin convenience on top.) |
+| 1 | **Command runner** (shared main-process service + IPC interface) | A **streaming, long-lived spawn** service in main, reached over IPC — backs `execute()`. Boards are sandboxed (no Node) so the spawn lives in main; the board's **preload** consumes the IPC interface and presents the handle to the page. Same service is exposed to the **renderer `app` API** (Persephone scripts) and an optional **MCP tool** — all over IPC to the single owner, so the process registry / tree-kill (US-720) stays centralized. (Buffered one-shot is a thin convenience on top.) |
 | 2 | **Process lifecycle / tree-kill** | Persephone owns every spawn; **reaps all of a board's processes** on webview close/reload/crash; kills the whole **process tree** (Windows **Job Object**; `taskkill /T` fallback); children tracked **per board instance**. |
 | 3 | **Project trust gate + dialog** | Mandatory; nothing runs until trusted. |
 | 4 | **`.persephone` folder + Board editor + folder-click routing** | Editor hosts the board **webview**; side-panel board list + main management view. |
@@ -240,6 +240,19 @@ Kept out of v1 scope; the design leaves room for them:
   - **(B3)** template Create = recursive copy into a **fresh** folder, error on collision, **no in-file name substitution** (the name lives in the folder).
   - **(B4)** trust file is **`userData`**-rooted, not `appData`.
 - Folded in non-blocking notes: reuse the `safe-file` traversal guard; `--p-accent*` is a deliberate mapping (no 1:1 `color.ts` token); **cut `onLoad`/`events` from v1** (the page's own load handler suffices) → moved to Future directions.
+
+### 2026-06-18 — US-719 investigated + task doc written
+- Wrote the full Goal → Background → Plan → Concerns → Acceptance doc (`doc/tasks/US-719-command-runner/README.md`).
+- **Key finding:** the existing **async-worker system** (`worker-channels.ts` + `worker-host.ts` + `WorkerRunner.ts`) is a precise template — a shared string-channel enum, a `Map<id, …>` in main, `event.sender.send(channel, { id, … })` streaming back, and renderer-side `ipcRenderer.on(channel, msg => if (msg.id !== id) return)` routing with follow-up messages (stdin/kill) sent back keyed by id. US-719 = that exact shape with `ChildProcess` instead of `Worker`. Reuses US-699's spawn blueprint (try/catch, `windowsHide`, env-merge, will-quit reap); the **new** part is the streaming/bidirectional protocol US-699 deferred.
+- Binary stdout/stderr cross IPC as `Uint8Array` (structured clone — `capturePageRegion` precedent), confirming C3.
+- Defined the handle contract (buffered-xor-streaming per handle; three distinct `error`/`stderr`/non-zero-`exit` signals; `getJson` reject semantics) and the **shared dependency-free `src/ipc/runner-channels.ts`** module (channels + handle types) that US-724's sandboxed preload reuses (it can't import the renderer-bundle client).
+- **Scope boundary confirmed:** US-719 ships `child.kill()` + quit-reap; **US-720** swaps in Windows Job-Object tree-kill + board-lifecycle reaping over the same `activeJobs` registry. This task ships **one** consumer (renderer `app.proc`) as the end-to-end proof; US-724 adds the preload consumer; MCP tool optional/deferred.
+
+### 2026-06-18 — US-719 vs US-724 boundary (not duplicates)
+- US-719 = the **engine** (main-process spawn + streaming + IPC interface), shared by all consumers. US-724 = the **board's `persephone` bridge** (preload/`contextBridge`) that *consumes* US-719 to present the `execute()` handle to the page, plus the non-runner integration methods (`openRawLink`, `notify`, file dialogs). Not duplicates; US-719 is not vestigial (without it the handle has nothing to call). US-724 depends on US-719.
+
+### 2026-06-18 — US-719 clarified (transport + consumers)
+- The command runner is a **shared main-process service** with an **IPC interface** — *not* a renderer-local spawn. Clarification (user review): for a board, "via the preload" and "via IPC" are the **same path** — the sandboxed board page has no Node and can't spawn, so its preload reaches the main service over IPC and presents the handle (preload = contextBridge front, IPC = transport). The service is consumed by three front-ends: the **board preload** (US-724), the **renderer `app` API** (Persephone scripts — also over IPC to the single owner, so process tree-kill stays centralized), and *(optional)* an **MCP tool** (agent testing). Reworded US-719 title and Foundation #1 accordingly.
 
 ### 2026-06-18 — task placeholders carved (US-719…US-728)
 - Carved 10 placeholder tasks in build order from the Foundations table (US-719 command runner → US-720 tree-kill → US-721 trust gate → US-722 board editor/routing → US-723 `board://`+webview → US-724 bridge API → US-725 theme contract → US-726 config/templates/`ui.log` → US-727 manifest+Tabulator skin → US-728 dogfood reference board). No task docs yet — each is investigated + written up before its implementation.

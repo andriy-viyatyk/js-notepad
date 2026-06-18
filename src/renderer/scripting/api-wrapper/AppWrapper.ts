@@ -106,6 +106,10 @@ export class AppWrapper {
         return app.menuFolders;
     }
 
+    get proc() {
+        return app.proc;
+    }
+
     get pages(): PageCollectionWrapper {
         return this._pages;
     }

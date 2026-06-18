@@ -25,6 +25,7 @@ mermaid-editor.d.ts
 notebook-editor.d.ts
 page.d.ts
 pages.d.ts
+proc.d.ts
 recent.d.ts
 settings.d.ts
 shell.d.ts

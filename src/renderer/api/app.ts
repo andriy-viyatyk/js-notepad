@@ -9,6 +9,7 @@ import type { IShell } from "./types/shell";
 import type { IUserInterface } from "./types/ui";
 import type { IDownloads } from "./types/downloads";
 import type { IMenuFolders } from "./types/menu-folders";
+import type { IProc } from "./types/proc";
 import type { PagesModel } from "./pages/PagesModel";
 import { AppEvents } from "./events/AppEvents";
 import type { IFetchOptions } from "./types/app";
@@ -35,6 +36,7 @@ class App {
     private _ui = undefined as unknown as IUserInterface;
     private _downloads = undefined as unknown as IDownloads;
     private _menuFolders = undefined as unknown as IMenuFolders;
+    private _proc = undefined as unknown as IProc;
     private _pages = undefined as unknown as PagesModel;
     private _events = new AppEvents();
 
@@ -76,6 +78,10 @@ class App {
 
     get menuFolders(): IMenuFolders {
         return this._menuFolders;
+    }
+
+    get proc(): IProc {
+        return this._proc;
     }
 
     get pages(): PagesModel {
@@ -125,7 +131,7 @@ class App {
         if (this._servicesInitialized) return;
         this._servicesInitialized = true;
 
-        const [{ settings }, { editors }, { recent }, { fs }, win, { shell }, { ui }, { downloads }, { menuFolders }] = await Promise.all([
+        const [{ settings }, { editors }, { recent }, { fs }, win, { shell }, { ui }, { downloads }, { menuFolders }, { proc }] = await Promise.all([
             import("./settings"),
             import("./editors"),
             import("./recent"),
@@ -135,6 +141,7 @@ class App {
             import("./ui"),
             import("./downloads"),
             import("./menu-folders"),
+            import("./proc"),
         ]);
         this._settings = settings;
         this._editors = editors;
@@ -145,6 +152,7 @@ class App {
         this._ui = ui;
         this._downloads = downloads;
         this._menuFolders = menuFolders;
+        this._proc = proc;
 
         // Initialize downloads tracking
         await this._downloads.init();
