@@ -230,6 +230,16 @@ export function fpResolve(...paths: string[]): string {
     return path.resolve(...paths);
 }
 
+/**
+ * Normalize an absolute path for *identity comparison* — resolves to absolute,
+ * unifies separators to "/", strips a trailing slash, and lowercases on Windows
+ * (a case-insensitive filesystem). Use only for equality checks, never for display.
+ */
+export function fpNormalizeForCompare(filePath: string): string {
+    const resolved = path.resolve(filePath).replace(/\\/g, "/").replace(/\/+$/, "");
+    return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
 /** Wrapper for `path.relative()`. */
 export function fpRelative(from: string, to: string): string {
     return path.relative(from, to);
