@@ -2,10 +2,10 @@
 
 ## Status
 
-**Status:** 🚧 Active (design finalized; tasks carved as placeholders — each to be investigated in detail before implementation)
+**Status:** 🧊 Frozen / superseded by [EPIC-034](EPIC-034.md) (2026-06-18)
 **Created:** 2026-06-17
 
-> The design and **scope** below are **finalized**. Tasks are carved as **placeholders** (see Tasks) — each gets a full investigation + task doc before its implementation begins.
+> **Frozen pending EPIC-034.** Its project / editor / trust / scaffolding infrastructure has been absorbed into [EPIC-034](EPIC-034.md) (Web Board), and a skinned Tabulator grid inside a Web Board reproduces the grid-dashboard behavior. **After EPIC-034 is implemented, this epic will be either deprecated (deleted) or fully rewritten** around whatever unique value remains (e.g. the zero-UI-code, config-driven grid path). The original design below is unchanged, kept for reference.
 
 ## Tasks
 

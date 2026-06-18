@@ -7,7 +7,20 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(design finalized; placeholder tasks — each investigated in detail before implementation)*
+- **EPIC-034** — [Web Board — HTML-page board with `persephone.execute` + board scripts](epics/EPIC-034.md) *(design consolidated; placeholder tasks in build order — each investigated before implementation)*
+  - [ ] US-719: Command runner — main-process streaming spawn service + IPC handle
+  - [ ] US-720: Process lifecycle / tree-kill (Windows Job Object; per-board reaping)
+  - [ ] US-721: Project trust gate + dialog (per `.persephone`; `trustedProjects.txt`; RCE-explicit confirmation)
+  - [ ] US-722: `.persephone` folder + Board editor + folder-click routing (sidebar board list + main management)
+  - [ ] US-723: `board://` protocol + locked-down webview + bridge injection + CSP
+  - [ ] US-724: `persephone` bridge API — `execute()` handle + integration tier (+ file dialogs)
+  - [ ] US-725: Theme contract — `--p-*` + `persephone.theme` (live update)
+  - [ ] US-726: `config.json` load/watch + templates/scaffolding + `ui.log` + dev-shim
+  - [ ] US-727: Recommended-components manifest + first skin (Tabulator)
+  - [ ] US-728: Reference Web Board (dogfood)
+
+## Planned
+- **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*
   - [ ] [US-699: Generic command runner (main-process spawn + IPC + error toast)](tasks/US-699-command-runner/README.md)
   - [ ] US-700: `TDiskState` — folder-backed, schema-validated, disposable disk-synced state primitive
   - [ ] US-701: Per-page loading indicator primitive (badge + circular progress + overlay lock)
@@ -21,8 +34,6 @@ Overview of all active and planned epics and tasks.
   - [ ] US-709: Templates & scaffolding — bundled template + `library-service` copy with name substitution
   - [ ] US-710: Error logging — per-dashboard `ui.log` + clickable error indicator
   - [ ] US-711: Dogfood reference dashboard — Persephone's own task board
-
-## Planned
 - **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
   - [ ] US-436: Script UI API — expose new component library to scripting engine
   - [ ] US-435: Storybook — script tab for building and testing UI via scripts
