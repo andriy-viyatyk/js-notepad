@@ -7,7 +7,13 @@ import { fs } from "../fs";
 import { appWindow } from "../window";
 import { RendererEvent } from "../../../ipc/api-types";
 import { pagesModel } from "../pages";
-import { getClipboardImageFile, openPastedImage } from "./clipboard-image";
+import {
+    getClipboardImageFile,
+    getClipboardImageHtml,
+    isEditablePasteTarget,
+    openPastedHtml,
+    openPastedImage,
+} from "./clipboard-image";
 import { windowClosing } from "../../core/state/events";
 import type { ILink } from "../types/io.tree";
 import { fpBasename, fpJoin } from "../../core/utils/file-path";
@@ -191,19 +197,35 @@ export class GlobalEventService {
     };
 
     /**
-     * Open image pastes in the Image viewer. Registered in the **capture** phase
-     * on `document` so it runs before any focused editor — notably Monaco, which
+     * Open image pastes in a viewer. Registered in the **capture** phase on
+     * `document` so it runs before any focused editor — notably Monaco, which
      * otherwise consumes (and `preventDefault`s) the paste at its textarea before
-     * a bubble-phase listener could ever see it. For an image we `stopPropagation()`
-     * so the focused editor never receives the paste; non-image pastes fall
-     * through untouched, so text editors paste text as usual.
+     * a bubble-phase listener could ever see it.
+     *
+     * 1. A real image file/bitmap → Image viewer; we `stopPropagation()` so the
+     *    focused editor never receives it (a bitmap has no text to paste anyway).
+     * 2. An image carried only as an HTML fragment (PowerPoint/Office) → HTML
+     *    viewer, but **only as a fallback**: if the paste is landing in an
+     *    editable target we stand down and let it paste as text — no new page.
+     *
+     * Everything else falls through untouched, so text editors paste as usual.
      */
     private handlePaste = (e: ClipboardEvent) => {
         const file = getClipboardImageFile(e);
-        if (!file) return;
+        if (file) {
+            e.preventDefault();
+            e.stopPropagation();
+            openPastedImage(file);
+            return;
+        }
+        // HTML-only image paste: a fallback for editable targets, which keep
+        // their normal text paste.
+        if (isEditablePasteTarget(e)) return;
+        const html = getClipboardImageHtml(e);
+        if (!html) return;
         e.preventDefault();
         e.stopPropagation();
-        openPastedImage(file);
+        openPastedHtml(html);
     };
 
     private handleUnhandledRejection = (e: PromiseRejectionEvent) => {

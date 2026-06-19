@@ -128,7 +128,10 @@ For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — o
   - **Save as .png** — re-encodes the image to PNG (useful for converting JPG, GIF, etc. to PNG)
   - **Save original** — writes the source bytes in their original format with no re-encoding
 - **Open in Drawing Editor** — toolbar button embeds the image into a new Excalidraw drawing tab for annotation
-- **Paste image from clipboard** — press `Ctrl+V` anywhere in Persephone (even when a text editor is focused) to open a clipboard image in a new Image Viewer tab titled **"Pasted image"**. Works with screenshots and images copied from Teams, browsers, and other apps. The tab survives an app restart. Pasting text content behaves normally.
+- **Paste image from clipboard** — press `Ctrl+V` anywhere in Persephone (even when a text editor is focused) to open a clipboard image in a new viewer tab. Two cases are handled:
+  - **Bitmap image** (screenshots, images copied from Snipping Tool, Teams, browsers) — opens in a new **Image Viewer** tab titled **"Pasted image"**. The tab survives an app restart.
+  - **HTML-only image** (pictures copied from PowerPoint, Word, Excel, or any app that places the image on the clipboard as HTML with no bitmap) — opens in a new **HTML viewer** tab titled **"Pasted HTML"**. The tab is not persisted across restarts.
+  - If the paste lands in a focused editor (Monaco, any input, or other text field), those targets paste normally and no new tab is opened.
 
 **Scripting:** `const img = await page.asImage()` — exposes `savePngToFile(filePath)` to write the image to disk as PNG. See [`asImage()` API reference](./api/page.md#asimage--promiseimageeditor).
 

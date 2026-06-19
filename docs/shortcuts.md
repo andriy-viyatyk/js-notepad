@@ -24,7 +24,7 @@ These shortcuts work regardless of which editor is active.
 | `Ctrl+Alt+]` | Next theme |
 | `Ctrl+Alt+[` | Previous theme |
 | `F5` | Run script (JavaScript or TypeScript) |
-| `Ctrl+V` | Paste clipboard image into a new Image Viewer tab (when clipboard contains an image) |
+| `Ctrl+V` | Paste clipboard image into a new viewer tab — bitmap images (screenshots, Snipping Tool) open in the **Image Viewer**; HTML-only images (PowerPoint / Office copies) open in the **HTML viewer**. Has no effect when a text editor or input has focus (those paste normally). |
 
 ## Text Editor (Monaco)
 

@@ -99,8 +99,8 @@ persephone/
 │   │   └── well-known-pages.ts     # Singleton page definitions (MCP Log, etc.)
 │   │
 │   ├── internal/           # Event services (init-only, not public API)
-│   │   ├── GlobalEventService.ts    # contextmenu, dragover, drop, paste (image), unhandled rejections
-│   │   ├── clipboard-image.ts       # Helpers: extract pasted image, open it in the Image viewer
+│   │   ├── GlobalEventService.ts    # contextmenu, dragover, drop, paste (image / image-bearing HTML), unhandled rejections
+│   │   ├── clipboard-image.ts       # Paste helpers: image file → Image viewer; image-bearing HTML → HTML viewer (editable-target fallback)
 │   │   ├── KeyboardService.ts       # Global keyboard shortcuts
 │   │   ├── WindowStateService.ts    # Window maximize/zoom state tracking
 │   │   └── RendererEventsService.ts # IPC event subscriptions (open file, quit, etc.)
