@@ -31,6 +31,9 @@ export class RendererEventsService {
 
         // Update check notification
         rendererEvents[EventEndpoint.eUpdateAvailable].subscribe(this.handleUpdateAvailable);
+
+        // Web Board `persephone.notify()` toast (US-724)
+        rendererEvents[EventEndpoint.eBoardNotify].subscribe(this.handleBoardNotify);
     }
 
     private handleOpenFile = async (filePath: string) => {
@@ -104,6 +107,10 @@ export class RendererEventsService {
             console.error("Failed to save pages on quit:", err);
         }
         api.setCanQuit(true);
+    };
+
+    private handleBoardNotify = (data: { message: string; type?: "info" | "success" | "warning" | "error" }) => {
+        void ui.notify(data.message, data.type ?? "info");
     };
 
     private handleUpdateAvailable = async (result: UpdateCheckResult) => {

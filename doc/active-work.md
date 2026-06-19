@@ -11,13 +11,13 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-719: Command runner — shared main-process streaming spawn service (IPC interface; consumed by board preload, renderer `app` API, and optional MCP tool)](tasks/US-719-command-runner/README.md)
   - [ ] [US-720: Process lifecycle — whole-tree kill (`taskkill /T`) + per-owner reaping](tasks/US-720-process-lifecycle/README.md)
   - [ ] [US-721: Project trust gate + dialog (per `.persephone`; `trustedProjects.txt`; RCE-explicit confirmation)](tasks/US-721-project-trust-gate/README.md)
-  - [ ] US-722: `.persephone` folder + Board editor + folder-click routing (sidebar board list + main management)
-  - [ ] US-723: `board://` protocol + locked-down webview + bridge injection + CSP
-  - [ ] US-724: `persephone` bridge (board preload) — `execute()` handle (thin client over US-719) + integration tier (`openRawLink`, `notify`, file dialogs)
-  - [ ] US-725: Theme contract — `--p-*` + `persephone.theme` (live update)
-  - [ ] US-726: `config.json` load/watch + templates/scaffolding + `ui.log` + dev-shim
+  - [ ] [US-722: `.persephone` folder + Board editor + folder-click routing (sidebar board list + main management)](tasks/US-722-board-editor-routing/README.md)
+  - [ ] [US-723: `board://` protocol + locked-down webview + bridge injection + CSP](tasks/US-723-board-protocol-webview/README.md)
+  - [ ] [US-724: `persephone` bridge (board preload) — `execute()` handle (thin client over US-719) + integration tier (`openRawLink`, `notify`, file dialogs)](tasks/US-724-board-bridge/README.md)
+  - [ ] [US-725: Theme contract — `--p-*` CSS variables + `persephone.theme` (live update)](tasks/US-725-theme-contract/README.md)
+  - [ ] [US-726: Templates & scaffolding + `ui.log` + live reload](tasks/US-726-config-templates-log/README.md)
   - [ ] US-727: Recommended-components manifest + first skin (Tabulator)
-  - [ ] US-728: Reference Web Board (dogfood)
+  - [ ] US-728: Demo board — self-documenting showcase + dogfood (full `persephone` surface, themes/tokens, recommended-components catalog + skin links; offered via a prompt dialog on project creation)
 
 ## Planned
 - **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*

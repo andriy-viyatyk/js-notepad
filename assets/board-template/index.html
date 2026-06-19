@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>My Board</title>
+    <style>
+        /* Style everything with the Persephone --p-* contract (fallbacks keep the
+           page readable before the host palette applies). Edit freely. */
+        body {
+            margin: 0;
+            padding: var(--p-space-xl, 16px);
+            background: var(--p-bg, #1e1e1e);
+            color: var(--p-text, #e0e0e0);
+            font-size: var(--p-font-base, 13px);
+            line-height: 1.5;
+        }
+        h1 { font-size: var(--p-font-xl, 20px); margin: 0 0 var(--p-space-lg, 12px); }
+        p { color: var(--p-text-muted, #9aa0a6); }
+        button {
+            font: inherit;
+            padding: var(--p-space-sm, 6px) var(--p-space-lg, 12px);
+            border: 1px solid var(--p-accent, #0078d4);
+            background: var(--p-accent, #0078d4);
+            color: var(--p-accent-text, #ffffff);
+            border-radius: var(--p-radius-md, 4px);
+            cursor: pointer;
+        }
+        /* Mirror Persephone's primary button: keep the accent fill, brighten on
+           hover / dim on press (always-readable, unlike swapping to another color). */
+        button:hover { filter: brightness(1.1); }
+        button:active { filter: brightness(0.9); }
+        #out {
+            margin-top: var(--p-space-lg, 12px);
+            padding: var(--p-space-lg, 12px);
+            background: var(--p-panel, #252526);
+            border: 1px solid var(--p-border, #3c3c3c);
+            border-radius: var(--p-radius-md, 4px);
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 48px;
+            font-family: ui-monospace, monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Board</h1>
+    <p>Click to run <code>scripts/hello.js</code> via <code>persephone.execute()</code>. The script
+       prints some log noise, then a <code>@@RESULT@@</code>-tagged JSON line — the page extracts it
+       with <code>getJson(/@@RESULT@@(.*)/)</code>.</p>
+
+    <button id="run">Run example</button>
+    <div id="out">Output appears here…</div>
+
+    <script src="./app.js"></script>
+</body>
+</html>

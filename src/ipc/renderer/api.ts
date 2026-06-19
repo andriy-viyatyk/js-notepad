@@ -12,6 +12,7 @@ import {
 } from "../api-param-types";
 import { Api, CaptureRect, Endpoint, McpStatus, MnemeStatus } from "../api-types";
 import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../git-ipc";
+import type { BoardThemePalette } from "../board-bridge-channels";
 
 let idGen = 0;
 const idGenMax = 2000000000;
@@ -341,6 +342,19 @@ class ApiCalls implements Api {
 
     capturePageRegion = async (rect: CaptureRect) => {
         return executeOnce<Uint8Array>(Endpoint.capturePageRegion, rect);
+    };
+
+    registerBoardProtocol = async (
+        partition: string,
+        boardRoot: string,
+        theme: BoardThemePalette,
+        tokens: Record<string, string>,
+    ) => {
+        return executeOnce<void>(Endpoint.registerBoardProtocol, partition, boardRoot, theme, tokens);
+    };
+
+    unregisterBoardProtocol = async (partition: string) => {
+        return executeOnce<void>(Endpoint.unregisterBoardProtocol, partition);
     };
 }
 

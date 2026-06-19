@@ -11,6 +11,7 @@ import {
     VideoStreamSessionResult,
 } from "./api-param-types";
 import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "./git-ipc";
+import type { BoardThemePalette } from "./board-bridge-channels";
 
 export enum Endpoint {
     getAppRootPath = "getAppRootPath",
@@ -84,6 +85,8 @@ export enum Endpoint {
     gitPull = "gitPull",
     gitRemoteUrl = "gitRemoteUrl",
     capturePageRegion = "capturePageRegion",
+    registerBoardProtocol = "registerBoardProtocol",
+    unregisterBoardProtocol = "unregisterBoardProtocol",
 }
 
 /** A rectangle (CSS pixels, viewport-relative) to capture from the calling
@@ -187,6 +190,8 @@ export type Api = {
     [Endpoint.gitPull]: (dir: string, opts?: GitPullOptions) => Promise<GitPullResult>;
     [Endpoint.gitRemoteUrl]: (dir: string, remote: string) => Promise<string>;
     [Endpoint.capturePageRegion]: (rect: CaptureRect) => Promise<Uint8Array>;
+    [Endpoint.registerBoardProtocol]: (partition: string, boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>) => Promise<void>;
+    [Endpoint.unregisterBoardProtocol]: (partition: string) => Promise<void>;
 };
 
 export enum EventEndpoint {
@@ -208,6 +213,7 @@ export enum EventEndpoint {
     eDownloadCleared = "eDownloadCleared",
     eMcpStatusChanged = "eMcpStatusChanged",
     eMnemeStatusChanged = "eMnemeStatusChanged",
+    eBoardNotify = "eBoardNotify",
 }
 
 export interface EventSubscription {
@@ -238,6 +244,12 @@ export type EventApi = {
     [EventEndpoint.eDownloadCleared]: EventObject<DownloadEntry[]>;
     [EventEndpoint.eMcpStatusChanged]: EventObject<McpStatus>;
     [EventEndpoint.eMnemeStatusChanged]: EventObject<MnemeStatus>;
+    // Web Board `persephone.notify()` → host renderer toast (US-724). Union
+    // inlined to keep this shared module free of renderer-type imports.
+    [EventEndpoint.eBoardNotify]: EventObject<{
+        message: string;
+        type?: "info" | "success" | "warning" | "error";
+    }>;
 };
 
 export enum RendererEvent {

@@ -29,6 +29,11 @@ const config: ForgeConfig = {
                     config: "vite.preload-webview.config.ts",
                     target: "preload",
                 },
+                {
+                    entry: "src/preload-board.ts",
+                    config: "vite.preload-board.config.ts",
+                    target: "preload",
+                },
             ],
             renderer: [
                 {

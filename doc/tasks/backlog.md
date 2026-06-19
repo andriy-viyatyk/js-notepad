@@ -107,6 +107,21 @@ Ideas and future tasks not yet planned for implementation.
 
 ---
 
+### Shared folder-watcher service (Explorer + consumers)
+
+**Goal:** Extract folder-change watching into a single shared service that multiple consumers subscribe to, instead of each feature opening its own `DirectoryWatcher`.
+
+**Motivation:** The Explorer already watches folders for changes. Features that live *inside* a watched folder — e.g. the Board editor (EPIC-034) reflecting boards added/removed under `.persephone/boards/` — would otherwise each need their own watcher. A single watcher on a **parent** folder can detect descendant changes and fan out events to all interested subscribers (Explorer, Board editor, …), avoiding duplicate OS watchers on overlapping paths.
+
+**Sketch:**
+- A service owning `DirectoryWatcher` instances (`core/utils/file-watcher.ts`), de-duplicated by path — one watcher per parent; nested subscribers share it.
+- Subscribe API (e.g. `watch(path, cb): unsubscribe`); the service merges the minimal set of OS watchers and routes change events to matching subscribers.
+- Explorer migrates to it; the Board editor's board-list live refresh (EPIC-034 / US-722 C6) becomes a subscriber rather than its own watcher.
+
+**Complexity:** Medium
+
+---
+
 ## New Features
 
 ### Tool Editors Infrastructure

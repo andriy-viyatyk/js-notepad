@@ -4,6 +4,7 @@ import { parseHttpRequest } from "../core/utils/curl-parser";
 import { TREE_CATEGORY_PREFIX } from "./tree-providers/tree-provider-link";
 import { GIT_TREE_PREFIX } from "./git-tree-link";
 import { MNEME_FOLDER_PREFIX } from "./mneme-folder-link";
+import { PERSEPHONE_FOLDER_PREFIX } from "./persephone-folder-link";
 import { normalizeFileUrl, isFileUrl, isPlausibleFilePath } from "./link-utils";
 
 /**
@@ -106,6 +107,19 @@ export function registerRawLinkParsers(): void {
         if (!data.href.startsWith(MNEME_FOLDER_PREFIX)) return;
         data.url = data.href;
         data.target ??= "mneme-root";
+        data.handled = false;
+        await app.events.openLink.sendAsync(data);
+        data.handled = true;
+    });
+
+    // persephone-folder:// parser — Board editor; navigates the current page
+    // (the Explorer passes pageId, so openContent → navigatePageTo). Mirrors the
+    // mneme-folder:// parser. Opens the Board editor for a `.persephone` project
+    // folder. (EPIC-034 / US-722)
+    app.events.openRawLink.subscribe(async (data) => {
+        if (!data.href.startsWith(PERSEPHONE_FOLDER_PREFIX)) return;
+        data.url = data.href;
+        data.target ??= "board-view";
         data.handled = false;
         await app.events.openLink.sendAsync(data);
         data.handled = true;

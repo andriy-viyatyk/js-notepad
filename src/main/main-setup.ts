@@ -13,6 +13,7 @@ import { initBrowserHandlers } from "./browser-service";
 import { initTorHandlers, torService } from "./tor-service";
 import { initWorkerHost } from "./worker-host";
 import { initCommandRunner, killAllCommands } from "./command-runner";
+import { initBoardBridge } from "./board-bridge";
 import { startPipeServer, stopPipeServer } from "./pipe-server";
 import { stopMcpHttpServer } from "./mcp-http-server";
 import { shutdownMneme } from "./mneme-service";
@@ -39,6 +40,16 @@ export function setupMainProcess() {
                 bypassCSP: true,
             },
         },
+        {
+            // Board frontend delivery (EPIC-034 / US-723). NOT bypassCSP — board
+            // pages are governed by the CSP the board:// handler sets (forbids remote).
+            scheme: "board",
+            privileges: {
+                standard: true,
+                secure: true,
+                supportFetchAPI: true,
+            },
+        },
     ]);
 
     controller.init();
@@ -47,6 +58,7 @@ export function setupMainProcess() {
     initTorHandlers();
     initWorkerHost();
     initCommandRunner();
+    initBoardBridge();
     downloadService.init();
 
     function registerAssetProtocol(partition: string) {

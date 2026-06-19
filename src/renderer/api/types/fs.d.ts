@@ -125,6 +125,14 @@ export interface IFileSystem {
     write(filePath: string, content: string, encoding?: string): Promise<void>;
 
     /**
+     * Append text to a file. Creates the file (and parent directories) if it
+     * doesn't exist. Always UTF-8.
+     * @param filePath Absolute path to file.
+     * @param text Text to append.
+     */
+    append(filePath: string, text: string): Promise<void>;
+
+    /**
      * Write binary data to a file. Creates parent directories if needed.
      * @param filePath Absolute path to file.
      * @param data Binary data to write.

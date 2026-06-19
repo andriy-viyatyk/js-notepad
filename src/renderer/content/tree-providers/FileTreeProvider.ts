@@ -8,6 +8,7 @@ import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink } from "./tree-provider-link";
 import { encodeGitTreeLink } from "../git-tree-link";
 import { encodeMnemeFolderLink } from "../mneme-folder-link";
+import { encodePersephoneFolderLink } from "../persephone-folder-link";
 import { settings } from "../../api/settings";
 import { debounce } from "../../../shared/utils";
 
@@ -66,6 +67,10 @@ export class FileTreeProvider implements ITreeProvider {
                 const isMneme = !isGit
                     && entry.name === ".mneme"
                     && !!settings.get("mneme.enabled");
+                // A `.persephone` project dir → Board editor (EPIC-034 / US-722).
+                // Name-only detection (like `.mneme`); the editor's root is the
+                // `.persephone` folder itself (it holds `boards/` + is the trust key).
+                const isPersephone = !isGit && !isMneme && entry.name === ".persephone";
                 folders.push({
                     title: entry.name,
                     href: fullPath,
@@ -74,6 +79,7 @@ export class FileTreeProvider implements ITreeProvider {
                     isDirectory: true,
                     ...(isGit ? { target: "git-tree", icon: "git" } : {}),
                     ...(isMneme ? { target: "mneme-root", icon: "mneme" } : {}),
+                    ...(isPersephone ? { target: "board-view", icon: "board" } : {}),
                 });
             } else {
                 const ext = path.extname(entry.name).toLowerCase();
@@ -141,6 +147,11 @@ export class FileTreeProvider implements ITreeProvider {
         // `.mneme` dir → open the Mneme root editor (rootFolder = parent of .mneme).
         if (item.target === "mneme-root") {
             return encodeMnemeFolderLink(path.dirname(item.href));
+        }
+        // `.persephone` dir → open the Board editor. The editor's root is the
+        // `.persephone` folder ITSELF (not the parent — see persephone-folder-link).
+        if (item.target === "board-view") {
+            return encodePersephoneFolderLink(item.href);
         }
         if (!item.isDirectory) return item.href;
         return encodeCategoryLink({ type: this.type, url: this.sourceUrl, category: item.href });

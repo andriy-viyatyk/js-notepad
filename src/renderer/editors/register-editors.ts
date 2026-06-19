@@ -96,6 +96,13 @@ secondaryViewRegistry.register({
     loadComponent: () => import("./mneme-root/MnemeTreeSecondaryView"),
 });
 
+secondaryViewRegistry.register({
+    id: "board-list",
+    label: "Boards",
+    // No icon override → falls back to the editor's BoardIcon (EPIC-034 / US-722).
+    loadComponent: () => import("./board/BoardListSecondaryView"),
+});
+
 editorRegistry.register({
     id: "monaco",
     name: "Text Editor",
@@ -430,6 +437,17 @@ editorRegistry.register({
     loadModule: async () => {
         const { mnemeRootModule } = await import("./mneme-root");
         return mnemeRootModule;
+    },
+});
+
+editorRegistry.register({
+    id: "board-view",
+    name: "Boards",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { boardModule } = await import("./board");
+        return boardModule;
     },
 });
 

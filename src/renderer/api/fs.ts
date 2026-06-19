@@ -297,6 +297,11 @@ class FileSystem implements IFileSystem {
         this._saveStringFile(filePath, content, encoding);
     }
 
+    async append(filePath: string, text: string): Promise<void> {
+        this._ensureDir(path.dirname(filePath));
+        nodefs.appendFileSync(filePath, text, "utf-8");
+    }
+
     async writeBinary(filePath: string, data: Buffer): Promise<void> {
         if (isArchivePath(filePath)) {
             const { archivePath, innerPath } = parseArchivePath(filePath);

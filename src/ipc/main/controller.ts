@@ -15,6 +15,7 @@ import { downloadService } from "../../main/download-service";
 import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUrl, getMcpClientCount } from "../../main/mcp-http-server";
 import { startMneme, stopMneme, restartMneme, getMnemeStatus as getMnemeServiceStatus } from "../../main/mneme-service";
 import { GitFetchOptions, GitIdentity, GitLogOptions, GitPullOptions, GitPushOptions, GitSwitchTarget } from "../git-ipc";
+import type { BoardThemePalette } from "../board-bridge-channels";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -375,6 +376,16 @@ class Controller implements MainApi {
         });
         return image.toPNG();
     };
+
+    registerBoardProtocol = async (_event: IpcMainEvent, partition: string, boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>): Promise<void> => {
+        const { registerBoardProtocol } = await import("../../main/board-protocol-service");
+        registerBoardProtocol(partition, boardRoot, theme, tokens);
+    };
+
+    unregisterBoardProtocol = async (_event: IpcMainEvent, partition: string): Promise<void> => {
+        const { unregisterBoardProtocol } = await import("../../main/board-protocol-service");
+        await unregisterBoardProtocol(partition);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -464,6 +475,8 @@ const init = () => {
     bindEndpoint(Endpoint.gitPull, controllerInstance.gitPull);
     bindEndpoint(Endpoint.gitRemoteUrl, controllerInstance.gitRemoteUrl);
     bindEndpoint(Endpoint.capturePageRegion, controllerInstance.capturePageRegion);
+    bindEndpoint(Endpoint.registerBoardProtocol, controllerInstance.registerBoardProtocol);
+    bindEndpoint(Endpoint.unregisterBoardProtocol, controllerInstance.unregisterBoardProtocol);
 
     initRendererEvents();
 }

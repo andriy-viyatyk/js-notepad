@@ -46,6 +46,11 @@ window.electron = electronHandler;
     path.join(__dirname, "preload-webview.js"),
 ).toString();
 
+// Expose board preload path for board webviews (EPIC-034 / US-723).
+(window as Window & { boardPreloadUrl?: string }).boardPreloadUrl = pathToFileURL(
+    path.join(__dirname, "preload-board.js"),
+).toString();
+
 window.MonacoEnvironment = {
   getWorkerUrl: function (_moduleId, label) {
     if (label === 'json') {

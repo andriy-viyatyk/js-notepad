@@ -127,6 +127,13 @@ export interface PanelProps
     dimmed?: boolean;
 
     /**
+     * Mark the panel as a single clickable target (selectable cards / tiles /
+     * rows): shows a pointer cursor and a subtle hover background highlight.
+     * Cosmetic affordance only — wire the actual handler via `onClick`.
+     */
+    clickable?: boolean;
+
+    /**
      * Collapse to `display: none` when the panel has no DOM children.
      * Mirrors the legacy `:empty { display: none }` toolbar rule and
      * works with conditional children (`{flag && <Btn/>}` rendering nothing).
@@ -205,6 +212,9 @@ const Root = styled.div(
         "&[data-dimmed]": {
             opacity: 0.5,
         },
+
+        "&[data-clickable]": { cursor: "pointer" },
+        "&[data-clickable]:hover": { backgroundColor: color.background.light },
 
         "&[data-hide-when-empty]:empty": { display: "none" },
 
@@ -324,6 +334,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(function Panel
         background,
         disabled,
         dimmed,
+        clickable,
         hideWhenEmpty,
         revealChildrenOnHover,
         accent,
@@ -396,6 +407,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(function Panel
             data-shadow={shadow || undefined}
             data-disabled={disabled || undefined}
             data-dimmed={dimmed || undefined}
+            data-clickable={clickable || undefined}
             data-hide-when-empty={hideWhenEmpty || undefined}
             data-reveal-on-hover={revealChildrenOnHover || undefined}
             data-accent={accent || undefined}

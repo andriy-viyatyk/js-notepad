@@ -29,6 +29,14 @@ export interface IProc {
     execute(command: string, options?: IExecuteOptions): IExecuteHandle;
 }
 
+// NOTE: the handle interfaces below (IExecuteOptions / IExitInfo /
+// IExecuteError / IExecuteHandle) MIRROR the canonical contract in
+// `src/ipc/runner-channels.ts` — the shared source both client
+// implementations (renderer `proc.ts` + board preload) compile against. This
+// file is the script-facing Monaco surface and must stay SELF-CONTAINED (the
+// editor-types flat-copy in `vite.renderer.config.ts` can't follow cross-dir
+// imports), so the shape is duplicated here on purpose. Keep the two in sync.
+
 /** Options for {@link IProc.execute}. */
 export interface IExecuteOptions {
     /** Working directory for the spawned process. Defaults to the app's working directory. */
@@ -91,8 +99,14 @@ export interface IExecuteHandle {
      * Buffer stdout to completion and `JSON.parse` it. Rejects on a spawn-level
      * `error`, on a non-zero exit code, or on a parse failure — the rejection
      * error carries `exitCode` and the captured `stderr`.
+     *
+     * Pass `pattern` to first extract the JSON from noisy stdout (e.g. when the
+     * script calls other tools that also print). The **last** match is used —
+     * capture group 1 if the regex has one, else the whole match — so a script
+     * can wrap its result in a marker: `getJson(/@@RESULT@@(.*)/)`. Rejects if
+     * `pattern` matches nothing.
      */
-    getJson<T = unknown>(): Promise<T>;
+    getJson<T = unknown>(pattern?: RegExp): Promise<T>;
     /** Buffer stdout to completion and return the raw bytes. */
     getBytes(): Promise<Uint8Array>;
 

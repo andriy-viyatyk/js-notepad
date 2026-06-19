@@ -20,8 +20,8 @@ import type {
     IExecuteHandle,
     IExecuteOptions,
     IExitInfo,
-    IProc,
-} from "./types/proc";
+} from "../../ipc/runner-channels";
+import type { IProc } from "./types/proc";
 
 const { ipcRenderer } = window.electron;
 
@@ -52,6 +52,19 @@ function concat(chunks: Uint8Array[]): Uint8Array {
         offset += c.length;
     }
     return out;
+}
+
+/** Return the LAST match of `pattern` in `text` (used by `getJson(pattern)` to
+ *  pull a marked result out of noisy stdout), or null if none. Iterates with a
+ *  forced-global clone so the caller's regex (and its lastIndex) is untouched. */
+function lastMatch(text: string, pattern: RegExp): RegExpExecArray | null {
+    const re = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g");
+    let match: RegExpExecArray | null = null;
+    for (let m = re.exec(text); m !== null; m = re.exec(text)) {
+        match = m;
+        if (m.index === re.lastIndex) re.lastIndex++; // avoid an infinite loop on a zero-width match
+    }
+    return match;
 }
 
 class ExecuteHandle implements IExecuteHandle {
@@ -241,7 +254,7 @@ class ExecuteHandle implements IExecuteHandle {
         return new TextDecoder().decode(bytes);
     }
 
-    async getJson<T = unknown>(): Promise<T> {
+    async getJson<T = unknown>(pattern?: RegExp): Promise<T> {
         this.ensureBufferable();
         await this.waitDone();
         const code = this.exitInfo?.code ?? null;
@@ -255,7 +268,18 @@ class ExecuteHandle implements IExecuteHandle {
                 this.stderrText(),
             );
         }
-        const text = new TextDecoder().decode(concat(this.stdoutChunks));
+        let text = new TextDecoder().decode(concat(this.stdoutChunks));
+        if (pattern) {
+            const match = lastMatch(text, pattern);
+            if (!match) {
+                throw new RunnerError(
+                    `Result pattern ${pattern} not found in output`,
+                    code,
+                    this.stderrText(),
+                );
+            }
+            text = match[1] ?? match[0];
+        }
         try {
             return JSON.parse(text) as T;
         } catch (e) {

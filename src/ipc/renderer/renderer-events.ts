@@ -118,6 +118,11 @@ class RendererEvents implements EventApi {
     [EventEndpoint.eMnemeStatusChanged] = new RendererEventObject<MnemeStatus>(
         EventEndpoint.eMnemeStatusChanged
     );
+
+    [EventEndpoint.eBoardNotify] = new RendererEventObject<{
+        message: string;
+        type?: "info" | "success" | "warning" | "error";
+    }>(EventEndpoint.eBoardNotify);
 }
 
 const rendererEvents = new RendererEvents();
