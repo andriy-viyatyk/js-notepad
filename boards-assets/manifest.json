@@ -164,6 +164,28 @@
         "type": "css",
         "cssVsJs": "SortableJS has no JS-colored surface, so this is a chrome-light pure CSS skin (same shape as Split.js) — a theme switch re-tints the states with NO JS. SortableJS renders no DOM of its own; it only ADDS state classes to YOUR elements during a drag, so the skin themes only those transient states: .sortable-ghost (drop placeholder → color-mix(--p-accent 16%, --p-bg) fill under a dashed --p-accent outline), .sortable-chosen (picked item → --p-accent ring via box-shadow), .sortable-drag + .sortable-fallback (the dragging item / floating clone → --p-panel fill, --p-accent border, --p-shadow elevation, grabbing cursor), and a convention .drag-handle (grab cursor, --p-text-muted → --p-text on hover). CRITICAL load order: link this skin AFTER your own item CSS — the state classes land on YOUR elements, so a state rule (e.g. .sortable-ghost) and your .card rule have EQUAL specificity and later-loaded wins; keep item selectors low-specificity (e.g. `.card`). The board owns item appearance + layout; the skin is drag-state appearance only. The default class names assume the default options — re-point the selectors if you set ghostClass/chosenClass/dragClass/fallbackClass. NOTE: .sortable-drag/.sortable-fallback are reliably themeable in forceFallback mode (a DOM clone follows the pointer); the demo enables it."
       }
+    },
+    {
+      "id": "tippy",
+      "name": "Tippy.js",
+      "purpose": "Tooltips, popovers and in-board menus — hover tooltips (all placements, rich HTML), click-to-toggle interactive popovers, and dropdown/context menus. Built on Popper v2 for positioning (flip/shift, arrow).",
+      "homepage": "https://atomiks.github.io/tippyjs/",
+      "npm": "tippy.js",
+      "testedVersion": "6.3.7",
+      "vendor": {
+        "js": "https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js",
+        "jsPopper": "https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js",
+        "css": "https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.css",
+        "note": "THREE files — download ALL of them INTO the board folder (e.g. lib/) and reference them with relative paths; the board CSP forbids remote network, so a CDN <script>/<link> will not load. IMPORTANT: despite the `-bundle` name, jsDelivr's tippy-bundle.umd.min.js (6.3.7, ~25 KB) does NOT inline Popper — its UMD reads window.Popper, so you MUST vendor @popperjs/core (popper.min.js, exposes global `Popper`, ~20 KB) and load it BEFORE the tippy bundle, or `window.tippy` is never defined. The board webview is a clean sandbox (no nodeIntegration leak), so the UMD takes the browser-global branch and needs the real global. Tippy's CORE CSS (tippy.css, ~1.4 KB) is REQUIRED — it carries the box/arrow geometry + show/hide transforms (not just default styling); the skin only re-colors. Stick to the default `fade` animation (in core CSS) — fancier animations need extra animations/*.css files. Load <script> order: popper.min.js → tippy-bundle.umd.min.js → app.js."
+      },
+      "skin": {
+        "file": "tippy.css",
+        "tunedFor": "tippy.js@6.3.7",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → lib/tippy.css (core, REQUIRED) → tippy.css (this skin)",
+        "type": "css",
+        "cssVsJs": "Pure CSS skin — the bubble is appended to <body> under the same <html> that carries the --p-* inline vars, so a theme switch re-tints it with NO JS. Themed via a NAMED Tippy theme (NOT a global .tippy-box override): set `theme: 'persephone'` on each instance, and the skin targets `.tippy-box[data-theme~='persephone']`. This keeps the default look intact for any un-themed tippy and is opt-in per instance. The skin themes the BOX (chrome): --p-panel fill + a REAL --p-border (essential in light themes, where a --p-panel bubble sits on a near-white --p-bg and would otherwise have no edge), --p-text color, --p-radius-md, --p-shadow, --p-font-sm, and content padding from the spacing tokens. The arrow is a two-layer triangle (same technique as Tippy's own light-border theme): ::before front face = --p-panel (set once via the arrow's `color`, which core reads as currentColor for all placements), and ::after = a --p-border ring behind it, offset per placement so the box's 1px border continues onto the arrow. CSS-vs-CONTENT split: the skin themes only the box. An INTERACTIVE popover's CONTENT is board-owned HTML (e.g. a dropdown menu's rows, a details card) — theme that with --p-* in your OWN board CSS, like the app's menus (accent hover rows). The default theme name + arrow offsets assume the default 16px arrow; re-point selectors if you rename the theme."
+      }
     }
   ]
 }

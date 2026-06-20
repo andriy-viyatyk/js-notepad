@@ -72,3 +72,4 @@ See [`manifest.json`](manifest.json) for the machine-readable list. Currently:
 | [Mermaid](https://mermaid.js.org/) | Diagrams from text (flowchart, sequence, class, state, pie, gantt, …) | 11.15.0 | [`mermaid-theme.js`](mermaid-theme.js) (JS adapter) |
 | [Split.js](https://split.js.org/) | Resizable layout panes (horizontal / vertical / nested split views; drag-to-resize gutters) | 1.6.5 | [`split.css`](split.css) (CSS) |
 | [SortableJS](https://sortablejs.github.io/Sortable/) | Drag-to-reorder lists & kanban (reorder within a list, drag across lists, handles, touch) | 1.15.7 | [`sortablejs.css`](sortablejs.css) (CSS) |
+| [Tippy.js](https://atomiks.github.io/tippyjs/) | Tooltips, popovers & in-board menus (placement gallery, rich HTML, interactive click popovers, dropdown menus) | 6.3.7 | [`tippy.css`](tippy.css) (CSS) |

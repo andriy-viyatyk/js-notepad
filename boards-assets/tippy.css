@@ -1,0 +1,89 @@
+/* persephone skin · tippy.js@6.3.7 · tuned 2026-06
+ * ===========================================================================
+ * A NAMED Tippy theme ("persephone") that restyles the tooltip/popover bubble
+ * to match Persephone, driven ENTIRELY by the `--p-*` theme contract (see the
+ * board CLAUDE.md) — so every tippy follows the app's dark/light theme live,
+ * with no hardcoded colors.
+ *
+ * Tippy's CORE CSS (lib/tippy.css) is REQUIRED — it carries the box/arrow
+ * geometry and the show/hide transforms; this file only re-colors. The named-
+ * theme approach (rather than overriding `.tippy-box` globally) keeps the
+ * default look intact for any un-themed tippy and is opt-in per instance:
+ *
+ *     tippy(el, { theme: 'persephone' });
+ *
+ * Load order in index.html:  board-base.css → lib/tippy.css → THIS FILE.
+ *
+ * Pure CSS skin: the bubble is appended to <body>, under the same <html> that
+ * carries the --p-* inline vars, so a theme switch re-tints it with NO JS.
+ *
+ * CSS vs content split: this file themes the BOX (chrome). An interactive
+ * popover's CONTENT is board-owned HTML (e.g. a dropdown menu's rows) — style
+ * that with --p-* in your OWN board CSS, like the app's menus.
+ * ===========================================================================*/
+
+/* ── Bubble box ──────────────────────────────────────────────────────────────
+   --p-panel fill + a real --p-border: the border is essential in LIGHT themes,
+   where a --p-panel bubble sits on a near-white --p-bg and would otherwise have
+   no edge. background-clip:padding-box keeps the fill from bleeding under the
+   border at the rounded corners. */
+.tippy-box[data-theme~='persephone'] {
+    background-color: var(--p-panel, #252526);
+    background-clip: padding-box;
+    color: var(--p-text, #d4d4d4);
+    border: 1px solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-md, 4px);
+    box-shadow: 0 4px 13px var(--p-shadow, rgba(0, 0, 0, 0.45));
+    font-size: var(--p-font-sm, 12px);
+}
+
+/* Content padding from the spacing tokens (core ships a fixed 5px 9px). */
+.tippy-box[data-theme~='persephone'] .tippy-content {
+    padding: var(--p-space-sm, 6px) var(--p-space-md, 8px);
+}
+
+/* Links inside a tooltip/popover follow the theme link color. */
+.tippy-box[data-theme~='persephone'] a { color: var(--p-link, #3b82f6); }
+
+/* ── Arrow ───────────────────────────────────────────────────────────────────
+   The arrow is two stacked triangles:
+     ::before  the FRONT face — must match the box bg.
+     ::after   a BORDER ring behind it (z-index:-1), offset 1px so it peeks out
+               as the box's 1px --p-border continues onto the arrow.
+   Core colors ::before from the arrow's `currentColor`, so one `color` rule
+   themes the front face for ALL placements; the ::after needs a per-placement
+   rule (only one border edge shows per side). Offsets mirror Tippy's own
+   `light-border` theme, tuned for the 16px arrow. */
+.tippy-box[data-theme~='persephone'] > .tippy-arrow { color: var(--p-panel, #252526); }
+
+.tippy-box[data-theme~='persephone'] > .tippy-arrow::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    border-color: transparent;
+    border-style: solid;
+}
+.tippy-box[data-theme~='persephone'][data-placement^='top'] > .tippy-arrow::after {
+    border-top-color: var(--p-border, #3c3c3c);
+    border-width: 7px 7px 0;
+    top: 17px;
+    left: 1px;
+}
+.tippy-box[data-theme~='persephone'][data-placement^='bottom'] > .tippy-arrow::after {
+    border-bottom-color: var(--p-border, #3c3c3c);
+    border-width: 0 7px 7px;
+    bottom: 17px;
+    left: 1px;
+}
+.tippy-box[data-theme~='persephone'][data-placement^='left'] > .tippy-arrow::after {
+    border-left-color: var(--p-border, #3c3c3c);
+    border-width: 7px 0 7px 7px;
+    left: 17px;
+    top: 1px;
+}
+.tippy-box[data-theme~='persephone'][data-placement^='right'] > .tippy-arrow::after {
+    border-right-color: var(--p-border, #3c3c3c);
+    border-width: 7px 7px 7px 0;
+    right: 17px;
+    top: 1px;
+}
