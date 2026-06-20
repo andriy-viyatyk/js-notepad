@@ -21,6 +21,12 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-730: Web Boards as `browser_*` MCP automation targets (snapshot/click/type a board's webview; reuse the existing CDP engine)](tasks/US-730-board-mcp-automation/README.md)
   - [ ] [US-731: "Create .persephone project" Explorer context menu (create-or-reveal `.persephone` → select → open Board editor; no dialog)](tasks/US-731-create-persephone-project/README.md)
   - [ ] US-732: Shared board base stylesheet — `assets/board-base.css` (page bg, themed scrollbars, monospace default) copied into every board by the scaffolder; both templates link it first
+  - [ ] US-734: Recommended component — Chart.js (charts/dashboards; JS theme adapter from `persephone.theme.vars` + `onThemeChange`)
+  - [ ] US-735: Recommended component — Flatpickr (date / time / range picker; `--p-*` CSS skin)
+  - [ ] US-736: Recommended component — Tom Select (rich select / tags / autocomplete; `--p-*` CSS skin)
+  - [ ] US-737: Recommended component — marked + highlight.js (markdown render + code highlighting; `--p-*` code theme)
+  - [ ] US-738: Recommended component — Mermaid (diagrams; JS `themeVariables` from `persephone.theme`)
+  - [ ] US-739: Recommended component — Split.js (resizable layout panes; `--p-*` CSS skin)
 
 ## Planned
 - **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*
