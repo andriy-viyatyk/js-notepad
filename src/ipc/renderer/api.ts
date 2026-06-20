@@ -356,6 +356,14 @@ class ApiCalls implements Api {
     unregisterBoardProtocol = async (partition: string) => {
         return executeOnce<void>(Endpoint.unregisterBoardProtocol, partition);
     };
+
+    registerBoardWebContents = async (boardId: string, webContentsId: number) => {
+        return executeOnce<void>(Endpoint.registerBoardWebContents, boardId, webContentsId);
+    };
+
+    unregisterBoardWebContents = async (boardId: string) => {
+        return executeOnce<void>(Endpoint.unregisterBoardWebContents, boardId);
+    };
 }
 
 export const api = new ApiCalls();

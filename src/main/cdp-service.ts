@@ -11,14 +11,38 @@ import { BrowserChannel } from "../ipc/browser-ipc";
 const attachedDebuggers = new WeakSet<WebContents>();
 
 /**
+ * Board webviews registered for CDP automation (EPIC-034 / US-730). Kept SEPARATE
+ * from the browser's registrations because the browser's registerWebview attaches
+ * browser-only listeners (will-navigate / will-prevent-unload / hotkeys / popup
+ * guard) that would misfire on a board — a board needs only the key→webContents
+ * mapping. Keyed `${boardEditorId}/${BOARD_CDP_TAB}`; set/cleared via the controller.
+ */
+const boardRegistrations = new Map<string, WebContents>();
+
+export function registerBoardWebContents(key: string, wc: WebContents): void {
+    boardRegistrations.set(key, wc);
+}
+
+export function unregisterBoardWebContents(key: string): void {
+    boardRegistrations.delete(key);
+}
+
+/**
  * Initialize CDP IPC handlers.
- * @param getWebContents — resolver from registration key to webContents
+ * @param getWebContents — resolver from registration key to webContents (browser pages)
  */
 export function initCdpHandlers(
     getWebContents: (key: string) => WebContents | undefined,
 ): void {
+    // Board registrations take precedence; fall back to the browser resolver.
+    const resolve = (key: string): WebContents | undefined => {
+        const board = boardRegistrations.get(key);
+        if (board) return board.isDestroyed() ? undefined : board;
+        return getWebContents(key);
+    };
+
     ipcMain.handle(BrowserChannel.cdpAttach, async (_event, key: string) => {
-        const wc = getWebContents(key);
+        const wc = resolve(key);
         if (!wc || wc.isDestroyed()) return false;
         if (attachedDebuggers.has(wc)) return true;
         try {
@@ -34,7 +58,7 @@ export function initCdpHandlers(
     });
 
     ipcMain.handle(BrowserChannel.cdpDetach, async (_event, key: string) => {
-        const wc = getWebContents(key);
+        const wc = resolve(key);
         if (!wc || wc.isDestroyed()) return;
         if (!attachedDebuggers.has(wc)) return;
         try {
@@ -48,7 +72,7 @@ export function initCdpHandlers(
     ipcMain.handle(
         BrowserChannel.cdpSend,
         async (_event, key: string, method: string, params?: object, sessionId?: string) => {
-            const wc = getWebContents(key);
+            const wc = resolve(key);
             if (!wc || wc.isDestroyed()) {
                 throw new Error("WebContents not found or destroyed");
             }

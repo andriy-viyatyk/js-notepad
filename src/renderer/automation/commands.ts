@@ -11,6 +11,7 @@ import type { PageModel } from "../api/pages/PageModel";
 import { settings } from "../api/settings";
 import { BrowserChannel } from "../../ipc/browser-ipc";
 import { BrowserEditor } from "../editors/browser";
+import { BoardEditorModel } from "../editors/board/BoardEditorModel";
 import { pressKey, typeText } from "./input";
 import { callOnRef } from "./ref";
 import { buildSnapshot, detectOverlay } from "./snapshot";
@@ -52,56 +53,74 @@ async function getTarget(
     const pageId = typeof params?.pageId === "string" ? params.pageId : undefined;
     const profileName = typeof params?.profileName === "string" ? params.profileName : undefined;
 
-    let browserPage: PageModel | null = null;
+    // A board (EPIC-034 / US-730) is automatable just like a browser page — both
+    // expose an IBrowserTarget. Only the Browser editor carries profile/incognito/Tor.
+    const isAutomatable = (p: PageModel | undefined | null): boolean => {
+        const e = p?.mainEditorInstance;
+        return e instanceof BrowserEditor || e instanceof BoardEditorModel;
+    };
+
+    let targetPage: PageModel | null = null;
     if (pageId) {
         const page = pagesModel.findPage(pageId);
         if (!page) {
             return { error: { code: -32602, message: `Page not found: ${pageId}` } };
         }
-        if (!(page.mainEditorInstance instanceof BrowserEditor)) {
-            return { error: { code: -32602, message: `Page ${pageId} is not a browser page.` } };
+        if (!isAutomatable(page)) {
+            return { error: { code: -32602, message: `Page ${pageId} is not an automatable page (open a browser page or a board).` } };
         }
-        browserPage = page;
+        targetPage = page;
     } else if (profileName !== undefined) {
-        // "" targets the default profile. Prefer the active page if it matches.
+        // Profiles are browser-only. "" targets the default profile; prefer the active page if it matches.
         const matches = (p: PageModel) => {
             const e = p.mainEditorInstance;
             if (!(e instanceof BrowserEditor)) return false;
             const s = e.state.get();
             return !s.isIncognito && !s.isTor && (s.profileName ?? "") === profileName;
         };
-        browserPage = (activePage && matches(activePage) ? activePage : null)
+        targetPage = (activePage && matches(activePage) ? activePage : null)
             ?? pages.find(matches) ?? null;
-        if (!browserPage) {
+        if (!targetPage) {
             return { error: { code: -32602, message: `No browser page with profile '${profileName || "default"}'. Use the 'open_url' tool with profileName to open one.` } };
         }
     } else {
-        // Prefer active page if it's a browser
-        browserPage = (activePage?.mainEditorInstance instanceof BrowserEditor) ? activePage : null;
-
-        // Fallback to first browser page
-        if (!browserPage) {
-            browserPage = pages.find((p) => p.mainEditorInstance instanceof BrowserEditor) ?? null;
+        // Prefer the active page if it's automatable; else first browser page; else first board.
+        targetPage = isAutomatable(activePage) ? activePage ?? null : null;
+        if (!targetPage) {
+            targetPage = pages.find((p) => p.mainEditorInstance instanceof BrowserEditor)
+                ?? pages.find((p) => p.mainEditorInstance instanceof BoardEditorModel)
+                ?? null;
         }
     }
-    const browserEditor = browserPage?.mainEditorInstance;
-    if (!(browserEditor instanceof BrowserEditor)) {
-        return { error: { code: -32602, message: "No browser page open. Use the 'open_url' tool to open a browser page." } };
+
+    const editor = targetPage?.mainEditorInstance;
+
+    // Board: no profile / incognito / Tor — just ensure it's the shown page (the
+    // webview needs display != none for focus/input) and return its target.
+    if (editor instanceof BoardEditorModel) {
+        if (targetPage !== activePage) {
+            pagesModel.showPage(targetPage.id);
+        }
+        return editor.target;
+    }
+
+    if (!(editor instanceof BrowserEditor)) {
+        return { error: { code: -32602, message: "No automatable page open. Use the 'open_url' tool to open a browser page, or open a board." } };
     }
 
     // Ensure the browser page is active (webview needs display != none for focus/input)
-    if (browserPage !== activePage) {
-        pagesModel.showPage(browserPage.id);
+    if (targetPage !== activePage) {
+        pagesModel.showPage(targetPage.id);
     }
 
-    const state = browserEditor.state.get();
+    const state = editor.state.get();
     if (state.isIncognito) {
         return { error: { code: -32602, message: "Active browser page is in incognito mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
     }
     if (state.isTor) {
         return { error: { code: -32602, message: "Active browser page is in Tor mode. Browser automation is disabled for privacy protection. Use the 'open_url' tool to open a normal browser page." } };
     }
-    return browserEditor.target;
+    return editor.target;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -448,22 +467,33 @@ export async function handleBrowserCommand(
     const target = await getTarget(params);
     if (isErrorResponse(target)) return target;
 
-    switch (command) {
-        case "browser_navigate":        return browserNavigate(target, params);
-        case "browser_snapshot":        return browserSnapshot(target);
-        case "browser_click":           return browserClick(target, params);
-        case "browser_hover":           return browserHover(target, params);
-        case "browser_type":            return browserType(target, params);
-        case "browser_select_option":   return browserSelectOption(target, params);
-        case "browser_press_key":       return browserPressKey(target, params);
-        case "browser_evaluate":        return browserEvaluate(target, params);
-        case "browser_tabs":            return browserGetTabs(target, params);
-        case "browser_navigate_back":   return browserNavigateBack(target);
-        case "browser_wait_for":        return browserWaitFor(target, params);
-        case "browser_take_screenshot": return browserTakeScreenshot(target);
-        case "browser_network_requests": return browserNetworkRequests(target);
-        case "browser_close":           return browserClose(target);
-        default:
-            return { error: { code: -32601, message: `Unknown browser command: ${command}` } };
+    const dispatch = (): Promise<McpResponse> | McpResponse => {
+        switch (command) {
+            case "browser_navigate":        return browserNavigate(target, params);
+            case "browser_snapshot":        return browserSnapshot(target);
+            case "browser_click":           return browserClick(target, params);
+            case "browser_hover":           return browserHover(target, params);
+            case "browser_type":            return browserType(target, params);
+            case "browser_select_option":   return browserSelectOption(target, params);
+            case "browser_press_key":       return browserPressKey(target, params);
+            case "browser_evaluate":        return browserEvaluate(target, params);
+            case "browser_tabs":            return browserGetTabs(target, params);
+            case "browser_navigate_back":   return browserNavigateBack(target);
+            case "browser_wait_for":        return browserWaitFor(target, params);
+            case "browser_take_screenshot": return browserTakeScreenshot(target);
+            case "browser_network_requests": return browserNetworkRequests(target);
+            case "browser_close":           return browserClose(target);
+            default:
+                return { error: { code: -32601, message: `Unknown browser command: ${command}` } };
+        }
+    };
+
+    // A board target throws on navigation/tab commands (unsupported); turn any
+    // thrown/rejected command into a clean JSON-RPC error rather than crashing.
+    try {
+        const result = await dispatch();
+        return result;
+    } catch (err) {
+        return { error: { code: -32602, message: err instanceof Error ? err.message : String(err) } };
     }
 }

@@ -114,6 +114,20 @@ also logs board *load* failures there. Keep your `catch` blocks calling `notify(
 Edit `index.html` and the board reloads automatically. After editing `app.js` or
 styles, click the **Refresh** button in the Boards side panel to remount.
 
+## Testing & automation (for an AI agent)
+
+Once the user has opened this board in Persephone, an agent can drive it with the
+**`browser_*` MCP tools** (Playwright-compatible) to test and debug it:
+
+- `list_pages` → find this board (`editor: "board-view"`, with its `selectedBoard`)
+  and read its `pageId`.
+- `browser_snapshot { pageId }` → read the page's accessibility tree (element refs).
+- `browser_click` / `browser_type` / `browser_press_key` / `browser_evaluate` →
+  interact, using the refs from the snapshot.
+
+The board must be **open** (the user opens it; an untrusted project won't render).
+Navigation/tab tools don't apply — a board is one fixed page.
+
 ## Docs
 
 Persephone on GitHub: https://github.com/andriy-viyatyk/persephone

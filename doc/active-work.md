@@ -18,6 +18,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-726: Templates & scaffolding + `ui.log` + live reload](tasks/US-726-config-templates-log/README.md)
   - [ ] US-727: Recommended-components manifest + first skin (Tabulator)
   - [ ] US-728: Demo board — self-documenting showcase + dogfood (full `persephone` surface, themes/tokens, recommended-components catalog + skin links; offered via a prompt dialog on project creation)
+  - [ ] [US-730: Web Boards as `browser_*` MCP automation targets (snapshot/click/type a board's webview; reuse the existing CDP engine)](tasks/US-730-board-mcp-automation/README.md)
 
 ## Planned
 - **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*

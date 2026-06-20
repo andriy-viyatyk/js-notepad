@@ -10,6 +10,7 @@ import { DirectoryWatcher, FileWatcher } from "../../core/utils/file-watcher";
 import { projectTrust } from "../../api/project-trust";
 import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
 import { scaffoldBoard } from "./board-scaffold";
+import { BoardTargetModel } from "./BoardTargetModel";
 
 export interface BoardEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -77,6 +78,25 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     noLanguage = true;
     skipSave = true;
     showBackgroundOrnament = true;
+
+    /** Automation adapter — lets the `browser_*` MCP tools drive this board's
+     *  webview (EPIC-034 / US-730). */
+    readonly target = new BoardTargetModel(this);
+
+    /** The live `<webview>` element of the currently-mounted board, for automation
+     *  focus / insertText / reload. Transient (not persisted): set on `dom-ready`,
+     *  cleared on unmount. */
+    currentWebview: Electron.WebviewTag | null = null;
+
+    setWebview(wv: Electron.WebviewTag): void {
+        this.currentWebview = wv;
+    }
+
+    /** Clear only if it still matches — guards against a remount setting the new
+     *  element before the old one's cleanup runs. */
+    clearWebview(wv: Electron.WebviewTag): void {
+        if (this.currentWebview === wv) this.currentWebview = null;
+    }
 
     /** Watches the selected board's `index.html` → live reload (remount). */
     private indexWatcher?: FileWatcher;

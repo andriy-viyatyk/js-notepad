@@ -7,6 +7,7 @@ import { settings } from "../../api/settings";
 import { fpJoin } from "../../core/utils/file-path";
 import { BoardBridgeChannel } from "../../../ipc/board-bridge-channels";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
+import type { BoardEditorModel } from "./BoardEditorModel";
 
 // Exposed by the main preload (src/preload.ts) — file:// URL to the built board preload.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,7 +23,7 @@ const BOARD_PRELOAD_URL = (window as any).boardPreloadUrl as string;
  * boards unmounts (→ unregister the protocol + clear the ephemeral session) and remounts
  * with a fresh partition. (US-720 process reaping + US-726 `ui.log` hook the same teardown.)
  */
-export function BoardWebview({ boardRoot }: { boardRoot: string }) {
+export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; boardRoot: string }) {
     const partition = useRef(`board-${crypto.randomUUID()}`).current;
     const webviewRef = useRef<Electron.WebviewTag | null>(null);
     // The board:// handler must exist on the partition before the webview navigates,
@@ -64,6 +65,26 @@ export function BoardWebview({ boardRoot }: { boardRoot: string }) {
             wv.removeEventListener("did-fail-load", onFail);
         };
     }, [ready, boardRoot]);
+
+    // Register the board's webContents for CDP so the browser_* MCP automation
+    // tools can drive it (EPIC-034 / US-730). Keyed by the editor id in main;
+    // re-keying on board switch/reload unmounts (unregister + clear) then remounts
+    // (re-register the fresh webContents under the same key).
+    useEffect(() => {
+        if (!ready) return;
+        const wv = webviewRef.current;
+        if (!wv) return;
+        const onReady = () => {
+            model.setWebview(wv);
+            void api.registerBoardWebContents(model.id, wv.getWebContentsId());
+        };
+        wv.addEventListener("dom-ready", onReady);
+        return () => {
+            wv.removeEventListener("dom-ready", onReady);
+            model.clearWebview(wv);
+            void api.unregisterBoardWebContents(model.id);
+        };
+    }, [ready, model]);
 
     // Push live color updates to the guest on theme switch (metrics never change).
     useEffect(() => {

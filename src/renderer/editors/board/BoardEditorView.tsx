@@ -87,6 +87,7 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
             <Panel direction="column" flex={1} width="100%">
                 <BoardWebview
                     key={`${s.selectedBoard}__${s.reloadToken}`}
+                    model={model}
                     boardRoot={fpJoin(s.persephonePath, "boards", s.selectedBoard)}
                 />
             </Panel>

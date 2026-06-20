@@ -38,6 +38,10 @@ interface McpPageInfo {
     url?: string;           // ACTIVE TAB's URL (a browser page hosts multiple internal
                             // tabs; browser_tabs lists them all) — omitted for
                             // incognito/tor pages (privacy)
+    /** Board pages only (editor === "board-view") — these are automatable by the
+     *  browser_* tools (EPIC-034 / US-730); target by this page's id. */
+    persephonePath?: string;
+    selectedBoard?: string;
 }
 
 interface McpActivePage {
@@ -163,6 +167,16 @@ function getPages(): McpPageInfo[] {
             result.isIncognito = isIncognito;
             result.isTor = isTor;
             if (!isIncognito && !isTor) result.url = bs?.url;   // privacy: no incognito/tor URLs
+        }
+
+        // Board pages: surface the project path + open board so an agent can pick
+        // the right board to drive via the browser_* tools (structural read).
+        if (editor?.editorId === "board-view") {
+            const bs = p.mainEditor?.state.get() as
+                | { persephonePath?: string; selectedBoard?: string }
+                | undefined;
+            result.persephonePath = bs?.persephonePath;
+            result.selectedBoard = bs?.selectedBoard;
         }
 
         return result;

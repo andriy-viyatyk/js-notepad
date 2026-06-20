@@ -87,7 +87,14 @@ export enum Endpoint {
     capturePageRegion = "capturePageRegion",
     registerBoardProtocol = "registerBoardProtocol",
     unregisterBoardProtocol = "unregisterBoardProtocol",
+    registerBoardWebContents = "registerBoardWebContents",
+    unregisterBoardWebContents = "unregisterBoardWebContents",
 }
+
+/** Synthetic CDP "tab" id for a board (boards have no tabs). The automation
+ *  regKey is `${boardEditorId}/${BOARD_CDP_TAB}` — built identically in the
+ *  renderer target (BoardTargetModel) and the main controller registration. */
+export const BOARD_CDP_TAB = "main";
 
 /** A rectangle (CSS pixels, viewport-relative) to capture from the calling
  *  window's web contents. The main handler scales it by the window zoom factor
@@ -192,6 +199,8 @@ export type Api = {
     [Endpoint.capturePageRegion]: (rect: CaptureRect) => Promise<Uint8Array>;
     [Endpoint.registerBoardProtocol]: (partition: string, boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>) => Promise<void>;
     [Endpoint.unregisterBoardProtocol]: (partition: string) => Promise<void>;
+    [Endpoint.registerBoardWebContents]: (boardId: string, webContentsId: number) => Promise<void>;
+    [Endpoint.unregisterBoardWebContents]: (boardId: string) => Promise<void>;
 };
 
 export enum EventEndpoint {

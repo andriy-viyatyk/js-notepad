@@ -1,5 +1,5 @@
-import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell } from "electron";
-import { Api, CaptureRect, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
+import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell, webContents } from "electron";
+import { Api, BOARD_CDP_TAB, CaptureRect, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
 import { getAssetPath, getAppRootPath, getDataFolder } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
 import { getFileToOpen, getUrlToOpen, windowReady } from "./window-handlers";
@@ -386,6 +386,17 @@ class Controller implements MainApi {
         const { unregisterBoardProtocol } = await import("../../main/board-protocol-service");
         await unregisterBoardProtocol(partition);
     };
+
+    registerBoardWebContents = async (_event: IpcMainEvent, boardId: string, webContentsId: number): Promise<void> => {
+        const { registerBoardWebContents } = await import("../../main/cdp-service");
+        const wc = webContents.fromId(webContentsId);
+        if (wc) registerBoardWebContents(`${boardId}/${BOARD_CDP_TAB}`, wc);
+    };
+
+    unregisterBoardWebContents = async (_event: IpcMainEvent, boardId: string): Promise<void> => {
+        const { unregisterBoardWebContents } = await import("../../main/cdp-service");
+        unregisterBoardWebContents(`${boardId}/${BOARD_CDP_TAB}`);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -477,6 +488,8 @@ const init = () => {
     bindEndpoint(Endpoint.capturePageRegion, controllerInstance.capturePageRegion);
     bindEndpoint(Endpoint.registerBoardProtocol, controllerInstance.registerBoardProtocol);
     bindEndpoint(Endpoint.unregisterBoardProtocol, controllerInstance.unregisterBoardProtocol);
+    bindEndpoint(Endpoint.registerBoardWebContents, controllerInstance.registerBoardWebContents);
+    bindEndpoint(Endpoint.unregisterBoardWebContents, controllerInstance.unregisterBoardWebContents);
 
     initRendererEvents();
 }
