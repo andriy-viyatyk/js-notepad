@@ -1,0 +1,243 @@
+/* persephone skin · marked@15.0.12 + highlight.js@11.11.1 · tuned 2026-06
+ * ===========================================================================
+ * One skin for the markdown stack: marked renders markdown → HTML, highlight.js
+ * tokenizes fenced code into .hljs-* spans. Neither ships a usable themed CSS —
+ * marked emits bare semantic HTML, and highlight.js only adds class names (its
+ * COLORS live entirely in a theme stylesheet you pick). So this file is BOTH:
+ *
+ *   1. Rendered-markdown typography for a `.markdown-body` container (headings,
+ *      lists, tables, blockquotes, links, inline code, the <pre> code frame).
+ *   2. A highlight.js token theme — every .hljs-* class mapped onto --p-*.
+ *
+ * Driven ENTIRELY by the `--p-*` theme contract (see the board CLAUDE.md), so the
+ * rendered document AND the syntax colors follow the app's dark/light theme live,
+ * with no hardcoded colors and no JS re-render — both halves are pure CSS skins.
+ *
+ * Load order in index.html:  board-base.css → THIS FILE.  (No component CSS to
+ * load first: marked has none, and we deliberately did NOT vendor a hljs theme —
+ * this file IS the theme.)
+ *
+ * ── highlight.js token map ────────────────────────────────────────────────
+ * --p-* has no syntax palette, so hljs's ~8 default-theme colors are folded onto
+ * the semantic tokens by role. Each maps to a value the theme system already
+ * keeps legible on its own background, so it reads in BOTH themes (verified: the
+ * amber --p-warning is a dark amber in light themes, not an invisible yellow):
+ *   --p-text         plain text, operators, punctuation, variables, params
+ *   --p-text-muted   comments, quotes              (italic)
+ *   --p-accent       keywords, tags, literals (true/false/null)
+ *   --p-link         titles/functions/classes, types, built-ins, attr (e.g. JSON keys)
+ *   --p-success      strings, regexp, char escapes, additions, css attr selectors
+ *   --p-warning      numbers, symbols, meta, css id/class selectors, markup links
+ *   --p-error        deletions
+ * ===========================================================================*/
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PART 1 — rendered-markdown typography (.markdown-body)
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* Prose reads better proportional; board-base sets a monospace default for the
+   app-like chrome, so opt the rendered document into a system sans stack (no
+   bundled font — CSP forbids remote fonts; these are all OS-local). Code stays
+   monospace via the <pre>/<code> rules below. */
+.markdown-body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--p-text, #cccccc);
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+/* ── Headings ───────────────────────────────────────────────────────────────*/
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+    color: var(--p-text-strong, #dddddd);
+    font-weight: 600;
+    line-height: 1.25;
+    margin: var(--p-space-xl, 16px) 0 var(--p-space-md, 8px);
+}
+.markdown-body h1 { font-size: 1.9em; }
+.markdown-body h2 { font-size: 1.5em; }
+.markdown-body h3 { font-size: 1.25em; }
+.markdown-body h4 { font-size: 1.0em; }
+.markdown-body h5 { font-size: 0.9em; }
+.markdown-body h6 { font-size: 0.85em; color: var(--p-text-muted, #969696); }
+/* h1/h2 get a rule under them, like GitHub — drawn from the border token */
+.markdown-body h1,
+.markdown-body h2 {
+    border-bottom: 1px solid var(--p-border, #3c3c3c);
+    padding-bottom: 0.3em;
+}
+.markdown-body > :first-child { margin-top: 0; }
+
+/* ── Body text, links, lists ──────────────────────────────────────────────────*/
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl { margin: 0 0 var(--p-space-lg, 12px); }
+.markdown-body a {
+    color: var(--p-link, #82b0e6);
+    text-decoration: none;
+}
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body ul,
+.markdown-body ol { padding-left: var(--p-space-xxl, 24px); }
+.markdown-body li + li { margin-top: 0.25em; }
+.markdown-body li > ul,
+.markdown-body li > ol { margin-bottom: 0; }
+/* GFM task list — color the checkbox with the accent */
+.markdown-body input[type="checkbox"] {
+    accent-color: var(--p-accent, #0078d4);
+    margin-right: 0.4em;
+}
+.markdown-body ul.contains-task-list { list-style: none; padding-left: var(--p-space-lg, 12px); }
+
+/* ── Blockquote ───────────────────────────────────────────────────────────────*/
+.markdown-body blockquote {
+    margin: 0 0 var(--p-space-lg, 12px);
+    padding: 0 var(--p-space-lg, 12px);
+    color: var(--p-text-muted, #969696);
+    border-left: 3px solid var(--p-accent, #0078d4);
+}
+.markdown-body blockquote > :last-child { margin-bottom: 0; }
+
+/* ── Horizontal rule ──────────────────────────────────────────────────────────*/
+.markdown-body hr {
+    height: 1px;
+    border: 0;
+    background: var(--p-border, #3c3c3c);
+    margin: var(--p-space-xl, 16px) 0;
+}
+
+/* ── Tables (GFM) ────────────────────────────────────────────────────────────*/
+.markdown-body table {
+    border-collapse: collapse;
+    margin: 0 0 var(--p-space-lg, 12px);
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow: auto;
+}
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid var(--p-border, #3c3c3c);
+    padding: var(--p-space-sm, 6px) var(--p-space-lg, 12px);
+}
+.markdown-body th {
+    background: var(--p-panel, #252526);
+    color: var(--p-text-strong, #dddddd);
+    font-weight: 600;
+}
+/* zebra striping — a faint tint of the text color so it reads in both themes */
+.markdown-body tr:nth-child(2n) {
+    background: color-mix(in srgb, var(--p-text, #cccccc) 6%, transparent);
+}
+
+/* ── Inline code (not inside a fence) ────────────────────────────────────────*/
+.markdown-body code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.9em;
+    background: color-mix(in srgb, var(--p-text, #cccccc) 12%, transparent);
+    color: var(--p-text, #cccccc);
+    padding: 0.15em 0.4em;
+    border-radius: var(--p-radius-sm, 3px);
+}
+
+/* ── Code blocks (<pre>) — the frame; tokens are themed in PART 2 ────────────*/
+.markdown-body pre {
+    margin: 0 0 var(--p-space-lg, 12px);
+    padding: var(--p-space-lg, 12px);
+    background: var(--p-panel, #252526);
+    border: 1px solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-md, 4px);
+    overflow-x: auto;
+    line-height: 1.45;
+}
+/* inside a fence, <code> inherits the frame — drop the inline-code chrome so the
+   pill background / padding don't double up. */
+.markdown-body pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.875em;
+}
+
+.markdown-body img { max-width: 100%; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PART 2 — highlight.js token theme  (.hljs-* → --p-*)
+   ════════════════════════════════════════════════════════════════════════════*/
+
+/* Base — code element hljs marks. Background comes from the <pre> frame above,
+   so keep this transparent; just set the default token color. */
+.hljs {
+    background: transparent;
+    color: var(--p-text, #cccccc);
+}
+
+/* plain foreground — operators, punctuation, variables, params, interpolation */
+.hljs-operator,
+.hljs-punctuation,
+.hljs-variable,
+.hljs-params,
+.hljs-property,
+.hljs-subst { color: var(--p-text, #cccccc); }
+
+/* comments / quotes — muted + italic */
+.hljs-comment,
+.hljs-quote {
+    color: var(--p-text-muted, #969696);
+    font-style: italic;
+}
+
+/* keywords, tags, literals (true/false/null) — accent blue */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag,
+.hljs-name,
+.hljs-tag,
+.hljs-literal,
+.hljs-meta .hljs-keyword { color: var(--p-accent, #0078d4); }
+
+/* names: titles, functions, classes, types, built-ins, attr keys (e.g. JSON) — link blue */
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_,
+.hljs-section,
+.hljs-built_in,
+.hljs-type,
+.hljs-class,
+.hljs-function,
+.hljs-attr,
+.hljs-attribute { color: var(--p-link, #82b0e6); }
+
+/* strings, regexp, escapes, additions, attribute-value selectors — green */
+.hljs-string,
+.hljs-regexp,
+.hljs-char.escape_,
+.hljs-meta .hljs-string,
+.hljs-addition,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-template-tag { color: var(--p-success, #89d185); }
+
+/* numbers, symbols, meta, css id/class selectors, markup links — amber */
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-template-variable { color: var(--p-warning, #cca700); }
+
+/* deletions — the one place red is right */
+.hljs-deletion { color: var(--p-error, #f88070); }
+
+/* markup emphasis carried through from the source */
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: bold; }
+.hljs-section,
+.hljs-title { font-weight: 600; }

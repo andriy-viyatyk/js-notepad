@@ -83,6 +83,27 @@
         "type": "css",
         "cssVsJs": "Tom Select is fully CSS-styleable — there is NO JS-colored surface, so the whole component themes from this one stylesheet and a theme switch re-tints it with no JS (the dropdown is rendered under the same <html> that carries the --p-* inline vars). The skin restyles the control box (mirrors the board's inputs: --p-bg + --p-border, accent focus ring), the text input + placeholder, selected-item/tag chips (neutral tint + accent on .active) with the remove_button, the dropdown panel + box-shadow, optgroup headers, options (the keyboard/hover .active row = solid accent, like the app's menus), the matched-substring .highlight, the loading spinner, and the dropdown_input/dropdown_header plugins — all from --p-*. Tom Select's hardcoded accents (#f5fafd/#495c68 active option, rgba(125,168,208,0.2) match highlight) are replaced with --p-accent. The control already matches the board's own inputs, so a <select>/<input> upgraded by Tom Select sits flush with the form."
       }
+    },
+    {
+      "id": "markdown",
+      "name": "marked + highlight.js",
+      "purpose": "Markdown rendering + code highlighting — marked parses Markdown (GFM: tables, task lists, strikethrough) to HTML; highlight.js tokenizes fenced code blocks. Together they render README-style documents, release notes, AI/agent output, and code snippets.",
+      "homepage": "https://marked.js.org/",
+      "npm": "marked",
+      "testedVersion": "marked@15.0.12 + highlight.js@11.11.1",
+      "vendor": {
+        "js": "https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js",
+        "jsHighlight": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
+        "note": "TWO libraries — download BOTH JS bundles INTO the board folder (e.g. lib/) and reference them relatively; the board CSP forbids remote network, so a CDN <script> will not load. marked.min.js exposes a global `marked` (use the bare `marked.min.js` UMD path — marked 16+ dropped the bundled UMD artifact, so that path serves the last UMD build, v15.0.12); highlight.min.js (the @highlightjs/cdn-assets 'common languages' bundle) exposes a global `hljs`. Do NOT vendor a highlight.js theme CSS — markdown.css IS the theme (highlight.js ships only class names; its colors live entirely in a theme stylesheet). marked emits no CSS of its own either."
+      },
+      "skin": {
+        "file": "markdown.css",
+        "tunedFor": "marked@15.0.12 + highlight.js@11.11.1",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → markdown.css (no component CSS to load between them — neither library ships a usable stylesheet)",
+        "type": "css",
+        "cssVsJs": "Both halves are pure CSS skins — there is NO JS-colored surface, so a theme switch re-tints the rendered document AND the syntax colors with no JS re-render. markdown.css is ONE file with two parts: (1) rendered-markdown typography for a `.markdown-body` container — headings (h1/h2 ruled with --p-border), proportional system-font prose, lists + GFM task-list checkboxes (accent-color), blockquotes (accent left-border), GFM tables (--p-panel header, faint zebra stripes), inline code (--p-text tint pill), and the <pre> code frame (--p-panel + --p-border); (2) a highlight.js token theme mapping every .hljs-* class onto --p-* by role — keywords/tags/literals → --p-accent, titles/functions/types/built-ins/attr (e.g. JSON keys) → --p-link, strings/regexp/additions → --p-success, numbers/symbols/meta → --p-warning, comments → --p-text-muted (italic), deletions → --p-error, plain/operators/punctuation → --p-text. --p-* has no syntax palette, so the ~8 token hues fold onto the semantic colors; each is one the theme system already keeps legible on its own background (verified in both themes — the amber --p-warning is a dark amber in light themes, not an invisible yellow). Wrap marked's output in a `.markdown-body` element, then call hljs.highlightElement on each `pre code` (marked emits language-* classes that highlight.js reads)."
+      }
     }
   ]
 }

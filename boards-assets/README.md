@@ -68,3 +68,4 @@ See [`manifest.json`](manifest.json) for the machine-readable list. Currently:
 | [Chart.js](https://www.chartjs.org/) | Charts & plots (line, bar, doughnut/pie, radar, scatter, mixed) | 4.4.6 | [`chart-theme.js`](chart-theme.js) (JS adapter) |
 | [Flatpickr](https://flatpickr.js.org/) | Date / time picker (single, date+time, time-only, range, inline, week numbers, min/max + disabled dates) | 4.6.13 | [`flatpickr.css`](flatpickr.css) (CSS) |
 | [Tom Select](https://tom-select.js.org/) | Rich select / tags / autocomplete (searchable single + multi, removable chips, create, option groups, remote options) | 2.4.3 | [`tom-select.css`](tom-select.css) (CSS) |
+| [marked](https://marked.js.org/) + [highlight.js](https://highlightjs.org/) | Markdown render + code highlighting (GFM tables/task lists; fenced-code syntax theme) | marked 15.0.12 + highlight.js 11.11.1 | [`markdown.css`](markdown.css) (CSS) |
