@@ -1,0 +1,215 @@
+/* persephone skin · flatpickr@4.6.13 · tuned 2026-06
+ * ===========================================================================
+ * Restyles flatpickr's default (light) calendar to match Persephone, driven
+ * ENTIRELY by the `--p-*` theme contract (see the board CLAUDE.md) — so the
+ * picker follows the app's dark/light theme live, with no hardcoded colors.
+ *
+ * Load order in index.html:  board-base.css → lib/flatpickr.min.css → THIS FILE.
+ *
+ * The calendar is appended to <body>, under the same <html> that carries the
+ * `--p-*` inline vars, so a theme switch re-tints it with NO JS — flatpickr is a
+ * pure CSS skin (unlike a canvas library). Theme-adaptive tints (hover / in-range)
+ * are derived with color-mix() from --p-accent / --p-text so they read in BOTH
+ * themes; flatpickr's three hardcoded accents — #569ff7 (selected/range),
+ * #959ea9 (today), #f64747 (arrow hover) — are replaced with --p-accent.
+ *
+ * CSS vs JS split: flatpickr is fully CSS-styleable — there is no JS-colored
+ * surface, so the whole component themes from this file. The board owns the text
+ * <input> (flatpickr does not style it); style that with --p-* in your own CSS.
+ * ===========================================================================*/
+
+/* ── Calendar container ────────────────────────────────────────────────────*/
+/* flatpickr fakes its border with a box-shadow ring; rebuild that from tokens
+   and add a real soft drop-shadow so the dropdown reads as a raised surface. */
+.flatpickr-calendar {
+    background: var(--p-panel, #252526);
+    border-radius: var(--p-radius-md, 5px);
+    box-shadow:
+        0 0 0 1px var(--p-border, #3c3c3c),
+        0 4px 13px var(--p-shadow, rgba(0, 0, 0, 0.45));
+}
+.flatpickr-calendar.hasTime .flatpickr-time {
+    border-top: 1px solid var(--p-border, #3c3c3c);
+}
+/* pointer triangles that point at the input: outer = border, inner = panel bg */
+.flatpickr-calendar.arrowTop::before { border-bottom-color: var(--p-border, #3c3c3c); }
+.flatpickr-calendar.arrowTop::after  { border-bottom-color: var(--p-panel, #252526); }
+.flatpickr-calendar.arrowBottom::before { border-top-color: var(--p-border, #3c3c3c); }
+.flatpickr-calendar.arrowBottom::after  { border-top-color: var(--p-panel, #252526); }
+/* day-container divider in multi-month layouts */
+.dayContainer + .dayContainer { box-shadow: -1px 0 0 var(--p-border, #3c3c3c); }
+
+/* ── Month nav (header) ────────────────────────────────────────────────────*/
+.flatpickr-months .flatpickr-month {
+    background: transparent;
+    color: var(--p-text-strong, #dddddd);
+    fill: var(--p-text-strong, #dddddd);
+}
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+    color: var(--p-text-strong, #dddddd);
+    fill: var(--p-text-strong, #dddddd);
+}
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+    color: var(--p-text, #d4d4d4);
+}
+/* default red hover on the < > arrows → themed accent */
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+    fill: var(--p-accent, #0078d4);
+}
+.flatpickr-months .flatpickr-prev-month svg path,
+.flatpickr-months .flatpickr-next-month svg path { fill: inherit; }
+
+/* current month label + year input */
+.flatpickr-current-month span.cur-month:hover {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 10%, transparent);
+}
+.flatpickr-current-month input.cur-year { color: var(--p-text-strong, #dddddd); }
+.flatpickr-current-month input.cur-year[disabled],
+.flatpickr-current-month input.cur-year[disabled]:hover {
+    color: var(--p-text-muted, #969696);
+    background: transparent;
+}
+/* year spinner triangles (the .numInputWrapper inside the header) */
+.flatpickr-current-month .numInputWrapper span.arrowUp::after {
+    border-bottom-color: var(--p-text-strong, #dddddd);
+}
+.flatpickr-current-month .numInputWrapper span.arrowDown::after {
+    border-top-color: var(--p-text-strong, #dddddd);
+}
+
+/* month <select> dropdown */
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    background: transparent;
+    color: var(--p-text-strong, #dddddd);
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 10%, transparent);
+}
+/* the popped-open native option list — give it a real themed surface */
+.flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+    background-color: var(--p-panel, #252526);
+    color: var(--p-text, #d4d4d4);
+}
+
+/* ── Generic number-input spinners (header year, etc.) ─────────────────────*/
+.numInputWrapper span { border-color: var(--p-border, #3c3c3c); }
+.numInputWrapper span:hover {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 12%, transparent);
+}
+.numInputWrapper span:active {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 20%, transparent);
+}
+.numInputWrapper span.arrowUp::after { border-bottom-color: var(--p-text-muted, #969696); }
+.numInputWrapper span.arrowDown::after { border-top-color: var(--p-text-muted, #969696); }
+.numInputWrapper span svg path { fill: var(--p-text-muted, #969696); }
+.numInputWrapper:hover { background: color-mix(in srgb, var(--p-text, #d4d4d4) 6%, transparent); }
+
+/* ── Weekday header ────────────────────────────────────────────────────────*/
+.flatpickr-weekdays,
+span.flatpickr-weekday { background: transparent; }
+span.flatpickr-weekday { color: var(--p-text-muted, #969696); }
+
+/* ── Day cells ─────────────────────────────────────────────────────────────*/
+.flatpickr-day {
+    color: var(--p-text, #d4d4d4);
+    border: 1px solid transparent;
+}
+.flatpickr-day:hover,
+.flatpickr-day:focus {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 12%, transparent);
+    border-color: transparent;
+}
+/* in-range fill — accent tint that reads on both themes (incl. gap-fill shadow) */
+.flatpickr-day.inRange {
+    background: color-mix(in srgb, var(--p-accent, #0078d4) 22%, var(--p-panel, #252526));
+    border-color: color-mix(in srgb, var(--p-accent, #0078d4) 22%, var(--p-panel, #252526));
+    box-shadow:
+        -5px 0 0 color-mix(in srgb, var(--p-accent, #0078d4) 22%, var(--p-panel, #252526)),
+         5px 0 0 color-mix(in srgb, var(--p-accent, #0078d4) 22%, var(--p-panel, #252526));
+}
+/* today — accent outline (not filled, so it's distinct from selected) */
+.flatpickr-day.today { border-color: var(--p-accent, #0078d4); }
+.flatpickr-day.today:hover,
+.flatpickr-day.today:focus {
+    background: color-mix(in srgb, var(--p-accent, #0078d4) 22%, var(--p-panel, #252526));
+    border-color: var(--p-accent, #0078d4);
+    color: var(--p-text, #d4d4d4);
+}
+/* selected / range endpoints — solid accent */
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected.inRange,
+.flatpickr-day.startRange.inRange,
+.flatpickr-day.endRange.inRange,
+.flatpickr-day.selected:focus,
+.flatpickr-day.startRange:focus,
+.flatpickr-day.endRange:focus,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover,
+.flatpickr-day.selected.prevMonthDay,
+.flatpickr-day.startRange.prevMonthDay,
+.flatpickr-day.endRange.prevMonthDay,
+.flatpickr-day.selected.nextMonthDay,
+.flatpickr-day.startRange.nextMonthDay,
+.flatpickr-day.endRange.nextMonthDay {
+    background: var(--p-accent, #0078d4);
+    border-color: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+    box-shadow: none;
+}
+/* range-bridge gap fill between two endpoints in the same row */
+.flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n+1)),
+.flatpickr-day.endRange.startRange + .endRange:not(:nth-child(7n+1)) {
+    box-shadow: -10px 0 0 var(--p-accent, #0078d4);
+}
+.flatpickr-day.week.selected {
+    box-shadow:
+        -5px 0 0 var(--p-accent, #0078d4),
+         5px 0 0 var(--p-accent, #0078d4);
+}
+/* disabled + outside-month + week-number cells */
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+    color: color-mix(in srgb, var(--p-text-muted, #969696) 45%, transparent);
+    background: transparent;
+    border-color: transparent;
+}
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay,
+.flatpickr-day.notAllowed,
+.flatpickr-day.notAllowed.prevMonthDay,
+.flatpickr-day.notAllowed.nextMonthDay {
+    color: var(--p-text-muted, #969696);
+    background: transparent;
+    border-color: transparent;
+}
+
+/* ── Week numbers ──────────────────────────────────────────────────────────*/
+.flatpickr-weekwrapper .flatpickr-weeks { box-shadow: 1px 0 0 var(--p-border, #3c3c3c); }
+.flatpickr-weekwrapper span.flatpickr-day,
+.flatpickr-weekwrapper span.flatpickr-day:hover {
+    color: var(--p-text-muted, #969696);
+    background: transparent;
+}
+
+/* ── Time picker ───────────────────────────────────────────────────────────*/
+.flatpickr-time input,
+.flatpickr-time .flatpickr-time-separator,
+.flatpickr-time .flatpickr-am-pm { color: var(--p-text, #d4d4d4); }
+.flatpickr-time input:hover,
+.flatpickr-time input:focus,
+.flatpickr-time .flatpickr-am-pm:hover,
+.flatpickr-time .flatpickr-am-pm:focus {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 9%, transparent);
+}
+.flatpickr-time .numInputWrapper span.arrowUp::after {
+    border-bottom-color: var(--p-text, #d4d4d4);
+}
+.flatpickr-time .numInputWrapper span.arrowDown::after {
+    border-top-color: var(--p-text, #d4d4d4);
+}

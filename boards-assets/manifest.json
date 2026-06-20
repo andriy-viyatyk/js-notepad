@@ -41,6 +41,27 @@
         "type": "js-adapter",
         "cssVsJs": "Chart.js is fully JS-colored — there is no CSS skin. `chart-theme.js` exposes `window.PersephoneChartTheme` (`applyDefaults(Chart, theme)`, `palette(theme)`, `paletteN(theme, n)`, `alpha`, `mix`). Pass it a --p-* palette: at init use `persephone.theme`; on a theme switch use the palette delivered to `persephone.onThemeChange` (or `persephone.getTheme()`) — NOT a cached `persephone.theme`, which is a load snapshot and goes stale after a switch. `applyDefaults` sets Chart.defaults.color (ticks/legend/point-labels) and Chart.defaults.borderColor (grid/angle lines), so scales follow the theme with no per-chart work; dataset colors come from `palette()`. The board chrome around the canvases is styled with --p-* in index.html as usual. See the demo board's app.js for the build + onThemeChange wiring."
       }
+    },
+    {
+      "id": "flatpickr",
+      "name": "Flatpickr",
+      "purpose": "Date / time picker — single date, date + time (12/24h), time-only, date range, inline calendar, week numbers, month-dropdown nav, and min/max + disabled-date constraints. Lightweight, dependency-free.",
+      "homepage": "https://flatpickr.js.org/",
+      "npm": "flatpickr",
+      "testedVersion": "4.6.13",
+      "vendor": {
+        "css": "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css",
+        "js": "https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js",
+        "note": "Download BOTH INTO the board folder (e.g. lib/) and reference them with relative paths — the board CSP forbids remote network, so a CDN <script>/<link> will not load. The vendored CSS is the base/light theme (no theme-name suffix); that is the one the skin overrides — do NOT also vendor flatpickr's dark.css/material themes."
+      },
+      "skin": {
+        "file": "flatpickr.css",
+        "tunedFor": "flatpickr@4.6.13",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → lib/flatpickr.min.css → flatpickr.css",
+        "type": "css",
+        "cssVsJs": "Flatpickr is fully CSS-styleable — there is NO JS-colored surface, so the whole component themes from this one stylesheet and a theme switch re-tints it with no JS (the calendar is appended to <body>, under the same <html> that carries the --p-* inline vars). The skin restyles the calendar container (incl. its pointer-arrow ::before/::after triangles + box-shadow border ring), month nav + year/month <select> spinners, weekday header, every day-cell state (hover, today=accent outline, selected/range endpoints=solid accent, in-range=accent tint via color-mix, disabled, prev/next-month, week numbers), and the time picker — all from --p-*. Flatpickr's three hardcoded accents (#569ff7 selection, #959ea9 today, #f64747 arrow-hover) are replaced with --p-accent. NOTE: flatpickr does NOT style the text <input> itself — the board owns that; style your input with --p-* in your own CSS (see the demo board)."
+      }
     }
   ]
 }

@@ -22,7 +22,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-731: "Create .persephone project" Explorer context menu (create-or-reveal `.persephone` → select → open Board editor; no dialog)](tasks/US-731-create-persephone-project/README.md)
   - [ ] US-732: Shared board base stylesheet — `assets/board-base.css` (page bg, themed scrollbars, monospace default) copied into every board by the scaffolder; both templates link it first
   - [ ] [US-734: Recommended component — Chart.js (charts/dashboards; JS theme adapter)](tasks/US-734-chartjs-skin/README.md)
-  - [ ] US-735: Recommended component — Flatpickr (date / time / range picker; `--p-*` CSS skin)
+  - [ ] [US-735: Recommended component — Flatpickr (date / time / range picker; `--p-*` CSS skin)](tasks/US-735-flatpickr-skin/README.md)
   - [ ] US-736: Recommended component — Tom Select (rich select / tags / autocomplete; `--p-*` CSS skin)
   - [ ] US-737: Recommended component — marked + highlight.js (markdown render + code highlighting; `--p-*` code theme)
   - [ ] US-738: Recommended component — Mermaid (diagrams; JS `themeVariables` from `persephone.theme`)
