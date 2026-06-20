@@ -104,6 +104,26 @@
         "type": "css",
         "cssVsJs": "Both halves are pure CSS skins — there is NO JS-colored surface, so a theme switch re-tints the rendered document AND the syntax colors with no JS re-render. markdown.css is ONE file with two parts: (1) rendered-markdown typography for a `.markdown-body` container — headings (h1/h2 ruled with --p-border), proportional system-font prose, lists + GFM task-list checkboxes (accent-color), blockquotes (accent left-border), GFM tables (--p-panel header, faint zebra stripes), inline code (--p-text tint pill), and the <pre> code frame (--p-panel + --p-border); (2) a highlight.js token theme mapping every .hljs-* class onto --p-* by role — keywords/tags/literals → --p-accent, titles/functions/types/built-ins/attr (e.g. JSON keys) → --p-link, strings/regexp/additions → --p-success, numbers/symbols/meta → --p-warning, comments → --p-text-muted (italic), deletions → --p-error, plain/operators/punctuation → --p-text. --p-* has no syntax palette, so the ~8 token hues fold onto the semantic colors; each is one the theme system already keeps legible on its own background (verified in both themes — the amber --p-warning is a dark amber in light themes, not an invisible yellow). Wrap marked's output in a `.markdown-body` element, then call hljs.highlightElement on each `pre code` (marked emits language-* classes that highlight.js reads)."
       }
+    },
+    {
+      "id": "mermaid",
+      "name": "Mermaid",
+      "purpose": "Diagrams from text — flowcharts, sequence, class, state, ER, pie, gantt, gitgraph, and more. Renders Markdown-fenced diagram syntax to SVG; good for docs, architecture sketches, and process/state visualizations.",
+      "homepage": "https://mermaid.js.org/",
+      "npm": "mermaid",
+      "testedVersion": "11.15.0",
+      "vendor": {
+        "js": "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js",
+        "note": "Mermaid draws SVG colored from JS — it ships NO stylesheet, so there is nothing to @import and no CSS skin. Download the bundle INTO the board folder (e.g. lib/mermaid.min.js, ~3.2 MB) and reference it relatively; it exposes a global `mermaid`. The board CSP forbids remote network, so a CDN <script> will not load. v11 uses the async API: `mermaid.initialize(config)` (sync, call once) then `const { svg } = await mermaid.render(uniqueId, diagramText)`."
+      },
+      "skin": {
+        "file": "mermaid-theme.js",
+        "tunedFor": "mermaid@11.15.0",
+        "tuned": "2026-06",
+        "loadOrder": "lib/mermaid.min.js → mermaid-theme.js → app.js (no component CSS; mermaid-theme.js is a JS adapter, not a stylesheet)",
+        "type": "js-adapter",
+        "cssVsJs": "Mermaid is fully JS-colored — there is no CSS skin. `mermaid-theme.js` exposes `window.PersephoneMermaidTheme` (`config(theme)`, `themeVariables(theme)`, `palette(theme)`, `mix`, `alpha`). `config()` returns a Mermaid init config using the customizable `theme: 'base'` with a full `themeVariables` map built from the --p-* palette — node fill/border/text (primaryColor/mainBkg=--p-panel, nodeBorder=--p-border, text=--p-text), edges (lineColor=--p-text-muted), clusters, edge labels, the complete sequence-diagram set (actors, signals, notes=--p-warning tint, activation bars=--p-accent), state labels, pie slices (pie1..12 from the palette: --p-accent, --p-success, --p-warning, --p-error, --p-link, --p-text-muted), and the gantt set (task/active/done bars, sections, grid, today line). IMPORTANT — Mermaid is NOT a live-update library: it bakes colors into the SVG at render time, so a theme switch must RE-INITIALIZE and RE-RENDER every diagram from its source (NOT just re-init — and NOT a no-op like a pure CSS skin). Take the palette from the onThemeChange argument (or getTheme()), call `mermaid.initialize(T.config(theme))`, then re-run `mermaid.render(...)` for each diagram. See the demo board's app.js for the load + re-render-on-switch wiring."
+      }
     }
   ]
 }
