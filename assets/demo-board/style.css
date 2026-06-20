@@ -1,0 +1,182 @@
+/* Persephone Boards — Demo stylesheet (loaded via board:///style.css).
+ *
+ * Page-level defaults (background, text, monospace font, themed scrollbars,
+ * box-sizing) come from board-base.css, linked FIRST. This file adds the demo's
+ * own structure (tabs, panels, theme demo). Everything is driven by the `--p-*`
+ * theme contract (each with a literal fallback), so switching the app theme
+ * restyles the board live — a worked example of "how to theme a board".
+ */
+
+html, body { height: 100%; }
+
+body {
+    /* board-base.css sets bg / text / font-size / box-sizing. The demo overrides
+       the monospace base with a sans-serif UI font, and adds the fixed-height
+       frame: header + tabs pinned, only .content scrolls. */
+    font-family: system-ui, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Header (pinned) ────────────────────────────────────────────────── */
+.app-header { flex-shrink: 0; padding: var(--p-space-xl, 16px) var(--p-space-xl, 16px) var(--p-space-md, 8px); }
+.app-header h1 { margin: 0; font-size: var(--p-font-xxl, 22px); color: var(--p-text-strong, inherit); }
+.app-header .muted { margin: var(--p-space-xs, 2px) 0 0; }
+
+.muted { color: var(--p-text-muted, #64748b); }
+code {
+    background: var(--p-overlay, #f1f5f9);
+    border: 1px solid var(--p-border, #e2e8f0);
+    border-radius: var(--p-radius-sm, 3px);
+    padding: 0 var(--p-space-xs, 3px);
+    font-family: ui-monospace, monospace;
+    font-size: var(--p-font-sm, 12px);
+}
+
+/* ── Tabs (pinned) ──────────────────────────────────────────────────── */
+.tabs {
+    flex-shrink: 0;
+    display: flex;
+    gap: var(--p-gap-sm, 4px);
+    padding: 0 var(--p-space-xl, 16px);
+    border-bottom: 1px solid var(--p-border, #cbd5e1);
+    background: var(--p-bg, #ffffff);
+}
+
+/* ── Scroll region (everything below the tabs) ──────────────────────── */
+.content { flex: 1; overflow-y: auto; }
+.tab {
+    font: inherit;
+    background: transparent;
+    color: var(--p-text-muted, #64748b);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: var(--p-space-md, 8px) var(--p-space-lg, 12px);
+    cursor: pointer;
+}
+.tab:hover { color: var(--p-text, #1f1f1f); }
+.tab.active { color: var(--p-accent, #3b82f6); border-bottom-color: var(--p-accent, #3b82f6); }
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+main { padding: var(--p-space-xl, 16px); max-width: 920px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+h2 {
+    margin-top: var(--p-space-xxl, 24px);
+    font-size: var(--p-font-lg, 16px);
+    border-bottom: 1px solid var(--p-border, #cbd5e1);
+    padding-bottom: var(--p-space-sm, 4px);
+}
+.panel > h2:first-child { margin-top: 0; }
+h3 { margin: var(--p-space-xl, 16px) 0 var(--p-space-md, 8px); font-size: var(--p-font-md, 14px); }
+h4 { margin: 0 0 var(--p-space-sm, 4px); font-size: var(--p-font-md, 14px); }
+p { line-height: 1.5; }
+ul { margin: var(--p-space-md, 8px) 0; padding-left: var(--p-space-xxl, 20px); }
+li { margin: var(--p-space-sm, 4px) 0; }
+
+/* ── Action buttons + console ───────────────────────────────────────── */
+.row { display: flex; flex-wrap: wrap; gap: var(--p-gap-lg, 8px); margin: var(--p-space-md, 10px) 0; }
+/* Buttons mirror the Persephone UIKit primary button — a worked example of a
+   "persephone-like" button. Note the two things that make it match the app:
+     • Fixed control height + horizontal padding only (no vertical padding) — this
+       is what keeps it compact; padding top/bottom is what made it look oversized.
+     • Hover/active shift via brightness on the SAME accent fill, not a color swap. */
+button.action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--p-gap-md, 6px);
+    height: var(--p-size-control-md, 26px);
+    padding: 0 var(--p-space-md, 8px);
+    font-family: inherit;
+    font-size: var(--p-font-base, 14px);
+    border: 1px solid transparent;
+    border-radius: var(--p-radius-md, 4px);
+    background: var(--p-accent, #3b82f6);
+    color: var(--p-accent-text, #ffffff);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+button.action:hover { filter: brightness(1.1); }
+button.action:active { filter: brightness(0.9); }
+
+/* Output console — a pinned pane below the scroll area, shown on the interactive
+   tabs (Theming / Capabilities) so a button's result is visible immediately,
+   without scrolling. Long output scrolls within the pane. */
+#out {
+    flex-shrink: 0;
+    min-height: 80px;
+    max-height: 25vh;
+    overflow-y: auto;
+    border-top: 1px solid var(--p-border, transparent);
+    background: var(--p-panel, #0f172a);
+    color: var(--p-text, #e2e8f0);
+    padding: var(--p-space-lg, 12px);
+    white-space: pre-wrap; word-break: break-word;
+    font-family: ui-monospace, monospace; font-size: var(--p-font-md, 13px);
+}
+
+/* ── Overview: runtime checks ───────────────────────────────────────── */
+.checks { list-style: none; padding: 0; }
+.checks li { font-family: ui-monospace, monospace; font-size: var(--p-font-sm, 12px); }
+
+.note {
+    border-left: 3px solid var(--p-accent, #3b82f6);
+    background: var(--p-overlay, transparent);
+    padding: var(--p-space-md, 8px) var(--p-space-lg, 12px);
+    border-radius: 0 var(--p-radius-md, 4px) var(--p-radius-md, 4px) 0;
+    margin: var(--p-space-md, 8px) 0;
+}
+
+/* Code block (e.g. the MCP config snippet). Wide lines scroll inside the block. */
+pre {
+    background: var(--p-panel, #0f172a);
+    color: var(--p-text, #e2e8f0);
+    border: 1px solid var(--p-border, transparent);
+    border-radius: var(--p-radius-md, 4px);
+    padding: var(--p-space-lg, 12px);
+    overflow-x: auto;
+    font-family: ui-monospace, monospace;
+    font-size: var(--p-font-sm, 12px);
+    line-height: 1.45;
+}
+
+/* ── Build Guide: recommended-component cards ───────────────────────── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--p-gap-xl, 12px); }
+.card {
+    border: 1px solid var(--p-border, #cbd5e1);
+    border-radius: var(--p-radius-md, 4px);
+    padding: var(--p-space-lg, 12px);
+    background: var(--p-panel, transparent);
+}
+.badge {
+    display: inline-block;
+    font-size: var(--p-font-xs, 11px);
+    color: var(--p-text-muted, #64748b);
+    border: 1px solid var(--p-border, #cbd5e1);
+    border-radius: var(--p-radius-full, 999px);
+    padding: 0 var(--p-space-sm, 6px);
+    margin-bottom: var(--p-space-sm, 4px);
+}
+
+/* ── Theming demo: swatches + metric ladders ────────────────────────── */
+.swatches { display: flex; flex-wrap: wrap; gap: var(--p-gap-xl, 12px); }
+.swatch { width: 120px; }
+.sw-box { height: 40px; border: 1px solid var(--p-border, #cbd5e1); border-radius: var(--p-radius-md, 4px); }
+.sw-label { font-size: var(--p-font-xs, 12px); margin-top: var(--p-space-xs, 2px); }
+.sw-val { color: var(--p-text-muted, #64748b); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--p-gap-xl, 12px); align-items: center; }
+.chip {
+    background: var(--p-panel, #e2e8f0);
+    border: 1px solid var(--p-border, #cbd5e1);
+    padding: var(--p-space-md, 8px) var(--p-space-lg, 12px);
+    font-size: var(--p-font-xs, 12px);
+}
+.bar { background: var(--p-accent, #3b82f6); height: 16px; border-radius: var(--p-radius-sm, 3px); }
+.space-row { display: flex; align-items: center; gap: var(--p-gap-lg, 8px); margin: var(--p-space-xs, 2px) 0; }
+.metric-label { width: 150px; flex-shrink: 0; font-size: var(--p-font-xs, 12px); color: var(--p-text-muted, #64748b); }
+.space-track { flex: 1; }

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Persephone Boards — Demo</title>
+    <link rel="stylesheet" href="./board-base.css" />
+    <link rel="stylesheet" href="./style.css" />
+    <!-- Inline <script> is allowed (CSP style/script-src 'unsafe-inline'); we set a
+         flag here so the Overview tab can prove inline scripts ran. -->
+    <script>window.__inlineRan = true;</script>
+</head>
+<body>
+    <header class="app-header">
+        <h1>Persephone Boards</h1>
+        <p class="muted">A living demo &amp; reference — what a board is, how to theme it, what it can do, and how to build one.</p>
+    </header>
+
+    <nav class="tabs" id="tabs">
+        <button class="tab" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="theming">Theming</button>
+        <button class="tab" data-tab="capabilities">Capabilities</button>
+        <button class="tab" data-tab="build">Build Guide</button>
+        <button class="tab" data-tab="debugging">Debugging</button>
+    </nav>
+
+    <div class="content">
+    <main>
+        <!-- ════════════════════════ OVERVIEW ════════════════════════ -->
+        <section class="panel" data-panel="overview">
+            <h2>What is a Board?</h2>
+            <p>
+                A <strong>Board</strong> is a small <strong>local application</strong> whose UI you own as a plain HTML page,
+                backed by scripts you write in any language. Persephone hosts the page in a
+                <strong>sandboxed webview</strong> and injects a single bridge object,
+                <code>window.persephone</code>. Persephone owns no board state and no board UI — it just
+                wires the bridge and shows the page. A board lives in its own folder under
+                <code>.persephone/boards/&lt;Name&gt;/</code>.
+            </p>
+
+            <h2>How it works — frontend + backend + a channel</h2>
+            <ul>
+                <li><strong>Frontend</strong> — <code>index.html</code> + <code>app.js</code> (+ any CSS/assets). Owns all UI and all state. This is what renders in the webview.</li>
+                <li><strong>Backend</strong> — scripts under <code>scripts/</code> (<code>.js</code>, <code>.py</code>, <code>.ps1</code>, <code>.sh</code>, …). They run as real OS processes with your privileges and talk to the page over stdout.</li>
+                <li><strong>Channel</strong> — <code>persephone.execute(commandLine)</code>. The page calls a script, the script prints to stdout, the page reads it and renders. That's the whole loop.</li>
+            </ul>
+
+            <h2>Built by an agent, not by hand</h2>
+            <p>
+                Boards are meant to be authored by an <strong>AI coding agent</strong> — Claude Code, for example —
+                rather than hand-written. There's deliberately no in-board editor, debugger, or dev console: the host
+                stays minimal on purpose. And a board is made of exactly what an agent is best at — <strong>raw HTML,
+                vanilla JavaScript, and Node or Python scripts</strong> — so the fastest way to build one is simply to ask.
+            </p>
+            <div class="note">
+                Describe the <strong>report, tool, or mini-application</strong> you need, and your agent scaffolds the
+                page, wires <code>persephone.execute()</code> to a backend script, and themes it with the
+                <code>--p-*</code> variables — usually in a few minutes. You review the result and refine it in plain language.
+            </div>
+
+            <h2>Runtime environment</h2>
+            <p class="muted">Live proof of the board sandbox + bridge. These checks run from <code>app.js</code> when the page loads:</p>
+            <ul id="checks" class="checks"></ul>
+            <div class="note">
+                The webview runs with <code>sandbox</code> + <code>contextIsolation</code> on and <code>nodeIntegration</code> off,
+                behind a CSP that forbids remote network. The board cannot reach Node, the filesystem, or the internet directly —
+                everything privileged goes through <code>persephone.execute()</code> (your scripts) or the integration tier.
+            </div>
+        </section>
+
+        <!-- ════════════════════════ THEMING ════════════════════════ -->
+        <section class="panel" data-panel="theming">
+            <h2>Theme with the <code>--p-*</code> contract</h2>
+            <p>
+                Persephone injects its palette as CSS variables on <code>&lt;html&gt;</code> and keeps them live across
+                theme switches. Style everything with them and your board matches the app automatically —
+                <strong>switch the app theme (dark ↔ light) and watch this whole page restyle live</strong>, with no JS.
+            </p>
+            <div class="note">
+                <code>body { background: var(--p-bg); color: var(--p-text); }</code><br>
+                <code>button { background: var(--p-accent); border-radius: var(--p-radius-md); }</code>
+            </div>
+            <p class="muted">
+                Colors update with the theme; metrics (<code>--p-space-*</code>, <code>--p-radius-*</code>,
+                <code>--p-font-*</code>) are constants. Also mirrored in JS as <code>persephone.theme</code> /
+                <code>persephone.tokens</code> / <code>persephone.onThemeChange(cb)</code> — for colors you set from JS.
+            </p>
+
+            <div class="row">
+                <button class="action" data-test="showTheme">persephone.theme (JSON)</button>
+                <button class="action" data-test="showTokens">persephone.tokens (JSON)</button>
+                <button class="action" data-test="readCss">read --p-* live from the DOM</button>
+            </div>
+            <p id="theme-status" class="muted">onThemeChange: waiting for first fire…</p>
+
+            <h3>Color swatches — <code>var(--p-*)</code>, auto-update on switch</h3>
+            <div id="swatches" class="swatches"></div>
+
+            <h3>Metric tokens — radius / font / spacing</h3>
+            <div id="metrics"></div>
+        </section>
+
+        <!-- ════════════════════════ CAPABILITIES ════════════════════════ -->
+        <section class="panel" data-panel="capabilities">
+            <h2><code>persephone.execute()</code> — run scripts &amp; tools</h2>
+            <p class="muted">
+                The one method. Buffer the result (<code>getText</code>/<code>getJson</code>/<code>getBytes</code>) or
+                stream it (<code>on("stdout"/"exit"/…)</code>, <code>write</code>, <code>kill</code>).
+                These probes spawn <code>node</code>, so Node must be on PATH.
+            </p>
+            <div class="row">
+                <button class="action" data-test="getText">getText</button>
+                <button class="action" data-test="getJson">getJson</button>
+                <button class="action" data-test="getJsonReject">getJson reject (exit 3)</button>
+                <button class="action" data-test="stream">streaming</button>
+                <button class="action" data-test="stdin">stdin round-trip</button>
+                <button class="action" data-test="kill">kill long-runner</button>
+                <button class="action" data-test="cwd">default cwd = board folder</button>
+            </div>
+
+            <h2>Integration tier — in-app effects</h2>
+            <p class="muted">Effects <code>execute()</code> can't express: toasts, opening links/pages, native dialogs.</p>
+            <div class="row">
+                <button class="action" data-test="notify">notify (toast)</button>
+                <button class="action" data-test="openRawLink">openRawLink (GitHub)</button>
+                <button class="action" data-test="openFileDialog">openFileDialog</button>
+                <button class="action" data-test="saveFileDialog">saveFileDialog</button>
+                <button class="action" data-test="openFolderDialog">openFolderDialog</button>
+            </div>
+        </section>
+
+        <!-- ════════════════════════ BUILD GUIDE ════════════════════════ -->
+        <section class="panel" data-panel="build">
+            <h2>Anatomy of a board</h2>
+            <ul>
+                <li><code>index.html</code> — your page. Edit it and the board reloads automatically.</li>
+                <li><code>app.js</code> / <code>style.css</code> — your logic and styling (reference relatively, e.g. <code>./app.js</code>). After editing these, click <strong>Refresh</strong> in the Boards side panel to remount.</li>
+                <li><code>scripts/</code> — backend scripts in any language, invoked via <code>persephone.execute("scripts/thing.js")</code>. <code>cwd</code> defaults to the board folder, so relative paths just work.</li>
+            </ul>
+
+            <h2>Returning data reliably</h2>
+            <p>
+                A bare <code>getJson()</code> assumes stdout contains <em>only</em> your JSON. The moment a script
+                shells out to a tool that prints its own output, that breaks. Two habits fix it:
+            </p>
+            <ul>
+                <li><strong>Logs → stderr, result → stdout.</strong> Send diagnostics to stderr; capture sub-tool output instead of letting it flow through.</li>
+                <li><strong>Wrap the result in a marker</strong> and extract it: emit <code>"@@RESULT@@" + JSON.stringify(x)</code> from the script, then read it with <code>execute(cmd).getJson(/@@RESULT@@(.*)/)</code>. It extracts the match before parsing and still rejects on a non-zero exit with the captured stderr.</li>
+            </ul>
+
+            <h2>Recommended components &amp; skins</h2>
+            <p class="muted">
+                Persephone stays a thin container — bring your own libraries. For the common cases we recommend a
+                short list of well-behaved components and publish <strong><code>--p-*</code>-themed CSS skins</strong> for
+                them, so a dropped-in component matches the app theme out of the box.
+            </p>
+            <div class="cards" id="components">
+                <div class="card">
+                    <span class="badge">skin planned</span>
+                    <h4>Tabulator</h4>
+                    <p class="muted">Interactive data grids &amp; tables — sorting, filtering, editing.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">skin planned</span>
+                    <h4>Chart.js</h4>
+                    <p class="muted">Charts &amp; plots. Read colors from <code>persephone.theme.vars</code> so they track the theme.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">more coming</span>
+                    <h4>…your suggestions</h4>
+                    <p class="muted">This catalog grows as we add skins. Tell us which components you reach for.</p>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Where to get the skins:</strong> prepared CSS skins will live alongside the project under
+                <code>boards-assets/</code> (version-stamped, with per-block comments). An agent or you can fetch a
+                skin into your board folder and link it. <em>(This skin catalog is a work in progress — see the
+                Persephone repo for the current set.)</em>
+            </div>
+
+            <h2>Resources</h2>
+            <ul>
+                <li><a href="#" data-link="https://github.com/andriy-viyatyk/persephone">Persephone on GitHub</a></li>
+                <li class="muted">Full Board reference docs — forthcoming.</li>
+            </ul>
+        </section>
+
+        <!-- ════════════════════════ DEBUGGING ════════════════════════ -->
+        <section class="panel" data-panel="debugging">
+            <h2>Debugging a board with an AI agent</h2>
+            <p>
+                A board has no built-in editor or dev console — you debug it the same way you build it:
+                through an <strong>AI agent connected to Persephone's MCP server</strong>. The agent reads the
+                live page, clicks and types, and runs JavaScript inside the board, using the Playwright-style
+                <code>browser_*</code> tools pointed at the board's page.
+            </p>
+
+            <h2>1 · Enable the MCP server in Persephone</h2>
+            <p>Open <strong>Settings → MCP Server</strong> and:</p>
+            <ul>
+                <li>Check <strong>Enable MCP server</strong> (off by default).</li>
+                <li>Check <strong>Enable browser interaction</strong> — required for the <code>browser_*</code> tools that drive a board.</li>
+                <li>Leave the <strong>Port</strong> at <code>7865</code> (changing it requires toggling the server off and on).</li>
+            </ul>
+            <p class="muted">
+                The server listens on <code>http://localhost:7865/mcp</code>. A <strong>Copy Config</strong> button there
+                gives you the ready-to-paste snippet below.
+            </p>
+
+            <h2>2 · Point your agent at it</h2>
+            <p>The transport is <strong>HTTP</strong> (not stdio). For Claude Code, add to <code>.mcp.json</code> (project root or <code>~/.claude/.mcp.json</code>):</p>
+            <pre>{
+  "mcpServers": {
+    "persephone": {
+      "type": "http",
+      "url": "http://localhost:7865/mcp"
+    }
+  }
+}</pre>
+            <p class="muted">
+                Claude Desktop: add an MCP server named <code>persephone</code> with the same URL. After enabling
+                browser interaction, <strong>reconnect the agent</strong> so it picks up the new tools.
+            </p>
+
+            <h2>3 · Open the board, then drive it</h2>
+            <p>
+                You (the human) open the board first — an agent <strong>cannot</strong> open boards, and an untrusted
+                project won't render. Then the agent:
+            </p>
+            <ul>
+                <li><code>list_pages</code> → find this board (<code>editor: "board-view"</code>, with its <code>selectedBoard</code>) and read its <code>pageId</code>.</li>
+                <li><code>browser_snapshot { pageId }</code> → read the accessibility tree (element refs).</li>
+                <li><code>browser_click</code> / <code>browser_type</code> / <code>browser_press_key</code> → interact, using refs from the snapshot.</li>
+                <li><code>browser_evaluate { pageId, function }</code> → run JS in the page: inspect state, read <code>--p-*</code> values, poke the DOM. The most useful probe when something looks wrong.</li>
+            </ul>
+            <div class="note">
+                Always pass <code>pageId</code> — without it the <code>browser_*</code> tools target the active
+                <em>browser</em> page, not your board. Navigation and tab tools don't apply: a board is one fixed page.
+            </div>
+
+            <h2>Tips</h2>
+            <ul>
+                <li>Editing <code>index.html</code> reloads the board automatically; after editing <code>app.js</code> or CSS, click <strong>Refresh</strong> in the Boards side panel to remount.</li>
+                <li>Failures reported via <code>persephone.notify(msg, "error")</code> are toasted <em>and</em> appended to the board's <code>ui.log</code> — check there first when a board misbehaves.</li>
+            </ul>
+        </section>
+    </main>
+    </div>
+
+    <!-- Output console — pinned below the scroll area; shown on interactive tabs. -->
+    <div id="out">Output appears here…</div>
+
+    <script src="./app.js"></script>
+</body>
+</html>

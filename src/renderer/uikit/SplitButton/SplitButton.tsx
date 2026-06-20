@@ -1,5 +1,6 @@
 import React from "react";
 import styled from "@emotion/styled";
+import { Button } from "../Button/Button";
 import { IconButton } from "../IconButton/IconButton";
 import { WithMenu } from "../Menu/WithMenu";
 import { ChevronDownIcon } from "../../theme/icons";
@@ -30,6 +31,9 @@ export interface SplitButtonProps
     size?: "sm" | "md";
     /** Caret tooltip. Default "More actions". */
     menuTitle?: React.ReactNode;
+    /** Optional primary-region label. When provided, the primary renders as a text
+     *  `Button` (icon + label); when omitted, it's an icon-only `IconButton`. */
+    children?: React.ReactNode;
 }
 
 // --- Styled ---
@@ -111,18 +115,32 @@ export function SplitButton({
     menuDisabled,
     size = "md",
     menuTitle = "More actions",
+    children,
     ...rest
 }: SplitButtonProps) {
     return (
         <Root data-type="split-button" data-name={name} {...rest}>
-            <IconButton
-                name="split-primary"
-                size={size}
-                title={title}
-                icon={icon}
-                disabled={disabled}
-                onClick={onClick}
-            />
+            {children != null ? (
+                <Button
+                    name="split-primary"
+                    size={size}
+                    title={title}
+                    icon={icon}
+                    disabled={disabled}
+                    onClick={onClick}
+                >
+                    {children}
+                </Button>
+            ) : (
+                <IconButton
+                    name="split-primary"
+                    size={size}
+                    title={title}
+                    icon={icon}
+                    disabled={disabled}
+                    onClick={onClick}
+                />
+            )}
             <Separator data-part="separator" />
             <CaretSlot>
                 <WithMenu name={name ? `${name}-menu` : undefined} items={items} placement="bottom-end">

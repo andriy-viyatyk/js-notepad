@@ -3,17 +3,12 @@
 <head>
     <meta charset="utf-8" />
     <title>My Board</title>
+    <!-- Shared base: page background, themed scrollbars, monospace default. Linked
+         first; the board's own styles below build on it. Style with the --p-*
+         contract (fallbacks keep the page readable before the palette applies). -->
+    <link rel="stylesheet" href="./board-base.css" />
     <style>
-        /* Style everything with the Persephone --p-* contract (fallbacks keep the
-           page readable before the host palette applies). Edit freely. */
-        body {
-            margin: 0;
-            padding: var(--p-space-xl, 16px);
-            background: var(--p-bg, #1e1e1e);
-            color: var(--p-text, #e0e0e0);
-            font-size: var(--p-font-base, 13px);
-            line-height: 1.5;
-        }
+        body { padding: var(--p-space-xl, 16px); }
         h1 { font-size: var(--p-font-xl, 20px); margin: 0 0 var(--p-space-lg, 12px); }
         p { color: var(--p-text-muted, #9aa0a6); }
         button {
@@ -38,7 +33,6 @@
             white-space: pre-wrap;
             word-break: break-word;
             min-height: 48px;
-            font-family: ui-monospace, monospace;
         }
     </style>
 </head>

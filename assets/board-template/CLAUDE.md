@@ -91,6 +91,11 @@ body { background: var(--p-bg); color: var(--p-text); }
 button { background: var(--p-accent); color: var(--p-accent-text); border-radius: var(--p-radius-md); }
 ```
 
+Your board ships with **`board-base.css`** (linked first in `index.html`). It applies
+sensible defaults for you — page background/text, a **monospace default font**, and
+**themed scrollbars** — all from the `--p-*` contract. Build your own styles on top
+(or edit it). The list below is the full palette + metric set you can use:
+
 - **Colors** (theme-dependent, update live): `--p-bg`, `--p-panel`, `--p-overlay`,
   `--p-border`, `--p-border-light`, `--p-text`, `--p-text-muted`, `--p-text-strong`,
   `--p-accent`, `--p-accent-text`, `--p-accent-hover`, `--p-selection-bg`,
@@ -101,6 +106,28 @@ button { background: var(--p-accent); color: var(--p-accent-text); border-radius
 
 Also mirrored in JS: `persephone.theme` (`{ id, isDark, vars }`), `persephone.tokens`,
 and `persephone.onThemeChange(cb)` — for colors you set from JS (e.g. a chart library).
+
+## Libraries & assets — vendor them locally
+
+A board is a **local, offline-first app**, and the sandbox **forbids remote network**:
+the CSP (`connect-src 'self'`) blocks CDN scripts, stylesheets, fonts, and any `fetch`
+to another host. So when you use a component library (grids, charts, markdown, icons,
+fonts, …), **download it into the board folder and reference it relatively** — never
+link a CDN.
+
+- Put files under the board folder, e.g. `lib/tabulator.min.js`, `lib/tabulator.min.css`,
+  and load them with **relative paths**: `<script src="./lib/tabulator.min.js"></script>`,
+  `<link rel="stylesheet" href="./lib/tabulator.min.css" />`. A relative path resolves
+  under the page's `board://` origin automatically (subfolders included) — just like the
+  board's own `./app.js` / `./style.css`. You don't write the scheme yourself (and never
+  the two-slash `board://lib/…` form — the URL parser would read `lib` as the host).
+- **Do not** use `https://…cdn…` URLs in `<script>` / `<link>` / `@import` / `fetch()` —
+  they are blocked and the board will silently fail to load the dependency.
+- Bundle fonts and images in the folder too (or inline images as `data:` URIs).
+
+This keeps the board self-contained: it works with no network connection and won't
+break if a CDN changes or disappears. (As an agent: download the library files into
+the board folder before referencing them.)
 
 ## Errors & the log
 
@@ -127,6 +154,18 @@ Once the user has opened this board in Persephone, an agent can drive it with th
 
 The board must be **open** (the user opens it; an untrusted project won't render).
 Navigation/tab tools don't apply — a board is one fixed page.
+
+## More examples — the bundled Demo board
+
+Persephone ships a full **Demo board** that exercises the whole surface — the
+`persephone.execute()` channel (buffered / streaming / stdin / kill / cwd), the
+integration tier, the `--p-*` theme + token contract, and a tabbed multi-view layout
+with a pinned output console. When you need a richer reference than this starter,
+read the Demo board's files (`index.html`, `app.js`, `style.css`, `board-base.css`):
+
+- **Installed app:** under the Persephone install's `resources/assets/demo-board/` —
+  on Windows typically `C:\Program Files\Persephone\persephone\resources\assets\demo-board`.
+- **From source (dev):** `assets/demo-board/` in the repository.
 
 ## Docs
 

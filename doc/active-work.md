@@ -17,9 +17,10 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-725: Theme contract — `--p-*` CSS variables + `persephone.theme` (live update)](tasks/US-725-theme-contract/README.md)
   - [ ] [US-726: Templates & scaffolding + `ui.log` + live reload](tasks/US-726-config-templates-log/README.md)
   - [ ] US-727: Recommended-components manifest + first skin (Tabulator)
-  - [ ] US-728: Demo board — self-documenting showcase + dogfood (full `persephone` surface, themes/tokens, recommended-components catalog + skin links; prototyped from the Test board; offered via empty-state "Create demo board" button + "+ New board" `SplitButton` dropdown — no project-creation dialog)
+  - [ ] [US-728: Demo board — bundle `assets/demo-board/` + "Create Demo board" entry points (empty-state button + "+ New board" `SplitButton` dropdown; snapshots the prepared demo, no project-creation dialog)](tasks/US-728-demo-board/README.md)
   - [ ] [US-730: Web Boards as `browser_*` MCP automation targets (snapshot/click/type a board's webview; reuse the existing CDP engine)](tasks/US-730-board-mcp-automation/README.md)
   - [ ] [US-731: "Create .persephone project" Explorer context menu (create-or-reveal `.persephone` → select → open Board editor; no dialog)](tasks/US-731-create-persephone-project/README.md)
+  - [ ] US-732: Shared board base stylesheet — `assets/board-base.css` (page bg, themed scrollbars, monospace default) copied into every board by the scaffolder; both templates link it first
 
 ## Planned
 - **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*

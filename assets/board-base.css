@@ -1,0 +1,33 @@
+/* Persephone board — shared base styles (board-base.css).
+ *
+ * Copied into EVERY board at creation (blank + demo). Provides Persephone-like
+ * defaults driven by the `--p-*` theme contract: page background/text, a monospace
+ * default font, themed scrollbars, and a box-sizing reset. Link it FIRST in your
+ * board, then your own stylesheet — so the board matches the app out of the box and
+ * restyles live on a theme switch. It's a plain file in your board folder; edit it
+ * (or override its rules from your own CSS) freely.
+ */
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #e0e0e0);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: var(--p-font-base, 13px);
+    line-height: 1.5;
+}
+
+a { color: var(--p-link, #3b82f6); }
+
+/* Themed scrollbars (Chromium webview) — track + slightly-rounded thumb, driven by
+   the scrollbar tokens so they match the app and re-tint on a theme switch. */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--p-scrollbar, transparent); }
+::-webkit-scrollbar-thumb {
+    background: var(--p-scrollbar-thumb, rgba(128, 128, 128, 0.4));
+    border-radius: var(--p-radius-sm, 3px);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--p-text-muted, #888); }
+::-webkit-scrollbar-corner { background: var(--p-scrollbar, transparent); }

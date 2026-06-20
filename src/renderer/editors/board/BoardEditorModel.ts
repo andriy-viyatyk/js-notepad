@@ -261,16 +261,27 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         this.state.update((s) => { s.logHasErrors = hasErrors; });
     }
 
-    /** Create a board folder scaffolded from the bundled template. Throws on a
-     *  duplicate/illegal name (the OS surfaces illegal names; the explicit
+    /** Create a blank board scaffolded from the bundled `board-template`. Throws
+     *  on a duplicate/illegal name (the OS surfaces illegal names; the explicit
      *  collision check covers duplicates). */
     async createBoard(name: string): Promise<void> {
+        return this.createFromTemplate(name, "board-template");
+    }
+
+    /** Create a board scaffolded from the bundled `demo-board` template (US-728). */
+    async createDemoBoard(name: string): Promise<void> {
+        return this.createFromTemplate(name, "demo-board");
+    }
+
+    /** Shared create path: collision check → scaffold from `template` → on failure,
+     *  fall back to an empty folder → refresh + select. */
+    private async createFromTemplate(name: string, template: string): Promise<void> {
         const dir = fpJoin(this.state.get().persephonePath, "boards", name);
         if (await fs.exists(dir)) {
             throw new Error(`A board named "${name}" already exists.`);
         }
         try {
-            await scaffoldBoard(dir);
+            await scaffoldBoard(dir, template);
         } catch (err) {
             // Template missing / copy failed — still produce a usable (empty) board.
             await fs.mkdir(dir);

@@ -3,6 +3,7 @@ import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
 import { IconButton } from "../../uikit/IconButton";
+import { SplitButton } from "../../uikit/SplitButton";
 import { Spacer } from "../../uikit/Spacer";
 import { PlusIcon, DeleteIcon, BoardIcon } from "../../theme/icons";
 import { projectTrust } from "../../api/project-trust";
@@ -70,6 +71,23 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
         }
     };
 
+    const handleCreateDemo = async () => {
+        const res = await showInputDialog({
+            title: "Create Demo board",
+            message: "Board name (becomes the folder name):",
+            value: "Demo",
+            buttons: ["Create", "Cancel"],
+        });
+        if (res?.button !== "Create") return;
+        const name = res.value.trim();
+        if (!name) return;
+        try {
+            await model.createDemoBoard(name);
+        } catch (err) {
+            ui.notify(err instanceof Error ? err.message : String(err), "error");
+        }
+    };
+
     const handleDelete = async (name: string) => {
         const answer = await showConfirmationDialog({
             title: "Delete board",
@@ -110,23 +128,45 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
             >
                 <Text size="md">{s.title}</Text>
                 <Spacer />
-                <Button name="board-create" size="sm" icon={<PlusIcon />} onClick={() => void handleCreate()}>
+                <SplitButton
+                    name="board-create"
+                    size="sm"
+                    icon={<PlusIcon />}
+                    onClick={() => void handleCreate()}
+                    menuTitle="More board options"
+                    items={[
+                        {
+                            label: "Create Demo board",
+                            icon: <BoardIcon width={14} height={14} />,
+                            onClick: () => void handleCreateDemo(),
+                        },
+                    ]}
+                >
                     New board
-                </Button>
+                </SplitButton>
             </Panel>
 
             {/* Body */}
             {s.boards.length === 0 ? (
                 <Panel flex={1} direction="column" align="center" justify="center" gap="md" padding="xl">
                     <Text color="light" align="center">No boards yet. Create one to get started.</Text>
-                    <Button
-                        name="board-create-empty"
-                        variant="primary"
-                        icon={<PlusIcon />}
-                        onClick={() => void handleCreate()}
-                    >
-                        Create board
-                    </Button>
+                    <Panel direction="row" gap="sm">
+                        <Button
+                            name="board-create-empty"
+                            variant="primary"
+                            icon={<PlusIcon />}
+                            onClick={() => void handleCreate()}
+                        >
+                            Create board
+                        </Button>
+                        <Button
+                            name="board-create-demo-empty"
+                            icon={<BoardIcon width={16} height={16} />}
+                            onClick={() => void handleCreateDemo()}
+                        >
+                            Create Demo board
+                        </Button>
+                    </Panel>
                 </Panel>
             ) : (
                 <Panel flex={1} align="center" justify="center" overflow="auto" paddingY="lg">
