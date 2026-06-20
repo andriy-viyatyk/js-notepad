@@ -90,8 +90,13 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     useEffect(() => {
         const sub = settings.onChanged.subscribe(({ key }) => {
             if (key !== "theme") return;
+            const palette = computeBoardThemePalette();
+            // Refresh the palette stored in main FIRST, so a guest that reloads after
+            // this switch reads the new theme from getContext (otherwise it paints the
+            // registration-time theme). Then push the live update to the running guest.
+            void api.updateBoardTheme(palette);
             try {
-                webviewRef.current?.send(BoardBridgeChannel.themeChanged, computeBoardThemePalette());
+                webviewRef.current?.send(BoardBridgeChannel.themeChanged, palette);
             } catch {
                 // Webview not ready yet — the initial theme is delivered via getContext.
             }

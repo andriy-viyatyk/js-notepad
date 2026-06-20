@@ -357,6 +357,12 @@ class ApiCalls implements Api {
         return executeOnce<void>(Endpoint.unregisterBoardProtocol, partition);
     };
 
+    // Refresh the palette stored for live board sessions on a theme switch, so a
+    // guest that reloads after the switch reads the current theme from getContext.
+    updateBoardTheme = async (theme: BoardThemePalette) => {
+        return executeOnce<void>(Endpoint.updateBoardTheme, theme);
+    };
+
     registerBoardWebContents = async (boardId: string, webContentsId: number) => {
         return executeOnce<void>(Endpoint.registerBoardWebContents, boardId, webContentsId);
     };

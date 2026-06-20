@@ -181,3 +181,14 @@ export function getBoardDesignForSession(
 ): { theme: BoardThemePalette; tokens: Record<string, string> } | undefined {
     return sessionToDesign.get(ses);
 }
+
+/** Refresh the stored palette for every live board session on a host theme switch.
+ *  The theme is app-global, so all sessions get the same palette. Without this, the
+ *  design stored at registration goes stale and a guest that reloads after a switch
+ *  paints the old theme (getContext returns the registration-time palette). Metrics
+ *  are theme-independent, so only the color palette changes. */
+export function updateAllBoardThemes(theme: BoardThemePalette): void {
+    for (const design of sessionToDesign.values()) {
+        design.theme = theme;
+    }
+}

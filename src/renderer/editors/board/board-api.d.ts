@@ -126,12 +126,20 @@ interface PersephoneBoardApi {
     saveFileDialog(params?: PersephoneSaveFileDialogParams): Promise<string | undefined>;
     /** Native pick-folder dialog → selected folder(s), or undefined if cancelled. */
     openFolderDialog(params?: PersephoneOpenFolderDialogParams): Promise<string[] | undefined>;
-    /** Current host color palette (`--p-*` names → values), live across theme switches. */
+    /** Host color palette as of page load — correct on every (re)load, but a SNAPSHOT:
+     *  it does not update on an in-session theme switch. For a live value use `getTheme()`
+     *  or the palette passed to `onThemeChange`. */
     readonly theme: PersephoneThemePalette;
+    /** Live host color palette — always the current theme, including after an in-session
+     *  switch. Prefer this (or the `onThemeChange` argument) when re-theming. */
+    getTheme(): PersephoneThemePalette;
     /** Static metric tokens (`--p-space-*`, `--p-radius-*`, …) — `--p-*` name → CSS value. */
     readonly tokens: Readonly<Record<string, string>>;
-    /** Subscribe to theme changes; fires once immediately with the current palette.
-     *  Returns an unsubscribe fn. */
+    /** Same static metric tokens, as a live accessor (symmetric with `getTheme()`). */
+    getTokens(): Readonly<Record<string, string>>;
+    /** Subscribe to theme changes; fires once immediately with the current palette, then
+     *  on every switch. The callback argument is always the live palette — prefer it for
+     *  re-theming. Returns an unsubscribe fn. */
     onThemeChange(cb: (theme: PersephoneThemePalette) => void): () => void;
 }
 

@@ -104,8 +104,19 @@ sensible defaults for you — page background/text, a **monospace default font**
 - **Metrics** (constants): `--p-space-*`, `--p-gap-*`, `--p-radius-*`, `--p-size-*`,
   `--p-font-*` (e.g. `--p-space-md`, `--p-radius-sm`, `--p-font-base`).
 
-Also mirrored in JS: `persephone.theme` (`{ id, isDark, vars }`), `persephone.tokens`,
-and `persephone.onThemeChange(cb)` — for colors you set from JS (e.g. a chart library).
+Also mirrored in JS — for colors you set from JS (e.g. a chart library):
+
+- `persephone.theme` (`{ id, isDark, vars }`) and `persephone.tokens` — a **snapshot at
+  page load**. Correct on every (re)load, but they do **not** update on an in-session
+  theme switch (the bridge copies them once into the page).
+- `persephone.getTheme()` / `persephone.getTokens()` — the **live** palette/tokens, always
+  the current theme (a function call crosses the bridge fresh each time).
+- `persephone.onThemeChange(cb)` — fires once immediately, then on every switch; the
+  callback **argument** is the live palette.
+
+**Re-theming a JS-colored component (charts, diagrams):** read the palette from the
+`onThemeChange` argument (or `getTheme()`) and re-apply on each fire — never cache
+`persephone.theme.vars` and reuse it across a switch, or your colors will go stale.
 
 ## Libraries & assets — vendor them locally
 

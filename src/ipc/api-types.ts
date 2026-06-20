@@ -87,6 +87,7 @@ export enum Endpoint {
     capturePageRegion = "capturePageRegion",
     registerBoardProtocol = "registerBoardProtocol",
     unregisterBoardProtocol = "unregisterBoardProtocol",
+    updateBoardTheme = "updateBoardTheme",
     registerBoardWebContents = "registerBoardWebContents",
     unregisterBoardWebContents = "unregisterBoardWebContents",
 }
@@ -199,6 +200,7 @@ export type Api = {
     [Endpoint.capturePageRegion]: (rect: CaptureRect) => Promise<Uint8Array>;
     [Endpoint.registerBoardProtocol]: (partition: string, boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>) => Promise<void>;
     [Endpoint.unregisterBoardProtocol]: (partition: string) => Promise<void>;
+    [Endpoint.updateBoardTheme]: (theme: BoardThemePalette) => Promise<void>;
     [Endpoint.registerBoardWebContents]: (boardId: string, webContentsId: number) => Promise<void>;
     [Endpoint.unregisterBoardWebContents]: (boardId: string) => Promise<void>;
 };

@@ -24,19 +24,31 @@ of app releases.
    component's JS/CSS into the board folder (e.g. `lib/`) and reference them with relative
    paths — never a CDN `<script>`/`<link>`. The `vendor` URLs in `manifest.json` are where
    to fetch from.
-2. **Copy the skin** (e.g. `tabulator.css`) into the board folder as a frozen local copy.
-3. **Link it in `index.html`** in the documented order — the skin must come **after** the
-   component's own CSS so it can override it. For Tabulator:
-   ```html
-   <link rel="stylesheet" href="./board-base.css" />
-   <link rel="stylesheet" href="./lib/tabulator.min.css" />
-   <link rel="stylesheet" href="./tabulator.css" />
-   ```
-4. **Handle the CSS-vs-JS split.** A skin styles component *chrome* via `--p-*`. Colors a
-   component sets **inline from JS** (e.g. Tabulator's `progress`-bar fill, `traffic-light`)
-   can't be reached from CSS — read them from `persephone.theme.vars` in your board JS and
-   re-apply them in `persephone.onThemeChange`. Each component's `cssVsJs` note in the
-   manifest says exactly what falls on the JS side.
+2. **Copy the skin** into the board folder as a frozen local copy. A skin is one of two
+   shapes (the manifest's `skin.type` / `loadOrder` says which):
+   - a **CSS skin** (e.g. `tabulator.css`) for components that style themselves with CSS, or
+   - a **JS adapter** (e.g. `chart-theme.js`) for **canvas / JS-colored** components (Chart.js,
+     and later Mermaid) that have no stylesheet to override.
+3. **Link it in `index.html`** in the documented order:
+   - A **CSS skin** must come **after** the component's own CSS so it can override it. For Tabulator:
+     ```html
+     <link rel="stylesheet" href="./board-base.css" />
+     <link rel="stylesheet" href="./lib/tabulator.min.css" />
+     <link rel="stylesheet" href="./tabulator.css" />
+     ```
+   - A **JS adapter** loads after the library and before your `app.js`. For Chart.js:
+     ```html
+     <script src="./lib/chart.umd.js"></script>
+     <script src="./chart-theme.js"></script>
+     <script src="./app.js"></script>
+     ```
+4. **Handle the CSS-vs-JS split.** A CSS skin styles component *chrome* via `--p-*`. Colors a
+   component sets from JS — Tabulator's inline `progress`-bar fill / `traffic-light`, or
+   *everything* a canvas library like Chart.js draws — can't be reached from CSS. Drive those
+   from the live palette in your board JS: at init read `persephone.theme`, and on a theme
+   switch use the palette passed to `persephone.onThemeChange` (or `persephone.getTheme()`) —
+   **not** a cached `persephone.theme`, which is a load-time snapshot and goes stale after a
+   switch. Each component's `cssVsJs` note in the manifest says exactly what falls on the JS side.
 
 ## Version drift
 
@@ -52,4 +64,5 @@ See [`manifest.json`](manifest.json) for the machine-readable list. Currently:
 
 | Component | Use | Tested version | Skin |
 |-----------|-----|----------------|------|
-| [Tabulator](https://tabulator.info/) | Data grid (sort/filter, range-select + clipboard, virtualized, edit, group, tree) | 6.5.1 | [`tabulator.css`](tabulator.css) |
+| [Tabulator](https://tabulator.info/) | Data grid (sort/filter, range-select + clipboard, virtualized, edit, group, tree) | 6.5.1 | [`tabulator.css`](tabulator.css) (CSS) |
+| [Chart.js](https://www.chartjs.org/) | Charts & plots (line, bar, doughnut/pie, radar, scatter, mixed) | 4.4.6 | [`chart-theme.js`](chart-theme.js) (JS adapter) |

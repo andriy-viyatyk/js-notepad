@@ -387,6 +387,11 @@ class Controller implements MainApi {
         await unregisterBoardProtocol(partition);
     };
 
+    updateBoardTheme = async (_event: IpcMainEvent, theme: BoardThemePalette): Promise<void> => {
+        const { updateAllBoardThemes } = await import("../../main/board-protocol-service");
+        updateAllBoardThemes(theme);
+    };
+
     registerBoardWebContents = async (_event: IpcMainEvent, boardId: string, webContentsId: number): Promise<void> => {
         const { registerBoardWebContents } = await import("../../main/cdp-service");
         const wc = webContents.fromId(webContentsId);
@@ -488,6 +493,7 @@ const init = () => {
     bindEndpoint(Endpoint.capturePageRegion, controllerInstance.capturePageRegion);
     bindEndpoint(Endpoint.registerBoardProtocol, controllerInstance.registerBoardProtocol);
     bindEndpoint(Endpoint.unregisterBoardProtocol, controllerInstance.unregisterBoardProtocol);
+    bindEndpoint(Endpoint.updateBoardTheme, controllerInstance.updateBoardTheme);
     bindEndpoint(Endpoint.registerBoardWebContents, controllerInstance.registerBoardWebContents);
     bindEndpoint(Endpoint.unregisterBoardWebContents, controllerInstance.unregisterBoardWebContents);
 

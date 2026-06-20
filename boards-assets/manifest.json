@@ -19,7 +19,27 @@
         "tunedFor": "tabulator-tables@6.5.1",
         "tuned": "2026-06",
         "loadOrder": "board-base.css → lib/tabulator.min.css → tabulator.css",
-        "cssVsJs": "The skin styles ALL grid chrome (frame, header, rows/cells, range selection, footer/pagination, header-filter inputs, in-cell editors, menus/popups, group/calc rows, tree toggles, resize guides, alerts, toggles) via the --p-* contract, so the grid follows the app theme live. Per-value colors that Tabulator sets INLINE from JS cannot be reached from CSS — the `progress` formatter bar fill + legend, and the `traffic-light` / `color` / `star` formatters. Pass those from `persephone.theme.vars` in your board JS and re-apply them in `persephone.onThemeChange` (see the demo board's app.js)."
+        "cssVsJs": "The skin styles ALL grid chrome (frame, header, rows/cells, range selection, footer/pagination, header-filter inputs, in-cell editors, menus/popups, group/calc rows, tree toggles, resize guides, alerts, toggles) via the --p-* contract, so the grid follows the app theme live. Per-value colors that Tabulator sets INLINE from JS cannot be reached from CSS — the `progress` formatter bar fill + legend, and the `traffic-light` / `color` / `star` formatters. Pass those from the live palette (`persephone.getTheme()` or the `onThemeChange` argument) in your board JS and re-apply them in `persephone.onThemeChange` (see the demo board's app.js)."
+      }
+    },
+    {
+      "id": "chartjs",
+      "name": "Chart.js",
+      "purpose": "Charts & plots — line, bar, doughnut/pie, radar, scatter, area, mixed. Canvas-rendered, animated, responsive; good default for dashboards.",
+      "homepage": "https://www.chartjs.org/",
+      "npm": "chart.js",
+      "testedVersion": "4.4.6",
+      "vendor": {
+        "js": "https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.js",
+        "note": "Chart.js ships NO stylesheet — it draws to <canvas>, so there is nothing to @import and no CSS skin. Download the UMD bundle INTO the board folder (e.g. lib/chart.umd.js) and reference it relatively; it exposes a global `Chart`. The board CSP forbids remote network, so a CDN <script> will not load."
+      },
+      "skin": {
+        "file": "chart-theme.js",
+        "tunedFor": "chart.js@4.4.6",
+        "tuned": "2026-06",
+        "loadOrder": "lib/chart.umd.js → chart-theme.js → app.js (no component CSS; chart-theme.js is a JS adapter, not a stylesheet)",
+        "type": "js-adapter",
+        "cssVsJs": "Chart.js is fully JS-colored — there is no CSS skin. `chart-theme.js` exposes `window.PersephoneChartTheme` (`applyDefaults(Chart, theme)`, `palette(theme)`, `paletteN(theme, n)`, `alpha`, `mix`). Pass it a --p-* palette: at init use `persephone.theme`; on a theme switch use the palette delivered to `persephone.onThemeChange` (or `persephone.getTheme()`) — NOT a cached `persephone.theme`, which is a load snapshot and goes stale after a switch. `applyDefaults` sets Chart.defaults.color (ticks/legend/point-labels) and Chart.defaults.borderColor (grid/angle lines), so scales follow the theme with no per-chart work; dataset colors come from `palette()`. The board chrome around the canvases is styled with --p-* in index.html as usual. See the demo board's app.js for the build + onThemeChange wiring."
       }
     }
   ]

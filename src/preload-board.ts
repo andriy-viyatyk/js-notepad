@@ -390,13 +390,28 @@ contextBridge.exposeInMainWorld("persephone", {
         return ipcRenderer.invoke(BoardBridgeChannel.openFolderDialog, params ?? {});
     },
 
-    /** Current host color palette (`--p-*` names → values), live across theme switches. */
+    /** Host color palette (`--p-*` names → values) as of page load — correct on every
+     *  (re)load. NOTE: this is a snapshot; `contextBridge` copies it once across the
+     *  isolated world, so it does NOT update on an in-session theme switch. For a live
+     *  value, call `getTheme()` or read the palette delivered to `onThemeChange`. */
     get theme(): BoardThemePalette {
+        return currentTheme;
+    },
+
+    /** Live host color palette — always the current theme, including after an in-session
+     *  switch (a function call crosses the bridge fresh each time, unlike the `theme`
+     *  snapshot). Prefer this (or the `onThemeChange` argument) when re-theming. */
+    getTheme(): BoardThemePalette {
         return currentTheme;
     },
 
     /** Static metric tokens (`--p-space-*`, `--p-radius-*`, …). Theme-independent. */
     tokens: Object.freeze({ ...tokens }),
+
+    /** Same static metric tokens, as a live accessor (symmetric with `getTheme()`). */
+    getTokens(): Record<string, string> {
+        return tokens;
+    },
 
     /** Subscribe to theme changes. Fires once immediately with the current palette,
      *  then on every switch. Returns an unsubscribe fn. */
