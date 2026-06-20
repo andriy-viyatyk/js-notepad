@@ -26,7 +26,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-736: Recommended component — Tom Select (rich select / tags / autocomplete; `--p-*` CSS skin)](tasks/US-736-tom-select-skin/README.md)
   - [ ] [US-737: Recommended component — marked + highlight.js (markdown render + code highlighting; `--p-*` code theme)](tasks/US-737-markdown-skin/README.md)
   - [ ] [US-738: Recommended component — Mermaid (diagrams; JS `themeVariables` from `persephone.theme`)](tasks/US-738-mermaid-skin/README.md)
-  - [ ] US-739: Recommended component — Split.js (resizable layout panes; `--p-*` CSS skin)
+  - [ ] [US-739: Recommended component — Split.js (resizable layout panes; `--p-*` CSS skin)](tasks/US-739-split-skin/README.md)
 
 ## Planned
 - **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*

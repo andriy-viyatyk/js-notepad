@@ -1,0 +1,94 @@
+/* persephone skin · split.js@1.6.5 · tuned 2026-06
+ * ===========================================================================
+ * Split.js ships NO stylesheet — it only sets inline width/height on the panes
+ * and inserts bare `.gutter` <div>s between them. The *appearance* of those
+ * dividers (and any focus affordance) is entirely the author's job, so this
+ * "skin" is that styling, written ENTIRELY against the `--p-*` theme contract
+ * (see the board CLAUDE.md) — the gutters then follow the app's dark/light
+ * theme live, with no hardcoded colors.
+ *
+ * Load order in index.html:  board-base.css → THIS FILE.
+ *   (No component CSS to load between them — Split.js has no stylesheet.)
+ *
+ * Pure CSS skin: a theme switch re-tints the gutters with NO JS (they live
+ * under the same <html> that carries the --p-* inline vars). Hover/active tints
+ * are derived with color-mix() from --p-accent so they read in BOTH themes.
+ *
+ * Split.js classes this targets:
+ *   .gutter                     base divider (always present)
+ *   .gutter.gutter-horizontal   divider in a left|right (column) split → col-resize
+ *   .gutter.gutter-vertical     divider in a top/bottom (row) split   → row-resize
+ * The board owns the panes' own look (bg/border/padding) via --p-* in its CSS;
+ * this file styles only the dividers Split.js creates.
+ * ===========================================================================*/
+
+/* ── Divider bar ────────────────────────────────────────────────────────────
+   Sits flush between two panes. Neutral --p-panel fill so it reads as a seam,
+   not a colored band; positioned so the centered grip (::after) can be placed. */
+.gutter {
+    background-color: var(--p-panel, #252526);
+    position: relative;
+    transition: background-color 120ms ease;
+}
+
+/* Hover/drag — tint toward the accent so the active seam is obvious in either
+   theme (color-mix keeps it subtle on light and dark alike). Split.js does not
+   add a dragging class, so :hover carries the affordance through the drag. */
+.gutter:hover {
+    background-color: color-mix(in srgb, var(--p-accent, #0078d4) 22%, var(--p-panel, #252526));
+}
+
+/* Resize cursors — set by direction so the user gets the right grab affordance. */
+.gutter.gutter-horizontal { cursor: col-resize; }
+.gutter.gutter-vertical   { cursor: row-resize; }
+
+/* ── Grip dots ──────────────────────────────────────────────────────────────
+   A short run of centered dots, drawn with a radial-gradient (no bitmap, so it
+   tints from --p-* unlike Split.js's docs that suggest a fixed-grey PNG). The
+   dot color is --p-text-muted; it brightens to the accent on hover. */
+.gutter::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;                      /* centers the fixed-size grip in the bar */
+    background-image: radial-gradient(
+        circle,
+        var(--p-text-muted, #969696) 1px,
+        transparent 1.5px
+    );
+}
+/* horizontal split → vertical bar → a vertical column of dots */
+.gutter.gutter-horizontal::after {
+    width: 2px;
+    height: 24px;
+    background-size: 2px 6px;          /* ~4 dots, 6px apart */
+    background-repeat: repeat-y;
+    background-position: center;
+}
+/* vertical split → horizontal bar → a horizontal row of dots */
+.gutter.gutter-vertical::after {
+    width: 24px;
+    height: 2px;
+    background-size: 6px 2px;
+    background-repeat: repeat-x;
+    background-position: center;
+}
+.gutter:hover::after {
+    background-image: radial-gradient(
+        circle,
+        var(--p-accent, #0078d4) 1px,
+        transparent 1.5px
+    );
+}
+
+/* ── Focus affordance ─────────────────────────────────────────────────────────
+   Split.js gutters are plain <div>s and are NOT focusable by default, so there
+   is normally no focus outline to worry about. But if a board makes a gutter
+   keyboard-operable (tabindex + arrow-key resize, an accessibility win), the
+   browser would paint its own off-palette focus ring. Pre-empt that: replace it
+   with an on-theme accent ring driven by --p-accent. (No-op until a gutter is
+   actually focusable.) */
+.gutter:focus-visible {
+    outline: 2px solid var(--p-accent, #0078d4);
+    outline-offset: -2px;
+}

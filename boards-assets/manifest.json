@@ -124,6 +124,26 @@
         "type": "js-adapter",
         "cssVsJs": "Mermaid is fully JS-colored — there is no CSS skin. `mermaid-theme.js` exposes `window.PersephoneMermaidTheme` (`config(theme)`, `themeVariables(theme)`, `palette(theme)`, `mix`, `alpha`). `config()` returns a Mermaid init config using the customizable `theme: 'base'` with a full `themeVariables` map built from the --p-* palette — node fill/border/text (primaryColor/mainBkg=--p-panel, nodeBorder=--p-border, text=--p-text), edges (lineColor=--p-text-muted), clusters, edge labels, the complete sequence-diagram set (actors, signals, notes=--p-warning tint, activation bars=--p-accent), state labels, pie slices (pie1..12 from the palette: --p-accent, --p-success, --p-warning, --p-error, --p-link, --p-text-muted), and the gantt set (task/active/done bars, sections, grid, today line). IMPORTANT — Mermaid is NOT a live-update library: it bakes colors into the SVG at render time, so a theme switch must RE-INITIALIZE and RE-RENDER every diagram from its source (NOT just re-init — and NOT a no-op like a pure CSS skin). Take the palette from the onThemeChange argument (or getTheme()), call `mermaid.initialize(T.config(theme))`, then re-run `mermaid.render(...)` for each diagram. See the demo board's app.js for the load + re-render-on-switch wiring."
       }
+    },
+    {
+      "id": "split",
+      "name": "Split.js",
+      "purpose": "Resizable layout panes — drag a gutter to resize adjacent panes; horizontal (columns) and vertical (rows) splits, nestable for IDE-style layouts (sidebar | editor / console). Tiny, dependency-free; sets only inline sizes and inserts bare gutter <div>s.",
+      "homepage": "https://split.js.org/",
+      "npm": "split.js",
+      "testedVersion": "1.6.5",
+      "vendor": {
+        "js": "https://cdn.jsdelivr.net/npm/split.js@1.6.5/dist/split.min.js",
+        "note": "Split.js ships NO stylesheet — it only sets inline width/height on the panes and inserts bare `.gutter` <div>s; the gutter appearance is the author's job (that is what the skin provides). Download the UMD bundle INTO the board folder (e.g. lib/split.min.js, ~6.8 KB) and reference it relatively; it exposes a global `Split`. The board CSP forbids remote network, so a CDN <script> will not load. API: `Split(['#a', '#b'], { sizes, minSize, gutterSize, direction })`; splits nest (use one Split per axis)."
+      },
+      "skin": {
+        "file": "split.css",
+        "tunedFor": "split.js@1.6.5",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → split.css (no component CSS to load between them — Split.js has no stylesheet)",
+        "type": "css",
+        "cssVsJs": "Split.js has no JS-colored surface, so this is a pure CSS skin — a theme switch re-tints the gutters with NO JS (they live under the same <html> that carries the --p-* inline vars). The skin styles the divider gutters Split.js inserts: the bar fill (--p-panel), a hover/drag tint (color-mix toward --p-accent, carried through the drag via :hover since Split.js adds no dragging class), the correct resize cursors per direction (.gutter-horizontal → col-resize, .gutter-vertical → row-resize), and a centered grip of dots drawn with a radial-gradient in --p-text-muted (brightening to --p-accent on hover) — NOT a fixed-grey PNG like Split.js's docs suggest, so the grip follows the theme. The board owns the *panes'* own look (bg/border/padding) and the *layout* (flex/float + `.gutter { flex: 0 0 auto }` so the fixed-size gutter does not shrink) in its own CSS — the skin is appearance-only. Gutters are plain non-focusable <div>s (no outline blind spot); the skin still ships a defensive `:focus-visible` accent ring (a no-op) in case a board makes a gutter keyboard-operable."
+      }
     }
   ]
 }
