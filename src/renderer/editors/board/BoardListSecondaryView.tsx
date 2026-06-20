@@ -11,6 +11,8 @@ import { CloseIcon, RefreshIcon, LogIcon } from "../../theme/icons";
 import { useOptionalState } from "../../core/state/state";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
+import { fpJoin } from "../../core/utils/file-path";
+import { BoardGlyph } from "./BoardGlyph";
 import type { BoardEditorModel } from "./BoardEditorModel";
 
 /**
@@ -21,11 +23,12 @@ import type { BoardEditorModel } from "./BoardEditorModel";
  */
 export default function BoardListSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     const boardModel = model as BoardEditorModel;
-    const { boards, selectedBoard, title, logHasErrors } = boardModel.state.use((s) => ({
+    const { boards, selectedBoard, title, logHasErrors, persephonePath } = boardModel.state.use((s) => ({
         boards: s.boards,
         selectedBoard: s.selectedBoard,
         title: s.title,
         logHasErrors: s.logHasErrors,
+        persephonePath: s.persephonePath,
     }));
 
     const openLog = async () => {
@@ -34,8 +37,14 @@ export default function BoardListSecondaryView({ model, headerRef, icon }: Secon
     };
 
     const items = useMemo<FileListItem[]>(
-        () => boards.map((name) => ({ filePath: name, title: name, isFolder: true })),
-        [boards],
+        () => boards.map((name) => ({
+            filePath: name,
+            title: name,
+            // Board's own icon when present, else the default BoardIcon glyph
+            // (US-744 — replaces the generic folder icon for boards).
+            icon: <BoardGlyph boardRoot={fpJoin(persephonePath, "boards", name)} />,
+        })),
+        [boards, persephonePath],
     );
 
     // Subscribe to page.state so the show-main zone's "active" indicator tracks

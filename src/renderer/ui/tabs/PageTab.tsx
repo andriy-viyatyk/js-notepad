@@ -446,9 +446,10 @@ export function PageTab(props: PageTabProps) {
             encrypted: s.encrypted ?? false,
             temp: s.temp ?? false,
             _iconHint: s.favicon ?? "",
+            _iconKey: s.iconKey ?? "",
             _anyTabAudible: s._anyTabAudible ?? false,
             _pageMuted: s.pageMuted ?? false,
-        }), { title: "Empty", modified: false, language: "", filePath: "", deleted: false, password: undefined, encrypted: false, temp: false, _iconHint: "", _anyTabAudible: false, _pageMuted: false });
+        }), { title: "Empty", modified: false, language: "", filePath: "", deleted: false, password: undefined, encrypted: false, temp: false, _iconHint: "", _iconKey: "", _anyTabAudible: false, _pageMuted: false });
 
     const [isOver, setIsOver] = useState(false);
     const dragEnterCount = useRef(0);

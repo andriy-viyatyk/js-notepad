@@ -20,6 +20,11 @@ export interface EditorStateBase extends Omit<Partial<IEditorState>, "id" | "tit
     modified: boolean;
     /** Panel contributions for the sidebar (walkthrough 03 / A8). */
     secondaryView?: string[];
+    /** Optional cache-buster for `noLanguage` editors whose tab icon depends on
+     *  internal state (not on `title`/`language`/`favicon`). The tab subscribes
+     *  to this, so mutating it re-invokes `getIcon()`. E.g. the Board editor sets
+     *  it to the selected board name so the tab shows that board's icon. */
+    iconKey?: string;
 }
 
 /** Partial state used by `applyRestoreData`. Subclasses widen S with their own

@@ -20,6 +20,7 @@ import {
 } from "./BoardEditorModel";
 import { UntrustedProjectView } from "./UntrustedProjectView";
 import { BoardWebview } from "./BoardWebview";
+import { BoardGlyph } from "./BoardGlyph";
 import type { EditorModule } from "../types";
 import type { EditorOrHost } from "../base";
 import type { EditorType, IEditorState } from "../../../shared/types";
@@ -102,7 +103,7 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
     // own page). Back to the list is via the side-panel ">" button.
     if (s.selectedBoard) {
         return (
-            <Panel direction="column" flex={1} width="100%">
+            <Panel name="board-webview-wrap" direction="column" flex={1} width="100%">
                 <BoardWebview
                     key={`${s.selectedBoard}__${s.reloadToken}`}
                     model={model}
@@ -113,7 +114,17 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
     }
 
     return (
-        <Panel direction="column" flex={1} width="100%">
+        // NOTE: board-root and board-list-scroll are plain <div>s with inline style
+        // rather than <Panel> (a deliberate Rule-7 exception for this editor). In this
+        // app's runtime the Panel `overflow` prop did not reach the DOM for these cached
+        // editor nodes, so the toolbar scrolled away with the content. A plain element
+        // commits the style directly. height:100% + overflow:hidden pins the root to the
+        // visible height so only board-list-scroll scrolls; the toolbar (shrink=false)
+        // stays put.
+        <div
+            data-name="board-root"
+            style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflow: "hidden" }}
+        >
             {/* Toolbar (board list) */}
             <Panel
                 name="board-toolbar"
@@ -148,9 +159,9 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
 
             {/* Body */}
             {s.boards.length === 0 ? (
-                <Panel flex={1} direction="column" align="center" justify="center" gap="md" padding="xl">
+                <Panel name="board-empty" flex={1} direction="column" align="center" justify="center" gap="md" padding="xl">
                     <Text color="light" align="center">No boards yet. Create one to get started.</Text>
-                    <Panel direction="row" gap="sm">
+                    <Panel name="board-empty-actions" direction="row" gap="sm">
                         <Button
                             name="board-create-empty"
                             variant="primary"
@@ -169,8 +180,25 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                     </Panel>
                 </Panel>
             ) : (
-                <Panel flex={1} align="center" justify="center" overflow="auto" paddingY="lg">
-                    <Panel direction="column" align="center" gap="sm" width="100%">
+                <div
+                    data-name="board-list-scroll"
+                    className="scroll-container"
+                    style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}
+                >
+                    {/* minHeight 100% + shrink=false: a short list stays vertically
+                        centered; a long list grows past the viewport and scrolls from
+                        the top (no flex-centering clip), while the toolbar stays put. */}
+                    <Panel
+                        name="board-list"
+                        direction="column"
+                        align="center"
+                        justify="center"
+                        gap="sm"
+                        width="100%"
+                        minHeight="100%"
+                        shrink={false}
+                        paddingY="lg"
+                    >
                         {s.boards.map((name) => (
                             <Panel
                                 key={name}
@@ -188,8 +216,8 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                                 onClick={() => model.selectBoard(name)}
                                 revealChildrenOnHover
                             >
-                                <BoardIcon width={16} height={16} />
-                                <Panel flex={1} overflow="hidden" minWidth={0}>
+                                <BoardGlyph boardRoot={fpJoin(s.persephonePath, "boards", name)} size={16} />
+                                <Panel name="board-tile-title" flex={1} overflow="hidden" minWidth={0}>
                                     <Text size="sm" truncate title={name}>{name}</Text>
                                 </Panel>
                                 <IconButton
@@ -206,9 +234,9 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                             </Panel>
                         ))}
                     </Panel>
-                </Panel>
+                </div>
             )}
-        </Panel>
+        </div>
     );
 }
 

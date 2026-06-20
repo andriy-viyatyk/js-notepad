@@ -11,6 +11,9 @@ export interface FileListItem {
     filePath: string;
     title: string;
     isFolder?: boolean;
+    /** Optional explicit icon override. When set, it is used instead of the
+     *  folder / file-type default (e.g. a board's custom icon). */
+    icon?: ReactNode;
 }
 
 export interface FileListRef {
@@ -94,10 +97,13 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                 new TraitSet().add(LIST_ITEM_KEY, {
                     value: (item: unknown) => (item as FileListItem).filePath,
                     label: (item: unknown) => (item as FileListItem).title,
-                    icon: (item: unknown) =>
-                        (item as FileListItem).isFolder
+                    icon: (item: unknown) => {
+                        const it = item as FileListItem;
+                        if (it.icon !== undefined) return it.icon;
+                        return it.isFolder
                             ? <FolderIcon />
-                            : <FileIcon path={(item as FileListItem).filePath} />,
+                            : <FileIcon path={it.filePath} />;
+                    },
                     ...(getTrailing
                         ? { trailing: (item: unknown) => getTrailing(item as FileListItem) }
                         : {}),

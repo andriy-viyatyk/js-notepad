@@ -11,6 +11,8 @@ import { projectTrust } from "../../api/project-trust";
 import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
 import { scaffoldBoard } from "./board-scaffold";
 import { BoardTargetModel } from "./BoardTargetModel";
+import { BoardGlyph } from "./BoardGlyph";
+import { invalidateBoardIcon } from "./board-icon-cache";
 
 export interface BoardEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -107,8 +109,18 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
      *  error→log-write→reload feedback loop. */
     private logDirWatcher?: DirectoryWatcher;
 
-    /** Tab/panel icon — the dashboard glyph. */
-    getIcon = (): ReactNode => createElement(BoardIcon);
+    /** Tab/panel icon — the open board's own icon when one is selected (falls back
+     *  to the dashboard glyph), else the dashboard glyph for the board list. The
+     *  tab re-invokes this when `state.iconKey` changes (set in `selectBoard`). */
+    getIcon = (): ReactNode => {
+        const s = this.state.get();
+        if (s.selectedBoard) {
+            return createElement(BoardGlyph, {
+                boardRoot: fpJoin(s.persephonePath, "boards", s.selectedBoard),
+            });
+        }
+        return createElement(BoardIcon);
+    };
 
     /** Register the "Boards" side panel when attached to a page (Pattern B —
      *  the editor is its own surviving secondary view). */
@@ -195,6 +207,11 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         } catch {
             boards = [];
         }
+        // Re-probe each board's icon so a freshly added icon.* shows after a
+        // refresh (create / delete / open) without an app restart (US-744 / Q4).
+        for (const name of boards) {
+            invalidateBoardIcon(fpJoin(boardsDir, name));
+        }
         this.state.update((s) => {
             s.boards = boards;
             // Drop a stale selection if the folder vanished externally.
@@ -206,7 +223,12 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
 
     /** Open a board in the main view (undefined → back to the board list). */
     selectBoard(name: string | undefined): void {
-        this.state.update((s) => { s.selectedBoard = name; });
+        // `iconKey` drives the tab's icon refresh (it observes iconKey, not
+        // selectedBoard) so the tab shows the opened board's icon.
+        this.state.update((s) => {
+            s.selectedBoard = name;
+            s.iconKey = name ?? "";
+        });
         this.watchSelectedBoard(name);
     }
 
@@ -241,7 +263,12 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         this.indexWatcher = new FileWatcher(fpJoin(boardRoot, "index.html"), () => {
             this.state.update((s) => { s.reloadToken++; });
         });
-        this.logDirWatcher = new DirectoryWatcher(boardRoot, () => void this.refreshLogState());
+        this.logDirWatcher = new DirectoryWatcher(boardRoot, () => {
+            // The folder changed — the log state may have, and so may the board's
+            // icon file (added / replaced / removed). Re-probe both (US-744).
+            invalidateBoardIcon(boardRoot);
+            void this.refreshLogState();
+        });
         void this.refreshLogState();
     }
 

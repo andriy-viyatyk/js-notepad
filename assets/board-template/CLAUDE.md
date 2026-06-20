@@ -147,6 +147,12 @@ appended to **`ui.log`** in this folder (an on-board indicator opens it). Persep
 also logs board *load* failures there. Keep your `catch` blocks calling `notify(...,
 "error")` so problems are reviewable.
 
+## Board icon (optional)
+
+Put an `icon.svg`, `icon.png`, or `icon.ico` in this board folder to set the board's
+icon — shown in the Persephone tab (when the board is open), the boards list, and the
+sidebar. First match wins (SVG preferred). Without one, a default glyph is used.
+
 ## Editing & reload
 
 Edit `index.html` and the board reloads automatically. After editing `app.js` or
