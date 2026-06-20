@@ -1,6 +1,6 @@
 # US-740: Recommended component — SortableJS
 
-**Epic:** [EPIC-034 — Web Board](../../epics/EPIC-034.md) · **Status:** Planned (not yet implemented)
+**Epic:** [EPIC-034 — Web Board](../../epics/EPIC-034.md) · **Status:** Implemented (epic-deferred review)
 
 ## Goal
 
@@ -81,19 +81,40 @@ folder, then we scaffold + build).
 - **Persist-order write path** is optional polish, not required for acceptance — keep it if
   it stays simple.
 
+## Verification
+
+Vendored **SortableJS 1.15.7** (`lib/Sortable.min.js`, ~45 KB, global `Sortable`).
+Demo board: a 3-column kanban with cross-list drag (shared `group`) + a handle-only
+priority list; cards loaded over `persephone.execute("node scripts/board.js")`. Lists use
+`forceFallback: true` so the floating clone is a themeable (and probeable) DOM element.
+
+MCP review (`browser_evaluate` probes + screenshots) in **dark (default-dark)** and
+**light (light-modern)** — the drag-state classes were applied to a card programmatically
+and `getComputedStyle` compared to the resolved `--p-*`:
+
+- **Dark:** `.sortable-ghost` bg = `color-mix(--p-accent 16%, --p-bg)` (≠ the card's base
+  `--p-bg` → confirms the skin wins the specificity tie), outline = `--p-accent`;
+  `.sortable-chosen` ring = `--p-accent`; `.sortable-drag` bg = `--p-panel`, border =
+  `--p-accent`, shadow = `--p-shadow`, cursor `grabbing`; `.drag-handle` = `--p-text-muted`.
+- **Light (discriminating — fallbacks ≠ theme values):** ghost = `color-mix(accent 16%,
+  white)`, ghost outline + drag border = light `--p-accent` `rgb(0,95,184)`, drag bg = light
+  `--p-panel` `rgb(243,243,243)`, handle = light `--p-text-muted` — all trace to the live palette.
+- `execute()` data path populated all four lists; both kanban + handle-list initialize
+  without error. User's theme restored to default-dark after review.
+
 ## Acceptance criteria
 
-- [ ] Kanban + handle-list demo: drag-reorder and cross-list drag work, drag states themed in **both** dark and light.
-- [ ] Theming via a **CSS skin** against `--p-*` (ghost / chosen / drag); re-tints on theme switch with no JS.
-- [ ] SortableJS is **local** to the board (no CDN); loads offline.
-- [ ] At least one data path goes through `persephone.execute()` (initial cards from a script).
-- [ ] Skin promoted to `boards-assets/sortablejs.css`; manifest + README updated.
+- [x] Kanban + handle-list demo: drag-reorder and cross-list drag work, drag states themed in **both** dark and light.
+- [x] Theming via a **CSS skin** against `--p-*` (ghost / chosen / drag); re-tints on theme switch with no JS.
+- [x] SortableJS is **local** to the board (no CDN); loads offline.
+- [x] At least one data path goes through `persephone.execute()` (initial cards from a script).
+- [x] Skin promoted to `boards-assets/sortablejs.css`; manifest + README updated.
 
-## Files changed (planned)
+## Files changed (committed)
 
 | Path | Change |
 |------|--------|
-| `boards-assets/sortablejs.css` | new — drag-state skin (stamped `@<ver>`) |
+| `boards-assets/sortablejs.css` | new — drag-state skin (stamped `@1.15.7`) |
 | `boards-assets/manifest.json` | new `sortablejs` entry |
 | `boards-assets/README.md` | components table — SortableJS row |
 

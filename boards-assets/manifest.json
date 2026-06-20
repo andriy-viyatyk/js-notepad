@@ -144,6 +144,26 @@
         "type": "css",
         "cssVsJs": "Split.js has no JS-colored surface, so this is a pure CSS skin — a theme switch re-tints the gutters with NO JS (they live under the same <html> that carries the --p-* inline vars). The skin styles the divider gutters Split.js inserts: the bar fill (--p-panel), a hover/drag tint (color-mix toward --p-accent, carried through the drag via :hover since Split.js adds no dragging class), the correct resize cursors per direction (.gutter-horizontal → col-resize, .gutter-vertical → row-resize), and a centered grip of dots drawn with a radial-gradient in --p-text-muted (brightening to --p-accent on hover) — NOT a fixed-grey PNG like Split.js's docs suggest, so the grip follows the theme. The board owns the *panes'* own look (bg/border/padding) and the *layout* (flex/float + `.gutter { flex: 0 0 auto }` so the fixed-size gutter does not shrink) in its own CSS — the skin is appearance-only. Gutters are plain non-focusable <div>s (no outline blind spot); the skin still ships a defensive `:focus-visible` accent ring (a no-op) in case a board makes a gutter keyboard-operable."
       }
+    },
+    {
+      "id": "sortablejs",
+      "name": "SortableJS",
+      "purpose": "Drag-to-reorder lists & kanban — reorder items within a list and drag across lists (shared groups), with drag handles, touch/fallback support, and reorder events. Tiny, dependency-free; reorders the board's own elements.",
+      "homepage": "https://sortablejs.github.io/Sortable/",
+      "npm": "sortablejs",
+      "testedVersion": "1.15.7",
+      "vendor": {
+        "js": "https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js",
+        "note": "SortableJS ships NO stylesheet and renders NO chrome of its own — it adopts the board's existing elements and only ADDS state classes during a drag; the skin themes those states. Download the UMD bundle INTO the board folder (e.g. lib/Sortable.min.js, ~45 KB) and reference it relatively; it exposes a global `Sortable`. The board CSP forbids remote network, so a CDN <script> will not load. API: `new Sortable(listEl, { group, handle, animation, onEnd, … })`; a shared `group` name across lists enables cross-list drag."
+      },
+      "skin": {
+        "file": "sortablejs.css",
+        "tunedFor": "sortablejs@1.15.7",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → your own item styles → sortablejs.css (link the skin LAST — see cssVsJs)",
+        "type": "css",
+        "cssVsJs": "SortableJS has no JS-colored surface, so this is a chrome-light pure CSS skin (same shape as Split.js) — a theme switch re-tints the states with NO JS. SortableJS renders no DOM of its own; it only ADDS state classes to YOUR elements during a drag, so the skin themes only those transient states: .sortable-ghost (drop placeholder → color-mix(--p-accent 16%, --p-bg) fill under a dashed --p-accent outline), .sortable-chosen (picked item → --p-accent ring via box-shadow), .sortable-drag + .sortable-fallback (the dragging item / floating clone → --p-panel fill, --p-accent border, --p-shadow elevation, grabbing cursor), and a convention .drag-handle (grab cursor, --p-text-muted → --p-text on hover). CRITICAL load order: link this skin AFTER your own item CSS — the state classes land on YOUR elements, so a state rule (e.g. .sortable-ghost) and your .card rule have EQUAL specificity and later-loaded wins; keep item selectors low-specificity (e.g. `.card`). The board owns item appearance + layout; the skin is drag-state appearance only. The default class names assume the default options — re-point the selectors if you set ghostClass/chosenClass/dragClass/fallbackClass. NOTE: .sortable-drag/.sortable-fallback are reliably themeable in forceFallback mode (a DOM clone follows the pointer); the demo enables it."
+      }
     }
   ]
 }

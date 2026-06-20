@@ -71,3 +71,4 @@ See [`manifest.json`](manifest.json) for the machine-readable list. Currently:
 | [marked](https://marked.js.org/) + [highlight.js](https://highlightjs.org/) | Markdown render + code highlighting (GFM tables/task lists; fenced-code syntax theme) | marked 15.0.12 + highlight.js 11.11.1 | [`markdown.css`](markdown.css) (CSS) |
 | [Mermaid](https://mermaid.js.org/) | Diagrams from text (flowchart, sequence, class, state, pie, gantt, …) | 11.15.0 | [`mermaid-theme.js`](mermaid-theme.js) (JS adapter) |
 | [Split.js](https://split.js.org/) | Resizable layout panes (horizontal / vertical / nested split views; drag-to-resize gutters) | 1.6.5 | [`split.css`](split.css) (CSS) |
+| [SortableJS](https://sortablejs.github.io/Sortable/) | Drag-to-reorder lists & kanban (reorder within a list, drag across lists, handles, touch) | 1.15.7 | [`sortablejs.css`](sortablejs.css) (CSS) |
