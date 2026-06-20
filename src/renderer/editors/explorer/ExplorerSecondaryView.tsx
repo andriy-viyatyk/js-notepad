@@ -5,6 +5,10 @@ import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider"
 import { ContextMenuEvent } from "../../api/events/events";
 import { createLinkData } from "../../../shared/link-data";
 import { app } from "../../api/app";
+import { fs } from "../../api/fs";
+import { ui } from "../../api/ui";
+import { encodePersephoneFolderLink } from "../../content/persephone-folder-link";
+import { projectTrust } from "../../api/project-trust";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
@@ -16,8 +20,9 @@ import {
     RefreshIcon,
     SearchIcon,
     CloseIcon,
+    BoardIcon,
 } from "../../theme/icons";
-import { fpBasename, fpDirname } from "../../core/utils/file-path";
+import { fpBasename, fpDirname, fpJoin } from "../../core/utils/file-path";
 
 export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon }: SecondaryViewProps) {
     const model = rawModel as ExplorerEditor;
@@ -60,6 +65,32 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
         app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: "explorer" }));
     }, [pageId, model]);
 
+    // Create (or reveal, if it already exists) a `.persephone` Boards project inside
+    // the clicked folder, then select its node so the Board editor opens. No dialog.
+    const handleCreateProject = useCallback(async (folderHref: string) => {
+        const persephonePath = fpJoin(folderHref, ".persephone");
+        try {
+            if (!(await fs.exists(persephonePath))) {
+                await fs.mkdir(persephonePath);
+                // A project the user just created here is implicitly trusted — skip
+                // the trust gate. Only on create; a pre-existing project keeps its
+                // own trust state (never silently auto-trusted).
+                await projectTrust.trust(persephonePath);
+            }
+        } catch (err) {
+            ui.notify(err instanceof Error ? err.message : String(err), "error");
+            return;
+        }
+        // Re-list so the freshly-created `.persephone` node exists in the tree
+        // (revealItem alone skips already-loaded folders), then reveal + select it.
+        await treeProviderRef.current?.refresh();
+        model.setSelectedHref(persephonePath);
+        model.revealVersion.update((s) => { s.version++; });
+        app.events.openRawLink.sendAsync(
+            createLinkData(encodePersephoneFolderLink(persephonePath), { pageId, sourceId: "explorer" }),
+        );
+    }, [model, pageId]);
+
     const handleStateChange = useCallback((state: TreeProviderViewSavedState) => {
         model.setTreeState(state);
     }, [model]);
@@ -80,8 +111,14 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
                 icon: <SearchIcon width={14} height={14} />,
                 onClick: () => model.openSearch(item.href),
             });
+            event.items.push({
+                startGroup: true,
+                label: "Create .persephone project",
+                icon: <BoardIcon width={14} height={14} />,
+                onClick: () => void handleCreateProject(item.href),
+            });
         }
-    }, [provider, rootPath, model]);
+    }, [provider, rootPath, model, handleCreateProject]);
 
     // ── Header action buttons (rendered by SideBarPanelHeader) ───────
 

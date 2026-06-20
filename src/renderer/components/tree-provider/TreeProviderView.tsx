@@ -57,7 +57,7 @@ const Root = styled.div({
 }, { label: "TreeProviderViewRoot" });
 
 export interface TreeProviderViewRef {
-    refresh(): void;
+    refresh(): Promise<void>;
     showSearch(): void;
     hideSearch(): void;
     collapseAll(): void;
