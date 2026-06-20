@@ -1,10 +1,49 @@
 import { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Panel, Text } from "../../uikit";
+import styled from "@emotion/styled";
+import { Panel, Text, Tooltip } from "../../uikit";
+import { ChevronRightIcon } from "../../theme/icons";
+import color from "../../theme/color";
 
 // =============================================================================
 // SideBarPanelHeader
 // =============================================================================
+
+/**
+ * The "Show in main view" zone — a button pinned to the right edge of the panel
+ * header, separated by a vertical divider. It matches the header bar's own
+ * background (`dark`) and hover (`light`); the header's hover-lightening is
+ * guarded (in CollapsiblePanelStack) with `:not(:has(this:hover))` so the zone
+ * and the rest of the header light up independently — only the hovered region
+ * changes. When this editor is already the page's main view, `data-active`
+ * tints the chevron blue (the same active-blue the open panel header uses) as a
+ * status cue; clicking is a no-op in that state (the consumer guards it).
+ */
+const ShowMainZone = styled.button(
+    {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        alignSelf: "stretch", // fill the full header height
+        margin: "-2px -4px -2px 0", // bleed over the header's 2px/4px padding to the edges
+        padding: "0 8px",
+        border: "none",
+        borderLeft: `1px solid ${color.border.light}`, // the vertical divider
+        background: color.background.dark,
+        color: color.icon.light,
+        cursor: "pointer",
+        "& > svg": { width: 14, height: 14 },
+        "&:hover": {
+            background: color.background.light,
+            color: color.icon.default,
+        },
+        "&[data-active], &[data-active]:hover": {
+            color: color.misc.blue,
+        },
+    },
+    { label: "ShowMainZone" },
+);
 
 export interface SideBarPanelHeaderProps {
     /** Debug label → data-name on the title-group wrapper. */
@@ -26,6 +65,15 @@ export interface SideBarPanelHeaderProps {
     /** Trailing action buttons. Rendered in a region that never shrinks, so the
      *  buttons stay fully visible while the title group truncates. */
     actions?: ReactNode;
+    /** When set, render the standardized "Show in main view" zone-button at the
+     *  far right of the header (after `actions`). Always visible — clicking
+     *  brings this editor's view onto the page as the main editor. */
+    onShowMain?: () => void;
+    /** Tooltip for the show-main zone. Defaults to "Show in main view". */
+    showMainTitle?: string;
+    /** `true` when this editor is already the page's main view. Tints the zone's
+     *  chevron blue (selected/status cue); the consumer's `onShowMain` no-ops. */
+    showMainActive?: boolean;
 }
 
 /**
@@ -49,6 +97,9 @@ export function SideBarPanelHeader({
     badge,
     title,
     actions,
+    onShowMain,
+    showMainTitle,
+    showMainActive,
 }: SideBarPanelHeaderProps) {
     if (!headerRef) return null;
     return createPortal(
@@ -82,6 +133,20 @@ export function SideBarPanelHeader({
                 >
                     {actions}
                 </Panel>
+            )}
+            {onShowMain && (
+                <Tooltip content={showMainTitle ?? "Show in main view"}>
+                    <ShowMainZone
+                        data-type="sidebar-show-main"
+                        data-active={showMainActive || undefined}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onShowMain();
+                        }}
+                    >
+                        <ChevronRightIcon />
+                    </ShowMainZone>
+                </Tooltip>
             )}
         </>,
         headerRef,

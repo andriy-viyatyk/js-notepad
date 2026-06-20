@@ -7,7 +7,7 @@ import { IconButton } from "../../uikit/IconButton";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Dot } from "../../uikit/Dot";
-import { CloseIcon, ChevronRightIcon, RefreshIcon, LogIcon } from "../../theme/icons";
+import { CloseIcon, RefreshIcon, LogIcon } from "../../theme/icons";
 import { useOptionalState } from "../../core/state/state";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
@@ -38,14 +38,13 @@ export default function BoardListSecondaryView({ model, headerRef, icon }: Secon
         [boards],
     );
 
-    // Subscribe to page.state so the show-main chevron hides/shows when this
-    // editor is promoted to / demoted from the page's main view.
+    // Subscribe to page.state so the show-main zone's "active" indicator tracks
+    // whether this editor is the page's main view.
     const isMainEditor = useOptionalState(boardModel.page?.state, () => boardModel.isMain, false);
 
-    // Show ">" whenever the main view isn't already the board list: either a board
-    // is open (deselect it) or this editor was demoted to the sidebar (promote it).
-    // Clicking always lands on the main boards list.
-    const showBack = !isMainEditor || !!selectedBoard;
+    // The show-main zone is "selected" (blue) only when the main view already IS
+    // the board list — this editor is main AND no individual board is open.
+    const showMainActive = isMainEditor && !selectedBoard;
     const actions = (
         <>
             {selectedBoard && (
@@ -73,19 +72,6 @@ export default function BoardListSecondaryView({ model, headerRef, icon }: Secon
                     />
                 </>
             )}
-            {showBack && (
-                <IconButton
-                    name="board-list-show-main"
-                    size="sm"
-                    title="Back to boards"
-                    icon={<ChevronRightIcon width={14} height={14} />}
-                    onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        if (!isMainEditor) void boardModel.page?.promoteSecondaryToMain?.(boardModel);
-                        boardModel.selectBoard(undefined);
-                    }}
-                />
-            )}
             <IconButton
                 name="board-list-close"
                 size="sm"
@@ -101,7 +87,21 @@ export default function BoardListSecondaryView({ model, headerRef, icon }: Secon
 
     return (
         <>
-            <SideBarPanelHeader headerRef={headerRef} icon={icon} title={title || "Boards"} actions={actions} />
+            <SideBarPanelHeader
+                headerRef={headerRef}
+                icon={icon}
+                title={title || "Boards"}
+                actions={actions}
+                showMainTitle="Back to boards"
+                showMainActive={showMainActive}
+                onShowMain={() => {
+                    // Bring the boards list to the main view: promote if demoted,
+                    // and deselect any open board. No-op when already showing the
+                    // list as main (not main → promote; board open → deselect).
+                    if (!isMainEditor) void boardModel.page?.promoteSecondaryToMain?.(boardModel);
+                    boardModel.selectBoard(undefined);
+                }}
+            />
             {boards.length === 0 ? (
                 <Panel padding="md">
                     <Text size="sm" color="light">No boards yet</Text>

@@ -11,6 +11,7 @@ import { Tree } from "../../uikit/Tree";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import type { MenuItem } from "../../uikit/Menu";
 import { RefreshIcon, CloseIcon, GitIcon, GlobeIcon, FolderOpenIcon, TagIcon, SortAlphaIcon } from "../../theme/icons";
+import { useOptionalState } from "../../core/state/state";
 
 // =============================================================================
 // Git Tree "Branches & Tags" secondary view (EPIC-031 / US-634).
@@ -78,6 +79,11 @@ function GitBranchesBody({
 
     // Sort mode (descriptor state). Default historical (most-recent-first).
     const alphabetical = model.state.use((s) => !!s.branchesAlphabetical);
+
+    // Drives the show-main zone's "active" (blue) indicator: true when the Git
+    // Tree grid is already the page's main view (false e.g. while a diff opened
+    // as the main editor demoted this one to the sidebar).
+    const isMainEditor = useOptionalState(model.page?.state, () => model.isMain, false);
 
     // Transient hover highlight — Tree routes onItemMouseEnter → onActiveChange,
     // and styles the [data-active] row with a background. Visual-only, so local
@@ -162,19 +168,6 @@ function GitBranchesBody({
 
     const actions = (
         <>
-            {/* Promote the Git Tree back to the page's main view. Useful after
-                clicking a changed file or ref opened the diff as the main editor —
-                brings the commit tree back without leaving the panel. */}
-            <IconButton
-                name="git-branches-show-tree"
-                size="sm"
-                title="Show Git Tree"
-                icon={<GitIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    model.showGitTree();
-                }}
-            />
             <IconButton
                 name="git-branches-sort-alpha"
                 size="sm"
@@ -237,6 +230,14 @@ function GitBranchesBody({
                 }
                 title="Branches & Tags"
                 actions={actions}
+                showMainTitle="Show Git Tree"
+                showMainActive={isMainEditor}
+                onShowMain={() => {
+                    // Bring the Git Tree grid back to the page's main view (e.g.
+                    // after a diff opened as the main editor). No-op when it is
+                    // already main. showGitTree() navigates with reuse.
+                    if (!isMainEditor) model.showGitTree();
+                }}
             />
             {!gitOk ? (
                 <Panel padding="md">

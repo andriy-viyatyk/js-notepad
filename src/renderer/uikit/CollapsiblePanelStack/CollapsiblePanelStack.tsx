@@ -101,7 +101,14 @@ const StackRoot = styled.div(
             cursor: "pointer",
             userSelect: "none",
             borderBottom: `1px solid ${color.border.light}`,
-            "&:hover": { backgroundColor: color.background.light },
+            // The header lightens on hover — EXCEPT when the cursor is over the
+            // right-edge "show main view" zone (SideBarPanelHeader's ShowMainZone),
+            // which lights up on its own. This keeps the two regions independent:
+            // only the hovered one changes. Harmless for headers without a zone
+            // (`:has` matches nothing → the rule behaves as a plain `:hover`).
+            '&:hover:not(:has([data-type="sidebar-show-main"]:hover))': {
+                backgroundColor: color.background.light,
+            },
             "& > svg": { width: 14, height: 14, flexShrink: 0 },
         },
         '& > [data-type="collapsible-panel"][data-state="open"] > [data-part="header"]': {
@@ -124,9 +131,9 @@ const StackRoot = styled.div(
         // CONSTRAINT: the click-through rule above covers the whole `[data-type="panel"]`
         // label wrapper, so any OTHER interactive control portalled into a header Panel
         // (e.g. a Select, Input) must carry one of these re-enabled data-types or be added
-        // to this list — otherwise it silently loses clicks. Current headers only use
-        // Text + Tag + IconButton, so the list below is sufficient.
-        '& [data-part="header"] [data-type="button"], & [data-part="header"] [data-type="icon-button"], & [data-part="header"] [data-type="tag"][data-clickable]':
+        // to this list — otherwise it silently loses clicks. Current headers use
+        // Text + Tag + IconButton + the right-edge show-main zone, all covered below.
+        '& [data-part="header"] [data-type="button"], & [data-part="header"] [data-type="icon-button"], & [data-part="header"] [data-type="tag"][data-clickable], & [data-part="header"] [data-type="sidebar-show-main"]':
             { pointerEvents: "auto" },
 
         '& [data-part="content"]': {

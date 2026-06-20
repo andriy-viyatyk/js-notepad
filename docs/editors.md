@@ -378,7 +378,7 @@ For `.link.json` files — a structured link manager:
 
 - **Collections**, **tags**, and **hostnames** for organizing and filtering links
 - **Sidebar panels** — Collections, Tags, and Hostnames appear as separate panels in the always-open page sidebar. The sidebar cannot be closed while a link file is open. Click a panel header to expand it. The breadcrumb in the toolbar shows the current filter path.
-  - **Collections panel** — Shows the category tree (all categories + their links). Click a category folder to filter the main link list. Click a link to open it in the main view. The panel header has a swap button (⇄) to promote the link list into the main editor area (full-page view) or demote it back when a file is already open.
+  - **Collections panel** — Shows the category tree (all categories + their links). Click a category folder to filter the main link list. Click a link to open it in the main view. The panel header has a **Show in main view** button (chevron-right, right edge) that brings the link list back as the main editor. The button is always visible; it turns blue when the link editor is already the main view.
   - **Tags panel** — In addition to the tag list, the Tags panel shows a resizable bottom pane listing all links in the selected tag. Click a link to open it. When the main editor is an audio player, clicking a link in this pane establishes the tag set as the audio source, enabling **Next Track** and **Shuffle** navigation within that tag. The pane scrolls automatically to highlight the current track as the player auto-advances.
   - **Hostnames panel** — In addition to the hostname list, the Hostnames panel shows a resizable bottom pane listing all links under the selected hostname. Click a link to open it. `mneme://` links are excluded from this panel — they appear only in Collections and Tags.
 - **Multiple view modes** — List, Landscape tiles, Portrait tiles (normal and large variants)
@@ -402,7 +402,7 @@ For `.link.json` files — a structured link manager:
 - **Tag editing in tooltips** — Hover over any link to see its tooltip. The tooltip includes a tag section: all available tags appear as clickable badges (highlighted when assigned to the link). Click a badge to toggle the tag on or off. An inline input at the end of the badge row lets you type a new tag name and press Enter to add it.
 - **Pinned links panel** — pin important links for quick access; pinned panel appears on the right edge, auto-hides when empty, resizable, with drag-to-reorder support. Double-click a pinned link to open it. Right-click for a context menu: Edit, Open in Default Browser, browser profiles, Open in Incognito, Copy URL, Unpin, Delete. Hover a pinned link to see a rich tooltip with title, URL, and thumbnail image.
 - **Save behavior and navigation safety**
-  - The **Collections** panel shows a **Save** button whenever the collection has unsaved changes — whether the Link editor is the active main-area tab or demoted to a sidebar-only panel (via the ⇄ swap button).
+  - The **Collections** panel shows a **Save** button whenever the collection has unsaved changes — whether the Link editor is the active main-area tab or shown via the sidebar panel.
   - A modified Link editor (with pending collection changes) is preserved across any navigation: opening a file from Windows Explorer, switching tabs, or clicking links in the Tags, Collections, or Hostnames panels. The editor stays in the sidebar until you save or explicitly close its panel.
   - The "Do you want to save changes?" dialog appears only when you close the Link editor tab itself, not when navigating within or away from it while it remains in the sidebar.
 - **Session state persistence** — selected category, tag, hostname, and expanded panel are remembered across app restarts
@@ -551,7 +551,7 @@ All three sections are always shown, even when empty. The checked-out branch is 
 
 The panel header has four buttons:
 
-- **Show Git Tree** (git icon) — switches the main area back to the commit-graph view. Use this after clicking a file or ref opened a diff as the main editor.
+- **Show in main view** (chevron-right, right edge) — brings the Git Tree commit graph back as the main editor. The button is always visible; it turns blue when the Git Tree is already the main view. Use this after clicking a file or ref opened a diff as the main editor.
 - **AZ** — toggles alphabetical vs. historical (most-recent-first) ordering.
 - **Refresh** — reloads the refs list.
 - **× (Close Git Tree)** — removes the Git Tree editor entirely (see [Closing the Git Tree](#closing-the-git-tree) below).

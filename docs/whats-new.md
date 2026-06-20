@@ -12,6 +12,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Global paste — HTML-only images (PowerPoint / Office)** — Copying a picture from PowerPoint, Word, Excel, or any app that places the image on the clipboard as an HTML fragment (no bitmap) and then pressing `Ctrl+V` in Persephone now opens that picture in a new **HTML viewer** tab titled **"Pasted HTML"**. Previously, nothing happened for such clipboards. The existing behavior is unchanged: pasting a real bitmap image (a screenshot, an image copied from Snipping Tool or Teams) still opens the **Image Viewer** tab as before. Pasting into a focused editor (Monaco, any input, or other text field) is not affected — those targets receive the text content as usual. The new HTML-viewer tab is not persisted across app restarts.
 
+### UI Polish
+
+- **Sidebar panels — always-visible "Show in main view" button** — Every sidebar panel (Branches & Tags, Collections, Boards, Mneme Wiki, and others) now shows a permanent **chevron-right (›)** button at the right edge of the panel header, separated from the other action buttons by a thin divider. Clicking it brings that panel's editor back into the main view. The button turns blue when the editor is already the main view, giving a clear indicator of the current state. Previously this button hid itself when the editor was already active as the main view, making it invisible in that state.
+
 ---
 
 ## Version 4.0.5

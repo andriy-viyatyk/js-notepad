@@ -1,3 +1,4 @@
+import type React from "react";
 import { useCallback, useMemo } from "react";
 import { TreeProviderView } from "../../components/tree-provider";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
@@ -10,7 +11,7 @@ import { IconButton } from "../../uikit/IconButton";
 import { Tag } from "../../uikit/Tag";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { CloseIcon, ChevronRightIcon } from "../../theme/icons";
+import { CloseIcon } from "../../theme/icons";
 import { useOptionalState } from "../../core/state/state";
 import type { MnemeRootEditorModel } from "./MnemeRootEditorModel";
 
@@ -36,9 +37,9 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
         [mnemeModel],
     );
 
-    // Subscribe to page.state so the chevron hides/shows when this editor is
-    // promoted to / demoted from the page's main view (mirrors the Collections
-    // panel's show-main control — see LinkCategorySecondaryView).
+    // Subscribe to page.state so the show-main zone's "active" indicator tracks
+    // whether this editor is the page's main view (mirrors the Collections panel
+    // — see LinkCategorySecondaryView).
     const isMainEditor = useOptionalState(mnemeModel.page?.state, () => mnemeModel.isMain, false);
 
     // The tree live-refreshes on add/remove/rename via the provider's `watch()`
@@ -56,30 +57,16 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
     }, [provider, mnemeModel]);
 
     const actions = (
-        <>
-            {!isMainEditor && (
-                <IconButton
-                    name="mneme-tree-show-main"
-                    size="sm"
-                    title="Open Mneme search"
-                    icon={<ChevronRightIcon width={14} height={14} />}
-                    onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        void mnemeModel.page?.promoteSecondaryToMain?.(mnemeModel);
-                    }}
-                />
-            )}
-            <IconButton
-                name="mneme-tree-close"
-                size="sm"
-                title="Close"
-                icon={<CloseIcon />}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    void mnemeModel.requestClose();
-                }}
-            />
-        </>
+        <IconButton
+            name="mneme-tree-close"
+            size="sm"
+            title="Close"
+            icon={<CloseIcon />}
+            onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                void mnemeModel.requestClose();
+            }}
+        />
     );
 
     return (
@@ -99,6 +86,11 @@ export default function MnemeTreeSecondaryView({ model, headerRef, icon }: Secon
                 ) : undefined}
                 title="Wiki"
                 actions={actions}
+                showMainTitle="Open Mneme search"
+                showMainActive={isMainEditor}
+                onShowMain={() => {
+                    if (!mnemeModel.isMain) void mnemeModel.page?.promoteSecondaryToMain?.(mnemeModel);
+                }}
             />
             {provider ? (
                 <TreeProviderView

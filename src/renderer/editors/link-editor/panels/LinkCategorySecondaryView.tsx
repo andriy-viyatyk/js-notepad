@@ -4,7 +4,7 @@ import { SideBarPanelHeader } from "../../../ui/secondary-views/SideBarPanelHead
 import { useOptionalState } from "../../../core/state/state";
 import { LinkCategoryPanel } from "./LinkCategoryPanel";
 import { IconButton } from "../../../uikit";
-import { SaveIcon, ChevronRightIcon } from "../../../theme/icons";
+import { SaveIcon } from "../../../theme/icons";
 import { LinkEditor } from "../LinkEditor";
 
 export default function LinkCategorySecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
@@ -46,42 +46,35 @@ function LinkCategorySecondaryViewBody({
     // Promote the Link editor back to the page's main view. Clicking a link in
     // the Collections panel opens its target as the main editor while this
     // editor survives as the secondary panel — this brings the links list back
-    // into view. Hidden when the editor is already the main view (nothing to
-    // return to); mirrors the directory-click promote in LinkCategoryPanel.
-    const handleShowMain = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        editor.page?.promoteSecondaryToMain?.(editor);
+    // into view. No-op when already main (the always-visible zone is just a
+    // status cue then); mirrors the directory-click promote in LinkCategoryPanel.
+    const handleShowMain = useCallback(() => {
+        if (!editor.isMain) editor.page?.promoteSecondaryToMain?.(editor);
     }, [editor]);
 
     // Save shows whenever there are pending modifications — whether the editor
-    // is main or demoted to a panel (US-718). "Show links" only when demoted
-    // (nothing to return to when already main).
-    const actions = (modified || !isMainEditor) && (
-        <>
-            {modified && (
-                <IconButton
-                    name="link-category-secondary-save"
-                    size="sm"
-                    title="Save"
-                    icon={<SaveIcon width={14} height={14} />}
-                    onClick={handleSave}
-                />
-            )}
-            {!isMainEditor && (
-                <IconButton
-                    name="link-category-secondary-show-main"
-                    size="sm"
-                    title="Show links"
-                    icon={<ChevronRightIcon width={14} height={14} />}
-                    onClick={handleShowMain}
-                />
-            )}
-        </>
+    // is main or demoted to a panel (US-718).
+    const actions = modified && (
+        <IconButton
+            name="link-category-secondary-save"
+            size="sm"
+            title="Save"
+            icon={<SaveIcon width={14} height={14} />}
+            onClick={handleSave}
+        />
     );
 
     return (
         <>
-            <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Collections" actions={actions} />
+            <SideBarPanelHeader
+                headerRef={headerRef}
+                icon={icon}
+                title="Collections"
+                actions={actions}
+                showMainTitle="Show links"
+                showMainActive={isMainEditor}
+                onShowMain={handleShowMain}
+            />
             <LinkCategoryPanel vm={editor} />
         </>
     );

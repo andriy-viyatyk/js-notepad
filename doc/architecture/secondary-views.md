@@ -229,13 +229,14 @@ The React `key` stays the `${model.id}-${panelId}` ref-key; the accordion identi
 
 **Panel header icon:** each panel header leads with an icon so panels from different editors are distinguishable at a glance. The icon is resolved here — **per-panel registry override first, owning-editor icon otherwise** — `secondaryViewRegistry.get(panelId)?.icon ?? <EditorIcon editor={model} />`. `EditorIcon` ([`components/icons/EditorIcon.tsx`](../../src/renderer/components/icons/EditorIcon.tsx)) is the **shared resolver** that produces the same glyph an editor shows on its page tab (see [editors.md](editors.md#editor-icons)). The resolved node is **not** handed to `CollapsiblePanel`; it is passed down to the panel component as `SecondaryViewProps.icon` (via `LazySecondaryView`), and the panel forwards it to `SideBarPanelHeader`, which renders it as the leading glyph. Resolution stays here because this is the only layer with the registry + editor in scope.
 
-**Portal-based headers — `SideBarPanelHeader`:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. Each secondary view renders a [`SideBarPanelHeader`](../../src/renderer/ui/secondary-views/SideBarPanelHeader.tsx), which `createPortal`s its content into that `<div>`. The component takes `icon`, `badge` (optional, e.g. a repo-name `Tag`), `title`, and `actions` (the panel's buttons), and lays them out as `[icon] [title group] [actions]`:
+**Portal-based headers — `SideBarPanelHeader`:** `CollapsiblePanel` accepts a `headerRef` callback that exposes the header `<div>`. Each secondary view renders a [`SideBarPanelHeader`](../../src/renderer/ui/secondary-views/SideBarPanelHeader.tsx), which `createPortal`s its content into that `<div>`. The component takes `icon`, `badge` (optional, e.g. a repo-name `Tag`), `title`, and `actions` (the panel's buttons), and lays them out as `[icon] [title group] [actions] [show-main zone]`:
 
 - the **icon** is rendered first and unwrapped so it stays a direct child of the header `<div>` — the stack's `[data-part="header"] > svg { width: 14; height: 14 }` rule sizes only direct-child SVGs;
 - the **title group** (`badge` + `title`) is a flex-grow `Panel` with `width={0}` + `overflow: hidden`, so the title (`<Text truncate size="md">`) and a `truncate` `Tag` badge ellipsize as the sidebar narrows;
-- the **actions** region is a `Panel` with `shrink={false}`, so the buttons stay pinned and fully visible — the label group is what gives way, never the buttons.
+- the **actions** region is a `Panel` with `shrink={false}`, so the buttons stay pinned and fully visible — the label group is what gives way, never the buttons;
+- the **show-main zone** is a standardized right-edge button (chevron-right icon, separated by a vertical divider) that appears when the `onShowMain` prop is provided. Clicking it promotes the editor to the page's main view (`stopPropagation` prevents panel toggle). Pass `showMainTitle` to override the tooltip (default: `"Show in main view"`) and `showMainActive={true}` to tint the chevron blue when this editor is already the main view. The zone is always visible — it does not hide when already main; the active tint is the indicator instead.
 
-This replaces per-panel hand-rolled `createPortal` + layout. Because portalled content lives in a separate React fiber tree, its clicks would bubble to the panel body rather than the header's toggle `onClick`; `CollapsiblePanelStack` makes non-interactive label primitives (`Text`, `Tag`, `Panel`) click-through (`pointer-events: none`) so a click on the title still toggles the panel, while interactive controls (`button`, `icon-button`, clickable `Tag`) re-assert pointer events.
+This replaces per-panel hand-rolled `createPortal` + layout. Because portalled content lives in a separate React fiber tree, its clicks would bubble to the panel body rather than the header's toggle `onClick`; `CollapsiblePanelStack` makes non-interactive label primitives (`Text`, `Tag`, `Panel`) click-through (`pointer-events: none`) so a click on the title still toggles the panel, while interactive controls (`button`, `icon-button`, clickable `Tag`) re-assert pointer events. The show-main zone (`data-type="sidebar-show-main"`) is in the `pointer-events: auto` allowlist and guards the header's hover-lighten with `:not(:has([data-type="sidebar-show-main"]:hover))` so the header bar and the zone light up independently.
 
 **`alwaysRenderContent`:** Keeps panel content mounted when collapsed (`display: none`). Required for portal components to render headers even when their panel is collapsed.
 
@@ -447,6 +448,19 @@ export default function MySecondaryView({ model, headerRef, icon }: SecondaryVie
 ```
 
 A title-only panel is just `<SideBarPanelHeader headerRef={headerRef} icon={icon} title="My Panel" />`. Conditional buttons stay inside the `actions` node (`actions={cond && <IconButton.../>}`).
+
+To add a standardized "show main view" button at the right edge, pass `onShowMain` (a callback that calls `page.promoteSecondaryToMain(model)` or an editor-specific equivalent) and optionally `showMainActive` (blue-tints the chevron when the editor is already main) and `showMainTitle` (tooltip override). The zone is always rendered when `onShowMain` is provided — never hidden, even when already main:
+
+```tsx
+<SideBarPanelHeader
+    headerRef={headerRef}
+    icon={icon}
+    title="My Panel Title"
+    onShowMain={() => model.page?.promoteSecondaryToMain(model)}
+    showMainActive={model.page?.mainEditor === model}
+    actions={/* ... */}
+/>
+```
 
 ### Step 4: Create or add to `secondaryViews[]`
 
