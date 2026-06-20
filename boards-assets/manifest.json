@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "description": "Persephone Web Board — recommended third-party components and their Persephone skins. Each skin is written against the --p-* theme contract and is NOT bundled in the installer; an agent fetches the files it needs into the board folder as a frozen local copy. See README.md.",
+  "components": [
+    {
+      "id": "tabulator",
+      "name": "Tabulator",
+      "purpose": "Data grid — sortable / filterable columns, Excel-style range select + clipboard copy/paste, virtualized rendering for large datasets, in-cell editing, grouping, and tree data.",
+      "homepage": "https://tabulator.info/",
+      "npm": "tabulator-tables",
+      "testedVersion": "6.5.1",
+      "vendor": {
+        "css": "https://cdn.jsdelivr.net/npm/tabulator-tables@6.5.1/dist/css/tabulator.min.css",
+        "js": "https://cdn.jsdelivr.net/npm/tabulator-tables@6.5.1/dist/js/tabulator.min.js",
+        "note": "Download these INTO the board folder (e.g. lib/) and reference them with relative paths — the board CSP forbids remote network, so a CDN <script>/<link> will not load."
+      },
+      "skin": {
+        "file": "tabulator.css",
+        "tunedFor": "tabulator-tables@6.5.1",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → lib/tabulator.min.css → tabulator.css",
+        "cssVsJs": "The skin styles ALL grid chrome (frame, header, rows/cells, range selection, footer/pagination, header-filter inputs, in-cell editors, menus/popups, group/calc rows, tree toggles, resize guides, alerts, toggles) via the --p-* contract, so the grid follows the app theme live. Per-value colors that Tabulator sets INLINE from JS cannot be reached from CSS — the `progress` formatter bar fill + legend, and the `traffic-light` / `color` / `star` formatters. Pass those from `persephone.theme.vars` in your board JS and re-apply them in `persephone.onThemeChange` (see the demo board's app.js)."
+      }
+    }
+  ]
+}

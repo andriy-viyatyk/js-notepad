@@ -1,0 +1,378 @@
+/* persephone skin · tabulator-tables@6.5.1 · tuned 2026-06
+ * ===========================================================================
+ * Restyles Tabulator's default light chrome to match Persephone, driven ENTIRELY
+ * by the `--p-*` theme contract (see the board CLAUDE.md) — so the grid follows
+ * the app's dark/light theme live, with no hardcoded colors.
+ *
+ * Load order in index.html:  board-base.css → lib/tabulator.min.css → THIS FILE.
+ *
+ * Theme-adaptive tints: hover / range-fill shades are derived with color-mix()
+ * from --p-accent / --p-text rather than fixed blues, so they read correctly in
+ * BOTH dark and light (a fixed dark-blue fill would be invisible in light theme).
+ *
+ * CSS vs JS split: this file styles all grid *chrome*. Per-value colors set inline
+ * by formatters — `progress` bar fill + legend, `traffic-light`, `color`, `star` —
+ * CANNOT be reached from CSS; pass those from persephone.theme.vars in app.js.
+ * ===========================================================================*/
+
+/* ── Table frame ──────────────────────────────────────────────────────────*/
+.tabulator {
+    border: 1px solid var(--p-border, #3c3c3c);
+    background-color: var(--p-bg, #1e1e1e); /* shows through gaps during scroll */
+    border-radius: var(--p-radius-md, 4px);
+    font-size: var(--p-font-md, 13px);
+}
+.tabulator .tabulator-tableholder .tabulator-table {
+    background-color: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #d4d4d4);
+}
+/* empty-table "no data" message */
+.tabulator .tabulator-tableholder .tabulator-placeholder .tabulator-placeholder-contents {
+    color: var(--p-text-muted, #969696);
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────*/
+.tabulator .tabulator-header {
+    background-color: var(--p-panel, #252526);
+    border-bottom: 1px solid var(--p-border, #3c3c3c);
+    color: var(--p-text, #d4d4d4);
+}
+.tabulator .tabulator-header .tabulator-col {
+    background: var(--p-panel, #252526);
+    border-right: 1px solid var(--p-border, #3c3c3c);
+}
+.tabulator .tabulator-header .tabulator-col .tabulator-col-title {
+    color: var(--p-text, #d4d4d4);
+}
+/* sortable column hover — a subtle accent wash that works on either theme */
+@media (hover: hover) {
+    .tabulator .tabulator-header .tabulator-col.tabulator-sortable.tabulator-col-sorter-element:hover {
+        background-color: color-mix(in srgb, var(--p-accent, #0078d4) 14%, transparent);
+    }
+}
+/* inline column-title editor */
+.tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title .tabulator-title-editor {
+    background: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #d4d4d4);
+    border: 1px solid var(--p-accent, #0078d4);
+    border-radius: var(--p-radius-sm, 3px);
+}
+/* column-group label separator */
+.tabulator .tabulator-header .tabulator-col.tabulator-col-group .tabulator-col-group-cols {
+    border-top: 1px solid var(--p-border, #3c3c3c);
+}
+/* frozen-column edges (header) */
+.tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-left {
+    border-right: 2px solid var(--p-border, #3c3c3c);
+}
+.tabulator .tabulator-header .tabulator-frozen.tabulator-frozen-right {
+    border-left: 2px solid var(--p-border, #3c3c3c);
+}
+
+/* ── Sort arrows (CSS border-trick triangles) ─────────────────────────────*/
+.tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort="none"] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow {
+    border-bottom-color: var(--p-text-muted, #969696);
+}
+.tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort="ascending"] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow {
+    border-bottom-color: var(--p-text-strong, #dddddd);
+}
+.tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort="descending"] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow {
+    border-top-color: var(--p-text-strong, #dddddd);
+}
+@media (hover: hover) {
+    .tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort="none"] .tabulator-col-content .tabulator-col-sorter.tabulator-col-sorter-element .tabulator-arrow:hover {
+        border-bottom-color: var(--p-text, #d4d4d4);
+    }
+}
+
+/* ── Header filter inputs/selects (default ships NO color rules — add them) ─*/
+.tabulator .tabulator-header .tabulator-header-filter input,
+.tabulator .tabulator-header .tabulator-header-filter select,
+.tabulator .tabulator-header .tabulator-header-filter textarea {
+    background: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #d4d4d4);
+    border: 1px solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-sm, 3px);
+}
+.tabulator .tabulator-header .tabulator-header-filter input:focus,
+.tabulator .tabulator-header .tabulator-header-filter select:focus,
+.tabulator .tabulator-header .tabulator-header-filter textarea:focus {
+    outline: none;
+    border-color: var(--p-accent, #0078d4);
+}
+
+/* ── Rows & cells ─────────────────────────────────────────────────────────*/
+.tabulator-row {
+    background-color: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #d4d4d4);
+}
+/* striping — panel is one step off bg in both themes → a quiet, themed stripe */
+.tabulator-row.tabulator-row-even {
+    background-color: var(--p-panel, #252526);
+}
+@media (hover: hover) {
+    .tabulator-row.tabulator-selectable:hover {
+        background-color: color-mix(in srgb, var(--p-text, #d4d4d4) 9%, transparent);
+    }
+}
+.tabulator-row .tabulator-cell {
+    border-right: 1px solid var(--p-border-light, #2b2b2b);
+}
+/* click/checkbox-selected rows */
+.tabulator-row.tabulator-selected {
+    background-color: color-mix(in srgb, var(--p-accent, #0078d4) 32%, var(--p-bg, #1e1e1e));
+}
+@media (hover: hover) {
+    .tabulator-row.tabulator-selected:hover {
+        background-color: color-mix(in srgb, var(--p-accent, #0078d4) 42%, var(--p-bg, #1e1e1e));
+    }
+}
+/* row-header (row-number) column */
+.tabulator-row .tabulator-cell.tabulator-row-header {
+    background: var(--p-panel, #252526);
+    border-right: 1px solid var(--p-border, #3c3c3c);
+    border-bottom: 1px solid var(--p-border-light, #2b2b2b);
+}
+/* boolean tick / cross formatter glyphs */
+.tabulator-row .tabulator-cell .tabulator-tick { fill: var(--p-success, #89d185); }
+.tabulator-row .tabulator-cell .tabulator-cross { fill: var(--p-error, #f88070); }
+/* row drag-handle grip */
+.tabulator-row .tabulator-cell.tabulator-row-handle .tabulator-row-handle-box .tabulator-row-handle-bar {
+    background: var(--p-text-muted, #969696);
+}
+/* frozen body cells must carry a bg (they default to inherit) */
+.tabulator-row .tabulator-cell.tabulator-frozen {
+    background-color: inherit;
+}
+
+/* ── In-cell editors ──────────────────────────────────────────────────────*/
+.tabulator-row .tabulator-cell.tabulator-editing {
+    border: 1px solid var(--p-accent, #0078d4);
+}
+.tabulator-row .tabulator-cell.tabulator-editing input,
+.tabulator-row .tabulator-cell.tabulator-editing select {
+    background: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #d4d4d4);
+}
+.tabulator-row .tabulator-cell.tabulator-validation-fail {
+    border: 1px solid var(--p-error, #f88070);
+}
+.tabulator-row .tabulator-cell.tabulator-validation-fail input,
+.tabulator-row .tabulator-cell.tabulator-validation-fail select {
+    color: var(--p-error, #f88070);
+}
+
+/* ── Range selection (the Excel-style feel) ───────────────────────────────*/
+.tabulator .tabulator-tableholder .tabulator-range-overlay .tabulator-range {
+    border: 1px solid var(--p-accent, #0078d4);
+}
+.tabulator .tabulator-tableholder .tabulator-range-overlay .tabulator-range.tabulator-range-active::after {
+    background-color: var(--p-accent, #0078d4); /* bottom-right grab handle */
+}
+.tabulator .tabulator-tableholder .tabulator-range-overlay .tabulator-range-cell-active {
+    border: 2px solid var(--p-accent, #0078d4);
+}
+/* body cells inside a selected range — accent-tinted fill, text stays readable */
+.tabulator-row .tabulator-cell.tabulator-range-selected:not(.tabulator-range-only-cell-selected):not(.tabulator-range-row-header) {
+    background-color: color-mix(in srgb, var(--p-accent, #0078d4) 26%, var(--p-bg, #1e1e1e));
+    color: var(--p-text, #d4d4d4);
+}
+/* header cell of a range-highlighted column (cursor passing) */
+.tabulator .tabulator-header .tabulator-col.tabulator-range-highlight {
+    background-color: color-mix(in srgb, var(--p-accent, #0078d4) 16%, var(--p-panel, #252526));
+    color: var(--p-text, #d4d4d4);
+}
+/* header cell of a range-SELECTED column — solid accent */
+.tabulator .tabulator-header .tabulator-col.tabulator-range-selected {
+    background-color: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+.tabulator .tabulator-header .tabulator-col.tabulator-range-selected .tabulator-col-title {
+    color: var(--p-accent-text, #ffffff);
+}
+/* row-header cell of highlighted vs selected rows */
+.tabulator-row.tabulator-range-highlight .tabulator-cell.tabulator-range-row-header {
+    background-color: color-mix(in srgb, var(--p-accent, #0078d4) 16%, var(--p-panel, #252526));
+    color: var(--p-text, #d4d4d4);
+}
+.tabulator-row.tabulator-range-highlight.tabulator-range-selected .tabulator-cell.tabulator-range-row-header,
+.tabulator-row.tabulator-range-selected .tabulator-cell.tabulator-range-row-header {
+    background-color: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+
+/* ── Footer / pagination ──────────────────────────────────────────────────*/
+.tabulator .tabulator-footer {
+    background-color: var(--p-panel, #252526);
+    border-top: 1px solid var(--p-border, #3c3c3c);
+    color: var(--p-text-muted, #969696);
+}
+.tabulator .tabulator-footer .tabulator-paginator { color: var(--p-text-muted, #969696); }
+.tabulator .tabulator-footer .tabulator-page,
+.tabulator .tabulator-footer .tabulator-page-size {
+    border: 1px solid var(--p-border, #3c3c3c);
+    background: transparent;
+    color: var(--p-text, #d4d4d4);
+    border-radius: var(--p-radius-sm, 3px);
+}
+.tabulator .tabulator-footer .tabulator-page.active {
+    color: var(--p-accent-text, #ffffff);
+    background: var(--p-accent, #0078d4);
+    border-color: var(--p-accent, #0078d4);
+}
+@media (hover: hover) {
+    .tabulator .tabulator-footer .tabulator-page:not(disabled):not(.active):hover {
+        background: color-mix(in srgb, var(--p-accent, #0078d4) 18%, transparent);
+        color: var(--p-text, #d4d4d4);
+    }
+}
+/* spreadsheet sheet-tabs */
+.tabulator .tabulator-footer .tabulator-spreadsheet-tabs .tabulator-spreadsheet-tab {
+    border: 1px solid var(--p-border, #3c3c3c);
+    color: var(--p-text-muted, #969696);
+}
+.tabulator .tabulator-footer .tabulator-spreadsheet-tabs .tabulator-spreadsheet-tab.tabulator-spreadsheet-tab-active {
+    background: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #d4d4d4);
+}
+
+/* ── Menus / popups / edit-list dropdowns (all share -popup-container) ─────*/
+.tabulator-popup-container {
+    background: var(--p-panel, #252526);
+    border: 1px solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-md, 4px);
+    box-shadow: 0 4px 12px var(--p-shadow, rgba(0, 0, 0, 0.45));
+    color: var(--p-text, #d4d4d4);
+}
+.tabulator-menu .tabulator-menu-item { color: var(--p-text, #d4d4d4); }
+@media (hover: hover) {
+    .tabulator-menu .tabulator-menu-item:not(.tabulator-menu-item-disabled):hover {
+        background: var(--p-accent, #0078d4);
+        color: var(--p-accent-text, #ffffff);
+    }
+}
+.tabulator-menu .tabulator-menu-item.tabulator-menu-item-active {
+    background: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+.tabulator-menu .tabulator-menu-separator { border-top: 1px solid var(--p-border, #3c3c3c); }
+.tabulator-menu .tabulator-menu-item.tabulator-menu-item-submenu::after {
+    border-color: var(--p-text-muted, #969696);
+}
+/* edit-list dropdown items */
+.tabulator-edit-list .tabulator-edit-list-item { color: var(--p-text, #d4d4d4); }
+.tabulator-edit-list .tabulator-edit-list-item.active,
+.tabulator-edit-list .tabulator-edit-list-item.focused {
+    background: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+    outline: none;
+}
+@media (hover: hover) {
+    .tabulator-edit-list .tabulator-edit-list-item:hover {
+        background: var(--p-accent, #0078d4);
+        color: var(--p-accent-text, #ffffff);
+    }
+}
+.tabulator-edit-list .tabulator-edit-list-placeholder { color: var(--p-text-muted, #969696); }
+.tabulator-edit-list .tabulator-edit-list-group {
+    color: var(--p-text-muted, #969696);
+    border-bottom: 1px solid var(--p-border, #3c3c3c);
+}
+
+/* ── Group rows ───────────────────────────────────────────────────────────*/
+.tabulator-row.tabulator-group {
+    background: var(--p-panel, #252526);
+    border-top: 1px solid var(--p-border, #3c3c3c);
+    border-bottom: 1px solid var(--p-border, #3c3c3c);
+    border-right: 1px solid var(--p-border-light, #2b2b2b);
+    color: var(--p-text, #d4d4d4);
+}
+@media (hover: hover) {
+    .tabulator-row.tabulator-group:hover {
+        background-color: color-mix(in srgb, var(--p-text, #d4d4d4) 9%, var(--p-panel, #252526));
+    }
+}
+.tabulator-row.tabulator-group span { color: var(--p-text-strong, #dddddd); }
+.tabulator-row.tabulator-group .tabulator-arrow { border-left-color: var(--p-text-muted, #969696); }
+.tabulator-row.tabulator-group.tabulator-group-visible .tabulator-arrow { border-top-color: var(--p-text-muted, #969696); }
+
+/* ── Calc rows (default uses !important — so must we) ──────────────────────*/
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-calcs {
+    background: var(--p-panel, #252526) !important;
+    font-weight: 600;
+}
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-calcs.tabulator-calcs-top {
+    border-bottom: 2px solid var(--p-border, #3c3c3c);
+}
+.tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-calcs.tabulator-calcs-bottom {
+    border-top: 2px solid var(--p-border, #3c3c3c);
+}
+.tabulator .tabulator-header .tabulator-calcs-holder,
+.tabulator .tabulator-header .tabulator-calcs-holder .tabulator-row,
+.tabulator .tabulator-footer .tabulator-calcs-holder,
+.tabulator .tabulator-footer .tabulator-calcs-holder .tabulator-row {
+    background: var(--p-panel, #252526) !important;
+    border-color: var(--p-border, #3c3c3c);
+}
+
+/* ── Tree / responsive-collapse toggles ───────────────────────────────────*/
+.tabulator-row .tabulator-cell .tabulator-data-tree-branch {
+    border-left: 2px solid var(--p-border, #3c3c3c);
+    border-bottom: 2px solid var(--p-border, #3c3c3c);
+}
+.tabulator-row .tabulator-cell .tabulator-data-tree-control {
+    border: 1px solid var(--p-text-muted, #969696);
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 10%, transparent);
+}
+@media (hover: hover) {
+    .tabulator-row .tabulator-cell .tabulator-data-tree-control:hover {
+        background: color-mix(in srgb, var(--p-text, #d4d4d4) 20%, transparent);
+    }
+}
+.tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-collapse::after,
+.tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-expand,
+.tabulator-row .tabulator-cell .tabulator-data-tree-control .tabulator-data-tree-control-expand::after {
+    background: var(--p-text, #d4d4d4);
+}
+.tabulator-row .tabulator-cell .tabulator-responsive-collapse-toggle {
+    background: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+.tabulator-row .tabulator-cell .tabulator-responsive-collapse-toggle svg { stroke: var(--p-accent-text, #ffffff); }
+.tabulator-row .tabulator-responsive-collapse {
+    border-top: 1px solid var(--p-border, #3c3c3c);
+    border-bottom: 1px solid var(--p-border, #3c3c3c);
+}
+
+/* ── Column / row resize guides ───────────────────────────────────────────*/
+.tabulator .tabulator-col-resize-guide,
+.tabulator .tabulator-row-resize-guide {
+    background-color: var(--p-accent, #0078d4);
+}
+
+/* ── Alert / loading overlay ──────────────────────────────────────────────*/
+.tabulator .tabulator-alert { background: var(--p-overlay, rgba(0, 0, 0, 0.6)); }
+.tabulator .tabulator-alert .tabulator-alert-msg {
+    background: var(--p-panel, #252526);
+    color: var(--p-text, #d4d4d4);
+    box-shadow: 0 4px 12px var(--p-shadow, rgba(0, 0, 0, 0.45));
+}
+.tabulator .tabulator-alert .tabulator-alert-msg.tabulator-alert-state-msg {
+    border: 1px solid var(--p-border, #3c3c3c);
+    color: var(--p-text, #d4d4d4);
+}
+.tabulator .tabulator-alert .tabulator-alert-msg.tabulator-alert-state-error {
+    border: 1px solid var(--p-error, #f88070);
+    color: var(--p-error, #f88070);
+}
+
+/* ── Toggle switch (boolean editor) ───────────────────────────────────────*/
+.tabulator-toggle {
+    border: 1px solid var(--p-border, #3c3c3c);
+    background: var(--p-panel, #252526);
+}
+.tabulator-toggle.tabulator-toggle-on { background: var(--p-accent, #0078d4); }
+.tabulator-toggle .tabulator-toggle-switch {
+    border: 1px solid var(--p-border, #3c3c3c);
+    background: var(--p-text-strong, #dddddd);
+}

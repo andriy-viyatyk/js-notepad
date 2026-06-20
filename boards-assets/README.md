@@ -1,0 +1,55 @@
+# Persephone Board Assets — recommended components & skins
+
+This folder publishes the components Persephone **recommends** for Web Boards, plus a
+**Persephone skin** for each — a CSS file that restyles the component to match the app's
+theme. It is the home of the recommended-components **manifest** (`manifest.json`).
+
+These files are **not bundled in the Persephone installer**. A board author (or an AI
+agent building a board) fetches only what a given board needs and copies it into the
+board folder. This keeps the installer lean and lets the skin library grow independently
+of app releases.
+
+## What Persephone guarantees — and what it doesn't
+
+- **Guaranteed:** the **palette**, via the `--p-*` CSS-variable theme contract injected
+  into every board (`--p-bg`, `--p-panel`, `--p-text`, `--p-accent`, … + metric tokens).
+  See a board's `CLAUDE.md` for the full list.
+- **Not guaranteed:** **component styling.** A skin here is a best-effort, version-stamped
+  starting point — it may not cover every case and may drift on a newer component version.
+  You own the local copy and may patch it.
+
+## How to use a skin (board author / agent)
+
+1. **Vendor the component locally.** The board CSP forbids remote network, so download the
+   component's JS/CSS into the board folder (e.g. `lib/`) and reference them with relative
+   paths — never a CDN `<script>`/`<link>`. The `vendor` URLs in `manifest.json` are where
+   to fetch from.
+2. **Copy the skin** (e.g. `tabulator.css`) into the board folder as a frozen local copy.
+3. **Link it in `index.html`** in the documented order — the skin must come **after** the
+   component's own CSS so it can override it. For Tabulator:
+   ```html
+   <link rel="stylesheet" href="./board-base.css" />
+   <link rel="stylesheet" href="./lib/tabulator.min.css" />
+   <link rel="stylesheet" href="./tabulator.css" />
+   ```
+4. **Handle the CSS-vs-JS split.** A skin styles component *chrome* via `--p-*`. Colors a
+   component sets **inline from JS** (e.g. Tabulator's `progress`-bar fill, `traffic-light`)
+   can't be reached from CSS — read them from `persephone.theme.vars` in your board JS and
+   re-apply them in `persephone.onThemeChange`. Each component's `cssVsJs` note in the
+   manifest says exactly what falls on the JS side.
+
+## Version drift
+
+Each skin header is stamped with the component version it was tuned for, e.g.
+`/* persephone skin · tabulator-tables@6.5.1 · tuned 2026-06 */`. If you vendor a newer
+component version, expect possible drift: test the board, and patch your local skin copy
+where class names or defaults changed. Fixes are welcome back here as a PR so the
+published skin stays current.
+
+## Components
+
+See [`manifest.json`](manifest.json) for the machine-readable list. Currently:
+
+| Component | Use | Tested version | Skin |
+|-----------|-----|----------------|------|
+| [Tabulator](https://tabulator.info/) | Data grid (sort/filter, range-select + clipboard, virtualized, edit, group, tree) | 6.5.1 | [`tabulator.css`](tabulator.css) |
