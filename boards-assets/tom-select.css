@@ -1,0 +1,159 @@
+/* persephone skin · tom-select@2.4.3 · tuned 2026-06
+ * ===========================================================================
+ * Restyles Tom Select's default (light) theme to match Persephone, driven
+ * ENTIRELY by the `--p-*` theme contract (see the board CLAUDE.md) — so the
+ * control + dropdown follow the app's dark/light theme live, with no hardcoded
+ * colors.
+ *
+ * Load order in index.html:  board-base.css → lib/tom-select.css → THIS FILE.
+ *
+ * The dropdown is rendered in-flow under the same <html> that carries the
+ * `--p-*` inline vars, so a theme switch re-tints it with NO JS — Tom Select is
+ * a pure CSS skin. Theme-adaptive tints (tag chips, match highlight) are derived
+ * with color-mix() from --p-accent / --p-text so they read in BOTH themes.
+ * Tom Select's hardcoded accents — #f5fafd / #495c68 (active option) and
+ * rgba(125,168,208,0.2) (match highlight) — are replaced with --p-accent.
+ *
+ * CSS vs JS split: Tom Select is fully CSS-styleable — there is no JS-colored
+ * surface, so the whole component themes from this file. The control mirrors the
+ * board's own inputs (--p-bg + --p-border), so it sits flush with form fields.
+ * ===========================================================================*/
+
+/* ── Shared text color (Tom Select sets one rule for all three) ────────────*/
+.ts-dropdown,
+.ts-control,
+.ts-control input { color: var(--p-text, #d4d4d4); }
+
+/* ── Control box ───────────────────────────────────────────────────────────*/
+.ts-control {
+    background: var(--p-bg, #1e1e1e);
+    border: 1px solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-sm, 3px);
+    box-shadow: none;
+}
+.ts-wrapper.single.input-active .ts-control,
+.full .ts-control { background: var(--p-bg, #1e1e1e); }
+/* focus — accent ring, matching the board's input:focus. Tom Select makes the
+   .ts-control DIV itself focusable (focus lands there after Esc closes the
+   dropdown) and only clears the native outline on the inner <input>, not the div —
+   so kill it here too, or the browser's off-palette outline stacks on our ring. */
+.ts-wrapper.focus .ts-control,
+.focus .ts-control,
+.ts-control:focus,
+.ts-control:focus-within {
+    border-color: var(--p-accent, #0078d4);
+    box-shadow: 0 0 0 1px var(--p-accent, #0078d4);
+    outline: none;
+}
+.ts-control input::placeholder { color: var(--p-text-muted, #969696); }
+/* single-select caret triangle (drawn by the default theme) */
+.ts-wrapper.single .ts-control:after {
+    border-color: var(--p-text-muted, #969696) transparent transparent transparent;
+}
+
+/* ── Disabled state ────────────────────────────────────────────────────────*/
+.disabled .ts-control { background-color: var(--p-panel, #252526); opacity: 0.5; }
+
+/* ── Selected items / tags (multi mode) ────────────────────────────────────*/
+.ts-wrapper.multi .ts-control > div {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 14%, transparent);
+    color: var(--p-text, #d4d4d4);
+    border: 0 solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-sm, 3px);
+}
+.ts-wrapper.multi .ts-control > div.active {
+    background: color-mix(in srgb, var(--p-accent, #0078d4) 32%, var(--p-bg, #1e1e1e));
+    color: var(--p-text, #d4d4d4);
+    border: 0 solid var(--p-accent, #0078d4);
+}
+.ts-wrapper.multi.disabled .ts-control > div,
+.ts-wrapper.multi.disabled .ts-control > div.active {
+    color: var(--p-text-muted, #969696);
+    background: var(--p-panel, #252526);
+    border: 0 solid var(--p-panel, #252526);
+}
+
+/* ── Plugin: remove button on tags ─────────────────────────────────────────*/
+.ts-wrapper.plugin-remove_button .item .remove { color: inherit; }
+.ts-wrapper.plugin-remove_button .item .remove:hover {
+    background: color-mix(in srgb, var(--p-text, #d4d4d4) 12%, transparent);
+}
+.ts-wrapper.plugin-remove_button:not(.rtl) .item .remove {
+    border-left: 1px solid var(--p-border, #3c3c3c);
+}
+.ts-wrapper.plugin-remove_button:not(.rtl) .item.active .remove {
+    border-left-color: var(--p-accent, #0078d4);
+}
+.ts-wrapper.plugin-remove_button.rtl .item .remove {
+    border-right: 1px solid var(--p-border, #3c3c3c);
+}
+.ts-wrapper.plugin-remove_button.rtl .item.active .remove {
+    border-right-color: var(--p-accent, #0078d4);
+}
+
+/* ── Dropdown panel ────────────────────────────────────────────────────────*/
+.ts-dropdown {
+    background: var(--p-panel, #252526);
+    border: 1px solid var(--p-border, #3c3c3c);
+    border-radius: 0 0 var(--p-radius-md, 4px) var(--p-radius-md, 4px);
+    box-shadow: 0 4px 13px var(--p-shadow, rgba(0, 0, 0, 0.45));
+    color: var(--p-text, #d4d4d4);
+}
+.ts-dropdown .optgroup-header {
+    color: var(--p-text-muted, #969696);
+    background: var(--p-panel, #252526);
+}
+.ts-dropdown.plugin-optgroup_columns .optgroup {
+    border-right: 1px solid var(--p-border, #3c3c3c);
+}
+
+/* ── Options ───────────────────────────────────────────────────────────────*/
+/* the keyboard/hover-highlighted row — solid accent, like the app's menus */
+.ts-dropdown .active {
+    background-color: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+.ts-dropdown .active.create { color: var(--p-accent-text, #ffffff); }
+.ts-dropdown .create { color: var(--p-text-muted, #969696); }
+
+/* ── Highlight / matched substring ─────────────────────────────────────────*/
+.ts-dropdown [data-selectable] .highlight {
+    background: color-mix(in srgb, var(--p-accent, #0078d4) 32%, transparent);
+}
+/* on an active (accent-filled) row, tint the match with the accent-text instead */
+.ts-dropdown .active .highlight {
+    background: color-mix(in srgb, var(--p-accent-text, #ffffff) 28%, transparent);
+}
+
+/* ── Spinner (loading) ─────────────────────────────────────────────────────*/
+.ts-dropdown .spinner::after {
+    border-color: var(--p-accent, #0078d4) transparent var(--p-accent, #0078d4) transparent;
+}
+
+/* ── Plugin: dropdown_input (in-dropdown search box) ───────────────────────*/
+.plugin-dropdown_input.focus.dropdown-active .ts-control {
+    border-color: var(--p-border, #3c3c3c);
+    box-shadow: none;
+}
+.plugin-dropdown_input .dropdown-input {
+    border-color: var(--p-border, #3c3c3c);
+    background: transparent;
+    color: var(--p-text, #d4d4d4);
+    box-shadow: none;
+}
+/* Tom Select only suppresses the native outline on the main control input, not on
+   this plugin's search box — so focus showed the browser's default (off-palette)
+   outline on top of our bottom border. Drop it; use an accent bottom border instead. */
+.plugin-dropdown_input .dropdown-input:focus {
+    outline: none;
+    border-bottom-color: var(--p-accent, #0078d4);
+}
+
+/* ── Plugin: dropdown_header ───────────────────────────────────────────────*/
+.ts-wrapper .dropdown-header {
+    background: var(--p-panel, #252526);
+    border-bottom: 1px solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-md, 4px) var(--p-radius-md, 4px) 0 0;
+}
+.ts-wrapper .dropdown-header-close { color: var(--p-text-muted, #969696); }
+.ts-wrapper .dropdown-header-close:hover { color: var(--p-text-strong, #dddddd); }

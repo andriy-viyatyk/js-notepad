@@ -62,6 +62,27 @@
         "type": "css",
         "cssVsJs": "Flatpickr is fully CSS-styleable — there is NO JS-colored surface, so the whole component themes from this one stylesheet and a theme switch re-tints it with no JS (the calendar is appended to <body>, under the same <html> that carries the --p-* inline vars). The skin restyles the calendar container (incl. its pointer-arrow ::before/::after triangles + box-shadow border ring), month nav + year/month <select> spinners, weekday header, every day-cell state (hover, today=accent outline, selected/range endpoints=solid accent, in-range=accent tint via color-mix, disabled, prev/next-month, week numbers), and the time picker — all from --p-*. Flatpickr's three hardcoded accents (#569ff7 selection, #959ea9 today, #f64747 arrow-hover) are replaced with --p-accent. NOTE: flatpickr does NOT style the text <input> itself — the board owns that; style your input with --p-* in your own CSS (see the demo board)."
       }
+    },
+    {
+      "id": "tom-select",
+      "name": "Tom Select",
+      "purpose": "Rich select / tags / autocomplete — searchable single + multi select, removable tag chips, create-on-the-fly values, option groups, remote/async options, and keyboard navigation. Dependency-free.",
+      "homepage": "https://tom-select.js.org/",
+      "npm": "tom-select",
+      "testedVersion": "2.4.3",
+      "vendor": {
+        "css": "https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css",
+        "js": "https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js",
+        "note": "Download BOTH INTO the board folder (e.g. lib/) and reference them with relative paths — the board CSP forbids remote network, so a CDN <script>/<link> will not load. Vendor tom-select.css (the default theme — the one the skin overrides) and tom-select.complete.min.js (the build that bundles all plugins: remove_button, dropdown_input, clear_button, etc.). Do NOT also vendor the bootstrap5/material theme CSS."
+      },
+      "skin": {
+        "file": "tom-select.css",
+        "tunedFor": "tom-select@2.4.3",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → lib/tom-select.css → tom-select.css",
+        "type": "css",
+        "cssVsJs": "Tom Select is fully CSS-styleable — there is NO JS-colored surface, so the whole component themes from this one stylesheet and a theme switch re-tints it with no JS (the dropdown is rendered under the same <html> that carries the --p-* inline vars). The skin restyles the control box (mirrors the board's inputs: --p-bg + --p-border, accent focus ring), the text input + placeholder, selected-item/tag chips (neutral tint + accent on .active) with the remove_button, the dropdown panel + box-shadow, optgroup headers, options (the keyboard/hover .active row = solid accent, like the app's menus), the matched-substring .highlight, the loading spinner, and the dropdown_input/dropdown_header plugins — all from --p-*. Tom Select's hardcoded accents (#f5fafd/#495c68 active option, rgba(125,168,208,0.2) match highlight) are replaced with --p-accent. The control already matches the board's own inputs, so a <select>/<input> upgraded by Tom Select sits flush with the form."
+      }
     }
   ]
 }
