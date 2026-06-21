@@ -10,6 +10,7 @@ import { DirectoryWatcher, FileWatcher } from "../../core/utils/file-watcher";
 import { projectTrust } from "../../api/project-trust";
 import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
 import { scaffoldBoard } from "./board-scaffold";
+import { ensureBoardManifest, isBoardFolder } from "./board-manifest";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
 import { invalidateBoardIcon } from "./board-icon-cache";
@@ -199,10 +200,10 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         try {
             if (await fs.exists(boardsDir)) {
                 const entries = await fs.listDirWithTypes(boardsDir);
-                boards = entries
-                    .filter((e) => e.isDirectory)
-                    .map((e) => e.name)
-                    .sort((a, b) => a.localeCompare(b));
+                const dirs = entries.filter((e) => e.isDirectory).map((e) => e.name);
+                // A folder is a board only if it carries board-manifest.json.
+                const isBoard = await Promise.all(dirs.map((n) => isBoardFolder(fpJoin(boardsDir, n))));
+                boards = dirs.filter((_, i) => isBoard[i]).sort((a, b) => a.localeCompare(b));
             }
         } catch {
             boards = [];
@@ -319,6 +320,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
                 "warning",
             );
         }
+        // Guarantee the board-identity manifest exists regardless of which path ran
+        // above (template copy or empty fallback) — a board is identified by it.
+        await ensureBoardManifest(dir);
         await this.refreshBoards();
         this.selectBoard(name);
     }

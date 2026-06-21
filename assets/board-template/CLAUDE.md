@@ -4,6 +4,28 @@ This folder is a **Persephone Web Board**: a small web app whose UI you own as a
 plain HTML page, backed by scripts you write in any language. Persephone hosts the
 page in a sandboxed webview and injects a single bridge object, `window.persephone`.
 
+## Board identity: `board-manifest.json`
+
+This folder is recognized as a board because it contains **`board-manifest.json`** —
+that file's presence is what makes Persephone treat the folder as a board. It holds the
+schema version plus optional **descriptive metadata**; it never controls behavior:
+
+```json
+{
+  "schemaVersion": 1,
+  "name": "My Board",
+  "description": "What this board does.",
+  "author": "you",
+  "repository": "https://github.com/you/your-board"
+}
+```
+
+- `name` (optional) — display name; defaults to the **folder name** when omitted or empty.
+- `description` / `author` / `repository` (optional) — metadata only, for humans/agents.
+
+Don't put secrets or trust flags here — a board is trusted by the user inside Persephone,
+never by the manifest. (The board icon is **not** set here; see *Board icon* below.)
+
 ## Mental model: frontend + backend + the `execute()` channel
 
 - **Frontend** — `index.html` + `app.js` (+ any CSS/assets you add). Owns *all* UI
