@@ -86,6 +86,22 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         };
     }, [ready, model]);
 
+    // Dismiss any open Persephone overlay (context menu, popup) when focus moves
+    // into the board guest — clicking inside the webview doesn't bubble a DOM
+    // event to the host, so the host's outside-click dismissal never fires.
+    // Mirror the Browser editor: on webview focus, dispatch a synthetic mousedown
+    // on document.body to drive the overlay outside-click teardown.
+    useEffect(() => {
+        if (!ready) return;
+        const wv = webviewRef.current;
+        if (!wv) return;
+        const handleFocus = () => {
+            document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        };
+        wv.addEventListener("focus", handleFocus);
+        return () => wv.removeEventListener("focus", handleFocus);
+    }, [ready]);
+
     // Push live color updates to the guest on theme switch (metrics never change).
     useEffect(() => {
         const sub = settings.onChanged.subscribe(({ key }) => {

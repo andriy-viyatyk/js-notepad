@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { editorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { secondaryViewRegistry } from "../ui/secondary-views/secondary-view-registry";
-import { SearchIcon } from "../theme/icons";
+import { SearchIcon, BoardIcon } from "../theme/icons";
 
 // =============================================================================
 // Secondary Editor Registrations (EPIC-016)
@@ -99,7 +99,10 @@ secondaryViewRegistry.register({
 secondaryViewRegistry.register({
     id: "board-list",
     label: "Boards",
-    // No icon override → falls back to the editor's BoardIcon (EPIC-034 / US-722).
+    // Pin the panel header to the default BoardIcon. The editor's own getIcon()
+    // switches to the selected board's glyph (for the tab), but the side panel
+    // header should stay the generic Boards glyph regardless of selection.
+    icon: createElement(BoardIcon),
     loadComponent: () => import("./board/BoardListSecondaryView"),
 });
 
