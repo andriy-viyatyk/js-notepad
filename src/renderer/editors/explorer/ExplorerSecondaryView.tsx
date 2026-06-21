@@ -8,8 +8,9 @@ import { app } from "../../api/app";
 import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { encodePersephoneFolderLink } from "../../content/persephone-folder-link";
+import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { boardTrust } from "../../api/board-trust";
-import { isBoardFolder } from "../board/board-manifest";
+import { isBoardFolder, BOARD_MANIFEST_FILE } from "../board/board-manifest";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
@@ -66,6 +67,34 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
         const url = model.treeProvider?.getNavigationUrl(item) ?? item.href;
         app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: "explorer" }));
     }, [pageId, model]);
+
+    // Per-row trailing action: on a `board-manifest.json` file row, an always-visible
+    // "Open Board" button that opens the board (single-board mode) via persephone-board://.
+    // The row's own click still opens the JSON in Monaco — the button stops propagation so
+    // the row click never fires. Trust is handled in-view (UntrustedBoardView) for foreign
+    // boards; the button only fires the link.
+    const renderBoardButton = useCallback((item: ITreeProviderItem) => {
+        if (item.isDirectory) return null;
+        if (fpBasename(item.href).toLowerCase() !== BOARD_MANIFEST_FILE) return null;
+        return (
+            <IconButton
+                name="explorer-open-board"
+                size="sm"
+                title="Open Board"
+                icon={<BoardIcon />}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    const boardRoot = fpDirname(item.href);
+                    app.events.openRawLink.sendAsync(
+                        createLinkData(encodePersephoneBoardLink(boardRoot), {
+                            pageId,
+                            sourceId: "explorer",
+                        }),
+                    );
+                }}
+            />
+        );
+    }, [pageId]);
 
     // Create (or reveal, if it already exists) a `.persephone` Boards project inside
     // the clicked folder, then select its node so the Board editor opens. No dialog.
@@ -222,6 +251,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
                 onItemClick={handleItemClick}
                 onItemDoubleClick={handleItemClick}
                 onContextMenu={handleContextMenu}
+                renderTrailing={renderBoardButton}
                 initialState={initialState}
                 onStateChange={handleStateChange}
             />

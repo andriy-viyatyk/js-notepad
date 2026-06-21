@@ -72,7 +72,7 @@ export function TreeProviderView(
     const { ref, ...viewProps } = props;
     // Destructure named props referenced inside hook bodies so exhaustive-deps
     // can statically verify them (avoids the "missing dependency: 'props'" hint).
-    const { provider, getLabel, onStateChange } = viewProps;
+    const { provider, getLabel, renderTrailing, onStateChange } = viewProps;
     const model = useComponentModel(
         viewProps,
         TreeProviderViewModel,
@@ -291,6 +291,7 @@ export function TreeProviderView(
                 dropActive={ctx.dropActive}
                 loading={ctx.loading}
                 tooltip={node.data.href}
+                trailing={renderTrailing?.(node.data)}
                 onChevronClick={(e) => {
                     e.stopPropagation();
                     ctx.toggleExpanded();
@@ -298,7 +299,7 @@ export function TreeProviderView(
                 onContextMenu={(e) => model.onItemContextMenu(node, e)}
             />
         );
-    }, [getLabel, state.searchText, model]);
+    }, [getLabel, renderTrailing, state.searchText, model]);
 
     // Items wrapped as a single-rooted Traited — the Tree memo walks children via the trait.
     const tNodes = useMemo(

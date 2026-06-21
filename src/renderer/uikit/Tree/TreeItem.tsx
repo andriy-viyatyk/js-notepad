@@ -59,6 +59,13 @@ export interface TreeItemProps
      * `(e) => model.onChevronClick(e, idx)` from the View.
      */
     onChevronClick?: (e: React.MouseEvent) => void;
+    /**
+     * Optional right-aligned trailing content (e.g. a per-row action IconButton).
+     * Rendered after the label, which is `flex:1 1 auto` and pushes this to the row's
+     * right edge. The trailing content owns its own click handling — to avoid also
+     * triggering the row's onClick, its handlers should `stopPropagation()`.
+     */
+    trailing?: React.ReactNode;
 }
 
 // --- Styled ---
@@ -111,6 +118,12 @@ const Root = styled.div(
             minWidth: 0,
             overflow: "hidden",
             textOverflow: "ellipsis",
+        },
+
+        "& > .tree-trailing": {
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
         },
     },
     { label: "TreeItem" },
@@ -192,6 +205,7 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
         indentSize = defaultIndentSize,
         hideChevron,
         onChevronClick,
+        trailing,
         ...rest
     },
     ref,
@@ -241,6 +255,7 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
             )}
             {icon && <span className="tree-icon">{icon}</span>}
             <span className="label">{labelNode}</span>
+            {trailing != null && <span className="tree-trailing">{trailing}</span>}
         </Root>
     );
 

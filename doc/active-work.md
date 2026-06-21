@@ -12,7 +12,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-746: Boards anywhere](tasks/US-746-boards-anywhere/README.md) — decouple location from `.persephone/boards/`
   - [ ] [US-747: Trust at board level](tasks/US-747-board-level-trust/README.md) — per-board trust registry; project gate → bulk action
   - [ ] [US-748: Open-a-board link scheme (`persephone-board://`)](tasks/US-748-open-board-link-scheme/README.md) — parser-only in-app scheme → single-board mode
-  - [ ] US-749: Explorer "Open Board" row button
+  - [ ] [US-749: Explorer "Open Board" row button](tasks/US-749-explorer-open-board-button/README.md) — per-row trailing action slot → `persephone-board://`
   - [ ] US-750: App API + MCP for board lifecycle
   - [ ] US-751: Sidebar "Tools & Editors" boards tab + board management (open / pin / remove ≡ untrust)
 

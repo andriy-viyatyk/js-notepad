@@ -48,6 +48,9 @@ export interface TreeProviderViewProps {
     refreshKey?: string | number;
     /** Override label rendering. When omitted, default title + search highlight is used. */
     getLabel?: (item: ILink, searchText: string) => React.ReactNode;
+    /** Optional per-row trailing content (right-aligned action slot). Receives the row's
+     *  ITreeProviderItem; return null for rows without an action. */
+    renderTrailing?: (item: ITreeProviderItem) => React.ReactNode;
     /** Override root node label. When omitted, uses provider.displayName. */
     rootLabel?: string;
 }
