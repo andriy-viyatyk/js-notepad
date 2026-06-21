@@ -14,7 +14,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-748: Open-a-board link scheme (`persephone-board://`)](tasks/US-748-open-board-link-scheme/README.md) — parser-only in-app scheme → single-board mode
   - [ ] [US-749: Explorer "Open Board" row button](tasks/US-749-explorer-open-board-button/README.md) — per-row trailing action slot → `persephone-board://`
   - [ ] [US-750: App API + MCP for board lifecycle](tasks/US-750-board-lifecycle-api-mcp/README.md) — `create_board`/`open_board` MCP tools + `app.boards` + `app.openRawLink` + agent boards guide
-  - [ ] US-751: Sidebar "Tools & Editors" boards tab + board management (open / pin / remove ≡ untrust)
+  - [ ] [US-751: Sidebar "Tools & Editors" boards tab + board management](tasks/US-751-tools-editors-boards-tab/README.md) — Custom Boards & Editors tab (grouped by folder) + pinnable boards + remove ≡ untrust
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)

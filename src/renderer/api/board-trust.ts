@@ -52,6 +52,18 @@ class BoardTrust {
         return this.state.use((s) => s.paths.some((p) => fpNormalizeForCompare(p) === key));
     }
 
+    /** All trusted board-root paths (sync, non-reactive). Call `load()` first. */
+    listPaths(): string[] {
+        return this.state.get().paths;
+    }
+
+    /** Reactive list of all trusted board-root paths — re-renders when the list
+     *  changes. The "Custom Boards & Editors" sidebar tab (US-751) reads this;
+     *  it calls `load()` on mount to populate the shared state. */
+    useTrustedPaths(): string[] {
+        return this.state.use((s) => s.paths);
+    }
+
     /** Append a board to the trusted list (idempotent). Caller confirms first (the
      *  trust dialog) OR it is a provenance write for a Persephone-created board. */
     async trust(boardRoot: string): Promise<void> {

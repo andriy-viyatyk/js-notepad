@@ -12,7 +12,12 @@ import { TComponentModel, useComponentModel } from "../../core/state/model";
 import { useMemo } from "react";
 import { settings } from "../../api/settings";
 import { app } from "../../api/app";
-import { DEFAULT_PINNED_EDITORS, getCreatableItems } from "../sidebar/tools-editors-registry";
+import { getCreatableItems } from "../sidebar/tools-editors-registry";
+import { usePinnedRefs } from "../sidebar/pinned-items";
+import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
+import { createLinkData } from "../../../shared/link-data";
+import { BoardGlyph } from "../../editors/board/BoardGlyph";
+import { fpBasename } from "../../core/utils/file-path";
 import { minTabWidth, PageTab, pinnedTabWidth, pinnedTabEncryptedWidth } from "./PageTab";
 import { isTextFileModel } from "../../editors/text";
 
@@ -130,27 +135,33 @@ export function PageTabs(props: object) {
     const state = pagesModel.state.use();
 
     const browserProfiles = settings.use("browser-profiles");
-    const pinnedIds: string[] = settings.use("pinned-editors") ?? DEFAULT_PINNED_EDITORS;
+    const pinnedRefs = usePinnedRefs();
 
     const addPageMenuItems = useMemo((): MenuItem[] => {
         const allItems = getCreatableItems(browserProfiles);
-        const pinned = pinnedIds
-            .map((id) => allItems.find((item) => item.id === id))
-            .filter(Boolean);
-
-        return [
-            ...pinned.map((item) => ({
-                label: item.label,
-                icon: item.icon,
-                onClick: item.create,
-            })),
-            {
-                label: "Show All…",
-                startGroup: true,
-                onClick: () => app.window.openMenuBar("tools-editors"),
-            },
-        ];
-    }, [browserProfiles, pinnedIds]);
+        const items: MenuItem[] = [];
+        for (const ref of pinnedRefs) {
+            if (ref.kind === "editor") {
+                const item = allItems.find((i) => i.id === ref.id);
+                if (item) items.push({ label: item.label, icon: item.icon, onClick: item.create });
+            } else {
+                const root = ref.root;
+                items.push({
+                    label: fpBasename(root),
+                    icon: <BoardGlyph boardRoot={root} />,
+                    onClick: () => {
+                        void app.events.openRawLink.sendAsync(createLinkData(encodePersephoneBoardLink(root)));
+                    },
+                });
+            }
+        }
+        items.push({
+            label: "Show All…",
+            startGroup: true,
+            onClick: () => app.window.openMenuBar("tools-editors"),
+        });
+        return items;
+    }, [browserProfiles, pinnedRefs]);
 
     return (
         <PageTabsRoot data-type="page-tabs" className="page-tabs">
