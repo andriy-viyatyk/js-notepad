@@ -8,6 +8,7 @@ import { fpBasename, fpJoin, fpNormalizeForCompare } from "../../core/utils/file
 import { DirectoryWatcher, FileWatcher } from "../../core/utils/file-watcher";
 import { boardTrust } from "../../api/board-trust";
 import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
+import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { createBoardFromTemplate } from "./board-scaffold";
 import { isBoardFolder } from "./board-manifest";
 import { BoardTargetModel } from "./BoardTargetModel";
@@ -176,16 +177,23 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         }
     }
 
-    /** Per-page singleton: re-navigating to the SAME `.persephone` reuses this
-     *  instance (promote back to main) rather than building a duplicate panel.
-     *  Single-board editors are not project-link targets — the `persephone-board://`
-     *  match is added in US-748. */
+    /** Per-page singleton: re-navigating to the SAME board/project reuses this
+     *  instance (promote back to main) rather than stacking a duplicate. Two modes,
+     *  never cross-matching: single-board editors match a `persephone-board://` link
+     *  by board root; project editors match a `persephone-folder://` link by boardsDir. */
     matchesNavigationTarget(target: string | undefined, filePath: string): boolean {
         if (target !== "board-view") return false;
-        if (this.state.get().boardRoot) return false;
-        const link = decodePersephoneFolderLink(filePath);
-        return !!link
-            && fpNormalizeForCompare(fpJoin(link.persephonePath, "boards"))
+        const boardRoot = this.state.get().boardRoot;
+        if (boardRoot) {
+            // Single-board mode — match the persephone-board:// link for this root.
+            const boardLink = decodePersephoneBoardLink(filePath);
+            return !!boardLink
+                && fpNormalizeForCompare(boardLink.boardRoot) === fpNormalizeForCompare(boardRoot);
+        }
+        // Project mode — match the persephone-folder:// link for this boardsDir.
+        const folderLink = decodePersephoneFolderLink(filePath);
+        return !!folderLink
+            && fpNormalizeForCompare(fpJoin(folderLink.persephonePath, "boards"))
                 === fpNormalizeForCompare(this.state.get().boardsDir);
     }
 
@@ -206,9 +214,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         void this.refreshBoards();
     }
 
-    /** Single-board mode — opened by board-root path (wired by US-748 / US-750).
-     *  The board is standalone: no container, no sibling enumeration, no sidebar
-     *  panel (see `setPage`). Per-board trust lands in US-747. */
+    /** Single-board mode — opened by a `persephone-board://` link (US-748) or the
+     *  MCP `openBoard` (US-750). The board is standalone: no container, no sibling
+     *  enumeration, no sidebar panel (see `setPage`). */
     initFromBoardRoot(boardRoot: string): void {
         const name = fpBasename(boardRoot);
         this.state.update((s) => {

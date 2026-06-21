@@ -12,6 +12,7 @@ import { showInputDialog } from "../../ui/dialogs/InputDialog";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import { BoardEditorModel } from "./BoardEditorModel";
 import { UntrustedBoardView } from "./UntrustedBoardView";
+import { BoardNotFoundView } from "./BoardNotFoundView";
 import { BoardWebview } from "./BoardWebview";
 import { BoardGlyph } from "./BoardGlyph";
 
@@ -37,6 +38,13 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
     // run unconditionally; "" (nothing selected) is never trusted.
     const selectedRoot = s.selectedBoard ? model.boardRootOf(s.selectedBoard) : undefined;
     const boardTrusted = boardTrust.useIsTrusted(selectedRoot ?? "");
+
+    // Single-board mode (persephone-board:// link) whose board didn't resolve —
+    // refreshBoards cleared the selection. Show "not found" instead of the
+    // project-style empty list (C748-3).
+    if (s.boardRoot && !s.selectedBoard) {
+        return <BoardNotFoundView path={s.boardRoot} />;
+    }
 
     const handleCreate = async () => {
         const res = await showInputDialog({

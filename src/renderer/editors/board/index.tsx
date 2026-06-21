@@ -1,5 +1,6 @@
 import { TComponentState } from "../../core/state/state";
 import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
+import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import {
     BoardEditorModel,
     getDefaultBoardEditorState,
@@ -38,8 +39,15 @@ const boardEditorModule: LegacyEditorModule = {
     newEditorModel: async (filePath?: string) => {
         const model = new BoardEditorModel(new TComponentState(getDefaultBoardEditorState()));
         if (filePath) {
-            const link = decodePersephoneFolderLink(filePath);
-            if (link) model.initFromPersephone(link.persephonePath);
+            // Single-board mode (US-748) takes priority — its own root path.
+            const boardLink = decodePersephoneBoardLink(filePath);
+            if (boardLink) {
+                model.initFromBoardRoot(boardLink.boardRoot);
+            } else {
+                // Project / grouping mode — a .persephone folder.
+                const folderLink = decodePersephoneFolderLink(filePath);
+                if (folderLink) model.initFromPersephone(folderLink.persephonePath);
+            }
         }
         return model as unknown as EditorOrHost;
     },
