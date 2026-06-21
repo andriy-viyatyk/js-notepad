@@ -10,24 +10,6 @@ Overview of all active and planned epics and tasks.
 - *(none — EPIC-034 Web Board completed; see [completed epics](epics/completed.md))*
 
 ## Planned
-- **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*
-  - [ ] [US-699: Generic command runner (main-process spawn + IPC + error toast)](tasks/US-699-command-runner/README.md)
-  - [ ] US-700: `TDiskState` — folder-backed, schema-validated, disposable disk-synced state primitive
-  - [ ] US-701: Per-page loading indicator primitive (badge + circular progress + overlay lock)
-  - [ ] US-702: Project trust gate (per `.persephone`; `trustedProjects.txt`; untrusted UX)
-  - [ ] US-703: PersephoneDashboard editor + `.persephone` folder-click routing (sidebar list + main management)
-  - [ ] US-704: GridDashboard renderer — `AVGrid` bound to synced state
-  - [ ] US-705: `config.json` — load + watch/recreate; `commands` globs; `events`
-  - [ ] US-706: Action execution — external scripts; action-reference shape (`sync`/`async`, `name`); `activeRow`/`selection` flush
-  - [ ] US-707: `.persy` in-app runtime — full API context + injected live `state`
-  - [ ] US-708: `onLoad` event — trust-gated auto-run
-  - [ ] US-709: Templates & scaffolding — bundled template + `library-service` copy with name substitution
-  - [ ] US-710: Error logging — per-dashboard `ui.log` + clickable error indicator
-  - [ ] US-711: Dogfood reference dashboard — Persephone's own task board
-- **EPIC-027** — [Script-Driven UI and Custom Editors](epics/EPIC-027.md) *(carved out of EPIC-025 Phase 6; blocked on EPIC-025 close)*
-  - [ ] US-436: Script UI API — expose new component library to scripting engine
-  - [ ] US-435: Storybook — script tab for building and testing UI via scripts
-  - [ ] US-544: Script-registered custom editor framework — registration, lifecycle, persistence *(placeholder — task spec TBD when epic starts)*
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
   - [ ] US-396: Data model — `LinkScriptItem` type and `scripts` field in `LinkEditorData`
   - [ ] US-397: ScriptRunner — `runWithScope()` for custom context variable injection

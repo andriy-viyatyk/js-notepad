@@ -25,7 +25,7 @@ The HTML prototype work (US-437) is closed as a primary deliverable. Design deci
 - **Better code reuse** — eliminate redundancy without breaking the existing design language
 - **Built-in Storybook editor** — interactive component browser with property editor for testing and documentation
 
-> Script-accessible UI and script-registered custom editors were originally Phase 6 of this epic. They are now tracked in [EPIC-027](EPIC-027.md) — split out so this epic can close on the UIKit catalog and per-screen migration without being held open by the script-integration design surface.
+> Script-accessible UI and script-registered custom editors were originally Phase 6 of this epic. They were split out as EPIC-027 so this epic could close on the UIKit catalog and per-screen migration without being held open by the script-integration design surface. *(EPIC-027 was **abandoned on 2026-06-21** — superseded by Web Boards (EPIC-034), which cover script-driven UI needs. The mentions below are kept as historical context.)*
 
 ## Dependencies
 
@@ -269,7 +269,7 @@ function Select<T>({ items, value, onChange }: SelectProps<T>) {
 
 > US-433 (Editor migration) is superseded — migration is now per-screen during Phase 4. Per-screen tasks (`US-452+`) are tracked on the dashboard rather than listed here, to keep this document stable as the migration progresses.
 >
-> US-436 (Script UI API) and US-435 (Storybook script tab) moved to [EPIC-027](EPIC-027.md) along with a new task for the script-registered custom-editor framework — see the note at the top of *Goals*.
+> US-436 (Script UI API) and US-435 (Storybook script tab) moved to EPIC-027 along with a new task for the script-registered custom-editor framework — see the note at the top of *Goals*.
 
 ## Phase Plan
 
@@ -286,7 +286,7 @@ Three parallel workstreams, all new code — no changes to existing components:
 Implement the minimal set of components that the Storybook editor UI itself needs (e.g. Button, Input, Label, and whatever else the Storybook shell requires). Pure implementation — no Storybook testing yet, no replacement of old components. This is a short, focused phase to unblock Phase 3.
 
 **Phase 3 — Storybook Editor (US-434, US-450)**
-Build the Storybook editor as a built-in Persephone editor type, using the Phase 2 bootstrap components. As a side effect, this validates and tweaks the bootstrap components — they become the first components tested in Storybook. Storybook is the testing tool for all phases that follow. **US-450** adds a Toolbar to UIKit (with roving tabindex and `role="toolbar"`) and adopts it inside the Storybook editor only — full per-editor migration of `PageToolbar` is deferred. The Storybook script tab is intentionally deferred to [EPIC-027](EPIC-027.md) — script integration is meaningful only after the component library is settled and screens are migrated, and the surface is large enough to plan as its own epic.
+Build the Storybook editor as a built-in Persephone editor type, using the Phase 2 bootstrap components. As a side effect, this validates and tweaks the bootstrap components — they become the first components tested in Storybook. Storybook is the testing tool for all phases that follow. **US-450** adds a Toolbar to UIKit (with roving tabindex and `role="toolbar"`) and adopts it inside the Storybook editor only — full per-editor migration of `PageToolbar` is deferred. The Storybook script tab is intentionally deferred to EPIC-027 — script integration is meaningful only after the component library is settled and screens are migrated, and the surface is large enough to plan as its own epic.
 
 **Phase 4 — Per-Screen Migration (iterative, one screen at a time)**
 For each screen in Persephone:
@@ -329,12 +329,12 @@ The end state of EPIC-025 is a single component folder — `src/renderer/uikit/`
 3. **Trait integration** — Resolved. See Design Decision #8 for the full pattern.
 4. **UI descriptor scope** — Resolved. Narrow scope: only container/contribution-point components (Toolbar, ContextMenu, StatusBar, etc.) expose a `descriptors` prop. Leaf components (Button, Input, etc.) are used via plain JSX and appear as variants inside a parent union. See Design Decision #4.
 
-> The original Concern #3 ("Script UI security — sandboxing or capability limits") moved to [EPIC-027](EPIC-027.md) along with US-436 / US-435.
+> The original Concern #3 ("Script UI security — sandboxing or capability limits") moved to EPIC-027 along with US-436 / US-435.
 
 ## Notes
 
 ### 2026-05-19 (script integration carved out to EPIC-027)
-- Phase 6 — Script Integration removed. US-436 (Script UI API) and US-435 (Storybook script tab) moved to the new [EPIC-027](EPIC-027.md), which also picks up a new piece — script-registered custom editor framework — that was previously only implicit in the long-term vision.
+- Phase 6 — Script Integration removed. US-436 (Script UI API) and US-435 (Storybook script tab) moved to the new EPIC-027, which also picks up a new piece — script-registered custom editor framework — that was previously only implicit in the long-term vision.
 - Reason: this epic was already large (80+ Phase 4 tasks across per-screen migrations and UIKit primitive additions). Script integration is a substantial design surface of its own — better planned independently after the UIKit catalog settles.
 - Renumbering: old "Phase 7 — Final Cleanup" → "Phase 6 — Final Cleanup". Design Decisions also renumbered (old #5–#9 → #4–#8) after removing the obsolete "Script UI API" decision (was #4). Cross-references updated in Concerns (formerly #4/#5, now #3/#4) and the 2026-04-19 pattern-decisions note.
 - The "Script-accessible UI" line was removed from Goals; a pointer to EPIC-027 is added at the bottom of Goals.
@@ -343,7 +343,7 @@ The end state of EPIC-025 is a single component folder — `src/renderer/uikit/`
 ### 2026-05-03 (single-folder end state for components)
 - The end state of EPIC-025 is a **single component folder** — `src/renderer/uikit/` — containing every reusable UI component, including engine-level building blocks (`RenderGrid`) and complex composites (`AVGrid`, `CollapsiblePanelStack`). The old `src/renderer/components/` folder is dropped entirely.
 - Phase 5 retitled and clarified: complex components are reviewed and patterns are applied where they fit, but the component is **moved into `uikit/` either way**. Components that don't fit every UIKit authoring rule (no `data-type`, no design tokens) still live in `uikit/` — the deviation is documented in the component's header comment rather than driving a folder split (e.g. `RenderGrid` has no `data-type` because it's a virtualization engine, not a visually identifiable component; that's noted in its file header, not a reason to keep it elsewhere).
-- New **Phase 6 — Final Cleanup** added after Phase 5: drops `src/renderer/components/` once Phase 5 has emptied it. *(Originally numbered Phase 7 when an earlier Phase 6 — Script Integration — sat between them; renumbered to 6 on 2026-05-19 when script integration was carved out into [EPIC-027](EPIC-027.md).)*
+- New **Phase 6 — Final Cleanup** added after Phase 5: drops `src/renderer/components/` once Phase 5 has emptied it. *(Originally numbered Phase 7 when an earlier Phase 6 — Script Integration — sat between them; renumbered to 6 on 2026-05-19 when script integration was carved out into EPIC-027.)*
 - Supersedes the 2026-04-19 note bullet that originally read "Complex components excluded from new library (adopt in place)" — that framing led to a permanent split between `uikit/` and `components/`, which is not the project's end state.
 
 ### 2026-04-26 (migration strategy: per-component → per-screen)
