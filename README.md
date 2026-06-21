@@ -23,6 +23,9 @@ An extensible event channel system (`app.events`) lets scripts subscribe to appl
 ### AI Agent Integration (MCP Server)
 A built-in [MCP](https://modelcontextprotocol.io/) HTTP server lets AI agents (Claude, ChatGPT, Gemini, etc.) create pages, execute scripts, display diagrams and grids, and manipulate documents — all programmatically. Enable with a single checkbox in Settings. See the [MCP Setup Guide](docs/mcp-setup.md).
 
+### Boards
+Build fully custom HTML-page mini-apps — dashboards, tools, viewers, even custom editors — that run locally in a sandboxed webview with **no remote network access**. A **Board** is any folder with a `board-manifest.json`; it pairs a plain HTML/JS/CSS frontend with backend scripts in any language, wired together by a single `persephone.execute()` bridge and themed automatically to match the app. Boards are trusted per-board, pinnable in the sidebar alongside the built-in editors, and can be created, opened, and developed end-to-end by an AI agent over MCP (`create_board` / `open_board`) or from scripts (`app.boards`). See the [Boards guide](docs/boards.md).
+
 ### Mneme — Vector Memory *(off by default)*
 A built-in knowledge-base service that turns any folder of Markdown notes into a searchable **vector memory**. Mneme indexes your files locally (SQLite + an on-device embedding model) and exposes hybrid full-text + semantic search over MCP — so AI agents can read, write, and search a persistent knowledge base across sessions. Browse and edit roots in an Explorer-like sidebar, search with a dedicated results view, and manage indexing from a config editor. Files on disk stay the source of truth; the index is derived. Enable in Settings — the embedding model (~357 MB) downloads on first use. See the [Mneme guide](docs/mneme.md).
 
@@ -65,6 +68,7 @@ Optional, built-in git support — enable it with a single checkbox in Settings 
 | **Drawing** | `.excalidraw` | Excalidraw-based drawing editor with library persistence, export, and screen snip |
 | **Links** | `.link.json` | Bookmark/link manager with tiles, list view, categories, and pinned links |
 | **Rest Client** | `.rest.json` | HTTP request builder with collections, body types, and response viewer |
+| **Board** | folder w/ `board-manifest.json` | Sandboxed custom HTML mini-app — dashboard, tool, viewer, or custom editor — with backend scripts via `persephone.execute()` |
 | **Browser** | — | Web browser with profiles, incognito, Tor, bookmarks, and DRM support |
 | **Git Tree** | — | Commit-history graph with branches & tags, staging, commit, and pull/push *(Git integration)* |
 | **Git Diff** | — | Side-by-side revision comparison for any tracked file *(Git integration)* |
@@ -79,6 +83,7 @@ Optional, built-in git support — enable it with a single checkbox in Settings 
 * **[API Reference](docs/api/index.md)** — `app.pages`, `app.fs`, `app.settings`, `app.ui`, `app.fetch`
 * **[MCP Setup](docs/mcp-setup.md)** — Configure AI agents to control Persephone
 * **[Mneme Guide](docs/mneme.md)** — Vector memory / Markdown knowledge base for AI agents
+* **[Boards Guide](docs/boards.md)** — Build sandboxed custom HTML mini-apps and editors
 
 ---
 
