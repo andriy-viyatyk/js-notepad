@@ -7,7 +7,14 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(none — EPIC-034 Web Board completed; see [completed epics](epics/completed.md))*
+- **EPIC-035** — [Boards Anywhere — portable boards, manifest identity, board-level trust, link/MCP open & sidebar registry](epics/EPIC-035.md) — 🟢 *design finalized; carve US-745 first*
+  - [ ] US-745: `board-manifest.json` — board identity file
+  - [ ] US-746: Boards anywhere — decouple location from `.persephone/boards/`
+  - [ ] US-747: Trust at board level
+  - [ ] US-748: Open-a-board link scheme (`persephone-board://`)
+  - [ ] US-749: Explorer "Open Board" row button
+  - [ ] US-750: App API + MCP for board lifecycle
+  - [ ] US-751: Sidebar "Tools & Editors" boards tab + board management (open / pin / remove ≡ untrust)
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
