@@ -150,37 +150,71 @@
             <h2>Recommended components &amp; skins</h2>
             <p class="muted">
                 Persephone stays a thin container — bring your own libraries. For the common cases we recommend a
-                short list of well-behaved components and publish <strong><code>--p-*</code>-themed CSS skins</strong> for
-                them, so a dropped-in component matches the app theme out of the box.
+                short list of well-behaved components and publish a <strong>Persephone skin</strong> for each — a
+                <code>--p-*</code>-themed <strong>CSS skin</strong>, or a small <strong>JS adapter</strong> for
+                canvas / JS-colored libraries that have no stylesheet to override — so a dropped-in component matches
+                the app theme out of the box.
             </p>
             <div class="cards" id="components">
                 <div class="card">
-                    <span class="badge">skin planned</span>
+                    <span class="badge">CSS skin</span>
                     <h4>Tabulator</h4>
-                    <p class="muted">Interactive data grids &amp; tables — sorting, filtering, editing.</p>
+                    <p class="muted">Data grids &amp; tables — sort, filter, range-select + clipboard, virtualized rows, inline edit, grouping, tree.</p>
                 </div>
                 <div class="card">
-                    <span class="badge">skin planned</span>
+                    <span class="badge">JS adapter</span>
                     <h4>Chart.js</h4>
-                    <p class="muted">Charts &amp; plots. Read colors from <code>persephone.theme.vars</code> so they track the theme.</p>
+                    <p class="muted">Charts &amp; plots — line, bar, doughnut/pie, radar, scatter, mixed. The adapter feeds it the live <code>--p-*</code> palette.</p>
                 </div>
                 <div class="card">
-                    <span class="badge">more coming</span>
-                    <h4>…your suggestions</h4>
-                    <p class="muted">This catalog grows as we add skins. Tell us which components you reach for.</p>
+                    <span class="badge">JS adapter</span>
+                    <h4>Mermaid</h4>
+                    <p class="muted">Diagrams from text — flowchart, sequence, class, state, pie, gantt. The adapter themes it from <code>--p-*</code>.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">CSS skin</span>
+                    <h4>marked + highlight.js</h4>
+                    <p class="muted">Markdown render + code highlighting — GFM tables &amp; task lists, themed fenced-code syntax.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">CSS skin</span>
+                    <h4>Flatpickr</h4>
+                    <p class="muted">Date &amp; time picker — single, date+time, time-only, range, inline, min/max &amp; disabled dates.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">CSS skin</span>
+                    <h4>Tom Select</h4>
+                    <p class="muted">Rich select / tags / autocomplete — searchable single &amp; multi, removable chips, create, option groups, remote options.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">CSS skin</span>
+                    <h4>Tippy.js</h4>
+                    <p class="muted">Tooltips, popovers &amp; in-board menus — placement gallery, rich HTML, interactive popovers, dropdown menus.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">CSS skin</span>
+                    <h4>Split.js</h4>
+                    <p class="muted">Resizable layout panes — horizontal / vertical / nested splits, drag-to-resize gutters.</p>
+                </div>
+                <div class="card">
+                    <span class="badge">CSS skin</span>
+                    <h4>SortableJS</h4>
+                    <p class="muted">Drag-to-reorder lists &amp; kanban — reorder within a list, drag across lists, handles, touch.</p>
                 </div>
             </div>
             <div class="note">
-                <strong>Where to get the skins:</strong> prepared CSS skins will live alongside the project under
-                <code>boards-assets/</code> (version-stamped, with per-block comments). An agent or you can fetch a
-                skin into your board folder and link it. <em>(This skin catalog is a work in progress — see the
-                Persephone repo for the current set.)</em>
+                <strong>Where to get the skins:</strong> the recommended components and their skins live in the
+                Persephone repo under <code>boards-assets/</code>, with a machine-readable <code>manifest.json</code>
+                (vendor URLs, tested version, load order, and the CSS-vs-JS split for each). They're
+                <strong>not bundled in the installer</strong> — an agent (or you) fetches the component and its skin
+                into the board folder and links them in the documented order: a <strong>CSS skin after</strong> the
+                component's own CSS, a <strong>JS adapter after</strong> the library and before <code>app.js</code>.
             </div>
 
             <h2>Resources</h2>
             <ul>
                 <li><a href="#" data-link="https://github.com/andriy-viyatyk/persephone">Persephone on GitHub</a></li>
-                <li class="muted">Full Board reference docs — forthcoming.</li>
+                <li><a href="#" data-link="https://github.com/andriy-viyatyk/persephone/tree/main/boards-assets">Recommended components &amp; skins (<code>boards-assets/</code>)</a> — the skin catalog, with a how-to-use README and the <code>manifest.json</code>.</li>
             </ul>
         </section>
 
