@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 - **EPIC-035** — [Boards Anywhere — portable boards, manifest identity, board-level trust, link/MCP open & sidebar registry](epics/EPIC-035.md) — 🟢 *design finalized; carve US-745 first*
   - [ ] [US-745: `board-manifest.json` — board identity file](tasks/US-745-board-manifest/README.md)
-  - [ ] US-746: Boards anywhere — decouple location from `.persephone/boards/`
+  - [ ] [US-746: Boards anywhere](tasks/US-746-boards-anywhere/README.md) — decouple location from `.persephone/boards/`
   - [ ] US-747: Trust at board level
   - [ ] US-748: Open-a-board link scheme (`persephone-board://`)
   - [ ] US-749: Explorer "Open Board" row button

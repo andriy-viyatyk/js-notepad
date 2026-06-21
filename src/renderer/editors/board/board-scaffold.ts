@@ -1,6 +1,8 @@
 import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
+import { ui } from "../../api/ui";
 import { fpJoin } from "../../core/utils/file-path";
+import { ensureBoardManifest } from "./board-manifest";
 
 /**
  * Populate a fresh board folder by recursively copying a bundled template into
@@ -26,6 +28,41 @@ export async function scaffoldBoard(destDir: string, template = "board-template"
     // monospace default) — maintained once in assets/board-base.css and copied in.
     // Both templates link it via <link href="./board-base.css">.
     await fs.copyFile(fpJoin(assetsRoot, "board-base.css"), fpJoin(destDir, "board-base.css"));
+}
+
+/**
+ * Create a board named `name` inside the container folder `dir`, scaffolded from
+ * `template` (EPIC-035 / US-746). This is the canonical, **editor-independent**
+ * board-creation API:
+ * - the `.persephone` list editor calls it with its own `boardsDir`;
+ * - US-750 exposes it on the `app` object model + an MCP tool so an agent can
+ *   create a board at any path, at any time, with no board editor open.
+ *
+ * Errors on a name collision; on a template-copy failure it still produces a
+ * usable (empty) board folder + warns. Always guarantees the board-identity
+ * manifest exists. Returns the created board's absolute root.
+ */
+export async function createBoardFromTemplate(name: string, dir: string, template: string): Promise<string> {
+    const boardRoot = fpJoin(dir, name);
+    if (await fs.exists(boardRoot)) {
+        throw new Error(`A board named "${name}" already exists in "${dir}".`);
+    }
+    try {
+        await scaffoldBoard(boardRoot, template);
+    } catch (err) {
+        // Template missing / copy failed — still produce a usable (empty) board.
+        await fs.mkdir(boardRoot);
+        ui.notify(
+            `Board created, but the template could not be copied: ${
+                err instanceof Error ? err.message : String(err)
+            }`,
+            "warning",
+        );
+    }
+    // Guarantee the board-identity manifest exists regardless of which path ran
+    // above (template copy or empty fallback) — a board is identified by it.
+    await ensureBoardManifest(boardRoot);
+    return boardRoot;
 }
 
 async function copyDirInto(src: string, dest: string): Promise<void> {

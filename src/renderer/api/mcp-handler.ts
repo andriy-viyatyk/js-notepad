@@ -40,7 +40,8 @@ interface McpPageInfo {
                             // incognito/tor pages (privacy)
     /** Board pages only (editor === "board-view") — these are automatable by the
      *  browser_* tools (EPIC-034 / US-730); target by this page's id. */
-    persephonePath?: string;
+    boardsDir?: string;
+    boardRoot?: string;
     selectedBoard?: string;
 }
 
@@ -169,13 +170,15 @@ function getPages(): McpPageInfo[] {
             if (!isIncognito && !isTor) result.url = bs?.url;   // privacy: no incognito/tor URLs
         }
 
-        // Board pages: surface the project path + open board so an agent can pick
-        // the right board to drive via the browser_* tools (structural read).
+        // Board pages: surface the boards container / single-board root + open board
+        // so an agent can pick the right board to drive via the browser_* tools
+        // (structural read).
         if (editor?.editorId === "board-view") {
             const bs = p.mainEditor?.state.get() as
-                | { persephonePath?: string; selectedBoard?: string }
+                | { boardsDir?: string; boardRoot?: string; selectedBoard?: string }
                 | undefined;
-            result.persephonePath = bs?.persephonePath;
+            result.boardsDir = bs?.boardsDir;
+            result.boardRoot = bs?.boardRoot;
             result.selectedBoard = bs?.selectedBoard;
         }
 

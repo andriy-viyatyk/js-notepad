@@ -58,7 +58,7 @@ const boardEditorModule: LegacyEditorModule = {
                 ...(state as Partial<BoardEditorState>),
             }),
         );
-        // Session restore: persephonePath rides the persisted state — re-init.
+        // Session restore: boardsDir / boardRoot ride the persisted state — re-init.
         await model.restore();
         return model as unknown as EditorOrHost;
     },

@@ -4,13 +4,12 @@ import { EditorModel, type EditorStateBase } from "../base/EditorModel";
 import { BoardIcon } from "../../theme/icons";
 import type { IPageHost } from "../../api/pages/IPageHost";
 import { fs } from "../../api/fs";
-import { ui } from "../../api/ui";
-import { fpJoin, fpNormalizeForCompare } from "../../core/utils/file-path";
+import { fpBasename, fpJoin, fpNormalizeForCompare } from "../../core/utils/file-path";
 import { DirectoryWatcher, FileWatcher } from "../../core/utils/file-watcher";
 import { projectTrust } from "../../api/project-trust";
 import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
-import { scaffoldBoard } from "./board-scaffold";
-import { ensureBoardManifest, isBoardFolder } from "./board-manifest";
+import { createBoardFromTemplate } from "./board-scaffold";
+import { isBoardFolder } from "./board-manifest";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
 import { invalidateBoardIcon } from "./board-icon-cache";
@@ -20,13 +19,20 @@ export interface BoardEditorState extends EditorStateBase {
     type: "boardPage";
     /** EditorView id. */
     editor: "board-view";
-    /** Absolute path of the `.persephone` project folder. This is the editor's
-     *  root, the parent of `boards/`, AND the per-project trust key (US-721). */
-    persephonePath: string;
-    /** Display title — the project folder name (parent of `.persephone`). */
+    /** Project/grouping mode ONLY: absolute path of the directory that CONTAINS
+     *  board folders — `<project>/.persephone/boards`. Empty in single-board mode. */
+    boardsDir: string;
+    /** Single-board mode ONLY: the board's OWN absolute root path. Undefined in
+     *  project mode. When set, the editor renders exactly this board, never
+     *  enumerates siblings, and has no knowledge of any other board.
+     *  `boardRoot` set ⟺ single-board mode (the discriminator). */
+    boardRoot?: string;
+    /** Display title — the project folder name (parent of `.persephone`) in
+     *  project mode, or the board folder name in single-board mode. */
     title: string;
-    /** Board folder names under `<persephonePath>/boards` (re-enumerated on
-     *  open/restore + after create/delete). */
+    /** Board folder names under `boardsDir` (project mode), or the single board's
+     *  own name (single-board mode). Re-enumerated on open/restore + after
+     *  create/delete. */
     boards: string[];
     /** Currently-opened board (folder name), or undefined for the board list. */
     selectedBoard?: string;
@@ -54,7 +60,7 @@ export const getDefaultBoardEditorState = (): BoardEditorState => ({
     modified: false,
     type: "boardPage",
     editor: "board-view",
-    persephonePath: "",
+    boardsDir: "",
     boards: [],
     selectedBoard: undefined,
     reloadToken: 0,
@@ -110,52 +116,77 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
      *  error→log-write→reload feedback loop. */
     private logDirWatcher?: DirectoryWatcher;
 
+    /** Absolute root of a board by its list name, mode-aware. In single-board mode
+     *  the name is the board's own basename and the root is `boardRoot`; in project
+     *  mode it is `<boardsDir>/<name>`. Single source of board-path resolution. */
+    boardRootOf(name: string): string {
+        const s = this.state.get();
+        return s.boardRoot ?? fpJoin(s.boardsDir, name);
+    }
+
+    /** Root of the board currently rendered, or undefined when the list view shows
+     *  no selection. */
+    private currentBoardRoot(): string | undefined {
+        const sel = this.state.get().selectedBoard;
+        return sel ? this.boardRootOf(sel) : undefined;
+    }
+
     /** Tab/panel icon — the open board's own icon when one is selected (falls back
      *  to the dashboard glyph), else the dashboard glyph for the board list. The
      *  tab re-invokes this when `state.iconKey` changes (set in `selectBoard`). */
     getIcon = (): ReactNode => {
-        const s = this.state.get();
-        if (s.selectedBoard) {
-            return createElement(BoardGlyph, {
-                boardRoot: fpJoin(s.persephonePath, "boards", s.selectedBoard),
-            });
+        const root = this.currentBoardRoot();
+        if (root) {
+            return createElement(BoardGlyph, { boardRoot: root });
         }
         return createElement(BoardIcon);
     };
 
-    /** Register the "Boards" side panel when attached to a page (Pattern B —
-     *  the editor is its own surviving secondary view). */
+    /** Register the "Boards" side panel when attached to a page (Pattern B — the
+     *  editor is its own surviving secondary view). PROJECT MODE ONLY: a single
+     *  board (`boardRoot` set) shows alone on the page with no sidebar (US-746). */
     setPage(page: IPageHost | null): void {
         super.setPage(page);
-        if (page && !this.secondaryView?.length) {
+        if (page && !this.state.get().boardRoot && !this.secondaryView?.length) {
             this.secondaryView = ["board-list"];
         }
     }
 
     /** Survive navigation (Pattern B): the base default clears the panel, so
-     *  override to a no-op. The sole removal path is the panel's "x". */
-    beforeNavigateAway(): void {
-        // Intentionally empty — survive unconditionally.
+     *  override to a no-op so the project board switcher survives. A single board
+     *  has no panel, so it falls through to the base behaviour (plain editor). */
+    beforeNavigateAway(newModel: EditorModel): void {
+        if (this.state.get().boardRoot) {
+            super.beforeNavigateAway(newModel);
+            return;
+        }
+        // Project mode: intentionally empty — survive unconditionally.
     }
 
     /** When the page navigates to another editor, this one demotes to a sidebar
      *  panel — drop the board selection so the side-panel list reflects what's
      *  actually shown on the page. (Re-selecting from the panel promotes + reopens
      *  the board; see BoardListSecondaryView.) Not fired on the new main, so it
-     *  never clobbers a board we're navigating *to*. */
+     *  never clobbers a board we're navigating *to*. Project mode only — a single
+     *  board has nothing to demote to. */
     onMainEditorChanged(_newMainEditor: EditorModel | null): void {
+        if (this.state.get().boardRoot) return;
         if (this.state.get().selectedBoard) {
             this.selectBoard(undefined);
         }
     }
 
     /** Per-page singleton: re-navigating to the SAME `.persephone` reuses this
-     *  instance (promote back to main) rather than building a duplicate panel. */
+     *  instance (promote back to main) rather than building a duplicate panel.
+     *  Single-board editors are not project-link targets — the `persephone-board://`
+     *  match is added in US-748. */
     matchesNavigationTarget(target: string | undefined, filePath: string): boolean {
         if (target !== "board-view") return false;
+        if (this.state.get().boardRoot) return false;
         const link = decodePersephoneFolderLink(filePath);
         return !!link
-            && fpNormalizeForCompare(link.persephonePath) === fpNormalizeForCompare(this.state.get().persephonePath);
+            && fpNormalizeForCompare(fpJoin(link.persephonePath, "boards"))
+                === fpNormalizeForCompare(this.state.get().boardsDir);
     }
 
     /** Manual close (the panel "x"): detach + dispose this editor only. */
@@ -163,21 +194,37 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         await this.page?.removeSecondaryView(this);
     }
 
-    /** Seed persephonePath + provisional title from a decoded link, then load
-     *  trust state and enumerate the boards. */
+    /** Project / grouping mode — opened from a `.persephone` folder click. Seed
+     *  `boardsDir` + provisional title, then load trust state and enumerate. */
     initFromPersephone(persephonePath: string): void {
         this.state.update((s) => {
-            s.persephonePath = persephonePath;
+            s.boardsDir = fpJoin(persephonePath, "boards");
+            s.boardRoot = undefined;
             s.title = boardProjectTitle(persephonePath);
         });
         void projectTrust.load();
         void this.refreshBoards();
     }
 
-    /** Persistence restore (app restart + cross-window). persephonePath rides
-     *  the persisted state; re-load trust + re-enumerate the boards from disk. */
+    /** Single-board mode — opened by board-root path (wired by US-748 / US-750).
+     *  The board is standalone: no container, no sibling enumeration, no sidebar
+     *  panel (see `setPage`). Per-board trust lands in US-747. */
+    initFromBoardRoot(boardRoot: string): void {
+        const name = fpBasename(boardRoot);
+        this.state.update((s) => {
+            s.boardsDir = "";
+            s.boardRoot = boardRoot;
+            s.title = name;
+        });
+        this.selectBoard(name);
+        void this.refreshBoards();
+    }
+
+    /** Persistence restore (app restart + cross-window). `boardsDir`/`boardRoot`
+     *  ride the persisted state; re-load trust + re-enumerate the boards from disk. */
     async restore(): Promise<void> {
-        if (!this.state.get().persephonePath) return;
+        const s = this.state.get();
+        if (!s.boardsDir && !s.boardRoot) return;
         void projectTrust.load();
         await this.refreshBoards();
         // A board may have been open before restart — re-attach its watchers.
@@ -193,12 +240,16 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         await super.dispose();
     }
 
-    /** Enumerate `<persephonePath>/boards` subfolders into `state.boards`. */
+    /** Re-derive `state.boards`. Project mode: enumerate manifest-bearing subfolders
+     *  of `boardsDir`. Single-board mode: the board knows only itself — pin to its
+     *  own name (when its manifest is present), never scan siblings (US-746). */
     async refreshBoards(): Promise<void> {
-        const boardsDir = fpJoin(this.state.get().persephonePath, "boards");
+        const { boardsDir, boardRoot } = this.state.get();
         let boards: string[] = [];
         try {
-            if (await fs.exists(boardsDir)) {
+            if (boardRoot) {
+                if (await isBoardFolder(boardRoot)) boards = [fpBasename(boardRoot)];
+            } else if (await fs.exists(boardsDir)) {
                 const entries = await fs.listDirWithTypes(boardsDir);
                 const dirs = entries.filter((e) => e.isDirectory).map((e) => e.name);
                 // A folder is a board only if it carries board-manifest.json.
@@ -211,7 +262,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         // Re-probe each board's icon so a freshly added icon.* shows after a
         // refresh (create / delete / open) without an app restart (US-744 / Q4).
         for (const name of boards) {
-            invalidateBoardIcon(fpJoin(boardsDir, name));
+            invalidateBoardIcon(this.boardRootOf(name));
         }
         this.state.update((s) => {
             s.boards = boards;
@@ -242,9 +293,8 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     /** Absolute path to the selected board's `ui.log` (for the open-log action),
      *  or undefined when no board is open. */
     getSelectedBoardLogPath(): string | undefined {
-        const name = this.state.get().selectedBoard;
-        if (!name) return undefined;
-        return fpJoin(this.state.get().persephonePath, "boards", name, "ui.log");
+        const root = this.currentBoardRoot();
+        return root ? fpJoin(root, "ui.log") : undefined;
     }
 
     /** (Re)attach the per-board watchers when the selection changes: a FileWatcher
@@ -260,7 +310,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
             s.logHasErrors = false;
         });
         if (!name) return;
-        const boardRoot = fpJoin(this.state.get().persephonePath, "boards", name);
+        const boardRoot = this.boardRootOf(name);
         this.indexWatcher = new FileWatcher(fpJoin(boardRoot, "index.html"), () => {
             this.state.update((s) => { s.reloadToken++; });
         });
@@ -289,47 +339,28 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         this.state.update((s) => { s.logHasErrors = hasErrors; });
     }
 
-    /** Create a blank board scaffolded from the bundled `board-template`. Throws
-     *  on a duplicate/illegal name (the OS surfaces illegal names; the explicit
-     *  collision check covers duplicates). */
+    /** Create a blank board scaffolded from the bundled `board-template`, inside
+     *  THIS editor's own container, then refresh + select. Project mode only — the
+     *  list editor's "New board" affordance. Throws on a duplicate/illegal name.
+     *  Creating a board elsewhere goes through `createBoardFromTemplate` directly
+     *  (US-750) and never touches this editor. */
     async createBoard(name: string): Promise<void> {
-        return this.createFromTemplate(name, "board-template");
+        await createBoardFromTemplate(name, this.state.get().boardsDir, "board-template");
+        await this.refreshBoards();
+        this.selectBoard(name);
     }
 
-    /** Create a board scaffolded from the bundled `demo-board` template (US-728). */
+    /** Create a board scaffolded from the bundled `demo-board` template (US-728),
+     *  inside this editor's own container, then refresh + select. */
     async createDemoBoard(name: string): Promise<void> {
-        return this.createFromTemplate(name, "demo-board");
-    }
-
-    /** Shared create path: collision check → scaffold from `template` → on failure,
-     *  fall back to an empty folder → refresh + select. */
-    private async createFromTemplate(name: string, template: string): Promise<void> {
-        const dir = fpJoin(this.state.get().persephonePath, "boards", name);
-        if (await fs.exists(dir)) {
-            throw new Error(`A board named "${name}" already exists.`);
-        }
-        try {
-            await scaffoldBoard(dir, template);
-        } catch (err) {
-            // Template missing / copy failed — still produce a usable (empty) board.
-            await fs.mkdir(dir);
-            ui.notify(
-                `Board created, but the template could not be copied: ${
-                    err instanceof Error ? err.message : String(err)
-                }`,
-                "warning",
-            );
-        }
-        // Guarantee the board-identity manifest exists regardless of which path ran
-        // above (template copy or empty fallback) — a board is identified by it.
-        await ensureBoardManifest(dir);
+        await createBoardFromTemplate(name, this.state.get().boardsDir, "demo-board");
         await this.refreshBoards();
         this.selectBoard(name);
     }
 
     /** Delete a board folder (recursive). */
     async deleteBoard(name: string): Promise<void> {
-        await fs.removeDir(fpJoin(this.state.get().persephonePath, "boards", name), true);
+        await fs.removeDir(this.boardRootOf(name), true);
         await this.refreshBoards();
     }
 }

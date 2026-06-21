@@ -11,7 +11,6 @@ import { CloseIcon, RefreshIcon, LogIcon } from "../../theme/icons";
 import { useOptionalState } from "../../core/state/state";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
-import { fpJoin } from "../../core/utils/file-path";
 import { BoardGlyph } from "./BoardGlyph";
 import type { BoardEditorModel } from "./BoardEditorModel";
 
@@ -23,12 +22,13 @@ import type { BoardEditorModel } from "./BoardEditorModel";
  */
 export default function BoardListSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     const boardModel = model as BoardEditorModel;
-    const { boards, selectedBoard, title, logHasErrors, persephonePath } = boardModel.state.use((s) => ({
+    const { boards, selectedBoard, title, logHasErrors, boardsDir, boardRoot } = boardModel.state.use((s) => ({
         boards: s.boards,
         selectedBoard: s.selectedBoard,
         title: s.title,
         logHasErrors: s.logHasErrors,
-        persephonePath: s.persephonePath,
+        boardsDir: s.boardsDir,
+        boardRoot: s.boardRoot,
     }));
 
     const openLog = async () => {
@@ -42,9 +42,10 @@ export default function BoardListSecondaryView({ model, headerRef, icon }: Secon
             title: name,
             // Board's own icon when present, else the default BoardIcon glyph
             // (US-744 — replaces the generic folder icon for boards).
-            icon: <BoardGlyph boardRoot={fpJoin(persephonePath, "boards", name)} />,
+            icon: <BoardGlyph boardRoot={boardModel.boardRootOf(name)} />,
         })),
-        [boards, persephonePath],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [boards, boardsDir, boardRoot],
     );
 
     // Subscribe to page.state so the show-main zone's "active" indicator tracks

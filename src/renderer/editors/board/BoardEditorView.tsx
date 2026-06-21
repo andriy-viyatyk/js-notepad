@@ -10,7 +10,7 @@ import { ui } from "../../api/ui";
 import { showTrustProjectDialog } from "../../ui/dialogs/TrustProjectDialog";
 import { showInputDialog } from "../../ui/dialogs/InputDialog";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
-import { fpJoin } from "../../core/utils/file-path";
+import { fpDirname } from "../../core/utils/file-path";
 import { BoardEditorModel } from "./BoardEditorModel";
 import { UntrustedProjectView } from "./UntrustedProjectView";
 import { BoardWebview } from "./BoardWebview";
@@ -25,21 +25,26 @@ import { BoardGlyph } from "./BoardGlyph";
 
 export function BoardEditorView({ model }: { model: BoardEditorModel }) {
     const s = model.state.use((st) => ({
-        persephonePath: st.persephonePath,
+        boardsDir: st.boardsDir,
+        boardRoot: st.boardRoot,
         boards: st.boards,
         selectedBoard: st.selectedBoard,
         reloadToken: st.reloadToken,
         title: st.title,
     }));
-    const trusted = projectTrust.useIsTrusted(s.persephonePath);
+    // Project-mode trust key = the `.persephone` folder (parent of boardsDir, the
+    // US-721 key). A single board (boardRoot set) has no project trust here —
+    // per-board trust lands in US-747; until then a single board renders ungated.
+    const projectPath = s.boardsDir ? fpDirname(s.boardsDir) : "";
+    const trusted = projectTrust.useIsTrusted(projectPath);
 
-    if (!trusted) {
+    if (!s.boardRoot && !trusted) {
         return (
             <UntrustedProjectView
-                path={s.persephonePath}
+                path={projectPath}
                 onTrust={async () => {
-                    if (await showTrustProjectDialog(s.persephonePath)) {
-                        await projectTrust.trust(s.persephonePath);
+                    if (await showTrustProjectDialog(projectPath)) {
+                        await projectTrust.trust(projectPath);
                     }
                 }}
             />
@@ -98,7 +103,7 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                 <BoardWebview
                     key={`${s.selectedBoard}__${s.reloadToken}`}
                     model={model}
-                    boardRoot={fpJoin(s.persephonePath, "boards", s.selectedBoard)}
+                    boardRoot={model.boardRootOf(s.selectedBoard)}
                 />
             </Panel>
         );
@@ -207,7 +212,7 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                                 onClick={() => model.selectBoard(name)}
                                 revealChildrenOnHover
                             >
-                                <BoardGlyph boardRoot={fpJoin(s.persephonePath, "boards", name)} size={16} />
+                                <BoardGlyph boardRoot={model.boardRootOf(name)} size={16} />
                                 <Panel name="board-tile-title" flex={1} overflow="hidden" minWidth={0}>
                                     <Text size="sm" truncate title={name}>{name}</Text>
                                 </Panel>
