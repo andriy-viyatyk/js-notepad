@@ -731,9 +731,9 @@ AI agents can read, search, and maintain the same knowledge base over MCP.
 
 See **[Mneme — Knowledge Base](./mneme.md)** for complete documentation.
 
-## Web Board
+## Board
 
-A sandboxed HTML-page application hosted inside a Persephone project. Web Boards let you build fully custom UIs backed by scripts in any language (Node.js, Python, PowerShell, shell, …).
+A sandboxed HTML-page application hosted inside a Persephone project. Boards let you build fully custom UIs backed by scripts in any language (Node.js, Python, PowerShell, shell, …).
 
 **Opening:** Click the **`.persephone`** node in the **File Explorer** panel for any project that contains a `.persephone` folder. If no such folder exists, right-click any folder in the Explorer and choose **"Create .persephone project"**.
 
@@ -760,7 +760,7 @@ A sandboxed HTML-page application hosted inside a Persephone project. Web Boards
 
 **Recommended components:** Persephone publishes a catalog of component libraries (Tabulator, Chart.js, Flatpickr, Tom Select, Mermaid, and more) with pre-built skins that match the `--p-*` theme. The catalog lives in `boards-assets/` in the repository.
 
-See **[Web Boards](./web-boards.md)** for complete documentation.
+See **[Boards](./boards.md)** for complete documentation.
 
 ## Switching Editors
 

@@ -1,5 +1,5 @@
 /**
- * Per-board trust gate (EPIC-035). A Web Board's UI is web content and
+ * Per-board trust gate (EPIC-035). A Board's UI is web content and
  * `persephone.execute()` is arbitrary RCE, so a board does not render or run
  * until the user has trusted it. Trust is per board (its absolute root folder),
  * persisted across sessions in a line-delimited list of absolute paths at

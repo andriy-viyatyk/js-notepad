@@ -55,7 +55,7 @@ gemini --mcp-server http://localhost:7865/mcp
 | **list_windows** | List all windows (open and closed) with their status, page count, and page metadata. Browser pages also include `profileName`, `isIncognito`, and `isTor`. |
 | **open_window** | Open or reopen a window by index. Closed windows are recreated with their persisted pages. |
 | **execute_script** | Execute JavaScript or TypeScript with access to `page` and `app` objects. Accepts an optional `language` parameter (`"javascript"` or `"typescript"`; defaults to `"javascript"`). The most powerful tool — can do anything the scripting system supports. |
-| **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages include `profileName`, `isIncognito`, `isTor`, and `url`. Web Board pages include `editor: "board-view"` and `selectedBoard` (the board's display name). |
+| **list_pages** | List all open pages (tabs) with IDs, titles, editors, metadata. Browser pages include `profileName`, `isIncognito`, `isTor`, and `url`. Board pages include `editor: "board-view"` and `selectedBoard` (the board's display name). |
 | **get_page_content** | Get text content of a page by ID. |
 | **get_active_page** | Get the active page with content and metadata. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
 | **create_page** | Create a new page with optional content, language, and editor. Returns a clear error with specific hints for standalone editor types (browser, PDF, image, MCP Inspector, etc.) — use `open_url` or `execute_script` instead. |
@@ -67,7 +67,7 @@ gemini --mcp-server http://localhost:7865/mcp
 
 ### Browser Automation Tools
 
-These tools control the built-in browser and open **Web Boards** directly. Use `open_url` first to open a browser page if one is not already open; for boards, the user opens the board in Persephone first (agent cannot open an untrusted board). Find a board in `list_pages` by `editor: "board-view"` and read its `pageId` and `selectedBoard` fields.
+These tools control the built-in browser and drive **board pages** directly. Use `open_url` first to open a browser page if one is not already open; for boards, the user opens the board in Persephone first (agent cannot open an untrusted board). Find a board in `list_pages` by `editor: "board-view"` and read its `pageId` and `selectedBoard` fields.
 
 > **Note:** Browser automation tools are disabled by default. Enable them in **Settings → MCP Server → Enable browser interaction**. While disabled, the tools are hidden from the agent entirely (not listed in the MCP tool set). This is an opt-in safety gate — enable only when you want AI agents to be able to control the browser.
 

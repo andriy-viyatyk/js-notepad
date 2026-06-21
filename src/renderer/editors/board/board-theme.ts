@@ -1,5 +1,5 @@
 /**
- * The Web Board `--p-*` design contract (EPIC-034 / US-725) — the single place
+ * The Board `--p-*` design contract (EPIC-034 / US-725) — the single place
  * that defines the board-facing CSS-variable names and resolves their values.
  *
  * Two parts:

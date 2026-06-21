@@ -4,7 +4,7 @@ import { Button } from "../../uikit/Button";
 import { WarningIcon } from "../../theme/icons";
 
 /**
- * Untrusted-board placeholder (EPIC-035). A Web Board's UI is web content and
+ * Untrusted-board placeholder (EPIC-035). A Board's UI is web content and
  * `execute()` is arbitrary RCE, so nothing renders or runs until the board is
  * trusted. Shown in place of the board's webview; the "Trust board" button drives
  * the consent flow. Trust is per board — never sourced from the board's manifest.

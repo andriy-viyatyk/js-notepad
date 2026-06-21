@@ -1,6 +1,6 @@
-# Web Board — authoring guide
+# Board — authoring guide
 
-This folder is a **Persephone Web Board**: a small web app whose UI you own as a
+This folder is a **Persephone Board**: a small web app whose UI you own as a
 plain HTML page, backed by scripts you write in any language. Persephone hosts the
 page in a sandboxed webview and injects a single bridge object, `window.persephone`.
 
@@ -209,4 +209,4 @@ read the Demo board's files (`index.html`, `app.js`, `style.css`, `board-base.cs
 ## Docs
 
 Persephone on GitHub: https://github.com/andriy-viyatyk/persephone
-*(Web Board reference docs link — to be added once published.)*
+*(Board reference docs link — to be added once published.)*

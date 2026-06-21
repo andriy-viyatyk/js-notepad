@@ -1,6 +1,6 @@
-# Web Boards — build a custom board/editor for the user
+# Boards — build a custom board/editor for the user
 
-A **Web Board** is a small, self-contained web app you (the agent) build for the user:
+A **Board** is a small, self-contained web app you (the agent) build for the user:
 a dashboard, tool, viewer, or custom editor. Persephone hosts it in a sandboxed webview
 and gives it a single bridge object, `window.persephone`. You can create one, open it, and
 develop it end-to-end through the **`execute_script`** tool calling the `app` API — no user

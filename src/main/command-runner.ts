@@ -1,6 +1,6 @@
 /**
  * Main-process streaming command runner — the engine behind
- * `app.proc.execute()` (and, via US-724, the Web Board `persephone.execute()`).
+ * `app.proc.execute()` (and, via US-724, the Board `persephone.execute()`).
  *
  * Spawns a child process from a command-line string and streams its
  * stdout / stderr / exit / error back to the originating WebContents over IPC,

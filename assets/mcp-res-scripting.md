@@ -18,7 +18,7 @@ Root application object with all services.
 | `app.editors` | Editor registry — list and resolve editors |
 | `app.recent` | Recently opened files |
 | `app.downloads` | Download tracking |
-| `app.boards` | Web Boards — `createBoard(name, dir)` / `createDemoBoard(name, dir)` / `openBoard(root)`. See `read_guide("boards")`. |
+| `app.boards` | Boards — `createBoard(name, dir)` / `createDemoBoard(name, dir)` / `openBoard(root)`. See `read_guide("boards")`. |
 | `app.openRawLink(href)` | Open any link (file path, URL, or in-app scheme) in a new/reused tab and make it active |
 
 ### app.pages

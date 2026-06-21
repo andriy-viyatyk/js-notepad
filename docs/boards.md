@@ -1,8 +1,8 @@
 [← Home](./index.md)
 
-# Web Boards
+# Boards
 
-Web Boards let you build fully custom HTML-page applications that can live anywhere on disk and run local scripts on demand. The UI is yours to author as plain HTML — Persephone hosts it in a sandboxed webview and wires one bridge object, `window.persephone`, so your page can call scripts and show native dialogs.
+Boards let you build fully custom HTML-page applications that can live anywhere on disk and run local scripts on demand. The UI is yours to author as plain HTML — Persephone hosts it in a sandboxed webview and wires one bridge object, `window.persephone`, so your page can call scripts and show native dialogs.
 
 > **Target audience:** This guide is for users who want to create and use boards. For AI-agent builders, the per-board `CLAUDE.md` inside each board folder is the primary authoring reference.
 
@@ -284,7 +284,7 @@ The `boards-assets/manifest.json` file has machine-readable details — vendor U
 
 ## AI-assisted board authoring
 
-Web Boards are designed to be authored by an AI agent. The key workflow:
+Boards are designed to be authored by an AI agent. The key workflow:
 
 1. **Agent creates or opens a board.** Use the MCP tools `create_board` / `open_board`, or the scripting API `app.boards.createBoard()` / `app.boards.openBoard()`. Boards created this way are auto-trusted — no trust prompt blocks the agent.
 2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"`, a `selectedBoard` field, and (for standalone boards) a `boardRoot` field.

@@ -231,9 +231,9 @@ See [trait-system.md](./trait-system.md).
 - **Persephone-side integration (renderer).** Content flows through the standard delivery pipeline: `MnemeProvider` reads/writes/edits a document over the shared connection (with live-refresh), and `MnemeTreeProvider` browses a root like a filesystem. They back two link schemes — `mneme://{root}/{path}` for documents/attachments and `mneme-folder://` for a root. The UI surface is a config & monitoring editor (roots, include/ignore, reindex progress, model update, log), a root **search** editor with an Explorer-like sidebar tree (create/rename/delete, drag-drop import), and a provider indicator in the editor chrome. Relative `mneme://` image links open in the Image viewer.
 - **Crate detail lives in the crate.** This section is only an architectural pointer; the crate's own [`mneme/README.md`](../../mneme/README.md) (module layout, MCP surface, build/test, invariants) is the primary reference. Mneme is kept self-contained / extraction-ready, so it follows its own Rust conventions, not the renderer coding standards.
 
-### 9. Web Board Subsystem
+### 9. Board Subsystem
 
-A **Web Board** is a small local web application (plain HTML + JS) owned by the user, hosted in a locked-down Electron `<webview>`. A board is any folder carrying a `board-manifest.json` identity file — it can live anywhere on disk. `.persephone/boards/<Name>/` remains the default create location and a convenient way to group a project's boards, but is no longer required.
+A **Board** is a small local web application (plain HTML + JS) owned by the user, hosted in a locked-down Electron `<webview>`. A board is any folder carrying a `board-manifest.json` identity file — it can live anywhere on disk. `.persephone/boards/<Name>/` remains the default create location and a convenient way to group a project's boards, but is no longer required.
 
 **Security model:**
 - The webview runs with `sandbox` on, `contextIsolation` on, and `nodeIntegration` off.
@@ -252,7 +252,7 @@ A **Web Board** is a small local web application (plain HTML + JS) owned by the 
 
 **Discovery:** Trusted boards are surfaced in the sidebar "Tools & Editors" panel's "Custom Boards & Editors" tab (`TrustedBoardsList.tsx`), grouped by containing folder. Boards are pinnable alongside built-in editors — pins are one unified ordered list over the `pinned-editors` setting (`pinned-items.ts`, boards stored as `board:<root>`). The Explorer adds an "Open Board" trailing button on `board-manifest.json` rows; the row's normal click still opens the JSON in Monaco.
 
-**MCP automation:** Web Boards are `browser_*` targets. `list_pages` returns board pages with `editor: "board-view"` and a `selectedBoard` field; all `browser_*` tools (snapshot, click, type, evaluate, …) work by `pageId`.
+**MCP automation:** Boards are `browser_*` targets. `list_pages` returns board pages with `editor: "board-view"` and a `selectedBoard` field; all `browser_*` tools (snapshot, click, type, evaluate, …) work by `pageId`.
 
 **Recommended components** in `boards-assets/`: a catalog of 10 pre-built skins for popular libraries (Tabulator, Chart.js, Flatpickr, Tom Select, marked/highlight.js, Mermaid, Split.js, SortableJS, Tippy.js, native `<dialog>`). Described in `boards-assets/manifest.json`; adoption playbook in `boards-assets/README.md`.
 

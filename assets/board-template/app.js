@@ -1,4 +1,4 @@
-// Frontend logic for this Web Board. Owns the UI; talks to the backend scripts
+// Frontend logic for this Board. Owns the UI; talks to the backend scripts
 // under scripts/ through persephone.execute(). See CLAUDE.md for the full API.
 
 const P = window.persephone;

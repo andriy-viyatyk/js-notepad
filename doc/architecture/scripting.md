@@ -265,7 +265,7 @@ h.on("exit", ({ code }) => console.log("done", code));
 const result = await app.proc.execute(cmd).getJson(/@@RESULT@@(.*)/);
 ```
 
-The same channel backs Web Board's `persephone.execute()` — both the board preload and `app.proc` call into the same `command-runner.ts` in the main process.
+The same channel backs a board's `persephone.execute()` — both the board preload and `app.proc` call into the same `command-runner.ts` in the main process.
 
 Type definitions: `/src/renderer/api/types/proc.d.ts` (`IProc`, `IExecuteHandle`, `IExecuteOptions`).
 

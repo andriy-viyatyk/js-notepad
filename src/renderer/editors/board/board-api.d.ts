@@ -1,5 +1,5 @@
 /**
- * Public `window.persephone` API — the contract a Web Board page programs against
+ * Public `window.persephone` API — the contract a Board page programs against
  * (EPIC-034 / US-724). Injected by the board preload (`src/preload-board.ts`) into
  * the locked-down board webview; this is the ONLY Persephone surface a board sees.
  *

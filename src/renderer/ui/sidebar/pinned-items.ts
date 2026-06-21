@@ -5,7 +5,7 @@ import { DEFAULT_PINNED_EDITORS } from "./tools-editors-registry";
 /**
  * Unified pinned-item model for the "Tools & Editors" sidebar and the header
  * "add new page" dropdown. A pinned entry is either a built-in editor/tool or a
- * trusted Web Board — both live in **one ordered list** so they interleave and
+ * trusted Board — both live in **one ordered list** so they interleave and
  * reorder freely.
  *
  * Persistence reuses the existing `pinned-editors` settings key (`string[]`),

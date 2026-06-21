@@ -1,5 +1,5 @@
 /**
- * IPC channels + wire types for the Web Board integration tier — the part of
+ * IPC channels + wire types for the Board integration tier — the part of
  * the `persephone` bridge that `execute()` cannot express (in-app effects).
  * (EPIC-034 / US-724.)
  *

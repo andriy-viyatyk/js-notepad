@@ -1,7 +1,7 @@
 /**
  * Board lifecycle namespace (`app.boards`).
  *
- * Create Persephone **Web Boards** — sandboxed mini web-apps (an HTML page plus
+ * Create Persephone **Boards** — sandboxed mini web-apps (an HTML page plus
  * backend scripts) you can build and develop for the user. A board created here is
  * scaffolded from a bundled template, gets its `board-manifest.json`, and is
  * **auto-trusted at creation**, so it opens without a trust prompt.

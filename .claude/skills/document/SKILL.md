@@ -11,7 +11,7 @@ You are updating the developer documentation in `/doc/` to reflect recent code c
 
 ## Scope
 
-This command covers **developer docs** (the `/doc/` folder) **and the Web Board documentation in `assets/`** (the board authoring guide + the Demo board — consumer-facing references for the AI agents that build boards). User-facing app docs in `/docs/` are handled by the `/userdoc` skill separately.
+This command covers **developer docs** (the `/doc/` folder) **and the Board documentation in `assets/`** (the board authoring guide + the Demo board — consumer-facing references for the AI agents that build boards). User-facing app docs in `/docs/` are handled by the `/userdoc` skill separately.
 
 ## What to check and update
 
@@ -56,11 +56,11 @@ Check the root `CLAUDE.md` file:
 
 ### 4. Board documentation (`assets/` — consumer-facing)
 
-Web Boards are built and debugged by AI agents, so their reference docs **are** documentation and must track changes to board functionality (the `persephone.*` bridge, the `--p-*` theme/token contract, the `board://` host, scaffolding, reload, MCP debugging). When board functionality changed, verify and update **both**:
+Boards are built and debugged by AI agents, so their reference docs **are** documentation and must track changes to board functionality (the `persephone.*` bridge, the `--p-*` theme/token contract, the `board://` host, scaffolding, reload, MCP debugging). When board functionality changed, verify and update **both**:
 
 | Doc | Covers | Update when… |
 |-----|--------|--------------|
-| `assets/board-template/CLAUDE.md` | The Web Board authoring guide — copied into every new board; the canonical reference a board-author agent reads. | The `persephone` bridge surface (`execute` handle, integration tier, theme/tokens), the `--p-*` contract list, `board-base.css`, the reload model, or the MCP debugging flow changes. |
+| `assets/board-template/CLAUDE.md` | The Board authoring guide — copied into every new board; the canonical reference a board-author agent reads. | The `persephone` bridge surface (`execute` handle, integration tier, theme/tokens), the `--p-*` contract list, `board-base.css`, the reload model, or the MCP debugging flow changes. |
 | `assets/demo-board/` (`index.html`, `app.js`, `style.css`) | The living, self-documenting Demo board — Overview / Theming / Capabilities / Build Guide / Debugging tabs demonstrating the same surface. | A capability the demo showcases changes, or a new one should be demonstrated. Keep its Build Guide + Debugging prose accurate and refresh the live examples (buttons/probes) when the API changes. |
 | `assets/mcp-res-boards.md` | The **agent-facing** boards guide served by `read_guide("boards")` / `notepad://guides/boards` — what a board is, the `execute_script` create→open lifecycle (`app.boards.createBoard`/`createDemoBoard` + `app.openRawLink`), develop & test. | The board lifecycle API (`app.boards`, `app.openRawLink`), the `persephone.*` bridge, the `--p-*` contract, or the `browser_*` testing flow changes. |
 

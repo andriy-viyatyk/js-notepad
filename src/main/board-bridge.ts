@@ -1,5 +1,5 @@
 /**
- * Web Board integration-tier IPC (EPIC-034 / US-724).
+ * Board integration-tier IPC (EPIC-034 / US-724).
  *
  * The board page's `persephone` bridge (`src/preload-board.ts`) talks to main
  * over these channels for the in-app effects `execute()` cannot express:

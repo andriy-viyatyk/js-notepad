@@ -10,7 +10,7 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### New Features
 
-- **Web Boards** — A new kind of editor that lets you (or an AI agent) build fully custom HTML-page applications inside a Persephone project. A board is a plain HTML page backed by scripts in any language; Persephone hosts the page in a sandboxed webview and injects a single bridge object, `window.persephone`.
+- **Boards** — A new kind of editor that lets you (or an AI agent) build fully custom HTML-page applications inside a Persephone project. A board is a plain HTML page backed by scripts in any language; Persephone hosts the page in a sandboxed webview and injects a single bridge object, `window.persephone`.
 
   **Getting started:**
   - Right-click any folder in the **File Explorer** sidebar and choose **"Create .persephone project"** — this creates the `.persephone` folder, auto-trusts the project, and opens the **Board editor** immediately.
@@ -41,17 +41,17 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   **Per-board custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in a board folder to set the icon shown on the page tab, the board list, and the Boards sidebar panel.
 
-  **AI-agent integration** — Web Boards are designed to be authored by AI agents. The per-board `CLAUDE.md` documents the full bridge API. Once a board is open, agents can test and debug it using the `browser_*` MCP tools (the same Playwright-compatible tools used for the built-in browser), targeting the board page by its `pageId` from `list_pages` (`editor: "board-view"`).
+  **AI-agent integration** — Boards are designed to be authored by AI agents. The per-board `CLAUDE.md` documents the full bridge API. Once a board is open, agents can test and debug it using the `browser_*` MCP tools (the same Playwright-compatible tools used for the built-in browser), targeting the board page by its `pageId` from `list_pages` (`editor: "board-view"`).
 
-  > See **[Web Boards](./web-boards.md)** for full documentation.
+  > See **[Boards](./boards.md)** for full documentation.
 
-- **Web Boards — boards anywhere on disk** — Boards are no longer restricted to the `.persephone/boards/` folder. A board is now identified by a `board-manifest.json` file, and it can live anywhere on your machine. Right-click any `board-manifest.json` row in the **File Explorer** sidebar and click the **Open Board** button that appears on the row to open that board as a standalone tab.
+- **Boards — boards anywhere on disk** — Boards are no longer restricted to the `.persephone/boards/` folder. A board is now identified by a `board-manifest.json` file, and it can live anywhere on your machine. Right-click any `board-manifest.json` row in the **File Explorer** sidebar and click the **Open Board** button that appears on the row to open that board as a standalone tab.
 
-- **Web Boards — per-board trust (replaces per-project trust)** — Trust has moved from the project level to the individual board level. Each board is trusted separately, and trust is stored in `%AppData%\persephone\data\trustedBoards.txt`. Boards you create (via **"+ New board"**, the scripting API, or an AI agent) are **auto-trusted immediately** with no prompt. Any board Persephone did not create for you shows a **Trust board** dialog on first open — with a plain-language explanation of what trusting means. A **"Trust all boards in this project"** bulk action is available on the `.persephone` project node in the File Explorer.
+- **Boards — per-board trust (replaces per-project trust)** — Trust has moved from the project level to the individual board level. Each board is trusted separately, and trust is stored in `%AppData%\persephone\data\trustedBoards.txt`. Boards you create (via **"+ New board"**, the scripting API, or an AI agent) are **auto-trusted immediately** with no prompt. Any board Persephone did not create for you shows a **Trust board** dialog on first open — with a plain-language explanation of what trusting means. A **"Trust all boards in this project"** bulk action is available on the `.persephone` project node in the File Explorer.
 
-- **Web Boards — Custom Boards & Editors sidebar tab** — The **Tools & Editors** sidebar panel now has a second tab: **Custom Boards & Editors**. It lists all trusted boards grouped by their containing folder. Click any board to open it. **Pin** a board (the pin button appears on hover) to make it appear at the top of the panel and in the **+** (add page) dropdown alongside pinned editors. Right-click a board row → **Remove** to untrust and unpin it.
+- **Boards — Custom Boards & Editors sidebar tab** — The **Tools & Editors** sidebar panel now has a second tab: **Custom Boards & Editors**. It lists all trusted boards grouped by their containing folder. Click any board to open it. **Pin** a board (the pin button appears on hover) to make it appear at the top of the panel and in the **+** (add page) dropdown alongside pinned editors. Right-click a board row → **Remove** to untrust and unpin it.
 
-- **Web Boards — scripting and agent API** — A new `app.boards` namespace is available in scripts and to AI agents:
+- **Boards — scripting and agent API** — A new `app.boards` namespace is available in scripts and to AI agents:
 
   | Method | Description |
   |--------|-------------|

@@ -255,7 +255,7 @@ export type EventApi = {
     [EventEndpoint.eDownloadCleared]: EventObject<DownloadEntry[]>;
     [EventEndpoint.eMcpStatusChanged]: EventObject<McpStatus>;
     [EventEndpoint.eMnemeStatusChanged]: EventObject<MnemeStatus>;
-    // Web Board `persephone.notify()` → host renderer toast (US-724). Union
+    // Board `persephone.notify()` → host renderer toast (US-724). Union
     // inlined to keep this shared module free of renderer-type imports.
     [EventEndpoint.eBoardNotify]: EventObject<{
         message: string;

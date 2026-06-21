@@ -189,7 +189,7 @@ npm run lint        # Run ESLint
     /core            # State primitives, utilities
     /theme           # Styling
   /ipc               # Inter-process communication
-/boards-assets       # Recommended-components catalog for Web Boards (manifest + 10 skins)
+/boards-assets       # Recommended-components catalog for Boards (manifest + 10 skins)
 /assets              # Static assets (board-template/, demo-board/, mcp-res-*.md, editor-types/, …)
 /doc                 # Developer documentation
   /epics             # Epic tracking (big ideas with linked tasks)

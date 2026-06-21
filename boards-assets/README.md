@@ -1,6 +1,6 @@
 # Persephone Board Assets — recommended components & skins
 
-This folder publishes the components Persephone **recommends** for Web Boards, plus a
+This folder publishes the components Persephone **recommends** for Boards, plus a
 **Persephone skin** for each — a CSS file that restyles the component to match the app's
 theme. It is the home of the recommended-components **manifest** (`manifest.json`).
 

@@ -4,7 +4,7 @@ import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import type { BoardEditorModel } from "./BoardEditorModel";
 
 /**
- * `IBrowserTarget` adapter for a Web Board (EPIC-034 / US-730), letting the
+ * `IBrowserTarget` adapter for a Board (EPIC-034 / US-730), letting the
  * existing `browser_*` MCP automation tools drive a board's webview.
  *
  * A board is a single fixed `board:///index.html` document with no tabs and no

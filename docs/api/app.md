@@ -26,7 +26,7 @@ app.pages.activePage.content;
 | [editors](./editors.md) | `IEditorRegistry` | Read-only registry of all editors. |
 | [recent](./recent.md) | `IRecentFiles` | Recently opened files. |
 | [downloads](./downloads.md) | `IDownloads` | Global download tracking. |
-| `boards` | `IBoards` | Create and open [Web Boards](../web-boards.md) from scripts or agents. |
+| `boards` | `IBoards` | Create and open [Boards](../boards.md) from scripts or agents. |
 | `menuFolders` | `IMenuFolders` | User-configured sidebar folders. |
 
 ## Methods
@@ -76,7 +76,7 @@ await app.openRawLink("C:/data/report.json");
 // Open a URL in the built-in browser
 await app.openRawLink("https://example.com");
 
-// Open a Web Board by its root path (prefer app.boards.openBoard for boards)
+// Open a Board by its root path (prefer app.boards.openBoard for boards)
 await app.boards.openBoard("C:/work/boards/My Board");
 ```
 
@@ -138,7 +138,7 @@ See [Scripting — Background Workers](../scripting.md#background-workers-apprun
 
 ## boards
 
-Create and open [Web Boards](../web-boards.md). Boards created via this API are scaffolded from the built-in template, get a `board-manifest.json` identity file, and are **auto-trusted** — they open without a trust prompt.
+Create and open [Boards](../boards.md). Boards created via this API are scaffolded from the built-in template, get a `board-manifest.json` identity file, and are **auto-trusted** — they open without a trust prompt.
 
 ```javascript
 // Create a blank board in any folder and open it

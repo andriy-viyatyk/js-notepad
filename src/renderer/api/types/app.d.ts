@@ -56,7 +56,7 @@ export interface IApp {
     /** Spawn external programs and stream their output. */
     readonly proc: IProc;
 
-    /** Create Persephone Web Boards (sandboxed mini web-apps you build for the user). */
+    /** Create Persephone Boards (sandboxed mini web-apps you build for the user). */
     readonly boards: IBoards;
 
     /** Open pages (tabs) in the current window. */

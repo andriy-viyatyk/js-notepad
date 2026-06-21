@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Persephone Web Board — recommended third-party components and their Persephone skins. Each skin is written against the --p-* theme contract and is NOT bundled in the installer; an agent fetches the files it needs into the board folder as a frozen local copy. See README.md.",
+  "description": "Persephone Board — recommended third-party components and their Persephone skins. Each skin is written against the --p-* theme contract and is NOT bundled in the installer; an agent fetches the files it needs into the board folder as a frozen local copy. See README.md.",
   "components": [
     {
       "id": "tabulator",

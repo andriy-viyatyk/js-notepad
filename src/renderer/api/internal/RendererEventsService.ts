@@ -32,7 +32,7 @@ export class RendererEventsService {
         // Update check notification
         rendererEvents[EventEndpoint.eUpdateAvailable].subscribe(this.handleUpdateAvailable);
 
-        // Web Board `persephone.notify()` toast (US-724)
+        // Board `persephone.notify()` toast (US-724)
         rendererEvents[EventEndpoint.eBoardNotify].subscribe(this.handleBoardNotify);
     }
 

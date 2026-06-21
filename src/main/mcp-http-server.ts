@@ -173,7 +173,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 "Use `execute_script`. IMPORTANT: use read_guide(\"scripting\") BEFORE using this tool.",
                 "",
                 "**Build a custom board/editor for the user:**",
-                "Persephone has custom **Web Boards** — sandboxed mini web-apps (HTML + backend scripts) that you, the agent, can build for the user: dashboards, tools, viewers, custom editors. Use `create_board` to scaffold one (auto-trusted), `open_board` to show it, then develop it by editing its files. IMPORTANT: read read_guide(\"boards\") first.",
+                "Persephone has custom **Boards** — sandboxed mini web-apps (HTML + backend scripts) that you, the agent, can build for the user: dashboards, tools, viewers, custom editors. Use `create_board` to scaffold one (auto-trusted), `open_board` to show it, then develop it by editing its files. IMPORTANT: read read_guide(\"boards\") first.",
                 "",
                 "## Browser automation (browser_* tools)",
                 "",
@@ -247,7 +247,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             name: "boards-guide",
             uri: "notepad://guides/boards",
             file: "mcp-res-boards.md",
-            description: "Web Boards guide — what a board is, the execute_script + app.boards create/open lifecycle, the execute() channel, --p-* theme contract, local vendoring, and browser_* testing. Read BEFORE building or opening a board.",
+            description: "Boards guide — what a board is, the execute_script + app.boards create/open lifecycle, the execute() channel, --p-* theme contract, local vendoring, and browser_* testing. Read BEFORE building or opening a board.",
         },
     ];
 
@@ -434,10 +434,10 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             toToolResult(await sendToRenderer("open_url", { url, profileName, incognito }, windowIndex)),
     );
 
-    // ── Web Board lifecycle tools ────────────────────────────────────
+    // ── Board lifecycle tools ─────────────────────────────────────────
     server.tool(
         "create_board",
-        "Create a Persephone Web Board — a sandboxed mini web-app (HTML page + backend scripts) you build for the user: a dashboard, tool, viewer, or custom editor. Scaffolds from a template, guarantees its board-manifest.json, auto-trusts it, and returns { boardRoot } (the new board's absolute root path). Then call open_board to show it, and edit its files to develop it. IMPORTANT: read read_guide(\"boards\") first.",
+        "Create a Persephone Board — a sandboxed mini web-app (HTML page + backend scripts) you build for the user: a dashboard, tool, viewer, or custom editor. Scaffolds from a template, guarantees its board-manifest.json, auto-trusts it, and returns { boardRoot } (the new board's absolute root path). Then call open_board to show it, and edit its files to develop it. IMPORTANT: read read_guide(\"boards\") first.",
         {
             name: z.string().describe("Board folder name — created inside `dir`; also the default display name."),
             dir: z.string().describe("Absolute path of the container folder the board is created in (created if it doesn't exist)."),
@@ -449,7 +449,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     );
     server.tool(
         "open_board",
-        "Open an existing Persephone Web Board by its root folder path (the folder containing board-manifest.json). Opens a new tab (or reuses the board's tab) and makes it active. A board created via create_board is auto-trusted and opens immediately; a board Persephone did not create prompts the user for trust before rendering. Returns { opened: path }. IMPORTANT: read read_guide(\"boards\") first.",
+        "Open an existing Persephone Board by its root folder path (the folder containing board-manifest.json). Opens a new tab (or reuses the board's tab) and makes it active. A board created via create_board is auto-trusted and opens immediately; a board Persephone did not create prompts the user for trust before rendering. Returns { opened: path }. IMPORTANT: read read_guide(\"boards\") first.",
         {
             path: z.string().describe("Absolute path of the board's root folder (the folder containing board-manifest.json)."),
             windowIndex: windowIndexParam,

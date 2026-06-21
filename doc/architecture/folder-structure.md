@@ -57,7 +57,7 @@ persephone/
 │   ├── assets/             # models.json manifest + wiki-guide.md (agent guide resource)
 │   ├── Cargo.toml
 │   └── README.md           # crate-local docs (module layout, build/test, invariants) — primary reference
-├── boards-assets/          # Recommended-components catalog for Web Boards
+├── boards-assets/          # Recommended-components catalog for Boards
 │   ├── manifest.json       # Catalog index (id, label, files, description per skin)
 │   ├── README.md           # Adoption playbook
 │   └── *.css / *.js        # Pre-built skins: tabulator, chart-theme, flatpickr, tom-select,
@@ -511,7 +511,7 @@ persephone/
 │   │   ├── MnemeTreeSecondaryView.tsx # "mneme-tree" sidebar panel (browse/create/rename/delete/drop)
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
 │   │   └── index.tsx
-│   ├── board/              # Web Board editor (non-text, Pattern B survive-navigation)
+│   ├── board/              # Board editor (non-text, Pattern B survive-navigation)
 │   │   ├── BoardEditorModel.ts       # EditorModel — board lifecycle, per-board trust gate, webview state, icon, boards list; opens any board root (not only .persephone/boards/)
 │   │   ├── BoardEditorView.tsx       # React component (view only)
 │   │   ├── BoardWebview.tsx          # Locked-down <webview> (sandbox+contextIsolation on, board:// protocol)

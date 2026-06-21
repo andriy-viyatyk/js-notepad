@@ -72,11 +72,11 @@ export const getDefaultBoardEditorState = (): BoardEditorState => ({
  * Board editor (EPIC-034 / US-722).
  *
  * Opened by clicking a `.persephone` folder in any file tree (mirrors `.git` →
- * Git Tree, `.mneme` → Mneme root). Hosts the project's Web Boards: a side panel
+ * Git Tree, `.mneme` → Mneme root). Hosts the project's Boards: a side panel
  * lists them (the switcher), and the main view lists them with create/delete and
- * — once US-723 lands — renders the selected board's webview. Rendering and
- * `execute()` are gated by the per-project trust gate (US-721): an untrusted
- * project shows a placeholder + "Trust project" button instead of any board.
+ * renders the selected board's webview. Rendering and `execute()` are gated by
+ * the per-board trust gate: an untrusted board shows a placeholder + "Trust
+ * board" button instead of rendering.
  *
  * Follows the "survive navigation, close only via the panel `x`" lifecycle and
  * is a per-project navigation singleton, so re-clicking the same `.persephone`
