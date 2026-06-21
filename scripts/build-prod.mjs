@@ -8,6 +8,7 @@
  *   .vite/build/main.js           – main process (CJS)
  *   .vite/build/preload.js        – preload script (CJS)
  *   .vite/build/preload-webview.js – webview preload (CJS)
+ *   .vite/build/preload-board.js  – board webview preload (CJS)
  *   .vite/renderer/main_window/   – renderer (ESM, HTML entry)
  */
 
@@ -85,6 +86,27 @@ await build({
         minify: false,
         rollupOptions: {
             input: { "preload-webview": "src/preload-webview.ts" },
+            output: {
+                format: "cjs",
+                entryFileNames: "[name].js",
+                chunkFileNames: "[name].js",
+            },
+            external: nodeExternals,
+        },
+    },
+});
+
+// ── 3b. Preload-board ────────────────────────────────────────────────
+
+console.log("\n🔨 Building preload-board...");
+await build({
+    configFile: false,
+    build: {
+        outDir: ".vite/build",
+        emptyOutDir: false,
+        minify: false,
+        rollupOptions: {
+            input: { "preload-board": "src/preload-board.ts" },
             output: {
                 format: "cjs",
                 entryFileNames: "[name].js",
