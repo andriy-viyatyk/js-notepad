@@ -31,14 +31,16 @@ The application looks like a simple notepad by default. To access additional fea
 
 ### Creating a New File
 - Press `Ctrl+N` or click the + button in the tab bar
-- Click the dropdown arrow (▾) next to the + button to create a page with a specific editor:
+- Click the dropdown arrow (▾) next to the + button to create a page with a specific editor. The default items are:
+  - **Open Folder** — Pick a folder; opens a new tab with the File Explorer panel rooted at that folder
   - **Script (JS)** — JavaScript file for scripting
+  - **Script (TS)** — TypeScript file for scripting
+  - **Drawing** — Excalidraw-based drawing canvas
   - **Grid (JSON)** — Grid editor for JSON data
   - **Grid (CSV)** — Grid editor for CSV data
-  - **Notebook** — Notebook editor for structured notes
-  - **Todo** — Task list editor
-  - **Links** — Link manager
   - **Browser** — Built-in web browser (or pick a specific profile / incognito)
+
+  The dropdown shows your **pinned** editors. You can add or remove items from the **Tools & Editors** panel in the sidebar (see [Tabs & Navigation](./tabs-and-navigation.md#tools--editors)).
 
 ### Opening Files
 - Press `Ctrl+O` to open file dialog

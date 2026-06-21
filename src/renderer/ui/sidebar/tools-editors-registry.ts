@@ -1,11 +1,13 @@
 import React, { ReactNode } from "react";
 import { pagesModel } from "../../api/pages";
+import { fs } from "../../api/fs";
 import { BrowserProfile } from "../../api/settings";
 import {
     DrawIcon, GraphIcon, GridIcon, IncognitoIcon, RestClientIcon, TorIcon,
     JavascriptIcon, LinkIcon, NotebookIcon, TodoIcon, TypescriptIcon,
 } from "../../theme/language-icons";
 import { GlobeIcon, McpIcon, MemoryIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
+import { FolderIcon } from "../../components/icons/FileIcon";
 import { DEFAULT_BROWSER_COLOR, MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 
 // =============================================================================
@@ -30,7 +32,7 @@ export interface CreatableItem {
 // =============================================================================
 
 export const DEFAULT_PINNED_EDITORS = [
-    "script-js", "script-ts", "draw-view", "grid-json", "grid-csv", "browser",
+    "open-folder", "script-js", "script-ts", "draw-view", "grid-json", "grid-csv", "browser",
 ];
 
 // =============================================================================
@@ -38,6 +40,20 @@ export const DEFAULT_PINNED_EDITORS = [
 // =============================================================================
 
 const staticItems: CreatableItem[] = [
+    {
+        id: "open-folder",
+        label: "Open Folder",
+        icon: React.createElement(FolderIcon),
+        create: () => {
+            void (async () => {
+                const picked = await fs.showFolderDialog({ title: "Open Folder in Explorer" });
+                const folder = picked?.[0];
+                if (!folder) return;
+                await pagesModel.addEmptyPageWithNavPanel(folder);
+            })();
+        },
+        category: "tool",
+    },
     {
         id: "script-js",
         label: "Script (JS)",

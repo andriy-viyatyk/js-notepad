@@ -425,6 +425,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Board icon cache (module-level SVG/PNG/ICO → data URL cache) | `/src/renderer/editors/board/board-icon-cache.ts` |
 | Board preload (injects `window.persephone` bridge into the sandboxed webview) | `/src/preload-board.ts` |
 | Tools & Editors sidebar panel (pinned region + Editors / Custom Boards & Editors tabs) | `/src/renderer/ui/sidebar/ToolsEditorsPanel.tsx` |
+| Creatable-items registry (`CreatableItem` list shared by the Tools & Editors panel and the `+` new-page dropdown; `DEFAULT_PINNED_EDITORS`) | `/src/renderer/ui/sidebar/tools-editors-registry.ts` |
 | Trusted-boards sidebar tab (grouped by folder; open / pin / Remove ≡ untrust) | `/src/renderer/ui/sidebar/TrustedBoardsList.tsx` |
 | Unified pin model (`PinnedRef` over `pinned-editors`; editors + `board:<root>`) | `/src/renderer/ui/sidebar/pinned-items.ts` |
 | Board authoring guide (bridge surface, reload, MCP debugging, --p-* contract) | `/assets/board-template/CLAUDE.md` |

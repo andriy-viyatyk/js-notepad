@@ -61,6 +61,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   Two new MCP tools complement this: `create_board` and `open_board`. Agents can build and open boards without any user interaction.
 
+- **"Open Folder" shortcut in Tools & Editors** — A new **Open Folder** entry appears in the **Tools & Editors** panel and in the **+** (add page) dropdown menu. Clicking it shows a native Select Folder dialog; once you pick a folder, a new tab opens with the **File Explorer** panel rooted at that folder — the same result as right-clicking a folder in the Explorer sidebar and choosing **"Open in New Tab"**. For new installations, **Open Folder** is the first item in the default pinned set, so it shows up immediately in the **+** dropdown without any setup. Existing users can pin it from the **All Editors & Tools** tab of the Tools & Editors panel.
+
 - **Global paste — HTML-only images (PowerPoint / Office)** — Copying a picture from PowerPoint, Word, Excel, or any app that places the image on the clipboard as an HTML fragment (no bitmap) and then pressing `Ctrl+V` in Persephone now opens that picture in a new **HTML viewer** tab titled **"Pasted HTML"**. Previously, nothing happened for such clipboards. The existing behavior is unchanged: pasting a real bitmap image (a screenshot, an image copied from Snipping Tool or Teams) still opens the **Image Viewer** tab as before. Pasting into a focused editor (Monaco, any input, or other text field) is not affected — those targets receive the text content as usual. The new HTML-viewer tab is not persisted across app restarts.
 
 ### UI Polish

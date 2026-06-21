@@ -188,7 +188,9 @@ The **Tools & Editors** entry appears between Recent Files and Script Library. I
 - **Pinned** — Your favorite editors, shown at the top. Drag to reorder. These are also the items that appear in the **+** dropdown menu in the tab bar.
 - **All** — Every available editor/tool, sorted alphabetically. Click the pin button to add an item to your pinned list.
 
-Click any item to create a new page with that editor. Pinned editors are saved in settings (`pinned-editors`) and persist across restarts. The default pinned set is: Script (JS), Script (TS), Drawing, Grid (JSON), Grid (CSV), Browser.
+Click any item to create a new page with that editor. Pinned editors are saved in settings (`pinned-editors`) and persist across restarts. The default pinned set (for new installations) is: **Open Folder**, Script (JS), Script (TS), Drawing, Grid (JSON), Grid (CSV), Browser.
+
+**Open Folder** — The first entry in the default pinned set. Clicking it shows a native Select Folder dialog; once you pick a folder, a new tab opens with the File Explorer panel rooted at that folder. This is identical to right-clicking a folder in the Explorer sidebar and choosing **"Open in New Tab"**. Existing users can pin it from the **All Editors & Tools** tab.
 
 Items include all standard editors (Script, Grid, Notebook, Todo, Links, Drawing, Force Graph, Browser, Video Player) as well as MCP Inspector and individual browser profiles (Incognito and named profiles).
 
