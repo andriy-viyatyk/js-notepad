@@ -186,6 +186,25 @@
         "type": "css",
         "cssVsJs": "Pure CSS skin — the bubble is appended to <body> under the same <html> that carries the --p-* inline vars, so a theme switch re-tints it with NO JS. Themed via a NAMED Tippy theme (NOT a global .tippy-box override): set `theme: 'persephone'` on each instance, and the skin targets `.tippy-box[data-theme~='persephone']`. This keeps the default look intact for any un-themed tippy and is opt-in per instance. The skin themes the BOX (chrome): --p-panel fill + a REAL --p-border (essential in light themes, where a --p-panel bubble sits on a near-white --p-bg and would otherwise have no edge), --p-text color, --p-radius-md, --p-shadow, --p-font-sm, and content padding from the spacing tokens. The arrow is a two-layer triangle (same technique as Tippy's own light-border theme): ::before front face = --p-panel (set once via the arrow's `color`, which core reads as currentColor for all placements), and ::after = a --p-border ring behind it, offset per placement so the box's 1px border continues onto the arrow. CSS-vs-CONTENT split: the skin themes only the box. An INTERACTIVE popover's CONTENT is board-owned HTML (e.g. a dropdown menu's rows, a details card) — theme that with --p-* in your OWN board CSS, like the app's menus (accent hover rows). The default theme name + arrow offsets assume the default 16px arrow; re-point selectors if you rename the theme."
       }
+    },
+    {
+      "id": "dialog",
+      "name": "Native <dialog> modal",
+      "purpose": "Modal / dialog pattern — info modals, confirm dialogs, and form modals. NO third-party library: the native <dialog> element + dialog.showModal() provides the top-layer modal, focus trapping, ESC-to-close (the `cancel` event), and method=\"dialog\" forms whose button value becomes returnValue. This is a pattern + skin, not a vendored component.",
+      "homepage": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog",
+      "npm": null,
+      "testedVersion": "native (Electron Chromium)",
+      "vendor": {
+        "note": "NO library to download — <dialog> is a native HTML element, fully supported by the board webview's Chromium (showModal, ::backdrop, the `cancel` event, method=\"dialog\" + returnValue). There is no JS/CSS to vendor; only the skin (dialog.css) is fetched. Backdrop click-to-close is the one behavior the native element does NOT provide — add a few lines of board JS (compare the click point to the dialog's content rect); see the demo board's app.js."
+      },
+      "skin": {
+        "file": "dialog.css",
+        "tunedFor": "native <dialog> (Electron Chromium)",
+        "tuned": "2026-06",
+        "loadOrder": "board-base.css → dialog.css (no component CSS to load between them — there is no library)",
+        "type": "css",
+        "cssVsJs": "Pure CSS skin — the modal lives under the same <html> that carries the --p-* inline vars, so a theme switch re-tints it AND its backdrop with NO JS. The skin styles the panel (--p-panel fill + a REAL --p-border, essential in light themes; --p-radius-lg, --p-shadow; padding:0 so the header/body/footer own spacing; max-width/height + body scroll keep a tall modal in the viewport) and a small conventional structure so boards get a consistent modal: .dialog-header (title + a quiet .dialog-close ✕), .dialog-body (scrollable), and .dialog-footer (top --p-border, right-aligned buttons — neutral by default, .primary = --p-accent/--p-accent-text). It also themes `dialog::backdrop` with --p-overlay + a blur: ::backdrop lives in the TOP LAYER (not a child of <dialog>), but modern Chromium makes it INHERIT from its originating element, so the <html>-level --p-* resolve on it — VERIFIED in both dark and light. Wrap the contents in a `<form method=\"dialog\">` so a footer button's `value` lands in dialog.returnValue (read it on the `close` event). For a form that submits to a script, DON'T use method=\"dialog\" — intercept submit, run persephone.execute(), and close() on success so a failed save keeps the modal open. See the demo board's app.js for the backdrop-click-to-close helper and the execute()-backed form."
+      }
     }
   ]
 }

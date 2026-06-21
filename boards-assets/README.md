@@ -73,3 +73,4 @@ See [`manifest.json`](manifest.json) for the machine-readable list. Currently:
 | [Split.js](https://split.js.org/) | Resizable layout panes (horizontal / vertical / nested split views; drag-to-resize gutters) | 1.6.5 | [`split.css`](split.css) (CSS) |
 | [SortableJS](https://sortablejs.github.io/Sortable/) | Drag-to-reorder lists & kanban (reorder within a list, drag across lists, handles, touch) | 1.15.7 | [`sortablejs.css`](sortablejs.css) (CSS) |
 | [Tippy.js](https://atomiks.github.io/tippyjs/) | Tooltips, popovers & in-board menus (placement gallery, rich HTML, interactive click popovers, dropdown menus) | 6.3.7 | [`tippy.css`](tippy.css) (CSS) |
+| [Native `<dialog>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog) | Modal / dialog pattern (info, confirm via `returnValue`, `execute()`-backed form) — **no library**: native top-layer modal + focus trap + ESC + themed `::backdrop` | native | [`dialog.css`](dialog.css) (CSS) |

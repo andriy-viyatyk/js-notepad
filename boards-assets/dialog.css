@@ -1,0 +1,129 @@
+/* persephone pattern · native <dialog> · tuned 2026-06
+ * ===========================================================================
+ * A Persephone skin for the NATIVE <dialog> element — NO third-party library.
+ * <dialog> + dialog.showModal() gives you, for free, what a modal library exists
+ * to provide: a top-layer modal, focus trapping, ESC-to-close (the `cancel`
+ * event), and method="dialog" forms whose button value becomes returnValue. This
+ * file only RE-COLORS that native modal to match the app via the --p-* theme
+ * contract (see the board CLAUDE.md) — so the panel and its dimmed backdrop
+ * follow the app's dark/light theme live, with no hardcoded colors and no JS.
+ *
+ * Load order in index.html:  board-base.css → dialog.css.
+ *
+ * Structure the skin styles (a small, conventional layout so boards get a
+ * consistent modal — wrap the contents in a method="dialog" form so a footer
+ * button's `value` lands in dialog.returnValue):
+ *
+ *     <dialog>
+ *       <form method="dialog">
+ *         <div class="dialog-header"><span>Title</span>
+ *           <button class="dialog-close" value="cancel" aria-label="Close">✕</button></div>
+ *         <div class="dialog-body">…</div>
+ *         <div class="dialog-footer">
+ *           <button value="cancel">Cancel</button>
+ *           <button class="primary" value="ok">OK</button></div>
+ *       </form>
+ *     </dialog>
+ *
+ * ::backdrop + --p-*: the ::backdrop pseudo lives in the TOP LAYER, not as a
+ * child of <dialog>. Modern Chromium (the board webview is Electron's Chromium)
+ * makes ::backdrop INHERIT from its originating element, so the <html>-level
+ * --p-* vars resolve on it — verified in this board. The literal fallbacks keep
+ * the overlay sane on any engine where that ever regresses.
+ * ===========================================================================*/
+
+/* ── The modal panel ─────────────────────────────────────────────────────────
+   --p-panel fill + a REAL --p-border (essential in LIGHT themes, where a
+   --p-panel panel on a near-white --p-bg would otherwise have no edge). padding:0
+   — the header / body / footer own their spacing. max-width/height + the body's
+   own scroll keep a tall modal inside the viewport. */
+dialog {
+    padding: 0;
+    background: var(--p-panel, #252526);
+    color: var(--p-text, #d4d4d4);
+    border: 1px solid var(--p-border, #3c3c3c);
+    border-radius: var(--p-radius-lg, 8px);
+    box-shadow: 0 10px 40px var(--p-shadow, rgba(0, 0, 0, 0.5));
+    max-width: min(90vw, 520px);
+    max-height: 85vh;
+    overflow: hidden;
+}
+
+/* ── The dimmed overlay behind the modal ─────────────────────────────────────
+   --p-overlay, inherited from the originating <dialog>. The subtle blur lifts
+   the modal off the page; drop it for a flat dim. */
+dialog::backdrop {
+    background: var(--p-overlay, rgba(0, 0, 0, 0.5));
+    backdrop-filter: blur(2px);
+}
+
+/* ── Header: title + close ───────────────────────────────────────────────── */
+.dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-gap-lg, 12px);
+    padding: var(--p-space-md, 10px) var(--p-space-lg, 14px);
+    border-bottom: 1px solid var(--p-border, #3c3c3c);
+    font-size: var(--p-font-md, 14px);
+    color: var(--p-text-strong, #ffffff);
+}
+/* The header close — a quiet icon button (no fill until hover), like the app's
+   close affordances. value="cancel" so it sets returnValue inside a dialog form. */
+.dialog-header .dialog-close {
+    font: inherit;
+    line-height: 1;
+    padding: var(--p-space-xs, 4px) var(--p-space-sm, 6px);
+    border: 1px solid transparent;
+    border-radius: var(--p-radius-sm, 3px);
+    background: transparent;
+    color: var(--p-text-muted, #969696);
+    cursor: pointer;
+}
+.dialog-header .dialog-close:hover {
+    background: var(--p-overlay, rgba(255, 255, 255, 0.08));
+    color: var(--p-text, #d4d4d4);
+}
+
+/* ── Body: the scrollable content region ─────────────────────────────────── */
+.dialog-body {
+    padding: var(--p-space-lg, 14px);
+    overflow-y: auto;
+    max-height: 60vh;
+}
+
+/* ── Footer: right-aligned action buttons ────────────────────────────────────
+   The skin styles buttons INSIDE .dialog-footer so a board's modal actions match
+   the app with no per-board button CSS: secondary (neutral fill) by default,
+   primary (accent) via .primary. */
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--p-gap-md, 8px);
+    padding: var(--p-space-md, 10px) var(--p-space-lg, 14px);
+    border-top: 1px solid var(--p-border, #3c3c3c);
+}
+.dialog-footer button {
+    font: inherit;
+    height: var(--p-size-control-md, 28px);
+    padding: 0 var(--p-space-lg, 14px);
+    border-radius: var(--p-radius-md, 4px);
+    border: 1px solid var(--p-border, #3c3c3c);
+    background: var(--p-bg, #1e1e1e);
+    color: var(--p-text, #d4d4d4);
+    cursor: pointer;
+}
+.dialog-footer button:hover { border-color: var(--p-accent, #0078d4); }
+.dialog-footer button.primary {
+    border-color: var(--p-accent, #0078d4);
+    background: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+.dialog-footer button.primary:hover { filter: brightness(1.1); }
+
+/* ── Optional open animation (progressive; a no-op where unsupported) ──────── */
+dialog[open] { animation: dialog-in 120ms ease-out; }
+@keyframes dialog-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}

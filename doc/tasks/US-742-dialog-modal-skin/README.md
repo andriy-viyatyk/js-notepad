@@ -1,6 +1,6 @@
 # US-742: Recommended component — native `<dialog>` modal (no-dependency pattern skin)
 
-**Epic:** [EPIC-034 — Web Board](../../epics/EPIC-034.md) · **Status:** Planned (not yet implemented)
+**Epic:** [EPIC-034 — Web Board](../../epics/EPIC-034.md) · **Status:** Implemented & MCP-verified (dark + light); epic-deferred review
 
 ## Goal
 
@@ -88,18 +88,24 @@ to show a generic modal (confirm, form, detail) that matches the app.
 
 ## Acceptance criteria
 
-- [ ] Demo shows info + confirm (`returnValue`) + `execute()`-backed form modals, themed in **both** dark and light, with native ESC + focus trap working.
-- [ ] Theming via a **CSS skin** against `--p-*` including `dialog::backdrop`; re-tints on theme switch with no JS.
-- [ ] **No third-party library** — native `<dialog>` only; board loads offline.
-- [ ] At least one data path goes through `persephone.execute()` (form submit).
-- [ ] Skin promoted to `boards-assets/dialog.css`; manifest + README updated.
+- [x] Demo shows info + confirm (`returnValue`) + `execute()`-backed form modals, themed in **both** dark and light, with native ESC + focus trap working. *(MCP-verified: confirm→"Confirmed"/cancel→"Dismissed" via returnValue; form submit ran `scripts/save.js` over `execute()` and showed the saved JSON; backdrop click closes, inside click does not.)*
+- [x] Theming via a **CSS skin** against `--p-*` including `dialog::backdrop`; re-tints on theme switch with no JS. *(Probed `getComputedStyle(dialog,'::backdrop')` — backdrop inherits `--p-overlay` in both `default-dark` and `quiet-light`; panel/border/header/accent-button all trace to tokens in both.)*
+- [x] **No third-party library** — native `<dialog>` only; board loads offline.
+- [x] At least one data path goes through `persephone.execute()` (form submit → `scripts/save.js`, JSON piped on stdin, `@@RESULT@@`-tagged result).
+- [x] Skin promoted to `boards-assets/dialog.css`; manifest + README updated.
 
-## Files changed (planned)
+## Resolved concern — `dialog::backdrop` + `--p-*` inheritance
+
+The one flagged risk. **Verified via MCP probe**: in the board webview's Chromium, `dialog::backdrop` **inherits** `--p-*` from its originating `<dialog>`, so `background: var(--p-overlay)` resolves on the backdrop — `rgba(0,0,0,0.6)` in `default-dark`, `rgba(245,245,245,0.85)` in `quiet-light`. No fallback redeclaration needed; the literal fallback in the skin remains as defence for any engine where this regresses. Noted in the skin header.
+
+## Files changed
 
 | Path | Change |
 |------|--------|
-| `boards-assets/dialog.css` | new — native-`<dialog>` modal pattern skin |
-| `boards-assets/manifest.json` | new `dialog` entry (`npm: null`, pattern) |
-| `boards-assets/README.md` | components table — native dialog row |
+| `boards-assets/dialog.css` | new — native-`<dialog>` modal pattern skin (`--p-*`, stamped) |
+| `boards-assets/manifest.json` | new `dialog` entry (`npm: null`, pattern, `skin.type: "css"`) |
+| `boards-assets/README.md` | components table — native `<dialog>` row (marked no-dependency) |
+| `assets/demo-board/index.html` | Build Guide — added the "Native `<dialog>`" recommended-component card |
 
-Demo board `.persephone/boards/Dialog/` stays local (gitignored).
+Demo board `.persephone/boards/Dialog/` stays local (gitignored): `index.html`, `app.js`,
+`dialog.css` (frozen copy of the promoted skin), `scripts/save.js`.
