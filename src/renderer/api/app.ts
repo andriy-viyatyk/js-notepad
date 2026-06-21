@@ -10,8 +10,10 @@ import type { IUserInterface } from "./types/ui";
 import type { IDownloads } from "./types/downloads";
 import type { IMenuFolders } from "./types/menu-folders";
 import type { IProc } from "./types/proc";
+import type { IBoards } from "./types/boards";
 import type { PagesModel } from "./pages/PagesModel";
 import { AppEvents } from "./events/AppEvents";
+import { createLinkData } from "../../shared/link-data";
 import type { IFetchOptions } from "./types/app";
 
 // Note: IApp (.d.ts) is the script-facing interface for Monaco IntelliSense.
@@ -37,6 +39,7 @@ class App {
     private _downloads = undefined as unknown as IDownloads;
     private _menuFolders = undefined as unknown as IMenuFolders;
     private _proc = undefined as unknown as IProc;
+    private _boards = undefined as unknown as IBoards;
     private _pages = undefined as unknown as PagesModel;
     private _events = new AppEvents();
 
@@ -84,6 +87,10 @@ class App {
         return this._proc;
     }
 
+    get boards(): IBoards {
+        return this._boards;
+    }
+
     get pages(): PagesModel {
         return this._pages;
     }
@@ -95,6 +102,10 @@ class App {
     fetch = async (url: string, options?: IFetchOptions): Promise<Response> => {
         const { nodeFetch } = await import("./node-fetch");
         return nodeFetch(url, options);
+    };
+
+    openRawLink = async (href: string): Promise<void> => {
+        await this._events.openRawLink.sendAsync(createLinkData(href, { sourceId: "app-api" }));
     };
 
     /**
@@ -131,7 +142,7 @@ class App {
         if (this._servicesInitialized) return;
         this._servicesInitialized = true;
 
-        const [{ settings }, { editors }, { recent }, { fs }, win, { shell }, { ui }, { downloads }, { menuFolders }, { proc }] = await Promise.all([
+        const [{ settings }, { editors }, { recent }, { fs }, win, { shell }, { ui }, { downloads }, { menuFolders }, { proc }, { boards }] = await Promise.all([
             import("./settings"),
             import("./editors"),
             import("./recent"),
@@ -142,6 +153,7 @@ class App {
             import("./downloads"),
             import("./menu-folders"),
             import("./proc"),
+            import("./boards"),
         ]);
         this._settings = settings;
         this._editors = editors;
@@ -153,6 +165,7 @@ class App {
         this._downloads = downloads;
         this._menuFolders = menuFolders;
         this._proc = proc;
+        this._boards = boards;
 
         // Initialize downloads tracking
         await this._downloads.init();

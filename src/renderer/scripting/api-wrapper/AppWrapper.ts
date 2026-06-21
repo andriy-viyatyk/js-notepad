@@ -110,6 +110,10 @@ export class AppWrapper {
         return app.proc;
     }
 
+    get boards() {
+        return app.boards;
+    }
+
     get pages(): PageCollectionWrapper {
         return this._pages;
     }
@@ -122,6 +126,8 @@ export class AppWrapper {
     }
 
     fetch = app.fetch;
+
+    openRawLink = app.openRawLink;
 
     runAsync = async <TData, TProxy, TResult>(
         fn: (data: TData, proxy: TProxy) => Promise<TResult>,

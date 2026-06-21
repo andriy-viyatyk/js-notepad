@@ -8,6 +8,7 @@ import type { IUserInterface } from "./ui";
 import type { IDownloads } from "./downloads";
 import type { IMenuFolders } from "./menu-folders";
 import type { IProc } from "./proc";
+import type { IBoards } from "./boards";
 import type { IPageCollection } from "./pages";
 import type { IAppEvents } from "./events";
 
@@ -55,6 +56,9 @@ export interface IApp {
     /** Spawn external programs and stream their output. */
     readonly proc: IProc;
 
+    /** Create Persephone Web Boards (sandboxed mini web-apps you build for the user). */
+    readonly boards: IBoards;
+
     /** Open pages (tabs) in the current window. */
     readonly pages: IPageCollection;
 
@@ -81,6 +85,22 @@ export interface IApp {
      * });
      */
     fetch(url: string, options?: IFetchOptions): Promise<Response>;
+
+    /**
+     * Open any link through Persephone's navigation pipeline — a local file path, a
+     * URL (opens in the built-in browser), or an in-app scheme
+     * (`persephone-board://`, `persephone-folder://`, …). Opens a new tab (or reuses a
+     * matching one) and makes it the active page.
+     *
+     * @example
+     * await app.openRawLink("C:/data/report.json");   // open a file
+     * await app.openRawLink("https://example.com");    // open a URL in the browser
+     *
+     * @example
+     * // Open a board by its root path (the folder containing board-manifest.json).
+     * await app.openRawLink("persephone-board://" + btoa(JSON.stringify({ boardRoot: root })));
+     */
+    openRawLink(href: string): Promise<void>;
 
     /**
      * Run a function in a background worker thread.

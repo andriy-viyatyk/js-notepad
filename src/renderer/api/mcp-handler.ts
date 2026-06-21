@@ -98,6 +98,10 @@ async function handleCommand(method: string, params: McpParams): Promise<McpResp
             return { result: getAppInfo() };
         case "open_url":
             return await openUrl(params);
+        case "create_board":
+            return await createBoard(params);
+        case "open_board":
+            return await openBoard(params);
         case "ui_push":
             return handleUiPush(params);
         default:
@@ -551,6 +555,38 @@ async function openUrl(params: McpParams): Promise<McpResponse> {
         incognito: asBoolean(params?.incognito),
     });
     return { result: { opened: url } };
+}
+
+async function createBoard(params: McpParams): Promise<McpResponse> {
+    const name = asString(params?.name);
+    const dir = asString(params?.dir);
+    if (!name) {
+        return { error: { code: -32602, message: "Missing or invalid 'name' parameter" } };
+    }
+    if (!dir) {
+        return { error: { code: -32602, message: "Missing or invalid 'dir' parameter" } };
+    }
+    try {
+        const boardRoot = asBoolean(params?.demo)
+            ? await app.boards.createDemoBoard(name, dir)
+            : await app.boards.createBoard(name, dir);
+        return { result: { boardRoot } };
+    } catch (err) {
+        return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
+    }
+}
+
+async function openBoard(params: McpParams): Promise<McpResponse> {
+    const path = asString(params?.path);
+    if (!path) {
+        return { error: { code: -32602, message: "Missing or invalid 'path' parameter" } };
+    }
+    try {
+        await app.boards.openBoard(path);
+        return { result: { opened: path } };
+    } catch (err) {
+        return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
+    }
 }
 
 // ── Initialization ──────────────────────────────────────────────────

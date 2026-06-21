@@ -172,6 +172,9 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 "**Run scripts with full Node.js access:**",
                 "Use `execute_script`. IMPORTANT: use read_guide(\"scripting\") BEFORE using this tool.",
                 "",
+                "**Build a custom board/editor for the user:**",
+                "Persephone has custom **Web Boards** — sandboxed mini web-apps (HTML + backend scripts) that you, the agent, can build for the user: dashboards, tools, viewers, custom editors. Use `create_board` to scaffold one (auto-trusted), `open_board` to show it, then develop it by editing its files. IMPORTANT: read read_guide(\"boards\") first.",
+                "",
                 "## Browser automation (browser_* tools)",
                 "",
                 "If `browser_*` tools are listed, they follow the Playwright MCP convention.",
@@ -239,6 +242,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             uri: "notepad://guides/links",
             file: "mcp-res-links.md",
             description: "Links editor guide — LinkItem JSON format, categories, tags. Read BEFORE creating or updating links pages.",
+        },
+        {
+            name: "boards-guide",
+            uri: "notepad://guides/boards",
+            file: "mcp-res-boards.md",
+            description: "Web Boards guide — what a board is, the execute_script + app.boards create/open lifecycle, the execute() channel, --p-* theme contract, local vendoring, and browser_* testing. Read BEFORE building or opening a board.",
         },
     ];
 
@@ -423,6 +432,30 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         },
         async ({ url, profileName, incognito, windowIndex }) =>
             toToolResult(await sendToRenderer("open_url", { url, profileName, incognito }, windowIndex)),
+    );
+
+    // ── Web Board lifecycle tools ────────────────────────────────────
+    server.tool(
+        "create_board",
+        "Create a Persephone Web Board — a sandboxed mini web-app (HTML page + backend scripts) you build for the user: a dashboard, tool, viewer, or custom editor. Scaffolds from a template, guarantees its board-manifest.json, auto-trusts it, and returns { boardRoot } (the new board's absolute root path). Then call open_board to show it, and edit its files to develop it. IMPORTANT: read read_guide(\"boards\") first.",
+        {
+            name: z.string().describe("Board folder name — created inside `dir`; also the default display name."),
+            dir: z.string().describe("Absolute path of the container folder the board is created in (created if it doesn't exist)."),
+            demo: z.boolean().optional().describe("Scaffold from the bundled Demo board template (a rich, self-documenting example) instead of the blank template."),
+            windowIndex: windowIndexParam,
+        },
+        async ({ name, dir, demo, windowIndex }) =>
+            toToolResult(await sendToRenderer("create_board", { name, dir, demo }, windowIndex)),
+    );
+    server.tool(
+        "open_board",
+        "Open an existing Persephone Web Board by its root folder path (the folder containing board-manifest.json). Opens a new tab (or reuses the board's tab) and makes it active. A board created via create_board is auto-trusted and opens immediately; a board Persephone did not create prompts the user for trust before rendering. Returns { opened: path }. IMPORTANT: read read_guide(\"boards\") first.",
+        {
+            path: z.string().describe("Absolute path of the board's root folder (the folder containing board-manifest.json)."),
+            windowIndex: windowIndexParam,
+        },
+        async ({ path, windowIndex }) =>
+            toToolResult(await sendToRenderer("open_board", { path }, windowIndex)),
     );
 
     // ── Browser automation tools (Playwright-compatible) ─────────────
@@ -650,16 +683,17 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             "- todo — TodoItem JSON format, lists, tags. For todo-view editor.",
             "- links — LinkItem JSON format, categories, tags. For link-view editor.",
             "- graph — graph JSON format, node/link data, page.asGraph() API. For graph-view editor.",
+            "- boards — what a board is, the app.boards create/open lifecycle (via execute_script), develop & test a board.",
         ].join("\n"),
         {
-            guide: z.enum(["ui-push", "pages", "scripting", "notebook", "todo", "links", "graph"])
+            guide: z.enum(["ui-push", "pages", "scripting", "notebook", "todo", "links", "graph", "boards"])
                 .describe("Guide name to read."),
         },
         async ({ guide }) => {
             const res = resourceFiles.find(r => r.uri === `notepad://guides/${guide}`);
             if (!res) {
                 return {
-                    content: [{ type: "text" as const, text: `Unknown guide: ${guide}. Available: ui-push, pages, scripting, notebook, todo, links, graph.` }],
+                    content: [{ type: "text" as const, text: `Unknown guide: ${guide}. Available: ui-push, pages, scripting, notebook, todo, links, graph, boards.` }],
                     isError: true,
                 };
             }

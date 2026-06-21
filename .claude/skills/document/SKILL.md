@@ -62,9 +62,11 @@ Web Boards are built and debugged by AI agents, so their reference docs **are** 
 |-----|--------|--------------|
 | `assets/board-template/CLAUDE.md` | The Web Board authoring guide — copied into every new board; the canonical reference a board-author agent reads. | The `persephone` bridge surface (`execute` handle, integration tier, theme/tokens), the `--p-*` contract list, `board-base.css`, the reload model, or the MCP debugging flow changes. |
 | `assets/demo-board/` (`index.html`, `app.js`, `style.css`) | The living, self-documenting Demo board — Overview / Theming / Capabilities / Build Guide / Debugging tabs demonstrating the same surface. | A capability the demo showcases changes, or a new one should be demonstrated. Keep its Build Guide + Debugging prose accurate and refresh the live examples (buttons/probes) when the API changes. |
+| `assets/mcp-res-boards.md` | The **agent-facing** boards guide served by `read_guide("boards")` / `notepad://guides/boards` — what a board is, the `execute_script` create→open lifecycle (`app.boards.createBoard`/`createDemoBoard` + `app.openRawLink`), develop & test. | The board lifecycle API (`app.boards`, `app.openRawLink`), the `persephone.*` bridge, the `--p-*` contract, or the `browser_*` testing flow changes. |
 
 - `assets/demo-board/` is the **canonical** demo (edited directly; it is copied into a board on "Create Demo board") — there is no separate working copy to chase.
 - `assets/board-base.css` is shared by both boards; if the shared defaults (page bg, scrollbar, monospace font) change, the authoring guide's note about it must match.
+- **Reconcile drift across the three board docs each run.** They overlap on authoring content: `board-template/CLAUDE.md` is the canonical *authoring* reference; `mcp-res-boards.md` is the condensed agent-facing copy **plus** the create/open lifecycle; `demo-board/` is the living example. Cross-check them for discrepancies and fix the drift — bring the condensed copy back in line with the canonical guide and the current API.
 - These docs are **consumer-facing** — keep them **ticket-free** too (no `US-XXX` / `EPIC-XXX`), same rule as the architecture docs below.
 
 ## How to work

@@ -262,8 +262,10 @@
 
             <h2>3 · Open the board, then drive it</h2>
             <p>
-                You (the human) open the board first — an agent <strong>cannot</strong> open boards, and an untrusted
-                project won't render. Then the agent:
+                An agent can <strong>create and open</strong> a board itself — <code>create_board</code> scaffolds
+                one (auto-trusted) and <code>open_board</code> opens it, no clicks needed. A board the agent
+                did <em>not</em> create (a foreign folder you received) prompts <strong>you</strong> for trust before
+                it renders — so for those, you open/trust first. Either way, the agent then:
             </p>
             <ul>
                 <li><code>list_pages</code> → find this board (<code>editor: "board-view"</code>, with its <code>selectedBoard</code>) and read its <code>pageId</code>.</li>
