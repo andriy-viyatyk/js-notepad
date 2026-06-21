@@ -178,10 +178,10 @@ npm run lint        # Run ESLint
 /src
   /main              # Electron main process
   /renderer          # React frontend
-    /api             # Object Model — app.settings, app.pages, app.fs, etc.
+    /api             # Object Model — app.settings, app.pages, app.fs, app.proc, etc.
     /ui              # Application shell — MainPage, tabs, sidebar, dialogs
-    /editors         # ALL editors (text, grid, markdown, pdf, compare, notebook)
-    /content         # Content delivery — providers, transformers, pipes (EPIC-012)
+    /editors         # ALL editors (text, grid, markdown, pdf, compare, notebook, board, …)
+    /content         # Content delivery — providers, transformers, pipes
     /scripting       # Script execution, wrappers, editor facades, worker
     /automation      # Browser automation — Playwright-compatible MCP tools, CDP, snapshots
     /uikit           # Standalone component library (canonical home for reusable primitives)
@@ -189,6 +189,8 @@ npm run lint        # Run ESLint
     /core            # State primitives, utilities
     /theme           # Styling
   /ipc               # Inter-process communication
+/boards-assets       # Recommended-components catalog for Web Boards (manifest + 10 skins)
+/assets              # Static assets (board-template/, demo-board/, mcp-res-*.md, editor-types/, …)
 /doc                 # Developer documentation
   /epics             # Epic tracking (big ideas with linked tasks)
 /docs                # User documentation
@@ -403,3 +405,17 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Git Diff "File History" panel | `/src/renderer/editors/file-diff/GitDiffRevisionsSecondaryView.tsx` |
 | Flat file list (icons + single-click) | `/src/renderer/components/file-list/FileList.tsx` |
 | AVGrid-based file list (range select + sorting + range-copy) | `/src/renderer/components/file-grid/FileGrid.tsx` |
+| Process execution (`app.proc.execute` — renderer client) | `/src/renderer/api/proc.ts` |
+| Process execution (script-facing types `IProc`/`IExecuteHandle`) | `/src/renderer/api/types/proc.d.ts` |
+| Command runner wire types + IPC channels (shared by proc.ts and board preload) | `/src/ipc/runner-channels.ts` |
+| Command runner (main-process spawn service; whole-tree kill; jobId registry) | `/src/main/command-runner.ts` |
+| Project trust gate (trusted project paths; boards won't render without trust) | `/src/renderer/api/project-trust.ts` |
+| Board editor model (lifecycle, trust, webview, icon, boards list) | `/src/renderer/editors/board/BoardEditorModel.ts` |
+| Board editor view (React component only) | `/src/renderer/editors/board/BoardEditorView.tsx` |
+| Board module + factory (boardModule + legacy EditorModule) | `/src/renderer/editors/board/index.tsx` |
+| Board webview (locked-down `<webview>`, board:// protocol) | `/src/renderer/editors/board/BoardWebview.tsx` |
+| Board theme contract (`computeBoardThemePalette`, `BOARD_TOKEN_VARS`, `--p-*`) | `/src/renderer/editors/board/board-theme.ts` |
+| Board icon cache (module-level SVG/PNG/ICO → data URL cache) | `/src/renderer/editors/board/board-icon-cache.ts` |
+| Board preload (injects `window.persephone` bridge into the sandboxed webview) | `/src/preload-board.ts` |
+| Board authoring guide (bridge surface, reload, MCP debugging, --p-* contract) | `/assets/board-template/CLAUDE.md` |
+| Recommended-components catalog (manifest + 10 skins) | `/boards-assets/` |

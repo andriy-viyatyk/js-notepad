@@ -4,6 +4,36 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-034 — [Web Board — HTML-page board with `persephone.execute` + board scripts](EPIC-034.md)
+
+Added **Web Boards**: small local apps whose UI is a plain HTML page the user owns, hosted in a **sandboxed `<webview>`** (sandbox + contextIsolation on, nodeIntegration off, CSP forbidding remote network) served over a per-partition **`board://`** protocol, with a single injected `window.persephone` bridge. The bridge's one method, **`execute()`**, streams a real OS process spawned in the main process (a shared **command runner** — `runner-channels.ts` + `app.proc` — with whole-tree kill and per-owner reaping), plus an integration tier (`notify`, `openRawLink`, native file dialogs) and a live **`--p-*` theme contract** (CSS variables + JS mirror with `onThemeChange`). Boards live under a project's **`.persephone/boards/<Name>/`** behind a **per-project trust gate** (RCE-explicit confirmation; an untrusted project won't render). The **Board editor** (Pattern B, survive-navigation) provides a sidebar board list + main management surface with create/delete, "Create Demo board", per-board custom icons, `ui.log`, and live reload; a **"Create .persephone project"** Explorer context menu bootstraps a project. Boards are authored and debugged by an **AI agent over MCP** — they are first-class **`browser_*` automation targets** (the automation layer duck-types `editorId`, pulling no editor module into its bundle). Shipped a recommended-components catalog under **`boards-assets/`** (`manifest.json` + 9 component skins + a no-dependency native `<dialog>` pattern) and a living, self-documenting **demo board** (`assets/demo-board/`). Reviewed at epic level (close-out fixed 4 concerns: automation static-import isolation, board view/factory split, proc-contract drift guard, async `fs.append`).
+
+- [x] [US-719: Command runner — shared main-process streaming spawn service (IPC interface; consumed by board preload, renderer `app` API, and optional MCP tool)](../tasks/US-719-command-runner/README.md)
+- [x] [US-720: Process lifecycle — whole-tree kill (`taskkill /T`) + per-owner reaping](../tasks/US-720-process-lifecycle/README.md)
+- [x] [US-721: Project trust gate + dialog (per `.persephone`; `trustedProjects.txt`; RCE-explicit confirmation)](../tasks/US-721-project-trust-gate/README.md)
+- [x] [US-722: `.persephone` folder + Board editor + folder-click routing (sidebar board list + main management)](../tasks/US-722-board-editor-routing/README.md)
+- [x] [US-723: `board://` protocol + locked-down webview + bridge injection + CSP](../tasks/US-723-board-protocol-webview/README.md)
+- [x] [US-724: `persephone` bridge (board preload) — `execute()` handle (thin client over US-719) + integration tier (`openRawLink`, `notify`, file dialogs)](../tasks/US-724-board-bridge/README.md)
+- [x] [US-725: Theme contract — `--p-*` CSS variables + `persephone.theme` (live update)](../tasks/US-725-theme-contract/README.md)
+- [x] [US-726: Templates & scaffolding + `ui.log` + live reload](../tasks/US-726-config-templates-log/README.md)
+- [x] [US-727: Recommended-components manifest + first skin (Tabulator)](../tasks/US-727-tabulator-skin/README.md)
+- [x] [US-728: Demo board — bundle `assets/demo-board/` + "Create Demo board" entry points (empty-state button + "+ New board" `SplitButton` dropdown; snapshots the prepared demo, no project-creation dialog)](../tasks/US-728-demo-board/README.md)
+- [x] [US-730: Web Boards as `browser_*` MCP automation targets (snapshot/click/type a board's webview; reuse the existing CDP engine)](../tasks/US-730-board-mcp-automation/README.md)
+- [x] [US-731: "Create .persephone project" Explorer context menu (create-or-reveal `.persephone` → select → open Board editor; no dialog)](../tasks/US-731-create-persephone-project/README.md)
+- [x] US-732: Shared board base stylesheet — `assets/board-base.css` (page bg, themed scrollbars, monospace default) copied into every board by the scaffolder; both templates link it first
+- [x] [US-734: Recommended component — Chart.js (charts/dashboards; JS theme adapter)](../tasks/US-734-chartjs-skin/README.md)
+- [x] [US-735: Recommended component — Flatpickr (date / time / range picker; `--p-*` CSS skin)](../tasks/US-735-flatpickr-skin/README.md)
+- [x] [US-736: Recommended component — Tom Select (rich select / tags / autocomplete; `--p-*` CSS skin)](../tasks/US-736-tom-select-skin/README.md)
+- [x] [US-737: Recommended component — marked + highlight.js (markdown render + code highlighting; `--p-*` code theme)](../tasks/US-737-markdown-skin/README.md)
+- [x] [US-738: Recommended component — Mermaid (diagrams; JS `themeVariables` from `persephone.theme`)](../tasks/US-738-mermaid-skin/README.md)
+- [x] [US-739: Recommended component — Split.js (resizable layout panes; `--p-*` CSS skin)](../tasks/US-739-split-skin/README.md)
+- [x] [US-740: Recommended component — SortableJS (drag-to-reorder lists / kanban; `--p-*` CSS skin)](../tasks/US-740-sortablejs-skin/README.md)
+- [x] [US-741: Recommended component — Tippy.js (tooltips / popovers / menus; `--p-*` CSS skin)](../tasks/US-741-tippy-skin/README.md)
+- [x] [US-742: Recommended component — native `<dialog>` modal (no-dependency pattern skin)](../tasks/US-742-dialog-modal-skin/README.md)
+- [x] [US-744: Per-board custom icon (`icon.svg`/`png`/`ico` → tab + tile + sidebar row; `BoardIcon` fallback)](../tasks/US-744-board-icon/README.md)
+
+---
+
 ## EPIC-032 — [Mneme — Wiki / Vector Memory service](EPIC-032.md)
 
 Built **Mneme**, a standalone Rust knowledge-base service that turns any folder of Markdown into a locally-indexed, searchable **vector memory** (SQLite FTS5 + `sqlite-vec`, on-device int8 ONNX embedding via `ort`), exposing hybrid full-text + semantic search and file-like read/write/edit/glob/grep tools over MCP. Integrated into Persephone end-to-end: a single shared auto-reconnecting MCP client with resource-subscription live-refresh, a `MnemeProvider` (read/write/edit), an Explorer-like tree sidebar with create/rename/delete + OS and cross-root drag-drop, a root search view (markdown-rendered results, tag/date filters), a config & monitoring editor (roots, include/ignore, reindex progress, model download/inventory, log), a Settings toggle with sidecar auto-launch, a tri-state header indicator, and first-run routing to download the model. Inference is **CPU-only** (DirectML/GPU benchmarked and removed). Shipped via electron-builder `extraFiles` (`mneme.exe`, ONNX statically linked, no bundled DLLs); the ~357 MB embedding model is a **separate GitHub release** (`mneme-models-v1`) downloaded on first use. Reviewed at epic level (US-690/691/692) and per-task for the Rust crate.

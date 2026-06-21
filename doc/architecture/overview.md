@@ -67,6 +67,7 @@ The **Object Model** is the central architectural concept. It provides a single,
 | `app.downloads` | `IDownloads` | Download tracking |
 | `app.menuFolders` | `IMenuFolders` | Sidebar folder shortcuts |
 | `app.pages` | `PagesModel` | Page/tab collection, lifecycle |
+| `app.proc` | `IProc` | Spawn external processes + stream output (scripts, boards) |
 
 Type definitions live in `/src/renderer/api/types/*.d.ts` and serve triple duty:
 1. TypeScript compilation contracts
@@ -149,7 +150,7 @@ See [state-management.md](./state-management.md).
 
 See [editors.md](./editors.md).
 
-- All editors in `/editors/` — 22 editor folders, every editor is an `EditorModel` subclass
+- All editors in `/editors/` — every editor is an `EditorModel` subclass (29 editor IDs as of current catalog)
 - Text-bearing editors compose an `IContentHost` (`TextFileModel` for file-backed, `NoteItemEditModel` for notebook notes) and expose `CONTENT_HOST_TRAIT` for owner-orchestrated switching
 - Dynamic loading via `import()` for code splitting
 - Scripting facades expose editor APIs via `page.asX()` methods
@@ -229,6 +230,27 @@ See [trait-system.md](./trait-system.md).
 - **Index is versioned & rebuildable** — `.mneme/<model>-<precision>/index-v<schemaVer>.db` per root; a model/precision or schema-version change selects a fresh DB (full rebuild from files), no migration code.
 - **Persephone-side integration (renderer).** Content flows through the standard delivery pipeline: `MnemeProvider` reads/writes/edits a document over the shared connection (with live-refresh), and `MnemeTreeProvider` browses a root like a filesystem. They back two link schemes — `mneme://{root}/{path}` for documents/attachments and `mneme-folder://` for a root. The UI surface is a config & monitoring editor (roots, include/ignore, reindex progress, model update, log), a root **search** editor with an Explorer-like sidebar tree (create/rename/delete, drag-drop import), and a provider indicator in the editor chrome. Relative `mneme://` image links open in the Image viewer.
 - **Crate detail lives in the crate.** This section is only an architectural pointer; the crate's own [`mneme/README.md`](../../mneme/README.md) (module layout, MCP surface, build/test, invariants) is the primary reference. Mneme is kept self-contained / extraction-ready, so it follows its own Rust conventions, not the renderer coding standards.
+
+### 9. Web Board Subsystem
+
+A **Web Board** is a small local web application (plain HTML + JS) owned by the user, hosted in a locked-down Electron `<webview>`. Boards live in `.persephone/boards/<Name>/` under a `.persephone` project folder.
+
+**Security model:**
+- The webview runs with `sandbox` on, `contextIsolation` on, and `nodeIntegration` off.
+- A per-partition `board://` protocol serves the board's local files. The CSP (`connect-src 'self'`) blocks all remote network access — CDNs, fetch, XHR to external hosts are all forbidden.
+- Only `.persephone` projects that the user has explicitly trusted render boards. The trust decision is persisted by `project-trust.ts` and shown as a dialog on first open.
+
+**Bridge (`window.persephone`):**
+- Injected by `src/preload-board.ts` into the sandboxed webview context.
+- `execute(commandLine, opts)` — thin client over `command-runner.ts` in the main process. Returns an `IExecuteHandle` (buffered: `getText`/`getJson`/`getBytes`; streaming: `on("stdout"|"stderr"|"exit"|"error")`, `write`, `kill`). The same main-process command runner backs `app.proc.execute()` in scripts.
+- Integration tier: `openRawLink(href)`, `notify(msg, type)`, `openFileDialog` / `saveFileDialog` / `openFolderDialog`.
+- Theme/tokens: `--p-*` CSS variables injected on `<html>` and kept live across theme switches. Also available as `persephone.theme` / `persephone.tokens` (snapshots) and `persephone.getTheme()` / `persephone.getTokens()` (live). `persephone.onThemeChange(cb)` fires on every switch.
+
+**Board structure:** `index.html`, `app.js`, `style.css`, `board-base.css` (shared base with page defaults + themed scrollbars), optional `scripts/` folder, optional `icon.svg`/`png`/`ico` (shown in tab, boards list, sidebar).
+
+**MCP automation:** Web Boards are `browser_*` targets. `list_pages` returns board pages with `editor: "board-view"` and a `selectedBoard` field; all `browser_*` tools (snapshot, click, type, evaluate, …) work by `pageId`.
+
+**Recommended components** in `boards-assets/`: a catalog of 10 pre-built skins for popular libraries (Tabulator, Chart.js, Flatpickr, Tom Select, marked/highlight.js, Mermaid, Split.js, SortableJS, Tippy.js, native `<dialog>`). Described in `boards-assets/manifest.json`; adoption playbook in `boards-assets/README.md`.
 
 ## Design Principles
 

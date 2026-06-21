@@ -7,30 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-034** — [Web Board — HTML-page board with `persephone.execute` + board scripts](epics/EPIC-034.md) *(design consolidated; placeholder tasks in build order — each investigated before implementation)*
-  - [ ] [US-719: Command runner — shared main-process streaming spawn service (IPC interface; consumed by board preload, renderer `app` API, and optional MCP tool)](tasks/US-719-command-runner/README.md)
-  - [ ] [US-720: Process lifecycle — whole-tree kill (`taskkill /T`) + per-owner reaping](tasks/US-720-process-lifecycle/README.md)
-  - [ ] [US-721: Project trust gate + dialog (per `.persephone`; `trustedProjects.txt`; RCE-explicit confirmation)](tasks/US-721-project-trust-gate/README.md)
-  - [ ] [US-722: `.persephone` folder + Board editor + folder-click routing (sidebar board list + main management)](tasks/US-722-board-editor-routing/README.md)
-  - [ ] [US-723: `board://` protocol + locked-down webview + bridge injection + CSP](tasks/US-723-board-protocol-webview/README.md)
-  - [ ] [US-724: `persephone` bridge (board preload) — `execute()` handle (thin client over US-719) + integration tier (`openRawLink`, `notify`, file dialogs)](tasks/US-724-board-bridge/README.md)
-  - [ ] [US-725: Theme contract — `--p-*` CSS variables + `persephone.theme` (live update)](tasks/US-725-theme-contract/README.md)
-  - [ ] [US-726: Templates & scaffolding + `ui.log` + live reload](tasks/US-726-config-templates-log/README.md)
-  - [ ] [US-727: Recommended-components manifest + first skin (Tabulator)](tasks/US-727-tabulator-skin/README.md)
-  - [ ] [US-728: Demo board — bundle `assets/demo-board/` + "Create Demo board" entry points (empty-state button + "+ New board" `SplitButton` dropdown; snapshots the prepared demo, no project-creation dialog)](tasks/US-728-demo-board/README.md)
-  - [ ] [US-730: Web Boards as `browser_*` MCP automation targets (snapshot/click/type a board's webview; reuse the existing CDP engine)](tasks/US-730-board-mcp-automation/README.md)
-  - [ ] [US-731: "Create .persephone project" Explorer context menu (create-or-reveal `.persephone` → select → open Board editor; no dialog)](tasks/US-731-create-persephone-project/README.md)
-  - [ ] US-732: Shared board base stylesheet — `assets/board-base.css` (page bg, themed scrollbars, monospace default) copied into every board by the scaffolder; both templates link it first
-  - [ ] [US-734: Recommended component — Chart.js (charts/dashboards; JS theme adapter)](tasks/US-734-chartjs-skin/README.md)
-  - [ ] [US-735: Recommended component — Flatpickr (date / time / range picker; `--p-*` CSS skin)](tasks/US-735-flatpickr-skin/README.md)
-  - [ ] [US-736: Recommended component — Tom Select (rich select / tags / autocomplete; `--p-*` CSS skin)](tasks/US-736-tom-select-skin/README.md)
-  - [ ] [US-737: Recommended component — marked + highlight.js (markdown render + code highlighting; `--p-*` code theme)](tasks/US-737-markdown-skin/README.md)
-  - [ ] [US-738: Recommended component — Mermaid (diagrams; JS `themeVariables` from `persephone.theme`)](tasks/US-738-mermaid-skin/README.md)
-  - [ ] [US-739: Recommended component — Split.js (resizable layout panes; `--p-*` CSS skin)](tasks/US-739-split-skin/README.md)
-  - [ ] [US-740: Recommended component — SortableJS (drag-to-reorder lists / kanban; `--p-*` CSS skin)](tasks/US-740-sortablejs-skin/README.md)
-  - [ ] [US-741: Recommended component — Tippy.js (tooltips / popovers / menus; `--p-*` CSS skin)](tasks/US-741-tippy-skin/README.md)
-  - [ ] [US-742: Recommended component — native `<dialog>` modal (no-dependency pattern skin)](tasks/US-742-dialog-modal-skin/README.md)
-  - [ ] [US-744: Per-board custom icon (`icon.svg`/`png`/`ico` → tab + tile + sidebar row; `BoardIcon` fallback)](tasks/US-744-board-icon/README.md)
+- *(none — EPIC-034 Web Board completed; see [completed epics](epics/completed.md))*
 
 ## Planned
 - **EPIC-033** — [Configurable Dashboards (`.persephone` projects)](epics/EPIC-033.md) *(frozen — superseded by EPIC-034; to be deprecated or fully rewritten after EPIC-034 ships)*

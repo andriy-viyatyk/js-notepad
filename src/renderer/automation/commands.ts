@@ -10,8 +10,12 @@ import { pagesModel } from "../api/pages";
 import type { PageModel } from "../api/pages/PageModel";
 import { settings } from "../api/settings";
 import { BrowserChannel } from "../../ipc/browser-ipc";
-import { BrowserEditor } from "../editors/browser";
-import { BoardEditorModel } from "../editors/board/BoardEditorModel";
+// Type-only imports: automation/ is a leaf that must NOT pull editor modules into
+// its bundle (they are dynamic-import isolated). We narrow by the duck-typed
+// `editorId` discriminator below — the `import type` is erased at build, so no
+// runtime dependency on BrowserEditor / BoardEditorModel is created.
+import type { BrowserEditor } from "../editors/browser";
+import type { BoardEditorModel } from "../editors/board/BoardEditorModel";
 import { pressKey, typeText } from "./input";
 import { callOnRef } from "./ref";
 import { buildSnapshot, detectOverlay } from "./snapshot";
@@ -22,6 +26,19 @@ import type { IBrowserTarget } from "./types";
 interface McpResponse {
     result?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     error?: { code: number; message: string; data?: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+}
+
+// ── Editor discriminators (duck-typed) ──────────────────────────────
+// Narrow by the `editorId` discriminator rather than `instanceof`, so this
+// module needs no runtime import of the editor classes (see the type-only
+// imports above). The `import type` gives back the real types for narrowing.
+
+function isBrowserEditor(e: unknown): e is BrowserEditor {
+    return !!e && (e as { editorId?: string }).editorId === "browser-view";
+}
+
+function isBoardEditor(e: unknown): e is BoardEditorModel {
+    return !!e && (e as { editorId?: string }).editorId === "board-view";
 }
 
 // ── Target Resolution ───────────────────────────────────────────────
@@ -57,7 +74,7 @@ async function getTarget(
     // expose an IBrowserTarget. Only the Browser editor carries profile/incognito/Tor.
     const isAutomatable = (p: PageModel | undefined | null): boolean => {
         const e = p?.mainEditorInstance;
-        return e instanceof BrowserEditor || e instanceof BoardEditorModel;
+        return isBrowserEditor(e) || isBoardEditor(e);
     };
 
     let targetPage: PageModel | null = null;
@@ -74,7 +91,7 @@ async function getTarget(
         // Profiles are browser-only. "" targets the default profile; prefer the active page if it matches.
         const matches = (p: PageModel) => {
             const e = p.mainEditorInstance;
-            if (!(e instanceof BrowserEditor)) return false;
+            if (!isBrowserEditor(e)) return false;
             const s = e.state.get();
             return !s.isIncognito && !s.isTor && (s.profileName ?? "") === profileName;
         };
@@ -87,8 +104,8 @@ async function getTarget(
         // Prefer the active page if it's automatable; else first browser page; else first board.
         targetPage = isAutomatable(activePage) ? activePage ?? null : null;
         if (!targetPage) {
-            targetPage = pages.find((p) => p.mainEditorInstance instanceof BrowserEditor)
-                ?? pages.find((p) => p.mainEditorInstance instanceof BoardEditorModel)
+            targetPage = pages.find((p) => isBrowserEditor(p.mainEditorInstance))
+                ?? pages.find((p) => isBoardEditor(p.mainEditorInstance))
                 ?? null;
         }
     }
@@ -97,14 +114,14 @@ async function getTarget(
 
     // Board: no profile / incognito / Tor — just ensure it's the shown page (the
     // webview needs display != none for focus/input) and return its target.
-    if (editor instanceof BoardEditorModel) {
+    if (isBoardEditor(editor)) {
         if (targetPage !== activePage) {
             pagesModel.showPage(targetPage.id);
         }
         return editor.target;
     }
 
-    if (!(editor instanceof BrowserEditor)) {
+    if (!isBrowserEditor(editor)) {
         return { error: { code: -32602, message: "No automatable page open. Use the 'open_url' tool to open a browser page, or open a board." } };
     }
 

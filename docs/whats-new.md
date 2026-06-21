@@ -10,6 +10,41 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### New Features
 
+- **Web Boards** — A new kind of editor that lets you (or an AI agent) build fully custom HTML-page applications inside a Persephone project. A board is a plain HTML page backed by scripts in any language; Persephone hosts the page in a sandboxed webview and injects a single bridge object, `window.persephone`.
+
+  **Getting started:**
+  - Right-click any folder in the **File Explorer** sidebar and choose **"Create .persephone project"** — this creates the `.persephone` folder, auto-trusts the project, and opens the **Board editor** immediately.
+  - In the Board editor, click **"+ New board"** to scaffold a board from the built-in template, or **"Create Demo board"** to install a full working example.
+
+  **The bridge — `persephone.execute(commandLine)`** — calls a backend script (Node.js, Python, PowerShell, shell, or any other language) and returns a process handle. Consume the result buffered (`await handle.getJson()` / `getText()`) or streamed (`handle.on("stdout", cb)`). This single primitive covers everything: load data, run a command-line tool, write a file, start a long-running process, or send/receive over stdin. A small integration tier adds native dialogs (`openFileDialog`, `saveFileDialog`, `openFolderDialog`) and in-app navigation (`openRawLink`) and toasts (`notify`).
+
+  **Theme contract** — Persephone injects the app's active palette as `--p-*` CSS variables into every board and keeps them live when the user switches themes. Style everything with them and the board automatically matches the app's look. A JS mirror (`persephone.theme`, `persephone.getTheme()`, `persephone.onThemeChange(cb)`) is available for libraries that take colors from JavaScript (charts, diagrams).
+
+  **Security — project trust gate** — Because `execute()` runs programs with your full user privileges, you must explicitly trust a project before any board renders. A warning dialog states this plainly. Trust is per-project, remembered across restarts.
+
+  **Recommended components** — Persephone publishes a catalog of components with pre-built skins (CSS or JS adapters) that match the `--p-*` theme:
+
+  | Component | Use |
+  |-----------|-----|
+  | Tabulator | Data grid — sort, filter, range-select, clipboard, editable cells |
+  | Chart.js | Line, bar, pie, radar, scatter charts |
+  | Flatpickr | Date / time / range picker |
+  | Tom Select | Rich select / tags / autocomplete |
+  | marked + highlight.js | Markdown render with syntax-highlighted code blocks |
+  | Mermaid | Diagrams (flowchart, sequence, class, Gantt, …) |
+  | Split.js | Resizable layout panes |
+  | SortableJS | Drag-to-reorder lists and kanban boards |
+  | Tippy.js | Tooltips, popovers, dropdown menus |
+  | Native `<dialog>` | Modal dialogs — no library required |
+
+  Because the board sandbox forbids remote network, download component libraries into the board folder and reference them with relative paths — never CDN `<script>` tags.
+
+  **Per-board custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in a board folder to set the icon shown on the page tab, the board list, and the Boards sidebar panel.
+
+  **AI-agent integration** — Web Boards are designed to be authored by AI agents. The per-board `CLAUDE.md` documents the full bridge API. Once a board is open, agents can test and debug it using the `browser_*` MCP tools (the same Playwright-compatible tools used for the built-in browser), targeting the board page by its `pageId` from `list_pages` (`editor: "board-view"`).
+
+  > See **[Web Boards](./web-boards.md)** for full documentation.
+
 - **Global paste — HTML-only images (PowerPoint / Office)** — Copying a picture from PowerPoint, Word, Excel, or any app that places the image on the clipboard as an HTML fragment (no bitmap) and then pressing `Ctrl+V` in Persephone now opens that picture in a new **HTML viewer** tab titled **"Pasted HTML"**. Previously, nothing happened for such clipboards. The existing behavior is unchanged: pasting a real bitmap image (a screenshot, an image copied from Snipping Tool or Teams) still opens the **Image Viewer** tab as before. Pasting into a focused editor (Monaco, any input, or other text field) is not affected — those targets receive the text content as usual. The new HTML-viewer tab is not persisted across app restarts.
 
 ### UI Polish

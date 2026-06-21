@@ -29,6 +29,7 @@ persephone is a Windows Notepad replacement designed for developers. It combines
 - [Scripting](./scripting.md) - JavaScript/TypeScript execution and content transformation
 - [Scripting API Reference](./api/index.md) - Complete API for `page` and `app` objects
 - [MCP Server Setup](./mcp-setup.md) - Connect AI agents (Claude, ChatGPT, Gemini) to control persephone
+- [Web Boards](./web-boards.md) - Build custom HTML-page apps inside a project folder, backed by local scripts and themed to match the app
 - [Mneme Knowledge Base](./mneme.md) - Local full-text & semantic search over folders of Markdown — browsable in-app and MCP-accessible (optional, off by default)
 - [Tabs & Navigation](./tabs-and-navigation.md) - Tab management, grouping, sidebar, and session restore
 - [Encryption](./encryption.md) - Password-based file encryption
@@ -57,6 +58,7 @@ persephone is a Windows Notepad replacement designed for developers. It combines
 - Full Node.js access in scripts
 - **AI scripting** — call Claude directly from scripts via `ai.ClaudeSession` (multi-turn conversations, tool use)
 - AI agent integration — connect external tools like Claude Desktop, Claude Code, or ChatGPT to control persephone via HTTP (MCP)
+- **Web Boards** — build fully custom HTML-page applications inside a project folder; call backend scripts (any language) via `persephone.execute()`, and theme the UI automatically with the `--p-*` CSS-variable contract; AI agents can author and test boards over MCP
 - **Git integration** (optional, off by default) — Git Tree editor for browsing commit history, and a Git Diff editor switch for any tracked text file
 - **Mneme knowledge base** (optional, off by default) — index folders of Markdown for full-text and semantic search; browse and edit documents in-app, and let AI agents read, search, and maintain the knowledge base over MCP
 

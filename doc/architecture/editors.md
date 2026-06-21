@@ -15,7 +15,7 @@ All editor code lives in `/src/renderer/editors/`.
 
 ## Editor Catalog
 
-24 editor classes. The `IContentHost?` column indicates whether the editor composes an `IContentHost` (text-bearing) — these can switch between each other on the same page. The `Trait?` column indicates whether the editor exposes `CONTENT_HOST_TRAIT` — these participate in owner-orchestrated switching.
+25 editor classes (29 registered editor IDs — `GridEditor` serves three IDs). The `IContentHost?` column indicates whether the editor composes an `IContentHost` (text-bearing) — these can switch between each other on the same page. The `Trait?` column indicates whether the editor exposes `CONTENT_HOST_TRAIT` — these participate in owner-orchestrated switching.
 
 | Editor ID | Class | File types | IContentHost? | Trait? |
 |-----------|-------|------------|---------------|--------|
@@ -47,6 +47,9 @@ All editor code lives in `/src/renderer/editors/`.
 | `storybook-view` | `StorybookEditorModel` | (none — opened via UI) | — | — |
 | `git-tree` | `GitTreeEditorModel` | (none — opened from the `.git` node in Explorer) | — | — |
 | `compare` | `CompareEditor` | (triggered) | — | — |
+| `board-view` | `BoardEditorModel` | `.persephone/boards/<Name>/` folders | — | — |
+
+> **Board editor:** `BoardEditorModel` is a Pattern-B (survive-navigation) editor. It hosts the board's `index.html` in a locked-down `<webview>` (sandbox on, contextIsolation on, nodeIntegration off, CSP forbids remote network). The `board://` per-partition protocol serves local board files. A board preload (`src/preload-board.ts`) injects `window.persephone` — the bridge object — with `execute()` (thin client over the main-process command runner), the integration tier (`openRawLink`, `notify`, file/folder dialogs), and the theme/token contract (`--p-*` CSS variables injected on `<html>`, live across theme switches). An untrusted `.persephone` project blocks the board from rendering (see `UntrustedProjectView.tsx`). The `boards-assets/` root holds the recommended-components catalog (skins + manifest). See `assets/board-template/CLAUDE.md` for the board authoring guide.
 
 > **PDF / Image content pipe integration:** Both have `ensurePipe()` to reconstruct the pipe from `filePath` on app restart. For non-local sources (HTTP URLs, archive entries), they read content through the pipe and cache to disk for offline restart recovery. PDF caches as `{pageId}.pdf`, Image caches as `{pageId}.img`. Cache files are cleaned up on page dispose.
 >

@@ -1,4 +1,3 @@
-import { TComponentState } from "../../core/state/state";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Button } from "../../uikit/Button";
@@ -11,19 +10,11 @@ import { ui } from "../../api/ui";
 import { showTrustProjectDialog } from "../../ui/dialogs/TrustProjectDialog";
 import { showInputDialog } from "../../ui/dialogs/InputDialog";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
-import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
 import { fpJoin } from "../../core/utils/file-path";
-import {
-    BoardEditorModel,
-    getDefaultBoardEditorState,
-    type BoardEditorState,
-} from "./BoardEditorModel";
+import { BoardEditorModel } from "./BoardEditorModel";
 import { UntrustedProjectView } from "./UntrustedProjectView";
 import { BoardWebview } from "./BoardWebview";
 import { BoardGlyph } from "./BoardGlyph";
-import type { EditorModule } from "../types";
-import type { EditorOrHost } from "../base";
-import type { EditorType, IEditorState } from "../../../shared/types";
 
 // =============================================================================
 // Component — board management + host region (US-722). Gated by the per-project
@@ -239,42 +230,3 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
         </div>
     );
 }
-
-// =============================================================================
-// Legacy EditorModule default export — consumed by `buildEditorById`
-// (navigatePageTo path) and session restore.
-// =============================================================================
-
-const boardEditorModule: EditorModule = {
-    Editor: BoardEditorView as unknown as EditorModule["Editor"],
-
-    newEditorModel: async (filePath?: string) => {
-        const model = new BoardEditorModel(new TComponentState(getDefaultBoardEditorState()));
-        if (filePath) {
-            const link = decodePersephoneFolderLink(filePath);
-            if (link) model.initFromPersephone(link.persephonePath);
-        }
-        return model as unknown as EditorOrHost;
-    },
-
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "boardPage") return null;
-        return new BoardEditorModel(
-            new TComponentState(getDefaultBoardEditorState()),
-        ) as unknown as EditorOrHost;
-    },
-
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const model = new BoardEditorModel(
-            new TComponentState({
-                ...getDefaultBoardEditorState(),
-                ...(state as Partial<BoardEditorState>),
-            }),
-        );
-        // Session restore: persephonePath rides the persisted state — re-init.
-        await model.restore();
-        return model as unknown as EditorOrHost;
-    },
-};
-
-export default boardEditorModule;

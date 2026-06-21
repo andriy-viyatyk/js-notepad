@@ -237,6 +237,7 @@ interface IApp {
     readonly downloads: IDownloads;
     readonly menuFolders: IMenuFolders;
     readonly pages: IPageCollection;
+    readonly proc: IProc;
 
     runAsync<TData, TProxy, TResult>(
         fn: (data: TData, proxy: TProxy) => Promise<TResult>,
@@ -245,6 +246,28 @@ interface IApp {
     ): Promise<TResult>;
 }
 ```
+
+### `app.proc` — Process Execution
+
+Spawn external programs and stream their output. The main process owns the child process registry (including whole-tree kill); `app.proc` is the renderer client.
+
+```typescript
+// One-shot: run a script and parse its JSON stdout
+const data = await app.proc.execute("python scripts/load.py").getJson();
+
+// Streaming
+const h = app.proc.execute("npm run build");
+const dec = new TextDecoder();
+h.on("stdout", (chunk) => console.log(dec.decode(chunk)));
+h.on("exit", ({ code }) => console.log("done", code));
+
+// Pass a regex pattern to extract marked JSON from noisy stdout
+const result = await app.proc.execute(cmd).getJson(/@@RESULT@@(.*)/);
+```
+
+The same channel backs Web Board's `persephone.execute()` — both the board preload and `app.proc` call into the same `command-runner.ts` in the main process.
+
+Type definitions: `/src/renderer/api/types/proc.d.ts` (`IProc`, `IExecuteHandle`, `IExecuteOptions`).
 
 ### `io` — Content Delivery API
 

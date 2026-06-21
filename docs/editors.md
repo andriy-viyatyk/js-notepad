@@ -731,6 +731,37 @@ AI agents can read, search, and maintain the same knowledge base over MCP.
 
 See **[Mneme — Knowledge Base](./mneme.md)** for complete documentation.
 
+## Web Board
+
+A sandboxed HTML-page application hosted inside a Persephone project. Web Boards let you build fully custom UIs backed by scripts in any language (Node.js, Python, PowerShell, shell, …).
+
+**Opening:** Click the **`.persephone`** node in the **File Explorer** panel for any project that contains a `.persephone` folder. If no such folder exists, right-click any folder in the Explorer and choose **"Create .persephone project"**.
+
+**Key features:**
+
+- **Owns its own UI** — you (or an AI agent) write plain HTML + CSS + JS; Persephone only hosts the page
+- **`persephone.execute()` channel** — call backend scripts from the page; consume the result buffered (`getJson()`, `getText()`) or streamed (`on("stdout", …)`)
+- **Integration tier** — `notify()`, `openFileDialog()`, `saveFileDialog()`, `openFolderDialog()`, `openRawLink()`
+- **`--p-*` theme contract** — CSS variables injected into the board that update live when the user switches app themes
+- **Live reload** — editing `index.html` reloads the board automatically; other file changes reload with the **Refresh** button in the Boards sidebar panel
+- **Custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set the board's tab icon and sidebar icon
+- **Error log** — script failures are toasted and appended to `ui.log` in the board folder
+
+**Boards sidebar panel:** Lists all boards in the current project. Click a board to switch to it. The panel header has a **Refresh** button and the always-visible **Show in main view** button.
+
+**Creating a board:**
+
+- **"+ New board"** in the Board editor main view — scaffolds from the built-in 4-file template
+- **"Create Demo board"** — installs a full working demo that covers every bridge API feature
+
+**Project trust gate:** Before any board renders, you must explicitly trust the `.persephone` project. A warning dialog states that trusting allows the board's scripts to run programs with your full user privileges. Trust is per-project and remembered across restarts.
+
+**MCP automation:** AI agents can drive an open board using the `browser_*` MCP tools (same Playwright-compatible tools used for the built-in browser). Find the board in `list_pages` by `editor: "board-view"`, then use `browser_snapshot`, `browser_click`, `browser_evaluate`, etc. to test and debug without touching source files.
+
+**Recommended components:** Persephone publishes a catalog of component libraries (Tabulator, Chart.js, Flatpickr, Tom Select, Mermaid, and more) with pre-built skins that match the `--p-*` theme. The catalog lives in `boards-assets/` in the repository.
+
+See **[Web Boards](./web-boards.md)** for complete documentation.
+
 ## Switching Editors
 
 Some files support multiple editors:

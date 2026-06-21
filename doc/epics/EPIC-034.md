@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** 🚧 Active (design consolidated; foundational tasks to be carved before implementation)
+**Status:** ✅ Completed 2026-06-21 (all 23 tasks implemented; epic-level review/document/userdoc done — see [completed epics](completed.md))
 **Created:** 2026-06-18
 
 > Design is **consolidated** from the 2026-06-18 discussion plus a working Tabulator proof-of-concept (`temp/tabulator-board-test.html`). This epic owns its **full foundation layer** (command runner, process lifecycle, trust gate, board editor + routing) plus the board bridge, file delivery, theme contract, and recommended-components model. Tasks are **carved as placeholders** (see **Tasks**, in build order); each gets a full Goal → Background → Implementation Plan → Concerns → Acceptance doc before its implementation begins.

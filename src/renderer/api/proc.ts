@@ -21,7 +21,35 @@ import type {
     IExecuteOptions,
     IExitInfo,
 } from "../../ipc/runner-channels";
-import type { IProc } from "./types/proc";
+import type {
+    IProc,
+    IExecuteOptions as ScriptExecuteOptions,
+    IExitInfo as ScriptExitInfo,
+    IExecuteError as ScriptExecuteError,
+    IExecuteHandle as ScriptExecuteHandle,
+} from "./types/proc";
+
+// ---------------------------------------------------------------------------
+// Compile-time drift guard. The handle contract lives in two places by design:
+// the canonical `runner-channels.ts` (shared by both clients) and the
+// self-contained script-facing surface `./types/proc.d.ts` (it must not import
+// across dirs — the editor-types flat-copy in vite.renderer.config.ts can't
+// follow). Assert the two definitions stay MUTUALLY assignable, so changing a
+// field in one without the other becomes a compile error here (not a silent
+// drift). Type-only — erased at build, zero runtime cost.
+// ---------------------------------------------------------------------------
+type AssertExtends<A extends B, B> = A;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _ProcContractInSync = [
+    AssertExtends<IExecuteOptions, ScriptExecuteOptions>,
+    AssertExtends<ScriptExecuteOptions, IExecuteOptions>,
+    AssertExtends<IExitInfo, ScriptExitInfo>,
+    AssertExtends<ScriptExitInfo, IExitInfo>,
+    AssertExtends<IExecuteError, ScriptExecuteError>,
+    AssertExtends<ScriptExecuteError, IExecuteError>,
+    AssertExtends<IExecuteHandle, ScriptExecuteHandle>,
+    AssertExtends<ScriptExecuteHandle, IExecuteHandle>,
+];
 
 const { ipcRenderer } = window.electron;
 

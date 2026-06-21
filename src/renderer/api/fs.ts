@@ -299,7 +299,10 @@ class FileSystem implements IFileSystem {
 
     async append(filePath: string, text: string): Promise<void> {
         this._ensureDir(path.dirname(filePath));
-        nodefs.appendFileSync(filePath, text, "utf-8");
+        // Async append: this is called from `did-fail-load` (board load failures,
+        // which can fire in bursts) — a sync write would block the renderer in
+        // exactly the scenario where responsiveness matters most.
+        await nodefs.promises.appendFile(filePath, text, "utf-8");
     }
 
     async writeBinary(filePath: string, data: Buffer): Promise<void> {

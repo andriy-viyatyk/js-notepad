@@ -12,7 +12,8 @@ persephone/
 │   ├── ipc/                # IPC communication layer
 │   ├── shared/             # Shared types and constants
 │   ├── renderer.tsx        # Bootstrap entry point
-│   └── preload.ts          # Preload script
+│   ├── preload.ts          # Preload script (main renderer)
+│   └── preload-board.ts    # Board preload — injects window.persephone bridge into sandboxed webview
 ├── launcher/               # Rust launcher (Named Pipe client)
 │   ├── src/main.rs
 │   ├── build.rs
@@ -32,7 +33,10 @@ persephone/
 │   ├── mcp-res-graph.md    # MCP resource: force-graph data format & page.asGraph() API
 │   ├── mcp-res-notebook.md # MCP resource: notebook editor JSON format
 │   ├── mcp-res-todo.md     # MCP resource: todo editor JSON format
-│   └── mcp-res-links.md    # MCP resource: links editor JSON format
+│   ├── mcp-res-links.md    # MCP resource: links editor JSON format
+│   ├── board-template/     # Scaffold copied into every new board (.persephone/boards/<Name>/)
+│   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, reload, MCP debug)
+│   └── demo-board/         # Bundled Demo board — exercises the full board surface
 ├── snip-tool/              # Rust native screen snip tool (persephone-snip.exe)
 │   ├── src/main.rs         # Entry point, PNG encoding, stdout output
 │   ├── src/capture.rs      # Monitor enumeration + GDI screen capture
@@ -53,6 +57,11 @@ persephone/
 │   ├── assets/             # models.json manifest + wiki-guide.md (agent guide resource)
 │   ├── Cargo.toml
 │   └── README.md           # crate-local docs (module layout, build/test, invariants) — primary reference
+├── boards-assets/          # Recommended-components catalog for Web Boards
+│   ├── manifest.json       # Catalog index (id, label, files, description per skin)
+│   ├── README.md           # Adoption playbook
+│   └── *.css / *.js        # Pre-built skins: tabulator, chart-theme, flatpickr, tom-select,
+│                           #   markdown, mermaid-theme, split, sortablejs, tippy, dialog
 ├── patches/                # Dependency patches (patch-package)
 ├── .mcp.json               # MCP server config for Claude Code (points to MCP HTTP server)
 ├── doc/                    # Developer documentation
@@ -85,6 +94,8 @@ persephone/
 │   ├── mcp-handler.ts      # MCP command handler (receives IPC from main, dispatches commands)
 │   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers
 │   ├── mneme-status.ts     # Mneme health prober + reactive status (shared MCP connection; drives sidecar launch, indicators, and auto-opens the config editor when no model is provisioned)
+│   ├── proc.ts             # IProc implementation (app.proc.execute) — renderer client over the main-process command runner; compile-time drift guard keeps it in sync with runner-channels.ts
+│   ├── project-trust.ts    # Per-project trust gate — persists trusted project paths; untrusted .persephone projects block board rendering
 │   ├── internal.ts         # Disposable utilities (wrapSubscription, etc.)
 │   │
 │   ├── pages/              # Page collection — composed submodels
@@ -495,6 +506,19 @@ persephone/
 │   │   ├── MnemeTreeSecondaryView.tsx # "mneme-tree" sidebar panel (browse/create/rename/delete/drop)
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
 │   │   └── index.tsx
+│   ├── board/              # Web Board editor (non-text, Pattern B survive-navigation)
+│   │   ├── BoardEditorModel.ts       # EditorModel — board lifecycle, trust gate, webview state, icon, boards list
+│   │   ├── BoardEditorView.tsx       # React component (view only)
+│   │   ├── BoardWebview.tsx          # Locked-down <webview> (sandbox+contextIsolation on, board:// protocol)
+│   │   ├── BoardListSecondaryView.tsx # "boards-list" sidebar panel
+│   │   ├── BoardGlyph.tsx            # Default board glyph icon
+│   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
+│   │   ├── board-icon-cache.ts       # Module-level icon cache (SVG/PNG/ICO → data URL, per board path)
+│   │   ├── board-theme.ts            # computeBoardThemePalette + BOARD_TOKEN_VARS (--p-* contract)
+│   │   ├── board-scaffold.ts         # Scaffold helpers — copy board-template into a new board folder
+│   │   ├── board-api.d.ts            # board-internal type declarations
+│   │   ├── UntrustedProjectView.tsx  # Shown in place of the webview when the project is untrusted
+│   │   └── index.tsx                 # boardModule + legacy EditorModule factory
 │   ├── shared/             # Shared editor utilities
 │   │   ├── link-open-menu.tsx
 │   │   └── ColorizedCode.tsx         # Syntax-highlighted code via Monaco colorize()
@@ -668,6 +692,7 @@ persephone/
 ├── download-service.ts     # Download management
 ├── search-service.ts       # File search service
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
+├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and board preload.execute; whole-tree kill via taskkill
 ├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout)
 ├── version-service.ts      # Version checking (runs in main, not renderer)
 ├── video-stream-server.ts  # Local HTTP streaming server (range requests, faststart MP4 relocation, session management)
@@ -691,6 +716,7 @@ persephone/
 ├── git-ipc.ts              # Git service IPC channel names + request/response types (EPIC-030)
 ├── search-ipc.ts           # Search IPC channels
 ├── worker-channels.ts      # Worker thread IPC channels (app.runAsync)
+├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, IExecuteHandle contract shared by proc.ts and preload-board.ts)
 ├── popup-rate-limiter.ts   # Global popup/tab rate limiter (app-wide singleton)
 ├── main/                   # Main process handlers
 │   ├── controller.ts       # IPC handler registration
