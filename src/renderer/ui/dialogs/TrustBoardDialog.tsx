@@ -5,13 +5,13 @@ import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { WarningIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 
-const trustProjectDialogId = Symbol("trustProjectDialog");
+const trustBoardDialogId = Symbol("trustBoardDialog");
 
-interface TrustProjectDialogProps {
-    projectPath: string; // absolute .persephone (or project root) path, for display
+interface TrustBoardDialogProps {
+    boardPath: string; // absolute board-root path, for display
 }
 
-class TrustProjectDialogModel extends TDialogModel<TrustProjectDialogProps, boolean> {
+class TrustBoardDialogModel extends TDialogModel<TrustBoardDialogProps, boolean> {
     handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Escape") {
             e.preventDefault();
@@ -20,13 +20,13 @@ class TrustProjectDialogModel extends TDialogModel<TrustProjectDialogProps, bool
     };
 }
 
-function TrustProjectDialog({ model }: ViewPropsRO<TrustProjectDialogModel>) {
+function TrustBoardDialog({ model }: ViewPropsRO<TrustBoardDialogModel>) {
     const state = model.state.use();
 
     return (
-        <Dialog name="trust-project-dialog" onKeyDown={model.handleKeyDown}>
+        <Dialog name="trust-board-dialog" onKeyDown={model.handleKeyDown}>
             <DialogContent
-                title="Trust this project?"
+                title="Trust this board?"
                 icon={<WarningIcon />}
                 onClose={() => model.close(false)}
                 minWidth={420}
@@ -34,17 +34,21 @@ function TrustProjectDialog({ model }: ViewPropsRO<TrustProjectDialogModel>) {
             >
                 <Panel direction="column" gap="md" paddingX="xxl" paddingY="xl">
                     <Text>
-                        Trusting this project lets its boards run programs on your computer
-                        with your full user privileges — including reading and changing your
-                        files and using any signed-in command-line tools (cloud CLIs, git, etc.).
+                        Trusting this board lets it run programs on your computer with your
+                        full user privileges — including reading and changing your files and
+                        using any signed-in command-line tools (cloud CLIs, git, etc.).
                     </Text>
-                    <Text>Only trust projects you created or fully understand.</Text>
-                    <Text color="light">{state.projectPath}</Text>
+                    <Text>Only trust boards you created or fully understand.</Text>
+                    <Text color="warning">
+                        If you're not sure about a board, ask your AI agent to review its
+                        scripts before trusting it.
+                    </Text>
+                    <Text color="light">{state.boardPath}</Text>
                 </Panel>
                 <Panel direction="row" justify="end" gap="sm" padding="md">
                     <Button onClick={() => model.close(false)}>Cancel</Button>
                     <Button variant="primary" onClick={() => model.close(true)}>
-                        Trust Project
+                        Trust Board
                     </Button>
                 </Panel>
             </DialogContent>
@@ -52,12 +56,12 @@ function TrustProjectDialog({ model }: ViewPropsRO<TrustProjectDialogModel>) {
     );
 }
 
-Views.registerView(trustProjectDialogId, TrustProjectDialog as DefaultView);
+Views.registerView(trustBoardDialogId, TrustBoardDialog as DefaultView);
 
-export function showTrustProjectDialog(projectPath: string) {
-    const model = new TrustProjectDialogModel(new TComponentState({ projectPath }));
+export function showTrustBoardDialog(boardPath: string) {
+    const model = new TrustBoardDialogModel(new TComponentState({ boardPath }));
     return showDialog({
-        viewId: trustProjectDialogId,
+        viewId: trustBoardDialogId,
         model,
     }) as Promise<boolean>;
 }

@@ -6,7 +6,7 @@ import type { IPageHost } from "../../api/pages/IPageHost";
 import { fs } from "../../api/fs";
 import { fpBasename, fpJoin, fpNormalizeForCompare } from "../../core/utils/file-path";
 import { DirectoryWatcher, FileWatcher } from "../../core/utils/file-watcher";
-import { projectTrust } from "../../api/project-trust";
+import { boardTrust } from "../../api/board-trust";
 import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
 import { createBoardFromTemplate } from "./board-scaffold";
 import { isBoardFolder } from "./board-manifest";
@@ -202,7 +202,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
             s.boardRoot = undefined;
             s.title = boardProjectTitle(persephonePath);
         });
-        void projectTrust.load();
+        void boardTrust.load();
         void this.refreshBoards();
     }
 
@@ -216,6 +216,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
             s.boardRoot = boardRoot;
             s.title = name;
         });
+        void boardTrust.load();
         this.selectBoard(name);
         void this.refreshBoards();
     }
@@ -225,7 +226,7 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     async restore(): Promise<void> {
         const s = this.state.get();
         if (!s.boardsDir && !s.boardRoot) return;
-        void projectTrust.load();
+        void boardTrust.load();
         await this.refreshBoards();
         // A board may have been open before restart — re-attach its watchers.
         this.watchSelectedBoard(this.state.get().selectedBoard);

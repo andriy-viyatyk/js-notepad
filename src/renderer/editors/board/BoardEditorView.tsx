@@ -5,14 +5,13 @@ import { IconButton } from "../../uikit/IconButton";
 import { SplitButton } from "../../uikit/SplitButton";
 import { Spacer } from "../../uikit/Spacer";
 import { PlusIcon, DeleteIcon, BoardIcon } from "../../theme/icons";
-import { projectTrust } from "../../api/project-trust";
+import { boardTrust } from "../../api/board-trust";
 import { ui } from "../../api/ui";
-import { showTrustProjectDialog } from "../../ui/dialogs/TrustProjectDialog";
+import { showTrustBoardDialog } from "../../ui/dialogs/TrustBoardDialog";
 import { showInputDialog } from "../../ui/dialogs/InputDialog";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
-import { fpDirname } from "../../core/utils/file-path";
 import { BoardEditorModel } from "./BoardEditorModel";
-import { UntrustedProjectView } from "./UntrustedProjectView";
+import { UntrustedBoardView } from "./UntrustedBoardView";
 import { BoardWebview } from "./BoardWebview";
 import { BoardGlyph } from "./BoardGlyph";
 
@@ -32,24 +31,12 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
         reloadToken: st.reloadToken,
         title: st.title,
     }));
-    // Project-mode trust key = the `.persephone` folder (parent of boardsDir, the
-    // US-721 key). A single board (boardRoot set) has no project trust here —
-    // per-board trust lands in US-747; until then a single board renders ungated.
-    const projectPath = s.boardsDir ? fpDirname(s.boardsDir) : "";
-    const trusted = projectTrust.useIsTrusted(projectPath);
-
-    if (!s.boardRoot && !trusted) {
-        return (
-            <UntrustedProjectView
-                path={projectPath}
-                onTrust={async () => {
-                    if (await showTrustProjectDialog(projectPath)) {
-                        await projectTrust.trust(projectPath);
-                    }
-                }}
-            />
-        );
-    }
+    // Trust is per board (EPIC-035): the gate keys on the currently-selected
+    // board's own root, and fires when that board is about to render (webview +
+    // execute) — NOT on the board list, which runs no board code. The hook must
+    // run unconditionally; "" (nothing selected) is never trusted.
+    const selectedRoot = s.selectedBoard ? model.boardRootOf(s.selectedBoard) : undefined;
+    const boardTrusted = boardTrust.useIsTrusted(selectedRoot ?? "");
 
     const handleCreate = async () => {
         const res = await showInputDialog({
@@ -96,14 +83,28 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
     };
 
     // A selected board takes the full editor area — no toolbar (the board owns its
-    // own page). Back to the list is via the side-panel ">" button.
-    if (s.selectedBoard) {
+    // own page). Back to the list is via the side-panel ">" button. An untrusted
+    // board shows the trust placeholder instead of its webview — nothing runs until
+    // the user trusts this specific board.
+    if (s.selectedBoard && selectedRoot) {
+        if (!boardTrusted) {
+            return (
+                <UntrustedBoardView
+                    path={selectedRoot}
+                    onTrust={async () => {
+                        if (await showTrustBoardDialog(selectedRoot)) {
+                            await boardTrust.trust(selectedRoot);
+                        }
+                    }}
+                />
+            );
+        }
         return (
             <Panel name="board-webview-wrap" direction="column" flex={1} width="100%">
                 <BoardWebview
                     key={`${s.selectedBoard}__${s.reloadToken}`}
                     model={model}
-                    boardRoot={model.boardRootOf(s.selectedBoard)}
+                    boardRoot={selectedRoot}
                 />
             </Panel>
         );

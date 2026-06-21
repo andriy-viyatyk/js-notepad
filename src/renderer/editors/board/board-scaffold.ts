@@ -1,6 +1,7 @@
 import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
+import { boardTrust } from "../../api/board-trust";
 import { fpJoin } from "../../core/utils/file-path";
 import { ensureBoardManifest } from "./board-manifest";
 
@@ -40,7 +41,9 @@ export async function scaffoldBoard(destDir: string, template = "board-template"
  *
  * Errors on a name collision; on a template-copy failure it still produces a
  * usable (empty) board folder + warns. Always guarantees the board-identity
- * manifest exists. Returns the created board's absolute root.
+ * manifest exists. A board Persephone creates is **auto-trusted at creation**
+ * (EPIC-035 C5) — by provenance, not a manifest field — so an authored board
+ * never hits the trust gate. Returns the created board's absolute root.
  */
 export async function createBoardFromTemplate(name: string, dir: string, template: string): Promise<string> {
     const boardRoot = fpJoin(dir, name);
@@ -62,6 +65,9 @@ export async function createBoardFromTemplate(name: string, dir: string, templat
     // Guarantee the board-identity manifest exists regardless of which path ran
     // above (template copy or empty fallback) — a board is identified by it.
     await ensureBoardManifest(boardRoot);
+    // Auto-trust a Persephone-created board (C5): provenance-based registry write,
+    // never a manifest self-declaration. Covers the list editor + the MCP create.
+    await boardTrust.trust(boardRoot);
     return boardRoot;
 }
 
