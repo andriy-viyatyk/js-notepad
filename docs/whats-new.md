@@ -6,21 +6,28 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 4.0.6 (Upcoming)
+## Version 4.0.7 (Upcoming)
+
+*No changes yet.*
+
+---
+
+## Version 4.0.6
 
 ### New Features
 
-- **Boards** — A new kind of editor that lets you (or an AI agent) build fully custom HTML-page applications inside a Persephone project. A board is a plain HTML page backed by scripts in any language; Persephone hosts the page in a sandboxed webview and injects a single bridge object, `window.persephone`.
+- **Boards** — A new kind of editor that lets you (or an AI agent) build fully custom HTML-page applications that run locally inside Persephone. A board is a plain HTML page backed by scripts in any language; Persephone hosts the page in a sandboxed webview and injects a single bridge object, `window.persephone`. A board is any folder containing a `board-manifest.json` file, and it can live anywhere on your machine.
 
   **Getting started:**
   - Right-click any folder in the **File Explorer** sidebar and choose **"Create .persephone project"** — this creates the `.persephone` folder, auto-trusts the project, and opens the **Board editor** immediately.
   - In the Board editor, click **"+ New board"** to scaffold a board from the built-in template, or **"Create Demo board"** to install a full working example.
+  - Or open an existing board directly: right-click any `board-manifest.json` row in the **File Explorer** and click the **Open Board** button that appears on the row.
 
   **The bridge — `persephone.execute(commandLine)`** — calls a backend script (Node.js, Python, PowerShell, shell, or any other language) and returns a process handle. Consume the result buffered (`await handle.getJson()` / `getText()`) or streamed (`handle.on("stdout", cb)`). This single primitive covers everything: load data, run a command-line tool, write a file, start a long-running process, or send/receive over stdin. A small integration tier adds native dialogs (`openFileDialog`, `saveFileDialog`, `openFolderDialog`) and in-app navigation (`openRawLink`) and toasts (`notify`).
 
   **Theme contract** — Persephone injects the app's active palette as `--p-*` CSS variables into every board and keeps them live when the user switches themes. Style everything with them and the board automatically matches the app's look. A JS mirror (`persephone.theme`, `persephone.getTheme()`, `persephone.onThemeChange(cb)`) is available for libraries that take colors from JavaScript (charts, diagrams).
 
-  **Security — per-board trust gate** — Because `execute()` runs programs with your full user privileges, you must explicitly trust each board before it renders. A warning dialog states this plainly. Trust is **per board** (not per project), remembered across restarts. Boards you create are auto-trusted immediately; foreign boards prompt on first open.
+  **Security — per-board trust** — Because `execute()` runs programs with your full user privileges, you must explicitly trust each board before it renders. A warning dialog states this plainly. Trust is **per board**, remembered across restarts (stored in `%AppData%\persephone\data\trustedBoards.txt`). Boards you create (via **"+ New board"**, the scripting API, or an AI agent) are **auto-trusted immediately**; any board Persephone did not create for you shows a **Trust board** dialog on first open. A **"Trust all boards in this project"** bulk action is available on the `.persephone` project node in the File Explorer.
 
   **Recommended components** — Persephone publishes a catalog of components with pre-built skins (CSS or JS adapters) that match the `--p-*` theme:
 
@@ -41,17 +48,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   **Per-board custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in a board folder to set the icon shown on the page tab, the board list, and the Boards sidebar panel.
 
-  **AI-agent integration** — Boards are designed to be authored by AI agents. The per-board `CLAUDE.md` documents the full bridge API. Once a board is open, agents can test and debug it using the `browser_*` MCP tools (the same Playwright-compatible tools used for the built-in browser), targeting the board page by its `pageId` from `list_pages` (`editor: "board-view"`).
+  **Custom Boards & Editors sidebar tab** — The **Tools & Editors** sidebar panel has a second tab, **Custom Boards & Editors**, listing all trusted boards grouped by their containing folder. Click any board to open it; **pin** a board (the pin button appears on hover) to surface it at the top of the panel and in the **+** (add page) dropdown alongside pinned editors. Right-click a board row → **Remove** to untrust and unpin it.
 
-  > See **[Boards](./boards.md)** for full documentation.
-
-- **Boards — boards anywhere on disk** — Boards are no longer restricted to the `.persephone/boards/` folder. A board is now identified by a `board-manifest.json` file, and it can live anywhere on your machine. Right-click any `board-manifest.json` row in the **File Explorer** sidebar and click the **Open Board** button that appears on the row to open that board as a standalone tab.
-
-- **Boards — per-board trust (replaces per-project trust)** — Trust has moved from the project level to the individual board level. Each board is trusted separately, and trust is stored in `%AppData%\persephone\data\trustedBoards.txt`. Boards you create (via **"+ New board"**, the scripting API, or an AI agent) are **auto-trusted immediately** with no prompt. Any board Persephone did not create for you shows a **Trust board** dialog on first open — with a plain-language explanation of what trusting means. A **"Trust all boards in this project"** bulk action is available on the `.persephone` project node in the File Explorer.
-
-- **Boards — Custom Boards & Editors sidebar tab** — The **Tools & Editors** sidebar panel now has a second tab: **Custom Boards & Editors**. It lists all trusted boards grouped by their containing folder. Click any board to open it. **Pin** a board (the pin button appears on hover) to make it appear at the top of the panel and in the **+** (add page) dropdown alongside pinned editors. Right-click a board row → **Remove** to untrust and unpin it.
-
-- **Boards — scripting and agent API** — A new `app.boards` namespace is available in scripts and to AI agents:
+  **Scripting & AI-agent integration** — Boards can be created and opened from scripts and by AI agents through a new `app.boards` namespace:
 
   | Method | Description |
   |--------|-------------|
@@ -59,7 +58,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
   | `app.boards.createDemoBoard(name, dir)` | Same, but uses the Demo board template. |
   | `app.boards.openBoard(boardRoot)` | Open an existing board by its absolute root folder path. |
 
-  Two new MCP tools complement this: `create_board` and `open_board`. Agents can build and open boards without any user interaction.
+  Two new MCP tools complement this: `create_board` and `open_board`. The per-board `CLAUDE.md` documents the full bridge API, and once a board is open agents can test and debug it with the `browser_*` MCP tools (the same Playwright-compatible tools used for the built-in browser), targeting the board page by its `pageId` from `list_pages` (`editor: "board-view"`).
+
+  > See **[Boards](./boards.md)** for full documentation.
 
 - **"Open Folder" shortcut in Tools & Editors** — A new **Open Folder** entry appears in the **Tools & Editors** panel and in the **+** (add page) dropdown menu. Clicking it shows a native Select Folder dialog; once you pick a folder, a new tab opens with the **File Explorer** panel rooted at that folder — the same result as right-clicking a folder in the Explorer sidebar and choosing **"Open in New Tab"**. For new installations, **Open Folder** is the first item in the default pinned set, so it shows up immediately in the **+** dropdown without any setup. Existing users can pin it from the **All Editors & Tools** tab of the Tools & Editors panel.
 
