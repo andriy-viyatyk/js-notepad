@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** 🟢 Active — **design finalized 2026-06-21** (all concerns C1–C8 resolved; scope frozen at 6 tasks US-745…US-751)
+**Status:** ✅ Completed — **closed 2026-06-21** (all 7 tasks US-745…US-751 implemented + reviewed; epic-level review/document/userdoc done)
 **Created:** 2026-06-21
 **Follows:** [EPIC-034 — Web Board](EPIC-034.md) (foundation; not yet released → no backward-compatibility constraints, the only existing boards are this repo's `.persephone` test boards and can be adjusted by hand once)
 
@@ -132,3 +132,8 @@ Everything else (board-level trust, MCP lifecycle, sidebar tree, manifest identi
 - **C7** ✅ Explorer affordance = a **right-edge trailing row button** (`BoardIcon`, "Open Board") on the `board-manifest.json` row; row click still opens Monaco. **Not** folder-click interception — needs a per-row action slot in the tree-row renderer.
 - **C8** ✅ the **Custom Editor** axis (extension routing, file-as-input) is a **successor epic**; this epic stops at portability + manifest + trust + open-by-link + MCP + sidebar. US-748 leaves the seam.
 - **All concerns resolved.** Epic remains in **Planning** for task carving when the user is ready.
+
+### 2026-06-21 — epic closed
+- All 7 tasks (US-745…US-751) implemented and committed (`e1b93210`…`1fcd39ac`).
+- Epic-level close-out: `/review` (2 must-fix concerns fixed — `folder-structure.md` stale board files; `TrustedBoardsList` used `app.ui.notify` instead of the `ui` singleton; + an `app.openRawLink` JSDoc that hand-encoded the board link, swapped to `app.boards.openBoard`), `/document` (architecture + `CLAUDE.md` + demo board reconciled to per-board trust / boards-anywhere / manifest identity), `/userdoc` (`web-boards.md`, `api/app.md`, `whats-new.md`).
+- Custom Editor axis (file-extension routing, file-as-input) deferred to a successor epic per C6/C8.

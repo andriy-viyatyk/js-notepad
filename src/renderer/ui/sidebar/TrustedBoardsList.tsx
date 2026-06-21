@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { app } from "../../api/app";
+import { ui } from "../../api/ui";
 import { boardTrust } from "../../api/board-trust";
 import { createLinkData } from "../../../shared/link-data";
 import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
@@ -191,7 +192,7 @@ export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
     const handleRemove = useCallback(async (root: string) => {
         await boardTrust.untrust(root);
         removePin({ kind: "board", root });
-        app.ui.notify("Removed from trusted boards", "info");
+        ui.notify("Removed from trusted boards", "info");
     }, []);
 
     const handleChange = useCallback((source: RowSource) => {

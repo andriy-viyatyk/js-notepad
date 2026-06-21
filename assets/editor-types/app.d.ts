@@ -92,13 +92,12 @@ export interface IApp {
      * (`persephone-board://`, `persephone-folder://`, …). Opens a new tab (or reuses a
      * matching one) and makes it the active page.
      *
+     * To open a board by its root path, prefer `app.boards.openBoard(root)` — it
+     * builds the `persephone-board://` link for you rather than hand-encoding it.
+     *
      * @example
      * await app.openRawLink("C:/data/report.json");   // open a file
      * await app.openRawLink("https://example.com");    // open a URL in the browser
-     *
-     * @example
-     * // Open a board by its root path (the folder containing board-manifest.json).
-     * await app.openRawLink("persephone-board://" + btoa(JSON.stringify({ boardRoot: root })));
      */
     openRawLink(href: string): Promise<void>;
 

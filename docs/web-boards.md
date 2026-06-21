@@ -2,7 +2,7 @@
 
 # Web Boards
 
-Web Boards let you build fully custom HTML-page applications that live inside a Persephone project folder and run local scripts on demand. The UI is yours to author as plain HTML — Persephone hosts it in a sandboxed webview and wires one bridge object, `window.persephone`, so your page can call scripts and show native dialogs.
+Web Boards let you build fully custom HTML-page applications that can live anywhere on disk and run local scripts on demand. The UI is yours to author as plain HTML — Persephone hosts it in a sandboxed webview and wires one bridge object, `window.persephone`, so your page can call scripts and show native dialogs.
 
 > **Target audience:** This guide is for users who want to create and use boards. For AI-agent builders, the per-board `CLAUDE.md` inside each board folder is the primary authoring reference.
 
@@ -12,7 +12,7 @@ Web Boards let you build fully custom HTML-page applications that live inside a 
 
 ### What is a board?
 
-A board is a small web app stored in a `.persephone/boards/<Name>/` subfolder of a project. When you open a board in Persephone, the page renders in a sandboxed webview — isolated from the host application — and receives a single injected `persephone` bridge object.
+A board is a small web app stored in any folder on your machine — it is identified by a `board-manifest.json` file in the board's root folder. When you open a board in Persephone, the page renders in a sandboxed webview — isolated from the host application — and receives a single injected `persephone` bridge object.
 
 The three parts:
 
@@ -22,47 +22,66 @@ The three parts:
 | **Backend** | Scripts in `scripts/` (any language — `.js`, `.py`, `.ps1`, `.sh`, …). They run as real OS processes with your privileges. |
 | **Channel** | `persephone.execute(commandLine)`. The page calls a script, the script prints JSON to stdout, the page parses it and renders. |
 
-### What is a `.persephone` project?
+### Where do boards live?
 
-Any folder containing a `.persephone/` directory is a **Persephone project**. Boards live under `.persephone/boards/<Name>/`. You can create as many boards as you like per project.
+Boards can live **anywhere on disk** — there is no requirement to place them inside a `.persephone` project folder. The only structural requirement is a `board-manifest.json` file in the board's root folder (Persephone creates this automatically when scaffolding a board).
 
-### Project trust gate
+Boards you create inside a `.persephone` project folder continue to work exactly as before — they are just boards stored in a convenient default location. Boards outside a project are equally supported.
 
-Because `persephone.execute()` runs programs with your full user privileges, **you must explicitly trust a project** before any board renders or any script runs. Persephone shows a warning dialog that states this plainly — exactly like VS Code workspace trust.
+### Board trust gate
 
-- **Untrusted project:** the Board editor shows a placeholder and a **Trust project** button. No script runs until you confirm.
-- **Trusted project:** boards render normally and `execute()` is available.
-- **Trust is per-project** (per `.persephone` folder), remembered across app restarts. Once trusted, you are not prompted again. Trust is stored in `%AppData%\persephone\data\trustedProjects.txt`.
+Because `persephone.execute()` runs programs with your full user privileges, **each board must be explicitly trusted** before it renders or any script runs. Persephone shows a warning dialog that states this plainly — exactly like VS Code workspace trust.
 
-> Only trust projects you created or fully understand — trusting lets the board's scripts run programs and access files with your Windows user account's privileges.
+- **Boards you create** (via **"+ New board"**, `app.boards.createBoard()`, or the MCP `create_board` tool) are **auto-trusted immediately** — no prompt appears.
+- **Foreign boards** (any board Persephone did not create for you) show a **Trust board** dialog on first open:
+
+  > *"Trusting this board lets it run programs on your computer with your full user privileges — including reading and changing your files and using any signed-in command-line tools (cloud CLIs, git, etc.). Only trust boards you created or fully understand. If you're not sure about a board, ask your AI agent to review its scripts before trusting it."*
+
+- **Trust is per board** (per board root folder), remembered across app restarts. Once trusted you are not prompted again. Trust is stored in `%AppData%\persephone\data\trustedBoards.txt`.
+- **Bulk trust** — in the File Explorer, right-click the `.persephone` project node and choose **"Trust all boards in this project"** to trust all boards currently in that project at once. A confirmation dialog appears. Boards added to the project later remain untrusted until individually opened.
+
+> Only trust boards you created or fully understand — trusting lets the board's scripts run programs and access files with your Windows user account's privileges.
 
 ---
 
 ## Getting started
 
-### 1. Create a project
+### 1. Create a project (optional)
 
-There are two ways to create a `.persephone` project:
+A `.persephone` project is a convenient way to group related boards, but it is not required. If you want one:
 
 **From the File Explorer sidebar:**
 1. Right-click any folder and choose **"Create .persephone project"**.
-2. Persephone creates the `.persephone` folder, auto-trusts the project (you created it), expands the folder in the tree, and opens the **Board editor**.
+2. Persephone creates the `.persephone` folder and opens the **Board editor**.
 
-**Manually:** create a `.persephone` folder yourself inside any project folder. When you next click it in the Explorer, Persephone opens the Board editor and asks you to trust it.
+**Manually:** create a `.persephone` folder yourself inside any project folder. When you next click it in the Explorer, Persephone opens the Board editor.
 
 ### 2. Create a board
 
-In the Board editor's main view:
-
+**Inside a project:** in the Board editor's main view:
 - Click **"+ New board"** — type a name, and Persephone scaffolds the board from the built-in template. The board folder is created at `.persephone/boards/<Name>/`.
-- Or click the **"Create Demo board"** button (or the dropdown on **"+ New board"**) — Persephone installs a full working demo board that exercises every part of the bridge API, the theme contract, and a multi-tab layout.
+- Or click **"Create Demo board"** (or the dropdown on **"+ New board"**) — Persephone installs a full working demo board that exercises every part of the bridge API, the theme contract, and a multi-tab layout.
+
+**Anywhere on disk (scripting/agent):**
+```javascript
+// Create a blank board in any folder — auto-trusted at creation
+const root = await app.boards.createBoard("My Board", "C:/work/boards");
+await app.boards.openBoard(root);
+
+// Or scaffold from the Demo template
+const root = await app.boards.createDemoBoard("Demo", "C:/work/boards");
+await app.boards.openBoard(root);
+```
 
 The board opens immediately after creation.
 
 ### 3. Open an existing board
 
-- In the **File Explorer** panel, click the `.persephone` node under any project folder. The Board editor opens.
-- In the **Boards sidebar panel**, click any board name to switch to it.
+- **File Explorer panel** — rows for `board-manifest.json` files show an **"Open Board"** button (board icon) directly in the row. Click it to open that board as a standalone tab. (Clicking the row itself still opens the JSON in Monaco.)
+- **File Explorer panel** — click the `.persephone` node under any project folder to open the project Board editor with a board list.
+- **Tools & Editors panel → Custom Boards & Editors tab** — lists all trusted boards grouped by folder. Click a board to open it. Pin a board to make it appear in the top pinned section and in the **+** (add page) dropdown.
+- **Scripting / agent** — call `app.boards.openBoard(boardRoot)` with the absolute path to the board's root folder.
+- **Boards sidebar panel** (when a project Board editor is open) — click any board name to switch to it.
 
 ### 4. Edit and reload
 
@@ -184,22 +203,26 @@ persephone.onThemeChange(newPalette => {
 
 ## Board folder layout
 
+A board can live anywhere — the layout is the same regardless of location:
+
 ```
-.persephone/
-  boards/
-    My Board/              ← folder name = board display name
-      CLAUDE.md            ← authoring guide (for you or an AI agent)
-      ui.log               ← error log — review when something breaks
-      index.html           ← entry point (required at the board root)
-      app.js               ← your frontend JS
-      style.css            ← your styles
-      board-base.css       ← theme defaults (copy from the template)
-      scripts/
-        hello.js           ← a backend script
+My Board/                  ← board root folder (display name = folder name)
+  board-manifest.json      ← board identity file (created automatically)
+  CLAUDE.md                ← authoring guide (for you or an AI agent)
+  ui.log                   ← error log — review when something breaks
+  index.html               ← entry point (required at the board root)
+  app.js                   ← your frontend JS
+  style.css                ← your styles
+  board-base.css           ← theme defaults (copy from the template)
+  scripts/
+    hello.js               ← a backend script
 ```
 
+When a board lives inside a project, the path is `.persephone/boards/My Board/` — the layout inside is identical.
+
+- `board-manifest.json` is the identity file that tells Persephone this folder is a board. Never delete it.
 - The folder name is the board's display name. Rename the folder to rename the board.
-- `index.html` at the board root is the only structural requirement — everything else is your choice.
+- `index.html` at the board root is the only other structural requirement — everything else is your choice.
 
 ---
 
@@ -263,15 +286,15 @@ The `boards-assets/manifest.json` file has machine-readable details — vendor U
 
 Web Boards are designed to be authored by an AI agent. The key workflow:
 
-1. **Open a board** in Persephone (the user opens it; an untrusted project shows the trust gate and no board renders until trusted).
-2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"` and a `selectedBoard` field.
-3. **Agent reads `CLAUDE.md`** inside the board folder — the per-board authoring guide that documents the bridge API, the theme contract, the recommended-components catalog, and conventions.
+1. **Agent creates or opens a board.** Use the MCP tools `create_board` / `open_board`, or the scripting API `app.boards.createBoard()` / `app.boards.openBoard()`. Boards created this way are auto-trusted — no trust prompt blocks the agent.
+2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"`, a `selectedBoard` field, and (for standalone boards) a `boardRoot` field.
+3. **Agent reads `CLAUDE.md`** inside the board folder — the per-board authoring guide that documents the bridge API, the theme contract, the recommended-components catalog, and conventions. The MCP `read_guide("boards")` tool loads the complete board authoring guide.
 4. **Agent edits files** and observes the live reload: `index.html` changes trigger an automatic reload; `app.js` / CSS changes require the **Refresh** button in the Boards sidebar panel.
 5. **Agent tests the board** using the `browser_*` MCP tools (require [browser interaction enabled in MCP settings](./mcp-setup.md)):
 
 ```
 // Find the board page
-list_pages → { editor: "board-view", selectedBoard: "My Board", pageId: "abc" }
+list_pages → { editor: "board-view", selectedBoard: "My Board", boardRoot: "C:/work/boards/My Board", pageId: "abc" }
 
 // Inspect the DOM
 browser_snapshot({ pageId: "abc" })
@@ -283,17 +306,31 @@ browser_evaluate({ pageId: "abc", expression: "document.querySelector('#result')
 
 `browser_evaluate` is especially useful for testing `persephone.execute()` from the agent side — inject a test call and check the result without modifying source files.
 
+### MCP tools for boards
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `create_board` | `name`, `dir`, `demo?` | Create a blank board (or demo board when `demo: true`) in `<dir>/<name>`. Returns `{ boardRoot }`. Auto-trusted. |
+| `open_board` | `path` | Open an existing board by its root folder path. Returns `{ opened: path }`. |
+| `read_guide("boards")` | — | Load the full board authoring reference guide. |
+
 ---
 
 ## Managing boards
 
 | Action | How |
 |--------|-----|
-| Create a board | Click **"+ New board"** in the Board editor main view |
+| Create a board (in project) | Click **"+ New board"** in the Board editor main view |
 | Create a demo board | Click **"Create Demo board"** or use the dropdown on **"+ New board"** |
+| Create a board anywhere (script) | `await app.boards.createBoard("Name", "C:/path/to/dir")` |
+| Open a board from Explorer | Click the **Open Board** button on a `board-manifest.json` row |
+| Open a board from the sidebar | **Tools & Editors** panel → **Custom Boards & Editors** tab → click the board |
+| Open a board (script) | `await app.boards.openBoard("C:/path/to/board/root")` |
+| Pin a board | In the **Custom Boards & Editors** tab, click the pin button on the board row |
+| Remove a trusted board | Right-click the board in the **Custom Boards & Editors** tab → **Remove** |
 | Delete a board | In the Board editor main view, click the delete action on the board tile |
 | Rename a board | Rename the board's folder in the file system (Explorer, terminal, or the File Explorer sidebar) |
-| Switch boards | Click a board name in the **Boards** sidebar panel |
+| Switch boards (in project) | Click a board name in the **Boards** sidebar panel |
 | Refresh the board | Click the **Refresh** button in the **Boards** sidebar panel header |
 
 ---

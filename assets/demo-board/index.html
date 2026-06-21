@@ -33,8 +33,10 @@
                 backed by scripts you write in any language. Persephone hosts the page in a
                 <strong>sandboxed webview</strong> and injects a single bridge object,
                 <code>window.persephone</code>. Persephone owns no board state and no board UI — it just
-                wires the bridge and shows the page. A board lives in its own folder under
-                <code>.persephone/boards/&lt;Name&gt;/</code>.
+                wires the bridge and shows the page. A board lives in its own folder anywhere on
+                disk — recognized by a <code>board-manifest.json</code> at its root. The default
+                create location is <code>.persephone/boards/&lt;Name&gt;/</code>, but a board can be
+                created or opened from any path.
             </p>
 
             <h2>How it works — frontend + backend + a channel</h2>
@@ -132,6 +134,7 @@
         <section class="panel" data-panel="build">
             <h2>Anatomy of a board</h2>
             <ul>
+                <li><code>board-manifest.json</code> — the board-identity file (<code>schemaVersion: 1</code> + optional metadata: name, description, author, repository). Its presence is what marks the folder as a board. Do not add trust flags or behavior fields.</li>
                 <li><code>index.html</code> — your page. Edit it and the board reloads automatically.</li>
                 <li><code>app.js</code> / <code>style.css</code> — your logic and styling (reference relatively, e.g. <code>./app.js</code>). After editing these, click <strong>Refresh</strong> in the Boards side panel to remount.</li>
                 <li><code>scripts/</code> — backend scripts in any language, invoked via <code>persephone.execute("scripts/thing.js")</code>. <code>cwd</code> defaults to the board folder, so relative paths just work.</li>

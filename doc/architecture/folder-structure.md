@@ -95,7 +95,8 @@ persephone/
 │   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers
 │   ├── mneme-status.ts     # Mneme health prober + reactive status (shared MCP connection; drives sidecar launch, indicators, and auto-opens the config editor when no model is provisioned)
 │   ├── proc.ts             # IProc implementation (app.proc.execute) — renderer client over the main-process command runner; compile-time drift guard keeps it in sync with runner-channels.ts
-│   ├── project-trust.ts    # Per-project trust gate — persists trusted project paths; untrusted .persephone projects block board rendering
+│   ├── board-trust.ts      # Per-board trust registry — persists trusted board roots (trustedBoards.txt); untrusted boards block rendering. This list IS the known-boards registry
+│   ├── boards.ts           # IBoards implementation (app.boards) — createBoard / createDemoBoard / openBoard board lifecycle
 │   ├── internal.ts         # Disposable utilities (wrapSubscription, etc.)
 │   │
 │   ├── pages/              # Page collection — composed submodels
@@ -147,6 +148,7 @@ persephone/
 │       ├── page.d.ts       # IPage interface (with asX() methods)
 │       ├── settings.d.ts   # ISettings
 │       ├── editors.d.ts    # IEditorRegistry
+│       ├── boards.d.ts     # IBoards (app.boards) — board lifecycle API
 │       ├── recent.d.ts     # IRecentFiles
 │       ├── fs.d.ts         # IFileSystem
 │       ├── window.d.ts     # IWindow
@@ -181,6 +183,7 @@ persephone/
 │   ├── resolvers.ts        # Layer 2: pipe resolvers (file, HTTP, archive) on openLink
 │   ├── link-utils.ts       # URL → pipe descriptor resolution (used by resolvers + tree providers)
 │   ├── open-handler.ts     # Layer 3: open handler on openContent — creates/navigates pages
+│   ├── persephone-board-link.ts # persephone-board:// link encode/decode (addresses a board root); parsed in parsers.ts → target "board-view"
 │   ├── mneme-folder-link.ts # mneme-folder:// link encode/decode (addresses a Mneme root)
 │   ├── mneme-link.ts        # mneme:// document scheme — canonical href ⇄ MCP address (toMnemeHref / toMnemeAddress)
 │   ├── providers/
@@ -215,7 +218,9 @@ persephone/
 │   │   ├── MenuBar.tsx             # Top menu bar
 │   │   ├── OpenTabsList.tsx         # Open tabs list
 │   │   ├── RecentFileList.tsx       # Recent files panel
-│   │   ├── ToolsEditorsPanel.tsx    # Tools & Editors panel (pin/unpin, drag reorder)
+│   │   ├── ToolsEditorsPanel.tsx    # Tools & Editors panel — pinned region + "Editors" / "Custom Boards & Editors" tabs (pin/unpin, drag reorder)
+│   │   ├── TrustedBoardsList.tsx    # "Custom Boards & Editors" tab — trusted boards grouped by folder; open / pin / Remove (≡ untrust)
+│   │   ├── pinned-items.ts          # Unified PinnedRef model over the pinned-editors setting (editors + "board:<root>" pins)
 │   │   ├── tools-editors-registry.ts # Creatable items registry (editors + tools)
 │   │   ├── ScriptLibraryPanel.tsx   # Script library folder panel
 │   │   ├── FileList.tsx            # File browser list
@@ -507,17 +512,19 @@ persephone/
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
 │   │   └── index.tsx
 │   ├── board/              # Web Board editor (non-text, Pattern B survive-navigation)
-│   │   ├── BoardEditorModel.ts       # EditorModel — board lifecycle, trust gate, webview state, icon, boards list
+│   │   ├── BoardEditorModel.ts       # EditorModel — board lifecycle, per-board trust gate, webview state, icon, boards list; opens any board root (not only .persephone/boards/)
 │   │   ├── BoardEditorView.tsx       # React component (view only)
 │   │   ├── BoardWebview.tsx          # Locked-down <webview> (sandbox+contextIsolation on, board:// protocol)
 │   │   ├── BoardListSecondaryView.tsx # "boards-list" sidebar panel
 │   │   ├── BoardGlyph.tsx            # Default board glyph icon
 │   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
+│   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one
 │   │   ├── board-icon-cache.ts       # Module-level icon cache (SVG/PNG/ICO → data URL, per board path)
 │   │   ├── board-theme.ts            # computeBoardThemePalette + BOARD_TOKEN_VARS (--p-* contract)
-│   │   ├── board-scaffold.ts         # Scaffold helpers — copy board-template into a new board folder
+│   │   ├── board-scaffold.ts         # Scaffold helpers — copy board-template into a new board folder (writes board-manifest.json)
 │   │   ├── board-api.d.ts            # board-internal type declarations
-│   │   ├── UntrustedProjectView.tsx  # Shown in place of the webview when the project is untrusted
+│   │   ├── UntrustedBoardView.tsx    # Shown in place of the webview when the board is untrusted (Trust board button)
+│   │   ├── BoardNotFoundView.tsx     # Shown when a board root no longer exists on disk (e.g. stale trusted/pinned path)
 │   │   └── index.tsx                 # boardModule + legacy EditorModule factory
 │   ├── shared/             # Shared editor utilities
 │   │   ├── link-open-menu.tsx

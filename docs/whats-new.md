@@ -20,7 +20,7 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   **Theme contract** — Persephone injects the app's active palette as `--p-*` CSS variables into every board and keeps them live when the user switches themes. Style everything with them and the board automatically matches the app's look. A JS mirror (`persephone.theme`, `persephone.getTheme()`, `persephone.onThemeChange(cb)`) is available for libraries that take colors from JavaScript (charts, diagrams).
 
-  **Security — project trust gate** — Because `execute()` runs programs with your full user privileges, you must explicitly trust a project before any board renders. A warning dialog states this plainly. Trust is per-project, remembered across restarts.
+  **Security — per-board trust gate** — Because `execute()` runs programs with your full user privileges, you must explicitly trust each board before it renders. A warning dialog states this plainly. Trust is **per board** (not per project), remembered across restarts. Boards you create are auto-trusted immediately; foreign boards prompt on first open.
 
   **Recommended components** — Persephone publishes a catalog of components with pre-built skins (CSS or JS adapters) that match the `--p-*` theme:
 
@@ -44,6 +44,22 @@ Release notes and changelog for Persephone (formerly js-notepad).
   **AI-agent integration** — Web Boards are designed to be authored by AI agents. The per-board `CLAUDE.md` documents the full bridge API. Once a board is open, agents can test and debug it using the `browser_*` MCP tools (the same Playwright-compatible tools used for the built-in browser), targeting the board page by its `pageId` from `list_pages` (`editor: "board-view"`).
 
   > See **[Web Boards](./web-boards.md)** for full documentation.
+
+- **Web Boards — boards anywhere on disk** — Boards are no longer restricted to the `.persephone/boards/` folder. A board is now identified by a `board-manifest.json` file, and it can live anywhere on your machine. Right-click any `board-manifest.json` row in the **File Explorer** sidebar and click the **Open Board** button that appears on the row to open that board as a standalone tab.
+
+- **Web Boards — per-board trust (replaces per-project trust)** — Trust has moved from the project level to the individual board level. Each board is trusted separately, and trust is stored in `%AppData%\persephone\data\trustedBoards.txt`. Boards you create (via **"+ New board"**, the scripting API, or an AI agent) are **auto-trusted immediately** with no prompt. Any board Persephone did not create for you shows a **Trust board** dialog on first open — with a plain-language explanation of what trusting means. A **"Trust all boards in this project"** bulk action is available on the `.persephone` project node in the File Explorer.
+
+- **Web Boards — Custom Boards & Editors sidebar tab** — The **Tools & Editors** sidebar panel now has a second tab: **Custom Boards & Editors**. It lists all trusted boards grouped by their containing folder. Click any board to open it. **Pin** a board (the pin button appears on hover) to make it appear at the top of the panel and in the **+** (add page) dropdown alongside pinned editors. Right-click a board row → **Remove** to untrust and unpin it.
+
+- **Web Boards — scripting and agent API** — A new `app.boards` namespace is available in scripts and to AI agents:
+
+  | Method | Description |
+  |--------|-------------|
+  | `app.boards.createBoard(name, dir)` | Create a blank board in `<dir>/<name>`. Auto-trusted. Returns the board root path. |
+  | `app.boards.createDemoBoard(name, dir)` | Same, but uses the Demo board template. |
+  | `app.boards.openBoard(boardRoot)` | Open an existing board by its absolute root folder path. |
+
+  Two new MCP tools complement this: `create_board` and `open_board`. Agents can build and open boards without any user interaction.
 
 - **Global paste — HTML-only images (PowerPoint / Office)** — Copying a picture from PowerPoint, Word, Excel, or any app that places the image on the clipboard as an HTML fragment (no bitmap) and then pressing `Ctrl+V` in Persephone now opens that picture in a new **HTML viewer** tab titled **"Pasted HTML"**. Previously, nothing happened for such clipboards. The existing behavior is unchanged: pasting a real bitmap image (a screenshot, an image copied from Snipping Tool or Teams) still opens the **Image Viewer** tab as before. Pasting into a focused editor (Monaco, any input, or other text field) is not affected — those targets receive the text content as usual. The new HTML-viewer tab is not persisted across app restarts.
 

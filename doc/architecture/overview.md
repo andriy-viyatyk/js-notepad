@@ -233,12 +233,12 @@ See [trait-system.md](./trait-system.md).
 
 ### 9. Web Board Subsystem
 
-A **Web Board** is a small local web application (plain HTML + JS) owned by the user, hosted in a locked-down Electron `<webview>`. Boards live in `.persephone/boards/<Name>/` under a `.persephone` project folder.
+A **Web Board** is a small local web application (plain HTML + JS) owned by the user, hosted in a locked-down Electron `<webview>`. A board is any folder carrying a `board-manifest.json` identity file — it can live anywhere on disk. `.persephone/boards/<Name>/` remains the default create location and a convenient way to group a project's boards, but is no longer required.
 
 **Security model:**
 - The webview runs with `sandbox` on, `contextIsolation` on, and `nodeIntegration` off.
 - A per-partition `board://` protocol serves the board's local files. The CSP (`connect-src 'self'`) blocks all remote network access — CDNs, fetch, XHR to external hosts are all forbidden.
-- Only `.persephone` projects that the user has explicitly trusted render boards. The trust decision is persisted by `project-trust.ts` and shown as a dialog on first open.
+- Trust is **per board**: only boards the user has explicitly trusted render. The decision is persisted by `board-trust.ts` (a path-keyed registry, `trustedBoards.txt` under `<userData>/persephone/data/`) and never read from the manifest or any in-board file — a received board cannot self-trust. Foreign boards prompt a "Trust board" dialog on first open; boards created through Persephone's own API (`app.boards.createBoard`/`createDemoBoard`, user or agent) are auto-trusted at creation. This trusted-boards list also *is* the known-boards registry surfaced in the sidebar.
 
 **Bridge (`window.persephone`):**
 - Injected by `src/preload-board.ts` into the sandboxed webview context.
@@ -246,7 +246,11 @@ A **Web Board** is a small local web application (plain HTML + JS) owned by the 
 - Integration tier: `openRawLink(href)`, `notify(msg, type)`, `openFileDialog` / `saveFileDialog` / `openFolderDialog`.
 - Theme/tokens: `--p-*` CSS variables injected on `<html>` and kept live across theme switches. Also available as `persephone.theme` / `persephone.tokens` (snapshots) and `persephone.getTheme()` / `persephone.getTokens()` (live). `persephone.onThemeChange(cb)` fires on every switch.
 
-**Board structure:** `index.html`, `app.js`, `style.css`, `board-base.css` (shared base with page defaults + themed scrollbars), optional `scripts/` folder, optional `icon.svg`/`png`/`ico` (shown in tab, boards list, sidebar).
+**Board structure:** `board-manifest.json` (identity marker — descriptive metadata only, no behavior-driving or trust fields), `index.html`, `app.js`, `style.css`, `board-base.css` (shared base with page defaults + themed scrollbars), optional `scripts/` folder, optional `icon.svg`/`png`/`ico` (shown in tab, boards list, sidebar).
+
+**Lifecycle & open-by-link:** `app.boards` (`createBoard` / `createDemoBoard` / `openBoard`) is the renderer Object Model API for board lifecycle; the `create_board` / `open_board` MCP tools (plus the `read_guide("boards")` agent guide) wrap it so an agent can create a board at a user-specified path, open it, and develop it without user clicks. A board is opened by routing the `persephone-board://` in-app link scheme (encode/decode in `persephone-board-link.ts`, parsed in `parsers.ts` → `target: "board-view"`) through the canonical `openRawLink` pipeline — the same seam reserved for forwarding a `filePath` to a future Custom Editor.
+
+**Discovery:** Trusted boards are surfaced in the sidebar "Tools & Editors" panel's "Custom Boards & Editors" tab (`TrustedBoardsList.tsx`), grouped by containing folder. Boards are pinnable alongside built-in editors — pins are one unified ordered list over the `pinned-editors` setting (`pinned-items.ts`, boards stored as `board:<root>`). The Explorer adds an "Open Board" trailing button on `board-manifest.json` rows; the row's normal click still opens the JSON in Monaco.
 
 **MCP automation:** Web Boards are `browser_*` targets. `list_pages` returns board pages with `editor: "board-view"` and a `selectedBoard` field; all `browser_*` tools (snapshot, click, type, evaluate, …) work by `pageId`.
 

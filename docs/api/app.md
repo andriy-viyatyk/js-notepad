@@ -26,6 +26,7 @@ app.pages.activePage.content;
 | [editors](./editors.md) | `IEditorRegistry` | Read-only registry of all editors. |
 | [recent](./recent.md) | `IRecentFiles` | Recently opened files. |
 | [downloads](./downloads.md) | `IDownloads` | Global download tracking. |
+| `boards` | `IBoards` | Create and open [Web Boards](../web-boards.md) from scripts or agents. |
 | `menuFolders` | `IMenuFolders` | User-configured sidebar folders. |
 
 ## Methods
@@ -63,6 +64,29 @@ const result = await res.json();
 | `timeout` | `number` | `30000` | Request timeout in milliseconds. |
 | `maxRedirects` | `number` | `10` | Maximum number of redirects to follow. |
 | `rejectUnauthorized` | `boolean` | `true` | Set to `false` to skip SSL certificate validation (e.g. self-signed certs). |
+
+### openRawLink(href)
+
+Open any link through Persephone's navigation pipeline — a local file path, a URL, or an in-app scheme (`persephone-board://`, `persephone-folder://`, etc.). Opens a new tab or reuses a matching one if it already exists.
+
+```javascript
+// Open a local file in a new tab
+await app.openRawLink("C:/data/report.json");
+
+// Open a URL in the built-in browser
+await app.openRawLink("https://example.com");
+
+// Open a Web Board by its root path (prefer app.boards.openBoard for boards)
+await app.boards.openBoard("C:/work/boards/My Board");
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `href` | `string` | File path, URL, or in-app link scheme. |
+
+**Returns:** `Promise<void>` — resolves after the navigation is dispatched.
+
+---
 
 ### runAsync(fn, data, proxy?)
 
@@ -109,6 +133,33 @@ const result = await progress.show(app.runAsync(
 **Returns:** `Promise<TResult>` — the value returned by `fn`, cloned back to the renderer.
 
 See [Scripting — Background Workers](../scripting.md#background-workers-apprunasync) for usage guide and examples.
+
+---
+
+## boards
+
+Create and open [Web Boards](../web-boards.md). Boards created via this API are scaffolded from the built-in template, get a `board-manifest.json` identity file, and are **auto-trusted** — they open without a trust prompt.
+
+```javascript
+// Create a blank board in any folder and open it
+const root = await app.boards.createBoard("My Board", "C:/work/boards");
+await app.boards.openBoard(root);
+
+// Create from the Demo template (rich annotated example)
+const root = await app.boards.createDemoBoard("Demo", "C:/work/boards");
+await app.boards.openBoard(root);
+
+// Open an existing board by its root path
+await app.boards.openBoard("C:/work/boards/Existing Board");
+```
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `createBoard(name, dir)` | `Promise<string>` | Create a blank board named `name` inside container folder `dir` (created if needed). Returns the new board's absolute root path. Throws if a board named `name` already exists in `dir`. |
+| `createDemoBoard(name, dir)` | `Promise<string>` | Same as `createBoard`, but scaffolds from the bundled Demo board template — a full working example of the bridge API, theme contract, and multi-tab layout. Returns the board root. |
+| `openBoard(boardRoot)` | `Promise<void>` | Open an existing board by its absolute root folder path (the folder containing `board-manifest.json`). Opens a new tab or reuses an existing one. Boards created by Persephone open immediately; foreign boards prompt for trust. Throws if `boardRoot` is missing or has no `board-manifest.json`. |
 
 ---
 
