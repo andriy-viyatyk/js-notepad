@@ -98,10 +98,25 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
 
 ## Integration tier (in-app effects `execute()` can't express)
 
-- `persephone.openRawLink(href)` — open a file/URL in a new Persephone page.
+- `persephone.openRawLink(href, options?)` — open a file/URL in a new Persephone page. Pass
+  `{ editor }` (e.g. `{ editor: "md-view" }`) to request a specific editor — useful to open a
+  Markdown doc rendered rather than as source; falls back to the default editor when omitted/unmatched.
 - `persephone.notify(message, type)` — toast (`"info" | "success" | "warning" | "error"`).
 - `persephone.openFileDialog(params)` / `saveFileDialog(params)` / `openFolderDialog(params)`
   — native dialogs; each returns a path you hand to `execute()`.
+- `persephone.readFile(path, options?)` / `writeFile(path, data, options?)` — read/write a file
+  directly, no backend script needed. A **relative** `path` resolves against the board folder (the
+  same default as `execute()`'s cwd); an absolute path reads/writes anywhere. Text by default; pass
+  `{ encoding: "base64" }` for binary. `writeFile` creates parent folders. Both return Promises and
+  reject on error. Ideal for persisting small board state (column layout, last filter, selected
+  item) and loading a board-local config:
+  ```js
+  // persist UI state
+  await persephone.writeFile("state.json", JSON.stringify(state));
+  // restore it next launch (handle first-run "file not found")
+  let state = {};
+  try { state = JSON.parse(await persephone.readFile("state.json")); } catch {}
+  ```
 
 ## Theme: the `--p-*` contract
 
@@ -177,8 +192,10 @@ sidebar. First match wins (SVG preferred). Without one, a default glyph is used.
 
 ## Editing & reload
 
-Edit `index.html` and the board reloads automatically. After editing `app.js` or
-styles, click the **Refresh** button in the Boards side panel to remount.
+Editing `index.html`, `app.js`, or any `.js`/`.css` in the board folder reloads the
+board automatically (debounced ~0.5s). Data/state files a board writes (`.json`, etc.)
+and `ui.log` do **not** trigger a reload, so persisting state never remounts the board.
+The **Refresh** button in the Boards side panel forces a remount if you need one.
 
 ## Testing & automation (for an AI agent)
 
@@ -202,11 +219,15 @@ integration tier, the `--p-*` theme + token contract, and a tabbed multi-view la
 with a pinned output console. When you need a richer reference than this starter,
 read the Demo board's files (`index.html`, `app.js`, `style.css`, `board-base.css`):
 
-- **Installed app:** under the Persephone install's `resources/assets/demo-board/` —
-  on Windows typically `C:\Program Files\Persephone\persephone\resources\assets\demo-board`.
+- **Ask the app:** call the `get_app_info` MCP tool — it returns `demoBoardDir` (the exact path to
+  the bundled demo board) and `resourcesDir`, so you never have to guess the install location.
+- **Installed app:** under the Persephone install's `resources/assets/demo-board/`.
 - **From source (dev):** `assets/demo-board/` in the repository.
 
 ## Docs
 
-Persephone on GitHub: https://github.com/andriy-viyatyk/persephone
-*(Board reference docs link — to be added once published.)*
+- Persephone on GitHub: https://github.com/andriy-viyatyk/persephone
+- Board guide (user docs): https://github.com/andriy-viyatyk/persephone/blob/main/docs/boards.md
+- Recommended components + skins catalog:
+  https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/manifest.json
+  (also returned by `get_app_info` as `boardsManifestUrl`). Fetch a skin as its `baseUrl + skin.file`.

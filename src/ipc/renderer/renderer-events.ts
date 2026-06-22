@@ -123,6 +123,10 @@ class RendererEvents implements EventApi {
         message: string;
         type?: "info" | "success" | "warning" | "error";
     }>(EventEndpoint.eBoardNotify);
+
+    [EventEndpoint.eBoardOpenRawLink] = new RendererEventObject<{ href: string; editor?: string }>(
+        EventEndpoint.eBoardOpenRawLink
+    );
 }
 
 const rendererEvents = new RendererEvents();

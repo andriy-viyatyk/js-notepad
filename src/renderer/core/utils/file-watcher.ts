@@ -108,14 +108,25 @@ export class FileWatcher {
  * the Git Tree editor to auto-refresh when the repo changes on disk. Degrades
  * gracefully (no-op) when a watch can't be established (network drives, missing
  * dir, platforms without recursive support).
+ *
+ * `onChange` receives the changed path relative to `dirPath` (when the platform
+ * reports it; `undefined` otherwise). Callers that don't care which file changed
+ * can ignore the argument. Note: the callback is debounced, so when several files
+ * change inside one window the path is the LAST event's — fine for "something
+ * changed, re-scan" consumers; consumers that key off the path should tolerate a
+ * coalesced report.
  */
 export class DirectoryWatcher {
     private unWatch: () => void;
 
-    constructor(dirPath: string, onChange: () => void, debounceMs = 500) {
-        const debouncedOnChange = debounce(onChange, debounceMs);
+    constructor(dirPath: string, onChange: (filename?: string) => void, debounceMs = 500) {
+        const debouncedOnChange = debounce((filename?: string) => onChange(filename), debounceMs);
         try {
-            const watcher = nodefs.watch(dirPath, { recursive: true }, debouncedOnChange);
+            const watcher = nodefs.watch(
+                dirPath,
+                { recursive: true },
+                (_eventType: string, filename: string | null) => debouncedOnChange(filename ?? undefined),
+            );
             this.unWatch = () => watcher.close();
         } catch (err) {
             console.error("Error watching directory:", err);

@@ -136,7 +136,7 @@
             <ul>
                 <li><code>board-manifest.json</code> — the board-identity file (<code>schemaVersion: 1</code> + optional metadata: name, description, author, repository). Its presence is what marks the folder as a board. Do not add trust flags or behavior fields.</li>
                 <li><code>index.html</code> — your page. Edit it and the board reloads automatically.</li>
-                <li><code>app.js</code> / <code>style.css</code> — your logic and styling (reference relatively, e.g. <code>./app.js</code>). After editing these, click <strong>Refresh</strong> in the Boards side panel to remount.</li>
+                <li><code>app.js</code> / <code>style.css</code> — your logic and styling (reference relatively, e.g. <code>./app.js</code>). Editing any <code>.js</code>/<code>.css</code> in the board folder reloads automatically too; the <strong>Refresh</strong> button in the Boards side panel forces a remount if you need one.</li>
                 <li><code>scripts/</code> — backend scripts in any language, invoked via <code>persephone.execute("scripts/thing.js")</code>. <code>cwd</code> defaults to the board folder, so relative paths just work.</li>
             </ul>
 
@@ -283,7 +283,7 @@
 
             <h2>Tips</h2>
             <ul>
-                <li>Editing <code>index.html</code> reloads the board automatically; after editing <code>app.js</code> or CSS, click <strong>Refresh</strong> in the Boards side panel to remount.</li>
+                <li>Editing <code>index.html</code>, <code>app.js</code>, or any <code>.js</code>/<code>.css</code> reloads the board automatically (debounced ~0.5s); the <strong>Refresh</strong> button in the Boards side panel forces a remount. Data/state files a board writes (<code>.json</code>, etc.) and <code>ui.log</code> do not trigger a reload.</li>
                 <li>Failures reported via <code>persephone.notify(msg, "error")</code> are toasted <em>and</em> appended to the board's <code>ui.log</code> — check there first when a board misbehaves.</li>
             </ul>
         </section>

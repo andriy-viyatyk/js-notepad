@@ -26,7 +26,8 @@ app.pages.activePage.content;
 | [editors](./editors.md) | `IEditorRegistry` | Read-only registry of all editors. |
 | [recent](./recent.md) | `IRecentFiles` | Recently opened files. |
 | [downloads](./downloads.md) | `IDownloads` | Global download tracking. |
-| `boards` | `IBoards` | Create and open [Boards](../boards.md) from scripts or agents. |
+| [proc](#proc) | `IProc` | Spawn external programs and stream their output. |
+| [boards](#boards) | `IBoards` | Create and open [Boards](../boards.md) from scripts or agents. |
 | `menuFolders` | `IMenuFolders` | User-configured sidebar folders. |
 
 ## Methods
@@ -133,6 +134,61 @@ const result = await progress.show(app.runAsync(
 **Returns:** `Promise<TResult>` — the value returned by `fn`, cloned back to the renderer.
 
 See [Scripting — Background Workers](../scripting.md#background-workers-apprunasync) for usage guide and examples.
+
+---
+
+## proc
+
+Spawn external programs and stream their output. Each call to `execute()` returns a handle — consume it either **one-shot** (buffer stdout to completion) or **streaming** (attach event listeners). Do not mix both modes on the same handle.
+
+```javascript
+// One-shot: run a script and parse its JSON output
+const data = await app.proc.execute("python scripts/load.py").getJson();
+
+// One-shot: capture plain text output
+const output = await app.proc.execute("git log --oneline -10").getText();
+
+// Streaming: render output as it arrives
+const h = app.proc.execute("npm run build");
+const dec = new TextDecoder();
+h.on("stdout", (chunk) => console.log(dec.decode(chunk)));
+h.on("exit", ({ code }) => console.log("Done, exit code:", code));
+
+// With options: custom cwd and env
+const result = await app.proc.execute("node index.js", {
+    cwd: "C:/my-project",
+    env: { DEBUG: "1" },
+}).getText();
+```
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `execute(command, options?)` | `IExecuteHandle` | Spawn a command line and return a process handle. The command runs through the OS shell by default (so `&&`, pipes, and inline arguments work). |
+
+### IExecuteOptions
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `cwd` | `string?` | app cwd | Working directory for the spawned process. |
+| `env` | `Record<string, string>?` | — | Extra environment variables, merged over the inherited environment. |
+| `shell` | `boolean \| string?` | `true` | Shell to use. `true` = OS default; a string picks a specific shell (`"bash"`, `"pwsh"`); `false` = run the executable directly without a shell. |
+
+### IExecuteHandle
+
+| Member | Description |
+|--------|-------------|
+| `jobId` | Unique ID for this job. |
+| `getText()` | Buffer stdout to completion and decode as UTF-8 text. Rejects only on a spawn-level error. |
+| `getJson(pattern?)` | Buffer stdout, then `JSON.parse`. Rejects on spawn error, non-zero exit, or parse failure. Pass a `RegExp` to extract JSON from noisy output (the last match is used; capture group 1 if present). |
+| `getBytes()` | Buffer stdout to completion and return the raw `Uint8Array`. |
+| `on("stdout" \| "stderr", cb)` | Stream binary chunks as they arrive. Attaching a listener switches to streaming mode (one-shot getters then throw). Returns an unsubscribe function. |
+| `on("exit", cb)` | Fires once when the process exits. Callback receives `{ code, signal }`. |
+| `on("error", cb)` | Fires once on a spawn-level failure (process never started). |
+| `write(data)` | Write to the process's stdin (`string` or `Uint8Array`). |
+| `endStdin()` | Close the process's stdin. |
+| `kill(signal?)` | Terminate the process (default `"SIGTERM"`). |
 
 ---
 

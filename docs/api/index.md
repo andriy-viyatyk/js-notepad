@@ -158,6 +158,15 @@ ui.log("Hello");
     - `.menuBarOpen` / `.toggleMenuBar()` / `.openMenuBar(panelId?)`
     - `.zoom(delta)` / `.resetZoom()` / `.zoomLevel`
     - `.openNew(filePath?)` — Open new window
+  - **[.proc](./app.md#proc)** — Spawn external programs
+    - `.execute(command, options?)` — Spawn a command → `IExecuteHandle`
+      - `.getText()` / `.getJson(pattern?)` / `.getBytes()` — Buffer stdout to completion
+      - `.on("stdout" | "stderr", cb)` / `.on("exit", cb)` / `.on("error", cb)` — Stream output
+      - `.write(data)` / `.endStdin()` / `.kill(signal?)` — Process control
+  - **[.boards](./app.md#boards)** — Create and open [Boards](../boards.md)
+    - `.createBoard(name, dir)` — Create a blank board (auto-trusted) → `Promise<string>` (root path)
+    - `.createDemoBoard(name, dir)` — Create from the Demo template → `Promise<string>`
+    - `.openBoard(boardRoot)` — Open an existing board by root path → `Promise<void>`
   - **[.events](./events.md)** — Event channels for scripting integration
     - **[.fileExplorer](./events.md#fileexploreritemcontextmenu)** — File explorer events
       - `.itemContextMenu` — Right-click on file/folder → add custom menu items

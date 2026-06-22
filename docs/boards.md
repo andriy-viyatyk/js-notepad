@@ -85,7 +85,7 @@ The board opens immediately after creation.
 
 ### 4. Edit and reload
 
-Edit `index.html` and the board reloads automatically (the app watches the file for changes). After editing `app.js` or other scripts, click the **Refresh** button in the Boards sidebar panel header to remount the page.
+Edit `index.html`, `app.js`, or any `.js`/`.css` in the board folder and the board reloads automatically (debounced ~0.5s). The **Refresh** button in the Boards sidebar panel header forces a remount if you ever need one. Data/state files a board writes (`.json`, etc.) and `ui.log` do **not** trigger a reload, so a board that persists its own state never remounts itself.
 
 ---
 
@@ -145,10 +145,22 @@ These handle in-app effects that `execute()` cannot express:
 | Method | Description |
 |--------|-------------|
 | `persephone.notify(message, type)` | Show a toast. `type`: `"info"`, `"success"`, `"warning"`, or `"error"`. Errors are also appended to `ui.log`. |
-| `persephone.openRawLink(href)` | Open a file or URL in a new Persephone tab. |
+| `persephone.openRawLink(href, options?)` | Open a file or URL in a new Persephone tab. Pass `{ editor }` (e.g. `{ editor: "md-view" }`) to request a specific editor — for example, render a Markdown doc instead of opening its source; falls back to the default editor when omitted. |
 | `persephone.openFileDialog(params?)` | Show a native Open File dialog; returns the selected path. |
 | `persephone.saveFileDialog(params?)` | Show a native Save File dialog; returns the chosen path. |
 | `persephone.openFolderDialog(params?)` | Show a native Open Folder dialog; returns the selected path. |
+| `persephone.readFile(path, options?)` | Read a file and return its contents (Promise). A relative `path` resolves against the board folder; absolute reads anywhere. Text by default, or `{ encoding: "base64" }` for binary. |
+| `persephone.writeFile(path, data, options?)` | Write a file (Promise); creates parent folders. A relative `path` resolves against the board folder. Text by default, or `{ encoding: "base64" }` for binary. |
+
+Use `readFile`/`writeFile` to persist small board state (last filter, column layout, selected item) or load a board-local config — no backend script needed:
+
+```js
+// Persist UI state
+await persephone.writeFile("state.json", JSON.stringify(state));
+// Restore on next launch (handle first-run "file not found")
+let state = {};
+try { state = JSON.parse(await persephone.readFile("state.json")); } catch {}
+```
 
 Pair the dialog methods with `execute()`: the dialog returns a path, your script does the work:
 
@@ -289,7 +301,7 @@ Boards are designed to be authored by an AI agent. The key workflow:
 1. **Agent creates or opens a board.** Use the MCP tools `create_board` / `open_board`, or the scripting API `app.boards.createBoard()` / `app.boards.openBoard()`. Boards created this way are auto-trusted — no trust prompt blocks the agent.
 2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"`, a `selectedBoard` field, and (for standalone boards) a `boardRoot` field.
 3. **Agent reads `CLAUDE.md`** inside the board folder — the per-board authoring guide that documents the bridge API, the theme contract, the recommended-components catalog, and conventions. The MCP `read_guide("boards")` tool loads the complete board authoring guide.
-4. **Agent edits files** and observes the live reload: `index.html` changes trigger an automatic reload; `app.js` / CSS changes require the **Refresh** button in the Boards sidebar panel.
+4. **Agent edits files** and observes the live reload: editing `index.html`, `app.js`, or any `.js`/`.css` triggers an automatic reload; the **Refresh** button in the Boards sidebar panel forces a remount.
 5. **Agent tests the board** using the `browser_*` MCP tools (require [browser interaction enabled in MCP settings](./mcp-setup.md)):
 
 ```

@@ -104,8 +104,10 @@ class App {
         return nodeFetch(url, options);
     };
 
-    openRawLink = async (href: string): Promise<void> => {
-        await this._events.openRawLink.sendAsync(createLinkData(href, { sourceId: "app-api" }));
+    openRawLink = async (href: string, options?: { editor?: string }): Promise<void> => {
+        await this._events.openRawLink.sendAsync(
+            createLinkData(href, { sourceId: "app-api", target: options?.editor }),
+        );
     };
 
     /**

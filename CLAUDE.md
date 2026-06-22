@@ -424,6 +424,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Board theme contract (`computeBoardThemePalette`, `BOARD_TOKEN_VARS`, `--p-*`) | `/src/renderer/editors/board/board-theme.ts` |
 | Board icon cache (module-level SVG/PNG/ICO → data URL cache) | `/src/renderer/editors/board/board-icon-cache.ts` |
 | Board preload (injects `window.persephone` bridge into the sandboxed webview) | `/src/preload-board.ts` |
+| Board integration-tier IPC (main side of the bridge: `openRawLink` + editor target, `notify`, file dialogs, `readFile`/`writeFile`) | `/src/main/board-bridge.ts` |
+| Board bridge IPC channels + wire types (shared by preload + main) | `/src/ipc/board-bridge-channels.ts` |
 | Tools & Editors sidebar panel (pinned region + Editors / Custom Boards & Editors tabs) | `/src/renderer/ui/sidebar/ToolsEditorsPanel.tsx` |
 | Creatable-items registry (`CreatableItem` list shared by the Tools & Editors panel and the `+` new-page dropdown; `DEFAULT_PINNED_EDITORS`) | `/src/renderer/ui/sidebar/tools-editors-registry.ts` |
 | Trusted-boards sidebar tab (grouped by folder; open / pin / Remove ≡ untrust) | `/src/renderer/ui/sidebar/TrustedBoardsList.tsx` |

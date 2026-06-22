@@ -86,11 +86,17 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
 
 ### Integration tier (in-app effects `execute()` can't express)
 
-- `persephone.openRawLink(href)` — open a file/URL in a new Persephone page.
+- `persephone.openRawLink(href, options?)` — open a file/URL in a new Persephone page. Pass
+  `{ editor }` to request a specific editor (e.g. `openRawLink(path, { editor: "md-view" })` to render
+  a Markdown doc instead of its source); falls back to the default editor when omitted/unmatched.
 - `persephone.notify(message, type)` — toast (`"info"|"success"|"warning"|"error"`); errors are
   also appended to **`ui.log`** in the board folder (an on-board indicator opens it).
 - `persephone.openFileDialog(params)` / `saveFileDialog(params)` / `openFolderDialog(params)` —
   native dialogs returning a path you hand to `execute()`.
+- `persephone.readFile(path, options?)` / `writeFile(path, data, options?)` — read/write a file with
+  no backend script. Relative `path` resolves against the board folder; absolute reads/writes anywhere.
+  Text by default, `{ encoding: "base64" }` for binary; `writeFile` creates parent dirs. Both return
+  Promises (reject on error). Use it to persist small board state and load board-local config.
 
 ### Theme: the `--p-*` contract
 
@@ -124,11 +130,21 @@ into the board folder and reference it with a **relative** path:
 Never use `https://…cdn…` URLs in `<script>`/`<link>`/`@import`/`fetch()` — they are blocked and
 the board fails silently. Bundle fonts/images locally too (or inline images as `data:` URIs).
 
-**Recommended components:** the repo's `boards-assets/manifest.json` lists pre-tested,
+**Recommended components:** the `boards-assets/manifest.json` catalog lists pre-tested,
 theme-skinned libraries (grids, charts, markdown, …) with their vendor download URLs and load
-order. To vendor a file, download it from inside `execute_script` (full Node.js is available —
-e.g. `https.get` then `app.fs.writeBinary(destPath, data)`) into the board folder, then reference
-it with a relative path.
+order. The skins are **not bundled in the installer** — they live on GitHub. Fetch the manifest and
+each skin from the raw base URL (also returned by `get_app_info` as `boardsManifestUrl` /
+`boardsAssetsBaseUrl`):
+
+- Manifest: `https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/manifest.json`
+- Each component's `skin.file` (e.g. `tabulator.css`) is fetchable as **`baseUrl + skin.file`**, where
+  `baseUrl` is the manifest's top-level `baseUrl` field.
+
+Vendor flow on any machine: **GET the manifest → read the component's `vendor` URLs (the third-party
+library, from a CDN) and its `skin.file` → GET `baseUrl + skin.file` → write both into the board folder**
+(relative paths). Download from inside `execute_script` (full Node.js — e.g. `https.get` then
+`app.fs.writeBinary(destPath, data)`), then reference the files with relative paths in `index.html` per
+the manifest's `loadOrder`.
 
 ### Manifest, icon, reload
 
@@ -136,11 +152,11 @@ it with a relative path.
   `repository` (metadata only). No secrets, no trust flags.
 - Optional `icon.svg` / `icon.png` / `icon.ico` in the board folder sets the board's icon (SVG
   preferred). Without one, a default glyph is used.
-- **Reload model:** the webview watches **`index.html`** only — editing it auto-reloads the
-  board. `app.js` and CSS are loaded *by* `index.html`, so editing them does **not** auto-reload;
-  click **Refresh** in the Boards side panel to remount (re-saving `index.html` also triggers a
-  reload that picks up everything). When iterating: after editing `app.js`/CSS, refresh **before**
-  you `browser_snapshot`, or you'll be testing stale UI.
+- **Reload model:** the webview live-reloads on edits to `index.html`, `app.js`, and any `.js`/`.css`
+  in the board folder — so an iterate → reload → `browser_snapshot` loop just works. (Data/state files
+  a board writes — `.json`, etc. — and `ui.log` do **not** trigger a reload, so a board persisting its
+  own state never remounts itself.) The **Refresh** button in the Boards side panel forces a remount if
+  you ever need one. Note the reload is debounced (~0.5s); give it a beat before you `browser_snapshot`.
 
 ## Test it
 

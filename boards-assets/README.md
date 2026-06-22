@@ -9,6 +9,20 @@ agent building a board) fetches only what a given board needs and copies it into
 board folder. This keeps the installer lean and lets the skin library grow independently
 of app releases.
 
+**Fetch location.** The manifest carries a top-level **`baseUrl`** so every skin is
+fetchable on a clean machine as `baseUrl + skin.file`, and the manifest itself as
+`baseUrl + manifest.json`:
+
+```
+https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/
+```
+
+It is also returned by the `get_app_info` MCP tool (`boardsAssetsBaseUrl` /
+`boardsManifestUrl`). **Pinning:** `baseUrl` points at the **`main`** branch, not a tag —
+skins are version-stamped in their headers (see *Version drift* below) and drift is
+expected, so the latest published skin is always served. Bump the branch/tag in `baseUrl`
+only if a frozen, reproducible skin set is ever needed.
+
 ## What Persephone guarantees — and what it doesn't
 
 - **Guaranteed:** the **palette**, via the `--p-*` CSS-variable theme contract injected

@@ -34,7 +34,21 @@ export class RendererEventsService {
 
         // Board `persephone.notify()` toast (US-724)
         rendererEvents[EventEndpoint.eBoardNotify].subscribe(this.handleBoardNotify);
+
+        // Board `persephone.openRawLink(href, { editor })` (US-756 C6)
+        rendererEvents[EventEndpoint.eBoardOpenRawLink].subscribe(this.handleBoardOpenRawLink);
     }
+
+    private handleBoardOpenRawLink = async (msg: { href: string; editor?: string }) => {
+        if (!msg?.href) return;
+        try {
+            await app.events.openRawLink.sendAsync(
+                createLinkData(msg.href, { sourceId: "board", target: msg.editor }),
+            );
+        } catch (err) {
+            ui.notify(`Failed to open link: ${err instanceof Error ? err.message : String(err)}`, "error");
+        }
+    };
 
     private handleOpenFile = async (filePath: string) => {
         try {

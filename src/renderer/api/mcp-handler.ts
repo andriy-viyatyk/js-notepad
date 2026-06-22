@@ -11,6 +11,8 @@ import { LogViewEditor } from "../editors/log-view";
 import type { LogEntry, McpRequestEntry } from "../editors/log-view/logTypes";
 import { csvToRecords } from "../core/utils/csv-utils";
 import type { EditorView } from "./types/common";
+import { api } from "../../ipc/renderer/api";
+import { fpJoin } from "../core/utils/file-path";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -66,7 +68,19 @@ interface McpAppInfo {
     activePageId: string | null;
     browserProfiles: string[];        // configured profile names
     defaultBrowserProfile: string;    // "" = built-in default
+    // Board authoring resources (US-756). The boards-assets skins are NOT bundled
+    // in the installer — they live on GitHub, fetchable via the raw base URL below.
+    resourcesDir: string;             // install resources root (repo root in dev)
+    demoBoardDir: string;             // bundled demo board template (read-only reference)
+    boardsAssetsBaseUrl: string;      // raw GitHub base for boards-assets/ (skins + manifest)
+    boardsManifestUrl: string;        // boardsAssetsBaseUrl + "manifest.json"
 }
+
+/** Raw GitHub base for the boards-assets catalog — must match `baseUrl` in
+ *  `boards-assets/manifest.json` (pinned to `main`; see US-756). Skins are not
+ *  bundled in the installer, so this is the canonical fetch location. */
+const BOARDS_ASSETS_BASE_URL =
+    "https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/";
 
 // ── Param narrowing helpers ─────────────────────────────────────────
 
@@ -95,7 +109,7 @@ async function handleCommand(method: string, params: McpParams): Promise<McpResp
         case "set_page_content":
             return setPageContent(params);
         case "get_app_info":
-            return { result: getAppInfo() };
+            return { result: await getAppInfo() };
         case "open_url":
             return await openUrl(params);
         case "create_board":
@@ -532,14 +546,21 @@ async function handleUiPush(params: McpParams): Promise<McpResponse> {
 
 // ── App Info ───────────────────────────────────────────────────────
 
-function getAppInfo(): McpAppInfo {
+async function getAppInfo(): Promise<McpAppInfo> {
     const pages = pagesModel.state.get().pages;
+    // App root: process.resourcesPath when packaged, repo root in dev. The bundled
+    // assets (incl. the demo board) live under `<root>/assets/` in both modes.
+    const resourcesDir = await api.getAppRootPath();
     return {
         version: app.version,
         pageCount: pages.length,
         activePageId: pagesModel.activePage?.id ?? null,
         browserProfiles: settings.get("browser-profiles").map((p) => p.name),
         defaultBrowserProfile: settings.get("browser-default-profile"),
+        resourcesDir,
+        demoBoardDir: fpJoin(resourcesDir, "assets", "demo-board"),
+        boardsAssetsBaseUrl: BOARDS_ASSETS_BASE_URL,
+        boardsManifestUrl: BOARDS_ASSETS_BASE_URL + "manifest.json",
     };
 }
 

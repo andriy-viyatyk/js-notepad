@@ -243,7 +243,7 @@ A **Board** is a small local web application (plain HTML + JS) owned by the user
 **Bridge (`window.persephone`):**
 - Injected by `src/preload-board.ts` into the sandboxed webview context.
 - `execute(commandLine, opts)` — thin client over `command-runner.ts` in the main process. Returns an `IExecuteHandle` (buffered: `getText`/`getJson`/`getBytes`; streaming: `on("stdout"|"stderr"|"exit"|"error")`, `write`, `kill`). The same main-process command runner backs `app.proc.execute()` in scripts.
-- Integration tier: `openRawLink(href)`, `notify(msg, type)`, `openFileDialog` / `saveFileDialog` / `openFolderDialog`.
+- Integration tier: `openRawLink(href, opts?)` (optional `{ editor }` requests a specific editor — e.g. `"md-view"` — routed via `ILinkData.target`), `notify(msg, type)`, `openFileDialog` / `saveFileDialog` / `openFolderDialog`, and `readFile(path, opts?)` / `writeFile(path, data, opts?)` (relative paths resolve against the board root; text or `base64`; a sanctioned persistence primitive that avoids shelling a script).
 - Theme/tokens: `--p-*` CSS variables injected on `<html>` and kept live across theme switches. Also available as `persephone.theme` / `persephone.tokens` (snapshots) and `persephone.getTheme()` / `persephone.getTokens()` (live). `persephone.onThemeChange(cb)` fires on every switch.
 
 **Board structure:** `board-manifest.json` (identity marker — descriptive metadata only, no behavior-driving or trust fields), `index.html`, `app.js`, `style.css`, `board-base.css` (shared base with page defaults + themed scrollbars), optional `scripts/` folder, optional `icon.svg`/`png`/`ico` (shown in tab, boards list, sidebar).

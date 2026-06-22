@@ -27,7 +27,9 @@ import {
     BoardContext,
     BoardNotifyMsg,
     BoardOpenRawLinkMsg,
+    BoardReadFileMsg,
     BoardThemePalette,
+    BoardWriteFileMsg,
     OpenFileDialogParams,
     OpenFolderDialogParams,
     SaveFileDialogParams,
@@ -57,6 +59,26 @@ function ownerWindow(event: IpcMainEvent | IpcMainInvokeEvent): BrowserWindow | 
     );
 }
 
+/**
+ * Resolve a board file-bridge path (US-756 C4). An absolute path is used as-is; a
+ * relative path resolves against the caller's board root (the same default cwd as
+ * `execute()`). Throws if no path is given, or if a relative path is used from a
+ * session whose board root can't be resolved. NOT sandboxed to the board folder —
+ * a trusted board can already read/write anywhere via `execute()`, so this only
+ * removes the "shell a script to touch a file" overhead.
+ */
+function resolveBoardFilePath(event: IpcMainInvokeEvent, p: string | undefined): string {
+    if (!p || typeof p !== "string") {
+        throw new Error("A file path is required");
+    }
+    if (path.isAbsolute(p)) return p;
+    const root = getBoardRootForSession(event.sender.session);
+    if (!root) {
+        throw new Error(`Cannot resolve relative path "${p}": the board root is unknown`);
+    }
+    return path.resolve(root, p);
+}
+
 /** Register the board integration-tier IPC handlers. Call once at startup. */
 export function initBoardBridge(): void {
     // Synchronous board-context lookup — the preload calls this once at init
@@ -71,13 +93,14 @@ export function initBoardBridge(): void {
         } satisfies BoardContext;
     });
 
-    // openRawLink → reuse the existing eOpenFile renderer handler, which does
-    // `openRawLink(createLinkData(href))` (href-agnostic: file or URL).
+    // openRawLink → forward to the host renderer's link pipeline (href-agnostic:
+    // file or URL). Carries an optional editor target (US-756 C6) so a board can
+    // request e.g. "md-view" for a Markdown doc.
     ipcMain.on(BoardBridgeChannel.openRawLink, (event: IpcMainEvent, msg: BoardOpenRawLinkMsg) => {
         const href = msg?.href;
         if (!href) return;
         const win = ownerWindow(event);
-        win?.webContents.send(EventEndpoint.eOpenFile, href);
+        win?.webContents.send(EventEndpoint.eBoardOpenRawLink, { href, editor: msg.editor });
         win?.focus();
     });
 
@@ -121,5 +144,28 @@ export function initBoardBridge(): void {
         BoardBridgeChannel.openFolderDialog,
         (event: IpcMainInvokeEvent, params: OpenFolderDialogParams) =>
             showOpenFolderDialog(ownerWindow(event), params ?? {}),
+    );
+
+    // File bridge (US-756 C4) — read/write any file without shelling a script. A
+    // relative path resolves against the board root; parent dirs are created on write.
+    // "utf8" (default) ↔ string, "base64" ↔ binary. A thrown error rejects the
+    // caller's invoke() promise with its message.
+    ipcMain.handle(
+        BoardBridgeChannel.readFile,
+        async (event: IpcMainInvokeEvent, msg: BoardReadFileMsg): Promise<string> => {
+            const filePath = resolveBoardFilePath(event, msg?.path);
+            const encoding: BufferEncoding = msg?.encoding === "base64" ? "base64" : "utf8";
+            const buf = await fs.promises.readFile(filePath);
+            return buf.toString(encoding);
+        },
+    );
+    ipcMain.handle(
+        BoardBridgeChannel.writeFile,
+        async (event: IpcMainInvokeEvent, msg: BoardWriteFileMsg): Promise<void> => {
+            const filePath = resolveBoardFilePath(event, msg?.path);
+            const encoding: BufferEncoding = msg?.encoding === "base64" ? "base64" : "utf8";
+            await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+            await fs.promises.writeFile(filePath, Buffer.from(msg?.data ?? "", encoding));
+        },
     );
 }

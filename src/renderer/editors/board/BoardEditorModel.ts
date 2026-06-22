@@ -15,6 +15,20 @@ import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
 import { invalidateBoardIcon } from "./board-icon-cache";
 
+/** Should a change to `relPath` (relative to the board root, as reported by the
+ *  folder watcher) live-reload the webview? True only for board FRONTEND source —
+ *  `app.js` / any `.js`/`.mjs`/`.cjs` and `.css` (US-756 C3). Deliberately false for:
+ *  `ui.log` (its writes must never trigger a reload, or an error→log→reload loop
+ *  forms — `.log` simply isn't a source extension), data/state files a board writes
+ *  via `writeFile` (`.json`, etc.), and anything under `node_modules`. `index.html`
+ *  is `.html` (not matched) — it has its own dedicated watcher, so this avoids a
+ *  double remount. */
+function isBoardReloadSource(relPath: string): boolean {
+    const p = relPath.replace(/\\/g, "/").toLowerCase();
+    if (p.includes("node_modules/")) return false;
+    return /\.(c|m)?js$/.test(p) || p.endsWith(".css");
+}
+
 export interface BoardEditorState extends EditorStateBase {
     /** State-type discriminator. */
     type: "boardPage";
@@ -110,11 +124,15 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
 
     /** Watches the selected board's `index.html` → live reload (remount). */
     private indexWatcher?: FileWatcher;
-    /** Watches the selected board's folder → keeps `logHasErrors` current. Uses a
-     *  directory watcher (not a `FileWatcher` on `ui.log`) so it catches the file's
-     *  first creation — `nodefs.watch` throws on a not-yet-existent path. It only
-     *  re-stats `ui.log`; it never bumps `reloadToken`, so there's no
-     *  error→log-write→reload feedback loop. */
+    /** Watches the selected board's folder for two jobs: (1) keep `logHasErrors` +
+     *  the board icon current (a directory watcher, not a `FileWatcher` on `ui.log`,
+     *  so it catches the file's first creation — `nodefs.watch` throws on a
+     *  not-yet-existent path); and (2) live-reload the webview on board SOURCE edits
+     *  the `index.html` watcher misses — `app.js` and CSS (US-756 C3). The reload is
+     *  gated by {@link isBoardReloadSource}: `ui.log` is excluded so an error→
+     *  log-write→reload feedback loop can't form, and data/state files (e.g. a
+     *  board's own `writeFile` JSON) are excluded so a board persisting state doesn't
+     *  remount itself. */
     private logDirWatcher?: DirectoryWatcher;
 
     /** Absolute root of a board by its list name, mode-aware. In single-board mode
@@ -323,11 +341,17 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         this.indexWatcher = new FileWatcher(fpJoin(boardRoot, "index.html"), () => {
             this.state.update((s) => { s.reloadToken++; });
         });
-        this.logDirWatcher = new DirectoryWatcher(boardRoot, () => {
+        this.logDirWatcher = new DirectoryWatcher(boardRoot, (filename) => {
             // The folder changed — the log state may have, and so may the board's
             // icon file (added / replaced / removed). Re-probe both (US-744).
             invalidateBoardIcon(boardRoot);
             void this.refreshLogState();
+            // Live-reload on board source edits the index.html watcher misses —
+            // app.js / CSS (US-756 C3). Gated to avoid the ui.log feedback loop and
+            // not to remount when a board persists its own state to disk.
+            if (filename && isBoardReloadSource(filename)) {
+                this.state.update((s) => { s.reloadToken++; });
+            }
         });
         void this.refreshLogState();
     }

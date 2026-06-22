@@ -95,11 +95,17 @@ export interface IApp {
      * To open a board by its root path, prefer `app.boards.openBoard(root)` — it
      * builds the `persephone-board://` link for you rather than hand-encoding it.
      *
+     * Pass `options.editor` to request a specific registered editor (e.g. open a
+     * Markdown file in the rendered `"md-view"` instead of the raw text editor). It
+     * falls back to the default editor when omitted or when the requested editor does
+     * not accept the file.
+     *
      * @example
      * await app.openRawLink("C:/data/report.json");   // open a file
      * await app.openRawLink("https://example.com");    // open a URL in the browser
+     * await app.openRawLink("C:/notes/README.md", { editor: "md-view" }); // rendered Markdown
      */
-    openRawLink(href: string): Promise<void>;
+    openRawLink(href: string, options?: { editor?: string }): Promise<void>;
 
     /**
      * Run a function in a background worker thread.

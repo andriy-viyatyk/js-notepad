@@ -414,7 +414,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "get_app_info",
-        "Get application info: { version, pageCount, activePageId, browserProfiles, defaultBrowserProfile } (browserProfiles = configured browser profile names; defaultBrowserProfile = '' for the built-in default).",
+        "Get application info: { version, pageCount, activePageId, browserProfiles, defaultBrowserProfile, resourcesDir, demoBoardDir, boardsAssetsBaseUrl, boardsManifestUrl } (browserProfiles = configured browser profile names; defaultBrowserProfile = '' for the built-in default; resourcesDir = install resources root; demoBoardDir = bundled demo board to reference; boardsAssetsBaseUrl/boardsManifestUrl = raw GitHub location of the recommended-components catalog + skins, which are NOT bundled in the installer — fetch a skin as boardsAssetsBaseUrl + skin.file).",
         {
             windowIndex: windowIndexParam,
         },

@@ -32,6 +32,12 @@ export enum BoardBridgeChannel {
     saveFileDialog = "board:save-file-dialog",
     /** Preload → main, request/reply (`invoke`). Native pick-folder dialog. */
     openFolderDialog = "board:open-folder-dialog",
+    /** Preload → main, request/reply (`invoke`). Read a file (US-756 C4). A relative
+     *  path resolves against the board root. */
+    readFile = "board:read-file",
+    /** Preload → main, request/reply (`invoke`). Write a file (US-756 C4). A relative
+     *  path resolves against the board root; parent dirs are created. */
+    writeFile = "board:write-file",
     /** Host renderer → board guest, via `<webview>.send` (NOT `ipcMain`). Live theme
      *  switch; the preload re-applies the color `--p-*` and fires `onThemeChange`. */
     themeChanged = "board:theme-changed",
@@ -69,6 +75,28 @@ export interface BoardNotifyMsg {
 
 export interface BoardOpenRawLinkMsg {
     href: string;
+    /** Optional registered editor id to open the file with (e.g. "md-view").
+     *  Falls back to the default editor when omitted or when the editor doesn't
+     *  accept the file (US-756 C6). */
+    editor?: string;
+}
+
+/** Text encoding for the board file bridge (US-756 C4). "utf8" returns/accepts a
+ *  plain string; "base64" returns/accepts base64 for binary content. */
+export type BoardFileEncoding = "utf8" | "base64";
+
+export interface BoardReadFileMsg {
+    /** Absolute, or relative to the board root. */
+    path: string;
+    encoding?: BoardFileEncoding;
+}
+
+export interface BoardWriteFileMsg {
+    /** Absolute, or relative to the board root. */
+    path: string;
+    /** File contents — a plain string ("utf8") or base64 ("base64"). */
+    data: string;
+    encoding?: BoardFileEncoding;
 }
 
 // Re-export the dialog param shapes so the preload + bridge import one place.

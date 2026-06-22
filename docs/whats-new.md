@@ -8,7 +8,16 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.7 (Upcoming)
 
-*No changes yet.*
+### Improvements
+
+- **Boards — live-reload on `app.js` / CSS edits** — A board now reloads automatically when you edit `app.js` or any `.js`/`.css` in its folder, not just `index.html` — so the edit → see-it-update loop just works without clicking **Refresh**. Files a board writes (`.json`, etc.) and `ui.log` deliberately do **not** trigger a reload, so a board persisting its own state never remounts itself. **Refresh** still forces a remount when you want one.
+- **Boards — read & write files from the page** — Two new bridge methods, `persephone.readFile(path, options?)` and `persephone.writeFile(path, data, options?)`, let a board read and write files directly — ideal for persisting small UI state (last filter, column layout) or loading a board-local config, without writing a backend script. Relative paths resolve against the board folder; text or base64 (binary) are both supported.
+- **Boards — open a link in a specific editor** — `persephone.openRawLink(href, { editor })` (and `app.openRawLink` in scripts) can now request a specific editor — for example, open a Markdown document in the rendered Markdown view instead of its source.
+- **Boards — easier component vendoring for agents** — The recommended-components catalog now carries a fetchable base URL, and `get_app_info` exposes the bundled resource paths, so an AI agent building a board can locate and download a recommended component's skin on any machine (skins are published on GitHub, not bundled in the installer).
+
+### Bug Fixes
+
+- **Boards — bridge broken in the installed release** — In the 4.0.6 installed build, every board failed to initialize (`window.persephone` was `undefined`) because the board preload script was not included in the release package. All board operations — `execute()`, dialogs, navigation, theme — appeared to do nothing or threw immediately. Fixed: the board preload is now built and packaged correctly. Boards work in both the development server and the installed release.
 
 ---
 

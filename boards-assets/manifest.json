@@ -1,6 +1,8 @@
 {
   "version": 1,
   "description": "Persephone Board — recommended third-party components and their Persephone skins. Each skin is written against the --p-* theme contract and is NOT bundled in the installer; an agent fetches the files it needs into the board folder as a frozen local copy. See README.md.",
+  "baseUrl": "https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/",
+  "baseUrlNote": "Resolve every skin's `skin.file` as `baseUrl + file` to fetch it on a clean machine (skins are not bundled in the installer). Pinned to `main` (not a tag): skins are version-stamped in their headers and skin drift is expected — see README.md. The manifest itself is fetchable at `baseUrl + manifest.json`.",
   "components": [
     {
       "id": "tabulator",

@@ -35,6 +35,7 @@ import {
 import {
     BoardBridgeChannel,
     type BoardContext,
+    type BoardFileEncoding,
     type BoardNotifyType,
     type BoardThemePalette,
     type OpenFileDialogParams,
@@ -360,9 +361,12 @@ contextBridge.exposeInMainWorld("persephone", {
         return createHandle(command, options);
     },
 
-    /** Open a link (file path or URL) in a new Persephone page. */
-    openRawLink(href: string): void {
-        ipcRenderer.send(BoardBridgeChannel.openRawLink, { href });
+    /** Open a link (file path or URL) in a new Persephone page. Pass
+     *  `options.editor` to request a specific editor (e.g. `"md-view"` to render a
+     *  Markdown doc instead of opening its source); falls back to the default editor
+     *  when omitted or unmatched. */
+    openRawLink(href: string, options?: { editor?: string }): void {
+        ipcRenderer.send(BoardBridgeChannel.openRawLink, { href, editor: options?.editor });
     },
 
     /** Show a Persephone toast. */
@@ -388,6 +392,29 @@ contextBridge.exposeInMainWorld("persephone", {
     /** Native pick-folder dialog → selected folder(s), or undefined if cancelled. */
     openFolderDialog(params?: OpenFolderDialogParams): Promise<string[] | undefined> {
         return ipcRenderer.invoke(BoardBridgeChannel.openFolderDialog, params ?? {});
+    },
+
+    /** Read a file without shelling a script (US-756 C4). A relative `path` resolves
+     *  against the board folder; an absolute path reads anywhere. Returns a string —
+     *  the file text by default, or base64 with `{ encoding: "base64" }` for binary.
+     *  Rejects if the file can't be read. */
+    readFile(path: string, options?: { encoding?: BoardFileEncoding }): Promise<string> {
+        return ipcRenderer.invoke(BoardBridgeChannel.readFile, {
+            path,
+            encoding: options?.encoding,
+        });
+    },
+
+    /** Write a file without shelling a script (US-756 C4). A relative `path` resolves
+     *  against the board folder; an absolute path writes anywhere. Parent folders are
+     *  created. `data` is a plain string by default, or base64 with
+     *  `{ encoding: "base64" }` for binary. Rejects on failure. */
+    writeFile(path: string, data: string, options?: { encoding?: BoardFileEncoding }): Promise<void> {
+        return ipcRenderer.invoke(BoardBridgeChannel.writeFile, {
+            path,
+            data,
+            encoding: options?.encoding,
+        });
     },
 
     /** Host color palette (`--p-*` names → values) as of page load — correct on every

@@ -225,6 +225,7 @@ export enum EventEndpoint {
     eMcpStatusChanged = "eMcpStatusChanged",
     eMnemeStatusChanged = "eMnemeStatusChanged",
     eBoardNotify = "eBoardNotify",
+    eBoardOpenRawLink = "eBoardOpenRawLink",
 }
 
 export interface EventSubscription {
@@ -261,6 +262,10 @@ export type EventApi = {
         message: string;
         type?: "info" | "success" | "warning" | "error";
     }>;
+    // Board `persephone.openRawLink(href, { editor })` → host renderer (US-756 C6).
+    // `editor` is an optional registered editor id; the open pipeline falls back to
+    // the default editor when omitted/unmatched.
+    [EventEndpoint.eBoardOpenRawLink]: EventObject<{ href: string; editor?: string }>;
 };
 
 export enum RendererEvent {
