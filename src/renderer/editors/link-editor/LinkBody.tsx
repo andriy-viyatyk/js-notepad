@@ -109,7 +109,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
                     name="link-editor-center"
                     direction="column"
                     flex={1}
-                    minWidth={0}
+                    width={0}
                     overflow="hidden"
                     position="relative"
                     border={centerDragOver || undefined}

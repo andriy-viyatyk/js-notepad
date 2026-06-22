@@ -755,6 +755,29 @@ export class PagesLifecycleModel {
             }
         }
 
+        // Reuse an editor already on this page that represents the same file,
+        // rather than building a duplicate. A modified editor that survived an
+        // earlier navigation (e.g. a Link editor with unsaved edits) lingers as
+        // a sidebar panel; re-selecting its file in the Explorer should restore
+        // that very instance — with its edits and panels — instead of spawning a
+        // second one alongside it. An explicit content-host target must still
+        // match the existing editor's type, so "open in a different view" of an
+        // already-open file is never hijacked.
+        const existingForFile = page.findEditorByFilePath(newFilePath);
+        if (
+            existingForFile &&
+            existingForFile !== page.mainEditorInstance &&
+            (!navTarget || existingForFile.editorId === navTarget)
+        ) {
+            options?.pipe?.dispose();
+            await page.setMainEditor(existingForFile);
+            existingForFile.onNavigationReuse?.();
+            this.model.onShow.send(page);
+            this.model.onFocus.send(page);
+            this.model.persistence.saveState();
+            return true;
+        }
+
         // Build legacy editor (with adapter wrap deferred until after the
         // post-restore mutations that need the underlying TextFileModel API).
         let legacy: EditorOrHost;

@@ -152,6 +152,23 @@ export class PageModel implements IPageHost {
         return this.editors.find((e) => e.id === this._mainEditorId) ?? null;
     }
 
+    /** Find an editor already attached to this page whose backing file is
+     *  `filePath`. Text-bearing editors are unwrapped to their content host
+     *  (where `filePath` lives), matching the property `mainEditor` exposes.
+     *  Lets navigation promote an existing editor (e.g. a modified Link editor
+     *  surviving as a sidebar panel) back to main instead of building a
+     *  duplicate. */
+    findEditorByFilePath(filePath: string): EditorModel | null {
+        if (!filePath) return null;
+        return (
+            this.editors.find(
+                (e) =>
+                    (unwrapToHost(e) as { filePath?: string } | null)?.filePath ===
+                    filePath,
+            ) ?? null
+        );
+    }
+
     /** Editors that currently contribute panels (subset of `editors[]`). All
      *  sidebar-owning editors (Link, Archive, Explorer, Category) live on the
      *  editor; `instanceof` checks resolve against the concrete class. */

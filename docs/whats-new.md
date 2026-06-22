@@ -19,6 +19,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Boards — bridge broken in the installed release** — In the 4.0.6 installed build, every board failed to initialize (`window.persephone` was `undefined`) because the board preload script was not included in the release package. All board operations — `execute()`, dialogs, navigation, theme — appeared to do nothing or threw immediately. Fixed: the board preload is now built and packaged correctly. Boards work in both the development server and the installed release.
 
+- **Explorer — opening a modified file no longer opens a duplicate** — Clicking a file in the **File Explorer** sidebar that is already open in a tab (even with unsaved changes) now brings that existing tab to the front and shows it in the main view. Previously, if the file had been modified, a second editor was opened alongside the first, leaving two tabs for the same file.
+
+- **Browser — bookmarks/links panel resizes live** — The **Collections**, **Tags**, and **Hostnames** sidebar panels on the browser's blank (new-tab) bookmarks page now resize fluidly when you drag the sidebar splitter. Previously the panel content was frozen at the width it had when the page first loaded and did not respond to splitter drags.
+
 ---
 
 ## Version 4.0.6
