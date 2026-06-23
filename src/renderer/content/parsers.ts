@@ -4,7 +4,6 @@ import { parseHttpRequest } from "../core/utils/curl-parser";
 import { TREE_CATEGORY_PREFIX } from "./tree-providers/tree-provider-link";
 import { GIT_TREE_PREFIX } from "./git-tree-link";
 import { MNEME_FOLDER_PREFIX } from "./mneme-folder-link";
-import { PERSEPHONE_FOLDER_PREFIX } from "./persephone-folder-link";
 import { PERSEPHONE_BOARD_PREFIX } from "./persephone-board-link";
 import { normalizeFileUrl, isFileUrl, isPlausibleFilePath } from "./link-utils";
 
@@ -113,22 +112,9 @@ export function registerRawLinkParsers(): void {
         data.handled = true;
     });
 
-    // persephone-folder:// parser — Board editor; navigates the current page
-    // (the Explorer passes pageId, so openContent → navigatePageTo). Mirrors the
-    // mneme-folder:// parser. Opens the Board editor for a `.persephone` project
-    // folder. (EPIC-034 / US-722)
-    app.events.openRawLink.subscribe(async (data) => {
-        if (!data.href.startsWith(PERSEPHONE_FOLDER_PREFIX)) return;
-        data.url = data.href;
-        data.target ??= "board-view";
-        data.handled = false;
-        await app.events.openLink.sendAsync(data);
-        data.handled = true;
-    });
-
     // persephone-board:// parser — opens a single board by its own root path
-    // (US-748). Sibling of persephone-folder://; same board-view target. The link
-    // is a pure board identifier — any per-open param rides as ILinkData metadata.
+    // (US-748); routes to the board-view target. The link is a pure board
+    // identifier — any per-open param rides as ILinkData metadata.
     app.events.openRawLink.subscribe(async (data) => {
         if (!data.href.startsWith(PERSEPHONE_BOARD_PREFIX)) return;
         data.url = data.href;

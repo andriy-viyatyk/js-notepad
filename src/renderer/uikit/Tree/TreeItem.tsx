@@ -66,6 +66,14 @@ export interface TreeItemProps
      * triggering the row's onClick, its handlers should `stopPropagation()`.
      */
     trailing?: React.ReactNode;
+    /**
+     * When the trailing content is shown. `"always"` (default) keeps it visible at all times —
+     * the original behavior, so existing consumers are unchanged. `"hover"` hides it at rest and
+     * reveals it on row hover or keyboard focus-within (e.g. a per-row action that should not
+     * clutter the row until pointed at). Per-row sticky state (e.g. a pinned row that should keep
+     * its action visible) is expressed by passing `"always"` for that row.
+     */
+    trailingVisibility?: "always" | "hover";
 }
 
 // --- Styled ---
@@ -124,7 +132,14 @@ const Root = styled.div(
             display: "flex",
             alignItems: "center",
             flexShrink: 0,
+            transition: "opacity 80ms ease",
         },
+
+        // Hover-reveal: hide the trailing at rest, show it on row hover or keyboard
+        // focus-within. Rows that opt out (e.g. a pinned row) pass trailingVisibility="always".
+        '&[data-trailing-visibility="hover"] > .tree-trailing': { opacity: 0 },
+        '&[data-trailing-visibility="hover"]:hover > .tree-trailing': { opacity: 1 },
+        '&[data-trailing-visibility="hover"]:focus-within > .tree-trailing': { opacity: 1 },
     },
     { label: "TreeItem" },
 );
@@ -206,6 +221,7 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
         hideChevron,
         onChevronClick,
         trailing,
+        trailingVisibility = "always",
         ...rest
     },
     ref,
@@ -226,6 +242,7 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
             data-drop-active={dropActive || undefined}
             data-loading={loading || undefined}
             data-disabled={disabled || undefined}
+            data-trailing-visibility={trailingVisibility}
             role="treeitem"
             aria-selected={selected ? "true" : "false"}
             aria-expanded={hasChildren ? expanded : undefined}

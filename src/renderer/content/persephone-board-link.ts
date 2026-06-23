@@ -1,9 +1,8 @@
 /**
  * `persephone-board://` link scheme (EPIC-035 / US-748).
  *
- * Opens a SINGLE board by its own root path through the `openRawLink` pipeline —
- * the sibling of `persephone-folder://` (which opens a `.persephone` project).
- * Both route to `target: "board-view"`. The link is a PURE board identifier: it
+ * Opens a SINGLE board by its own root path through the `openRawLink` pipeline,
+ * routing to `target: "board-view"`. The link is a PURE board identifier: it
  * encodes the board root and nothing else. Any future per-open parameter (e.g. a
  * `filePath` to edit) rides as `ILinkData` metadata on the openRawLink call —
  * like `revealLine` / `highlightText` — never baked into this URL.

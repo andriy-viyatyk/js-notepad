@@ -7,16 +7,9 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(nothing in progress)*
+*(none — EPIC-036 completed 2026-06-23; see [`/doc/epics/completed.md`](epics/completed.md))*
 
 ## Planned
-- **EPIC-036** — [Boards: Explorer-integrated switcher & in-board chrome](epics/EPIC-036.md) *(Planning — design finalized)*
-  - [ ] US-759: `BoardsTree` component — single reusable fully-expanded boards tree (single-root + multi-root)
-  - [ ] US-760: "Create board" dialog — folder picker + name + computed location
-  - [ ] US-761: Boards as an Explorer-sibling panel (mirror Search; remove Explorer Refresh)
-  - [ ] US-762: Single-board-only `BoardEditorModel`; remove `.persephone` project mode
-  - [ ] US-763: In-board toolbar — Reload, Show-log, path + boards popover
-  - [ ] US-764: Retrofit Tools & Editors Boards tab onto `BoardsTree`
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
   - [ ] US-396: Data model — `LinkScriptItem` type and `scripts` field in `LinkEditorData`
   - [ ] US-397: ScriptRunner — `runWithScope()` for custom context variable injection

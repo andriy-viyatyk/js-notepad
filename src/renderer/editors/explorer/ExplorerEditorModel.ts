@@ -25,6 +25,10 @@ export interface ExplorerEditorState extends EditorStateBase {
     treeState?: TreeProviderViewSavedState;
     selectedHref?: string | null;
     searchState?: FileSearchState;
+    /** Whether the Boards sibling panel is open (EPIC-036 / US-761). Persisted so the panel
+     *  survives restart and page-move-between-windows; Search has no analogue because its
+     *  visibility is derived from `searchState`. */
+    boardsOpen?: boolean;
 }
 
 export function getDefaultExplorerEditorState(): ExplorerEditorState {
@@ -90,6 +94,18 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
         this.treeState = state;
     }
 
+    // ── Secondary-view composition ─────────────────────────────────────
+
+    /** Canonical sidebar panel set for the Explorer-backed panels, always in display order:
+     *  Explorer → Search (iff `searchState`) → Boards (iff `boardsOpen`). Drives every
+     *  `secondaryView` assignment so Search and Boards compose instead of clobbering each other. */
+    private composeSecondaryView(): string[] {
+        const ids = ["explorer"];
+        if (this.searchState) ids.push("search");
+        if (this.state.get().boardsOpen) ids.push("boards");
+        return ids;
+    }
+
     // ── Search ───────────────────────────────────────────────────────
 
     openSearch(folder?: string): void {
@@ -107,23 +123,33 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
                 totalFiles: 0,
             };
         }
-        if (!this.secondaryView?.includes("search")) {
-            this.secondaryView = ["explorer", "search"];
-        }
+        this.secondaryView = this.composeSecondaryView();
         setTimeout(() => this.page?.expandPanel("search"), 0);
     }
 
     closeSearch(): void {
         this.searchState = undefined;
-        if (this.secondaryView?.includes("search")) {
-            this.secondaryView = ["explorer"];
-        }
+        this.secondaryView = this.composeSecondaryView();
         setTimeout(() => this.page?.expandPanel("explorer"), 0);
     }
 
     setSearchState = (state: FileSearchState): void => {
         this.searchState = state;
     };
+
+    // ── Boards ─────────────────────────────────────────────────────────
+
+    openBoards(): void {
+        this.state.update((s) => { s.boardsOpen = true; });
+        this.secondaryView = this.composeSecondaryView();
+        setTimeout(() => this.page?.expandPanel("boards"), 0);
+    }
+
+    closeBoards(): void {
+        this.state.update((s) => { s.boardsOpen = false; });
+        this.secondaryView = this.composeSecondaryView();
+        setTimeout(() => this.page?.expandPanel("explorer"), 0);
+    }
 
     // ── Root navigation ──────────────────────────────────────────────
 
@@ -234,18 +260,14 @@ export class ExplorerEditor extends EditorModel<ExplorerEditorState> {
     async restore(): Promise<void> {
         await super.restore();
         if (this.rootPath && this.page) {
-            this.secondaryView = this.searchState
-                ? ["explorer", "search"]
-                : ["explorer"];
+            this.secondaryView = this.composeSecondaryView();
         }
     }
 
     setPage(page: IPageHost | null): void {
         super.setPage(page);
         if (page && this.rootPath && !this.secondaryView?.length) {
-            this.secondaryView = this.searchState
-                ? ["explorer", "search"]
-                : ["explorer"];
+            this.secondaryView = this.composeSecondaryView();
         }
     }
 

@@ -119,4 +119,12 @@ export interface ILinkData {
      *  Named "selectedTag" (not "tag") because a link can have multiple tags —
      *  this is the tag the user selected, not a property of the link itself. */
     selectedTag?: string;
+    /** The Explorer root a board was opened from. Scopes the in-board boards
+     *  switcher: the board reads it back from `state.sourceLink` and lists the
+     *  trusted boards under it. Set by the opener (Boards panel / in-board
+     *  switcher / Explorer manifest row); absent for a board opened standalone
+     *  (MCP / a bare `persephone-board://`), which then shows a plain path label.
+     *  Persisted (NOT in EPHEMERAL_FIELDS) so a restored board keeps its switcher
+     *  scope; never copied into a stored Link `ILink` (`linkDataToLink` ignores it). */
+    explorerRoot?: string;
 }

@@ -23,6 +23,18 @@ import { fs } from "./fs";
 
 const trustedBoardsFileName = "trustedBoards.txt";
 
+/**
+ * True when `ancestorKey` equals or contains `descendantKey` (path-boundary aware, so
+ * ".../tools" does NOT cover ".../tools-2"). Both args MUST already be normalized via
+ * `fpNormalizeForCompare` (slash-separated, no trailing slash, lowercased on Windows).
+ *
+ * This is the basis of *inherited trust* (EPIC-036): a board is trusted when it or any
+ * ancestor folder is registered, and the registry never keeps an ancestor/descendant pair.
+ */
+function pathCovers(ancestorKey: string, descendantKey: string): boolean {
+    return descendantKey === ancestorKey || descendantKey.startsWith(ancestorKey + "/");
+}
+
 interface BoardTrustState {
     paths: string[]; // absolute board-root folder paths, original case
 }
@@ -40,16 +52,18 @@ class BoardTrust {
         });
     }
 
-    /** Sync check against currently-loaded state (call load() first on mount). */
+    /** Sync check against currently-loaded state (call load() first on mount). Ancestor-aware:
+     *  a board is trusted when it OR any ancestor folder is registered (inherited trust). */
     isTrusted(boardRoot: string): boolean {
         const key = fpNormalizeForCompare(boardRoot);
-        return this.state.get().paths.some((p) => fpNormalizeForCompare(p) === key);
+        return this.state.get().paths.some((p) => pathCovers(fpNormalizeForCompare(p), key));
     }
 
-    /** Reactive hook for views — re-renders when the board's trust flips. */
+    /** Reactive hook for views — re-renders when the board's trust flips. Ancestor-aware
+     *  (a board inside a trusted board is trusted by inheritance). */
     useIsTrusted(boardRoot: string): boolean {
         const key = fpNormalizeForCompare(boardRoot);
-        return this.state.use((s) => s.paths.some((p) => fpNormalizeForCompare(p) === key));
+        return this.state.use((s) => s.paths.some((p) => pathCovers(fpNormalizeForCompare(p), key)));
     }
 
     /** All trusted board-root paths (sync, non-reactive). Call `load()` first. */
@@ -68,10 +82,18 @@ class BoardTrust {
      *  trust dialog) OR it is a provenance write for a Persephone-created board. */
     async trust(boardRoot: string): Promise<void> {
         await this.load(); // re-read so we don't clobber a concurrent write
+        // Inherited trust: if this board OR an ancestor folder is already trusted, nothing to add
+        // (isTrusted is ancestor-aware, so this also covers the nested-under-trusted case).
         if (this.isTrusted(boardRoot)) {
             return;
         }
-        const paths = [...this.state.get().paths, boardRoot];
+        // Outer wins: this board may contain already-trusted descendants — drop them, they are
+        // now covered by this (outer) board's trust. Keeps the registry free of nested pairs.
+        const key = fpNormalizeForCompare(boardRoot);
+        const kept = this.state
+            .get()
+            .paths.filter((p) => !pathCovers(key, fpNormalizeForCompare(p)));
+        const paths = [...kept, boardRoot];
         this.state.update((s) => {
             s.paths = paths;
         });

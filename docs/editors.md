@@ -733,28 +733,24 @@ See **[Mneme — Knowledge Base](./mneme.md)** for complete documentation.
 
 ## Board
 
-A sandboxed HTML-page application hosted inside a Persephone project. Boards let you build fully custom UIs backed by scripts in any language (Node.js, Python, PowerShell, shell, …).
+A sandboxed HTML-page application that can live anywhere on disk. Boards let you build fully custom UIs backed by scripts in any language (Node.js, Python, PowerShell, shell, …).
 
-**Opening:** Click the **`.persephone`** node in the **File Explorer** panel for any project that contains a `.persephone` folder. If no such folder exists, right-click any folder in the Explorer and choose **"Create .persephone project"**.
+**Opening:** Click the **Boards** button in the **File Explorer** header to open the **Boards** panel, which lists every trusted board under the current Explorer root. Click any board name to open it. You can also click the **Open Board** button that appears on any `board-manifest.json` row in the Explorer, or open one from the **Tools & Editors** panel → **Custom Boards & Editors** tab.
 
 **Key features:**
 
 - **Owns its own UI** — you (or an AI agent) write plain HTML + CSS + JS; Persephone only hosts the page
 - **`persephone.execute()` channel** — call backend scripts from the page; consume the result buffered (`getJson()`, `getText()`) or streamed (`on("stdout", …)`)
-- **Integration tier** — `notify()`, `openFileDialog()`, `saveFileDialog()`, `openFolderDialog()`, `openRawLink()`
+- **Integration tier** — `notify()`, `openFileDialog()`, `saveFileDialog()`, `openFolderDialog()`, `openRawLink()`, `readFile()`, `writeFile()`
 - **`--p-*` theme contract** — CSS variables injected into the board that update live when the user switches app themes
-- **Live reload** — editing `index.html` reloads the board automatically; other file changes reload with the **Refresh** button in the Boards sidebar panel
-- **Custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set the board's tab icon and sidebar icon
+- **Live reload** — editing `index.html`, `app.js`, or any `.js`/`.css` reloads the board automatically; the **Reload** button in the in-board toolbar forces a remount
+- **In-board toolbar** — Reload, Show-log, the board path, and (when opened from a Boards panel) a click-to-switch boards popover for the current Explorer root
+- **Custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set the board's tab icon and Boards-panel icon
 - **Error log** — script failures are toasted and appended to `ui.log` in the board folder
 
-**Boards sidebar panel:** Lists all boards in the current project. Click a board to switch to it. The panel header has a **Refresh** button and the always-visible **Show in main view** button.
+**Creating a board:** Click **New board** in the **Boards** Explorer-sibling panel (or use the caret for **Create Demo board**). A dialog prompts for a **folder** (defaults to the current Explorer root) and a **name**; a live label shows the final path. Both fields are required.
 
-**Creating a board:**
-
-- **"+ New board"** in the Board editor main view — scaffolds from the built-in 4-file template
-- **"Create Demo board"** — installs a full working demo that covers every bridge API feature
-
-**Project trust gate:** Before any board renders, you must explicitly trust the `.persephone` project. A warning dialog states that trusting allows the board's scripts to run programs with your full user privileges. Trust is per-project and remembered across restarts.
+**Trust gate:** Before any board renders, you must explicitly trust it. A warning dialog states that trusting lets the board's scripts run programs with your full user privileges. Trust is per board folder, remembered across restarts. Boards inside an already-trusted folder are covered automatically (inherited trust).
 
 **MCP automation:** AI agents can drive an open board using the `browser_*` MCP tools (same Playwright-compatible tools used for the built-in browser). Find the board in `list_pages` by `editor: "board-view"`, then use `browser_snapshot`, `browser_click`, `browser_evaluate`, etc. to test and debug without touching source files.
 

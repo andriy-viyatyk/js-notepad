@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Panel } from "../../uikit/Panel";
+import color from "../../theme/color";
 import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
@@ -121,7 +122,11 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     }, []);
 
     return (
-        <Panel direction="column" flex={1} width="100%" height={0}>
+        // background="default" (= --color-bg-default, the same source as the board's
+        // --p-bg) fills the wrapper while the webview is not yet mounted / still loading,
+        // so the host area is themed rather than blank. The guest's own first paint is
+        // themed by the parse-time --p-* injection in board-protocol-service.ts.
+        <Panel direction="column" flex={1} width="100%" height={0} background="default">
             {ready && (
                 <webview
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,7 +138,9 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                     // the `nodeintegration` attribute is deliberately absent (default off);
                     // `allowpopups` is absent too.
                     webpreferences="contextIsolation=yes,sandbox=yes"
-                    style={{ flex: 1, width: "100%", border: "none" }}
+                    // Themed backdrop for the brief pre-first-paint window (color.ts vars
+                    // resolve live, so this tracks theme switches).
+                    style={{ flex: 1, width: "100%", border: "none", backgroundColor: color.background.default }}
                 />
             )}
         </Panel>

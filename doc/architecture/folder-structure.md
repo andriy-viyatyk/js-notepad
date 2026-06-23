@@ -34,7 +34,7 @@ persephone/
 │   ├── mcp-res-notebook.md # MCP resource: notebook editor JSON format
 │   ├── mcp-res-todo.md     # MCP resource: todo editor JSON format
 │   ├── mcp-res-links.md    # MCP resource: links editor JSON format
-│   ├── board-template/     # Scaffold copied into every new board (.persephone/boards/<Name>/)
+│   ├── board-template/     # Scaffold copied into every new board
 │   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, reload, MCP debug)
 │   └── demo-board/         # Bundled Demo board — exercises the full board surface
 ├── snip-tool/              # Rust native screen snip tool (persephone-snip.exe)
@@ -497,6 +497,7 @@ persephone/
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
 │   │   ├── ExplorerSecondaryView.tsx # "explorer" panel — tree view with portaled header
 │   │   ├── SearchSecondaryView.tsx # "search" panel — file search with portaled header
+│   │   ├── BoardsSecondaryView.tsx # "boards" panel — trusted boards under the Explorer root (BoardsTree)
 │   │   └── index.ts
 │   ├── mneme-config/       # Mneme config & monitoring editor (non-text, no trait)
 │   │   ├── MnemeConfigEditorModel.ts # EditorModel — roots, include/ignore, reindex + progress, model, status polling
@@ -512,10 +513,12 @@ persephone/
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
 │   │   └── index.tsx
 │   ├── board/              # Board editor (non-text, Pattern B survive-navigation)
-│   │   ├── BoardEditorModel.ts       # EditorModel — board lifecycle, per-board trust gate, webview state, icon, boards list; opens any board root (not only .persephone/boards/)
+│   │   ├── BoardEditorModel.ts       # EditorModel — single-board lifecycle, per-board trust gate, webview state, icon; opens any board root
 │   │   ├── BoardEditorView.tsx       # React component (view only)
+│   │   ├── BoardToolbar.tsx          # In-board toolbar — Reload / Show-log / board path + switcher popover / File Explorer button
 │   │   ├── BoardWebview.tsx          # Locked-down <webview> (sandbox+contextIsolation on, board:// protocol)
-│   │   ├── BoardListSecondaryView.tsx # "boards-list" sidebar panel
+│   │   ├── BoardsTree.tsx            # Reusable boards tree (single-root + multi-root; folder-compacted; click / trailing / context-menu slots)
+│   │   ├── boards-tree-build.ts      # Pure builder: board path list → compacted folder/board node tree
 │   │   ├── BoardGlyph.tsx            # Default board glyph icon
 │   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
 │   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one

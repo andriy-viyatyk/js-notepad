@@ -121,7 +121,9 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
 ## Theme: the `--p-*` contract
 
 Persephone injects its palette as CSS variables on `<html>` and keeps them live
-across theme switches — style everything with them so the board matches the app:
+across theme switches — style everything with them so the board matches the app.
+The variables are defined **before the first paint**, so a board loads already themed
+(no flash) — you can rely on `var(--p-bg)` etc. resolving from the very first frame:
 
 ```css
 body { background: var(--p-bg); color: var(--p-text); }

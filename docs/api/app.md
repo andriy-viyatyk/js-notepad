@@ -68,7 +68,7 @@ const result = await res.json();
 
 ### openRawLink(href)
 
-Open any link through Persephone's navigation pipeline — a local file path, a URL, or an in-app scheme (`persephone-board://`, `persephone-folder://`, etc.). Opens a new tab or reuses a matching one if it already exists.
+Open any link through Persephone's navigation pipeline — a local file path, a URL, or an in-app scheme (`persephone-board://`, etc.). Opens a new tab or reuses a matching one if it already exists.
 
 ```javascript
 // Open a local file in a new tab

@@ -35,7 +35,7 @@ export async function scaffoldBoard(destDir: string, template = "board-template"
  * Create a board named `name` inside the container folder `dir`, scaffolded from
  * `template` (EPIC-035 / US-746). This is the canonical, **editor-independent**
  * board-creation API:
- * - the `.persephone` list editor calls it with its own `boardsDir`;
+ * - the Explorer Boards panel's "New board" flow calls it (via the Create dialog);
  * - US-750 exposes it on the `app` object model + an MCP tool so an agent can
  *   create a board at any path, at any time, with no board editor open.
  *

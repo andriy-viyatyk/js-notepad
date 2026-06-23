@@ -409,26 +409,32 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Process execution (script-facing types `IProc`/`IExecuteHandle`) | `/src/renderer/api/types/proc.d.ts` |
 | Command runner wire types + IPC channels (shared by proc.ts and board preload) | `/src/ipc/runner-channels.ts` |
 | Command runner (main-process spawn service; whole-tree kill; jobId registry) | `/src/main/command-runner.ts` |
-| Per-board trust registry (trusted board roots; `trustedBoards.txt`; boards won't render without trust; also the known-boards registry) | `/src/renderer/api/board-trust.ts` |
+| Per-board trust registry (trusted board roots; `trustedBoards.txt`; boards won't render without trust; also the known-boards registry; **inherited trust** — a board is trusted if it or any ancestor folder is registered, and `trust()` keeps the registry free of nested pairs) | `/src/renderer/api/board-trust.ts` |
 | Board lifecycle API (`app.boards.createBoard`/`createDemoBoard`/`openBoard`) | `/src/renderer/api/boards.ts` |
 | Board lifecycle script types (`IBoards`) | `/src/renderer/api/types/boards.d.ts` |
 | `board-manifest.json` identity file (read/ensure; a folder is a board iff it carries one) | `/src/renderer/editors/board/board-manifest.ts` |
 | `persephone-board://` link scheme (encode/decode; parsed in `parsers.ts` → `target: "board-view"`) | `/src/renderer/content/persephone-board-link.ts` |
-| Board editor model (lifecycle, per-board trust, webview, icon, boards list; opens any board root) | `/src/renderer/editors/board/BoardEditorModel.ts` |
+| Board editor model (single-board lifecycle, per-board trust, webview, icon; opens any board root) | `/src/renderer/editors/board/BoardEditorModel.ts` |
 | Board editor view (React component only) | `/src/renderer/editors/board/BoardEditorView.tsx` |
+| In-board toolbar (Reload / Show-log / board path + boards-switcher popover / File Explorer button → `page.toggleNavigator` rooted at the board's parent folder) | `/src/renderer/editors/board/BoardToolbar.tsx` |
 | Board module + factory (boardModule + legacy EditorModule) | `/src/renderer/editors/board/index.tsx` |
-| Board webview (locked-down `<webview>`, board:// protocol) | `/src/renderer/editors/board/BoardWebview.tsx` |
+| Board webview (locked-down `<webview>` loading `board:///index.html`; themed wrapper/backdrop while loading) | `/src/renderer/editors/board/BoardWebview.tsx` |
+| `board://` scheme handler (per-board-partition `protocol.handle`; serves board files + CSP; injects the resolved `--p-*` palette into served HTML `<head>` so the guest's first paint is themed) | `/src/main/board-protocol-service.ts` |
 | Untrusted-board placeholder (Trust board button) | `/src/renderer/editors/board/UntrustedBoardView.tsx` |
 | Board-not-found placeholder (stale trusted/pinned path) | `/src/renderer/editors/board/BoardNotFoundView.tsx` |
 | Trust board dialog (`showTrustBoardDialog`; RCE wording) | `/src/renderer/ui/dialogs/TrustBoardDialog.tsx` |
+| Create-board dialog (folder picker + name + live target-location label; defaults folder to the Explorer root; both inputs required) | `/src/renderer/ui/dialogs/CreateBoardDialog.tsx` |
+| Explorer-sibling "Boards" panel (trusted boards under the Explorer root via `BoardsTree`; backed by `ExplorerEditor` like Search; "+ New board" SplitButton) | `/src/renderer/editors/explorer/BoardsSecondaryView.tsx` |
 | Board theme contract (`computeBoardThemePalette`, `BOARD_TOKEN_VARS`, `--p-*`) | `/src/renderer/editors/board/board-theme.ts` |
 | Board icon cache (module-level SVG/PNG/ICO → data URL cache) | `/src/renderer/editors/board/board-icon-cache.ts` |
+| Reusable boards tree (folder-compacted; single-root + multi-root; board-click / trailing-action / context-menu slots) | `/src/renderer/editors/board/BoardsTree.tsx` |
+| Boards-tree pure builder (path list → compacted folder/board node tree; VSCode-style single-child folder compaction) | `/src/renderer/editors/board/boards-tree-build.ts` |
 | Board preload (injects `window.persephone` bridge into the sandboxed webview) | `/src/preload-board.ts` |
 | Board integration-tier IPC (main side of the bridge: `openRawLink` + editor target, `notify`, file dialogs, `readFile`/`writeFile`) | `/src/main/board-bridge.ts` |
 | Board bridge IPC channels + wire types (shared by preload + main) | `/src/ipc/board-bridge-channels.ts` |
 | Tools & Editors sidebar panel (pinned region + Editors / Custom Boards & Editors tabs) | `/src/renderer/ui/sidebar/ToolsEditorsPanel.tsx` |
 | Creatable-items registry (`CreatableItem` list shared by the Tools & Editors panel and the `+` new-page dropdown; `DEFAULT_PINNED_EDITORS`) | `/src/renderer/ui/sidebar/tools-editors-registry.ts` |
-| Trusted-boards sidebar tab (grouped by folder; open / pin / Remove ≡ untrust) | `/src/renderer/ui/sidebar/TrustedBoardsList.tsx` |
+| Trusted-boards sidebar tab (all trusted boards across roots via `BoardsTree` multi-root; open / pin / Remove ≡ untrust) | `/src/renderer/ui/sidebar/TrustedBoardsList.tsx` |
 | Unified pin model (`PinnedRef` over `pinned-editors`; editors + `board:<root>`) | `/src/renderer/ui/sidebar/pinned-items.ts` |
 | Board authoring guide (bridge surface, reload, MCP debugging, --p-* contract) | `/assets/board-template/CLAUDE.md` |
 | Agent-facing boards guide (`read_guide("boards")`) | `/assets/mcp-res-boards.md` |

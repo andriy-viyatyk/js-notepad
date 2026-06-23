@@ -1,5 +1,4 @@
 import { TComponentState } from "../../core/state/state";
-import { decodePersephoneFolderLink } from "../../content/persephone-folder-link";
 import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import {
     BoardEditorModel,
@@ -39,15 +38,9 @@ const boardEditorModule: LegacyEditorModule = {
     newEditorModel: async (filePath?: string) => {
         const model = new BoardEditorModel(new TComponentState(getDefaultBoardEditorState()));
         if (filePath) {
-            // Single-board mode (US-748) takes priority — its own root path.
+            // A board is opened by its own root path (persephone-board:// link, US-748).
             const boardLink = decodePersephoneBoardLink(filePath);
-            if (boardLink) {
-                model.initFromBoardRoot(boardLink.boardRoot);
-            } else {
-                // Project / grouping mode — a .persephone folder.
-                const folderLink = decodePersephoneFolderLink(filePath);
-                if (folderLink) model.initFromPersephone(folderLink.persephonePath);
-            }
+            if (boardLink) model.initFromBoardRoot(boardLink.boardRoot);
         }
         return model as unknown as EditorOrHost;
     },
@@ -60,13 +53,15 @@ const boardEditorModule: LegacyEditorModule = {
     },
 
     newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const model = new BoardEditorModel(
-            new TComponentState({
-                ...getDefaultBoardEditorState(),
-                ...(state as Partial<BoardEditorState>),
-            }),
-        );
-        // Session restore: boardsDir / boardRoot ride the persisted state — re-init.
+        const merged = {
+            ...getDefaultBoardEditorState(),
+            ...(state as Partial<BoardEditorState>),
+        };
+        // Legacy `.persephone` project-mode state (no `boardRoot`) is no longer
+        // supported — drop it rather than restore a broken board tab (EPIC-036 C6).
+        if (!merged.boardRoot) return null;
+        const model = new BoardEditorModel(new TComponentState(merged));
+        // Session restore: boardRoot rides the persisted state — re-validate.
         await model.restore();
         return model as unknown as EditorOrHost;
     },

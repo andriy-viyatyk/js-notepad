@@ -89,7 +89,7 @@ export interface IApp {
     /**
      * Open any link through Persephone's navigation pipeline — a local file path, a
      * URL (opens in the built-in browser), or an in-app scheme
-     * (`persephone-board://`, `persephone-folder://`, …). Opens a new tab (or reuses a
+     * (`persephone-board://`, …). Opens a new tab (or reuses a
      * matching one) and makes it the active page.
      *
      * To open a board by its root path, prefer `app.boards.openBoard(root)` — it

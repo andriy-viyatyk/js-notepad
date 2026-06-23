@@ -30,6 +30,16 @@ secondaryViewRegistry.register({
 });
 
 secondaryViewRegistry.register({
+    id: "boards",
+    label: "Boards",
+    // Sidebar-only sub-panel of Explorer (EPIC-036 / US-761) — its own boards glyph,
+    // mirroring how "search" overrides to SearchIcon. Lists trusted boards under the
+    // Explorer root via the shared BoardsTree.
+    icon: createElement(BoardIcon),
+    loadComponent: () => import("./explorer/BoardsSecondaryView"),
+});
+
+secondaryViewRegistry.register({
     id: "link-category",
     label: "Categories",
     loadComponent: () => import("./link-editor/panels/LinkCategorySecondaryView"),
@@ -94,16 +104,6 @@ secondaryViewRegistry.register({
     label: "Wiki",
     // No icon override → falls back to the editor's MemoryIcon (EPIC-032 / US-663).
     loadComponent: () => import("./mneme-root/MnemeTreeSecondaryView"),
-});
-
-secondaryViewRegistry.register({
-    id: "board-list",
-    label: "Boards",
-    // Pin the panel header to the default BoardIcon. The editor's own getIcon()
-    // switches to the selected board's glyph (for the tab), but the side panel
-    // header should stay the generic Boards glyph regardless of selection.
-    icon: createElement(BoardIcon),
-    loadComponent: () => import("./board/BoardListSecondaryView"),
 });
 
 editorRegistry.register({

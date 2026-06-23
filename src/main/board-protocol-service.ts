@@ -50,6 +50,39 @@ const BOARD_CSP = [
     "media-src 'self' blob:",
 ].join("; ");
 
+/** Build a `:root{…}` `<style>` defining the board's `--p-*` color palette + static
+ *  metric tokens. Injected into served HTML so the variables are defined at PARSE
+ *  time — the first paint is themed and a board's light CSS fallbacks (e.g.
+ *  `var(--p-bg, #fff)`) never flash before the preload's JS application runs. */
+function buildThemeStyle(
+    design: { theme: BoardThemePalette; tokens: Record<string, string> } | undefined,
+): string {
+    if (!design) return "";
+    const decls: string[] = [];
+    for (const [k, v] of Object.entries(design.theme.vars)) decls.push(`${k}:${v};`);
+    for (const [k, v] of Object.entries(design.tokens)) decls.push(`${k}:${v};`);
+    if (!decls.length) return "";
+    return `<style id="persephone-theme-init">:root{${decls.join("")}}</style>`;
+}
+
+/** Insert `styleTag` as early as possible in the document so the `--p-*` vars are
+ *  defined before any board stylesheet resolves: right after the opening `<head>`,
+ *  else after `<html …>`, else prepended. */
+function injectThemeStyle(html: string, styleTag: string): string {
+    if (!styleTag) return html;
+    const headOpen = html.match(/<head[^>]*>/i);
+    if (headOpen && headOpen.index !== undefined) {
+        const idx = headOpen.index + headOpen[0].length;
+        return html.slice(0, idx) + styleTag + html.slice(idx);
+    }
+    const htmlOpen = html.match(/<html[^>]*>/i);
+    if (htmlOpen && htmlOpen.index !== undefined) {
+        const idx = htmlOpen.index + htmlOpen[0].length;
+        return html.slice(0, idx) + styleTag + html.slice(idx);
+    }
+    return styleTag + html;
+}
+
 function boardMimeType(file: string): string {
     switch (path.extname(file).toLowerCase()) {
         case ".html":
@@ -120,6 +153,18 @@ async function serveBoardFile(partition: string, url: string): Promise<Response>
     headers.set("Cache-Control", "no-store"); // boards are local; keeps edit→reload instant
     if (mime === "text/html") {
         headers.set("Content-Security-Policy", BOARD_CSP);
+        // Inject the resolved `--p-*` palette + tokens as a `:root{…}` <style> in the
+        // document head so the first paint is already themed — boards with light CSS
+        // fallbacks no longer flash white before the preload's JS sets the vars. The
+        // preload still applies them (JS mirror + live theme switches); the inline
+        // values it later sets win over this stylesheet rule, so there's no conflict.
+        const html = await response.text();
+        const design = sessionToDesign.get(session.fromPartition(partition));
+        return new Response(injectThemeStyle(html, buildThemeStyle(design)), {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+        });
     }
     return new Response(response.body, {
         status: response.status,

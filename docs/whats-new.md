@@ -8,12 +8,47 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.7 (Upcoming)
 
+### New Features
+
+- **Boards — Explorer-integrated switcher** — A new **Boards** panel sits alongside the File Explorer tree (just like the Search panel). Click the **Boards** button in the Explorer header to open it. The panel lists every trusted board under the current Explorer root as a folder tree — folder nodes collapse single-child chains VSCode-style (`projects\personal\boards`) and are fully expanded by default. Click any board to open it in the current tab.
+
+  The panel header has a **New board** split-button:
+  - **New board** — opens a dialog with a **Folder** input (defaults to the current Explorer root), a **Name** input, and a live **"Will be created at: …"** preview label. Both inputs are required; click **Browse…** to navigate to a different location.
+  - **Create Demo board** — same dialog, same flow, but scaffolds the full annotated demo board instead.
+  
+  A **Delete Board** option is available in the board's context menu (right-click in the panel).
+
+- **Boards — in-board toolbar** — Every open board now displays a thin toolbar above its content:
+
+  | Control | Description |
+  |---------|-------------|
+  | File Explorer (folder icon) | Open the sidebar Explorer panel rooted at the board's parent folder. |
+  | Board path label | The full path to the board. Click to open the **boards-switcher popover** (available when the board was opened from an Explorer Boards panel) — pick a sibling board to switch to it in the current tab. |
+  | Reload | Remount the board's webview. |
+  | Error dot | Red dot when `ui.log` has errors. |
+  | Show log | Open `ui.log` in a new tab. |
+
+  The Reload and Show-log buttons previously appeared on the (now-removed) Boards side-panel header — they are now always visible on the board itself.
+
+- **Boards — inherited trust** — Trusting a folder covers every board nested inside it automatically. A board inside a trusted board opens with no prompt, is never separately stored, and does not appear in the boards tree as its own entry (it is already covered). Trusting a new board removes any descendant entries it supersedes.
+
 ### Improvements
 
-- **Boards — live-reload on `app.js` / CSS edits** — A board now reloads automatically when you edit `app.js` or any `.js`/`.css` in its folder, not just `index.html` — so the edit → see-it-update loop just works without clicking **Refresh**. Files a board writes (`.json`, etc.) and `ui.log` deliberately do **not** trigger a reload, so a board persisting its own state never remounts itself. **Refresh** still forces a remount when you want one.
+- **Boards — live-reload on `app.js` / CSS edits** — A board now reloads automatically when you edit `app.js` or any `.js`/`.css` in its folder, not just `index.html` — so the edit → see-it-update loop just works without clicking **Reload**. Files a board writes (`.json`, etc.) and `ui.log` deliberately do **not** trigger a reload, so a board persisting its own state never remounts itself. **Reload** still forces a remount when you want one.
 - **Boards — read & write files from the page** — Two new bridge methods, `persephone.readFile(path, options?)` and `persephone.writeFile(path, data, options?)`, let a board read and write files directly — ideal for persisting small UI state (last filter, column layout) or loading a board-local config, without writing a backend script. Relative paths resolve against the board folder; text or base64 (binary) are both supported.
 - **Boards — open a link in a specific editor** — `persephone.openRawLink(href, { editor })` (and `app.openRawLink` in scripts) can now request a specific editor — for example, open a Markdown document in the rendered Markdown view instead of its source.
 - **Boards — easier component vendoring for agents** — The recommended-components catalog now carries a fetchable base URL, and `get_app_info` exposes the bundled resource paths, so an AI agent building a board can locate and download a recommended component's skin on any machine (skins are published on GitHub, not bundled in the installer).
+
+### UI Polish
+
+- **Boards — no white flash on open or switch** — Opening a board or switching between boards no longer shows a brief white flash before the themed content appears. The board's background color is now applied immediately on first paint.
+- **Boards — Custom Boards & Editors tab uses the shared boards tree** — The machine-wide **Custom Boards & Editors** tab in the Tools & Editors panel now renders the same compacted folder tree as the Boards Explorer-sibling panel, with pin (hover-revealed, sticky when pinned) and **Remove** per board. Previously it used a flat folder-grouped list.
+
+### Breaking Changes
+
+- **Boards — `.persephone` project mode removed** — The `.persephone` special folder and the project Board editor that it opened are gone. Clicking a `.persephone` folder in the Explorer now opens it as an ordinary folder. Existing boards inside `.persephone/boards/` continue to work as before — they are just boards in a folder. The `persephone-folder://` link scheme is no longer recognized.
+
+  **Migration:** any boards already trusted before this update remain trusted and appear in the **Boards** panel and the **Custom Boards & Editors** tab with no action required.
 
 ### Bug Fixes
 

@@ -42,7 +42,6 @@ interface McpPageInfo {
                             // incognito/tor pages (privacy)
     /** Board pages only (editor === "board-view") — these are automatable by the
      *  browser_* tools (EPIC-034 / US-730); target by this page's id. */
-    boardsDir?: string;
     boardRoot?: string;
     selectedBoard?: string;
 }
@@ -193,9 +192,8 @@ function getPages(): McpPageInfo[] {
         // (structural read).
         if (editor?.editorId === "board-view") {
             const bs = p.mainEditor?.state.get() as
-                | { boardsDir?: string; boardRoot?: string; selectedBoard?: string }
+                | { boardRoot?: string; selectedBoard?: string }
                 | undefined;
-            result.boardsDir = bs?.boardsDir;
             result.boardRoot = bs?.boardRoot;
             result.selectedBoard = bs?.selectedBoard;
         }

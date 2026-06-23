@@ -34,9 +34,9 @@
                 <strong>sandboxed webview</strong> and injects a single bridge object,
                 <code>window.persephone</code>. Persephone owns no board state and no board UI — it just
                 wires the bridge and shows the page. A board lives in its own folder anywhere on
-                disk — recognized by a <code>board-manifest.json</code> at its root. The default
-                create location is <code>.persephone/boards/&lt;Name&gt;/</code>, but a board can be
-                created or opened from any path.
+                disk — recognized by a <code>board-manifest.json</code> at its root. A board can be
+                created or opened from any path; the Create-board dialog defaults to the current
+                file-explorer root.
             </p>
 
             <h2>How it works — frontend + backend + a channel</h2>

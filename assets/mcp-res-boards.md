@@ -101,7 +101,8 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
 ### Theme: the `--p-*` contract
 
 Persephone injects its palette as CSS variables on `<html>` and keeps them live across theme
-switches — style everything with them so the board matches the app:
+switches — style everything with them so the board matches the app. The variables are defined
+**before the first paint**, so a board loads already themed (no flash):
 
 ```css
 body { background: var(--p-bg); color: var(--p-text); }

@@ -1,0 +1,190 @@
+import { useCallback, useEffect, useMemo } from "react";
+
+import { app } from "../../api/app";
+import { fs } from "../../api/fs";
+import { ui } from "../../api/ui";
+import { boardTrust } from "../../api/board-trust";
+import { createLinkData } from "../../../shared/link-data";
+import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
+import { showCreateBoardDialog } from "../../ui/dialogs/CreateBoardDialog";
+import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
+import { fpBasename, fpNormalizeForCompare } from "../../core/utils/file-path";
+import { removePin } from "../../ui/sidebar/pinned-items";
+import type { MenuItem } from "../../uikit";
+import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
+import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
+import type { ExplorerEditor } from "./ExplorerEditorModel";
+import { IconButton } from "../../uikit/IconButton";
+import { SplitButton } from "../../uikit/SplitButton";
+import { Button } from "../../uikit/Button";
+import { Panel } from "../../uikit/Panel";
+import { Text } from "../../uikit/Text";
+import { CloseIcon, PlusIcon, BoardIcon, DeleteIcon } from "../../theme/icons";
+import { BoardsTree } from "../board/BoardsTree";
+
+// The Boards sibling panel (EPIC-036 / US-761). Backed by ExplorerEditor (like Search), so it
+// inherits the Explorer `rootPath` as its scope and `page.id` for navigation. Lists the trusted
+// boards under the root via the shared BoardsTree; the "+ New board" SplitButton creates a board
+// (US-760 dialog scaffolds + auto-trusts) and opens it; clicking a board opens it in the current
+// page via persephone-board://.
+export default function BoardsSecondaryView({ model: rawModel, headerRef, icon }: SecondaryViewProps) {
+    const model = rawModel as ExplorerEditor;
+    const { rootPath } = model.state.use();
+    const pageId = model.page?.id ?? "";
+
+    // board-trust is a global reactive model; load() populates the shared state (idempotent).
+    useEffect(() => {
+        void boardTrust.load();
+    }, []);
+
+    const allPaths = boardTrust.useTrustedPaths();
+
+    // Filter the trusted registry to boards under the current Explorer root (C2). Includes the
+    // root itself when it is a board (C-761.4) — BoardsTree renders a board-equals-base as a
+    // single top-level leaf.
+    const boards = useMemo(() => {
+        if (!rootPath) return [];
+        const rootKey = fpNormalizeForCompare(rootPath);
+        return allPaths.filter((p) => {
+            const k = fpNormalizeForCompare(p);
+            return k === rootKey || k.startsWith(rootKey + "/");
+        });
+    }, [allPaths, rootPath]);
+
+    // Open in the CURRENT page — pageId swaps the page's main editor instead of spawning a new tab.
+    // explorerRoot rides as link metadata so the opened board can scope its in-board switcher to
+    // this root (US-763); it lands in the board's persisted sourceLink.
+    const openBoard = useCallback((root: string) => {
+        app.events.openRawLink.sendAsync(
+            createLinkData(encodePersephoneBoardLink(root), {
+                pageId,
+                sourceId: "explorer",
+                explorerRoot: rootPath,
+            }),
+        );
+    }, [pageId, rootPath]);
+
+    const handleCreate = useCallback(async () => {
+        const root = await showCreateBoardDialog({
+            title: "Create board",
+            template: "board-template",
+            defaultFolder: rootPath,
+        });
+        if (root) openBoard(root);
+    }, [rootPath, openBoard]);
+
+    const handleCreateDemo = useCallback(async () => {
+        const root = await showCreateBoardDialog({
+            title: "Create Demo board",
+            template: "demo-board",
+            defaultName: "Demo",
+            defaultFolder: rootPath,
+        });
+        if (root) openBoard(root);
+    }, [rootPath, openBoard]);
+
+    // Delete a board: when its folder still exists, confirm then remove the folder + the registry
+    // entry (+ any pin). When the folder is already gone (a stale registry entry, e.g. deleted
+    // outside Persephone), confirm a lighter "remove from the list" and just untrust. The trusted
+    // list is reactive, so the row vanishes from this panel on untrust.
+    const handleDelete = useCallback(async (root: string) => {
+        const name = fpBasename(root);
+        const onDisk = await fs.exists(root);
+        const confirmed = await showConfirmationDialog({
+            title: onDisk ? "Delete board" : "Remove board",
+            message: onDisk
+                ? `Delete board "${name}"? This permanently removes its folder and all its files.`
+                : `Board "${name}" no longer exists on disk. Remove it from the list?`,
+            buttons: [onDisk ? "Delete" : "Remove", "Cancel"],
+        });
+        if (confirmed === "Cancel" || !confirmed) return;
+        try {
+            if (onDisk) await fs.removeDir(root, true);
+        } catch (err) {
+            ui.notify(err instanceof Error ? err.message : String(err), "error");
+            return;
+        }
+        await boardTrust.untrust(root);
+        removePin({ kind: "board", root });
+    }, []);
+
+    const getBoardContextMenu = useCallback((root: string): MenuItem[] => [
+        {
+            label: "Delete Board",
+            icon: <DeleteIcon width={14} height={14} />,
+            onClick: () => { void handleDelete(root); },
+        },
+    ], [handleDelete]);
+
+    const actions = (
+        <>
+            <SplitButton
+                name="boards-create"
+                size="sm"
+                icon={<PlusIcon />}
+                onClick={() => void handleCreate()}
+                menuTitle="More board options"
+                items={[
+                    {
+                        label: "Create Demo board",
+                        icon: <BoardIcon width={14} height={14} />,
+                        onClick: () => void handleCreateDemo(),
+                    },
+                ]}
+            >
+                New board
+            </SplitButton>
+            <IconButton
+                name="boards-close"
+                size="sm"
+                title="Close Panel"
+                icon={<CloseIcon />}
+                onClick={(e) => { e.stopPropagation(); model.closeBoards(); }}
+            />
+        </>
+    );
+
+    return (
+        <>
+            <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Boards" actions={actions} />
+            {boards.length === 0 ? (
+                <Panel
+                    name="boards-empty"
+                    flex={1}
+                    direction="column"
+                    align="center"
+                    justify="center"
+                    gap="md"
+                    padding="xl"
+                >
+                    <Text color="light" align="center">No boards under this folder.</Text>
+                    <Panel name="boards-empty-actions" direction="column" gap="sm" align="stretch">
+                        <Button
+                            name="boards-create-empty"
+                            variant="primary"
+                            icon={<PlusIcon />}
+                            onClick={() => void handleCreate()}
+                        >
+                            Create board
+                        </Button>
+                        <Button
+                            name="boards-create-demo-empty"
+                            icon={<BoardIcon width={16} height={16} />}
+                            onClick={() => void handleCreateDemo()}
+                        >
+                            Create Demo board
+                        </Button>
+                    </Panel>
+                </Panel>
+            ) : (
+                <BoardsTree
+                    name="explorer-boards"
+                    boards={boards}
+                    baseRoot={rootPath}
+                    onOpenBoard={openBoard}
+                    getBoardContextMenu={getBoardContextMenu}
+                />
+            )}
+        </>
+    );
+}
