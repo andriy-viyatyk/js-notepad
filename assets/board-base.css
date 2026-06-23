@@ -21,6 +21,16 @@ body {
 
 a { color: var(--p-link, #3b82f6); }
 
+/* Themed focus ring — replace Chromium's default (light) focus outline with one driven
+   by the accent token, so focused controls (inputs, selects, buttons, links) match the
+   app and re-tint on a theme switch. Targets :focus-visible so it shows for keyboard /
+   interaction focus but not on plain mouse clicks of non-text controls. Override it per
+   control from your own stylesheet if you want a different treatment. */
+:focus-visible {
+    outline: 2px solid var(--p-accent, #0078d4);
+    outline-offset: 1px;
+}
+
 /* Themed scrollbars (Chromium webview) — track + slightly-rounded thumb, driven by
    the scrollbar tokens so they match the app and re-tint on a theme switch. */
 ::-webkit-scrollbar { width: 12px; height: 12px; }
