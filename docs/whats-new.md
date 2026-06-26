@@ -10,6 +10,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Markdown Preview — relative images and Azure DevOps wiki links** — The Markdown Preview now resolves image and link paths correctly:
+
+  - **Relative images** — images referenced with a relative path (e.g. `![](images/diagram.png)`) now render inline in the preview. Previously the Markdown view never resolved image sources at all, so relative images appeared as broken placeholders.
+  - **Azure DevOps wiki links** — when the `.md` file lives inside a git repository, root-relative ADO wiki paths are resolved against the wiki root (the folder that contains `.git`). A leading-slash image path such as `![](/.attachments/diagram.png)` resolves to `<wiki-root>/.attachments/diagram.png` and renders inline. A page link such as `[Page](/Area/Some%20Page)` resolves to `<wiki-root>/Area/Some-Page.md` (URL-decoded, spaces converted to dashes, `.md` appended) and opens in a new tab when clicked.
+
+  No new settings or UI — both improvements work automatically.
+
 - **Git — unified sidebar panel** — The two separate **Branches & Tags** and **Changes** sidebar panels have been merged into a single **Git** panel. The panel has three tabs: **Changes** (selected by default), **Branches**, and **Tags**, selectable via a segmented control. The Changes tab is unchanged — it still shows the Unstaged and Staged file lists with stage/unstage arrow buttons and the Commit button. The Branches tab shows local branches and remotes (with `/`-folder nesting); the Tags tab shows a flat tag list.
 
   The panel header now shows a static **"Git (N)"** title where *N* is the total number of changed files (unstaged + staged). This count is visible even when the panel is collapsed, so you can see at a glance which repositories have uncommitted work when multiple repos are open.

@@ -1,12 +1,19 @@
-import { fpDirname, fpResolve } from "./file-path";
+import { fpDirname, fpResolve, fpJoin, fpExtname } from "./file-path";
 const url = require("url");
 
 /**
  * Resolves a link relative to a current file path.
  * Returns the original link for absolute URLs (http, https, file, mailto) and anchors (#).
  * For relative paths, resolves to an absolute file:// URL.
+ *
+ * When `wikiRoot` is supplied (the file lives inside a git repo — see
+ * `detectGitRoot`), a leading-slash link is treated as an Azure DevOps wiki
+ * root-relative reference and resolved against the wiki root: `.attachments`
+ * images (and any extension-bearing link) resolve to a literal path; an
+ * extension-less link is a wiki page → its title segments are slug-encoded and
+ * `.md` is appended. See `resolveAdoWikiLink`.
  */
-export function resolveRelatedLink(currentFilePath?: string, link?: string): string {
+export function resolveRelatedLink(currentFilePath?: string, link?: string, wikiRoot?: string): string {
     if (!currentFilePath || !link) return link || "";
 
     const lowerLink = link.toLowerCase();
@@ -16,6 +23,8 @@ export function resolveRelatedLink(currentFilePath?: string, link?: string): str
         lowerLink.startsWith("file://") ||
         lowerLink.startsWith("mneme://") ||
         lowerLink.startsWith("mailto:") ||
+        lowerLink.startsWith("data:") ||
+        lowerLink.startsWith("blob:") ||
         lowerLink.startsWith("#")
     ) {
         return link;
@@ -26,6 +35,14 @@ export function resolveRelatedLink(currentFilePath?: string, link?: string): str
     // separators / backslashes). The on-disk path logic below is unchanged.
     if (currentFilePath.toLowerCase().startsWith("mneme://")) {
         return resolveMnemeLink(currentFilePath, link);
+    }
+
+    // Azure DevOps wiki: a leading slash means "from the wiki root", not the
+    // OS/drive root (fpResolve would resolve "/x" to the drive root on Windows).
+    // Only applies when the file is inside a git repo.
+    if (wikiRoot && link.startsWith("/")) {
+        const resolved = resolveAdoWikiLink(wikiRoot, link);
+        if (resolved) return resolved;
     }
 
     try {
@@ -43,6 +60,64 @@ export function resolveRelatedLink(currentFilePath?: string, link?: string): str
         return fileUrl;
     } catch {
         return link;
+    }
+}
+
+// Extensions that mark a leading-slash ADO wiki link as a literal file
+// (attachment) rather than a wiki page. A page link carries no extension and
+// maps to `<slug>.md`. Using a known list (not "any dot") avoids mis-handling
+// page titles that contain a dot, e.g. `Node.js` → `Node.js.md`.
+const ADO_FILE_EXTENSIONS = new Set([
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".bmp", ".ico", ".avif",
+    ".pdf", ".drawio",
+]);
+
+// Azure DevOps stores a wiki page title on disk by replacing spaces with "-"
+// and percent-encoding a fixed set of special characters — including a literal
+// "-" → "%2D" so it can't collide with the slug dashes. This is NOT encodeURI
+// (which leaves "-" untouched and turns a space into "%20"). The special chars
+// must be encoded BEFORE spaces are turned into "-".
+const ADO_SPECIAL_CHARS: Record<string, string> = {
+    ":": "%3A", "<": "%3C", ">": "%3E", "*": "%2A",
+    "?": "%3F", "|": "%7C", '"': "%22", "-": "%2D",
+};
+
+/** Encode one ADO wiki page-title segment to its on-disk slug. */
+export function adoSlugEncode(segment: string): string {
+    // "-" is placed last in the class so it is a literal, not a range.
+    const encoded = segment.replace(/[:<>*?|"-]/g, (ch) => ADO_SPECIAL_CHARS[ch]);
+    return encoded.replace(/ /g, "-");
+}
+
+/**
+ * Resolve an Azure DevOps wiki root-relative link (leading "/") to a file:// URL
+ * under `wikiRoot`. Returns "" if the link can't be resolved (caller falls back).
+ */
+function resolveAdoWikiLink(wikiRoot: string, link: string): string {
+    try {
+        const hashIndex = link.indexOf("#");
+        const rawPath = hashIndex >= 0 ? link.slice(0, hashIndex) : link;
+        const fragment = hashIndex >= 0 ? link.slice(hashIndex) : "";
+
+        let decoded: string;
+        try { decoded = decodeURIComponent(rawPath); } catch { decoded = rawPath; }
+
+        const segments = decoded.split("/").filter(Boolean);
+        if (!segments.length) return "";
+
+        const lastExt = fpExtname(segments[segments.length - 1]).toLowerCase();
+        let target: string;
+        if (ADO_FILE_EXTENSIONS.has(lastExt)) {
+            // Attachment / file — literal path under the wiki root (e.g.
+            // `.attachments/x.png`); attachment names are already slugged.
+            target = fpJoin(wikiRoot, segments.join("/"));
+        } else {
+            // Wiki page — slug each title segment and append `.md`.
+            target = fpJoin(wikiRoot, segments.map(adoSlugEncode).join("/") + ".md");
+        }
+        return url.pathToFileURL(target).href + fragment;
+    } catch {
+        return "";
     }
 }
 

@@ -54,6 +54,10 @@ For `.md` and `.markdown` files — click **Preview** in the toolbar:
 - **Copy-to-clipboard** button on code block hover
 - **YAML frontmatter** — if the document starts with a `---` … `---` (or `---` … `...`) frontmatter block, it renders as a syntax-highlighted YAML code block instead of broken text or stray horizontal rules. The source file is never modified — this is a preview-only transform
 - **Inline Mermaid diagrams** — ` ```mermaid ` code blocks render as SVG diagrams with hover toolbar (copy image to clipboard, open in Mermaid editor). Azure DevOps wiki fenced container syntax (`::: mermaid … :::`) is also recognized and rendered as a diagram
+- **Relative images** — images referenced with a relative path (e.g. `![](images/diagram.png)`) resolve correctly relative to the Markdown file's location on disk and render inline in the preview
+- **Azure DevOps wiki links** — when the Markdown file lives inside a git repository, root-relative ADO wiki paths are resolved against the wiki root (the folder that contains `.git`):
+  - **Images** — a leading-slash image path such as `![](/.attachments/diagram.png)` resolves to `<wiki-root>/.attachments/diagram.png` and renders inline
+  - **Page links** — a link like `[Page](/Area/Some%20Page)` resolves to the on-disk file `<wiki-root>/Area/Some-Page.md` (URL-decoded, spaces converted to dashes, `.md` appended) and opens in a new tab when clicked
 - **Live preview** updates as you type
 - **Minimap** navigation on the right side
 - **Link context menu** — right-click a link for: "Copy Link", "Open in Default Browser", "Open in Internal Browser", browser profiles, "Open in Incognito"

@@ -2,7 +2,7 @@ import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import styled from "@emotion/styled";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import color from "../../theme/color";
 import { CheckedIcon, CopyIcon, UncheckedIcon } from "../../theme/icons";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
@@ -12,6 +12,7 @@ import { CodeBlock, createPreBlock } from "./CodeBlock";
 import { isCurrentThemeDark } from "../../theme/themes";
 import { settings } from "../../api/settings";
 import { resolveRelatedLink } from "../../core/utils/path-utils";
+import { detectGitRoot } from "./detect-git-root";
 
 // =============================================================================
 // Types
@@ -400,7 +401,7 @@ function preprocessFrontmatter(content: string): string {
 // Components for ReactMarkdown
 // =============================================================================
 
-const getComponents = (filePath: string, mermaidLightMode: boolean): Components => ({
+const getComponents = (filePath: string, mermaidLightMode: boolean, wikiRoot?: string): Components => ({
     code: CodeBlock as Components["code"],
     pre: createPreBlock(mermaidLightMode) as Components["pre"],
     input: ({ node, ...props }) => {
@@ -415,9 +416,17 @@ const getComponents = (filePath: string, mermaidLightMode: boolean): Components 
     },
     a: ({ node, href, children, ...props }) => {
         return (
-            <a href={resolveRelatedLink(filePath, href)} {...props}>
+            <a href={resolveRelatedLink(filePath, href, wikiRoot)} {...props}>
                 {children}
             </a>
+        );
+    },
+    img: ({ node, src, ...props }) => {
+        return (
+            <img
+                src={resolveRelatedLink(filePath, typeof src === "string" ? src : undefined, wikiRoot)}
+                {...props}
+            />
         );
     },
 });
@@ -436,6 +445,23 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
         settings.use("theme");
         const mermaidLightMode = !isCurrentThemeDark();
 
+        // Detect the enclosing git repo root once per file path. Leading-slash
+        // links (Azure DevOps wiki: attachments + root-relative page links)
+        // resolve against it. Async, so links render with the fallback first,
+        // then re-render once the root resolves.
+        const [wikiRoot, setWikiRoot] = useState<string | undefined>(undefined);
+        useEffect(() => {
+            if (!filePath || filePath.toLowerCase().startsWith("mneme://")) {
+                setWikiRoot(undefined);
+                return;
+            }
+            let cancelled = false;
+            detectGitRoot(filePath).then((root) => {
+                if (!cancelled) setWikiRoot(root);
+            });
+            return () => { cancelled = true; };
+        }, [filePath]);
+
         const processedContent = useMemo(
             () => preprocessFencedContainers(preprocessFrontmatter(content)),
             [content],
@@ -443,9 +469,9 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
         const hasMermaid = processedContent.includes("```mermaid");
 
         const components = useMemo(
-            () => getComponents(filePath || "", mermaidLightMode),
+            () => getComponents(filePath || "", mermaidLightMode, wikiRoot),
             // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally gate re-render on mermaidLightMode only when content has mermaid (else `0` keeps memo stable across theme flips)
-            [filePath, hasMermaid ? mermaidLightMode : 0],
+            [filePath, hasMermaid ? mermaidLightMode : 0, wikiRoot],
         );
 
         // Rehype plugin for search text highlighting

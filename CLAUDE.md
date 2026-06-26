@@ -287,6 +287,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Archive I/O (ZIP/RAR/7z/TAR) | `/src/renderer/api/archive-service.ts`          |
 | Node.js HTTP client      | `/src/renderer/api/node-fetch.ts`                 |
 | Path utilities           | `/src/renderer/core/utils/file-path.ts`           |
+| Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |
+| Git-root detection for Markdown wiki links (walk up to nearest `.git`, cached) | `/src/renderer/editors/markdown/detect-git-root.ts` |
 | File / directory watchers (`FileWatcher`, `DirectoryWatcher`) | `/src/renderer/core/utils/file-watcher.ts` |
 | App settings             | `/src/renderer/api/settings.ts`                   |
 | Event channel system     | `/src/renderer/api/events/EventChannel.ts`        |
