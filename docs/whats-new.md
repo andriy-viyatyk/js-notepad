@@ -10,6 +10,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Git — unified sidebar panel** — The two separate **Branches & Tags** and **Changes** sidebar panels have been merged into a single **Git** panel. The panel has three tabs: **Changes** (selected by default), **Branches**, and **Tags**, selectable via a segmented control. The Changes tab is unchanged — it still shows the Unstaged and Staged file lists with stage/unstage arrow buttons and the Commit button. The Branches tab shows local branches and remotes (with `/`-folder nesting); the Tags tab shows a flat tag list.
+
+  The panel header now shows a static **"Git (N)"** title where *N* is the total number of changed files (unstaged + staged). This count is visible even when the panel is collapsed, so you can see at a glance which repositories have uncommitted work when multiple repos are open.
+
+  The **AZ** sort toggle (alphabetical vs. most-recent-first ordering of branches and tags) has moved from the panel header to the panel body toolbar, where it appears only on the Branches and Tags tabs. The **Show Git Tree** (›) and **× Close Git Tree** controls remain in the panel header.
+
 - **Boards — faster open** — Boards now open nearly instantly. The previous rendering engine required a cold-start setup step on every open, producing noticeable latency before the board appeared. The new engine eliminates that overhead — the board content is visible on the first paint.
 
 - **Boards — folder no longer locked while open** — Opening a board no longer holds an OS lock on the board's folder. In previous versions, trying to delete or move a board folder while it was open in a tab would fail with "the file is in use by another process." The folder is now freely accessible while the board is open.
@@ -29,7 +35,7 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Git Tree — commit message scrolls inside the panel** — In the **Commit** tab of the bottom panel, long commit messages now scroll within the tab itself instead of causing the entire bottom panel to grow and scroll. Switching between the **Commit** and **Diff** tabs no longer shifts the panel height.
 
-- **Git Tree — Changes panel file lists have no grid lines** — The **Unstaged** and **Staged** file lists in the **Changes** sidebar panel no longer display cell border lines between rows. The lists have a cleaner, borderless appearance that matches the rest of the sidebar.
+- **Git Tree — Changes tab file lists have no grid lines** — The **Unstaged** and **Staged** file lists in the **Changes** tab of the **Git** sidebar panel no longer display cell border lines between rows. The lists have a cleaner, borderless appearance that matches the rest of the sidebar.
 
 - **Boards sidebar — "+ New board" hidden when panel is collapsed** — The **New board** split-button in the **Boards** Explorer panel header is now hidden when the panel is collapsed, and visible when expanded. Previously the button remained visible even when the panel was collapsed, taking up space in the header bar.
 

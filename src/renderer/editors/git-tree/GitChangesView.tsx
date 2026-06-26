@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
-import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import { GitTreeEditorModel } from "./GitTreeEditorModel";
 import { FileGrid, type FileGridItem } from "../../components/file-grid";
 import { GitStatusBadge } from "../../components/git-tree";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { Tag } from "../../uikit/Tag";
 import { Spacer } from "../../uikit/Spacer";
 import { Splitter } from "../../uikit/Splitter";
 import { Button } from "../../uikit/Button";
@@ -15,7 +12,7 @@ import { IconButton } from "../../uikit/IconButton/IconButton";
 import type { MenuItem } from "../../uikit/Menu";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import { showCommitDialog } from "../../ui/dialogs/CommitDialog";
-import { RefreshIcon, FilterArrowUpIcon, FilterArrowDownIcon, DeleteIcon } from "../../theme/icons";
+import { FilterArrowUpIcon, FilterArrowDownIcon, DeleteIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 
 /** Expand a selection to git path args — renames need both new + old path so
@@ -25,45 +22,23 @@ function expandPaths(changes: GitFileChange[]): string[] {
 }
 
 // =============================================================================
-// Git Tree "Changes" secondary view (EPIC-031 / US-616).
+// Git "Changes" segment body (US-781).
 //
-// Two-part panel: unstaged (top) + staged (bottom), each a FileList with proper
-// file icons, single-click → open the file's Git Diff, and a right-aligned
-// colored status badge. Survives navigation (Pattern B; only-manual-close).
+// The working-tree status surface of the merged "Git" panel: unstaged (top) +
+// staged (bottom), each a FileGrid with proper file icons, single-click → open
+// the file's Git Diff, and a right-aligned colored status badge. Header-less —
+// the merged panel (`GitPanelSecondaryView`) owns the shared SideBarPanelHeader
+// and the segment toolbar; this body renders only the two lists. Extracted from
+// the former standalone "Changes" secondary view.
 // =============================================================================
 
-export default function GitChangesSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
-    // Type-guard before any hooks (same pattern as LinkTagsSecondaryView).
-    if (!(model instanceof GitTreeEditorModel)) return null;
-    return <GitChangesBody model={model} headerRef={headerRef} icon={icon} />;
-}
-
-function GitChangesBody({
-    model,
-    headerRef,
-    icon,
-}: {
-    model: GitTreeEditorModel;
-    headerRef: SecondaryViewProps["headerRef"];
-    icon: SecondaryViewProps["icon"];
-}) {
+export function GitChangesView({ model }: { model: GitTreeEditorModel }) {
     const { unstaged, staged, gitOk, branch } = model.changes.state.use((s) => ({
         unstaged: s.unstaged,
         staged: s.staged,
         gitOk: s.gitOk,
         branch: s.branch,
     }));
-
-    // Unique changed-file count for the header (US-625 log #3). A file can appear in
-    // BOTH lists (partially staged: some hunks staged, others not) — union the
-    // repo-relative paths so it's counted once, rather than unstaged+staged which
-    // would double-count it.
-    const fileCount = useMemo(() => {
-        const paths = new Set<string>();
-        for (const c of unstaged) paths.add(c.path);
-        for (const c of staged) paths.add(c.path);
-        return paths.size;
-    }, [unstaged, staged]);
 
     const rootRef = useRef<HTMLDivElement>(null);
     const [bottomHeight, setBottomHeight] = useState<number | undefined>(undefined);
@@ -191,6 +166,14 @@ function GitChangesBody({
         setBottomHeight(Math.max(60, Math.min(h, maxH)));
     }, []);
 
+    if (!gitOk) {
+        return (
+            <Panel padding="md">
+                <Text color="light">Git is unavailable.</Text>
+            </Panel>
+        );
+    }
+
     return (
         <Panel
             name="git-changes"
@@ -200,95 +183,54 @@ function GitChangesBody({
             overflow="hidden"
             width="100%"
         >
-            <SideBarPanelHeader
-                headerRef={headerRef}
-                icon={icon}
-                badge={
-                    /* Repository name (folder basename) as a badge; full path on
-                       hover — mirrors the Git Tree editor toolbar. */
-                    <Tag
-                        name="git-changes-repo-name"
-                        variant="outlined"
-                        size="sm"
-                        truncate
-                        label={model.repoName}
-                        title={model.state.get().repoRoot}
-                    />
-                }
-                title={`Changes (${fileCount})`}
-                actions={
-                    /* "Show Git Tree" and the manual "x" close live on the
-                       "Branches & Tags" panel header — closing tears down the whole
-                       Git Tree editor (both panels), so a single affordance there
-                       suffices. Only Refresh remains here. */
-                    <IconButton
-                        name="git-changes-refresh"
-                        size="sm"
-                        title="Refresh"
-                        icon={<RefreshIcon />}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            model.refresh();
-                        }}
-                    />
-                }
+            <Panel
+                name="git-changes-unstaged"
+                direction="column"
+                flex={1}
+                overflow="hidden"
+                minHeight={60}
+            >
+                <ChangesList
+                    model={model}
+                    changes={unstaged}
+                    label="Unstaged"
+                    listKind="unstaged"
+                    moveLabel="Stage"
+                    moveIcon={<FilterArrowDownIcon />}
+                    onMove={stage}
+                    onReset={reset}
+                    onSelectionChange={setSelUnstaged}
+                />
+            </Panel>
+            <Splitter
+                name="git-changes-splitter"
+                orientation="horizontal"
+                value={bottomHeight ?? 150}
+                onChange={handleChangeHeight}
+                side="after"
+                border="before"
             />
-            {!gitOk ? (
-                <Panel padding="md">
-                    <Text color="light">Git is unavailable.</Text>
-                </Panel>
-            ) : (
-                <>
-                    <Panel
-                        name="git-changes-unstaged"
-                        direction="column"
-                        flex={1}
-                        overflow="hidden"
-                        minHeight={60}
-                    >
-                        <ChangesList
-                            model={model}
-                            changes={unstaged}
-                            label="Unstaged"
-                            listKind="unstaged"
-                            moveLabel="Stage"
-                            moveIcon={<FilterArrowDownIcon />}
-                            onMove={stage}
-                            onReset={reset}
-                            onSelectionChange={setSelUnstaged}
-                        />
-                    </Panel>
-                    <Splitter
-                        name="git-changes-splitter"
-                        orientation="horizontal"
-                        value={bottomHeight ?? 150}
-                        onChange={handleChangeHeight}
-                        side="after"
-                        border="before"
-                    />
-                    <Panel
-                        name="git-changes-staged"
-                        direction="column"
-                        overflow="hidden"
-                        shrink={false}
-                        height={bottomHeight ?? 150}
-                        minHeight={60}
-                    >
-                        <ChangesList
-                            model={model}
-                            changes={staged}
-                            label="Staged"
-                            listKind="staged"
-                            moveLabel="Unstage"
-                            moveIcon={<FilterArrowUpIcon />}
-                            onMove={unstage}
-                            onSelectionChange={setSelStaged}
-                            toolbarRight={stagedButtons}
-                            toolbarLeft={commitButton}
-                        />
-                    </Panel>
-                </>
-            )}
+            <Panel
+                name="git-changes-staged"
+                direction="column"
+                overflow="hidden"
+                shrink={false}
+                height={bottomHeight ?? 150}
+                minHeight={60}
+            >
+                <ChangesList
+                    model={model}
+                    changes={staged}
+                    label="Staged"
+                    listKind="staged"
+                    moveLabel="Unstage"
+                    moveIcon={<FilterArrowUpIcon />}
+                    onMove={unstage}
+                    onSelectionChange={setSelStaged}
+                    toolbarRight={stagedButtons}
+                    toolbarLeft={commitButton}
+                />
+            </Panel>
         </Panel>
     );
 }

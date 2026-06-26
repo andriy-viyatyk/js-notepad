@@ -82,15 +82,9 @@ secondaryViewRegistry.register({
 });
 
 secondaryViewRegistry.register({
-    id: "git-branches",
-    label: "Branches & Tags",
-    loadComponent: () => import("./git-tree/GitBranchesSecondaryView"),
-});
-
-secondaryViewRegistry.register({
     id: "git-changes",
-    label: "Changes",
-    loadComponent: () => import("./git-tree/GitChangesSecondaryView"),
+    label: "Git",
+    loadComponent: () => import("./git-tree/GitPanelSecondaryView"),
 });
 
 secondaryViewRegistry.register({

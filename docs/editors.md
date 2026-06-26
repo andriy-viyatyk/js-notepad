@@ -505,7 +505,7 @@ Left cluster (left to right):
 
 Right side:
 
-- **Refresh** — reloads both the commit history and the Changes panel from disk.
+- **Refresh** — reloads both the commit history and the Git panel from disk.
 
 **Pagination:** The first 200 commits load immediately. A **Load more** row at the bottom of the list appends the next 200 commits. A **Load all** option fetches the entire history at once (use with care on very large repos).
 
@@ -519,46 +519,42 @@ Right-click any commit row in the grid to open a context menu with **Switch** op
 
 A switch that git refuses (for example, because uncommitted changes would be overwritten) shows an error toast. No confirmation dialog is shown before switching — cancel by dismissing any outstanding changes first.
 
-After a switch the commit grid and the **Branches & Tags** panel both refresh automatically.
+After a switch the commit grid and the **Git** panel both refresh automatically.
 
 **Creating a branch at a commit:**
 
-Right-click a single commit row and choose **Create branch here…** to create a new branch at that commit and check it out. A prompt asks for the branch name. The new branch becomes the current branch (shown in green in the graph and the Branches & Tags panel) once the operation completes. Selecting multiple rows disables the item — it only applies to a single commit.
+Right-click a single commit row and choose **Create branch here…** to create a new branch at that commit and check it out. A prompt asks for the branch name. The new branch becomes the current branch (shown in green in the graph and the Git panel) once the operation completes. Selecting multiple rows disables the item — it only applies to a single commit.
 
 If the name is invalid (e.g. contains spaces or other disallowed characters) or already exists, an error toast appears and no branch is created. Creating a branch at a historical commit moves the working tree to that commit — if uncommitted changes would be overwritten, git refuses the operation and a toast describes the error.
 
-**Branches & Tags panel:**
+**Git panel:**
 
-When the Git Tree editor is open, a **Branches & Tags** panel appears in the sidebar above the Changes panel. The panel header shows the repository name as a small bordered badge alongside the panel title (e.g. **persephone** · Branches & Tags), matching the badge style used in the Git Tree toolbar.
+When the Git Tree editor is open, a **Git** panel appears in the sidebar. The panel header shows a **"Git (N)"** title where *N* is the total count of changed files (unstaged + staged combined, counted once per file). The count is visible even when the panel is collapsed, so you can see at a glance which repositories have uncommitted work.
 
-The panel renders the repository's refs as a tree:
+The panel has three tabs selected with a segmented control:
 
-- **Branches** — local branches, with `/`-folder nesting for slash-separated names (e.g. `feature/api` appears under a `feature` folder). Expanded by default on first open.
-- **Remotes** — one entry per configured remote (e.g. `origin`); each remote's tracking branches are nested beneath it with the same folder nesting.
+- **Changes** (default) — working-tree and staged file lists. The panel body shows the same Unstaged and Staged grids described below.
+- **Branches** — repository branches rendered as a tree with `/`-folder nesting. Local branches are listed under **Branches**; remote tracking branches are nested under **Remotes** (one entry per configured remote, e.g. `origin`). The checked-out branch is displayed in **green** (matching the green ref label in the commit grid).
 - **Tags** — flat list of all tags.
 
-All three sections are always shown, even when empty. The checked-out branch is displayed in **green** (matching the green ref label in the commit grid). Hovering a row highlights it.
+**Ordering (Branches and Tags tabs):** By default refs appear most-recent-first (the branch or tag with the newest commit is at the top). Click the **AZ** button in the panel body toolbar to switch to alphabetical order; click again to return to historical order. The preference is saved across restarts. The AZ button only appears on the Branches and Tags tabs.
 
-**Ordering:** By default refs appear most-recent-first (the branch with the newest commit is at the top). Click the **AZ** button in the panel header to switch to alphabetical order; click again to return to historical order. The preference is saved across restarts.
+**Click to reveal (Branches and Tags tabs):** Clicking a branch or tag focuses that ref's commit in the commit grid (scrolls to it and highlights the row). If the commit is not yet loaded (pagination), the last loaded row is focused instead so the **Load more / Load all** controls are visible.
 
-**Click to reveal:** Clicking a branch or tag in the panel focuses that ref's commit in the commit grid (scrolls to it and highlights the row). If the commit is not yet loaded (pagination), the last loaded row is focused instead so the **Load more / Load all** controls are visible.
-
-**Right-click to switch:** Right-click any branch, remote branch, or tag leaf in the panel to open a Switch context menu:
+**Right-click to switch (Branches and Tags tabs):** Right-click any branch, remote branch, or tag leaf to open a Switch context menu:
 
 - **Switch to Branch '…'** — checks out the local branch. The current branch is listed as disabled.
 - **Switch to Remote Branch '…'** — creates or reuses a local tracking branch and checks it out.
 - **Switch to Tag '<name>' Commit** — detaches HEAD at the tagged commit.
 
-The panel header has four buttons:
+The panel header has two buttons:
 
 - **Show in main view** (chevron-right, right edge) — brings the Git Tree commit graph back as the main editor. The button is always visible; it turns blue when the Git Tree is already the main view. Use this after clicking a file or ref opened a diff as the main editor.
-- **AZ** — toggles alphabetical vs. historical (most-recent-first) ordering.
-- **Refresh** — reloads the refs list.
 - **× (Close Git Tree)** — removes the Git Tree editor entirely (see [Closing the Git Tree](#closing-the-git-tree) below).
 
-**Changes panel:**
+**Changes tab — file lists:**
 
-When the Git Tree editor is open, a **Changes** panel appears in the sidebar below the Branches & Tags panel. The panel header shows the repository name as a bordered badge alongside the panel title and a count of changed files (e.g. **persephone** · Changes (3)). The count reflects the union of unstaged and staged files — a file modified in both lists is counted once. The panel is split into two parts:
+The Changes tab is split into two parts:
 
 - **Unstaged** (top) — working-tree modifications not yet staged, plus untracked files. Git-ignored files are not shown.
 - **Staged** (bottom) — files currently in the git index (ready to commit).
@@ -583,12 +579,12 @@ Click a column header to sort by that column. Click again to reverse the sort or
 
 **Selecting files:** Click a row to select it. **Shift-click** extends the selection. **Ctrl+A** selects all rows in that list. You can also drag to select a range.
 
-**Single-click to diff:** Clicking a file row opens its **Git Diff** in the main area. The Changes panel stays open so you can click through files one by one. The comparison preselected depends on which list you click:
+**Single-click to diff:** Clicking a file row opens its **Git Diff** in the main area. The Git panel stays open so you can click through files one by one. The comparison preselected depends on which list you click:
 
 - **Unstaged list** — opens **Staged ↔ Unstaged** (what you have changed but not yet staged). This is the standard working-tree diff.
 - **Staged list** — opens **Last commit ↔ Staged** (what will be included in the next commit). This comparison shows meaningful changes even for a fully-staged file (where Staged ↔ Unstaged would be identical and appear empty).
 
-The panel header has one button:
+The body toolbar has one button (Changes tab only):
 
 - **Refresh** — reloads the file status and the commit history.
 
@@ -596,7 +592,7 @@ When a list has no files, it shows a **"No changes"** label.
 
 **Staging and unstaging files:**
 
-The Changes panel lets you move files between the **Unstaged** and **Staged** lists. Three ways to do it:
+The Changes tab lets you move files between the **Unstaged** and **Staged** lists. Three ways to do it:
 
 - **Arrow buttons on the Staged list header** — select one or more files in a list, then click the arrow button on the **Staged** list's header: **↓** stages the current Unstaged selection; **↑** unstages the current Staged selection.
 - **Double-click** — double-click any file row to move it to the other list. Double-clicking an Unstaged row stages the file; double-clicking a Staged row unstages it.
@@ -631,7 +627,7 @@ On success the **Staged** list clears and the new commit appears at the top of t
 
 **Multiple repositories:**
 
-When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own pair of **Branches & Tags** and **Changes** panels in the sidebar. The panels are independently expandable and collapsible. Re-opening the same repo's `.git` entry does not create a duplicate pair.
+When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own **Git** panel in the sidebar. The panels are independently expandable and collapsible. Re-opening the same repo's `.git` entry does not create a duplicate panel.
 
 **Commit panel:**
 
@@ -647,14 +643,14 @@ Drag the divider between the commit grid and the panel to resize it. The panel h
 
 **Closing the Git Tree:**
 
-The Git Tree panels do not close on their own — navigating away or switching editors leaves them open. The only way to close them is the **×** button in the **Branches & Tags** panel header. Clicking it tears down the entire Git Tree editor — both the Branches & Tags panel and the Changes panel are removed together. What happens to the main area depends on what is shown there:
+The Git panel does not close on its own — navigating away or switching editors leaves it open. The only way to close it is the **×** button in the **Git** panel header. Clicking it tears down the entire Git Tree editor and removes the Git panel. What happens to the main area depends on what is shown there:
 
 - **Git Tree is the main editor** — the Git Tree editor is removed and the page becomes empty (the tab stays open as a blank tab).
-- **Git Diff is the main editor** (you opened a diff by clicking a file in the Changes panel) — the Git Tree and both panels are removed; the diff view stays as the main editor.
+- **Git Diff is the main editor** (you opened a diff by clicking a file in the Changes tab) — the Git Tree and the Git panel are removed; the diff view stays as the main editor.
 
 **Auto-refresh:**
 
-The Git Tree and Changes panel update automatically when the repository changes on disk — no manual **Refresh** needed. Saving a tracked file, staging or unstaging, committing, checking out, merging, or fetching all trigger a refresh within about half a second. Auto-refresh is always on when Git integration is enabled.
+The Git Tree and the Git panel update automatically when the repository changes on disk — no manual **Refresh** needed. Saving a tracked file, staging or unstaging, committing, checking out, merging, or fetching all trigger a refresh within about half a second. Auto-refresh is always on when Git integration is enabled.
 
 The Git Tree supports inspecting history, browsing branches and tags, switching branches and commits, staging/unstaging files, committing staged changes, pulling (fetch + merge), fetching from all remotes, and pushing the current branch. Merge operations initiated outside of pull are not yet available.
 

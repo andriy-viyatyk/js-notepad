@@ -1,26 +1,29 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 
-import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
-import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import { GitTreeEditorModel } from "./GitTreeEditorModel";
-import { buildRefsTree, BRANCHES_ROOT_VALUE, REF_COLOR, type GitRefNode } from "../../components/git-tree";
+import {
+    buildRefsTree,
+    BRANCHES_ROOT_VALUE,
+    TAGS_ROOT_VALUE,
+    REF_COLOR,
+    type GitRefNode,
+} from "../../components/git-tree";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { Tag } from "../../uikit/Tag";
 import { Tree } from "../../uikit/Tree";
-import { IconButton } from "../../uikit/IconButton/IconButton";
 import type { MenuItem } from "../../uikit/Menu";
-import { RefreshIcon, CloseIcon, GitIcon, GlobeIcon, FolderOpenIcon, TagIcon, SortAlphaIcon } from "../../theme/icons";
-import { useOptionalState } from "../../core/state/state";
+import { GitIcon, GlobeIcon, FolderOpenIcon, TagIcon } from "../../theme/icons";
 
 // =============================================================================
-// Git Tree "Branches & Tags" secondary view (EPIC-031 / US-634).
+// Git "Branches" / "Tags" segment body (US-781).
 //
-// Display-only refs tree: Branches (with /-folder nesting) + Remotes (one node
-// per remote, branches nested) + Tags. Sibling of the "Changes" panel on the
-// same GitTreeEditorModel (Pattern B). Hosts the editor's manual "x" close
-// (relocated from the Changes header). Ref interactions (reveal-in-graph,
-// checkout, active-branch sync) are a deferred follow-up.
+// The refs surface of the merged "Git" panel. `show="branches"` renders the
+// Branches + Remotes roots as a `/`-folded tree; `show="tags"` renders the tag
+// list flat. Header-less — the merged panel (`GitPanelSecondaryView`) owns the
+// shared SideBarPanelHeader and the segment toolbar (incl. the Sort-alpha "AZ"
+// toggle). Extracted from the former standalone "Branches & Tags" secondary
+// view; ref interactions (reveal-in-graph, switch, head-green active branch) are
+// preserved unchanged.
 // =============================================================================
 
 const ICON_SIZE = 14;
@@ -54,20 +57,12 @@ function decorateNodes(nodes: GitRefNode[], currentValue?: string): GitRefNode[]
     return nodes;
 }
 
-export default function GitBranchesSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
-    // Type-guard before any hooks (same pattern as GitChangesSecondaryView).
-    if (!(model instanceof GitTreeEditorModel)) return null;
-    return <GitBranchesBody model={model} headerRef={headerRef} icon={icon} />;
-}
-
-function GitBranchesBody({
+export function GitRefsView({
     model,
-    headerRef,
-    icon,
+    show,
 }: {
     model: GitTreeEditorModel;
-    headerRef: SecondaryViewProps["headerRef"];
-    icon: SecondaryViewProps["icon"];
+    show: "branches" | "tags";
 }) {
     const { refs, gitOk } = model.branches.state.use((s) => ({
         refs: s.refs,
@@ -75,15 +70,12 @@ function GitBranchesBody({
     }));
 
     // Persisted expansion map (descriptor state). Default: only Branches open.
+    // Tags render flat (leaves only), so the map is unused there.
     const expanded = model.state.use((s) => s.branchesExpanded);
 
-    // Sort mode (descriptor state). Default historical (most-recent-first).
+    // Sort mode (descriptor state). Default historical (most-recent-first). The
+    // toggle button lives on the merged panel's segment toolbar (US-781).
     const alphabetical = model.state.use((s) => !!s.branchesAlphabetical);
-
-    // Drives the show-main zone's "active" (blue) indicator: true when the Git
-    // Tree grid is already the page's main view (false e.g. while a diff opened
-    // as the main editor demoted this one to the sidebar).
-    const isMainEditor = useOptionalState(model.page?.state, () => model.isMain, false);
 
     // Transient hover highlight — Tree routes onItemMouseEnter → onActiveChange,
     // and styles the [data-active] row with a background. Visual-only, so local
@@ -91,17 +83,22 @@ function GitBranchesBody({
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
     // Current-branch leaf value — drives the head-green label/icon decoration.
-    // No selection background: the green text alone marks the active branch.
     // Hoisted to a plain local so the context-menu callback can depend on it
     // without the exhaustive-deps rule mistaking `refs.current` (the branch name)
     // for a React ref's `.current`.
     const currentBranch = refs.current;
     const currentValue = currentBranch ? "local:" + currentBranch : undefined;
 
-    const tree = useMemo(
-        () => decorateNodes(buildRefsTree(refs, alphabetical), currentValue),
-        [refs, alphabetical, currentValue],
-    );
+    // Build the full refs tree, then render the subset for this segment:
+    //  - branches → the Branches + Remotes roots (everything branch-like).
+    //  - tags     → the Tags root's children, flat (no root wrapper / chevron).
+    const tree = useMemo(() => {
+        const roots = buildRefsTree(refs, alphabetical);
+        const subset = show === "branches"
+            ? roots.filter((r) => r.value !== TAGS_ROOT_VALUE)
+            : (roots.find((r) => r.value === TAGS_ROOT_VALUE)?.items ?? []);
+        return decorateNodes(subset, currentValue);
+    }, [refs, alphabetical, currentValue, show]);
 
     const getTooltip = useCallback(
         (node: GitRefNode): ReactNode => node.refName ?? null,
@@ -156,7 +153,7 @@ function GitBranchesBody({
         [model, currentBranch],
     );
 
-    // Accumulate expansion changes into the persisted map.
+    // Accumulate expansion changes into the persisted map (branches segment only).
     const onExpandChange = useCallback(
         (value: string | number, isExpanded: boolean) => {
             const next = { ...(model.state.get().branchesExpanded ?? { [BRANCHES_ROOT_VALUE]: true }) };
@@ -166,100 +163,29 @@ function GitBranchesBody({
         [model],
     );
 
-    const actions = (
-        <>
-            <IconButton
-                name="git-branches-sort-alpha"
-                size="sm"
-                active={alphabetical}
-                title={alphabetical ? "Sort alphabetically (on)" : "Sort alphabetically (off — historical)"}
-                icon={<SortAlphaIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    model.setBranchesAlphabetical(!alphabetical);
-                }}
-            />
-            <IconButton
-                name="git-branches-refresh"
-                size="sm"
-                title="Refresh"
-                icon={<RefreshIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    model.refresh();
-                }}
-            />
-            {/* The editor's sole manual-close affordance. Tears down the whole Git
-                Tree editor — both panels — and empties the page when it is the main
-                editor. */}
-            <IconButton
-                name="git-branches-close"
-                size="sm"
-                title="Close Git Tree"
-                icon={<CloseIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    void model.requestClose();
-                }}
-            />
-        </>
-    );
+    if (!gitOk) {
+        return (
+            <Panel padding="md">
+                <Text color="light">Git is unavailable.</Text>
+            </Panel>
+        );
+    }
 
     return (
-        <Panel
-            name="git-branches"
-            direction="column"
-            flex={1}
-            overflow="hidden"
-            width="100%"
-        >
-            <SideBarPanelHeader
-                headerRef={headerRef}
-                icon={icon}
-                badge={
-                    /* Repository name (folder basename) as a badge; full path on
-                       hover — mirrors the Git Tree editor toolbar. */
-                    <Tag
-                        name="git-branches-repo-name"
-                        variant="outlined"
-                        size="sm"
-                        truncate
-                        label={model.repoName}
-                        title={model.state.get().repoRoot}
-                    />
-                }
-                title="Branches & Tags"
-                actions={actions}
-                showMainTitle="Show Git Tree"
-                showMainActive={isMainEditor}
-                onShowMain={() => {
-                    // Bring the Git Tree grid back to the page's main view (e.g.
-                    // after a diff opened as the main editor). No-op when it is
-                    // already main. showGitTree() navigates with reuse.
-                    if (!isMainEditor) model.showGitTree();
-                }}
+        <Panel direction="column" flex={1} height={0} overflow="hidden">
+            <Tree<GitRefNode>
+                name={show === "branches" ? "git-branches-tree" : "git-tags-tree"}
+                items={tree}
+                getChildren={(n) => n.items}
+                onChange={onSelect}
+                getContextMenu={getContextMenu}
+                getTooltip={getTooltip}
+                defaultExpandedValues={expanded ?? { [BRANCHES_ROOT_VALUE]: true }}
+                onExpandChange={onExpandChange}
+                activeIndex={activeIndex}
+                onActiveChange={setActiveIndex}
+                emptyMessage={show === "branches" ? "No branches" : "No tags"}
             />
-            {!gitOk ? (
-                <Panel padding="md">
-                    <Text color="light">Git is unavailable.</Text>
-                </Panel>
-            ) : (
-                <Panel direction="column" flex={1} height={0} overflow="hidden">
-                    <Tree<GitRefNode>
-                        name="git-branches-tree"
-                        items={tree}
-                        getChildren={(n) => n.items}
-                        onChange={onSelect}
-                        getContextMenu={getContextMenu}
-                        getTooltip={getTooltip}
-                        defaultExpandedValues={expanded ?? { [BRANCHES_ROOT_VALUE]: true }}
-                        onExpandChange={onExpandChange}
-                        activeIndex={activeIndex}
-                        onActiveChange={setActiveIndex}
-                        emptyMessage="No refs"
-                    />
-                </Panel>
-            )}
         </Panel>
     );
 }

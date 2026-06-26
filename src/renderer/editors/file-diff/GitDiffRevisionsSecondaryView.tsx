@@ -33,7 +33,7 @@ import { RefreshIcon } from "../../theme/icons";
 const shortHashOf = (hash: string) => hash.slice(0, 7);
 
 export default function GitDiffRevisionsSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
-    // Type-guard before any hooks (same pattern as GitChangesSecondaryView).
+    // Type-guard before any hooks (same pattern as GitPanelSecondaryView).
     if (!(model instanceof FileDiffEditor)) return null;
     return <RevisionsBody model={model} headerRef={headerRef} icon={icon} />;
 }
