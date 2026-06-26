@@ -293,7 +293,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                                 ]}
                             />
                         </Panel>
-                        <Panel direction="column" flex={1} height={0} overflow="hidden">
+                        <Panel direction="column" flex={1} height={0} overflowX="hidden" overflowY="auto">
                             {tab === "commit" && (
                                 <CommitInfoPanel
                                     repoRoot={model.state.get().repoRoot}

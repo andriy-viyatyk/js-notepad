@@ -137,6 +137,20 @@ const RenderGridStyled = styled(RenderGrid)(
         "&:focus-within .data-cell.focused::before": {
             border: `1px solid ${color.grid.selectionColor.border}`,
         },
+        // Borderless variant (cellBorders={false}) — drop the static grid lines.
+        // Selection / focus borders (painted on ::before) are intentionally kept.
+        '&[data-cell-borders="off"]': {
+            "& .header-cell": {
+                borderBottom: "none",
+            },
+            "& .data-cell": {
+                borderBottom: "none",
+                borderRight: "none",
+                '&[data-col="0"]': {
+                    borderLeft: "none",
+                },
+            },
+        },
         "& .cell-check-icon": {
             width: 16,
             height: 16,
@@ -235,13 +249,16 @@ function AVGridComponent<R = any>(
         [model],
     );
 
-    const contentProps = useMemo<HTMLAttributes<HTMLDivElement>>(() => {
+    const contentProps = useMemo<
+        HTMLAttributes<HTMLDivElement> & { [key: `data-${string}`]: string | undefined }
+    >(() => {
         return {
             onMouseLeave: model.actions.contentMouseLeave,
             onKeyDown: model.actions.contentKeyDown,
             onContextMenu: model.actions.contentContextMenu,
             onBlur: model.actions.contentBlur,
             tabIndex: model.props.setFocus ? 0 : undefined,
+            "data-cell-borders": model.props.cellBorders === false ? "off" : undefined,
         };
     }, [model]);
 

@@ -68,6 +68,11 @@ export interface AVGridProps<R> {
 
     scrollToFocus?: boolean;
     fitToWidth?: boolean;
+    /** Render the static cell grid lines (header bottom border + each cell's
+     *  bottom/right border + the first column's left border). Default `true`.
+     *  Set `false` for a borderless list look — selection and focus borders are
+     *  unaffected. */
+    cellBorders?: boolean;
     growToHeight?: CSSProperties["height"];
     growToWidth?: CSSProperties["height"];
     /** Caller-supplied node rendered after the last row (forwarded to

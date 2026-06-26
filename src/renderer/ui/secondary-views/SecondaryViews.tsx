@@ -109,6 +109,7 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
                                     panelId={panelId}
                                     headerRef={headerRefs.current[refKey] ?? null}
                                     icon={panelIcon}
+                                    expanded={key === activeKey}
                                 />
                             </CollapsiblePanel>
                         );

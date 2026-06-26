@@ -10,10 +10,12 @@ interface LazySecondaryViewProps {
     headerRef: HTMLDivElement | null;
     /** Resolved leading header icon, forwarded to the panel component. */
     icon?: ReactNode;
+    /** Whether this panel is the expanded one — forwarded to the panel component. */
+    expanded?: boolean;
 }
 
 /** Loads a secondary view component from the registry and renders it. */
-export function LazySecondaryView({ model, panelId, headerRef, icon }: LazySecondaryViewProps) {
+export function LazySecondaryView({ model, panelId, headerRef, icon, expanded }: LazySecondaryViewProps) {
     const [Component, setComponent] = useState<ComponentType<SecondaryViewProps> | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -34,5 +36,5 @@ export function LazySecondaryView({ model, panelId, headerRef, icon }: LazySecon
 
     if (error) return <div style={{ padding: 8, color: color.text.light }}>{error}</div>;
     if (!Component) return null;
-    return <Component model={model} headerRef={headerRef} icon={icon} />;
+    return <Component model={model} headerRef={headerRef} icon={icon} expanded={expanded} />;
 }

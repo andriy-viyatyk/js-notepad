@@ -25,6 +25,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Boards — error indicator removed; log always accessible** — The red error dot that previously appeared on the in-board toolbar when `ui.log` contained errors has been removed. The **Show log** (log icon) button remains and opens `ui.log` at any time. The log file is now reset to a single `board loaded` line on every board open or Reload, so clicking Show log always opens a real, non-empty file — not an empty "deleted file" placeholder. Any errors that occur during a load are appended after that line.
 
+### UI Polish
+
+- **Git Tree — commit message scrolls inside the panel** — In the **Commit** tab of the bottom panel, long commit messages now scroll within the tab itself instead of causing the entire bottom panel to grow and scroll. Switching between the **Commit** and **Diff** tabs no longer shifts the panel height.
+
+- **Git Tree — Changes panel file lists have no grid lines** — The **Unstaged** and **Staged** file lists in the **Changes** sidebar panel no longer display cell border lines between rows. The lists have a cleaner, borderless appearance that matches the rest of the sidebar.
+
+- **Boards sidebar — "+ New board" hidden when panel is collapsed** — The **New board** split-button in the **Boards** Explorer panel header is now hidden when the panel is collapsed, and visible when expanded. Previously the button remained visible even when the panel was collapsed, taking up space in the header bar.
+
 ### Bug Fixes
 
 - **MCP / Mneme — connection stability on Windows** — Both the Persephone MCP server and the Mneme knowledge-base service now bind to `127.0.0.1` (IPv4 loopback) instead of the hostname `localhost`. On Windows, `localhost` often resolves to `::1` (IPv6) first; if nothing is listening on the IPv6 side the client stalls and eventually times out, causing the yellow Mneme status indicator and `-32001` connection-refused errors in the MCP Inspector. Using the literal IPv4 address eliminates the ambiguity.

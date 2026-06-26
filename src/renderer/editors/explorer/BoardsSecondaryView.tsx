@@ -27,7 +27,7 @@ import { BoardsTree } from "../board/BoardsTree";
 // boards under the root via the shared BoardsTree; the "+ New board" SplitButton creates a board
 // (US-760 dialog scaffolds + auto-trusts) and opens it; clicking a board opens it in the current
 // page via persephone-board://.
-export default function BoardsSecondaryView({ model: rawModel, headerRef, icon }: SecondaryViewProps) {
+export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, expanded }: SecondaryViewProps) {
     const model = rawModel as ExplorerEditor;
     const { rootPath } = model.state.use();
     const pageId = model.page?.id ?? "";
@@ -116,24 +116,29 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon }
         },
     ], [handleDelete]);
 
+    // The "+ New board" control only makes sense when the panel body (the boards
+    // list) is visible — hide it when the panel is collapsed to a header strip, so
+    // a collapsed header shows just the title + close button.
     const actions = (
         <>
-            <SplitButton
-                name="boards-create"
-                size="sm"
-                icon={<PlusIcon />}
-                onClick={() => void handleCreate()}
-                menuTitle="More board options"
-                items={[
-                    {
-                        label: "Create Demo board",
-                        icon: <BoardIcon width={14} height={14} />,
-                        onClick: () => void handleCreateDemo(),
-                    },
-                ]}
-            >
-                New board
-            </SplitButton>
+            {expanded && (
+                <SplitButton
+                    name="boards-create"
+                    size="sm"
+                    icon={<PlusIcon />}
+                    onClick={() => void handleCreate()}
+                    menuTitle="More board options"
+                    items={[
+                        {
+                            label: "Create Demo board",
+                            icon: <BoardIcon width={14} height={14} />,
+                            onClick: () => void handleCreateDemo(),
+                        },
+                    ]}
+                >
+                    New board
+                </SplitButton>
+            )}
             <IconButton
                 name="boards-close"
                 size="sm"

@@ -449,6 +449,8 @@ export default function MySecondaryView({ model, headerRef, icon }: SecondaryVie
 
 A title-only panel is just `<SideBarPanelHeader headerRef={headerRef} icon={icon} title="My Panel" />`. Conditional buttons stay inside the `actions` node (`actions={cond && <IconButton.../>}`).
 
+`SecondaryViewProps` also carries `expanded` — `true` when this panel is the one currently expanded in the stack, `false` when it is collapsed to a header strip. Panels stay mounted while collapsed (`alwaysRenderContent`), and the header is portalled in regardless, so an action that only makes sense while the body is visible should be gated on this flag (`actions={<>{expanded && <PrimaryButton/>}<CloseButton/></>}`). The Boards panel uses it to hide its "+ New board" button when collapsed, leaving just the title + close button on the header strip.
+
 To add a standardized "show main view" button at the right edge, pass `onShowMain` (a callback that calls `page.promoteSecondaryToMain(model)` or an editor-specific equivalent) and optionally `showMainActive` (blue-tints the chevron when the editor is already main) and `showMainTitle` (tooltip override). The zone is always rendered when `onShowMain` is provided — never hidden, even when already main:
 
 ```tsx

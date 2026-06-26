@@ -9,6 +9,11 @@ export interface SecondaryViewProps {
     /** Resolved leading header icon (registry per-panel override ?? the owning editor's
      *  `EditorIcon`), supplied by the host. Forward to `SideBarPanelHeader`'s `icon` prop. */
     icon?: React.ReactNode;
+    /** `true` when this panel is the currently-expanded one in the stack; `false`
+     *  when collapsed to a header strip. Panels stay mounted while collapsed
+     *  (`alwaysRenderContent`), so use this to drop header actions that only make
+     *  sense when the panel body is visible. */
+    expanded?: boolean;
 }
 
 /** Registration for a secondary view type. */

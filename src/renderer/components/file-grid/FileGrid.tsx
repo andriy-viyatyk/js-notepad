@@ -164,6 +164,7 @@ export function FileGrid({
                 getContextMenuItems={getContextMenuItems}
                 disableFiltering
                 fitToWidth
+                cellBorders={false}
             />
         </Root>
     );
