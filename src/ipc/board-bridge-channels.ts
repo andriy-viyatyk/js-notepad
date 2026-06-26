@@ -1,47 +1,36 @@
 /**
- * IPC channels + wire types for the Board integration tier — the part of
- * the `persephone` bridge that `execute()` cannot express (in-app effects).
- * (EPIC-034 / US-724.)
+ * Board bridge wire types — the `persephone` integration tier carried over the
+ * per-board `MessagePort` (EPIC-034 / US-724; re-homed onto a `MessageChannelMain`
+ * port in EPIC-037 / US-771).
  *
- * `execute()` itself rides the separate `runner-channels.ts` protocol; this
- * module covers `openRawLink`, `notify`, the native file dialogs, and the
- * one-time board-context lookup used to default an `execute()` `cwd`.
+ * A board iframe has no `ipcRenderer` and no preload — its only channel to the
+ * privileged side is a `MessagePort` minted per board in main and transferred into
+ * the frame by the host renderer (the one-time handshake). The board↔main protocol
+ * is the {@link BoardToMain} / {@link MainToBoard} envelope union below; `execute()`
+ * rides the same port as `{ kind: "runner", … }` envelopes wrapping the existing
+ * `runner-channels.ts` messages.
  *
  * Like `runner-channels.ts`, this module is intentionally dependency-free (no
- * imports from `src/main` or `src/renderer`) so the sandboxed board preload
- * can import it and talk to main over raw `ipcRenderer`. Dialog param types are
- * pulled type-only from the already-dependency-free `api-param-types.ts`.
+ * imports from `src/main` or `src/renderer`) so the injected board **shim**
+ * (`src/board-shim.ts`, a plain browser script) can import its types. Dialog param
+ * types are pulled type-only from the already-dependency-free `api-param-types.ts`;
+ * runner message shapes from `runner-channels.ts`.
  */
 import type {
     OpenFileDialogParams,
     OpenFolderDialogParams,
     SaveFileDialogParams,
 } from "./api-param-types";
-
-export enum BoardBridgeChannel {
-    /** Preload → main, synchronous (`sendSync`). Resolves the calling board's
-     *  root folder from `event.sender.session` → `{ boardRoot }`. */
-    getContext = "board:get-context",
-    /** Preload → main, fire-and-forget. Open a link in a new Persephone page. */
-    openRawLink = "board:open-raw-link",
-    /** Preload → main, fire-and-forget. Show a toast in the host renderer. */
-    notify = "board:notify",
-    /** Preload → main, request/reply (`invoke`). Native open-file dialog. */
-    openFileDialog = "board:open-file-dialog",
-    /** Preload → main, request/reply (`invoke`). Native save-file dialog. */
-    saveFileDialog = "board:save-file-dialog",
-    /** Preload → main, request/reply (`invoke`). Native pick-folder dialog. */
-    openFolderDialog = "board:open-folder-dialog",
-    /** Preload → main, request/reply (`invoke`). Read a file (US-756 C4). A relative
-     *  path resolves against the board root. */
-    readFile = "board:read-file",
-    /** Preload → main, request/reply (`invoke`). Write a file (US-756 C4). A relative
-     *  path resolves against the board root; parent dirs are created. */
-    writeFile = "board:write-file",
-    /** Host renderer → board guest, via `<webview>.send` (NOT `ipcMain`). Live theme
-     *  switch; the preload re-applies the color `--p-*` and fires `onThemeChange`. */
-    themeChanged = "board:theme-changed",
-}
+import type {
+    RunnerChannel,
+    RunnerChunkMsg,
+    RunnerErrorMsg,
+    RunnerExitMsg,
+    RunnerJobMsg,
+    RunnerKillMsg,
+    RunnerStartMsg,
+    RunnerStdinMsg,
+} from "./runner-channels";
 
 /** The host color palette pushed into a board: the frozen color `--p-*` contract
  *  resolved to concrete values, plus theme identity. The `vars` keys are `--p-*`
@@ -55,15 +44,20 @@ export interface BoardThemePalette {
     vars: Record<string, string>;
 }
 
-/** Reply to {@link BoardBridgeChannel.getContext}. */
-export interface BoardContext {
-    /** Absolute board root folder, or "" if the session is not a known board. */
-    boardRoot: string;
-    /** Initial color palette, applied by the preload before the page runs (US-725). */
+/** The board context baked into served HTML by the `board://` handler as
+ *  `window.__persephoneBoot` (EPIC-037 / US-771) — read synchronously by the shim
+ *  before the first author script, replacing the old synchronous `getContext` IPC.
+ *  The board root is NOT included: main fills the default `execute()` cwd + relative
+ *  file paths from its own `boardId → root` registry. */
+export interface BoardBootContext {
+    /** Initial color palette, applied by the shim at first paint (US-725). Live
+     *  switches arrive later as a {@link MainToBoard} `theme` envelope over the port. */
     theme: BoardThemePalette;
-    /** Static metric vars (`--p-space-*`, `--p-radius-*`, …) — theme-independent,
-     *  delivered once at init, never re-pushed. `--p-*` name → CSS value. */
+    /** Static metric vars (`--p-space-*`, `--p-radius-*`, …) — theme-independent. */
     tokens: Record<string, string>;
+    /** The host renderer's origin — the shim accepts the port-handshake message only
+     *  when `event.origin === hostOrigin` AND `event.source === window.parent` (C2). */
+    hostOrigin: string;
 }
 
 export type BoardNotifyType = "info" | "success" | "warning" | "error";
@@ -99,7 +93,66 @@ export interface BoardWriteFileMsg {
     encoding?: BoardFileEncoding;
 }
 
-// Re-export the dialog param shapes so the preload + bridge import one place.
+// ── Port RPC envelopes (EPIC-037 / US-771) ───────────────────────────────────
+// board ↔ main over the per-board MessagePort. Request/reply uses an `id`; fire-
+// and-forget effects carry no id; `execute()` wraps runner-channels messages in a
+// `runner` envelope (board→main: start/stdin/end-stdin/kill; main→board: stdout/
+// stderr/exit/error). Theme is pushed main→board for live retint.
+
+/** Request/reply methods (board → main, awaited by the shim). */
+export type BoardRpcMethod =
+    | "openFileDialog"
+    | "saveFileDialog"
+    | "openFolderDialog"
+    | "readFile"
+    | "writeFile";
+
+/** Fire-and-forget methods (board → main, no reply). */
+export type BoardFireMethod = "openRawLink" | "notify";
+
+/** A runner envelope sent board → main (the caller→runner half of `RunnerChannel`). */
+export interface BoardRunnerOutMsg {
+    kind: "runner";
+    channel:
+        | RunnerChannel.start
+        | RunnerChannel.stdin
+        | RunnerChannel.endStdin
+        | RunnerChannel.kill;
+    msg: RunnerStartMsg | RunnerStdinMsg | RunnerJobMsg | RunnerKillMsg;
+}
+
+/** A runner envelope sent main → board (the runner→caller half of `RunnerChannel`). */
+export interface BoardRunnerInMsg {
+    kind: "runner";
+    channel:
+        | RunnerChannel.stdout
+        | RunnerChannel.stderr
+        | RunnerChannel.exit
+        | RunnerChannel.error;
+    msg: RunnerChunkMsg | RunnerExitMsg | RunnerErrorMsg;
+}
+
+/** Everything the board posts to main over the port. */
+export type BoardToMain =
+    | { kind: "rpc"; id: number; method: BoardRpcMethod; args: unknown[] }
+    | { kind: "fire"; method: BoardFireMethod; args: unknown[] }
+    | { kind: "connected" } // shim → main: handshake liveness (mode D, EPIC-037 C11)
+    | BoardRunnerOutMsg;
+
+/** Everything main posts to the board over the port. */
+export type MainToBoard =
+    | { kind: "rpc-result"; id: number; result?: unknown; error?: string }
+    | { kind: "theme"; palette: BoardThemePalette }
+    | BoardRunnerInMsg;
+
+/** The init message the host renderer posts into the board frame to transfer the
+ *  port (the single `window.postMessage` survivor — C2). The transferred port is on
+ *  `event.ports[0]`; the shim validates `event.origin`/`event.source` before use. */
+export interface BoardPortInitMsg {
+    __persephoneInit: true;
+}
+
+// Re-export the dialog param shapes so the shim + bridge import one place.
 export type {
     OpenFileDialogParams,
     OpenFolderDialogParams,

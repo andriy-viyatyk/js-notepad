@@ -152,7 +152,7 @@
         });
     });
 
-    // External links must open in Persephone, not navigate the board webview away.
+    // External links must open in Persephone, not navigate the board iframe away.
     document.querySelectorAll("[data-link]").forEach((a) => {
         a.addEventListener("click", (e) => {
             e.preventDefault();
@@ -171,9 +171,9 @@
         add("external app.js + style.css loaded over board://", true);
         add("inline <script> ran (CSP unsafe-inline)", !!window.__inlineRan);
         add("persephone bridge injected", !!(P && P.version), "version=" + (P && P.version));
-        add("sandbox: window.require is undefined", typeof window.require === "undefined");
-        add("sandbox: window.process is undefined", typeof window.process === "undefined");
-        add("sandbox: window.ipcRenderer is undefined", typeof window.ipcRenderer === "undefined");
+        add("isolation: window.require is undefined", typeof window.require === "undefined");
+        add("isolation: window.process is undefined", typeof window.process === "undefined");
+        add("isolation: window.ipcRenderer is undefined", typeof window.ipcRenderer === "undefined");
         const pbg = getComputedStyle(document.documentElement).getPropertyValue("--p-bg").trim();
         add("theme applied (--p-bg present)", !!pbg, "--p-bg=" + pbg);
         // Remote fetch must be refused by CSP (connect-src 'self').

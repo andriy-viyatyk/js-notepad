@@ -167,7 +167,7 @@ Options:
 - `url?: string` — pre-fill the server URL
 
 ```javascript
-await app.pages.showMcpInspectorPage({ url: "http://localhost:7865/mcp" });
+await app.pages.showMcpInspectorPage({ url: "http://127.0.0.1:7865/mcp" });
 ```
 
 ### showBrowserPage(options?) → `Promise<void>`

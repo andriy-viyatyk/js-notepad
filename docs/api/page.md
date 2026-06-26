@@ -551,7 +551,7 @@ MCP Inspector connection management and troubleshooting. Only for MCP Inspector 
 const mcp = await page.asMcpInspector();
 
 // Connect to a server
-mcp.url = "http://localhost:7865/mcp";
+mcp.url = "http://127.0.0.1:7865/mcp";
 mcp.transportType = "http";
 await mcp.connect();
 console.log(mcp.connectionStatus); // "connected"

@@ -1,8 +1,17 @@
 /**
- * Chrome DevTools Protocol session management for browser webviews.
+ * Chrome DevTools Protocol session management for browser webviews and board frames.
  *
- * Manages CDP debugger attach/detach/sendCommand per webview via IPC.
- * Uses Electron's webContents.debugger API — no network port needed.
+ * Manages CDP debugger attach/detach/sendCommand via IPC. Uses Electron's
+ * webContents.debugger API — no network port needed.
+ *
+ * Two kinds of automation target share these handlers:
+ *  • Browser pages — each is its own `<webview>` `WebContents`; the debugger attaches
+ *    directly to it (resolved via the browser's `getWebContents` resolver).
+ *  • Boards (EPIC-037) — a board is an in-DOM `board://<host>` `<iframe>` inside the
+ *    HOST window's `WebContents` (no board webContents). The debugger attaches to the
+ *    host wc, and every board command is routed to the board frame via its flattened
+ *    CDP session, so `Runtime.evaluate` / `Accessibility.getFullAXTree` / screenshots
+ *    run in the board frame, NEVER the host's own React UI.
  */
 import { ipcMain, WebContents } from "electron";
 import { BrowserChannel } from "../ipc/browser-ipc";
@@ -11,20 +20,126 @@ import { BrowserChannel } from "../ipc/browser-ipc";
 const attachedDebuggers = new WeakSet<WebContents>();
 
 /**
- * Board webviews registered for CDP automation (EPIC-034 / US-730). Kept SEPARATE
- * from the browser's registrations because the browser's registerWebview attaches
- * browser-only listeners (will-navigate / will-prevent-unload / hotkeys / popup
- * guard) that would misfire on a board — a board needs only the key→webContents
- * mapping. Keyed `${boardEditorId}/${BOARD_CDP_TAB}`; set/cleared via the controller.
+ * Board frame registrations (EPIC-037 / US-773). Kept SEPARATE from the browser's
+ * registrations: a board has no webContents of its own — it is a `board://<host>`
+ * frame of the host window's webContents. We store the host wc + the board's
+ * `board://` host, and lazily resolve (and cache) the board frame's flattened CDP
+ * session so commands target the frame, not the host app. Keyed
+ * `${boardEditorId}/${BOARD_CDP_TAB}`; set/cleared via the controller.
  */
-const boardRegistrations = new Map<string, WebContents>();
+interface BoardReg {
+    /** The host window's webContents (the renderer that hosts the iframe). */
+    host: WebContents;
+    /** The board's `board://` URL host (a stable hash of the board root). */
+    boardHost: string;
+    /** Cached flattened session for the board frame; cleared on reload/re-register. */
+    sessionId?: string;
+}
+const boardRegistrations = new Map<string, BoardReg>();
 
-export function registerBoardWebContents(key: string, wc: WebContents): void {
-    boardRegistrations.set(key, wc);
+export function registerBoardFrame(key: string, host: WebContents, boardHost: string): void {
+    // Re-registration (e.g. a reload recreated the frame) invalidates the cached
+    // session — the OOPIF target id changes, so a stale session would be dead.
+    boardRegistrations.set(key, { host, boardHost });
 }
 
-export function unregisterBoardWebContents(key: string): void {
+export function unregisterBoardFrame(key: string): void {
     boardRegistrations.delete(key);
+}
+
+function ensureAttached(wc: WebContents): void {
+    if (attachedDebuggers.has(wc)) return;
+    wc.debugger.attach("1.3");
+    attachedDebuggers.add(wc);
+    wc.debugger.on("detach", () => {
+        attachedDebuggers.delete(wc);
+    });
+}
+
+/**
+ * Resolve (and cache) the flattened CDP session for a board's `board://<host>` frame.
+ * Mirrors the iframe-attach the snapshot code does, but at the host-wc level: find the
+ * board frame among the host's CDP targets, then `attachToTarget({ flatten: true })`.
+ */
+async function resolveBoardSession(reg: BoardReg): Promise<string | undefined> {
+    if (reg.host.isDestroyed()) return undefined;
+    ensureAttached(reg.host);
+    if (reg.sessionId) return reg.sessionId;
+    const origin = `board://${reg.boardHost}`;
+    const { targetInfos } = await reg.host.debugger.sendCommand("Target.getTargets");
+    const target = (targetInfos || []).find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (t: any) => t.type === "iframe" && typeof t.url === "string" && t.url.startsWith(origin),
+    );
+    if (!target) return undefined;
+    const { sessionId } = await reg.host.debugger.sendCommand("Target.attachToTarget", {
+        targetId: target.targetId,
+        flatten: true,
+    });
+    reg.sessionId = sessionId;
+    return sessionId;
+}
+
+/**
+ * Send a CDP command for a board key, routed to the board frame.
+ *
+ * A command WITHOUT an explicit session runs in the board frame's session (resolved +
+ * cached on demand). A command WITH a session (snapshot's nested-iframe attaches)
+ * passes through unchanged. `Target.getTargets` short-circuits to an empty list —
+ * boards are single local documents, so nested-iframe snapshots are unsupported
+ * (EPIC-037 C773-2); this keeps the shared snapshot code from discovering sibling
+ * frames. On a stale session (the frame reloaded) we re-resolve once.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function boardSend(reg: BoardReg, method: string, params: object | undefined, sessionId?: string): Promise<any> {
+    if (reg.host.isDestroyed()) throw new Error("Board host window is gone");
+    if (method === "Target.getTargets") return { targetInfos: [] };
+
+    // `Page.captureScreenshot` can only run on a TOP-LEVEL target, not the board's
+    // OOPIF session. Capture the host page on the top-level session, clipped to the
+    // board iframe's on-screen rect (EPIC-037 C773-4).
+    if (method === "Page.captureScreenshot") {
+        ensureAttached(reg.host);
+        let clip: { x: number; y: number; width: number; height: number; scale: number } | undefined;
+        try {
+            const rect = await reg.host.debugger.sendCommand("Runtime.evaluate", {
+                expression:
+                    `(() => { const f = document.querySelector('iframe[src^="board://${reg.boardHost}"]');` +
+                    ` if (!f) return ""; const r = f.getBoundingClientRect();` +
+                    ` return JSON.stringify({ x: r.x, y: r.y, width: r.width, height: r.height }); })()`,
+                returnByValue: true,
+            });
+            const json = rect?.result?.value;
+            if (json) {
+                const r = JSON.parse(json);
+                if (r.width > 0 && r.height > 0) {
+                    clip = { x: r.x, y: r.y, width: r.width, height: r.height, scale: 1 };
+                }
+            }
+        } catch {
+            // Couldn't resolve the rect — fall back to capturing the whole host page.
+        }
+        return reg.host.debugger.sendCommand("Page.captureScreenshot", {
+            ...(params || {}),
+            ...(clip ? { clip } : {}),
+        });
+    }
+
+    if (sessionId) {
+        return reg.host.debugger.sendCommand(method, params, sessionId);
+    }
+
+    let sid = await resolveBoardSession(reg);
+    if (!sid) throw new Error("Board frame not ready for CDP (still loading?)");
+    try {
+        return await reg.host.debugger.sendCommand(method, params, sid);
+    } catch (e) {
+        // The cached session may be stale (frame reloaded/navigated) — re-resolve once.
+        reg.sessionId = undefined;
+        sid = await resolveBoardSession(reg);
+        if (sid) return reg.host.debugger.sendCommand(method, params, sid);
+        throw e;
+    }
 }
 
 /**
@@ -34,23 +149,22 @@ export function unregisterBoardWebContents(key: string): void {
 export function initCdpHandlers(
     getWebContents: (key: string) => WebContents | undefined,
 ): void {
-    // Board registrations take precedence; fall back to the browser resolver.
-    const resolve = (key: string): WebContents | undefined => {
-        const board = boardRegistrations.get(key);
-        if (board) return board.isDestroyed() ? undefined : board;
-        return getWebContents(key);
-    };
-
     ipcMain.handle(BrowserChannel.cdpAttach, async (_event, key: string) => {
-        const wc = resolve(key);
+        const board = boardRegistrations.get(key);
+        if (board) {
+            if (board.host.isDestroyed()) return false;
+            try {
+                ensureAttached(board.host);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+        const wc = getWebContents(key);
         if (!wc || wc.isDestroyed()) return false;
         if (attachedDebuggers.has(wc)) return true;
         try {
-            wc.debugger.attach("1.3");
-            attachedDebuggers.add(wc);
-            wc.debugger.on("detach", () => {
-                attachedDebuggers.delete(wc);
-            });
+            ensureAttached(wc);
             return true;
         } catch {
             return false;
@@ -58,7 +172,14 @@ export function initCdpHandlers(
     });
 
     ipcMain.handle(BrowserChannel.cdpDetach, async (_event, key: string) => {
-        const wc = resolve(key);
+        const board = boardRegistrations.get(key);
+        if (board) {
+            // The host wc debugger is SHARED (other boards / future use); never detach
+            // it for one board — just drop this board's cached frame session.
+            board.sessionId = undefined;
+            return;
+        }
+        const wc = getWebContents(key);
         if (!wc || wc.isDestroyed()) return;
         if (!attachedDebuggers.has(wc)) return;
         try {
@@ -72,18 +193,18 @@ export function initCdpHandlers(
     ipcMain.handle(
         BrowserChannel.cdpSend,
         async (_event, key: string, method: string, params?: object, sessionId?: string) => {
-            const wc = resolve(key);
+            const board = boardRegistrations.get(key);
+            if (board) {
+                return boardSend(board, method, params, sessionId);
+            }
+            const wc = getWebContents(key);
             if (!wc || wc.isDestroyed()) {
                 throw new Error("WebContents not found or destroyed");
             }
             // Auto-attach on first command
             if (!attachedDebuggers.has(wc)) {
                 try {
-                    wc.debugger.attach("1.3");
-                    attachedDebuggers.add(wc);
-                    wc.debugger.on("detach", () => {
-                        attachedDebuggers.delete(wc);
-                    });
+                    ensureAttached(wc);
                 } catch {
                     throw new Error("Failed to attach CDP debugger");
                 }

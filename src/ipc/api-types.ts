@@ -85,11 +85,13 @@ export enum Endpoint {
     gitPull = "gitPull",
     gitRemoteUrl = "gitRemoteUrl",
     capturePageRegion = "capturePageRegion",
-    registerBoardProtocol = "registerBoardProtocol",
-    unregisterBoardProtocol = "unregisterBoardProtocol",
+    registerBoard = "registerBoard",
+    unregisterBoard = "unregisterBoard",
     updateBoardTheme = "updateBoardTheme",
-    registerBoardWebContents = "registerBoardWebContents",
-    unregisterBoardWebContents = "unregisterBoardWebContents",
+    requestBoardPort = "requestBoardPort",
+    disposeBoardPort = "disposeBoardPort",
+    registerBoardFrame = "registerBoardFrame",
+    unregisterBoardFrame = "unregisterBoardFrame",
 }
 
 /** Synthetic CDP "tab" id for a board (boards have no tabs). The automation
@@ -198,11 +200,16 @@ export type Api = {
     [Endpoint.gitPull]: (dir: string, opts?: GitPullOptions) => Promise<GitPullResult>;
     [Endpoint.gitRemoteUrl]: (dir: string, remote: string) => Promise<string>;
     [Endpoint.capturePageRegion]: (rect: CaptureRect) => Promise<Uint8Array>;
-    [Endpoint.registerBoardProtocol]: (partition: string, boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>) => Promise<void>;
-    [Endpoint.unregisterBoardProtocol]: (partition: string) => Promise<void>;
+    [Endpoint.registerBoard]: (boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>) => Promise<string>;
+    [Endpoint.unregisterBoard]: (host: string) => Promise<void>;
     [Endpoint.updateBoardTheme]: (theme: BoardThemePalette) => Promise<void>;
-    [Endpoint.registerBoardWebContents]: (boardId: string, webContentsId: number) => Promise<void>;
-    [Endpoint.unregisterBoardWebContents]: (boardId: string) => Promise<void>;
+    // Mint a per-board MessagePort in main and deliver port1 to this renderer via
+    // a postMessage on `eBoardPort` (EPIC-037 / US-771). Resolves once the request
+    // is sent; the port arrives asynchronously on the event channel.
+    [Endpoint.requestBoardPort]: (boardId: string, host: string) => Promise<void>;
+    [Endpoint.disposeBoardPort]: (boardId: string) => Promise<void>;
+    [Endpoint.registerBoardFrame]: (boardId: string, boardHost: string) => Promise<void>;
+    [Endpoint.unregisterBoardFrame]: (boardId: string) => Promise<void>;
 };
 
 export enum EventEndpoint {
@@ -226,6 +233,11 @@ export enum EventEndpoint {
     eMnemeStatusChanged = "eMnemeStatusChanged",
     eBoardNotify = "eBoardNotify",
     eBoardOpenRawLink = "eBoardOpenRawLink",
+    // Main → host renderer: delivers a per-board MessagePort (EPIC-037 / US-771).
+    // Carried via webContents.postMessage with the port on `event.ports[0]`, so it
+    // is consumed through the preload's ports-aware `onPort` (NOT the typed event
+    // system, which drops `event.ports`). No EventApi entry for that reason.
+    eBoardPort = "eBoardPort",
 }
 
 export interface EventSubscription {

@@ -4,6 +4,7 @@ import type { IpcRendererEvent } from "electron";
 import { scriptRunner } from "../scripting/ScriptRunner";
 import { pagesModel } from "./pages";
 import { editorRegistry } from "../editors/base/editorRegistry";
+import type { BoardEditorModel } from "../editors/board/BoardEditorModel";
 import { MCP_EXECUTE, MCP_RESULT } from "../../shared/constants";
 import { app } from "./app";
 import { settings } from "./settings";
@@ -115,6 +116,8 @@ async function handleCommand(method: string, params: McpParams): Promise<McpResp
             return await createBoard(params);
         case "open_board":
             return await openBoard(params);
+        case "board_refresh":
+            return refreshBoard(params);
         case "ui_push":
             return handleUiPush(params);
         default:
@@ -606,6 +609,23 @@ async function openBoard(params: McpParams): Promise<McpResponse> {
     } catch (err) {
         return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
     }
+}
+
+/** Reload a board (remount its webview) so file edits take effect — boards no
+ *  longer auto-reload. `pageId` is optional; omitted → the active page. Validates
+ *  the resolved page is a board before reloading. */
+function refreshBoard(params: McpParams): McpResponse {
+    const pageId = asString(params?.pageId);
+    const page = pageId ? pagesModel.findPage(pageId) : pagesModel.activePage;
+    if (!page) {
+        return { error: { code: -32602, message: pageId ? `Page not found: ${pageId}` : "No active page." } };
+    }
+    const editor = page.mainEditorInstance;
+    if (!editor || editor.editorId !== "board-view") {
+        return { error: { code: -32602, message: `Page ${page.id} is not a board page.` } };
+    }
+    (editor as BoardEditorModel).reloadBoard();
+    return { result: { refreshed: true, pageId: page.id } };
 }
 
 // ── Initialization ──────────────────────────────────────────────────

@@ -31,7 +31,7 @@ a { color: var(--p-link, #3b82f6); }
     outline-offset: 1px;
 }
 
-/* Themed scrollbars (Chromium webview) — track + slightly-rounded thumb, driven by
+/* Themed scrollbars (Chromium) — track + slightly-rounded thumb, driven by
    the scrollbar tokens so they match the app and re-tint on a theme switch. */
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: var(--p-scrollbar, transparent); }

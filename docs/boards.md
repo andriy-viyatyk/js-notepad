@@ -2,7 +2,7 @@
 
 # Boards
 
-Boards let you build fully custom HTML-page applications that can live anywhere on disk and run local scripts on demand. The UI is yours to author as plain HTML — Persephone hosts it in a sandboxed webview and wires one bridge object, `window.persephone`, so your page can call scripts and show native dialogs.
+Boards let you build fully custom HTML-page applications that can live anywhere on disk and run local scripts on demand. The UI is yours to author as plain HTML — Persephone hosts the page and wires one bridge object, `window.persephone`, so your page can call scripts and show native dialogs.
 
 > **Target audience:** This guide is for users who want to create and use boards. For AI-agent builders, the per-board `CLAUDE.md` inside each board folder is the primary authoring reference.
 
@@ -12,7 +12,7 @@ Boards let you build fully custom HTML-page applications that can live anywhere 
 
 ### What is a board?
 
-A board is a small web app stored in any folder on your machine — it is identified by a `board-manifest.json` file in the board's root folder. When you open a board in Persephone, the page renders in a sandboxed webview — isolated from the host application — and receives a single injected `persephone` bridge object.
+A board is a small web app stored in any folder on your machine — it is identified by a `board-manifest.json` file in the board's root folder. When you open a board in Persephone, the page renders in a sandboxed context — isolated from the host application — and receives a single injected `persephone` bridge object.
 
 The three parts:
 
@@ -73,7 +73,7 @@ The board opens immediately after creation.
 
 ### 3. Edit and reload
 
-Edit `index.html`, `app.js`, or any `.js`/`.css` in the board folder and the board reloads automatically (debounced ~0.5s). The **Reload** button in the in-board toolbar forces a remount when you want one. Data/state files a board writes (`.json`, etc.) and `ui.log` do **not** trigger a reload, so a board that persists its own state never remounts itself.
+Boards do **not** reload automatically when files change. To apply edits to `index.html`, `app.js`, or any `.js`/`.css`, click the **Reload** button in the in-board toolbar. AI agents editing board files should call the **`board_refresh`** MCP tool and then re-run `browser_snapshot` to see the updated board.
 
 ---
 
@@ -85,9 +85,8 @@ Every open board displays a thin toolbar above the board's content area. The too
 |---------|-------------|
 | **File Explorer** (folder icon) | Open the File Explorer panel rooted at the board's parent folder. |
 | **Board path label** | Shows the full path to the board's folder. When the board was opened from a Boards panel, clicking the path opens a **boards-switcher popover** listing all trusted boards under the same Explorer root — click any board to switch to it in the current tab without spawning a new one. When the board was opened standalone (e.g. from the Tools & Editors tab or via a script), the path label is non-interactive. |
-| **Reload** (refresh icon) | Reload the board's webview — equivalent to a full page remount. Useful after structural changes (template changes, new files added) or when the auto-reload did not fire. |
-| **Error dot** | A red dot appears when the board's `ui.log` contains errors. |
-| **Show log** (log icon) | Open the board's `ui.log` file in a new tab so you can inspect errors. |
+| **Reload** (refresh icon) | Remount the board to pick up edited files (`index.html`, `app.js`, CSS, etc.). |
+| **Show log** (log icon) | Open the board's `ui.log` file in a new tab so you can inspect errors and the board load line. |
 
 The boards-switcher popover shows the same tree as the **Boards** Explorer-sibling panel — trusted boards under the current Explorer root, organized as a folder tree with VSCode-style single-child folder compaction.
 
@@ -248,7 +247,7 @@ Place an `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set a cust
 
 ## Error log (`ui.log`)
 
-All board errors — script failures, bridge errors, and board load failures — are shown as a toast notification **and** appended to a `ui.log` file in the board folder. An on-board indicator opens `ui.log` when errors are present. Keep `catch` blocks in your board JS calling `persephone.notify(message, "error")` so failures are captured there.
+All board errors — script failures, bridge errors, and board load failures — are shown as a toast notification **and** appended to a `ui.log` file in the board folder. Click **Show log** (log icon) in the in-board toolbar at any time to open `ui.log`. The log is reset to a single `board loaded` line on every board open or Reload, so it reflects only the current board lifetime — it never accumulates across sessions. Keep `catch` blocks in your board JS calling `persephone.notify(message, "error")` so failures are captured there.
 
 ---
 
@@ -303,7 +302,7 @@ Boards are designed to be authored by an AI agent. The key workflow:
 1. **Agent creates or opens a board.** Use the MCP tools `create_board` / `open_board`, or the scripting API `app.boards.createBoard()` / `app.boards.openBoard()`. Boards created this way are auto-trusted — no trust prompt blocks the agent.
 2. **Agent discovers the board** via `list_pages` — boards appear with `editor: "board-view"`, a `selectedBoard` field, and (for standalone boards) a `boardRoot` field.
 3. **Agent reads `CLAUDE.md`** inside the board folder — the per-board authoring guide that documents the bridge API, the theme contract, the recommended-components catalog, and conventions. The MCP `read_guide("boards")` tool loads the complete board authoring guide.
-4. **Agent edits files** and observes the live reload: editing `index.html`, `app.js`, or any `.js`/`.css` triggers an automatic reload; the **Reload** button in the in-board toolbar forces a remount.
+4. **Agent edits files** and then calls **`board_refresh`** (MCP tool) to reload the board and pick up the changes. Boards do not reload automatically — `board_refresh` is the agent's equivalent of the toolbar **Reload** button. After calling it, run `browser_snapshot` to see the updated board.
 5. **Agent tests the board** using the `browser_*` MCP tools (require [browser interaction enabled in MCP settings](./mcp-setup.md)):
 
 ```
@@ -326,6 +325,7 @@ browser_evaluate({ pageId: "abc", expression: "document.querySelector('#result')
 |------|-----------|-------------|
 | `create_board` | `name`, `dir`, `demo?` | Create a blank board (or demo board when `demo: true`) in `<dir>/<name>`. Returns `{ boardRoot }`. Auto-trusted. |
 | `open_board` | `path` | Open an existing board by its root folder path. Returns `{ opened: path }`. |
+| `board_refresh` | `pageId?` | Reload a board to pick up edited files. Omit `pageId` to reload the active board. Returns `{ refreshed: true, pageId }`. |
 | `read_guide("boards")` | — | Load the full board authoring reference guide. |
 
 ---

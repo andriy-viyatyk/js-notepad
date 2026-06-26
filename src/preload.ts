@@ -32,6 +32,21 @@ const electronHandler = {
         ) {
             ipcRenderer.once(channel, (_event, ...args) => func(...args));
         },
+        // Ports-aware listener (EPIC-037 / US-771). The `on`/`once` wrappers above
+        // drop the IpcRendererEvent, so a transferred MessagePort (which arrives on
+        // `event.ports`) is unreachable through them. `onPort` surfaces the ports
+        // explicitly — used to receive a per-board bridge port from main.
+        onPort(
+            channel: EventEndpoint,
+            func: (payload: unknown, ports: readonly MessagePort[]) => void
+        ) {
+            const subscription = (event: IpcRendererEvent, payload: unknown) =>
+                func(payload, event.ports);
+            ipcRenderer.on(channel, subscription);
+            return () => {
+                ipcRenderer.removeListener(channel, subscription);
+            };
+        },
     },
     getPathForFile: (file: File): string => {
         return webUtils.getPathForFile(file);
@@ -41,15 +56,14 @@ const electronHandler = {
 window.electron = electronHandler;
 
 // Expose webview preload path for browser tabs.
-// __dirname points to the build output directory where both preload files live.
+// __dirname points to the build output directory where the preload files live.
 (window as Window & { webviewPreloadUrl?: string }).webviewPreloadUrl = pathToFileURL(
     path.join(__dirname, "preload-webview.js"),
 ).toString();
 
-// Expose board preload path for board webviews (EPIC-034 / US-723).
-(window as Window & { boardPreloadUrl?: string }).boardPreloadUrl = pathToFileURL(
-    path.join(__dirname, "preload-board.js"),
-).toString();
+// Boards no longer use a webview preload (EPIC-037 / US-771) — the persephone
+// bridge is a shim injected into board HTML by the board:// handler, talking to
+// main over a per-board MessagePort. No boardPreloadUrl is needed.
 
 window.MonacoEnvironment = {
   getWorkerUrl: function (_moduleId, label) {

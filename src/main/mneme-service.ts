@@ -43,7 +43,11 @@ function log(line: string): void {
 }
 
 export function getMnemeUrl(): string {
-    return `http://localhost:${currentPort}/mcp`;
+    // Use 127.0.0.1, not "localhost" — mneme binds IPv4 loopback only. On Windows
+    // Chromium resolves "localhost" to ::1 (IPv6) first and, finding nothing there,
+    // hangs the renderer's fetch-based MCP transport until timeout instead of failing
+    // over to IPv4. Addressing the bound IPv4 directly avoids the stall entirely.
+    return `http://127.0.0.1:${currentPort}/mcp`;
 }
 
 export function isMnemeRunning(): boolean {

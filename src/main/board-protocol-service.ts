@@ -1,42 +1,57 @@
 import { net, session } from "electron";
+import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { BoardThemePalette } from "../ipc/board-bridge-channels";
 
 /**
- * `board://` scheme handler (EPIC-034 / US-723) — serves a board's own files
- * in-process (no HTTP server / port).
+ * `board://` scheme handler (EPIC-034 / US-723; host-routed in EPIC-037 / US-770) —
+ * serves a board's own files in-process (no HTTP server / port).
  *
- * The scheme is declared privileged once at startup (`main-setup.ts`), but the
- * `protocol.handle("board", …)` is registered **per board**, on that board's own
- * ephemeral `board-<uuid>` session partition, closed over the board's root folder
- * (`boardRoots`). Because the handler is partition-scoped, a request carries **no
- * board id in the URL** — clean addressing, nothing to leak or spoof.
+ * The scheme is declared privileged once at startup (`main-setup.ts`), and the
+ * `protocol.handle("board", …)` is registered **once** on the host renderer's shared
+ * session (`initBoardProtocol`, called at startup with `appPartition`). A board loads
+ * a **distinct cross-origin** `board://<host>` where `host` is a stable hash of the
+ * board root (`boardRootToHost`); the handler routes each request by its URL host to
+ * the matching board root (`hostToRoot`). Per-board isolation comes from the distinct
+ * cross-origin origin + `nodeIntegrationInSubFrames:false` + the served CSP — not from
+ * a per-board session partition.
  *
  * No path-traversal guard, by design (US-723 C1): a board is trusted local code
- * that can do anything via `execute()` anyway, so restricting webview file reads
+ * that can do anything via `execute()` anyway, so restricting board file reads
  * would protect nothing. The only network boundary is the CSP (below), which
  * forbids remote.
  */
 
-/** Per-board-partition → absolute board root folder. Also the seam US-724 reuses
- *  to resolve an `execute()` `cwd` from the calling webview's session partition. */
-const boardRoots = new Map<string, string>();
+/** board:// URL host → absolute board root folder. Populated by `registerBoard` on
+ *  board open, dropped by `unregisterBoard` on unmount/close. */
+const hostToRoot = new Map<string, string>();
 
-/** Board session → absolute board root. The board webview's IPC `event.sender.session`
- *  IS the `session.fromPartition(partition)` instance registered here, so US-724's
- *  bridge resolves a board's `execute()` `cwd` from the caller's session — with no
- *  board id in the message. */
-const sessionToRoot = new Map<Electron.Session, string>();
+/** board:// URL host → its design + handshake context. The color palette + static
+ *  metric tokens are injected as a `:root{--p-*}` `<style>` at serve time (parse-time
+ *  theming → no first-paint flash); `hostOrigin` (the host renderer's origin) is baked
+ *  into `window.__persephoneBoot` so the shim can validate the port handshake (US-771
+ *  C2). Theme is app-global; each host registers with the then-current palette and
+ *  `updateAllBoardThemes` refreshes them on a theme switch. */
+interface BoardDesign {
+    theme: BoardThemePalette;
+    tokens: Record<string, string>;
+    hostOrigin: string;
+}
+const hostToDesign = new Map<string, BoardDesign>();
 
-/** Board session → its design context (US-725): the initial color palette + the
- *  static metric tokens. Stored at registration so the one `getContext` lookup
- *  returns both. Theme is app-global, but keying per-session is symmetric with
- *  `sessionToRoot` — each board registers with the then-current palette. */
-const sessionToDesign = new Map<
-    Electron.Session,
-    { theme: BoardThemePalette; tokens: Record<string, string> }
->();
+/** Stable, DNS-label-safe `board://` host for a board root: a hash of the normalized
+ *  path. Same root → same host → same `board://<host>` origin (so per-board storage
+ *  is stable within an app run). The leading letter keeps it an unambiguous DNS label. */
+export function boardRootToHost(boardRoot: string): string {
+    const norm =
+        process.platform === "win32"
+            ? path.resolve(boardRoot).toLowerCase()
+            : path.resolve(boardRoot);
+    const hash = crypto.createHash("sha256").update(norm).digest("hex").slice(0, 20);
+    return `b${hash}`;
+}
 
 /** CSP for board HTML documents: local origin only; inline scripts/styles allowed
  *  (author convenience, US-723 C2); remote forbidden. Set as a response header. */
@@ -53,10 +68,8 @@ const BOARD_CSP = [
 /** Build a `:root{…}` `<style>` defining the board's `--p-*` color palette + static
  *  metric tokens. Injected into served HTML so the variables are defined at PARSE
  *  time — the first paint is themed and a board's light CSS fallbacks (e.g.
- *  `var(--p-bg, #fff)`) never flash before the preload's JS application runs. */
-function buildThemeStyle(
-    design: { theme: BoardThemePalette; tokens: Record<string, string> } | undefined,
-): string {
+ *  `var(--p-bg, #fff)`) never flash before the shim's JS application runs. */
+function buildThemeStyle(design: BoardDesign | undefined): string {
     if (!design) return "";
     const decls: string[] = [];
     for (const [k, v] of Object.entries(design.theme.vars)) decls.push(`${k}:${v};`);
@@ -65,22 +78,68 @@ function buildThemeStyle(
     return `<style id="persephone-theme-init">:root{${decls.join("")}}</style>`;
 }
 
-/** Insert `styleTag` as early as possible in the document so the `--p-*` vars are
- *  defined before any board stylesheet resolves: right after the opening `<head>`,
- *  else after `<html …>`, else prepended. */
-function injectThemeStyle(html: string, styleTag: string): string {
-    if (!styleTag) return html;
+/** Escape a JSON string for safe embedding inside an inline `<script>` (prevent a
+ *  value containing `</script>` from terminating the element early). */
+function safeJson(value: unknown): string {
+    return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+/** Build the `window.__persephoneBoot` `<script>` — the board context read
+ *  synchronously by the shim before the first author script (replaces the old
+ *  `getContext` IPC, US-771): initial theme/tokens + the host renderer origin for
+ *  the C2 handshake check. */
+function buildBootScript(design: BoardDesign | undefined): string {
+    const boot = {
+        theme: design?.theme ?? { id: "", isDark: true, vars: {} },
+        tokens: design?.tokens ?? {},
+        hostOrigin: design?.hostOrigin ?? "",
+    };
+    return `<script id="persephone-boot">window.__persephoneBoot=${safeJson(boot)};</script>`;
+}
+
+/** The bridge shim source (`board-shim.js`, built beside `main.js`), read once and
+ *  cached. Inlined into served HTML so `window.persephone` exists synchronously,
+ *  before the first author script (US-771). */
+let shimSource: string | null = null;
+function getShimSource(): string {
+    if (shimSource === null) {
+        try {
+            shimSource = fs.readFileSync(path.join(__dirname, "board-shim.js"), "utf8");
+        } catch (e) {
+            console.error("board:// failed to load board-shim.js:", e);
+            shimSource = "";
+        }
+    }
+    return shimSource;
+}
+
+function buildShimScript(): string {
+    const src = getShimSource();
+    if (!src) return "";
+    // Neutralize any `</script` terminator that could appear inside a string/regex
+    // literal in the shim, so it can't close the injected element early. NOTE: this
+    // is raw JS source, not JSON — a blanket `<` escape (as in safeJson) would
+    // corrupt comparison operators (`i < n`); only the closing-tag sequence is escaped.
+    const safe = src.replace(/<\/(script)/gi, "<\\/$1");
+    return `<script id="persephone-shim">${safe}</script>`;
+}
+
+/** Insert `fragment` as early as possible in the document so the `--p-*` vars + the
+ *  bridge shim are present before any board stylesheet/script resolves: right after
+ *  the opening `<head>`, else after `<html …>`, else prepended. */
+function injectHead(html: string, fragment: string): string {
+    if (!fragment) return html;
     const headOpen = html.match(/<head[^>]*>/i);
     if (headOpen && headOpen.index !== undefined) {
         const idx = headOpen.index + headOpen[0].length;
-        return html.slice(0, idx) + styleTag + html.slice(idx);
+        return html.slice(0, idx) + fragment + html.slice(idx);
     }
     const htmlOpen = html.match(/<html[^>]*>/i);
     if (htmlOpen && htmlOpen.index !== undefined) {
         const idx = htmlOpen.index + htmlOpen[0].length;
-        return html.slice(0, idx) + styleTag + html.slice(idx);
+        return html.slice(0, idx) + fragment + html.slice(idx);
     }
-    return styleTag + html;
+    return fragment + html;
 }
 
 function boardMimeType(file: string): string {
@@ -126,11 +185,27 @@ function boardMimeType(file: string): string {
     }
 }
 
-async function serveBoardFile(partition: string, url: string): Promise<Response> {
-    const root = boardRoots.get(partition);
+/** Log a missing board **document** to the board's `ui.log` (EPIC-037 / US-774 C11,
+ *  mode A). A `board://` handler that returns a 404 `Response` is a *completed* load to
+ *  Electron, so `did-fail-load` never fires for a renamed/missing `index.html` — log it
+ *  here so the failure is reported immediately and precisely (the on-board log indicator
+ *  lights; the mode-D watchdog still toasts). Never throws into the handler. */
+function logBoardDocMissing(root: string, rel: string, reason: string): void {
+    try {
+        fs.appendFileSync(
+            path.join(root, "ui.log"),
+            `[${new Date().toISOString()}] [error] board document not found: ${rel} (${reason})\n`,
+        );
+    } catch {
+        // Logging must never throw into the handler.
+    }
+}
+
+async function serveBoardFile(url: string): Promise<Response> {
+    const { host, pathname } = new URL(url);
+    const root = hostToRoot.get(host);
     if (!root) return new Response("No board registered", { status: 404 });
 
-    const { pathname } = new URL(url);
     // Empty path → the board's entry point. No traversal guard (US-723 C1).
     const rel = decodeURIComponent(pathname).replace(/^\/+/, "") || "index.html";
     const resolved = path.resolve(root, rel);
@@ -142,9 +217,11 @@ async function serveBoardFile(partition: string, url: string): Promise<Response>
             bypassCustomProtocolHandlers: true,
         });
     } catch {
+        if (mime === "text/html") logBoardDocMissing(root, rel, "not found");
         return new Response("Not found", { status: 404 });
     }
     if (!response.ok) {
+        if (mime === "text/html") logBoardDocMissing(root, rel, `status ${response.status}`);
         return new Response("Not found", { status: response.status || 404 });
     }
 
@@ -153,14 +230,14 @@ async function serveBoardFile(partition: string, url: string): Promise<Response>
     headers.set("Cache-Control", "no-store"); // boards are local; keeps edit→reload instant
     if (mime === "text/html") {
         headers.set("Content-Security-Policy", BOARD_CSP);
-        // Inject the resolved `--p-*` palette + tokens as a `:root{…}` <style> in the
-        // document head so the first paint is already themed — boards with light CSS
-        // fallbacks no longer flash white before the preload's JS sets the vars. The
-        // preload still applies them (JS mirror + live theme switches); the inline
-        // values it later sets win over this stylesheet rule, so there's no conflict.
+        // Inject, in order, into <head> (before any author script/stylesheet):
+        //   1. the `--p-*` palette `<style>` → first paint is themed (no white flash);
+        //   2. `window.__persephoneBoot` → initial theme/tokens + host origin (US-771);
+        //   3. the bridge shim → defines `window.persephone` synchronously.
         const html = await response.text();
-        const design = sessionToDesign.get(session.fromPartition(partition));
-        return new Response(injectThemeStyle(html, buildThemeStyle(design)), {
+        const design = hostToDesign.get(host);
+        const headFragment = buildThemeStyle(design) + buildBootScript(design) + buildShimScript();
+        return new Response(injectHead(html, headFragment), {
             status: response.status,
             statusText: response.statusText,
             headers,
@@ -173,67 +250,53 @@ async function serveBoardFile(partition: string, url: string): Promise<Response>
     });
 }
 
-/** Register the `board://` handler on a board's dedicated session partition,
- *  closed over its root folder. Must be called before the webview navigates. */
-export function registerBoardProtocol(
-    partition: string,
+/** Register the single `board://` handler on the host renderer's shared session.
+ *  Call once at startup (the main window uses `appPartition`). The handler routes
+ *  every request by its URL host → board root (`hostToRoot`); the registry is
+ *  populated by `registerBoard`. */
+export function initBoardProtocol(partition: string): void {
+    const ses = session.fromPartition(partition);
+    ses.protocol.handle("board", (request) => serveBoardFile(request.url));
+}
+
+/** Map a board into the host-routed registry; returns its stable `board://` host.
+ *  Idempotent — re-registering the same root refreshes its design and returns the
+ *  same host. The handler itself is already registered (`initBoardProtocol`).
+ *  `hostOrigin` is the calling renderer's origin, baked into the shim for the C2
+ *  handshake check (US-771). */
+export function registerBoard(
     boardRoot: string,
     theme: BoardThemePalette,
     tokens: Record<string, string>,
-): void {
+    hostOrigin: string,
+): string {
     const root = path.resolve(boardRoot);
-    boardRoots.set(partition, root);
-    const ses = session.fromPartition(partition);
-    sessionToRoot.set(ses, root);
-    sessionToDesign.set(ses, { theme, tokens });
-    ses.protocol.handle("board", (request) => serveBoardFile(partition, request.url));
+    const host = boardRootToHost(root);
+    hostToRoot.set(host, root);
+    hostToDesign.set(host, { theme, tokens, hostOrigin });
+    return host;
 }
 
-/** Tear down a board's handler + clear its ephemeral session (on board switch/close). */
-export async function unregisterBoardProtocol(partition: string): Promise<void> {
-    const ses = session.fromPartition(partition);
-    try {
-        ses.protocol.unhandle("board");
-    } catch {
-        // Handler already gone — fine.
-    }
-    sessionToRoot.delete(ses);
-    sessionToDesign.delete(ses);
-    boardRoots.delete(partition);
-    try {
-        await ses.clearStorageData();
-    } catch {
-        // Best-effort cleanup of the ephemeral session.
-    }
+/** Drop a board from the registry on unmount/close. No session teardown — the host
+ *  session is shared and long-lived (storage handling is US-772 / EPIC-037 C12). */
+export function unregisterBoard(host: string): void {
+    hostToRoot.delete(host);
+    hostToDesign.delete(host);
 }
 
-/** The absolute board root for a partition, or undefined. Used by US-724 to
- *  resolve an `execute()` `cwd` from the calling webview's session. */
-export function getBoardRoot(partition: string): string | undefined {
-    return boardRoots.get(partition);
+/** Resolve a `board://` host → its absolute board root. Used by the per-board port
+ *  bridge (US-771) to default `execute()` cwd + relative file paths. */
+export function getBoardRootForHost(host: string): string | undefined {
+    return hostToRoot.get(host);
 }
 
-/** The absolute board root for a board webview's session — resolved by US-724's
- *  bridge from `event.sender.session` (no board id in the IPC message). */
-export function getBoardRootForSession(ses: Electron.Session): string | undefined {
-    return sessionToRoot.get(ses);
-}
-
-/** The design context (color palette + metric tokens) for a board webview's session,
- *  or undefined. Used by US-725's bridge to answer `getContext`. */
-export function getBoardDesignForSession(
-    ses: Electron.Session,
-): { theme: BoardThemePalette; tokens: Record<string, string> } | undefined {
-    return sessionToDesign.get(ses);
-}
-
-/** Refresh the stored palette for every live board session on a host theme switch.
- *  The theme is app-global, so all sessions get the same palette. Without this, the
- *  design stored at registration goes stale and a guest that reloads after a switch
- *  paints the old theme (getContext returns the registration-time palette). Metrics
+/** Refresh the stored palette for every live board on a host theme switch. The theme
+ *  is app-global, so all boards get the same palette. Without this, the design stored
+ *  at registration goes stale and a board that reloads after a switch paints the old
+ *  theme (the serve-time injection would use the registration-time palette). Metrics
  *  are theme-independent, so only the color palette changes. */
 export function updateAllBoardThemes(theme: BoardThemePalette): void {
-    for (const design of sessionToDesign.values()) {
+    for (const design of hostToDesign.values()) {
         design.theme = theme;
     }
 }

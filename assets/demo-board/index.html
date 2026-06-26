@@ -31,7 +31,7 @@
             <p>
                 A <strong>Board</strong> is a small <strong>local application</strong> whose UI you own as a plain HTML page,
                 backed by scripts you write in any language. Persephone hosts the page in a
-                <strong>sandboxed webview</strong> and injects a single bridge object,
+                <strong>locked-down, cross-origin <code>&lt;iframe&gt;</code></strong> and injects a single bridge object,
                 <code>window.persephone</code>. Persephone owns no board state and no board UI — it just
                 wires the bridge and shows the page. A board lives in its own folder anywhere on
                 disk — recognized by a <code>board-manifest.json</code> at its root. A board can be
@@ -41,7 +41,7 @@
 
             <h2>How it works — frontend + backend + a channel</h2>
             <ul>
-                <li><strong>Frontend</strong> — <code>index.html</code> + <code>app.js</code> (+ any CSS/assets). Owns all UI and all state. This is what renders in the webview.</li>
+                <li><strong>Frontend</strong> — <code>index.html</code> + <code>app.js</code> (+ any CSS/assets). Owns all UI and all state. This is what renders in the iframe.</li>
                 <li><strong>Backend</strong> — scripts under <code>scripts/</code> (<code>.js</code>, <code>.py</code>, <code>.ps1</code>, <code>.sh</code>, …). They run as real OS processes with your privileges and talk to the page over stdout.</li>
                 <li><strong>Channel</strong> — <code>persephone.execute(commandLine)</code>. The page calls a script, the script prints to stdout, the page reads it and renders. That's the whole loop.</li>
             </ul>
@@ -60,12 +60,13 @@
             </div>
 
             <h2>Runtime environment</h2>
-            <p class="muted">Live proof of the board sandbox + bridge. These checks run from <code>app.js</code> when the page loads:</p>
+            <p class="muted">Live proof of the board isolation + bridge. These checks run from <code>app.js</code> when the page loads:</p>
             <ul id="checks" class="checks"></ul>
             <div class="note">
-                The webview runs with <code>sandbox</code> + <code>contextIsolation</code> on and <code>nodeIntegration</code> off,
-                behind a CSP that forbids remote network. The board cannot reach Node, the filesystem, or the internet directly —
-                everything privileged goes through <code>persephone.execute()</code> (your scripts) or the integration tier.
+                The board runs in a cross-origin <code>&lt;iframe&gt;</code> with <code>nodeIntegrationInSubFrames</code> off,
+                isolated from the host by the Same-Origin Policy, behind a CSP that forbids remote network. The board cannot
+                reach Node, the filesystem, the host window, or the internet directly — everything privileged goes through
+                <code>persephone.execute()</code> (your scripts) or the integration tier.
             </div>
         </section>
 
@@ -135,8 +136,8 @@
             <h2>Anatomy of a board</h2>
             <ul>
                 <li><code>board-manifest.json</code> — the board-identity file (<code>schemaVersion: 1</code> + optional metadata: name, description, author, repository). Its presence is what marks the folder as a board. Do not add trust flags or behavior fields.</li>
-                <li><code>index.html</code> — your page. Edit it and the board reloads automatically.</li>
-                <li><code>app.js</code> / <code>style.css</code> — your logic and styling (reference relatively, e.g. <code>./app.js</code>). Editing any <code>.js</code>/<code>.css</code> in the board folder reloads automatically too; the <strong>Refresh</strong> button in the Boards side panel forces a remount if you need one.</li>
+                <li><code>index.html</code> — your page. Edit it, then hit <strong>Reload</strong> in the board toolbar to apply.</li>
+                <li><code>app.js</code> / <code>style.css</code> — your logic and styling (reference relatively, e.g. <code>./app.js</code>). Boards don't auto-reload — use the <strong>Reload</strong> button in the board toolbar (or the <code>board_refresh</code> MCP tool when an agent is driving) to apply edits.</li>
                 <li><code>scripts/</code> — backend scripts in any language, invoked via <code>persephone.execute("scripts/thing.js")</code>. <code>cwd</code> defaults to the board folder, so relative paths just work.</li>
             </ul>
 
@@ -244,7 +245,7 @@
                 <li>Leave the <strong>Port</strong> at <code>7865</code> (changing it requires toggling the server off and on).</li>
             </ul>
             <p class="muted">
-                The server listens on <code>http://localhost:7865/mcp</code>. A <strong>Copy Config</strong> button there
+                The server listens on <code>http://127.0.0.1:7865/mcp</code>. A <strong>Copy Config</strong> button there
                 gives you the ready-to-paste snippet below.
             </p>
 
@@ -254,7 +255,7 @@
   "mcpServers": {
     "persephone": {
       "type": "http",
-      "url": "http://localhost:7865/mcp"
+      "url": "http://127.0.0.1:7865/mcp"
     }
   }
 }</pre>
@@ -283,8 +284,8 @@
 
             <h2>Tips</h2>
             <ul>
-                <li>Editing <code>index.html</code>, <code>app.js</code>, or any <code>.js</code>/<code>.css</code> reloads the board automatically (debounced ~0.5s); the <strong>Refresh</strong> button in the Boards side panel forces a remount. Data/state files a board writes (<code>.json</code>, etc.) and <code>ui.log</code> do not trigger a reload.</li>
-                <li>Failures reported via <code>persephone.notify(msg, "error")</code> are toasted <em>and</em> appended to the board's <code>ui.log</code> — check there first when a board misbehaves.</li>
+                <li>Boards don't auto-reload — after editing <code>index.html</code>, <code>app.js</code>, or any <code>.js</code>/<code>.css</code>, hit <strong>Reload</strong> in the board toolbar (agents use the <code>board_refresh</code> MCP tool) to apply changes.</li>
+                <li>Failures reported via <code>persephone.notify(msg, "error")</code> are toasted <em>and</em> appended to the board's <code>ui.log</code> (open it with <strong>Show-log</strong> in the toolbar) — check there first when a board misbehaves. Load failures, CSP violations, and uncaught errors land there automatically; the log starts fresh on each load.</li>
             </ul>
         </section>
     </main>

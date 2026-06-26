@@ -4,14 +4,21 @@ import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import type { BoardEditorModel } from "./BoardEditorModel";
 
 /**
- * `IBrowserTarget` adapter for a Board (EPIC-034 / US-730), letting the
- * existing `browser_*` MCP automation tools drive a board's webview.
+ * `IBrowserTarget` adapter for a Board (EPIC-034 / US-730; re-homed onto the
+ * `<iframe>` in EPIC-037 / US-773), letting the existing `browser_*` MCP automation
+ * tools drive a board's frame.
  *
- * A board is a single fixed `board:///index.html` document with no tabs and no
- * navigation, so only the page-interaction surface is real: `cdp()` (snapshot /
- * click / type / evaluate over the board's registered webContents), `focusWebview`
- * / `insertText` (the live `<webview>` element), and `reload`. Navigation and tab
- * methods throw a clear error — the dispatcher turns it into a JSON-RPC error.
+ * A board is a single fixed `board://<host>/index.html` document with no tabs and no
+ * navigation, so only the page-interaction surface is real:
+ *  • `cdp()` — a session keyed `${id}/${BOARD_CDP_TAB}` that main routes to the board
+ *    FRAME (not the host's own renderer) — snapshot / click / type / evaluate;
+ *  • `focusWebview()` — focus the `<iframe>` element so keyboard/input reaches it;
+ *  • `insertText()` — insert at the focused element via the board-frame CDP session
+ *    (`document.execCommand`), since the cross-origin frame can't be touched directly;
+ *  • `reload()` — remount via `reloadBoard()` (the toolbar Reload / `board_refresh` path).
+ * Navigation and tab methods throw a clear error — the dispatcher turns it into a
+ * JSON-RPC error. The whole iframe-vs-webContents difference stays below this seam
+ * (the agent only ever passes `pageId`).
  */
 const NAV_MSG =
     "Navigation is not supported on board pages — a board is a single fixed document. " +
@@ -30,15 +37,16 @@ export class BoardTargetModel implements IBrowserTarget {
     }
 
     focusWebview(): void {
-        this.model.currentWebview?.focus();
+        // Focus the iframe element so keyboard / synthetic input is routed to the board
+        // frame (its contentWindow is cross-origin, so we focus the element, not it).
+        this.model.currentIframe?.focus();
     }
 
     async insertText(text: string): Promise<void> {
-        const wv = this.model.currentWebview;
-        if (wv) {
-            wv.focus();
-            await wv.insertText(text);
-        }
+        // The board frame is cross-origin — the host renderer can't reach its DOM (SOP).
+        // Insert at the focused element via the board-frame CDP session instead. The
+        // caller (input.ts) has already focused the target element via the same session.
+        await this.cdp().evaluate(`document.execCommand('insertText', false, ${JSON.stringify(text)})`);
     }
 
     navigate(): void {
@@ -51,7 +59,9 @@ export class BoardTargetModel implements IBrowserTarget {
         throw new Error(NAV_MSG);
     }
     reload(): void {
-        this.model.currentWebview?.reload();
+        // Soft reload = remount the board frame (the existing toolbar Reload /
+        // board_refresh path). Re-handshakes the bridge + re-registers CDP on load.
+        this.model.reloadBoard();
     }
 
     get tabs(): ReadonlyArray<ITargetTab> {

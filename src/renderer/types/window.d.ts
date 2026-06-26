@@ -20,6 +20,12 @@ declare global {
                     channel: Endpoint | `${Endpoint}_${number}`,
                     func: (...args: unknown[]) => void
                 ): void;
+                /** Ports-aware listener (EPIC-037 / US-771) — surfaces a transferred
+                 *  MessagePort (on `event.ports`) that `on`/`once` drop. */
+                onPort(
+                    channel: EventEndpoint,
+                    func: (payload: unknown, ports: readonly MessagePort[]) => void
+                ): () => void;
             };
             getPathForFile(file: File): string;
         };

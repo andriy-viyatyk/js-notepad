@@ -1,7 +1,8 @@
 /**
  * Public `window.persephone` API — the contract a Board page programs against
- * (EPIC-034 / US-724). Injected by the board preload (`src/preload-board.ts`) into
- * the locked-down board webview; this is the ONLY Persephone surface a board sees.
+ * (EPIC-034 / US-724). Provided by the board bridge shim (`src/board-shim.ts`),
+ * inlined into the board iframe by the `board://` handler and talking to main over
+ * a per-board MessagePort; this is the ONLY Persephone surface a board sees.
  *
  * This file is the canonical author-facing reference. It is intentionally NOT under
  * `src/renderer/api/types/` (that folder is flat-copied into the Persephone *script*

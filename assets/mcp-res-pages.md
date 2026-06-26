@@ -79,7 +79,7 @@ browser_snapshot({ profileName: "work" })
 browser_click({ pageId: "abc", ref: "e12" })
 ```
 
-Targeting **focuses** (activates) the resolved page — the webview must be visible for input. A useful side effect: subsequent untargeted calls stick to the now-active page.
+Targeting **focuses** (activates) the resolved page — the page content must be visible for input. A useful side effect: subsequent untargeted calls stick to the now-active page.
 
 ### Opening a URL in a profile
 

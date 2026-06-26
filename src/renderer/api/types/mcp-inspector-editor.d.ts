@@ -6,7 +6,7 @@
  *
  * @example
  * const inspector = await page.asMcpInspector();
- * inspector.url = "http://localhost:7865/mcp";
+ * inspector.url = "http://127.0.0.1:7865/mcp";
  * await inspector.connect();
  * console.log(inspector.connectionStatus); // "connected"
  * console.log(inspector.serverName);       // "persephone"

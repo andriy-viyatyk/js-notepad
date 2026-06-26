@@ -10,7 +10,7 @@ import {
     VideoStreamSessionConfig,
     VideoStreamSessionResult,
 } from "../api-param-types";
-import { Api, CaptureRect, Endpoint, McpStatus, MnemeStatus } from "../api-types";
+import { Api, CaptureRect, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
 import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../git-ipc";
 import type { BoardThemePalette } from "../board-bridge-channels";
 
@@ -344,31 +344,56 @@ class ApiCalls implements Api {
         return executeOnce<Uint8Array>(Endpoint.capturePageRegion, rect);
     };
 
-    registerBoardProtocol = async (
-        partition: string,
+    // Map a board into the host-routed board:// registry; resolves to its stable
+    // board:// host. Must complete before the iframe navigates board://<host>.
+    registerBoard = async (
         boardRoot: string,
         theme: BoardThemePalette,
         tokens: Record<string, string>,
     ) => {
-        return executeOnce<void>(Endpoint.registerBoardProtocol, partition, boardRoot, theme, tokens);
+        return executeOnce<string>(Endpoint.registerBoard, boardRoot, theme, tokens);
     };
 
-    unregisterBoardProtocol = async (partition: string) => {
-        return executeOnce<void>(Endpoint.unregisterBoardProtocol, partition);
+    unregisterBoard = async (host: string) => {
+        return executeOnce<void>(Endpoint.unregisterBoard, host);
     };
 
-    // Refresh the palette stored for live board sessions on a theme switch, so a
-    // guest that reloads after the switch reads the current theme from getContext.
+    // Refresh the palette stored for live boards on a theme switch, so a board that
+    // reloads after the switch is served the current theme by the board:// handler.
+    // Main also fans the palette out to every live board port for a live retint.
     updateBoardTheme = async (theme: BoardThemePalette) => {
         return executeOnce<void>(Endpoint.updateBoardTheme, theme);
     };
 
-    registerBoardWebContents = async (boardId: string, webContentsId: number) => {
-        return executeOnce<void>(Endpoint.registerBoardWebContents, boardId, webContentsId);
+    // Ask main to mint a per-board MessagePort (EPIC-037 / US-771). The port arrives
+    // asynchronously on `eBoardPort` — subscribe via `onBoardPort` before requesting.
+    requestBoardPort = async (boardId: string, host: string) => {
+        return executeOnce<void>(Endpoint.requestBoardPort, boardId, host);
     };
 
-    unregisterBoardWebContents = async (boardId: string) => {
-        return executeOnce<void>(Endpoint.unregisterBoardWebContents, boardId);
+    disposeBoardPort = async (boardId: string) => {
+        return executeOnce<void>(Endpoint.disposeBoardPort, boardId);
+    };
+
+    // Receive the per-board MessagePort delivered by main. Uses the ports-aware
+    // preload listener (the typed event system drops `event.ports`). Returns an
+    // unsubscribe fn.
+    onBoardPort = (cb: (boardId: string, port: MessagePort) => void): (() => void) => {
+        return window.electron.ipcRenderer.onPort(EventEndpoint.eBoardPort, (payload, ports) => {
+            const boardId = (payload as { boardId: string } | undefined)?.boardId;
+            if (boardId && ports[0]) cb(boardId, ports[0]);
+        });
+    };
+
+    // Register a board's board:// frame for CDP automation (EPIC-037 / US-773). Main
+    // attaches the debugger to the calling window's webContents and routes commands to
+    // the board frame. Call on each iframe load (a reload recreates the frame).
+    registerBoardFrame = async (boardId: string, boardHost: string) => {
+        return executeOnce<void>(Endpoint.registerBoardFrame, boardId, boardHost);
+    };
+
+    unregisterBoardFrame = async (boardId: string) => {
+        return executeOnce<void>(Endpoint.unregisterBoardFrame, boardId);
     };
 }
 

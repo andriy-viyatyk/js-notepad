@@ -8,7 +8,6 @@ import { fpNormalizeForCompare } from "../../core/utils/file-path";
 import { Panel } from "../../uikit/Panel";
 import { IconButton } from "../../uikit/IconButton";
 import { Text } from "../../uikit/Text";
-import { Dot } from "../../uikit/Dot";
 import { Popover } from "../../uikit/Popover";
 import { RefreshIcon, LogIcon, NavPanelIcon } from "../../theme/icons";
 import { BoardsTree } from "./BoardsTree";
@@ -27,9 +26,8 @@ import type { BoardEditorModel } from "./BoardEditorModel";
 // =============================================================================
 
 export function BoardToolbar({ model }: { model: BoardEditorModel }) {
-    const { boardRoot, logHasErrors, explorerRoot } = model.state.use((s) => ({
+    const { boardRoot, explorerRoot } = model.state.use((s) => ({
         boardRoot: s.boardRoot,
-        logHasErrors: s.logHasErrors,
         explorerRoot: s.sourceLink?.explorerRoot,
     }));
 
@@ -109,7 +107,6 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
                 icon={<RefreshIcon width={14} height={14} />}
                 onClick={() => model.reloadBoard()}
             />
-            {logHasErrors && <Dot size="xs" color="error" />}
             <IconButton
                 name="board-toolbar-log"
                 size="sm"

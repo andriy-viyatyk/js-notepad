@@ -8,7 +8,28 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.8 (Upcoming)
 
-*No changes yet.*
+### Improvements
+
+- **Boards — faster open** — Boards now open nearly instantly. The previous rendering engine required a cold-start setup step on every open, producing noticeable latency before the board appeared. The new engine eliminates that overhead — the board content is visible on the first paint.
+
+- **Boards — folder no longer locked while open** — Opening a board no longer holds an OS lock on the board's folder. In previous versions, trying to delete or move a board folder while it was open in a tab would fail with "the file is in use by another process." The folder is now freely accessible while the board is open.
+
+- **Boards — manual reload replaces auto-reload; new `board_refresh` MCP tool** — Boards no longer reload automatically when you edit `index.html`, `app.js`, or CSS files. To apply edits, click the **Reload** button in the in-board toolbar. This eliminates the occasional "blink" (multiple rapid remounts) that appeared when opening a board, and avoids unexpected reloads for boards that are simply in use.
+
+  AI agents have a new MCP tool — **`board_refresh`** — to reload a board after editing its files:
+  ```
+  board_refresh({ pageId: "abc" })   // reload a specific board page
+  board_refresh({})                  // reload the active board
+  ```
+  Returns `{ refreshed: true, pageId }`. Use it after file edits, then re-run `browser_snapshot` to see the updated board.
+
+- **Boards — error indicator removed; log always accessible** — The red error dot that previously appeared on the in-board toolbar when `ui.log` contained errors has been removed. The **Show log** (log icon) button remains and opens `ui.log` at any time. The log file is now reset to a single `board loaded` line on every board open or Reload, so clicking Show log always opens a real, non-empty file — not an empty "deleted file" placeholder. Any errors that occur during a load are appended after that line.
+
+### Bug Fixes
+
+- **MCP / Mneme — connection stability on Windows** — Both the Persephone MCP server and the Mneme knowledge-base service now bind to `127.0.0.1` (IPv4 loopback) instead of the hostname `localhost`. On Windows, `localhost` often resolves to `::1` (IPv6) first; if nothing is listening on the IPv6 side the client stalls and eventually times out, causing the yellow Mneme status indicator and `-32001` connection-refused errors in the MCP Inspector. Using the literal IPv4 address eliminates the ambiguity.
+
+  **If you connect an external agent or AI client** (Claude Code, Claude Desktop, ChatGPT, Gemini CLI, …) to Persephone's MCP server or to Mneme, update the URL in your config from `http://localhost:<port>/mcp` to `http://127.0.0.1:<port>/mcp`. The **Copy URL** and **Copy Config** buttons in Settings already produce the correct `127.0.0.1` address.
 
 ---
 
@@ -30,8 +51,7 @@ Release notes and changelog for Persephone (formerly js-notepad).
   |---------|-------------|
   | File Explorer (folder icon) | Open the sidebar Explorer panel rooted at the board's parent folder. |
   | Board path label | The full path to the board. Click to open the **boards-switcher popover** (available when the board was opened from an Explorer Boards panel) — pick a sibling board to switch to it in the current tab. |
-  | Reload | Remount the board's webview. |
-  | Error dot | Red dot when `ui.log` has errors. |
+  | Reload | Remount the board to pick up edited files. |
   | Show log | Open `ui.log` in a new tab. |
 
   The Reload and Show-log buttons previously appeared on the (now-removed) Boards side-panel header — they are now always visible on the board itself.
@@ -40,7 +60,6 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
-- **Boards — live-reload on `app.js` / CSS edits** — A board now reloads automatically when you edit `app.js` or any `.js`/`.css` in its folder, not just `index.html` — so the edit → see-it-update loop just works without clicking **Reload**. Files a board writes (`.json`, etc.) and `ui.log` deliberately do **not** trigger a reload, so a board persisting its own state never remounts itself. **Reload** still forces a remount when you want one.
 - **Boards — read & write files from the page** — Two new bridge methods, `persephone.readFile(path, options?)` and `persephone.writeFile(path, data, options?)`, let a board read and write files directly — ideal for persisting small UI state (last filter, column layout) or loading a board-local config, without writing a backend script. Relative paths resolve against the board folder; text or base64 (binary) are both supported.
 - **Boards — open a link in a specific editor** — `persephone.openRawLink(href, { editor })` (and `app.openRawLink` in scripts) can now request a specific editor — for example, open a Markdown document in the rendered Markdown view instead of its source.
 - **Boards — easier component vendoring for agents** — The recommended-components catalog now carries a fetchable base URL, and `get_app_info` exposes the bundled resource paths, so an AI agent building a board can locate and download a recommended component's skin on any machine (skins are published on GitHub, not bundled in the installer).

@@ -457,6 +457,16 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         async ({ path, windowIndex }) =>
             toToolResult(await sendToRenderer("open_board", { path }, windowIndex)),
     );
+    server.tool(
+        "board_refresh",
+        "Reload a Persephone Board after you edit its files (HTML/JS/CSS). Boards do NOT auto-reload on file changes, so call this to apply your edits, then re-run browser_snapshot. Targets the board by its page id; omit pageId to reload the active board. Returns { refreshed: true, pageId }. Use list_pages / get_active_page to find a board's pageId.",
+        {
+            pageId: z.string().optional().describe("Page id of the board to reload (from list_pages / get_active_page). Omit to reload the active board."),
+            windowIndex: windowIndexParam,
+        },
+        async ({ pageId, windowIndex }) =>
+            toToolResult(await sendToRenderer("board_refresh", { pageId }, windowIndex)),
+    );
 
     // ── Browser automation tools (Playwright-compatible) ─────────────
 
@@ -866,7 +876,7 @@ export async function startMcpHttpServer(port?: number): Promise<void> {
 
         server.listen(currentPort, "127.0.0.1", () => {
             httpServer = server;
-            console.log(`MCP HTTP server started: http://localhost:${currentPort}/mcp`);
+            console.log(`MCP HTTP server started: http://127.0.0.1:${currentPort}/mcp`);
             broadcastMcpStatus();
             resolve();
         });
@@ -903,7 +913,10 @@ export function isMcpHttpServerRunning(): boolean {
 }
 
 export function getMcpUrl(): string {
-    return `http://localhost:${currentPort}/mcp`;
+    // 127.0.0.1, not "localhost": the server binds IPv4 loopback (see server.listen
+    // above), and an IPv6-first client resolving "localhost" to ::1 can stall instead
+    // of failing over. Addressing the bound IPv4 directly is unambiguous.
+    return `http://127.0.0.1:${currentPort}/mcp`;
 }
 
 export function getMcpClientCount(): number {

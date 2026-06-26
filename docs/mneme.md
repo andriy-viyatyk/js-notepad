@@ -14,7 +14,7 @@ Mneme is **off by default** and runs as a separate local service (`mneme.exe`) t
 2. Scroll to the **Mneme (vector memory)** section.
 3. Check **Enable Mneme**.
 
-Persephone launches the Mneme service and connects to it over loopback HTTP. A status line then shows **Running / Stopped**, the server URL (e.g. `http://localhost:7700/mcp`), and a **Copy URL** button.
+Persephone launches the Mneme service and connects to it over loopback HTTP. A status line then shows **Running / Stopped**, the server URL (e.g. `http://127.0.0.1:7700/mcp`), and a **Copy URL** button.
 
 - **Port** — defaults to `7700`. To change it, toggle Mneme **off**, edit the port, then toggle it back **on** (the port field is locked while Mneme is running).
 - When disabled (the default), the service is never launched and no indexing happens.
@@ -79,4 +79,4 @@ Mneme exposes a single **MCP** interface, so AI agents can read, search, and mai
 - **`search`** — text, vector, or hybrid.
 - **Views & management** — `tree`, `timeline`, `tags`, `add_root`, `reindex`, `status`, `model_update`, and more.
 
-The same running service serves Persephone *and* external agents at the same time. Point any MCP client (Claude Desktop, Claude Code, or the built-in [MCP Inspector](./editors.md#mcp-inspector)) at the Mneme URL shown in Settings (e.g. `http://localhost:7700/mcp`) — the Settings page also shows a ready-to-paste server entry for agent configuration. See [MCP Server Setup](./mcp-setup.md) for how to connect agents.
+The same running service serves Persephone *and* external agents at the same time. Point any MCP client (Claude Desktop, Claude Code, or the built-in [MCP Inspector](./editors.md#mcp-inspector)) at the Mneme URL shown in Settings (e.g. `http://127.0.0.1:7700/mcp`) — the Settings page also shows a ready-to-paste server entry for agent configuration. See [MCP Server Setup](./mcp-setup.md) for how to connect agents.

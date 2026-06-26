@@ -152,7 +152,7 @@ function McpInspectorView({ model }: McpInspectorViewProps) {
                         <Panel flex={1}>
                             <Input
                                 name="mcp-url"
-                                placeholder="http://localhost:7865/mcp"
+                                placeholder="http://127.0.0.1:7865/mcp"
                                 value={s.url}
                                 onChange={(v) => model.state.update((st) => { st.url = v; })}
                                 onKeyDown={handleKeyDown}

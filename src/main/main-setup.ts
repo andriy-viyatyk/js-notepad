@@ -13,7 +13,7 @@ import { initBrowserHandlers } from "./browser-service";
 import { initTorHandlers, torService } from "./tor-service";
 import { initWorkerHost } from "./worker-host";
 import { initCommandRunner, killAllCommands } from "./command-runner";
-import { initBoardBridge } from "./board-bridge";
+import { disposeAllBoardPorts } from "./board-bridge";
 import { startPipeServer, stopPipeServer } from "./pipe-server";
 import { stopMcpHttpServer } from "./mcp-http-server";
 import { shutdownMneme } from "./mneme-service";
@@ -58,7 +58,6 @@ export function setupMainProcess() {
     initTorHandlers();
     initWorkerHost();
     initCommandRunner();
-    initBoardBridge();
     downloadService.init();
 
     function registerAssetProtocol(partition: string) {
@@ -128,6 +127,10 @@ export function setupMainProcess() {
 
         registerAssetProtocol(appPartition);
         registerAssetProtocol(fileAccessPersistPartition);
+        // Single host-routed board:// handler on the main window's session (EPIC-037 /
+        // US-770) — boards load board://<host> iframes in this session, routed by host.
+        const { initBoardProtocol } = await import("./board-protocol-service");
+        initBoardProtocol(appPartition);
         openWindows.restoreState();
         setupTray();
         startPipeServer();
@@ -141,6 +144,7 @@ export function setupMainProcess() {
     app.on("will-quit", () => {
         torService.shutdown();
         killAllCommands();
+        disposeAllBoardPorts();
         stopPipeServer();
         stopMcpHttpServer();
         stopVideoStreamServer();

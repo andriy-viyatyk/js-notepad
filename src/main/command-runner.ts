@@ -3,15 +3,20 @@
  * `app.proc.execute()` (and, via US-724, the Board `persephone.execute()`).
  *
  * Spawns a child process from a command-line string and streams its
- * stdout / stderr / exit / error back to the originating WebContents over IPC,
- * keyed by `jobId`. The caller can write to stdin and kill the child by the
- * same `jobId`. Modeled on the async-worker host (`worker-host.ts`): a
- * `Map<jobId, …>` registry + `event.sender.send(channel, { jobId, … })`.
+ * stdout / stderr / exit / error back to the caller, keyed by `jobId`. The
+ * caller can write to stdin and kill the child by the same `jobId`. Modeled on
+ * the async-worker host (`worker-host.ts`): a `Map<jobId, …>` registry.
+ *
+ * The transport is abstracted behind a {@link JobSink} (EPIC-037 / US-771) so
+ * one spawn/stream/tree-kill engine serves two callers:
+ *  • the renderer `app` API + scripts, over IPC (`event.sender.send`) — a
+ *    `WebContents`-backed sink wired in `initCommandRunner`;
+ *  • a Board, over its per-board `MessagePort` — a port-backed sink supplied by
+ *    `board-bridge.ts` (the board iframe has no `WebContents` of its own).
  *
  * Boards are sandboxed (no Node), so the spawn must live here in main; every
- * front-end (renderer `app` API, board preload, optional MCP tool) reaches
- * this single owner over IPC, which keeps the process registry — and the
- * tree-kill added in US-720 — centralized.
+ * front-end reaches this single owner, which keeps the process registry — and
+ * the tree-kill added in US-720 — centralized.
  */
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { ipcMain, IpcMainEvent, WebContents } from "electron";
@@ -23,12 +28,22 @@ import {
     RunnerStdinMsg,
 } from "../ipc/runner-channels";
 
-/** Coalesce stdout/stderr bursts into one IPC message per ~tick to cut message count. */
+/** Coalesce stdout/stderr bursts into one message per ~tick to cut message count. */
 const COALESCE_MS = 16;
+
+/**
+ * A destination for a job's stream messages — abstracts the transport (IPC
+ * `WebContents` vs. a board `MessagePort`). `id` groups jobs by owner for reaping
+ * (a `WebContents` id stringified, or a board id).
+ */
+export interface JobSink {
+    readonly id: string;
+    send(channel: RunnerChannel, payload: unknown): void;
+}
 
 interface Job {
     proc: ChildProcessWithoutNullStreams;
-    sender: WebContents;
+    sink: JobSink;
     stdoutBuf: Buffer[];
     stderrBuf: Buffer[];
     flushTimer: ReturnType<typeof setTimeout> | null;
@@ -37,19 +52,26 @@ interface Job {
 /** Live jobs keyed by jobId (mirrors worker-host's `activeWorkers`). */
 const activeJobs = new Map<string, Job>();
 
-/** jobIds grouped by their owning WebContents id — for reaping on close/crash. */
-const jobsBySender = new Map<number, Set<string>>();
+/** jobIds grouped by their owning sink id — for reaping on close/crash/dispose. */
+const jobsBySink = new Map<string, Set<string>>();
 
-/** Per-sender reap wiring (so we attach lifecycle listeners exactly once). */
+/** Per-WebContents reap wiring (so we attach lifecycle listeners exactly once).
+ *  Only the IPC sink uses this; the board sink is reaped explicitly by the bridge. */
 const senderReapers = new Map<number, { wc: WebContents; reap: () => void }>();
 
-/** Send to a WebContents that may have been destroyed (window/webview closed). */
-function safeSend(sender: WebContents, channel: RunnerChannel, payload: unknown): void {
-    try {
-        if (!sender.isDestroyed()) sender.send(channel, payload);
-    } catch {
-        // sender gone — ignore
-    }
+/** Build a sink that streams to a `WebContents` over IPC (tolerates a destroyed
+ *  sender — window/webview closed). */
+function webContentsSink(sender: WebContents): JobSink {
+    return {
+        id: String(sender.id),
+        send(channel, payload) {
+            try {
+                if (!sender.isDestroyed()) sender.send(channel, payload);
+            } catch {
+                // sender gone — ignore
+            }
+        },
+    };
 }
 
 /**
@@ -86,16 +108,33 @@ function treeKill(proc: ChildProcessWithoutNullStreams, signal?: string): void {
     }
 }
 
-function indexJob(jobId: string, sender: WebContents): void {
-    let set = jobsBySender.get(sender.id);
+function indexJob(jobId: string, sinkId: string): void {
+    let set = jobsBySink.get(sinkId);
     if (!set) {
         set = new Set();
-        jobsBySender.set(sender.id, set);
+        jobsBySink.set(sinkId, set);
     }
     set.add(jobId);
 }
 
-/** Reap every job owned by a WebContents whose window/webview is gone or crashed. */
+/**
+ * Reap every job owned by a sink whose owner is gone (window/webview destroyed or
+ * crashed, or a board disposed). Public so the board bridge can reap a board's jobs
+ * by its board id on dispose.
+ */
+export function reapJobsBySinkId(sinkId: string): void {
+    const set = jobsBySink.get(sinkId);
+    if (set) {
+        for (const jobId of [...set]) {
+            const job = activeJobs.get(jobId);
+            if (job) treeKill(job.proc);
+            cleanup(jobId); // owner is gone — nobody will receive `exit`
+        }
+        jobsBySink.delete(sinkId);
+    }
+}
+
+/** Reap a WebContents sink and detach its lifecycle listeners. */
 function reapSender(senderId: number): void {
     const entry = senderReapers.get(senderId);
     if (entry) {
@@ -103,17 +142,10 @@ function reapSender(senderId: number): void {
         // 'destroyed' was once() — already removed if it fired.
         senderReapers.delete(senderId);
     }
-    const set = jobsBySender.get(senderId);
-    if (!set) return;
-    for (const jobId of [...set]) {
-        const job = activeJobs.get(jobId);
-        if (job) treeKill(job.proc);
-        cleanup(jobId); // sender is gone — nobody will receive `exit`
-    }
-    jobsBySender.delete(senderId);
+    reapJobsBySinkId(String(senderId));
 }
 
-/** Attach destroyed / crash reaping to a sender exactly once. */
+/** Attach destroyed / crash reaping to a WebContents sink exactly once. */
 function wireSenderReaping(sender: WebContents): void {
     if (senderReapers.has(sender.id)) return;
     const reap = () => reapSender(sender.id);
@@ -132,12 +164,12 @@ function flush(jobId: string): void {
     if (job.stdoutBuf.length) {
         const chunk = Buffer.concat(job.stdoutBuf);
         job.stdoutBuf = [];
-        safeSend(job.sender, RunnerChannel.stdout, { jobId, chunk });
+        job.sink.send(RunnerChannel.stdout, { jobId, chunk });
     }
     if (job.stderrBuf.length) {
         const chunk = Buffer.concat(job.stderrBuf);
         job.stderrBuf = [];
-        safeSend(job.sender, RunnerChannel.stderr, { jobId, chunk });
+        job.sink.send(RunnerChannel.stderr, { jobId, chunk });
     }
 }
 
@@ -151,16 +183,21 @@ function cleanup(jobId: string): void {
     const job = activeJobs.get(jobId);
     if (job?.flushTimer) clearTimeout(job.flushTimer);
     if (job) {
-        const set = jobsBySender.get(job.sender.id);
+        const set = jobsBySink.get(job.sink.id);
         if (set) {
             set.delete(jobId);
-            if (!set.size) jobsBySender.delete(job.sender.id);
+            if (!set.size) jobsBySink.delete(job.sink.id);
         }
     }
     activeJobs.delete(jobId);
 }
 
-function startJob(event: IpcMainEvent, msg: RunnerStartMsg): void {
+/**
+ * Spawn a child and stream it to `sink`. The transport-agnostic core shared by the
+ * IPC and board-port callers. `RunnerStartMsg.opts.cwd` defaults are the caller's
+ * responsibility (the board bridge fills the board folder).
+ */
+export function startJobTo(sink: JobSink, msg: RunnerStartMsg): void {
     const { jobId, command, opts } = msg;
 
     let proc: ChildProcessWithoutNullStreams;
@@ -178,7 +215,7 @@ function startJob(event: IpcMainEvent, msg: RunnerStartMsg): void {
         });
     } catch (err) {
         // Synchronous spawn failure (e.g. bad cwd).
-        safeSend(event.sender, RunnerChannel.error, {
+        sink.send(RunnerChannel.error, {
             jobId,
             message: err instanceof Error ? err.message : String(err),
         });
@@ -187,14 +224,13 @@ function startJob(event: IpcMainEvent, msg: RunnerStartMsg): void {
 
     const job: Job = {
         proc,
-        sender: event.sender,
+        sink,
         stdoutBuf: [],
         stderrBuf: [],
         flushTimer: null,
     };
     activeJobs.set(jobId, job);
-    indexJob(jobId, event.sender);
-    wireSenderReaping(event.sender);
+    indexJob(jobId, sink.id);
 
     proc.stdout.on("data", (data: Buffer) => {
         job.stdoutBuf.push(data);
@@ -209,52 +245,70 @@ function startJob(event: IpcMainEvent, msg: RunnerStartMsg): void {
 
     proc.on("error", (err: Error) => {
         // Async spawn failure (e.g. ENOENT).
-        safeSend(event.sender, RunnerChannel.error, { jobId, message: err.message });
+        sink.send(RunnerChannel.error, { jobId, message: err.message });
         cleanup(jobId);
     });
 
     proc.on("close", (code, signal) => {
         flush(jobId); // emit any buffered output before the exit event
-        safeSend(event.sender, RunnerChannel.exit, { jobId, code, signal });
+        sink.send(RunnerChannel.exit, { jobId, code, signal });
         cleanup(jobId);
     });
 }
 
+/** Write to a job's stdin (no-op if the job/child is gone). */
+export function writeJobStdin(jobId: string, data: string | Uint8Array): void {
+    const job = activeJobs.get(jobId);
+    if (!job) return;
+    try {
+        job.proc.stdin.write(data);
+    } catch {
+        // child stdin already closed — ignore
+    }
+}
+
+/** Close a job's stdin. */
+export function endJobStdin(jobId: string): void {
+    const job = activeJobs.get(jobId);
+    if (!job) return;
+    try {
+        job.proc.stdin.end();
+    } catch {
+        // already closed — ignore
+    }
+}
+
+/** Tree-kill a job's child. The normal close→exit→cleanup path then runs. */
+export function killJob(jobId: string, signal?: string): void {
+    const job = activeJobs.get(jobId);
+    if (!job) return;
+    treeKill(job.proc, signal);
+    // Do not cleanup here — taskkill/group-kill closes the child's stdio,
+    // so proc.on("close") fires and runs the normal exit + cleanup path.
+}
+
 /**
- * Register the runner IPC handlers. Call once during app startup
- * (alongside `initWorkerHost()` in `main-setup.ts`).
+ * Register the runner IPC handlers for the renderer `app`/script clients. Call
+ * once during app startup (alongside `initWorkerHost()` in `main-setup.ts`).
+ * Boards do NOT use these channels — they route runner messages over their port
+ * via `startJobTo`/`writeJobStdin`/… (see `board-bridge.ts`).
  */
 export function initCommandRunner(): void {
     ipcMain.on(RunnerChannel.start, (event: IpcMainEvent, msg: RunnerStartMsg) => {
-        startJob(event, msg);
+        wireSenderReaping(event.sender);
+        startJobTo(webContentsSink(event.sender), msg);
     });
 
     ipcMain.on(RunnerChannel.stdin, (_event, msg: RunnerStdinMsg) => {
-        const job = activeJobs.get(msg.jobId);
-        if (!job) return;
-        try {
-            job.proc.stdin.write(msg.data);
-        } catch {
-            // child stdin already closed — ignore
-        }
+        writeJobStdin(msg.jobId, msg.data);
     });
 
     ipcMain.on(RunnerChannel.endStdin, (_event, msg: RunnerJobMsg) => {
-        const job = activeJobs.get(msg.jobId);
-        if (!job) return;
-        try {
-            job.proc.stdin.end();
-        } catch {
-            // already closed — ignore
-        }
+        endJobStdin(msg.jobId);
     });
 
     ipcMain.on(RunnerChannel.kill, (_event, msg: RunnerKillMsg) => {
-        const job = activeJobs.get(msg.jobId);
-        if (!job) return;
-        treeKill(job.proc, msg.signal);
-        // Do not cleanup here — taskkill/group-kill closes the child's stdio,
-        // so proc.on("close") fires and runs the normal exit + cleanup path.
+        killJob(msg.jobId, msg.signal);
     });
 }
 
@@ -265,6 +319,6 @@ export function killAllCommands(): void {
         treeKill(job.proc);
     }
     activeJobs.clear();
-    jobsBySender.clear();
+    jobsBySink.clear();
     senderReapers.clear();
 }

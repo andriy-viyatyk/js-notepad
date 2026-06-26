@@ -715,7 +715,7 @@ A tool for connecting to and testing MCP (Model Context Protocol) servers. Open 
 
 Open an MCP Inspector page programmatically:
 ```javascript
-await app.pages.showMcpInspectorPage({ url: "http://localhost:7865/mcp" });
+await app.pages.showMcpInspectorPage({ url: "http://127.0.0.1:7865/mcp" });
 ```
 
 ## Mneme Knowledge Base
@@ -743,7 +743,7 @@ A sandboxed HTML-page application that can live anywhere on disk. Boards let you
 - **`persephone.execute()` channel** — call backend scripts from the page; consume the result buffered (`getJson()`, `getText()`) or streamed (`on("stdout", …)`)
 - **Integration tier** — `notify()`, `openFileDialog()`, `saveFileDialog()`, `openFolderDialog()`, `openRawLink()`, `readFile()`, `writeFile()`
 - **`--p-*` theme contract** — CSS variables injected into the board that update live when the user switches app themes
-- **Live reload** — editing `index.html`, `app.js`, or any `.js`/`.css` reloads the board automatically; the **Reload** button in the in-board toolbar forces a remount
+- **Reload** — click the **Reload** button in the in-board toolbar to remount the board and pick up edited files; boards do not reload automatically on file changes
 - **In-board toolbar** — Reload, Show-log, the board path, and (when opened from a Boards panel) a click-to-switch boards popover for the current Explorer root
 - **Custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set the board's tab icon and Boards-panel icon
 - **Error log** — script failures are toasted and appended to `ui.log` in the board folder

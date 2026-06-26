@@ -13,7 +13,7 @@ persephone/
 │   ├── shared/             # Shared types and constants
 │   ├── renderer.tsx        # Bootstrap entry point
 │   ├── preload.ts          # Preload script (main renderer)
-│   └── preload-board.ts    # Board preload — injects window.persephone bridge into sandboxed webview
+│   └── board-shim.ts       # Board bridge shim — browser IIFE inlined into board HTML; rebuilds window.persephone over a MessagePort
 ├── launcher/               # Rust launcher (Named Pipe client)
 │   ├── src/main.rs
 │   ├── build.rs
@@ -513,10 +513,10 @@ persephone/
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
 │   │   └── index.tsx
 │   ├── board/              # Board editor (non-text, Pattern B survive-navigation)
-│   │   ├── BoardEditorModel.ts       # EditorModel — single-board lifecycle, per-board trust gate, webview state, icon; opens any board root
+│   │   ├── BoardEditorModel.ts       # EditorModel — single-board lifecycle, per-board trust gate, live iframe ref, icon; opens any board root
 │   │   ├── BoardEditorView.tsx       # React component (view only)
 │   │   ├── BoardToolbar.tsx          # In-board toolbar — Reload / Show-log / board path + switcher popover / File Explorer button
-│   │   ├── BoardWebview.tsx          # Locked-down <webview> (sandbox+contextIsolation on, board:// protocol)
+│   │   ├── BoardWebview.tsx          # Locked-down cross-origin <iframe src="board://<host>/index.html"> (no sandbox attr); brokers the MessagePort bridge handshake + ui.log reset
 │   │   ├── BoardsTree.tsx            # Reusable boards tree (single-root + multi-root; folder-compacted; click / trailing / context-menu slots)
 │   │   ├── boards-tree-build.ts      # Pure builder: board path list → compacted folder/board node tree
 │   │   ├── BoardGlyph.tsx            # Default board glyph icon
@@ -526,7 +526,7 @@ persephone/
 │   │   ├── board-theme.ts            # computeBoardThemePalette + BOARD_TOKEN_VARS (--p-* contract)
 │   │   ├── board-scaffold.ts         # Scaffold helpers — copy board-template into a new board folder (writes board-manifest.json)
 │   │   ├── board-api.d.ts            # board-internal type declarations
-│   │   ├── UntrustedBoardView.tsx    # Shown in place of the webview when the board is untrusted (Trust board button)
+│   │   ├── UntrustedBoardView.tsx    # Shown in place of the board iframe when the board is untrusted (Trust board button)
 │   │   ├── BoardNotFoundView.tsx     # Shown when a board root no longer exists on disk (e.g. stale trusted/pinned path)
 │   │   └── index.tsx                 # boardModule + legacy EditorModule factory
 │   ├── shared/             # Shared editor utilities
@@ -702,7 +702,7 @@ persephone/
 ├── download-service.ts     # Download management
 ├── search-service.ts       # File search service
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
-├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and board preload.execute; whole-tree kill via taskkill
+├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and the board bridge's execute(); whole-tree kill via taskkill
 ├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout)
 ├── version-service.ts      # Version checking (runs in main, not renderer)
 ├── video-stream-server.ts  # Local HTTP streaming server (range requests, faststart MP4 relocation, session management)
@@ -726,7 +726,7 @@ persephone/
 ├── git-ipc.ts              # Git service IPC channel names + request/response types (EPIC-030)
 ├── search-ipc.ts           # Search IPC channels
 ├── worker-channels.ts      # Worker thread IPC channels (app.runAsync)
-├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, IExecuteHandle contract shared by proc.ts and preload-board.ts)
+├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, IExecuteHandle contract shared by proc.ts and board-shim.ts)
 ├── popup-rate-limiter.ts   # Global popup/tab rate limiter (app-wide singleton)
 ├── main/                   # Main process handlers
 │   ├── controller.ts       # IPC handler registration

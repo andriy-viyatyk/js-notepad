@@ -1,15 +1,15 @@
 # Boards — build a custom board/editor for the user
 
 A **Board** is a small, self-contained web app you (the agent) build for the user:
-a dashboard, tool, viewer, or custom editor. Persephone hosts it in a sandboxed webview
-and gives it a single bridge object, `window.persephone`. You can create one, open it, and
-develop it end-to-end through the **`execute_script`** tool calling the `app` API — no user
-clicks required.
+a dashboard, tool, viewer, or custom editor. Persephone hosts it in a locked-down,
+cross-origin `<iframe>` and gives it a single bridge object, `window.persephone`. You can
+create one, open it, and develop it end-to-end through the **`execute_script`** tool calling
+the `app` API — no user clicks required.
 
 ## What a board is
 
 - **Frontend** — `index.html` + `app.js` (+ any CSS/assets). Owns *all* UI and *all* state;
-  this is what renders in the webview.
+  this is what renders in the iframe.
 - **Backend** — scripts under `scripts/` (`.js`, `.py`, `.ps1`, `.sh`, …). They run as real OS
   processes with the user's privileges and talk to the page over stdout. A `.js` script runs
   under **plain Node.js** — no Electron or renderer globals (e.g. `process.versions.electron` is
@@ -119,7 +119,7 @@ constants. For JS-colored components (charts/diagrams) read the live palette via
 
 ### Libraries & assets — vendor them locally
 
-A board is **offline-first** and the sandbox **forbids remote network** (CSP `connect-src
+A board is **offline-first** and its CSP **forbids remote network** (`connect-src
 'self'` blocks CDN scripts, stylesheets, fonts, and cross-host `fetch`). Download each library
 into the board folder and reference it with a **relative** path:
 
@@ -153,11 +153,10 @@ the manifest's `loadOrder`.
   `repository` (metadata only). No secrets, no trust flags.
 - Optional `icon.svg` / `icon.png` / `icon.ico` in the board folder sets the board's icon (SVG
   preferred). Without one, a default glyph is used.
-- **Reload model:** the webview live-reloads on edits to `index.html`, `app.js`, and any `.js`/`.css`
-  in the board folder — so an iterate → reload → `browser_snapshot` loop just works. (Data/state files
-  a board writes — `.json`, etc. — and `ui.log` do **not** trigger a reload, so a board persisting its
-  own state never remounts itself.) The **Refresh** button in the Boards side panel forces a remount if
-  you ever need one. Note the reload is debounced (~0.5s); give it a beat before you `browser_snapshot`.
+- **Reload model:** boards do **not** auto-reload on file changes. After editing a board's files,
+  apply the changes with the **Reload** button in the in-board toolbar — or, when driving the board
+  as an agent, the **`board_refresh`** MCP tool (pass the board's `pageId`, or omit it to reload the
+  active board). For an iterate loop: edit files → `board_refresh` → `browser_snapshot`.
 
 ## Test it
 

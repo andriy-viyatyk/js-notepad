@@ -30,8 +30,10 @@ const config: ForgeConfig = {
                     target: "preload",
                 },
                 {
-                    entry: "src/preload-board.ts",
-                    config: "vite.preload-board.config.ts",
+                    // Board bridge shim (EPIC-037 / US-771) — inlined into board HTML
+                    // by the board:// handler, NOT loaded by Electron as a preload.
+                    entry: "src/board-shim.ts",
+                    config: "vite.board-shim.config.ts",
                     target: "preload",
                 },
             ],

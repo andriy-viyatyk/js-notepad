@@ -75,7 +75,7 @@ export interface RunnerErrorMsg {
 // Handle contract — the public `execute()` API shape, shared by BOTH client
 // implementations so they cannot drift (EPIC-034 US-724 / C-E):
 //   • the renderer client `src/renderer/api/proc.ts` (over `window.electron`)
-//   • the sandboxed board preload `src/preload-board.ts` (over raw `ipcRenderer`)
+//   • the board bridge shim `src/board-shim.ts` (over its per-board MessagePort)
 // The script-facing Monaco surface `src/renderer/api/types/proc.d.ts` MIRRORS
 // these interfaces (it must stay self-contained for the editor-types flat-copy
 // in `vite.renderer.config.ts`). Keep the two in sync.

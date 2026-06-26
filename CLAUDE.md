@@ -414,12 +414,12 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Board lifecycle script types (`IBoards`) | `/src/renderer/api/types/boards.d.ts` |
 | `board-manifest.json` identity file (read/ensure; a folder is a board iff it carries one) | `/src/renderer/editors/board/board-manifest.ts` |
 | `persephone-board://` link scheme (encode/decode; parsed in `parsers.ts` → `target: "board-view"`) | `/src/renderer/content/persephone-board-link.ts` |
-| Board editor model (single-board lifecycle, per-board trust, webview, icon; opens any board root) | `/src/renderer/editors/board/BoardEditorModel.ts` |
+| Board editor model (single-board lifecycle, per-board trust, live iframe ref, icon; opens any board root) | `/src/renderer/editors/board/BoardEditorModel.ts` |
 | Board editor view (React component only) | `/src/renderer/editors/board/BoardEditorView.tsx` |
 | In-board toolbar (Reload / Show-log / board path + boards-switcher popover / File Explorer button → `page.toggleNavigator` rooted at the board's parent folder) | `/src/renderer/editors/board/BoardToolbar.tsx` |
 | Board module + factory (boardModule + legacy EditorModule) | `/src/renderer/editors/board/index.tsx` |
-| Board webview (locked-down `<webview>` loading `board:///index.html`; themed wrapper/backdrop while loading) | `/src/renderer/editors/board/BoardWebview.tsx` |
-| `board://` scheme handler (per-board-partition `protocol.handle`; serves board files + CSP; injects the resolved `--p-*` palette into served HTML `<head>` so the guest's first paint is themed) | `/src/main/board-protocol-service.ts` |
+| Board host (locked-down cross-origin `<iframe src="board://<host>/index.html">`, no `sandbox` attr; brokers the one-time `MessagePort` handshake into the frame; resets the board's `ui.log` per load; routes shim `board:interact`/`board:error` posts) | `/src/renderer/editors/board/BoardWebview.tsx` |
+| `board://` scheme handler (single host-routed `protocol.handle` on the shared session, `host → board root`; serves board files + CSP; injects `--p-*` palette + boot context + the bridge shim `<script>` into served HTML `<head>` so first paint is themed and `window.persephone` exists before the first author script) | `/src/main/board-protocol-service.ts` |
 | Untrusted-board placeholder (Trust board button) | `/src/renderer/editors/board/UntrustedBoardView.tsx` |
 | Board-not-found placeholder (stale trusted/pinned path) | `/src/renderer/editors/board/BoardNotFoundView.tsx` |
 | Trust board dialog (`showTrustBoardDialog`; RCE wording) | `/src/renderer/ui/dialogs/TrustBoardDialog.tsx` |
@@ -429,9 +429,10 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Board icon cache (module-level SVG/PNG/ICO → data URL cache) | `/src/renderer/editors/board/board-icon-cache.ts` |
 | Reusable boards tree (folder-compacted; single-root + multi-root; board-click / trailing-action / context-menu slots) | `/src/renderer/editors/board/BoardsTree.tsx` |
 | Boards-tree pure builder (path list → compacted folder/board node tree; VSCode-style single-child folder compaction) | `/src/renderer/editors/board/boards-tree-build.ts` |
-| Board preload (injects `window.persephone` bridge into the sandboxed webview) | `/src/preload-board.ts` |
-| Board integration-tier IPC (main side of the bridge: `openRawLink` + editor target, `notify`, file dialogs, `readFile`/`writeFile`) | `/src/main/board-bridge.ts` |
-| Board bridge IPC channels + wire types (shared by preload + main) | `/src/ipc/board-bridge-channels.ts` |
+| Board bridge shim (browser IIFE inlined into served board HTML; rebuilds `window.persephone` over the `MessagePort` — queue-then-flush, `execute` streaming, dialogs, files, theme; posts `board:interact`/`board:error`/`securitypolicyviolation`/`window.onerror` to the host frame) | `/src/board-shim.ts` |
+| Board bridge (main side: mints a `MessageChannelMain` port pair per board, routes the duplex port — `execute` over the command runner, `openRawLink` + editor target, `notify`, file dialogs, `readFile`/`writeFile`; `disposeAllBoardPorts` on quit) | `/src/main/board-bridge.ts` |
+| Board bridge channels + wire types (`MessagePort` message unions board↔main + the renderer-broker handshake IPC; shared by board-shim + main + renderer) | `/src/ipc/board-bridge-channels.ts` |
+| Board automation adapter (`IBrowserTarget` for `browser_*`; CDP targets the board **frame** of the host webContents via `cdp-service` `registerBoardFrame`/`unregisterBoardFrame` — not a separate webContents) | `/src/renderer/editors/board/BoardTargetModel.ts` |
 | Tools & Editors sidebar panel (pinned region + Editors / Custom Boards & Editors tabs) | `/src/renderer/ui/sidebar/ToolsEditorsPanel.tsx` |
 | Creatable-items registry (`CreatableItem` list shared by the Tools & Editors panel and the `+` new-page dropdown; `DEFAULT_PINNED_EDITORS`) | `/src/renderer/ui/sidebar/tools-editors-registry.ts` |
 | Trusted-boards sidebar tab (all trusted boards across roots via `BoardsTree` multi-root; open / pin / Remove ≡ untrust) | `/src/renderer/ui/sidebar/TrustedBoardsList.tsx` |

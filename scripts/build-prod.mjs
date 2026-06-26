@@ -8,7 +8,7 @@
  *   .vite/build/main.js           – main process (CJS)
  *   .vite/build/preload.js        – preload script (CJS)
  *   .vite/build/preload-webview.js – webview preload (CJS)
- *   .vite/build/preload-board.js  – board webview preload (CJS)
+ *   .vite/build/board-shim.js     – board bridge shim (IIFE, inlined into board HTML)
  *   .vite/renderer/main_window/   – renderer (ESM, HTML entry)
  */
 
@@ -96,9 +96,15 @@ await build({
     },
 });
 
-// ── 3b. Preload-board ────────────────────────────────────────────────
+// ── 3b. Board shim ───────────────────────────────────────────────────
+//
+// The board bridge shim (EPIC-037 / US-771) runs in a plain browser context
+// inside the board iframe — the board:// handler inlines it as a classic
+// <script> before the first author script. It must be a self-contained IIFE
+// (no CJS require/exports, no node/electron externals) so it runs as-is when
+// inlined.
 
-console.log("\n🔨 Building preload-board...");
+console.log("\n🔨 Building board-shim...");
 await build({
     configFile: false,
     build: {
@@ -106,13 +112,13 @@ await build({
         emptyOutDir: false,
         minify: false,
         rollupOptions: {
-            input: { "preload-board": "src/preload-board.ts" },
+            input: { "board-shim": "src/board-shim.ts" },
             output: {
-                format: "cjs",
+                format: "iife",
+                inlineDynamicImports: true,
                 entryFileNames: "[name].js",
                 chunkFileNames: "[name].js",
             },
-            external: nodeExternals,
         },
     },
 });

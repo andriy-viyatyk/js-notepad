@@ -1,145 +1,185 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel } from "../../uikit/Panel";
 import color from "../../theme/color";
 import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
-import { ui } from "../../api/ui";
-import { settings } from "../../api/settings";
 import { fpJoin } from "../../core/utils/file-path";
-import { BoardBridgeChannel } from "../../../ipc/board-bridge-channels";
+import { settings } from "../../api/settings";
+import type { BoardPortInitMsg } from "../../../ipc/board-bridge-channels";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
 import type { BoardEditorModel } from "./BoardEditorModel";
 
-// Exposed by the main preload (src/preload.ts) — file:// URL to the built board preload.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const BOARD_PRELOAD_URL = (window as any).boardPreloadUrl as string;
-
 /**
- * Locked-down host for a single board (EPIC-034 / US-723). Serves the board's own
- * files over the `board://` scheme from a dedicated ephemeral `board-<uuid>` session
- * partition, with the webview sandboxed (no Node) + `contextIsolation` and a CSP that
- * forbids remote. The `persephone` bridge (US-724) is injected via the board preload.
+ * Locked-down host for a single board (EPIC-034 / US-723; iframe in EPIC-037).
+ * Renders the board's own files over the `board://` scheme in an in-DOM cross-origin
+ * `<iframe src="board://<host>/index.html">`. Isolation comes from the cross-origin
+ * `board://<host>` origin + `nodeIntegrationInSubFrames:false` + the served CSP — NOT
+ * from a `sandbox` attribute (the bare attribute would force an opaque origin with no
+ * stable storage — EPIC-037 C5). The `host` is a stable hash of the board root, minted
+ * by `registerBoard` in main; the single host-routed `board://` handler serves it.
  *
- * Lifecycle is view-driven: the parent keys this component by board name, so switching
- * boards unmounts (→ unregister the protocol + clear the ephemeral session) and remounts
- * with a fresh partition. (US-720 process reaping + US-726 `ui.log` hook the same teardown.)
+ * The privileged `window.persephone` bridge (US-771) is delivered over a per-board
+ * `MessagePort`: this component is the one-time broker. On each iframe `load` it asks
+ * main for a fresh port (`requestBoardPort`); main delivers `port1` via `onBoardPort`;
+ * we transfer it into the frame (`contentWindow.postMessage(init, "board://<host>",
+ * [port])`). Requesting on every `load` re-handshakes after a soft reload or in-board
+ * navigation (a port is neutered when its frame navigates). On unmount we dispose.
+ *
+ * Lifecycle is view-driven: the parent keys this component by `selectedBoard__reloadToken`,
+ * so switching/reloading a board unmounts (→ unregister + dispose) and remounts.
  */
+/** A single `ui.log` line: `[<iso>] [<level>] <message>\n`. */
+function logLine(level: string, message: string): string {
+    return `[${new Date().toISOString()}] [${level}] ${message}\n`;
+}
+
 export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; boardRoot: string }) {
-    const partition = useRef(`board-${crypto.randomUUID()}`).current;
-    const webviewRef = useRef<Electron.WebviewTag | null>(null);
-    // The board:// handler must exist on the partition before the webview navigates,
-    // so render the <webview src> only after registration resolves.
-    const [ready, setReady] = useState(false);
+    // The stable board:// host for this board, minted by main. The <iframe src> is set
+    // only after this resolves, so the host→root mapping always exists before the first
+    // board://<host>/index.html request (EPIC-037 C770-5).
+    const [host, setHost] = useState<string | null>(null);
+
+    // A per-mount id correlating this board's MessagePort across the request/deliver
+    // round-trip and the dispose call.
+    const boardId = useMemo(() => `board_${Math.random().toString(36).slice(2)}`, []);
+
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+    // A port delivered by main but not yet transferred (frame not ready / between loads).
+    const pendingPortRef = useRef<MessagePort | null>(null);
 
     useEffect(() => {
         let live = true;
-        // Pass the current theme palette + static metric tokens (US-725) into
-        // registration; the preload reads them back synchronously via getContext and
-        // applies `--p-*` before first paint. Gated before navigation by `ready`.
+        let registeredHost: string | null = null;
         void api
-            .registerBoardProtocol(partition, boardRoot, computeBoardThemePalette(), BOARD_TOKEN_VARS)
-            .then(() => {
-                if (live) setReady(true);
+            .registerBoard(boardRoot, computeBoardThemePalette(), BOARD_TOKEN_VARS)
+            .then(async (h) => {
+                if (!live) {
+                    // Unmounted before registration resolved — drop the entry we just made.
+                    void api.unregisterBoard(h);
+                    return;
+                }
+                // Start a FRESH ui.log for this board lifetime — overwrite any prior content
+                // BEFORE the iframe navigates (host gates the <iframe src>), so the load's own
+                // log lines (a missing-document report from main, board:error appends) land in
+                // the new file instead of being wiped by a later reset. The log thus tracks only
+                // the current lifetime (from this load) and can't grow without bound across
+                // switches/reloads. Best-effort; a failure must never raise.
+                await fs.write(fpJoin(boardRoot, "ui.log"), logLine("info", "board loaded")).catch(() => {});
+                if (!live) {
+                    void api.unregisterBoard(h);
+                    return;
+                }
+                registeredHost = h;
+                setHost(h);
             });
         return () => {
             live = false;
-            void api.unregisterBoardProtocol(partition);
+            if (registeredHost) void api.unregisterBoard(registeredHost);
         };
-    }, [partition, boardRoot]);
+    }, [boardRoot]);
 
-    // Log board load failures to the per-board ui.log (+ toast) so an author/agent
-    // can review why a board won't render (EPIC-034 / US-726).
+    // Append a troubleshooting line to the current lifetime's ui.log (mode B/E errors).
+    // Best-effort — a logging failure must never raise its own error.
+    const appendLog = useCallback((level: string, message: string) => {
+        void fs.append(fpJoin(boardRoot, "ui.log"), logLine(level, message)).catch(() => {});
+    }, [boardRoot]);
+
+    // Transfer a pending port into the board frame (the one-time handshake), with an
+    // explicit board origin so the port can't leak to a frame that navigated away (C2).
+    const transferPort = useCallback(() => {
+        const win = iframeRef.current?.contentWindow;
+        const port = pendingPortRef.current;
+        if (!win || !port || !host) return;
+        const init: BoardPortInitMsg = { __persephoneInit: true };
+        win.postMessage(init, `board://${host}`, [port]);
+        pendingPortRef.current = null;
+    }, [host]);
+
+    // Subscribe to per-board port delivery; dispose the port + the board's jobs on unmount.
     useEffect(() => {
-        if (!ready) return;
-        const wv = webviewRef.current;
-        if (!wv) return;
-        const onFail = (e: Electron.DidFailLoadEvent) => {
-            if (e.errorCode === -3) return; // ERR_ABORTED — superseded navigation, not a real failure
-            void fs.append(
-                fpJoin(boardRoot, "ui.log"),
-                `[${new Date().toISOString()}] [error] board load failed: ${e.errorCode} ${e.errorDescription} ${e.validatedURL}\n`,
-            );
-            ui.notify(`Board failed to load: ${e.errorDescription || e.errorCode}`, "error");
-        };
-        wv.addEventListener("did-fail-load", onFail);
+        if (!host) return;
+        let live = true;
+        const off = api.onBoardPort((bId, port) => {
+            if (!live || bId !== boardId) return; // another board's port — ignore
+            pendingPortRef.current = port;
+            transferPort();
+        });
         return () => {
-            wv.removeEventListener("did-fail-load", onFail);
+            live = false;
+            off();
+            pendingPortRef.current = null;
+            void api.disposeBoardPort(boardId);
         };
-    }, [ready, boardRoot]);
+    }, [host, boardId, transferPort]);
 
-    // Register the board's webContents for CDP so the browser_* MCP automation
-    // tools can drive it (EPIC-034 / US-730). Keyed by the editor id in main;
-    // re-keying on board switch/reload unmounts (unregister + clear) then remounts
-    // (re-register the fresh webContents under the same key).
+    // Each frame load (initial, soft reload, in-board navigation) → request a fresh
+    // port; the prior one (if any) is disposed by main when it mints the new pair.
+    // Also (re)register the board frame for CDP automation (US-773) — a reload recreates
+    // the OOPIF, so main must refresh the cached board-frame CDP session.
+    const handleLoad = useCallback(() => {
+        if (!host) return;
+        void api.requestBoardPort(boardId, host);
+        void api.registerBoardFrame(model.id, host);
+    }, [host, boardId, model]);
+
+    // Expose the iframe element to the model (automation focus) and dismiss host
+    // overlays on a board click (US-773 C10): a cross-origin board's inner clicks don't
+    // bubble to the host (SOP), so the shim posts a `board:interact` ping which we turn
+    // into the same `document` mousedown the browser uses to close menus/popovers.
     useEffect(() => {
-        if (!ready) return;
-        const wv = webviewRef.current;
-        if (!wv) return;
-        const onReady = () => {
-            model.setWebview(wv);
-            void api.registerBoardWebContents(model.id, wv.getWebContentsId());
+        if (!host) return;
+        const el = iframeRef.current;
+        if (el) model.setIframe(el);
+
+        const onMessage = (e: MessageEvent) => {
+            const d = e.data as { __persephone?: string; message?: string } | undefined;
+            if (!d || !d.__persephone) return;
+            if (e.origin !== `board://${host}`) return;
+            if (e.source !== iframeRef.current?.contentWindow) return;
+            if (d.__persephone === "board:interact") {
+                document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+            } else if (d.__persephone === "board:error" && d.message) {
+                // Modes B + E (C11): LOG-ONLY. CSP violations and uncaught author errors are
+                // troubleshooting detail for the author/agent (the board is often still
+                // functional). User-facing toasts are reserved for "board failed to load"
+                // (modes A + D, raised from main).
+                appendLog("error", d.message);
+            }
         };
-        wv.addEventListener("dom-ready", onReady);
+        window.addEventListener("message", onMessage);
+
         return () => {
-            wv.removeEventListener("dom-ready", onReady);
-            model.clearWebview(wv);
-            void api.unregisterBoardWebContents(model.id);
+            window.removeEventListener("message", onMessage);
+            if (el) model.clearIframe(el);
+            void api.unregisterBoardFrame(model.id);
         };
-    }, [ready, model]);
+    }, [host, model, appendLog]);
 
-    // Dismiss any open Persephone overlay (context menu, popup) when focus moves
-    // into the board guest — clicking inside the webview doesn't bubble a DOM
-    // event to the host, so the host's outside-click dismissal never fires.
-    // Mirror the Browser editor: on webview focus, dispatch a synthetic mousedown
-    // on document.body to drive the overlay outside-click teardown.
-    useEffect(() => {
-        if (!ready) return;
-        const wv = webviewRef.current;
-        if (!wv) return;
-        const handleFocus = () => {
-            document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-        };
-        wv.addEventListener("focus", handleFocus);
-        return () => wv.removeEventListener("focus", handleFocus);
-    }, [ready]);
-
-    // Push live color updates to the guest on theme switch (metrics never change).
+    // Refresh the palette stored in main on theme switch. Main fans the new palette out
+    // to every live board port (live retint, US-771) and refreshes the stored design so
+    // a board that reloads after the switch is served the new theme by the handler.
     useEffect(() => {
         const sub = settings.onChanged.subscribe(({ key }) => {
             if (key !== "theme") return;
-            const palette = computeBoardThemePalette();
-            // Refresh the palette stored in main FIRST, so a guest that reloads after
-            // this switch reads the new theme from getContext (otherwise it paints the
-            // registration-time theme). Then push the live update to the running guest.
-            void api.updateBoardTheme(palette);
-            try {
-                webviewRef.current?.send(BoardBridgeChannel.themeChanged, palette);
-            } catch {
-                // Webview not ready yet — the initial theme is delivered via getContext.
-            }
+            void api.updateBoardTheme(computeBoardThemePalette());
         });
         return () => sub.dispose();
     }, []);
 
     return (
         // background="default" (= --color-bg-default, the same source as the board's
-        // --p-bg) fills the wrapper while the webview is not yet mounted / still loading,
-        // so the host area is themed rather than blank. The guest's own first paint is
-        // themed by the parse-time --p-* injection in board-protocol-service.ts.
+        // --p-bg) fills the wrapper while the iframe is not yet mounted, so the host area
+        // is themed rather than blank. The board's own first paint is themed by the
+        // parse-time --p-* injection in board-protocol-service.ts.
         <Panel direction="column" flex={1} width="100%" height={0} background="default">
-            {ready && (
-                <webview
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    ref={webviewRef as any}
-                    src="board:///index.html"
-                    partition={partition}
-                    preload={BOARD_PRELOAD_URL}
-                    // Lockdown: contextIsolation + sandbox ON. Node integration is OFF —
-                    // the `nodeintegration` attribute is deliberately absent (default off);
-                    // `allowpopups` is absent too.
-                    webpreferences="contextIsolation=yes,sandbox=yes"
-                    // Themed backdrop for the brief pre-first-paint window (color.ts vars
-                    // resolve live, so this tracks theme switches).
+            {host && (
+                <iframe
+                    ref={iframeRef}
+                    title="board"
+                    src={`board://${host}/index.html`}
+                    onLoad={handleLoad}
+                    // No `sandbox` attribute (EPIC-037 C5) — keeps a stable cross-origin
+                    // origin so per-board storage works; no preload, no partition.
                     style={{ flex: 1, width: "100%", border: "none", backgroundColor: color.background.default }}
                 />
             )}

@@ -25,7 +25,7 @@ Add to your `.mcp.json` (in project root or `~/.claude/.mcp.json`):
   "mcpServers": {
     "persephone": {
       "type": "http",
-      "url": "http://localhost:7865/mcp"
+      "url": "http://127.0.0.1:7865/mcp"
     }
   }
 }
@@ -35,17 +35,17 @@ Add to your `.mcp.json` (in project root or `~/.claude/.mcp.json`):
 
 In Claude Desktop settings, add an MCP server:
 - **Name:** persephone
-- **URL:** `http://localhost:7865/mcp`
+- **URL:** `http://127.0.0.1:7865/mcp`
 
 ### ChatGPT Desktop
 
 In ChatGPT settings → MCP Servers → Add:
-- **URL:** `http://localhost:7865/mcp`
+- **URL:** `http://127.0.0.1:7865/mcp`
 
 ### Gemini CLI
 
 ```bash
-gemini --mcp-server http://localhost:7865/mcp
+gemini --mcp-server http://127.0.0.1:7865/mcp
 ```
 
 ## Available Tools

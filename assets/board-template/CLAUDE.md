@@ -2,7 +2,8 @@
 
 This folder is a **Persephone Board**: a small web app whose UI you own as a
 plain HTML page, backed by scripts you write in any language. Persephone hosts the
-page in a sandboxed webview and injects a single bridge object, `window.persephone`.
+page in a locked-down, cross-origin `<iframe>` and injects a single bridge object,
+`window.persephone`.
 
 ## Board identity: `board-manifest.json`
 
@@ -29,7 +30,7 @@ never by the manifest. (The board icon is **not** set here; see *Board icon* bel
 ## Mental model: frontend + backend + the `execute()` channel
 
 - **Frontend** — `index.html` + `app.js` (+ any CSS/assets you add). Owns *all* UI
-  and *all* state. This is what renders in the webview.
+  and *all* state. This is what renders in the iframe.
 - **Backend** — the scripts under `scripts/` (`.js`, `.py`, `.ps1`, `.sh`, …). They
   run as real OS processes with your privileges, and talk to the page over stdout.
 - **Channel** — `persephone.execute(commandLine)`. The page calls a script, the
@@ -159,8 +160,8 @@ Also mirrored in JS — for colors you set from JS (e.g. a chart library):
 
 ## Libraries & assets — vendor them locally
 
-A board is a **local, offline-first app**, and the sandbox **forbids remote network**:
-the CSP (`connect-src 'self'`) blocks CDN scripts, stylesheets, fonts, and any `fetch`
+A board is a **local, offline-first app**, and its CSP **forbids remote network**:
+`connect-src 'self'` blocks CDN scripts, stylesheets, fonts, and any `fetch`
 to another host. So when you use a component library (grids, charts, markdown, icons,
 fonts, …), **download it into the board folder and reference it relatively** — never
 link a CDN.
@@ -182,9 +183,12 @@ the board folder before referencing them.)
 ## Errors & the log
 
 Report failures with `persephone.notify(message, "error")` — they're toasted **and**
-appended to **`ui.log`** in this folder (an on-board indicator opens it). Persephone
-also logs board *load* failures there. Keep your `catch` blocks calling `notify(...,
-"error")` so problems are reviewable.
+appended to **`ui.log`** in this folder (the **Show-log** button in the in-board toolbar
+opens it). Persephone also logs board *load* failures there automatically: navigation
+errors, CSP violations, and uncaught script errors / unhandled rejections. The log starts
+fresh on every load (it holds only the current board lifetime, beginning with a
+`board loaded` line), so opening it after a clean load shows no errors. Keep your `catch`
+blocks calling `notify(..., "error")` so problems are reviewable.
 
 ## Board icon (optional)
 
@@ -194,10 +198,10 @@ sidebar. First match wins (SVG preferred). Without one, a default glyph is used.
 
 ## Editing & reload
 
-Editing `index.html`, `app.js`, or any `.js`/`.css` in the board folder reloads the
-board automatically (debounced ~0.5s). Data/state files a board writes (`.json`, etc.)
-and `ui.log` do **not** trigger a reload, so persisting state never remounts the board.
-The **Refresh** button in the Boards side panel forces a remount if you need one.
+Boards do **not** auto-reload when you edit their files. After editing `index.html`,
+`app.js`, or `.css`, apply the changes with the **Reload** button in the in-board
+toolbar. When an AI agent is driving the board, it reloads with the **`board_refresh`**
+MCP tool instead.
 
 ## Testing & automation (for an AI agent)
 

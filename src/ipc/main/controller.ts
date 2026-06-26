@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell, webContents } from "electron";
+import { app, BrowserWindow, ipcMain, IpcMainEvent, nativeTheme, shell } from "electron";
 import { Api, BOARD_CDP_TAB, CaptureRect, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
 import { getAssetPath, getAppRootPath, getDataFolder } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
@@ -377,30 +377,60 @@ class Controller implements MainApi {
         return image.toPNG();
     };
 
-    registerBoardProtocol = async (_event: IpcMainEvent, partition: string, boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>): Promise<void> => {
-        const { registerBoardProtocol } = await import("../../main/board-protocol-service");
-        registerBoardProtocol(partition, boardRoot, theme, tokens);
+    registerBoard = async (event: IpcMainEvent, boardRoot: string, theme: BoardThemePalette, tokens: Record<string, string>): Promise<string> => {
+        const { registerBoard } = await import("../../main/board-protocol-service");
+        // The host renderer's origin (the frame that will broker the port handshake)
+        // is baked into the served shim so it can validate the handshake message
+        // (EPIC-037 / US-771 C2). Derive it from the calling webContents.
+        let hostOrigin = "";
+        try {
+            hostOrigin = new URL(event.sender.getURL()).origin;
+        } catch {
+            // Leave empty — the shim falls back to the event.source === window.parent check.
+        }
+        const host = registerBoard(boardRoot, theme, tokens, hostOrigin);
+        // Wire mode-A load-failure reporting now, at mount — a failed main doc never fires
+        // the iframe `load` that would otherwise wire it via `requestBoardPort` (EPIC-037 C11).
+        const { ensureHostWired } = await import("../../main/board-bridge");
+        ensureHostWired(event.sender);
+        return host;
     };
 
-    unregisterBoardProtocol = async (_event: IpcMainEvent, partition: string): Promise<void> => {
-        const { unregisterBoardProtocol } = await import("../../main/board-protocol-service");
-        await unregisterBoardProtocol(partition);
+    unregisterBoard = async (_event: IpcMainEvent, host: string): Promise<void> => {
+        const { unregisterBoard } = await import("../../main/board-protocol-service");
+        unregisterBoard(host);
     };
 
     updateBoardTheme = async (_event: IpcMainEvent, theme: BoardThemePalette): Promise<void> => {
         const { updateAllBoardThemes } = await import("../../main/board-protocol-service");
         updateAllBoardThemes(theme);
+        // Live retint of running boards (US-771): push the new palette over every
+        // board port; the shim re-applies --p-* and fires onThemeChange.
+        const { pushThemeToBoards } = await import("../../main/board-bridge");
+        pushThemeToBoards(theme);
     };
 
-    registerBoardWebContents = async (_event: IpcMainEvent, boardId: string, webContentsId: number): Promise<void> => {
-        const { registerBoardWebContents } = await import("../../main/cdp-service");
-        const wc = webContents.fromId(webContentsId);
-        if (wc) registerBoardWebContents(`${boardId}/${BOARD_CDP_TAB}`, wc);
+    requestBoardPort = async (event: IpcMainEvent, boardId: string, host: string): Promise<void> => {
+        const { createBoardPort } = await import("../../main/board-bridge");
+        createBoardPort(event.sender, boardId, host);
     };
 
-    unregisterBoardWebContents = async (_event: IpcMainEvent, boardId: string): Promise<void> => {
-        const { unregisterBoardWebContents } = await import("../../main/cdp-service");
-        unregisterBoardWebContents(`${boardId}/${BOARD_CDP_TAB}`);
+    disposeBoardPort = async (_event: IpcMainEvent, boardId: string): Promise<void> => {
+        const { disposeBoardPort } = await import("../../main/board-bridge");
+        disposeBoardPort(boardId);
+    };
+
+    registerBoardFrame = async (event: IpcMainEvent, boardId: string, boardHost: string): Promise<void> => {
+        const { registerBoardFrame } = await import("../../main/cdp-service");
+        // The board is a frame of the CALLING renderer's webContents — register that as
+        // the host wc (correct window for multi-window; EPIC-037 / US-773). CDP routes
+        // commands to the board:// frame within it.
+        registerBoardFrame(`${boardId}/${BOARD_CDP_TAB}`, event.sender, boardHost);
+    };
+
+    unregisterBoardFrame = async (_event: IpcMainEvent, boardId: string): Promise<void> => {
+        const { unregisterBoardFrame } = await import("../../main/cdp-service");
+        unregisterBoardFrame(`${boardId}/${BOARD_CDP_TAB}`);
     };
 }
 
@@ -491,11 +521,13 @@ const init = () => {
     bindEndpoint(Endpoint.gitPull, controllerInstance.gitPull);
     bindEndpoint(Endpoint.gitRemoteUrl, controllerInstance.gitRemoteUrl);
     bindEndpoint(Endpoint.capturePageRegion, controllerInstance.capturePageRegion);
-    bindEndpoint(Endpoint.registerBoardProtocol, controllerInstance.registerBoardProtocol);
-    bindEndpoint(Endpoint.unregisterBoardProtocol, controllerInstance.unregisterBoardProtocol);
+    bindEndpoint(Endpoint.registerBoard, controllerInstance.registerBoard);
+    bindEndpoint(Endpoint.unregisterBoard, controllerInstance.unregisterBoard);
     bindEndpoint(Endpoint.updateBoardTheme, controllerInstance.updateBoardTheme);
-    bindEndpoint(Endpoint.registerBoardWebContents, controllerInstance.registerBoardWebContents);
-    bindEndpoint(Endpoint.unregisterBoardWebContents, controllerInstance.unregisterBoardWebContents);
+    bindEndpoint(Endpoint.requestBoardPort, controllerInstance.requestBoardPort);
+    bindEndpoint(Endpoint.disposeBoardPort, controllerInstance.disposeBoardPort);
+    bindEndpoint(Endpoint.registerBoardFrame, controllerInstance.registerBoardFrame);
+    bindEndpoint(Endpoint.unregisterBoardFrame, controllerInstance.unregisterBoardFrame);
 
     initRendererEvents();
 }

@@ -757,8 +757,11 @@ function McpSection() {
         setTimeout(() => setCopied((prev) => prev === label ? null : prev), 2000);
     };
 
-    const mcpUrl = `http://localhost:${mcpPort}/mcp`;
-    const mnemeUrl = `http://localhost:${mnemePort}/mcp`;
+    // 127.0.0.1, not "localhost": both servers bind IPv4 loopback. An IPv6-first
+    // client (incl. the renderer's own fetch transport on Windows) that resolves
+    // "localhost" to ::1 stalls instead of failing over — so hand out the bound IPv4.
+    const mcpUrl = `http://127.0.0.1:${mcpPort}/mcp`;
+    const mnemeUrl = `http://127.0.0.1:${mnemePort}/mcp`;
     const mcpServers: Record<string, { type: string; url: string }> = {
         "persephone": {
             type: "http",

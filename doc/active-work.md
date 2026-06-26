@@ -7,7 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-*(none — EPIC-036 completed 2026-06-23; see [`/doc/epics/completed.md`](epics/completed.md))*
+- *(nothing in progress)*
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
