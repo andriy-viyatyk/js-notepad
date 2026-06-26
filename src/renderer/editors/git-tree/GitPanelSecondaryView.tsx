@@ -7,11 +7,13 @@ import { GitChangesView } from "./GitChangesView";
 import { GitRefsView } from "./GitRefsView";
 import { Panel } from "../../uikit/Panel";
 import { Tag } from "../../uikit/Tag";
+import { Text } from "../../uikit/Text";
 import { Spacer } from "../../uikit/Spacer";
 import { SegmentedControl } from "../../uikit/SegmentedControl";
 import { IconButton } from "../../uikit/IconButton/IconButton";
 import { RefreshIcon, CloseIcon, SortAlphaIcon } from "../../theme/icons";
 import { useOptionalState } from "../../core/state/state";
+import color from "../../theme/color";
 
 // =============================================================================
 // Merged "Git" secondary view (US-781).
@@ -116,7 +118,18 @@ function GitPanelBody({
                         title={model.state.get().repoRoot}
                     />
                 }
-                title={fileCount ? `Git (${fileCount})` : "Git"}
+                title={
+                    fileCount ? (
+                        // Accent the changed-file count so it stands out at a glance,
+                        // collapsed or expanded. Mirrors the header's default string-title
+                        // wrapper (truncating <Text size="md">) with the "(N)" tinted blue.
+                        <Text name="git-panel-title" color="inherit" truncate size="md">
+                            Git <Text color={color.misc.blue}>({fileCount})</Text>
+                        </Text>
+                    ) : (
+                        "Git"
+                    )
+                }
                 actions={actions}
                 showMainTitle="Show Git Tree"
                 showMainActive={isMainEditor}
