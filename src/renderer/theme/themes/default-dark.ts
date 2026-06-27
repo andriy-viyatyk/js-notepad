@@ -48,6 +48,7 @@ import { ThemeDefinition } from "./types";
 // --color-misc-green              terminal.ansiGreen, testing.iconPassed
 // --color-misc-red                errorForeground, testing.iconFailed
 // --color-misc-yellow             editorWarning.foreground
+// --color-misc-orange             accent (Mermaid → Excalidraw convert icon)
 //
 // --color-error-*                 inputValidation.errorBackground/Border
 // --color-success-*               (green — terminal.ansiGreen / testing.iconPassed)
@@ -118,6 +119,7 @@ export const defaultDark: ThemeDefinition = {
         "--color-misc-green": "#89d185",
         "--color-misc-red": "#f88070",
         "--color-misc-yellow": "#cca700",
+        "--color-misc-orange": "#e8833a",
         "--color-misc-vlc": "#ff8800",
 
         // error

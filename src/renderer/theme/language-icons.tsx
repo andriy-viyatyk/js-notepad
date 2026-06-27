@@ -1,4 +1,5 @@
 import { createIcon, createIconWithViewBox } from "./icons";
+import color from "./color";
 
 export const DefaultIcon = createIconWithViewBox("150 150 900 700")(
     <path
@@ -608,18 +609,28 @@ export const GridIcon = createIconWithViewBox("0 0 32 32")(
     </g>,
 );
 
-export const DrawIcon = createIconWithViewBox("0 0 32 32")(
-    <g>
-        {/* Pencil body */}
-        <rect x="18" y="4" width="4" height="18" rx="1" fill="#4DD0E1" opacity="0.85"
-            transform="rotate(35 20 13)" />
-        {/* Pencil tip */}
-        <polygon points="8,25 6,28 10,27" fill="#4DD0E1" opacity="0.7" />
-        {/* Sketch line — hand-drawn feel */}
-        <path d="M14,22 Q18,17 22,20 Q26,23 28,19" stroke="#4DD0E1" strokeWidth="1.5"
-            fill="none" opacity="0.5" strokeLinecap="round" />
-    </g>,
-);
+// Pencil glyph shared by DrawIcon (cyan) and DrawOrangeIcon (orange). The two
+// only differ by tint, so the geometry lives in one factory.
+const makeDrawIcon = (tint: string) =>
+    createIconWithViewBox("0 0 32 32")(
+        <g>
+            {/* Pencil body */}
+            <rect x="18" y="4" width="4" height="18" rx="1" fill={tint} opacity="0.85"
+                transform="rotate(35 20 13)" />
+            {/* Pencil tip */}
+            <polygon points="8,25 6,28 10,27" fill={tint} opacity="0.7" />
+            {/* Sketch line — hand-drawn feel */}
+            <path d="M14,22 Q18,17 22,20 Q26,23 28,19" stroke={tint} strokeWidth="1.5"
+                fill="none" opacity="0.5" strokeLinecap="round" />
+        </g>,
+    );
+
+export const DrawIcon = makeDrawIcon("#4DD0E1");
+
+// Orange variant — same pencil glyph, tinted with the theme's orange accent.
+// Used for Mermaid's "Convert to Excalidraw" toolbar button so it reads
+// distinctly from the cyan "Open in Drawing Editor" button.
+export const DrawOrangeIcon = makeDrawIcon(color.misc.orange);
 
 export const RestClientIcon = createIconWithViewBox("2 2 28 28")(
     <g>

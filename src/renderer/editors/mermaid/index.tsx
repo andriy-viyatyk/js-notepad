@@ -5,10 +5,15 @@ import { MermaidBody } from "./MermaidBody";
 import { TextChrome } from "../base/TextChrome";
 import { IconButton } from "../../uikit";
 import { CopyIcon, SunIcon, MoonIcon, SaveIcon } from "../../theme/icons";
-import { DrawIcon } from "../../theme/language-icons";
+import { DrawIcon, DrawOrangeIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
-import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
+import {
+    buildExcalidrawJsonWithImage,
+    buildExcalidrawJsonFromMermaid,
+    getImageDimensions,
+} from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
+import { ui } from "../../api/ui";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
@@ -37,6 +42,30 @@ function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
         pagesModel.addEditorPage("draw-view", "json", title, json);
     };
 
+    const onConvertToExcalidraw = async () => {
+        const source = model.host?.state.get().content?.trim();
+        if (!source) return;
+        const title =
+            (model.host?.state.get().title ?? "Mermaid").replace(/\.\w+$/, "") + ".excalidraw";
+        try {
+            const { json, imageOnly } = await buildExcalidrawJsonFromMermaid(source);
+            pagesModel.addEditorPage("draw-view", "json", title, json);
+            if (imageOnly) {
+                ui.notify(
+                    "This diagram type can't be converted to editable shapes — opened as an image.",
+                    "info",
+                );
+            }
+        } catch {
+            // Invalid Mermaid / parse failure → fall back to the rendered-SVG embed.
+            ui.notify(
+                "Couldn't convert to editable shapes — opening as an image instead.",
+                "info",
+            );
+            await onOpenDraw();
+        }
+    };
+
     return (
         <>
             <IconButton
@@ -53,6 +82,14 @@ function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
                 disabled={!svgUrl}
                 onClick={onOpenDraw}
                 icon={<DrawIcon />}
+            />
+            <IconButton
+                name="mermaid-convert-excalidraw"
+                size="sm"
+                title="Convert to Excalidraw (editable shapes)"
+                disabled={!svgUrl}
+                onClick={onConvertToExcalidraw}
+                icon={<DrawOrangeIcon />}
             />
             <IconButton
                 name="mermaid-save"

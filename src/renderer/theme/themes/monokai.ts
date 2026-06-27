@@ -66,6 +66,7 @@ export const monokai: ThemeDefinition = {
         "--color-misc-green": "#a6e22e",
         "--color-misc-red": "#f92672",
         "--color-misc-yellow": "#e6db74",
+        "--color-misc-orange": "#fd971f",
         "--color-misc-vlc": "#ff8800",
 
         // error

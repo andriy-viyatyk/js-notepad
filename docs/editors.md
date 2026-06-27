@@ -187,9 +187,21 @@ For `.mmd` and `.mermaid` files — click **Mermaid** in the toolbar:
 - **Light/dark theme toggle** (dark by default, light for copying into documents)
 - **Copy diagram** to clipboard as image
 - **Save as PNG** — toolbar button rasterises the rendered diagram to a PNG file (opens a save dialog); the PNG is rendered by Persephone's own engine so diagram text and fonts are correct (fixes broken output from external mermaid-to-PNG converters)
-- **Open in Drawing Editor** — toolbar button embeds the rendered diagram into a new Excalidraw drawing tab for annotation
+- **Open in Drawing Editor** — toolbar button embeds the rendered diagram into a new Excalidraw drawing tab as a single flat image, suitable for annotation and highlighting
+- **Convert to Excalidraw** (orange pencil icon) — converts the diagram into native, individually-editable Excalidraw shapes. Each node, label, and connector becomes a separate shape you can move, resize, and style:
+  - **Supported types:** flowchart, sequence diagram, class diagram — these convert to editable shapes with clean Helvetica text
+  - **Other types** (state, ER, Gantt, pie, git graph) — open in the Drawing Editor as a flat image, the same as **Open in Drawing Editor**, and a notification explains that native conversion is not available for that diagram type
+  - The converted drawing opens in a new tab in the Drawing Editor
 - **Live preview** with debounced re-rendering
 - Mermaid syntax highlighting in the text editor
+
+**Convert to Excalidraw vs. Open in Drawing Editor:**
+
+| | Convert to Excalidraw | Open in Drawing Editor |
+|---|---|---|
+| Result | Native shapes — each element is editable | Single flat image — the diagram is embedded as a picture |
+| When to use | You want to rearrange nodes, change colors, or annotate individual elements | You want to add callouts or highlights on top of a diagram without breaking it apart |
+| Supported types | Flowchart, sequence, class | All types |
 
 **Scripting:** `const m = await page.asMermaid()` — exposes `savePngToFile(filePath)` to render the diagram and write it as PNG to disk. The method renders on demand even when the diagram page is not the active tab. See [`asMermaid()` API reference](./api/page.md#asmermaid--promiseimermaideditor).
 

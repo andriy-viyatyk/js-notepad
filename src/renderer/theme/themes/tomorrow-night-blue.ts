@@ -66,6 +66,7 @@ export const tomorrowNightBlue: ThemeDefinition = {
         "--color-misc-green": "#d1f1a9",
         "--color-misc-red": "#ff9da4",
         "--color-misc-yellow": "#ffeead",
+        "--color-misc-orange": "#e8833a",
         "--color-misc-vlc": "#ff8800",
 
         // error

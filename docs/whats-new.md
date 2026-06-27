@@ -39,6 +39,18 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   This mirrors the hover toolbar already present on Mermaid diagrams in the Markdown view.
 
+- **Mermaid Diagram Viewer — Convert to Excalidraw** — A new **Convert to Excalidraw** button (orange pencil icon) in the Mermaid viewer toolbar converts a diagram into native, individually-editable Excalidraw shapes — distinct from the existing **Open in Drawing Editor** button, which embeds the rendered diagram as a single flat image.
+
+  - **Supported diagram types:** flowchart, sequence diagram, and class diagram convert to native shapes. Each node, label, and connector becomes a separate element you can move, resize, style, or delete independently. Text uses clean Helvetica (not Excalidraw's hand-drawn default font).
+  - **Other diagram types** (state, ER, Gantt, pie, git graph, …) open in the Drawing Editor as a flat image — the same result as **Open in Drawing Editor** — and a notification explains that native conversion is not available for that type.
+  - The converted drawing opens in a new tab in the Drawing Editor.
+
+  | | Convert to Excalidraw | Open in Drawing Editor |
+  |---|---|---|
+  | Result | Native shapes — each element is individually editable | Single flat image — the diagram is embedded as a picture |
+  | When to use | Rearrange nodes, change colors, edit individual elements | Add callouts or highlights on top of a diagram without breaking it apart |
+  | Supported types | Flowchart, sequence, class | All types |
+
 ### Improvements
 
 - **Explorer — dedicated open buttons for `.git` and `.mneme` rows** — In the File Explorer panel, the `.git` and `.mneme` special folder rows now have a small always-visible icon button on the right side of each row:

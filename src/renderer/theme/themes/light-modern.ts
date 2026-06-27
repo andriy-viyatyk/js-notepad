@@ -65,6 +65,7 @@ export const lightModern: ThemeDefinition = {
         "--color-misc-green": "#1A7F37",
         "--color-misc-red": "#CF222E",
         "--color-misc-yellow": "#9A6700",
+        "--color-misc-orange": "#d2691e",
         "--color-misc-vlc": "#ff8800",
 
         // error

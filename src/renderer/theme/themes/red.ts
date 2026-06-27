@@ -67,6 +67,7 @@ export const red: ThemeDefinition = {
         "--color-misc-green": "#7cc47c",
         "--color-misc-red": "#ff6666",
         "--color-misc-yellow": "#e8c87c",
+        "--color-misc-orange": "#e8833a",
         "--color-misc-vlc": "#ff8800",
 
         // error

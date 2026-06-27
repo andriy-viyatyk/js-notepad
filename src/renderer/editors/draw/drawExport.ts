@@ -145,3 +145,61 @@ export function buildExcalidrawJsonWithImage(
         },
     });
 }
+
+// =============================================================================
+// Mermaid → Excalidraw JSON (editable elements — "Convert to Excalidraw")
+// =============================================================================
+
+/** Minimal view of a mermaid skeleton element for font overriding. */
+type MermaidSkeletonFont = {
+    type?: string;
+    fontFamily?: number;
+    label?: { fontFamily?: number };
+};
+
+/**
+ * Convert Mermaid source into Excalidraw scene JSON containing native,
+ * individually-editable elements via `@excalidraw/mermaid-to-excalidraw`.
+ *
+ * Only flowchart / sequence / class diagrams produce real shapes. For other
+ * diagram types the library returns a single rendered image element (no throw)
+ * — `imageOnly` flags that so the caller can tell the user it wasn't converted
+ * to editable shapes. Throws only when Mermaid fails to parse the source.
+ */
+export async function buildExcalidrawJsonFromMermaid(
+    mermaidSource: string,
+): Promise<{ json: string; imageOnly: boolean }> {
+    // Dynamic import — keeps `@excalidraw/mermaid-to-excalidraw` (and its
+    // bundled mermaid) out of the svg/graph/image editor chunks that also
+    // statically import this module; the library loads only on conversion.
+    const { parseMermaidToExcalidraw } = await import("@excalidraw/mermaid-to-excalidraw");
+    const { elements: skeleton, files } = await parseMermaidToExcalidraw(mermaidSource, {
+        themeVariables: { fontSize: "16px" },
+    });
+
+    // The converter applies Excalidraw's hand-drawn font (Excalifont) by
+    // default. Override to a clean sans-serif (Helvetica) on the skeleton
+    // BEFORE conversion, so `convertToExcalidrawElements` measures text
+    // dimensions for the target font and labels don't overflow. Fonts live on
+    // standalone text elements (`fontFamily`) and on container / arrow labels
+    // (`label.fontFamily`).
+    const targetFont = FONT_FAMILY.Helvetica;
+    for (const el of skeleton as unknown as MermaidSkeletonFont[]) {
+        if (el.type === "text") el.fontFamily = targetFont;
+        if (el.label) el.label.fontFamily = targetFont;
+    }
+
+    const elements = convertToExcalidrawElements(
+        skeleton as unknown as ExcalidrawElementSkeleton[],
+    );
+    const imageOnly = elements.length > 0 && elements.every((el) => el.type === "image");
+    const json = JSON.stringify({
+        type: "excalidraw",
+        version: 2,
+        source: "persephone",
+        elements,
+        appState: { currentItemFontFamily: FONT_FAMILY.Helvetica },
+        files: files ?? {},
+    });
+    return { json, imageOnly };
+}
