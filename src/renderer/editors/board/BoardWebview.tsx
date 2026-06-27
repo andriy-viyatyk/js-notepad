@@ -176,7 +176,18 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 <iframe
                     ref={iframeRef}
                     title="board"
-                    src={`board://${host}/index.html`}
+                    // `?v=${boardId}` is a per-mount cache-buster (NOT consumed by the
+                    // handler — it derives the file from the pathname only). It guarantees a
+                    // UNIQUE navigation URL per mount so Chromium can't reuse a cached
+                    // board:// document from another live iframe of the same board (e.g. a
+                    // second tab). boardId is regenerated on every remount (key change). This
+                    // pairs with `cache: "no-store"` on the handler's inner file:// read
+                    // (board-protocol-service.ts) — together they make Reload / board_refresh
+                    // always re-fetch fresh content at both the board:// and file:// layers.
+                    // The origin stays `board://${host}` (query doesn't affect it), so the
+                    // port handshake + CSP are unchanged; relative subresources (./app.js,
+                    // CSS) resolve against the path and drop the query.
+                    src={`board://${host}/index.html?v=${boardId}`}
                     onLoad={handleLoad}
                     // No `sandbox` attribute (EPIC-037 C5) — keeps a stable cross-origin
                     // origin so per-board storage works; no preload, no partition.

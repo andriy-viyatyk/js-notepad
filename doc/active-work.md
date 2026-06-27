@@ -7,7 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(nothing in progress)*
+- *(no epic)*
+  - [ ] US-796: Fix board Reload / `board_refresh` serving stale files — read board files via `fs` instead of cached `net.fetch(file://)`; per-mount cache-bust on iframe `src`
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
