@@ -7,7 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- [ ] US-795: Hotfix — boards fail to load in release build ("bridge did not connect") due to file:// host-origin handshake mismatch
+- *(nothing in progress)*
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
