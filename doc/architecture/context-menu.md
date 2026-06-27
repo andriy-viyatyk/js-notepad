@@ -157,6 +157,15 @@ GlobalEventService
     -> showAppPopupMenu with final items (copies array to avoid Immer freeze)
 ```
 
+The folder-content view (`CategoryView`, shown on a page when a folder is opened from
+the Explorer) fires the **same** `linkContextMenu` channel for its file/folder items. So
+the href-based items ("Open in New Tab", "Open in New Window", "Show in File Explorer",
+"Open in Browser", …) are defined once in `tree-context-menus.tsx` and appear identically
+in the Explorer tree and the folder page. The Categories list/tiles (`LinkItemList` /
+`LinkItemTiles`) fire it too. A right-click on empty space in `CategoryView` adds "New
+File" / "New Folder" scoped to the open category (gated on a writable provider), mirroring
+the tree's `onBackgroundContextMenu`.
+
 ### Script subscription example
 
 ```typescript

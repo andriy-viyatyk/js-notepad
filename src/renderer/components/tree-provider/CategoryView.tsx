@@ -12,6 +12,8 @@ import {
 } from "../../theme/icons";
 import { showAppPopupMenu } from "../../ui/dialogs";
 import color from "../../theme/color";
+import { Panel } from "../../uikit/Panel/Panel";
+import { Spacer } from "../../uikit/Spacer/Spacer";
 import { LinksList } from "../../editors/link-editor/LinksList";
 import { LinksTiles } from "../../editors/link-editor/LinksTiles";
 import type { ILink } from "../../api/types/io.tree";
@@ -64,12 +66,10 @@ const CategoryViewRoot = styled.div({
         overflow: "hidden",
     },
 
-    "& .cv-footer": {
-        padding: "2px 8px",
-        borderTop: `1px solid ${color.border.light}`,
-        flexShrink: 0,
-        fontSize: 11,
+    "& .cv-footer-count": {
         color: color.text.light,
+        padding: "0 4px",
+        fontSize: 13,
     },
 
     "& .cv-error": {
@@ -214,7 +214,7 @@ export function CategoryView(props: CategoryViewProps) {
     );
 
     return (
-        <CategoryViewRoot>
+        <CategoryViewRoot onContextMenu={model.onBackgroundContextMenu}>
             {props.toolbarPortalRef && createPortal(toolbarElement, props.toolbarPortalRef)}
             <div className="cv-content">
                 {filteredItems.length === 0 ? (
@@ -249,11 +249,29 @@ export function CategoryView(props: CategoryViewProps) {
                     />
                 )}
             </div>
-            <div className="cv-footer">
-                {filteredCount === totalCount
-                    ? `${totalCount} items`
-                    : `${filteredCount} of ${totalCount} items`}
-            </div>
+            {/* Footer mirrors the Monaco editor's EditorToolbar footer (same dark bg /
+                top border / centered row), but with a fixed 29px height. The shared
+                EditorToolbar is content-height-driven, so a text-only row would sit at
+                ~20px while Monaco's icon-bearing row is 29px — hardcode the height to
+                keep the two footers visually aligned. */}
+            <Panel
+                name="category-footer"
+                direction="row"
+                align="center"
+                gap="sm"
+                paddingX="sm"
+                background="dark"
+                borderTop
+                shrink={false}
+                height={29}
+            >
+                <Spacer />
+                <span className="cv-footer-count">
+                    {filteredCount === totalCount
+                        ? `${totalCount} items`
+                        : `${filteredCount} of ${totalCount} items`}
+                </span>
+            </Panel>
         </CategoryViewRoot>
     );
 }

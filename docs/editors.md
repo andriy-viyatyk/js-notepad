@@ -470,6 +470,32 @@ Opens when you click a folder in the File Explorer or Archive panel. Displays th
 - **Sidebar sync** — The sidebar panel tree stays in sync with the folder you are viewing
 - **Works with any tree provider** — File Explorer folders, archive subfolders, and link categories all use the same Folder View with breadcrumb
 
+**Right-click context menu:**
+
+Right-clicking a file or folder item opens a context menu with link actions:
+
+| Action | Description |
+|--------|-------------|
+| Open in New Tab | Opens the item in a new tab |
+| Open in New Window | Opens the item in a new Persephone window |
+| Show in File Explorer | Reveals the file or folder in Windows Explorer |
+| Open in Browser | (URL items only) Opens the link in the built-in browser |
+| Open in Rest Client | (URL items only) Opens the link as a Rest Client request |
+| Copy Path | Copies the full path or URL to the clipboard |
+| Rename | Renames the file or folder inline |
+| Delete | Deletes the file or folder (with confirmation) |
+
+Right-clicking an empty area (no item under the cursor) opens a **New** menu — available for writable locations such as file-system folders (not archive subfolders):
+
+| Action | Description |
+|--------|-------------|
+| New File | Creates a new empty file in the currently-viewed folder |
+| New Folder | Creates a new subfolder in the currently-viewed folder |
+
+Right-clicking a **subfolder** item in the list also offers **New File** and **New Folder** options, which create the item inside that subfolder rather than the currently-viewed folder.
+
+**Footer:** The item count ("N items") is displayed in the right-aligned footer bar, matching the height and font of the Monaco editor status bar.
+
 The Folder View uses editor ID `"category-view"` in scripts:
 ```javascript
 // Open the folder view for a directory

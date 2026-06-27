@@ -76,7 +76,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Boards — error indicator removed; log always accessible** — The red error dot that previously appeared on the in-board toolbar when `ui.log` contained errors has been removed. The **Show log** (log icon) button remains and opens `ui.log` at any time. The log file is now reset to a single `board loaded` line on every board open or Reload, so clicking Show log always opens a real, non-empty file — not an empty "deleted file" placeholder. Any errors that occur during a load are appended after that line.
 
+- **Folder View — full context menu and New File / New Folder** — The folder-content page (opened by clicking a folder in the File Explorer or via a `tree-category://` link) now matches the File Explorer's feature set:
+
+  - **Right-click a file or folder** — shows the full link context menu: **Open in New Tab**, **Open in New Window**, **Show in File Explorer** (and **Open in Browser** / **Open in Rest Client** for URL items). Previously only Copy Path, Rename, and Delete were available.
+  - **New File and New Folder** — right-click empty space to create in the currently-viewed folder, or right-click a subfolder to create inside it. Only available for writable locations (file-system folders). Archive subfolders and other read-only providers are unaffected.
+
 ### UI Polish
+
+- **Folder View — right-aligned footer** — The item count ("N items") in the Folder View footer is now right-aligned and uses the same height and font as the Monaco editor status bar, for a consistent look across editors.
 
 - **Git Tree — commit message scrolls inside the panel** — In the **Commit** tab of the bottom panel, long commit messages now scroll within the tab itself instead of causing the entire bottom panel to grow and scroll. Switching between the **Commit** and **Diff** tabs no longer shifts the panel height.
 

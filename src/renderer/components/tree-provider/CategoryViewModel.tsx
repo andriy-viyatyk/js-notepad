@@ -2,11 +2,14 @@ import { TComponentModel } from "../../core/state/model";
 import type { ITreeProvider, ITreeProviderItem } from "../../api/types/io.tree";
 import type { MenuItem } from "../../uikit/Menu";
 import { ContextMenuEvent } from "../../api/events/events";
+import { app } from "../../api/app";
 import { ui } from "../../api/ui";
 import {
     CopyIcon,
     DeleteIcon,
     FolderOpenIcon,
+    NewFileIcon,
+    NewFolderIcon,
     RenameIcon,
 } from "../../theme/icons";
 import { isUrlOrCurl } from "../../content/link-utils";
@@ -133,10 +136,57 @@ export class CategoryViewModel extends TComponentModel<
 
     onItemContextMenu = (item: ITreeProviderItem, e: React.MouseEvent) => {
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-item");
+        ctxEvent.target = item;
+
+        // Layer 1: Generic items (Open, Copy Path, Rename, Delete)
         const menuItems = item.isDirectory
             ? this.getFolderMenuItems(item)
             : this.getFileMenuItems(item);
         ctxEvent.items.push(...menuItems);
+
+        // Layer 2: Event channel — type-specific items (Open in New Tab/Window,
+        // Show in File Explorer, Open in Browser, …) added by the handlers registered
+        // in tree-context-menus.tsx, based solely on the item's href/isDirectory. This
+        // is the same flow the Explorer tree (TreeProviderViewModel) uses, so the
+        // folder-content view gets identical link items from one central place.
+        // Set contextMenuPromise so GlobalEventService waits for the async handlers
+        // before showing the popup menu.
+        e.nativeEvent.contextMenuPromise = app.events.linkContextMenu.sendAsync(
+            ctxEvent as ContextMenuEvent<ITreeProviderItem>,
+        );
+    };
+
+    // Right-click on empty space (or a file) → New File / New Folder in the currently
+    // viewed directory (this.props.category). Skipped when a folder was the target —
+    // that folder's own menu already carries its New File / New Folder items. Mirrors
+    // TreeProviderViewModel.onBackgroundContextMenu, but rooted at the open category
+    // rather than the provider root.
+    onBackgroundContextMenu = (e: React.MouseEvent) => {
+        const ctxEvent = e.nativeEvent.contextMenuEvent;
+        const isFolder = ctxEvent?.target && (ctxEvent.target as ITreeProviderItem).isDirectory;
+        const { provider } = this.props;
+
+        if (provider.writable && provider.mkdir && !isFolder) {
+            const bgEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-background");
+            bgEvent.items.push(
+                {
+                    label: "New File...",
+                    icon: <NewFileIcon />,
+                    onClick: () => this.createNewFile(this.props.category),
+                },
+                {
+                    label: "New Folder...",
+                    icon: <NewFolderIcon />,
+                    onClick: () => this.createNewFolder(this.props.category),
+                },
+            );
+        }
+    };
+
+    /** Path to pass to provider create/list calls for a folder item: parent category +
+     *  the folder's own name (same convention as TreeProviderViewModel.getListPath). */
+    private getItemListPath = (item: ITreeProviderItem): string => {
+        return item.category ? item.category + "/" + item.title : item.title;
     };
 
     private getFileMenuItems = (item: ITreeProviderItem): MenuItem[] => {
@@ -180,7 +230,25 @@ export class CategoryViewModel extends TComponentModel<
             onClick: () => this.props.onFolderClick?.(item),
         });
 
+        // New File / New Folder inside this folder (mirrors the Explorer tree).
+        if (provider.writable && provider.mkdir) {
+            items.push(
+                {
+                    startGroup: true,
+                    label: "New File...",
+                    icon: <NewFileIcon />,
+                    onClick: () => this.createNewFile(this.getItemListPath(item)),
+                },
+                {
+                    label: "New Folder...",
+                    icon: <NewFolderIcon />,
+                    onClick: () => this.createNewFolder(this.getItemListPath(item)),
+                },
+            );
+        }
+
         items.push({
+            startGroup: true,
             label: isUrlOrCurl(item.href) ? "Copy Href" : "Copy Path",
             icon: <CopyIcon />,
             onClick: () => navigator.clipboard.writeText(item.href),
@@ -208,6 +276,50 @@ export class CategoryViewModel extends TComponentModel<
     };
 
     // ── File operations ──────────────────────────────────────────────────
+
+    private createNewFile = async (dirPath: string) => {
+        const { provider } = this.props;
+        if (!provider.addItem) return;
+
+        const inputResult = await ui.input("Enter file name:", {
+            title: "New File",
+            buttons: ["Create", "Cancel"],
+        });
+        if (inputResult?.button !== "Create" || !inputResult.value.trim()) return;
+
+        const name = inputResult.value.trim();
+        const href = provider.resolveLink(dirPath ? dirPath + "/" + name : name);
+
+        try {
+            await provider.addItem({ href, title: name, category: dirPath, tags: [], isDirectory: false });
+        } catch (err) {
+            ui.notify(err.message || "Failed to create file.", "warning");
+            return;
+        }
+        await this.loadItems();
+    };
+
+    private createNewFolder = async (dirPath: string) => {
+        const { provider } = this.props;
+        if (!provider.mkdir) return;
+
+        const inputResult = await ui.input("Enter folder name:", {
+            title: "New Folder",
+            buttons: ["Create", "Cancel"],
+        });
+        if (inputResult?.button !== "Create" || !inputResult.value.trim()) return;
+
+        const name = inputResult.value.trim();
+        const folderPath = dirPath ? dirPath + "/" + name : name;
+
+        try {
+            await provider.mkdir(folderPath);
+        } catch (err) {
+            ui.notify(err.message || "Failed to create folder.", "warning");
+            return;
+        }
+        await this.loadItems();
+    };
 
     renameItem = async (item: ITreeProviderItem) => {
         const { provider } = this.props;
