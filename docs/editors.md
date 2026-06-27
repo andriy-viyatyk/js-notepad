@@ -213,6 +213,8 @@ For `.html` files — click **Preview** in the toolbar:
 - **JavaScript execution** — scripts in the HTML run in the preview
 - **Sandboxed rendering** — preview is isolated from the application
 - **Show Resources** — click the web-scraper toolbar button (or use the right-click context menu in the Browser) to extract all resource URLs from the page (images, scripts, stylesheets, media, fonts, iframes, favicons, and links). Results open as a categorized link collection.
+- **Open in Browser** — right-click the tab and choose **Open in Browser** to open the local `.html`/`.htm`/`.xhtml` file in Persephone's built-in browser. Useful for testing interactive behavior, following hyperlinks, or inspecting the page with DevTools.
+- **Menu dismiss on click** — clicking anywhere inside the preview pane dismisses any open Persephone context menu or popover, keeping the UI responsive.
 - Switch between text editor and preview anytime
 
 **Image export toolbar:**

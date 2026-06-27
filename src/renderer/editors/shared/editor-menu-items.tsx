@@ -2,6 +2,7 @@ import type { MenuItem } from "../../uikit";
 import {
     CopyIcon,
     FolderOpenIcon,
+    GlobeIcon,
     KeyOffIcon,
     LockIcon,
     RenameIcon,
@@ -9,7 +10,34 @@ import {
     UnlockIcon,
 } from "../../theme/icons";
 import { api } from "../../../ipc/renderer/api";
+import { createLinkData } from "../../../shared/link-data";
 import type { TextFileModel } from "../text/TextEditorModel";
+
+/** HTML files that make sense to render in the browser instead of editing. */
+const HTML_FILE = /\.(?:x?html?)$/i;
+
+/**
+ * "Open in Browser" — for HTML files opened in a text editor. Routes the file
+ * through the standard openRawLink pipeline with `target: "browser"`; the
+ * internal browser converts the Windows path to a `file://` URL on navigate.
+ * Returns an empty array for non-HTML / unsaved files so the item is hidden.
+ */
+export function openInBrowserMenuItems(filePath: string | undefined): MenuItem[] {
+    if (!filePath || !HTML_FILE.test(filePath)) return [];
+    return [
+        {
+            label: "Open in Browser",
+            icon: <GlobeIcon />,
+            startGroup: true,
+            onClick: async () => {
+                const { app } = await import("../../api/app");
+                await app.events.openRawLink.sendAsync(
+                    createLinkData(filePath, { target: "browser", browserMode: "internal" }),
+                );
+            },
+        },
+    ];
+}
 
 /**
  * "Show in File Explorer" + "Copy File Path" — the file-path menu items.
@@ -65,6 +93,7 @@ export function textFileMenuItems(host: TextFileModel): MenuItem[] {
             onClick: () => host.promptRename(),
         },
         ...filePathMenuItems(host.filePath),
+        ...openInBrowserMenuItems(host.filePath),
         {
             label: "Decrypt",
             icon: <UnlockIcon />,

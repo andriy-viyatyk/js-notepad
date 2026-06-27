@@ -3,6 +3,12 @@ import type { ILinkData } from "../../shared/link-data";
 import { isArchivePath, parseArchivePath } from "../core/utils/file-path";
 import { TREE_CATEGORY_PREFIX } from "./tree-providers/tree-provider-link";
 
+// Node's `url` module for `pathToFileURL` (correct drive-letter / percent
+// encoding). `require` rather than `import` because Vite externalizes Node
+// builtins into broken browser stubs when statically imported — same pattern
+// as `path-utils.ts`. `file-path.ts` does not expose `pathToFileURL`.
+const url = require("url");
+
 // =============================================================================
 // URL helpers
 // =============================================================================
@@ -23,6 +29,20 @@ export function normalizeFileUrl(raw: string): string {
 
 export function isFileUrl(raw: string): boolean {
     return raw.startsWith("file://");
+}
+
+/**
+ * Convert a local file path to a `file://` URL, leaving values that already
+ * carry a scheme (`http://`, `file://`, `data:`, …) untouched. A browser
+ * expects a URL, so this is used when handing a local path to one
+ * (OS-default via `shell.openExternal`, or the internal browser).
+ */
+export function toFileUrl(pathOrUrl: string): string {
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(pathOrUrl) || pathOrUrl.startsWith("data:")) {
+        return pathOrUrl;
+    }
+    if (!isPlausibleFilePath(pathOrUrl)) return pathOrUrl;
+    return url.pathToFileURL(pathOrUrl).href;
 }
 
 /**

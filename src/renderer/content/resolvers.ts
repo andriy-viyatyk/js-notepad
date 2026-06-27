@@ -2,7 +2,8 @@ import { app } from "../api/app";
 import { editorRegistry } from "../editors/base/editorRegistry";
 import { isArchivePath, parseArchivePath } from "../core/utils/file-path";
 import { createPipeFromDescriptor } from "./registry";
-import { resolveUrlToPipeDescriptor, isHttpUrl } from "./link-utils";
+import { resolveUrlToPipeDescriptor, isHttpUrl, toFileUrl } from "./link-utils";
+import type { ILinkData } from "../../shared/link-data";
 
 /**
  * Extract the effective path from a URL for editor resolution.
@@ -35,6 +36,65 @@ export function extractEffectivePath(url: string): string {
 }
 
 /**
+ * Open `data.url` in a browser — a specific browser page (`browserPageId`), the
+ * OS default browser, the internal browser, a named profile, or incognito,
+ * per `data.browserMode`. With no `browserMode`, falls back to the
+ * `link-open-behavior` setting (or forces internal when the target is
+ * "browser"). Shared by the HTTP resolver and the file resolver so
+ * `target: "browser"` works for both remote URLs and local files.
+ */
+async function openLinkInBrowser(data: ILinkData): Promise<void> {
+    const browserMode = data.browserMode;
+    const openInBrowser = data.target === "browser";
+
+    // Route to a specific browser page if browserPageId is set
+    const browserPageId = data.browserPageId;
+    if (browserPageId) {
+        const { pagesModel } = await import("../api/pages");
+        const page = pagesModel.query.findPage(browserPageId);
+        const editor = page?.mainEditor;
+        if (editor && "navigate" in editor && "addTab" in editor) {
+            const tabMode = data.browserTabMode ?? "addTab";
+            if (tabMode === "navigate") {
+                (editor as any).navigate(data.url); // eslint-disable-line @typescript-eslint/no-explicit-any
+            } else {
+                (editor as any).addTab(data.url); // eslint-disable-line @typescript-eslint/no-explicit-any
+            }
+        }
+        return;
+    }
+
+    // Browser mode routing
+    if (browserMode === "os-default") {
+        const { shell } = await import("../api/shell");
+        shell.openExternal(data.url);
+    } else if (browserMode === "incognito") {
+        const { pagesModel } = await import("../api/pages");
+        await pagesModel.lifecycle.openUrlInBrowserTab(data.url, { incognito: true });
+    } else if (browserMode?.startsWith("profile:")) {
+        const profileName = browserMode.slice("profile:".length);
+        const { pagesModel } = await import("../api/pages");
+        await pagesModel.lifecycle.openUrlInBrowserTab(data.url, { profileName });
+    } else if (browserMode === "internal") {
+        const { pagesModel } = await import("../api/pages");
+        // Reuse any non-incognito/non-tor browser page regardless of profile;
+        // fall back to a new page using `browser-default-profile`.
+        await pagesModel.lifecycle.openUrlInBrowserTab(data.url, { external: true });
+    } else {
+        // No browserMode — use link-open-behavior setting (existing fallback)
+        const { settings } = await import("../api/settings");
+        const behavior = settings.get("link-open-behavior");
+        if (behavior === "internal-browser" || openInBrowser) {
+            const { pagesModel } = await import("../api/pages");
+            await pagesModel.lifecycle.openUrlInBrowserTab(data.url, { external: openInBrowser });
+        } else {
+            const { shell } = await import("../api/shell");
+            shell.openExternal(data.url);
+        }
+    }
+}
+
+/**
  * Register Layer 2 resolvers on openLink.
  *
  * Registration order matters (LIFO execution):
@@ -48,6 +108,19 @@ export function registerResolvers(): void {
     app.events.openLink.subscribe(async (data) => {
         // Skip HTTP URLs — handled by HTTP resolver
         if (isHttpUrl(data.url)) return;
+
+        // Explicit browser intent for a local path → open in a browser instead
+        // of an editor. The HTTP resolver does this for http(s) URLs; mirror it
+        // here so `target: "browser"` / browserMode work for local files (e.g.
+        // "Open in Browser" on an .html page tab). Normalize to a file:// URL so
+        // both the OS-default browser (shell.openExternal) and the internal
+        // browser receive a proper URL.
+        if (data.target === "browser" || data.browserMode) {
+            data.url = toFileUrl(data.url);
+            await openLinkInBrowser(data);
+            data.handled = true;
+            return;
+        }
 
         // Directory → open an empty page with the Explorer (folder tree) panel,
         // instead of a content pipe + empty Monaco editor. Matches the "Open Folder"
@@ -223,55 +296,7 @@ export function registerResolvers(): void {
         const browserMode = data.browserMode;
         if (browserMode || openInBrowser || (!mapping && !hasExplicitEditorTarget)) {
             // Explicit browser mode, explicit "browser" target, or no recognized extension
-
-            // Route to a specific browser page if browserPageId is set
-            const browserPageId = data.browserPageId;
-            if (browserPageId) {
-                const { pagesModel } = await import("../api/pages");
-                const page = pagesModel.query.findPage(browserPageId);
-                const editor = page?.mainEditor;
-                if (editor && "navigate" in editor && "addTab" in editor) {
-                    const tabMode = data.browserTabMode ?? "addTab";
-                    if (tabMode === "navigate") {
-                        (editor as any).navigate(data.url); // eslint-disable-line @typescript-eslint/no-explicit-any
-                    } else {
-                        (editor as any).addTab(data.url); // eslint-disable-line @typescript-eslint/no-explicit-any
-                    }
-                }
-                data.handled = true;
-                return;
-            }
-
-            // Browser mode routing
-            if (browserMode === "os-default") {
-                const { shell } = await import("../api/shell");
-                shell.openExternal(data.url);
-            } else if (browserMode === "incognito") {
-                const { pagesModel } = await import("../api/pages");
-                await pagesModel.lifecycle.openUrlInBrowserTab(data.url, { incognito: true });
-            } else if (browserMode?.startsWith("profile:")) {
-                const profileName = browserMode.slice("profile:".length);
-                const { pagesModel } = await import("../api/pages");
-                await pagesModel.lifecycle.openUrlInBrowserTab(data.url, { profileName });
-            } else if (browserMode === "internal") {
-                const { pagesModel } = await import("../api/pages");
-                // External URL — reuse any non-incognito/non-tor browser page regardless
-                // of profile; fall back to a new page using `browser-default-profile`.
-                await pagesModel.lifecycle.openUrlInBrowserTab(data.url, { external: true });
-            } else {
-                // No browserMode — use link-open-behavior setting (existing fallback)
-                const { settings } = await import("../api/settings");
-                const behavior = settings.get("link-open-behavior");
-                if (behavior === "internal-browser" || openInBrowser) {
-                    const { pagesModel } = await import("../api/pages");
-                    await pagesModel.lifecycle.openUrlInBrowserTab(data.url, {
-                        external: openInBrowser,
-                    });
-                } else {
-                    const { shell } = await import("../api/shell");
-                    shell.openExternal(data.url);
-                }
-            }
+            await openLinkInBrowser(data);
             data.handled = true;
             return;
         }

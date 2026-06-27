@@ -107,6 +107,14 @@ Each editor contributes only the actions that are relevant to it. Editors with n
 | Show in File Explorer | Open the source file's folder in Windows Explorer |
 | Copy File Path | Copy the source file's full path to clipboard |
 
+*HTML file tabs (`.html`, `.htm`, `.xhtml`):*
+
+| Action | Description |
+|--------|-------------|
+| Open in Browser | Open the local HTML file in Persephone's built-in browser |
+| Show in File Explorer | Open the file's folder in Windows Explorer |
+| Copy File Path | Copy the full file path to clipboard |
+
 ## Tab Grouping (Side-by-Side View)
 
 You can display two files side-by-side by grouping their tabs.

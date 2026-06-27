@@ -105,6 +105,12 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Boards sidebar — colored panel icon** — The **Boards** panel header now shows a colored four-panel icon (blue/green/yellow/red quadrants) instead of the previous monochrome glyph.
 
+### Improvements
+
+- **HTML Viewer — "Open in Browser" tab context menu item** — Right-clicking the tab of an `.html`, `.htm`, or `.xhtml` file now shows an **Open in Browser** item. Selecting it opens the local file in Persephone's built-in browser, so you can inspect it with full browser DevTools, follow hyperlinks, and test interactive behavior — without leaving the app.
+
+- **HTML Viewer — clicking inside the preview closes open menus** — Clicking anywhere inside the HTML Preview pane now dismisses any open Persephone context menu or popover (such as a tab right-click menu that was left open). Previously those menus stayed visible after the click landed in the preview.
+
 ### Bug Fixes
 
 - **Markdown Preview — Azure DevOps wiki page links with dashes or parentheses** — ADO wiki page links whose on-disk slug contained dashes or parentheses — such as `[BRE](/Applications/Business-Rule-Engine-(BRE))` — previously failed with a "File not found" error. The link resolver was re-encoding the path, turning `-` into `%2D` and `(` into `%28`, so the resulting filename did not match the file on disk. The resolver now maps the path to the file name directly without double-encoding: literal dashes and parentheses are preserved, and only bare spaces are converted to dashes.
