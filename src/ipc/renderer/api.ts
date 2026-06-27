@@ -388,8 +388,8 @@ class ApiCalls implements Api {
     // Register a board's board:// frame for CDP automation (EPIC-037 / US-773). Main
     // attaches the debugger to the calling window's webContents and routes commands to
     // the board frame. Call on each iframe load (a reload recreates the frame).
-    registerBoardFrame = async (boardId: string, boardHost: string) => {
-        return executeOnce<void>(Endpoint.registerBoardFrame, boardId, boardHost);
+    registerBoardFrame = async (boardId: string, boardHost: string, frameNonce?: string) => {
+        return executeOnce<void>(Endpoint.registerBoardFrame, boardId, boardHost, frameNonce);
     };
 
     unregisterBoardFrame = async (boardId: string) => {

@@ -1,7 +1,8 @@
-import { session } from "electron";
+import { net, session } from "electron";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { BoardThemePalette } from "../ipc/board-bridge-channels";
 
 /**
@@ -210,19 +211,18 @@ async function serveBoardFile(url: string): Promise<Response> {
     const resolved = path.resolve(root, rel);
     const mime = boardMimeType(resolved);
 
-    // Read straight from disk with fs — NOT net.fetch(file://). net.fetch routes the
-    // file read through Chromium's session cache, which keys by the (constant) file path
-    // and does NOT honor `Cache-Control: no-store` for the file: scheme: when a second
-    // live board iframe pins that cached entry, the read returns STALE bytes and a
-    // Reload / board_refresh shows pre-edit content (the board:// URL is per-mount unique,
-    // and the response carries no-store, but neither reaches this inner read). A direct
-    // fs read involves no cache, so every request reflects the current file on disk.
-    let data: Buffer;
+    let response: Response;
     try {
-        data = await fs.promises.readFile(resolved);
+        response = await net.fetch(pathToFileURL(resolved).toString(), {
+            bypassCustomProtocolHandlers: true,
+        });
     } catch {
         if (mime === "text/html") logBoardDocMissing(root, rel, "not found");
         return new Response("Not found", { status: 404 });
+    }
+    if (!response.ok) {
+        if (mime === "text/html") logBoardDocMissing(root, rel, `status ${response.status}`);
+        return new Response("Not found", { status: response.status || 404 });
     }
 
     const headers = new Headers();
@@ -234,13 +234,20 @@ async function serveBoardFile(url: string): Promise<Response> {
         //   1. the `--p-*` palette `<style>` → first paint is themed (no white flash);
         //   2. `window.__persephoneBoot` → initial theme/tokens + host origin (US-771);
         //   3. the bridge shim → defines `window.persephone` synchronously.
-        const html = data.toString("utf8");
+        const html = await response.text();
         const design = hostToDesign.get(host);
         const headFragment = buildThemeStyle(design) + buildBootScript(design) + buildShimScript();
-        return new Response(injectHead(html, headFragment), { status: 200, headers });
+        return new Response(injectHead(html, headFragment), {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+        });
     }
-    // Binary/other assets: return the raw bytes (Buffer is a Uint8Array — a valid body).
-    return new Response(new Uint8Array(data), { status: 200, headers });
+    return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+    });
 }
 
 /** Register the single `board://` handler on the host renderer's shared session.

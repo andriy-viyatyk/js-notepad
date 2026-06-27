@@ -208,7 +208,10 @@ export type Api = {
     // is sent; the port arrives asynchronously on the event channel.
     [Endpoint.requestBoardPort]: (boardId: string, host: string) => Promise<void>;
     [Endpoint.disposeBoardPort]: (boardId: string) => Promise<void>;
-    [Endpoint.registerBoardFrame]: (boardId: string, boardHost: string) => Promise<void>;
+    // `frameNonce` (the iframe's ?v= value) pins CDP automation to THIS tab's specific
+    // board frame — disambiguating multiple tabs of the same board + the pre-reload
+    // frame after a remount (US-796).
+    [Endpoint.registerBoardFrame]: (boardId: string, boardHost: string, frameNonce?: string) => Promise<void>;
     [Endpoint.unregisterBoardFrame]: (boardId: string) => Promise<void>;
 };
 

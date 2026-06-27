@@ -32,15 +32,20 @@ interface BoardReg {
     host: WebContents;
     /** The board's `board://` URL host (a stable hash of the board root). */
     boardHost: string;
+    /** The iframe document's `?v=` nonce (per-mount boardId). Disambiguates THIS tab's
+     *  frame from other tabs of the same board (same origin) and from the pre-reload
+     *  frame after a remount — origin alone is not unique (US-796). */
+    frameNonce?: string;
     /** Cached flattened session for the board frame; cleared on reload/re-register. */
     sessionId?: string;
 }
 const boardRegistrations = new Map<string, BoardReg>();
 
-export function registerBoardFrame(key: string, host: WebContents, boardHost: string): void {
+export function registerBoardFrame(key: string, host: WebContents, boardHost: string, frameNonce?: string): void {
     // Re-registration (e.g. a reload recreated the frame) invalidates the cached
-    // session — the OOPIF target id changes, so a stale session would be dead.
-    boardRegistrations.set(key, { host, boardHost });
+    // session — the OOPIF target id changes, so a stale session would be dead. The new
+    // `frameNonce` re-points resolution at the freshly-loaded frame.
+    boardRegistrations.set(key, { host, boardHost, frameNonce });
 }
 
 export function unregisterBoardFrame(key: string): void {
@@ -67,10 +72,19 @@ async function resolveBoardSession(reg: BoardReg): Promise<string | undefined> {
     if (reg.sessionId) return reg.sessionId;
     const origin = `board://${reg.boardHost}`;
     const { targetInfos } = await reg.host.debugger.sendCommand("Target.getTargets");
-    const target = (targetInfos || []).find(
+    const iframes = (targetInfos || []).filter(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (t: any) => t.type === "iframe" && typeof t.url === "string" && t.url.startsWith(origin),
     );
+    // Prefer the frame whose URL carries THIS registration's ?v= nonce — origin alone
+    // is ambiguous when the same board is open in several tabs, or when a remount's old
+    // frame briefly lingers (US-796). Fall back to the first same-origin frame only when
+    // no nonce is known or none matches (e.g. an older shim without the tag).
+    const target =
+        (reg.frameNonce &&
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            iframes.find((t: any) => t.url.includes(`v=${reg.frameNonce}`))) ||
+        iframes[0];
     if (!target) return undefined;
     const { sessionId } = await reg.host.debugger.sendCommand("Target.attachToTarget", {
         targetId: target.targetId,
@@ -102,9 +116,15 @@ async function boardSend(reg: BoardReg, method: string, params: object | undefin
         ensureAttached(reg.host);
         let clip: { x: number; y: number; width: number; height: number; scale: number } | undefined;
         try {
+            // Select THIS tab's iframe by its ?v= nonce (multiple tabs of the same board
+            // share the board:// src prefix; only one is visible — US-796). Fall back to
+            // the origin-prefix selector when no nonce is known.
+            const selector = reg.frameNonce
+                ? `iframe[src*="v=${reg.frameNonce}"]`
+                : `iframe[src^="board://${reg.boardHost}"]`;
             const rect = await reg.host.debugger.sendCommand("Runtime.evaluate", {
                 expression:
-                    `(() => { const f = document.querySelector('iframe[src^="board://${reg.boardHost}"]');` +
+                    `(() => { const f = document.querySelector('${selector}');` +
                     ` if (!f) return ""; const r = f.getBoundingClientRect();` +
                     ` return JSON.stringify({ x: r.x, y: r.y, width: r.width, height: r.height }); })()`,
                 returnByValue: true,

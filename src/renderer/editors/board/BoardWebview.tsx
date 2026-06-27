@@ -115,11 +115,13 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     // Each frame load (initial, soft reload, in-board navigation) → request a fresh
     // port; the prior one (if any) is disposed by main when it mints the new pair.
     // Also (re)register the board frame for CDP automation (US-773) — a reload recreates
-    // the OOPIF, so main must refresh the cached board-frame CDP session.
+    // the OOPIF, so main must refresh the cached board-frame CDP session. Pass `boardId`
+    // (the iframe's ?v= nonce) so CDP pins THIS tab's specific frame, not another tab of
+    // the same board (same origin) nor the pre-reload frame after a remount (US-796).
     const handleLoad = useCallback(() => {
         if (!host) return;
         void api.requestBoardPort(boardId, host);
-        void api.registerBoardFrame(model.id, host);
+        void api.registerBoardFrame(model.id, host, boardId);
     }, [host, boardId, model]);
 
     // Expose the iframe element to the model (automation focus) and dismiss host
@@ -176,15 +178,15 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 <iframe
                     ref={iframeRef}
                     title="board"
-                    // `?v=${boardId}` is a per-mount cache-buster (NOT consumed by the
-                    // handler — it derives the file from the pathname only). It guarantees a
-                    // UNIQUE navigation URL per mount so Chromium can't reuse a cached
-                    // board:// document from another live iframe of the same board (e.g. a
-                    // second tab). boardId is regenerated on every remount (key change). This
-                    // pairs with `cache: "no-store"` on the handler's inner file:// read
-                    // (board-protocol-service.ts) — together they make Reload / board_refresh
-                    // always re-fetch fresh content at both the board:// and file:// layers.
-                    // The origin stays `board://${host}` (query doesn't affect it), so the
+                    // `?v=${boardId}` tags this iframe's document URL with the per-mount
+                    // boardId (NOT consumed by the handler — it derives the file from the
+                    // pathname only). It uniquely identifies THIS tab's board frame so CDP
+                    // automation (registerBoardFrame → cdp-service) attaches to the right
+                    // frame: multiple tabs of the same board share the `board://${host}`
+                    // origin, and a remount briefly coexists with the pre-reload frame —
+                    // matching by origin alone is ambiguous, matching by ?v= is exact
+                    // (US-796). boardId is regenerated on every remount (key change). The
+                    // origin stays `board://${host}` (the query doesn't affect it), so the
                     // port handshake + CSP are unchanged; relative subresources (./app.js,
                     // CSS) resolve against the path and drop the query.
                     src={`board://${host}/index.html?v=${boardId}`}

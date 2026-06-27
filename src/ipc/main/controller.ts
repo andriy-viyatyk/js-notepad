@@ -420,12 +420,14 @@ class Controller implements MainApi {
         disposeBoardPort(boardId);
     };
 
-    registerBoardFrame = async (event: IpcMainEvent, boardId: string, boardHost: string): Promise<void> => {
+    registerBoardFrame = async (event: IpcMainEvent, boardId: string, boardHost: string, frameNonce?: string): Promise<void> => {
         const { registerBoardFrame } = await import("../../main/cdp-service");
         // The board is a frame of the CALLING renderer's webContents — register that as
         // the host wc (correct window for multi-window; EPIC-037 / US-773). CDP routes
-        // commands to the board:// frame within it.
-        registerBoardFrame(`${boardId}/${BOARD_CDP_TAB}`, event.sender, boardHost);
+        // commands to the board:// frame within it. `frameNonce` (the iframe's ?v= value)
+        // disambiguates THIS tab's frame from other tabs of the same board (same origin)
+        // and from the pre-reload frame after a remount (US-796).
+        registerBoardFrame(`${boardId}/${BOARD_CDP_TAB}`, event.sender, boardHost, frameNonce);
     };
 
     unregisterBoardFrame = async (_event: IpcMainEvent, boardId: string): Promise<void> => {

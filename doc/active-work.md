@@ -8,7 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 - *(no epic)*
-  - [ ] US-796: Fix board Reload / `board_refresh` serving stale files — read board files via `fs` instead of cached `net.fetch(file://)`; per-mount cache-bust on iframe `src`
+  - [ ] US-796: Fix `board_refresh` appearing stale to automation — CDP `browser_*` read the wrong board frame after a remount / with multiple tabs of the same board (matched by origin only). Tag each iframe with a `?v=<boardId>` nonce and resolve the exact frame by it.
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
