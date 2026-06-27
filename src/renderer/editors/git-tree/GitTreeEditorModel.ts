@@ -215,9 +215,9 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     setGitPanelTab = (t: "changes" | "branches" | "tags"): void => {
         this.state.update((s) => { s.gitPanelTab = t; });
         if (!this.isPanelVisible("git-changes")) return;
-        // "branches" and "tags" share the `branches` submodel, so the else covers both.
-        if (t === "changes") { if (this.changes.stale) this.refreshChanges(); }
-        else if (this.branches.stale) this.refreshBranches();
+        // Changes always reloads (see `refresh`), so only the refs segments need a
+        // stale catch-up. "branches" and "tags" share the `branches` submodel.
+        if (t !== "changes" && this.branches.stale) this.refreshBranches();
     };
 
     /** Persist the "Diff" tab's left file-list width (US-630). Bound so the view
@@ -359,13 +359,6 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
         return this.page?.activePanelId === panelId;
     }
 
-    /** The merged Git panel is expanded AND showing the working-tree status
-     *  (the "Changes" segment) — i.e. the changes data is on screen (US-781). */
-    private isChangesVisible(): boolean {
-        return this.isPanelVisible("git-changes")
-            && (this.state.get().gitPanelTab ?? "changes") === "changes";
-    }
-
     /** The merged Git panel is expanded AND showing refs (the "Branches" or
      *  "Tags" segment) — i.e. the branches/tags data is on screen (US-781). */
     private isRefsVisible(): boolean {
@@ -400,10 +393,13 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     refresh = (): void => {
         if (this.isTreeVisible()) { this.refreshTree(); void this.branches.reloadAheadBehind(); }
         else this.gitTree.markStale();
-        // The merged Git panel hosts both the changes and the refs surfaces, but
-        // only one segment shows at a time — reload only the on-screen segment's
-        // submodel; mark the other stale for lazy catch-up (US-781).
-        if (this.isChangesVisible()) this.refreshChanges(); else this.changes.markStale();
+        // Always reload the changes (working-tree status) — even while the panel is
+        // collapsed — so the panel header's modified-file count ("Git (N)") stays
+        // accurate at all times. The refs surface keeps the visibility-aware gating:
+        // it shares the merged panel with changes, only one segment shows at a time,
+        // and nothing off-screen depends on its data, so reload it only when visible
+        // and mark it stale for lazy catch-up otherwise (US-781).
+        this.refreshChanges();
         if (this.isRefsVisible()) this.refreshBranches(); else this.branches.markStale();
     };
 
@@ -413,9 +409,9 @@ export class GitTreeEditorModel extends EditorModel<GitTreeEditorState> {
     onPanelExpanded(panelId: string): void {
         if (panelId !== "git-changes") return;
         const t = this.state.get().gitPanelTab ?? "changes";
-        // "branches" and "tags" share the `branches` submodel, so the else covers both.
-        if (t === "changes") { if (this.changes.stale) this.refreshChanges(); }
-        else if (this.branches.stale) this.refreshBranches();
+        // Changes always reloads (see `refresh`), so only the refs segments need a
+        // stale catch-up. "branches" and "tags" share the `branches` submodel.
+        if (t !== "changes" && this.branches.stale) this.refreshBranches();
     }
 
     /** Open a changed file's Git Diff in this page (US-616, Concern 1). Navigates
