@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.10 (Upcoming)
 
-*No changes yet.*
+### Bug Fixes
+
+- **Boards — automation reads the up-to-date board after `board_refresh`** — When an AI agent rebuilt a board and called the `board_refresh` MCP tool, a follow-up `browser_snapshot` / `browser_evaluate` could attach to the wrong board frame — a sibling tab of the same board, or the lingering pre-reload frame — and report the board's pre-edit content, making the refresh appear to have had no effect even though the board itself had already updated. Each board frame is now tagged with a per-mount identifier, so the automation tools always target the exact frame belonging to the current tab.
 
 ---
 
