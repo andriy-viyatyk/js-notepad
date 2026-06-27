@@ -1,6 +1,7 @@
 import { forwardRef, ReactElement, ReactNode, SVGProps } from "react";
 import { isCurrentThemeDark } from "./themes";
 import { settings } from "../api/settings";
+import color from "./color";
 
 export interface SvgIconProps extends SVGProps<SVGSVGElement> {
     children?: ReactNode;
@@ -74,6 +75,18 @@ export const BoardIcon = createIcon(24)(
         <path d="M4 5C4 4.44772 4.44772 4 5 4H9C9.55228 4 10 4.44772 10 5V12C10 12.5523 9.55228 13 9 13H5C4.44772 13 4 12.5523 4 12V5Z" />
         <path d="M4 17C4 16.4477 4.44772 16 5 16H9C9.55228 16 10 16.4477 10 17V19C10 19.5523 9.55228 20 9 20H5C4.44772 20 4 19.5523 4 19V17Z" />
         <path d="M13 5C13 4.44772 13.4477 4 14 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H14C13.4477 8 13 7.55228 13 7V5Z" />
+    </g>,
+);
+
+// Colored board icon for the Boards sidebar panel header — same 4-panel dashboard
+// layout as BoardIcon, but each panel is filled with a distinct theme color (instead
+// of a monochrome currentColor stroke) so it reads as an accent in the header.
+export const BoardColorIcon = createIcon(24)(
+    <g>
+        <path d="M4 5C4 4.44772 4.44772 4 5 4H9C9.55228 4 10 4.44772 10 5V12C10 12.5523 9.55228 13 9 13H5C4.44772 13 4 12.5523 4 12V5Z" fill={color.misc.blue} />
+        <path d="M13 5C13 4.44772 13.4477 4 14 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H14C13.4477 8 13 7.55228 13 7V5Z" fill={color.misc.green} />
+        <path d="M4 17C4 16.4477 4.44772 16 5 16H9C9.55228 16 10 16.4477 10 17V19C10 19.5523 9.55228 20 9 20H5C4.44772 20 4 19.5523 4 19V17Z" fill={color.misc.yellow} />
+        <path d="M13 12C13 11.4477 13.4477 11 14 11H19C19.5523 11 20 11.4477 20 12V19C20 19.5523 19.5523 20 19 20H14C13.4477 20 13 19.5523 13 19V12Z" fill={color.misc.red} />
     </g>,
 );
 

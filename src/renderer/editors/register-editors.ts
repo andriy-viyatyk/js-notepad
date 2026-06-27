@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { editorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { secondaryViewRegistry } from "../ui/secondary-views/secondary-view-registry";
-import { SearchIcon, BoardIcon } from "../theme/icons";
+import { SearchIcon, BoardColorIcon } from "../theme/icons";
 
 // =============================================================================
 // Secondary Editor Registrations (EPIC-016)
@@ -34,8 +34,9 @@ secondaryViewRegistry.register({
     label: "Boards",
     // Sidebar-only sub-panel of Explorer (EPIC-036 / US-761) — its own boards glyph,
     // mirroring how "search" overrides to SearchIcon. Lists trusted boards under the
-    // Explorer root via the shared BoardsTree.
-    icon: createElement(BoardIcon),
+    // Explorer root via the shared BoardsTree. Uses the colored variant so the panel
+    // header reads as an accent.
+    icon: createElement(BoardColorIcon),
     loadComponent: () => import("./explorer/BoardsSecondaryView"),
 });
 
