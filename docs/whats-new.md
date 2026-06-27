@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.9 (Upcoming)
 
-*No changes yet.*
+### Bug Fixes
+
+- **Boards — fixed "bridge did not connect" in the installed app** — In the v4.0.8 installed build, opening a board showed only its first paint and the board's log reported *"board bridge did not connect (the board loaded but its script bridge never initialized)"* — the board's `persephone` API never came alive, so nothing interactive worked. The board's connection handshake validated the host window's origin, but the installed app loads its window from `file://`, whose origin is reported inconsistently across the app's internals — so the check never matched and the connection was dropped. The handshake now only origin-checks development hosts and relies on the frame relationship otherwise, so boards connect correctly in the installed build. (Development builds were unaffected.)
 
 ---
 

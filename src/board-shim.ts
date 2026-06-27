@@ -46,6 +46,19 @@ const boot: BoardBootContext =
         hostOrigin: "",
     };
 
+// Origin-locking is only reliable for an http(s) dev host. In production the host
+// window is loaded from `file://`, and the file origin is serialized inconsistently
+// across boundaries: the main process bakes `new URL(file://…).origin` === "null"
+// into `boot.hostOrigin`, while the board frame sees the host's `event.origin` as
+// "file://" — so a strict `event.origin === boot.hostOrigin` check can never pass,
+// and "file://"/"null" are not usable postMessage `targetOrigin`s anyway. So enforce
+// origin-locking ONLY for an http(s) host; for a file:// (or unknown) host drop it:
+// the load-bearing inbound gate is `event.source === window.parent`, and the
+// outbound host-frame pings (non-sensitive, and re-validated by the host on board
+// origin + source frame) target `"*"`.
+const hostOriginStrict = /^https?:\/\//i.test(boot.hostOrigin);
+const hostPostTarget = hostOriginStrict ? boot.hostOrigin : "*";
+
 let currentTheme: BoardThemePalette = boot.theme;
 const tokens: Record<string, string> = boot.tokens;
 const themeCbs: Array<(t: BoardThemePalette) => void> = [];
@@ -127,12 +140,14 @@ function attachPort(p: MessagePort): void {
 
 // One-time handshake: accept the transferred port only from the host renderer
 // parent frame (C2). `event.source === window.parent` is the load-bearing check;
-// the origin check is belt-and-suspenders when the host origin is known.
+// the origin check is belt-and-suspenders, enforced only for a strict (http[s])
+// host — a file:// host's cross-origin `event.origin` is the opaque "null" and
+// would never match the baked "file://" (see `hostOriginStrict` above).
 window.addEventListener("message", (event: MessageEvent) => {
     const data = event.data as { __persephoneInit?: boolean } | undefined;
     if (!data || data.__persephoneInit !== true) return;
     if (event.source !== window.parent) return;
-    if (boot.hostOrigin && event.origin !== boot.hostOrigin) return;
+    if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
     const p = event.ports && event.ports[0];
     if (p) attachPort(p);
 });
@@ -143,54 +158,49 @@ window.addEventListener("message", (event: MessageEvent) => {
 // the host frame (this is the board→host-frame channel — NOT the board↔main C1 port);
 // the host turns it into the same `document` mousedown its own webviews use to tear
 // down overlays. Capture phase so it fires even when the board already has focus.
-if (boot.hostOrigin) {
-    window.addEventListener(
-        "pointerdown",
-        () => {
-            try {
-                window.parent.postMessage({ __persephone: "board:interact" }, boot.hostOrigin);
-            } catch {
-                // parent gone / origin mismatch — nothing to dismiss
-            }
-        },
-        true,
-    );
-}
+window.addEventListener(
+    "pointerdown",
+    () => {
+        try {
+            window.parent.postMessage({ __persephone: "board:interact" }, hostPostTarget);
+        } catch {
+            // parent gone — nothing to dismiss
+        }
+    },
+    true,
+);
 
 // Load-failure reporting over the host-frame channel (EPIC-037 / US-774 C11). These
 // detectors catch failures `did-fail-load` (main, mode A) can't see: CSP violations
 // (mode B) and uncaught author errors (mode E). They post `board:error` to the host
 // frame (the C10 board→host channel — NOT the board↔main C1 port); the host appends to
-// the board's ui.log + toasts. Guarded by `boot.hostOrigin` like `board:interact`.
+// the board's ui.log + toasts. Posts to `hostPostTarget` like `board:interact`.
 /** Report a board issue to the host — LOG-ONLY (appended to `ui.log`, no toast). CSP
  *  violations (mode B) and uncaught author errors (mode E) are troubleshooting detail for
  *  the author/agent; the board is often still functional. User-facing toasts are reserved
  *  for "board failed to load" (modes A + D, raised from main). */
 function postHostError(message: string): void {
-    if (!boot.hostOrigin) return;
     try {
-        window.parent.postMessage({ __persephone: "board:error", message }, boot.hostOrigin);
+        window.parent.postMessage({ __persephone: "board:error", message }, hostPostTarget);
     } catch {
-        // parent gone / origin mismatch — nothing to report to
+        // parent gone — nothing to report to
     }
 }
 
-if (boot.hostOrigin) {
-    // Mode B: CSP violations (a remote resource blocked by the board CSP) — often non-fatal
-    // or intentional (e.g. a board probing its own CSP).
-    document.addEventListener("securitypolicyviolation", (e) => {
-        postHostError(`CSP violation: ${e.violatedDirective} blocked ${e.blockedURI || "(inline)"}`);
-    });
-    // Mode E: uncaught author errors / rejections — the webview never reported these; a
-    // useful breadcrumb for the author/agent debugging a board.
-    window.addEventListener("error", (e) => {
-        postHostError(`script error: ${e.message}${e.filename ? ` (${e.filename}:${e.lineno})` : ""}`);
-    });
-    window.addEventListener("unhandledrejection", (e) => {
-        const r = (e as PromiseRejectionEvent).reason;
-        postHostError(`unhandled rejection: ${r instanceof Error ? r.message : String(r)}`);
-    });
-}
+// Mode B: CSP violations (a remote resource blocked by the board CSP) — often non-fatal
+// or intentional (e.g. a board probing its own CSP).
+document.addEventListener("securitypolicyviolation", (e) => {
+    postHostError(`CSP violation: ${e.violatedDirective} blocked ${e.blockedURI || "(inline)"}`);
+});
+// Mode E: uncaught author errors / rejections — the webview never reported these; a
+// useful breadcrumb for the author/agent debugging a board.
+window.addEventListener("error", (e) => {
+    postHostError(`script error: ${e.message}${e.filename ? ` (${e.filename}:${e.lineno})` : ""}`);
+});
+window.addEventListener("unhandledrejection", (e) => {
+    const r = (e as PromiseRejectionEvent).reason;
+    postHostError(`unhandled rejection: ${r instanceof Error ? r.message : String(r)}`);
+});
 
 // ── execute() handle (mirrors preload-board.ts, transport = the port) ─────────
 
