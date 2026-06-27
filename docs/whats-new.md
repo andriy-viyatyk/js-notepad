@@ -6,7 +6,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 4.0.8 (Upcoming)
+## Version 4.0.9 (Upcoming)
+
+*No changes yet.*
+
+---
+
+## Version 4.0.8
 
 ### New Features
 
@@ -93,6 +99,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
   - **Right-click a file or folder** — shows the full link context menu: **Open in New Tab**, **Open in New Window**, **Show in File Explorer** (and **Open in Browser** / **Open in Rest Client** for URL items). Previously only Copy Path, Rename, and Delete were available.
   - **New File and New Folder** — right-click empty space to create in the currently-viewed folder, or right-click a subfolder to create inside it. Only available for writable locations (file-system folders). Archive subfolders and other read-only providers are unaffected.
 
+- **HTML Viewer — "Open in Browser" tab context menu item** — Right-clicking the tab of an `.html`, `.htm`, or `.xhtml` file now shows an **Open in Browser** item. Selecting it opens the local file in Persephone's built-in browser, so you can inspect it with full browser DevTools, follow hyperlinks, and test interactive behavior — without leaving the app.
+
+- **HTML Viewer — clicking inside the preview closes open menus** — Clicking anywhere inside the HTML Preview pane now dismisses any open Persephone context menu or popover (such as a tab right-click menu that was left open). Previously those menus stayed visible after the click landed in the preview.
+
 ### UI Polish
 
 - **Folder View — right-aligned footer** — The item count ("N items") in the Folder View footer is now right-aligned and uses the same height and font as the Monaco editor status bar, for a consistent look across editors.
@@ -104,12 +114,6 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **Boards sidebar — "+ New board" hidden when panel is collapsed** — The **New board** split-button in the **Boards** Explorer panel header is now hidden when the panel is collapsed, and visible when expanded. Previously the button remained visible even when the panel was collapsed, taking up space in the header bar.
 
 - **Boards sidebar — colored panel icon** — The **Boards** panel header now shows a colored four-panel icon (blue/green/yellow/red quadrants) instead of the previous monochrome glyph.
-
-### Improvements
-
-- **HTML Viewer — "Open in Browser" tab context menu item** — Right-clicking the tab of an `.html`, `.htm`, or `.xhtml` file now shows an **Open in Browser** item. Selecting it opens the local file in Persephone's built-in browser, so you can inspect it with full browser DevTools, follow hyperlinks, and test interactive behavior — without leaving the app.
-
-- **HTML Viewer — clicking inside the preview closes open menus** — Clicking anywhere inside the HTML Preview pane now dismisses any open Persephone context menu or popover (such as a tab right-click menu that was left open). Previously those menus stayed visible after the click landed in the preview.
 
 ### Bug Fixes
 
