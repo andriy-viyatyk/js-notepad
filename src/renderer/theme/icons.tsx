@@ -1467,6 +1467,14 @@ export const MoreVertIcon = createIcon(24)(
     </>,
 );
 
+export const MoreHorizIcon = createIcon(24)(
+    <>
+        <circle cx="6" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="18" cy="12" r="1.5" fill="currentColor" />
+    </>,
+);
+
 export const VlcIcon = createIcon(24)(
     <g fill="none">
         <path

@@ -372,6 +372,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | CDP service (main)       | `/src/main/cdp-service.ts`                         |
 | Rust launcher            | `/launcher/src/main.rs`                           |
 | Rust screen snip tool    | `/snip-tool/src/main.rs`                          |
+| Screen snip service (main; spawns the snip exe, returns PNG data URL; optionally hides windows for the capture) | `/src/main/snip-service.ts` |
 | Mneme service (Rust)     | `/mneme/` (knowledge-base service; see `/mneme/README.md`) |
 | Mneme shared MCP connection (single auto-reconnecting client; refcounted subscriptions → per-document watchers) | `/src/renderer/api/mneme-connection.ts` |
 | Mneme status prober + reactive status (drives sidecar launch + indicators; auto-opens the config editor once per session when active but unprovisioned) | `/src/renderer/api/mneme-status.ts` |

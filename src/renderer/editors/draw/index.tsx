@@ -59,7 +59,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
     const handleScreenSnip = useCallback(async () => {
         const a = editor.excalidrawApi;
         if (!a) return;
-        const dataUrl = await api.startScreenSnip();
+        const dataUrl = await api.startScreenSnip(true);
         if (!dataUrl) return;
         const dims = await getImageDimensions(dataUrl);
         const fileId = crypto.randomUUID();

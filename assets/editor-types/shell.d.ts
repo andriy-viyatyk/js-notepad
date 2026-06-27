@@ -38,6 +38,12 @@ export interface IShell {
     /** Open URL in the OS default browser. */
     openExternal(url: string): Promise<void>;
 
+    /** Run the native screen-snip tool and return the captured PNG as a data URL,
+     *  or null if the user cancelled or the tool failed. When `hideWindows` is true,
+     *  Persephone's windows are hidden for the duration of the capture; when false,
+     *  they stay visible (so the user can snip Persephone's own content). */
+    startScreenSnip(hideWindows: boolean): Promise<string | null>;
+
     /** Version and update information. */
     readonly version: IVersionService;
 

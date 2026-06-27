@@ -234,9 +234,9 @@ class Controller implements MainApi {
         return getMnemeServiceStatus();
     }
 
-    startScreenSnip = async (): Promise<string | null> => {
+    startScreenSnip = async (event: IpcMainEvent, hideWindows: boolean): Promise<string | null> => {
         const { startScreenSnip } = await import("../../main/snip-service");
-        return startScreenSnip();
+        return startScreenSnip(hideWindows);
     }
 
     createVideoStreamSession = async (

@@ -240,8 +240,8 @@ class ApiCalls implements Api {
         return executeOnce<MnemeStatus>(Endpoint.getMnemeStatus);
     }
 
-    startScreenSnip = async (): Promise<string | null> => {
-        return executeOnce<string | null>(Endpoint.startScreenSnip);
+    startScreenSnip = async (hideWindows: boolean): Promise<string | null> => {
+        return executeOnce<string | null>(Endpoint.startScreenSnip, hideWindows);
     }
 
     createVideoStreamSession = async (config: VideoStreamSessionConfig, port?: number) => {

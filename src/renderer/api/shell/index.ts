@@ -1,7 +1,7 @@
 import type { IShell, IVersionService, IEncryptionService } from "../types/shell";
 import { encryption } from "./encryption";
 import { version } from "./version";
-import { openExternal } from "./shell-calls";
+import { openExternal, startScreenSnip } from "./shell-calls";
 
 class Shell implements IShell {
     readonly encryption: IEncryptionService = encryption;
@@ -9,6 +9,10 @@ class Shell implements IShell {
 
     openExternal(url: string): Promise<void> {
         return openExternal(url);
+    }
+
+    startScreenSnip(hideWindows: boolean): Promise<string | null> {
+        return startScreenSnip(hideWindows);
     }
 }
 

@@ -10,6 +10,20 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### New Features
 
+- **Screen Snip — capture any region from the window header** — A green **…** (three-dot) button in the Persephone window header (just before the Mneme indicator) opens a snip menu with two options:
+
+  - **Snip Screen** — hides all Persephone windows, shows a dimmed overlay across all monitors, and lets you drag-select any region of the desktop. Press Escape or right-click to cancel.
+  - **Snip Persephone** — keeps Persephone visible so you can capture its own content (an image, a web page, a diagram shown inside the app). The same drag-select overlay appears, but the app remains on screen.
+
+  After selecting a region, the captured screenshot opens automatically in a new **Image View** tab. From there you can:
+  - **Copy** the image to the clipboard (`Ctrl+C` or the toolbar button) — paste directly into Teams, Slack, Outlook, or any app that accepts images
+  - **Save** the image to a file (toolbar save dropdown → **Save as .png** or **Save original**)
+  - **Open in Drawing Editor** (toolbar button) — embed the screenshot into a new Excalidraw tab for annotation
+
+  This complements the existing **Screen Snip** button in the Drawing Editor toolbar (scissors icon), which inserts the captured region directly into the drawing canvas instead of opening it as a standalone image.
+
+  Works on multi-monitor setups with mixed DPI scaling.
+
 - **Markdown Preview — in-page navigation and Back history** — Clicking a link to a local Markdown file (`.md` or `.markdown`) in the Preview view now loads the target **in the same tab** instead of opening a new one. The tab stays in Markdown Preview mode throughout.
 
   After the first such navigation, a **← Back** button appears in the Markdown toolbar. Clicking it returns to the previously-viewed document; repeated clicks walk the full history back to the original document, at which point the button disappears. The back history is **per-tab** and is **persisted** — it survives app restarts and moving the tab to another Persephone window.

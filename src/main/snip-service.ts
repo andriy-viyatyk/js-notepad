@@ -10,13 +10,17 @@ function getSnipToolPath(): string {
     return path.join(__dirname, "../../snip-tool/target/release/persephone-snip.exe");
 }
 
-export async function startScreenSnip(): Promise<string | null> {
+export async function startScreenSnip(hideWindows: boolean): Promise<string | null> {
     const snipExe = getSnipToolPath();
 
-    openWindows.hideWindows();
-
-    // Give Windows time to fully hide the app windows and repaint the desktop.
-    await new Promise((r) => setTimeout(r, 200));
+    // "Snip Persephone" (hideWindows === false) leaves every window untouched so the
+    // user can snip Persephone's own content. The snip tool captures the screen before
+    // showing its overlay, so the live Persephone window is included in the snapshot.
+    if (hideWindows) {
+        openWindows.hideWindows();
+        // Give Windows time to fully hide the app windows and repaint the desktop.
+        await new Promise((r) => setTimeout(r, 200));
+    }
 
     try {
         const pngBuffer = await new Promise<Buffer | null>((resolve) => {
@@ -50,6 +54,6 @@ export async function startScreenSnip(): Promise<string | null> {
         const img = nativeImage.createFromBuffer(pngBuffer);
         return img.isEmpty() ? null : img.toDataURL();
     } finally {
-        openWindows.showWindows();
+        if (hideWindows) openWindows.showWindows();
     }
 }

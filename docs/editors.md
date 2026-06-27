@@ -140,8 +140,31 @@ For image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`) — o
   - **Bitmap image** (screenshots, images copied from Snipping Tool, Teams, browsers) — opens in a new **Image Viewer** tab titled **"Pasted image"**. The tab survives an app restart.
   - **HTML-only image** (pictures copied from PowerPoint, Word, Excel, or any app that places the image on the clipboard as HTML with no bitmap) — opens in a new **HTML viewer** tab titled **"Pasted HTML"**. The tab is not persisted across restarts.
   - If the paste lands in a focused editor (Monaco, any input, or other text field), those targets paste normally and no new tab is opened.
+- **Screen Snip** — the **…** (three-dot) button in the Persephone window header opens a snip menu with two options: **Snip Screen** (hides Persephone, then capture the desktop) and **Snip Persephone** (keeps Persephone visible so you can capture its own content). After selecting a region, the screenshot opens in a new Image Viewer tab. See [Screen Snip](#screen-snip) for details.
 
 **Scripting:** `const img = await page.asImage()` — exposes `savePngToFile(filePath)` to write the image to disk as PNG. See [`asImage()` API reference](./api/page.md#asimage--promiseimageeditor).
+
+## Screen Snip
+
+The **…** (three-dot) button in the Persephone window header (just before the Mneme indicator) opens a snip menu for capturing any region of the screen.
+
+**Two capture modes:**
+
+| Mode | Behavior |
+|------|----------|
+| **Snip Screen** | Hides all Persephone windows before the overlay appears, so you can capture any part of the desktop or another app. |
+| **Snip Persephone** | Keeps Persephone visible, so you can capture content shown inside the app — an image, a web page, a chart, or a diagram. |
+
+In both modes a dimmed fullscreen overlay appears across all monitors. Drag to select a region, then release to capture. Press Escape or right-click to cancel without capturing.
+
+**After capture:** The screenshot opens automatically in a new **Image Viewer** tab. From the Image Viewer you can:
+- Copy the image to the clipboard (`Ctrl+C` or toolbar button)
+- Save to a file (toolbar save dropdown → **Save as .png** or **Save original**)
+- Open in the Drawing Editor (toolbar button) for annotation in Excalidraw
+
+Works on multi-monitor setups with mixed DPI scaling.
+
+**Related:** The [Drawing Editor](#drawing-editor) has its own **Screen Snip** button (scissors icon in the toolbar) that inserts the captured region directly into the drawing canvas instead of opening a standalone Image Viewer tab.
 
 ## SVG Preview
 
@@ -373,7 +396,7 @@ For `.excalidraw` files — an Excalidraw-based drawing canvas. Click **Drawing*
   - **Save as file** — dropdown menu to save as SVG or PNG (2x scale)
   - **Open in new tab** — dropdown menu to open as an SVG preview or PNG image in a new tab
   - Exports respect the current canvas theme (dark or light)
-- **Screen Snip** — toolbar button (scissors icon) captures a screen region and inserts it as an image into the canvas. Hides all persephone windows, shows a dimmed fullscreen overlay on each monitor, and lets you drag-select a region. Press Escape or right-click to cancel. Works on multi-monitor setups with mixed DPI scaling.
+- **Screen Snip** — toolbar button (scissors icon) captures a screen region and inserts it as an image into the canvas. Hides all Persephone windows, shows a dimmed fullscreen overlay on each monitor, and lets you drag-select a region. Press Escape or right-click to cancel. Works on multi-monitor setups with mixed DPI scaling. To capture a region and open it as a standalone image instead, use the [Screen Snip menu](#screen-snip) in the window header.
 - **Library persistence** — custom shape libraries are saved to disk and restored across sessions. Use the "Browse libraries" button to open the Excalidraw libraries site in the internal browser — installing a library adds it directly to the editor. Library storage path is configurable via `drawing.library-path` in Settings (defaults to `<userData>/data/excalidraw-lib/`).
 - **Offline ready** — no external dependencies; all assets are bundled
 - Can switch to Monaco for raw JSON editing

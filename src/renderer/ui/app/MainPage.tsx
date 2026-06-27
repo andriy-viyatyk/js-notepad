@@ -3,12 +3,16 @@ import color from "../../theme/color";
 import { IconButton, Panel } from "../../uikit";
 import {
     CloseIcon,
+    MoreHorizIcon,
     PersephoneIcon,
     RefreshIcon,
+    SnipIcon,
     WindowMaximizeIcon,
     WindowMinimizeIcon,
     WindowRestoreIcon,
 } from "../../theme/icons";
+import { WithMenu } from "../../uikit/Menu";
+import type { MenuItem } from "../../uikit/Menu";
 import { app } from "../../api/app";
 import { showMcpRequestLog } from "../../api/mcp-handler";
 import { autoloadService } from "../../api/autoload-service";
@@ -130,6 +134,28 @@ const AppRoot = styled.div({
         WebkitAppRegion: "no-drag",
         pointerEvents: "auto",
     },
+    "& .snip-indicator": {
+        // Accented (green) "…" trigger — deliberately more prominent than the muted
+        // gray MCP/Mneme indicators so it reads as an active affordance. The dots glyph
+        // is rendered oversized for visibility, then vertically clipped to a short box
+        // (overflow:hidden + fixed height) so the button stays small and never grows the
+        // header strip — the dots are a centered single row, so only whitespace is trimmed.
+        color: color.misc.green,
+        opacity: 0.85,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: 14,
+        overflow: "hidden",
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        lineHeight: 0,
+        cursor: "pointer",
+        "&:hover": {
+            opacity: 1,
+        },
+    },
     "& .mcp-indicator, & .mneme-indicator": {
         fontSize: 9,
         lineHeight: 1,
@@ -223,6 +249,7 @@ export function MainPage() {
                     <CloseIcon />
                 </button>
                 <div className="status-indicators">
+                    <SnipMenu />
                     <MnemeIndicator />
                     {state.mcpRunning && (
                         <span
@@ -251,6 +278,47 @@ export function MainPage() {
                 />
             </div>
         </AppRoot>
+    );
+}
+
+/** Run a screen snip and open the captured PNG in a new Image View page. `hideWindows`
+ *  hides Persephone first ("Snip Screen") or leaves it visible ("Snip Persephone"). The
+ *  service returns a data URL; convert it to a blob URL so the (large) data string never
+ *  lands in the page descriptor and the image gets restart-recovery caching. */
+async function runSnip(hideWindows: boolean): Promise<void> {
+    try {
+        const dataUrl = await app.shell.startScreenSnip(hideWindows);
+        if (!dataUrl) return; // cancelled or failed (the tool already restored windows)
+        const blob = await (await fetch(dataUrl)).blob();
+        const blobUrl = URL.createObjectURL(blob);
+        await pagesModel.openImageInNewTab(blobUrl, "Snip");
+    } catch (e) {
+        app.ui.notify(`Snip failed: ${(e as Error).message}`, "error");
+    }
+}
+
+const SNIP_MENU_ITEMS: MenuItem[] = [
+    { label: "Snip Screen", icon: <SnipIcon />, onClick: () => void runSnip(true) },
+    { label: "Snip Persephone", icon: <SnipIcon />, onClick: () => void runSnip(false) },
+];
+
+// Always rendered: the native snip tool ships beside persephone.exe on Windows (the only
+// target), so the trigger is unconditional — mirroring the Excalidraw "Screen Snip" button.
+function SnipMenu() {
+    return (
+        <WithMenu name="header-snip" items={SNIP_MENU_ITEMS} placement="bottom-end">
+            {(setOpen) => (
+                <button
+                    type="button"
+                    data-name="header-snip-button"
+                    className="snip-indicator"
+                    title="Snip screen or Persephone window"
+                    onClick={(e) => setOpen(e.currentTarget)}
+                >
+                    <MoreHorizIcon width={28} height={28} />
+                </button>
+            )}
+        </WithMenu>
     );
 }
 
