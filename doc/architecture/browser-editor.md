@@ -437,6 +437,7 @@ Right-clicking a link in Markdown Preview (or Notebook embedded Markdown) shows 
 - **About page links** always open in the OS default browser (direct `shell.openExternal()` call, bypasses IPC routing)
 - **HTML Preview** blocks all link navigation (unchanged)
 - **Browser Editor** has its own link handling (new internal tabs, context menu) — not affected
+- **Local markdown links in Markdown Preview** are intercepted in the renderer and navigate the **current page** in place (with a per-page Back history) — they never reach the main-process `will-navigate` → new-tab path above. Only non-markdown and external links from the Markdown view use the routing described here. See [Pages Architecture → Markdown in-page back history](pages-architecture.md#markdown-in-page-back-history).
 
 ## Bookmarks
 

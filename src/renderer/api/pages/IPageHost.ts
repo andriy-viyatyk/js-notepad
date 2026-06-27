@@ -3,6 +3,7 @@ import type { EditorModel, EditorOrHost } from "../../editors/base";
 import type { IContentPipe } from "../types/io.pipe";
 import type { ISecondaryViewsState, SecondaryViewsModel } from "../../ui/secondary-views/SecondaryViewsModel";
 import type { IPageState } from "./PageModel";
+import type { NavEntry } from "../../../shared/persistence";
 
 /**
  * The editor↔owner contract that `EditorModel.page` is typed as. `PageModel`
@@ -43,6 +44,10 @@ export interface IPageHost {
     // transient store (survives navigation, cleared on close)
     getTransient<T>(key: string): T | undefined;
     setTransient(key: string, value: unknown): void;
+
+    // Markdown in-page back-navigation history (US-784)
+    pushNavBack(entry: NavEntry): void;
+    popNavBack(): NavEntry | undefined;
 
     // ── OPTIONAL — page-tab property (an embedded host isn't a pinnable tab) ──
     pinned?: boolean;

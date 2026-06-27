@@ -10,8 +10,9 @@ const url = require("url");
  * `detectGitRoot`), a leading-slash link is treated as an Azure DevOps wiki
  * root-relative reference and resolved against the wiki root: `.attachments`
  * images (and any extension-bearing link) resolve to a literal path; an
- * extension-less link is a wiki page → its title segments are slug-encoded and
- * `.md` is appended. See `resolveAdoWikiLink`.
+ * extension-less link is a wiki page → the link path is already the on-disk
+ * slug, so `.md` is appended and the path is mapped 1:1 to disk. See
+ * `resolveAdoWikiLink`.
  */
 export function resolveRelatedLink(currentFilePath?: string, link?: string, wikiRoot?: string): string {
     if (!currentFilePath || !link) return link || "";
@@ -72,26 +73,19 @@ const ADO_FILE_EXTENSIONS = new Set([
     ".pdf", ".drawio",
 ]);
 
-// Azure DevOps stores a wiki page title on disk by replacing spaces with "-"
-// and percent-encoding a fixed set of special characters — including a literal
-// "-" → "%2D" so it can't collide with the slug dashes. This is NOT encodeURI
-// (which leaves "-" untouched and turns a space into "%20"). The special chars
-// must be encoded BEFORE spaces are turned into "-".
-const ADO_SPECIAL_CHARS: Record<string, string> = {
-    ":": "%3A", "<": "%3C", ">": "%3E", "*": "%2A",
-    "?": "%3F", "|": "%7C", '"': "%22", "-": "%2D",
-};
-
-/** Encode one ADO wiki page-title segment to its on-disk slug. */
-export function adoSlugEncode(segment: string): string {
-    // "-" is placed last in the class so it is a literal, not a range.
-    const encoded = segment.replace(/[:<>*?|"-]/g, (ch) => ADO_SPECIAL_CHARS[ch]);
-    return encoded.replace(/ /g, "-");
-}
-
 /**
  * Resolve an Azure DevOps wiki root-relative link (leading "/") to a file:// URL
  * under `wikiRoot`. Returns "" if the link can't be resolved (caller falls back).
+ *
+ * Key fact: an ADO wiki link path is ALREADY the on-disk slug. ADO stores a page
+ * on disk by replacing spaces with "-" and percent-encoding a fixed special-char
+ * set (incl. a literal "-" → "%2D"); it then emits links using that SAME encoded
+ * path. So `/Applications/Business-Rule-Engine-(BRE)` maps directly to the file
+ * `Applications/Business-Rule-Engine-(BRE).md`. We therefore map the link 1:1 to
+ * disk — we must NOT decode the `%XX` (on-disk names literally contain it) and
+ * must NOT re-encode the slug "-" (that double-encodes spaces into "%2D" and
+ * breaks every multi-word page). The only normalization is a literal space → "-"
+ * for hand-authored title-form links.
  */
 function resolveAdoWikiLink(wikiRoot: string, link: string): string {
     try {
@@ -99,21 +93,31 @@ function resolveAdoWikiLink(wikiRoot: string, link: string): string {
         const rawPath = hashIndex >= 0 ? link.slice(0, hashIndex) : link;
         const fragment = hashIndex >= 0 ? link.slice(hashIndex) : "";
 
-        let decoded: string;
-        try { decoded = decodeURIComponent(rawPath); } catch { decoded = rawPath; }
-
-        const segments = decoded.split("/").filter(Boolean);
+        const segments = rawPath.split("/").filter(Boolean);
         if (!segments.length) return "";
 
-        const lastExt = fpExtname(segments[segments.length - 1]).toLowerCase();
+        // Extension test uses a decoded view so an encoded last segment still
+        // matches (`.attachments/a%20b.png` → ".png"); resolution below keeps the
+        // raw segments.
+        let lastDecoded = segments[segments.length - 1];
+        try { lastDecoded = decodeURIComponent(lastDecoded); } catch { /* keep raw */ }
+        const lastExt = fpExtname(lastDecoded).toLowerCase();
+
         let target: string;
         if (ADO_FILE_EXTENSIONS.has(lastExt)) {
-            // Attachment / file — literal path under the wiki root (e.g.
-            // `.attachments/x.png`); attachment names are already slugged.
-            target = fpJoin(wikiRoot, segments.join("/"));
+            // Attachment / file — literal path under the wiki root. Decode so the
+            // on-disk (decoded) attachment name is matched.
+            const decodedSegments = segments.map((s) => {
+                try { return decodeURIComponent(s); } catch { return s; }
+            });
+            target = fpJoin(wikiRoot, decodedSegments.join("/"));
         } else {
-            // Wiki page — slug each title segment and append `.md`.
-            target = fpJoin(wikiRoot, segments.map(adoSlugEncode).join("/") + ".md");
+            // Wiki page — the link path is already the on-disk slug. Map 1:1,
+            // only normalizing a literal space (title-form links) to "-".
+            target = fpJoin(
+                wikiRoot,
+                segments.map((s) => s.replace(/ /g, "-")).join("/") + ".md",
+            );
         }
         return url.pathToFileURL(target).href + fragment;
     } catch {

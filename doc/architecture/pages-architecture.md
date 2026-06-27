@@ -404,6 +404,15 @@ In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/P
 
 **`notifyMainEditorChanged()`** calls `onMainEditorChanged(newMainEditor)` on each secondary view. Each editor reacts independently: ExplorerEditorModel clears selection if the new editor wasn't opened from Explorer, ArchiveEditorModel checks if the new main editor was opened from its archive — if not, it clears `secondaryView` and is cleaned up.
 
+### Markdown in-page back history
+
+The Markdown ("Preview") view navigates **within the current page** when the user clicks a link to a local markdown file, and keeps a per-page **back history** so the user can return to the previously-viewed document.
+
+- **Interception.** `MarkdownBody` installs an `onClickCapture` handler on its scroll container. A plain left-click on an anchor whose resolved href is a local markdown file — detected by `isLocalMarkdownHref` (`src/renderer/editors/markdown/markdown-nav.ts`: a `file://` URL ending in `.md`/`.markdown`) — is intercepted: the handler pushes the current document onto the page's back stack and dispatches `openRawLink` with `pageId` set (so the pipeline navigates this page in place rather than opening a new tab) and `target: "md-view"` (so the target stays in the rendered Preview). Every other link — non-markdown files, `http(s)`, images, `mailto:`, `#anchors` — is left untouched and keeps its normal behavior. The interceptor is disabled for notebook-embedded Markdown.
+- **History storage.** `PageModel` owns the back stack (`pushNavBack` / `popNavBack`, declared on the `IPageHost` contract). It lives on the page, not the editor, so it survives the editor swaps each in-place navigation creates. `IPageState.navBackCount` mirrors the stack depth and drives the Back button's visibility. The stack is **persisted** as `PageDescriptor.navBack` (`NavEntry[]` in [`/src/shared/persistence.ts`](../../src/shared/persistence.ts)) and re-seeded in `PagesPersistenceModel.restorePage` via `seedNavBack`, so history survives app restart and window-to-window transfer.
+- **Back.** `MarkdownEditor.navigateBack()` (wired to the Back button in the Markdown toolbar) pops the stack and re-opens that entry in place — going straight through `openRawLink`, so it does not push a new entry. History is not cleared on unrelated in-page navigation; it lives for the page's lifetime.
+- `BrowserPanelHost` (the other `IPageHost`) implements the two methods as inert no-ops — it has no main-editor navigation.
+
 ---
 
 ## 10. Secondary Editor System

@@ -27,6 +27,14 @@ export interface EditorDescriptor {
     host?: HostDescriptor;
 }
 
+/** One entry in a page's Markdown back-navigation history. `href` is a file
+ *  path (or `file://` URL) re-openable via `openRawLink` — today the push site
+ *  stores a plain OS path; `title` is the document title (Back button tooltip). */
+export interface NavEntry {
+    href: string;
+    title?: string;
+}
+
 /** Persisted state for a `PageModel`. `mainEditorId` references one
  *  `editor.id` in `editors[]`, or `null` for sidebar-only pages. */
 export interface PageDescriptor {
@@ -41,6 +49,10 @@ export interface PageDescriptor {
         /** Values: "explorer", "search", or a panel id from one of `editors[]`. */
         activePanel: string;
     };
+    /** Markdown in-page back-navigation history (oldest first). Persisted so it
+     *  survives app restart and moving the page to another window. Omitted when
+     *  empty. */
+    navBack?: NavEntry[];
 }
 
 /** Top-level shape persisted to `<userData>/openFiles.txt`.

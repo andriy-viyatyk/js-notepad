@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MarkdownEditor } from "./MarkdownEditor";
 import { pagesModel } from "../../api/pages";
+import { app } from "../../api/app";
+import { createLinkData } from "../../../shared/link-data";
 import { useEditorConfig } from "../base";
 import { FindBar } from "../shared/FindBar";
 import { MarkdownBlock, MarkdownBlockHandle } from "./MarkdownBlock";
+import { isLocalMarkdownHref } from "./markdown-nav";
 import { Minimap, Panel } from "../../uikit";
 
 const noopState = {
@@ -60,6 +63,35 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
     const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         scrollTopRef.current = e.currentTarget?.scrollTop ?? 0;
     }, []);
+
+    // US-784 — in-page navigation for local markdown links. Intercept a plain
+    // left-click on a link that resolves to a local `.md`/`.markdown` file:
+    // push the current doc onto the page back-stack and navigate THIS page in
+    // place (pageId set) instead of letting it fall through to the main-process
+    // will-navigate handler that opens a new tab. Every other link (other files,
+    // http, images, mailto, #anchor) is left untouched and keeps its behavior.
+    const onLinkClickCapture = useCallback((e: React.MouseEvent) => {
+        // Modified clicks (open-in-new-tab intent) fall through unchanged.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        const anchor = (e.target as HTMLElement).closest("a");
+        if (!anchor) return;
+        const href = anchor.getAttribute("href") || "";
+        if (!isLocalMarkdownHref(href)) return;
+        const page = model.page;
+        const pageId = page?.id;
+        if (!pageId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        // Push the document we're leaving so Back can return to it. Skip when the
+        // current doc has no file path (untitled) — there's nothing to reopen.
+        const cur = model.host?.state.get();
+        if (cur?.filePath) {
+            page.pushNavBack({ href: cur.filePath, title: cur.title });
+        }
+        void app.events.openRawLink.sendAsync(
+            createLinkData(href, { pageId, target: "md-view", sourceId: "markdown-link" }),
+        );
+    }, [model]);
 
     // Effective highlight text: own search takes priority over external
     // (notebook embedded highlight via editorConfig.highlightText).
@@ -159,6 +191,7 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
                     paddingX={compact ? "md" : "xxl"}
                     ref={setScrollContainer}
                     onScroll={onScroll}
+                    onClickCapture={embedded ? undefined : onLinkClickCapture}
                 >
                     <MarkdownBlock
                         ref={blockRef}

@@ -12,6 +12,7 @@ const defaultPageState: IPageState = {
     mainEditorId: null,
     version: 0,
     hasSidebar: false,
+    navBackCount: 0,
 };
 
 /**
@@ -188,6 +189,14 @@ export class BrowserPanelHost implements IPageHost {
     setTransient(key: string, value: unknown): void {
         if (value === undefined) this._transient.delete(key);
         else this._transient.set(key, value);
+    }
+
+    // ── Markdown back-navigation (inert — the browser has no main-editor nav) ──
+
+    pushNavBack(): void {}
+
+    popNavBack(): undefined {
+        return undefined;
     }
 
     // ── Cleanup ─────────────────────────────────────────────────────────────

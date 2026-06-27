@@ -292,6 +292,7 @@ persephone/
 │   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (CSS, ReactMarkdown, search handle)
 │   │   ├── CodeBlock.tsx             # Code block + inline Mermaid
 │   │   ├── rehypeHighlight.ts        # Search text highlighting
+│   │   ├── markdown-nav.ts           # isLocalMarkdownHref — local-.md link detection for in-page nav
 │   │   └── index.tsx
 │   │
 │   ├── browser/            # Built-in browser (non-text, no trait)

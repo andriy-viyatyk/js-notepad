@@ -1,7 +1,7 @@
 import { TComponentState, TOneState } from "../../core/state/state";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
-import type { PageDescriptor } from "../../../shared/persistence";
+import type { NavEntry, PageDescriptor } from "../../../shared/persistence";
 import { SecondaryViewsModel, ISecondaryViewsState } from "../../ui/secondary-views/SecondaryViewsModel";
 import type { IPageHost } from "./IPageHost";
 import type { IContentPipe } from "../types/io.pipe";
@@ -35,6 +35,9 @@ export interface IPageState {
     /** Whether the sidebar (SecondaryViewsModel) exists. Kept for backward compat
      *  with existing UI; equivalent to `hasSidebar` getter. */
     hasSidebar: boolean;
+    /** Length of the Markdown back-navigation stack. Drives the Markdown view's
+     *  Back button visibility (shown iff > 0). */
+    navBackCount: number;
 }
 
 const defaultPageState: IPageState = {
@@ -42,6 +45,7 @@ const defaultPageState: IPageState = {
     mainEditorId: null,
     version: 0,
     hasSidebar: false,
+    navBackCount: 0,
 };
 
 export class PageModel implements IPageHost {
@@ -118,6 +122,33 @@ export class PageModel implements IPageHost {
         } else {
             this._transient.set(key, value);
         }
+    }
+
+    // ── Markdown back-navigation history (US-784) ──────────────────────
+
+    /** Back-navigation stack for the Markdown view (oldest first). Pushed by the
+     *  Markdown link interceptor, popped by its Back button. Lives on the page so
+     *  it survives the editor swaps each in-place navigation creates, and is
+     *  persisted in the page descriptor (survives restart + window moves). */
+    private _navBack: NavEntry[] = [];
+
+    /** Push the document being navigated away from onto the back stack. */
+    pushNavBack(entry: NavEntry): void {
+        this._navBack.push(entry);
+        this.state.update((s) => { s.navBackCount = this._navBack.length; });
+    }
+
+    /** Pop and return the most recent back entry, or undefined when empty. */
+    popNavBack(): NavEntry | undefined {
+        const entry = this._navBack.pop();
+        if (entry) this.state.update((s) => { s.navBackCount = this._navBack.length; });
+        return entry;
+    }
+
+    /** Seed the back stack from a persisted descriptor (restore path). */
+    seedNavBack(entries: NavEntry[] | undefined): void {
+        this._navBack = entries ? [...entries] : [];
+        this.state.update((s) => { s.navBackCount = this._navBack.length; });
     }
 
     constructor(id?: string) {
@@ -719,6 +750,7 @@ export class PageModel implements IPageHost {
                     activePanel: this.activePanel,
                 }
                 : undefined,
+            navBack: this._navBack.length ? [...this._navBack] : undefined,
         };
     }
 

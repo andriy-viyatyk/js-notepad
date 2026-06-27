@@ -8,12 +8,22 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.8 (Upcoming)
 
+### New Features
+
+- **Markdown Preview — in-page navigation and Back history** — Clicking a link to a local Markdown file (`.md` or `.markdown`) in the Preview view now loads the target **in the same tab** instead of opening a new one. The tab stays in Markdown Preview mode throughout.
+
+  After the first such navigation, a **← Back** button appears in the Markdown toolbar. Clicking it returns to the previously-viewed document; repeated clicks walk the full history back to the original document, at which point the button disappears. The back history is **per-tab** and is **persisted** — it survives app restarts and moving the tab to another Persephone window.
+
+  All other links behave exactly as before: `http`/`https` links, images, non-Markdown local files, `#fragment` anchors, and `mailto:` links all open in a new tab or follow current behavior.
+
+  Notebook-embedded Markdown is not affected — links there continue to open in new tabs.
+
 ### Improvements
 
 - **Markdown Preview — relative images and Azure DevOps wiki links** — The Markdown Preview now resolves image and link paths correctly:
 
   - **Relative images** — images referenced with a relative path (e.g. `![](images/diagram.png)`) now render inline in the preview. Previously the Markdown view never resolved image sources at all, so relative images appeared as broken placeholders.
-  - **Azure DevOps wiki links** — when the `.md` file lives inside a git repository, root-relative ADO wiki paths are resolved against the wiki root (the folder that contains `.git`). A leading-slash image path such as `![](/.attachments/diagram.png)` resolves to `<wiki-root>/.attachments/diagram.png` and renders inline. A page link such as `[Page](/Area/Some%20Page)` resolves to `<wiki-root>/Area/Some-Page.md` (URL-decoded, spaces converted to dashes, `.md` appended) and opens in a new tab when clicked.
+  - **Azure DevOps wiki links** — when the `.md` file lives inside a git repository, root-relative ADO wiki paths are resolved against the wiki root (the folder that contains `.git`). A leading-slash image path such as `![](/.attachments/diagram.png)` resolves to `<wiki-root>/.attachments/diagram.png` and renders inline. A page link such as `[Page](/Area/Some%20Page)` navigates to `<wiki-root>/Area/Some-Page.md` in the same tab (in-page navigation, see above).
 
   No new settings or UI — both improvements work automatically.
 
@@ -47,6 +57,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **Boards sidebar — "+ New board" hidden when panel is collapsed** — The **New board** split-button in the **Boards** Explorer panel header is now hidden when the panel is collapsed, and visible when expanded. Previously the button remained visible even when the panel was collapsed, taking up space in the header bar.
 
 ### Bug Fixes
+
+- **Markdown Preview — Azure DevOps wiki page links with dashes or parentheses** — ADO wiki page links whose on-disk slug contained dashes or parentheses — such as `[BRE](/Applications/Business-Rule-Engine-(BRE))` — previously failed with a "File not found" error. The link resolver was re-encoding the path, turning `-` into `%2D` and `(` into `%28`, so the resulting filename did not match the file on disk. The resolver now maps the path to the file name directly without double-encoding: literal dashes and parentheses are preserved, and only bare spaces are converted to dashes.
 
 - **MCP / Mneme — connection stability on Windows** — Both the Persephone MCP server and the Mneme knowledge-base service now bind to `127.0.0.1` (IPv4 loopback) instead of the hostname `localhost`. On Windows, `localhost` often resolves to `::1` (IPv6) first; if nothing is listening on the IPv6 side the client stalls and eventually times out, causing the yellow Mneme status indicator and `-32001` connection-refused errors in the MCP Inspector. Using the literal IPv4 address eliminates the ambiguity.
 

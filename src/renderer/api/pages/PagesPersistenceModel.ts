@@ -63,6 +63,7 @@ export class PagesPersistenceModel {
     restorePage = async (desc: PageDescriptor): Promise<PageModel | null> => {
         const page = new PageModel(desc.id);
         page.pinned = desc.pinned;
+        page.seedNavBack(desc.navBack);
 
         const editors = await Promise.all(
             desc.editors.map(async (d) => {

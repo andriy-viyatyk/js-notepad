@@ -123,6 +123,23 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
         this.typedQueue.send({ type: "focus" });
     }
 
+    /** Back-navigate the page to the previous Markdown document (US-784). Pops
+     *  the page's back stack and re-opens that entry in place. Goes straight
+     *  through `openRawLink` (not the link interceptor), so it does not push a
+     *  new history entry. No-op when there's no page or no history. */
+    navigateBack = async (): Promise<void> => {
+        const page = this.page;
+        const pageId = page?.id;
+        if (!page || !pageId) return;
+        const entry = page.popNavBack();
+        if (!entry) return;
+        const { app } = await import("../../api/app");
+        const { createLinkData } = await import("../../../shared/link-data");
+        await app.events.openRawLink.sendAsync(
+            createLinkData(entry.href, { pageId, target: "md-view" }),
+        );
+    };
+
     // ── Persistence ─────────────────────────────────────────────────────
 
     getRestoreData(): EditorDescriptor {
