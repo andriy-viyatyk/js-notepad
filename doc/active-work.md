@@ -7,7 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- [ ] US-791: Colored `BoardColorIcon` for the Boards sidebar panel header (4 panels filled blue/green/yellow/red)
+- *(nothing in progress)*
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)

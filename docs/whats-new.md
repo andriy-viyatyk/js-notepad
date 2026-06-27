@@ -91,6 +91,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Boards sidebar — "+ New board" hidden when panel is collapsed** — The **New board** split-button in the **Boards** Explorer panel header is now hidden when the panel is collapsed, and visible when expanded. Previously the button remained visible even when the panel was collapsed, taking up space in the header bar.
 
+- **Boards sidebar — colored panel icon** — The **Boards** panel header now shows a colored four-panel icon (blue/green/yellow/red quadrants) instead of the previous monochrome glyph.
+
 ### Bug Fixes
 
 - **Markdown Preview — Azure DevOps wiki page links with dashes or parentheses** — ADO wiki page links whose on-disk slug contained dashes or parentheses — such as `[BRE](/Applications/Business-Rule-Engine-(BRE))` — previously failed with a "File not found" error. The link resolver was re-encoding the path, turning `-` into `%2D` and `(` into `%28`, so the resulting filename did not match the file on disk. The resolver now maps the path to the file name directly without double-encoding: literal dashes and parentheses are preserved, and only bare spaces are converted to dashes.
