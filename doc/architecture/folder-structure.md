@@ -290,7 +290,8 @@ persephone/
 │   │   ├── MarkdownEditor.ts         # EditorModel — search state, scroll, compact
 │   │   ├── MarkdownBody.tsx          # React component
 │   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (CSS, ReactMarkdown, search handle)
-│   │   ├── CodeBlock.tsx             # Code block + inline Mermaid
+│   │   ├── CodeBlock.tsx             # Code block + inline Mermaid (+ copyImageToClipboard helper)
+│   │   ├── MarkdownImage.tsx         # Rendered image + hover toolbar (Copy / Open in new tab)
 │   │   ├── rehypeHighlight.ts        # Search text highlighting
 │   │   ├── markdown-nav.ts           # isLocalMarkdownHref — local-.md link detection for in-page nav
 │   │   └── index.tsx

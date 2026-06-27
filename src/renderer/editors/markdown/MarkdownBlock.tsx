@@ -9,6 +9,7 @@ import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { createRehypeHighlight } from "./rehypeHighlight";
 import { CodeBlock, createPreBlock } from "./CodeBlock";
+import { MarkdownImage } from "./MarkdownImage";
 import { isCurrentThemeDark } from "../../theme/themes";
 import { settings } from "../../api/settings";
 import { resolveRelatedLink } from "../../core/utils/path-utils";
@@ -113,42 +114,59 @@ const MarkdownBlockRoot = styled.div({
             maxWidth: "100%",
             height: "auto",
         },
+        // Toolbar floats just above the diagram (it has vertical margin around it)
         "& .diagram-toolbar": {
-            position: "absolute",
             top: -10,
             right: 0,
-            display: "flex",
-            gap: 4,
-            opacity: 0,
-            transition: "opacity 0.2s ease",
         },
-        "& .toolbar-btn": {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 4,
-            color: color.text.light,
-            backgroundColor: color.background.light,
-            border: `1px solid ${color.border.default}`,
-            borderRadius: 4,
-            cursor: "pointer",
-            "& svg": {
-                transition: "transform 0.15s ease-out",
-            },
-            "&:hover": {
-                color: color.text.default,
-            },
-            "&.copied svg": {
-                transform: "scale(0.65)",
-                transition: "transform 0.1s ease-in",
-            },
+    },
+    // Rendered images get the same hover toolbar (Copy / Open in new tab).
+    // Inline-level, so the wrapper hugs the image and the toolbar overlays its
+    // top-right corner.
+    "& .md-image": {
+        position: "relative",
+        display: "inline-block",
+        width: "fit-content",
+        maxWidth: "100%",
+        "& .diagram-toolbar": {
+            top: 6,
+            right: 6,
         },
-        "&:hover .diagram-toolbar": {
-            opacity: 0.5,
+    },
+    // Shared hover toolbar — mermaid diagrams + rendered images
+    "& .mermaid-diagram .diagram-toolbar, & .md-image .diagram-toolbar": {
+        position: "absolute",
+        display: "flex",
+        gap: 4,
+        opacity: 0,
+        transition: "opacity 0.2s ease",
+    },
+    "& .mermaid-diagram .toolbar-btn, & .md-image .toolbar-btn": {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 4,
+        color: color.text.light,
+        backgroundColor: color.background.light,
+        border: `1px solid ${color.border.default}`,
+        borderRadius: 4,
+        cursor: "pointer",
+        "& svg": {
+            transition: "transform 0.15s ease-out",
         },
-        "&:hover .diagram-toolbar:hover": {
-            opacity: 1,
+        "&:hover": {
+            color: color.text.default,
         },
+        "&.copied svg": {
+            transform: "scale(0.65)",
+            transition: "transform 0.1s ease-in",
+        },
+    },
+    "& .mermaid-diagram:hover .diagram-toolbar, & .md-image:hover .diagram-toolbar": {
+        opacity: 0.5,
+    },
+    "& .mermaid-diagram:hover .diagram-toolbar:hover, & .md-image:hover .diagram-toolbar:hover": {
+        opacity: 1,
     },
     "& .mermaid-diagram.mermaid-loading": {
         padding: "2em",
@@ -423,7 +441,7 @@ const getComponents = (filePath: string, mermaidLightMode: boolean, wikiRoot?: s
     },
     img: ({ node, src, ...props }) => {
         return (
-            <img
+            <MarkdownImage
                 src={resolveRelatedLink(filePath, typeof src === "string" ? src : undefined, wikiRoot)}
                 {...props}
             />

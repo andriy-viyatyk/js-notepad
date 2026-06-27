@@ -55,6 +55,9 @@ For `.md` and `.markdown` files — click **Preview** in the toolbar:
 - **YAML frontmatter** — if the document starts with a `---` … `---` (or `---` … `...`) frontmatter block, it renders as a syntax-highlighted YAML code block instead of broken text or stray horizontal rules. The source file is never modified — this is a preview-only transform
 - **Inline Mermaid diagrams** — ` ```mermaid ` code blocks render as SVG diagrams with hover toolbar (copy image to clipboard, open in Mermaid editor). Azure DevOps wiki fenced container syntax (`::: mermaid … :::`) is also recognized and rendered as a diagram
 - **Relative images** — images referenced with a relative path (e.g. `![](images/diagram.png)`) resolve correctly relative to the Markdown file's location on disk and render inline in the preview
+- **Image hover toolbar** — hover over any rendered image to reveal a small toolbar in the top-right corner of the image with two buttons:
+  - **Copy** — copies the image to the clipboard as PNG. Paste directly into Teams, Slack, Outlook, or any app that accepts images.
+  - **Open in new tab** — opens the image in Persephone's Image Viewer in a new tab. This button is hidden for embedded `data:` or `blob:` images (images that have no file path to open).
 - **Azure DevOps wiki links** — when the Markdown file lives inside a git repository, root-relative ADO wiki paths are resolved against the wiki root (the folder that contains `.git`):
   - **Images** — a leading-slash image path such as `![](/.attachments/diagram.png)` resolves to `<wiki-root>/.attachments/diagram.png` and renders inline
   - **Page links** — a link like `[Page](/Area/Some%20Page)` or `[Page](/Business-Rule-Engine-(BRE))` resolves to the on-disk file at `<wiki-root>/Area/Some-Page.md` (literal dashes and parentheses in the path are kept as-is; only bare spaces are converted to dashes). Clicking the link navigates in the same tab (see **in-page navigation** below)

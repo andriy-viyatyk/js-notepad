@@ -18,6 +18,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
   Notebook-embedded Markdown is not affected — links there continue to open in new tabs.
 
+- **Markdown Preview — image hover toolbar** — Hovering over any rendered image in the Markdown Preview now reveals a small toolbar in the top-right corner of the image with two buttons:
+
+  - **Copy** — copies the image to the clipboard as PNG. Paste directly into Teams, Slack, Outlook, or any app that accepts images.
+  - **Open in new tab** — opens the image in Persephone's Image Viewer in a new tab. This button is hidden for embedded `data:` or `blob:` images (images that have no file path to open).
+
+  This mirrors the hover toolbar already present on Mermaid diagrams in the Markdown view.
+
 ### Improvements
 
 - **Markdown Preview — relative images and Azure DevOps wiki links** — The Markdown Preview now resolves image and link paths correctly:

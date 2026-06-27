@@ -74,7 +74,7 @@ export function CodeBlock({ className, children, node, ...props }: CodeBlockProp
 }
 
 // Copy an <img> element to clipboard as PNG
-async function copyImageToClipboard(img: HTMLImageElement) {
+export async function copyImageToClipboard(img: HTMLImageElement) {
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
