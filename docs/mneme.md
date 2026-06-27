@@ -41,7 +41,7 @@ Toolbar buttons:
 
 ## Searching a knowledge base
 
-In the **File Explorer**, any folder that is a Mneme root shows a **`.mneme`** entry — visible only while Mneme is enabled, mirroring the `.git` entry shown for git repositories. Click it to open the **Mneme root** editor: a search view with an Explorer-like document tree in the sidebar.
+In the **File Explorer**, any folder that is a Mneme root shows a **`.mneme`** entry — visible only while Mneme is enabled, mirroring the `.git` entry shown for git repositories. To open the **Mneme root** editor, click the small **Open Mneme Root** button (memory icon) that appears on the right side of the `.mneme` row. Clicking the row itself expands or collapses the folder and opens its plain contents — the trailing button is what opens the search editor.
 
 **Search modes** (selector next to the search box):
 

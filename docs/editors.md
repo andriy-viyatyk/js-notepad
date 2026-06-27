@@ -475,7 +475,7 @@ Opens automatically when you open an archive file. Supports:
 
 Requires **Git integration** to be enabled (see [Settings — Git Integration](#git-integration-setting)).
 
-The Git Tree editor shows the commit history of a git repository as a scrollable list. Open it by clicking the `.git` entry in the **File Explorer** panel — this entry appears automatically for any folder that is (or contains) a git repo root.
+The Git Tree editor shows the commit history of a git repository as a scrollable list. To open it, click the small **Open Git Tree** button (git icon) that appears on the right side of the **`.git`** row in the **File Explorer** panel — this entry appears automatically for any folder that is (or contains) a git repo root. Clicking the `.git` row itself expands or collapses it and opens the folder's plain contents; only the trailing icon button opens the Git Tree editor.
 
 **Columns:**
 
@@ -635,7 +635,7 @@ On success the **Staged** list clears and the new commit appears at the top of t
 
 **Multiple repositories:**
 
-When two or more repositories are open in the same page (e.g. you clicked `.git` for a second repo while the first repo's Git Tree is already open), each repository gets its own **Git** panel in the sidebar. The panels are independently expandable and collapsible. Re-opening the same repo's `.git` entry does not create a duplicate panel.
+When two or more repositories are open in the same page (e.g. you clicked the **Open Git Tree** button on a second repo's `.git` row while the first repo's Git Tree is already open), each repository gets its own **Git** panel in the sidebar. The panels are independently expandable and collapsible. Re-opening the same repo's `.git` entry does not create a duplicate panel.
 
 **Commit panel:**
 
@@ -729,7 +729,7 @@ Requires **Mneme** to be enabled (Settings → **Mneme (vector memory)** → **E
 Mneme is an optional, local knowledge base that indexes folders of Markdown for full-text and semantic search. It surfaces as two editors:
 
 - **Config & monitoring editor** — open from the **Tools & Editors** panel → **Mneme**. Manage indexed roots, include/ignore patterns, reindexing (with live progress), and the semantic-search embedding model. Toolbar buttons restart the service, open it in the MCP Inspector, and open its log.
-- **Mneme root editor** — click a **`.mneme`** entry in the **File Explorer** (shown for any indexed folder while Mneme is enabled, mirroring the `.git` entry). It opens a search view (Text / Vector / Hybrid modes, tag and date filters, Markdown results) with an Explorer-like document tree in the sidebar for browsing, editing, and organizing documents.
+- **Mneme root editor** — click the small **Open Mneme Root** button (memory icon) that appears on the right side of the **`.mneme`** row in the **File Explorer** (shown for any indexed folder while Mneme is enabled, mirroring the `.git` entry). Clicking the `.mneme` row itself expands or collapses it and opens the folder's plain contents; only the trailing icon button opens the Mneme root editor. The editor opens a search view (Text / Vector / Hybrid modes, tag and date filters, Markdown results) with an Explorer-like document tree in the sidebar for browsing, editing, and organizing documents.
 
 AI agents can read, search, and maintain the same knowledge base over MCP.
 

@@ -27,6 +27,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Improvements
 
+- **Explorer — dedicated open buttons for `.git` and `.mneme` rows** — In the File Explorer panel, the `.git` and `.mneme` special folder rows now have a small always-visible icon button on the right side of each row:
+
+  - **`.git` row** → **Open Git Tree** button (git icon) — opens the Git Tree commit-history editor.
+  - **`.mneme` row** → **Open Mneme Root** button (memory icon) — opens the Mneme root search editor.
+
+  Clicking the row itself now behaves like any other folder — it expands or collapses the node and opens the folder's plain contents in the main area. Previously, clicking the row directly opened the dedicated editor, which made it impossible to browse `.git` or `.mneme` folder contents without immediately switching the active editor. The **Open Board** button on `board-manifest.json` rows is unchanged.
+
 - **Markdown Preview — relative images and Azure DevOps wiki links** — The Markdown Preview now resolves image and link paths correctly:
 
   - **Relative images** — images referenced with a relative path (e.g. `![](images/diagram.png)`) now render inline in the preview. Previously the Markdown view never resolved image sources at all, so relative images appeared as broken placeholders.

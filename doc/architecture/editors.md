@@ -45,7 +45,7 @@ All editor code lives in `/src/renderer/editors/`.
 | `settings-view` | `SettingsEditor` | (none — opened via UI) | — | — |
 | `video-view` | `VideoEditorModel` | `.mp4`, `.mkv`, `.webm`, `.mp3`, `.flac`, `.wav`, `.ogg`, `.m3u8`, `.hls` | — | — |
 | `storybook-view` | `StorybookEditorModel` | (none — opened via UI) | — | — |
-| `git-tree` | `GitTreeEditorModel` | (none — opened from the `.git` node in Explorer) | — | — |
+| `git-tree` | `GitTreeEditorModel` | (none — opened via the `.git` node's trailing button in Explorer) | — | — |
 | `compare` | `CompareEditor` | (triggered) | — | — |
 | `board-view` | `BoardEditorModel` | folders carrying `board-manifest.json` (opened via `persephone-board://`) | — | — |
 

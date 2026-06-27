@@ -6,6 +6,9 @@ import { ContextMenuEvent } from "../../api/events/events";
 import { createLinkData } from "../../../shared/link-data";
 import { app } from "../../api/app";
 import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
+import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
+import { encodeGitTreeLink } from "../../content/git-tree-link";
+import { encodeMnemeFolderLink } from "../../content/mneme-folder-link";
 import { BOARD_MANIFEST_FILE } from "../board/board-manifest";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
@@ -18,7 +21,10 @@ import {
     SearchIcon,
     CloseIcon,
     BoardIcon,
+    GitIcon,
+    MemoryIcon,
 } from "../../theme/icons";
+import { MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 import { fpBasename, fpDirname } from "../../core/utils/file-path";
 
 export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon }: SecondaryViewProps) {
@@ -58,38 +64,88 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
         const current = model.selectionState.get().selectedHref;
         if (current?.toLowerCase() === item.href.toLowerCase()) return;
         model.setSelectedHref(item.href);
-        const url = model.treeProvider?.getNavigationUrl(item) ?? item.href;
+        // `.git` / `.mneme` are ordinary folders on click: expand/collapse (handled by the
+        // tree model) + open their plain contents. Their dedicated editors open only via the
+        // trailing button (renderTrailingAction), so route the click through a plain category
+        // link rather than getNavigationUrl (which returns the git-tree / mneme-root editor link).
+        const url =
+            item.target === "git-tree" || item.target === "mneme-root"
+                ? encodeCategoryLink({ type: "file", url: rootPath, category: item.href })
+                : (model.treeProvider?.getNavigationUrl(item) ?? item.href);
         app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: "explorer" }));
-    }, [pageId, model]);
+    }, [pageId, model, rootPath]);
 
-    // Per-row trailing action: on a `board-manifest.json` file row, an always-visible
-    // "Open Board" button that opens the board (single-board mode) via persephone-board://.
-    // The row's own click still opens the JSON in Monaco — the button stops propagation so
-    // the row click never fires. Trust is handled in-view (UntrustedBoardView) for foreign
-    // boards; the button only fires the link.
-    const renderBoardButton = useCallback((item: ITreeProviderItem) => {
-        if (item.isDirectory) return null;
-        if (fpBasename(item.href).toLowerCase() !== BOARD_MANIFEST_FILE) return null;
-        return (
-            <IconButton
-                name="explorer-open-board"
-                size="sm"
-                title="Open Board"
-                icon={<BoardIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    const boardRoot = fpDirname(item.href);
-                    app.events.openRawLink.sendAsync(
-                        createLinkData(encodePersephoneBoardLink(boardRoot), {
-                            pageId,
-                            sourceId: "explorer",
-                            // Scope the opened board's in-board switcher to the Explorer root (US-763).
-                            explorerRoot: rootPath,
-                        }),
-                    );
-                }}
-            />
-        );
+    // Per-row trailing action — an always-visible "open the dedicated editor" button for
+    // rows that have one. The row's own click does the ordinary thing (open the JSON for a
+    // board manifest; expand/collapse + plain contents for a `.git`/`.mneme` folder); each
+    // button stops propagation so the row click never fires.
+    //   - `board-manifest.json` → Open Board (single-board mode) via persephone-board://.
+    //     Trust is handled in-view (UntrustedBoardView) for foreign boards; button only fires.
+    //   - `.git` folder → Open Git Tree (git-tree:// at the repo root = parent of `.git`).
+    //   - `.mneme` folder → Open Mneme Root (mneme-folder:// at the root = parent of `.mneme`).
+    const renderTrailingAction = useCallback((item: ITreeProviderItem) => {
+        if (!item.isDirectory) {
+            if (fpBasename(item.href).toLowerCase() !== BOARD_MANIFEST_FILE) return null;
+            return (
+                <IconButton
+                    name="explorer-open-board"
+                    size="sm"
+                    title="Open Board"
+                    icon={<BoardIcon />}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        const boardRoot = fpDirname(item.href);
+                        app.events.openRawLink.sendAsync(
+                            createLinkData(encodePersephoneBoardLink(boardRoot), {
+                                pageId,
+                                sourceId: "explorer",
+                                // Scope the opened board's in-board switcher to the Explorer root (US-763).
+                                explorerRoot: rootPath,
+                            }),
+                        );
+                    }}
+                />
+            );
+        }
+        if (item.target === "git-tree") {
+            return (
+                <IconButton
+                    name="explorer-open-git"
+                    size="sm"
+                    title="Open Git Tree"
+                    icon={<GitIcon />}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        app.events.openRawLink.sendAsync(
+                            createLinkData(encodeGitTreeLink(fpDirname(item.href)), {
+                                pageId,
+                                sourceId: "explorer",
+                            }),
+                        );
+                    }}
+                />
+            );
+        }
+        if (item.target === "mneme-root") {
+            return (
+                <IconButton
+                    name="explorer-open-mneme"
+                    size="sm"
+                    title="Open Mneme Root"
+                    icon={<MemoryIcon color={MEMORY_ICON_COLOR} />}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        app.events.openRawLink.sendAsync(
+                            createLinkData(encodeMnemeFolderLink(fpDirname(item.href)), {
+                                pageId,
+                                sourceId: "explorer",
+                            }),
+                        );
+                    }}
+                />
+            );
+        }
+        return null;
     }, [pageId, rootPath]);
 
     const handleStateChange = useCallback((state: TreeProviderViewSavedState) => {
@@ -178,7 +234,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
                 onItemClick={handleItemClick}
                 onItemDoubleClick={handleItemClick}
                 onContextMenu={handleContextMenu}
-                renderTrailing={renderBoardButton}
+                renderTrailing={renderTrailingAction}
                 initialState={initialState}
                 onStateChange={handleStateChange}
             />
