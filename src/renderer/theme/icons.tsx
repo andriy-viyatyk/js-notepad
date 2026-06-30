@@ -303,14 +303,15 @@ export const ArrowUpIcon = createIcon(24)(
 export const FolderUpIcon = createIcon(24)(
     <>
         <path
-            d="M3 12v8a1 1 0 001 1h16a1 1 0 001-1v-6a1 1 0 00-1-1h-7l-2-2H4a1 1 0 00-1 1z"
+            d="M22 19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V5C2 3.89543 2.89543 3 4 3H9L11 5H20C21.1046 5 22 5.89543 22 7V19Z"
             stroke="currentColor"
             strokeWidth="1.5"
+            strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
         />
         <path
-            d="M12 17V5M9 8l3-3 3 3"
+            d="M12 16V10M9 13l3-3 3 3"
             stroke="currentColor"
             strokeWidth="1.5"
             strokeLinecap="round"
