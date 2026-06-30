@@ -182,6 +182,7 @@ See [scripting.md](./scripting.md).
 - Port is configurable via `mcp.port` setting (default `7865`)
 - Script execution uses `ScriptRunner.runWithCapture()` for headless operation with console capture
 - Status broadcasting: main process pushes `eMcpStatusChanged` events to all windows on server start/stop and session connect/disconnect — renderer `Window` class holds reactive `mcpRunning`/`mcpClientCount` state, UI shows a title-bar indicator
+- Session lifecycle: each client gets one Streamable HTTP session (`McpServer` + transport) kept in a `sessions` map. A session is evicted on explicit `DELETE`, on an idle-timeout reaper (closes sessions with no traffic for 30 min; swept every 60 s — each request bumps a per-session `lastActivity`), or on a `MAX_SESSIONS` cap (evicts least-recently-active on `initialize`). All eviction paths funnel through `transport.close()` → `onclose` → map delete. Sessions deliberately outlive a dropped SSE stream so reconnecting clients keep working; without the reaper, clients that quit without sending `DELETE` would leak sessions indefinitely.
 
 ### 5. Content Delivery Pipeline
 

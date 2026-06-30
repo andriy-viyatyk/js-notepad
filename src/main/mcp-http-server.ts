@@ -31,6 +31,22 @@ async function loadSdk(): Promise<void> {
 const DEFAULT_PORT = 7865;
 const REQUEST_TIMEOUT_MS = 30_000;
 
+// ── Session lifecycle ───────────────────────────────────────────────
+// The MCP SDK only evicts a session when the client sends an explicit HTTP
+// DELETE (or we call transport.close()). Clients that just terminate — Claude
+// Code restarting, a one-shot client, a reconnect after sleep — never send
+// DELETE, so their sessions would accumulate forever (we observed 178 in a day).
+// Each leaked session holds a full McpServer + transport in memory.
+//
+// Fix: track per-session activity and periodically close sessions idle past a
+// TTL. transport.close() fires onclose, which funnels through the same
+// sessions.delete path as DELETE — eviction stays in one place. We do NOT evict
+// on SSE-stream disconnect: the session is meant to outlive a single connection
+// so reconnecting clients keep working (see typescript-sdk issue #1852).
+const SESSION_IDLE_MS = 30 * 60_000; // close sessions with no traffic for 30 min
+const SESSION_SWEEP_MS = 60_000;     // check for idle sessions once a minute
+const MAX_SESSIONS = 500;            // backstop cap against burst leaks
+
 // ── State ───────────────────────────────────────────────────────────
 
 let httpServer: http.Server | undefined;
@@ -42,7 +58,33 @@ let browserToolsEnabled = false;
 // payloads whose shape is method-specific, so they ride as `unknown`.
 interface McpResponse { result?: unknown; error?: { code?: number; message: string } }
 const pendingRequests = new Map<string, (response: McpResponse) => void>();
-const sessions = new Map<string, { server: InstanceType<typeof McpServer>; transport: InstanceType<typeof StreamableHTTPServerTransport> }>();
+interface Session { server: InstanceType<typeof McpServer>; transport: InstanceType<typeof StreamableHTTPServerTransport>; lastActivity: number }
+const sessions = new Map<string, Session>();
+let sessionSweepTimer: ReturnType<typeof setInterval> | undefined;
+
+// Bump a session's activity timestamp so the idle reaper doesn't evict it. Called
+// on every request that carries a valid, known session id.
+function touchSession(sessionId: string | undefined): void {
+    if (!sessionId) return;
+    const session = sessions.get(sessionId);
+    if (session) session.lastActivity = Date.now();
+}
+
+// Periodic sweep: close sessions idle past SESSION_IDLE_MS. transport.close()
+// fires onclose → sessions.delete, so the map and broadcast update there.
+function sweepIdleSessions(): void {
+    const now = Date.now();
+    for (const [sid, session] of sessions) {
+        if (now - session.lastActivity > SESSION_IDLE_MS) {
+            // close() is async and rejects pending streams; if it throws, drop the
+            // entry directly so a wedged transport can't pin the session forever.
+            Promise.resolve(session.transport.close()).catch(() => {
+                sessions.delete(sid);
+                broadcastMcpStatus();
+            });
+        }
+    }
+}
 
 // ── IPC Bridge (main ↔ renderer) ───────────────────────────────────
 // Reuses the same MCP_EXECUTE/MCP_RESULT channels as the old pipe server.
@@ -792,13 +834,29 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
             const body = await parseJsonBody(req);
 
             if (sessionId && sessions.has(sessionId)) {
+                touchSession(sessionId);
                 await sessions.get(sessionId).transport.handleRequest(req, res, body);
             } else if (!sessionId && isInitializeRequest(body)) {
+                // Backstop against a burst of leaked sessions: if we're at the cap,
+                // evict the least-recently-active one before admitting a new client.
+                if (sessions.size >= MAX_SESSIONS) {
+                    let oldestSid: string | undefined;
+                    let oldest = Infinity;
+                    for (const [sid, s] of sessions) {
+                        if (s.lastActivity < oldest) { oldest = s.lastActivity; oldestSid = sid; }
+                    }
+                    const victim = oldestSid && sessions.get(oldestSid);
+                    if (victim) Promise.resolve(victim.transport.close()).catch(() => {
+                        sessions.delete(oldestSid);
+                        broadcastMcpStatus();
+                    });
+                }
+
                 const mcpServer = createMcpServer();
                 const transport = new StreamableHTTPServerTransport({
                     sessionIdGenerator: () => randomUUID(),
                     onsessioninitialized: (sid: string) => {
-                        sessions.set(sid, { server: mcpServer, transport });
+                        sessions.set(sid, { server: mcpServer, transport, lastActivity: Date.now() });
                         broadcastMcpStatus();
                     },
                 });
@@ -825,6 +883,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
                 res.end("Invalid or missing session ID");
                 return;
             }
+            touchSession(sessionId);
             await sessions.get(sessionId).transport.handleRequest(req, res);
         } else if (req.method === "DELETE") {
             if (!sessionId || !sessions.has(sessionId)) {
@@ -832,6 +891,7 @@ async function handleHttpRequest(req: http.IncomingMessage, res: http.ServerResp
                 res.end("Invalid or missing session ID");
                 return;
             }
+            touchSession(sessionId);
             await sessions.get(sessionId).transport.handleRequest(req, res);
         } else {
             res.writeHead(405, { "Content-Type": "text/plain" });
@@ -876,6 +936,10 @@ export async function startMcpHttpServer(port?: number): Promise<void> {
 
         server.listen(currentPort, "127.0.0.1", () => {
             httpServer = server;
+            // Reap idle sessions abandoned by clients that never sent DELETE. unref()
+            // so this timer never keeps the process alive on its own.
+            sessionSweepTimer = setInterval(sweepIdleSessions, SESSION_SWEEP_MS);
+            sessionSweepTimer.unref?.();
             console.log(`MCP HTTP server started: http://127.0.0.1:${currentPort}/mcp`);
             broadcastMcpStatus();
             resolve();
@@ -885,6 +949,11 @@ export async function startMcpHttpServer(port?: number): Promise<void> {
 
 export async function stopMcpHttpServer(): Promise<void> {
     if (!httpServer) return;
+
+    if (sessionSweepTimer) {
+        clearInterval(sessionSweepTimer);
+        sessionSweepTimer = undefined;
+    }
 
     // Close all active sessions
     for (const [, session] of sessions) {
