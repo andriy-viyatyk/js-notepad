@@ -7,7 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(nothing in progress)*
+- [ ] US-798: "Open in New Tab" for boards in the Boards panel — opens a board in a dedicated tab (no `pageId`) so its iframe + spawned dev-server processes stay alive while working in other tabs
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)

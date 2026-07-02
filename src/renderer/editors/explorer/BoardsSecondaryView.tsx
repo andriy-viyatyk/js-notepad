@@ -19,7 +19,7 @@ import { SplitButton } from "../../uikit/SplitButton";
 import { Button } from "../../uikit/Button";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { CloseIcon, PlusIcon, BoardIcon, DeleteIcon } from "../../theme/icons";
+import { CloseIcon, PlusIcon, BoardIcon, DeleteIcon, OpenLinkIcon } from "../../theme/icons";
 import { BoardsTree } from "../board/BoardsTree";
 
 // The Boards sibling panel (EPIC-036 / US-761). Backed by ExplorerEditor (like Search), so it
@@ -63,6 +63,21 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
             }),
         );
     }, [pageId, rootPath]);
+
+    // Open in a NEW tab — omitting pageId routes through openFile (a dedicated page)
+    // instead of navigatePageTo (which swaps this page's main editor and disposes the
+    // previous board, killing any dev-server processes it spawned). A board in its own
+    // tab keeps its iframe — and its spawned processes — alive while the user works in
+    // other tabs (inactive tabs are hidden, never unmounted), until that tab is closed.
+    // explorerRoot still rides along so the opened board keeps its in-board switcher.
+    const openBoardInNewTab = useCallback((root: string) => {
+        app.events.openRawLink.sendAsync(
+            createLinkData(encodePersephoneBoardLink(root), {
+                sourceId: "explorer",
+                explorerRoot: rootPath,
+            }),
+        );
+    }, [rootPath]);
 
     const handleCreate = useCallback(async () => {
         const root = await showCreateBoardDialog({
@@ -110,11 +125,17 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
 
     const getBoardContextMenu = useCallback((root: string): MenuItem[] => [
         {
+            label: "Open in New Tab",
+            icon: <OpenLinkIcon width={14} height={14} />,
+            onClick: () => openBoardInNewTab(root),
+        },
+        {
             label: "Delete Board",
             icon: <DeleteIcon width={14} height={14} />,
             onClick: () => { void handleDelete(root); },
+            startGroup: true,
         },
-    ], [handleDelete]);
+    ], [openBoardInNewTab, handleDelete]);
 
     // The "+ New board" control only makes sense when the panel body (the boards
     // list) is visible — hide it when the panel is collapsed to a header strip, so
