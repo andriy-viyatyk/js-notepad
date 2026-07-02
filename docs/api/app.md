@@ -174,6 +174,7 @@ const result = await app.proc.execute("node index.js", {
 | `cwd` | `string?` | app cwd | Working directory for the spawned process. |
 | `env` | `Record<string, string>?` | — | Extra environment variables, merged over the inherited environment. |
 | `shell` | `boolean \| string?` | `true` | Shell to use. `true` = OS default; a string picks a specific shell (`"bash"`, `"pwsh"`); `false` = run the executable directly without a shell. |
+| `name` | `string?` | — | Optional job name. Mainly used by [Boards](../boards.md#long-running-processes-setboardbusy--getboardbusy--getjobs), where a busy board re-associates its surviving jobs by name after a reload. |
 
 ### IExecuteHandle
 

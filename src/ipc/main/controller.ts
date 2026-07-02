@@ -410,14 +410,24 @@ class Controller implements MainApi {
         pushThemeToBoards(theme);
     };
 
-    requestBoardPort = async (event: IpcMainEvent, boardId: string, host: string): Promise<void> => {
+    requestBoardPort = async (event: IpcMainEvent, boardId: string, host: string, ownerId: string): Promise<void> => {
         const { createBoardPort } = await import("../../main/board-bridge");
-        createBoardPort(event.sender, boardId, host);
+        createBoardPort(event.sender, boardId, host, ownerId);
     };
 
     disposeBoardPort = async (_event: IpcMainEvent, boardId: string): Promise<void> => {
         const { disposeBoardPort } = await import("../../main/board-bridge");
         disposeBoardPort(boardId);
+    };
+
+    setBoardBusy = async (_event: IpcMainEvent, ownerId: string, busy: boolean): Promise<void> => {
+        const { setBoardBusy } = await import("../../main/board-bridge");
+        setBoardBusy(ownerId, busy);
+    };
+
+    reapBoardOwner = async (_event: IpcMainEvent, ownerId: string): Promise<void> => {
+        const { reapBoardOwner } = await import("../../main/board-bridge");
+        reapBoardOwner(ownerId);
     };
 
     registerBoardFrame = async (event: IpcMainEvent, boardId: string, boardHost: string, frameNonce?: string): Promise<void> => {
@@ -528,6 +538,8 @@ const init = () => {
     bindEndpoint(Endpoint.updateBoardTheme, controllerInstance.updateBoardTheme);
     bindEndpoint(Endpoint.requestBoardPort, controllerInstance.requestBoardPort);
     bindEndpoint(Endpoint.disposeBoardPort, controllerInstance.disposeBoardPort);
+    bindEndpoint(Endpoint.setBoardBusy, controllerInstance.setBoardBusy);
+    bindEndpoint(Endpoint.reapBoardOwner, controllerInstance.reapBoardOwner);
     bindEndpoint(Endpoint.registerBoardFrame, controllerInstance.registerBoardFrame);
     bindEndpoint(Endpoint.unregisterBoardFrame, controllerInstance.unregisterBoardFrame);
 

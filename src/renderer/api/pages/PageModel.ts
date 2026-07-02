@@ -407,7 +407,15 @@ export class PageModel implements IPageHost {
 
         let editorToDispose: EditorModel | null = null;
         const idTransferred = !!(oldMain && newEditor && oldMain.id === newEditor.id);
-        if (oldMain && oldMain !== newEditor && !oldMain.contributesPanels()) {
+        // Survival criteria: panel contributors demote to the sidebar; a
+        // keep-alive editor (busy Board, US-799) stays attached as an invisible
+        // ownership handle. Everything else is detached + disposed.
+        if (
+            oldMain &&
+            oldMain !== newEditor &&
+            !oldMain.contributesPanels() &&
+            !oldMain.keepAliveOnNavigation()
+        ) {
             this.detach(oldMain);
             editorToDispose = oldMain;
         }

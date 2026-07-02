@@ -89,6 +89,9 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
     beforeNavigateAway(newEditor: EditorModel): void;
     onMainEditorChanged(newMainEditor: EditorModel | null): void;
     survivesNavigation(sourceLink?: ILinkData): boolean;  // true → skip save-prompt (editor stays on page)
+    keepAliveOnNavigation(): boolean;   // true → stay attached with NO view when replaced as main
+                                        // (invisible ownership handle — e.g. a busy Board whose
+                                        // spawned processes must outlive its iframe)
 
     // Persistence
     getDescriptor(): HostDescriptor;

@@ -86,14 +86,16 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
 
     // Transfer a pending port into the board frame (the one-time handshake), with an
     // explicit board origin so the port can't leak to a frame that navigated away (C2).
+    // Carries the model's current busy flag (US-799) so a re-created board can read
+    // `persephone.getBoardBusy()` and reinitialize its running state.
     const transferPort = useCallback(() => {
         const win = iframeRef.current?.contentWindow;
         const port = pendingPortRef.current;
         if (!win || !port || !host) return;
-        const init: BoardPortInitMsg = { __persephoneInit: true };
+        const init: BoardPortInitMsg = { __persephoneInit: true, busy: !!model.state.get().busy };
         win.postMessage(init, `board://${host}`, [port]);
         pendingPortRef.current = null;
-    }, [host]);
+    }, [host, model]);
 
     // Subscribe to per-board port delivery; dispose the port + the board's jobs on unmount.
     useEffect(() => {
@@ -120,7 +122,9 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     // the same board (same origin) nor the pre-reload frame after a remount (US-796).
     const handleLoad = useCallback(() => {
         if (!host) return;
-        void api.requestBoardPort(boardId, host);
+        // `model.id` is the ownerId — the stable job-retention key across mounts of
+        // this board tab (busy retention, US-799).
+        void api.requestBoardPort(boardId, host, model.id);
         void api.registerBoardFrame(model.id, host, boardId);
     }, [host, boardId, model]);
 
@@ -134,7 +138,7 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         if (el) model.setIframe(el);
 
         const onMessage = (e: MessageEvent) => {
-            const d = e.data as { __persephone?: string; message?: string } | undefined;
+            const d = e.data as { __persephone?: string; message?: string; busy?: boolean } | undefined;
             if (!d || !d.__persephone) return;
             if (e.origin !== `board://${host}`) return;
             if (e.source !== iframeRef.current?.contentWindow) return;
@@ -146,6 +150,10 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 // functional). User-facing toasts are reserved for "board failed to load"
                 // (modes A + D, raised from main).
                 appendLog("error", d.message);
+            } else if (d.__persephone === "board:busy") {
+                // Busy retention (US-799): the model is the authoritative renderer-side
+                // holder; it mirrors the flag to main (job retention) and drives survival.
+                model.setBusy(!!d.busy);
             }
         };
         window.addEventListener("message", onMessage);

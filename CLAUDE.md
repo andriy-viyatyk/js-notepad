@@ -412,13 +412,14 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Process execution (`app.proc.execute` — renderer client) | `/src/renderer/api/proc.ts` |
 | Process execution (script-facing types `IProc`/`IExecuteHandle`) | `/src/renderer/api/types/proc.d.ts` |
 | Command runner wire types + IPC channels (shared by proc.ts and board preload) | `/src/ipc/runner-channels.ts` |
-| Command runner (main-process spawn service; whole-tree kill; jobId registry) | `/src/main/command-runner.ts` |
+| Command runner (main-process spawn service; whole-tree kill; jobId registry; jobs carry an optional caller `name` + `getJobsBySinkIds` query for board job re-association) | `/src/main/command-runner.ts` |
 | Per-board trust registry (trusted board roots; `trustedBoards.txt`; boards won't render without trust; also the known-boards registry; **inherited trust** — a board is trusted if it or any ancestor folder is registered, and `trust()` keeps the registry free of nested pairs) | `/src/renderer/api/board-trust.ts` |
 | Board lifecycle API (`app.boards.createBoard`/`createDemoBoard`/`openBoard`) | `/src/renderer/api/boards.ts` |
 | Board lifecycle script types (`IBoards`) | `/src/renderer/api/types/boards.d.ts` |
 | `board-manifest.json` identity file (read/ensure; a folder is a board iff it carries one) | `/src/renderer/editors/board/board-manifest.ts` |
 | `persephone-board://` link scheme (encode/decode; parsed in `parsers.ts` → `target: "board-view"`) | `/src/renderer/content/persephone-board-link.ts` |
-| Board editor model (single-board lifecycle, per-board trust, live iframe ref, icon; opens any board root) | `/src/renderer/editors/board/BoardEditorModel.ts` |
+| Board editor model (single-board lifecycle, per-board trust, live iframe ref, icon; opens any board root; busy keep-alive — while `persephone.setBoardBusy(true)`, survives navigation as an invisible ownership handle so its spawned processes outlive the iframe; dispose reaps them) | `/src/renderer/editors/board/BoardEditorModel.ts` |
+| Busy-boards reactive registry (busy board roots → Boards panel "running" dot) | `/src/renderer/editors/board/busy-boards.ts` |
 | Board editor view (React component only) | `/src/renderer/editors/board/BoardEditorView.tsx` |
 | In-board toolbar (Reload / Show-log / board path + boards-switcher popover / File Explorer button → `page.toggleNavigator` rooted at the board's parent folder) | `/src/renderer/editors/board/BoardToolbar.tsx` |
 | Board module + factory (boardModule + legacy EditorModule) | `/src/renderer/editors/board/index.tsx` |
@@ -433,8 +434,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Board icon cache (module-level SVG/PNG/ICO → data URL cache) | `/src/renderer/editors/board/board-icon-cache.ts` |
 | Reusable boards tree (folder-compacted; single-root + multi-root; board-click / trailing-action / context-menu slots) | `/src/renderer/editors/board/BoardsTree.tsx` |
 | Boards-tree pure builder (path list → compacted folder/board node tree; VSCode-style single-child folder compaction) | `/src/renderer/editors/board/boards-tree-build.ts` |
-| Board bridge shim (browser IIFE inlined into served board HTML; rebuilds `window.persephone` over the `MessagePort` — queue-then-flush, `execute` streaming, dialogs, files, theme; posts `board:interact`/`board:error`/`securitypolicyviolation`/`window.onerror` to the host frame) | `/src/board-shim.ts` |
-| Board bridge (main side: mints a `MessageChannelMain` port pair per board, routes the duplex port — `execute` over the command runner, `openRawLink` + editor target, `notify`, file dialogs, `readFile`/`writeFile`; `disposeAllBoardPorts` on quit) | `/src/main/board-bridge.ts` |
+| Board bridge shim (browser IIFE inlined into served board HTML; rebuilds `window.persephone` over the `MessagePort` — queue-then-flush, `execute` streaming, dialogs, files, theme, `setBoardBusy`/`getBoardBusy`/`getJobs`; posts `board:interact`/`board:error`/`board:busy`/`securitypolicyviolation`/`window.onerror` to the host frame) | `/src/board-shim.ts` |
+| Board bridge (main side: mints a `MessageChannelMain` port pair per board, routes the duplex port — `execute` over the command runner, `openRawLink` + editor target, `notify`, file dialogs, `readFile`/`writeFile`, `getJobs`; busy-owner job retention — a busy board's jobs survive port disposal, reaped on final teardown; `disposeAllBoardPorts` on quit) | `/src/main/board-bridge.ts` |
 | Board bridge channels + wire types (`MessagePort` message unions board↔main + the renderer-broker handshake IPC; shared by board-shim + main + renderer) | `/src/ipc/board-bridge-channels.ts` |
 | Board automation adapter (`IBrowserTarget` for `browser_*`; CDP targets the board **frame** of the host webContents via `cdp-service` `registerBoardFrame`/`unregisterBoardFrame` — not a separate webContents; the frame is resolved by the iframe's `?v=<boardId>` nonce, disambiguating multiple tabs of the same board and the lingering pre-reload frame after a remount) | `/src/renderer/editors/board/BoardTargetModel.ts` |
 | Tools & Editors sidebar panel (pinned region + Editors / Custom Boards & Editors tabs) | `/src/renderer/ui/sidebar/ToolsEditorsPanel.tsx` |

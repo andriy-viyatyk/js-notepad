@@ -151,6 +151,16 @@ export abstract class EditorModel<
         return false;
     }
 
+    /** Must this editor stay attached to the page when it is replaced as the
+     *  main editor, even though it contributes NO panels? An invisible
+     *  ownership handle — e.g. a busy Board whose spawned processes must
+     *  outlive its view (US-799). `setMainEditor` skips detach+dispose while
+     *  true; the editor is disposed on page close or when the flag clears.
+     *  Base: false. */
+    keepAliveOnNavigation(): boolean {
+        return false;
+    }
+
     /** Called when `activePanel` changes to one this editor owns. */
     onPanelExpanded(_panelId: string): void {
         // Override in subclasses.

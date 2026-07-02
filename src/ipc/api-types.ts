@@ -90,6 +90,8 @@ export enum Endpoint {
     updateBoardTheme = "updateBoardTheme",
     requestBoardPort = "requestBoardPort",
     disposeBoardPort = "disposeBoardPort",
+    setBoardBusy = "setBoardBusy",
+    reapBoardOwner = "reapBoardOwner",
     registerBoardFrame = "registerBoardFrame",
     unregisterBoardFrame = "unregisterBoardFrame",
 }
@@ -205,9 +207,14 @@ export type Api = {
     [Endpoint.updateBoardTheme]: (theme: BoardThemePalette) => Promise<void>;
     // Mint a per-board MessagePort in main and deliver port1 to this renderer via
     // a postMessage on `eBoardPort` (EPIC-037 / US-771). Resolves once the request
-    // is sent; the port arrives asynchronously on the event channel.
-    [Endpoint.requestBoardPort]: (boardId: string, host: string) => Promise<void>;
+    // is sent; the port arrives asynchronously on the event channel. `ownerId` is
+    // the owning BoardEditorModel id — the stable job-retention key (US-799).
+    [Endpoint.requestBoardPort]: (boardId: string, host: string, ownerId: string) => Promise<void>;
     [Endpoint.disposeBoardPort]: (boardId: string) => Promise<void>;
+    // Busy retention (US-799): mirror the renderer's busy flag / tree-kill every
+    // job (kept + current) of a board owner on final teardown (model dispose).
+    [Endpoint.setBoardBusy]: (ownerId: string, busy: boolean) => Promise<void>;
+    [Endpoint.reapBoardOwner]: (ownerId: string) => Promise<void>;
     // `frameNonce` (the iframe's ?v= value) pins CDP automation to THIS tab's specific
     // board frame — disambiguating multiple tabs of the same board + the pre-reload
     // frame after a remount (US-796).

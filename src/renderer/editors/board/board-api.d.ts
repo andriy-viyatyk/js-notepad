@@ -19,6 +19,9 @@ interface PersephoneExecuteOptions {
     env?: Record<string, string>;
     /** Shell to run the command line through (default `true` = OS shell). */
     shell?: boolean | string;
+    /** Optional job name (e.g. `"backend"`) — the re-association key for
+     *  `getJobs()` after a board reload (US-799). Name every long-running job. */
+    name?: string;
 }
 
 /** How a process ended. */
@@ -64,6 +67,28 @@ interface PersephoneExecuteHandle {
     endStdin(): void;
     /** Terminate the process (default SIGTERM). */
     kill(signal?: string): void;
+}
+
+/**
+ * A live job listed by `persephone.getJobs()` (US-799) — possibly spawned by a
+ * PREVIOUS lifetime of this board (busy retention). Control-only: `kill`/`write`/
+ * `endStdin` work, but there is no stdout/stderr/exit streaming for surviving jobs
+ * (their output went to the previous lifetime; output produced while the board was
+ * unloaded is dropped). Poll `getJobs()` to notice a job exited.
+ */
+interface PersephoneJobInfo {
+    /** Unique id of the job. */
+    readonly jobId: string;
+    /** The spawned command line. */
+    readonly command: string;
+    /** The caller-chosen name from `execute(cmd, { name })`, if any. */
+    readonly name?: string;
+    /** Terminate the process tree (default SIGTERM). */
+    kill(signal?: string): void;
+    /** Write to the process's stdin. */
+    write(data: string | Uint8Array): void;
+    /** Close the process's stdin. */
+    endStdin(): void;
 }
 
 type PersephoneNotifyType = "info" | "success" | "warning" | "error";
@@ -127,6 +152,18 @@ interface PersephoneBoardApi {
     saveFileDialog(params?: PersephoneSaveFileDialogParams): Promise<string | undefined>;
     /** Native pick-folder dialog → selected folder(s), or undefined if cancelled. */
     openFolderDialog(params?: PersephoneOpenFolderDialogParams): Promise<string[] | undefined>;
+    /** Declare that this board's spawned processes must outlive the board (US-799).
+     *  While busy, unloading the board (page navigation / reload) KEEPS its processes
+     *  running; they are still killed on page/tab close, app quit, or after
+     *  `setBoardBusy(false)` + unload. Call with `false` when the processes stopped. */
+    setBoardBusy(busy: boolean): void;
+    /** The board's busy flag — survives the board's own reload. Read on startup: when
+     *  `true`, re-enter "running" mode via `getJobs()` (and call `setBoardBusy(false)`
+     *  if nothing actually lives anymore). */
+    getBoardBusy(): Promise<boolean>;
+    /** This board's LIVE jobs, including ones surviving from a previous board lifetime
+     *  (busy retention). Re-associate by `name`. See {@link PersephoneJobInfo}. */
+    getJobs(): Promise<PersephoneJobInfo[]>;
     /** Host color palette as of page load — correct on every (re)load, but a SNAPSHOT:
      *  it does not update on an in-session theme switch. For a live value use `getTheme()`
      *  or the palette passed to `onThemeChange`. */

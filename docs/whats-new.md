@@ -8,7 +8,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.11 (Upcoming)
 
-*No changes yet.*
+### New Features
+
+- **Boards — "Open in New Tab"** — Right-click a board in the **Boards** Explorer-sibling panel and choose **Open in New Tab** to open it in its own dedicated tab instead of replacing the current tab's content. A board opened this way keeps running (its iframe, and any dev-server process it spawned) while you work in other tabs — it's only disposed when you close that tab.
+- **Boards — keep spawned processes alive across navigation** — A board can now call `persephone.setBoardBusy(true)` to declare that its spawned processes (e.g. a dev server) must keep running even after the board itself unloads — navigating its tab to a document, or clicking **Reload**. `persephone.getBoardBusy()` and the new `persephone.getJobs()` (plus named jobs via `execute(cmd, { name })`) let the board re-associate with its still-running processes the next time it loads. Processes are still stopped when the tab is closed or Persephone quits. Busy boards show a green "running" dot in the **Boards** panel. See [Boards — Long-running processes](./boards.md#long-running-processes-setboardbusy--getboardbusy--getjobs).
 
 ---
 

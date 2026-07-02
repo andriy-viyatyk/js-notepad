@@ -969,6 +969,17 @@ export class PagesLifecycleModel {
         } else {
             this.model.detachPage(page);
             this.model.removePage(page);
+            // Keep-alive editors (busy Board, US-799) never transfer their
+            // processes to the target window: the page is re-created there from
+            // its descriptor, so the source-side model would otherwise leak —
+            // and with it the jobs main keeps alive for it. Dispose them here
+            // (reaps the jobs); a cross-window move thus KILLS a busy board's
+            // processes — the documented limitation. (The closeWindow branch
+            // needs no equivalent: the dying webContents triggers main's
+            // reapHost backstop.)
+            for (const editor of [...page.editors]) {
+                if (editor.keepAliveOnNavigation()) void editor.dispose();
+            }
         }
     };
 

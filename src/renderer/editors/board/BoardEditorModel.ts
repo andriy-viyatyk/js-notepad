@@ -10,6 +10,7 @@ import { isBoardFolder } from "./board-manifest";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
 import { invalidateBoardIcon } from "./board-icon-cache";
+import { markBoardBusy } from "./busy-boards";
 
 export interface BoardEditorState extends EditorStateBase {
     /** State-type discriminator. */
@@ -30,6 +31,12 @@ export interface BoardEditorState extends EditorStateBase {
     /** Bumped to force a remount of the board's webview — by the manual Reload
      *  action and the `board_refresh` MCP tool. */
     reloadToken: number;
+    /** Busy retention flag (US-799): set via `persephone.setBoardBusy(true)` when the
+     *  board spawned processes that must outlive it. While busy, this model survives
+     *  page navigation as an invisible ownership handle (its jobs in main are kept);
+     *  page close / dispose kills them. TRANSIENT — cleared on restore (processes
+     *  never survive an app restart). */
+    busy?: boolean;
     /** Sidebar panel contributions. */
     secondaryView?: string[];
 }
@@ -101,6 +108,33 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         return createElement(BoardIcon);
     };
 
+    // ── Busy retention (US-799) ──────────────────────────────────────────
+
+    /** Authoritative renderer-side busy holder. Set from the shim's `board:busy`
+     *  post (via BoardWebview). Updates the reactive state (panel indicator),
+     *  the window-level busy-roots registry, and mirrors the flag to main so a
+     *  busy owner's jobs survive port disposal. */
+    setBusy(busy: boolean): void {
+        const s = this.state.get();
+        if (!!s.busy === busy) return;
+        this.state.update((st) => { st.busy = busy; });
+        markBoardBusy(this.id, s.boardRoot, busy);
+        void api.setBoardBusy(this.id, busy);
+    }
+
+    /** While busy, survive `setMainEditor` as an invisible ownership handle —
+     *  the processes' lifetime stays tied to this page ("page closed → kill"). */
+    override keepAliveOnNavigation(): boolean {
+        return !!this.state.get().busy;
+    }
+
+    /** While busy, navigation away is non-destructive (this model survives) —
+     *  skip the release prompt. Boards are never `modified`, so this is
+     *  semantic hygiene rather than a behavior change. */
+    override survivesNavigation(): boolean {
+        return !!this.state.get().busy;
+    }
+
     /** Per-page singleton: re-navigating to the SAME board reuses this instance
      *  (promote back to main) rather than stacking a duplicate. Matches the
      *  `persephone-board://` link for this board's root. */
@@ -134,6 +168,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     async restore(): Promise<void> {
         const s = this.state.get();
         if (!s.boardRoot) throw new Error("legacy project-mode board editor — dropped on restore");
+        // Busy is transient (US-799): processes never survive an app restart
+        // (`will-quit` kills every child), so a persisted flag is always stale.
+        if (s.busy) this.state.update((st) => { st.busy = false; });
         void boardTrust.load();
         await this.refreshBoards();
     }
@@ -188,8 +225,12 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     /** Drop the live `<iframe>` reference and the board frame's CDP registration on
      *  teardown. `BoardWebview`'s unmount normally unregisters the frame, but `dispose()`
      *  can run without a clean React unmount (forced close / window teardown), so clear
-     *  it here too — both are idempotent. */
+     *  it here too — both are idempotent. Also the FINAL job teardown (US-799):
+     *  `reapBoardOwner` tree-kills every job this board owner kept alive while busy —
+     *  page close overrides busy ("page closed → kill anyway"). */
     override async dispose(): Promise<void> {
+        markBoardBusy(this.id, undefined, false);
+        void api.reapBoardOwner(this.id);
         this.currentIframe = null;
         void api.unregisterBoardFrame(this.id);
         await super.dispose();

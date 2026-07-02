@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
+import styled from "@emotion/styled";
 
 import { app } from "../../api/app";
 import { fs } from "../../api/fs";
@@ -20,7 +21,22 @@ import { Button } from "../../uikit/Button";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { CloseIcon, PlusIcon, BoardIcon, DeleteIcon, OpenLinkIcon } from "../../theme/icons";
+import color from "../../theme/color";
 import { BoardsTree } from "../board/BoardsTree";
+import { useBusyBoardRoots } from "../board/busy-boards";
+
+/** "Running" indicator for a busy board (US-799) — its spawned processes are
+ *  alive (possibly with the board itself unloaded). */
+const RunningDot = styled.span(
+    {
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        backgroundColor: color.misc.green,
+        flexShrink: 0,
+    },
+    { label: "RunningDot" },
+);
 
 // The Boards sibling panel (EPIC-036 / US-761). Backed by ExplorerEditor (like Search), so it
 // inherits the Explorer `rootPath` as its scope and `page.id` for navigation. Lists the trusted
@@ -123,6 +139,14 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
         removePin({ kind: "board", root });
     }, []);
 
+    // "Running" dot for boards whose processes are alive (busy, US-799) — including
+    // boards running invisibly after the user navigated their page elsewhere.
+    const busyRoots = useBusyBoardRoots();
+    const renderTrailing = useCallback((root: string) => {
+        if (!busyRoots.includes(fpNormalizeForCompare(root))) return undefined;
+        return <RunningDot title="Board processes are running" />;
+    }, [busyRoots]);
+
     const getBoardContextMenu = useCallback((root: string): MenuItem[] => [
         {
             label: "Open in New Tab",
@@ -208,6 +232,7 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
                     boards={boards}
                     baseRoot={rootPath}
                     onOpenBoard={openBoard}
+                    renderTrailing={renderTrailing}
                     getBoardContextMenu={getBoardContextMenu}
                 />
             )}

@@ -65,7 +65,7 @@ The board opens immediately after creation.
 
 ### 2. Open an existing board
 
-- **Boards panel** — click the **Boards** button in the Explorer header. All trusted boards under the current root are listed as a tree. Click any board name to open it in the current tab.
+- **Boards panel** — click the **Boards** button in the Explorer header. All trusted boards under the current root are listed as a tree. Click any board name to open it in the current tab. Right-click a board for **Open in New Tab** — opens it in its own dedicated tab instead of replacing the current tab's content, so its iframe (and any dev-server process it spawned) keeps running while you work in other tabs. A board whose spawned processes are still running (via `persephone.setBoardBusy(true)` — see [Long-running processes](#long-running-processes-setboardbusy--getboardbusy--getjobs)) shows a green **running** dot next to its name, even after its tab has moved on to something else.
 - **File Explorer panel** — rows for `board-manifest.json` files show an **Open Board** button (board icon) directly in the row. Click it to open that board. (Clicking the row itself opens the JSON in Monaco.)
 - **Tools & Editors panel → Custom Boards & Editors tab** — lists all trusted boards, grouped by folder, across all locations. Click a board to open it in a new tab. Pin a board to make it appear in the top pinned section and in the **+** (add page) dropdown.
 - **In-board toolbar** — when a board is open, click the board path label in the toolbar to open the boards-switcher popover and jump to another board under the same Explorer root.
@@ -101,7 +101,7 @@ The only Persephone-specific API a board sees is `window.persephone`. Everything
 Runs a command on your machine and returns a process handle:
 
 ```js
-// Options: cwd (default = board folder), env, shell
+// Options: cwd (default = board folder), env, shell, name
 const handle = persephone.execute("node scripts/load.js");
 ```
 
@@ -140,6 +140,37 @@ handle.kill();              // terminate the process
 ```
 
 > **Buffered vs streaming:** choose one per handle — mixing them throws an error. For a simple request-response pattern, use `getJson()` / `getText()`; for long-running or progress-reporting scripts, use `on(...)`.
+
+### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
+
+By default, a board's spawned processes are **killed whenever the board unloads** — the user navigates the page to something else, or clicks **Reload**. A board that starts a dev server, watcher, or any process meant to keep running opts out with the busy flag:
+
+```js
+// Start a long-running process and name it
+persephone.execute("npm run dev", { name: "backend" });
+persephone.setBoardBusy(true);
+
+// On every board startup — re-enter "running" mode if a previous lifetime left work running
+if (await persephone.getBoardBusy()) {
+    const jobs = await persephone.getJobs();
+    const backend = jobs.find(j => j.name === "backend");
+    if (backend) showRunningUi(backend);              // backend.kill() stops it
+    if (jobs.length === 0) persephone.setBoardBusy(false); // nothing survived — reset the flag
+}
+
+// Stop it
+backend.kill();
+persephone.setBoardBusy(false);
+```
+
+- **`persephone.setBoardBusy(true)`** — declares "my processes must outlive me". While busy, unloading the board (navigating its page elsewhere, or **Reload**) leaves its processes running. They are still killed when the page/tab is closed, when Persephone quits, or after you call `setBoardBusy(false)` and the board next unloads.
+- **`persephone.getBoardBusy()`** → `Promise<boolean>` — the flag itself survives a reload (it lives in the app, not the board's JS). Read it on startup to know whether you should re-enter "running" mode.
+- **`persephone.getJobs()`** → `Promise<PersephoneJobInfo[]>` — this board's currently live jobs, including ones spawned by a previous lifetime of the board (the board's own JS state, including any `execute()` handles, does not survive a reload). Each entry has `jobId`, `command`, the optional `name` you gave it, and `kill()` / `write()` / `endStdin()`. Surviving jobs are **control-only** — there is no `stdout`/`stderr`/`exit` streaming for them (their output went to the previous lifetime; anything a process prints while the board is unloaded is dropped). Poll `getJobs()` if you need to notice a job has exited.
+- **Name your long-running jobs** — pass `{ name: "backend" }` to `execute()`. The name is the re-association key `getJobs()` uses after a reload, since a board cannot rely on `localStorage` to remember an old `jobId` (board storage does not persist across app restarts).
+
+A busy board still shows a green **running** dot next to its name in the **Boards** panel, so a process left running in the background stays discoverable.
+
+**Related but different:** opening a board with **Open in New Tab** (see [below](#2-open-an-existing-board)) keeps the whole board — iframe and all — alive in its own tab. `setBoardBusy()` is for the opposite situation: you replaced the board's tab with something else (or reloaded it) and only need its *processes*, not the board UI, to survive.
 
 ### Integration methods
 
@@ -338,6 +369,9 @@ browser_evaluate({ pageId: "abc", expression: "document.querySelector('#result')
 | Create a board (script) | `await app.boards.createBoard("Name", "C:/path/to/dir")` |
 | Open a board from Explorer | Click the **Open Board** button on a `board-manifest.json` row |
 | Open a board from the Boards panel | Click the board in the **Boards** Explorer-sibling panel |
+| Open a board in a new tab (keep it running) | Right-click the board in the **Boards** panel → **Open in New Tab** |
+| Keep a board's spawned processes running after navigating away or reloading | Board calls `persephone.setBoardBusy(true)` — see [Long-running processes](#long-running-processes-setboardbusy--getboardbusy--getjobs) |
+| See which boards have processes still running in the background | Look for the green **running** dot next to the board name in the **Boards** panel |
 | Open a board from the sidebar | **Tools & Editors** panel → **Custom Boards & Editors** tab → click the board |
 | Open a board (script) | `await app.boards.openBoard("C:/path/to/board/root")` |
 | Switch boards from inside a board | Click the board path label in the in-board toolbar → pick a board from the popover |

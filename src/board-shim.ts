@@ -31,6 +31,7 @@ import {
 import type {
     BoardBootContext,
     BoardFireMethod,
+    BoardJobInfo,
     BoardRpcMethod,
     BoardThemePalette,
     BoardToMain,
@@ -62,6 +63,21 @@ const hostPostTarget = hostOriginStrict ? boot.hostOrigin : "*";
 let currentTheme: BoardThemePalette = boot.theme;
 const tokens: Record<string, string> = boot.tokens;
 const themeCbs: Array<(t: BoardThemePalette) => void> = [];
+
+// ── Busy flag (US-799) ────────────────────────────────────────────────────────
+// `null` until known: the handshake init message carries the host-side value (a
+// re-created busy board reads `true`); a local `setBoardBusy` call sets it
+// immediately and wins over a later-arriving init. `getBoardBusy()` awaits the
+// handshake when called before either happened.
+
+let busyState: boolean | null = null;
+const busyResolvers: Array<(b: boolean) => void> = [];
+
+function settleBusy(value: boolean): void {
+    busyState = value;
+    for (const r of busyResolvers) r(value);
+    busyResolvers.length = 0;
+}
 
 // ── Port plumbing (queue-then-flush) ─────────────────────────────────────────
 
@@ -144,10 +160,13 @@ function attachPort(p: MessagePort): void {
 // host — a file:// host's cross-origin `event.origin` is the opaque "null" and
 // would never match the baked "file://" (see `hostOriginStrict` above).
 window.addEventListener("message", (event: MessageEvent) => {
-    const data = event.data as { __persephoneInit?: boolean } | undefined;
+    const data = event.data as { __persephoneInit?: boolean; busy?: boolean } | undefined;
     if (!data || data.__persephoneInit !== true) return;
     if (event.source !== window.parent) return;
     if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
+    // Busy flag carried at handshake (US-799). A local setBoardBusy call that
+    // already ran wins (busyState !== null) — the init value is then stale.
+    if (busyState === null) settleBusy(!!data.busy);
     const p = event.ports && event.ports[0];
     if (p) attachPort(p);
 });
@@ -474,6 +493,54 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
 
     writeFile(path: string, data: string, options?: { encoding?: "utf8" | "base64" }): Promise<void> {
         return rpc("writeFile", [path, data, options?.encoding]) as Promise<void>;
+    },
+
+    // ── Busy / surviving jobs (US-799) ────────────────────────────────────────
+
+    /** Declare that this board's spawned processes must outlive the board itself.
+     *  While busy, navigating the page away (or reloading the board) destroys the
+     *  board but KEEPS its processes running; closing the page/tab (or quitting
+     *  the app) still kills them. Call with `false` when the processes stopped. */
+    setBoardBusy(busy: boolean): void {
+        settleBusy(!!busy);
+        try {
+            window.parent.postMessage({ __persephone: "board:busy", busy: !!busy }, hostPostTarget);
+        } catch {
+            // parent gone — nothing to inform
+        }
+    },
+
+    /** The board's current busy flag — carried across reloads. A re-created board
+     *  reads `true` when it went busy before unloading: re-enter "running" mode
+     *  (see `getJobs()`), or call `setBoardBusy(false)` if nothing lives anymore. */
+    getBoardBusy(): Promise<boolean> {
+        if (busyState !== null) return Promise.resolve(busyState);
+        return new Promise<boolean>((resolve) => busyResolvers.push(resolve));
+    },
+
+    /** List this board's LIVE jobs — including ones that survived a previous
+     *  board lifetime (busy retention). Each entry is a control-only handle:
+     *  `kill`/`write`/`endStdin` work, but there is no stdout/stderr/exit
+     *  streaming for surviving jobs (their output went to the previous board).
+     *  Re-associate by `name` (from `execute(cmd, { name })`). */
+    async getJobs(): Promise<Array<BoardJobInfo & {
+        kill(signal?: string): void;
+        write(data: string | Uint8Array): void;
+        endStdin(): void;
+    }>> {
+        const jobs = (await rpc("getJobs", [])) as BoardJobInfo[];
+        return (jobs ?? []).map((j) => ({
+            ...j,
+            kill(signal?: string): void {
+                post({ kind: "runner", channel: RunnerChannel.kill, msg: { jobId: j.jobId, signal } });
+            },
+            write(data: string | Uint8Array): void {
+                post({ kind: "runner", channel: RunnerChannel.stdin, msg: { jobId: j.jobId, data } });
+            },
+            endStdin(): void {
+                post({ kind: "runner", channel: RunnerChannel.endStdin, msg: { jobId: j.jobId } });
+            },
+        }));
     },
 
     get theme(): BoardThemePalette {

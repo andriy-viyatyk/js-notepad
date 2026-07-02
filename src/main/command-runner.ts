@@ -44,6 +44,11 @@ export interface JobSink {
 interface Job {
     proc: ChildProcessWithoutNullStreams;
     sink: JobSink;
+    /** The spawned command line — surfaced by `getJobsBySinkIds` (US-799). */
+    command: string;
+    /** Optional caller-chosen job name (`opts.name`) — the re-association key
+     *  for a board's surviving jobs (US-799). */
+    name?: string;
     stdoutBuf: Buffer[];
     stderrBuf: Buffer[];
     flushTimer: ReturnType<typeof setTimeout> | null;
@@ -225,6 +230,8 @@ export function startJobTo(sink: JobSink, msg: RunnerStartMsg): void {
     const job: Job = {
         proc,
         sink,
+        command,
+        name: opts?.name,
         stdoutBuf: [],
         stderrBuf: [],
         flushTimer: null,
@@ -276,6 +283,28 @@ export function endJobStdin(jobId: string): void {
     } catch {
         // already closed — ignore
     }
+}
+
+/** A live job's identity, as returned by {@link getJobsBySinkIds} (US-799). */
+export interface JobInfo {
+    jobId: string;
+    command: string;
+    name?: string;
+}
+
+/** List the live jobs owned by any of `sinkIds` (a board owner's current + kept
+ *  sinks). Read-only — used by the board bridge's `getJobs` RPC (US-799). */
+export function getJobsBySinkIds(sinkIds: Iterable<string>): JobInfo[] {
+    const result: JobInfo[] = [];
+    for (const sinkId of sinkIds) {
+        const set = jobsBySink.get(sinkId);
+        if (!set) continue;
+        for (const jobId of set) {
+            const job = activeJobs.get(jobId);
+            if (job) result.push({ jobId, command: job.command, name: job.name });
+        }
+    }
+    return result;
 }
 
 /** Tree-kill a job's child. The normal close→exit→cleanup path then runs. */

@@ -47,6 +47,7 @@ import {
 import { getBoardRootForHost } from "./board-protocol-service";
 import {
     endJobStdin,
+    getJobsBySinkIds,
     JobSink,
     killJob,
     reapJobsBySinkId,
@@ -61,6 +62,10 @@ interface BoardPortEntry {
     root: string;
     /** The board's `board://` host. */
     host: string;
+    /** The owning `BoardEditorModel` id (US-799) — stable across mounts/reloads of
+     *  the same board tab, unlike the per-mount `boardId`. Groups job sinks for
+     *  busy retention + final reaping. */
+    ownerId: string;
     /** The host renderer window — owner for dialogs/links/notify/log. */
     hostWebContents: WebContents;
     /** Set when the shim's "connected" message arrives (mode D, EPIC-037 C11). */
@@ -71,6 +76,56 @@ interface BoardPortEntry {
 
 /** Live board ports keyed by the per-mount boardId minted at the handshake. */
 const boardPorts = new Map<string, BoardPortEntry>();
+
+// ── Busy owners — job retention across mounts (US-799) ────────────────────────
+// A board that called `persephone.setBoardBusy(true)` keeps its spawned jobs when
+// its iframe unmounts (page navigation / reload): `disposeBoardPort` skips reaping
+// for a busy owner, and the sinkIds accumulate under the owner until a final
+// `reapBoardOwner` (model dispose = page close), a non-busy port dispose, or a
+// host-renderer crash (`reapHost`).
+
+/** Every sinkId (per-mount boardId) ever minted for an owner, until reaped —
+ *  plus the host webContents id for crash reaping of kept (port-less) jobs. */
+const ownerSinks = new Map<string, { sinkIds: Set<string>; hostWcId: number }>();
+
+/** Owners whose jobs must survive port disposal. Mirrors the renderer-side
+ *  `BoardEditorModel.state.busy` (set via the `setBoardBusy` endpoint). */
+const busyOwners = new Set<string>();
+
+function indexOwnerSink(ownerId: string, sinkId: string, hostWcId: number): void {
+    let entry = ownerSinks.get(ownerId);
+    if (!entry) {
+        entry = { sinkIds: new Set(), hostWcId };
+        ownerSinks.set(ownerId, entry);
+    }
+    entry.sinkIds.add(sinkId);
+    entry.hostWcId = hostWcId;
+}
+
+/** Tree-kill every job (kept + current) of a board owner and forget it.
+ *  Idempotent. The final-teardown path: model dispose (page close), a non-busy
+ *  port dispose, host crash, or an explicit busy=false with no live port. */
+export function reapBoardOwner(ownerId: string): void {
+    const entry = ownerSinks.get(ownerId);
+    if (entry) {
+        for (const sinkId of entry.sinkIds) reapJobsBySinkId(sinkId);
+        ownerSinks.delete(ownerId);
+    }
+    busyOwners.delete(ownerId);
+}
+
+/** Mirror the renderer's busy flag (US-799). Clearing busy with no live port for
+ *  the owner (defensive — busy normally changes only while the board is mounted)
+ *  reaps immediately, since no future unmount would. */
+export function setBoardBusy(ownerId: string, busy: boolean): void {
+    if (busy) {
+        busyOwners.add(ownerId);
+        return;
+    }
+    busyOwners.delete(ownerId);
+    const hasLivePort = [...boardPorts.values()].some((e) => e.ownerId === ownerId);
+    if (!hasLivePort) reapBoardOwner(ownerId);
+}
 
 /** Host webContents we've wired load-failure + crash/destroy reaping on (once each). */
 const wiredHosts = new Set<number>();
@@ -142,6 +197,12 @@ async function runRpc(
             await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
             await fs.promises.writeFile(filePath, Buffer.from((args[1] as string) ?? "", encoding));
             return undefined;
+        }
+        case "getJobs": {
+            // Live jobs across ALL of this owner's sinks — the current mount's plus
+            // any kept from prior mounts while busy (US-799).
+            const owner = ownerSinks.get(entry.ownerId);
+            return owner ? getJobsBySinkIds(owner.sinkIds) : [];
         }
         default:
             throw new Error(`Unknown board RPC method: ${method}`);
@@ -237,10 +298,15 @@ function handleBoardMessage(boardId: string, data: BoardToMain): void {
     }
 }
 
-/** Reap every board hosted by a host webContents that crashed/was destroyed. */
+/** Reap every board hosted by a host webContents that crashed/was destroyed —
+ *  including kept (port-less) jobs of busy owners, which the `boardPorts` loop
+ *  can't see (US-799). */
 function reapHost(hostWebContentsId: number): void {
     for (const [boardId, entry] of [...boardPorts]) {
         if (entry.hostWebContents.id === hostWebContentsId) disposeBoardPort(boardId);
+    }
+    for (const [ownerId, entry] of [...ownerSinks]) {
+        if (entry.hostWcId === hostWebContentsId) reapBoardOwner(ownerId);
     }
     wiredHosts.delete(hostWebContentsId);
 }
@@ -300,15 +366,23 @@ export function ensureHostWired(hostWebContents: WebContents): void {
 
 /** Mint a per-board port pair, wire port2 to the RPC handler, deliver port1 to the
  *  requesting host renderer. Called from the `requestBoardPort` endpoint on every
- *  iframe `load` (US-771 C771-6); a re-request for a live boardId disposes the old. */
-export function createBoardPort(hostWebContents: WebContents, boardId: string, host: string): void {
+ *  iframe `load` (US-771 C771-6); a re-request for a live boardId disposes the old.
+ *  `ownerId` is the owning BoardEditorModel id — the stable job-retention key
+ *  across mounts of the same board tab (US-799). */
+export function createBoardPort(
+    hostWebContents: WebContents,
+    boardId: string,
+    host: string,
+    ownerId: string,
+): void {
     // Re-handshake (reload / navigation): drop the superseded port first.
     if (boardPorts.has(boardId)) disposeBoardPort(boardId);
 
     const root = getBoardRootForHost(host) ?? "";
     const { port1, port2 } = new MessageChannelMain();
-    const entry: BoardPortEntry = { port: port2, root, host, hostWebContents };
+    const entry: BoardPortEntry = { port: port2, root, host, ownerId, hostWebContents };
     boardPorts.set(boardId, entry);
+    indexOwnerSink(ownerId, boardId, hostWebContents.id);
 
     port2.on("message", (e) => handleBoardMessage(boardId, e.data as BoardToMain));
     port2.start();
@@ -332,7 +406,9 @@ export function createBoardPort(hostWebContents: WebContents, boardId: string, h
     hostWebContents.postMessage(EventEndpoint.eBoardPort, { boardId }, [port1]);
 }
 
-/** Tear down a board's port and tree-kill its jobs (unmount / reload / host crash). */
+/** Tear down a board's port (unmount / reload / host crash). Jobs: a BUSY owner's
+ *  jobs are KEPT (they outlive the iframe — US-799); otherwise every job of the
+ *  owner is reaped (current sink + any kept from prior busy mounts). */
 export function disposeBoardPort(boardId: string): void {
     const entry = boardPorts.get(boardId);
     if (!entry) return;
@@ -341,8 +417,10 @@ export function disposeBoardPort(boardId: string): void {
         entry.watchdog = undefined;
     }
     try { entry.port.close(); } catch { /* already closed */ }
-    reapJobsBySinkId(boardId);
     boardPorts.delete(boardId);
+    if (!busyOwners.has(entry.ownerId)) {
+        reapBoardOwner(entry.ownerId);
+    }
 }
 
 /** Live retint: push a new palette to every running board (US-771). */
@@ -356,8 +434,11 @@ export function pushThemeToBoards(palette: BoardThemePalette): void {
     }
 }
 
-/** Dispose all board ports + jobs. Wired into `app.on("will-quit", …)`. */
+/** Dispose all board ports + jobs. Wired into `app.on("will-quit", …)`. Kept jobs
+ *  of busy owners are reaped too (`killAllCommands` also backstops the children). */
 export function disposeAllBoardPorts(): void {
+    busyOwners.clear(); // quit overrides busy — disposeBoardPort now reaps everything
     for (const boardId of [...boardPorts.keys()]) disposeBoardPort(boardId);
+    for (const ownerId of [...ownerSinks.keys()]) reapBoardOwner(ownerId);
     wiredHosts.clear();
 }

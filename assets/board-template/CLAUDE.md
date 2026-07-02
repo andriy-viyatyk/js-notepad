@@ -119,6 +119,46 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
   try { state = JSON.parse(await persephone.readFile("state.json")); } catch {}
   ```
 
+## Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
+
+By default, everything a board spawned is **killed when the board unloads** — the user
+navigating its page to a document, or a board reload. For a board that starts dev
+servers (or any process that must keep running), opt out with the **busy** flag:
+
+- `persephone.setBoardBusy(true)` — declare "my processes must outlive me". While busy,
+  unloading the board (navigation, reload) keeps its processes running. They are still
+  killed when the page/tab closes, when Persephone quits, or after you call
+  `setBoardBusy(false)` and the board unloads.
+- `persephone.getBoardBusy()` → `Promise<boolean>` — the flag survives the board's own
+  reload; read it on startup to know you should re-enter "running" mode.
+- `persephone.getJobs()` → `Promise<[{ jobId, command, name, kill(), write(), endStdin() }]>` —
+  this board's LIVE jobs, including ones spawned by a previous lifetime of the board.
+  Surviving jobs are **control-only**: `kill()`/`write()` work, but there is no
+  stdout/stderr/exit streaming (their output went to the previous lifetime; output
+  produced while the board was unloaded is dropped). Poll `getJobs()` to notice a job
+  exited.
+
+**Name your long-running jobs** — the name is the re-association key after a reload
+(the board's own JS state, including old handles, does not survive):
+
+```js
+// start
+persephone.execute("npm run dev", { name: "backend" });
+persephone.setBoardBusy(true);
+
+// on every board startup — the reinit contract
+if (await persephone.getBoardBusy()) {
+    const jobs = await persephone.getJobs();
+    const backend = jobs.find(j => j.name === "backend");
+    if (backend) showRunning(backend);            // Stop button → backend.kill()
+    if (jobs.length === 0) persephone.setBoardBusy(false); // nothing lives — reset
+}
+
+// stop
+backend.kill();
+persephone.setBoardBusy(false);
+```
+
 ## Theme: the `--p-*` contract
 
 Persephone injects its palette as CSS variables on `<html>` and keeps them live

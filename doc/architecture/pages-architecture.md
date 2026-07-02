@@ -89,6 +89,7 @@ EditorModel (the content inside a page — replaceable during navigation)
 ├── setPage(page) / onMainEditorChanged() // lifecycle hooks
 ├── beforeNavigateAway(newEditor)       // secondary survival check
 ├── survivesNavigation(sourceLink)      // skip save-prompt when editor stays on page
+├── keepAliveOnNavigation()             // stay attached with no view (busy Board handle)
 ├── restore() / dispose()               // editor lifecycle
 └── getRestoreData() / applyRestoreData() // serialization
 ```
@@ -392,7 +393,7 @@ In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/P
 
 **Step 6** — `page.setMainEditor(newEditor)` is the high-level editor swap method on PageModel. It consolidates the lifecycle:
 - Calls `oldEditor.beforeNavigateAway(newEditor)` — old editor decides to keep/clear its `secondaryView`
-- Checks secondary survival: if old editor is in `secondaryViews[]`, it's kept alive
+- Checks survival: a panel contributor (`contributesPanels()`) demotes to the sidebar; a `keepAliveOnNavigation()` editor stays attached with **no view at all** — an invisible ownership handle. The one current keep-alive editor is a **busy Board**: its spawned processes must outlive its iframe, so the model stays on the page to tie their lifetime to the page (page close disposes it, which reaps the jobs). Re-navigating to the same board promotes the surviving handle back to main via the `matchesNavigationTarget` singleton reuse (Step 3). A `movePageOut` (cross-window transfer) disposes keep-alive editors — their processes never transfer. Session restore drops a persisted non-main board descriptor entirely (busy is transient; its processes died with the app), so no zombie handle survives a restart.
 - Otherwise, defers old editor disposal (`setTimeout` to let React unmount the view first)
 - Sets `newEditor.setPage(page)`, updates `mainEditorId` for UI re-render
 - Calls `notifyMainEditorChanged()` — secondary views react, cleanup runs

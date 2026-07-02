@@ -98,6 +98,36 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
   Text by default, `{ encoding: "base64" }` for binary; `writeFile` creates parent dirs. Both return
   Promises (reject on error). Use it to persist small board state and load board-local config.
 
+### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
+
+By default everything a board spawned is **killed when the board unloads** (page navigated
+to a document, or a board reload). A board that starts processes that must keep running
+(dev servers, watchers) opts out with the busy flag:
+
+- `persephone.setBoardBusy(true)` — while busy, unloading the board keeps its processes
+  running. They are still killed on page/tab close, app quit, or after `setBoardBusy(false)`
+  + unload.
+- `persephone.getBoardBusy()` → `Promise<boolean>` — survives the board's own reload; read on
+  startup to re-enter "running" mode.
+- `persephone.getJobs()` → `Promise<[{ jobId, command, name, kill(), write(), endStdin() }]>` —
+  this board's live jobs, including ones from a previous board lifetime. Surviving jobs are
+  control-only (no stdout/stderr/exit streaming; output produced while unloaded is dropped).
+
+**Author pattern** — name long-running jobs and reinitialize on startup (the board's JS state
+does not survive a reload, only the flag and the processes do):
+
+```js
+persephone.execute("npm run dev", { name: "backend" });   // start
+persephone.setBoardBusy(true);
+
+if (await persephone.getBoardBusy()) {                     // every board startup
+    const jobs = await persephone.getJobs();
+    const backend = jobs.find(j => j.name === "backend");
+    if (backend) showRunning(backend);                     // Stop → backend.kill()
+    if (jobs.length === 0) persephone.setBoardBusy(false); // nothing lives — reset
+}
+```
+
 ### Theme: the `--p-*` contract
 
 Persephone injects its palette as CSS variables on `<html>` and keeps them live across theme

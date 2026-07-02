@@ -105,7 +105,18 @@ export type BoardRpcMethod =
     | "saveFileDialog"
     | "openFolderDialog"
     | "readFile"
-    | "writeFile";
+    | "writeFile"
+    | "getJobs";
+
+/** A live job owned by this board (US-799) — the `getJobs` RPC result element.
+ *  Plain data over the port; the shim wraps each in a control handle
+ *  (`kill`/`write`/`endStdin` posting the usual runner messages by `jobId`). */
+export interface BoardJobInfo {
+    jobId: string;
+    command: string;
+    /** The caller-chosen name from `execute(cmd, { name })`, if any. */
+    name?: string;
+}
 
 /** Fire-and-forget methods (board → main, no reply). */
 export type BoardFireMethod = "openRawLink" | "notify";
@@ -150,6 +161,20 @@ export type MainToBoard =
  *  `event.ports[0]`; the shim validates `event.origin`/`event.source` before use. */
 export interface BoardPortInitMsg {
     __persephoneInit: true;
+    /** The board's current busy flag (US-799) — carried at handshake so a re-created
+     *  board can read `persephone.getBoardBusy()` and reinitialize its running state. */
+    busy?: boolean;
+}
+
+/** Messages the shim posts to the HOST FRAME via `window.parent.postMessage` (the
+ *  board→host channel — NOT the board↔main port): overlay-dismiss pings, error
+ *  breadcrumbs, and the busy flag (US-799). Handled in `BoardWebview.onMessage`. */
+export interface BoardToHostMsg {
+    __persephone: "board:interact" | "board:error" | "board:busy";
+    /** `board:error` detail. */
+    message?: string;
+    /** `board:busy` value. */
+    busy?: boolean;
 }
 
 // Re-export the dialog param shapes so the shim + bridge import one place.

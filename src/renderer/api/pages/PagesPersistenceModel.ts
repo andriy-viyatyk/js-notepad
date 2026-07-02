@@ -68,6 +68,13 @@ export class PagesPersistenceModel {
         const editors = await Promise.all(
             desc.editors.map(async (d) => {
                 try {
+                    // A demoted busy Board persisted at shutdown must not resurrect
+                    // (US-799): busy is transient (its processes died with the app),
+                    // so a non-main board descriptor would restore as an invisible
+                    // zombie handle. Boards restore only as the main editor.
+                    if (d.editorId === "board-view" && d.id !== desc.mainEditorId) {
+                        return null;
+                    }
                     if (d.host) {
                         const { editorRegistry } = await import(
                             "../../editors/base"

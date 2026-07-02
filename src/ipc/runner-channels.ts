@@ -36,6 +36,10 @@ export interface RunnerSpawnOptions {
      * `"bash"`, `"pwsh"`); `false` runs the executable directly (no shell).
      */
     shell?: boolean | string;
+    /** Optional caller-chosen job name, stored on the live job. Lets a board
+     *  re-associate its surviving jobs by name after a reload (`getJobs()`,
+     *  US-799) instead of persisting jobIds. */
+    name?: string;
 }
 
 export interface RunnerStartMsg {
@@ -93,6 +97,12 @@ export interface IExecuteOptions {
      * runs the executable directly without a shell.
      */
     shell?: boolean | string;
+    /**
+     * Optional job name (e.g. `"backend"`). For boards: a busy board's surviving
+     * jobs are listed by `persephone.getJobs()` after a reload, and `name` is the
+     * intended re-association key — no jobId persistence needed (US-799).
+     */
+    name?: string;
 }
 
 /** Information about how a process ended. */

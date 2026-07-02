@@ -515,7 +515,7 @@ persephone/
 │   │   ├── results-to-markdown.ts    # Render search hits as markdown
 │   │   └── index.tsx
 │   ├── board/              # Board editor (non-text, Pattern B survive-navigation)
-│   │   ├── BoardEditorModel.ts       # EditorModel — single-board lifecycle, per-board trust gate, live iframe ref, icon; opens any board root
+│   │   ├── BoardEditorModel.ts       # EditorModel — single-board lifecycle, per-board trust gate, live iframe ref, icon; opens any board root; busy keep-alive (survives navigation as an invisible ownership handle while its processes run)
 │   │   ├── BoardEditorView.tsx       # React component (view only)
 │   │   ├── BoardToolbar.tsx          # In-board toolbar — Reload / Show-log / board path + switcher popover / File Explorer button
 │   │   ├── BoardWebview.tsx          # Locked-down cross-origin <iframe src="board://<host>/index.html"> (no sandbox attr); brokers the MessagePort bridge handshake + ui.log reset
@@ -525,9 +525,10 @@ persephone/
 │   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
 │   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one
 │   │   ├── board-icon-cache.ts       # Module-level icon cache (SVG/PNG/ICO → data URL, per board path)
+│   │   ├── busy-boards.ts            # Reactive registry of busy board roots (drives the Boards panel "running" dot)
 │   │   ├── board-theme.ts            # computeBoardThemePalette + BOARD_TOKEN_VARS (--p-* contract)
 │   │   ├── board-scaffold.ts         # Scaffold helpers — copy board-template into a new board folder (writes board-manifest.json)
-│   │   ├── board-api.d.ts            # board-internal type declarations
+│   │   ├── board-api.d.ts            # Author-facing window.persephone contract (the canonical board API .d.ts)
 │   │   ├── UntrustedBoardView.tsx    # Shown in place of the board iframe when the board is untrusted (Trust board button)
 │   │   ├── BoardNotFoundView.tsx     # Shown when a board root no longer exists on disk (e.g. stale trusted/pinned path)
 │   │   └── index.tsx                 # boardModule + legacy EditorModule factory
@@ -704,7 +705,11 @@ persephone/
 ├── download-service.ts     # Download management
 ├── search-service.ts       # File search service
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
-├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and the board bridge's execute(); whole-tree kill via taskkill
+├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and the board bridge's execute(); whole-tree kill via taskkill; jobs carry an optional caller-chosen name + a getJobsBySinkIds query (board job re-association)
+├── board-protocol-service.ts # board:// scheme handler — host→board-root registry; serves board files + CSP; injects --p-* palette, boot context, and the bridge shim into served HTML
+├── board-bridge.ts         # Per-board MessagePort bridge — execute() over the command runner, dialogs/readFile/writeFile, openRawLink/notify, theme push; busy-owner job retention (a busy board's jobs survive its unload, reaped on final teardown/page close/crash)
+├── cdp-service.ts          # CDP session service for browser_* automation — attaches the debugger to webContents; board frames registered/resolved by their ?v= nonce
+├── mneme-service.ts        # Mneme sidecar lifecycle (spawn/shutdown of the knowledge-base service)
 ├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout)
 ├── version-service.ts      # Version checking (runs in main, not renderer)
 ├── video-stream-server.ts  # Local HTTP streaming server (range requests, faststart MP4 relocation, session management)
