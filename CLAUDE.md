@@ -413,6 +413,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Process execution (script-facing types `IProc`/`IExecuteHandle`) | `/src/renderer/api/types/proc.d.ts` |
 | Command runner wire types + IPC channels (shared by proc.ts and board preload) | `/src/ipc/runner-channels.ts` |
 | Command runner (main-process spawn service; whole-tree kill; jobId registry; jobs carry an optional caller `name` + `getJobsBySinkIds` query for board job re-association) | `/src/main/command-runner.ts` |
+| Windows env backfill (`reconstructWindowsEnv` — restores missing standard folder/system vars at startup so spawned children get a full env even when launched from a degraded shell; win32-only, backfill-only; called first in `setupMainProcess()`) | `/src/main/windows-env.ts` |
 | Per-board trust registry (trusted board roots; `trustedBoards.txt`; boards won't render without trust; also the known-boards registry; **inherited trust** — a board is trusted if it or any ancestor folder is registered, and `trust()` keeps the registry free of nested pairs) | `/src/renderer/api/board-trust.ts` |
 | Board lifecycle API (`app.boards.createBoard`/`createDemoBoard`/`openBoard`) | `/src/renderer/api/boards.ts` |
 | Board lifecycle script types (`IBoards`) | `/src/renderer/api/types/boards.d.ts` |

@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.12 (Upcoming)
 
-*No changes yet.*
+### Bug Fixes
+
+- **Fixed child processes failing with missing environment variables in the installed app** — When Windows itself was running in a temporarily degraded state (for example, after Explorer crashed and restarted outside a normal logon), the installed Persephone app could inherit a stripped environment with only a handful of variables — missing `APPDATA`, `LOCALAPPDATA`, `ProgramData`, `ProgramFiles`, `ProgramFiles (x86)`, and similar standard Windows folders. Any board or script that shelled out to an environment-sensitive tool (`dotnet`, `npm`, `git`, `python`, etc.) via `execute()` could then fail with obscure errors (for example, NuGet's `Value cannot be null. (Parameter 'path1')` during `dotnet restore`). Persephone now backfills these standard folder variables at startup whenever they're missing, so child processes always see a complete environment regardless of how the app was launched.
 
 ---
 

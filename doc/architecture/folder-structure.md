@@ -693,6 +693,7 @@ persephone/
 ```
 /src/main/
 ├── main-setup.ts           # Application setup and window creation
+├── windows-env.ts          # Windows env backfill — reconstructs missing standard folder/system vars (APPDATA, LOCALAPPDATA, ProgramFiles*, …) at startup so child processes get a full env even when the app was launched from a degraded shell; win32-only, backfill-only
 ├── open-window.ts          # Window creation logic
 ├── open-windows.ts         # Multi-window management and broadcasting
 ├── window-states.ts        # Window state persistence

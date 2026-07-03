@@ -19,8 +19,13 @@ import { stopMcpHttpServer } from "./mcp-http-server";
 import { shutdownMneme } from "./mneme-service";
 import { stopVideoStreamServer } from "./video-stream-server";
 import { downloadService } from "./download-service";
+import { reconstructWindowsEnv } from "./windows-env";
 
 export function setupMainProcess() {
+    // US-800: recover standard Windows folder/system env vars before any child
+    // process is spawned, in case the app was launched from a degraded shell.
+    reconstructWindowsEnv();
+
     protocol.registerSchemesAsPrivileged([
         {
             scheme: "app-asset",
