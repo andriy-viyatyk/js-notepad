@@ -7,7 +7,12 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(nothing in progress)*
+- **EPIC-038** — [Agent Tools Registry](epics/EPIC-038.md)
+  - [ ] US-801: Toolset package format + registry (`tools-manifest.json`, `toolsTrust`, `registeredTools` model)
+  - [ ] US-802: Execution engine (stdin-JSON args, `.env` secrets, timeout, output contract, run history)
+  - [ ] US-803: MCP surface (`search_tools` with full-definition results / `execute_tool` / `create_toolset` + guide + instructions)
+  - [ ] US-804: Scaffolding + authoring template (`assets/tool-template/`, `app.tools.createToolset`)
+  - [ ] US-805: Management UI — "Agent Tools" editor (list/inspect/register/remove/test-run)
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
