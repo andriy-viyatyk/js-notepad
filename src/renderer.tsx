@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { app } from "./renderer/api/app";
 import { api } from "./ipc/renderer/api";
+import { startPerformanceJanitor } from "./renderer/core/utils/performance-janitor";
+
+startPerformanceJanitor();
 
 function RootComponent() {
     const [content, setContent] = useState(null);

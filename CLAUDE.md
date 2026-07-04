@@ -290,6 +290,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |
 | Git-root detection for Markdown wiki links (walk up to nearest `.git`, cached) | `/src/renderer/editors/markdown/detect-git-root.ts` |
 | File / directory watchers (`FileWatcher`, `DirectoryWatcher`) | `/src/renderer/core/utils/file-watcher.ts` |
+| Performance-timeline janitor (caps React dev-build `performance.measure` accumulation; self-gating no-op in release) | `/src/renderer/core/utils/performance-janitor.ts` |
 | App settings             | `/src/renderer/api/settings.ts`                   |
 | Event channel system     | `/src/renderer/api/events/EventChannel.ts`        |
 | App events namespace     | `/src/renderer/api/events/AppEvents.ts`           |

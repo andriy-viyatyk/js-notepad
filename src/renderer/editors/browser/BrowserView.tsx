@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 const { ipcRenderer } = require("electron");
 import styled from "@emotion/styled";
 import { IEditorState, EditorType } from "../../../shared/types";
@@ -120,7 +120,9 @@ interface BrowserWebviewItemProps {
     partition: string;
 }
 
-function BrowserWebviewItem({
+const isBlankUrl = (url: string | undefined) => !url || url === "about:blank";
+
+function BrowserWebviewItemImpl({
     model,
     tab,
     isActive,
@@ -135,6 +137,16 @@ function BrowserWebviewItem({
     useEffect(() => {
         const webview = webviewRef.current;
         if (!webview) return;
+        const existing = model.webview.webviewRefs.get(internalTabId);
+        if (existing && existing !== webview && existing.isConnected) {
+            // Two live mounts for one tab means the previous view tree was
+            // abandoned without unmount — its webview keeps a guest renderer
+            // process alive. Observed once during US-806; trigger unknown.
+            console.warn(
+                `[browser] duplicate webview mount for tab ${internalTabId} — ` +
+                    "previous webview is still connected (US-806)",
+            );
+        }
         model.webview.webviewRefs.set(internalTabId, webview);
         return () => {
             model.webview.webviewRefs.delete(internalTabId);
@@ -254,10 +266,9 @@ function BrowserWebviewItem({
                 ref={webviewRef as any}
                 src={initialUrl.current}
                 style={{
-                    backgroundColor:
-                        !tab.url || tab.url === "about:blank"
-                            ? color.background.default
-                            : "#ffffff",
+                    backgroundColor: isBlankUrl(tab.url)
+                        ? color.background.default
+                        : "#ffffff",
                 }}
                 partition={partition}
                 preload={WEBVIEW_PRELOAD_URL}
@@ -268,6 +279,21 @@ function BrowserWebviewItem({
     );
 }
 
+/** The item reads `tab` only for its id and URL blankness (background color);
+ *  navigation and per-event state flow imperatively through the model, so
+ *  re-rendering on every tabs[] identity change would only churn the webview
+ *  subtree (US-806: browser state updates re-render ~100 components per
+ *  navigation event otherwise). */
+const BrowserWebviewItem = memo(
+    BrowserWebviewItemImpl,
+    (prev, next) =>
+        prev.model === next.model &&
+        prev.partition === next.partition &&
+        prev.isActive === next.isActive &&
+        prev.tab.id === next.tab.id &&
+        isBlankUrl(prev.tab.url) === isBlankUrl(next.tab.url),
+);
+
 // ============================================================================
 // BlankPageLinks — Shows link editor on empty (about:blank) tabs
 // ============================================================================
@@ -276,7 +302,9 @@ interface BlankPageLinksProps {
     bookmarks: BrowserBookmarks;
 }
 
-function BlankPageLinks({ bookmarks }: BlankPageLinksProps) {
+/** Memoized: `bookmarks` is a stable per-page model and all children subscribe
+ *  to their own state internally, so parent re-renders carry no new inputs. */
+const BlankPageLinks = memo(function BlankPageLinks({ bookmarks }: BlankPageLinksProps) {
     return (
         <Panel
             name="blank-page"
@@ -301,7 +329,7 @@ function BlankPageLinks({ bookmarks }: BlankPageLinksProps) {
             </Panel>
         </Panel>
     );
-}
+});
 
 // ============================================================================
 // URL bar slot helpers

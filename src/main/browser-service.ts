@@ -383,13 +383,15 @@ function registerWebview(event: IpcMainEvent, request: BrowserRegisterRequest) {
 
     // Block popup chains: child popup windows cannot open more popups
     // unless the user has activated (focused) them first.
-    wc.on("did-create-window", (childWindow) => {
+    // Must go through on() — registerWebview re-runs on every dom-ready, and
+    // only tracked listeners are removed by the unregisterWebview() above.
+    on("did-create-window", (childWindow: BrowserWindow) => {
         guardPopupWindow(childWindow, sender, tabId, internalTabId);
     });
 
     // Clean up if the webview's webContents is destroyed
-    wc.once("destroyed", () => {
-        registrations.delete(key);
+    on("destroyed", () => {
+        unregisterWebview(key);
     });
 
     // Clean up all registrations for this sender when the renderer window is destroyed.

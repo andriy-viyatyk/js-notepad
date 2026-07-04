@@ -7,7 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- [ ] [US-806: Memory growth investigation — browser/webview listener leak + ~3 GB attribution](tasks/US-806-memory-growth-investigation/README.md)
+
+*(nothing active)*
 
 ## Planned
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)

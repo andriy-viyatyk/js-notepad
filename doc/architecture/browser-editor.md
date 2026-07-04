@@ -90,6 +90,14 @@ Without PageManager, React's list reconciliation would detach and reinsert DOM n
 
 The `BlankPageLinks` component (bookmarks on empty tabs) is also rendered inside the portal per-tab, so its scroll position is preserved across tab switches.
 
+### Webview Subtree Memoization
+
+`BrowserWebviewItem` is wrapped in `React.memo` with a custom comparator (`model`, `partition`, `isActive`, `tab.id`, URL blankness). The component reads `tab` only for its id and whether the URL is blank (background color + blank overlay); navigation and per-event updates flow imperatively through the model (`webview.loadURL()` from the navigation effect, IPC events into `BrowserWebviewModel`). Without the memo, every browser state update — and each navigation produces 6-10 of them (`did-start-loading`, `did-navigate`, title, favicon, `did-stop-loading`, …) — would reconcile the whole webview subtree, since `BrowserEditorView` subscribes to a wide state selector and `updateTab` replaces tab object identities. `BlankPageLinks` is memoized for the same reason (its `bookmarks` model prop is stable; all children subscribe to their own state).
+
+If you add a `tab` field that `BrowserWebviewItem` renders from, extend the memo comparator accordingly — otherwise the view goes stale.
+
+`BrowserWebviewItem`'s mount effect also warns (`[browser] duplicate webview mount…`) when a webview mounts for a tab whose previous element is still connected to the DOM — a duplicate live mount leaks a whole guest renderer process. The warning exists to make that (rare, trigger unknown) condition self-identifying.
+
 ### dom-ready Gating
 
 A `webviewReady` ref (a `Set<string>` of internal tab IDs) tracks which webviews have fired `dom-ready`. The navigation effect checks this before calling `webview.loadURL()`. Without this, calling `loadURL()` on a newly created webview before it's attached to the DOM crashes the app.
@@ -213,8 +221,9 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 
 | File | Process | Purpose |
 |------|---------|---------|
-| `src/renderer/editors/browser/BrowserEditorView.tsx` | Renderer | UI component: toolbar, URL bar, multi-webview management, URL suggestions, bookmarks |
+| `src/renderer/editors/browser/BrowserView.tsx` | Renderer | UI components (`BrowserEditorView`, memoized `BrowserWebviewItem`, `BlankPageLinks`): toolbar, URL bar, multi-webview hosting |
 | `src/renderer/editors/browser/BrowserEditorModel.ts` | Renderer | Multi-tab state management, navigation logic, favicon caching, search engines |
+| `src/renderer/editors/browser/BrowserWebviewModel.ts` | Renderer | Webview refs, `browser:event` IPC handling, context menu, find-in-page, keyboard shortcuts |
 | `src/renderer/editors/browser/BrowserTargetModel.ts` | Renderer | Automation adapter sub-model — implements `IBrowserTarget` for MCP tools |
 | `src/renderer/editors/browser/BrowserTabsPanel.tsx` | Renderer | Left-side internal tabs panel with compact extension popup, drag-to-reorder |
 | `src/renderer/editors/browser/BrowserBookmarks.ts` | Renderer | Wraps TextFileModel + LinkEditor for bookmark file I/O |
@@ -662,7 +671,7 @@ Additionally, `LinkViewModel.onGetLinkMenuItems` is an optional callback that al
 
 6. **The preload script runs in an isolated context.** It shares the DOM with the page but not JavaScript objects. Page scripts cannot access or interfere with the preload's `ipcRenderer` or `MutationObserver`.
 
-7. **Registration/unregistration lifecycle.** The webview registers with the main process on `dom-ready` (when `getWebContentsId()` is available) and unregisters on cleanup. The main process also cleans up if the webContents or sender is destroyed.
+7. **Registration/unregistration lifecycle.** The webview registers with the main process on `dom-ready` (when `getWebContentsId()` is available) and unregisters on cleanup. The main process also cleans up if the webContents or sender is destroyed. **Every listener attached inside `registerWebview` MUST go through the local tracked `on()` helper** — `dom-ready` fires on every document load, so `registerWebview` re-runs many times per tab, and only tracked listeners are removed by the `unregisterWebview()` call at the top. A listener attached directly with `wc.on(...)` stacks one copy per navigation (this is what used to trip `MaxListenersExceededWarning`).
 
 8. **Webview background color.** Sites that don't set an explicit background rely on the browser default (white). The webview uses dynamic background: `color.background.default` for blank/new tabs (matching the app theme), switching to `#ffffff` once the user navigates to a real page.
 

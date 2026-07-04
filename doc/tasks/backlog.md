@@ -395,6 +395,8 @@ persephone
 | Reduce Bundle Size | Analyze and optimize bundle | Medium |
 | Accessibility Audit | Keyboard nav, screen readers | Medium |
 | Memory Leak Audit | Check for subscription leaks | Low |
+| Orphaned duplicate webview repro hunt | Observed once during US-806: two live guest webContents for one browser tab (stale element stayed mounted after an abandoned view tree; pins a whole guest renderer process). Trigger unknown. A detector in `BrowserView.tsx` logs `[browser] duplicate webview mount…` when it recurs — investigate on first sighting. Evidence summary in the US-806 entry of `completed.md`. | Medium |
+| Browser editor selector split | `BrowserEditorView` subscribes to a ~28-key selector; every browser state update re-renders the toolbar/URL-bar subtree (~110 components). Webview subtree is already memoized (US-806); splitting the selector / extracting memoized toolbar components would cut the remaining per-event render cost. | Medium |
 
 ---
 
