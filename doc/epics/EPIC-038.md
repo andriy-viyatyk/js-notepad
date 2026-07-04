@@ -2,9 +2,9 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-07-03
-**Completed:** —
+**Completed:** 2026-07-04
 
 ## Overview
 
@@ -165,11 +165,11 @@ reusable for enumerating registered toolsets.
 
 | # | Task | Title | Depends on | Status |
 |---|------|-------|-----------|--------|
-| 1 | US-801 | [Toolset package format + registry — `tools-manifest.json` module (read/validate/ensure, `isToolsetFolder`), `toolsTrust` registry (`trustedTools.txt`, exact-match, reactive), `registeredTools` model (enumerate, watch, flat tool list, id collision policy)](../tasks/US-801-toolset-package-and-registry/README.md) | — | Planned |
-| 2 | US-802 | [Execution engine — resolve tool → `app.proc.execute` with cwd = toolset root, stdin-JSON args, `.env` loading + env injection, timeout + kill, output contract (stdout / marked JSON / stderr / exit code), in-memory per-tool stats + self-rotating per-toolset `tools-execution.log`](../tasks/US-802-execution-engine/README.md) | US-801 | Planned |
-| 3 | US-803 | [MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `refresh_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb; **`create_toolset` moved to US-804** (needs its scaffold + confirmation dialog)](../tasks/US-803-mcp-surface/README.md) | US-802 | Planned |
-| 4 | US-804 | [Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `createToolset(name, dir)` scaffold module (**not** on `app`/scripts — T-C1) + registration confirmation dialog (C3, MCP-initiated only) + the **`create_toolset` MCP tool** (moved here from US-803 — it needs this task's scaffold + dialog)](../tasks/US-804-scaffolding-and-create-toolset/README.md) | US-801 (parallel with US-803) | Planned |
-| 5 | US-805 | [Management UI — registered toolsets surfaced on the two **boards panels** (Explorer-sibling Boards/Tools switch + global three-segment tab) + a lightweight **per-toolset editor** (`persephone-toolset://`, manifest info + tool list + open-log) + a `tools-manifest.json` **open-icon** in the Explorer file tree (register-gated). **No standalone list editor** — T-C1 supersedes the original single-editor plan](../tasks/US-805-management-ui/README.md) | US-801/802/804 | Planned |
+| 1 | US-801 | [Toolset package format + registry — `tools-manifest.json` module (read/validate/ensure, `isToolsetFolder`), `toolsTrust` registry (`trustedTools.txt`, exact-match, reactive), `registeredTools` model (enumerate, watch, flat tool list, id collision policy)](../tasks/US-801-toolset-package-and-registry/README.md) | — | Done |
+| 2 | US-802 | [Execution engine — resolve tool → `app.proc.execute` with cwd = toolset root, stdin-JSON args, `.env` loading + env injection, timeout + kill, output contract (stdout / marked JSON / stderr / exit code), in-memory per-tool stats + self-rotating per-toolset `tools-execution.log`](../tasks/US-802-execution-engine/README.md) | US-801 | Done |
+| 3 | US-803 | [MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `refresh_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb; **`create_toolset` moved to US-804** (needs its scaffold + confirmation dialog)](../tasks/US-803-mcp-surface/README.md) | US-802 | Done |
+| 4 | US-804 | [Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `createToolset(name, dir)` scaffold module (**not** on `app`/scripts — T-C1) + registration confirmation dialog (C3, MCP-initiated only) + the **`create_toolset` MCP tool** (moved here from US-803 — it needs this task's scaffold + dialog)](../tasks/US-804-scaffolding-and-create-toolset/README.md) | US-801 (parallel with US-803) | Done |
+| 5 | US-805 | [Management UI — registered toolsets surfaced on the two **boards panels** (Explorer-sibling Boards/Tools switch + global three-segment tab) + a lightweight **per-toolset editor** (`persephone-toolset://`, manifest info + tool list + open-log) + a `tools-manifest.json` **open-icon** in the Explorer file tree (register-gated). **No standalone list editor** — T-C1 supersedes the original single-editor plan](../tasks/US-805-management-ui/README.md) | US-801/802/804 | Done |
 
 ### Order rationale
 - US-801 is the foundation everything imports (manifest + trust + enumeration).
@@ -203,6 +203,20 @@ reusable for enumerating registered toolsets.
 | C12 | **inputSchema validation depth** *(resolved)* | Full JSON Schema validation needs a library (ajv). **Decision:** structural best-effort (required-props + primitive type checks) in-house; the schema's main job is *describing* parameters to the agent, and the tool script must validate its own inputs anyway. Revisit ajv only if mis-calls become a real problem. |
 
 ## Notes
+
+### 2026-07-04 — Epic close-out
+- **Epic completed.** All five tasks (US-801–US-805) implemented and verified. Epic-level
+  `/review` → clean (no must-fix concerns); it flagged four optional suggestions, of which two
+  cheap correctness fixes were applied (removed the unused `ToolsColorIcon`; corrected the
+  empty-`.env` claim in `assets/tool-template/CLAUDE.md` — an empty var is passed as `""`, not
+  removed). `/document` updated `folder-structure.md` (the `api/tools/`, `editors/toolset/`,
+  `editors/tools/` blocks, `persephone-toolset-link.ts`, `RegisterToolsetDialog.tsx`,
+  `TrustedToolsList.tsx`, `tool-template/`, `mcp-res-tools.md`), the `editors.md` catalog
+  (`toolset-view` row + counts), `overview.md` (MCP command list + guide list), and the
+  `CLAUDE.md` Key Files table. `/userdoc` added `docs/agent-tools.md`, linked it from
+  `index.md`, added a v4.0.12 whats-new entry, fixed the `read_guide` guide list in
+  `mcp-setup.md`, and fixed the same empty-`.env` inaccuracy plus a stray committed
+  `</content>` artifact in `assets/mcp-res-tools.md`. Epic moved to `doc/epics/completed.md`.
 
 ### 2026-07-04
 - **US-805 implemented** (renderer-only — no MCP/main change, so no app restart; a renderer reload

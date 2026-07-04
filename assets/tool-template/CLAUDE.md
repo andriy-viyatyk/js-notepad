@@ -89,8 +89,8 @@ Write-Output ("##PERSEPHONE_RESULT##" + (@{ ok = $true; value = 42 } | ConvertTo
 Put secret **values** in a `.env` file in this folder (next to `tools-manifest.json`) and list only
 their **names** in each tool's `env[]`. Persephone parses `.env` and injects the values into the
 tool's process at run time, so scripts just read plain environment variables. `.env` values **never**
-travel through MCP — `search_tools` reports env var **names** only. A var set empty in `.env` is
-removed from the child's environment.
+travel through MCP — `search_tools` reports env var **names** only. A var set empty in `.env`
+(`KEY=`) is passed to the child as an empty string, not removed.
 
 ```
 # .env  (git-ignored by this template)

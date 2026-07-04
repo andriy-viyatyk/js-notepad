@@ -156,8 +156,8 @@ read plain environment variables. `.env` values **never** travel through MCP —
 AZURE_DEVOPS_PAT=xxxxxxxxxxxxxxxx
 ```
 
-`.env` values **override** inherited process env, and a variable set to empty in `.env` is
-removed from the child's environment. When sharing a toolset with someone else, delete `.env`
+`.env` values **override** inherited process env, and a variable set to empty in `.env` (`KEY=`)
+is passed to the child as an empty string, not removed. When sharing a toolset with someone else, delete `.env`
 (copying it between *your own* machines is fine).
 
 ## Portability
@@ -189,4 +189,3 @@ A registered tool that fails is a **bug to fix**, not an obstacle to route aroun
 hands you everything you need: the exact `stderr`, the `exitCode`, and the `toolsetRoot` folder.
 Open the script at that path, fix it, `refresh_toolset`, and re-run. Every fix makes the tool
 more reliable for the next session — that is what makes the registry *memory*.
-</content>

@@ -8,6 +8,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.12 (Upcoming)
 
+### New Features
+
+- **Agent Tools registry** — turn a working integration script into a reusable, parameterized **tool** that AI agents discover and run over MCP, instead of re-writing the same ad-hoc script every session. A *toolset* is a folder with a `tools-manifest.json` plus scripts in **any language**; once you register it, any MCP-connected agent finds its tools with `search_tools` and runs them with `execute_tool` (args in, JSON result out). Registering a toolset is a **user-only** trust decision — an agent can never silently register a folder: agent-initiated creation (`create_toolset`) shows a **"Register this toolset?"** confirmation dialog, and you can register a `tools-manifest.json` yourself via its **Open Toolset** icon in the File Explorer. Manage registered toolsets from the **Boards panel → Tools** switch or the **Tools & Editors panel → Tools** tab; open one to see its tools, requirements, and execution log. Secrets live in a per-toolset `.env` (never sent over MCP), and a toolset folder is self-contained so you can copy it between machines. See [Agent Tools](./agent-tools.md).
+
 ### Bug Fixes
 
 - **Fixed child processes failing with missing environment variables in the installed app** — When Windows itself was running in a temporarily degraded state (for example, after Explorer crashed and restarted outside a normal logon), the installed Persephone app could inherit a stripped environment with only a handful of variables — missing `APPDATA`, `LOCALAPPDATA`, `ProgramData`, `ProgramFiles`, `ProgramFiles (x86)`, and similar standard Windows folders. Any board or script that shelled out to an environment-sensitive tool (`dotnet`, `npm`, `git`, `python`, etc.) via `execute()` could then fail with obscure errors (for example, NuGet's `Value cannot be null. (Parameter 'path1')` during `dotnet restore`). Persephone now backfills these standard folder variables at startup whenever they're missing, so child processes always see a complete environment regardless of how the app was launched.

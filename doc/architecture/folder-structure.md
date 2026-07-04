@@ -34,8 +34,15 @@ persephone/
 │   ├── mcp-res-notebook.md # MCP resource: notebook editor JSON format
 │   ├── mcp-res-todo.md     # MCP resource: todo editor JSON format
 │   ├── mcp-res-links.md    # MCP resource: links editor JSON format
+│   ├── mcp-res-tools.md    # MCP resource: Agent Tools registry guide (manifest format, stdin/stdout contract, .env, self-repair)
 │   ├── board-template/     # Scaffold copied into every new board
 │   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, reload, MCP debug)
+│   ├── tool-template/      # Scaffold copied into every new toolset (create_toolset)
+│   │   ├── tools-manifest.json # Example manifest (one echo tool)
+│   │   ├── echo.js         # Example stdin-JSON tool with the ##PERSEPHONE_RESULT## contract
+│   │   ├── .env.example    # Required env var names (no values)
+│   │   ├── .gitignore      # Ignores .env
+│   │   └── CLAUDE.md       # Toolset authoring guide (manifest, stdin/stdout contract, .env, requirements)
 │   └── demo-board/         # Bundled Demo board — exercises the full board surface
 ├── snip-tool/              # Rust native screen snip tool (persephone-snip.exe)
 │   ├── src/main.rs         # Entry point, PNG encoding, stdout output
@@ -98,6 +105,16 @@ persephone/
 │   ├── board-trust.ts      # Per-board trust registry — persists trusted board roots (trustedBoards.txt); untrusted boards block rendering. This list IS the known-boards registry
 │   ├── boards.ts           # IBoards implementation (app.boards) — createBoard / createDemoBoard / openBoard board lifecycle
 │   ├── internal.ts         # Disposable utilities (wrapSubscription, etc.)
+│   │
+│   ├── tools/              # Agent Tools registry (EPIC-038) — deliberately NOT on app or any script .d.ts
+│   │   ├── tools-manifest.ts   # tools-manifest.json module — read/validate/write; isToolsetFolder; defaultToolsManifest
+│   │   ├── tools-trust.ts      # toolsTrust registry — registered toolset roots (trustedTools.txt), exact-match, reactive; registration ≡ trust
+│   │   ├── registered-tools.ts # registeredTools model — enumerate trusted roots → read manifests → flat tool list (id = <toolset>/<tool>); refresh(), reactive
+│   │   ├── tool-executor.ts    # executeToolById — resolve → validate args → app.proc.execute (cwd = toolset root, stdin-JSON args, .env env); output contract + failure payload
+│   │   ├── dotenv.ts           # loadDotEnv — parse <root>/.env via Node util.parseEnv (no dependency)
+│   │   ├── tool-log.ts         # Self-rotating per-toolset tools-execution.log (TOOLS_EXECUTION_LOG_FILE)
+│   │   ├── tool-stats.ts       # In-memory per-tool run stats
+│   │   └── tool-scaffold.ts    # createToolset(name, dir) — copy tool-template + patch manifest name (trust-free; NOT on app/scripts)
 │   │
 │   ├── pages/              # Page collection — composed submodels
 │   │   ├── PageModel.ts            # Tab container — sidebar, secondary views, mainEditor lifecycle
@@ -184,6 +201,7 @@ persephone/
 │   ├── link-utils.ts       # URL → pipe descriptor resolution (used by resolvers + tree providers)
 │   ├── open-handler.ts     # Layer 3: open handler on openContent — creates/navigates pages
 │   ├── persephone-board-link.ts # persephone-board:// link encode/decode (addresses a board root); parsed in parsers.ts → target "board-view"
+│   ├── persephone-toolset-link.ts # persephone-toolset:// link encode/decode (addresses a toolset root) + openToolset() helper; parsed in parsers.ts → target "toolset-view"
 │   ├── mneme-folder-link.ts # mneme-folder:// link encode/decode (addresses a Mneme root)
 │   ├── mneme-link.ts        # mneme:// document scheme — canonical href ⇄ MCP address (toMnemeHref / toMnemeAddress)
 │   ├── providers/
@@ -218,8 +236,9 @@ persephone/
 │   │   ├── MenuBar.tsx             # Top menu bar
 │   │   ├── OpenTabsList.tsx         # Open tabs list
 │   │   ├── RecentFileList.tsx       # Recent files panel
-│   │   ├── ToolsEditorsPanel.tsx    # Tools & Editors panel — pinned region + "Editors" / "Custom Boards & Editors" tabs (pin/unpin, drag reorder)
-│   │   ├── TrustedBoardsList.tsx    # "Custom Boards & Editors" tab — trusted boards grouped by folder; open / pin / Remove (≡ untrust)
+│   │   ├── ToolsEditorsPanel.tsx    # Tools & Editors panel — pinned region + "Built-in Editors" / "Boards" / "Tools" segments (pin/unpin, drag reorder)
+│   │   ├── TrustedBoardsList.tsx    # "Boards" segment — trusted boards grouped by folder; open / pin / Remove (≡ untrust)
+│   │   ├── TrustedToolsList.tsx     # "Tools" segment — all registered toolsets across roots (ToolsTree); open / Remove (≡ untrust)
 │   │   ├── pinned-items.ts          # Unified PinnedRef model over the pinned-editors setting (editors + "board:<root>" pins)
 │   │   ├── tools-editors-registry.ts # Creatable items registry (editors + tools)
 │   │   ├── ScriptLibraryPanel.tsx   # Script library folder panel
@@ -232,6 +251,7 @@ persephone/
 │   │   ├── ConfirmationDialog.tsx
 │   │   ├── InputDialog.tsx
 │   │   ├── PasswordDialog.tsx
+│   │   ├── RegisterToolsetDialog.tsx # Agent-initiated toolset registration confirmation (Allow/Deny; RCE gate — EPIC-038)
 │   │   ├── TextDialog.tsx            # Multi-purpose text dialog (Monaco editor)
 │   │   ├── alerts/                 # Notification bar
 │   │   │   ├── AlertsBar.tsx
@@ -499,7 +519,7 @@ persephone/
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
 │   │   ├── ExplorerSecondaryView.tsx # "explorer" panel — tree view with portaled header
 │   │   ├── SearchSecondaryView.tsx # "search" panel — file search with portaled header
-│   │   ├── BoardsSecondaryView.tsx # "boards" panel — trusted boards under the Explorer root (BoardsTree)
+│   │   ├── BoardsSecondaryView.tsx # "boards" panel — Boards/Tools body switch: trusted boards (BoardsTree) or registered toolsets (ToolsTree) under the Explorer root; "+ New board" in the switch row
 │   │   └── index.ts
 │   ├── mneme-config/       # Mneme config & monitoring editor (non-text, no trait)
 │   │   ├── MnemeConfigEditorModel.ts # EditorModel — roots, include/ignore, reindex + progress, model, status polling
@@ -532,6 +552,13 @@ persephone/
 │   │   ├── UntrustedBoardView.tsx    # Shown in place of the board iframe when the board is untrusted (Trust board button)
 │   │   ├── BoardNotFoundView.tsx     # Shown when a board root no longer exists on disk (e.g. stale trusted/pinned path)
 │   │   └── index.tsx                 # boardModule + legacy EditorModule factory
+│   ├── toolset/            # Per-toolset viewer (non-text, no trait) — opened via persephone-toolset://
+│   │   ├── ToolsetEditorModel.ts     # EditorModel ("toolset-view") — reads manifest, exposes tool list + log path; restore from toolsetRoot
+│   │   ├── ToolsetEditorView.tsx     # Read-only view — manifest info + registered chip + Open-Folder / Open-Log + tool cards (UIKit only)
+│   │   └── index.tsx                 # toolsetModule + legacy EditorModule factory (decodes the link)
+│   ├── tools/              # Shared registered-toolsets tree (used by the sidebar Tools panels)
+│   │   ├── ToolsTree.tsx             # Presentational Tree of toolsets (folder-compacted; open / trailing / context-menu slots)
+│   │   └── tools-tree-build.ts       # Pure builder: toolset path list → compacted folder/toolset node tree (leaf label = manifest name)
 │   ├── shared/             # Shared editor utilities
 │   │   ├── link-open-menu.tsx
 │   │   └── ColorizedCode.tsx         # Syntax-highlighted code via Monaco colorize()

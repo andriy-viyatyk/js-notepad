@@ -446,3 +446,18 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Board authoring guide (bridge surface, reload, MCP debugging, --p-* contract) | `/assets/board-template/CLAUDE.md` |
 | Agent-facing boards guide (`read_guide("boards")`) | `/assets/mcp-res-boards.md` |
 | Recommended-components catalog (manifest + 10 skins) | `/boards-assets/` |
+| Toolset manifest module (`tools-manifest.json` read/validate/write; `isToolsetFolder`; `defaultToolsManifest`) | `/src/renderer/api/tools/tools-manifest.ts` |
+| Toolset trust/registry (`toolsTrust`; `trustedTools.txt`; exact-path match; registration ≡ trust; NOT on `app`/scripts) | `/src/renderer/api/tools/tools-trust.ts` |
+| Registered-toolsets model (enumerate roots → manifests → flat tool list `<toolset>/<tool>`; reactive; `refresh()`) | `/src/renderer/api/tools/registered-tools.ts` |
+| Tool execution engine (`executeToolById` — cwd = toolset root, stdin-JSON args, `.env` env, `##PERSEPHONE_RESULT##` output contract, failure payload for self-repair) | `/src/renderer/api/tools/tool-executor.ts` |
+| Toolset `.env` loader (`loadDotEnv` via Node `util.parseEnv`) | `/src/renderer/api/tools/dotenv.ts` |
+| Per-toolset execution log (self-rotating; `TOOLS_EXECUTION_LOG_FILE`) | `/src/renderer/api/tools/tool-log.ts` |
+| Toolset scaffold (`createToolset` — copy `tool-template`; trust-free; NOT on `app`/scripts) | `/src/renderer/api/tools/tool-scaffold.ts` |
+| Agent Tools MCP handlers (`search_tools`/`execute_tool`/`refresh_toolset`/`create_toolset`) | `/src/renderer/api/mcp-handler.ts` |
+| `persephone-toolset://` link scheme (encode/decode + `openToolset`; parsed in `parsers.ts` → `target: "toolset-view"`) | `/src/renderer/content/persephone-toolset-link.ts` |
+| Per-toolset editor model (`toolset-view`; manifest info + tool list + open-log) | `/src/renderer/editors/toolset/ToolsetEditorModel.ts` |
+| Shared registered-toolsets tree (`ToolsTree` + `buildToolsTree`) | `/src/renderer/editors/tools/ToolsTree.tsx` |
+| Toolset registration dialog (`showRegisterToolsetDialog`; RCE gate, MCP-initiated only) | `/src/renderer/ui/dialogs/RegisterToolsetDialog.tsx` |
+| Trusted-toolsets sidebar tab (all registered toolsets; open / Remove ≡ untrust) | `/src/renderer/ui/sidebar/TrustedToolsList.tsx` |
+| Toolset authoring guide (manifest, stdin/stdout contract, `.env`, requirements) | `/assets/tool-template/CLAUDE.md` |
+| Agent-facing tools guide (`read_guide("tools")`) | `/assets/mcp-res-tools.md` |
