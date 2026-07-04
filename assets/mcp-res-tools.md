@@ -14,7 +14,8 @@ the scripts those tools run (any language), an optional `.env` for secrets, and 
 > Registered tools run as real OS processes with the user's privileges, so a toolset must be
 > **registered** (a user-only trust action) before its tools are discoverable or runnable. You
 > cannot self-register a folder — that stays a user decision (a confirmation dialog on
-> agent-initiated creation, or the Agent Tools management UI).
+> agent-initiated creation, or the user clicking the "Open Toolset" icon on a
+> `tools-manifest.json` in Persephone's Explorer).
 
 ## The workflow
 
@@ -168,7 +169,7 @@ the user copies `.env` along with the folder.
 
 ## Creating a toolset
 
-Use `create_toolset` (or the **Agent Tools** management UI) to scaffold a toolset folder with a
+Use `create_toolset` to scaffold a toolset folder with a
 starter manifest and example script; then edit the manifest + scripts and call
 `refresh_toolset` to pick up your changes. `refresh_toolset` returns a per-toolset summary
 (`name`, `valid`, `errors`, `toolCount`) so you can confirm a manifest edit parsed before

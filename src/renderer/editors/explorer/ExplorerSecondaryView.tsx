@@ -10,6 +10,11 @@ import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-l
 import { encodeGitTreeLink } from "../../content/git-tree-link";
 import { encodeMnemeFolderLink } from "../../content/mneme-folder-link";
 import { BOARD_MANIFEST_FILE } from "../board/board-manifest";
+import { TOOLS_MANIFEST_FILE, readToolsManifest } from "../../api/tools/tools-manifest";
+import { toolsTrust } from "../../api/tools/tools-trust";
+import { registeredTools } from "../../api/tools/registered-tools";
+import { showRegisterToolsetDialog } from "../../ui/dialogs/RegisterToolsetDialog";
+import { openToolset } from "../../content/persephone-toolset-link";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
@@ -21,6 +26,7 @@ import {
     SearchIcon,
     CloseIcon,
     BoardIcon,
+    ToolsIcon,
     GitIcon,
     MemoryIcon,
 } from "../../theme/icons";
@@ -75,6 +81,26 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
         app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: "explorer" }));
     }, [pageId, model, rootPath]);
 
+    // Open the toolset editor for a `tools-manifest.json` folder (US-805). When the folder isn't
+    // registered, show the confirmation dialog first — Allow trusts + opens; Deny does nothing.
+    // (Divergence from the epic's "UI-initiated needs no dialog": the open-icon can be clicked on
+    // any browsed/foreign manifest, so the trust gate belongs here.)
+    const openToolsetFromManifest = useCallback(async (toolsetRoot: string) => {
+        await toolsTrust.load();
+        if (!toolsTrust.isTrusted(toolsetRoot)) {
+            const manifest = await readToolsManifest(toolsetRoot);
+            const ok = await showRegisterToolsetDialog({
+                toolsetName: manifest?.name ?? fpBasename(toolsetRoot),
+                toolsetRoot,
+                tools: (manifest?.tools ?? []).map((t) => ({ name: t.name, description: t.description })),
+            });
+            if (!ok) return;
+            await toolsTrust.trust(toolsetRoot);
+            await registeredTools.refresh();
+        }
+        openToolset(toolsetRoot, { pageId, sourceId: "explorer" });
+    }, [pageId]);
+
     // Per-row trailing action — an always-visible "open the dedicated editor" button for
     // rows that have one. The row's own click does the ordinary thing (open the JSON for a
     // board manifest; expand/collapse + plain contents for a `.git`/`.mneme` folder); each
@@ -85,27 +111,46 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
     //   - `.mneme` folder → Open Mneme Root (mneme-folder:// at the root = parent of `.mneme`).
     const renderTrailingAction = useCallback((item: ITreeProviderItem) => {
         if (!item.isDirectory) {
-            if (fpBasename(item.href).toLowerCase() !== BOARD_MANIFEST_FILE) return null;
-            return (
-                <IconButton
-                    name="explorer-open-board"
-                    size="sm"
-                    title="Open Board"
-                    icon={<BoardIcon />}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        const boardRoot = fpDirname(item.href);
-                        app.events.openRawLink.sendAsync(
-                            createLinkData(encodePersephoneBoardLink(boardRoot), {
-                                pageId,
-                                sourceId: "explorer",
-                                // Scope the opened board's in-board switcher to the Explorer root (US-763).
-                                explorerRoot: rootPath,
-                            }),
-                        );
-                    }}
-                />
-            );
+            const base = fpBasename(item.href).toLowerCase();
+            if (base === BOARD_MANIFEST_FILE) {
+                return (
+                    <IconButton
+                        name="explorer-open-board"
+                        size="sm"
+                        title="Open Board"
+                        icon={<BoardIcon />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const boardRoot = fpDirname(item.href);
+                            app.events.openRawLink.sendAsync(
+                                createLinkData(encodePersephoneBoardLink(boardRoot), {
+                                    pageId,
+                                    sourceId: "explorer",
+                                    // Scope the opened board's in-board switcher to the Explorer root (US-763).
+                                    explorerRoot: rootPath,
+                                }),
+                            );
+                        }}
+                    />
+                );
+            }
+            // `tools-manifest.json` → Open Toolset (US-805). Registers first when the folder isn't
+            // trusted (confirmation dialog), mirroring the board manifest's "Open Board" button.
+            if (base === TOOLS_MANIFEST_FILE) {
+                return (
+                    <IconButton
+                        name="explorer-open-toolset"
+                        size="sm"
+                        title="Open Toolset"
+                        icon={<ToolsIcon />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            void openToolsetFromManifest(fpDirname(item.href));
+                        }}
+                    />
+                );
+            }
+            return null;
         }
         if (item.target === "git-tree") {
             return (
@@ -146,7 +191,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
             );
         }
         return null;
-    }, [pageId, rootPath]);
+    }, [pageId, rootPath, openToolsetFromManifest]);
 
     const handleStateChange = useCallback((state: TreeProviderViewSavedState) => {
         model.setTreeState(state);

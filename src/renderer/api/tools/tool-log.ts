@@ -15,7 +15,9 @@
 import { fs } from "../fs";
 import { fpJoin, fpNormalizeForCompare } from "../../core/utils/file-path";
 
-const LOG_FILE = "tools-execution.log";
+/** File name of the per-toolset execution log, at the toolset folder root. */
+export const TOOLS_EXECUTION_LOG_FILE = "tools-execution.log";
+const LOG_FILE = TOOLS_EXECUTION_LOG_FILE;
 const HEADER_PREFIX = "##LOG_CREATED##";
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day
 const MAX_FIELD = 8_192; // cap args / logs / stderr per entry

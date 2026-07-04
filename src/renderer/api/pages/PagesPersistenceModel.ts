@@ -28,7 +28,7 @@ import { PageModel } from "./PageModel";
  * is constructed directly (not in `editorRegistry`).
  */
 const NO_HOST_EDITOR_IDS = new Set([
-    "browser-view",       "pdf-view",           "image-view",         "archive-view",       "video-view",         "settings-view",      "about-view",         "mcp-view",           "mneme-config",       "mneme-root",         "storybook-view",     "category-view",      "git-tree",           "board-view",  ]);
+    "browser-view",       "pdf-view",           "image-view",         "archive-view",       "video-view",         "settings-view",      "about-view",         "mcp-view",           "mneme-config",       "mneme-root",         "storybook-view",     "category-view",      "git-tree",           "board-view",         "toolset-view",  ]);
 
 export class PagesPersistenceModel {
     constructor(private model: PagesModel) {}

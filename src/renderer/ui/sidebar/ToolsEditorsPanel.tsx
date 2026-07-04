@@ -17,6 +17,7 @@ import { ListBox, LIST_ITEM_KEY, IconButton, SegmentedControl } from "../../uiki
 import type { ListItemRenderContext } from "../../uikit";
 import { BoardGlyph } from "../../editors/board/BoardGlyph";
 import { TrustedBoardsList } from "./TrustedBoardsList";
+import { TrustedToolsList } from "./TrustedToolsList";
 
 // =============================================================================
 // Types
@@ -278,7 +279,7 @@ interface ToolsEditorsPanelProps {
 export function ToolsEditorsPanel({ onClose }: ToolsEditorsPanelProps) {
     const browserProfiles = settings.use("browser-profiles");
     const pinnedRefs = usePinnedRefs();
-    const [tab, setTab] = useState<"editors" | "boards">("editors");
+    const [tab, setTab] = useState<"editors" | "boards" | "tools">("editors");
 
     const allItems = useMemo(
         () => getCreatableItems(browserProfiles),
@@ -370,10 +371,11 @@ export function ToolsEditorsPanel({ onClose }: ToolsEditorsPanelProps) {
                     name="tools-editors-tabs"
                     size="sm"
                     value={tab}
-                    onChange={(v) => setTab(v as "editors" | "boards")}
+                    onChange={(v) => setTab(v as "editors" | "boards" | "tools")}
                     items={[
-                        { value: "editors", label: "All Editors & Tools" },
-                        { value: "boards", label: "Custom Boards & Editors" },
+                        { value: "editors", label: "Built-in Editors" },
+                        { value: "boards", label: "Boards" },
+                        { value: "tools", label: "Tools" },
                     ]}
                 />
             </TabsBar>
@@ -388,8 +390,10 @@ export function ToolsEditorsPanel({ onClose }: ToolsEditorsPanelProps) {
                         onChange={handleChangeUnpinned}
                         renderItem={renderUnpinned}
                     />
-                ) : (
+                ) : tab === "boards" ? (
                     <TrustedBoardsList onClose={onClose} />
+                ) : (
+                    <TrustedToolsList onClose={onClose} />
                 )}
             </TabBody>
         </PanelRoot>

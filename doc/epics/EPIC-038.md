@@ -151,12 +151,15 @@ reusable for enumerating registered toolsets.
    `instructions:` gain a short scenario blurb ("before writing ad-hoc scripts for
    external-system tasks, check `search_tools`; after a repeatable ad-hoc success, offer to
    register a tool").
-5. **Management UI.** A standalone **"Agent Tools" editor** (`hasContentHost: false`,
-   singleton page): lists registered toolsets and their tools, shows each tool's
-   description/schema/requirements, and offers: register an existing folder (folder picker →
-   manifest validation → trust), remove (untrust; optionally delete folder with confirm),
-   open toolset folder in Explorer, and a per-tool test-run affordance with visible
-   stdout/stderr. Creatable-item entry in the Tools & Editors panel.
+5. **Management UI.** *(Revised in US-805 — supersedes the original standalone-list-editor plan;
+   see US-805 T-C1.)* No separate list editor. Registered toolsets are surfaced on the **two
+   existing boards panels** — the Explorer-sibling panel (a Boards/Tools switch; Tools mode lists
+   toolsets under the Explorer root) and the global "Tools & Editors" sidebar panel (a third
+   **Tools** segment beside Built-in Editors / Boards, machine-wide). Clicking a toolset opens a
+   lightweight **per-toolset editor** (`persephone-toolset://`, `hasContentHost: false`) showing the
+   manifest's info + tool list, with Open-Folder / Open-Log buttons (test-run deferred). A
+   `tools-manifest.json` **open-icon** in the Explorer file tree registers (trust dialog if needed)
+   and opens the toolset editor, mirroring `board-manifest.json`'s "Open Board" icon.
 
 ## Linked Tasks (in implementation order)
 
@@ -166,7 +169,7 @@ reusable for enumerating registered toolsets.
 | 2 | US-802 | [Execution engine — resolve tool → `app.proc.execute` with cwd = toolset root, stdin-JSON args, `.env` loading + env injection, timeout + kill, output contract (stdout / marked JSON / stderr / exit code), in-memory per-tool stats + self-rotating per-toolset `tools-execution.log`](../tasks/US-802-execution-engine/README.md) | US-801 | Planned |
 | 3 | US-803 | [MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `refresh_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb; **`create_toolset` moved to US-804** (needs its scaffold + confirmation dialog)](../tasks/US-803-mcp-surface/README.md) | US-802 | Planned |
 | 4 | US-804 | [Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `createToolset(name, dir)` scaffold module (**not** on `app`/scripts — T-C1) + registration confirmation dialog (C3, MCP-initiated only) + the **`create_toolset` MCP tool** (moved here from US-803 — it needs this task's scaffold + dialog)](../tasks/US-804-scaffolding-and-create-toolset/README.md) | US-801 (parallel with US-803) | Planned |
-| 5 | US-805 | Management UI — "Agent Tools" standalone editor (list/inspect toolsets & tools, register existing folder, remove/untrust, open folder, test-run with output), `showAgentToolsPage()` singleton, creatable item in `tools-editors-registry.ts` | US-801/802 | Planned |
+| 5 | US-805 | [Management UI — registered toolsets surfaced on the two **boards panels** (Explorer-sibling Boards/Tools switch + global three-segment tab) + a lightweight **per-toolset editor** (`persephone-toolset://`, manifest info + tool list + open-log) + a `tools-manifest.json` **open-icon** in the Explorer file tree (register-gated). **No standalone list editor** — T-C1 supersedes the original single-editor plan](../tasks/US-805-management-ui/README.md) | US-801/802/804 | Planned |
 
 ### Order rationale
 - US-801 is the foundation everything imports (manifest + trust + enumeration).
@@ -202,6 +205,28 @@ reusable for enumerating registered toolsets.
 ## Notes
 
 ### 2026-07-04
+- **US-805 implemented** (renderer-only — no MCP/main change, so no app restart; a renderer reload
+  suffices). New: `ToolsIcon`/`ToolsColorIcon`; shared `editors/tools/` `ToolsTree` +
+  `buildToolsTree`; `persephone-toolset://` scheme + parser + `openToolset` helper; per-toolset
+  editor (`editors/toolset/` model+view+module, registered `toolset-view`, `EditorType`
+  `toolsetPage` + `EditorView` `toolset-view` added). Edits: Explorer `tools-manifest.json` open-icon
+  (register-gated via US-804's `RegisterToolsetDialog`); Explorer Boards panel Boards/Tools switch
+  (+ "New board" moved into the body switch row); global panel three segments (Built-in
+  Editors/Boards/Tools) + `TrustedToolsList`; `tool-log.ts` now exports `TOOLS_EXECUTION_LOG_FILE`;
+  guide wording updated. `tsc` + `eslint` clean. Pending manual test.
+- **US-805 re-scoped + task doc written** (`doc/tasks/US-805-management-ui/README.md`). The user
+  replaced the original "standalone Agent Tools list editor" plan: registered toolsets are now
+  surfaced on the **two boards panels** (no separate list editor), and clicking one opens a
+  lightweight **per-toolset editor**. Three UI edits mirror existing board machinery: (a) global
+  "Tools & Editors" panel gains a third **Tools** segment (relabels the existing two to
+  "Built-in Editors"/"Boards"); (b) the Explorer-sibling Boards panel gains a Boards/Tools switch
+  with the "+ New board" button moved from the header into the switch row (Boards mode only);
+  (c) `tools-manifest.json` gains an Explorer open-icon (register-gated, reusing US-804's
+  `RegisterToolsetDialog`). The per-toolset editor is opened by path via a new
+  `persephone-toolset://` scheme (mirrors `persephone-board://`) — a filename-`accepts` editor was
+  rejected so a normal click still opens the JSON (T-C2). New shared `ToolsTree`/`buildToolsTree`
+  are near-copies of the boards ones (leaf label = manifest name), kept separate to leave boards
+  code untouched (T-C4). Architecture-5 above updated to match; test-run deferred (T-C8).
 - **US-804 investigated + task doc written** (`doc/tasks/US-804-scaffolding-and-create-toolset/README.md`).
   Verified the board scaffold precedent (`board-scaffold.ts` / `boards.ts`), the `TrustBoardDialog.tsx`
   confirmation-dialog pattern, the US-801 manifest module (`readToolsManifest`/`writeToolsManifest`/

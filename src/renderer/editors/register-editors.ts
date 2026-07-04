@@ -450,6 +450,17 @@ editorRegistry.register({
 });
 
 editorRegistry.register({
+    id: "toolset-view",
+    name: "Agent Tool",
+    hasContentHost: false,
+    accepts: () => -1,
+    loadModule: async () => {
+        const { toolsetModule } = await import("./toolset");
+        return toolsetModule;
+    },
+});
+
+editorRegistry.register({
     id: "file-diff",
     name: "Git Diff",
     hasContentHost: true,
