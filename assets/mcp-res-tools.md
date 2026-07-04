@@ -174,6 +174,14 @@ starter manifest and example script; then edit the manifest + scripts and call
 (`name`, `valid`, `errors`, `toolCount`) so you can confirm a manifest edit parsed before
 running anything.
 
+`create_toolset` **prompts the user to confirm registration** (its tools will run headlessly with
+their privileges). If they decline, the result is `{ registered: false }`: the folder was created
+but its tools are not runnable yet. This is recoverable without any manual step — if the user asks
+to enable it (e.g. they declined by mistake), just call `create_toolset` again with the **same
+`name` and `dir`** and the prompt reappears; it will **not** overwrite your edits. Calling it on a
+toolset that already exists never re-scaffolds (it re-offers registration, or no-ops if the toolset
+is already registered).
+
 ## Self-repair — the core rule
 
 A registered tool that fails is a **bug to fix**, not an obstacle to route around. `execute_tool`

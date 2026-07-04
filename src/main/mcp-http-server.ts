@@ -554,6 +554,19 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         async ({ path, windowIndex }) =>
             toToolResult(await sendToRenderer("refresh_toolset", { path }, windowIndex)),
     );
+    server.tool(
+        "create_toolset",
+        "Scaffold a new Agent Tools toolset folder (starter tools-manifest.json + an example tool + .env.example + authoring guide) inside `dir`, named `name`, and prompt the user to confirm registration (tools run headlessly with the user's privileges). Returns { created, registered, toolsetRoot, tools }. If the user declines, `registered` is false and the folder exists but its tools are not runnable — just call create_toolset again with the same name and dir to re-show the prompt (it will NOT overwrite your edits). If the toolset already exists it is not re-scaffolded (re-offers registration, or no-ops if already registered). After registering, edit the manifest + scripts and call refresh_toolset. IMPORTANT: read read_guide(\"tools\") first.",
+        {
+            name: z.string().describe("Toolset folder name — created inside `dir`; also the authoritative toolset name (namespaces tool ids as <name>/<tool>)."),
+            dir: z.string().describe("Absolute path of the container folder the toolset is created in (created if it doesn't exist)."),
+            windowIndex: windowIndexParam,
+        },
+        async ({ name, dir, windowIndex }) =>
+            // timeout 0 = infinite: the renderer handler blocks on the user confirmation dialog
+            // (the ui_push / execute_tool precedent — EPIC C3 / C6).
+            toToolResult(await sendToRenderer("create_toolset", { name, dir }, windowIndex, 0)),
+    );
 
     // ── Browser automation tools (Playwright-compatible) ─────────────
 

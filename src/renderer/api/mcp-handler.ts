@@ -125,6 +125,8 @@ async function handleCommand(method: string, params: McpParams): Promise<McpResp
             return await executeToolCmd(params);
         case "refresh_toolset":
             return await refreshToolset(params);
+        case "create_toolset":
+            return await createToolsetCmd(params);
         case "ui_push":
             return handleUiPush(params);
         default:
@@ -758,6 +760,96 @@ async function refreshToolset(params: McpParams): Promise<McpResponse> {
             toolsetCount: toolsets.length,
             toolCount: registeredTools.tools.length,
             toolsets,
+        },
+    };
+}
+
+/**
+ * Ensure a toolset exists at `<dir>/<name>`, then gate registration on a user confirmation dialog
+ * (EPIC C3). Idempotent on the folder so a declined registration is recoverable (T-C2/T-C3):
+ *   - folder doesn't exist        → scaffold, then show the dialog;
+ *   - exists, toolset, unregistered (a prior deny) → RE-OFFER the dialog, WITHOUT re-scaffolding
+ *     (any edits the agent made are preserved);
+ *   - exists, already registered  → no-op success (no dialog);
+ *   - exists, NOT a toolset       → real collision → error (never clobber unrelated content).
+ * On Allow: trust + refresh + return the registered tools. On Deny: leave the folder (unregistered
+ * → not runnable) and tell the agent it can just call create_toolset again.
+ */
+async function createToolsetCmd(params: McpParams): Promise<McpResponse> {
+    const name = asString(params?.name);
+    const dir = asString(params?.dir);
+    if (!name) {
+        return { error: { code: -32602, message: "Missing or invalid 'name' parameter" } };
+    }
+    if (!dir) {
+        return { error: { code: -32602, message: "Missing or invalid 'dir' parameter" } };
+    }
+
+    const toolsetRoot = fpJoin(dir, name);
+    const { registeredTools } = await import("./tools/registered-tools");
+    const { toolsTrust } = await import("./tools/tools-trust");
+    await registeredTools.ensureInitialized(); // also loads toolsTrust state (for isTrusted)
+
+    const { isToolsetFolder, readToolsManifest } = await import("./tools/tools-manifest");
+    let created = false;
+
+    if (await isToolsetFolder(toolsetRoot)) {
+        // Existing toolset. Already registered → nothing to do. Otherwise fall through and re-offer
+        // registration (covers an accidental prior deny) WITHOUT re-scaffolding, so any edits the
+        // agent made to the tools are preserved.
+        if (toolsTrust.isTrusted(toolsetRoot)) {
+            return {
+                result: { created: false, registered: true, toolsetRoot, message: "Toolset is already registered." },
+            };
+        }
+    } else {
+        // No toolset here yet. createToolset scaffolds — and throws if a NON-toolset folder already
+        // occupies the path (a real collision → surfaced as an error).
+        try {
+            const { createToolset } = await import("./tools/tool-scaffold");
+            await createToolset(name, dir);
+            created = true;
+        } catch (err) {
+            return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
+        }
+    }
+
+    const manifest = await readToolsManifest(toolsetRoot);
+    const toolList = (manifest?.tools ?? []).map((t) => ({ name: t.name, description: t.description }));
+
+    const { showRegisterToolsetDialog } = await import("../ui/dialogs/RegisterToolsetDialog");
+    const allowed = await showRegisterToolsetDialog({
+        toolsetName: manifest?.name ?? name,
+        toolsetRoot,
+        tools: toolList,
+    });
+
+    if (!allowed) {
+        return {
+            result: {
+                created,
+                registered: false,
+                toolsetRoot,
+                message:
+                    `Toolset is at "${toolsetRoot}" but the user declined registration — its tools ` +
+                    `are not runnable yet. If the user asks to enable it, call create_toolset again ` +
+                    `with the same name and dir to re-show the confirmation prompt.`,
+            },
+        };
+    }
+
+    await toolsTrust.trust(toolsetRoot);
+    await registeredTools.refresh(); // deterministic fresh list (trust also triggers an async refresh)
+
+    return {
+        result: {
+            created,
+            registered: true,
+            toolsetRoot,
+            toolsetName: manifest?.name ?? name,
+            tools: registeredTools.tools
+                .filter((t) => t.toolsetRoot === toolsetRoot)
+                .map((t) => ({ id: t.id, description: t.tool.description })),
         },
     };
 }

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "name": "",
+  "description": "Describe what this toolset is for.",
+  "author": "",
+  "keywords": [],
+  "tools": [
+    {
+      "name": "echo",
+      "description": "Example tool — echoes its args back. Replace with a real tool.",
+      "command": "node echo.js",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "description": "Text to echo back" }
+        }
+      },
+      "timeoutMs": 30000,
+      "requirements": "node on PATH",
+      "keywords": ["example", "echo"]
+    }
+  ]
+}

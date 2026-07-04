@@ -165,7 +165,7 @@ reusable for enumerating registered toolsets.
 | 1 | US-801 | [Toolset package format + registry — `tools-manifest.json` module (read/validate/ensure, `isToolsetFolder`), `toolsTrust` registry (`trustedTools.txt`, exact-match, reactive), `registeredTools` model (enumerate, watch, flat tool list, id collision policy)](../tasks/US-801-toolset-package-and-registry/README.md) | — | Planned |
 | 2 | US-802 | [Execution engine — resolve tool → `app.proc.execute` with cwd = toolset root, stdin-JSON args, `.env` loading + env injection, timeout + kill, output contract (stdout / marked JSON / stderr / exit code), in-memory per-tool stats + self-rotating per-toolset `tools-execution.log`](../tasks/US-802-execution-engine/README.md) | US-801 | Planned |
 | 3 | US-803 | [MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `refresh_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb; **`create_toolset` moved to US-804** (needs its scaffold + confirmation dialog)](../tasks/US-803-mcp-surface/README.md) | US-802 | Planned |
-| 4 | US-804 | Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `app.tools.createToolset` scaffold API + registration confirmation dialog (C3; used by both MCP and the UI) + the **`create_toolset` MCP tool** (moved here from US-803 — it needs this task's scaffold + dialog) | US-801 (parallel with US-803) | Planned |
+| 4 | US-804 | [Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `createToolset(name, dir)` scaffold module (**not** on `app`/scripts — T-C1) + registration confirmation dialog (C3, MCP-initiated only) + the **`create_toolset` MCP tool** (moved here from US-803 — it needs this task's scaffold + dialog)](../tasks/US-804-scaffolding-and-create-toolset/README.md) | US-801 (parallel with US-803) | Planned |
 | 5 | US-805 | Management UI — "Agent Tools" standalone editor (list/inspect toolsets & tools, register existing folder, remove/untrust, open folder, test-run with output), `showAgentToolsPage()` singleton, creatable item in `tools-editors-registry.ts` | US-801/802 | Planned |
 
 ### Order rationale
@@ -202,6 +202,25 @@ reusable for enumerating registered toolsets.
 ## Notes
 
 ### 2026-07-04
+- **US-804 investigated + task doc written** (`doc/tasks/US-804-scaffolding-and-create-toolset/README.md`).
+  Verified the board scaffold precedent (`board-scaffold.ts` / `boards.ts`), the `TrustBoardDialog.tsx`
+  confirmation-dialog pattern, the US-801 manifest module (`readToolsManifest`/`writeToolsManifest`/
+  `defaultToolsManifest` — the scaffold read-patches the authoritative `name`), and asset shipping
+  (both `forge.config.ts` `extraResource` **and** `electron-builder.yml` `extraResources` already
+  copy `assets/` → **no build-config change** for a new `assets/tool-template/`).
+- Task-local decisions: **`createToolset` is a direct-import module** (`tools/tool-scaffold.ts`), NOT
+  on `app`/scripts — consistent with every other US-801/802 module and keeping the trust-adjacent
+  surface off scripts (T-C1; "app.tools.createToolset" in the epic resolves to this). Scaffold is
+  **trust-free** — registration is a separate act: the C3 confirmation dialog for the MCP path, or
+  direct `toolsTrust.trust` for the user-initiated US-805 UI. **Deny is recoverable** (user question):
+  `create_toolset` is idempotent on the folder — re-calling it with the same `name`/`dir` re-shows the
+  confirmation dialog without re-scaffolding (preserving edits), so a mistaken/confused deny is a
+  one-call fix with no manual UI step; it no-ops if already registered and errors only on a non-toolset
+  folder collision (T-C2/T-C3). Also lets the agent register a toolset copied from another machine. The
+  `RegisterToolsetDialog` is scoped to the agent-initiated MCP path only (T-C5). `create_toolset`
+  passes an infinite `sendToRenderer` timeout (awaits the dialog) and needs an app restart to appear
+  on the endpoint (T-C7).
+
 - **US-803 investigated + task doc written** (`doc/tasks/US-803-mcp-surface/README.md`).
   Verified the two-file MCP pipeline (`mcp-http-server.ts` declarations + `mcp-handler.ts`
   handlers), the infinite-timeout mechanism (`sendToRenderer(..., 0)`), and the US-801/US-802
