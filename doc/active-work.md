@@ -10,7 +10,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-038** — [Agent Tools Registry](epics/EPIC-038.md)
   - [ ] [US-801: Toolset package format + registry (`tools-manifest.json`, `toolsTrust`, `registeredTools` model)](tasks/US-801-toolset-package-and-registry/README.md)
   - [ ] [US-802: Execution engine (stdin-JSON args, `.env` secrets, timeout, output contract, in-memory stats + self-rotating per-toolset log)](tasks/US-802-execution-engine/README.md)
-  - [ ] US-803: MCP surface (`search_tools` with full-definition results / `execute_tool` / `refresh_toolset` / `create_toolset` + guide + instructions)
+  - [ ] [US-803: MCP surface (`search_tools` full-definition results / `execute_tool` / `refresh_toolset` + `mcp-res-tools.md` guide + instructions; `create_toolset` deferred to US-804)](tasks/US-803-mcp-surface/README.md)
   - [ ] US-804: Scaffolding + authoring template (`assets/tool-template/`, `app.tools.createToolset`)
   - [ ] US-805: Management UI — "Agent Tools" editor (list/inspect/register/remove/test-run)
 - [ ] [US-806: Memory growth investigation — browser/webview listener leak + ~3 GB attribution](tasks/US-806-memory-growth-investigation/README.md)

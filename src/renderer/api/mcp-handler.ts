@@ -14,6 +14,7 @@ import { csvToRecords } from "../core/utils/csv-utils";
 import type { EditorView } from "./types/common";
 import { api } from "../../ipc/renderer/api";
 import { fpJoin } from "../core/utils/file-path";
+import type { RegisteredTool } from "./tools/registered-tools";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -118,6 +119,12 @@ async function handleCommand(method: string, params: McpParams): Promise<McpResp
             return await openBoard(params);
         case "board_refresh":
             return refreshBoard(params);
+        case "search_tools":
+            return await searchTools(params);
+        case "execute_tool":
+            return await executeToolCmd(params);
+        case "refresh_toolset":
+            return await refreshToolset(params);
         case "ui_push":
             return handleUiPush(params);
         default:
@@ -626,6 +633,133 @@ function refreshBoard(params: McpParams): McpResponse {
     }
     (editor as BoardEditorModel).reloadBoard();
     return { result: { refreshed: true, pageId: page.id } };
+}
+
+// ── Agent Tools registry (EPIC-038 / US-803) ────────────────────────
+
+/** Full, ready-to-call definition surfaced by search_tools. Mirrors an MCP tool
+ *  descriptor; NEVER includes .env values or the raw command (EPIC C4 / T-C4). */
+interface McpToolDefinition {
+    id: string;               // "<toolset>/<tool>" — pass to execute_tool
+    toolset: string;
+    description: string;
+    inputSchema?: object;     // JSON Schema for args (may be absent)
+    requirements?: string;    // runtime prerequisites (EPIC C9)
+    env?: string[];           // NAMES of required env vars (values live in .env)
+    timeoutMs?: number;
+    toolsetRoot: string;      // local folder — where to edit the tool (self-repair)
+}
+
+function toDefinition(t: RegisteredTool): McpToolDefinition {
+    return {
+        id: t.id,
+        toolset: t.toolsetName,
+        description: t.tool.description,
+        inputSchema: t.tool.inputSchema,
+        requirements: t.tool.requirements,
+        env: t.tool.env,
+        timeoutMs: t.tool.timeoutMs,
+        toolsetRoot: t.toolsetRoot,
+    };
+}
+
+/** Discover registered tools. Empty query → cheap id+description listing; `select:<id>` →
+ *  exact full definition; otherwise a case-insensitive keyword match capped by maxResults. */
+async function searchTools(params: McpParams): Promise<McpResponse> {
+    const { registeredTools } = await import("./tools/registered-tools");
+    await registeredTools.ensureInitialized();
+    const all = registeredTools.tools;
+
+    const query = (asString(params?.query) ?? "").trim();
+    const maxResults =
+        typeof params?.maxResults === "number" && params.maxResults > 0
+            ? Math.floor(params.maxResults)
+            : 5;
+
+    // Empty query → cheap names+descriptions listing of everything (a list_tools).
+    if (!query) {
+        return {
+            result: {
+                total: all.length,
+                tools: all.map((t) => ({ id: t.id, description: t.tool.description })),
+            },
+        };
+    }
+
+    // Exact lookup: "select:<toolset>/<tool>" (ToolSearch parity).
+    const SELECT = "select:";
+    if (query.toLowerCase().startsWith(SELECT)) {
+        const wantedRaw = query.slice(SELECT.length).trim();
+        const wanted = wantedRaw.toLowerCase();
+        const matches = all.filter((t) => t.id.toLowerCase() === wanted);
+        return {
+            result: {
+                total: matches.length,
+                tools: matches.map(toDefinition),
+                ...(matches.length === 0
+                    ? {
+                        note: `No tool with id "${wantedRaw}". Call search_tools with an empty query to list all.`,
+                    }
+                    : {}),
+            },
+        };
+    }
+
+    // Keyword: case-insensitive substring over id + description + tool/toolset keywords.
+    const needle = query.toLowerCase();
+    const scored = all.filter((t) => {
+        const hay = [t.id, t.tool.description, ...(t.tool.keywords ?? [])].join(" ").toLowerCase();
+        return hay.includes(needle);
+    });
+    return {
+        result: {
+            total: scored.length,
+            returned: Math.min(scored.length, maxResults),
+            tools: scored.slice(0, maxResults).map(toDefinition),
+        },
+    };
+}
+
+/** Run a registered tool. Returns the full ToolRunResult as `result` even on failure, so the
+ *  agent gets stderr + exitCode + toolsetRoot for self-repair (T-C2). Only a protocol fault
+ *  (missing toolId) uses the JSON-RPC `error` channel. */
+async function executeToolCmd(params: McpParams): Promise<McpResponse> {
+    const toolId = asString(params?.toolId);
+    if (!toolId) {
+        return { error: { code: -32602, message: "Missing or invalid 'toolId' parameter" } };
+    }
+    // args is an arbitrary JSON object (validated best-effort by the executor, EPIC C12).
+    const args = params?.args;
+
+    const { executeToolById } = await import("./tools/tool-executor");
+    const runResult = await executeToolById(toolId, args);
+    return { result: runResult };
+}
+
+/** Re-read registered manifests (the registry does not watch the filesystem). Never registers.
+ *  Returns a per-toolset summary so a just-edited manifest's validity is immediately visible. */
+async function refreshToolset(params: McpParams): Promise<McpResponse> {
+    const path = asString(params?.path);
+    const { registeredTools } = await import("./tools/registered-tools");
+    await registeredTools.ensureInitialized();
+    await registeredTools.refresh(path);
+
+    const toolsets = registeredTools.toolsets.map((ts) => ({
+        name: ts.name,
+        root: ts.root,
+        valid: ts.valid,
+        shadowed: ts.shadowed,
+        toolCount: ts.manifest?.tools?.length ?? 0,
+        errors: ts.errors,
+    }));
+    return {
+        result: {
+            refreshed: true,
+            toolsetCount: toolsets.length,
+            toolCount: registeredTools.tools.length,
+            toolsets,
+        },
+    };
 }
 
 // ── Initialization ──────────────────────────────────────────────────

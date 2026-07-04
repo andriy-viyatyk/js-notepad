@@ -164,8 +164,8 @@ reusable for enumerating registered toolsets.
 |---|------|-------|-----------|--------|
 | 1 | US-801 | [Toolset package format + registry — `tools-manifest.json` module (read/validate/ensure, `isToolsetFolder`), `toolsTrust` registry (`trustedTools.txt`, exact-match, reactive), `registeredTools` model (enumerate, watch, flat tool list, id collision policy)](../tasks/US-801-toolset-package-and-registry/README.md) | — | Planned |
 | 2 | US-802 | [Execution engine — resolve tool → `app.proc.execute` with cwd = toolset root, stdin-JSON args, `.env` loading + env injection, timeout + kill, output contract (stdout / marked JSON / stderr / exit code), in-memory per-tool stats + self-rotating per-toolset `tools-execution.log`](../tasks/US-802-execution-engine/README.md) | US-801 | Planned |
-| 3 | US-803 | MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `refresh_toolset` / `create_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb | US-802 | Planned |
-| 4 | US-804 | Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `app.tools.createToolset` scaffold API + registration confirmation dialog (C3; used by both MCP and the UI) | US-801 (parallel with US-803) | Planned |
+| 3 | US-803 | [MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `refresh_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb; **`create_toolset` moved to US-804** (needs its scaffold + confirmation dialog)](../tasks/US-803-mcp-surface/README.md) | US-802 | Planned |
+| 4 | US-804 | Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `app.tools.createToolset` scaffold API + registration confirmation dialog (C3; used by both MCP and the UI) + the **`create_toolset` MCP tool** (moved here from US-803 — it needs this task's scaffold + dialog) | US-801 (parallel with US-803) | Planned |
 | 5 | US-805 | Management UI — "Agent Tools" standalone editor (list/inspect toolsets & tools, register existing folder, remove/untrust, open folder, test-run with output), `showAgentToolsPage()` singleton, creatable item in `tools-editors-registry.ts` | US-801/802 | Planned |
 
 ### Order rationale
@@ -175,9 +175,11 @@ reusable for enumerating registered toolsets.
 - US-803 is the agent-facing milestone — after it, the feature is end-to-end usable by an
   agent; ships the guide + instructions in the same task so the surface never exists
   undocumented.
-- US-804 can run parallel to US-803 (both sit on US-801); `create_toolset` (US-803) consumes
-  the scaffold, so if built strictly in order the MCP tool lands with US-804's template —
-  coordinate the two.
+- US-804 can run parallel to US-803 (both sit on US-801). `create_toolset` was moved from
+  US-803 into US-804 (decided during US-803 investigation): it is the only meta-tool that
+  mutates trust and depends on US-804's `app.tools.createToolset` scaffold + the C3
+  confirmation dialog, so it ships there complete and trust-gated. US-803's three read/execute
+  meta-tools need no trust gate and ship independently.
 - US-805 last: pure UI over models built earlier; the user-facing management requirement.
 
 ## Concerns / Open questions (all reviewed — resolved)
@@ -198,6 +200,22 @@ reusable for enumerating registered toolsets.
 | C12 | **inputSchema validation depth** *(resolved)* | Full JSON Schema validation needs a library (ajv). **Decision:** structural best-effort (required-props + primitive type checks) in-house; the schema's main job is *describing* parameters to the agent, and the tool script must validate its own inputs anyway. Revisit ajv only if mis-calls become a real problem. |
 
 ## Notes
+
+### 2026-07-04
+- **US-803 investigated + task doc written** (`doc/tasks/US-803-mcp-surface/README.md`).
+  Verified the two-file MCP pipeline (`mcp-http-server.ts` declarations + `mcp-handler.ts`
+  handlers), the infinite-timeout mechanism (`sendToRenderer(..., 0)`), and the US-801/US-802
+  surfaces the handlers consume (`registeredTools`, `executeToolById`, `ToolRunResult`).
+- **`create_toolset` moved from US-803 to US-804** (user-confirmed). It is the only meta-tool
+  that mutates trust and needs US-804's `app.tools.createToolset` scaffold + the C3 confirmation
+  dialog — so it ships there in one trust-gated piece. US-803 now = `search_tools` /
+  `execute_tool` / `refresh_toolset` + `assets/mcp-res-tools.md` guide + instructions blurb.
+- Decisions captured as task-local concerns: `execute_tool` returns failures as structured
+  `result` (not JSON-RPC `error`) so the agent gets `stderr` + `exitCode` + `toolsetRoot` for
+  self-repair (T-C2); `search_tools` definitions include `toolsetRoot` but never `.env` values
+  or the raw `command` (T-C4); invalid/shadowed toolsets are invisible to search, surfaced via
+  `refresh_toolset`'s summary + the US-805 UI (T-C5); lazy imports keep the executor off the
+  startup path (T-C6).
 
 ### 2026-07-03
 - Epic created from the user's idea: an MCP tools registry so the agent stops re-writing

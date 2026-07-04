@@ -217,6 +217,9 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 "**Build a custom board/editor for the user:**",
                 "Persephone has custom **Boards** — sandboxed mini web-apps (HTML + backend scripts) that you, the agent, can build for the user: dashboards, tools, viewers, custom editors. Use `create_board` to scaffold one (auto-trusted), `open_board` to show it, then develop it by editing its files. IMPORTANT: read read_guide(\"boards\") first.",
                 "",
+                "**Reuse tools for recurring external-system tasks (Agent Tools registry):**",
+                "Before writing ad-hoc scripts for recurring external-system work (Azure DevOps, SQL, email, CLIs), call `search_tools` to check for a ready-made tool, then run it with `execute_tool`. If a tool fails it returns its folder path + stderr — FIX the tool rather than working around it. After a repeatable ad-hoc success, offer to register it as a reusable tool. IMPORTANT: read read_guide(\"tools\") first.",
+                "",
                 "## Browser automation (browser_* tools)",
                 "",
                 "If `browser_*` tools are listed, they follow the Playwright MCP convention.",
@@ -290,6 +293,12 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             uri: "notepad://guides/boards",
             file: "mcp-res-boards.md",
             description: "Boards guide — what a board is, the execute_script + app.boards create/open lifecycle, the execute() channel, --p-* theme contract, local vendoring, and browser_* testing. Read BEFORE building or opening a board.",
+        },
+        {
+            name: "tools-guide",
+            uri: "notepad://guides/tools",
+            file: "mcp-res-tools.md",
+            description: "Agent Tools registry guide — discover/run reusable parameterized tools (any language) via search_tools/execute_tool, the stdin-JSON + ##PERSEPHONE_RESULT## contract, .env secrets, and the self-repair loop. Read BEFORE using search_tools/execute_tool.",
         },
     ];
 
@@ -508,6 +517,42 @@ function createMcpServer(): InstanceType<typeof McpServer> {
         },
         async ({ pageId, windowIndex }) =>
             toToolResult(await sendToRenderer("board_refresh", { pageId }, windowIndex)),
+    );
+
+    // ── Agent Tools registry (EPIC-038 / US-803) ─────────────────────
+    server.tool(
+        "search_tools",
+        "Discover reusable Agent Tools registered in Persephone — parameterized scripts (any language) for recurring external-system chores (Azure DevOps, SQL, email, CLIs). Returns COMPLETE, ready-to-call definitions (id, description, inputSchema, requirements, required env var NAMES, local folder path) — like ToolSearch, no separate info call. Query forms: omit `query` (or pass empty) for a cheap id+description listing of everything; `select:<toolset>/<tool>` for an exact-id lookup; otherwise a case-insensitive keyword match over id/description/keywords (capped by maxResults). Run a result with execute_tool. IMPORTANT: read read_guide(\"tools\") first.",
+        {
+            query: z.string().optional().describe("Empty/omitted = list all (id+description). 'select:<toolset>/<tool>' = exact lookup. Otherwise keyword substring over id/description/keywords."),
+            maxResults: z.number().int().optional().describe("Max keyword matches to return (default 5). Ignored for empty-query listing and select: lookup."),
+            windowIndex: windowIndexParam,
+        },
+        async ({ query, maxResults, windowIndex }) =>
+            toToolResult(await sendToRenderer("search_tools", { query, maxResults }, windowIndex)),
+    );
+    server.tool(
+        "execute_tool",
+        "Run a registered Agent Tool by id (from search_tools). Pass `args` as a JSON object matching the tool's inputSchema; Persephone delivers it on the tool's stdin. Returns a structured result: on success { ok:true, result | resultText, logs, durationMs, ... }; on failure { ok:false, error, stderr, exitCode, toolsetRoot, ... }. IMPORTANT self-repair rule: if a tool fails, it returns its folder path (toolsetRoot) and stderr — FIX the tool at that path (then refresh_toolset) rather than working around it. IMPORTANT: read read_guide(\"tools\") first.",
+        {
+            toolId: z.string().describe("Tool id '<toolset>/<tool>' (from search_tools)."),
+            args: z.record(z.string(), z.unknown()).optional().describe("Tool arguments as a JSON object (matches the tool's inputSchema). Omit for a no-parameter tool."),
+            windowIndex: windowIndexParam,
+        },
+        async ({ toolId, args, windowIndex }) =>
+            // timeout 0 = infinite: the real limit is the manifest timeoutMs, enforced
+            // renderer-side by the executor's own timeout + tree-kill (EPIC C6).
+            toToolResult(await sendToRenderer("execute_tool", { toolId, args }, windowIndex, 0)),
+    );
+    server.tool(
+        "refresh_toolset",
+        "Re-read registered toolset manifests after you EDIT a tool's tools-manifest.json or scripts (the registry does not watch the filesystem). Never registers a new toolset — that stays a user action. Omit `path` for a full refresh. Returns a per-toolset summary (name, valid, errors, toolCount) so you can confirm your manifest edit parsed. Use after fixing a tool that execute_tool reported as failing.",
+        {
+            path: z.string().optional().describe("Toolset folder path to refresh (hint only; a full refresh runs regardless). Omit to refresh all."),
+            windowIndex: windowIndexParam,
+        },
+        async ({ path, windowIndex }) =>
+            toToolResult(await sendToRenderer("refresh_toolset", { path }, windowIndex)),
     );
 
     // ── Browser automation tools (Playwright-compatible) ─────────────
@@ -736,9 +781,10 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             "- links — LinkItem JSON format, categories, tags. For link-view editor.",
             "- graph — graph JSON format, node/link data, page.asGraph() API. For graph-view editor.",
             "- boards — what a board is, the app.boards create/open lifecycle (via execute_script), develop & test a board.",
+            "- tools — reusable Agent Tools registry: search_tools/execute_tool, stdin-JSON + result-marker contract, .env secrets, self-repair. For search_tools/execute_tool tools.",
         ].join("\n"),
         {
-            guide: z.enum(["ui-push", "pages", "scripting", "notebook", "todo", "links", "graph", "boards"])
+            guide: z.enum(["ui-push", "pages", "scripting", "notebook", "todo", "links", "graph", "boards", "tools"])
                 .describe("Guide name to read."),
         },
         async ({ guide }) => {
