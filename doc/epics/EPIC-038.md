@@ -33,8 +33,8 @@ uses for deferred tools + `ToolSearch`) is the design.
 
 - Let the agent **create, register, and reuse** parameterized tools written in any language,
   so recurring external-system tasks stop being re-implemented from scratch.
-- Keep the MCP surface **constant-size**: exactly two meta-tools (`search_tools`,
-  `execute_tool`) plus scaffolding, regardless of how many tools exist.
+- Keep the MCP surface **constant-size**: two meta-tools (`search_tools`, `execute_tool`)
+  plus scaffolding (`create_toolset`, `refresh_toolset`), regardless of how many tools exist.
 - Reuse the proven **boards patterns**: folder + manifest identity, a user-only trust
   registry (RCE gate) with a confirmation dialog on every agent-initiated registration,
   template scaffolding, command-runner execution.
@@ -114,11 +114,15 @@ reusable for enumerating registered toolsets.
    `.env`), optional `requirements` (free-text runtime prerequisites, e.g. "python 3.11+,
    pyodbc"). Toolset-level: `schemaVersion`, `name`, `description`, `author?`. **No trust
    field, no absolute paths** — the folder must stay copyable between machines.
-2. **Registry + trust.** `toolsTrust` — a near-verbatim mirror of `board-trust.ts` persisting
-   registered toolset roots to `trustedTools.txt` (registration ≡ trust: the registry of
-   known toolsets and the trust registry are the same list, like boards). A reactive
-   `registeredTools` model enumerates roots → reads manifests → exposes the flat tool list
-   (id = `<toolset-name>/<tool-name>`), with a file watcher for live manifest edits.
+2. **Registry + trust.** `toolsTrust` — a `board-trust.ts`-style registry persisting
+   registered toolset **folder** roots to `trustedTools.txt` (registration ≡ trust: the
+   registry of known toolsets and the trust registry are the same list, like boards), with
+   **exact-path matching** (one folder = one toolset, one fixed-name `tools-manifest.json`;
+   no inherited/parent trust — US-801 T-C1/T-C2). A reactive `registeredTools` model
+   enumerates roots → reads manifests → exposes the flat tool list (id =
+   `<toolset-name>/<tool-name>`). **No filesystem watcher** (US-801 T-C5): it re-enumerates on
+   a trust-list change and on an explicit `refresh()` — surfaced as the `refresh_toolset` MCP
+   tool + the US-805 UI Refresh button (mirrors EPIC-037's manual `board_refresh`).
 3. **Execution.** `execute_tool(toolId, args)` → resolve tool → validate `args` against
    `inputSchema` (best-effort) → `app.proc.execute(command, { cwd: toolsetRoot, env:
    {...dotEnv, TOOL_ARGS_JSON?}, name: toolId })`, **args passed as JSON on stdin** (avoids
@@ -135,7 +139,9 @@ reusable for enumerating registered toolsets.
    description, `inputSchema`, requirements, required env var names — never values); query
    forms: `select:<toolset>/<tool>` for exact lookup, keywords otherwise, empty query = a
    cheap names+descriptions listing of everything; `execute_tool(toolId, args)` →
-   result/error. Plus `create_toolset(name, dir)` (scaffold
+   result/error. Plus `refresh_toolset(path?)` — re-reads an already-registered toolset's
+   manifest after the agent edits it (full refresh when `path` omitted); never registers, so
+   the trust gate holds (US-801 T-C5). Plus `create_toolset(name, dir)` (scaffold
    from `assets/tool-template/`, ensure manifest — the `create_board` analog) so the agent
    can bootstrap a toolset. Every agent-initiated registration (`create_toolset` and any
    registration of a pre-existing folder) is gated by a **user confirmation dialog**
@@ -156,9 +162,9 @@ reusable for enumerating registered toolsets.
 
 | # | Task | Title | Depends on | Status |
 |---|------|-------|-----------|--------|
-| 1 | US-801 | Toolset package format + registry — `tools-manifest.json` module (read/validate/ensure, `isToolsetFolder`), `toolsTrust` registry (`trustedTools.txt`, inherited trust, reactive), `registeredTools` model (enumerate, watch, flat tool list, id collision policy) | — | Planned |
+| 1 | US-801 | [Toolset package format + registry — `tools-manifest.json` module (read/validate/ensure, `isToolsetFolder`), `toolsTrust` registry (`trustedTools.txt`, exact-match, reactive), `registeredTools` model (enumerate, watch, flat tool list, id collision policy)](../tasks/US-801-toolset-package-and-registry/README.md) | — | Planned |
 | 2 | US-802 | Execution engine — resolve tool → `app.proc.execute` with cwd = toolset root, stdin-JSON args, `.env` loading + env injection, timeout + kill, output contract (stdout / marked JSON / stderr / exit code), bounded run-history log | US-801 | Planned |
-| 3 | US-803 | MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `create_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb | US-802 | Planned |
+| 3 | US-803 | MCP surface — `search_tools` (full-definition results, `ToolSearch`-style) / `execute_tool` / `refresh_toolset` / `create_toolset` (main Zod decls + renderer handlers), long `sendToRenderer` timeout for execute, `assets/mcp-res-tools.md` + `read_guide` enum + resource registration, server instructions blurb | US-802 | Planned |
 | 4 | US-804 | Scaffolding + authoring template — `assets/tool-template/` (manifest + example stdin-JSON script + `.env.example` + authoring `CLAUDE.md`), `app.tools.createToolset` scaffold API + registration confirmation dialog (C3; used by both MCP and the UI) | US-801 (parallel with US-803) | Planned |
 | 5 | US-805 | Management UI — "Agent Tools" standalone editor (list/inspect toolsets & tools, register existing folder, remove/untrust, open folder, test-run with output), `showAgentToolsPage()` singleton, creatable item in `tools-editors-registry.ts` | US-801/802 | Planned |
 
@@ -237,6 +243,15 @@ reusable for enumerating registered toolsets.
 - **Concerns review complete — all C1–C12 dispositioned.** The epic is design-complete and
   ready for implementation (US-801 first; per-task documents to be written as each task
   starts).
+- **US-801 investigated + design-confirmed (task doc written).** Decisions during review:
+  registry stores the toolset **folder** path with **exact-path matching** (one folder = one
+  toolset, one fixed-name `tools-manifest.json`; no board-style inherited/parent trust —
+  T-C1/T-C2); modules live under `src/renderer/api/tools/` (T-C3). **No filesystem watchers**
+  (T-C5, user): the `registeredTools` model re-enumerates on `toolsTrust` changes + an
+  explicit `refresh()`, surfaced as a new **`refresh_toolset(path?)` MCP tool** (US-803) and
+  the US-805 UI Refresh button — mirroring EPIC-037's removal of board auto-reload in favor
+  of manual `board_refresh`. `refresh_toolset` only re-reads already-registered toolsets
+  (never registers), so the C3 trust gate is preserved.
 - **MCP surface simplified: `get_tool_info` merged into `search_tools`** (user question →
   decision). Rationale: Claude Code's own `ToolSearch` has no separate info tool — a search
   returns complete, ready-to-use definitions in one round-trip. `search_tools` now returns
