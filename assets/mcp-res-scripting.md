@@ -262,6 +262,10 @@ await (await page.asSvg()).savePngToFile("D:/tmp/image.png");
 await (await page.asImage()).savePngToFile("D:/tmp/photo.png");
 ```
 
+To simply *look at* an image page, you usually don't need a script at all: `get_page_content`
+returns the rendered PNG directly as an image block in the tool result. `savePngToFile` remains
+the way to put the image on disk (or to read one that is too large to inline).
+
 ### asDraw()
 
 Drawing editor facade for Excalidraw pages (`.excalidraw`).

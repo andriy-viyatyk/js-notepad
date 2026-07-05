@@ -2,6 +2,14 @@
 
 Persephone uses tabbed pages (like browser tabs). Each page has an editor and (when file-backed) a language.
 
+## Reading Page Content
+
+`get_page_content` (and `get_active_page`) adapt to the page type:
+
+- **Text-based pages** (monaco, markdown, grid, notebook, mermaid, svg, …) return `{ id, title, content }` — the source text.
+- **Image pages** (`image-view`, e.g. screen snips or opened image files) return the rendered PNG **as an image block in the tool result** — you see the picture directly. Works for background (non-active) pages too. Very large images degrade to a hint pointing at `page.asImage().savePngToFile(path)`.
+- **Other non-text pages** (browser, board, video, PDF, …) return `{ id, title, hint }` — a one-line pointer to the right tool (`browser_*`, `execute_script` facades, or the file path from `list_pages`).
+
 ## Multi-Window Support
 
 Persephone supports multiple windows. Each window has a stable `windowIndex` (starting from 0) and its own set of pages.

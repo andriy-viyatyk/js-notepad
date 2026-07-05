@@ -55,7 +55,12 @@ interface McpActivePage {
     language?: string;
     filePath?: string;
     modified: boolean;
-    content: string;
+    /** Text-based pages only. Image/hint pages omit it (see PageContentPayload). */
+    content?: string;
+    /** Rendered PNG for image pages (base64). The MCP server maps it to an image block. */
+    image?: { data: string; mimeType: string };
+    /** Non-text, non-image pages: one line telling the agent how to read this page. */
+    hint?: string;
     /** Browser pages only (editor === "browser-view") */
     profileName?: string;   // "" = default profile
     isIncognito?: boolean;
@@ -104,7 +109,7 @@ async function handleCommand(method: string, params: McpParams): Promise<McpResp
         case "get_page_content":
             return getPageContent(params);
         case "get_active_page":
-            return { result: getActivePage() };
+            return { result: await getActivePage() };
         case "create_page":
             return createPage(params);
         case "set_page_content":
@@ -214,7 +219,63 @@ function getPages(): McpPageInfo[] {
     });
 }
 
-function getPageContent(params: McpParams): McpResponse {
+// ── Page content resolution (shared by get_page_content / get_active_page) ──
+
+type PageContentPayload =
+    | { content: string }
+    | { image: { data: string; mimeType: string } }
+    | { hint: string };
+
+/** Inlining cap for image payloads — a bigger PNG degrades to a hint so a tool
+ *  result never carries a multi-megabyte base64 block. */
+const MAX_INLINE_IMAGE_BASE64 = 5 * 1024 * 1024;
+
+const OVERSIZE_IMAGE_HINT =
+    "This image is too large to inline. Use execute_script with " +
+    '`(await page.asImage()).savePngToFile(path)` to write it to disk, then read the file.';
+
+function hintForEditor(editorId: string | undefined): string {
+    switch (editorId) {
+        case "browser-view":
+            return "This is a browser page. Use the browser_* tools — browser_snapshot for the DOM, browser_take_screenshot for pixels.";
+        case "board-view":
+            return 'This is a board page. Use the browser_* tools targeted at it (see read_guide("boards")), or read the board\'s files from disk.';
+        case "video-view":
+        case "pdf-view":
+            return "This page has no extractable text or image content. Its source file path is available via list_pages → filePath.";
+        default:
+            return `This is a "${editorId ?? "unknown"}" page with no text content. Use execute_script with the page facades (see read_guide("scripting")).`;
+    }
+}
+
+/** Text host → source text; IImageExport editor (headless — works for background
+ *  pages) → rendered PNG; anything else → a how-to-read-this hint. */
+async function resolvePageContent(
+    page: NonNullable<ReturnType<typeof pagesModel.findPage>>,
+): Promise<PageContentPayload> {
+    const textHost = pagesModel.getTextFileHost(page.id);
+    if (textHost) return { content: textHost.state.get().content };
+
+    const editor = page.mainEditorInstance as unknown as
+        | { exportPng?: () => Promise<Blob> }
+        | null;
+    if (typeof editor?.exportPng === "function") {
+        try {
+            const blob = await editor.exportPng();
+            const data = Buffer.from(await blob.arrayBuffer()).toString("base64");
+            if (data.length > MAX_INLINE_IMAGE_BASE64) {
+                return { hint: OVERSIZE_IMAGE_HINT };
+            }
+            return { image: { data, mimeType: "image/png" } };
+        } catch {
+            // Export failed (e.g. no image loaded yet) — fall through to the hint.
+        }
+    }
+
+    return { hint: hintForEditor(page.mainEditorInstance?.editorId) };
+}
+
+async function getPageContent(params: McpParams): Promise<McpResponse> {
     const pageId = asString(params?.pageId);
     if (!pageId) {
         return { error: { code: -32602, message: "Missing 'pageId' parameter" } };
@@ -225,19 +286,18 @@ function getPageContent(params: McpParams): McpResponse {
         return { error: { code: -32602, message: `Page not found: ${pageId}` } };
     }
 
-    const textHost = pagesModel.getTextFileHost(page.id);
-    const content = textHost ? textHost.state.get().content : "";
+    const payload = await resolvePageContent(page);
 
     return {
         result: {
             id: page.id,
             title: page.title,
-            content,
+            ...payload,
         },
     };
 }
 
-function getActivePage(): McpActivePage | null {
+async function getActivePage(): Promise<McpActivePage | null> {
     const page = pagesModel.activePage;
     if (!page) return null;
 
@@ -246,7 +306,7 @@ function getActivePage(): McpActivePage | null {
         | { language?: string; filePath?: string }
         | undefined;
     const textHost = pagesModel.getTextFileHost(page.id);
-    const content = textHost ? textHost.state.get().content : "";
+    const payload = await resolvePageContent(page);
 
     const result: McpActivePage = {
         id: page.id,
@@ -255,7 +315,7 @@ function getActivePage(): McpActivePage | null {
         language: textHost?.state.get().language ?? editorState?.language,
         filePath: textHost?.state.get().filePath ?? editorState?.filePath,
         modified: page.modified,
-        content,
+        ...payload,
     };
 
     // Browser pages: surface profile identity (structural read — do NOT import

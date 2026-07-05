@@ -159,6 +159,27 @@ function toToolResult(response: McpResponse) {
     return { content: [{ type: "text" as const, text }] };
 }
 
+/** Page-content results: image pages carry `image` (base64 PNG from the renderer's
+ *  IImageExport path) — surface it as a real MCP image block (agents see the picture),
+ *  with the remaining metadata as a JSON text block. Text/hint payloads flow as JSON. */
+function toPageContentResult(response: McpResponse) {
+    if (response.error) return toToolResult(response);
+    const r = response.result as
+        | { image?: { data: string; mimeType: string } }
+        | null
+        | undefined;
+    if (r?.image) {
+        const { image, ...meta } = r;
+        return {
+            content: [
+                { type: "text" as const, text: JSON.stringify(meta, null, 2) },
+                { type: "image" as const, data: image.data, mimeType: image.mimeType },
+            ],
+        };
+    }
+    return toToolResult(response);
+}
+
 // ── Status Broadcast ────────────────────────────────────────────────
 
 function broadcastMcpStatus(): void {
@@ -397,21 +418,21 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "get_page_content",
-        "Get the text content of a page by ID. Works for text-based pages (monaco, markdown, JSON, CSV, etc.). Returns { id, title, content }.",
+        "Get the content of a page by ID. Text-based pages (monaco, markdown, JSON, CSV, etc.) return { id, title, content }. Image pages (image-view) return the rendered PNG as an image block. Other non-text pages return { id, title, hint } describing how to read them.",
         {
             pageId: z.string().describe("The page ID (from list_pages)."),
             windowIndex: windowIndexParam,
         },
-        async ({ pageId, windowIndex }) => toToolResult(await sendToRenderer("get_page_content", { pageId }, windowIndex)),
+        async ({ pageId, windowIndex }) => toPageContentResult(await sendToRenderer("get_page_content", { pageId }, windowIndex)),
     );
 
     server.tool(
         "get_active_page",
-        "Get the currently active (focused) page with its content and metadata. Returns { id, title, type, editor, language, filePath, modified, content }. Browser pages also include { profileName, isIncognito, isTor, url } (url = the active tab's URL; omitted for incognito/Tor pages).",
+        "Get the currently active (focused) page with its content and metadata. Returns { id, title, type, editor, language, filePath, modified, content }. Image pages (image-view) return the rendered PNG as an image block instead of content; other non-text pages return a hint describing how to read them. Browser pages also include { profileName, isIncognito, isTor, url } (url = the active tab's URL; omitted for incognito/Tor pages).",
         {
             windowIndex: windowIndexParam,
         },
-        async ({ windowIndex }) => toToolResult(await sendToRenderer("get_active_page", {}, windowIndex)),
+        async ({ windowIndex }) => toPageContentResult(await sendToRenderer("get_active_page", {}, windowIndex)),
     );
 
     server.tool(
