@@ -158,7 +158,8 @@ Click a folder in the left panel to see its contents in the right panel.
 - This gives you a full-width file browser alongside an editor, without keeping the sidebar open
 
 **Managing Custom Folders:**
-- Right-click in the left panel to add or remove folder shortcuts
+- Click the **Add Folder** button at the bottom of the left panel to pick a folder and add it as a shortcut
+- Right-click in the left panel for the same **Add Folder** option, plus **Remove Folder** on an existing shortcut
 - Folders provide quick access to frequently used directories
 
 ### Right Panel — Contents

@@ -6,6 +6,7 @@ import {
     ListBox,
     LIST_ITEM_KEY,
     IconButton,
+    Button,
     Spacer,
     Splitter,
     Panel,
@@ -520,6 +521,16 @@ export function MenuBar(props: MenuBarProps) {
                         onContextMenu={model.onLeftPanelContextMenu}
                         renderItem={folderRenderItem}
                     />
+                    <Panel name="menubar-add-folder" justify="center" paddingTop="sm">
+                        <Button
+                            name="menubar-add-folder-button"
+                            icon={<FolderPlusIcon />}
+                            title="Add a folder to the sidebar"
+                            onClick={model.addFolder}
+                        >
+                            Add Folder
+                        </Button>
+                    </Panel>
                 </Panel>
                 <Panel
                     name="menubar-content"
