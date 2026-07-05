@@ -526,6 +526,7 @@ export function MenuBar(props: MenuBarProps) {
                             name="menubar-add-folder-button"
                             icon={<FolderPlusIcon />}
                             title="Add a folder to the sidebar"
+                            size="sm"
                             onClick={model.addFolder}
                         >
                             Add Folder
