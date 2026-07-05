@@ -15,7 +15,8 @@ import { ThemeDefinition } from "./types";
 // --color-bg-default              editor.background
 // --color-bg-dark                 titleBar.activeBackground, sideBar.background
 // --color-bg-light                input.background, editorWidget.background
-// --color-bg-selection            list.activeSelectionBackground
+// --color-bg-selection            list.activeSelectionBackground (accent variant — menu/drop targets)
+// --color-bg-tree-selection       list.activeSelectionBackground (focused tree/list selected row)
 // --color-bg-scrollbar            (derived from bg-light)
 // --color-bg-scrollbar-thumb      scrollbarSlider.background
 // --color-bg-message              (derived from bg-light)
@@ -73,6 +74,7 @@ export const defaultDark: ThemeDefinition = {
         "--color-bg-dark": "#181818",
         "--color-bg-light": "#313131",
         "--color-bg-selection": "#0078d4",
+        "--color-bg-tree-selection": "#04395e",
         "--color-bg-scrollbar": "#313131",
         "--color-bg-scrollbar-thumb": "rgba(121, 121, 121, 0.2)",
         "--color-bg-message": "#313131",

@@ -8,6 +8,7 @@ import {
 } from "../../uikit";
 import { Panel } from "../../uikit/Panel";
 import { pagesModel } from "../../api/pages";
+import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { useEditorConfig } from "../base";
 import { EditorError } from "../base/EditorError";
 import { getRowKey } from "./utils/grid-utils";
@@ -52,9 +53,11 @@ export const GridBody = forwardRef<AVGridModel<any>, GridBodyProps>(function Gri
         }
     });
 
-    // Auto-focus on mount (unless disabled by editor config).
+    // Auto-focus on mount (unless disabled by editor config, or the user is
+    // working in a sidebar panel — sidebar-driven navigation must not steal
+    // focus, US-808).
     useEffect(() => {
-        if (!editorConfig.disableAutoFocus) {
+        if (!editorConfig.disableAutoFocus && !isFocusInSidebar()) {
             gridRef.current?.focusGrid();
         }
     }, [editorConfig.disableAutoFocus]);

@@ -19,6 +19,7 @@ export const quietLight: ThemeDefinition = {
         "--color-bg-dark": "#E8E0F0",
         "--color-bg-light": "#EBEBEB",
         "--color-bg-selection": "#c4d9b1",
+        "--color-bg-tree-selection": "#c4d9b1",
         "--color-bg-scrollbar": "#EBEBEB",
         "--color-bg-scrollbar-thumb": "rgba(100, 100, 100, 0.4)",
         "--color-bg-message": "#EBEBEB",

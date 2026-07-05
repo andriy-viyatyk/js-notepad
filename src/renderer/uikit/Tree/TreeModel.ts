@@ -245,6 +245,16 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         return !!r && !r.item.section && !r.item.disabled;
     };
 
+    /** Row index of the current selection, or -1. Keyboard fallback origin when no row
+     *  is active (e.g. the mouse just left the tree). */
+    private selectedRowIndex = (): number => {
+        const rows = this.rows.value;
+        for (let i = 0; i < rows.length; i++) {
+            if (this.isSelectedAt(i)) return i;
+        }
+        return -1;
+    };
+
     findNextInteractive = (start: number, dir: 1 | -1): number => {
         const rows = this.rows.value;
         let i = start;
@@ -317,7 +327,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         const rows = this.rows.value;
         const n = rows.length;
         if (n === 0) return;
-        const cur = this.props.activeIndex ?? -1;
+        const cur = this.props.activeIndex ?? this.selectedRowIndex();
         const apply = (target: number) => {
             if (target < 0) return;
             this.props.onActiveChange?.(target);
@@ -643,6 +653,12 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         if (!r) return;
         if (!r.hasChildren && !r.lazyChildren) return;
 
+        // Collapse guard — e.g. a permanent chevron-less root that keyboard ArrowLeft
+        // could otherwise collapse with no way to re-open it. Expansion never blocks.
+        if (r.expanded && this.props.canCollapse && !this.props.canCollapse(r.source, r.level)) {
+            return;
+        }
+
         // Already loading? Ignore re-toggles during an inflight load — the user must wait
         // for resolution before collapsing. Avoids a race where collapse-then-resolve
         // would flip a row open that the user explicitly closed.
@@ -747,6 +763,12 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     scrollToItem = (value: string | number, align?: RowAlign) => {
         const idx = this.indexByValue.value.get(value);
         if (idx != null) this.gridRef?.scrollToRow(idx, align);
+    };
+
+    /** Focus the tree root (the keyboard-nav tab stop). The root already carries
+     *  `id={rootId}`, so no extra ref plumbing is needed. */
+    focusRoot = () => {
+        document.getElementById(this.rootId)?.focus();
     };
 
     /**

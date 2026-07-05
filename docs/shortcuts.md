@@ -162,10 +162,29 @@ All navigation keys (except Tab) support **Shift** to extend selection.
 
 ## File Explorer Panel
 
+### Navigation
+
 | Shortcut | Action |
 |----------|--------|
+| `Arrow Up/Down` | Move the selection cursor |
+| `Home` / `End` | Jump to the first/last row |
+| `Page Up` / `Page Down` | Move the cursor by one page |
+| `Enter` | Open the selected row |
+| `Arrow Right` / `Arrow Left` | Expand / collapse the selected folder |
 | `Ctrl+F` | Search files by name |
 | `Escape` | Close search / name filter |
+
+### File Operations
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+C` | Copy the selected file/folder to the Windows clipboard |
+| `Ctrl+X` | Cut the selected file/folder to the Windows clipboard (not on the tree's root) |
+| `Ctrl+V` | Paste from the Windows clipboard into the selected folder (or the selected file's parent, or the root) |
+| `Delete` | Delete the selected file/folder (shows the confirmation dialog) |
+| `F2` | Rename the selected file/folder |
+
+These file-operation shortcuts are disabled while typing in the panel's search box, and Ctrl+C/X/V require a real file-system folder (not archive, Mneme, or link panels).
 
 ## Sidebar
 

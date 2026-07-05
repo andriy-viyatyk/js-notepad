@@ -20,6 +20,7 @@ export const abyss: ThemeDefinition = {
         "--color-bg-dark": "#060621",
         "--color-bg-light": "#10192c",
         "--color-bg-selection": "#08286b",
+        "--color-bg-tree-selection": "#08286b",
         "--color-bg-scrollbar": "#10192c",
         "--color-bg-scrollbar-thumb": "rgba(31, 34, 48, 0.67)",
         "--color-bg-message": "#10192c",

@@ -20,6 +20,7 @@ export const monokai: ThemeDefinition = {
         "--color-bg-dark": "#1e1f1c",
         "--color-bg-light": "#3e3d32",
         "--color-bg-selection": "#49483e",
+        "--color-bg-tree-selection": "#49483e",
         "--color-bg-scrollbar": "#3e3d32",
         "--color-bg-scrollbar-thumb": "rgba(121, 121, 121, 0.25)",
         "--color-bg-message": "#3e3d32",

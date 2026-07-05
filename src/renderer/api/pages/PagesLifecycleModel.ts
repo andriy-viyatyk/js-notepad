@@ -33,6 +33,7 @@ import { ui } from "../ui";
 import { settings } from "../settings";
 import { editorRegistry } from "../../editors/base/editorRegistry";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
+import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { PageModel } from "./PageModel";
 
 import type { ILink } from "../../api/types/io.tree";
@@ -753,7 +754,9 @@ export class PagesLifecycleModel {
                 }
                 existing.onNavigationReuse?.();
                 this.model.onShow.send(page);
-                this.model.onFocus.send(page);
+                // Navigation (not activation): don't pull focus out of a sidebar
+                // panel the user is working in — e.g. the Explorer tree (US-808).
+                if (!isFocusInSidebar()) this.model.onFocus.send(page);
                 this.model.persistence.saveState();
                 return true;
             }
@@ -777,7 +780,7 @@ export class PagesLifecycleModel {
             await page.setMainEditor(existingForFile);
             existingForFile.onNavigationReuse?.();
             this.model.onShow.send(page);
-            this.model.onFocus.send(page);
+            if (!isFocusInSidebar()) this.model.onFocus.send(page);
             this.model.persistence.saveState();
             return true;
         }
@@ -880,7 +883,7 @@ export class PagesLifecycleModel {
         }
 
         this.model.onShow.send(page);
-        this.model.onFocus.send(page);
+        if (!isFocusInSidebar()) this.model.onFocus.send(page);
         this.model.persistence.saveState();
         return true;
     };

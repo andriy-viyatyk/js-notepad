@@ -70,6 +70,14 @@ export interface TreeProviderViewState {
     /** Bumped only when crossing the deep ↔ shallow search boundary, to remount Tree. */
     searchKey: number;
     error: string | null;
+    /**
+     * The tree's own selection (href of the last-clicked row — file OR folder). Synced
+     * FROM `props.selectedHref` when it changes to a non-null value (main-editor
+     * navigation), but never cleared by a null — selection is sticky, VS Code style.
+     * (`props.selectedHref` goes null right after a folder click because the folder
+     * view carries no `filePath`; adopting that null was why folders lost highlight.)
+     */
+    selectedValue: string | null;
 }
 
 export const defaultTreeProviderViewState: TreeProviderViewState = {
@@ -79,6 +87,7 @@ export const defaultTreeProviderViewState: TreeProviderViewState = {
     searchVisible: false,
     searchKey: 0,
     error: null,
+    selectedValue: null,
 };
 
 // =============================================================================
@@ -103,6 +112,8 @@ export class TreeProviderViewModel extends TComponentModel<
                 }
                 this.initialExpandMap = map;
             }
+            const seed = this.props.selectedHref ?? this.props.initialState?.selectedHref;
+            if (seed) this.adoptSelection(seed);
             this.initializeTree();
             this.subscribeWatch();
         } else if (this.oldProps?.provider !== this.props.provider) {
@@ -111,6 +122,26 @@ export class TreeProviderViewModel extends TComponentModel<
         } else if (this.oldProps?.showLinks !== this.props.showLinks) {
             this.recomputeDisplayTree();
         }
+
+        // Adopt an external selection change (main-editor navigation). A null
+        // selectedHref never clears — see TreeProviderViewState.selectedValue.
+        if (
+            !this.isFirstUse &&
+            this.props.selectedHref &&
+            this.props.selectedHref !== this.oldProps?.selectedHref
+        ) {
+            this.adoptSelection(this.props.selectedHref);
+        }
+    };
+
+    /** Deferred selection write — setProps runs during render, so a synchronous
+     *  state.update here would trip React's update-while-rendering warning. */
+    private adoptSelection = (href: string) => {
+        queueMicrotask(() => {
+            if (!this.isLive) return;
+            if (this.state.get().selectedValue === href) return;
+            this.state.update((s) => { s.selectedValue = href; });
+        });
     };
 
     private subscribeWatch = () => {
@@ -348,7 +379,7 @@ export class TreeProviderViewModel extends TComponentModel<
             .map(([id]) => id);
         return {
             expandedPaths,
-            selectedHref: this.props.selectedHref,
+            selectedHref: this.state.get().selectedValue ?? this.props.selectedHref,
         };
     };
 
@@ -492,10 +523,9 @@ export class TreeProviderViewModel extends TComponentModel<
     // ── Click handlers ───────────────────────────────────────────────────
 
     onItemClick = (node: TreeProviderNode) => {
-        // Root is non-collapsible — click toggles every other directory only.
-        if (node.data.isDirectory && node.data.href !== this.props.provider.rootPath) {
-            this.treeRef?.toggleItem(node.data.href);
-        }
+        this.state.update((s) => { s.selectedValue = node.data.href; });
+        // Expansion is chevron-only (TreeProviderView.renderItem onChevronClick, plus
+        // ArrowRight/ArrowLeft) — clicking the label selects + navigates without toggling.
         // Fire onItemClick for all items (files and folders).
         // Parent decides whether to navigate based on selection state.
         this.props.onItemClick?.(node.data);
@@ -509,9 +539,72 @@ export class TreeProviderViewModel extends TComponentModel<
         }
     };
 
+    // ── Keyboard actions ─────────────────────────────────────────────────
+
+    /**
+     * Ctrl+C / Ctrl+X / Ctrl+V (OS file clipboard, file provider only), Delete
+     * (confirm dialog), and F2 (rename dialog) on the selected row. Returns true
+     * when the key was consumed. Wired from TreeProviderView's wrapper onKeyDown,
+     * which sees keys bubbled from the Tree.
+     */
+    onTreeKeyDown = (e: React.KeyboardEvent): boolean => {
+        // The search input (or any editable element) keeps native key behavior.
+        const t = e.target as HTMLElement;
+        if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) {
+            return false;
+        }
+
+        const { provider } = this.props;
+        const { selectedValue, tree } = this.state.get();
+        const node = selectedValue && tree ? findNode(tree, selectedValue) : null;
+        const isRoot = node?.data.href === provider.rootPath;
+        const consume = () => {
+            e.preventDefault();
+            e.stopPropagation();
+            return true;
+        };
+
+        // Delete → existing confirm dialog; F2 → existing rename dialog. Same gating
+        // as the context-menu items: writable provider capability, never on the root.
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && node && !isRoot) {
+            if (e.key === "Delete" && provider.writable && provider.deleteItem) {
+                void this.deleteItemAction(node);
+                return consume();
+            }
+            if (e.key === "F2" && provider.writable && provider.rename) {
+                void this.renameItem(node);
+                return consume();
+            }
+        }
+
+        // OS file clipboard (US-807 actions) — file provider only.
+        if (!e.ctrlKey || e.altKey || e.shiftKey) return false;
+        const key = e.key.toLowerCase();
+        if (key !== "c" && key !== "x" && key !== "v") return false;
+        if (!supportsOsClipboard(provider)) return false;
+
+        if (key === "v") {
+            // Selected folder → into it; selected file → its parent; nothing → root.
+            const targetDir = !node
+                ? provider.rootPath
+                : node.data.isDirectory
+                    ? this.getListPath(node)
+                    : (node.data.category || provider.rootPath);
+            void this.pasteIntoDir(targetDir);
+            return consume();
+        }
+        if (!node) return false;
+        // Copy is allowed on the root (mirrors the context menu); Cut is not.
+        if (isRoot && key === "x") return false;
+        void copyPathToOsClipboard(node.data.href, key === "x");
+        return consume();
+    };
+
     // ── Context menus ────────────────────────────────────────────────────
 
     onItemContextMenu = (node: TreeProviderNode, e: React.MouseEvent) => {
+        // Right-click selects the row (Windows Explorer / VS Code behavior).
+        this.state.update((s) => { s.selectedValue = node.data.href; });
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-item");
         ctxEvent.target = node.data;
 
@@ -748,7 +841,8 @@ export class TreeProviderViewModel extends TComponentModel<
         await this.buildTree();
     };
 
-    private renameItem = async (node: TreeProviderNode) => {
+    /** Rename dialog + provider.rename. Public: invoked by both the context menu and F2. */
+    renameItem = async (node: TreeProviderNode) => {
         const { provider } = this.props;
         if (!provider.rename) return;
 
@@ -776,7 +870,8 @@ export class TreeProviderViewModel extends TComponentModel<
         await this.buildTree();
     };
 
-    private deleteItemAction = async (node: TreeProviderNode) => {
+    /** Confirm dialog + provider.deleteItem. Public: invoked by both the context menu and Delete. */
+    deleteItemAction = async (node: TreeProviderNode) => {
         const { provider } = this.props;
         if (!provider.deleteItem) return;
 

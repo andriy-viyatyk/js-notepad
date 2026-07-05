@@ -19,6 +19,7 @@ export const lightModern: ThemeDefinition = {
         "--color-bg-dark": "#F8F8F8",
         "--color-bg-light": "#F3F3F3",
         "--color-bg-selection": "#005FB8",
+        "--color-bg-tree-selection": "#005FB8",
         "--color-bg-scrollbar": "#F3F3F3",
         "--color-bg-scrollbar-thumb": "rgba(100, 100, 100, 0.4)",
         "--color-bg-message": "#F3F3F3",

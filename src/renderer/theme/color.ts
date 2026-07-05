@@ -4,6 +4,9 @@ const color = {
         dark: "var(--color-bg-dark)",
         light: "var(--color-bg-light)",
         selection: "var(--color-bg-selection)",
+        /** Focused list/tree selected-row background (VS Code `list.activeSelectionBackground`).
+         *  Darker than `selection` (the general accent) in themes whose accent is bright. */
+        treeSelection: "var(--color-bg-tree-selection)",
         scrollBar: "var(--color-bg-scrollbar)",
         scrollBarThumb: "var(--color-bg-scrollbar-thumb)",
         message: "var(--color-bg-message)",

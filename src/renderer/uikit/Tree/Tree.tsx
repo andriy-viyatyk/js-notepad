@@ -31,6 +31,24 @@ const Root = styled.div(
         minWidth: 0,
         outline: "none",
         "&[data-disabled]": { opacity: 0.6, pointerEvents: "none" },
+
+        // Focused-tree row visuals — only for trees that opt into keyboardNav (the
+        // root is a tab stop there). Descendant selectors, because rows may be
+        // consumer-rendered via `renderItem` (they still render a TreeItem carrying
+        // data-type="tree-item"). Non-keyboardNav trees render exactly as before.
+        // VS Code mapping: treeSelection = list.activeSelectionBackground,
+        // text.selection = list.activeSelectionForeground, border.active =
+        // focusBorder (the focus outline on the focused/selected row).
+        '&[data-keyboard-nav]:focus-within [data-type="tree-item"][data-selected]': {
+            backgroundColor: color.background.treeSelection,
+            color: color.text.selection,
+            outline: `1px solid ${color.border.active}`,
+            outlineOffset: -1,
+        },
+        '&[data-keyboard-nav]:focus-within [data-type="tree-item"][data-active]': {
+            outline: `1px solid ${color.border.active}`,
+            outlineOffset: -1,
+        },
     },
     { label: "Tree" },
 );
@@ -78,6 +96,7 @@ function TreeView<T = ITreeItem>(
             expandAll: model.expandAll,
             collapseAll: model.collapseAll,
             getExpandedMap: model.getExpandedMap,
+            focus: model.focusRoot,
         }),
         [model],
     );
@@ -131,6 +150,8 @@ function TreeView<T = ITreeItem>(
         onLoadError: _onLoadError,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         getAncestorValues: _getAncestorValues,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        canCollapse: _canCollapse,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         traitTypeId: _traitTypeId,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -252,6 +273,7 @@ function TreeView<T = ITreeItem>(
                 id={rootId}
                 data-type="tree"
                 data-name={name}
+                data-keyboard-nav={keyboardNav || undefined}
                 data-loading=""
                 onContextMenu={model.onRootContextMenu}
                 {...rest}
@@ -269,6 +291,7 @@ function TreeView<T = ITreeItem>(
                 id={rootId}
                 data-type="tree"
                 data-name={name}
+                data-keyboard-nav={keyboardNav || undefined}
                 data-empty=""
                 onContextMenu={model.onRootContextMenu}
                 {...rest}
@@ -288,6 +311,7 @@ function TreeView<T = ITreeItem>(
             id={rootId}
             data-type="tree"
             data-name={name}
+            data-keyboard-nav={keyboardNav || undefined}
             role="tree"
             tabIndex={keyboardNav ? 0 : -1}
             aria-activedescendant={activeId}

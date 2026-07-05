@@ -375,7 +375,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Rust screen snip tool + file-clipboard helper (`clipboard-read`/`clipboard-write` CF_HDROP subcommands) | `/snip-tool/src/main.rs` |
 | Screen snip service (main; spawns the snip exe, returns PNG data URL; optionally hides windows for the capture) | `/src/main/snip-service.ts` |
 | File-clipboard service (main; Windows-Explorer copy/paste interop — CF_HDROP read/write via the snip exe; degrades to empty when the exe is missing) | `/src/main/clip-service.ts` |
-| Explorer tree OS-clipboard actions (Cut/Copy/Paste context-menu ⇄ Windows Explorer; file provider only; recursive copy/move via `core/utils/copy-files.ts`) | `/src/renderer/components/tree-provider/os-clipboard.ts` |
+| Explorer tree OS-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer — context menu + Ctrl+C/X/V; file provider only; recursive copy/move via `core/utils/copy-files.ts`) | `/src/renderer/components/tree-provider/os-clipboard.ts` |
+| Sidebar-focus guard (`isFocusInSidebar` — navigation from a sidebar panel doesn't steal editor focus; page activation still autofocuses) | `/src/renderer/core/utils/focus-utils.ts` |
 | Mneme service (Rust)     | `/mneme/` (knowledge-base service; see `/mneme/README.md`) |
 | Mneme shared MCP connection (single auto-reconnecting client; refcounted subscriptions → per-document watchers) | `/src/renderer/api/mneme-connection.ts` |
 | Mneme status prober + reactive status (drives sidecar launch + indicators; auto-opens the config editor once per session when active but unprovisioned) | `/src/renderer/api/mneme-status.ts` |

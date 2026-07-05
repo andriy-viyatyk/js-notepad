@@ -7,6 +7,7 @@ import styled from "@emotion/styled";
 import type { MonacoEditor, MonacoQueueRequest } from "./MonacoEditor";
 import type { TextFileModel } from "../text/TextEditorModel";
 import { api } from "../../../ipc/renderer/api";
+import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { convertHtmlToMarkdown, readClipboardHtml } from "../text/paste-rich-text";
 
 const MonacoBodyRoot = styled.div({
@@ -110,7 +111,10 @@ export function MonacoBody({ model }: MonacoBodyProps) {
             cleanups.push(setupSelectionListener(ed, model));
             cleanups.push(setupRichPaste(ed, host));
             cleanupsRef.current = cleanups;
-            ed.focus();
+            // Mount-autofocus lets the user type right after opening/switching to
+            // this page — but sidebar-driven navigation (Explorer click) must not
+            // pull focus out of the sidebar (US-808).
+            if (!isFocusInSidebar()) ed.focus();
         },
         [model, host],
     );

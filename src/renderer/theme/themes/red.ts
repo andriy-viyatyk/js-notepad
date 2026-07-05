@@ -21,6 +21,7 @@ export const red: ThemeDefinition = {
         "--color-bg-dark": "#300000",
         "--color-bg-light": "#490000",
         "--color-bg-selection": "#880000",
+        "--color-bg-tree-selection": "#880000",
         "--color-bg-scrollbar": "#490000",
         "--color-bg-scrollbar-thumb": "rgba(200, 100, 100, 0.25)",
         "--color-bg-message": "#490000",

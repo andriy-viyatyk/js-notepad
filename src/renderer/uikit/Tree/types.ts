@@ -107,6 +107,8 @@ export interface TreeRef {
      * across mounts. Pair with `defaultExpandedValues` to restore.
      */
     getExpandedMap: () => Record<string | number, boolean>;
+    /** Focus the tree's root element (the keyboard-nav tab stop). */
+    focus: () => void;
 }
 
 // =============================================================================
@@ -212,6 +214,13 @@ export interface TreeProps<T = ITreeItem>
     emptyMessage?: React.ReactNode;
     /** When true, the Tree handles ArrowUp/Down/Left/Right/Home/End/Enter on its root. Default: false. */
     keyboardNav?: boolean;
+    /**
+     * Per-row collapse guard, consulted when a toggle would collapse an expanded row
+     * (chevron click, ArrowLeft, `toggleItem`). Return false to keep the row open —
+     * e.g. a permanent chevron-less root that could otherwise be collapsed via the
+     * keyboard with no way to re-open it. Expansion is never blocked. Default: allowed.
+     */
+    canCollapse?: (source: T, level: number) => boolean;
 
     // ── Lazy children loading ────────────────────────────────────────
 

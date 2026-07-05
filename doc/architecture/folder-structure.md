@@ -697,6 +697,7 @@ persephone/
 │   │   ├── monaco-languages.ts  # Monaco language config
 │   │   ├── file-watcher.ts      # File change detection
 │   │   ├── copy-files.ts        # Recursive file/folder copy + move onto the local fs (paste backend; guards, progress, per-item errors)
+│   │   ├── focus-utils.ts       # isFocusInSidebar() — editors skip mount/navigation autofocus while focus is in a sidebar panel
 │   │   ├── memorize.ts          # Memoization
 │   │   ├── types.ts             # Type helpers
 │   │   └── index.ts

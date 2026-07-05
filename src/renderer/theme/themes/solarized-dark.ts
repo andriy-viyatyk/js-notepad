@@ -20,6 +20,7 @@ export const solarizedDark: ThemeDefinition = {
         "--color-bg-dark": "#00212b",
         "--color-bg-light": "#073642",
         "--color-bg-selection": "#268bd2",
+        "--color-bg-tree-selection": "#005a6f",
         "--color-bg-scrollbar": "#073642",
         "--color-bg-scrollbar-thumb": "rgba(131, 148, 150, 0.25)",
         "--color-bg-message": "#073642",

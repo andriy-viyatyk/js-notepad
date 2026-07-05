@@ -20,6 +20,7 @@ export const tomorrowNightBlue: ThemeDefinition = {
         "--color-bg-dark": "#001126",
         "--color-bg-light": "#001c40",
         "--color-bg-selection": "#003f8e",
+        "--color-bg-tree-selection": "#003f8e",
         "--color-bg-scrollbar": "#001c40",
         "--color-bg-scrollbar-thumb": "rgba(187, 218, 255, 0.2)",
         "--color-bg-message": "#001c40",

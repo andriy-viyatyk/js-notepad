@@ -43,10 +43,10 @@ const tpvNodeTraits = new TraitSet().add(TREE_ITEM_KEY, {
 
 const getNodeChildren = (node: TreeProviderNode) => node.items;
 
-// Chrome wrapper — purely keyboard-plumbing chrome (Ctrl+F intercept, focus return on
-// Escape). UIKit Panel doesn't expose `outline` suppression, and the wiring is unique to
-// this shared view, so we keep one styled div for the wrapper. UIKit primitives drive
-// every other surface in this file.
+// Chrome wrapper — purely keyboard-plumbing chrome (clipboard/Delete/F2 + Ctrl+F
+// intercepts on bubbled keys; the Tree root itself is the tab stop). UIKit Panel doesn't
+// expose `outline` suppression, and the wiring is unique to this shared view, so we keep
+// one styled div for the wrapper. UIKit primitives drive every other surface in this file.
 const Root = styled.div({
     display: "flex",
     flexDirection: "column",
@@ -81,7 +81,6 @@ export function TreeProviderView(
     const state = model.state.use();
     const treeRef = useRef<TreeRef>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const rootRef = useRef<HTMLDivElement>(null);
 
     // Transient hover highlight — Tree routes onItemMouseEnter → onActiveChange,
     // and styles the [data-active] row. Visual-only, so view-local state (same
@@ -103,7 +102,7 @@ export function TreeProviderView(
             },
             hideSearch: () => {
                 model.hideSearch();
-                rootRef.current?.focus();
+                treeRef.current?.focus();
             },
             collapseAll: () => {
                 const rootPath = provider.rootPath;
@@ -149,10 +148,20 @@ export function TreeProviderView(
         [showLinks],
     );
 
+    // Selection is the model's own `selectedValue` (sticky; folders included) —
+    // `props.selectedHref` feeds it via the model's setProps sync, not directly.
+    const selectedValue = state.selectedValue;
     const isSelected = useCallback((node: TreeProviderNode) => {
-        if (!props.selectedHref) return false;
-        return node.data.href.toLowerCase() === props.selectedHref.toLowerCase();
-    }, [props.selectedHref]);
+        if (!selectedValue) return false;
+        return node.data.href.toLowerCase() === selectedValue.toLowerCase();
+    }, [selectedValue]);
+
+    // The chevron-less permanent root must never collapse — without this, keyboard
+    // ArrowLeft could close it with no way to re-open (its chevron is hidden).
+    const canCollapse = useCallback(
+        (node: TreeProviderNode) => node.data.href !== props.provider.rootPath,
+        [props.provider.rootPath],
+    );
 
     // Drag-drop (only if writable)
     const writable = props.provider.writable;
@@ -230,8 +239,10 @@ export function TreeProviderView(
         [model],
     );
 
-    // Keyboard
+    // Keyboard — clipboard/Delete/F2 actions first (model decides + consumes),
+    // then the search plumbing (Ctrl+F / Escape).
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (model.onTreeKeyDown(e)) return;
         if (e.ctrlKey && e.key === "f") {
             e.preventDefault();
             e.stopPropagation();
@@ -242,7 +253,7 @@ export function TreeProviderView(
             e.preventDefault();
             e.stopPropagation();
             model.hideSearch();
-            rootRef.current?.focus();
+            treeRef.current?.focus();
         }
     }, [state.searchVisible, model]);
 
@@ -251,7 +262,7 @@ export function TreeProviderView(
             e.preventDefault();
             e.stopPropagation();
             model.hideSearch();
-            rootRef.current?.focus();
+            treeRef.current?.focus();
         }
     }, [model]);
 
@@ -263,7 +274,7 @@ export function TreeProviderView(
 
     const handleSearchClose = useCallback(() => {
         model.hideSearch();
-        rootRef.current?.focus();
+        treeRef.current?.focus();
     }, [model]);
 
     const renderItem = useCallback((ctx: TreeItemRenderContext<TreeProviderNode>) => {
@@ -273,8 +284,8 @@ export function TreeProviderView(
             : node.data.title;
         // Root is the single permanent ancestor in every tree-provider view — render it
         // without a chevron and without the chevron-column placeholder (icon sits flush
-        // after zero indents). The model also blocks toggle for the root href so click
-        // / collapseAll / keyboard cannot collapse it.
+        // after zero indents). The `canCollapse` prop blocks collapsing it (keyboard
+        // ArrowLeft / toggleItem), and collapseAll re-expands it after the fact.
         return (
             <TreeItem
                 id={ctx.id}
@@ -326,8 +337,6 @@ export function TreeProviderView(
 
     return (
         <Root
-            ref={rootRef}
-            tabIndex={0}
             data-type="tree-provider-view"
             onKeyDown={handleKeyDown}
             onContextMenu={model.onBackgroundContextMenu}
@@ -339,6 +348,8 @@ export function TreeProviderView(
                 items={tNodes}
                 getChildren={getNodeChildren}
                 isSelected={isSelected}
+                keyboardNav
+                canCollapse={canCollapse}
                 activeIndex={activeIndex}
                 onActiveChange={setActiveIndex}
                 onChange={model.onItemClick}
