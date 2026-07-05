@@ -73,7 +73,7 @@ These tools control the built-in browser and drive **board pages** directly. Use
 
 Every `browser_*` tool accepts two optional parameters for targeting a specific browser page:
 
-- **`pageId`** — target an exact browser page by its ID (from `list_pages`). Takes precedence over `profileName`.
+- **`pageId`** — target an exact browser page by its ID (from `list_pages`). Takes precedence over `profileName`. The special value `"app"` targets Persephone's **own window** instead of a web page — see [Automating Persephone's own UI](#automating-persephones-own-ui) below.
 - **`profileName`** — target the browser page belonging to this profile (`""` = built-in default profile). Never matches incognito or Tor pages. If omitted, the active (or first) browser page is used.
 
 Targeting a page also **focuses** it — the resolved page becomes the active tab. This is a useful side-effect: subsequent untargeted calls stay on the now-active page. If no matching page is found a clear error message suggests using `open_url` with the desired `profileName` to open one.
@@ -98,6 +98,24 @@ Targeting a page also **focuses** it — the resolved page becomes the active ta
 > **Tip:** `browser_snapshot` is the recommended way to inspect page state — it is faster and more deterministic than screenshots. After any click or type action, the tool automatically returns an updated snapshot so you can verify the result without a separate call.
 
 > **Privacy guard:** Browser automation tools are blocked when the active browser page is in incognito or Tor mode. Any `browser_*` call on an incognito or Tor page returns an error with a clear message. Use `open_url` without `incognito` or `tor` to open a normal browser session first. `open_url` also never reuses an incognito or Tor page for a normal URL — it always creates a fresh normal session.
+
+### Automating Persephone's own UI
+
+Pass `pageId: "app"` to any `browser_*` tool to drive **Persephone's own main window** instead of a web page — its tab strip, sidebar, toolbars, dialogs, and the currently active editor. This lets an AI agent see and interact with the live app: useful during development to reproduce or inspect a UI issue, and for end users who want the agent to answer "where is that setting?" or click through a workflow with them.
+
+```
+browser_snapshot({ pageId: "app" })
+```
+
+What works: `browser_snapshot`, `browser_click`, `browser_hover`, `browser_type`, `browser_press_key`, `browser_evaluate`, `browser_take_screenshot`, and `browser_wait_for` all operate normally against the app window using refs or CSS selectors, exactly like a browser page.
+
+What's different:
+- The snapshot only ever shows the app **chrome** (tab strip, sidebar, toolbars) plus the **active page's** content — other open tabs stay hidden until you click their tab to activate them.
+- Navigation and tab-management tools (`browser_navigate`, `browser_tabs`) don't apply to the app window and return a clear error — use `list_pages` and `execute_script` (`app.pages`) to open, switch, or close pages instead.
+- Editing document content (e.g. typing into a Monaco editor) should go through `set_page_content` or `execute_script`, not synthetic typing — `browser_type` is meant for simple inputs like dialogs and search boxes.
+- `pageId: "app"` must be passed explicitly — omitting `pageId` never falls back to the app window, so ordinary browser/board automation is unaffected.
+
+This is gated by the same **Enable browser interaction** setting as the rest of the `browser_*` tools (see below).
 
 ### Browser Profiles
 

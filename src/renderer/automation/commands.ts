@@ -20,6 +20,9 @@ import { pressKey, typeText } from "./input";
 import { callOnRef } from "./ref";
 import { buildSnapshot, detectOverlay } from "./snapshot";
 import type { IBrowserTarget } from "./types";
+// Value import is safe: AppTargetModel is a leaf (only types + CdpSession + an
+// api-types constant) and pulls no editor modules into this bundle.
+import { appTarget } from "./AppTargetModel";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -54,6 +57,8 @@ function isErrorResponse(t: IBrowserTarget | McpResponse): t is McpResponse {
  * Resolve the automation target for a browser command.
  *
  * Resolution precedence:
+ *   0. `pageId === "app"` — Persephone's OWN main window (the app UI itself). Explicit
+ *                      only; never reachable by the fallback branch below.
  *   1. `pageId`      — exact page (must be a browser page).
  *   2. `profileName` — first browser page of that profile ("" = default profile;
  *                      never matches incognito/tor). Prefers the active page.
@@ -69,6 +74,11 @@ async function getTarget(
     const activePage = pagesModel.activePage;
     const pageId = typeof params?.pageId === "string" ? params.pageId : undefined;
     const profileName = typeof params?.profileName === "string" ? params.profileName : undefined;
+
+    // The app window (US-810) is automatable via the "app" sentinel — it drives
+    // Persephone's own React UI. Explicit only: the fallback branch must NEVER return
+    // it, so an agent aiming at a web page can't accidentally click the app chrome.
+    if (pageId === "app") return appTarget;
 
     // A board (EPIC-034 / US-730) is automatable just like a browser page — both
     // expose an IBrowserTarget. Only the Browser editor carries profile/incognito/Tor.

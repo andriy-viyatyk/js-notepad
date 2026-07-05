@@ -4,7 +4,7 @@
  * Manages CDP debugger attach/detach/sendCommand via IPC. Uses Electron's
  * webContents.debugger API — no network port needed.
  *
- * Two kinds of automation target share these handlers:
+ * Three kinds of automation target share these handlers:
  *  • Browser pages — each is its own `<webview>` `WebContents`; the debugger attaches
  *    directly to it (resolved via the browser's `getWebContents` resolver).
  *  • Boards (EPIC-037) — a board is an in-DOM `board://<host>` `<iframe>` inside the
@@ -12,9 +12,15 @@
  *    host wc, and every board command is routed to the board frame via its flattened
  *    CDP session, so `Runtime.evaluate` / `Accessibility.getFullAXTree` / screenshots
  *    run in the board frame, NEVER the host's own React UI.
+ *  • The app window itself — automating Persephone's OWN React UI (the `APP_WINDOW_CDP_KEY`
+ *    sentinel, used by `browser_*` with `pageId: "app"`). Needs no registration: the
+ *    command arrives from the target window's own renderer, so `event.sender` IS the
+ *    window to drive. We attach the debugger to it and run commands on the TOP-LEVEL
+ *    session (the app UI) with no frame routing.
  */
 import { ipcMain, WebContents } from "electron";
 import { BrowserChannel } from "../ipc/browser-ipc";
+import { APP_WINDOW_CDP_KEY } from "../ipc/api-types";
 
 /** Track which webContents have an attached debugger. */
 const attachedDebuggers = new WeakSet<WebContents>();
@@ -169,7 +175,16 @@ async function boardSend(reg: BoardReg, method: string, params: object | undefin
 export function initCdpHandlers(
     getWebContents: (key: string) => WebContents | undefined,
 ): void {
-    ipcMain.handle(BrowserChannel.cdpAttach, async (_event, key: string) => {
+    ipcMain.handle(BrowserChannel.cdpAttach, async (event, key: string) => {
+        if (key === APP_WINDOW_CDP_KEY) {
+            if (event.sender.isDestroyed()) return false;
+            try {
+                ensureAttached(event.sender);
+                return true;
+            } catch {
+                return false;
+            }
+        }
         const board = boardRegistrations.get(key);
         if (board) {
             if (board.host.isDestroyed()) return false;
@@ -192,6 +207,11 @@ export function initCdpHandlers(
     });
 
     ipcMain.handle(BrowserChannel.cdpDetach, async (_event, key: string) => {
+        if (key === APP_WINDOW_CDP_KEY) {
+            // The app window's debugger is SHARED (boards attach to the same wc);
+            // never detach it — just leave it attached for the window's lifetime.
+            return;
+        }
         const board = boardRegistrations.get(key);
         if (board) {
             // The host wc debugger is SHARED (other boards / future use); never detach
@@ -212,7 +232,22 @@ export function initCdpHandlers(
 
     ipcMain.handle(
         BrowserChannel.cdpSend,
-        async (_event, key: string, method: string, params?: object, sessionId?: string) => {
+        async (event, key: string, method: string, params?: object, sessionId?: string) => {
+            if (key === APP_WINDOW_CDP_KEY) {
+                const wc = event.sender;
+                if (wc.isDestroyed()) throw new Error("App window is gone");
+                if (!attachedDebuggers.has(wc)) {
+                    try {
+                        ensureAttached(wc);
+                    } catch {
+                        throw new Error("Failed to attach CDP debugger");
+                    }
+                }
+                // Top-level session — Persephone's own React UI. `sessionId` is passed
+                // through so the shared snapshot code's nested-iframe attaches (board
+                // frames inside the app) and their `f1-…` refs still resolve.
+                return wc.debugger.sendCommand(method, params, sessionId);
+            }
             const board = boardRegistrations.get(key);
             if (board) {
                 return boardSend(board, method, params, sessionId);

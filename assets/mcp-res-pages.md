@@ -10,6 +10,23 @@ Persephone uses tabbed pages (like browser tabs). Each page has an editor and (w
 - **Image pages** (`image-view`, e.g. screen snips or opened image files) return the rendered PNG **as an image block in the tool result** — you see the picture directly. Works for background (non-active) pages too. Very large images degrade to a hint pointing at `page.asImage().savePngToFile(path)`.
 - **Other non-text pages** (browser, board, video, PDF, …) return `{ id, title, hint }` — a one-line pointer to the right tool (`browser_*`, `execute_script` facades, or the file path from `list_pages`).
 
+## Automating Persephone's Own UI
+
+The `browser_*` tools can drive Persephone's own window — not just web pages and boards. Pass `pageId: "app"` to any `browser_*` tool to see and interact with the app UI itself: the tab strip, sidebar panels, toolbars, dialogs, and the active editor. This lets you help the user with Persephone's interface directly (find a setting, click through a flow, reproduce a UI issue).
+
+```
+browser_snapshot({ pageId: "app" })                       // accessibility tree of the app window
+browser_click({ pageId: "app", ref: "e42" })              // click a tab, button, tree item…
+browser_type({ pageId: "app", ref: "e88", text: "…" })    // type into a dialog / search field
+browser_press_key({ pageId: "app", key: "Escape" })       // e.g. dismiss a menu
+browser_take_screenshot({ pageId: "app" })                // pixels of the app window
+```
+
+- **What you see:** the snapshot contains the app chrome plus the **active** page only — inactive pages are hidden, regardless of how many tabs are open. To reach another page, click its tab in the snapshot to activate it.
+- **What's not supported:** navigation (`browser_navigate`/`browser_navigate_back`) and tab management (`browser_tabs`) throw — the app window is not a browser. To open or switch Persephone pages, use `list_pages` + `execute_script` (`app.pages`).
+- **Editing content:** prefer `set_page_content` / `execute_script` over typing into the editor — synthetic typing into Monaco is unreliable. `browser_type` is for simple inputs (dialogs, search boxes, settings fields).
+- Combine with `windowIndex` to target a specific window's UI.
+
 ## Multi-Window Support
 
 Persephone supports multiple windows. Each window has a stable `windowIndex` (starting from 0) and its own set of pages.

@@ -606,6 +606,7 @@ persephone/
 │   ├── snapshot.ts         # Accessibility snapshot (main frame + iframes, overlay detection)
 │   ├── input.ts            # Keyboard/text input (typeText, pressKey, fill strategies)
 │   ├── ref.ts              # Ref resolution (parseRef, resolveRef, callOnRef)
+│   ├── AppTargetModel.ts   # Automation adapter (IBrowserTarget) for the app's own UI (pageId "app")
 │   └── commands.ts         # browser_* MCP command handlers
 │
 ├── uikit/                  # UIKit — Standalone Component Library (EPIC-025)

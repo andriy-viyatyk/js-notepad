@@ -370,7 +370,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Browser ref resolution   | `/src/renderer/automation/ref.ts`                  |
 | CDP session wrapper      | `/src/renderer/automation/CdpSession.ts`           |
 | Accessibility snapshot   | `/src/renderer/automation/snapshot.ts`              |
-| CDP service (main)       | `/src/main/cdp-service.ts`                         |
+| App-window automation adapter (`IBrowserTarget` for the app's own UI; `browser_*` with `pageId: "app"`; `APP_WINDOW_CDP_KEY` sentinel routed to the calling window's own webContents in `cdp-service`; explicit-only in `getTarget`; snapshot shows only the active page — hidden pages excluded by the AX tree) | `/src/renderer/automation/AppTargetModel.ts` |
+| CDP service (main; three target kinds — browser webContents, board frame, and the app window itself via the `APP_WINDOW_CDP_KEY` sentinel → `event.sender`) | `/src/main/cdp-service.ts` |
 | Rust launcher            | `/launcher/src/main.rs`                           |
 | Rust screen snip tool + file-clipboard helper (`clipboard-read`/`clipboard-write` CF_HDROP subcommands) | `/snip-tool/src/main.rs` |
 | Screen snip service (main; spawns the snip exe, returns PNG data URL; optionally hides windows for the capture) | `/src/main/snip-service.ts` |

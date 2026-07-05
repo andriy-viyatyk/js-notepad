@@ -237,6 +237,7 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 | `src/renderer/automation/commands.ts` | Renderer | Playwright-compatible browser_* MCP command handlers |
 | `src/renderer/automation/snapshot.ts` | Renderer | Accessibility tree → YAML formatter for browser_snapshot |
 | `src/renderer/automation/CdpSession.ts` | Renderer | CDP session wrapper (IPC to main process debugger) |
+| `src/renderer/automation/AppTargetModel.ts` | Renderer | `IBrowserTarget` adapter for the app's own UI (`pageId: "app"`) |
 | `src/renderer/automation/types.ts` | Renderer | `IBrowserTarget` interface — what automation needs from browser editor |
 | `src/main/browser-service.ts` | Main | Attaches to webContents, relays events via IPC, audio state, hotkeys, cache cleanup, DOM collection (incl. iframes) |
 | `src/main/cdp-service.ts` | Main | CDP session management — debugger attach/detach/send via IPC |
@@ -569,21 +570,22 @@ const tabs = browser.tabs;                  // list of internal tabs
 
 ## Browser Automation (MCP)
 
-Browser automation for AI agents lives in `src/renderer/automation/`. This layer is separate from the browser editor — the editor exposes a lightweight `BrowserTargetModel` adapter, and the automation layer builds Playwright-compatible MCP tools on top.
+Browser automation for AI agents lives in `src/renderer/automation/`. This layer is separate from the browser editor — the editor exposes a lightweight `BrowserTargetModel` adapter, and the automation layer builds Playwright-compatible MCP tools on top. The same tools can drive three kinds of `IBrowserTarget`: a **browser page** (`BrowserTargetModel`), a **board** frame (`BoardTargetModel`), and **Persephone's own app window** (`AppTargetModel`, selected with `pageId: "app"`).
 
 ```
 MCP tool call (browser_click) → mcp-handler.ts → automation/commands.ts
-    → getTarget(params) → resolved BrowserEditorModel.target (IBrowserTarget)
+    → getTarget(params) → resolved IBrowserTarget (browser page / board / app window)
     → perform action via CDP → return accessibility snapshot
 ```
 
-**Target resolution:** every `browser_*` tool accepts optional `pageId` and `profileName` params; `getTarget(params)` in `commands.ts` resolves the target page by precedence:
+**Target resolution:** every `browser_*` tool accepts optional `pageId` and `profileName` params; `getTarget(params)` in `commands.ts` resolves the target by precedence:
 
-1. `pageId` — exact page (must be a browser page; error otherwise).
+0. `pageId === "app"` — Persephone's own UI (the app window). Explicit only; never reachable by the fallback branch, so an agent aiming at a web page can't accidentally act on the app chrome.
+1. `pageId` — exact page (must be a browser page or board; error otherwise).
 2. `profileName` — first browser page of that profile (`""` = default profile; never matches incognito/Tor; prefers the active page, else first in page order). A descriptive error suggests `open_url` with `profileName` when no page matches.
 3. Neither — the active browser page, else the first browser page.
 
-The resolved page is **activated** (`showPage`) because the webview needs `display != none` for focus/input — so targeting a background page brings it to front, and subsequent untargeted calls naturally stick to it.
+For browser/board targets the resolved page is **activated** (`showPage`) because the webview needs `display != none` for focus/input — so targeting a background page brings it to front, and subsequent untargeted calls naturally stick to it. The app-window target needs no activation.
 
 **Profile visibility & discovery:** `list_pages` / `get_active_page` (renderer `mcp-handler.ts`) include `profileName` / `isIncognito` / `isTor` / `url` for browser pages — `url` is the **active internal tab's** URL and is omitted for incognito/Tor pages. The fields are read via a structural state cast keyed on `editorId === "browser-view"` — deliberately **no static `BrowserEditor` import** in `mcp-handler.ts` (it loads at startup; the browser chunk must stay dynamically imported). `get_app_info` returns `browserProfiles` (configured names) + `defaultBrowserProfile`. `list_windows` (main process) exposes the same three identity fields from the persisted page descriptors (works for closed windows; no `url` — not persisted).
 
@@ -594,6 +596,17 @@ The resolved page is **activated** (`showPage`) because the webview needs `displ
 **14 Playwright-compatible tools:** `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_hover`, `browser_type`, `browser_select_option`, `browser_press_key`, `browser_evaluate`, `browser_tabs`, `browser_navigate_back`, `browser_wait_for`, `browser_take_screenshot`, `browser_network_requests`, `browser_close`
 
 Tools support both CSS selectors (`selector` param) and accessibility snapshot refs (`ref` param, e.g. `ref=e52`). Ref resolution (`automation/ref.ts`) uses CDP `DOM.resolveNode` + `Runtime.callFunctionOn`. Stale refs produce helpful "re-take the snapshot" error messages.
+
+### App-Window Target (`pageId: "app"`)
+
+`AppTargetModel` (`src/renderer/automation/AppTargetModel.ts`) lets the `browser_*` tools drive Persephone's own React UI — the tab strip, sidebar panels, toolbars, dialogs, and the active editor — so an agent can help the user with the application's interface itself. It is a minimal `IBrowserTarget` in the board mold: `cdp()`, `insertText()`, and the page-interaction commands (snapshot / click / type / press_key / evaluate / screenshot) are real; navigation and tab methods throw a clear error pointing at `list_pages` / `execute_script` (`app.pages`).
+
+Two design points make it self-contained:
+
+- **No registration needed.** Unlike browser pages (`getWebContents` resolver) and boards (`registerBoardFrame`), the app target uses a sentinel CDP regKey — `APP_WINDOW_CDP_KEY` (`"__app-window__"`, in `src/ipc/api-types.ts`). MCP commands are already routed to a specific window's renderer (`windowIndex` → `sendToRenderer`), and `CdpSession.send` is an `ipcRenderer.invoke` from that renderer, so in `cdp-service.ts` the calling `event.sender` **is** the window to automate. The three IPC handlers (`cdpAttach`/`cdpDetach`/`cdpSend`) short-circuit the sentinel to `event.sender`, running commands on its top-level session (the app UI). The debugger is shared with boards on the same webContents, so detach is a no-op. Multi-window is automatic.
+- **Snapshot shows only the active page.** Inactive pages stay mounted but hidden via `display: none` on their `PageManager` placeholders, and Chromium's accessibility tree excludes hidden subtrees — so the app snapshot naturally contains the app chrome plus the active page's content only, regardless of how many tabs are open. To reach another page, the agent clicks its tab.
+
+`focusWebview()` is a no-op: `automation/input.ts` drives everything through JS events (`el.click()`, `KeyboardEvent` dispatch, native-setter fill), which need no OS focus, and a no-op avoids stealing the user's window focus. This carries the same synthetic-input limitations as the browser/board targets — e.g. a menu that handles Escape via a focus-scoped React `onKeyDown` won't close on a synthetic `browser_press_key`, whereas a component with a document-level Escape listener (like `PopoverModel`) will. Content editing should go through `set_page_content` / `execute_script`, not synthetic typing into Monaco. The app target sits behind the same `mcp.browser-tools.enabled` gate as the other targets; no new setting or privilege tier (`execute_script` already grants full Node access).
 
 ### Playwright Parameter Compatibility
 

@@ -248,6 +248,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 "Use `browser_snapshot` to inspect the page structure before interacting.",
                 "Browser pages belong to profiles (separate cookie/login sessions). Use get_app_info → browserProfiles to discover them, and the profileName/pageId params on browser_* tools to target a specific page.",
                 "Note: browser_* tools only work on normal browser pages — incognito and Tor pages are blocked for privacy.",
+                "You can also drive Persephone's OWN UI: pass pageId: \"app\" to any browser_* tool to snapshot/click/type/press_key/screenshot/evaluate the app window itself (tab strip, sidebar, toolbars, dialogs, active editor). The snapshot shows only the app chrome + the active page (inactive pages are hidden) — click a page tab to activate a different one. Navigation and tabs are not supported on \"app\" (use list_pages / execute_script instead), and editor content is best changed via set_page_content / execute_script rather than typing into Monaco. Useful for assisting the user with Persephone's UI.",
             ].join("\n"),
         },
     );
@@ -259,7 +260,10 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     // ── Browser-targeting parameters (shared across browser_* tools) ──
     const browserPageIdParam = z.string().optional().describe(
-        "Target a specific browser page by page ID (from list_pages). Takes precedence over profileName.",
+        "Target a specific browser page by page ID (from list_pages). Takes precedence over profileName. " +
+        "Use the special value \"app\" to drive Persephone's OWN window instead of a web page — its tab strip, " +
+        "sidebar, toolbars, dialogs, and the active editor (snapshot/click/type/press_key/screenshot/evaluate " +
+        "work; navigation and tabs don't). Useful for helping the user with Persephone's UI itself.",
     );
     const browserProfileParam = z.string().optional().describe(
         "Target the browser page of this profile (profile names: get_app_info → browserProfiles; '' = default profile). If omitted, uses the active (or first) browser page.",

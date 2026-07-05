@@ -104,6 +104,13 @@ export enum Endpoint {
  *  renderer target (BoardTargetModel) and the main controller registration. */
 export const BOARD_CDP_TAB = "main";
 
+/** Sentinel CDP regKey for automating Persephone's OWN main window (the app UI
+ *  itself, via the `browser_*` tools with `pageId: "app"`). Unlike browser/board
+ *  keys (`${editorId}/${tabId}`), this needs no registration: `cdp-service`
+ *  short-circuits it to the calling renderer's own `event.sender` webContents, so
+ *  each window automates itself and multi-window routing is automatic. */
+export const APP_WINDOW_CDP_KEY = "__app-window__";
+
 /** A rectangle (CSS pixels, viewport-relative) to capture from the calling
  *  window's web contents. The main handler scales it by the window zoom factor
  *  before calling `webContents.capturePage`. */
