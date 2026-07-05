@@ -1,13 +1,17 @@
-// persephone-snip: Native screen snip tool.
+// persephone-snip: Native screen snip tool + Windows file-clipboard helper.
 //
-// Captures all monitors, shows fullscreen overlays, lets the user
-// draw a selection rectangle, then writes the cropped PNG to stdout.
+// No arguments (default): captures all monitors, shows fullscreen overlays,
+// lets the user draw a selection rectangle, then writes the cropped PNG to
+// stdout.
+//   Exit codes: 0 — success (PNG written to stdout)
+//               1 — cancelled or error (nothing written)
 //
-// Exit codes:
-//   0 — success (PNG written to stdout)
-//   1 — cancelled or error (nothing written)
+// Subcommands (US-807):
+//   clipboard-read           — CF_HDROP file list + drop effect as JSON to stdout
+//   clipboard-write [--cut]  — set CF_HDROP from stdin path list (see clipboard.rs)
 
 mod capture;
+mod clipboard;
 mod overlay;
 
 use std::io::Write;
@@ -19,6 +23,14 @@ extern "system" {
 const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2: isize = -4;
 
 fn main() {
+    match std::env::args().nth(1).as_deref() {
+        Some("clipboard-read") => clipboard::read(),
+        Some("clipboard-write") => clipboard::write(std::env::args().any(|a| a == "--cut")),
+        _ => run_snip(),
+    }
+}
+
+fn run_snip() {
     // Declare Per-Monitor DPI V2 awareness so that EnumDisplayMonitors,
     // GetDC, BitBlt, and CreateWindowExW all use physical pixel coordinates.
     // Without this, mixed-DPI setups produce mismatched capture/window sizes.

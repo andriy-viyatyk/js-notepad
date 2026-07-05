@@ -6,12 +6,19 @@ import { app } from "../../api/app";
 import { ui } from "../../api/ui";
 import {
     CopyIcon,
+    CutIcon,
     DeleteIcon,
     FolderOpenIcon,
     NewFileIcon,
     NewFolderIcon,
+    PasteIcon,
     RenameIcon,
 } from "../../theme/icons";
+import {
+    copyPathToOsClipboard,
+    pasteOsClipboardInto,
+    supportsOsClipboard,
+} from "./os-clipboard";
 import { isUrlOrCurl } from "../../content/link-utils";
 
 // =============================================================================
@@ -166,9 +173,11 @@ export class CategoryViewModel extends TComponentModel<
         const isFolder = ctxEvent?.target && (ctxEvent.target as ITreeProviderItem).isDirectory;
         const { provider } = this.props;
 
-        if (provider.writable && provider.mkdir && !isFolder) {
-            const bgEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-background");
-            bgEvent.items.push(
+        if (isFolder) return;
+
+        const items: MenuItem[] = [];
+        if (provider.writable && provider.mkdir) {
+            items.push(
                 {
                     label: "New File...",
                     icon: <NewFileIcon />,
@@ -180,6 +189,26 @@ export class CategoryViewModel extends TComponentModel<
                     onClick: () => this.createNewFolder(this.props.category),
                 },
             );
+        }
+        // Paste into the open folder (US-807) — file provider only.
+        if (supportsOsClipboard(provider)) {
+            items.push({
+                startGroup: items.length > 0,
+                label: "Paste",
+                icon: <PasteIcon />,
+                onClick: () => this.pasteIntoDir(this.props.category),
+            });
+        }
+        if (!items.length) return;
+
+        const bgEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-background");
+        bgEvent.items.push(...items);
+    };
+
+    /** Paste the OS clipboard's files into `targetDir` and refresh (US-807). */
+    private pasteIntoDir = async (targetDir: string) => {
+        if (await pasteOsClipboardInto(this.props.provider, targetDir)) {
+            await this.loadItems();
         }
     };
 
@@ -198,6 +227,23 @@ export class CategoryViewModel extends TComponentModel<
             icon: <CopyIcon />,
             onClick: () => navigator.clipboard.writeText(item.href),
         });
+
+        // OS file clipboard (US-807) — Windows Explorer interop, file provider only.
+        if (supportsOsClipboard(provider)) {
+            items.push(
+                {
+                    startGroup: true,
+                    label: "Cut",
+                    icon: <CutIcon />,
+                    onClick: () => copyPathToOsClipboard(item.href, true),
+                },
+                {
+                    label: "Copy",
+                    icon: <CopyIcon />,
+                    onClick: () => copyPathToOsClipboard(item.href, false),
+                },
+            );
+        }
 
         if (provider.writable) {
             if (provider.rename) {
@@ -253,6 +299,28 @@ export class CategoryViewModel extends TComponentModel<
             icon: <CopyIcon />,
             onClick: () => navigator.clipboard.writeText(item.href),
         });
+
+        // OS file clipboard (US-807) — Windows Explorer interop, file provider only.
+        if (supportsOsClipboard(provider)) {
+            items.push(
+                {
+                    startGroup: true,
+                    label: "Cut",
+                    icon: <CutIcon />,
+                    onClick: () => copyPathToOsClipboard(item.href, true),
+                },
+                {
+                    label: "Copy",
+                    icon: <CopyIcon />,
+                    onClick: () => copyPathToOsClipboard(item.href, false),
+                },
+                {
+                    label: "Paste",
+                    icon: <PasteIcon />,
+                    onClick: () => this.pasteIntoDir(this.getItemListPath(item)),
+                },
+            );
+        }
 
         if (provider.writable) {
             if (provider.rename) {

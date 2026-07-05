@@ -3,7 +3,10 @@ import { app, nativeImage } from "electron";
 import path from "path";
 import { openWindows } from "./open-windows";
 
-function getSnipToolPath(): string {
+/** Resolve the persephone-snip.exe path (also hosts the clipboard subcommands
+ *  used by clip-service.ts — US-807). Packaged: beside persephone.exe; dev:
+ *  the local cargo release build. */
+export function getSnipToolPath(): string {
     if (app.isPackaged) {
         return path.join(path.dirname(process.execPath), "persephone-snip.exe");
     }

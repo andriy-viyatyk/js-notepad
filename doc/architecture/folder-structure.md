@@ -44,7 +44,7 @@ persephone/
 │   │   ├── .gitignore      # Ignores .env
 │   │   └── CLAUDE.md       # Toolset authoring guide (manifest, stdin/stdout contract, .env, requirements)
 │   └── demo-board/         # Bundled Demo board — exercises the full board surface
-├── snip-tool/              # Rust native screen snip tool (persephone-snip.exe)
+├── snip-tool/              # Rust native screen snip tool + Windows file-clipboard helper (persephone-snip.exe; `clipboard-read`/`clipboard-write` subcommands for CF_HDROP interop)
 │   ├── src/main.rs         # Entry point, PNG encoding, stdout output
 │   ├── src/capture.rs      # Monitor enumeration + GDI screen capture
 │   ├── src/overlay.rs      # Fullscreen overlay windows, selection UI
@@ -664,7 +664,8 @@ persephone/
 │   │                       # system, or scripting — that's the criterion. No new pure
 │   │                       # primitives go here.
 │   ├── tree-provider/      # TreeProviderView — generic tree viewer for any ITreeProvider (EPIC-015)
-│   │   └── favicon-cache.ts # Favicon download/cache for HTTP links (shared by link-editor, browser, tree icons)
+│   │   ├── favicon-cache.ts # Favicon download/cache for HTTP links (shared by link-editor, browser, tree icons)
+│   │   └── os-clipboard.ts  # OS file-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer) shared by the tree + category view models; file provider only
 │   ├── file-search/        # FileSearch — standalone file content search with virtualized results (EPIC-015)
 │   ├── file-list/          # FileList — flat file list (FileIcon + single-click + search), reused by the Recent files panel and the git Changes panel; getTrailing/compact props (EPIC-031)
 │   ├── file-grid/          # FileGrid — AVGrid-based file list (icon/path/status columns, header-as-label, sorting, range select + range-copy, single/double click, context-menu passthrough); git Changes panel; eventual FileList replacement (EPIC-031)
@@ -695,6 +696,7 @@ persephone/
 │   │   ├── language-mapping.ts  # Extension → Monaco language
 │   │   ├── monaco-languages.ts  # Monaco language config
 │   │   ├── file-watcher.ts      # File change detection
+│   │   ├── copy-files.ts        # Recursive file/folder copy + move onto the local fs (paste backend; guards, progress, per-item errors)
 │   │   ├── memorize.ts          # Memoization
 │   │   ├── types.ts             # Type helpers
 │   │   └── index.ts
@@ -738,7 +740,8 @@ persephone/
 ├── board-bridge.ts         # Per-board MessagePort bridge — execute() over the command runner, dialogs/readFile/writeFile, openRawLink/notify, theme push; busy-owner job retention (a busy board's jobs survive its unload, reaped on final teardown/page close/crash)
 ├── cdp-service.ts          # CDP session service for browser_* automation — attaches the debugger to webContents; board frames registered/resolved by their ?v= nonce
 ├── mneme-service.ts        # Mneme sidecar lifecycle (spawn/shutdown of the knowledge-base service)
-├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout)
+├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout; exports getSnipToolPath for clip-service)
+├── clip-service.ts         # Windows file-clipboard (CF_HDROP) read/write via the snip exe's clipboard subcommands — Explorer copy/paste interop; degrades to empty result when the exe is missing
 ├── version-service.ts      # Version checking (runs in main, not renderer)
 ├── video-stream-server.ts  # Local HTTP streaming server (range requests, faststart MP4 relocation, session management)
 ├── vlc-launcher.ts         # VLC process launcher (spawn + auto-detect VLC path)
@@ -759,6 +762,7 @@ persephone/
 ├── browser-ipc.ts          # Browser-specific IPC channels
 ├── tor-ipc.ts              # Tor service IPC channels (start, stop, log)
 ├── git-ipc.ts              # Git service IPC channel names + request/response types (EPIC-030)
+├── clipboard-ipc.ts        # File-clipboard DTOs (ClipboardFileList — CF_HDROP paths + drop effect)
 ├── search-ipc.ts           # Search IPC channels
 ├── worker-channels.ts      # Worker thread IPC channels (app.runAsync)
 ├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, IExecuteHandle contract shared by proc.ts and board-shim.ts)

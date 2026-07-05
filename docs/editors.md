@@ -496,6 +496,8 @@ Right-clicking a file or folder item opens a context menu with link actions:
 | Open in Browser | (URL items only) Opens the link in the built-in browser |
 | Open in Rest Client | (URL items only) Opens the link as a Rest Client request |
 | Copy Path | Copies the full path or URL to the clipboard |
+| Cut | (file-system folders only) Cuts the file or folder to the Windows clipboard |
+| Copy | (file-system folders only) Copies the file or folder to the Windows clipboard |
 | Rename | Renames the file or folder inline |
 | Delete | Deletes the file or folder (with confirmation) |
 
@@ -505,6 +507,7 @@ Right-clicking an empty area (no item under the cursor) opens a **New** menu —
 |--------|-------------|
 | New File | Creates a new empty file in the currently-viewed folder |
 | New Folder | Creates a new subfolder in the currently-viewed folder |
+| Paste | (file-system folders only) Pastes files/folders cut or copied from Windows Explorer (or another Persephone Explorer panel) into the currently-viewed folder |
 
 Right-clicking a **subfolder** item in the list also offers **New File** and **New Folder** options, which create the item inside that subfolder rather than the currently-viewed folder.
 

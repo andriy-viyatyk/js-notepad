@@ -11,11 +11,18 @@ import { isUrlOrCurl } from "../../content/link-utils";
 import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import {
     CopyIcon,
+    CutIcon,
     DeleteIcon,
     NewFileIcon,
     NewFolderIcon,
+    PasteIcon,
     RenameIcon,
 } from "../../theme/icons";
+import {
+    copyPathToOsClipboard,
+    pasteOsClipboardInto,
+    supportsOsClipboard,
+} from "./os-clipboard";
 
 // =============================================================================
 // Types
@@ -532,10 +539,11 @@ export class TreeProviderViewModel extends TComponentModel<
         const ctxEvent = e.nativeEvent.contextMenuEvent;
         const isFolder = ctxEvent?.target && (ctxEvent.target as any).isDirectory; // eslint-disable-line @typescript-eslint/no-explicit-any
         const { provider } = this.props;
+        if (isFolder) return;
 
-        if (provider.writable && provider.mkdir && !isFolder) {
-            const bgEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-background");
-            bgEvent.items.push(
+        const items: MenuItem[] = [];
+        if (provider.writable && provider.mkdir) {
+            items.push(
                 {
                     label: "New File...",
                     icon: <NewFileIcon />,
@@ -548,6 +556,19 @@ export class TreeProviderViewModel extends TComponentModel<
                 },
             );
         }
+        // Paste into the tree root (US-807) — file provider only.
+        if (supportsOsClipboard(provider)) {
+            items.push({
+                startGroup: items.length > 0,
+                label: "Paste",
+                icon: <PasteIcon />,
+                onClick: () => this.pasteIntoDir(provider.rootPath),
+            });
+        }
+        if (!items.length) return;
+
+        const bgEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-background");
+        bgEvent.items.push(...items);
     };
 
     private getFileMenuItems = (node: TreeProviderNode): MenuItem[] => {
@@ -559,6 +580,23 @@ export class TreeProviderViewModel extends TComponentModel<
             icon: <CopyIcon />,
             onClick: () => navigator.clipboard.writeText(node.data.href),
         });
+
+        // OS file clipboard (US-807) — Windows Explorer interop, file provider only.
+        if (supportsOsClipboard(provider)) {
+            items.push(
+                {
+                    startGroup: true,
+                    label: "Cut",
+                    icon: <CutIcon />,
+                    onClick: () => copyPathToOsClipboard(node.data.href, true),
+                },
+                {
+                    label: "Copy",
+                    icon: <CopyIcon />,
+                    onClick: () => copyPathToOsClipboard(node.data.href, false),
+                },
+            );
+        }
 
         if (provider.writable) {
             if (provider.rename) {
@@ -608,6 +646,32 @@ export class TreeProviderViewModel extends TComponentModel<
             onClick: () => navigator.clipboard.writeText(node.data.href),
         });
 
+        // OS file clipboard (US-807) — Windows Explorer interop, file provider
+        // only. No Cut on the explorer root (mirrors the Rename/Delete gating).
+        if (supportsOsClipboard(provider)) {
+            if (!isRoot) {
+                items.push({
+                    startGroup: true,
+                    label: "Cut",
+                    icon: <CutIcon />,
+                    onClick: () => copyPathToOsClipboard(node.data.href, true),
+                });
+            }
+            items.push(
+                {
+                    startGroup: isRoot,
+                    label: "Copy",
+                    icon: <CopyIcon />,
+                    onClick: () => copyPathToOsClipboard(node.data.href, false),
+                },
+                {
+                    label: "Paste",
+                    icon: <PasteIcon />,
+                    onClick: () => this.pasteIntoDir(this.getListPath(node)),
+                },
+            );
+        }
+
         if (provider.writable && !isRoot) {
             if (provider.rename) {
                 items.push({
@@ -630,6 +694,13 @@ export class TreeProviderViewModel extends TComponentModel<
     };
 
     // ── File operations ──────────────────────────────────────────────────
+
+    /** Paste the OS clipboard's files into `targetDir` and refresh (US-807). */
+    private pasteIntoDir = async (targetDir: string) => {
+        if (await pasteOsClipboardInto(this.props.provider, targetDir)) {
+            await this.buildTree();
+        }
+    };
 
     private createNewFile = async (dirPath: string) => {
         const { provider } = this.props;

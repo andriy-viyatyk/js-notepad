@@ -177,7 +177,7 @@ The right panel shows the contents of the selected folder:
 **Custom Folder view (File Explorer):**
 - Browse files and folders in a tree view
 - Click a file to open it
-- Right-click for options: Create File, Create Folder, Rename, Delete
+- Right-click for options: Create File, Create Folder, Rename, Delete, Cut, Copy, Paste
 - Search files by name with `Ctrl+F` when the file explorer is active
 
 ### Sidebar Header Buttons
@@ -240,6 +240,7 @@ Any saved file can open a **File Explorer** panel alongside the editor. Click th
 - **Make root** — Right-click any folder and choose "Make Root" to focus the tree on that folder, or double-click a folder to do the same
 - **Collapse all** — Click the collapse button in the panel header to collapse all expanded folders at once
 - **File operations** — Right-click files for: create files/folders, rename, delete, copy path, show in explorer, open in new tab
+- **Cut / Copy / Paste with Windows Explorer** — Right-click a file or folder for **Cut** or **Copy**, then paste it into Windows Explorer (or another Persephone Explorer panel) — this uses the real Windows clipboard, so files copied in Windows Explorer can also be pasted here. Right-click a folder (or empty space in the tree) and choose **Paste** to paste files/folders copied or cut from Windows Explorer into that folder; folders are copied recursively. **Cut** from Windows Explorer and pasted here moves the files (originals are removed only after the copy succeeds); **Cut** here and pasted into Windows Explorer works the same way. Pasting over existing files/folders asks for confirmation before overwriting, and large pastes show a progress indicator. This is context-menu only — there are no `Ctrl+C`/`Ctrl+X`/`Ctrl+V` keyboard shortcuts for it yet.
 - **Open folder in new panel** — Right-click any folder and choose **Open in New Panel** to open it in a new File Explorer tab alongside the current editor
 - **Auto-reveal current file** — When the Explorer panel is active (expanded), navigating to a file automatically expands its parent folders and scrolls the tree to show the file. When the Search panel is active instead, the file is highlighted in the tree without expanding folders.
 - **Search files by name** — Press `Ctrl+F` within the panel to search files by name (filters the tree to matching entries)

@@ -16,6 +16,7 @@ import { startMcpHttpServer, stopMcpHttpServer, isMcpHttpServerRunning, getMcpUr
 import { startMneme, stopMneme, restartMneme, getMnemeStatus as getMnemeServiceStatus } from "../../main/mneme-service";
 import { GitFetchOptions, GitIdentity, GitLogOptions, GitPullOptions, GitPushOptions, GitSwitchTarget } from "../git-ipc";
 import type { BoardThemePalette } from "../board-bridge-channels";
+import type { ClipboardFileList } from "../clipboard-ipc";
 
 type AddEventParam<T> = T extends (...args: infer Args) => infer Return
     ? (event: IpcMainEvent, ...args: Args) => Return
@@ -237,6 +238,16 @@ class Controller implements MainApi {
     startScreenSnip = async (event: IpcMainEvent, hideWindows: boolean): Promise<string | null> => {
         const { startScreenSnip } = await import("../../main/snip-service");
         return startScreenSnip(hideWindows);
+    }
+
+    clipboardReadFilePaths = async (_event: IpcMainEvent): Promise<ClipboardFileList> => {
+        const { readClipboardFiles } = await import("../../main/clip-service");
+        return readClipboardFiles();
+    }
+
+    clipboardWriteFilePaths = async (_event: IpcMainEvent, paths: string[], cut: boolean): Promise<boolean> => {
+        const { writeClipboardFiles } = await import("../../main/clip-service");
+        return writeClipboardFiles(paths, cut);
     }
 
     createVideoStreamSession = async (
@@ -508,6 +519,8 @@ const init = () => {
     bindEndpoint(Endpoint.getMnemeStatus, controllerInstance.getMnemeStatus);
     bindEndpoint(Endpoint.setBrowserToolsEnabled, controllerInstance.setBrowserToolsEnabled);
     bindEndpoint(Endpoint.startScreenSnip, controllerInstance.startScreenSnip);
+    bindEndpoint(Endpoint.clipboardReadFilePaths, controllerInstance.clipboardReadFilePaths);
+    bindEndpoint(Endpoint.clipboardWriteFilePaths, controllerInstance.clipboardWriteFilePaths);
     bindEndpoint(Endpoint.createVideoStreamSession, controllerInstance.createVideoStreamSession);
     bindEndpoint(Endpoint.deleteVideoStreamSession, controllerInstance.deleteVideoStreamSession);
     bindEndpoint(Endpoint.deleteVideoStreamSessionsByPage, controllerInstance.deleteVideoStreamSessionsByPage);

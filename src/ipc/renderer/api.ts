@@ -13,6 +13,7 @@ import {
 import { Api, CaptureRect, Endpoint, EventEndpoint, McpStatus, MnemeStatus } from "../api-types";
 import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../git-ipc";
 import type { BoardThemePalette } from "../board-bridge-channels";
+import type { ClipboardFileList } from "../clipboard-ipc";
 
 let idGen = 0;
 const idGenMax = 2000000000;
@@ -242,6 +243,14 @@ class ApiCalls implements Api {
 
     startScreenSnip = async (hideWindows: boolean): Promise<string | null> => {
         return executeOnce<string | null>(Endpoint.startScreenSnip, hideWindows);
+    }
+
+    clipboardReadFilePaths = async (): Promise<ClipboardFileList> => {
+        return executeOnce<ClipboardFileList>(Endpoint.clipboardReadFilePaths);
+    }
+
+    clipboardWriteFilePaths = async (paths: string[], cut: boolean): Promise<boolean> => {
+        return executeOnce<boolean>(Endpoint.clipboardWriteFilePaths, paths, cut);
     }
 
     createVideoStreamSession = async (config: VideoStreamSessionConfig, port?: number) => {

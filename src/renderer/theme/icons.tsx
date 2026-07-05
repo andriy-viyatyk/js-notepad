@@ -724,6 +724,17 @@ export const PasteIcon = createIcon(24)(
     />,
 );
 
+export const CutIcon = createIcon(24)(
+    <path
+        d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12M8.5 6.5C8.5 7.60457 7.60457 8.5 6.5 8.5C5.39543 8.5 4.5 7.60457 4.5 6.5C4.5 5.39543 5.39543 4.5 6.5 4.5C7.60457 4.5 8.5 5.39543 8.5 6.5ZM8.5 17.5C8.5 18.6046 7.60457 19.5 6.5 19.5C5.39543 19.5 4.5 18.6046 4.5 17.5C4.5 16.3954 5.39543 15.5 6.5 15.5C7.60457 15.5 8.5 16.3954 8.5 17.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+    />,
+);
+
 export const ChevronUpIcon = createIcon(16)(
     <path
         fillRule="evenodd"

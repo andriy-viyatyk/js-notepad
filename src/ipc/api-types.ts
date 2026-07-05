@@ -12,6 +12,7 @@ import {
 } from "./api-param-types";
 import { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "./git-ipc";
 import type { BoardThemePalette } from "./board-bridge-channels";
+import type { ClipboardFileList } from "./clipboard-ipc";
 
 export enum Endpoint {
     getAppRootPath = "getAppRootPath",
@@ -60,6 +61,8 @@ export enum Endpoint {
     getMnemeStatus = "getMnemeStatus",
     setBrowserToolsEnabled = "setBrowserToolsEnabled",
     startScreenSnip = "startScreenSnip",
+    clipboardReadFilePaths = "clipboardReadFilePaths",
+    clipboardWriteFilePaths = "clipboardWriteFilePaths",
     createVideoStreamSession = "createVideoStreamSession",
     deleteVideoStreamSession = "deleteVideoStreamSession",
     deleteVideoStreamSessionsByPage = "deleteVideoStreamSessionsByPage",
@@ -177,6 +180,8 @@ export type Api = {
     [Endpoint.getMnemeStatus]: () => Promise<MnemeStatus>;
     [Endpoint.setBrowserToolsEnabled]: (enabled: boolean) => Promise<void>;
     [Endpoint.startScreenSnip]: (hideWindows: boolean) => Promise<string | null>;
+    [Endpoint.clipboardReadFilePaths]: () => Promise<ClipboardFileList>;
+    [Endpoint.clipboardWriteFilePaths]: (paths: string[], cut: boolean) => Promise<boolean>;
     [Endpoint.createVideoStreamSession]: (config: VideoStreamSessionConfig, port?: number) => Promise<VideoStreamSessionResult>;
     [Endpoint.deleteVideoStreamSession]: (sessionId: string) => Promise<void>;
     [Endpoint.deleteVideoStreamSessionsByPage]: (pageId: string) => Promise<void>;

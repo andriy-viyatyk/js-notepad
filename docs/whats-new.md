@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.13 (Upcoming)
 
-*No changes yet.*
+### New Features
+
+- **File Explorer — Cut/Copy/Paste with Windows Explorer** — Right-click a file or folder in any File Explorer panel (the page-level panel or the sidebar's Custom Folder view) and choose **Cut** or **Copy**, then paste into Windows Explorer, or right-click a folder there and choose **Paste**. This works in both directions: files/folders copied or cut in Windows Explorer can be pasted into a Persephone Explorer panel, and files/folders cut or copied in Persephone can be pasted into Windows Explorer. It uses the real Windows clipboard (not just a path string), so cut items are genuinely moved once the paste succeeds, folders are copied recursively, name collisions prompt for overwrite confirmation, and large pastes show a progress indicator. Copy/paste is context-menu only for now — there are no `Ctrl+C`/`Ctrl+X`/`Ctrl+V` shortcuts in the Explorer tree yet. See [File Explorer Panel](./tabs-and-navigation.md#file-explorer-panel).
 
 ---
 
