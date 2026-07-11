@@ -11,6 +11,15 @@ Overview of all active and planned epics and tasks.
 *(nothing active)*
 
 ## Planned
+- **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
+  - [ ] US-813: Crypto + identity foundation (libsodium keypair, encrypted-at-rest, seal/open helpers)
+  - [ ] US-814: Pluggable transport + MQTT backend (`PeerTransport`, `MqttTransport`, `peerConnection` service)
+  - [ ] US-815: Contacts registry + out-of-band pairing (`contacts.json`, generate/import contact file, key pinning)
+  - [ ] US-816: Secure message channel (`PeerSession`, envelope framing, connect/timeout lifecycle)
+  - [ ] US-817: Chat editor (standalone editor over the encrypted channel)
+  - [ ] US-818: `peer://` remote-file provider (open/edit/save a file on the peer's disk)
+  - [ ] US-819: Remote command control (forward `handleCommand`, controlled-side grant + opt-in auto-trust)
+  - [ ] US-820: Remote window mirror (App bar peer list; screencast the remote main window + input-injection)
 - **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
   - [ ] US-396: Data model — `LinkScriptItem` type and `scripts` field in `LinkEditorData`
   - [ ] US-397: ScriptRunner — `runWithScope()` for custom context variable injection
@@ -31,6 +40,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
 - *(no epic)*
   - [ ] [US-454: DrawIO Viewer — read-only viewer for `.drawio` files](tasks/US-454-drawio-viewer/README.md)
+  - [ ] [US-812: `search_tools` discoverability — tokenize multi-word queries + index toolset-level keywords](tasks/US-812-search-tools-multiword-match/README.md)
 
 
 ---
