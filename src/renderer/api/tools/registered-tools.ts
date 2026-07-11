@@ -29,6 +29,10 @@ export interface RegisteredTool {
     toolsetName: string;
     /** Absolute toolset folder path (the execute cwd in US-802). */
     toolsetRoot: string;
+    /** Toolset-level manifest description — part of the search corpus (US-812). */
+    toolsetDescription?: string;
+    /** Toolset-level manifest keywords — part of the search corpus (US-812). */
+    toolsetKeywords?: string[];
     tool: ToolDef;
 }
 
@@ -138,6 +142,13 @@ class RegisteredTools extends TModel<RegisteredToolsState> {
                             id: `${displayName}/${tool.name}`,
                             toolsetName: displayName,
                             toolsetRoot: root,
+                            toolsetDescription:
+                                typeof manifest.description === "string"
+                                    ? manifest.description
+                                    : undefined,
+                            toolsetKeywords: Array.isArray(manifest.keywords)
+                                ? manifest.keywords
+                                : undefined,
                             tool,
                         });
                     }

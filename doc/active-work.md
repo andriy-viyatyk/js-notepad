@@ -40,7 +40,6 @@ Overview of all active and planned epics and tasks.
 - **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
 - *(no epic)*
   - [ ] [US-454: DrawIO Viewer — read-only viewer for `.drawio` files](tasks/US-454-drawio-viewer/README.md)
-  - [ ] [US-812: `search_tools` discoverability — tokenize multi-word queries + index toolset-level keywords](tasks/US-812-search-tools-multiword-match/README.md)
 
 
 ---

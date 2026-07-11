@@ -726,7 +726,8 @@ function toDefinition(t: RegisteredTool): McpToolDefinition {
 }
 
 /** Discover registered tools. Empty query → cheap id+description listing; `select:<id>` →
- *  exact full definition; otherwise a case-insensitive keyword match capped by maxResults. */
+ *  exact full definition; otherwise a tokenized term match over tool + toolset metadata,
+ *  ranked by matched-term count and capped by maxResults (US-812). */
 async function searchTools(params: McpParams): Promise<McpResponse> {
     const { registeredTools } = await import("./tools/registered-tools");
     await registeredTools.ensureInitialized();
@@ -767,17 +768,30 @@ async function searchTools(params: McpParams): Promise<McpResponse> {
         };
     }
 
-    // Keyword: case-insensitive substring over id + description + tool/toolset keywords.
-    const needle = query.toLowerCase();
-    const scored = all.filter((t) => {
-        const hay = [t.id, t.tool.description, ...(t.tool.keywords ?? [])].join(" ").toLowerCase();
-        return hay.includes(needle);
-    });
+    // Keyword: tokenize on whitespace; each term is a case-insensitive substring test against
+    // the corpus (tool id/description/keywords + toolset name/description/keywords). OR
+    // semantics, ranked by distinct-terms-matched; single-char terms are ignored as noise.
+    const terms = [...new Set(query.toLowerCase().split(/\s+/).filter((w) => w.length >= 2))];
+    const scored = all
+        .map((t) => {
+            const hay = [
+                t.id,
+                t.tool.description,
+                ...(t.tool.keywords ?? []),
+                t.toolsetName,
+                t.toolsetDescription ?? "",
+                ...(t.toolsetKeywords ?? []),
+            ].join(" ").toLowerCase();
+            const score = terms.filter((term) => hay.includes(term)).length;
+            return { t, score };
+        })
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score); // stable sort → ties keep registry order
     return {
         result: {
             total: scored.length,
             returned: Math.min(scored.length, maxResults),
-            tools: scored.slice(0, maxResults).map(toDefinition),
+            tools: scored.slice(0, maxResults).map((x) => ({ ...toDefinition(x.t), score: x.score })),
         },
     };
 }

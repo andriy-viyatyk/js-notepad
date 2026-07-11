@@ -547,9 +547,9 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     // ── Agent Tools registry (EPIC-038 / US-803) ─────────────────────
     server.tool(
         "search_tools",
-        "Discover reusable Agent Tools registered in Persephone — parameterized scripts (any language) for recurring external-system chores (Azure DevOps, SQL, email, CLIs). Returns COMPLETE, ready-to-call definitions (id, description, inputSchema, requirements, required env var NAMES, local folder path) — like ToolSearch, no separate info call. Query forms: omit `query` (or pass empty) for a cheap id+description listing of everything; `select:<toolset>/<tool>` for an exact-id lookup; otherwise a case-insensitive keyword match over id/description/keywords (capped by maxResults). Run a result with execute_tool. IMPORTANT: read read_guide(\"tools\") first.",
+        "Discover reusable Agent Tools registered in Persephone — parameterized scripts (any language) for recurring external-system chores (Azure DevOps, SQL, email, CLIs). Returns COMPLETE, ready-to-call definitions (id, description, inputSchema, requirements, required env var NAMES, local folder path) — like ToolSearch, no separate info call. Query forms: omit `query` (or pass empty) for a cheap id+description listing of everything; `select:<toolset>/<tool>` for an exact-id lookup; otherwise the query is tokenized on whitespace and tools are ranked by how many terms match across tool id/description/keywords + toolset name/description/keywords (capped by maxResults). Run a result with execute_tool. IMPORTANT: read read_guide(\"tools\") first.",
         {
-            query: z.string().optional().describe("Empty/omitted = list all (id+description). 'select:<toolset>/<tool>' = exact lookup. Otherwise keyword substring over id/description/keywords."),
+            query: z.string().optional().describe("Empty/omitted = list all (id+description). 'select:<toolset>/<tool>' = exact lookup. Otherwise whitespace-tokenized terms matched over tool + toolset metadata, ranked by match count."),
             maxResults: z.number().int().optional().describe("Max keyword matches to return (default 5). Ignored for empty-query listing and select: lookup."),
             windowIndex: windowIndexParam,
         },

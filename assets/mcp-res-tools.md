@@ -36,8 +36,10 @@ Returns **complete, ready-to-call definitions** (like `ToolSearch` — there is 
 - **Omit `query`** (or pass empty) → a cheap `{ id, description }` listing of *every* tool.
   Use this as your `list_tools`.
 - **`select:<toolset>/<tool>`** → exact-id lookup, returns the one full definition.
-- **anything else** → case-insensitive substring match over id + description + keywords,
-  capped by `maxResults` (default 5).
+- **anything else** → the query is split into whitespace-separated terms; each term is a
+  case-insensitive substring test over the tool's id + description + keywords **and its
+  toolset's name + description + keywords**. Tools matching at least one term are returned
+  ranked by how many terms matched (`score`), capped by `maxResults` (default 5).
 
 Each full definition contains: `id`, `toolset`, `description`, `inputSchema` (JSON Schema for
 the args, may be absent), `requirements` (runtime prerequisites), `env` (the **names** of

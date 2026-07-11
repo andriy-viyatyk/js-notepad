@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.14 (Upcoming)
 
-*No changes yet.*
+### Improvements
+
+- **Agent Tools — `search_tools` finds tools by natural multi-word queries** — Previously, a search phrase like `"warehouse databricks sql customer"` returned zero matches even though every word individually appeared in a tool's metadata, because the whole phrase was tested as a single substring. Now the query is split into words and each word is matched independently, so tools matching any of the words are returned, ranked by how many words matched (a `score` field on each result). A toolset's own `name`, `description`, and `keywords` (declared once in its manifest) are now also part of the search, not just each individual tool's — so a shared term like a project or system name only needs to be declared in one place to make every tool in that toolset discoverable. See [Agent Tools](./agent-tools.md#using-tools-from-an-ai-agent-mcp).
 
 ---
 
