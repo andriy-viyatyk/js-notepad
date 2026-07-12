@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 - **EPIC-040** — [Dependency & Platform Updates (Keep Persephone Current)](epics/EPIC-040.md)
   - [ ] [US-821: Update Electron to 43.0.0 (Castlabs +wvcus)](tasks/US-821-electron-43-upgrade/README.md) — implemented, CI DRM check pending
-  - [ ] [US-822: Safe batch — low-risk minor/patch npm bumps](tasks/US-822-safe-batch-minor-bumps/README.md)
+  - [ ] [US-822: Safe batch — low-risk minor/patch npm bumps](tasks/US-822-safe-batch-minor-bumps/README.md) — implemented (MCP SDK bump deferred to US-825)
   - [ ] [US-823: Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](tasks/US-823-anthropic-sdk-major/README.md)
   - [ ] [US-824: Upgrade `monaco-editor` (0.52 → 0.55)](tasks/US-824-monaco-editor-major/README.md)
   - [ ] [US-825: ESLint flat-config migration](tasks/US-825-eslint-flat-config-migration/README.md)

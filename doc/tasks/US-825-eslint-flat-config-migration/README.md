@@ -17,6 +17,15 @@ Move the whole ESLint toolchain up together (they are interdependent — do not 
 - `eslint-import-resolver-typescript` 3.10.1 → 4.x
 - `eslint-plugin-import` (verify compatibility)
 
+Also pull in here (blocked on the resolver upgrade above):
+
+- `@modelcontextprotocol/sdk` 1.27.1 → 1.29.0 — **deferred from [US-822](../US-822-safe-batch-minor-bumps/README.md).**
+  The SDK bump is functionally fine (TypeScript + Vite bundler resolve it), but the current
+  `eslint-import-resolver-typescript@3.10.1` fails to resolve the SDK's newer `./*` wildcard
+  `exports` map with `.js` import extensions (`import/no-unresolved` in `src/main/mcp-http-server.ts`).
+  The resolver 3→4 upgrade in this task fixes it, so bump the MCP SDK **after** the resolver and
+  confirm `npm run lint` is clean.
+
 ## Risk / notes
 
 - **Dev-only** — no runtime/bundle impact. Zero user-facing risk.
@@ -24,4 +33,5 @@ Move the whole ESLint toolchain up together (they are interdependent — do not 
   `--ext` CLI flags in the `lint` script (`package.json`) are removed/changed. This is a config
   rewrite, not just a version bump.
 - Acceptance: `npm run lint` runs under flat config and the ruleset is equivalent (no newly
-  silenced or newly noisy rules without intent).
+  silenced or newly noisy rules without intent); the deferred `@modelcontextprotocol/sdk` bump
+  lints clean.
