@@ -7,8 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-
-*(nothing active)*
+- **EPIC-040** — [Dependency & Platform Updates (Keep Persephone Current)](epics/EPIC-040.md)
+  - [ ] [US-821: Update Electron to 43.0.0 (Castlabs +wvcus)](tasks/US-821-electron-43-upgrade/README.md)
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
