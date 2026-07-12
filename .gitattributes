@@ -1,0 +1,7 @@
+# Pin line endings for the generated editor-types import manifest.
+# core.autocrlf=true otherwise perpetually flags this LF file as "modified"
+# (it wants a CRLF working copy), so it never leaves the change list.
+assets/editor-types/_imports.txt text eol=lf
+
+# Keep this file itself LF so it doesn't hit the same autocrlf churn.
+.gitattributes text eol=lf
