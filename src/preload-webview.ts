@@ -10,7 +10,57 @@
  * Local variables captured in closures remain valid.
  */
 
-const { ipcRenderer } = require("electron");
+const { ipcRenderer, contextBridge } = require("electron");
+
+// ── window.chrome polyfill (US-813) ──────────────────────────────────
+// Google sign-in rejects the browser ("This browser or app may not be
+// secure" → /v3/signin/rejected) when window.chrome is an empty {}.
+// Electron leaves it bare; real Chrome populates loadTimes/csi/app.
+// Google reads it DURING page load, so it must exist in the page's MAIN
+// world at document-start. The webview runs with contextIsolation:true,
+// so the preload's own `window` is a separate world — a plain assignment
+// here would be invisible to the page. contextBridge.executeInMainWorld
+// bridges the definition into the page world without weakening isolation.
+try {
+    contextBridge.executeInMainWorld({
+        func: () => {
+            const w = window as unknown as { chrome?: Record<string, unknown> };
+            // Real Chrome (or an already-applied shim) — leave it alone.
+            if (w.chrome && typeof w.chrome.loadTimes === "function") return;
+            const chrome: Record<string, unknown> = w.chrome || {};
+            const now = () => Date.now() / 1000;
+            if (typeof chrome.loadTimes !== "function") {
+                chrome.loadTimes = (): Record<string, unknown> => {
+                    const t = now();
+                    return {
+                        requestTime: t, startLoadTime: t, commitLoadTime: t,
+                        finishDocumentLoadTime: t, finishLoadTime: t, firstPaintTime: t,
+                        firstPaintAfterLoadTime: 0, navigationType: "Other",
+                        wasFetchedViaSpdy: true, wasNpnNegotiated: true,
+                        npnNegotiatedProtocol: "h2", wasAlternateProtocolAvailable: false,
+                        connectionInfo: "h2",
+                    };
+                };
+            }
+            if (typeof chrome.csi !== "function") {
+                chrome.csi = (): Record<string, unknown> =>
+                    ({ startE: Date.now(), onloadT: Date.now(), pageT: 0, tran: 15 });
+            }
+            if (!chrome.app) {
+                chrome.app = {
+                    isInstalled: false,
+                    InstallState: { DISABLED: "disabled", INSTALLED: "installed", NOT_INSTALLED: "not_installed" },
+                    RunningState: { CANNOT_RUN: "cannot_run", READY_TO_RUN: "ready_to_run", RUNNING: "running" },
+                    getDetails: (): null => null,
+                    getIsInstalled: (): boolean => false,
+                };
+            }
+            w.chrome = chrome;
+        },
+    });
+} catch {
+    // Older Electron without executeInMainWorld, or isolation disabled — no-op.
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────
 

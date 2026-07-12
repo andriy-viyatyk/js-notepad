@@ -243,7 +243,7 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 | `src/main/cdp-service.ts` | Main | CDP session management — debugger attach/detach/send via IPC |
 | `src/main/network-logger.ts` | Main | Per-page HTTP request/response logging via `session.webRequest`, circular buffer, IPC access |
 | `src/main/tor-service.ts` | Main | Tor process lifecycle: spawn/kill tor.exe, per-partition SOCKS5 proxy, torrc generation |
-| `src/preload-webview.ts` | Guest | MutationObserver for title/favicon, image tracking on link clicks, cinema mode (expand `<video>` to full page) |
+| `src/preload-webview.ts` | Guest | MutationObserver for title/favicon, image tracking on link clicks, cinema mode (expand `<video>` to full page), `window.chrome` compatibility shim |
 | `src/ipc/browser-ipc.ts` | Shared | IPC channel names and type definitions |
 | `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels: start, stop, log |
 | `src/ipc/popup-rate-limiter.ts` | Shared | Time-window rate limiter for popup/tab spam blocking |
@@ -268,6 +268,17 @@ The main process `page-favicon-updated` event works for most cases, but the prel
 - Runs in an isolated JavaScript context (context isolation) — page scripts cannot interfere
 - Sends messages via `ipcRenderer.sendToHost()` → received as `ipc-message` events on the `<webview>` element
 - Retries after page `load` event (200ms + 1000ms) for JS-heavy sites that set metadata late
+
+## Browser Compatibility Shim (`window.chrome`)
+
+Some sites (notably Google sign-in) reject an embedded Chromium browser with *"This browser or app may not be secure"* when `window.chrome` is an empty object — genuine Chrome populates it with `loadTimes`, `csi`, and `app`, and the site evaluates it during initial page load. The preload defines a minimal, realistic `window.chrome` so the browser presents like the Chrome it actually is.
+
+Because the site's own scripts read `window.chrome`, the shim must exist in the page's **main world at document-start**:
+
+- The preload runs in an **isolated world** (context isolation stays on), so a plain `window.chrome = …` there is invisible to page scripts.
+- A DOM `<script>` injection would reach the main world but is blocked by strict site CSPs (e.g. Google accounts).
+
+The preload therefore uses `contextBridge.executeInMainWorld({ func })`, which runs the definition in the main world before the page's first script while keeping context isolation intact — no debugger and no CSP dependency. The shim is guarded so it never overrides a real Chrome `window.chrome`, and wrapped in `try/catch` to degrade to a no-op on Electron builds without the API.
 
 ## Cinema Mode (Preload)
 
