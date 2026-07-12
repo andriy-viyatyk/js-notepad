@@ -1,0 +1,44 @@
+diff --git a/node_modules/monaco-editor/esm/vs/base/common/platform.js b/node_modules/monaco-editor/esm/vs/base/common/platform.js
+index 04704b1..b2f85f3 100644
+--- a/node_modules/monaco-editor/esm/vs/base/common/platform.js
++++ b/node_modules/monaco-editor/esm/vs/base/common/platform.js
+@@ -24,7 +24,7 @@ if (typeof $globalThis.vscode !== 'undefined' && typeof $globalThis.vscode.proce
+     // Native environment (sandboxed)
+     nodeProcess = $globalThis.vscode.process;
+ }
+-else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string') {
++else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string' && false) {
+     // Native environment (non-sandboxed)
+     nodeProcess = process;
+ }
+diff --git a/node_modules/monaco-editor/esm/vs/base/common/process.js b/node_modules/monaco-editor/esm/vs/base/common/process.js
+index 38e1a14..1e31720 100644
+--- a/node_modules/monaco-editor/esm/vs/base/common/process.js
++++ b/node_modules/monaco-editor/esm/vs/base/common/process.js
+@@ -17,7 +17,7 @@ if (typeof vscodeGlobal !== 'undefined' && typeof vscodeGlobal.process !== 'unde
+     };
+ }
+ // Native node.js environment
+-else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string') {
++else if (typeof process !== 'undefined' && typeof process?.versions?.node === 'string' && false) {
+     safeProcess = {
+         get platform() { return process.platform; },
+         get arch() { return process.arch; },
+diff --git a/node_modules/monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard.js b/node_modules/monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard.js
+index 1a8db88..3d2881c 100644
+--- a/node_modules/monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard.js
++++ b/node_modules/monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard.js
+@@ -235,7 +235,12 @@ if (PasteAction) {
+         const codeEditorService = accessor.get(ICodeEditorService);
+         const clipboardService = accessor.get(IClipboardService);
+         const telemetryService = accessor.get(ITelemetryService);
+-        const productService = accessor.get(IProductService);
++        // PATCHED (persephone): IProductService is not registered in the monaco
++        // standalone services, so accessor.get(IProductService) throws
++        // "[invokeFunction] unknown service 'productService'" and kills the whole
++        // paste implementation (context-menu Paste silently no-ops). Stub it with
++        // quality:'stable' so the telemetry branch below stays disabled.
++        const productService = { quality: 'stable' };
+         // Only if editor text focus (i.e. not if editor has widget focus).
+         const focusedEditor = codeEditorService.getFocusedCodeEditor();
+         if (focusedEditor && focusedEditor.hasModel() && focusedEditor.hasTextFocus()) {

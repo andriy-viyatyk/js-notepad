@@ -48,13 +48,13 @@ async function registerLibraryFiles(): Promise<void> {
         const virtualPath = `file:///library/${relativePath}`;
 
         extraLibDisposables.push(
-            monaco.languages.typescript.javascriptDefaults.addExtraLib(
+            monaco.typescript.javascriptDefaults.addExtraLib(
                 content,
                 virtualPath,
             ),
         );
         extraLibDisposables.push(
-            monaco.languages.typescript.typescriptDefaults.addExtraLib(
+            monaco.typescript.typescriptDefaults.addExtraLib(
                 content,
                 virtualPath,
             ),

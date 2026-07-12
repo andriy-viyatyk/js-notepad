@@ -126,17 +126,17 @@ function redefineKeybinding(monaco: Monaco) {
 }
 
 function setupCompiler(monaco: Monaco) {
-    monaco.languages.css.cssDefaults.setOptions({
+    monaco.css.cssDefaults.setOptions({
         validate: false,
     });
 
-    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+    monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: true,
         noSyntaxValidation: true,
         noSuggestionDiagnostics: true,
     });
 
-    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+    monaco.typescript.javascriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: true,
         noSyntaxValidation: true,
         noSuggestionDiagnostics: true,
@@ -146,26 +146,26 @@ function setupCompiler(monaco: Monaco) {
         "library/*": ["file:///library/*"],
     };
 
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.Latest,
+    monaco.typescript.typescriptDefaults.setCompilerOptions({
+        target: monaco.typescript.ScriptTarget.Latest,
         allowNonTsExtensions: true,
         moduleResolution:
-            monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-        module: monaco.languages.typescript.ModuleKind.CommonJS,
+            monaco.typescript.ModuleResolutionKind.NodeJs,
+        module: monaco.typescript.ModuleKind.CommonJS,
         noEmit: true,
         esModuleInterop: true,
-        jsx: monaco.languages.typescript.JsxEmit.React,
+        jsx: monaco.typescript.JsxEmit.React,
         allowJs: true,
         typeRoots: [],
         paths: sharedPaths,
     });
 
-    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.Latest,
+    monaco.typescript.javascriptDefaults.setCompilerOptions({
+        target: monaco.typescript.ScriptTarget.Latest,
         allowNonTsExtensions: true,
         moduleResolution:
-            monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-        module: monaco.languages.typescript.ModuleKind.CommonJS,
+            monaco.typescript.ModuleResolutionKind.NodeJs,
+        module: monaco.typescript.ModuleKind.CommonJS,
         noEmit: true,
         esModuleInterop: true,
         allowJs: true,
@@ -199,12 +199,12 @@ async function loadEditorTypes(monaco: Monaco) {
             const content = await response.text();
 
             // Add to both JavaScript and TypeScript
-            monaco.languages.typescript.javascriptDefaults.addExtraLib(
+            monaco.typescript.javascriptDefaults.addExtraLib(
                 content,
                 `file:///node_modules/@types/custom/${file}`
             );
 
-            monaco.languages.typescript.typescriptDefaults.addExtraLib(
+            monaco.typescript.typescriptDefaults.addExtraLib(
                 content,
                 `file:///node_modules/@types/custom/${file}`
             );

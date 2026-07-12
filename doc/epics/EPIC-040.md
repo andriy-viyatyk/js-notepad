@@ -70,7 +70,7 @@ ESLint flat-config migration: `eslint` 8→10, `@typescript-eslint/*` 5→8,
 | US-821 | [Update Electron to 43.0.0 (Castlabs +wvcus)](../tasks/US-821-electron-43-upgrade/README.md) | In Progress (CI DRM check pending) |
 | US-822 | [Safe batch — low-risk minor/patch npm bumps](../tasks/US-822-safe-batch-minor-bumps/README.md) | Implemented (MCP SDK deferred → US-825) |
 | US-823 | [Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](../tasks/US-823-anthropic-sdk-major/README.md) | Implemented (verified offline — no key needed) |
-| US-824 | [Upgrade `monaco-editor` (0.52 → 0.55)](../tasks/US-824-monaco-editor-major/README.md) | Planned |
+| US-824 | [Upgrade `monaco-editor` (0.52 → 0.55)](../tasks/US-824-monaco-editor-major/README.md) | Implemented (verified — incl. upstream menu-paste bug patched) |
 | US-825 | [ESLint flat-config migration](../tasks/US-825-eslint-flat-config-migration/README.md) | Planned |
 | US-826 | [Upgrade TypeScript (5.9 → 7.0)](../tasks/US-826-typescript-7/README.md) | Deferred |
 | US-827 | [Upgrade Vite (5 → 8)](../tasks/US-827-vite-8/README.md) | Deferred |

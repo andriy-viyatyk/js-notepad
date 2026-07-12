@@ -5,3 +5,7 @@ assets/editor-types/_imports.txt text eol=lf
 
 # Keep this file itself LF so it doesn't hit the same autocrlf churn.
 .gitattributes text eol=lf
+
+# patch-package writes patch files LF; pin them so autocrlf doesn't flag them
+# as perpetually modified (and so the patches apply byte-exact).
+patches/*.patch text eol=lf
