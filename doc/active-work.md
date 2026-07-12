@@ -8,7 +8,14 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 - **EPIC-040** — [Dependency & Platform Updates (Keep Persephone Current)](epics/EPIC-040.md)
-  - [ ] [US-821: Update Electron to 43.0.0 (Castlabs +wvcus)](tasks/US-821-electron-43-upgrade/README.md)
+  - [ ] [US-821: Update Electron to 43.0.0 (Castlabs +wvcus)](tasks/US-821-electron-43-upgrade/README.md) — implemented, CI DRM check pending
+  - [ ] [US-822: Safe batch — low-risk minor/patch npm bumps](tasks/US-822-safe-batch-minor-bumps/README.md)
+  - [ ] [US-823: Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](tasks/US-823-anthropic-sdk-major/README.md)
+  - [ ] [US-824: Upgrade `monaco-editor` (0.52 → 0.55)](tasks/US-824-monaco-editor-major/README.md)
+  - [ ] [US-825: ESLint flat-config migration](tasks/US-825-eslint-flat-config-migration/README.md)
+  - [ ] [US-826: Upgrade TypeScript (5.9 → 7.0)](tasks/US-826-typescript-7/README.md) — deferred
+  - [ ] [US-827: Upgrade Vite (5 → 8)](tasks/US-827-vite-8/README.md) — deferred
+  - [ ] [US-828: Remaining deferred majors (fuses / csv-parse / picomatch)](tasks/US-828-remaining-deferred-majors/README.md) — deferred
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
