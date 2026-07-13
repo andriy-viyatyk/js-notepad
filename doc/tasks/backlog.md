@@ -4,6 +4,25 @@ Ideas and future tasks not yet planned for implementation.
 
 ---
 
+## Dependency & Platform Updates (deferred / residual from EPIC-040)
+
+Carried over when [EPIC-040](../epics/completed.md) closed (2026-07-13). Open a fresh
+dependency-update epic when the next upgrade cycle starts.
+
+- [ ] **TypeScript 5.9 → 7.0** — deferred from US-826 (EPIC-040). TS 7 is the native Go compiler
+  with no JS compiler API; `@typescript-eslint/*` peer-caps `typescript` `<6.1.0` and consumes the
+  JS API, so a full swap breaks lint. Revisit once typescript-eslint ships native-TS7 support.
+- [ ] **Fuses hardening** — optional security follow-up. `@electron/fuses` was dropped as a direct
+  dep when Forge was removed (US-827); fuses were never actually applied in shipped builds. To
+  harden the packaged binary (e.g. `RunAsNode` off, cookie-encryption on), add an electron-builder
+  `afterPack` hook that flips the fuses. Not a version bump — a deliberate hardening task.
+- [ ] **US-821 release-time QA (residual)** — verify in a **VMP-signed** E43 build that Widevine
+  DRM playback (Netflix / Disney+ / Spotify web) is licensed and plays, and that the packaged
+  NSIS installer builds and launches. Cannot be checked locally; confirm when the next signed
+  build ships. (Code + docs for the Electron 43 upgrade are complete and reviewed.)
+
+---
+
 ## Architecture Improvements
 
 ### Script Service Enhancements

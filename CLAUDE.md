@@ -156,17 +156,17 @@ Persephone (formerly js-notepad) is a Windows Notepad replacement for developers
 
 ## Tech Stack
 
-- **Runtime:** Electron 39 — [Castlabs ECS](https://github.com/castlabs/electron-releases) fork with Widevine DRM support (nodeIntegration: true, contextIsolation: false)
+- **Runtime:** Electron 43 — [Castlabs ECS](https://github.com/castlabs/electron-releases) fork with Widevine DRM support (nodeIntegration: true, contextIsolation: false)
 - **Frontend:** React 19 with TypeScript
 - **Editor:** Monaco Editor
 - **State:** Custom reactive primitives (TOneState, TGlobalState, TComponentState, TModel)
-- **Build:** Vite + Electron Forge (dev), electron-builder (production)
+- **Build:** Vite 8 (rolldown) — `scripts/dev.mjs` (dev server + HMR), `scripts/build-prod.mjs` (production bundle), electron-builder (installer/packaging)
 - **Styling:** Emotion (CSS-in-JS)
 
 ## Commands
 
 ```bash
-npm start           # Development mode (Electron Forge + Vite HMR)
+npm start           # Development mode (Vite dev server + HMR via scripts/dev.mjs)
 npm run dist        # Build NSIS installer + ZIP (electron-builder)
 npm run dist:publish # Build and publish to GitHub Releases (draft)
 npm run lint        # Run ESLint

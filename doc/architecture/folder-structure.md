@@ -19,7 +19,8 @@ persephone/
 │   ├── build.rs
 │   └── Cargo.toml
 ├── scripts/                # Build scripts
-│   ├── build-prod.mjs      # Vite production build (main, preload, renderer)
+│   ├── dev.mjs             # Dev orchestrator (npm start) — Vite renderer dev server + HMR, watch-builds main/preload/preload-webview/board-shim, launches Electron with restart-on-change
+│   ├── build-prod.mjs      # Vite production build (main, preload, preload-webview, renderer, board-shim)
 │   └── vmp-sign.mjs        # electron-builder afterPack hook for Widevine VMP signing
 ├── assets/                 # Static assets
 │   ├── editor-types/       # GENERATED — Vite plugin auto-copies .d.ts files from src/renderer/api/types/ (never hand-edit)

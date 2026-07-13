@@ -2,9 +2,9 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-07-12
-**Completed:**
+**Completed:** 2026-07-13
 
 ## Overview
 
@@ -77,14 +77,14 @@ follow-up, not a version bump — its own task when picked up (kept out of US-82
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-821 | [Update Electron to 43.0.0 (Castlabs +wvcus)](../tasks/US-821-electron-43-upgrade/README.md) | In Progress (CI DRM check pending) |
-| US-822 | [Safe batch — low-risk minor/patch npm bumps](../tasks/US-822-safe-batch-minor-bumps/README.md) | Implemented (MCP SDK deferred → US-825) |
-| US-823 | [Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](../tasks/US-823-anthropic-sdk-major/README.md) | Implemented (verified offline — no key needed) |
-| US-824 | [Upgrade `monaco-editor` (0.52 → 0.55)](../tasks/US-824-monaco-editor-major/README.md) | Implemented (verified — incl. upstream menu-paste bug patched) |
-| US-825 | [ESLint flat-config migration](../tasks/US-825-eslint-flat-config-migration/README.md) | Implemented (flat config on eslint 9 — import plugin peer-caps at 9; incl. deferred MCP SDK 1.29) |
-| US-826 | [Upgrade TypeScript (5.9 → 7.0)](../tasks/US-826-typescript-7/README.md) | Deferred — investigated; blocked on typescript-eslint native-TS7 support (TS7 is native Go, no JS API) |
-| US-827 | [Upgrade Vite (5 → 8)](../tasks/US-827-vite-8/README.md) | Implemented — Strategy C: Vite 8 (rolldown) on dev+prod, Electron Forge fully removed (own `scripts/dev.mjs`), monaco plugin swapped + patched |
-| US-828 | [Remaining deferred majors (csv-parse / picomatch)](../tasks/US-828-remaining-deferred-majors/README.md) | Implemented — csv-parse 6→7, picomatch 2→4 (both verified behavior-identical); `@electron/fuses` transitive-only → out of scope |
+| US-821 | [Update Electron to 43.0.0 (Castlabs +wvcus)](../tasks/US-821-electron-43-upgrade/README.md) | Done (reviewed) — residual release-time QA (DRM in signed build + packaged installer) tracked in backlog |
+| US-822 | [Safe batch — low-risk minor/patch npm bumps](../tasks/US-822-safe-batch-minor-bumps/README.md) | Done (reviewed) |
+| US-823 | [Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](../tasks/US-823-anthropic-sdk-major/README.md) | Done (reviewed) — verified offline via mock harness |
+| US-824 | [Upgrade `monaco-editor` (0.52 → 0.55)](../tasks/US-824-monaco-editor-major/README.md) | Done (reviewed) — 0.55 namespace move; menu-paste bug patched |
+| US-825 | [ESLint flat-config migration](../tasks/US-825-eslint-flat-config-migration/README.md) | Done (reviewed) — flat config on eslint 9; incl. deferred MCP SDK 1.29 |
+| US-826 | [Upgrade TypeScript (5.9 → 7.0)](../tasks/US-826-typescript-7/README.md) | Deferred → moved to backlog (blocked on typescript-eslint native-TS7 support) |
+| US-827 | [Upgrade Vite (5 → 8)](../tasks/US-827-vite-8/README.md) | Done (reviewed) — Vite 8 (rolldown) dev+prod, Electron Forge removed (own `scripts/dev.mjs`), monaco plugin swapped + patched |
+| US-828 | [Remaining deferred majors (csv-parse / picomatch)](../tasks/US-828-remaining-deferred-majors/README.md) | Done (reviewed) — csv-parse 6→7, picomatch 2→4 (behavior-identical); `@electron/fuses` transitive-only → out of scope |
 
 ## Notes
 
@@ -92,3 +92,16 @@ follow-up, not a version bump — its own task when picked up (kept out of US-82
 - Epic created. Baseline audit captured above. First task: Electron → 43.0.0 stable.
 - All Castlabs release tags keep the `+wvcus` suffix, so DRM is preserved across every upgrade
   path — the `electronDownload.mirror` in `electron-builder.yml` does not change.
+
+### 2026-07-13 — Epic closed
+- All seven implemented tasks (US-821/822/823/824/825/827/828) reviewed at epic level — clean,
+  no architecture/standards violations. Dev docs (`CLAUDE.md`, `folder-structure.md`,
+  `browser-editor.md`) and user docs (`whats-new.md` "Under the hood") updated. typecheck / lint /
+  build-prod green.
+- **US-826 (TypeScript 7)** deferred — moved to [backlog](../tasks/backlog.md) (blocked on
+  typescript-eslint native-TS7 support).
+- **Residual release-time QA (US-821):** DRM playback in a VMP-signed E43 build + packaged NSIS
+  installer — cannot be verified locally; tracked in [backlog](../tasks/backlog.md) for the next
+  signed build.
+- **Fuses hardening** (electron-builder `afterPack`) tracked in backlog as an optional follow-up.
+- This was a snapshot upgrade cycle; open a fresh dependency-update epic for the next cycle.

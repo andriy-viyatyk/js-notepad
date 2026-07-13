@@ -315,15 +315,10 @@ The `getIcon()` method on `BrowserEditorModel` reads `this.state.get().favicon` 
 
 ## Build Configuration
 
-The webview preload script is a separate Vite build entry in `forge.config.ts`:
-
-```typescript
-{
-    entry: "src/preload-webview.ts",
-    config: "vite.preload-webview.config.ts",
-    target: "preload",
-}
-```
+The webview preload script (`src/preload-webview.ts`) is built as its own bundle entry —
+watch-built by `scripts/dev.mjs` in development and bundled by `scripts/build-prod.mjs` for
+production (each declares it with an inline Vite config; there is no standalone
+`vite.*.config.ts` file). It is emitted next to the main preload as `preload-webview.js`.
 
 The main preload (`src/preload.ts`) exposes the path to the webview preload:
 
