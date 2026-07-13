@@ -34,6 +34,11 @@ export function setupMainProcess() {
                 secure: true,
                 supportFetchAPI: true,
                 bypassCSP: true,
+                // Fetched cross-origin from the renderer (editor-type .d.ts,
+                // libarchive.wasm). Electron 43 / Chromium requires explicit
+                // corsEnabled for custom-scheme cross-origin fetch — without it
+                // the dev origin (http://localhost:5273) is blocked by CORS.
+                corsEnabled: true,
             },
         },
         {
