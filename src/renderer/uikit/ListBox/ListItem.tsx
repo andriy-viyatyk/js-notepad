@@ -4,7 +4,7 @@ import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
 import { CheckIcon, ChevronRightIcon } from "../../theme/icons";
 import { highlight } from "../shared/highlight";
-import { rowSelectionBase } from "../shared/selection-style";
+import { rowSelectionBase, rowFocusSelectionOverride } from "../shared/selection-style";
 import { Tooltip } from "../Tooltip";
 
 // --- Types ---
@@ -97,11 +97,15 @@ const Root = styled.div(
             backgroundColor: color.background.selection,
             color: color.text.selection,
         },
-        // Focus-aware selection (Explorer look): blurred-state gray base here; the blue
-        // focused override lives on the ListBox container (uikit/shared/selection-style).
+        // Focus-aware selection (Explorer look): blurred-state gray base here...
         '&[data-selection-style="focus"]': {
             ...rowSelectionBase,
         },
+        // ...and the blue focused override hosted on the row itself, so a standalone
+        // ListItem (outside ListBox) lights up whenever it sits inside any focused-within
+        // [data-focus-selection] container. The container needs only data-focus-selection +
+        // tabIndex=0 (no Emotion). Also covers ListItem inside ListBox.
+        ...rowFocusSelectionOverride('[data-selection-style="focus"]'),
 
         "& > svg": {
             width: height.iconMd,

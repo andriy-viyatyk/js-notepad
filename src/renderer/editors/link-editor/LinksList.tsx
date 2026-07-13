@@ -116,7 +116,7 @@ function LinksListRow({
                 <ListItem
                     name="link-row"
                     variant="browse"
-                    selectionStyle="accent"
+                    selectionStyle="focus"
                     showSelectionIcon={false}
                     selected={isSelected}
                     searchText={link.isDirectory ? undefined : searchText}
@@ -227,15 +227,26 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
     );
 
     return (
-        <RenderGrid
-            ref={gridRef}
-            rowCount={links.length}
-            columnCount={1}
-            rowHeight={ROW_HEIGHT}
-            columnWidth={columnWidth}
-            renderCell={renderCell}
-            fitToWidth
-            onResize={handleResize}
-        />
+        <Panel
+            name="links-list-focus-scope"
+            direction="column"
+            flex={1}
+            minWidth={0}
+            minHeight={0}
+            overflow="hidden"
+            tabIndex={0}
+            data-focus-selection=""
+        >
+            <RenderGrid
+                ref={gridRef}
+                rowCount={links.length}
+                columnCount={1}
+                rowHeight={ROW_HEIGHT}
+                columnWidth={columnWidth}
+                renderCell={renderCell}
+                fitToWidth
+                onResize={handleResize}
+            />
+        </Panel>
     );
 });

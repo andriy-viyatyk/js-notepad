@@ -44,3 +44,28 @@ export function focusSelectionOverride(rowSelector: string): CSSObject {
         },
     };
 }
+
+/**
+ * Row-hosted variant of the focused override, for a row primitive used WITHOUT a
+ * focus-aware container of its own (e.g. `ListItem` rendered outside `ListBox`, inside a
+ * `RenderGrid` cell or a `.map`). Applied on the ROW's own styled block. The selector
+ * matches whenever the row sits inside any focused-within `[data-focus-selection]` ancestor,
+ * so the container only needs `data-focus-selection` + `tabIndex=0` (no Emotion).
+ *
+ * `rowMatch` narrows the rule to the row's own selector (e.g. the focus-mode attribute), so
+ * it does not fight the blurred base painted by `rowSelectionBase`.
+ */
+export function rowFocusSelectionOverride(rowMatch: string): CSSObject {
+    return {
+        [`[data-focus-selection]:focus-within &${rowMatch}[data-selected]`]: {
+            backgroundColor: color.background.treeSelection,
+            color: color.text.selection,
+            outline: `1px solid ${color.border.active}`,
+            outlineOffset: -1,
+        },
+        [`[data-focus-selection]:focus-within &${rowMatch}[data-active]`]: {
+            outline: `1px solid ${color.border.active}`,
+            outlineOffset: -1,
+        },
+    };
+}

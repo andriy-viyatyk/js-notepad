@@ -158,7 +158,7 @@ family; it is **out of scope** for this epic — no targeted surface uses it.)
 | # | Task | Title | Depends on | Status |
 |---|------|-------|-----------|--------|
 | 1 | [US-829](../tasks/US-829-shared-selection-style/README.md) | Shared focus-aware selection style — extract the Explorer/`Tree` two-state selection into one shared fragment (`uikit/shared/selection-style.ts`); refactor `Tree`/`TreeItem` onto it with **zero visual change**; add focus-aware selection to `ListItem` (`selectionStyle="focus"`) + a `Tree` `focusSelection` opt-in; decouple focus-styling from `keyboardNav`; confirm tokens (no new ones) | — | Implemented — pending visual verification |
-| 2 | US-830 | Shared-primitive consumers — enable focus-selection on the Tree consumers (Rest Client tree #4, Notebook Categories #5) and switch the ListBox/`ListItem` consumers (MCP Tools #8, Storybook #10, Link list-mode #11, Link pinned #12) to the focus-aware style; wire each container to be focusable | US-829 | Planned |
+| 2 | [US-830](../tasks/US-830-shared-primitive-consumers/README.md) | Shared-primitive consumers — enable focus-selection on the Tree consumers (Rest Client tree #4, Notebook Categories #5) and switch the ListBox/`ListItem` consumers (MCP Tools #8, Storybook #10, Link list-mode #11, Link pinned #12) to the focus-aware style; wire each container to be focusable | US-829 | Implemented — pending visual verification |
 | 3 | US-831 | Bespoke-row retrofits — apply the shared contract to the hand-rolled rows: App menu `FolderItem` #1, Notebook Tags `TagsListView` #6, ToDo `RowShell` #7, MCP Resources `Panel` rows #9, Links `CategoryList` Tags+Hostnames #2/#3 (adds a focus-aware background) | US-829 | Planned |
 
 ### Order rationale
@@ -249,3 +249,16 @@ The only user-visible surface that changes is the reference; it must **not** cha
   (C2). `Tree` gains a `focusSelection` prop; `ListItem`/`ListBox` gain `selectionStyle="focus"`
   (gray base, pairs with `variant="browse"`). No new tokens. Explorer is the live regression
   guard — the Tree edits are behavior-identical for `keyboardNav` consumers.
+- **US-830 implemented** ([task doc](../tasks/US-830-shared-primitive-consumers/README.md); typecheck +
+  lint green; pending visual verification). Key design refinement: the blue focused override for the
+  `ListItem` family moved from the **container** (`ListBox` root, US-829) to a **row-hosted** rule on
+  `ListItem` itself (new `rowFocusSelectionOverride` in `selection-style.ts`, matching
+  `[data-focus-selection]:focus-within &`). This makes a standalone `ListItem` (used outside `ListBox`
+  — Link list-mode #11 via `RenderGrid`, Link pinned #12 via `.map`) fully self-contained: its
+  container needs only `data-focus-selection` + `tabIndex=0` (carried by a plain `Panel` via `...rest`,
+  no Emotion — Rule 7 clean). The redundant container override was removed from `ListBox`; `Tree` keeps
+  its container-hosted `focusSelectionOverride` (its rows are `TreeItem`s, possibly consumer-rendered).
+  #4/#5 are one-prop `focusSelection` opt-ins; #8/#10 flip `selectionStyle` `accent`→`focus`. The
+  `LinksList` change unifies all three of its consumers (list-mode + Hostnames-nav + Tags-secondary
+  link lists), not just list-mode. C1 (focus landing) downgraded: #4/#5 mirror the proven Explorer
+  sidebar tree; #8/#10/#11/#12 live in the editor body (no sidebar focus guard).

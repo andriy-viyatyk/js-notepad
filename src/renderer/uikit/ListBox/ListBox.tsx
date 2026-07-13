@@ -10,7 +10,6 @@ import type {
     RenderCellFunc,
 } from "../RenderGrid";
 import { Spinner } from "../Spinner/Spinner";
-import { focusSelectionOverride } from "../shared/selection-style";
 import { ListItem } from "./ListItem";
 import { SectionItem } from "./SectionItem";
 import { ListBoxModel, defaultListBoxState } from "./ListBoxModel";
@@ -25,9 +24,9 @@ const Root = styled.div(
         flex: "1 1 auto",
         outline: "none",
         "&[data-disabled]": { opacity: 0.6, pointerEvents: "none" },
-        // Focused-list selection override for selectionStyle="focus" rows (the Explorer
-        // look). Inert unless the root carries data-focus-selection.
-        ...focusSelectionOverride('[data-type="list-item"]'),
+        // The blue focused override for selectionStyle="focus" rows is hosted on ListItem
+        // itself (uikit/shared/selection-style rowFocusSelectionOverride). This root only
+        // opts in via data-focus-selection + tabIndex so :focus-within can match.
     },
     { label: "ListBox" },
 );

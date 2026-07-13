@@ -42,7 +42,7 @@ export function ComponentBrowser({ model }: { model: StorybookEditorModel }) {
                 value={value}
                 onChange={(item) => model.selectStory(String(item.value))}
                 variant="browse"
-                selectionStyle="accent"
+                selectionStyle="focus"
                 rowHeight={26}
             />
         </Panel>

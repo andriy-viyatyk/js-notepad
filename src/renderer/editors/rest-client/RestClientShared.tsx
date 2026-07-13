@@ -601,6 +601,7 @@ export function RequestTree({ vm, items, selectedId }: {
             canTraitDrop={canTraitDrop}
             onTraitDrop={onTraitDrop}
             defaultExpandAll
+            focusSelection
         />
     );
 }

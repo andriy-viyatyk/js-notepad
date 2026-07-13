@@ -101,7 +101,7 @@ function PinnedItem({ link, index, isSelected, model, onOpenLink, onContextMenu 
             <ListItem
                 name="pinned-item"
                 variant="browse"
-                selectionStyle="accent"
+                selectionStyle="focus"
                 showSelectionIcon={false}
                 selected={isSelected}
                 icon={<TreeProviderItemIcon item={link} />}
@@ -262,6 +262,8 @@ export function PinnedLinksPanel({ pinnedLinks, model, selectedLinkId, width }: 
                 paddingY="xs"
                 flex={1}
                 height={0}
+                tabIndex={0}
+                data-focus-selection=""
             >
                 {pinnedLinks.map((link, i) => (
                     <PinnedItem

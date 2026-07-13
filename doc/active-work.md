@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 - **EPIC-041** — [Unified Focused/Unfocused List Selection](epics/EPIC-041.md)
   - [ ] [US-829: Shared focus-aware selection style](tasks/US-829-shared-selection-style/README.md) (extract Explorer/`Tree` two-state selection → `uikit/shared`; wire into `Tree` + `ListBox`/`ListItem`)
-  - [ ] US-830: Shared-primitive consumers — Rest Client tree, Notebook Categories (Tree); MCP Tools, Storybook, Link list-mode, Link pinned (ListBox)
+  - [ ] [US-830: Shared-primitive consumers](tasks/US-830-shared-primitive-consumers/README.md) — Rest Client tree, Notebook Categories (Tree); MCP Tools, Storybook, Link list-mode, Link pinned (ListBox)
   - [ ] US-831: Bespoke-row retrofits — App menu, Notebook Tags, ToDo, MCP Resources, Links Tags/Hostnames
 
 ## Planned

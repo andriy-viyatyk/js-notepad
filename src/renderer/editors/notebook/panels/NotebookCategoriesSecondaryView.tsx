@@ -72,6 +72,7 @@ function NotebookCategoriesBody({
                     canTraitDrop={(target, payload) => canCategoryTraitDrop(target, payload)}
                     onTraitDrop={(target, payload) => editor.categoryTraitDrop(target, payload)}
                     defaultExpandAll
+                    focusSelection
                 />
             </Panel>
         </>
