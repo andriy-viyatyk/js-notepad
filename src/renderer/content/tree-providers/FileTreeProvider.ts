@@ -3,8 +3,10 @@ import type {
     ITreeProviderItem,
     ITreeStat,
     ICategorySegment,
+    IFileLink,
 } from "../../api/types/io.tree";
 import type { ISubscriptionObject } from "../../api/types/events";
+import { copyPathsInto } from "../../core/utils/copy-files";
 import { encodeCategoryLink } from "./tree-provider-link";
 import { encodeGitTreeLink } from "../git-tree-link";
 import { encodeMnemeFolderLink } from "../mneme-folder-link";
@@ -188,6 +190,27 @@ export class FileTreeProvider implements ITreeProvider {
 
     async mkdir(dirPath: string): Promise<void> {
         nodefs.mkdirSync(dirPath, { recursive: true });
+    }
+
+    /**
+     * Import dropped file-like items into `targetCategory` (a directory path).
+     * Items with an OS `filePath` are copied recursively (files + folders) via the
+     * shared `copyPathsInto` helper — same behavior as clipboard paste; overwrite
+     * confirmation is the caller's responsibility (TreeProviderViewModel prompts).
+     * Byte-only producers (no `filePath`) are written directly. Enables OS-file /
+     * cross-tree drag-drop onto Explorer folders.
+     */
+    async importFiles(items: IFileLink[], targetCategory: string): Promise<void> {
+        const paths = items.map((i) => i.filePath).filter((p): p is string => !!p);
+        if (paths.length) {
+            const result = await copyPathsInto(paths, targetCategory, { move: false });
+            if (result.errors.length) throw new Error(result.errors.join("\n"));
+        }
+        for (const item of items) {
+            if (item.filePath) continue;
+            const bytes = await item.getBytes();
+            nodefs.writeFileSync(path.join(targetCategory, item.name), Buffer.from(bytes));
+        }
     }
 
     async rename(oldPath: string, newPath: string): Promise<void> {

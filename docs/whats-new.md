@@ -30,6 +30,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Grid Editor — toggling "First row is header" (or changing the CSV delimiter) no longer blanks the grid** — In the CSV Options popup, switching **First row is header** on or off, or changing the delimiter, could leave every cell empty while the column headers stayed stuck on `0`, `1`, `2`, … instead of picking up the real column names. The grid kept its previous columns instead of re-deriving them from the newly reparsed rows, so cells looked up column keys that no longer existed. Columns are now rebuilt correctly whenever the header or delimiter setting changes. See [Grid Editor — CSV Options](./grid-editor.md#csv-options).
 
+- **File Explorer — dropping files from Windows Explorer onto a folder now works** — Dragging a file or folder from Windows Explorer (or another app) and dropping it onto a folder in the File Explorer tree previously did nothing, with no drop-highlight shown to indicate the folder would accept it. The tree now accepts the drop and copies the file or folder in (recursively for folders), asking for confirmation before overwriting a same-named file. This is separate from Ctrl+dragging a file *out* to Windows Explorer, which already worked. See [File Explorer Panel](./tabs-and-navigation.md#file-explorer-panel).
+
 ---
 
 ## Version 4.0.13
