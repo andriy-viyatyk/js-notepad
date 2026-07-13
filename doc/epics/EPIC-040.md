@@ -55,8 +55,9 @@ feeds) a task.
 
 ### Dev-toolchain majors — own task (dev-only, no runtime impact)
 
-ESLint flat-config migration: `eslint` 8→10, `@typescript-eslint/*` 5→8,
-`eslint-plugin-react-hooks` 4→7, `eslint-import-resolver-typescript` 3→4 (move together).
+ESLint flat-config migration: `eslint` 8→9 (10 blocked — `eslint-plugin-import` peer-caps at 9),
+`@typescript-eslint/*` 5→8, `eslint-plugin-react-hooks` 4→7, `eslint-import-resolver-typescript`
+3→4 (move together).
 
 ### Deferred — large, standalone efforts
 
@@ -71,7 +72,7 @@ ESLint flat-config migration: `eslint` 8→10, `@typescript-eslint/*` 5→8,
 | US-822 | [Safe batch — low-risk minor/patch npm bumps](../tasks/US-822-safe-batch-minor-bumps/README.md) | Implemented (MCP SDK deferred → US-825) |
 | US-823 | [Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](../tasks/US-823-anthropic-sdk-major/README.md) | Implemented (verified offline — no key needed) |
 | US-824 | [Upgrade `monaco-editor` (0.52 → 0.55)](../tasks/US-824-monaco-editor-major/README.md) | Implemented (verified — incl. upstream menu-paste bug patched) |
-| US-825 | [ESLint flat-config migration](../tasks/US-825-eslint-flat-config-migration/README.md) | Planned |
+| US-825 | [ESLint flat-config migration](../tasks/US-825-eslint-flat-config-migration/README.md) | Implemented (flat config on eslint 9 — import plugin peer-caps at 9; incl. deferred MCP SDK 1.29) |
 | US-826 | [Upgrade TypeScript (5.9 → 7.0)](../tasks/US-826-typescript-7/README.md) | Deferred |
 | US-827 | [Upgrade Vite (5 → 8)](../tasks/US-827-vite-8/README.md) | Deferred |
 | US-828 | [Remaining deferred majors (fuses / csv-parse / picomatch)](../tasks/US-828-remaining-deferred-majors/README.md) | Deferred |

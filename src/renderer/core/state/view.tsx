@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-empty-interface */
-/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+/* eslint-disable @typescript-eslint/no-wrapper-object-types */
 import React, { ReactElement } from "react";
 import styled from "@emotion/styled";
 import { clsx } from "clsx";

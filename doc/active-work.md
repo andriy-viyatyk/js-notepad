@@ -12,7 +12,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-822: Safe batch — low-risk minor/patch npm bumps](tasks/US-822-safe-batch-minor-bumps/README.md) — implemented (MCP SDK bump deferred to US-825)
   - [ ] [US-823: Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](tasks/US-823-anthropic-sdk-major/README.md) — implemented (verified offline via mock harness)
   - [ ] [US-824: Upgrade `monaco-editor` (0.52 → 0.55)](tasks/US-824-monaco-editor-major/README.md) — implemented & verified (0.55 namespace move; clipboard patch re-created + extended for upstream menu-paste bug)
-  - [ ] [US-825: ESLint flat-config migration](tasks/US-825-eslint-flat-config-migration/README.md)
+  - [ ] [US-825: ESLint flat-config migration](tasks/US-825-eslint-flat-config-migration/README.md) — implemented (flat config on eslint 9; typescript-eslint 8 / react-hooks 7 / resolver 4; deferred MCP SDK 1.29 bump included)
   - [ ] [US-826: Upgrade TypeScript (5.9 → 7.0)](tasks/US-826-typescript-7/README.md) — deferred
   - [ ] [US-827: Upgrade Vite (5 → 8)](tasks/US-827-vite-8/README.md) — deferred
   - [ ] [US-828: Remaining deferred majors (fuses / csv-parse / picomatch)](tasks/US-828-remaining-deferred-majors/README.md) — deferred

@@ -31,7 +31,9 @@ export interface TextStyleProps {
      * The "No hardcoded colors" CLAUDE.md rule still applies.
      * Default: `"default"`.
      */
-    // eslint-disable-next-line @typescript-eslint/ban-types -- `string & {}` preserves IntelliSense for the named TextColor literals without collapsing the union to plain `string`.
+    // `string & {}` preserves IntelliSense for the named TextColor literals without
+    // collapsing the union to plain `string`. (The `{}` is allowed — no-empty-object-type
+    // is disabled project-wide.)
     color?: TextColor | (string & {});
     /** Font size from the fontSize token scale. Default: "base". */
     size?: TextSize;
