@@ -15,7 +15,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-825: ESLint flat-config migration](tasks/US-825-eslint-flat-config-migration/README.md) — implemented (flat config on eslint 9; typescript-eslint 8 / react-hooks 7 / resolver 4; deferred MCP SDK 1.29 bump included)
   - [ ] [US-826: Upgrade TypeScript (5.9 → 7.0)](tasks/US-826-typescript-7/README.md) — deferred (investigated 2026-07-13; TS7 is the native Go compiler with no JS API → blocked on typescript-eslint native support; revisit then)
   - [ ] [US-827: Upgrade Vite (5 → 8)](tasks/US-827-vite-8/README.md) — implemented (Strategy C: Vite 8 on dev+prod, Electron Forge removed via own scripts/dev.mjs; monaco plugin swapped+patched; build/typecheck/lint green)
-  - [ ] [US-828: Remaining deferred majors (fuses / csv-parse / picomatch)](tasks/US-828-remaining-deferred-majors/README.md) — deferred
+  - [ ] [US-828: Remaining deferred majors (csv-parse / picomatch)](tasks/US-828-remaining-deferred-majors/README.md) — implemented (csv-parse 6→7, picomatch 2→4, both verified behavior-identical; `@electron/fuses` is transitive-only → out of scope, fuses hardening tracked separately)
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
@@ -46,6 +46,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-391: PowerShell shortcut (Ctrl+\`) — open shell at cwd
 - **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
 - *(no epic)*
+  - [ ] US-829: Grid CSV header/delimiter toggle keeps stale columns — force column re-derivation on toggle (`reparseRows(content, resetColumns)`); pre-existing bug, found during US-828 testing (not caused by csv-parse 7)
   - [ ] [US-454: DrawIO Viewer — read-only viewer for `.drawio` files](tasks/US-454-drawio-viewer/README.md)
 
 

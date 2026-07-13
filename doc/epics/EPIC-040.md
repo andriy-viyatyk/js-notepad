@@ -63,13 +63,15 @@ ESLint flat-config migration: `eslint` 8→9 (10 blocked — `eslint-plugin-impo
 
 `typescript` 5.9→7.0 (Go-based compiler; deferred in US-826 — blocked on typescript-eslint) ·
 ~~`vite` 5→8~~ (done in US-827 — landed on Vite 8 + rolldown, **Electron Forge removed** by
-decoupling dev; the plugin-vite gate no longer applies) · `csv-parse` 6→7 · `picomatch` 2→4.
+decoupling dev; the plugin-vite gate no longer applies) · ~~`csv-parse` 6→7~~ (done in US-828) ·
+~~`picomatch` 2→4~~ (done in US-828 — deduped onto Vite's transitive 4.0.5).
 
 **`@electron/fuses`** is no longer a dependency — US-827 removed Forge and `@electron/fuses` with
-it. Fuses were never applied in shipped builds (Forge's `FusesPlugin` only runs under
-`electron-forge package/make`, which the electron-builder pipeline never invokes). Re-introducing
-fuses as an electron-builder `afterPack` hook is an optional **hardening** follow-up, not a version
-bump — folds into US-828 or its own task.
+it. It now appears only transitively under `electron-builder`, so there is nothing to bump (US-828
+confirmed this and excluded it). Fuses were never applied in shipped builds (Forge's `FusesPlugin`
+only runs under `electron-forge package/make`, which the electron-builder pipeline never invokes).
+Re-introducing fuses as an electron-builder `afterPack` hook is an optional **hardening**
+follow-up, not a version bump — its own task when picked up (kept out of US-828 by decision).
 
 ## Linked Tasks
 
@@ -82,7 +84,7 @@ bump — folds into US-828 or its own task.
 | US-825 | [ESLint flat-config migration](../tasks/US-825-eslint-flat-config-migration/README.md) | Implemented (flat config on eslint 9 — import plugin peer-caps at 9; incl. deferred MCP SDK 1.29) |
 | US-826 | [Upgrade TypeScript (5.9 → 7.0)](../tasks/US-826-typescript-7/README.md) | Deferred — investigated; blocked on typescript-eslint native-TS7 support (TS7 is native Go, no JS API) |
 | US-827 | [Upgrade Vite (5 → 8)](../tasks/US-827-vite-8/README.md) | Implemented — Strategy C: Vite 8 (rolldown) on dev+prod, Electron Forge fully removed (own `scripts/dev.mjs`), monaco plugin swapped + patched |
-| US-828 | [Remaining deferred majors (fuses / csv-parse / picomatch)](../tasks/US-828-remaining-deferred-majors/README.md) | Deferred |
+| US-828 | [Remaining deferred majors (csv-parse / picomatch)](../tasks/US-828-remaining-deferred-majors/README.md) | Implemented — csv-parse 6→7, picomatch 2→4 (both verified behavior-identical); `@electron/fuses` transitive-only → out of scope |
 
 ## Notes
 
