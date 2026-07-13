@@ -2,9 +2,9 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-07-13
-**Completed:**
+**Completed:** 2026-07-13
 
 ## Overview
 
@@ -157,9 +157,9 @@ family; it is **out of scope** for this epic — no targeted surface uses it.)
 
 | # | Task | Title | Depends on | Status |
 |---|------|-------|-----------|--------|
-| 1 | [US-829](../tasks/US-829-shared-selection-style/README.md) | Shared focus-aware selection style — extract the Explorer/`Tree` two-state selection into one shared fragment (`uikit/shared/selection-style.ts`); refactor `Tree`/`TreeItem` onto it with **zero visual change**; add focus-aware selection to `ListItem` (`selectionStyle="focus"`) + a `Tree` `focusSelection` opt-in; decouple focus-styling from `keyboardNav`; confirm tokens (no new ones) | — | Implemented — pending visual verification |
-| 2 | [US-830](../tasks/US-830-shared-primitive-consumers/README.md) | Shared-primitive consumers — enable focus-selection on the Tree consumers (Rest Client tree #4, Notebook Categories #5) and switch the ListBox/`ListItem` consumers (MCP Tools #8, Storybook #10, Link list-mode #11, Link pinned #12) to the focus-aware style; wire each container to be focusable | US-829 | Implemented — pending visual verification |
-| 3 | [US-831](../tasks/US-831-bespoke-row-retrofits/README.md) | Bespoke-row retrofits — apply the shared contract to the hand-rolled rows: App menu `FolderItem` #1, Notebook Tags `TagsListView` #6, ToDo `RowShell` #7, MCP Resources `Panel` rows #9, Links `CategoryList` Tags+Hostnames #2/#3 (adds a focus-aware background) | US-829 | Implemented — pending visual verification |
+| 1 | [US-829](../tasks/US-829-shared-selection-style/README.md) | Shared focus-aware selection style — extract the Explorer/`Tree` two-state selection into one shared fragment (`uikit/shared/selection-style.ts`); refactor `Tree`/`TreeItem` onto it with **zero visual change**; add focus-aware selection to `ListItem` (`selectionStyle="focus"`) + a `Tree` `focusSelection` opt-in; decouple focus-styling from `keyboardNav`; confirm tokens (no new ones) | — | Completed |
+| 2 | [US-830](../tasks/US-830-shared-primitive-consumers/README.md) | Shared-primitive consumers — enable focus-selection on the Tree consumers (Rest Client tree #4, Notebook Categories #5) and switch the ListBox/`ListItem` consumers (MCP Tools #8, Storybook #10, Link list-mode #11, Link pinned #12) to the focus-aware style; wire each container to be focusable | US-829 | Completed |
+| 3 | [US-831](../tasks/US-831-bespoke-row-retrofits/README.md) | Bespoke-row retrofits — apply the shared contract to the hand-rolled rows: App menu `FolderItem` #1, Notebook Tags `TagsListView` #6, ToDo `RowShell` #7, MCP Resources `Panel` rows #9, Links `CategoryList` Tags+Hostnames #2/#3 (adds a focus-aware background) | US-829 | Completed |
 
 ### Order rationale
 - US-829 is the pure foundation — no site changes to user-visible lists yet, but it must not
@@ -275,3 +275,12 @@ The only user-visible surface that changes is the reference; it must **not** cha
   works even with custom `renderItem`) or `tabIndex=0`+`data-focus-selection` (Panels #7/#9,
   `CategoryList` Root #2/#3). No new tokens, no new fragments, no theme edits. C1 unchanged from
   US-830 (all five mirror already-validated placements). Pending user review before implementation.
+- **US-831 implemented** (typecheck + lint green; user visually verified all six surfaces). A
+  ToDo/MCP row-height regression surfaced and was fixed: `SelectableRow` is content-height (the
+  original percentage `height: 100%` inflated rows inside a plain flex-column list); virtualized
+  consumers size their inner content to the grid `rowHeight`.
+- **Epic completed & closed (2026-07-13).** Epic-level `/review` clean (no architecture/standards
+  violations across all 28 changed files — folder placement, direct imports, no hardcoded colors,
+  single-styled-root, Rule 7 all confirmed). `/document` added the "Focus-aware list selection
+  (shared contract)" section to `uikit/CLAUDE.md` + two Key Files rows. `/userdoc` added a 4.0.14
+  Improvements bullet. All three tasks marked Completed; epic moved to `epics/completed.md`.

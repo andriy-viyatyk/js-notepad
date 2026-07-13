@@ -350,6 +350,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Advanced grid            | `/src/renderer/uikit/AVGrid/AVGrid.tsx`           |
 | UIKit library            | `/src/renderer/uikit/`                            |
 | UIKit authoring rules    | `/src/renderer/uikit/CLAUDE.md`                   |
+| Focus-aware list selection contract (`rowSelectionBase` / `focusSelectionOverride` / `rowFocusSelectionOverride`; Explorer two-state look — blurred gray / focused blue via `:focus-within` + `data-focus-selection`) | `/src/renderer/uikit/shared/selection-style.ts` |
+| Selectable-row primitive (Rule-7-clean bespoke-row host for the focus-aware selection; `selected`/`active` props) | `/src/renderer/uikit/SelectableRow/SelectableRow.tsx` |
 | Color tokens             | `/src/renderer/theme/color.ts`                    |
 | Theme definitions        | `/src/renderer/theme/themes/`                     |
 | Tor service              | `/src/main/tor-service.ts`                        |

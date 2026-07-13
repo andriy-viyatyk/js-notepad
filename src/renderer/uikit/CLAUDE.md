@@ -409,6 +409,40 @@ ListBox skin) without touching the logic.
 
 ---
 
+## Focus-aware list selection (shared contract)
+
+Selectable lists share one focus-aware selection look (the Explorer file-tree behavior): a
+selected/active row shows a subtle **gray** background when its list is **not** focused, and a
+**blue** background + blue outline when the list **is** focused. This is pure CSS — no JS focus
+state — built from three fragments in `shared/selection-style.ts` and gated by a container
+attribute:
+
+| Fragment | Applied on | Purpose |
+|----------|-----------|---------|
+| `rowSelectionBase` | the **row**'s styled block (self-selector spread) | blurred base — `[data-selected]` → `background.light`, `[data-active]:not([data-selected])` → `background.message` |
+| `focusSelectionOverride(rowSelector)` | the focusable **container**'s styled block | focused override for rows that are *descendants* of the container (e.g. `Tree` → `TreeItem`, `CategoryList` → its rows) |
+| `rowFocusSelectionOverride(rowMatch)` | the **row**'s own styled block | focused override for a row primitive used *without* its own styled container (e.g. `ListItem` outside `ListBox`, `SelectableRow`) — matches whenever the row sits inside any focused-within `[data-focus-selection]` ancestor |
+
+**How a container opts in:** set `data-focus-selection` **and** `tabIndex={0}` on the scroll
+container so `:focus-within` can trigger on click. `ListBox` does this for you via
+`selectionStyle="focus"` (works even with a custom `renderItem`); `Tree` via its `focusSelection`
+prop (or `keyboardNav`, which implies it). For a plain container you own, pass `tabIndex={0}` +
+`data-focus-selection=""` directly (a `Panel` forwards both via `...rest` — Rule 7 clean).
+
+**The rows.** A row that rides a shared primitive (`ListItem`, `TreeItem`) already carries the
+focus-mode CSS. For a **bespoke** row in editor code that can't use Emotion (Rule 7), wrap the
+row content in the **`SelectableRow`** primitive — a layout-neutral `<div>` that composes
+`rowSelectionBase` + `rowFocusSelectionOverride` verbatim and exposes `selected` / `active` props.
+It is content-height (no percentage height), so a single child provides the layout; give that
+child `flex={1}`/`minWidth={0}` where it must stretch, and size it to the grid `rowHeight` in a
+virtualized list.
+
+No new color tokens are needed — the look reuses `background.light` / `background.message`
+(blurred) and `background.treeSelection` / `border.active` / `text.selection` (focused), all
+defined in every theme.
+
+---
+
 ## Naming conventions
 
 ### Component names

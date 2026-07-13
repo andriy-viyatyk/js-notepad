@@ -7,10 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-041** — [Unified Focused/Unfocused List Selection](epics/EPIC-041.md)
-  - [ ] [US-829: Shared focus-aware selection style](tasks/US-829-shared-selection-style/README.md) (extract Explorer/`Tree` two-state selection → `uikit/shared`; wire into `Tree` + `ListBox`/`ListItem`)
-  - [ ] [US-830: Shared-primitive consumers](tasks/US-830-shared-primitive-consumers/README.md) — Rest Client tree, Notebook Categories (Tree); MCP Tools, Storybook, Link list-mode, Link pinned (ListBox)
-  - [ ] [US-831: Bespoke-row retrofits](tasks/US-831-bespoke-row-retrofits/README.md) — App menu, Notebook Tags, ToDo, MCP Resources, Links Tags/Hostnames (adds `uikit/SelectableRow`)
+_No active work._
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
