@@ -16,7 +16,7 @@
  * The `window.persephone` surface is byte-for-byte the same as the old preload so
  * board authors see no difference. Build: a standalone browser IIFE (no runtime
  * imports — only type-only + the `RunnerChannel` string enum, which is dependency-
- * free). See `vite.board-shim.config.ts`.
+ * free). Built as `format: "iife"` by scripts/build-prod.mjs and scripts/dev.mjs.
  */
 import {
     RunnerChannel,

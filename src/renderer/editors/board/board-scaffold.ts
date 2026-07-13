@@ -18,7 +18,7 @@ import { ensureBoardManifest } from "./board-manifest";
  * The caller (`BoardEditorModel.createBoard` / `createDemoBoard`) guarantees the
  * destination is a brand-new, empty folder (it errors on a name collision first),
  * so there is no skip-if-exists guard here — every template file is copied
- * unconditionally. `assets/` ships via `forge.config.ts`'s `extraResource`, so the
+ * unconditionally. `assets/` ships via electron-builder's `extraResources`, so the
  * template + base stylesheet are present beside the app in both dev and packaged builds.
  */
 export async function scaffoldBoard(destDir: string, template = "board-template"): Promise<void> {

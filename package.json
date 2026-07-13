@@ -5,7 +5,7 @@
   "description": "Persephone",
   "main": ".vite/build/main.js",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "node scripts/dev.mjs",
     "build-prod": "node scripts/build-prod.mjs",
     "dist": "node scripts/build-prod.mjs && electron-builder --win",
     "dist:zip": "node scripts/build-prod.mjs && electron-builder --win zip",
@@ -23,11 +23,6 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@electron-forge/cli": "^7.11.2",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.11.2",
-    "@electron-forge/plugin-fuses": "^7.11.2",
-    "@electron-forge/plugin-vite": "^7.11.2",
-    "@electron/fuses": "^1.8.0",
     "@eslint/js": "^9.39.5",
     "@types/d3": "^7.4.3",
     "@types/d3-drag": "^3.0.7",
@@ -40,6 +35,7 @@
     "@typescript-eslint/parser": "^8.63.0",
     "electron": "github:castlabs/electron-releases#v43.0.0+wvcus",
     "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1",
     "eslint": "^9.39.5",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import": "^2.32.0",
@@ -48,8 +44,9 @@
     "patch-package": "^8.0.1",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.63.0",
-    "vite": "^5.4.21",
-    "vite-plugin-monaco-editor": "^1.1.0"
+    "vite": "^8.1.4",
+    "vite-plugin-electron-renderer": "^1.0.0",
+    "vite-plugin-monaco-editor-esm": "^2.0.2"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

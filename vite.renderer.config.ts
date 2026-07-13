@@ -1,5 +1,6 @@
 import { defineConfig, Plugin } from 'vite';
-import monacoEditorPlugin from 'vite-plugin-monaco-editor';
+import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm';
+import electronRenderer from 'vite-plugin-electron-renderer';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -76,7 +77,13 @@ export default defineConfig({
     editorTypesPlugin(),
     monacoEditorPlugin({
       languageWorkers: ['typescript', 'editorWorkerService', 'json', 'html'],
-    })
+    }),
+    // The renderer runs with nodeIntegration, so Node builtins (buffer, stream,
+    // fs, path, …) and `electron` must resolve to the real runtime modules via
+    // require() — not Vite's browser-external stubs (which broke iconv-lite /
+    // safer-buffer under Vite 8). Electron Forge's plugin-vite did this before
+    // the decoupling; this plugin restores it for both dev and prod.
+    electronRenderer(),
   ],
   build: {
     target: 'esnext',

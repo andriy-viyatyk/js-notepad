@@ -61,8 +61,15 @@ ESLint flat-config migration: `eslint` 8→9 (10 blocked — `eslint-plugin-impo
 
 ### Deferred — large, standalone efforts
 
-`typescript` 5.9→7.0 (Go-based compiler) · `vite` 5→8 (gated by `@electron-forge/plugin-vite`) ·
-`@electron/fuses` 1→2 · `csv-parse` 6→7 · `picomatch` 2→4.
+`typescript` 5.9→7.0 (Go-based compiler; deferred in US-826 — blocked on typescript-eslint) ·
+~~`vite` 5→8~~ (done in US-827 — landed on Vite 8 + rolldown, **Electron Forge removed** by
+decoupling dev; the plugin-vite gate no longer applies) · `csv-parse` 6→7 · `picomatch` 2→4.
+
+**`@electron/fuses`** is no longer a dependency — US-827 removed Forge and `@electron/fuses` with
+it. Fuses were never applied in shipped builds (Forge's `FusesPlugin` only runs under
+`electron-forge package/make`, which the electron-builder pipeline never invokes). Re-introducing
+fuses as an electron-builder `afterPack` hook is an optional **hardening** follow-up, not a version
+bump — folds into US-828 or its own task.
 
 ## Linked Tasks
 
@@ -73,8 +80,8 @@ ESLint flat-config migration: `eslint` 8→9 (10 blocked — `eslint-plugin-impo
 | US-823 | [Upgrade `@anthropic-ai/sdk` (0.86 → 0.111)](../tasks/US-823-anthropic-sdk-major/README.md) | Implemented (verified offline — no key needed) |
 | US-824 | [Upgrade `monaco-editor` (0.52 → 0.55)](../tasks/US-824-monaco-editor-major/README.md) | Implemented (verified — incl. upstream menu-paste bug patched) |
 | US-825 | [ESLint flat-config migration](../tasks/US-825-eslint-flat-config-migration/README.md) | Implemented (flat config on eslint 9 — import plugin peer-caps at 9; incl. deferred MCP SDK 1.29) |
-| US-826 | [Upgrade TypeScript (5.9 → 7.0)](../tasks/US-826-typescript-7/README.md) | Deferred |
-| US-827 | [Upgrade Vite (5 → 8)](../tasks/US-827-vite-8/README.md) | Deferred |
+| US-826 | [Upgrade TypeScript (5.9 → 7.0)](../tasks/US-826-typescript-7/README.md) | Deferred — investigated; blocked on typescript-eslint native-TS7 support (TS7 is native Go, no JS API) |
+| US-827 | [Upgrade Vite (5 → 8)](../tasks/US-827-vite-8/README.md) | Implemented — Strategy C: Vite 8 (rolldown) on dev+prod, Electron Forge fully removed (own `scripts/dev.mjs`), monaco plugin swapped + patched |
 | US-828 | [Remaining deferred majors (fuses / csv-parse / picomatch)](../tasks/US-828-remaining-deferred-majors/README.md) | Deferred |
 
 ## Notes

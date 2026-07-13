@@ -1,0 +1,17 @@
+diff --git a/node_modules/vite-plugin-monaco-editor-esm/dist/index.js b/node_modules/vite-plugin-monaco-editor-esm/dist/index.js
+index c88bd8c..8921c01 100644
+--- a/node_modules/vite-plugin-monaco-editor-esm/dist/index.js
++++ b/node_modules/vite-plugin-monaco-editor-esm/dist/index.js
+@@ -12,6 +12,12 @@ export function resolveMonacoPath(filePath) {
+         if (fs.existsSync(fullFilePath)) {
+             return fullFilePath;
+         }
++        // Monaco worker entries are declared without an extension (e.g.
++        // ".../ts.worker") but ship as ".js" files. esbuild treats entry points
++        // as literal file paths (not bare specifiers), so hand it the real .js.
++        if (fs.existsSync(fullFilePath + '.js')) {
++            return fullFilePath + '.js';
++        }
+         return filePath;
+     }
+     catch (err) {

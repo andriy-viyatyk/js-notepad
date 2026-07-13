@@ -115,7 +115,6 @@ await build({
             input: { "board-shim": "src/board-shim.ts" },
             output: {
                 format: "iife",
-                inlineDynamicImports: true,
                 entryFileNames: "[name].js",
                 chunkFileNames: "[name].js",
             },

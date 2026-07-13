@@ -66,16 +66,19 @@ window.electron = electronHandler;
 // main over a per-board MessagePort. No boardPreloadUrl is needed.
 
 window.MonacoEnvironment = {
+  // Worker bundles are emitted into monacoeditorwork/ by
+  // vite-plugin-monaco-editor-esm (its default publicPath), served from the
+  // same path by the dev middleware and packaged there in prod.
   getWorkerUrl: function (_moduleId, label) {
     if (label === 'json') {
-      return './json.worker.bundle.js';
+      return './monacoeditorwork/json.worker.bundle.js';
     }
     if (label === 'html') {
-      return './html.worker.bundle.js';
+      return './monacoeditorwork/html.worker.bundle.js';
     }
     if (label === 'typescript' || label === 'javascript') {
-      return './ts.worker.bundle.js';
+      return './monacoeditorwork/ts.worker.bundle.js';
     }
-    return './editor.worker.bundle.js';
+    return './monacoeditorwork/editor.worker.bundle.js';
   }
 };
