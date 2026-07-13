@@ -7,9 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(no epic)*
-  - [ ] US-829: Grid CSV header/delimiter toggle keeps stale columns — force column re-derivation on toggle (`reparseRows(content, resetColumns)`); pre-existing bug, found during US-828 testing (not caused by csv-parse 7)
-  - [ ] US-830: CI release build 404s downloading Electron — `electron-builder.yml` `electronDownload.mirror` had a trailing `v` that doubles with `@electron/get`'s `v${version}` customDir (`…/download/vv43.0.0+wvcus/…`); dropped the trailing `v`. First CI build after the Forge → electron-builder migration (US-827)
+
+*Nothing in progress.*
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

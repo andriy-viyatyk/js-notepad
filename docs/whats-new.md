@@ -20,6 +20,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Built-in browser — Google (and similar) sign-in no longer blocked** — Signing into a Google account in the built-in browser could fail after entering your email with *"This browser or app may not be secure."* Google was rejecting the embedded browser because a Chrome-specific object (`window.chrome`) it inspects during page load was empty. Persephone now presents that object like genuine Chrome does, so sign-in proceeds to the password step normally. This is a compatibility fix only — it changes nothing about how pages are isolated or sandboxed. See [Built-in Browser](./browser.md).
 
+- **Grid Editor — toggling "First row is header" (or changing the CSV delimiter) no longer blanks the grid** — In the CSV Options popup, switching **First row is header** on or off, or changing the delimiter, could leave every cell empty while the column headers stayed stuck on `0`, `1`, `2`, … instead of picking up the real column names. The grid kept its previous columns instead of re-deriving them from the newly reparsed rows, so cells looked up column keys that no longer existed. Columns are now rebuilt correctly whenever the header or delimiter setting changes. See [Grid Editor — CSV Options](./grid-editor.md#csv-options).
+
 ---
 
 ## Version 4.0.13

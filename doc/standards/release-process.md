@@ -108,6 +108,21 @@ For releasing v2.0.1 and starting v2.0.2:
 | New branch | `git checkout -b upcoming-v2.0.2` |
 | Commit + push | `git commit ... && git push -u origin upcoming-v2.0.2` |
 
+## Test Build (draft, without releasing)
+
+To verify the GitHub Actions build succeeds — and to get an installer you can install locally — **without** merging to `main` or creating a `vX.Y.Z` tag, trigger the workflow manually on the working branch. The pipeline also fires on `workflow_dispatch` (see `.github/workflows/publish.yml`):
+
+```bash
+gh workflow run publish.yml --ref upcoming-vX.Y.Z
+gh run watch <run-id> --exit-status   # optional: follow to completion
+```
+
+This runs the full production pipeline (`npm run dist:publish`, including VMP signing) and creates a **draft** GitHub release for the current `package.json` version. A draft is maintainer-only — invisible to users, no notification, and no auto-update — so it does not affect the public release. Download `persephone-setup-X.Y.Z.exe` from the draft to install and test locally.
+
+Notes:
+- The "remove auto-update artifacts" cleanup step only runs on tag pushes (`if: startsWith(github.ref, 'refs/tags/v')`), so a dispatch draft keeps `latest.yml` and the `.blockmap` files. That is harmless for local testing.
+- Delete the throwaway draft (Releases page → the untagged `X.Y.Z` draft → Delete) before doing the real tag release, so electron-builder doesn't collide with it.
+
 ## VMP Signing (Widevine DRM)
 
 The GitHub Actions pipeline automatically VMP-signs the production build using Castlabs EVS. This enables DRM playback (Netflix, Disney+) in the built-in browser.
