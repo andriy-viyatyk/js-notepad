@@ -371,7 +371,9 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
                     lastDelimiter = csvDelimiter;
                     lastWithColumns = csvWithColumns;
                     const content = this._host?.state.get().content ?? "";
-                    this.reparseRows(content);
+                    // Delimiter / header changes redefine the columns, so force
+                    // re-derivation instead of preserving the stale ones.
+                    this.reparseRows(content, true);
                 }
             });
         }
@@ -448,8 +450,13 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
      *  filter, hidden state) when `state.columns` is already populated.
      *  Cross-switch saved columns flow in via `adoptHost`'s seed-from-slot;
      *  this method must NOT clobber them. Columns auto-derive only on first
-     *  bootstrap (empty editor state) or when explicitly reset. */
-    reparseRows(content: string): void {
+     *  bootstrap (empty editor state) or when explicitly reset.
+     *
+     *  `resetColumns` forces re-derivation even when columns already exist —
+     *  used by the CSV delimiter / header toggle, where the column identity
+     *  itself changes (numeric ordinals ↔ header names) so preserving the old
+     *  columns would leave the grid keyed on names that no longer exist. */
+    reparseRows(content: string, resetColumns = false): void {
         // G17 — encrypted content gate. Surface a clear message via the
         // same channel <EditorError> renders for parse failures.
         if (this._host?.state.get().encrypted) {
@@ -473,7 +480,7 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
             rowsInput = [parsed];
         }
         if (rowsInput) {
-            const hasSavedColumns = this.state.get().columns.length > 0;
+            const hasSavedColumns = !resetColumns && this.state.get().columns.length > 0;
             const data = getGridDataWithColumns(rowsInput);
             this._maxRowId = data.rows.length;
             this.state.update((s) => {
