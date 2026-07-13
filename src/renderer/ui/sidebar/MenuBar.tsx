@@ -305,6 +305,13 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
 
         const menuItems: MenuItem[] = [
             {
+                label: "Open in New Tab",
+                icon: <OpenFileIcon />,
+                onClick: () => {
+                    this.openFolderInTab(folder);
+                },
+            },
+            {
                 label: "Remove Folder",
                 icon: <RemoveIcon />,
                 onClick: () => {
