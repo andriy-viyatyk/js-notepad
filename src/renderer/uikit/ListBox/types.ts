@@ -141,8 +141,11 @@ export interface ListBoxProps<T = IListBoxItem>
      *   • `"accent"` — filled selection background + trailing chevron-right
      *     icon. Use for sidebar/browse lists where selection is persistent
      *     navigation state and the selected row's details are shown to the right.
+     *   • `"focus"` — focus-aware selection (Explorer look): gray when the list is
+     *     blurred, blue + outline when focused. Pair with `variant="browse"`. No
+     *     default trailing icon.
      *
      * Ignored when a custom `renderItem` is supplied.
      */
-    selectionStyle?: "check" | "accent";
+    selectionStyle?: "check" | "accent" | "focus";
 }

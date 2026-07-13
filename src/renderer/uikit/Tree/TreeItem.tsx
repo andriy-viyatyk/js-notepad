@@ -4,6 +4,7 @@ import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
 import { ChevronDownIcon, ChevronRightIcon } from "../../theme/icons";
 import { highlight } from "../shared/highlight";
+import { rowSelectionBase } from "../shared/selection-style";
 import { Tooltip } from "../Tooltip";
 import { Spinner } from "../Spinner";
 
@@ -93,12 +94,9 @@ const Root = styled.div(
         overflow: "hidden",
 
         "&[data-disabled]": { opacity: 0.4, pointerEvents: "none" },
-        "&[data-active]:not([data-selected])": {
-            backgroundColor: color.background.message,
-        },
-        "&[data-selected]": {
-            backgroundColor: color.background.light,
-        },
+        // Blurred-state selected/active backgrounds — single-sourced with ListBox + the
+        // Tree container's focused override via uikit/shared/selection-style.
+        ...rowSelectionBase,
         "&[data-dragging]": {
             opacity: 0.5,
         },

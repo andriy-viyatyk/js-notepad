@@ -215,6 +215,12 @@ export interface TreeProps<T = ITreeItem>
     /** When true, the Tree handles ArrowUp/Down/Left/Right/Home/End/Enter on its root. Default: false. */
     keyboardNav?: boolean;
     /**
+     * Enables the focus-aware selection styling (Explorer look: gray when the tree is blurred,
+     * blue + outline when focused) and makes the tree root focusable, WITHOUT enabling
+     * arrow-key navigation. `keyboardNav` implies this. Default: false.
+     */
+    focusSelection?: boolean;
+    /**
      * Per-row collapse guard, consulted when a toggle would collapse an expanded row
      * (chevron click, ArrowLeft, `toggleItem`). Return false to keep the row open —
      * e.g. a permanent chevron-less root that could otherwise be collapsed via the

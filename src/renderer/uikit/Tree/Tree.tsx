@@ -10,6 +10,7 @@ import type {
     RenderCellFunc,
 } from "../RenderGrid";
 import { Spinner } from "../Spinner";
+import { focusSelectionOverride } from "../shared/selection-style";
 import { TreeItem } from "./TreeItem";
 import { SectionItem } from "./SectionItem";
 import { TreeModel, defaultTreeState } from "./TreeModel";
@@ -32,23 +33,12 @@ const Root = styled.div(
         outline: "none",
         "&[data-disabled]": { opacity: 0.6, pointerEvents: "none" },
 
-        // Focused-tree row visuals — only for trees that opt into keyboardNav (the
-        // root is a tab stop there). Descendant selectors, because rows may be
-        // consumer-rendered via `renderItem` (they still render a TreeItem carrying
-        // data-type="tree-item"). Non-keyboardNav trees render exactly as before.
-        // VS Code mapping: treeSelection = list.activeSelectionBackground,
-        // text.selection = list.activeSelectionForeground, border.active =
-        // focusBorder (the focus outline on the focused/selected row).
-        '&[data-keyboard-nav]:focus-within [data-type="tree-item"][data-selected]': {
-            backgroundColor: color.background.treeSelection,
-            color: color.text.selection,
-            outline: `1px solid ${color.border.active}`,
-            outlineOffset: -1,
-        },
-        '&[data-keyboard-nav]:focus-within [data-type="tree-item"][data-active]': {
-            outline: `1px solid ${color.border.active}`,
-            outlineOffset: -1,
-        },
+        // Focused-list selection visuals (gray when blurred → blue + outline when the tree
+        // is focused). Shared with ListBox via uikit/shared/selection-style. Gated on
+        // data-focus-selection (set for keyboardNav or focusSelection trees); descendant
+        // selectors, because rows may be consumer-rendered via `renderItem` (they still
+        // render a TreeItem carrying data-type="tree-item"). Opt-out trees are unaffected.
+        ...focusSelectionOverride('[data-type="tree-item"]'),
     },
     { label: "Tree" },
 );
@@ -106,6 +96,7 @@ function TreeView<T = ITreeItem>(
         searchText,
         renderItem,
         keyboardNav = false,
+        focusSelection = false,
         rowHeight = defaultRowHeight,
         indentSize = defaultIndentSize,
         growToHeight,
@@ -177,6 +168,10 @@ function TreeView<T = ITreeItem>(
     const rows = model.rows.value;
 
     const dndEnabled = model.isDndEnabled;
+
+    // Focus-aware selection (Explorer look) is enabled by keyboardNav (back-compat) or the
+    // dedicated focusSelection prop. It gates data-focus-selection + the root's tab stop.
+    const focusAware = keyboardNav || focusSelection;
 
     const renderCell: RenderCellFunc = ({ row: idx, key, style }) => {
         const r = rows[idx];
@@ -274,6 +269,7 @@ function TreeView<T = ITreeItem>(
                 data-type="tree"
                 data-name={name}
                 data-keyboard-nav={keyboardNav || undefined}
+                data-focus-selection={focusAware || undefined}
                 data-loading=""
                 onContextMenu={model.onRootContextMenu}
                 {...rest}
@@ -292,6 +288,7 @@ function TreeView<T = ITreeItem>(
                 data-type="tree"
                 data-name={name}
                 data-keyboard-nav={keyboardNav || undefined}
+                data-focus-selection={focusAware || undefined}
                 data-empty=""
                 onContextMenu={model.onRootContextMenu}
                 {...rest}
@@ -312,8 +309,9 @@ function TreeView<T = ITreeItem>(
             data-type="tree"
             data-name={name}
             data-keyboard-nav={keyboardNav || undefined}
+            data-focus-selection={focusAware || undefined}
             role="tree"
-            tabIndex={keyboardNav ? 0 : -1}
+            tabIndex={focusAware ? 0 : -1}
             aria-activedescendant={activeId}
             onKeyDown={model.onKeyDown}
             onContextMenu={model.onRootContextMenu}

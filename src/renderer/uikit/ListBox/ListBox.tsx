@@ -10,6 +10,7 @@ import type {
     RenderCellFunc,
 } from "../RenderGrid";
 import { Spinner } from "../Spinner/Spinner";
+import { focusSelectionOverride } from "../shared/selection-style";
 import { ListItem } from "./ListItem";
 import { SectionItem } from "./SectionItem";
 import { ListBoxModel, defaultListBoxState } from "./ListBoxModel";
@@ -24,6 +25,9 @@ const Root = styled.div(
         flex: "1 1 auto",
         outline: "none",
         "&[data-disabled]": { opacity: 0.6, pointerEvents: "none" },
+        // Focused-list selection override for selectionStyle="focus" rows (the Explorer
+        // look). Inert unless the root carries data-focus-selection.
+        ...focusSelectionOverride('[data-type="list-item"]'),
     },
     { label: "ListBox" },
 );
@@ -187,13 +191,16 @@ function ListBoxView<T = IListBoxItem>(
             ? model.itemId(activeIndex)
             : undefined;
 
+    const focusAware = keyboardNav || selectionStyle === "focus";
+
     return (
         <Root
             id={rootId}
             data-type="list-box"
             data-name={name}
             role="listbox"
-            tabIndex={keyboardNav ? 0 : -1}
+            data-focus-selection={selectionStyle === "focus" || undefined}
+            tabIndex={focusAware ? 0 : -1}
             aria-activedescendant={activeId}
             onKeyDown={model.onKeyDown}
             onContextMenu={model.onRootContextMenu}

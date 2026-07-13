@@ -48,7 +48,7 @@ interface DemoProps {
     predicateSelection?: boolean;
     sections?: boolean;
     variant?: "select" | "browse";
-    selectionStyle?: "check" | "accent";
+    selectionStyle?: "check" | "accent" | "focus";
 }
 
 function ListBoxDemo({
@@ -177,6 +177,6 @@ export const listBoxStory: Story = {
         { name: "predicateSelection", type: "boolean", default: false },
         { name: "sections",           type: "boolean", default: false },
         { name: "variant",            type: "enum",    options: ["select", "browse"], default: "select" },
-        { name: "selectionStyle",     type: "enum",    options: ["check", "accent"],  default: "check" },
+        { name: "selectionStyle",     type: "enum",    options: ["check", "accent", "focus"],  default: "check" },
     ],
 };

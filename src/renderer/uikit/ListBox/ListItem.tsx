@@ -4,6 +4,7 @@ import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
 import { CheckIcon, ChevronRightIcon } from "../../theme/icons";
 import { highlight } from "../shared/highlight";
+import { rowSelectionBase } from "../shared/selection-style";
 import { Tooltip } from "../Tooltip";
 
 // --- Types ---
@@ -54,8 +55,11 @@ export interface ListItemProps
      *   • `"accent"` — filled selection background + trailing chevron-right icon.
      *     Use for sidebar/browse lists where selection is persistent navigation
      *     state and the selected row's details are shown to the right.
+     *   • `"focus"` — focus-aware selection (Explorer look): gray when the list is
+     *     blurred, blue + outline when the list is focused. Pair with `variant="browse"`.
+     *     No default trailing icon.
      */
-    selectionStyle?: "check" | "accent";
+    selectionStyle?: "check" | "accent" | "focus";
     /**
      * Controls whether the default trailing selection icon (check / chevron-right per
      * `selectionStyle`) renders when `selected` is true. Set to `false` to keep the
@@ -92,6 +96,11 @@ const Root = styled.div(
         '&[data-selection-style="accent"][data-selected]': {
             backgroundColor: color.background.selection,
             color: color.text.selection,
+        },
+        // Focus-aware selection (Explorer look): blurred-state gray base here; the blue
+        // focused override lives on the ListBox container (uikit/shared/selection-style).
+        '&[data-selection-style="focus"]': {
+            ...rowSelectionBase,
         },
 
         "& > svg": {
@@ -135,7 +144,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
 ) {
     const labelNode =
         typeof label === "string" && searchText ? highlight(label, searchText) : label;
-    const defaultTrailing = selected && showSelectionIcon
+    const defaultTrailing = selected && showSelectionIcon && selectionStyle !== "focus"
         ? selectionStyle === "accent"
             ? <ChevronRightIcon />
             : <CheckIcon />
