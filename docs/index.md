@@ -39,7 +39,7 @@ persephone is a Windows Notepad replacement designed for developers. It combines
 ## Key Features
 
 ### For All Users
-- Fast, lightweight text editor
+- Powerful text editor powered by Monaco, the engine behind VS Code
 - Syntax highlighting for 50+ languages
 - Find and replace
 - Multiple tabs with session restore
