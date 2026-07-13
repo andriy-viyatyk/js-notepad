@@ -154,12 +154,12 @@ The left side shows your folder shortcuts:
 Click a folder in the left panel to see its contents in the right panel.
 
 **Open Folder in New Tab:**
-- When a custom folder is selected, click the chevron (▶) icon to open a new tab with the File Explorer panel showing that folder's contents
+- When a custom folder is selected, click the chevron (▶) icon, double-click the folder, or right-click it and choose **Open in New Tab** to open a new tab with the File Explorer panel showing that folder's contents
 - This gives you a full-width file browser alongside an editor, without keeping the sidebar open
 
 **Managing Custom Folders:**
 - Click the **Add Folder** button at the bottom of the left panel to pick a folder and add it as a shortcut
-- Right-click in the left panel for the same **Add Folder** option, plus **Remove Folder** on an existing shortcut
+- Right-click in the left panel for the same **Add Folder** option, plus **Open in New Tab** and **Remove Folder** on an existing shortcut
 - Folders provide quick access to frequently used directories
 
 ### Right Panel — Contents
@@ -180,6 +180,7 @@ The right panel shows the contents of the selected folder:
 - Click a file to open it
 - Right-click for options: Create File, Create Folder, Rename, Delete, Cut, Copy, Paste
 - Search files by name with `Ctrl+F` when the file explorer is active
+- **Drag a file out to the OS** — hold **Ctrl** and drag a file from the tree onto Windows Explorer or into a Microsoft Teams chat to copy/attach it there. A plain drag (no Ctrl) keeps the normal in-app behavior — moving the file within the tree or dragging it into an editor. Currently one file at a time.
 
 ### Sidebar Header Buttons
 
@@ -245,6 +246,7 @@ Any saved file can open a **File Explorer** panel alongside the editor. Click th
 - **Keyboard navigation** — Once the tree has focus (click a row, or Tab into it), arrow keys move the selection cursor, `Home`/`End` jump to the first/last row, `Page Up`/`Page Down` move by a page, `Enter` opens the highlighted row, and `ArrowRight`/`ArrowLeft` expand/collapse a folder. When the tree has keyboard focus, the selected row shows an accent highlight with a focus outline around the cursor row; move focus elsewhere (for example, into the editor) and the selection falls back to a plain highlight, but stays visible.
 - **File operations** — Right-click files for: create files/folders, rename, delete, copy path, show in explorer, open in new tab. `F2` renames the selected row and `Delete` deletes it (with the usual confirmation dialog) directly from the keyboard, without opening the context menu.
 - **Cut / Copy / Paste with Windows Explorer** — Right-click a file or folder for **Cut** or **Copy**, then paste it into Windows Explorer (or another Persephone Explorer panel) — this uses the real Windows clipboard, so files copied in Windows Explorer can also be pasted here. Right-click a folder (or empty space in the tree) and choose **Paste** to paste files/folders copied or cut from Windows Explorer into that folder; folders are copied recursively. **Cut** from Windows Explorer and pasted here moves the files (originals are removed only after the copy succeeds); **Cut** here and pasted into Windows Explorer works the same way. Pasting over existing files/folders asks for confirmation before overwriting, and large pastes show a progress indicator. The same actions are also available from the keyboard on the selected row: `Ctrl+C` copies, `Ctrl+X` cuts (not available on the tree's root), and `Ctrl+V` pastes into the selected folder (or the selected file's parent folder, or the root if nothing is selected).
+- **Drag a file out to the OS** — Hold **Ctrl** and drag a file from the tree onto Windows Explorer to copy it there, or onto a Microsoft Teams chat compose box to attach it — a native OS drag, just like dragging from Windows Explorer itself. A plain drag (no Ctrl) is unchanged: it moves the file within the tree or drags it into an editor. Not available on the tree's root, and one file at a time for now.
 - **Open folder in new panel** — Right-click any folder and choose **Open in New Panel** to open it in a new File Explorer tab alongside the current editor
 - **Auto-reveal current file** — When the Explorer panel is active (expanded), navigating to a file automatically expands its parent folders and scrolls the tree to show the file. When the Search panel is active instead, the file is highlighted in the tree without expanding folders.
 - **Search files by name** — Press `Ctrl+F` within the panel to search files by name (filters the tree to matching entries)

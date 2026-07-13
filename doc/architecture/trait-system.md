@@ -391,6 +391,14 @@ The `Tree` internally uses the same native HTML5 handlers (`onDragStart`, `onDra
 
 A drag source can choose its **trait-type id** instead of defaulting to `ILink`. `TreeProviderView` passes `provider.dragTraitTypeId ?? TraitTypeId.ILink`, so a provider whose nodes carry extra capabilities drags under its own registered TraitSet — e.g. `MnemeTreeProvider` returns `MnemeLink`, whose set implements `LINK` *and* `FILE_LINK`.
 
+### Dragging files out to the OS (`onDragStartOverride`)
+
+`Tree` also exposes `onDragStartOverride?(source, level, e) => boolean`, a first-chance `dragstart` hook that runs **before** the trait payload is built. Returning `true` signals that the handler took over the gesture (it already called `e.preventDefault()`); the `Tree` then skips its own trait-drag setup. This keeps UIKit free of Electron/IPC — the app layer supplies the native behavior.
+
+`TreeProviderView` uses it to export local files to the OS: on a **Ctrl-drag** of a local-file-provider row it hands off to `webContents.startDrag` (via the `startOsFileDrag` IPC endpoint → `src/main/os-drag-service.ts`), producing a real Windows **CF_HDROP** drag that Windows Explorer and Microsoft Teams accept as a file copy. A plain drag (no Ctrl) falls through to the normal in-process HTML5 trait drag, so internal move / drag-into-editor are unchanged.
+
+The two are mutually exclusive per gesture: a native OS drag **cannot be dropped back onto the app's own windows**, so it can't serve the internal case — hence the OS export is gated behind Ctrl rather than sharing the plain drag. `Ctrl` (not `Alt`) because Windows interprets a held `Alt` during a drag as "create shortcut", which drop targets reject, whereas `Ctrl` means "copy".
+
 ---
 
 ## Pattern: File Content Drops (`FILE_LINK`)

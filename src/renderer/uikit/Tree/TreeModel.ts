@@ -411,9 +411,11 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         );
     }
 
-    /** Whether row at idx is allowed to start a drag. */
+    /** Whether row at idx is allowed to start a drag. Enabled by a trait-drag config
+     *  (`traitTypeId` + `getDragData`) OR an `onDragStartOverride` (native OS drag). */
     canDragRow = (rowIndex: number): boolean => {
-        if (!this.props.traitTypeId || !this.props.getDragData) return false;
+        const hasTraitDrag = !!this.props.traitTypeId && !!this.props.getDragData;
+        if (!hasTraitDrag && !this.props.onDragStartOverride) return false;
         const r = this.rows.value[rowIndex];
         return !!r && !r.item.section && !r.item.disabled;
     };
@@ -438,13 +440,18 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     onDragStart = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
-        const { traitTypeId, getDragData } = this.props;
-        if (!traitTypeId || !getDragData) {
+        const r = this.rows.value[rowIndex];
+        if (!r || r.item.section || r.item.disabled) {
             e.preventDefault();
             return;
         }
-        const r = this.rows.value[rowIndex];
-        if (!r || r.item.section || r.item.disabled) {
+        // First chance: the app may take over the gesture with a native OS drag.
+        if (this.props.onDragStartOverride?.(r.source, r.level, e)) {
+            e.stopPropagation();
+            return;
+        }
+        const { traitTypeId, getDragData } = this.props;
+        if (!traitTypeId || !getDragData) {
             e.preventDefault();
             return;
         }

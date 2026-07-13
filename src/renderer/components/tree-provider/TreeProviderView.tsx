@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import { useComponentModel } from "../../core/state/model";
 import { TraitSet, traited } from "../../core/traits/traits";
@@ -16,6 +16,8 @@ import { CloseIcon } from "../../theme/icons";
 import { LINK } from "../../editors/link-editor/linkTraits";
 import { TraitTypeId, resolveTraits, FILE_LINK } from "../../core/traits";
 import type { TraitDragPayload } from "../../core/traits";
+import { api } from "../../../ipc/renderer/api";
+import { supportsOsClipboard } from "./os-clipboard";
 import { TreeProviderItemIcon } from "./TreeProviderItemIcon";
 import {
     TreeProviderViewModel,
@@ -171,6 +173,28 @@ export function TreeProviderView(
         if (node.data.href === props.provider.rootPath) return null;
         return { items: [node.data], sourceId: props.provider.sourceUrl };
     }, [writable, props.provider.rootPath, props.provider.sourceUrl]);
+
+    // OS file drag-out (Windows Explorer / Teams) for local-file providers, where
+    // `href` is an absolute path. Gated on Ctrl: a plain drag keeps the tree's
+    // in-process HTML5 trait drag (internal move / drag-into-editor); holding Ctrl
+    // hands off to a native OS drag (`webContents.startDrag`) — the only payload
+    // both Explorer AND Teams accept cleanly. Ctrl (not Alt) because Windows treats
+    // a held Alt as "create shortcut" (targets reject it → "no drop"), whereas Ctrl
+    // means "copy" — which is exactly what an export is. A native drag can't be
+    // dropped back onto the app's own windows, so it can't serve the internal case —
+    // hence the modifier. Non-file providers keep the plain trait drag only.
+    const osDragEnabled = supportsOsClipboard(props.provider);
+    const handleOsDragStart = useCallback(
+        (node: TreeProviderNode, _level: number, e: React.DragEvent): boolean => {
+            if (!e.ctrlKey) return false;
+            const href = node.data.href;
+            if (!href || href === props.provider.rootPath) return false;
+            e.preventDefault();
+            void api.startOsFileDrag([href]);
+            return true;
+        },
+        [props.provider.rootPath],
+    );
 
     const canTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
         if (!writable) return false;
@@ -365,6 +389,7 @@ export function TreeProviderView(
                 acceptsFileDrop={writable && !!props.provider.importFiles}
                 canTraitDrop={writable ? canTraitDrop : undefined}
                 onTraitDrop={writable ? onTraitDrop : undefined}
+                onDragStartOverride={osDragEnabled ? handleOsDragStart : undefined}
                 renderItem={renderItem}
             />
             {state.searchVisible && (

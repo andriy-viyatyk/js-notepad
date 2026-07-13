@@ -253,6 +253,10 @@ class ApiCalls implements Api {
         return executeOnce<boolean>(Endpoint.clipboardWriteFilePaths, paths, cut);
     }
 
+    startOsFileDrag = async (paths: string[]): Promise<void> => {
+        return executeOnce<void>(Endpoint.startOsFileDrag, paths);
+    }
+
     createVideoStreamSession = async (config: VideoStreamSessionConfig, port?: number) => {
         return executeOnce<VideoStreamSessionResult>(Endpoint.createVideoStreamSession, config, port);
     };

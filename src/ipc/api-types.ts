@@ -63,6 +63,7 @@ export enum Endpoint {
     startScreenSnip = "startScreenSnip",
     clipboardReadFilePaths = "clipboardReadFilePaths",
     clipboardWriteFilePaths = "clipboardWriteFilePaths",
+    startOsFileDrag = "startOsFileDrag",
     createVideoStreamSession = "createVideoStreamSession",
     deleteVideoStreamSession = "deleteVideoStreamSession",
     deleteVideoStreamSessionsByPage = "deleteVideoStreamSessionsByPage",
@@ -189,6 +190,7 @@ export type Api = {
     [Endpoint.startScreenSnip]: (hideWindows: boolean) => Promise<string | null>;
     [Endpoint.clipboardReadFilePaths]: () => Promise<ClipboardFileList>;
     [Endpoint.clipboardWriteFilePaths]: (paths: string[], cut: boolean) => Promise<boolean>;
+    [Endpoint.startOsFileDrag]: (paths: string[]) => Promise<void>;
     [Endpoint.createVideoStreamSession]: (config: VideoStreamSessionConfig, port?: number) => Promise<VideoStreamSessionResult>;
     [Endpoint.deleteVideoStreamSession]: (sessionId: string) => Promise<void>;
     [Endpoint.deleteVideoStreamSessionsByPage]: (pageId: string) => Promise<void>;

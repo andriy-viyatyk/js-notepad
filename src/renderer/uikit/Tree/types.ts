@@ -325,6 +325,17 @@ export interface TreeProps<T = ITreeItem>
      * after this many milliseconds. Set to 0 to disable. Default: 500.
      */
     expandOnDragHoverDelay?: number;
+    /**
+     * First-chance `dragstart` hook, called before the trait-drag payload is built.
+     * Return `true` to signal the handler took over the gesture (e.g. it started a
+     * native OS drag via `webContents.startDrag` and already called
+     * `e.preventDefault()`) — the Tree then skips its own trait-drag setup for this
+     * drag. Return `false` (or omit the prop) to let the normal trait drag proceed.
+     *
+     * Keeps UIKit free of Electron/IPC: the app supplies the native-drag behavior.
+     * A row is only draggable when this hook OR (`traitTypeId` + `getDragData`) is set.
+     */
+    onDragStartOverride?: (source: T, level: number, e: React.DragEvent) => boolean;
 }
 
 // =============================================================================

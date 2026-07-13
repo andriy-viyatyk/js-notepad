@@ -250,6 +250,11 @@ class Controller implements MainApi {
         return writeClipboardFiles(paths, cut);
     }
 
+    startOsFileDrag = async (event: IpcMainEvent, paths: string[]): Promise<void> => {
+        const { startOsFileDrag } = await import("../../main/os-drag-service");
+        return startOsFileDrag(event.sender, paths);
+    }
+
     createVideoStreamSession = async (
         event: IpcMainEvent,
         config: VideoStreamSessionConfig,
@@ -521,6 +526,7 @@ const init = () => {
     bindEndpoint(Endpoint.startScreenSnip, controllerInstance.startScreenSnip);
     bindEndpoint(Endpoint.clipboardReadFilePaths, controllerInstance.clipboardReadFilePaths);
     bindEndpoint(Endpoint.clipboardWriteFilePaths, controllerInstance.clipboardWriteFilePaths);
+    bindEndpoint(Endpoint.startOsFileDrag, controllerInstance.startOsFileDrag);
     bindEndpoint(Endpoint.createVideoStreamSession, controllerInstance.createVideoStreamSession);
     bindEndpoint(Endpoint.deleteVideoStreamSession, controllerInstance.deleteVideoStreamSession);
     bindEndpoint(Endpoint.deleteVideoStreamSessionsByPage, controllerInstance.deleteVideoStreamSessionsByPage);
