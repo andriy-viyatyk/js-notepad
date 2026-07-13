@@ -159,7 +159,7 @@ family; it is **out of scope** for this epic — no targeted surface uses it.)
 |---|------|-------|-----------|--------|
 | 1 | [US-829](../tasks/US-829-shared-selection-style/README.md) | Shared focus-aware selection style — extract the Explorer/`Tree` two-state selection into one shared fragment (`uikit/shared/selection-style.ts`); refactor `Tree`/`TreeItem` onto it with **zero visual change**; add focus-aware selection to `ListItem` (`selectionStyle="focus"`) + a `Tree` `focusSelection` opt-in; decouple focus-styling from `keyboardNav`; confirm tokens (no new ones) | — | Implemented — pending visual verification |
 | 2 | [US-830](../tasks/US-830-shared-primitive-consumers/README.md) | Shared-primitive consumers — enable focus-selection on the Tree consumers (Rest Client tree #4, Notebook Categories #5) and switch the ListBox/`ListItem` consumers (MCP Tools #8, Storybook #10, Link list-mode #11, Link pinned #12) to the focus-aware style; wire each container to be focusable | US-829 | Implemented — pending visual verification |
-| 3 | US-831 | Bespoke-row retrofits — apply the shared contract to the hand-rolled rows: App menu `FolderItem` #1, Notebook Tags `TagsListView` #6, ToDo `RowShell` #7, MCP Resources `Panel` rows #9, Links `CategoryList` Tags+Hostnames #2/#3 (adds a focus-aware background) | US-829 | Planned |
+| 3 | [US-831](../tasks/US-831-bespoke-row-retrofits/README.md) | Bespoke-row retrofits — apply the shared contract to the hand-rolled rows: App menu `FolderItem` #1, Notebook Tags `TagsListView` #6, ToDo `RowShell` #7, MCP Resources `Panel` rows #9, Links `CategoryList` Tags+Hostnames #2/#3 (adds a focus-aware background) | US-829 | Implemented — pending visual verification |
 
 ### Order rationale
 - US-829 is the pure foundation — no site changes to user-visible lists yet, but it must not
@@ -262,3 +262,16 @@ The only user-visible surface that changes is the reference; it must **not** cha
   `LinksList` change unifies all three of its consumers (list-mode + Hostnames-nav + Tags-secondary
   link lists), not just list-mode. C1 (focus landing) downgraded: #4/#5 mirror the proven Explorer
   sidebar tree; #8/#10/#11/#12 live in the editor body (no sidebar focus guard).
+- **US-831 investigated and documented**
+  ([task doc](../tasks/US-831-bespoke-row-retrofits/README.md)). Covers the last 5 hand-rolled
+  surfaces (#1 App menu `FolderItem`, #6 Notebook Tags `TagsListView`, #7 ToDo `RowShell`, #9 MCP
+  Resources rows, #2/#3 Links `CategoryList`). Design: a new minimal UIKit primitive
+  **`SelectableRow`** (composes `rowSelectionBase` + `rowFocusSelectionOverride` verbatim) is the
+  Rule-7-clean home for the focus CSS the three **editor** surfaces (#6/#7/#9) need — editor code
+  can't use Emotion, and `:focus-within` can't be inline-styled. The two exempt surfaces host the
+  fragments directly: **#1 FolderItem** via the `ui/` chrome exception, **#2/#3 CategoryList** as a
+  UIKit primitive (container-hosted `focusSelectionOverride`, gains a real background replacing
+  today's text-only `misc.blue`). Containers opt in via `selectionStyle="focus"` (ListBox #1/#6 —
+  works even with custom `renderItem`) or `tabIndex=0`+`data-focus-selection` (Panels #7/#9,
+  `CategoryList` Root #2/#3). No new tokens, no new fragments, no theme edits. C1 unchanged from
+  US-830 (all five mirror already-validated placements). Pending user review before implementation.

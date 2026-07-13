@@ -83,6 +83,8 @@ export type { MenuProps, WithMenuProps, MenuItem } from "./Menu";
 // Lists
 export { CategoryList } from "./CategoryList";
 export type { CategoryListProps } from "./CategoryList";
+export { SelectableRow } from "./SelectableRow";
+export type { SelectableRowProps } from "./SelectableRow";
 export { ListBox, LIST_ITEM_KEY } from "./ListBox";
 export type { ListBoxProps, ListBoxRef, IListBoxItem, ListItemRenderContext } from "./ListBox";
 export { ListItem, SectionItem } from "./ListBox";

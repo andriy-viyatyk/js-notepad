@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { Panel } from "../../uikit/Panel";
+import { SelectableRow } from "../../uikit/SelectableRow";
 import { Text } from "../../uikit/Text";
 import { Tag } from "../../uikit/Tag";
 import { Button } from "../../uikit/Button";
@@ -49,25 +50,36 @@ export function ResourcesPanel({ model }: ResourcesPanelProps) {
                     <Text size="xs" variant="uppercased" color="light" bold>Resources</Text>
                     <Tag size="sm" label={String(totalCount)} />
                 </Panel>
-                <Panel direction="column" flex={1} overflow="auto">
+                <Panel
+                    direction="column"
+                    flex={1}
+                    overflow="auto"
+                    tabIndex={0}
+                    data-focus-selection=""
+                >
                     {rs.resources.map((r) => {
                         const isSelected = r.uri === rs.selectedUri;
                         return (
-                            <Panel
+                            <SelectableRow
                                 key={r.uri}
-                                direction="column"
-                                paddingX="lg"
-                                paddingY="sm"
-                                gap="xs"
-                                borderBottom
-                                borderColor={isSelected ? "active" : "subtle"}
-                                background={isSelected ? "light" : undefined}
+                                selected={isSelected}
                                 onClick={() => model.selectResource(r.uri)}
-                                title={r.uri}
                             >
-                                <Text size="sm" color="default" truncate>{r.name}</Text>
-                                <Text size="xs" color="primary" truncate>{r.uri}</Text>
-                            </Panel>
+                                <Panel
+                                    direction="column"
+                                    paddingX="lg"
+                                    paddingY="sm"
+                                    gap="xs"
+                                    borderBottom
+                                    borderColor="subtle"
+                                    title={r.uri}
+                                    flex={1}
+                                    minWidth={0}
+                                >
+                                    <Text size="sm" color="default" truncate>{r.name}</Text>
+                                    <Text size="xs" color="primary" truncate>{r.uri}</Text>
+                                </Panel>
+                            </SelectableRow>
                         );
                     })}
                     {rs.templates.length > 0 && (
@@ -84,21 +96,26 @@ export function ResourcesPanel({ model }: ResourcesPanelProps) {
                             {rs.templates.map((t) => {
                                 const isSelected = t.uriTemplate === rs.selectedTemplateUri;
                                 return (
-                                    <Panel
+                                    <SelectableRow
                                         key={t.uriTemplate}
-                                        direction="column"
-                                        paddingX="lg"
-                                        paddingY="sm"
-                                        gap="xs"
-                                        borderBottom
-                                        borderColor={isSelected ? "active" : "subtle"}
-                                        background={isSelected ? "light" : undefined}
+                                        selected={isSelected}
                                         onClick={() => model.selectTemplate(t.uriTemplate)}
-                                        title={t.uriTemplate}
                                     >
-                                        <Text size="sm" color="default" truncate>{t.name}</Text>
-                                        <Text size="xs" color="primary" truncate>{t.uriTemplate}</Text>
-                                    </Panel>
+                                        <Panel
+                                            direction="column"
+                                            paddingX="lg"
+                                            paddingY="sm"
+                                            gap="xs"
+                                            borderBottom
+                                            borderColor="subtle"
+                                            title={t.uriTemplate}
+                                            flex={1}
+                                            minWidth={0}
+                                        >
+                                            <Text size="sm" color="default" truncate>{t.name}</Text>
+                                            <Text size="xs" color="primary" truncate>{t.uriTemplate}</Text>
+                                        </Panel>
+                                    </SelectableRow>
                                 );
                             })}
                         </>

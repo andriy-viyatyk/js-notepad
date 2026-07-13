@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { fontSize, spacing } from "../tokens";
+import { focusSelectionOverride } from "../shared/selection-style";
 import { ChevronLeftIcon, ChevronRightIcon } from "../../theme/icons";
 
 // --- Types ---
@@ -63,11 +64,11 @@ const Root = styled.div(
             padding: `${spacing.sm}px ${spacing.md}px`,
             cursor: "pointer",
             color: color.text.light,
-            "&:hover": {
-                backgroundColor: color.background.light,
+            "&:hover:not([data-selected])": {
+                backgroundColor: color.background.message,
             },
             "&[data-selected]": {
-                color: color.misc.blue,
+                backgroundColor: color.background.light,
             },
         },
 
@@ -110,6 +111,10 @@ const Root = styled.div(
             borderBottom: `1px solid ${color.border.light}`,
             zIndex: 1,
         },
+
+        // Focused override (Explorer look): when the list holds focus, the selected row goes
+        // blue + outline. Container-hosted — the rows are [data-part="row"] descendants of Root.
+        ...focusSelectionOverride('[data-part="row"]'),
     },
     { label: "CategoryList" },
 );
@@ -220,7 +225,14 @@ export function CategoryList({
         const parentCount = getCount?.(parentValue);
 
         return (
-            <Root data-type="category-list" data-name={name} className="scroll-container" {...rest}>
+            <Root
+                data-type="category-list"
+                data-name={name}
+                className="scroll-container"
+                tabIndex={0}
+                data-focus-selection=""
+                {...rest}
+            >
                 <div
                     data-part="row"
                     data-state="open"
@@ -259,7 +271,14 @@ export function CategoryList({
     const totalCount = getCount?.("");
 
     return (
-        <Root data-type="category-list" data-name={name} className="scroll-container" {...rest}>
+        <Root
+            data-type="category-list"
+            data-name={name}
+            className="scroll-container"
+            tabIndex={0}
+            data-focus-selection=""
+            {...rest}
+        >
             <div
                 data-part="row"
                 data-selected={value === "" || undefined}

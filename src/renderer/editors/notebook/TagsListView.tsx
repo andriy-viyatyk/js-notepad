@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ListBox, IListBoxItem, ListItemRenderContext } from "../../uikit/ListBox";
 import { Panel } from "../../uikit/Panel";
+import { SelectableRow } from "../../uikit/SelectableRow";
 import { ChevronLeftIcon, ChevronRightIcon } from "../../theme/icons";
-import color from "../../theme/color";
 
 // =============================================================================
 // Types
@@ -180,20 +180,20 @@ export function TagsListView(props: TagsListViewProps) {
     const renderItem = (ctx: ListItemRenderContext<TagItem>): React.ReactNode => {
         const item = ctx.source;
         return (
-            <div
-                data-selected={ctx.selected || undefined}
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    width: "100%",
-                    height: "100%",
-                    boxSizing: "border-box",
-                    paddingLeft: 8,
-                    paddingRight: 8,
-                    backgroundColor: ctx.selected ? color.background.selection : undefined,
-                    color: ctx.selected ? color.text.selection : color.text.light,
-                }}
-            >
+            <SelectableRow selected={ctx.selected} active={ctx.active}>
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        width: "100%",
+                        minHeight: 26,
+                        boxSizing: "border-box",
+                        paddingLeft: 8,
+                        paddingRight: 8,
+                        flex: 1,
+                        minWidth: 0,
+                    }}
+                >
                 {item.isBack ? (
                     <span
                         onClick={(e) => {
@@ -251,7 +251,8 @@ export function TagsListView(props: TagsListViewProps) {
                         {item.count}
                     </span>
                 )}
-            </div>
+                </div>
+            </SelectableRow>
         );
     };
 
@@ -264,6 +265,7 @@ export function TagsListView(props: TagsListViewProps) {
                 onChange={(item) => onChange(item.value)}
                 renderItem={renderItem}
                 variant="browse"
+                selectionStyle="focus"
                 rowHeight={26}
             />
         </Panel>

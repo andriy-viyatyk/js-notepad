@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from "react";
 import color from "../../../theme/color";
 import { PlusIcon, DeleteIcon, RenameIcon } from "../../../theme/icons";
 import { Panel } from "../../../uikit/Panel/Panel";
+import { SelectableRow } from "../../../uikit/SelectableRow";
 import { Input } from "../../../uikit/Input/Input";
 import { IconButton } from "../../../uikit/IconButton/IconButton";
 import { WithMenu } from "../../../uikit/Menu/WithMenu";
@@ -24,6 +25,7 @@ const NAME_STYLE: React.CSSProperties = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    fontSize: 13,
 };
 
 const COUNT_STYLE: React.CSSProperties = {
@@ -49,32 +51,21 @@ interface RowShellProps {
 }
 
 function RowShell({ selected, onClick, children, revealOnHover }: RowShellProps) {
-    const [hovered, setHovered] = useState(false);
-    const bg = selected || hovered ? color.background.light : "transparent";
-    const textColor = selected ? color.misc.blue : color.text.light;
     return (
-        <div
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            onClick={onClick}
-            style={{
-                cursor: "pointer",
-                backgroundColor: bg,
-                color: textColor,
-                fontSize: 13,
-            }}
-        >
+        <SelectableRow selected={selected} onClick={onClick}>
             <Panel
                 direction="row"
                 align="center"
                 gap="xs"
                 paddingX="sm"
                 minHeight={28}
+                flex={1}
+                minWidth={0}
                 revealChildrenOnHover={revealOnHover}
             >
                 {children}
             </Panel>
-        </div>
+        </SelectableRow>
     );
 }
 
@@ -228,7 +219,15 @@ export function TodoListPanel({ pageModel, lists, selectedList, listCounts, tags
                 />
             </Panel>
 
-            <Panel name="todo-lists-body" direction="column" flex={1} overflowY="auto" overflowX="hidden">
+            <Panel
+                name="todo-lists-body"
+                direction="column"
+                flex={1}
+                overflowY="auto"
+                overflowX="hidden"
+                tabIndex={0}
+                data-focus-selection=""
+            >
                 <div style={SECTION_LABEL_STYLE}>Lists</div>
 
                 <RowShell

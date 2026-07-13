@@ -511,6 +511,7 @@ export function MenuBar(props: MenuBarProps) {
                     <ListBox<MenuFolder>
                         name="menubar-folders"
                         items={tFolders}
+                        selectionStyle="focus"
                         rowHeight={22}
                         isSelected={(folder) => folder.id === state.leftItemId}
                         onChange={model.setLeftItem}

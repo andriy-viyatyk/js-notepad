@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { useCallback, useRef, useState } from "react";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
 import color from "../../theme/color";
+import { rowSelectionBase, rowFocusSelectionOverride } from "../../uikit/shared/selection-style";
 import { Tooltip } from "../../uikit";
 import { ArrowRightIcon } from "../../theme/icons";
 
@@ -21,13 +22,11 @@ const Root = styled.div(
         height: "100%",
         boxSizing: "border-box",
 
-        "&:hover": {
-            backgroundColor: color.background.default,
+        ...rowSelectionBase,
+        "&:hover:not([data-selected])": {
+            backgroundColor: color.background.message,
         },
-        "&[data-selected]": {
-            backgroundColor: color.background.selection,
-            color: color.text.selection,
-        },
+        ...rowFocusSelectionOverride('[data-type="folder-item"]'),
         "&[data-dragging]": {
             opacity: 0.5,
         },
