@@ -169,6 +169,11 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
   }
   ```
 
+**Browser APIs (clipboard, etc.):** the board frame is a secure context and Persephone grants it
+clipboard permission, so standard web APIs like `navigator.clipboard.write([...])` work directly —
+no bridge method needed (they still require a user gesture + a focused window, per the browser).
+Only remote *network* is blocked (by the CSP — see *Libraries & assets* below).
+
 ## Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 
 By default, everything a board spawned is **killed when the board unloads** — the user

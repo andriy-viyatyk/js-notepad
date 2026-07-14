@@ -106,6 +106,10 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
   absolute path (read/write it with `readFile`/`writeFile`); `undefined` for a board opened plainly.
   Safe to `await` at any time (waits for the host handshake).
 
+**Browser APIs (clipboard, etc.):** the board frame is a secure context with clipboard permission
+granted, so standard web APIs like `navigator.clipboard.write([...])` work directly (no bridge method;
+still need a user gesture + focused window). Only remote *network* is blocked by the CSP.
+
 ### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 
 By default everything a board spawned is **killed when the board unloads** (page navigated

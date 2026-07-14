@@ -190,6 +190,12 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 <iframe
                     ref={iframeRef}
                     title="board"
+                    // Delegate clipboard access to the cross-origin board frame. A board is a
+                    // trusted local app — it already has filesystem + process access through the
+                    // bridge — so blocking the clipboard buys no security; only remote network is
+                    // restricted (by the board CSP's `connect-src 'self'`). Without this, Chromium's
+                    // Permissions Policy blocks `navigator.clipboard.*` in the (cross-origin) frame.
+                    allow="clipboard-read; clipboard-write"
                     // `?v=${boardId}` tags this iframe's document URL with the per-mount
                     // boardId (NOT consumed by the handler — it derives the file from the
                     // pathname only). It uniquely identifies THIS tab's board frame so CDP
