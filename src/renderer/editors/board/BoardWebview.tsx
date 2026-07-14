@@ -92,7 +92,11 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         const win = iframeRef.current?.contentWindow;
         const port = pendingPortRef.current;
         if (!win || !port || !host) return;
-        const init: BoardPortInitMsg = { __persephoneInit: true, busy: !!model.state.get().busy };
+        const init: BoardPortInitMsg = {
+            __persephoneInit: true,
+            busy: !!model.state.get().busy,
+            filePath: model.currentFilePath(),
+        };
         win.postMessage(init, `board://${host}`, [port]);
         pendingPortRef.current = null;
     }, [host, model]);

@@ -134,6 +134,18 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
   let state = {};
   try { state = JSON.parse(await persephone.readFile("state.json")); } catch {}
   ```
+- `persephone.getFilePath()` → `Promise<string | undefined>` — when this board is opened as a
+  **custom editor** for a file (associated via `fileMasks` in `board-manifest.json`), this resolves
+  to that file's **absolute path**; read/write it with `persephone.readFile()` / `writeFile()`. It
+  resolves to `undefined` for a board opened plainly. Safe to `await` at any time — it waits for the
+  host handshake, so you never race a missing value:
+  ```js
+  const filePath = await persephone.getFilePath();
+  if (filePath) {
+      const content = await persephone.readFile(filePath);
+      // …render / edit, then persephone.writeFile(filePath, updated) to save
+  }
+  ```
 
 ## Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 

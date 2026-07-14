@@ -127,4 +127,11 @@ export interface ILinkData {
      *  Persisted (NOT in EPHEMERAL_FIELDS) so a restored board keeps its switcher
      *  scope; never copied into a stored Link `ILink` (`linkDataToLink` ignores it). */
     explorerRoot?: string;
+    /** The file a custom-editor board edits (EPIC-042). Rides the `persephone-board://`
+     *  openRawLink as metadata (the URL stays a pure board id); lands on the board editor's
+     *  `state.sourceLink` and is served to the board via `persephone.getFilePath()`. Persisted
+     *  (NOT ephemeral) so a restored / cross-window-moved custom-editor board re-opens the same
+     *  file; never copied into a stored Link `ILink` (`linkDataToLink` builds an explicit object
+     *  and ignores it). */
+    filePath?: string;
 }

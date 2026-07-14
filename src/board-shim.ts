@@ -79,6 +79,22 @@ function settleBusy(value: boolean): void {
     busyResolvers.length = 0;
 }
 
+// ── filePath (EPIC-042) ─────────────────────────────────────────────────────────
+// The file a custom-editor board edits, carried at the handshake. `getFilePath()` awaits
+// the handshake; a plain board settles to `undefined`. A separate `settled` flag (not a
+// null sentinel like busy) because `undefined` is itself a valid settled value.
+
+let filePathSettled = false;
+let filePathValue: string | undefined;
+const filePathResolvers: Array<(p: string | undefined) => void> = [];
+
+function settleFilePath(value: string | undefined): void {
+    filePathSettled = true;
+    filePathValue = value;
+    for (const r of filePathResolvers) r(value);
+    filePathResolvers.length = 0;
+}
+
 // ── Port plumbing (queue-then-flush) ─────────────────────────────────────────
 
 let port: MessagePort | null = null;
@@ -160,13 +176,17 @@ function attachPort(p: MessagePort): void {
 // host — a file:// host's cross-origin `event.origin` is the opaque "null" and
 // would never match the baked "file://" (see `hostOriginStrict` above).
 window.addEventListener("message", (event: MessageEvent) => {
-    const data = event.data as { __persephoneInit?: boolean; busy?: boolean } | undefined;
+    const data = event.data as
+        { __persephoneInit?: boolean; busy?: boolean; filePath?: string } | undefined;
     if (!data || data.__persephoneInit !== true) return;
     if (event.source !== window.parent) return;
     if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
     // Busy flag carried at handshake (US-799). A local setBoardBusy call that
     // already ran wins (busyState !== null) — the init value is then stale.
     if (busyState === null) settleBusy(!!data.busy);
+    // filePath carried at handshake (EPIC-042). Every handshake settles it — a plain board
+    // carries `undefined`, so `getFilePath()` still resolves (to undefined).
+    if (!filePathSettled) settleFilePath(data.filePath);
     const p = event.ports && event.ports[0];
     if (p) attachPort(p);
 });
@@ -516,6 +536,14 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
     getBoardBusy(): Promise<boolean> {
         if (busyState !== null) return Promise.resolve(busyState);
         return new Promise<boolean>((resolve) => busyResolvers.push(resolve));
+    },
+
+    /** The absolute path of the file this board edits as a custom editor (EPIC-042), or
+     *  `undefined` for a board opened plainly. Resolves when the host handshake lands, so it
+     *  is safe to await at any time. Read/write the file with `persephone.readFile`/`writeFile`. */
+    getFilePath(): Promise<string | undefined> {
+        if (filePathSettled) return Promise.resolve(filePathValue);
+        return new Promise<string | undefined>((resolve) => filePathResolvers.push(resolve));
     },
 
     /** List this board's LIVE jobs — including ones that survived a previous

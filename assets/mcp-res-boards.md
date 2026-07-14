@@ -97,6 +97,10 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
   no backend script. Relative `path` resolves against the board folder; absolute reads/writes anywhere.
   Text by default, `{ encoding: "base64" }` for binary; `writeFile` creates parent dirs. Both return
   Promises (reject on error). Use it to persist small board state and load board-local config.
+- `persephone.getFilePath()` → `Promise<string | undefined>` — when the board is opened as a **custom
+  editor** for a file (associated via `fileMasks` in `board-manifest.json`), resolves to that file's
+  absolute path (read/write it with `readFile`/`writeFile`); `undefined` for a board opened plainly.
+  Safe to `await` at any time (waits for the host handshake).
 
 ### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 

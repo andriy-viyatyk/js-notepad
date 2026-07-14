@@ -164,6 +164,9 @@ export interface BoardPortInitMsg {
     /** The board's current busy flag (US-799) — carried at handshake so a re-created
      *  board can read `persephone.getBoardBusy()` and reinitialize its running state. */
     busy?: boolean;
+    /** The file a custom-editor board edits (EPIC-042) — carried at handshake so the board
+     *  can read `persephone.getFilePath()`. Undefined for a board opened plainly. */
+    filePath?: string;
 }
 
 /** Messages the shim posts to the HOST FRAME via `window.parent.postMessage` (the

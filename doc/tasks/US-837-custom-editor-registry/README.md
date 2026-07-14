@@ -17,7 +17,7 @@ shared helpers, so the construction/resolution/switch tasks all encode and parse
 same way.
 
 Like US-836, this is **infrastructure**: the registry is built and reactive, but nothing in
-file-open resolution or the switch widget consumes it yet (that is US-838, the crux task). The
+file-open resolution or the switch widget consumes it yet (that is US-839, the crux task). The
 only externally observable change is a new read-only `subscribePaths` method on `boardTrust`.
 
 ## Background
@@ -93,7 +93,7 @@ already-private state. No trust mutation, no new persistence, no `app`/script ex
 
 A file-associated board is a distinct editor id `board-editor:<boardRoot>` in the merged
 resolution/switch lists. Everything that encodes or parses that id uses these helpers — never a
-raw string literal — so the id shape has one definition (used by US-838's `buildEditorById`,
+raw string literal — so the id shape has one definition (used by US-839's `buildEditorById`,
 `switchMainEditor`, and `SwitchWidget`).
 
 ```ts
@@ -233,7 +233,7 @@ Imports: `TModel` from `../../core/state/model`; `TGlobalState` from `../../core
 ### Step 3 — No wiring into resolution / switch this task
 
 `getBoardsForFile` / `useBoardsForFile` / the id helpers exist and are exported, but **nothing
-calls them yet**. US-838 (the crux) wires them into `resolveId`/`resolve`, `buildEditorById`,
+calls them yet**. US-839 (the crux) wires them into `resolveId`/`resolve`, `buildEditorById`,
 `switchMainEditor`, and `SwitchWidget`, and decides where `ensureInitialized()` is invoked at
 bootstrap (see Concern 2). Keeping the seam unwired here matches US-836's inert-until-consumed
 approach and keeps this task independently verifiable.
@@ -242,9 +242,9 @@ approach and keeps this task independently verifiable.
 
 - `board-manifest.ts` — consumed read-only; already has the helpers (US-836). No change.
 - `register-editors.ts` / `editorRegistry.ts` / `editor-matchers.ts` — the static registry is
-  **not** touched (CE6: two separate registries, merged at query time by US-838).
-- `BoardEditorModel.ts` — the dynamic `editorId` / `filePath` changes are US-838 / the filePath
-  task, not here.
+  **not** touched (CE6: two separate registries, merged at query time by US-839).
+- `BoardEditorModel.ts` — the `filePath` plumbing is US-838; the dynamic `editorId` change is
+  US-839 (the crux). Not here.
 - Board authoring guide / `mcp-res-boards.md` — no doc surface changes this task (no new manifest
   fields; US-836 already documented `fileMasks`).
 
@@ -259,24 +259,24 @@ approach and keeps this task independently verifiable.
    custom editor, and that is the intended behavior. This matches `registeredTools` and the Boards
    sidebar (both iterate `listPaths()` directly) and the real trust paths (trust-on-open /
    auto-trust-on-create register the board's own root). **No "discover boards under a trusted
-   ancestor" feature is planned** — do not add a filesystem walk. Flagged so US-838 doesn't assume
+   ancestor" feature is planned** — do not add a filesystem walk. Flagged so US-839 doesn't assume
    nested custom editors exist.
-2. **Sync resolution vs. async init (the timing seam for US-838). ✅ agreed (user, 2026-07-14):
+2. **Sync resolution vs. async init (the timing seam for US-839). ✅ agreed (user, 2026-07-14):
    eager bootstrap init.** `getBoardsForFile` is sync so `resolveId` (sync) can call it, but the
    entries are only populated after the async `ensureInitialized()`. If a file opens before init
    completes, `getBoardsForFile` returns `[]` and the built-in editor wins — acceptable graceful
-   degradation, but US-838 must call `customEditorRegistry.ensureInitialized()` **eagerly at app
+   degradation, but US-839 must call `customEditorRegistry.ensureInitialized()` **eagerly at app
    bootstrap** (not lazily on first file open) so associations are warm. **Candidate hook:**
    `src/renderer/editors/register-editors.ts` — a side-effect module already imported at app entry
    (`index.tsx:5`); a module-scope `void customEditorRegistry.ensureInitialized()` there fires at
    startup. (MainPage's mount effect is an alternative.) This task only guarantees the sync/async
-   split; the bootstrap wiring lands in US-838.
+   split; the bootstrap wiring lands in US-839.
 3. **Trust subscription fires refresh even with no consumers.** The constructor subscribes
    immediately (like `registeredTools`), so a trust change triggers `refresh()` regardless of
    whether anything reads the registry. This is cheap (a few manifest reads) and matches the
    precedent; the singleton is process-lived and never disposed in practice (`dispose()` exists
    for symmetry/testing).
-4. **Priority + tie-break belong to US-838, not here.** Entries carry the raw `priority`; the
+4. **Priority + tie-break belong to US-839, not here.** Entries carry the raw `priority`; the
    CE2 tie-break (built-ins first, then trusted-list order among boards) is applied when merging
    with the static registry at resolution time. `getBoardsForFile` returns boards in trusted-list
    order (stable input for that tie-break) and does **not** sort by priority.

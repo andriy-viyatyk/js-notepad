@@ -37,6 +37,11 @@ export interface BoardEditorState extends EditorStateBase {
      *  page close / dispose kills them. TRANSIENT — cleared on restore (processes
      *  never survive an app restart). */
     busy?: boolean;
+    /** The file this board edits as a custom editor (EPIC-042). Set on the SWITCH path
+     *  (US-839) via `initFromBoardRoot`; on the openRawLink path the file rides
+     *  `state.sourceLink.filePath` instead. Read both via `currentFilePath()`. Served to the
+     *  board via `persephone.getFilePath()`. Undefined for a plain board. */
+    filePath?: string;
     /** Sidebar panel contributions. */
     secondaryView?: string[];
 }
@@ -147,13 +152,22 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
             && fpNormalizeForCompare(boardLink.boardRoot) === fpNormalizeForCompare(boardRoot);
     }
 
+    /** The file path this board edits, from either entry point (switch → `state.filePath`;
+     *  openRawLink → `sourceLink.filePath`). Undefined for a plain, non-custom-editor board. */
+    currentFilePath(): string | undefined {
+        const s = this.state.get();
+        return s.filePath ?? s.sourceLink?.filePath;
+    }
+
     /** Single-board init — opened by a `persephone-board://` link (US-748) or the
-     *  MCP `openBoard` (US-750). */
-    initFromBoardRoot(boardRoot: string): void {
+     *  MCP `openBoard` (US-750). `filePath` is passed only on the custom-editor SWITCH path
+     *  (US-839); on the openRawLink path it rides `state.sourceLink` instead. */
+    initFromBoardRoot(boardRoot: string, filePath?: string): void {
         const name = fpBasename(boardRoot);
         this.state.update((s) => {
             s.boardRoot = boardRoot;
             s.title = name;
+            if (filePath) s.filePath = filePath;
         });
         void boardTrust.load();
         this.selectBoard(name);
