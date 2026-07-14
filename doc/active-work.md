@@ -7,7 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-_No active work._
+- **EPIC-042** — [Boards as Custom Editors (file association, editor switch, filePath-in boards)](epics/EPIC-042.md) — _design finalized (CE1–CE8); tasks not yet carved_
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
