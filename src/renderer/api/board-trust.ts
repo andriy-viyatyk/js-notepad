@@ -78,6 +78,15 @@ class BoardTrust {
         return this.state.use((s) => s.paths);
     }
 
+    /**
+     * Subscribe to trusted-list changes (in-memory, NOT a filesystem watcher). The
+     * custom-editor registry (EPIC-042) uses this to re-enumerate when a board is
+     * trusted / untrusted. Returns an unsubscribe function. Read-only — cannot mutate trust.
+     */
+    subscribePaths(listener: () => void): () => void {
+        return this.state.subscribe(() => listener(), (s) => s.paths);
+    }
+
     /** Append a board to the trusted list (idempotent). Caller confirms first (the
      *  trust dialog) OR it is a provenance write for a Persephone-created board. */
     async trust(boardRoot: string): Promise<void> {

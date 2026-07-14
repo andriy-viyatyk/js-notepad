@@ -116,7 +116,7 @@ Each will get a full Goal → Background → Implementation Plan → Concerns �
 | Task | Title | Depends on |
 |------|-------|-----------|
 | [US-836](../tasks/US-836-board-manifest-file-association/README.md) | **Manifest `fileMasks` + `editorPriority` + editor identity.** Extend `BoardManifest` (`fileMasks` glob masks, `editorPriority` per CE1, editor display name) + normalize/matcher/accessor helpers; update the board authoring guide's manifest reference. _(carved 2026-07-14; `fileMasks` supersedes the reserved `fileExtensions` — masks support compound patterns like `*.grid.json`)_ | — |
-| US-XXX | **Custom-editor registry.** Reactive `extension → trusted board` map built from `boardTrust` + manifests; `getBoardsForFile`; refresh on trust change (CE3/CE7). | fileExtensions task |
+| [US-837](../tasks/US-837-custom-editor-registry/README.md) | **Custom-editor registry.** Reactive `mask → trusted board` map built from `boardTrust` + manifests; `getBoardsForFile`; refresh on trust change (CE3/CE7); adds `boardTrust.subscribePaths` + the `board-editor:<root>` virtual-id helpers. _(carved 2026-07-14)_ | US-836 |
 | US-XXX | **filePath into the board.** Forward `filePath` via `persephone-board://` → `BoardEditorState.filePath` → `BoardPortInitMsg` → `persephone.filePath`; `switchFrom` extracts filePath from the old host. | registry task |
 | US-XXX | **Resolution + switch integration (crux).** Merge the custom-editor registry into `resolveId`/`resolve` (**not** dead `resolveForFile`); `buildEditorById` `board-editor:` branch (→ BoardEditorModel + filePath); `findCompatibleEditors` merge + label; virtual `board-editor:<root>` identity incl. dynamic `BoardEditorModel.editorId`; `switchMainEditor` prefix branch + `confirmRelease()` on switch-to-board / abort on cancel (CE4); fresh re-resolve on switch-back (CE4/CE6). See design note #3 (a–e). | filePath task |
 | US-XXX | **DrawIO viewer board (US-454).** First real custom-editor board for `.drawio`; retires the built-in US-454 plan. Proves the epic end-to-end. | switch integration task |
@@ -166,6 +166,12 @@ This epic builds on both.
 - **CE7 ✅ reactive, no watcher.** Registry reacts to `boardTrust` state + re-reads a manifest on open; no persistent file watcher (a mid-session `fileExtensions` edit lands on next open/refresh).
 - **CE8 ✅ out of scope.** Content-host variant (`persephone.host.getContent/setContent`) + built-in→board migration deferred to a successor epic. This epic ships the simple direct-`filePath` case only.
 - **All constraints (CE1–CE8) resolved.** Design finalized; ready for task carving on the user's go-ahead.
+
+### 2026-07-14 — US-837 carved (custom-editor registry)
+- Second task carved: [US-837](../tasks/US-837-custom-editor-registry/README.md) — the reactive `mask → trusted board` registry (mirrors `registeredTools`), plus two enabling pieces the crux task needs: a read-only `boardTrust.subscribePaths` (missing today — `boardTrust`'s state is private, unlike `toolsTrust`) and the shared `board-editor:<root>` virtual-id helpers (`boardEditorId` / `parseBoardEditorId`).
+- **Enumerates `boardTrust.listPaths()` directly** (mirrors `registeredTools` + the Boards sidebar) — a board trusted only via an ancestor folder isn't enumerated. **By design (user, 2026-07-14): nested boards are unsupported** — each board lives in its own separate folder; the ancestor/inherited-trust handling exists only so nesting doesn't crash the app, never as a supported topology. No subtree-discovery feature is planned.
+- **Sync `getBoardsForFile` over async-loaded state**: returns `[]` before init → graceful built-in fallback. Records the timing seam for US-838, which must call `ensureInitialized()` eagerly at bootstrap since `resolveId` is sync.
+- Registry stays **unwired** this task (inert, like US-836); US-838 consumes it. Only observable change: the new `subscribePaths` method.
 
 ### 2026-07-14 — US-836 carved + `fileExtensions` → `fileMasks` (user)
 - First task carved: [US-836](../tasks/US-836-board-manifest-file-association/README.md) (manifest fields + normalize/matcher/accessor + authoring-guide doc; pure data-model, inert until the registry/resolution tasks).
