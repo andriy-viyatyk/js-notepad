@@ -32,6 +32,11 @@ import { recent } from "../recent";
 import { ui } from "../ui";
 import { settings } from "../settings";
 import { editorRegistry } from "../../editors/base/editorRegistry";
+import {
+    resolveEditorIdForFile,
+    parseBoardEditorId,
+} from "../../editors/board/custom-editor-registry";
+import type { BoardEditorModel } from "../../editors/board";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { PageModel } from "./PageModel";
@@ -260,7 +265,8 @@ export class PagesLifecycleModel {
 
 
     private newEditorModel = async (filePath?: string): Promise<EditorOrHost> => {
-        const targetId = editorRegistry.resolveId(filePath) ?? "monaco";
+        // Merged resolution (built-in registry + trusted file-associated boards).
+        const targetId = resolveEditorIdForFile(filePath) ?? "monaco";
         return this.buildEditorById(targetId, filePath);
     };
 
@@ -278,6 +284,17 @@ export class PagesLifecycleModel {
         editorId: string,
         filePath?: string,
     ): Promise<EditorOrHost> => {
+        // Custom-editor board (EPIC-042): a `board-editor:<root>` id has no static
+        // registry def, so branch BEFORE the `!def` text fallback (which would else
+        // open the file silently as text). Build the board initialized with the file
+        // it edits (→ persephone.getFilePath()).
+        const boardRoot = parseBoardEditorId(editorId);
+        if (boardRoot !== null) {
+            const { boardModule } = await import("../../editors/board");
+            const model = boardModule.createEditor() as unknown as BoardEditorModel;
+            model.initFromBoardRoot(boardRoot, filePath);
+            return model as unknown as EditorOrHost;
+        }
         const def = editorRegistry.getById(editorId);
         if (!def || def.hasContentHost) {
             // Text-bearing or unknown — build a TextFileModel host.

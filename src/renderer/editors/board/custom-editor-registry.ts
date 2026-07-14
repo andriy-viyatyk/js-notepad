@@ -15,7 +15,8 @@
  */
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
-import { fpBasename } from "../../core/utils/file-path";
+import { fpBasename, isPlainLocalPath } from "../../core/utils/file-path";
+import { editorRegistry } from "../base/editorRegistry";
 import { boardTrust } from "../../api/board-trust";
 import {
     getBoardEditorAssociation,
@@ -145,3 +146,37 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
 }
 
 export const customEditorRegistry = new CustomEditorRegistry();
+
+/**
+ * Resolve the winning editor id for opening a file, merging the built-in registry with
+ * trusted file-associated boards (EPIC-042). A board wins only when the path is a real
+ * local file (boards edit local files only) and its `editorPriority` is STRICTLY greater
+ * than the best built-in claimant (built-ins win exact ties; among boards, trusted-list
+ * order — `getBoardsForFile` preserves it). Returns the built-in id otherwise.
+ *
+ * Consumed by the two file-open decision points — `PagesLifecycleModel.newEditorModel`
+ * (direct open) and the Layer 2 file resolver (`content/resolvers.ts`, openRawLink). Both
+ * registries stay separate data structures; this only READS both.
+ */
+export function resolveEditorIdForFile(filePath?: string): string | undefined {
+    const builtinDef = filePath ? editorRegistry.resolve(filePath) : undefined;
+    const builtinId = builtinDef?.id;
+    if (!filePath || !isPlainLocalPath(filePath)) return builtinId;
+    const builtinPriority = builtinDef?.match?.acceptFile?.(filePath) ?? 0;
+    let best: CustomEditorMatch | undefined;
+    for (const b of customEditorRegistry.getBoardsForFile(filePath)) {
+        // Strict `>` so the FIRST (earliest-trusted) board wins ties among boards.
+        if (!best || b.priority > best.priority) best = b;
+    }
+    if (best && best.priority > builtinPriority) return best.editorId;
+    return builtinId;
+}
+
+/**
+ * True for either board editor id form — the plain `board-view` (a board opened as a
+ * page) or a custom-editor `board-editor:<root>` (a board editing a file). Used by the
+ * MCP / automation board-detection sites so a custom-editor board stays automatable.
+ */
+export function isBoardEditorId(id: string | undefined): boolean {
+    return id === "board-view" || (!!id && parseBoardEditorId(id) !== null);
+}

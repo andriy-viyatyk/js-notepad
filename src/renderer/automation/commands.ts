@@ -16,6 +16,7 @@ import { BrowserChannel } from "../../ipc/browser-ipc";
 // runtime dependency on BrowserEditor / BoardEditorModel is created.
 import type { BrowserEditor } from "../editors/browser";
 import type { BoardEditorModel } from "../editors/board/BoardEditorModel";
+import { isBoardEditorId } from "../editors/board/custom-editor-registry";
 import { pressKey, typeText } from "./input";
 import { callOnRef } from "./ref";
 import { buildSnapshot, detectOverlay } from "./snapshot";
@@ -41,7 +42,7 @@ function isBrowserEditor(e: unknown): e is BrowserEditor {
 }
 
 function isBoardEditor(e: unknown): e is BoardEditorModel {
-    return !!e && (e as { editorId?: string }).editorId === "board-view";
+    return !!e && isBoardEditorId((e as { editorId?: string }).editorId);
 }
 
 // ── Target Resolution ───────────────────────────────────────────────

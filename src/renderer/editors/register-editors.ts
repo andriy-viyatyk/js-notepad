@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { editorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
+import { customEditorRegistry } from "./board/custom-editor-registry";
 import { secondaryViewRegistry } from "../ui/secondary-views/secondary-view-registry";
 import { SearchIcon, BoardColorIcon } from "../theme/icons";
 
@@ -448,6 +449,12 @@ editorRegistry.register({
         return boardModule;
     },
 });
+
+// Warm the custom-editor registry (EPIC-042) so file-open resolution sees trusted
+// file-associated boards from the first open — `resolveEditorIdForFile` is sync but the
+// registry loads manifests async. Safe pre-init: an unresolved registry yields no matches
+// → built-in fallback.
+void customEditorRegistry.ensureInitialized();
 
 editorRegistry.register({
     id: "toolset-view",

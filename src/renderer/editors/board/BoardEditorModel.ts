@@ -1,11 +1,13 @@
 import { createElement, type ReactNode } from "react";
 
 import { EditorModel, type EditorStateBase } from "../base/EditorModel";
+import { editorRegistry } from "../base/editorRegistry";
 import { api } from "../../../ipc/renderer/api";
 import { BoardIcon } from "../../theme/icons";
-import { fpBasename, fpJoin, fpNormalizeForCompare } from "../../core/utils/file-path";
+import { fpBasename, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../../core/utils/file-path";
 import { boardTrust } from "../../api/board-trust";
 import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
+import { boardEditorId } from "./custom-editor-registry";
 import { isBoardFolder } from "./board-manifest";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
@@ -71,7 +73,14 @@ export const getDefaultBoardEditorState = (): BoardEditorState => ({
  * the Boards panel or the in-board toolbar (EPIC-036 C4).
  */
 export class BoardEditorModel extends EditorModel<BoardEditorState> {
-    readonly editorId = "board-view";
+    /** Virtual `board-editor:<root>` when acting as a custom editor for a file (so the
+     *  switch widget shows/highlights it and `switchMainEditor` routes correctly), else
+     *  the constant `"board-view"` for a plain board page. Persistence pins `"board-view"`
+     *  regardless (see `getRestoreData`) so restore keys on the stable id. */
+    get editorId(): string {
+        const root = this.state.get().boardRoot;
+        return root && this.currentFilePath() ? boardEditorId(root) : "board-view";
+    }
 
     noLanguage = true;
     skipSave = true;
@@ -159,6 +168,32 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         return s.filePath ?? s.sourceLink?.filePath;
     }
 
+    /** Merge both filePath sources so host-less consumers (the switch widget, the
+     *  `switchMainEditor` board-boundary extraction) read a single value. */
+    override get filePath(): string | undefined {
+        return this.currentFilePath();
+    }
+
+    /** Switch options while ON the board (base returns []): the file's natural BUILT-IN
+     *  editor (so the user can switch back) plus this board. Board peers claiming the same
+     *  file are appended by the switch widget. Empty for a plain board / non-local file. */
+    override findCompatibleEditors(): string[] {
+        const filePath = this.currentFilePath();
+        const root = this.state.get().boardRoot;
+        if (!filePath || !root || !isPlainLocalPath(filePath)) return [];
+        const builtinId = editorRegistry.resolveId(filePath) ?? "monaco";
+        return [builtinId, boardEditorId(root)];
+    }
+
+    /** Persist the STABLE `"board-view"` id so restore + cross-window keys on it
+     *  (`NO_HOST_EDITOR_IDS` + the zombie guard); the virtual `board-editor:<root>` id is
+     *  re-derived from the persisted `state.filePath` / `state.boardRoot` on restore. */
+    override getRestoreData() {
+        const data = super.getRestoreData();
+        data.editorId = "board-view";
+        return data;
+    }
+
     /** Single-board init — opened by a `persephone-board://` link (US-748) or the
      *  MCP `openBoard` (US-750). `filePath` is passed only on the custom-editor SWITCH path
      *  (US-839); on the openRawLink path it rides `state.sourceLink` instead. */
@@ -243,6 +278,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
      *  `reapBoardOwner` tree-kills every job this board owner kept alive while busy —
      *  page close overrides busy ("page closed → kill anyway"). */
     override async dispose(): Promise<void> {
+        // A custom-editor board opened via openRawLink is handed a (never-read)
+        // FileProvider pipe by the open-handler — dispose it for hygiene (EPIC-042 CC8).
+        (this as { pipe?: { dispose?: () => void } }).pipe?.dispose?.();
         markBoardBusy(this.id, undefined, false);
         void api.reapBoardOwner(this.id);
         this.currentIframe = null;

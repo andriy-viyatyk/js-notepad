@@ -119,6 +119,20 @@ export function isArchiveFile(filePath: string): boolean {
 }
 
 /**
+ * True for a plain local filesystem path — no `scheme://`, no `data:`, no
+ * archive `!entry` bang. Windows drive paths (`C:\…`, `C:/…`) qualify (no `://`).
+ * Gates custom-editor-board resolution / switch (a board edits a real local file
+ * only — https / archive / virtual schemes are excluded).
+ */
+export function isPlainLocalPath(p: string): boolean {
+    if (!p) return false;
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(p)) return false; // http(s)://, mneme://, tree-category://, …
+    if (p.startsWith("data:")) return false;
+    if (p.includes("!")) return false;                    // archive entry (archivePath!entryPath)
+    return true;
+}
+
+/**
  * Check if a file path points to an `.asar` archive file (not inside one).
  * Used to distinguish `.asar` from ZIP-based archives since they use different
  * I/O mechanisms (Electron native fs vs ArchiveService/jszip).

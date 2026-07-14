@@ -1,5 +1,6 @@
 import { TComponentState, TOneState } from "../../core/state/state";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
+import { parseBoardEditorId } from "../../editors/board/custom-editor-registry";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { NavEntry, PageDescriptor } from "../../../shared/persistence";
 import { SecondaryViewsModel, ISecondaryViewsState } from "../../ui/secondary-views/SecondaryViewsModel";
@@ -451,6 +452,43 @@ export class PageModel implements IPageHost {
         const oldEditor = this.mainEditorInstance;
         if (!oldEditor) return;
         if (oldEditor.editorId === newEditorId) return;
+
+        // A board editor (either side) has no shared content host to hand over via
+        // `switchFrom`, so a board-boundary switch confirms release of the old editor
+        // (CE4) and rebuilds the target FRESH over the file (dispose-and-rebuild). The
+        // board writes the file directly, so a rebuilt built-in reads current disk
+        // content — no stale-cache handling needed.
+        const boardInvolved =
+            parseBoardEditorId(newEditorId) !== null
+            || parseBoardEditorId(oldEditor.editorId) !== null;
+        if (boardInvolved) {
+            const filePath =
+                (oldEditor.contentHost as { filePath?: string } | null)?.filePath
+                ?? oldEditor.filePath;
+            if (!filePath) return;
+            const released = await oldEditor.confirmRelease();
+            if (!released) return; // Cancel → stay on the current editor
+            const { pagesModel } = await import("../pages");
+            const { attachEditorToPage } = await import("./PagesLifecycleModel");
+            const built = await pagesModel.lifecycle.createEditorFromFile(
+                filePath,
+                undefined,
+                newEditorId,
+            );
+            // Honor an explicit built-in target that differs from the file's natural
+            // resolveId (mirrors openFile / navigatePageTo); no-op for board targets.
+            if (
+                built.state.get().type === "textFile"
+                && parseBoardEditorId(newEditorId) === null
+            ) {
+                built.state.update((s) => {
+                    (s as { editor?: string }).editor = newEditorId;
+                });
+            }
+            await this.setMainEditor(attachEditorToPage(built));
+            return;
+        }
+
         const { editorRegistry } = await import("../../editors/base");
         const def = editorRegistry.getById(newEditorId);
         if (!def) {

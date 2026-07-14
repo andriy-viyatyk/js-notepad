@@ -1,6 +1,7 @@
 import { app } from "../api/app";
 import { editorRegistry } from "../editors/base/editorRegistry";
-import { isArchivePath, parseArchivePath } from "../core/utils/file-path";
+import { resolveEditorIdForFile } from "../editors/board/custom-editor-registry";
+import { isArchivePath, parseArchivePath, isPlainLocalPath } from "../core/utils/file-path";
 import { createPipeFromDescriptor } from "./registry";
 import { resolveUrlToPipeDescriptor, isHttpUrl, toFileUrl } from "./link-utils";
 import type { ILinkData } from "../../shared/link-data";
@@ -156,9 +157,15 @@ export function registerResolvers(): void {
             return;
         }
 
-        // Resolve target editor if not already specified
+        // Resolve target editor if not already specified. For a plain local file, use the
+        // merged resolver (built-in registry + trusted file-associated boards, EPIC-042):
+        // a board that wins by priority becomes the target, and its file rides the normal
+        // openFile path (→ buildEditorById board branch → initFromBoardRoot). Archive /
+        // virtual sources never route to a board — built-in resolution only.
         data.target = data.target
-            || editorRegistry.resolveId(extractEffectivePath(data.url))
+            || (isPlainLocalPath(data.url)
+                ? resolveEditorIdForFile(data.url)
+                : editorRegistry.resolveId(extractEffectivePath(data.url)))
             || "monaco";
         data.pipeDescriptor = pipeDescriptor;
         data.pipe = createPipeFromDescriptor(pipeDescriptor);

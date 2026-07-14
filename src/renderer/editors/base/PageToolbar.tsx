@@ -6,6 +6,8 @@ import { SegmentedControl, type ISegment } from "../../uikit/SegmentedControl/Se
 import { Spacer } from "../../uikit/Spacer/Spacer";
 import { NavPanelIcon } from "../../theme/icons";
 import { editorRegistry } from "./editorRegistry";
+import { customEditorRegistry } from "../board/custom-editor-registry";
+import { isPlainLocalPath } from "../../core/utils/file-path";
 
 interface PageToolbarProps {
     name?: string;
@@ -71,10 +73,20 @@ function SwitchWidget({ model }: { model: EditorModel }) {
     // File Diff editor (US-613) registers a host-aware `accepts`.
     model.contentHost?.state.use((s) => (s as { gitRepo?: unknown }).gitRepo);
     const options = model.findCompatibleEditors();
-    if (options.length < 2 || !options.includes(model.editorId)) return null;
-    const items: ISegment[] = options.map((id) => ({
+    // Append trusted file-associated boards for the current file (EPIC-042 — the single
+    // merge point for the switch; the 16 text editors delegate here via the widget rather
+    // than each appending). Reactive so a trust / mask change updates the widget live.
+    const filePath = (model.contentHost as { filePath?: string } | null)?.filePath ?? model.filePath;
+    const boardMatches = customEditorRegistry.useBoardsForFile(
+        filePath && isPlainLocalPath(filePath) ? filePath : "",
+    );
+    const merged = [...options];
+    for (const b of boardMatches) if (!merged.includes(b.editorId)) merged.push(b.editorId);
+    if (merged.length < 2 || !merged.includes(model.editorId)) return null;
+    const boardNameById = new Map(boardMatches.map((b) => [b.editorId, b.name]));
+    const items: ISegment[] = merged.map((id) => ({
         value: id,
-        label: editorRegistry.getById(id)?.name ?? id,
+        label: boardNameById.get(id) ?? editorRegistry.getById(id)?.name ?? id,
     }));
     return (
         <SegmentedControl

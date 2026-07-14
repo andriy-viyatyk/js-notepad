@@ -5,6 +5,7 @@ import { scriptRunner } from "../scripting/ScriptRunner";
 import { pagesModel } from "./pages";
 import { editorRegistry } from "../editors/base/editorRegistry";
 import type { BoardEditorModel } from "../editors/board/BoardEditorModel";
+import { isBoardEditorId } from "../editors/board/custom-editor-registry";
 import { MCP_EXECUTE, MCP_RESULT } from "../../shared/constants";
 import { app } from "./app";
 import { settings } from "./settings";
@@ -207,7 +208,7 @@ function getPages(): McpPageInfo[] {
         // Board pages: surface the boards container / single-board root + open board
         // so an agent can pick the right board to drive via the browser_* tools
         // (structural read).
-        if (editor?.editorId === "board-view") {
+        if (isBoardEditorId(editor?.editorId)) {
             const bs = p.mainEditor?.state.get() as
                 | { boardRoot?: string; selectedBoard?: string }
                 | undefined;
@@ -235,11 +236,14 @@ const OVERSIZE_IMAGE_HINT =
     '`(await page.asImage()).savePngToFile(path)` to write it to disk, then read the file.';
 
 function hintForEditor(editorId: string | undefined): string {
+    // A custom-editor board reports a dynamic `board-editor:<root>` id — can't be a
+    // `case` label, so match both board id forms before the switch.
+    if (isBoardEditorId(editorId)) {
+        return 'This is a board page. Use the browser_* tools targeted at it (see read_guide("boards")), or read the board\'s files from disk.';
+    }
     switch (editorId) {
         case "browser-view":
             return "This is a browser page. Use the browser_* tools — browser_snapshot for the DOM, browser_take_screenshot for pixels.";
-        case "board-view":
-            return 'This is a board page. Use the browser_* tools targeted at it (see read_guide("boards")), or read the board\'s files from disk.';
         case "video-view":
         case "pdf-view":
             return "This page has no extractable text or image content. Its source file path is available via list_pages → filePath.";
@@ -690,7 +694,7 @@ function refreshBoard(params: McpParams): McpResponse {
         return { error: { code: -32602, message: pageId ? `Page not found: ${pageId}` : "No active page." } };
     }
     const editor = page.mainEditorInstance;
-    if (!editor || editor.editorId !== "board-view") {
+    if (!editor || !isBoardEditorId(editor.editorId)) {
         return { error: { code: -32602, message: `Page ${page.id} is not a board page.` } };
     }
     (editor as BoardEditorModel).reloadBoard();
