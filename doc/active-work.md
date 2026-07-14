@@ -12,6 +12,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-837: Custom-editor registry — reactive `mask → trusted board` map](tasks/US-837-custom-editor-registry/README.md)
   - [ ] [US-838: filePath into the board](tasks/US-838-filepath-into-board/README.md)
   - [ ] [US-839: Resolution + switch integration (the crux)](tasks/US-839-resolution-switch-integration/README.md)
+  - [ ] [US-840: DrawIO viewer board (proving ground)](tasks/US-840-drawio-viewer-board/README.md)
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

@@ -10,6 +10,7 @@ import { IconButton } from "../../uikit/IconButton";
 import { Text } from "../../uikit/Text";
 import { Popover } from "../../uikit/Popover";
 import { RefreshIcon, LogIcon, NavPanelIcon } from "../../theme/icons";
+import { SwitchWidget } from "../base/PageToolbar";
 import { BoardsTree } from "./BoardsTree";
 import type { BoardEditorModel } from "./BoardEditorModel";
 
@@ -114,6 +115,11 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
                 icon={<LogIcon width={14} height={14} />}
                 onClick={() => void openLog()}
             />
+            {/* Editor-switch widget (EPIC-042) — shown only when this board is acting as a
+                file editor (findCompatibleEditors yields the built-in + this board). Reuses the
+                exact PageToolbar widget so a board↔Monaco switch looks identical to every other
+                editor switch. Renders nothing for a plainly-opened board (its own guard). */}
+            <SwitchWidget model={model} />
             {canSwitch && (
                 <Popover
                     name="board-toolbar-switcher"

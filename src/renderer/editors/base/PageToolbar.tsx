@@ -59,7 +59,7 @@ function NavPanelButton({ model }: { model: EditorModel }) {
     );
 }
 
-function SwitchWidget({ model }: { model: EditorModel }) {
+export function SwitchWidget({ model }: { model: EditorModel }) {
     // Subscribe to state so the widget re-renders when language/filePath
     // changes alter the legacy registry's switch options. For adapter-wrapped
     // editors `findCompatibleEditors()` reads the legacy state.
