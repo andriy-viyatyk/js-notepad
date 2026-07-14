@@ -395,9 +395,9 @@ A drag source can choose its **trait-type id** instead of defaulting to `ILink`.
 
 `Tree` also exposes `onDragStartOverride?(source, level, e) => boolean`, a first-chance `dragstart` hook that runs **before** the trait payload is built. Returning `true` signals that the handler took over the gesture (it already called `e.preventDefault()`); the `Tree` then skips its own trait-drag setup. This keeps UIKit free of Electron/IPC — the app layer supplies the native behavior.
 
-`TreeProviderView` uses it to export local files to the OS: on a **Ctrl-drag** of a local-file-provider row it hands off to `webContents.startDrag` (via the `startOsFileDrag` IPC endpoint → `src/main/os-drag-service.ts`), producing a real Windows **CF_HDROP** drag that Windows Explorer and Microsoft Teams accept as a file copy. A plain drag (no Ctrl) falls through to the normal in-process HTML5 trait drag, so internal move / drag-into-editor are unchanged.
+`TreeProviderView` uses it so that **every** local-file-provider row drag is a native OS drag: it hands off to `webContents.startDrag` (via the `startOsFileDrag` IPC endpoint → `src/main/os-drag-service.ts`), producing a real Windows **CF_HDROP** drag that Windows Explorer and Microsoft Teams accept as a file copy. No modifier is needed.
 
-The two are mutually exclusive per gesture: a native OS drag **cannot be dropped back onto the app's own windows**, so it can't serve the internal case — hence the OS export is gated behind Ctrl rather than sharing the plain drag. `Ctrl` (not `Alt`) because Windows interprets a held `Alt` during a drag as "create shortcut", which drop targets reject, whereas `Ctrl` means "copy".
+One gesture serves both directions because a native OS drag dropped **back inside** a Persephone window re-enters as an ordinary OS file drop: `GlobalEventService.captureDrop` tags it (capture phase) with an `OsFile` (`FILE_LINK`) descriptor, so trait-aware drop targets receive it identically to a drop from Windows Explorer. The drag payload is therefore always `FILE_LINK` (never `LINK`/`sourceId`), which is why a drop into another Explorer folder is treated as an import rather than a same-source move — the move-vs-copy choice is instead offered at drop time (see the `FILE_LINK` import branch below). Non-file providers (Mneme, archive, link collections) don't start an OS drag; they keep the in-process HTML5 trait drag.
 
 ---
 
@@ -415,7 +415,7 @@ A drop target dispatches **by trait + source + its own capability** — it never
 
 1. `LINK` present **and** `getSourceId(data) === provider.sourceUrl` → **move** within the provider (file rename, or category reassign for a collection) — same store, even across windows.
 2. else `LINK` present **and** the target implements `importLinks` → **catalog add/move** by href (store link metadata; a duplicate href is *moved* into the target category, not duplicated).
-3. else file content present (`FILE_LINK.getFiles(data).length > 0`) **and** the target implements `importFiles` → **import/copy** the bytes (`getBytes()` → store).
+3. else file content present (`FILE_LINK.getFiles(data).length > 0`) **and** the target implements `importFiles` → **import/copy** the bytes (`getBytes()` → store). For the local-file provider (`supportsOsClipboard`), `TreeProviderView` routes this to `dropOsFilesInto`, which offers a **Move / Copy / Cancel** choice (Move only when the items are real files with a `filePath`) and applies it via `copyPathsInto`; other byte-backed targets (Mneme uploads) use the plain `importFiles` copy.
 4. else **ignore** — there is no rename fallback, so a file-backed target never feeds a foreign href to `rename`.
 
 Two target capabilities decide branches 2 and 3:

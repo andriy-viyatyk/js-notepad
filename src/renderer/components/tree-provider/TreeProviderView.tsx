@@ -175,18 +175,15 @@ export function TreeProviderView(
     }, [writable, props.provider.rootPath, props.provider.sourceUrl]);
 
     // OS file drag-out (Windows Explorer / Teams) for local-file providers, where
-    // `href` is an absolute path. Gated on Ctrl: a plain drag keeps the tree's
-    // in-process HTML5 trait drag (internal move / drag-into-editor); holding Ctrl
-    // hands off to a native OS drag (`webContents.startDrag`) — the only payload
-    // both Explorer AND Teams accept cleanly. Ctrl (not Alt) because Windows treats
-    // a held Alt as "create shortcut" (targets reject it → "no drop"), whereas Ctrl
-    // means "copy" — which is exactly what an export is. A native drag can't be
-    // dropped back onto the app's own windows, so it can't serve the internal case —
-    // hence the modifier. Non-file providers keep the plain trait drag only.
+    // `href` is an absolute path. Every file-row drag hands off to a native OS drag
+    // (`webContents.startDrag`) — the only payload both Explorer AND Teams accept
+    // cleanly. A native drag dropped back inside a Persephone window re-enters as an
+    // ordinary OS file drop (GlobalEventService.captureDrop), so the same plain drag
+    // serves internal drops too (see onTraitDrop). No modifier needed. Non-file
+    // providers keep the in-process HTML5 trait drag only.
     const osDragEnabled = supportsOsClipboard(props.provider);
     const handleOsDragStart = useCallback(
         (node: TreeProviderNode, _level: number, e: React.DragEvent): boolean => {
-            if (!e.ctrlKey) return false;
             const href = node.data.href;
             if (!href || href === props.provider.rootPath) return false;
             e.preventDefault();
@@ -251,7 +248,13 @@ export function TreeProviderView(
         const fileLink = traits?.get(FILE_LINK);
         const files = fileLink?.getFiles(payload.data) ?? [];
         if (props.provider.importFiles && files.length) {
-            void model.importFiles(files, dropNode);
+            // File providers (absolute-path items) offer Move/Copy; other file-backed
+            // targets (Mneme etc.) keep the plain byte import.
+            if (supportsOsClipboard(props.provider)) {
+                void model.dropOsFilesInto(files, dropNode);
+            } else {
+                void model.importFiles(files, dropNode);
+            }
         }
     }, [model, props.provider]);
 

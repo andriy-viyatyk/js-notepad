@@ -6,7 +6,8 @@ import type { MenuItem } from "../../uikit/Menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
 import { ui } from "../../api/ui";
-import { fpDirname } from "../../core/utils/file-path";
+import { fpBasename, fpDirname } from "../../core/utils/file-path";
+import { copyPathsInto } from "../../core/utils/copy-files";
 import { isUrlOrCurl } from "../../content/link-utils";
 import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import {
@@ -978,6 +979,80 @@ export class TreeProviderViewModel extends TComponentModel<
         } catch (err) {
             ui.notify(err.message || "Failed to import files.", "warning");
             return;
+        }
+        await this.buildTree();
+    };
+
+    /** OS-file drop into a file-tree folder. Real files (with a path) get a
+     *  Move / Copy / Cancel choice; byte-only items (e.g. a Mneme doc dragged in)
+     *  can't be "moved", so they fall back to the plain byte import. File providers
+     *  only — non-file providers route to `importFiles` (see TreeProviderView). */
+    dropOsFilesInto = async (items: IFileLink[], dropNode: TreeProviderNode) => {
+        const { provider } = this.props;
+        if (!items.length) return;
+
+        const targetDir = dropNode.data.isDirectory
+            ? dropNode.data.href
+            : (dropNode.data.category || provider.rootPath);
+
+        const paths = items.map((i) => i.filePath).filter((p): p is string => !!p);
+        const allRealFiles = paths.length > 0 && paths.length === items.length;
+
+        // Byte-only content can't be relocated — keep the existing import (copy/write).
+        if (!allRealFiles) {
+            await this.importFiles(items, dropNode);
+            return;
+        }
+
+        const label = items.length === 1 ? `"${items[0].name}"` : `${items.length} items`;
+        const targetTitle = dropNode.data.isDirectory
+            ? dropNode.data.title
+            : fpBasename(targetDir);
+        const bt = await ui.confirm(`Move or copy ${label} into "${targetTitle}"?`, {
+            title: "Move or Copy",
+            buttons: ["Move", "Copy", "Cancel"],
+        });
+        if (bt !== "Move" && bt !== "Copy") return;
+        const move = bt === "Move";
+
+        // Overwrite-collision confirm (same wording/pattern as importFiles).
+        const existing = new Set(
+            (await provider.list(targetDir)).map((l) => l.title.toLowerCase()),
+        );
+        const clashing = items
+            .filter((i) => existing.has(i.name.toLowerCase()))
+            .map((i) => i.name);
+        if (clashing.length) {
+            const ob = await ui.confirm(
+                `${clashing.length} file(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
+                { title: "Overwrite files?", buttons: ["Overwrite", "Cancel"] },
+            );
+            if (ob !== "Overwrite") return;
+        }
+
+        const verb = move ? "Moving" : "Copying";
+        const progress = await ui.createProgress(`${verb}...`);
+        try {
+            const result = await progress.show(
+                copyPathsInto(paths, targetDir, {
+                    move,
+                    onProgress: (done, total, name) => {
+                        progress.label = `${verb} ${done} of ${total}: ${name}`;
+                    },
+                }),
+            );
+            if (result.errors.length) {
+                const shown = result.errors.slice(0, 5).join("\n");
+                const more = result.errors.length > 5
+                    ? `\n(+${result.errors.length - 5} more)`
+                    : "";
+                ui.notify(
+                    `Some items could not be ${move ? "moved" : "copied"}:\n${shown}${more}`,
+                    "warning",
+                );
+            }
+        } catch (err) {
+            ui.notify(err?.message || `Failed to ${move ? "move" : "copy"}.`, "warning");
         }
         await this.buildTree();
     };

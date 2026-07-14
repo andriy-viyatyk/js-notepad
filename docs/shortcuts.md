@@ -181,7 +181,7 @@ All navigation keys (except Tab) support **Shift** to extend selection.
 | `Ctrl+C` | Copy the selected file/folder to the Windows clipboard |
 | `Ctrl+X` | Cut the selected file/folder to the Windows clipboard (not on the tree's root) |
 | `Ctrl+V` | Paste from the Windows clipboard into the selected folder (or the selected file's parent, or the root) |
-| `Ctrl+drag` | Drag a file out to Windows Explorer or Teams (native OS drag; not on the tree's root). A plain drag keeps the normal move/drag-into-editor behavior |
+| Drag | Drag a file out to Windows Explorer or Teams (native OS drag; not on the tree's root). Dragging it onto another folder in the tree instead opens a Move/Copy/Cancel dialog |
 | `Delete` | Delete the selected file/folder (shows the confirmation dialog) |
 | `F2` | Rename the selected file/folder |
 
