@@ -5,6 +5,28 @@ plain HTML page, backed by scripts you write in any language. Persephone hosts t
 page in a locked-down, cross-origin `<iframe>` and injects a single bridge object,
 `window.persephone`.
 
+> ## 📌 Agent: rewrite this file once the board is built
+>
+> **This is the generic authoring guide, copied into every new board. When you finish
+> implementing (or substantially changing) the board, REPLACE this file with documentation
+> of _this_ board** — so a future agent asked to fix or extend it has instant context
+> instead of re-reading all the code. The full generic reference below stays available any
+> time via the **`read_guide("boards")`** MCP tool and the bundled Demo board, so it's safe
+> to trim it out of this per-board file.
+>
+> Keep the rewritten file **short and board-specific**:
+> - **Purpose** — what the board does, and (if it's a custom editor) which files it opens.
+> - **How it works** — the frontend (`index.html` / `app.js` + the main UI pieces), the
+>   backend scripts under `scripts/` (one line each), and any vendored libraries in `lib/`
+>   (name + version + why).
+> - **Key files** — a one-line map of the files that matter.
+> - **Run & test** — how to open it, how to reload after edits (`board_refresh`), and any
+>   manual test steps or sample inputs.
+> - **Gotchas** — non-obvious decisions and constraints (CSP/offline workarounds, library
+>   quirks, why something is done a certain way) — the things that would trip up the next agent.
+> - **Reference** — keep a short pointer to the canonical Persephone board docs (below /
+>   `read_guide("boards")`) for the `persephone.*` bridge API; don't re-document it here.
+
 ## Board identity: `board-manifest.json`
 
 This folder is recognized as a board because it contains **`board-manifest.json`** —

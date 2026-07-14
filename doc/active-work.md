@@ -7,7 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- _(nothing in progress)_
+- *(no epic)*
+  - [x] US-841: Board scaffold — instruct the agent to rewrite a board's `CLAUDE.md` into board-specific docs after implementation
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

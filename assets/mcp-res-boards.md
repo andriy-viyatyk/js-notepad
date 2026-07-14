@@ -54,6 +54,10 @@ blank board contains:
 - `board-base.css` — shared theme defaults (page bg/text, monospace font, themed scrollbars),
   **already linked in `index.html`; don't fetch or recreate it.**
 - `board-manifest.json` — the board-identity file (already valid).
+- `CLAUDE.md` — the generic board authoring guide. **When the board is built, rewrite this file
+  to document _this_ board** (purpose, how it works, key files, run/test steps, gotchas) so a
+  future agent has instant context — see the "rewrite this file" note at its top. The generic
+  reference is always available here (`read_guide("boards")`), so it's safe to trim.
 
 Edit these with your own file tools (or `app.fs` inside another `execute_script`). The key
 surfaces:
