@@ -50,10 +50,13 @@ So the deliverable is: **board registration as an editor with file association +
 
 ## Idea-by-idea design notes
 
-### 1. Manifest `fileExtensions` + `editorPriority` (+ editor identity)
+### 1. Manifest `fileMasks` + `editorPriority` (+ editor identity)
 
 - Add to `BoardManifest`:
-  - `fileExtensions?: string[]` — normalized, e.g. `[".drawio"]`.
+  - `fileMasks?: string[]` — **glob masks** matched against the file name (not plain extensions),
+    e.g. `["*.drawio"]` or `["*.grid.json"]`. `*` = any run, `?` = one char; a bare extension
+    (`".drawio"`) is coerced to `*.drawio`. Compound/mask patterns are a **requirement** (a board
+    must be able to claim `*.grid.json`), so the field is masks, not a plain-extension `endsWith`.
   - `editorPriority?: number` — **configurable resolution priority (CE1, decided).** Slots the board into Persephone's existing `match.acceptFile` numeric ladder (real editor ids): `monaco` = 0 floor, `grid-json`/`grid-csv`/`grid-jsonl` = 20, `draw-view` = 50, `pdf-view`/`image-view`/`archive-view`/`video-view` = 100, `category-view` = 200. The board wins file-open resolution (becomes the **default** editor for its extensions) when its priority is the highest claimant for that file. For `.drawio` there is no built-in claimant, so any value > 0 makes the board the default over Monaco (e.g. set `100`). A board is **always** a switch option regardless of priority; the priority only decides whether it *also* becomes the default open target. Omitted/`0` → switch-option-only (Monaco stays default).
   - an optional **editor display name** (e.g. `editorName`) used as the switch-widget label (falls back to the board name).
 - **Trusted-only (CE3 / EPIC-035 C6):** the association is *acted upon* only when the board is trusted. An untrusted board's `fileExtensions` is ignored entirely — no switch option, no routing. Passive identity ("open board" button) is unchanged.
@@ -112,7 +115,7 @@ Each will get a full Goal → Background → Implementation Plan → Concerns �
 
 | Task | Title | Depends on |
 |------|-------|-----------|
-| US-XXX | **Manifest `fileExtensions` + `editorPriority` + editor identity.** Extend `BoardManifest` (fileExtensions, `editorPriority` per CE1, editor display name) + validation; update the board authoring guide's manifest reference. | — |
+| [US-836](../tasks/US-836-board-manifest-file-association/README.md) | **Manifest `fileMasks` + `editorPriority` + editor identity.** Extend `BoardManifest` (`fileMasks` glob masks, `editorPriority` per CE1, editor display name) + normalize/matcher/accessor helpers; update the board authoring guide's manifest reference. _(carved 2026-07-14; `fileMasks` supersedes the reserved `fileExtensions` — masks support compound patterns like `*.grid.json`)_ | — |
 | US-XXX | **Custom-editor registry.** Reactive `extension → trusted board` map built from `boardTrust` + manifests; `getBoardsForFile`; refresh on trust change (CE3/CE7). | fileExtensions task |
 | US-XXX | **filePath into the board.** Forward `filePath` via `persephone-board://` → `BoardEditorState.filePath` → `BoardPortInitMsg` → `persephone.filePath`; `switchFrom` extracts filePath from the old host. | registry task |
 | US-XXX | **Resolution + switch integration (crux).** Merge the custom-editor registry into `resolveId`/`resolve` (**not** dead `resolveForFile`); `buildEditorById` `board-editor:` branch (→ BoardEditorModel + filePath); `findCompatibleEditors` merge + label; virtual `board-editor:<root>` identity incl. dynamic `BoardEditorModel.editorId`; `switchMainEditor` prefix branch + `confirmRelease()` on switch-to-board / abort on cancel (CE4); fresh re-resolve on switch-back (CE4/CE6). See design note #3 (a–e). | filePath task |
@@ -163,6 +166,10 @@ This epic builds on both.
 - **CE7 ✅ reactive, no watcher.** Registry reacts to `boardTrust` state + re-reads a manifest on open; no persistent file watcher (a mid-session `fileExtensions` edit lands on next open/refresh).
 - **CE8 ✅ out of scope.** Content-host variant (`persephone.host.getContent/setContent`) + built-in→board migration deferred to a successor epic. This epic ships the simple direct-`filePath` case only.
 - **All constraints (CE1–CE8) resolved.** Design finalized; ready for task carving on the user's go-ahead.
+
+### 2026-07-14 — US-836 carved + `fileExtensions` → `fileMasks` (user)
+- First task carved: [US-836](../tasks/US-836-board-manifest-file-association/README.md) (manifest fields + normalize/matcher/accessor + authoring-guide doc; pure data-model, inert until the registry/resolution tasks).
+- **Field is `fileMasks`, not `fileExtensions` (user requirement).** A custom editor must register for **compound / mask** patterns like `*.grid.json`, not only a bare extension. Implemented as glob masks (`*`/`?`) compiled to a case-insensitive RegExp matched against the file name; a bare extension is coerced to `*.<ext>` for convenience. The reserved `fileExtensions` name in `board-manifest.ts` is **superseded**. Later registry/resolution tasks match via the shared `matchesFileMask` helper and still apply `editorPriority` on the existing numeric ladder; overlap with a built-in mask is legitimate and resolved by priority + the CE2 tie-break.
 
 ### 2026-07-14 — independent gap review (fresh agent, no context)
 A context-free agent verified every concrete claim against the source. Design (CE1–CE8) confirmed sound and internally consistent; "what already exists" claims almost all accurate. **Fixed the findings:**

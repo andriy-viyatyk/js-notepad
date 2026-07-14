@@ -9,7 +9,8 @@ page in a locked-down, cross-origin `<iframe>` and injects a single bridge objec
 
 This folder is recognized as a board because it contains **`board-manifest.json`** —
 that file's presence is what makes Persephone treat the folder as a board. It holds the
-schema version plus optional **descriptive metadata**; it never controls behavior:
+schema version plus optional **descriptive metadata** and, optionally, the **Custom Editor**
+fields that let the board act as a file editor:
 
 ```json
 {
@@ -17,12 +18,27 @@ schema version plus optional **descriptive metadata**; it never controls behavio
   "name": "My Board",
   "description": "What this board does.",
   "author": "you",
-  "repository": "https://github.com/you/your-board"
+  "repository": "https://github.com/you/your-board",
+
+  "fileMasks": ["*.drawio"],
+  "editorPriority": 100,
+  "editorName": "DrawIO"
 }
 ```
 
 - `name` (optional) — display name; defaults to the **folder name** when omitted or empty.
 - `description` / `author` / `repository` (optional) — metadata only, for humans/agents.
+
+**Custom Editor fields (optional)** — only honored when the board is **trusted**:
+
+- `fileMasks` (optional) — glob masks (matched against the file **name**) this board edits,
+  e.g. `["*.drawio"]` or `["*.grid.json"]`. `*` = any run of chars, `?` = one char; a bare
+  extension (`".drawio"`) is accepted and treated as `*.drawio`. When set, the board appears
+  in the editor **switch** for matching files.
+- `editorPriority` (optional) — number; makes the board the **default** editor for its masks
+  when it outranks the built-in editor. Omit or `0` → the board is a switch option only and
+  the built-in editor stays the default.
+- `editorName` (optional) — label shown on the editor-switch widget (falls back to `name`).
 
 Don't put secrets or trust flags here — a board is trusted by the user inside Persephone,
 never by the manifest. (The board icon is **not** set here; see *Board icon* below.)
