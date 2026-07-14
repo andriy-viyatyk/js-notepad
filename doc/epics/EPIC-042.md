@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** 📝 Planning — created **2026-07-14**; **design finalized (CE1–CE8 all resolved 2026-07-14)**, ready for task carving on the user's go-ahead
+**Status:** ✅ Completed **2026-07-14** — all tasks (US-836→US-840) implemented; epic-level review clean; developer + board + user docs updated. Moved to [epics/completed.md](completed.md).
 **Follows:** [EPIC-035 — Boards Anywhere](EPIC-035.md) (the direct predecessor; this epic is EPIC-035's explicitly-named **successor** — see EPIC-035 C6/C8 and its "Future axis — Custom Editor" section)
 
 > Design is **finalized** — all open questions (CE1–CE8 below) resolved. Tasks are **not yet carved**; each gets a full Goal → Background → Implementation Plan → Concerns → Acceptance doc **before** its implementation begins. Do **not** start implementation until the tasks are carved and the user says "let's implement".

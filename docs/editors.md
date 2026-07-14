@@ -817,6 +817,7 @@ A sandboxed HTML-page application that can live anywhere on disk. Boards let you
 - **In-board toolbar** — Reload, Show-log, the board path, and (when opened from a Boards panel) a click-to-switch boards popover for the current Explorer root
 - **Custom icon** — place `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set the board's tab icon and Boards-panel icon
 - **Error log** — script failures are toasted and appended to `ui.log` in the board folder
+- **Can act as a custom editor** — a trusted board that declares `fileMasks` in its manifest appears in the editor-switch toolbar for matching files, and can become their default editor. See [Boards — Custom editors](./boards.md#custom-editors--associate-a-board-with-a-file-type)
 
 **Creating a board:** Click **New board** in the **Boards** Explorer-sibling panel (or use the caret for **Create Demo board**). A dialog prompts for a **folder** (defaults to the current Explorer root) and a **name**; a live label shows the final path. Both fields are required.
 
@@ -859,5 +860,7 @@ Some files support multiple editors:
 Use the buttons in the toolbar to switch between available editors.
 
 **Content-based detection:** JSON pages that contain a `"type"` property (`"note-editor"`, `"todo-editor"`, `"link-editor"`, `"rest-client"`, or `"force-graph"`) automatically show the corresponding switch button — even without the special file extension. For the Graph View, the JSON must also contain a `"nodes"` property; for the Rest Client, it must also contain a `"requests"` property. This is useful for pages created via MCP or scripting.
+
+**Board-provided editors:** A trusted [Board](#board) that declares a file association in its manifest also appears in this switch control for any matching local file, alongside the built-in entries above — and can be configured to open by default instead of the Text Editor. See [Boards — Custom editors](./boards.md#custom-editors--associate-a-board-with-a-file-type).
 
 **Quick Add:** Click the dropdown arrow (&#9662;) next to the **+** button in the tab bar to create a new page from your pinned editors. Choose "Show All..." to open the **Tools & Editors** sidebar panel, which lists every available editor and tool. You can pin/unpin items and drag to reorder your pinned set. See [Tabs & Navigation](./tabs-and-navigation.md#tools--editors) for details.

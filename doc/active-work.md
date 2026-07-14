@@ -7,12 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-042** — [Boards as Custom Editors (file association, editor switch, filePath-in boards)](epics/EPIC-042.md) — _design finalized (CE1–CE8)_
-  - [ ] [US-836: Board manifest — `fileMasks` + `editorPriority` + editor identity](tasks/US-836-board-manifest-file-association/README.md)
-  - [ ] [US-837: Custom-editor registry — reactive `mask → trusted board` map](tasks/US-837-custom-editor-registry/README.md)
-  - [ ] [US-838: filePath into the board](tasks/US-838-filepath-into-board/README.md)
-  - [ ] [US-839: Resolution + switch integration (the crux)](tasks/US-839-resolution-switch-integration/README.md)
-  - [ ] [US-840: DrawIO viewer board (proving ground)](tasks/US-840-drawio-viewer-board/README.md)
+- _(nothing in progress)_
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
@@ -42,8 +37,6 @@ Overview of all active and planned epics and tasks.
   - [ ] US-390: Settings: API key, model, system prompt
   - [ ] US-391: PowerShell shortcut (Ctrl+\`) — open shell at cwd
 - **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
-- *(no epic)*
-  - [ ] [US-454: DrawIO Viewer — read-only viewer for `.drawio` files](tasks/US-454-drawio-viewer/README.md)
 
 
 ---

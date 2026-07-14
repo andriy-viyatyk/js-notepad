@@ -270,6 +270,47 @@ My Board/                  ← board root folder (display name = folder name)
 
 ---
 
+## Custom editors — associate a board with a file type
+
+A board can register itself as an **editor for a file type**. When you open a matching file, the board appears in the toolbar's editor-switch control right next to the file's normal editor(s) (Text Editor, Grid, Preview, …) — click it to flip between them, exactly like switching between any other pair of editors. Depending on the board's settings, it can also become the **default** editor that opens automatically for that file type.
+
+Declare the association with three fields in `board-manifest.json`:
+
+```json
+{
+  "fileMasks": ["*.drawio"],
+  "editorPriority": 100,
+  "editorName": "DrawIO"
+}
+```
+
+| Field | Purpose |
+|-------|---------|
+| `fileMasks` | One or more glob masks matched against the file's name — `*` matches any run of characters, `?` matches a single character. A bare extension (e.g. `.drawio`) is treated the same as `*.drawio`. Masks also support compound extensions, e.g. `*.grid.json`. |
+| `editorPriority` | A number that decides whether the board also becomes the **default** editor for matching files (not just a switch option). Persephone's built-in editors each sit at their own priority level, with the Text Editor lowest; set a value higher than the built-in editor for that file type to make the board the one that opens automatically. Omit it (or leave it `0`) and the board is offered only as a switch option — the built-in editor keeps opening by default. |
+| `editorName` | The label shown for the board in the editor-switch control. Falls back to the board's folder name if omitted. |
+
+**Requirements and behavior:**
+
+- **The board must be trusted.** An untrusted board's file association is completely ignored — no switch option, no default-editor behavior — until you trust it. Un-trusting a board removes the association immediately.
+- **Local files only.** The board reads and writes the associated file directly on disk (see below), so this only works for a real local file — it is not offered as an editor for a file opened over `https://` or from inside an archive.
+- **Unsaved changes are protected.** Switching away from a modified built-in editor to the board runs the usual "Save changes?" prompt (Save / Don't Save / Cancel) before the switch happens, the same prompt used when navigating away from unsaved changes anywhere else in Persephone.
+- A change to `fileMasks` / `editorPriority` / `editorName` in the manifest takes effect the next time the board or trust list is refreshed, not while a page is already showing the board.
+
+**Reading the file from inside the board:**
+
+```js
+const filePath = await persephone.getFilePath();   // undefined if the board was opened with no associated file
+if (filePath) {
+    const text = await persephone.readFile(filePath);
+    // ... parse and render it ...
+}
+```
+
+**Example:** a board can provide a read-only viewer for `.drawio` (diagrams.net) diagrams — set `fileMasks: ["*.drawio"]` and a priority above `0`, and trusting the board makes it the default way `.drawio` files open, with the raw XML always one click away via the Text Editor.
+
+---
+
 ## Board icon
 
 Place an `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set a custom icon. The icon appears in the page tab (when the board is open), the **Boards** Explorer panel, and the **Custom Boards & Editors** sidebar tab. SVG is preferred; first match wins. Without an icon file, a default board glyph is shown.

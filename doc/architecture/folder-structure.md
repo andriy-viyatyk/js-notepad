@@ -544,7 +544,8 @@ persephone/
 │   │   ├── boards-tree-build.ts      # Pure builder: board path list → compacted folder/board node tree
 │   │   ├── BoardGlyph.tsx            # Default board glyph icon
 │   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
-│   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one
+│   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one; Custom Editor fields (fileMasks/editorPriority/editorName) + matcher/accessor helpers
+│   │   ├── custom-editor-registry.ts # Reactive mask → trusted-board map; board-editor:<root> virtual ids; resolveEditorIdForFile (merges built-in + board at file-open); isBoardEditorId
 │   │   ├── board-icon-cache.ts       # Module-level icon cache (SVG/PNG/ICO → data URL, per board path)
 │   │   ├── busy-boards.ts            # Reactive registry of busy board roots (drives the Boards panel "running" dot)
 │   │   ├── board-theme.ts            # computeBoardThemePalette + BOARD_TOKEN_VARS (--p-* contract)

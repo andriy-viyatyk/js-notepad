@@ -184,7 +184,11 @@ the manifest's `loadOrder`.
 ### Manifest, icon, reload
 
 - `board-manifest.json` — keep `schemaVersion: 1`; add optional `name`/`description`/`author`/
-  `repository` (metadata only). No secrets, no trust flags.
+  `repository` (metadata only). No secrets, no trust flags. To make the board a **custom editor**
+  for a file type, add `fileMasks` (glob masks matched against the file name, e.g. `["*.drawio"]`),
+  optional `editorPriority` (a number; makes the board the *default* editor for those masks when it
+  outranks the built-in — omit/`0` = switch option only), and optional `editorName` (switch-widget
+  label). Honored only when the board is trusted; the file arrives via `persephone.getFilePath()`.
 - Optional `icon.svg` / `icon.png` / `icon.ico` in the board folder sets the board's icon (SVG
   preferred). Without one, a default glyph is used.
 - **Reload model:** boards do **not** auto-reload on file changes. After editing a board's files,
