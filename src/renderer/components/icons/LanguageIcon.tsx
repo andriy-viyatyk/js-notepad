@@ -62,6 +62,8 @@ import {
 } from "../../theme/language-icons";
 
 import { fpExtname } from "../../core/utils/file-path";
+import { customEditorRegistry } from "../../editors/board/custom-editor-registry";
+import { BoardGlyph } from "../../editors/board/BoardGlyph";
 
 // =============================================================================
 // Language → Icon mapping
@@ -189,8 +191,9 @@ export interface FileTypeIconProps extends SvgIconProps {
  * 1. Determine language from `language` prop or file extension
  * 2. Get icon from language map
  * 3. Check compound file extension patterns (overrides language icon)
- * 4. Fall back to Windows system icon (async)
- * 5. Fall back to DefaultIcon
+ * 4. Trusted custom-editor board icon (a board whose `fileMasks` claim this file)
+ * 5. Fall back to Windows system icon (async)
+ * 6. Fall back to DefaultIcon
  */
 export function FileTypeIcon({ language, fileName, ...props }: FileTypeIconProps) {
     const ext = useMemo(
@@ -214,12 +217,27 @@ export function FileTypeIcon({ language, fileName, ...props }: FileTypeIconProps
 
     const resolvedIcon = patternIcon || langIcon;
 
-    // Step 4: System icon fallback (async) — only fetch if no static icon found
+    // Step 4: Custom-editor board icon — a trusted board whose `fileMasks` claim
+    // this file (e.g. the DrawIO-viewer board for `*.drawio`). Only when no built-in
+    // icon applied, so known file types keep their icon; reactive so a trust/mask
+    // change updates the icon live. Passed "" (→ []) on the common path to stay inert.
+    const boardMatches = customEditorRegistry.useBoardsForFile(
+        !resolvedIcon && fileName ? fileName : "",
+    );
+    // Highest-priority match (ties → trusted-list order) — the board that would
+    // actually open the file (mirrors `resolveEditorIdForFile`).
+    const board =
+        !resolvedIcon && boardMatches.length > 0
+            ? boardMatches.reduce((a, b) => (b.priority > a.priority ? b : a))
+            : undefined;
+
+    // Step 5: System icon fallback (async) — only fetch if neither a static icon
+    // nor a board icon applies.
     useEffect(() => {
-        if (!resolvedIcon && fileName && ext) {
+        if (!resolvedIcon && !board && fileName && ext) {
             systemIconModel.prepareIcon(fileName);
         }
-    }, [resolvedIcon, fileName, ext]);
+    }, [resolvedIcon, board, fileName, ext]);
 
     const iconCache = systemIconModel.state.use((s) => s.iconCache);
 
@@ -228,14 +246,21 @@ export function FileTypeIcon({ language, fileName, ...props }: FileTypeIconProps
         return <Icon {...props} />;
     }
 
-    // Step 4 result: system icon
+    // Step 4 result: board icon (sized from the numeric width prop; the tab / sidebar
+    // render the same `BoardGlyph`, so the file icon matches the board's tab icon).
+    if (board) {
+        const size = typeof props.width === "number" ? props.width : 16;
+        return <BoardGlyph boardRoot={board.boardRoot} size={size} />;
+    }
+
+    // Step 5 result: system icon
     const systemIconUrl = ext ? iconCache.get(ext) : undefined;
     if (systemIconUrl) {
         const { width = 14, height = 14 } = props;
         return <img src={systemIconUrl} style={{ width, height }} />;
     }
 
-    // Step 5: Default
+    // Step 6: Default
     return <DefaultIcon {...props} />;
 }
 

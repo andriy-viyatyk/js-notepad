@@ -201,7 +201,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         const name = fpBasename(boardRoot);
         this.state.update((s) => {
             s.boardRoot = boardRoot;
-            s.title = name;
+            // Custom-editor mode → show the file name in the tab (the board's own
+            // name isn't useful when it's editing a file); plain board → board name.
+            s.title = filePath ? fpBasename(filePath) : name;
             if (filePath) s.filePath = filePath;
         });
         void boardTrust.load();
