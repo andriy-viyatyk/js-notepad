@@ -144,6 +144,9 @@ persephone.state.onChange((s) => highlight(s.selectedId));
 // a sidebar view writes: persephone.state.merge({ selectedId: id })
 ```
 
+- **Inspect a secondary view** with the `browser_*` tools by selecting its frame — see
+  [Inspecting secondary views](#inspecting-secondary-views) under "Test it".
+
 ### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 
 By default everything a board spawned is **killed when the board unloads** (page navigated
@@ -260,8 +263,34 @@ browser_click/type/evaluate { pageId, … }  → interact
 - `browser_click` / `browser_type` / `browser_press_key` / `browser_evaluate` (each with
   `pageId`) → interact using the refs from the snapshot.
 
-A board is one fixed page — the tab/navigation tools (`browser_tabs`, `browser_navigate`,
-`browser_navigate_back`) don't apply.
+A board never navigates, so the navigation tools (`browser_navigate`, `browser_navigate_back`)
+don't apply, and `browser_tabs` cannot open or close tabs. But `browser_tabs` **does** work for
+a different purpose — selecting which board **frame** the tools drive (see next).
+
+### Inspecting secondary views
+
+By default every `browser_*` call targets the board's **main** frame. To inspect a
+[secondary view](#secondary-views--shared-state) (a sidebar panel — its own `board://` frame),
+use `browser_tabs` to select it first; Persephone treats the board's frames as "tabs":
+
+```
+browser_tabs { pageId, action: "list" }
+  → [ { id: "main", … },
+      { id: "board-secondary:<viewId>", title: "<panel title>", … }, … ]
+browser_tabs { pageId, action: "select", index: N }   → make frame N the active target
+browser_snapshot { pageId }                            → now reads THAT frame's DOM
+browser_click / browser_type / browser_take_screenshot { pageId, … }  → drive that frame
+```
+
+- `list` returns the main view (`index: 0`, id `"main"`) plus one entry per declared secondary
+  view (id `board-secondary:<viewId>`, `title` = the panel title).
+- `select` points every subsequent `browser_*` call at that frame until you select another.
+  **Persephone auto-opens the view's sidebar panel and waits for its frame to render**, so the
+  next command always succeeds — you never get a "frame not mounted" error, even if the panel
+  was closed. `select { index: 0 }` returns to the main view.
+- A screenshot of a selected secondary view is clipped to its sidebar panel.
+- All frames of one board share `persephone.state.*`, so a change you make in one frame is
+  visible when you snapshot another.
 
 ## Richer reference — the bundled Demo board
 

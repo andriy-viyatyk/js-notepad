@@ -446,19 +446,22 @@ class Controller implements MainApi {
         reapBoardOwner(ownerId);
     };
 
-    registerBoardFrame = async (event: IpcMainEvent, boardId: string, boardHost: string, frameNonce?: string): Promise<void> => {
+    registerBoardFrame = async (event: IpcMainEvent, boardId: string, boardHost: string, frameNonce?: string, tab: string = BOARD_CDP_TAB): Promise<void> => {
         const { registerBoardFrame } = await import("../../main/cdp-service");
         // The board is a frame of the CALLING renderer's webContents — register that as
         // the host wc (correct window for multi-window; EPIC-037 / US-773). CDP routes
         // commands to the board:// frame within it. `frameNonce` (the iframe's ?v= value)
         // disambiguates THIS tab's frame from other tabs of the same board (same origin)
-        // and from the pre-reload frame after a remount (US-796).
-        registerBoardFrame(`${boardId}/${BOARD_CDP_TAB}`, event.sender, boardHost, frameNonce);
+        // and from the pre-reload frame after a remount (US-796). `tab` is the frame's
+        // automation role — `main` for the board's main view or `board-secondary:<viewId>`
+        // for a secondary sidebar frame (EPIC-044 / US-858) — so every frame keys its own
+        // registration instead of the secondary clobbering the main one.
+        registerBoardFrame(`${boardId}/${tab}`, event.sender, boardHost, frameNonce);
     };
 
-    unregisterBoardFrame = async (_event: IpcMainEvent, boardId: string): Promise<void> => {
+    unregisterBoardFrame = async (_event: IpcMainEvent, boardId: string, tab: string = BOARD_CDP_TAB): Promise<void> => {
         const { unregisterBoardFrame } = await import("../../main/cdp-service");
-        unregisterBoardFrame(`${boardId}/${BOARD_CDP_TAB}`);
+        unregisterBoardFrame(`${boardId}/${tab}`);
     };
 }
 

@@ -3,6 +3,7 @@ import { createElement, type ReactNode } from "react";
 import { EditorModel, type EditorStateBase } from "../base/EditorModel";
 import { editorRegistry } from "../base/editorRegistry";
 import { api } from "../../../ipc/renderer/api";
+import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import { BoardIcon } from "../../theme/icons";
 import { fpBasename, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../../core/utils/file-path";
 import { boardTrust } from "../../api/board-trust";
@@ -107,19 +108,53 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
      *  frame (EPIC-034 / US-730; re-homed onto the `<iframe>` in EPIC-037 / US-773). */
     readonly target = new BoardTargetModel(this);
 
-    /** The live `<iframe>` element of the currently-mounted board, for automation
-     *  focus (CDP targets the board frame directly — US-773). Transient (not
-     *  persisted): set on mount, cleared on unmount. */
-    currentIframe: HTMLIFrameElement | null = null;
+    /** Live `<iframe>` elements of the currently-mounted board frames, keyed by
+     *  automation tab id (`"main"` + one `board-secondary:<viewId>` per open secondary
+     *  view — EPIC-044 / US-858). Set on each frame's mount effect (the ELEMENT, for
+     *  automation focus), cleared on unmount. Transient (not persisted). */
+    readonly frames = new Map<string, HTMLIFrameElement>();
 
-    setIframe(el: HTMLIFrameElement): void {
-        this.currentIframe = el;
+    /** Tab ids whose frame has finished loading AND registered for CDP in main
+     *  (BoardWebview's handleLoad, after `registerBoardFrame` resolves). This — NOT
+     *  `frames` — is the "attachable now" signal automation waits on (US-858): a
+     *  mounted-but-not-yet-registered frame would make `cdp-service` throw. */
+    readonly loadedTabs = new Set<string>();
+
+    /** Active automation tab id — which frame the `browser_*` tools drive
+     *  (BoardTargetModel.switchTab / ensureReady). Defaults to the main frame, so a
+     *  single-frame board and the default automation path are unchanged (US-858). */
+    activeTabId = BOARD_CDP_TAB;
+
+    setIframe(el: HTMLIFrameElement, tab: string = BOARD_CDP_TAB): void {
+        this.frames.set(tab, el);
     }
 
     /** Clear only if it still matches — guards against a remount setting the new
-     *  element before the old one's cleanup runs. */
-    clearIframe(el: HTMLIFrameElement): void {
-        if (this.currentIframe === el) this.currentIframe = null;
+     *  element before the old one's cleanup runs. Also drops the tab's ready flag and,
+     *  if it was the active automation tab, falls back to the main frame so a stray
+     *  command can't target a dead frame (a fresh switch/ensureReady re-mounts). */
+    clearIframe(el: HTMLIFrameElement, tab: string = BOARD_CDP_TAB): void {
+        if (this.frames.get(tab) === el) {
+            this.frames.delete(tab);
+            this.loadedTabs.delete(tab);
+            if (this.activeTabId === tab) this.activeTabId = BOARD_CDP_TAB;
+        }
+    }
+
+    /** The live frame for a tab (defaults to the active automation tab). */
+    getFrame(tab: string = this.activeTabId): HTMLIFrameElement | undefined {
+        return this.frames.get(tab);
+    }
+
+    /** Marked ready by BoardWebview once main holds this frame's CDP registration. */
+    markFrameLoaded(tab: string): void {
+        this.loadedTabs.add(tab);
+    }
+
+    /** The active tab's live frame (was a plain field; kept as a getter for callers
+     *  that don't care about the tab, e.g. the busy-keepalive teardown). */
+    get currentIframe(): HTMLIFrameElement | undefined {
+        return this.frames.get(this.activeTabId);
     }
 
     /** Folder of the currently-shown board, or undefined when none is resolved. */
@@ -406,7 +441,8 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         (this as { pipe?: { dispose?: () => void } }).pipe?.dispose?.();
         markBoardBusy(this.id, undefined, false);
         void api.reapBoardOwner(this.id);
-        this.currentIframe = null;
+        this.frames.clear();
+        this.loadedTabs.clear();
         void api.unregisterBoardFrame(this.id);
         await super.dispose();
     }

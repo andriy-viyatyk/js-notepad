@@ -34,5 +34,11 @@ export interface IBrowserTarget {
     readonly activeTab: ITargetTab | undefined;
     addTab(url?: string): string;
     closeTab(tabId?: string): void;
-    switchTab(tabId: string): void;
+    /** Select the active tab. Async for targets that must mount the tab's frame on demand
+     *  (a board auto-expands + waits for a secondary-view frame); sync `void` otherwise. */
+    switchTab(tabId: string): void | Promise<void>;
+
+    /** Optional: ensure the ACTIVE tab is attachable before a command runs (e.g. a board
+     *  expands + waits for a secondary-view frame). Omit when tabs are always ready. */
+    ensureReady?(): Promise<void>;
 }

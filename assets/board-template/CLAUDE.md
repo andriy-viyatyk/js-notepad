@@ -433,9 +433,19 @@ Once the user has opened this board in Persephone, an agent can drive it with th
 - `browser_snapshot { pageId }` → read the page's accessibility tree (element refs).
 - `browser_click` / `browser_type` / `browser_press_key` / `browser_evaluate` →
   interact, using the refs from the snapshot.
+- **Secondary views** (if this board declares any): every `browser_*` call targets the main
+  frame by default. `browser_tabs { pageId, action: "list" }` lists the main view (`index: 0`,
+  id `"main"`) + one tab per secondary view (id `board-secondary:<viewId>`);
+  `browser_tabs { pageId, action: "select", index: N }` points every subsequent call at that
+  frame, so `browser_snapshot` then reads THAT frame's DOM and `browser_click` / `browser_type`
+  drive it. Persephone auto-opens the view's sidebar panel and waits for it to render — the call
+  always succeeds, even if the panel was closed (no "frame not mounted" error). `index: 0`
+  returns to the main view. All frames share `persephone.state.*`, so a change in one is visible
+  when you snapshot another.
 
 The board must be **open** (the user opens it; an untrusted project won't render).
-Navigation/tab tools don't apply — a board is one fixed page.
+Navigation tools don't apply — a board is a fixed document; `browser_tabs` selects among its
+frames (main + secondary views) rather than creating/closing tabs.
 
 ## More examples — the bundled Demo board
 

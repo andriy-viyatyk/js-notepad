@@ -357,7 +357,10 @@ async function browserGetTabs(target: IBrowserTarget, params: Record<string, unk
             if (idx == null) return { error: { code: -32602, message: "Missing 'index' for action 'select'" } };
             const tab = tabs[idx];
             if (!tab) return { error: { code: -32602, message: `No tab at index ${idx}` } };
-            target.switchTab(tab.id);
+            // Await: a board `switchTab` auto-expands the secondary panel and waits for its
+            // frame to be CDP-attachable, so the next command can't race an unmounted frame.
+            // `await` on a synchronous `void` return (the browser target) is a harmless no-op.
+            await target.switchTab(tab.id);
             return { result: target.tabs };
         }
 
@@ -494,6 +497,10 @@ export async function handleBrowserCommand(
     }
     const target = await getTarget(params);
     if (isErrorResponse(target)) return target;
+    // Readiness gate (US-858): if the active tab is a board secondary view whose frame isn't
+    // attachable yet (panel closed / still loading), expand + wait so the command below
+    // succeeds instead of hitting an unmounted frame. No-op for browser pages / the main frame.
+    await target.ensureReady?.();
 
     const dispatch = (): Promise<McpResponse> | McpResponse => {
         switch (command) {

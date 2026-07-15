@@ -8,7 +8,9 @@ import { settings } from "../../api/settings";
 import { pagesModel } from "../../api/pages";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import type { BoardHostContentMsg, BoardPortInitMsg, BoardStateSyncMsg } from "../../../ipc/board-bridge-channels";
+import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
+import { boardSecondaryPanelId } from "./board-secondary";
 import type { BoardEditorModel } from "./BoardEditorModel";
 import type { BoardContentEditorModel } from "./BoardContentEditorModel";
 
@@ -51,10 +53,11 @@ export function BoardWebview({
     /** This frame's view role (EPIC-044 / O6) — `"main"` for the board's main view, or a
      *  secondary view's id. Delivered to the shim as `persephone.view` via the `view=` URL param. */
     view?: string;
-    /** Whether this is the board's MAIN frame (EPIC-044 / D7). Only the main frame owns the
-     *  board's automation target (`setIframe`/`registerBoardFrame`), resets `ui.log`, and
-     *  autofocuses — secondary frames share the model but must not clobber those single-owner
-     *  resources. Defaults `true` so the single-frame board is unchanged. */
+    /** Whether this is the board's MAIN frame (EPIC-044). Every frame registers for CDP
+     *  automation + tracks its iframe under its OWN tab key (US-858) — `main` for the main
+     *  frame, `board-secondary:<viewId>` for a secondary — so those are no longer main-only.
+     *  What stays main-only: resetting `ui.log` and autofocusing on load/activation, which a
+     *  secondary sidebar frame must not do. Defaults `true` so the single-frame board is unchanged. */
     isMain?: boolean;
 }) {
     // The stable board:// host for this board, minted by main. The <iframe src> is set
@@ -65,6 +68,12 @@ export function BoardWebview({
     // A per-mount id correlating this board's MessagePort across the request/deliver
     // round-trip and the dispose call.
     const boardId = useMemo(() => `board_${Math.random().toString(36).slice(2)}`, []);
+
+    // This frame's automation tab id (EPIC-044 / US-858): the main frame keys `main`, each
+    // secondary frame keys `board-secondary:<viewId>` (its `view` role). Used for the per-frame
+    // CDP registration + the model's per-tab `frames`/`loadedTabs` tracking. A primitive string
+    // derived from stable props → safe as a hook dependency.
+    const tabId = isMain ? BOARD_CDP_TAB : boardSecondaryPanelId(view);
 
     const iframeRef = useRef<HTMLIFrameElement>(null);
     // A port delivered by main but not yet transferred (frame not ready / between loads).
@@ -172,10 +181,13 @@ export function BoardWebview({
         // this board tab (busy retention, US-799). BOTH frames request their own port
         // (each needs execute/readFile/etc. + its own content-host + shared-state seed).
         void api.requestBoardPort(boardId, host, model.id);
-        // Automation targets the MAIN frame only (EPIC-044 / D7): the main and secondary
-        // frames share one `model.id`, so a secondary registerBoardFrame would clobber the
-        // single CDP registration keyed on it.
-        if (isMain) void api.registerBoardFrame(model.id, host, boardId);
+        // Register THIS frame for CDP automation under its own tab key (EPIC-044 / US-858):
+        // the main frame keys `main`, each secondary keys `board-secondary:<viewId>`, so a
+        // secondary no longer clobbers the main frame's registration. Mark the tab ready ONLY
+        // after the registration IPC resolves — automation's readiness wait (switchTab /
+        // ensureReady) releases the agent exactly when cdp-service can attach, never a tick
+        // before (which would let a command hit an unregistered frame and throw).
+        void api.registerBoardFrame(model.id, host, boardId, tabId).then(() => model.markFrameLoaded(tabId));
         // EPIC-043: seed the content-host board with the current host content. Subsequent changes
         // ride the host.state subscription below. The shim awaits this (getContent settle-once), so
         // a not-yet-restored host just means the subscription delivers the first snapshot instead.
@@ -202,7 +214,7 @@ export function BoardWebview({
         // subscription below. MAIN frame only (EPIC-044): a secondary sidebar frame must not
         // pull focus off the main view (frame-level shortcuts like Ctrl+S target the main view).
         if (isMain) focusFrame();
-    }, [host, boardId, model, focusFrame, isMain]);
+    }, [host, boardId, model, focusFrame, isMain, tabId]);
 
     // Expose the iframe element to the model (automation focus) and dismiss host
     // overlays on a board click (US-773 C10): a cross-origin board's inner clicks don't
@@ -211,10 +223,10 @@ export function BoardWebview({
     useEffect(() => {
         if (!host) return;
         const el = iframeRef.current;
-        // Only the MAIN frame is the board's automation target (EPIC-044 / D7): both frames
-        // share `model.id`, so a secondary setIframe would overwrite the shared `currentIframe`
-        // and `browser_*` would drive the wrong frame.
-        if (el && isMain) model.setIframe(el);
+        // Track EVERY frame under its own tab id (EPIC-044 / US-858): the model's per-tab
+        // `frames` map means a secondary no longer overwrites the main frame's entry, so
+        // `browser_*` can target either the main or a chosen secondary frame.
+        if (el) model.setIframe(el, tabId);
 
         const onMessage = (e: MessageEvent) => {
             const d = e.data as
@@ -262,10 +274,10 @@ export function BoardWebview({
 
         return () => {
             window.removeEventListener("message", onMessage);
-            if (el && isMain) model.clearIframe(el);
-            if (isMain) void api.unregisterBoardFrame(model.id);
+            if (el) model.clearIframe(el, tabId);
+            void api.unregisterBoardFrame(model.id, tabId);
         };
-    }, [host, model, appendLog, isMain]);
+    }, [host, model, appendLog, tabId]);
 
     // Refresh the palette stored in main on theme switch. Main fans the new palette out
     // to every live board port (live retint, US-771) and refreshes the stored design so
