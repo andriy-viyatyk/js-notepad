@@ -105,6 +105,13 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
   editor** for a file (associated via `fileMasks` in `board-manifest.json`), resolves to that file's
   absolute path (read/write it with `readFile`/`writeFile`); `undefined` for a board opened plainly.
   Safe to `await` at any time (waits for the host handshake).
+- `persephone.host.*` — for a **content-host** editor board (`"editorKind": "content-host"` in the
+  manifest) Persephone owns the file (pipe, encoding, encryption, auto-save, dirty tracking) and the
+  board works with the content instead of a path: `host.getContent()` → `Promise<string>`,
+  `host.setContent(content)` (marks modified), `host.onContentChange(cb)` (fires on external edits —
+  e.g. the user switched to Monaco and back), `host.getLanguage()`, `host.save()`. `Ctrl+S` saves
+  automatically (no board code). The board and Monaco share one host, so they switch back and forth on
+  the same file with no reload. On a plain board these reject/no-op.
 
 **Browser APIs (clipboard, etc.):** the board frame is a secure context with clipboard permission
 granted, so standard web APIs like `navigator.clipboard.write([...])` work directly (no bridge method;
@@ -196,7 +203,10 @@ the manifest's `loadOrder`.
   for a file type, add `fileMasks` (glob masks matched against the file name, e.g. `["*.drawio"]`),
   optional `editorPriority` (a number; makes the board the *default* editor for those masks when it
   outranks the built-in — omit/`0` = switch option only), and optional `editorName` (switch-widget
-  label). Honored only when the board is trusted; the file arrives via `persephone.getFilePath()`.
+  label). Honored only when the board is trusted. Optional `editorKind`: `"simple"` (default) → the
+  file arrives via `persephone.getFilePath()` (read/write it yourself); `"content-host"` → Persephone
+  owns the file and the board works through `persephone.host.*` (shares the host with Monaco, edits
+  non-local files, auto-saves).
 - Optional `icon.svg` / `icon.png` / `icon.ico` in the board folder sets the board's icon (SVG
   preferred). Without one, a default glyph is used.
 - **Reload model:** boards do **not** auto-reload on file changes. After editing a board's files,

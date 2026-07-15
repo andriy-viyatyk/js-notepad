@@ -274,13 +274,14 @@ My Board/                  ← board root folder (display name = folder name)
 
 A board can register itself as an **editor for a file type**. When you open a matching file, the board appears in the toolbar's editor-switch control right next to the file's normal editor(s) (Text Editor, Grid, Preview, …) — click it to flip between them, exactly like switching between any other pair of editors. Depending on the board's settings, it can also become the **default** editor that opens automatically for that file type.
 
-Declare the association with three fields in `board-manifest.json`:
+Declare the association with fields in `board-manifest.json`:
 
 ```json
 {
   "fileMasks": ["*.drawio"],
   "editorPriority": 100,
-  "editorName": "DrawIO"
+  "editorName": "DrawIO",
+  "editorKind": "content-host"
 }
 ```
 
@@ -289,15 +290,18 @@ Declare the association with three fields in `board-manifest.json`:
 | `fileMasks` | One or more glob masks matched against the file's name — `*` matches any run of characters, `?` matches a single character. A bare extension (e.g. `.drawio`) is treated the same as `*.drawio`. Masks also support compound extensions, e.g. `*.grid.json`. |
 | `editorPriority` | A number that decides whether the board also becomes the **default** editor for matching files (not just a switch option). Persephone's built-in editors each sit at their own priority level, with the Text Editor lowest; set a value higher than the built-in editor for that file type to make the board the one that opens automatically. Omit it (or leave it `0`) and the board is offered only as a switch option — the built-in editor keeps opening by default. |
 | `editorName` | The label shown for the board in the editor-switch control. Falls back to the board's folder name if omitted. |
+| `editorKind` | Optional — `"simple"` (default, if omitted) or `"content-host"`. Decides *how* the board gets the file's content. See [Simple editors](#simple-editors--reading-the-file-directly) and [Content-host editors](#content-host-editors--sharing-persephones-file-with-the-board) below. |
 
 **Requirements and behavior:**
 
 - **The board must be trusted.** An untrusted board's file association is completely ignored — no switch option, no default-editor behavior — until you trust it. Un-trusting a board removes the association immediately.
-- **Local files only.** The board reads and writes the associated file directly on disk (see below), so this only works for a real local file — it is not offered as an editor for a file opened over `https://` or from inside an archive.
-- **Unsaved changes are protected.** Switching away from a modified built-in editor to the board runs the usual "Save changes?" prompt (Save / Don't Save / Cancel) before the switch happens, the same prompt used when navigating away from unsaved changes anywhere else in Persephone.
-- A change to `fileMasks` / `editorPriority` / `editorName` in the manifest takes effect the next time the board or trust list is refreshed, not while a page is already showing the board.
+- **The tab and icon follow the file, not the board.** When a board is opened as a file's editor, the page tab shows the **file's name** (not the board's folder name). Wherever that board wins as the file's *default* editor, its icon also replaces the generic file icon — in the File Explorer tree, other file lists, and page tabs (see [Board icon](#board-icon)).
+- **Unsaved changes are protected.** Switching away from a modified built-in editor to a **simple** board runs the usual "Save changes?" prompt (Save / Don't Save / Cancel) before the switch happens, the same prompt used when navigating away from unsaved changes anywhere else in Persephone. A **content-host** board doesn't need this — its content transfers directly with nothing to lose (see below).
+- A change to `fileMasks` / `editorPriority` / `editorName` / `editorKind` in the manifest takes effect the next time the board or trust list is refreshed, not while a page is already showing the board.
 
-**Reading the file from inside the board:**
+### Simple editors — reading the file directly
+
+This is the default (`editorKind` omitted or `"simple"`): the board reads and writes the associated file itself, directly on disk.
 
 ```js
 const filePath = await persephone.getFilePath();   // undefined if the board was opened with no associated file
@@ -307,13 +311,42 @@ if (filePath) {
 }
 ```
 
-**Example:** a board can provide a read-only viewer for `.drawio` (diagrams.net) diagrams — set `fileMasks: ["*.drawio"]` and a priority above `0`, and trusting the board makes it the default way `.drawio` files open, with the raw XML always one click away via the Text Editor.
+**Local files only.** Because the board handles the file itself, this only works for a real local file — a simple board is never offered as an editor for a file opened over `https://` or from inside an archive.
+
+### Content-host editors — sharing Persephone's file with the board
+
+Set `"editorKind": "content-host"` and Persephone builds the board **with the same file-handling machinery every built-in editor uses** — the content pipe, encoding detection, encryption, the auto-save cache, and dirty/unsaved-changes tracking (the tab's unsaved dot, the "Save changes?" prompt). The board never touches the disk directly; it works through a bridge instead:
+
+```js
+// Render the current content, and re-render whenever it changes externally
+render(await persephone.host.getContent());
+persephone.host.onContentChange((content) => render(content));
+
+// Write a change back — marks the file modified and schedules the auto-save cache
+persephone.host.setContent(newContent);
+
+// Optional: the Monaco language id of the current content (e.g. "xml", "json")
+const language = await persephone.host.getLanguage();
+```
+
+`persephone.host` is only meaningful on a content-host board — on a **simple** board, `getContent()`/`getLanguage()` reject (instead of hanging forever) and `onContentChange()` simply never fires, so feature-detect if your board needs to support either kind.
+
+Two things a content-host board can do that a simple board cannot:
+
+- **Works beyond local files.** It can open a file served over `https://`, an entry inside an archive, or an **encrypted** file — none of which a simple board supports.
+- **Shares content live with other editors.** Switching from a content-host board to the Text Editor (or Grid) and back hands over the same live content, with no reload and no data loss. Edit the raw text in Monaco, switch back and the board re-renders from the edit; edit in the board and switch to Monaco to see it reflected there.
+
+**Saving:** press **Ctrl+S** (or **Cmd+S**) anywhere in the board and Persephone saves the file through the pipe automatically — no board code required. A board that wants to handle the keystroke itself can call `event.preventDefault()` in its own key handler to opt out, in which case the automatic save stands down. `persephone.host.save()` is also available if you want to trigger a save from your own UI (e.g. a Save button).
+
+**Example:** the DrawIO diagram viewer board renders a `.drawio` file's XML read via `persephone.host.getContent()`, and re-renders whenever `onContentChange()` fires. Switch to the Text Editor to hand-edit the raw XML — switching back to the board re-renders the diagram from your edits immediately — and Ctrl+S saves through the pipe with no board code at all.
 
 ---
 
 ## Board icon
 
 Place an `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set a custom icon. The icon appears in the page tab (when the board is open), the **Boards** Explorer panel, and the **Custom Boards & Editors** sidebar tab. SVG is preferred; first match wins. Without an icon file, a default board glyph is shown.
+
+If the board is also a [custom editor](#custom-editors--associate-a-board-with-a-file-type) and wins as a file type's **default** editor, its icon replaces the generic file-type icon everywhere that file type is listed — the File Explorer tree, other file lists, and page tabs — not just when the board itself is open.
 
 ---
 

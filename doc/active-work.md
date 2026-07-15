@@ -7,14 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-043** — [Content-Host Boards (boards that edit a file through Persephone's content host)](epics/EPIC-043.md) — _Design finalized & gap-reviewed (CH1–CH8 resolved); carving tasks_
-  - [ ] [US-843: Manifest `editorKind` + association plumbing](tasks/US-843-editorkind-plumbing/README.md)
-  - [ ] [US-844: `BoardContentEditorModel` — the content-host board model (crux)](tasks/US-844-board-content-editor-model/README.md)
-  - [ ] [US-845: Construction + switch + persistence integration](tasks/US-845-construction-switch-persistence/README.md)
-  - [ ] [US-846: Content bridge (`persephone.host.*`) + view wiring + auto-save](tasks/US-846-content-bridge-view-wiring/README.md)
-  - [ ] [US-847: Convert the DrawIO viewer to content-host (proving ground, outside repo)](epics/EPIC-043.md) — `C:\projects\persephone-boards\drawio-viewer`
-  - [ ] [US-848: Show file name (not board name) in tab for a simple custom-editor board](tasks/US-848-simple-board-file-title/README.md)
-  - [ ] [US-849: Show the board icon for board-associated files in the Explorer tree](tasks/US-849-explorer-board-file-icon/README.md)
+- _No active epics or tasks. Pick the next epic from **Planned** below._
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

@@ -175,6 +175,40 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
   }
   ```
 
+### Content-host boards — `persephone.host.*`
+
+When your board sets `"editorKind": "content-host"` in the manifest, **Persephone owns the file**,
+not you. It handles the pipe, encoding, encryption, the auto-save cache, and dirty tracking; your
+board never touches a path or calls `readFile`/`writeFile` for the edited file. Instead you work
+with the content through `persephone.host.*`:
+
+- `persephone.host.getContent()` → `Promise<string>` — the current content. Safe to `await` at any
+  time (it waits for the first host snapshot), so you never race a missing value.
+- `persephone.host.setContent(content)` — replace the content and mark the file **modified**
+  (schedules the auto-save cache), exactly like a user edit in Monaco.
+- `persephone.host.onContentChange(cb)` → unsubscribe fn — `cb(content, language?)` fires whenever
+  the content changes **elsewhere** (e.g. the user switched to Monaco, edited, and switched back).
+  Your own `setContent` does **not** re-fire it.
+- `persephone.host.getLanguage()` → `Promise<string | undefined>` — the host's Monaco language id.
+- `persephone.host.save()` — save through the pipe now (optional; see Ctrl+S below).
+
+```js
+// content-host board: render current content, re-render on external change
+render(await persephone.host.getContent());
+persephone.host.onContentChange((content) => render(content));   // keep the render() resilient to
+                                                                 // transient/invalid input
+```
+
+**Saving is automatic.** Persephone injects a `Ctrl+S` (⌘S) handler that saves the host for you —
+you write no save code. If your board wants custom save behavior, add your own key handler and call
+`e.preventDefault()`; Persephone's fallback then stands down. `persephone.host.save()` is available
+for an in-board Save button.
+
+Because the host is shared, a content-host board and Monaco (or Grid) **switch back and forth on the
+same file with no reload and no data loss** — the classic source-edit / live-preview pairing. On a
+plain (non-content-host) board `persephone.host.getContent()` / `getLanguage()` reject and
+`onContentChange` is a no-op, so feature-detect if a board can open either way.
+
 **Browser APIs (clipboard, etc.):** the board frame is a secure context and Persephone grants it
 clipboard permission, so standard web APIs like `navigator.clipboard.write([...])` work directly —
 no bridge method needed (they still require a user gesture + a focused window, per the browser).

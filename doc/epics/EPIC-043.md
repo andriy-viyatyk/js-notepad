@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** 🟢 Design finalized — opened **2026-07-15**; **all open questions (CH1–CH8) resolved** and an **independent gap review** (fresh agent, no context) passed with its HIGH/MEDIUM findings folded in (see Notes, 2026-07-15). Tasks **not yet carved**; each gets a full Goal → Background → Implementation Plan → Concerns → Acceptance doc **before** its implementation. Do **not** start implementation until the tasks are carved and the user says "let's implement".
+**Status:** ✅ **Complete** (closed **2026-07-15**). All tasks (US-843 → US-849) implemented and epic-level reviewed (clean, no architecture/standards violations); developer + user docs updated. Delivered the content-host board variant end-to-end, proven by converting the DrawIO viewer board to `editorKind: "content-host"`.
 **Follows:** [EPIC-042 — Boards as Custom Editors](EPIC-042.md) (the direct predecessor; this epic delivers EPIC-042's explicitly-deferred **CE8 content-host variant**).
 
 ## The big idea

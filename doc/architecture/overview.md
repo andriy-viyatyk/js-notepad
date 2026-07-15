@@ -127,7 +127,7 @@ Steps 1-3 run in parallel. Steps 4-7 are sequential (each depends on the previou
 
 1. **`core/`** is the foundation — no imports from other renderer layers
 2. **`uikit/`** is the standalone library — imports only `core/` and `theme/`. No imports from `api/`, `ui/`, `editors/`, or app-specific code (the contract that lets `uikit/` be split into a separate package later)
-3. **`components/`** is persephone-coupled by definition — each remaining folder (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `git-tree/`) uses `api/`, the page model, file system, or scripting. New pure primitives do NOT go here — they go in `uikit/`
+3. **`components/`** is persephone-coupled by definition — each remaining folder (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `git-tree/`) uses `api/`, the page model, file system, or scripting. New pure primitives do NOT go here — they go in `uikit/`. **Sanctioned exception:** `components/icons/LanguageIcon.tsx` imports `custom-editor-registry` and `BoardGlyph` from `editors/board/` so a file claimed by a trusted custom-editor board shows that board's icon wherever files are listed. This is a deliberate, accepted upward import (no actual import cycle exists); the sibling `EditorIcon` resolver stays decoupled by duck-typing instead (see [editors.md](./editors.md#editor-icons))
 4. **`api/`** implements the Object Model — imports `core/`, uses IPC
 5. **`content/`** implements the I/O pipeline — imports `core/`, `api/types/`
 6. **`editors/`** implement page types — import `core/`, `uikit/`, `components/`, `api/`, `content/`
