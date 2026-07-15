@@ -7,7 +7,14 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- _No active epics or tasks. Pick the next epic from **Planned** below._
+- **EPIC-044** — [Board Secondary Views](epics/EPIC-044.md) _(planning — awaiting review)_
+  - [ ] US-851: Manifest + model plumbing for a declared secondary view
+  - [ ] US-852: `persephone.state.*` shared-state bridge (get/set/merge/onChange)
+  - [ ] US-853: Second-iframe rendering + `board-secondary:*` sidebar panel family
+  - [ ] US-854: `persephone.setSecondaryViews` dynamic control
+  - [ ] US-855: Persistence & restore hardening (shared state + panel survive restart/reload)
+  - [ ] US-856: Docs, guides, demo board
+  - [ ] US-857: Proving-ground Todo board — Todo reimplemented as a content-host board with secondary views, alongside the built-in (acceptance)
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
