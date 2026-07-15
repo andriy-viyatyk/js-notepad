@@ -36,7 +36,27 @@ function logLine(level: string, message: string): string {
     return `[${new Date().toISOString()}] [${level}] ${message}\n`;
 }
 
-export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; boardRoot: string }) {
+export function BoardWebview({
+    model,
+    boardRoot,
+    entry = "index.html",
+    view = "main",
+    isMain = true,
+}: {
+    model: BoardEditorModel;
+    boardRoot: string;
+    /** Board-relative HTML entry file for this frame (EPIC-044). Defaults to the main
+     *  entry; a secondary view points at its declared `html` (or the same entry). */
+    entry?: string;
+    /** This frame's view role (EPIC-044 / O6) — `"main"` for the board's main view, or a
+     *  secondary view's id. Delivered to the shim as `persephone.view` via the `view=` URL param. */
+    view?: string;
+    /** Whether this is the board's MAIN frame (EPIC-044 / D7). Only the main frame owns the
+     *  board's automation target (`setIframe`/`registerBoardFrame`), resets `ui.log`, and
+     *  autofocuses — secondary frames share the model but must not clobber those single-owner
+     *  resources. Defaults `true` so the single-frame board is unchanged. */
+    isMain?: boolean;
+}) {
     // The stable board:// host for this board, minted by main. The <iframe src> is set
     // only after this resolves, so the host→root mapping always exists before the first
     // board://<host>/index.html request (EPIC-037 C770-5).
@@ -70,8 +90,12 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 // log lines (a missing-document report from main, board:error appends) land in
                 // the new file instead of being wiped by a later reset. The log thus tracks only
                 // the current lifetime (from this load) and can't grow without bound across
-                // switches/reloads. Best-effort; a failure must never raise.
-                await fs.write(fpJoin(boardRoot, "ui.log"), logLine("info", "board loaded")).catch(() => {});
+                // switches/reloads. Best-effort; a failure must never raise. MAIN frame only
+                // (EPIC-044): a secondary frame resetting the log would race with / wipe the
+                // main frame's lines — secondary frames only APPEND their own `board:error`s.
+                if (isMain) {
+                    await fs.write(fpJoin(boardRoot, "ui.log"), logLine("info", "board loaded")).catch(() => {});
+                }
                 if (!live) {
                     void api.unregisterBoard(h);
                     return;
@@ -83,7 +107,7 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
             live = false;
             if (registeredHost) void api.unregisterBoard(registeredHost);
         };
-    }, [boardRoot]);
+    }, [boardRoot, isMain]);
 
     // Append a troubleshooting line to the current lifetime's ui.log (mode B/E errors).
     // Best-effort — a logging failure must never raise its own error.
@@ -145,9 +169,13 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     const handleLoad = useCallback(() => {
         if (!host) return;
         // `model.id` is the ownerId — the stable job-retention key across mounts of
-        // this board tab (busy retention, US-799).
+        // this board tab (busy retention, US-799). BOTH frames request their own port
+        // (each needs execute/readFile/etc. + its own content-host + shared-state seed).
         void api.requestBoardPort(boardId, host, model.id);
-        void api.registerBoardFrame(model.id, host, boardId);
+        // Automation targets the MAIN frame only (EPIC-044 / D7): the main and secondary
+        // frames share one `model.id`, so a secondary registerBoardFrame would clobber the
+        // single CDP registration keyed on it.
+        if (isMain) void api.registerBoardFrame(model.id, host, boardId);
         // EPIC-043: seed the content-host board with the current host content. Subsequent changes
         // ride the host.state subscription below. The shim awaits this (getContent settle-once), so
         // a not-yet-restored host just means the subscription delivers the first snapshot instead.
@@ -171,9 +199,10 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         }
         // Autofocus the freshly-loaded frame (covers the editor-switch case, where the board
         // mounts + loads). Tab switches to an already-loaded board are handled by the onFocus
-        // subscription below.
-        focusFrame();
-    }, [host, boardId, model, focusFrame]);
+        // subscription below. MAIN frame only (EPIC-044): a secondary sidebar frame must not
+        // pull focus off the main view (frame-level shortcuts like Ctrl+S target the main view).
+        if (isMain) focusFrame();
+    }, [host, boardId, model, focusFrame, isMain]);
 
     // Expose the iframe element to the model (automation focus) and dismiss host
     // overlays on a board click (US-773 C10): a cross-origin board's inner clicks don't
@@ -182,7 +211,10 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     useEffect(() => {
         if (!host) return;
         const el = iframeRef.current;
-        if (el) model.setIframe(el);
+        // Only the MAIN frame is the board's automation target (EPIC-044 / D7): both frames
+        // share `model.id`, so a secondary setIframe would overwrite the shared `currentIframe`
+        // and `browser_*` would drive the wrong frame.
+        if (el && isMain) model.setIframe(el);
 
         const onMessage = (e: MessageEvent) => {
             const d = e.data as
@@ -227,10 +259,10 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
 
         return () => {
             window.removeEventListener("message", onMessage);
-            if (el) model.clearIframe(el);
-            void api.unregisterBoardFrame(model.id);
+            if (el && isMain) model.clearIframe(el);
+            if (isMain) void api.unregisterBoardFrame(model.id);
         };
-    }, [host, model, appendLog]);
+    }, [host, model, appendLog, isMain]);
 
     // Refresh the palette stored in main on theme switch. Main fans the new palette out
     // to every live board port (live retint, US-771) and refreshes the stored design so
@@ -248,12 +280,13 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     // the page-switch DOM settle before we move focus. Without this, a switched-to board needs a
     // click before frame-level shortcuts (Ctrl+S save) work.
     useEffect(() => {
+        if (!isMain) return; // secondary sidebar frames don't grab focus on page activation
         const sub = pagesModel.onFocus.subscribe((pageModel) => {
             if (pageModel !== model.page) return;
             setTimeout(() => focusFrame(), 200);
         });
         return () => sub.unsubscribe();
-    }, [model, focusFrame]);
+    }, [model, focusFrame, isMain]);
 
     // EPIC-043: push host content/language into a content-host board on every change (external
     // reload, other-view edit, host transfer), echo-guarded against the board's own setContent.
@@ -325,7 +358,12 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                     // origin stays `board://${host}` (the query doesn't affect it), so the
                     // port handshake + CSP are unchanged; relative subresources (./app.js,
                     // CSS) resolve against the path and drop the query.
-                    src={`board://${host}/index.html?v=${boardId}`}
+                    // `&view=<role>` carries this frame's view role (EPIC-044 / O6) — the shim
+                    // reads it from location.search → `persephone.view`. It does NOT affect the
+                    // origin/routing, and does NOT collide with the CDP `v=` nonce matcher
+                    // (`view=…` contains no `v=` token). `entry` selects the frame's HTML file
+                    // (main → index.html; a secondary view → its declared html).
+                    src={`board://${host}/${entry}?v=${boardId}&view=${encodeURIComponent(view)}`}
                     onLoad={handleLoad}
                     // No `sandbox` attribute (EPIC-037 C5) — keeps a stable cross-origin
                     // origin so per-board storage works; no preload, no partition.

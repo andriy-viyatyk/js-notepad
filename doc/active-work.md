@@ -10,11 +10,12 @@ Overview of all active and planned epics and tasks.
 - **EPIC-044** — [Board Secondary Views](epics/EPIC-044.md) _(planning — awaiting review)_
   - [ ] [US-851: Manifest + base-model plumbing for declared secondary views](tasks/US-851-manifest-model-plumbing/README.md)
   - [ ] [US-852: `persephone.state.*` shared-state bridge (get/set/merge/onChange)](tasks/US-852-shared-state-bridge/README.md)
-  - [ ] US-853: Second-iframe rendering + `board-secondary:*` sidebar panel family
+  - [ ] [US-853: Second-iframe rendering + `board-secondary:*` sidebar panel family](tasks/US-853-second-iframe-rendering/README.md)
   - [ ] US-854: `persephone.setSecondaryViews` dynamic control
   - [ ] US-855: Persistence & restore hardening (shared state + panel survive restart/reload)
   - [ ] US-856: Docs, guides, demo board
   - [ ] US-857: Proving-ground Todo board — Todo reimplemented as a content-host board with secondary views, alongside the built-in (acceptance)
+  - [ ] US-858 📌 (placeholder, not scoped): Automate secondary views via `browser_*` — target a chosen board frame without regressing the D7 single-target guarantee
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

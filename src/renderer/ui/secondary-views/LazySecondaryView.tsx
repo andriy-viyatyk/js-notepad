@@ -36,5 +36,5 @@ export function LazySecondaryView({ model, panelId, headerRef, icon, expanded }:
 
     if (error) return <div style={{ padding: 8, color: color.text.light }}>{error}</div>;
     if (!Component) return null;
-    return <Component model={model} headerRef={headerRef} icon={icon} expanded={expanded} />;
+    return <Component model={model} panelId={panelId} headerRef={headerRef} icon={icon} expanded={expanded} />;
 }

@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { editorRegistry } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { customEditorRegistry } from "./board/custom-editor-registry";
+import { BOARD_SECONDARY_PREFIX } from "./board/board-secondary";
 import { secondaryViewRegistry } from "../ui/secondary-views/secondary-view-registry";
 import { SearchIcon, BoardColorIcon } from "../theme/icons";
 
@@ -100,6 +101,17 @@ secondaryViewRegistry.register({
     label: "Wiki",
     // No icon override → falls back to the editor's MemoryIcon (EPIC-032 / US-663).
     loadComponent: () => import("./mneme-root/MnemeTreeSecondaryView"),
+});
+
+// Board secondary views (EPIC-044 / US-853): one registration serves the whole
+// `board-secondary:*` id family — a board declares zero-or-more views in its manifest
+// (or via `persephone.setSecondaryViews`), each mapped to a `board-secondary:<viewId>`
+// panel. BoardSecondaryView reads its `panelId` to render the matching view over the
+// board's model. No icon override → falls back to the board's own glyph (EditorIcon).
+secondaryViewRegistry.registerPrefix(BOARD_SECONDARY_PREFIX, {
+    id: BOARD_SECONDARY_PREFIX,
+    label: "Board View", // never shown — BoardSecondaryView renders its own header from the decl
+    loadComponent: () => import("./board/BoardSecondaryView"),
 });
 
 editorRegistry.register({

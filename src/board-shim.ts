@@ -62,6 +62,19 @@ const boot: BoardBootContext =
 const hostOriginStrict = /^https?:\/\//i.test(boot.hostOrigin);
 const hostPostTarget = hostOriginStrict ? boot.hostOrigin : "*";
 
+// ── View role (EPIC-044 / O6) ────────────────────────────────────────────────
+// Which view this frame renders: "main" for the board's main iframe, or a declared
+// secondary view's id. Delivered synchronously via the iframe src's `view=` query param
+// (read here before any author script), so a single HTML file can branch on
+// `persephone.view` to render every view. Absent → "main" (a plainly-loaded board).
+let viewRole = "main";
+try {
+    const v = new URLSearchParams(location.search).get("view");
+    if (v) viewRole = v;
+} catch {
+    // location unavailable — keep "main"
+}
+
 let currentTheme: BoardThemePalette = boot.theme;
 const tokens: Record<string, string> = boot.tokens;
 const themeCbs: Array<(t: BoardThemePalette) => void> = [];
@@ -581,6 +594,10 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
 
 (window as unknown as { persephone: unknown }).persephone = {
     version: "1.0.0",
+
+    /** This frame's view role (EPIC-044): "main" for the board's main view, or the id of a
+     *  declared secondary view. Branch on it to render every view from one HTML file. */
+    view: viewRole,
 
     execute(command: string, options?: IExecuteOptions): IExecuteHandle {
         return createHandle(command, options);

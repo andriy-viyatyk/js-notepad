@@ -419,7 +419,13 @@ export function disposeBoardPort(boardId: string): void {
     try { entry.port.close(); } catch { /* already closed */ }
     boardPorts.delete(boardId);
     if (!busyOwners.has(entry.ownerId)) {
-        reapBoardOwner(entry.ownerId);
+        // Per-sink reaping (EPIC-044 / D10, B1): a board's main + secondary frames share
+        // one owner (`model.id`). A single frame's port going away reaps ONLY that frame's
+        // jobs (its sink), never the shared owner's other frames — else closing a secondary
+        // panel would tree-kill the main frame's processes. The WHOLE owner is reaped only
+        // from `reapBoardOwner` (model dispose / host crash / quit).
+        reapJobsBySinkId(boardId);
+        ownerSinks.get(entry.ownerId)?.sinkIds.delete(boardId);
     }
 }
 

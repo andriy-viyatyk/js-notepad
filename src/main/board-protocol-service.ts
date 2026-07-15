@@ -41,6 +41,13 @@ interface BoardDesign {
 }
 const hostToDesign = new Map<string, BoardDesign>();
 
+/** board:// host → live registration count (EPIC-044 / US-853). A board's main and
+ *  secondary frames resolve to the SAME host (`boardRootToHost` is deterministic), so
+ *  each frame registers/unregisters it. The host→root/design mappings are dropped only
+ *  when the LAST frame unregisters — otherwise a secondary-panel close (or a main reload
+ *  while panels exist) would tear out the routing a surviving frame still needs. */
+const hostRefCount = new Map<string, number>();
+
 /** Stable, DNS-label-safe `board://` host for a board root: a hash of the normalized
  *  path. Same root → same host → same `board://<host>` origin (so per-board storage
  *  is stable within an app run). The leading letter keeps it an unambiguous DNS label. */
@@ -274,12 +281,19 @@ export function registerBoard(
     const host = boardRootToHost(root);
     hostToRoot.set(host, root);
     hostToDesign.set(host, { theme, tokens, hostOrigin });
+    hostRefCount.set(host, (hostRefCount.get(host) ?? 0) + 1);
     return host;
 }
 
 /** Drop a board from the registry on unmount/close. No session teardown — the host
  *  session is shared and long-lived (storage handling is US-772 / EPIC-037 C12). */
 export function unregisterBoard(host: string): void {
+    const n = (hostRefCount.get(host) ?? 0) - 1;
+    if (n > 0) {
+        hostRefCount.set(host, n);
+        return; // another frame still uses this host — keep the mapping
+    }
+    hostRefCount.delete(host);
     hostToRoot.delete(host);
     hostToDesign.delete(host);
 }
