@@ -180,3 +180,36 @@ pre {
 .space-row { display: flex; align-items: center; gap: var(--p-gap-lg, 8px); margin: var(--p-space-xs, 2px) 0; }
 .metric-label { width: 150px; flex-shrink: 0; font-size: var(--p-font-xs, 12px); color: var(--p-text-muted, #64748b); }
 .space-track { flex: 1; }
+
+/* ── Secondary views & shared state demo ────────────────────────────── */
+.ss-controls { margin-top: var(--p-space-lg, 12px); }
+.ss-controls input,
+.ss-frame textarea {
+    width: 100%;
+    font: inherit;
+    color: var(--p-text, #1f1f1f);
+    background: var(--p-bg, #ffffff);
+    border: 1px solid var(--p-border, #cbd5e1);
+    border-radius: var(--p-radius-md, 4px);
+    padding: var(--p-space-sm, 6px) var(--p-space-md, 8px);
+}
+.ss-frame textarea { min-height: 120px; resize: vertical; }
+.ss-readout {
+    margin-top: var(--p-space-md, 8px);
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--p-text-muted, #64748b);
+}
+.ss-frame { padding: var(--p-space-xl, 16px); }
+.ss-frame h3 { margin: 0 0 var(--p-space-sm, 6px); color: var(--p-text-strong, inherit); }
+
+/* Compact layout for a secondary (sidebar) frame: hide the main-view chrome and show only
+   #secondary-root. Applied by app.js (body.secondary-frame) when persephone.view is a
+   secondary role; detail.html sets the class itself (its .ss-frame provides its own padding). */
+#secondary-root { display: none; }
+body.secondary-frame { overflow: auto; }
+body.secondary-frame .app-header,
+body.secondary-frame .tabs,
+body.secondary-frame .content,
+body.secondary-frame #out { display: none; }
+body.secondary-frame #secondary-root { display: block; }

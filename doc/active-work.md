@@ -13,7 +13,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-853: Second-iframe rendering + `board-secondary:*` sidebar panel family](tasks/US-853-second-iframe-rendering/README.md)
   - [ ] [US-854: `persephone.setSecondaryViews` dynamic control](tasks/US-854-set-secondary-views/README.md)
   - [ ] [US-855: Persistence & restore hardening](tasks/US-855-persistence-restore-hardening/README.md)
-  - [ ] US-856: Docs, guides, demo board
+  - [ ] [US-856: Docs, guides, demo board](tasks/US-856-docs-guides-demo-board/README.md)
   - [ ] US-857: Proving-ground Todo board — Todo reimplemented as a content-host board with secondary views, alongside the built-in (acceptance)
   - [ ] US-858 📌 (placeholder, not scoped): Automate secondary views via `browser_*` — target a chosen board frame without regressing the D7 single-target guarantee
 

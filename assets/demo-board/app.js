@@ -11,6 +11,20 @@
     const dec = new TextDecoder();
     const out = document.getElementById("out");
 
+    // ── persephone.view — this same file also serves the "Shared State" secondary panel ──
+    // A board can declare secondary (sidebar) views; each is its own board:// frame over the
+    // SAME board. All frames share one Persephone-owned state object, so persephone.state.*
+    // keeps the main view, this "Shared State" panel, and the "Notes" panel (detail.html) in
+    // sync. `persephone.view` is "main" for the main view or the view's id for a secondary
+    // frame — known synchronously at load, so one HTML file can serve every view. In a
+    // secondary frame, hide the main chrome and render only the compact shared-state UI.
+    const viewRole = (P && P.view) || "main";
+    if (viewRole !== "main") {
+        document.body.classList.add("secondary-frame");
+        renderSharedStateFrame(viewRole);
+        return;
+    }
+
     // ── Tabs ────────────────────────────────────────────────────────────
     const tabs = document.querySelectorAll(".tab");
     const panels = document.querySelectorAll(".panel");
@@ -245,8 +259,57 @@
     buildSwatches();
     buildMetrics();
 
+    // ── Secondary views & shared state (persephone.state.*) ─────────────
+    // Main-view wiring: declare the shared state (authoritative init, from the main view),
+    // then drive it from the "Secondary Views" tab controls. onChange is the source of truth —
+    // a write round-trips through Persephone back to every frame, so render from it.
+    function wireSharedState() {
+        // Opt-in persistence: only `counter` + `message` are saved to the page and restored
+        // on app restart / board Reload. init is fill-missing (restored values win).
+        P.state.init({ counter: 0, message: "" }, { restorableKeys: ["counter", "message"] });
+
+        const inc = document.getElementById("ss-inc");
+        const msg = document.getElementById("ss-message");
+        const readout = document.getElementById("ss-readout");
+
+        inc.addEventListener("click", async () => {
+            const s = await P.state.get();
+            P.state.merge({ counter: (s.counter || 0) + 1 });
+        });
+        msg.addEventListener("input", () => P.state.merge({ message: msg.value }));
+
+        P.state.onChange((s) => {
+            readout.textContent = "shared state: " + JSON.stringify(s);
+            // Reflect an external change without stealing the caret while the user types here.
+            if (document.activeElement !== msg && typeof s.message === "string") msg.value = s.message;
+        });
+    }
+
+    // Secondary-frame renderer: builds a compact shared-state UI into #secondary-root when this
+    // file is loaded as the "shared-state" sidebar view. Shares state with the main view + the
+    // "Notes" panel; does NOT call state.init (the main view owns the authoritative defaults).
+    function renderSharedStateFrame(role) {
+        const root = document.getElementById("secondary-root");
+        root.innerHTML =
+            `<div class="ss-frame">` +
+            `<h3>Shared State</h3>` +
+            `<p class="muted">The <code>${role}</code> secondary view — served from ` +
+            `<code>index.html</code>, told apart by <code>persephone.view</code>. It shares ` +
+            `state with the main view and the Notes panel.</p>` +
+            `<button class="action" id="ss-frame-inc">counter ＋</button>` +
+            `<pre id="ss-frame-readout" class="ss-readout">shared state: …</pre>` +
+            `</div>`;
+        const readout = document.getElementById("ss-frame-readout");
+        document.getElementById("ss-frame-inc").addEventListener("click", async () => {
+            const s = await P.state.get();
+            P.state.merge({ counter: (s.counter || 0) + 1 });
+        });
+        P.state.onChange((s) => { readout.textContent = "shared state: " + JSON.stringify(s); });
+    }
+
     let fireCount = 0;
     function start() {
+        wireSharedState();
         // runChecks() and the onThemeChange initial fire read the LIVE computed
         // --p-* values off <html>. This script runs mid-parse, but the preload
         // applies those vars on DOMContentLoaded — so read only once the DOM is

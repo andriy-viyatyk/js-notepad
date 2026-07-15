@@ -600,10 +600,10 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
     view: viewRole,
 
     /** Replace this board's full set of secondary (sidebar) views at runtime (EPIC-044).
-     *  Each view: `{ id, html?, title?, icon? }` — `html` defaults to the main entry, so one
-     *  file can serve every view (branch on `persephone.view`). `[]` removes them all. Available
+     *  Each view: `{ id, html?, title? }` — `html` defaults to the main entry, so one file
+     *  can serve every view (branch on `persephone.view`). `[]` removes them all. Available
      *  on every frame (main + secondary); the change is authoritative on the Persephone side. */
-    setSecondaryViews(views: Array<{ id: string; html?: string; title?: string; icon?: string }>): void {
+    setSecondaryViews(views: Array<{ id: string; html?: string; title?: string }>): void {
         try {
             window.parent.postMessage(
                 { __persephone: "board:setSecondaryViews", views: Array.isArray(views) ? views : [] },

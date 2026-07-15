@@ -19,6 +19,7 @@
         <button class="tab" data-tab="overview">Overview</button>
         <button class="tab" data-tab="theming">Theming</button>
         <button class="tab" data-tab="capabilities">Capabilities</button>
+        <button class="tab" data-tab="secondary">Secondary Views</button>
         <button class="tab" data-tab="build">Build Guide</button>
         <button class="tab" data-tab="debugging">Debugging</button>
     </nav>
@@ -128,6 +129,39 @@
                 <button class="action" data-test="openFileDialog">openFileDialog</button>
                 <button class="action" data-test="saveFileDialog">saveFileDialog</button>
                 <button class="action" data-test="openFolderDialog">openFolderDialog</button>
+            </div>
+        </section>
+
+        <!-- ════════════════════════ SECONDARY VIEWS ════════════════════════ -->
+        <section class="panel" data-panel="secondary">
+            <h2>Secondary views &amp; shared state</h2>
+            <p>
+                A board can contribute <strong>secondary views</strong> — extra sidebar panels, each its
+                own <code>board://</code> iframe over the <em>same</em> board. Every frame (main + each
+                secondary) shares one Persephone-owned state object via <code>persephone.state.*</code>,
+                so they stay synchronized. This is the plumbing for editor-style boards — a main view plus
+                a coordinated sidebar. This demo declares <strong>two</strong> secondary views:
+            </p>
+            <ul>
+                <li><strong>Shared State</strong> — served from this same <code>index.html</code>, told apart by <code>persephone.view</code> (one file, many roles).</li>
+                <li><strong>Notes</strong> — served from a dedicated <code>detail.html</code> + <code>detail.js</code> (a standalone view file).</li>
+            </ul>
+            <div class="note">
+                Open the sidebar — the <strong>Shared State</strong> and <strong>Notes</strong> panels —
+                then edit here or there: every frame updates live. <code>counter</code> and
+                <code>message</code> are declared <code>restorableKeys</code>, so they survive a board
+                <strong>Reload</strong> and an app restart.
+            </div>
+
+            <div class="ss-controls">
+                <div class="row">
+                    <button class="action" id="ss-inc">counter ＋</button>
+                    <span class="muted">bumps the shared <code>counter</code></span>
+                </div>
+                <div class="row">
+                    <input id="ss-message" type="text" placeholder="type a shared message…" />
+                </div>
+                <pre id="ss-readout" class="ss-readout">shared state: …</pre>
             </div>
         </section>
 
@@ -293,6 +327,10 @@
 
     <!-- Output console — pinned below the scroll area; shown on interactive tabs. -->
     <div id="out">Output appears here…</div>
+
+    <!-- Compact UI for the "shared-state" secondary frame. Hidden in the main view;
+         app.js reveals it (and hides the main chrome) when persephone.view === "shared-state". -->
+    <div id="secondary-root"></div>
 
     <script src="./app.js"></script>
 </body>

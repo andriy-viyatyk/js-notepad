@@ -117,6 +117,33 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
 granted, so standard web APIs like `navigator.clipboard.write([...])` work directly (no bridge method;
 still need a user gesture + focused window). Only remote *network* is blocked by the CSP.
 
+### Secondary views & shared state
+
+A board can contribute **secondary views** — extra sidebar panels, each its own `board://`
+iframe over the *same board*. All frames (main + secondaries) share one Persephone-owned state
+object, so they stay synchronized — the plumbing for editor-style boards (a main view + a
+coordinated sidebar).
+
+- **Declare** in `board-manifest.json`: `"secondaryViews": [{ "id": "lists", "title": "Lists" },
+  { "id": "detail", "html": "detail.html", "title": "Detail" }]`. `id` has no `::`; `html`
+  defaults to `index.html` (one file — branch on `persephone.view`) or names a dedicated file;
+  `title` labels the panel (the icon is the board's own). Or replace at runtime from any frame
+  with `persephone.setSecondaryViews([...])` (`[]` clears). Navigating the main view away
+  disposes the board — panels don't keep it alive.
+- **`persephone.view`** — `"main"` or the view's `id`, known synchronously at load; branch on
+  it to serve every view from one HTML file.
+- **`persephone.state.*`** (every frame): `init(defaults, { restorableKeys })`, `get()` (Promise,
+  first-snapshot-then-cached), `set(obj)`, `merge(partial)`, `onChange(cb) → off`. A change in
+  one frame is seen in all; `onChange` is authoritative (writes round-trip, React-`setState`-
+  style). **Opt-in persistence** — only `restorableKeys` survive restart/reload; everything else
+  is in-memory.
+
+```js
+persephone.state.init({ selectedId: null }, { restorableKeys: ["selectedId"] }); // main view
+persephone.state.onChange((s) => highlight(s.selectedId));
+// a sidebar view writes: persephone.state.merge({ selectedId: id })
+```
+
 ### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 
 By default everything a board spawned is **killed when the board unloads** (page navigated
@@ -239,7 +266,8 @@ A board is one fixed page — the tab/navigation tools (`browser_tabs`, `browser
 ## Richer reference — the bundled Demo board
 
 Persephone ships a full **Demo board** that exercises the whole surface (buffered/streaming/
-stdin/kill/cwd `execute()`, the integration tier, the `--p-*` theme + token contract, a tabbed
-layout with a pinned output console). For a richer example than the blank template, create one
-with `app.boards.createDemoBoard(name, dir)` and read its files, or read the source under the
-install's `resources/assets/demo-board/` (`index.html`, `app.js`, `style.css`, `board-base.css`).
+stdin/kill/cwd `execute()`, the integration tier, the `--p-*` theme + token contract, secondary
+views + shared state via `persephone.state.*`, a tabbed layout with a pinned output console).
+For a richer example than the blank template, create one with `app.boards.createDemoBoard(name,
+dir)` and read its files, or read the source under the install's `resources/assets/demo-board/`
+(`index.html`, `app.js`, `style.css`, `board-base.css`).

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Persephone Boards — Notes</title>
+    <link rel="stylesheet" href="./board-base.css" />
+    <link rel="stylesheet" href="./style.css" />
+</head>
+<body class="secondary-frame">
+    <!-- A DEDICATED secondary-view file (the standalone-view pattern) — its own HTML + its own
+         detail.js, independent of index.html / app.js. It shares the board's state with the
+         main view and the "Shared State" panel through persephone.state.*. -->
+    <div class="ss-frame">
+        <h3>Notes</h3>
+        <p class="muted">
+            A <strong>dedicated</strong> secondary-view file (<code>detail.html</code> +
+            <code>detail.js</code>) — the standalone-view pattern. It shares state with the main
+            view and the Shared State panel through <code>persephone.state.*</code>.
+        </p>
+        <textarea id="notes" placeholder="shared message — type here or in the main view…"></textarea>
+        <pre id="notes-readout" class="ss-readout">shared state: …</pre>
+    </div>
+    <script src="./detail.js"></script>
+</body>
+</html>

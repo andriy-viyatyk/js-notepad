@@ -24,13 +24,13 @@ export const BOARD_MANIFEST_SCHEMA_VERSION = 1;
  * author-supplied view key (must NOT contain "::", the sidebar composite-key
  * separator). `html` is the board-relative entry file (defaults to the main
  * entry, "index.html", so one file can serve every view and branch on
- * `persephone.view`). `title` / `icon` label the sidebar panel.
+ * `persephone.view`). `title` labels the sidebar panel; the panel icon is always
+ * the board's own glyph (there is no per-view icon).
  */
 export interface SecondaryViewDecl {
     id: string;
     html?: string;
     title?: string;
-    icon?: string;
 }
 
 export interface BoardManifest {
@@ -197,7 +197,7 @@ export function getBoardEditorAssociation(
  * Normalize a raw secondary-views value into validated decls. Forgiving: drops
  * non-object entries, entries with a missing/empty `id`, ids containing "::" (the
  * `<editorId>::<panelId>` composite-key separator), and duplicate ids (first wins);
- * trims `html`/`title`/`icon` (empty → undefined). Non-array / absent → []. Never throws.
+ * trims `html`/`title` (empty → undefined). Non-array / absent → []. Never throws.
  * Shared by the manifest seed (`readBoardSecondaryViews`) and the runtime
  * `persephone.setSecondaryViews` path (`BoardEditorModel.setSecondaryViews`).
  */
@@ -213,8 +213,7 @@ export function normalizeSecondaryViews(raw: unknown): SecondaryViewDecl[] {
         seen.add(id);
         const html = typeof d.html === "string" && d.html.trim() ? d.html.trim() : undefined;
         const title = typeof d.title === "string" && d.title.trim() ? d.title.trim() : undefined;
-        const icon = typeof d.icon === "string" && d.icon.trim() ? d.icon.trim() : undefined;
-        out.push({ id, html, title, icon });
+        out.push({ id, html, title });
     }
     return out;
 }

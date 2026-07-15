@@ -214,6 +214,91 @@ clipboard permission, so standard web APIs like `navigator.clipboard.write([...]
 no bridge method needed (they still require a user gesture + a focused window, per the browser).
 Only remote *network* is blocked (by the CSP — see *Libraries & assets* below).
 
+## Secondary views & shared state
+
+A board isn't limited to its main page — it can contribute one or more **secondary views**:
+extra sidebar panels, each its own `board://` iframe over the **same board**. Every frame
+(main + secondaries) shares one state object that Persephone owns and mirrors into all of
+them, so they stay synchronized. This is how you build editor-style boards: a main view plus
+a coordinated "lists / details / outline" sidebar.
+
+### Declare views — manifest or at runtime
+
+Statically, in `board-manifest.json`:
+
+```json
+{
+  "schemaVersion": 1,
+  "secondaryViews": [
+    { "id": "lists",  "title": "Lists" },
+    { "id": "detail", "html": "detail.html", "title": "Detail" }
+  ]
+}
+```
+
+- `id` — stable key for the view (must not contain `::`).
+- `html` — the view's entry file. **Defaults to `index.html`**, so one file can serve every
+  view (branch on `persephone.view`, below); or point it at a dedicated file.
+- `title` — the sidebar panel's label. (The panel icon is always the board's own icon — there
+  is no per-view icon.)
+
+Or dynamically, from any frame:
+
+```js
+persephone.setSecondaryViews([{ id: "lists", title: "Lists" }]);
+persephone.setSecondaryViews([]);   // remove all
+```
+
+Navigating the board's main view away removes its panels and disposes the board — secondary
+views don't keep it on the page.
+
+### One HTML, many roles — `persephone.view`
+
+Each frame knows its role synchronously at load via `persephone.view`: `"main"` for the main
+view, or the view's `id` for a secondary frame. Branch on it to serve everything from
+`index.html`:
+
+```js
+if (persephone.view === "main") renderMain();
+else renderSidebar(persephone.view);   // e.g. "lists"
+```
+
+### Shared state — `persephone.state.*`
+
+The frames coordinate through a shared state object (Persephone-owned, authoritative),
+available on **every** board — main and secondary frames alike:
+
+```js
+// Declare defaults + which keys persist (opt-in — below). Call once, from the main view.
+persephone.state.init({ selected: null, filter: "all" }, { restorableKeys: ["selected"] });
+
+const s   = await persephone.state.get();     // current state (Promise: first snapshot, then cached)
+persephone.state.set({ selected: "work" });   // replace
+persephone.state.merge({ filter: "open" });    // shallow-merge
+const off = persephone.state.onChange((s) => renderFrom(s)); // any frame's change; returns unsubscribe fn
+```
+
+- **`onChange` is the source of truth.** A write round-trips through Persephone and comes back
+  to every frame (including the writer), so treat `onChange` like React `setState` — render
+  from it; don't assume `set`/`merge` applied synchronously.
+- **Opt-in persistence.** Only the keys listed in `state.init(defaults, { restorableKeys })`
+  are saved to the page and restored on app restart / board reload. Everything else is
+  in-memory only — stash large or transient state freely without bloating the open-pages file.
+
+### Example — a list + detail pairing
+
+```js
+// index.html / app.js — the main view
+persephone.state.init({ selectedId: null }, { restorableKeys: ["selectedId"] });
+persephone.state.onChange((s) => highlightSelected(s.selectedId));
+
+// lists.html (or index.html branched on persephone.view === "lists") — a sidebar view
+row.onclick = () => persephone.state.merge({ selectedId: row.dataset.id });
+```
+
+The bundled Demo board has a live **Secondary Views** showcase demonstrating both the
+one-file (`persephone.view`) and dedicated-file styles — see *More examples* below.
+
 ## Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 
 By default, everything a board spawned is **killed when the board unloads** — the user
@@ -356,8 +441,9 @@ Navigation/tab tools don't apply — a board is one fixed page.
 
 Persephone ships a full **Demo board** that exercises the whole surface — the
 `persephone.execute()` channel (buffered / streaming / stdin / kill / cwd), the
-integration tier, the `--p-*` theme + token contract, and a tabbed multi-view layout
-with a pinned output console. When you need a richer reference than this starter,
+integration tier, the `--p-*` theme + token contract, secondary views + shared state
+(`persephone.state.*`), and a tabbed multi-view layout with a pinned output console. When you
+need a richer reference than this starter,
 read the Demo board's files (`index.html`, `app.js`, `style.css`, `board-base.css`):
 
 - **Ask the app:** call the `get_app_info` MCP tool — it returns `demoBoardDir` (the exact path to

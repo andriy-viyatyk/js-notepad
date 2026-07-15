@@ -204,7 +204,7 @@ export interface BoardToHostMsg {
     /** `board:setSecondaryViews` payload — the full replacement view set.
      *  Structurally mirrors `SecondaryViewDecl` (this module stays dependency-free,
      *  so it can't import that type); normalized renderer-side by `normalizeSecondaryViews`. */
-    views?: Array<{ id: string; html?: string; title?: string; icon?: string }>;
+    views?: Array<{ id: string; html?: string; title?: string }>;
 }
 
 /** Host content pushed renderer → board over `iframe.contentWindow.postMessage` (EPIC-043).
