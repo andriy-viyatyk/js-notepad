@@ -61,6 +61,12 @@ fields that let the board act as a file editor:
   when it outranks the built-in editor. Omit or `0` → the board is a switch option only and
   the built-in editor stays the default.
 - `editorName` (optional) — label shown on the editor-switch widget (falls back to `name`).
+- `editorKind` (optional) — how Persephone backs this editor. Omit or `"simple"` (default) → the
+  board gets the file path via `persephone.getFilePath()` and reads/writes it directly with
+  `persephone.readFile()` / `writeFile()`. `"content-host"` → Persephone owns the file (pipe,
+  encoding, encryption, auto-save, dirty tracking) and the board works through
+  `persephone.host.getContent()` / `setContent()` instead. Content-host boards also edit non-local
+  files (`https://`, inside archives, encrypted).
 
 Don't put secrets or trust flags here — a board is trusted by the user inside Persephone,
 never by the manifest. (The board icon is **not** set here; see *Board icon* below.)

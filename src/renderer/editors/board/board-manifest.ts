@@ -52,6 +52,16 @@ export interface BoardManifest {
      * then the board folder name.
      */
     editorName?: string;
+    /**
+     * How Persephone sets this board up as a file editor (EPIC-043).
+     * - absent / "simple": EPIC-042 behavior — the board gets a filePath (`getFilePath`) and
+     *   reads/writes the file DIRECTLY via `readFile`/`writeFile`. No Persephone content host.
+     * - "content-host": Persephone builds the board WITH a content host (owning the pipe,
+     *   encoding, encryption, auto-save cache, and dirty state) and injects `persephone.host.*`.
+     * Honored only when the board is TRUSTED, like every other Custom Editor field. Inert until
+     * the construction path consumes it (US-845).
+     */
+    editorKind?: "simple" | "content-host";
 }
 
 /** Absolute path to a board's manifest. */
@@ -132,6 +142,8 @@ export interface BoardEditorAssociation {
     editorPriority: number;
     /** Optional switch-widget display name (trimmed; empty → undefined). */
     editorName?: string;
+    /** Normalized board editor kind. Any value other than "content-host" → "simple". */
+    editorKind: "simple" | "content-host";
 }
 
 /**
@@ -151,10 +163,12 @@ export function getBoardEditorAssociation(
             ? rawPriority
             : 0;
     const name = typeof manifest.editorName === "string" ? manifest.editorName.trim() : "";
+    const editorKind = manifest.editorKind === "content-host" ? "content-host" : "simple";
     return {
         fileMasks,
         editorPriority,
         editorName: name || undefined,
+        editorKind,
     };
 }
 

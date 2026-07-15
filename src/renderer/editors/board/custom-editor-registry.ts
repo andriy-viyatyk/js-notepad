@@ -54,6 +54,9 @@ export interface CustomEditorMatch {
     priority: number;
     /** The board's normalized glob masks (for matching + introspection). */
     fileMasks: string[];
+    /** Board editor kind (US-843): "simple" (EPIC-042, direct file I/O) or "content-host"
+     *  (EPIC-043, Persephone owns the content host). Consumed by the construction path (US-845). */
+    editorKind: "simple" | "content-host";
 }
 
 interface CustomEditorRegistryState {
@@ -104,6 +107,7 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
                 name,
                 priority: assoc.editorPriority,
                 fileMasks: assoc.fileMasks,
+                editorKind: assoc.editorKind,
             });
         }
         this.state.update((s) => {
