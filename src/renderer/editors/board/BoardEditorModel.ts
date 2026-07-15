@@ -8,7 +8,8 @@ import { fpBasename, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../
 import { boardTrust } from "../../api/board-trust";
 import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { boardEditorId } from "./custom-editor-registry";
-import { isBoardFolder } from "./board-manifest";
+import { isBoardFolder, readBoardManifest, readBoardSecondaryViews, type SecondaryViewDecl } from "./board-manifest";
+import { boardSecondaryPanelId } from "./board-secondary";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
 import { invalidateBoardIcon } from "./board-icon-cache";
@@ -44,8 +45,21 @@ export interface BoardEditorState extends EditorStateBase {
      *  `state.sourceLink.filePath` instead. Read both via `currentFilePath()`. Served to the
      *  board via `persephone.getFilePath()`. Undefined for a plain board. */
     filePath?: string;
-    /** Sidebar panel contributions. */
+    /** Sidebar panel contributions — DERIVED from `secondaryViewDefs`
+     *  (`board-secondary:<id>` per declared view). Read by `contributesPanels()`. */
     secondaryView?: string[];
+    /** Declared secondary views (EPIC-044): seeded from the manifest on first load
+     *  (a persisted set wins — D6), replaced at runtime by `setSecondaryViews` (US-854).
+     *  `secondaryView` is derived from this. Persists as part of the board state. */
+    secondaryViewDefs?: SecondaryViewDecl[];
+    /** Shared-state channel store (EPIC-044 / D1) — the single in-memory state object
+     *  mirrored into every board frame via `persephone.state.*`. Populated in US-852;
+     *  declared here so the field exists. Only `sharedStateRestorableKeys` are persisted
+     *  (opt-in, D9 — the US-852 `getRestoreData` override, NOT the base full-state dump). */
+    sharedState?: Record<string, unknown>;
+    /** Keys of `sharedState` the board declared persistable via `persephone.state.init`
+     *  (EPIC-044 / D9). Populated in US-852. */
+    sharedStateRestorableKeys?: string[];
     /** Content-host boards only (EPIC-043): set when the content HOST fails to restore (file
      *  missing / unreadable), so the view shows a distinct empty state rather than a blank board. */
     contentHostError?: string;
@@ -244,6 +258,36 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         }
         this.state.update((s) => {
             if (!valid) s.selectedBoard = undefined;
+        });
+        // Seed/derive the declared secondary views (EPIC-044). Only when the board
+        // resolves; a missing board contributes no panels.
+        if (valid) {
+            await this.seedSecondaryViews();
+        } else {
+            this.state.update((s) => { s.secondaryView = undefined; });
+        }
+    }
+
+    /** Seed `secondaryViewDefs` from the manifest on FIRST load only — a persisted /
+     *  restored set wins (D6 / US-855 restore precedence) — then derive the panel-id list.
+     *  Idempotent: once `secondaryViewDefs` is defined it is never re-seeded here. */
+    private async seedSecondaryViews(): Promise<void> {
+        const boardRoot = this.state.get().boardRoot;
+        if (!boardRoot) return;
+        if (this.state.get().secondaryViewDefs === undefined) {
+            const manifest = await readBoardManifest(boardRoot);
+            const defs = readBoardSecondaryViews(manifest);
+            this.state.update((s) => { s.secondaryViewDefs = defs; });
+        }
+        this.deriveSecondaryPanels();
+    }
+
+    /** Recompute `state.secondaryView` (the derived panel-id list `contributesPanels()`
+     *  reads) from `state.secondaryViewDefs`. Undefined when there are no defs. */
+    protected deriveSecondaryPanels(): void {
+        this.state.update((s) => {
+            const defs = s.secondaryViewDefs ?? [];
+            s.secondaryView = defs.length ? defs.map((d) => boardSecondaryPanelId(d.id)) : undefined;
         });
     }
 

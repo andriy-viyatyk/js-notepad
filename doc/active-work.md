@@ -8,7 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 - **EPIC-044** — [Board Secondary Views](epics/EPIC-044.md) _(planning — awaiting review)_
-  - [ ] US-851: Manifest + model plumbing for a declared secondary view
+  - [ ] [US-851: Manifest + base-model plumbing for declared secondary views](tasks/US-851-manifest-model-plumbing/README.md)
   - [ ] US-852: `persephone.state.*` shared-state bridge (get/set/merge/onChange)
   - [ ] US-853: Second-iframe rendering + `board-secondary:*` sidebar panel family
   - [ ] US-854: `persephone.setSecondaryViews` dynamic control

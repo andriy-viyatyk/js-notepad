@@ -19,6 +19,20 @@ export const BOARD_MANIFEST_SCHEMA_VERSION = 1;
  * Trust is NEVER stored here (a received board must not be able to self-trust —
  * EPIC-035 C2); trust lives in the app-side registry.
  */
+/**
+ * One secondary (sidebar) view a board declares (EPIC-044). `id` is the stable,
+ * author-supplied view key (must NOT contain "::", the sidebar composite-key
+ * separator). `html` is the board-relative entry file (defaults to the main
+ * entry, "index.html", so one file can serve every view and branch on
+ * `persephone.view`). `title` / `icon` label the sidebar panel.
+ */
+export interface SecondaryViewDecl {
+    id: string;
+    html?: string;
+    title?: string;
+    icon?: string;
+}
+
 export interface BoardManifest {
     /** Schema version of this manifest. */
     schemaVersion: number;
@@ -62,6 +76,13 @@ export interface BoardManifest {
      * the construction path consumes it (US-845).
      */
     editorKind?: "simple" | "content-host";
+
+    /**
+     * Secondary (sidebar) views this board contributes (EPIC-044). Independent of
+     * `fileMasks` / the custom-editor axis — a plain board can declare them too.
+     * Read via `readBoardSecondaryViews` (NOT `getBoardEditorAssociation`).
+     */
+    secondaryViews?: SecondaryViewDecl[];
 }
 
 /** Absolute path to a board's manifest. */
@@ -170,6 +191,33 @@ export function getBoardEditorAssociation(
         editorName: name || undefined,
         editorKind,
     };
+}
+
+/**
+ * Extract the declared secondary views from a manifest. Independent of `fileMasks`
+ * (EPIC-044 O1). Forgiving: drops non-object entries, entries with a missing/empty
+ * `id`, ids containing "::" (the `<editorId>::<panelId>` composite-key separator),
+ * and duplicate ids (first wins). Non-array / absent → []. Never throws.
+ */
+export function readBoardSecondaryViews(
+    manifest: BoardManifest | null | undefined,
+): SecondaryViewDecl[] {
+    const raw = manifest?.secondaryViews;
+    if (!Array.isArray(raw)) return [];
+    const out: SecondaryViewDecl[] = [];
+    const seen = new Set<string>();
+    for (const entry of raw) {
+        if (!entry || typeof entry !== "object") continue;
+        const d = entry as SecondaryViewDecl;
+        const id = typeof d.id === "string" ? d.id.trim() : "";
+        if (!id || id.includes("::") || seen.has(id)) continue;
+        seen.add(id);
+        const html = typeof d.html === "string" && d.html.trim() ? d.html.trim() : undefined;
+        const title = typeof d.title === "string" && d.title.trim() ? d.title.trim() : undefined;
+        const icon = typeof d.icon === "string" && d.icon.trim() ? d.icon.trim() : undefined;
+        out.push({ id, html, title, icon });
+    }
+    return out;
 }
 
 /** Write a manifest (2-space JSON + trailing newline for human-editability). */
