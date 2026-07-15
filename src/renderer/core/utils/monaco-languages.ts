@@ -1041,7 +1041,8 @@ const monacoBuildInLanguages: MonacoLanguage[] = [
             ".svgz",
             ".opf",
             ".xslt",
-            ".xsl"
+            ".xsl",
+            ".drawio"
         ],
         "id": "xml"
     },

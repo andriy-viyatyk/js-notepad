@@ -5,6 +5,8 @@ import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
 import { fpJoin } from "../../core/utils/file-path";
 import { settings } from "../../api/settings";
+import { pagesModel } from "../../api/pages";
+import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import type { BoardHostContentMsg, BoardPortInitMsg } from "../../../ipc/board-bridge-channels";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
 import type { BoardEditorModel } from "./BoardEditorModel";
@@ -107,6 +109,16 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         pendingPortRef.current = null;
     }, [host, model]);
 
+    // Give the board frame keyboard focus (like Monaco autofocuses on switch), so shortcuts
+    // handled INSIDE the frame work immediately without a click — most importantly the shim's
+    // Ctrl+S save (EPIC-043), whose keydown listener lives on the frame's own `window`. Gated by
+    // the sidebar guard (US-808): sidebar-driven navigation must not pull focus out of the sidebar.
+    // Cross-origin `contentWindow.focus()` is permitted (focus/blur are allowed cross-origin).
+    const focusFrame = useCallback(() => {
+        if (isFocusInSidebar()) return;
+        iframeRef.current?.contentWindow?.focus();
+    }, []);
+
     // Subscribe to per-board port delivery; dispose the port + the board's jobs on unmount.
     useEffect(() => {
         if (!host) return;
@@ -147,7 +159,11 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
             const msg: BoardHostContentMsg = { __persephone: "host:content", content, language };
             win.postMessage(msg, `board://${host}`);
         }
-    }, [host, boardId, model]);
+        // Autofocus the freshly-loaded frame (covers the editor-switch case, where the board
+        // mounts + loads). Tab switches to an already-loaded board are handled by the onFocus
+        // subscription below.
+        focusFrame();
+    }, [host, boardId, model, focusFrame]);
 
     // Expose the iframe element to the model (automation focus) and dismiss host
     // overlays on a board click (US-773 C10): a cross-origin board's inner clicks don't
@@ -206,6 +222,18 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         });
         return () => sub.dispose();
     }, []);
+
+    // Focus the board frame when THIS page becomes active (tab / editor switch), mirroring the
+    // text editors' focus-on-activation (TextChrome). The 200ms delay matches TextChrome — it lets
+    // the page-switch DOM settle before we move focus. Without this, a switched-to board needs a
+    // click before frame-level shortcuts (Ctrl+S save) work.
+    useEffect(() => {
+        const sub = pagesModel.onFocus.subscribe((pageModel) => {
+            if (pageModel !== model.page) return;
+            setTimeout(() => focusFrame(), 200);
+        });
+        return () => sub.unsubscribe();
+    }, [model, focusFrame]);
 
     // EPIC-043: push host content/language into a content-host board on every change (external
     // reload, other-view edit, host transfer), echo-guarded against the board's own setContent.

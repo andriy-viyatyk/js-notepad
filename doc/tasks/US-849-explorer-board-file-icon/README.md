@@ -3,6 +3,14 @@
 **Epic:** [EPIC-043 — Content-Host Boards](../../epics/EPIC-043.md)
 **Status:** Implemented (Option B — global) — awaiting user test (epic deferred-review)
 
+> **Follow-up (2026-07-15) — board icon now wins over the language icon.** US-847 mapped
+> `.drawio → xml` for Monaco highlighting, which gave `.drawio` a built-in language icon and so
+> (under the original conservative C3 rule) suppressed the board icon. C3 is reversed: the board
+> icon now wins when the board is the file's **default editor** — i.e. `FileTypeIcon` resolves
+> the board step via `resolveEditorIdForFile(fileName)` (the same priority + local-path decision
+> as the open path) and renders the board glyph **before** the language/pattern icon. A board
+> that does NOT win the file-open keeps the built-in icon. See the revised C3 below.
+
 ## Goal
 
 In the Explorer file tree, a file claimed by a trusted custom-editor board (via the board's `fileMasks`) shows that **board's icon** instead of the generic Windows system icon — inserted into the icon-resolution ladder **after** built-in language/pattern icons and **before** the system-icon fallback. Example: `.drawio` files show the **drawio-viewer** board's icon.
@@ -89,14 +97,14 @@ The board step lives inside `FileTypeIcon` (`src/renderer/components/icons/Langu
 
 - **C1 — scope (Option A vs B).** Recommending Explorer-only (Option A). Confirm you don't also want board icons in the Git "Changes" list / file grids (that would be Option B).
 - **C2 — which board when several match.** Highest `priority` (ties → trusted-list order), mirroring `resolveEditorIdForFile` so the icon matches the board that would actually open the file.
-- **C3 — built-in icon wins.** Per the request, board icons apply only when there's **no** built-in language/pattern icon (e.g. `.drawio`). A board claiming `.json` would **not** override the JSON icon. Confirm that's desired (recommended — conservative).
+- **C3 — board icon vs built-in icon.** ~~Board icons apply only when there's **no** built-in language/pattern icon.~~ **Revised (2026-07-15):** the board icon wins whenever the board is the file's **default editor** (`resolveEditorIdForFile` returns the board id — its `editorPriority` beats the built-in claimant), rendered before the language/pattern icon. This keeps the file icon consistent with the editor that opens it (e.g. `.drawio` opens in the DrawIO board → shows the board icon, even though `.drawio` now maps to the `xml` language). A board that loses the file-open keeps the built-in icon.
 - **C4 — reactivity/perf.** Each file row subscribes to the registry via `useBoardsForFile`; a lightweight reactive selector, re-renders on trust/mask changes so a newly trusted board's icon appears live. Fine at typical tree sizes.
 - **C5 — icon-only, no open-behavior change.** This task changes only the displayed icon; it does not change which editor opens the file (that is already `resolveEditorIdForFile`).
 
 ## Acceptance criteria
 
-1. In the Explorer tree, a `.drawio` file shows the **drawio-viewer board icon** (matching its page-tab icon), not the generic system icon.
-2. Files with a built-in icon (`.json`, `.ts`, `.md`, …) are **unchanged**.
+1. In the Explorer tree, a `.drawio` file shows the **drawio-viewer board icon** (matching its page-tab icon) — winning over both the `xml` language icon and the generic system icon.
+2. Files whose default editor is **not** a board (`.json`, `.ts`, `.md`, … with no board claiming them at winning priority) keep their built-in language/pattern icon.
 3. Files with no built-in icon and no matching board still fall back to system/default icon (**unchanged**).
 4. Trusting/untrusting a board updates the affected file icons live (no restart).
 5. `npx tsc --noEmit` and `npx eslint` clean on the touched files.

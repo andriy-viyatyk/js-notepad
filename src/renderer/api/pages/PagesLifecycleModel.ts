@@ -374,23 +374,31 @@ export class PagesLifecycleModel {
         const editor = target
             ? await this.newEditorModelByTarget(filePath, target)
             : await this.newEditorModel(filePath);
+        // A content-host board (EPIC-043) owns its content on the adopted HOST, not on the
+        // board's own state — so pipe assignment and the pre-restore language reset must
+        // target the host. A bare TextFileModel host has no `contentHost` accessor, so
+        // `host` is null and everything falls through to the editor itself (unchanged for
+        // every text editor and the simple board, whose never-read pipe is disposed on dispose).
+        const host = (editor as EditorModel).contentHost;
         if (pipe) {
-            // A content-host board (EPIC-043) owns the pipe on its content HOST, not on
-            // the board's own (unused) `pipe` field. A bare TextFileModel host has no
-            // `contentHost` accessor → falls through to the direct assignment (unchanged
-            // for every text editor and the simple board, whose never-read pipe is
-            // disposed on dispose).
-            const host = (editor as EditorModel).contentHost;
             if (host) {
                 (host as unknown as TextFileModel).pipe = pipe;
             } else {
                 editor.pipe = pipe;
             }
         }
-        editor.state.update((s) => {
+        // Reset language to "" on whichever object carries the content state so restore()
+        // re-derives it from the file extension (its `s.language || getLanguageByExtension(ext)`
+        // guard only falls through when language is falsy — the default "plaintext" is truthy).
+        // For a content-host board the language lives on the host, not the board's state.
+        (host ?? editor).state.update((s) => {
             s.language = "";
-            if (title) s.title = title;
         });
+        if (title) {
+            editor.state.update((s) => {
+                s.title = title;
+            });
+        }
         await editor.restore();
         return editor;
     };

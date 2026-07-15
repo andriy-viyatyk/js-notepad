@@ -62,7 +62,11 @@ import {
 } from "../../theme/language-icons";
 
 import { fpExtname } from "../../core/utils/file-path";
-import { customEditorRegistry } from "../../editors/board/custom-editor-registry";
+import {
+    customEditorRegistry,
+    parseBoardEditorId,
+    resolveEditorIdForFile,
+} from "../../editors/board/custom-editor-registry";
 import { BoardGlyph } from "../../editors/board/BoardGlyph";
 
 // =============================================================================
@@ -217,40 +221,40 @@ export function FileTypeIcon({ language, fileName, ...props }: FileTypeIconProps
 
     const resolvedIcon = patternIcon || langIcon;
 
-    // Step 4: Custom-editor board icon — a trusted board whose `fileMasks` claim
-    // this file (e.g. the DrawIO-viewer board for `*.drawio`). Only when no built-in
-    // icon applied, so known file types keep their icon; reactive so a trust/mask
-    // change updates the icon live. Passed "" (→ []) on the common path to stay inert.
-    const boardMatches = customEditorRegistry.useBoardsForFile(
-        !resolvedIcon && fileName ? fileName : "",
-    );
-    // Highest-priority match (ties → trusted-list order) — the board that would
-    // actually open the file (mirrors `resolveEditorIdForFile`).
-    const board =
-        !resolvedIcon && boardMatches.length > 0
-            ? boardMatches.reduce((a, b) => (b.priority > a.priority ? b : a))
-            : undefined;
+    // Step 4: Custom-editor board icon — a trusted board that is the DEFAULT editor for this
+    // file (its `editorPriority` beats the built-in claimant, e.g. the DrawIO board wins
+    // *.drawio over the xml language). When the board wins the file-open it wins the ICON too,
+    // OVER the language/pattern icon, so the file's icon matches the editor that actually opens
+    // it. `resolveEditorIdForFile` applies the exact same priority + local-path rules as the
+    // open path, so a board that does NOT win keeps the built-in icon. Reactive (via
+    // `useBoardsForFile`) so a trust/mask change updates the icon live.
+    const boardMatches = customEditorRegistry.useBoardsForFile(fileName || "");
+    const boardRoot = useMemo(() => {
+        if (!fileName || boardMatches.length === 0) return undefined;
+        return parseBoardEditorId(resolveEditorIdForFile(fileName) ?? "") ?? undefined;
+    }, [fileName, boardMatches]);
 
     // Step 5: System icon fallback (async) — only fetch if neither a static icon
-    // nor a board icon applies.
+    // nor a winning board applies.
     useEffect(() => {
-        if (!resolvedIcon && !board && fileName && ext) {
+        if (!resolvedIcon && !boardRoot && fileName && ext) {
             systemIconModel.prepareIcon(fileName);
         }
-    }, [resolvedIcon, board, fileName, ext]);
+    }, [resolvedIcon, boardRoot, fileName, ext]);
 
     const iconCache = systemIconModel.state.use((s) => s.iconCache);
+
+    // Step 4 result: board icon — wins OVER the language/pattern icon (the board is the file's
+    // default editor). Sized from the numeric width prop; the tab / sidebar render the same
+    // `BoardGlyph`, so the file icon matches the board's tab icon.
+    if (boardRoot) {
+        const size = typeof props.width === "number" ? props.width : 16;
+        return <BoardGlyph boardRoot={boardRoot} size={size} />;
+    }
 
     if (resolvedIcon) {
         const Icon = resolvedIcon;
         return <Icon {...props} />;
-    }
-
-    // Step 4 result: board icon (sized from the numeric width prop; the tab / sidebar
-    // render the same `BoardGlyph`, so the file icon matches the board's tab icon).
-    if (board) {
-        const size = typeof props.width === "number" ? props.width : 16;
-        return <BoardGlyph boardRoot={board.boardRoot} size={size} />;
     }
 
     // Step 5 result: system icon
