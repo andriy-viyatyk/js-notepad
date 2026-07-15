@@ -352,17 +352,17 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         this.deriveSecondaryPanels();
     }
 
-    /** Boards never linger on the page as sidebar-panel contributors (EPIC-044 / D8).
-     *  When the page navigates its main view away it KEEPS an editor that still
-     *  contributes a sidebar (demote-to-sidebar) — we opt out by force-clearing the
-     *  declared secondary views here, so `contributesPanels()` is false and the page
-     *  disposes this board. Forced at the Persephone side: the board is never told it is
-     *  navigating away, and this guarantee doesn't depend on board cooperation.
-     *  (A busy board still survives via `keepAliveOnNavigation()` as an invisible process
-     *  handle — now with no visible sidebar; re-derivation on re-promotion is US-855.) */
-    override beforeNavigateAway(newModel: EditorModel): void {
-        this.state.update((s) => { s.secondaryViewDefs = undefined; });
-        super.beforeNavigateAway(newModel); // clears the derived state.secondaryView
+    /** A busy board that survived navigate-away (US-799) had its derived `secondaryView`
+     *  cleared by the base `beforeNavigateAway` while demoted — which is all the Pattern-A
+     *  disposal of a NON-busy board needs (with no derived panels `contributesPanels()` is
+     *  false, so `setMainEditor` disposes it; the board never lingers as a sidebar contributor,
+     *  EPIC-044 / D8). `secondaryViewDefs` (the source of truth) is deliberately RETAINED, so on
+     *  re-promotion — when `PagesLifecycleModel` reuses this surviving instance via
+     *  `matchesNavigationTarget` — we simply re-derive the panel-id list from it: the board comes
+     *  back with exactly the views it had (manifest- or runtime-declared), synchronously, with no
+     *  manifest re-read and no race against the remounting frame's own `setSecondaryViews`. */
+    override onNavigationReuse(): void {
+        this.deriveSecondaryPanels();
     }
 
     /** Select the board (its folder name) so it renders, or `undefined` to deselect
