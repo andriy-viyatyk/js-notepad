@@ -7,7 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- _(nothing in progress)_
+- **EPIC-043** — [Content-Host Boards (boards that edit a file through Persephone's content host)](epics/EPIC-043.md) — _Design finalized & gap-reviewed (CH1–CH8 resolved); tasks not yet carved_
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
