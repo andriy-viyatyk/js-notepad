@@ -53,14 +53,27 @@ export class BoardContentEditorModel extends BoardEditorModel {
         return (this._host as unknown as IContentHost) ?? null;
     }
 
+    /** A content-host board is ALWAYS a custom file editor (it owns a content host) — even on an
+     *  untitled page with no file path yet. So it keeps the virtual `board-editor:<root>` id
+     *  (never the plain `board-view`), which both lets the switch widget highlight it and lets
+     *  `switchMainEditor` recognize the board boundary when switching back to a built-in editor.
+     *  Persistence still pins `"board-view"` via `getRestoreData`, so restore is unaffected. */
+    override get editorId(): string {
+        const root = this.state.get().boardRoot;
+        return root ? boardEditorId(root) : "board-view";
+    }
+
     /** Switch options while ON the board: the file's natural built-in editor (to switch back)
      *  plus this board. UNLIKE the base board, NO `isPlainLocalPath` gate — content-host boards
-     *  edit https/archive/encrypted files too (CH4). */
+     *  edit https/archive/encrypted files too (CH4). On an untitled page (no file path yet) the
+     *  host/page title stands in as the file name so the built-in editor stays resolvable and the
+     *  user can switch back — mirroring SwitchWidget / editorRegistry.findEditorsAccepting. */
     override findCompatibleEditors(): string[] {
-        const filePath = this.currentFilePath();
         const root = this.state.get().boardRoot;
-        if (!filePath || !root) return [];
-        const builtinId = editorRegistry.resolveId(filePath) ?? "monaco";
+        if (!root) return [];
+        const fileName =
+            this.currentFilePath() ?? this._host?.state.get().title ?? this.title;
+        const builtinId = editorRegistry.resolveId(fileName) ?? "monaco";
         return [builtinId, boardEditorId(root)];
     }
 

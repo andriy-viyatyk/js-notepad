@@ -60,26 +60,37 @@ function NavPanelButton({ model }: { model: EditorModel }) {
 }
 
 export function SwitchWidget({ model }: { model: EditorModel }) {
-    // Subscribe to state so the widget re-renders when language/filePath
-    // changes alter the legacy registry's switch options. For adapter-wrapped
-    // editors `findCompatibleEditors()` reads the legacy state.
-    model.state.use((s) => ({
+    // Subscribe to state so the widget re-renders when language/filePath/title
+    // changes alter the switch options. For adapter-wrapped editors
+    // `findCompatibleEditors()` reads the legacy state.
+    const editorState = model.state.use((s) => ({
         language: (s as { language?: string }).language,
         filePath: (s as { filePath?: string }).filePath,
         editor: (s as { editor?: string }).editor,
+        title: (s as { title?: string }).title,
     }));
-    // Re-render when async git detection lands on the shared host (EPIC-030):
-    // `gitRepo` lives on host state, not the editor's own state. Inert until the
-    // File Diff editor (US-613) registers a host-aware `accepts`.
-    model.contentHost?.state.use((s) => (s as { gitRepo?: unknown }).gitRepo);
+    // Re-render when async git detection lands on the shared host (`gitRepo`), and when a
+    // rename updates the host `title` — both live on the shared host state, not the editor's
+    // own. Renaming an untitled page updates `title` here so the board switch re-evaluates.
+    const hostState = model.contentHost?.state.use((s) => ({
+        gitRepo: (s as { gitRepo?: unknown }).gitRepo,
+        filePath: (s as { filePath?: string }).filePath,
+        title: (s as { title?: string }).title,
+    }));
     const options = model.findCompatibleEditors();
-    // Append trusted file-associated boards for the current file (EPIC-042 — the single
-    // merge point for the switch; the 16 text editors delegate here via the widget rather
-    // than each appending). Reactive so a trust / mask change updates the widget live.
-    const filePath = (model.contentHost as { filePath?: string } | null)?.filePath ?? model.filePath;
+    // Append trusted file-associated boards for the current file (the single merge point for
+    // the switch; the 16 text editors delegate here via the widget rather than each appending).
+    // Reactive so a trust / mask change updates the widget live.
+    // `model.filePath` (not `editorState.filePath`) so a board's `sourceLink.filePath` merge
+    // (BoardEditorModel.filePath override) is preserved; the subscription above keeps it reactive.
+    const filePath = hostState?.filePath ?? model.filePath;
     const local = !!filePath && isPlainLocalPath(filePath);
-    // Simple boards need a local file; content-host boards also handle https/archive (CH4).
-    const boardMatchesAll = customEditorRegistry.useBoardsForFile(filePath ?? "");
+    // No real file path (new/untitled page): fall back to the page title as the file name,
+    // mirroring the built-in registry (editorRegistry.findEditorsAccepting). A title-only page
+    // has no local path, so only content-host boards — which own the host and need no real
+    // file — can claim it; simple boards require a real local file and stay hidden.
+    const fileName = filePath ?? hostState?.title ?? editorState.title;
+    const boardMatchesAll = customEditorRegistry.useBoardsForFile(fileName ?? "");
     const boardMatches = local
         ? boardMatchesAll
         : boardMatchesAll.filter((b) => b.editorKind === "content-host");

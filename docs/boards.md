@@ -331,10 +331,11 @@ const language = await persephone.host.getLanguage();
 
 `persephone.host` is only meaningful on a content-host board — on a **simple** board, `getContent()`/`getLanguage()` reject (instead of hanging forever) and `onContentChange()` simply never fires, so feature-detect if your board needs to support either kind.
 
-Two things a content-host board can do that a simple board cannot:
+Three things a content-host board can do that a simple board cannot:
 
 - **Works beyond local files.** It can open a file served over `https://`, an entry inside an archive, or an **encrypted** file — none of which a simple board supports.
 - **Shares content live with other editors.** Switching from a content-host board to the Text Editor (or Grid) and back hands over the same live content, with no reload and no data loss. Edit the raw text in Monaco, switch back and the board re-renders from the edit; edit in the board and switch to Monaco to see it reflected there.
+- **Works on an untitled page.** Create a new page and rename its tab to a name matching the board's `fileMasks` (e.g. `diagram.drawio`) — the board appears in the switch control right away, even though the page has never been saved to disk. Switch to the board and back without losing anything. A simple board can't do this: it reads and writes the file path directly, so it needs a file that already exists on disk.
 
 **Saving:** press **Ctrl+S** (or **Cmd+S**) anywhere in the board and Persephone saves the file through the pipe automatically — no board code required. A board that wants to handle the keystroke itself can call `event.preventDefault()` in its own key handler to opt out, in which case the automatic save stands down. `persephone.host.save()` is also available if you want to trigger a save from your own UI (e.g. a Save button).
 
