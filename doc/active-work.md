@@ -14,8 +14,9 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-854: `persephone.setSecondaryViews` dynamic control](tasks/US-854-set-secondary-views/README.md)
   - [ ] [US-855: Persistence & restore hardening](tasks/US-855-persistence-restore-hardening/README.md)
   - [ ] [US-856: Docs, guides, demo board](tasks/US-856-docs-guides-demo-board/README.md)
-  - [ ] US-857: Proving-ground Todo board — Todo reimplemented as a content-host board with secondary views, alongside the built-in (acceptance)
+  - [ ] [US-857: Proving-ground Todo board](tasks/US-857-todo-board/README.md) — Todo reimplemented as a content-host board with secondary views, alongside the built-in (acceptance)
   - [ ] [US-858: Automate secondary views via `browser_*` (frames-as-tabs)](tasks/US-858-automate-secondary-views/README.md)
+  - [ ] [US-859: Board authoring reliability & predictability for agents](tasks/US-859-board-authoring-reliability/README.md) — problem inventory from US-857 (host-bridge readiness, docs gaps, debug friction)
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
