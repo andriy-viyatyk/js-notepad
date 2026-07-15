@@ -5,9 +5,10 @@ import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
 import { fpJoin } from "../../core/utils/file-path";
 import { settings } from "../../api/settings";
-import type { BoardPortInitMsg } from "../../../ipc/board-bridge-channels";
+import type { BoardHostContentMsg, BoardPortInitMsg } from "../../../ipc/board-bridge-channels";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
 import type { BoardEditorModel } from "./BoardEditorModel";
+import type { BoardContentEditorModel } from "./BoardContentEditorModel";
 
 /**
  * Locked-down host for a single board (EPIC-034 / US-723; iframe in EPIC-037).
@@ -46,6 +47,10 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
     const iframeRef = useRef<HTMLIFrameElement>(null);
     // A port delivered by main but not yet transferred (frame not ready / between loads).
     const pendingPortRef = useRef<MessagePort | null>(null);
+    // Echo-guard (EPIC-043): the board's own setContent value, so the host→board push of that same
+    // value (the host emits it back) is skipped and the board's onContentChange doesn't re-fire
+    // (mirrors GridEditor._changedContent). Per-mount — a reload re-reads via getContent().
+    const lastBoardContentRef = useRef<string | undefined>(undefined);
 
     useEffect(() => {
         let live = true;
@@ -96,6 +101,7 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
             __persephoneInit: true,
             busy: !!model.state.get().busy,
             filePath: model.currentFilePath(),
+            contentHost: !!model.contentHost,
         };
         win.postMessage(init, `board://${host}`, [port]);
         pendingPortRef.current = null;
@@ -130,6 +136,17 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         // this board tab (busy retention, US-799).
         void api.requestBoardPort(boardId, host, model.id);
         void api.registerBoardFrame(model.id, host, boardId);
+        // EPIC-043: seed the content-host board with the current host content. Subsequent changes
+        // ride the host.state subscription below. The shim awaits this (getContent settle-once), so
+        // a not-yet-restored host just means the subscription delivers the first snapshot instead.
+        const chost = model.contentHost;
+        const win = iframeRef.current?.contentWindow;
+        if (chost && win) {
+            const { content, language } = chost.state.get();
+            lastBoardContentRef.current = undefined;
+            const msg: BoardHostContentMsg = { __persephone: "host:content", content, language };
+            win.postMessage(msg, `board://${host}`);
+        }
     }, [host, boardId, model]);
 
     // Expose the iframe element to the model (automation focus) and dismiss host
@@ -142,7 +159,9 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         if (el) model.setIframe(el);
 
         const onMessage = (e: MessageEvent) => {
-            const d = e.data as { __persephone?: string; message?: string; busy?: boolean } | undefined;
+            const d = e.data as
+                { __persephone?: string; message?: string; busy?: boolean; content?: string }
+                | undefined;
             if (!d || !d.__persephone) return;
             if (e.origin !== `board://${host}`) return;
             if (e.source !== iframeRef.current?.contentWindow) return;
@@ -158,6 +177,14 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 // Busy retention (US-799): the model is the authoritative renderer-side
                 // holder; it mirrors the flag to main (job retention) and drives survival.
                 model.setBusy(!!d.busy);
+            } else if (d.__persephone === "board:setContent") {
+                // Content-host board wrote content (EPIC-043). Stash for the echo-guard BEFORE
+                // applying, so the host.state push of this same value is skipped.
+                const content = typeof d.content === "string" ? d.content : "";
+                lastBoardContentRef.current = content;
+                (model as BoardContentEditorModel).hostChangeContent?.(content);
+            } else if (d.__persephone === "board:save") {
+                (model as BoardContentEditorModel).hostSave?.();
             }
         };
         window.addEventListener("message", onMessage);
@@ -179,6 +206,29 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
         });
         return () => sub.dispose();
     }, []);
+
+    // EPIC-043: push host content/language into a content-host board on every change (external
+    // reload, other-view edit, host transfer), echo-guarded against the board's own setContent.
+    useEffect(() => {
+        const chost = model.contentHost;
+        if (!host || !chost) return;
+        const unsub = chost.state.subscribe(
+            (content) => {
+                const c = content as string;
+                if (c === lastBoardContentRef.current) return; // board's own write — don't echo
+                const win = iframeRef.current?.contentWindow;
+                if (!win) return;
+                const msg: BoardHostContentMsg = {
+                    __persephone: "host:content",
+                    content: c,
+                    language: chost.state.get().language,
+                };
+                win.postMessage(msg, `board://${host}`);
+            },
+            (s) => s.content,
+        );
+        return () => unsub();
+    }, [host, model]);
 
     return (
         // background="default" (= --color-bg-default, the same source as the board's

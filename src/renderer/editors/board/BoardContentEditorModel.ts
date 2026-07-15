@@ -131,12 +131,12 @@ export class BoardContentEditorModel extends BoardEditorModel {
                 await this._host.restore();
             }
             this.adoptHost(this._host);
+            this.state.update((s) => { s.contentHostError = undefined; });
         } catch (err) {
-            ui.notify(
-                (err as Error).message || "Failed to restore board content.",
-                "error",
-            );
-            // Leave the host-restore-failure empty state to the view (US-846).
+            const message = (err as Error).message || "Failed to restore board content.";
+            ui.notify(message, "error");
+            // Drives the host-restore-failure empty state in the view (US-846).
+            this.state.update((s) => { s.contentHostError = message; });
         }
         this._pendingHost = undefined;
     }
@@ -167,6 +167,19 @@ export class BoardContentEditorModel extends BoardEditorModel {
 
     override async confirmRelease(closing?: boolean): Promise<boolean> {
         return this._host ? this._host.confirmRelease(closing) : true;
+    }
+
+    // ── Content bridge (US-846) — the view (`BoardWebview`) owns the echo-guard ──
+
+    /** Apply content the board wrote (`persephone.host.setContent`). `byUser` true → marks the file
+     *  modified + schedules the autosave cache, exactly like a Monaco/Grid user edit. */
+    hostChangeContent(content: string): void {
+        this._host?.changeContent(content, true);
+    }
+
+    /** Save through the pipe (Ctrl+S fallback or `persephone.host.save()`). */
+    hostSave(): void {
+        void this._host?.saveFile();
     }
 
     // ── No busy for content-host boards (CH7) ───────────────────────────

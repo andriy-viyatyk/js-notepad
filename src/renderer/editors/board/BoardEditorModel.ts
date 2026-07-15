@@ -46,6 +46,9 @@ export interface BoardEditorState extends EditorStateBase {
     filePath?: string;
     /** Sidebar panel contributions. */
     secondaryView?: string[];
+    /** Content-host boards only (EPIC-043): set when the content HOST fails to restore (file
+     *  missing / unreadable), so the view shows a distinct empty state rather than a blank board. */
+    contentHostError?: string;
 }
 
 export const getDefaultBoardEditorState = (): BoardEditorState => ({

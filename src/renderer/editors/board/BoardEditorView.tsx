@@ -1,4 +1,6 @@
 import { Panel } from "../../uikit/Panel";
+import { Text } from "../../uikit/Text";
+import { WarningIcon } from "../../theme/icons";
 import { boardTrust } from "../../api/board-trust";
 import { showTrustBoardDialog } from "../../ui/dialogs/TrustBoardDialog";
 import { BoardEditorModel } from "./BoardEditorModel";
@@ -19,6 +21,7 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
         boardRoot: st.boardRoot,
         selectedBoard: st.selectedBoard,
         reloadToken: st.reloadToken,
+        contentHostError: st.contentHostError,
     }));
     // The board's folder is `boardRoot` directly (no sibling lookup). `selectedBoard`
     // gates whether a board is currently resolved — refreshBoards clears it for a
@@ -45,6 +48,18 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                     }
                 }}
             />
+        );
+    }
+
+    // EPIC-043: the board is trusted and resolved, but its content HOST failed to restore
+    // (e.g. the edited file was deleted). Show why, rather than a blank board.
+    if (s.contentHostError) {
+        return (
+            <Panel direction="column" flex={1} align="center" justify="center" gap="md" padding="xl">
+                <WarningIcon width={32} height={32} />
+                <Text size="lg">Content unavailable</Text>
+                <Text color="light" align="center">{s.contentHostError}</Text>
+            </Panel>
         );
     }
 

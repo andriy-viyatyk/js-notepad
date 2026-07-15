@@ -167,17 +167,38 @@ export interface BoardPortInitMsg {
     /** The file a custom-editor board edits (EPIC-042) — carried at handshake so the board
      *  can read `persephone.getFilePath()`. Undefined for a board opened plainly. */
     filePath?: string;
+    /** True when this board is a content-host editor (EPIC-043): Persephone owns the content
+     *  host and pushes `host:content`. Gates `persephone.host.getContent/getLanguage` in the shim
+     *  (a plain board rejects instead of hanging). */
+    contentHost?: boolean;
 }
 
 /** Messages the shim posts to the HOST FRAME via `window.parent.postMessage` (the
  *  board→host channel — NOT the board↔main port): overlay-dismiss pings, error
  *  breadcrumbs, and the busy flag (US-799). Handled in `BoardWebview.onMessage`. */
 export interface BoardToHostMsg {
-    __persephone: "board:interact" | "board:error" | "board:busy";
+    __persephone:
+        | "board:interact"
+        | "board:error"
+        | "board:busy"
+        | "board:setContent" // content-host board wrote content (EPIC-043)
+        | "board:save";      // content-host board / Ctrl+S requested a save (EPIC-043)
     /** `board:error` detail. */
     message?: string;
     /** `board:busy` value. */
     busy?: boolean;
+    /** `board:setContent` payload — the new UTF-8 content. */
+    content?: string;
+}
+
+/** Host content pushed renderer → board over `iframe.contentWindow.postMessage` (EPIC-043).
+ *  Repeated: an initial snapshot after the frame loads, then on every host content/language
+ *  change. Echo-guarded renderer-side (a push equal to the board's last `setContent` is skipped),
+ *  so the board's `onContentChange` never re-fires for the board's own write. */
+export interface BoardHostContentMsg {
+    __persephone: "host:content";
+    content: string;
+    language?: string;
 }
 
 // Re-export the dialog param shapes so the shim + bridge import one place.

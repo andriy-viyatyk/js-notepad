@@ -31,6 +31,7 @@ import {
 import type {
     BoardBootContext,
     BoardFireMethod,
+    BoardHostContentMsg,
     BoardJobInfo,
     BoardRpcMethod,
     BoardThemePalette,
@@ -93,6 +94,36 @@ function settleFilePath(value: string | undefined): void {
     filePathValue = value;
     for (const r of filePathResolvers) r(value);
     filePathResolvers.length = 0;
+}
+
+// ── Host content (EPIC-043) ──────────────────────────────────────────────────
+// Content-host boards read Persephone-owned content pushed as `host:content`. A snapshot lands
+// after the frame loads, then on every change. `getContent()` awaits the first snapshot (settle-
+// once + await-any-time, like getFilePath); `onContentChange` fires on each subsequent push.
+// `hostEnabled` is set from the handshake — false on a plain board, where getContent rejects.
+
+let hostEnabled = false;
+let hostContentSettled = false;
+let hostContent = "";
+let hostLanguage: string | undefined;
+const hostContentResolvers: Array<(c: string) => void> = [];
+const hostChangeCbs: Array<(content: string, language?: string) => void> = [];
+
+function settleHostContent(content: string, language: string | undefined): void {
+    hostContent = content;
+    hostLanguage = language;
+    if (!hostContentSettled) {
+        hostContentSettled = true;
+        for (const r of hostContentResolvers) r(content);
+        hostContentResolvers.length = 0;
+    }
+    for (const cb of hostChangeCbs) {
+        try {
+            cb(content, language);
+        } catch (e) {
+            console.error("persephone.host.onContentChange callback error:", e);
+        }
+    }
 }
 
 // ── Port plumbing (queue-then-flush) ─────────────────────────────────────────
@@ -177,7 +208,8 @@ function attachPort(p: MessagePort): void {
 // would never match the baked "file://" (see `hostOriginStrict` above).
 window.addEventListener("message", (event: MessageEvent) => {
     const data = event.data as
-        { __persephoneInit?: boolean; busy?: boolean; filePath?: string } | undefined;
+        { __persephoneInit?: boolean; busy?: boolean; filePath?: string; contentHost?: boolean }
+        | undefined;
     if (!data || data.__persephoneInit !== true) return;
     if (event.source !== window.parent) return;
     if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
@@ -187,8 +219,36 @@ window.addEventListener("message", (event: MessageEvent) => {
     // filePath carried at handshake (EPIC-042). Every handshake settles it — a plain board
     // carries `undefined`, so `getFilePath()` still resolves (to undefined).
     if (!filePathSettled) settleFilePath(data.filePath);
+    // Content-host flag (EPIC-043) — gates the persephone.host content API.
+    if (data.contentHost) hostEnabled = true;
     const p = event.ports && event.ports[0];
     if (p) attachPort(p);
+});
+
+// Host content push (EPIC-043) — renderer → board over window.postMessage. Same trust gate as the
+// handshake: source must be the host parent frame; origin enforced only for a strict http(s) host.
+// A SEPARATE listener because the handshake listener above early-returns non-`__persephoneInit`.
+window.addEventListener("message", (event: MessageEvent) => {
+    const data = event.data as BoardHostContentMsg | undefined;
+    if (!data || data.__persephone !== "host:content") return;
+    if (event.source !== window.parent) return;
+    if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
+    settleHostContent(data.content, data.language);
+});
+
+// Automatic save (EPIC-043 / CH3) — a content-host board saves through Persephone's pipe on
+// Ctrl/Cmd+S with zero board code. `window` bubble phase, so a board handler on document/an element
+// runs FIRST and can opt out via preventDefault(). Harmless on a plain board (main ignores it).
+window.addEventListener("keydown", (e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+        if (e.defaultPrevented) return; // the board claimed it — stand down
+        e.preventDefault();
+        try {
+            window.parent.postMessage({ __persephone: "board:save" }, hostPostTarget);
+        } catch {
+            // parent gone — nothing to save
+        }
+    }
 });
 
 // Host-overlay dismissal (EPIC-037 / US-773 C10): a cross-origin board's inner clicks
@@ -544,6 +604,67 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
     getFilePath(): Promise<string | undefined> {
         if (filePathSettled) return Promise.resolve(filePathValue);
         return new Promise<string | undefined>((resolve) => filePathResolvers.push(resolve));
+    },
+
+    /** Content-host bridge (EPIC-043). Meaningful only when this board is a content-host editor
+     *  (manifest `editorKind: "content-host"`); on a plain board `getContent`/`getLanguage` reject. */
+    host: {
+        /** Current content — resolves to the first pushed snapshot (await any time). */
+        getContent(): Promise<string> {
+            if (!hostEnabled) {
+                return Promise.reject(
+                    new Error("persephone.host is available only for content-host boards"),
+                );
+            }
+            if (hostContentSettled) return Promise.resolve(hostContent);
+            return new Promise<string>((resolve) => hostContentResolvers.push(resolve));
+        },
+
+        /** Set content + mark the file modified (schedules the autosave cache). */
+        setContent(content: string): void {
+            try {
+                window.parent.postMessage(
+                    { __persephone: "board:setContent", content },
+                    hostPostTarget,
+                );
+            } catch {
+                // parent gone
+            }
+        },
+
+        /** Fire on each external content change (reload, other-view edit, host transfer). Returns an
+         *  unsubscribe. The board's OWN setContent does NOT re-fire this (renderer-side echo-guard). */
+        onContentChange(cb: (content: string, language?: string) => void): () => void {
+            if (!hostEnabled) return () => {};
+            hostChangeCbs.push(cb);
+            return () => {
+                const i = hostChangeCbs.indexOf(cb);
+                if (i >= 0) hostChangeCbs.splice(i, 1);
+            };
+        },
+
+        /** Monaco language id of the current content (e.g. "xml", "json"), or undefined. */
+        getLanguage(): Promise<string | undefined> {
+            if (!hostEnabled) {
+                return Promise.reject(
+                    new Error("persephone.host is available only for content-host boards"),
+                );
+            }
+            if (hostContentSettled) return Promise.resolve(hostLanguage);
+            return new Promise<string | undefined>((resolve) =>
+                hostContentResolvers.push(() => resolve(hostLanguage)),
+            );
+        },
+
+        /** Save through Persephone's pipe (encryption / cache / dirty-clear). Optional — Ctrl+S
+         *  already saves automatically (CH3). */
+        save(): void {
+            try {
+                window.parent.postMessage({ __persephone: "board:save" }, hostPostTarget);
+            } catch {
+                // parent gone
+            }
+        },
     },
 
     /** List this board's LIVE jobs — including ones that survived a previous

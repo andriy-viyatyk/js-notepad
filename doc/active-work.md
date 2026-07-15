@@ -11,6 +11,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-843: Manifest `editorKind` + association plumbing](tasks/US-843-editorkind-plumbing/README.md)
   - [ ] [US-844: `BoardContentEditorModel` — the content-host board model (crux)](tasks/US-844-board-content-editor-model/README.md)
   - [ ] [US-845: Construction + switch + persistence integration](tasks/US-845-construction-switch-persistence/README.md)
+  - [ ] [US-846: Content bridge (`persephone.host.*`) + view wiring + auto-save](tasks/US-846-content-bridge-view-wiring/README.md)
   - [ ] [US-848: Show file name (not board name) in tab for a simple custom-editor board](tasks/US-848-simple-board-file-title/README.md)
   - [ ] [US-849: Show the board icon for board-associated files in the Explorer tree](tasks/US-849-explorer-board-file-icon/README.md)
 
