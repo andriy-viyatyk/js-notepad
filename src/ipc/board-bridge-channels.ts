@@ -185,7 +185,8 @@ export interface BoardToHostMsg {
         | "board:save"       // content-host board / Ctrl+S requested a save (EPIC-043)
         | "board:setState"   // persephone.state.set — replace shared state (EPIC-044)
         | "board:mergeState" // persephone.state.merge — shallow-merge shared state
-        | "board:stateInit"; // persephone.state.init — seed defaults + declare restorable keys
+        | "board:stateInit"  // persephone.state.init — seed defaults + declare restorable keys
+        | "board:setSecondaryViews"; // persephone.setSecondaryViews — replace the board's views (EPIC-044)
     /** `board:error` detail. */
     message?: string;
     /** `board:busy` value. */
@@ -200,6 +201,10 @@ export interface BoardToHostMsg {
     defaults?: Record<string, unknown>;
     /** `board:stateInit` keys to persist (opt-in, D9). */
     restorableKeys?: string[];
+    /** `board:setSecondaryViews` payload — the full replacement view set.
+     *  Structurally mirrors `SecondaryViewDecl` (this module stays dependency-free,
+     *  so it can't import that type); normalized renderer-side by `normalizeSecondaryViews`. */
+    views?: Array<{ id: string; html?: string; title?: string; icon?: string }>;
 }
 
 /** Host content pushed renderer → board over `iframe.contentWindow.postMessage` (EPIC-043).

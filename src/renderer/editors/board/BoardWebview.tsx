@@ -222,6 +222,7 @@ export function BoardWebview({
                     __persephone?: string; message?: string; busy?: boolean; content?: string;
                     state?: Record<string, unknown>; partial?: Record<string, unknown>;
                     defaults?: Record<string, unknown>; restorableKeys?: string[];
+                    views?: unknown;
                 }
                 | undefined;
             if (!d || !d.__persephone) return;
@@ -253,6 +254,8 @@ export function BoardWebview({
                 model.mergeSharedState(d.partial ?? {});
             } else if (d.__persephone === "board:stateInit") {
                 model.initSharedState(d.defaults ?? {}, d.restorableKeys);
+            } else if (d.__persephone === "board:setSecondaryViews") {
+                model.setSecondaryViews(d.views);
             }
         };
         window.addEventListener("message", onMessage);

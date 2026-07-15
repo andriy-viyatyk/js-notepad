@@ -599,6 +599,21 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
      *  declared secondary view. Branch on it to render every view from one HTML file. */
     view: viewRole,
 
+    /** Replace this board's full set of secondary (sidebar) views at runtime (EPIC-044).
+     *  Each view: `{ id, html?, title?, icon? }` — `html` defaults to the main entry, so one
+     *  file can serve every view (branch on `persephone.view`). `[]` removes them all. Available
+     *  on every frame (main + secondary); the change is authoritative on the Persephone side. */
+    setSecondaryViews(views: Array<{ id: string; html?: string; title?: string; icon?: string }>): void {
+        try {
+            window.parent.postMessage(
+                { __persephone: "board:setSecondaryViews", views: Array.isArray(views) ? views : [] },
+                hostPostTarget,
+            );
+        } catch {
+            // parent gone
+        }
+    },
+
     execute(command: string, options?: IExecuteOptions): IExecuteHandle {
         return createHandle(command, options);
     },

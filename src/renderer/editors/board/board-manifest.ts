@@ -194,15 +194,14 @@ export function getBoardEditorAssociation(
 }
 
 /**
- * Extract the declared secondary views from a manifest. Independent of `fileMasks`
- * (EPIC-044 O1). Forgiving: drops non-object entries, entries with a missing/empty
- * `id`, ids containing "::" (the `<editorId>::<panelId>` composite-key separator),
- * and duplicate ids (first wins). Non-array / absent → []. Never throws.
+ * Normalize a raw secondary-views value into validated decls. Forgiving: drops
+ * non-object entries, entries with a missing/empty `id`, ids containing "::" (the
+ * `<editorId>::<panelId>` composite-key separator), and duplicate ids (first wins);
+ * trims `html`/`title`/`icon` (empty → undefined). Non-array / absent → []. Never throws.
+ * Shared by the manifest seed (`readBoardSecondaryViews`) and the runtime
+ * `persephone.setSecondaryViews` path (`BoardEditorModel.setSecondaryViews`).
  */
-export function readBoardSecondaryViews(
-    manifest: BoardManifest | null | undefined,
-): SecondaryViewDecl[] {
-    const raw = manifest?.secondaryViews;
+export function normalizeSecondaryViews(raw: unknown): SecondaryViewDecl[] {
     if (!Array.isArray(raw)) return [];
     const out: SecondaryViewDecl[] = [];
     const seen = new Set<string>();
@@ -218,6 +217,16 @@ export function readBoardSecondaryViews(
         out.push({ id, html, title, icon });
     }
     return out;
+}
+
+/**
+ * Extract the declared secondary views from a manifest. Independent of `fileMasks`
+ * (EPIC-044 O1). Delegates to `normalizeSecondaryViews`.
+ */
+export function readBoardSecondaryViews(
+    manifest: BoardManifest | null | undefined,
+): SecondaryViewDecl[] {
+    return normalizeSecondaryViews(manifest?.secondaryViews);
 }
 
 /** Write a manifest (2-space JSON + trailing newline for human-editability). */

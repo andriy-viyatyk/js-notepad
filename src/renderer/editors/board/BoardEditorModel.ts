@@ -8,7 +8,7 @@ import { fpBasename, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../
 import { boardTrust } from "../../api/board-trust";
 import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { boardEditorId } from "./custom-editor-registry";
-import { isBoardFolder, readBoardManifest, readBoardSecondaryViews, type SecondaryViewDecl } from "./board-manifest";
+import { isBoardFolder, normalizeSecondaryViews, readBoardManifest, readBoardSecondaryViews, type SecondaryViewDecl } from "./board-manifest";
 import { boardSecondaryPanelId } from "./board-secondary";
 import { BoardTargetModel } from "./BoardTargetModel";
 import { BoardGlyph } from "./BoardGlyph";
@@ -341,6 +341,28 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
             const defs = s.secondaryViewDefs ?? [];
             s.secondaryView = defs.length ? defs.map((d) => boardSecondaryPanelId(d.id)) : undefined;
         });
+    }
+
+    /** Replace the declared secondary views at runtime (`persephone.setSecondaryViews`, US-854).
+     *  Writes `state.secondaryViewDefs` (validated) then recomputes `state.secondaryView`; the
+     *  page's slice subscription reconciles the sidebar panels live. `[]` removes them all. */
+    setSecondaryViews(views: unknown): void {
+        const defs = normalizeSecondaryViews(views);
+        this.state.update((s) => { s.secondaryViewDefs = defs; });
+        this.deriveSecondaryPanels();
+    }
+
+    /** Boards never linger on the page as sidebar-panel contributors (EPIC-044 / D8).
+     *  When the page navigates its main view away it KEEPS an editor that still
+     *  contributes a sidebar (demote-to-sidebar) — we opt out by force-clearing the
+     *  declared secondary views here, so `contributesPanels()` is false and the page
+     *  disposes this board. Forced at the Persephone side: the board is never told it is
+     *  navigating away, and this guarantee doesn't depend on board cooperation.
+     *  (A busy board still survives via `keepAliveOnNavigation()` as an invisible process
+     *  handle — now with no visible sidebar; re-derivation on re-promotion is US-855.) */
+    override beforeNavigateAway(newModel: EditorModel): void {
+        this.state.update((s) => { s.secondaryViewDefs = undefined; });
+        super.beforeNavigateAway(newModel); // clears the derived state.secondaryView
     }
 
     /** Select the board (its folder name) so it renders, or `undefined` to deselect
