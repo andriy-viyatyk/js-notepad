@@ -182,13 +182,24 @@ export interface BoardToHostMsg {
         | "board:error"
         | "board:busy"
         | "board:setContent" // content-host board wrote content (EPIC-043)
-        | "board:save";      // content-host board / Ctrl+S requested a save (EPIC-043)
+        | "board:save"       // content-host board / Ctrl+S requested a save (EPIC-043)
+        | "board:setState"   // persephone.state.set — replace shared state (EPIC-044)
+        | "board:mergeState" // persephone.state.merge — shallow-merge shared state
+        | "board:stateInit"; // persephone.state.init — seed defaults + declare restorable keys
     /** `board:error` detail. */
     message?: string;
     /** `board:busy` value. */
     busy?: boolean;
     /** `board:setContent` payload — the new UTF-8 content. */
     content?: string;
+    /** `board:setState` full replacement. */
+    state?: Record<string, unknown>;
+    /** `board:mergeState` shallow-merge partial. */
+    partial?: Record<string, unknown>;
+    /** `board:stateInit` defaults (fill-missing). */
+    defaults?: Record<string, unknown>;
+    /** `board:stateInit` keys to persist (opt-in, D9). */
+    restorableKeys?: string[];
 }
 
 /** Host content pushed renderer → board over `iframe.contentWindow.postMessage` (EPIC-043).
@@ -199,6 +210,16 @@ export interface BoardHostContentMsg {
     __persephone: "host:content";
     content: string;
     language?: string;
+}
+
+/** Shared state pushed renderer → board over `iframe.contentWindow.postMessage` (EPIC-044).
+ *  A snapshot after the frame loads (seed), then on every change. `seq` is a monotonic
+ *  per-model version: the shim applies a push only when `seq` exceeds the last applied,
+ *  so seed-vs-init / set / merge deliveries are order-independent (no echo-guard needed). */
+export interface BoardStateSyncMsg {
+    __persephone: "state:sync";
+    state: Record<string, unknown>;
+    seq: number;
 }
 
 // Re-export the dialog param shapes so the shim + bridge import one place.

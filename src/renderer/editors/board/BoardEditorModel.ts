@@ -153,6 +153,43 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         void api.setBoardBusy(this.id, busy);
     }
 
+    // ── Shared state (EPIC-044) ──────────────────────────────────────────
+
+    /** Monotonic shared-state version (EPIC-044) — stamped on every `state:sync` push so a
+     *  frame ignores stale/out-of-order deliveries (seed-on-load vs init/set/merge). Instance
+     *  property, kept OFF the reactive state: never persisted, resets to 0 each session. */
+    sharedStateSeq = 0;
+
+    /** Replace the shared state (`persephone.state.set`). Bump seq BEFORE `state.update` so the
+     *  synchronous subscription fires with the new seq already visible. */
+    setSharedState(next: Record<string, unknown>): void {
+        this.sharedStateSeq++;
+        this.state.update((s) => { s.sharedState = next && typeof next === "object" ? next : {}; });
+    }
+
+    /** Shallow-merge into the shared state (`persephone.state.merge`). */
+    mergeSharedState(partial: Record<string, unknown>): void {
+        if (!partial || typeof partial !== "object") return;
+        this.sharedStateSeq++;
+        this.state.update((s) => { s.sharedState = { ...(s.sharedState ?? {}), ...partial }; });
+    }
+
+    /** Seed defaults (fill-missing — existing/restored values win) + record the restorable
+     *  keys (`persephone.state.init`, opt-in persistence D9). Idempotent; last init wins for
+     *  the key set. */
+    initSharedState(defaults: Record<string, unknown>, restorableKeys?: string[]): void {
+        this.sharedStateSeq++;
+        this.state.update((s) => {
+            s.sharedState = {
+                ...(defaults && typeof defaults === "object" ? defaults : {}),
+                ...(s.sharedState ?? {}),
+            };
+            if (Array.isArray(restorableKeys)) {
+                s.sharedStateRestorableKeys = restorableKeys.filter((k) => typeof k === "string");
+            }
+        });
+    }
+
     /** While busy, survive `setMainEditor` as an invisible ownership handle —
      *  the processes' lifetime stays tied to this page ("page closed → kill"). */
     override keepAliveOnNavigation(): boolean {
@@ -208,6 +245,21 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
     override getRestoreData() {
         const data = super.getRestoreData();
         data.editorId = "board-view";
+        // D9 (EPIC-044): persist ONLY the board-declared restorable subset of sharedState —
+        // undeclared/transient state must never bloat the open-pages file. Shallow-clone so
+        // we don't mutate the live `state` object `super` returned by reference.
+        const s = this.state.get();
+        const keys = s.sharedStateRestorableKeys;
+        let sharedState: Record<string, unknown> | undefined;
+        if (keys?.length && s.sharedState) {
+            sharedState = {};
+            for (const k of keys) {
+                if (Object.prototype.hasOwnProperty.call(s.sharedState, k)) {
+                    sharedState[k] = s.sharedState[k];
+                }
+            }
+        }
+        data.state = { ...(data.state as Record<string, unknown>), sharedState };
         return data;
     }
 

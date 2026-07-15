@@ -34,6 +34,7 @@ import type {
     BoardHostContentMsg,
     BoardJobInfo,
     BoardRpcMethod,
+    BoardStateSyncMsg,
     BoardThemePalette,
     BoardToMain,
     MainToBoard,
@@ -122,6 +123,36 @@ function settleHostContent(content: string, language: string | undefined): void 
             cb(content, language);
         } catch (e) {
             console.error("persephone.host.onContentChange callback error:", e);
+        }
+    }
+}
+
+// ── Shared state (EPIC-044) ────────────────────────────────────────────────────
+// A pure replica of the Persephone-side shared state, updated ONLY by seq-stamped
+// `state:sync` pushes. `get()` settles on the first snapshot (await any time), `onChange`
+// fires on each subsequent one. Writes (init/set/merge) post to the host and come back
+// as a push — onChange is the source of truth, like React setState.
+
+let sharedStateSettled = false;
+let sharedState: Record<string, unknown> = {};
+let sharedStateSeq = -1; // seed arrives at seq 0
+const sharedStateResolvers: Array<(s: Record<string, unknown>) => void> = [];
+const sharedStateCbs: Array<(s: Record<string, unknown>) => void> = [];
+
+function applyStateSync(state: Record<string, unknown>, seq: number): void {
+    if (seq <= sharedStateSeq) return; // stale / out-of-order — ignore
+    sharedStateSeq = seq;
+    sharedState = state;
+    if (!sharedStateSettled) {
+        sharedStateSettled = true;
+        for (const r of sharedStateResolvers) r(state);
+        sharedStateResolvers.length = 0;
+    }
+    for (const cb of sharedStateCbs) {
+        try {
+            cb(state);
+        } catch (e) {
+            console.error("persephone.state.onChange callback error:", e);
         }
     }
 }
@@ -234,6 +265,15 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (event.source !== window.parent) return;
     if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
     settleHostContent(data.content, data.language);
+});
+
+// Shared-state push (EPIC-044) — renderer → board. Same trust gate as host:content.
+window.addEventListener("message", (event: MessageEvent) => {
+    const data = event.data as BoardStateSyncMsg | undefined;
+    if (!data || data.__persephone !== "state:sync") return;
+    if (event.source !== window.parent) return;
+    if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
+    applyStateSync(data.state ?? {}, typeof data.seq === "number" ? data.seq : 0);
 });
 
 // Automatic save (EPIC-043 / CH3) — a content-host board saves through Persephone's pipe on
@@ -664,6 +704,61 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
             } catch {
                 // parent gone
             }
+        },
+    },
+
+    /** Shared-state channel (EPIC-044) — available on EVERY board frame (main + secondary),
+     *  authoritative on the Persephone side. `get()`/`onChange` read the replica; `init`/`set`/
+     *  `merge` post to the host and return void (the change arrives via `onChange`). */
+    state: {
+        /** Declare defaults (fill-missing — restored values win) + which keys persist across
+         *  restart/reload (opt-in, D9). Typically called once by the main view at boot. */
+        init(defaults: Record<string, unknown>, options?: { restorableKeys?: string[] }): void {
+            try {
+                window.parent.postMessage(
+                    {
+                        __persephone: "board:stateInit",
+                        defaults: defaults ?? {},
+                        restorableKeys: options?.restorableKeys,
+                    },
+                    hostPostTarget,
+                );
+            } catch {
+                // parent gone
+            }
+        },
+
+        /** Current shared state — resolves to the first synced snapshot (await any time). */
+        get(): Promise<Record<string, unknown>> {
+            if (sharedStateSettled) return Promise.resolve(sharedState);
+            return new Promise<Record<string, unknown>>((resolve) => sharedStateResolvers.push(resolve));
+        },
+
+        /** Replace the whole shared state. */
+        set(next: Record<string, unknown>): void {
+            try {
+                window.parent.postMessage({ __persephone: "board:setState", state: next ?? {} }, hostPostTarget);
+            } catch {
+                // parent gone
+            }
+        },
+
+        /** Shallow-merge keys into the shared state. */
+        merge(partial: Record<string, unknown>): void {
+            try {
+                window.parent.postMessage({ __persephone: "board:mergeState", partial: partial ?? {} }, hostPostTarget);
+            } catch {
+                // parent gone
+            }
+        },
+
+        /** Fire on every shared-state change (from any frame). Returns an unsubscribe. */
+        onChange(cb: (state: Record<string, unknown>) => void): () => void {
+            sharedStateCbs.push(cb);
+            return () => {
+                const i = sharedStateCbs.indexOf(cb);
+                if (i >= 0) sharedStateCbs.splice(i, 1);
+            };
         },
     },
 

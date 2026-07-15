@@ -7,7 +7,7 @@ import { fpJoin } from "../../core/utils/file-path";
 import { settings } from "../../api/settings";
 import { pagesModel } from "../../api/pages";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
-import type { BoardHostContentMsg, BoardPortInitMsg } from "../../../ipc/board-bridge-channels";
+import type { BoardHostContentMsg, BoardPortInitMsg, BoardStateSyncMsg } from "../../../ipc/board-bridge-channels";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
 import type { BoardEditorModel } from "./BoardEditorModel";
 import type { BoardContentEditorModel } from "./BoardContentEditorModel";
@@ -159,6 +159,16 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
             const msg: BoardHostContentMsg = { __persephone: "host:content", content, language };
             win.postMessage(msg, `board://${host}`);
         }
+        // EPIC-044: seed shared state into the freshly-loaded frame (settles persephone.state.get).
+        // Current seq — a snapshot, not a mutation, so it does NOT bump.
+        if (win) {
+            const stateMsg: BoardStateSyncMsg = {
+                __persephone: "state:sync",
+                state: model.state.get().sharedState ?? {},
+                seq: model.sharedStateSeq,
+            };
+            win.postMessage(stateMsg, `board://${host}`);
+        }
         // Autofocus the freshly-loaded frame (covers the editor-switch case, where the board
         // mounts + loads). Tab switches to an already-loaded board are handled by the onFocus
         // subscription below.
@@ -176,7 +186,11 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
 
         const onMessage = (e: MessageEvent) => {
             const d = e.data as
-                { __persephone?: string; message?: string; busy?: boolean; content?: string }
+                {
+                    __persephone?: string; message?: string; busy?: boolean; content?: string;
+                    state?: Record<string, unknown>; partial?: Record<string, unknown>;
+                    defaults?: Record<string, unknown>; restorableKeys?: string[];
+                }
                 | undefined;
             if (!d || !d.__persephone) return;
             if (e.origin !== `board://${host}`) return;
@@ -201,6 +215,12 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 (model as BoardContentEditorModel).hostChangeContent?.(content);
             } else if (d.__persephone === "board:save") {
                 (model as BoardContentEditorModel).hostSave?.();
+            } else if (d.__persephone === "board:setState") {
+                model.setSharedState(d.state ?? {});
+            } else if (d.__persephone === "board:mergeState") {
+                model.mergeSharedState(d.partial ?? {});
+            } else if (d.__persephone === "board:stateInit") {
+                model.initSharedState(d.defaults ?? {}, d.restorableKeys);
             }
         };
         window.addEventListener("message", onMessage);
@@ -254,6 +274,26 @@ export function BoardWebview({ model, boardRoot }: { model: BoardEditorModel; bo
                 win.postMessage(msg, `board://${host}`);
             },
             (s) => s.content,
+        );
+        return () => unsub();
+    }, [host, model]);
+
+    // EPIC-044: push shared state into this frame on every change (any frame's set/merge/init).
+    // No echo-guard — the shim ignores a state:sync whose seq it has already applied.
+    useEffect(() => {
+        if (!host) return;
+        const unsub = model.state.subscribe(
+            (sharedState) => {
+                const win = iframeRef.current?.contentWindow;
+                if (!win) return;
+                const msg: BoardStateSyncMsg = {
+                    __persephone: "state:sync",
+                    state: (sharedState as Record<string, unknown>) ?? {},
+                    seq: model.sharedStateSeq,
+                };
+                win.postMessage(msg, `board://${host}`);
+            },
+            (s) => s.sharedState,
         );
         return () => unsub();
     }, [host, model]);
