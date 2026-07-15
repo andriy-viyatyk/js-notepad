@@ -10,6 +10,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-043** — [Content-Host Boards (boards that edit a file through Persephone's content host)](epics/EPIC-043.md) — _Design finalized & gap-reviewed (CH1–CH8 resolved); carving tasks_
   - [ ] [US-843: Manifest `editorKind` + association plumbing](tasks/US-843-editorkind-plumbing/README.md)
   - [ ] [US-844: `BoardContentEditorModel` — the content-host board model (crux)](tasks/US-844-board-content-editor-model/README.md)
+  - [ ] [US-845: Construction + switch + persistence integration](tasks/US-845-construction-switch-persistence/README.md)
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

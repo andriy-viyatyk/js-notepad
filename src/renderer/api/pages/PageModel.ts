@@ -458,10 +458,57 @@ export class PageModel implements IPageHost {
         // (CE4) and rebuilds the target FRESH over the file (dispose-and-rebuild). The
         // board writes the file directly, so a rebuilt built-in reads current disk
         // content — no stale-cache handling needed.
+        const newBoardRoot = parseBoardEditorId(newEditorId);
         const boardInvolved =
-            parseBoardEditorId(newEditorId) !== null
+            newBoardRoot !== null
             || parseBoardEditorId(oldEditor.editorId) !== null;
         if (boardInvolved) {
+            const { editorRegistry } = await import("../../editors/base");
+            // A content-host board (EPIC-043) transfers the shared host like Monaco↔Grid;
+            // a simple board (EPIC-042) has no host and dispose-and-rebuilds. Determine the
+            // NEW board's kind from the registry (a plain built-in is host-capable iff it
+            // declares `hasContentHost`).
+            let newBoardKind: "simple" | "content-host" | undefined;
+            if (newBoardRoot !== null) {
+                const { customEditorRegistry } = await import(
+                    "../../editors/board/custom-editor-registry"
+                );
+                newBoardKind =
+                    customEditorRegistry.entries.find((e) => e.editorId === newEditorId)
+                        ?.editorKind ?? "simple";
+            }
+            const oldHostCapable = !!oldEditor.contentHost;
+            const newHostCapable =
+                newBoardRoot !== null
+                    ? newBoardKind === "content-host"
+                    : !!editorRegistry.getById(newEditorId)?.hasContentHost;
+
+            if (oldHostCapable && newHostCapable) {
+                // Host-transfer switch — no reload, no confirmRelease (nothing is lost).
+                let newEditor: EditorModel;
+                if (newBoardRoot !== null) {
+                    const { getDefaultBoardEditorState } = await import("../../editors/board");
+                    const { BoardContentEditorModel } = await import(
+                        "../../editors/board/BoardContentEditorModel"
+                    );
+                    const filePath =
+                        (oldEditor.contentHost as { filePath?: string } | null)?.filePath
+                        ?? oldEditor.filePath;
+                    const model = new BoardContentEditorModel(
+                        new TComponentState(getDefaultBoardEditorState()),
+                    );
+                    model.initFromBoardRoot(newBoardRoot, filePath ?? undefined);
+                    newEditor = model as unknown as EditorModel;
+                } else {
+                    newEditor = await editorRegistry.createEditor(newEditorId);
+                }
+                newEditor.switchFrom(oldEditor); // extracts + adopts the shared host
+                await newEditor.restore();
+                await this.setMainEditor(newEditor);
+                return;
+            }
+
+            // Simple board (either direction) — dispose-and-rebuild + confirmRelease (EPIC-042).
             const filePath =
                 (oldEditor.contentHost as { filePath?: string } | null)?.filePath
                 ?? oldEditor.filePath;

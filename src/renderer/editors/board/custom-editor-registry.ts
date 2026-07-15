@@ -165,10 +165,15 @@ export const customEditorRegistry = new CustomEditorRegistry();
 export function resolveEditorIdForFile(filePath?: string): string | undefined {
     const builtinDef = filePath ? editorRegistry.resolve(filePath) : undefined;
     const builtinId = builtinDef?.id;
-    if (!filePath || !isPlainLocalPath(filePath)) return builtinId;
+    if (!filePath) return builtinId;
+    // Simple boards edit real local files only (EPIC-042 CE4); content-host boards also
+    // handle https/archive/encrypted (EPIC-043 CH4). So the local-path gate now filters
+    // the board scan by kind rather than short-circuiting it entirely.
+    const local = isPlainLocalPath(filePath);
     const builtinPriority = builtinDef?.match?.acceptFile?.(filePath) ?? 0;
     let best: CustomEditorMatch | undefined;
     for (const b of customEditorRegistry.getBoardsForFile(filePath)) {
+        if (!local && b.editorKind !== "content-host") continue;
         // Strict `>` so the FIRST (earliest-trusted) board wins ties among boards.
         if (!best || b.priority > best.priority) best = b;
     }

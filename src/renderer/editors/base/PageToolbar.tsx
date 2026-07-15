@@ -77,9 +77,12 @@ export function SwitchWidget({ model }: { model: EditorModel }) {
     // merge point for the switch; the 16 text editors delegate here via the widget rather
     // than each appending). Reactive so a trust / mask change updates the widget live.
     const filePath = (model.contentHost as { filePath?: string } | null)?.filePath ?? model.filePath;
-    const boardMatches = customEditorRegistry.useBoardsForFile(
-        filePath && isPlainLocalPath(filePath) ? filePath : "",
-    );
+    const local = !!filePath && isPlainLocalPath(filePath);
+    // Simple boards need a local file; content-host boards also handle https/archive (CH4).
+    const boardMatchesAll = customEditorRegistry.useBoardsForFile(filePath ?? "");
+    const boardMatches = local
+        ? boardMatchesAll
+        : boardMatchesAll.filter((b) => b.editorKind === "content-host");
     const merged = [...options];
     for (const b of boardMatches) if (!merged.includes(b.editorId)) merged.push(b.editorId);
     if (merged.length < 2 || !merged.includes(model.editorId)) return null;

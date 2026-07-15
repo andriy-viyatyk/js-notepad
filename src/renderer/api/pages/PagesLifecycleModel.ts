@@ -35,6 +35,7 @@ import { editorRegistry } from "../../editors/base/editorRegistry";
 import {
     resolveEditorIdForFile,
     parseBoardEditorId,
+    customEditorRegistry,
 } from "../../editors/board/custom-editor-registry";
 import type { BoardEditorModel } from "../../editors/board";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
@@ -290,6 +291,22 @@ export class PagesLifecycleModel {
         // it edits (→ persephone.getFilePath()).
         const boardRoot = parseBoardEditorId(editorId);
         if (boardRoot !== null) {
+            // Content-host board (EPIC-043): build the subclass WITH an adopted host so
+            // Persephone owns the pipe/encoding/encryption/cache/dirty state. The host's
+            // pipe is assigned by `createEditorFromFile` and restored below.
+            const match = customEditorRegistry.entries.find((e) => e.editorId === editorId);
+            if (match?.editorKind === "content-host") {
+                const { getDefaultBoardEditorState } = await import("../../editors/board");
+                const { BoardContentEditorModel } = await import(
+                    "../../editors/board/BoardContentEditorModel"
+                );
+                const model = new BoardContentEditorModel(
+                    new TComponentState(getDefaultBoardEditorState()),
+                );
+                model.initFromBoardRoot(boardRoot, filePath);
+                model.adoptHost(newTextFileModel(filePath));
+                return model as unknown as EditorOrHost;
+            }
             const { boardModule } = await import("../../editors/board");
             const model = boardModule.createEditor() as unknown as BoardEditorModel;
             model.initFromBoardRoot(boardRoot, filePath);
@@ -358,7 +375,17 @@ export class PagesLifecycleModel {
             ? await this.newEditorModelByTarget(filePath, target)
             : await this.newEditorModel(filePath);
         if (pipe) {
-            editor.pipe = pipe;
+            // A content-host board (EPIC-043) owns the pipe on its content HOST, not on
+            // the board's own (unused) `pipe` field. A bare TextFileModel host has no
+            // `contentHost` accessor → falls through to the direct assignment (unchanged
+            // for every text editor and the simple board, whose never-read pipe is
+            // disposed on dispose).
+            const host = (editor as EditorModel).contentHost;
+            if (host) {
+                (host as unknown as TextFileModel).pipe = pipe;
+            } else {
+                editor.pipe = pipe;
+            }
         }
         editor.state.update((s) => {
             s.language = "";

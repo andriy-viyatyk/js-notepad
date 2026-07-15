@@ -19,6 +19,7 @@ import { fs as appFs } from "../fs";
 import { app } from "../app";
 import { createLinkData } from "../../../shared/link-data";
 import { parsePanelKey } from "../../ui/secondary-views/panel-key";
+import type { BoardEditorState } from "../../editors/board";
 import { PageModel } from "./PageModel";
 
 /**
@@ -74,6 +75,32 @@ export class PagesPersistenceModel {
                     // zombie handle. Boards restore only as the main editor.
                     if (d.editorId === "board-view" && d.id !== desc.mainEditorId) {
                         return null;
+                    }
+                    // Content-host board (EPIC-043): persisted `board-view` + a host
+                    // descriptor. Rebuild the subclass, apply the board state (boardRoot /
+                    // filePath live in `d.state`, NOT the host descriptor), reconstruct the
+                    // host from `d.host`, then restore. MUST precede the generic `if (d.host)`
+                    // branch, which would else build a plain BoardEditorModel that throws
+                    // "legacy project-mode board editor" on restore.
+                    if (d.editorId === "board-view" && d.host) {
+                        const { getDefaultBoardEditorState } = await import(
+                            "../../editors/board"
+                        );
+                        const { BoardContentEditorModel } = await import(
+                            "../../editors/board/BoardContentEditorModel"
+                        );
+                        const model = new BoardContentEditorModel(
+                            new TComponentState({
+                                ...getDefaultBoardEditorState(),
+                                ...(d.state as Partial<BoardEditorState>),
+                                id: d.id,
+                            }),
+                        );
+                        model.applyRestoreData(
+                            d as unknown as Parameters<typeof model.applyRestoreData>[0],
+                        );
+                        await model.restore();
+                        return model;
                     }
                     if (d.host) {
                         const { editorRegistry } = await import(
