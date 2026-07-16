@@ -231,7 +231,7 @@ export function BoardWebview({
         const onMessage = (e: MessageEvent) => {
             const d = e.data as
                 {
-                    __persephone?: string; message?: string; busy?: boolean; content?: string;
+                    __persephone?: string; message?: string; level?: string; busy?: boolean; content?: string;
                     state?: Record<string, unknown>; partial?: Record<string, unknown>;
                     defaults?: Record<string, unknown>; restorableKeys?: string[];
                     views?: unknown;
@@ -248,6 +248,10 @@ export function BoardWebview({
                 // functional). User-facing toasts are reserved for "board failed to load"
                 // (modes A + D, raised from main).
                 appendLog("error", d.message);
+            } else if (d.__persephone === "board:log" && d.message) {
+                // Mode F: mirrored console.warn/error from the board frame. LOG-ONLY,
+                // same as board:error — visibility for the author/agent, never a toast.
+                appendLog(d.level === "warn" ? "warn" : "error", d.message);
             } else if (d.__persephone === "board:busy") {
                 // Busy retention (US-799): the model is the authoritative renderer-side
                 // holder; it mirrors the flag to main (job retention) and drives survival.

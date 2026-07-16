@@ -535,7 +535,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     );
     server.tool(
         "board_refresh",
-        "Reload a Persephone Board after you edit its files (HTML/JS/CSS). Boards do NOT auto-reload on file changes, so call this to apply your edits, then re-run browser_snapshot. Targets the board by its page id; omit pageId to reload the active board. Returns { refreshed: true, pageId }. Use list_pages / get_active_page to find a board's pageId.",
+        "Reload a Persephone Board after you edit its files (HTML/JS/CSS). Boards do NOT auto-reload on file changes, so call this to apply your edits. Waits until the reloaded board's main frame has finished loading, so an immediately-following browser_snapshot sees the NEW content. Targets the board by its page id; omit pageId to reload the active board. Returns { refreshed: true, pageId, frameReady }; frameReady: false means the frame never signalled load within the timeout (likely broken board HTML — check the board's ui.log). Use list_pages / get_active_page to find a board's pageId.",
         {
             pageId: z.string().optional().describe("Page id of the board to reload (from list_pages / get_active_page). Omit to reload the active board."),
             windowIndex: windowIndexParam,

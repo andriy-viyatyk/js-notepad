@@ -183,12 +183,14 @@ board never touches a path or calls `readFile`/`writeFile` for the edited file. 
 with the content through `persephone.host.*`:
 
 - `persephone.host.getContent()` → `Promise<string>` — the current content. Safe to `await` at any
-  time (it waits for the first host snapshot), so you never race a missing value.
+  time — it waits for the host handshake and the first content snapshot internally, so calling it
+  first thing in your script (before anything else has run) is fine; you never race a missing value.
 - `persephone.host.setContent(content)` — replace the content and mark the file **modified**
-  (schedules the auto-save cache), exactly like a user edit in Monaco.
+  (schedules the auto-save cache), exactly like a user edit in Monaco. A `getContent()` right after
+  returns what you just wrote (read-your-own-write).
 - `persephone.host.onContentChange(cb)` → unsubscribe fn — `cb(content, language?)` fires whenever
   the content changes **elsewhere** (e.g. the user switched to Monaco, edited, and switched back).
-  Your own `setContent` does **not** re-fire it.
+  Your own `setContent` does **not** re-fire it. Registers at any time, boot ordering included.
 - `persephone.host.getLanguage()` → `Promise<string | undefined>` — the host's Monaco language id.
 - `persephone.host.save()` — save through the pipe now (optional; see Ctrl+S below).
 
@@ -206,8 +208,9 @@ for an in-board Save button.
 
 Because the host is shared, a content-host board and Monaco (or Grid) **switch back and forth on the
 same file with no reload and no data loss** — the classic source-edit / live-preview pairing. On a
-plain (non-content-host) board `persephone.host.getContent()` / `getLanguage()` reject and
-`onContentChange` is a no-op, so feature-detect if a board can open either way.
+plain (non-content-host) board `persephone.host.getContent()` / `getLanguage()` reject (after the
+handshake answers the question) and a registered `onContentChange` callback never fires, so
+feature-detect with a `try`/`catch` around `getContent()` if a board can open either way.
 
 **Browser APIs (clipboard, etc.):** the board frame is a secure context and Persephone grants it
 clipboard permission, so standard web APIs like `navigator.clipboard.write([...])` work directly —
@@ -405,7 +408,10 @@ the board folder before referencing them.)
 Report failures with `persephone.notify(message, "error")` — they're toasted **and**
 appended to **`ui.log`** in this folder (the **Show-log** button in the in-board toolbar
 opens it). Persephone also logs board *load* failures there automatically: navigation
-errors, CSP violations, and uncaught script errors / unhandled rejections. The log starts
+errors, CSP violations, and uncaught script errors / unhandled rejections — and it mirrors
+every **`console.error`** / **`console.warn`** from the board's frames into the log
+(`console.log`/`info` are not mirrored), so runtime problems your code or a library reports
+via the console are reviewable without DevTools. The log starts
 fresh on every load (it holds only the current board lifetime, beginning with a
 `board loaded` line), so opening it after a clean load shows no errors. Keep your `catch`
 blocks calling `notify(..., "error")` so problems are reviewable.
@@ -421,7 +427,8 @@ sidebar. First match wins (SVG preferred). Without one, a default glyph is used.
 Boards do **not** auto-reload when you edit their files. After editing `index.html`,
 `app.js`, or `.css`, apply the changes with the **Reload** button in the in-board
 toolbar. When an AI agent is driving the board, it reloads with the **`board_refresh`**
-MCP tool instead.
+MCP tool instead — the tool returns only after the reloaded main frame has finished
+loading, so a `browser_snapshot` right after it sees the new content.
 
 ## Testing & automation (for an AI agent)
 
@@ -442,6 +449,15 @@ Once the user has opened this board in Persephone, an agent can drive it with th
   always succeeds, even if the panel was closed (no "frame not mounted" error). `index: 0`
   returns to the main view. All frames share `persephone.state.*`, so a change in one is visible
   when you snapshot another.
+
+**Verify visually, not just structurally.** The accessibility snapshot includes elements that
+are invisible on screen (zero-height, overridden `display`, below the fold), so a snapshot that
+"looks right" does not prove the board renders right. After UI changes, take a
+`browser_take_screenshot { pageId }` and inspect the image before declaring the UI correct.
+Two classic CSS traps a snapshot won't catch: the `[hidden]` attribute loses to any explicit
+`display` rule (add `[hidden] { display: none !important; }` if you style displays), and a
+textarea sized by script before layout collapses to zero height (prefer CSS
+`field-sizing: content` for auto-growing inputs).
 
 The board must be **open** (the user opens it; an untrusted project won't render).
 Navigation tools don't apply — a board is a fixed document; `browser_tabs` selects among its

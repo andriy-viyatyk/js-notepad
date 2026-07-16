@@ -174,6 +174,14 @@ export class BoardContentEditorModel extends BoardEditorModel {
 
     // ── Save / dirty (delegate to host) ─────────────────────────────────
 
+    /** Dirty lives on the composed host, not on this editor's own state (which never
+     *  sets `modified`). Without this override, `PageModel.modified` — which aggregates
+     *  the raw editor instances, not their unwrapped hosts — reports false for a dirty
+     *  content-host board (the tab dot was right, `list_pages` was wrong). */
+    override get modified(): boolean {
+        return this._host?.modified ?? false;
+    }
+
     override async saveState(): Promise<void> {
         await this._host?.io.saveState();
     }

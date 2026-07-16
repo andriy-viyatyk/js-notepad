@@ -110,6 +110,15 @@ function settleFilePath(value: string | undefined): void {
     filePathResolvers.length = 0;
 }
 
+/** Resolves once the host handshake has landed (every handshake settles the file path,
+ *  plain boards included) — the point where `hostEnabled` is authoritative. Lets the
+ *  `host.*` API be called at ANY time: it awaits this gate internally instead of
+ *  rejecting/no-oping when invoked before the handshake. */
+function whenHandshake(): Promise<void> {
+    if (filePathSettled) return Promise.resolve();
+    return new Promise<void>((resolve) => filePathResolvers.push(() => resolve()));
+}
+
 // ── Host content (EPIC-043) ──────────────────────────────────────────────────
 // Content-host boards read Persephone-owned content pushed as `host:content`. A snapshot lands
 // after the frame loads, then on every change. `getContent()` awaits the first snapshot (settle-
@@ -353,6 +362,36 @@ window.addEventListener("unhandledrejection", (e) => {
     const r = (e as PromiseRejectionEvent).reason;
     postHostError(`unhandled rejection: ${r instanceof Error ? r.message : String(r)}`);
 });
+// Mode F: console.error/warn — how board code and libraries actually report problems,
+// but invisible to the author/agent (nothing captures a board frame's console). Mirror
+// them to ui.log via `board:log`; the original console methods still run untouched.
+// console.log/info are deliberately NOT mirrored (ui.log noise).
+function formatConsoleArg(a: unknown): string {
+    if (typeof a === "string") return a;
+    if (a instanceof Error) return a.stack || a.message;
+    try {
+        return JSON.stringify(a);
+    } catch {
+        return String(a);
+    }
+}
+function mirrorConsole(level: "warn" | "error"): void {
+    const original = console[level].bind(console);
+    console[level] = (...args: unknown[]) => {
+        original(...args);
+        try {
+            const message = args.map(formatConsoleArg).join(" ").slice(0, 4000);
+            window.parent.postMessage(
+                { __persephone: "board:log", level, message: `console.${level}: ${message}` },
+                hostPostTarget,
+            );
+        } catch {
+            // parent gone — nothing to report to
+        }
+    };
+}
+mirrorConsole("warn");
+mirrorConsole("error");
 
 // ── execute() handle (mirrors preload-board.ts, transport = the port) ─────────
 
@@ -679,21 +718,32 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
     },
 
     /** Content-host bridge (EPIC-043). Meaningful only when this board is a content-host editor
-     *  (manifest `editorKind: "content-host"`); on a plain board `getContent`/`getLanguage` reject. */
+     *  (manifest `editorKind: "content-host"`); on a plain board `getContent`/`getLanguage` reject.
+     *  Safe to call at ANY time — each method awaits the handshake internally before deciding,
+     *  so boot ordering never matters (no ready-gate needed by the board). */
     host: {
         /** Current content — resolves to the first pushed snapshot (await any time). */
-        getContent(): Promise<string> {
+        async getContent(): Promise<string> {
+            await whenHandshake();
             if (!hostEnabled) {
-                return Promise.reject(
-                    new Error("persephone.host is available only for content-host boards"),
-                );
+                throw new Error("persephone.host is available only for content-host boards");
             }
-            if (hostContentSettled) return Promise.resolve(hostContent);
+            if (hostContentSettled) return hostContent;
             return new Promise<string>((resolve) => hostContentResolvers.push(resolve));
         },
 
         /** Set content + mark the file modified (schedules the autosave cache). */
         setContent(content: string): void {
+            // Keep the local replica in sync with our own write: the renderer echo-guard never
+            // pushes it back, so without this a read-after-write would return the stale
+            // pre-write value. Does NOT fire onContentChange (a frame never re-renders from
+            // its own write); the OTHER frame still receives the change from the renderer.
+            hostContent = content;
+            if (!hostContentSettled) {
+                hostContentSettled = true;
+                for (const r of hostContentResolvers) r(content);
+                hostContentResolvers.length = 0;
+            }
             try {
                 window.parent.postMessage(
                     { __persephone: "board:setContent", content },
@@ -705,9 +755,10 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
         },
 
         /** Fire on each external content change (reload, other-view edit, host transfer). Returns an
-         *  unsubscribe. The board's OWN setContent does NOT re-fire this (renderer-side echo-guard). */
+         *  unsubscribe. The board's OWN setContent does NOT re-fire this (renderer-side echo-guard).
+         *  Registers at any time — before the handshake too; on a plain (non-content-host) board no
+         *  push ever arrives, so the callback simply never fires. */
         onContentChange(cb: (content: string, language?: string) => void): () => void {
-            if (!hostEnabled) return () => {};
             hostChangeCbs.push(cb);
             return () => {
                 const i = hostChangeCbs.indexOf(cb);
@@ -716,13 +767,12 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
         },
 
         /** Monaco language id of the current content (e.g. "xml", "json"), or undefined. */
-        getLanguage(): Promise<string | undefined> {
+        async getLanguage(): Promise<string | undefined> {
+            await whenHandshake();
             if (!hostEnabled) {
-                return Promise.reject(
-                    new Error("persephone.host is available only for content-host boards"),
-                );
+                throw new Error("persephone.host is available only for content-host boards");
             }
-            if (hostContentSettled) return Promise.resolve(hostLanguage);
+            if (hostContentSettled) return hostLanguage;
             return new Promise<string | undefined>((resolve) =>
                 hostContentResolvers.push(() => resolve(hostLanguage)),
             );

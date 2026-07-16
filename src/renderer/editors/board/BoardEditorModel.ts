@@ -146,9 +146,36 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         return this.frames.get(tab);
     }
 
+    /** Resolvers waiting for the NEXT `markFrameLoaded` of a tab — the deterministic
+     *  "reload finished" signal `board_refresh` awaits (a remounted frame's load +
+     *  CDP re-registration), so a snapshot right after refresh can't hit the stale frame. */
+    private frameLoadWaiters: Array<{ tab: string; resolve: (ok: boolean) => void }> = [];
+
     /** Marked ready by BoardWebview once main holds this frame's CDP registration. */
     markFrameLoaded(tab: string): void {
         this.loadedTabs.add(tab);
+        this.frameLoadWaiters = this.frameLoadWaiters.filter((w) => {
+            if (w.tab !== tab) return true;
+            w.resolve(true);
+            return false;
+        });
+    }
+
+    /** Resolve `true` when the NEXT frame-load of `tab` completes (the frame is rendered
+     *  and CDP-attachable), or `false` on timeout / dispose. Register BEFORE triggering
+     *  the reload (`reloadBoard`) so the signal can't be missed. */
+    waitForFrameLoad(tab: string = BOARD_CDP_TAB, timeoutMs = 5000): Promise<boolean> {
+        return new Promise<boolean>((resolve) => {
+            const waiter = { tab, resolve };
+            this.frameLoadWaiters.push(waiter);
+            setTimeout(() => {
+                const i = this.frameLoadWaiters.indexOf(waiter);
+                if (i >= 0) {
+                    this.frameLoadWaiters.splice(i, 1);
+                    resolve(false);
+                }
+            }, timeoutMs);
+        });
     }
 
     /** The active tab's live frame (was a plain field; kept as a getter for callers
@@ -443,6 +470,8 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         void api.reapBoardOwner(this.id);
         this.frames.clear();
         this.loadedTabs.clear();
+        for (const w of this.frameLoadWaiters) w.resolve(false);
+        this.frameLoadWaiters.length = 0;
         void api.unregisterBoardFrame(this.id);
         await super.dispose();
     }

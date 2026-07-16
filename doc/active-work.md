@@ -17,6 +17,8 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-857: Proving-ground Todo board](tasks/US-857-todo-board/README.md) — Todo reimplemented as a content-host board with secondary views, alongside the built-in (acceptance)
   - [ ] [US-858: Automate secondary views via `browser_*` (frames-as-tabs)](tasks/US-858-automate-secondary-views/README.md)
   - [ ] [US-859: Board authoring reliability & predictability for agents](tasks/US-859-board-authoring-reliability/README.md) — problem inventory from US-857 (host-bridge readiness, docs gaps, debug friction)
+  - [ ] [US-860: Board bridge readiness & registry hardening](tasks/US-860-board-bridge-readiness/README.md) — fixes US-859 #1–#5, #13 (`host.*` awaits the handshake; read-your-own-write; dirty-flag delegation; registry refresh race)
+  - [ ] [US-861: Board debugging observability](tasks/US-861-board-debug-observability/README.md) — fixes US-859 #8, #10 (board console → ui.log; deterministic `board_refresh`)
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

@@ -686,8 +686,11 @@ async function openBoard(params: McpParams): Promise<McpResponse> {
 
 /** Reload a board (remount its webview) so file edits take effect — boards no
  *  longer auto-reload. `pageId` is optional; omitted → the active page. Validates
- *  the resolved page is a board before reloading. */
-function refreshBoard(params: McpParams): McpResponse {
+ *  the resolved page is a board before reloading. Awaits the remounted MAIN frame's
+ *  load + CDP re-registration (deterministic — a snapshot right after can't hit the
+ *  stale pre-reload frame); `frameReady: false` means the load signal never arrived
+ *  within the timeout (e.g. broken board HTML — check the board's ui.log). */
+async function refreshBoard(params: McpParams): Promise<McpResponse> {
     const pageId = asString(params?.pageId);
     const page = pageId ? pagesModel.findPage(pageId) : pagesModel.activePage;
     if (!page) {
@@ -697,8 +700,11 @@ function refreshBoard(params: McpParams): McpResponse {
     if (!editor || !isBoardEditorId(editor.editorId)) {
         return { error: { code: -32602, message: `Page ${page.id} is not a board page.` } };
     }
-    (editor as BoardEditorModel).reloadBoard();
-    return { result: { refreshed: true, pageId: page.id } };
+    const board = editor as BoardEditorModel;
+    const ready = board.waitForFrameLoad(); // register BEFORE the reload so the signal can't be missed
+    board.reloadBoard();
+    const frameReady = await ready;
+    return { result: { refreshed: true, pageId: page.id, frameReady } };
 }
 
 // ── Agent Tools registry (EPIC-038 / US-803) ────────────────────────

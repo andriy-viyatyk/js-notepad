@@ -180,6 +180,7 @@ export interface BoardToHostMsg {
     __persephone:
         | "board:interact"
         | "board:error"
+        | "board:log"   // mirrored console.warn/error from the board frame → ui.log
         | "board:busy"
         | "board:setContent" // content-host board wrote content (EPIC-043)
         | "board:save"       // content-host board / Ctrl+S requested a save (EPIC-043)
@@ -187,8 +188,10 @@ export interface BoardToHostMsg {
         | "board:mergeState" // persephone.state.merge — shallow-merge shared state
         | "board:stateInit"  // persephone.state.init — seed defaults + declare restorable keys
         | "board:setSecondaryViews"; // persephone.setSecondaryViews — replace the board's views (EPIC-044)
-    /** `board:error` detail. */
+    /** `board:error` / `board:log` detail. */
     message?: string;
+    /** `board:log` severity: `"warn"` or `"error"` (the mirrored console method). */
+    level?: string;
     /** `board:busy` value. */
     busy?: boolean;
     /** `board:setContent` payload — the new UTF-8 content. */

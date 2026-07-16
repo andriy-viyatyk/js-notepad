@@ -69,6 +69,11 @@ const defaultState: CustomEditorRegistryState = { entries: [] };
 class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
     private initialized = false;
     private pathsSub: (() => void) | undefined;
+    /** Generation counter guarding refresh() against stale overwrites: overlapping refreshes
+     *  (a rapid untrust+trust pair, e.g. renaming a board folder, fires one per mutation) can
+     *  finish out of order, and an earlier refresh landing last would clobber the newer entry
+     *  list — leaving a just-trusted board unregistered. Only the newest generation may write. */
+    private refreshGen = 0;
 
     constructor() {
         super(new TGlobalState(defaultState));
@@ -91,6 +96,7 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
      *  (cheap at registry scale; a manifest edit can change masks/priority). Enumerates all
      *  trusted roots directly — nested boards are unsupported by design, so no subtree walk. */
     async refresh(): Promise<void> {
+        const gen = ++this.refreshGen;
         const roots = boardTrust.listPaths();
         const entries: CustomEditorMatch[] = [];
         for (const root of roots) {
@@ -110,6 +116,7 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
                 editorKind: assoc.editorKind,
             });
         }
+        if (gen !== this.refreshGen) return; // superseded by a newer refresh — discard
         this.state.update((s) => {
             s.entries = entries;
         });

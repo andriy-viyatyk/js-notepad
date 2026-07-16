@@ -94,7 +94,9 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
   `{ editor }` to request a specific editor (e.g. `openRawLink(path, { editor: "md-view" })` to render
   a Markdown doc instead of its source); falls back to the default editor when omitted/unmatched.
 - `persephone.notify(message, type)` — toast (`"info"|"success"|"warning"|"error"`); errors are
-  also appended to **`ui.log`** in the board folder (an on-board indicator opens it).
+  also appended to **`ui.log`** in the board folder (an on-board indicator opens it). `ui.log` also
+  receives, automatically: load failures, CSP violations, uncaught errors / unhandled rejections,
+  and every **`console.error`/`console.warn`** from the board's frames — read it when debugging.
 - `persephone.openFileDialog(params)` / `saveFileDialog(params)` / `openFolderDialog(params)` —
   native dialogs returning a path you hand to `execute()`.
 - `persephone.readFile(path, options?)` / `writeFile(path, data, options?)` — read/write a file with
@@ -108,10 +110,13 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
 - `persephone.host.*` — for a **content-host** editor board (`"editorKind": "content-host"` in the
   manifest) Persephone owns the file (pipe, encoding, encryption, auto-save, dirty tracking) and the
   board works with the content instead of a path: `host.getContent()` → `Promise<string>`,
-  `host.setContent(content)` (marks modified), `host.onContentChange(cb)` (fires on external edits —
-  e.g. the user switched to Monaco and back), `host.getLanguage()`, `host.save()`. `Ctrl+S` saves
-  automatically (no board code). The board and Monaco share one host, so they switch back and forth on
-  the same file with no reload. On a plain board these reject/no-op.
+  `host.setContent(content)` (marks modified; a `getContent()` right after returns the written value),
+  `host.onContentChange(cb)` (fires on external edits — e.g. the user switched to Monaco and back —
+  never for your own `setContent`), `host.getLanguage()`, `host.save()`. All of `host.*` is safe to
+  call at any time, first thing in your script included (it awaits the handshake internally). `Ctrl+S`
+  saves automatically (no board code). The board and Monaco share one host, so they switch back and
+  forth on the same file with no reload. On a plain board `getContent`/`getLanguage` reject and a
+  registered `onContentChange` never fires.
 
 **Browser APIs (clipboard, etc.):** the board frame is a secure context with clipboard permission
 granted, so standard web APIs like `navigator.clipboard.write([...])` work directly (no bridge method;
@@ -242,7 +247,8 @@ the manifest's `loadOrder`.
 - **Reload model:** boards do **not** auto-reload on file changes. After editing a board's files,
   apply the changes with the **Reload** button in the in-board toolbar — or, when driving the board
   as an agent, the **`board_refresh`** MCP tool (pass the board's `pageId`, or omit it to reload the
-  active board). For an iterate loop: edit files → `board_refresh` → `browser_snapshot`.
+  active board). The tool returns after the reloaded main frame has finished loading, so an iterate
+  loop is race-free: edit files → `board_refresh` → `browser_snapshot`.
 
 ## Test it
 
@@ -262,6 +268,9 @@ browser_click/type/evaluate { pageId, … }  → interact
   fallback does not reach them.
 - `browser_click` / `browser_type` / `browser_press_key` / `browser_evaluate` (each with
   `pageId`) → interact using the refs from the snapshot.
+- **Verify UI visually.** The accessibility snapshot includes elements that are invisible on
+  screen (zero-height, overridden `display`), so it can look right while the render is broken.
+  After UI changes, check a `browser_take_screenshot { pageId }` before declaring the UI correct.
 
 A board never navigates, so the navigation tools (`browser_navigate`, `browser_navigate_back`)
 don't apply, and `browser_tabs` cannot open or close tabs. But `browser_tabs` **does** work for
