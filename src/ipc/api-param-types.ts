@@ -69,6 +69,50 @@ export interface DownloadEntry {
     error?: string;
 }
 
+export interface PublishedBoardArchive {
+    url: string;
+    size: number;
+    sha256: string;
+}
+
+/**
+ * One board entry in the catalog `boards-manifest.json` (EPIC-045). The association
+ * fields (fileMasks/editorName/editorKind/standalone) are copied by the publish
+ * automation from the board's own board-manifest.json so the client can advertise a
+ * board (the "+" switch entry, the catalog list) WITHOUT downloading it.
+ */
+export interface PublishedBoardInfo {
+    id: string;
+    version: string;
+    name: string;
+    description?: string;
+    fileMasks?: string[];
+    editorName?: string;
+    editorKind?: "simple" | "content-host";
+    standalone?: boolean;
+    minAppVersion?: string;
+    archive: PublishedBoardArchive;
+}
+
+export interface PublishedBoardsCatalog {
+    schemaVersion: number;
+    boards: PublishedBoardInfo[];
+}
+
+/**
+ * Return value of `getPublishedBoards`. `catalog` is the last-good catalog (from the
+ * network or the cache), or null if never fetched and nothing cached. Fetch failures
+ * are silent — the cached catalog is still returned with `error` set for diagnostics.
+ */
+export interface PublishedBoardsResult {
+    catalog: PublishedBoardsCatalog | null;
+    /** epoch ms of the last successful network fetch (0 = never). */
+    fetchedAt: number;
+    /** true when returned from cache without a fresh network hit. */
+    fromCache: boolean;
+    error?: string;
+}
+
 export interface VideoStreamSessionConfig {
     /** Local file path to stream. Mutually exclusive with url. */
     filePath?: string;

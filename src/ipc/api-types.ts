@@ -4,6 +4,8 @@ import {
     DownloadEntry,
     OpenFileDialogParams,
     OpenFolderDialogParams,
+    PublishedBoardsCatalog,
+    PublishedBoardsResult,
     RuntimeVersions,
     SaveFileDialogParams,
     UpdateCheckResult,
@@ -98,6 +100,7 @@ export enum Endpoint {
     reapBoardOwner = "reapBoardOwner",
     registerBoardFrame = "registerBoardFrame",
     unregisterBoardFrame = "unregisterBoardFrame",
+    getPublishedBoards = "getPublishedBoards",
 }
 
 /** Synthetic CDP "tab" id for a board (boards have no tabs). The automation
@@ -234,6 +237,7 @@ export type Api = {
     // frame after a remount (US-796).
     [Endpoint.registerBoardFrame]: (boardId: string, boardHost: string, frameNonce?: string, tab?: string) => Promise<void>;
     [Endpoint.unregisterBoardFrame]: (boardId: string, tab?: string) => Promise<void>;
+    [Endpoint.getPublishedBoards]: (force?: boolean) => Promise<PublishedBoardsResult>;
 };
 
 export enum EventEndpoint {
@@ -262,6 +266,8 @@ export enum EventEndpoint {
     // is consumed through the preload's ports-aware `onPort` (NOT the typed event
     // system, which drops `event.ports`). No EventApi entry for that reason.
     eBoardPort = "eBoardPort",
+    // Published-boards catalog changed (US-862) — carries the new catalog.
+    ePublishedBoardsUpdated = "ePublishedBoardsUpdated",
 }
 
 export interface EventSubscription {
@@ -302,6 +308,9 @@ export type EventApi = {
     // `editor` is an optional registered editor id; the open pipeline falls back to
     // the default editor when omitted/unmatched.
     [EventEndpoint.eBoardOpenRawLink]: EventObject<{ href: string; editor?: string }>;
+    // Published-boards catalog refresh (US-862): main broadcasts the new catalog when
+    // it changes; the renderer catalog model updates reactively.
+    [EventEndpoint.ePublishedBoardsUpdated]: EventObject<PublishedBoardsCatalog>;
 };
 
 export enum RendererEvent {

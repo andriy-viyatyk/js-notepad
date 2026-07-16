@@ -4,6 +4,7 @@ import {
     DownloadEntry,
     OpenFileDialogParams,
     OpenFolderDialogParams,
+    PublishedBoardsResult,
     RuntimeVersions,
     SaveFileDialogParams,
     UpdateCheckResult,
@@ -418,6 +419,10 @@ class ApiCalls implements Api {
 
     unregisterBoardFrame = async (boardId: string, tab?: string) => {
         return executeOnce<void>(Endpoint.unregisterBoardFrame, boardId, tab);
+    };
+
+    getPublishedBoards = async (force?: boolean) => {
+        return executeOnce<PublishedBoardsResult>(Endpoint.getPublishedBoards, force);
     };
 }
 

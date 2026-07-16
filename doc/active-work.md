@@ -7,11 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-_No active epics or tasks._
-
-## Planned
 - **EPIC-045** — [Published Boards Catalog — download & install boards from GitHub](epics/EPIC-045.md)
-  - [ ] US-862: Catalog service (main): manifest fetch, cache, periodic check, IPC
+  - [ ] [US-862: Catalog service (main): manifest fetch, cache, periodic check, IPC](tasks/US-862-catalog-service/README.md)
   - [ ] US-863: Install engine: download + sha256 verify + extract + trust + install registry
   - [ ] US-864: "+" editor-switch entry + Board Info editor (install mode, progress)
   - [ ] US-865: Updates: version compare, activation toast, safe re-install, sidebar badges
@@ -20,6 +17,8 @@ _No active epics or tasks._
   - [ ] US-868: Agent API: app.boards.registerBoard / unregisterBoard / renameBoard
   - [ ] US-869: Agent API: catalog — searchPublished / installPublished / versions / uninstall
   - [ ] US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)
+
+## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
   - [ ] US-813: Crypto + identity foundation (libsodium keypair, encrypted-at-rest, seal/open helpers)
   - [ ] US-814: Pluggable transport + MQTT backend (`PeerTransport`, `MqttTransport`, `peerConnection` service)

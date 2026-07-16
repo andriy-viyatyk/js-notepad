@@ -376,7 +376,7 @@ plus a **Pinned** rail on the right (same pin model as the panel):
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-862 | Catalog service (main): manifest fetch, cache, periodic check, IPC | Planned |
+| [US-862](../tasks/US-862-catalog-service/README.md) | Catalog service (main): manifest fetch, cache, periodic check, IPC | Active |
 | US-863 | Install engine: download + sha256 verify + extract + trust + install registry | Planned |
 | US-864 | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
 | US-865 | Updates: version compare, activation toast, safe re-install, sidebar badges | Planned |

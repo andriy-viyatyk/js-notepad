@@ -171,6 +171,11 @@ class App {
 
         // Initialize downloads tracking
         await this._downloads.init();
+
+        // Subscribe the published-boards catalog model to main's broadcast and pull the
+        // initial catalog (US-862). Fire-and-forget — no view blocks on it, and a fetch
+        // failure is silent (cached catalog / empty).
+        import("./published-boards").then(({ publishedBoards }) => publishedBoards.load());
     }
 
     /**

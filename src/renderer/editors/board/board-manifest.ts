@@ -44,6 +44,22 @@ export interface BoardManifest {
     author?: string;
     /** Optional source-repository URL. Metadata only. */
     repository?: string;
+    /**
+     * Board version (semver string, EPIC-045). Metadata; the installed-version side of
+     * the update comparison against the published catalog. Written/bumped by the author.
+     */
+    version?: string;
+    /**
+     * Whether the board is meaningful to open with no file / to pin (EPIC-045). Default is
+     * DERIVED (see `isBoardStandalone`): true when the board has no `fileMasks`
+     * (tools/dashboards), false when it has masks (a file-bound board must opt in).
+     */
+    standalone?: boolean;
+    /**
+     * Minimum Persephone version this board version requires (semver; absent = no
+     * requirement, EPIC-045). Per-version app-compatibility gate.
+     */
+    minAppVersion?: string;
 
     // ── Custom Editor axis (EPIC-042) — acted upon only when the board is TRUSTED ──
     /**
@@ -226,6 +242,31 @@ export function readBoardSecondaryViews(
     manifest: BoardManifest | null | undefined,
 ): SecondaryViewDecl[] {
     return normalizeSecondaryViews(manifest?.secondaryViews);
+}
+
+/** Derived usage group for a board, for UI grouping / pin gating (EPIC-045). */
+export type BoardUsageGroup = "file-viewer" | "file-editor" | "tool";
+
+/**
+ * Whether a board is standalone — openable with no file and eligible for pinning /
+ * the "+" new-page dropdown (EPIC-045). Default when `standalone` is absent: no masks →
+ * true (tools/dashboards are inherently standalone), masks → false (a file-bound board
+ * must opt in). An explicit boolean always wins.
+ */
+export function isBoardStandalone(manifest: BoardManifest | null | undefined): boolean {
+    if (typeof manifest?.standalone === "boolean") return manifest.standalone;
+    return normalizeFileMasks(manifest?.fileMasks).length === 0;
+}
+
+/**
+ * Derived usage group: **File viewer** (masks, not standalone — e.g. drawio-viewer),
+ * **File editor** (masks + standalone — e.g. todo), **Tool / App** (no masks). Used by
+ * the hub / pin surfaces to group boards.
+ */
+export function boardUsageGroup(manifest: BoardManifest | null | undefined): BoardUsageGroup {
+    const hasMasks = normalizeFileMasks(manifest?.fileMasks).length > 0;
+    if (!hasMasks) return "tool";
+    return isBoardStandalone(manifest) ? "file-editor" : "file-viewer";
 }
 
 /** Write a manifest (2-space JSON + trailing newline for human-editability). */

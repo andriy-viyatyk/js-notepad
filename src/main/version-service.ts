@@ -3,6 +3,12 @@ import { electronStore } from "./e-store";
 import { openWindows } from "./open-windows";
 import { EventEndpoint } from "../ipc/api-types";
 import { ReleaseInfo, RuntimeVersions, UpdateCheckResult } from "../ipc/api-param-types";
+import { compareVersions } from "../shared/version-utils";
+
+// `parseVersion` / `compareVersions` now live in the shared module so the renderer
+// (published-boards catalog) can use the same compare without pulling this module's
+// electron / e-store / open-windows imports into the renderer bundle.
+export { compareVersions } from "../shared/version-utils";
 
 const GITHUB_API_URL = "https://api.github.com/repos/andriy-viyatyk/persephone/releases/latest";
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -11,28 +17,6 @@ const STORE_KEYS = {
     lastCheckTime: "version-check-lastTime",
     lastNotifiedVersion: "version-check-lastNotified",
 };
-
-function parseVersion(version: string): number[] {
-    const cleaned = version.replace(/^v/, "");
-    return cleaned.split(".").map((part) => parseInt(part, 10) || 0);
-}
-
-export function compareVersions(current: string, latest: string): number {
-    const currentParts = parseVersion(current);
-    const latestParts = parseVersion(latest);
-
-    const maxLength = Math.max(currentParts.length, latestParts.length);
-
-    for (let i = 0; i < maxLength; i++) {
-        const currentPart = currentParts[i] || 0;
-        const latestPart = latestParts[i] || 0;
-
-        if (latestPart > currentPart) return 1;
-        if (latestPart < currentPart) return -1;
-    }
-
-    return 0;
-}
 
 async function fetchLatestRelease(): Promise<ReleaseInfo | null> {
     try {

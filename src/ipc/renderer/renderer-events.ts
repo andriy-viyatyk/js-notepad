@@ -1,5 +1,5 @@
 import { PageDescriptor } from "../../shared/types";
-import { DownloadEntry, UpdateCheckResult } from "../api-param-types";
+import { DownloadEntry, PublishedBoardsCatalog, UpdateCheckResult } from "../api-param-types";
 import { EventApi, EventEndpoint, EventObject, McpStatus, MnemeStatus } from "../api-types";
 
 class RendererEventObject<T> implements EventObject<T> {
@@ -126,6 +126,10 @@ class RendererEvents implements EventApi {
 
     [EventEndpoint.eBoardOpenRawLink] = new RendererEventObject<{ href: string; editor?: string }>(
         EventEndpoint.eBoardOpenRawLink
+    );
+
+    [EventEndpoint.ePublishedBoardsUpdated] = new RendererEventObject<PublishedBoardsCatalog>(
+        EventEndpoint.ePublishedBoardsUpdated
     );
 }
 

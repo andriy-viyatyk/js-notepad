@@ -148,6 +148,10 @@ export function setupMainProcess() {
         // Check for updates after a short delay to not slow down startup
         setTimeout(() => {
             versionService.checkForUpdates();
+            // Refresh the published-boards catalog on the same 24h-gated cadence (US-862).
+            import("./published-boards-service").then(({ publishedBoardsService }) =>
+                publishedBoardsService.getPublishedBoards(),
+            );
         }, 5000);
     });
 
