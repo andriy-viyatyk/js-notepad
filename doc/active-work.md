@@ -7,18 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-044** — [Board Secondary Views](epics/EPIC-044.md) _(planning — awaiting review)_
-  - [ ] [US-851: Manifest + base-model plumbing for declared secondary views](tasks/US-851-manifest-model-plumbing/README.md)
-  - [ ] [US-852: `persephone.state.*` shared-state bridge (get/set/merge/onChange)](tasks/US-852-shared-state-bridge/README.md)
-  - [ ] [US-853: Second-iframe rendering + `board-secondary:*` sidebar panel family](tasks/US-853-second-iframe-rendering/README.md)
-  - [ ] [US-854: `persephone.setSecondaryViews` dynamic control](tasks/US-854-set-secondary-views/README.md)
-  - [ ] [US-855: Persistence & restore hardening](tasks/US-855-persistence-restore-hardening/README.md)
-  - [ ] [US-856: Docs, guides, demo board](tasks/US-856-docs-guides-demo-board/README.md)
-  - [ ] [US-857: Proving-ground Todo board](tasks/US-857-todo-board/README.md) — Todo reimplemented as a content-host board with secondary views, alongside the built-in (acceptance)
-  - [ ] [US-858: Automate secondary views via `browser_*` (frames-as-tabs)](tasks/US-858-automate-secondary-views/README.md)
-  - [ ] [US-859: Board authoring reliability & predictability for agents](tasks/US-859-board-authoring-reliability/README.md) — problem inventory from US-857 (host-bridge readiness, docs gaps, debug friction)
-  - [ ] [US-860: Board bridge readiness & registry hardening](tasks/US-860-board-bridge-readiness/README.md) — fixes US-859 #1–#5, #13 (`host.*` awaits the handshake; read-your-own-write; dirty-flag delegation; registry refresh race)
-  - [ ] [US-861: Board debugging observability](tasks/US-861-board-debug-observability/README.md) — fixes US-859 #8, #10 (board console → ui.log; deterministic `board_refresh`)
+_No active epics or tasks._
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

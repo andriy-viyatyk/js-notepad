@@ -343,6 +343,20 @@ Three things a content-host board can do that a simple board cannot:
 
 ---
 
+## Secondary views — a board's own sidebar panel
+
+A board isn't limited to the single main view in its tab. It can declare one or more **secondary views** — extra pages that show up as sidebar panels next to the board, kept in sync with the main view automatically. This is how an editor-style board offers a companion panel such as "Lists", "Outline", or "Details" alongside its main content, the same way built-in editors like the Todo editor pair a main list with a sidebar panel.
+
+- Secondary views are declared by the board itself (in its `board-manifest.json`, or added/removed while it runs) — there's nothing to configure as a user.
+- Each declared view opens as its own sidebar panel while the board's tab is active, with the title the board gave it (its icon always matches the board's own icon).
+- The main view and every secondary panel share state, so selecting something in a sidebar panel (e.g. picking a list) can instantly filter or update what the main view shows, and vice versa.
+- Some of what a board puts in that shared state is remembered across app restarts and board reloads (a per-board author choice), so a selection you made can still be there next time you open the board.
+- Closing the board's tab, or navigating it to something else, closes its secondary panels along with it — they aren't a way to keep the board running in the background (see [Long-running processes](#long-running-processes-setboardbusy--getboardbusy--getjobs) for that).
+
+> **Building a board with secondary views?** See the board's own `CLAUDE.md` (or `read_guide("boards")` for an AI agent) for the full `persephone.state.*` and `persephone.setSecondaryViews` reference. The bundled **Demo board** includes a working example.
+
+---
+
 ## Board icon
 
 Place an `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set a custom icon. The icon appears in the page tab (when the board is open), the **Boards** Explorer panel, and the **Custom Boards & Editors** sidebar tab. SVG is preferred; first match wins. Without an icon file, a default board glyph is shown.
@@ -353,7 +367,7 @@ If the board is also a [custom editor](#custom-editors--associate-a-board-with-a
 
 ## Error log (`ui.log`)
 
-All board errors — script failures, bridge errors, and board load failures — are shown as a toast notification **and** appended to a `ui.log` file in the board folder. Click **Show log** (log icon) in the in-board toolbar at any time to open `ui.log`. The log is reset to a single `board loaded` line on every board open or Reload, so it reflects only the current board lifetime — it never accumulates across sessions. Keep `catch` blocks in your board JS calling `persephone.notify(message, "error")` so failures are captured there.
+All board errors — script failures, bridge errors, and board load failures — are shown as a toast notification **and** appended to a `ui.log` file in the board folder. `console.error`/`console.warn` calls made by the board's own code are also mirrored there (as `[error]`/`[warn]` lines), so a misbehaving board's log gives a fuller picture even without a toast. Click **Show log** (log icon) in the in-board toolbar at any time to open `ui.log`. The log is reset to a single `board loaded` line on every board open or Reload, so it reflects only the current board lifetime — it never accumulates across sessions. Keep `catch` blocks in your board JS calling `persephone.notify(message, "error")` so failures are captured there.
 
 ---
 
