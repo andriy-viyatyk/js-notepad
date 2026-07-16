@@ -374,15 +374,18 @@ plus a **Pinned** rail on the right (same pin model as the panel):
 
 ## Linked Tasks
 
+Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US-866** → **US-868**
+→ US-864 → US-865 → US-867 → US-869 → US-870. The table is listed in that order.
+
 | Task | Title | Status |
 |------|-------|--------|
 | [US-862](../tasks/US-862-catalog-service/README.md) | Catalog service (main): manifest fetch, cache, periodic check, IPC | Active |
 | [US-863](../tasks/US-863-install-engine/README.md) | Install engine: download + sha256 verify + extract + install registry | Active |
+| US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |
+| US-868 | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
 | US-864 | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
 | US-865 | Updates: version compare, activation toast, safe re-install, sidebar badges | Planned |
-| US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |
 | US-867 | Board Info editor: properties mode + version history & rollback | Planned |
-| US-868 | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
 | US-869 | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Planned |
 | US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
 
@@ -681,6 +684,31 @@ the "Open in new tab" button will be a plain header icon button.)
   automation and match the released assets (id/version/sha256/size).
 
 ## Notes
+
+### 2026-07-16 — US-866 done: persephone-boards live + first real publish
+- `andriy-viyatyk/persephone-boards` (public) set up: `main` (published) / `develop` (working) /
+  `todo` (the todo board, kept separate for later polishing). Boards live under `boards/`;
+  `scripts/publish-board.mjs` + `.github/workflows/publish-boards.yml` on `main`.
+- Merging `develop` → `main` ran the Action end-to-end (the epic's acceptance test): it created
+  the `drawio-viewer-v1.0.0` GitHub Release with `drawio-viewer.zip` (837,949 bytes), wrote the
+  `boards-manifest.json` entry + `versions-manifest.json`, and committed them back to `main`.
+  The published asset's sha256 was verified against the catalog
+  (`c3d8adf8…934c`). drawio-viewer is now installable from the live catalog — a real board for
+  testing US-863's install engine and the downstream UI/agent tasks.
+- Publish-script hardening applied during the task: push `HEAD:<branch>` explicitly (a bare
+  `git push` is unreliable under `actions/checkout`; a push failure after `gh release create`
+  would strand the catalog since the tag then blocks re-runs).
+
+### 2026-07-16 — implementation-order revision
+- After US-862 + US-863 landed, the build order was changed to front-load **US-866** and
+  **US-868** so the rest of the epic can be tested end-to-end sooner:
+  - **US-866 next** publishes a real drawio-viewer ZIP (to the `develop` branch, reached via the
+    `PERSEPHONE_BOARDS_BRANCH` override from US-862) — giving every downstream UI/agent task a live
+    catalog entry to install against instead of a hand-mocked one.
+  - **US-868 after it** exposes `unregisterBoard` (untrust + unpin), so installed/registered state
+    can be reset between manual test runs (untrust + an `app.fs` folder delete via
+    `execute_script`) — full folder-deleting `uninstallBoard` still arrives with US-869.
+  - Remaining tasks keep their original relative order: US-864 → US-865 → US-867 → US-869 → US-870.
 
 ### 2026-07-16
 - Design settled with the user in conversation: GitHub repo as catalog + per-board release ZIP
