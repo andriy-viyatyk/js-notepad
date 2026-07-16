@@ -10,6 +10,16 @@ Overview of all active and planned epics and tasks.
 _No active epics or tasks._
 
 ## Planned
+- **EPIC-045** — [Published Boards Catalog — download & install boards from GitHub](epics/EPIC-045.md)
+  - [ ] US-862: Catalog service (main): manifest fetch, cache, periodic check, IPC
+  - [ ] US-863: Install engine: download + sha256 verify + extract + trust + install registry
+  - [ ] US-864: "+" editor-switch entry + Install Board dialog with progress
+  - [ ] US-865: Updates (version compare, toast, safe re-install) + catalog in the sidebar
+  - [ ] US-866: persephone-boards repo: initial commit + boards-manifest.json + publish script
+  - [ ] US-867: Board properties dialog + version history & rollback
+  - [ ] US-868: Agent API: app.boards.registerBoard / unregisterBoard / renameBoard
+  - [ ] US-869: Agent API: catalog — searchPublished / installPublished / versions / uninstall
+  - [ ] US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
   - [ ] US-813: Crypto + identity foundation (libsodium keypair, encrypted-at-rest, seal/open helpers)
   - [ ] US-814: Pluggable transport + MQTT backend (`PeerTransport`, `MqttTransport`, `peerConnection` service)
