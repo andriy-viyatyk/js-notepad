@@ -13,10 +13,10 @@ _No active epics or tasks._
 - **EPIC-045** — [Published Boards Catalog — download & install boards from GitHub](epics/EPIC-045.md)
   - [ ] US-862: Catalog service (main): manifest fetch, cache, periodic check, IPC
   - [ ] US-863: Install engine: download + sha256 verify + extract + trust + install registry
-  - [ ] US-864: "+" editor-switch entry + Install Board dialog with progress
-  - [ ] US-865: Updates (version compare, toast, safe re-install) + catalog in the sidebar
-  - [ ] US-866: persephone-boards repo: initial commit + boards-manifest.json + publish script
-  - [ ] US-867: Board properties dialog + version history & rollback
+  - [ ] US-864: "+" editor-switch entry + Board Info editor (install mode, progress)
+  - [ ] US-865: Updates: version compare, activation toast, safe re-install, sidebar badges
+  - [ ] US-866: persephone-boards repo: initial commit + publish script + GitHub Action
+  - [ ] US-867: Board Info editor: properties mode + version history & rollback
   - [ ] US-868: Agent API: app.boards.registerBoard / unregisterBoard / renameBoard
   - [ ] US-869: Agent API: catalog — searchPublished / installPublished / versions / uninstall
   - [ ] US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)

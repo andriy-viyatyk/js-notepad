@@ -4,6 +4,18 @@ Ideas and future tasks not yet planned for implementation.
 
 ---
 
+## Publish the todo board (follow-up to EPIC-045)
+
+Deferred out of [EPIC-045](../epics/EPIC-045.md) (Published Boards Catalog), which develops and
+tests the whole publish/install flow on drawio-viewer only. Once that epic ships:
+
+- [ ] Polish the `todo/` board (`C:\projects\persephone-boards\boards\todo`)
+- [ ] Retire the built-in todo editor in favor of the board (migration story for existing users)
+- [ ] Publish it: `board-manifest.json` gets `standalone: true` (file editor that can start
+  empty) + a `version`, then bump-and-merge to `main`
+
+---
+
 ## Dependency & Platform Updates (deferred / residual from EPIC-040)
 
 Carried over when [EPIC-040](../epics/completed.md) closed (2026-07-13). Open a fresh

@@ -52,6 +52,7 @@ Catalog schema (`boards-manifest.json`):
       "editorName": "DrawIO",
       "editorKind": "content-host",
       "standalone": false,
+      "minAppVersion": "4.0.14",
       "archive": {
         "url": "https://github.com/andriy-viyatyk/persephone-boards/releases/download/drawio-viewer-v1.0.0/drawio-viewer.zip",
         "size": 1234567,
@@ -73,6 +74,27 @@ drift by hand.
 The board's own `board-manifest.json` gains an optional `version?: string` field (semver string,
 metadata) — the installed-version side of the update comparison.
 
+### App-version compatibility — `minAppVersion`
+
+A board version may depend on bridge capabilities (`persephone.*` methods) that older Persephone
+builds don't have. `board-manifest.json` gains `minAppVersion?: string` (semver; absent = no
+requirement), copied by the publish automation into the catalog entry **and into each
+`versions-manifest.json` entry** — the requirement is per version, so an older app can still
+install the newest *compatible* version of a board.
+
+Client rules (compare via `compareVersions` against `app.getVersion()`):
+
+- The "+" switch entry and agent `searchPublished` results include only compatible boards
+  (agent results may annotate incompatible ones as `requiresAppVersion` rather than hide).
+- "Update available" (badge + activation toast) means *a compatible newer version exists*;
+  a newer-but-incompatible latest is not an update.
+- The Board Info screen's Versions list shows incompatible versions disabled with a
+  "Requires Persephone ≥ X" hint (the hub Search tab may do the same for incompatible boards —
+  disabled-with-hint tells the user an app update unlocks them; implementation choice vs.
+  hiding).
+- `installPublished` refuses an incompatible version with a clear error (agents get the same
+  contract as the UI).
+
 ### Board usage type — `standalone` flag + derived groups
 
 Not every board makes sense to pin or open empty (drawio-viewer without a file is useless; the
@@ -90,23 +112,33 @@ duplicate/contradict `fileMasks`, the manifest gains **one bit** and the groups 
 - The catalog entry duplicates `standalone` (publish script copies it, like the other
   association fields) so the hub's Search tab can group boards before install.
 
-### Publish workflow (persephone-boards repo)
+### Publish workflow (persephone-boards repo) — GitHub Action on push to `main`
 
-One script — `scripts/publish-board.mjs <board-id>` (Node, uses the `gh` CLI):
+The board's own `board-manifest.json` `version` is the **single source of truth**; both catalog
+manifests are machine-written, never hand-edited. Author flow: edit the board → bump `version`
+(+ optional release notes) → merge to `main`. A GitHub Action
+(`.github/workflows/publish-boards.yml`, `on: push: branches: [main]`,
+`permissions: contents: write`) then:
 
-1. Reads `boards/<board-id>/board-manifest.json`, requires a `version` bumped vs the catalog entry.
-2. Zips the board folder **contents** (entries rooted at top level, no wrapper folder), excluding
-   dev junk (`ui.log`, `.git`, `node_modules`).
+1. For each board under `boards/`, checks whether the git tag `<board-id>-v<version>` exists —
+   a manifest version without a tag is the "needs release" signal (robust: the Action owns the
+   catalog files, so it never trusts them for readiness).
+2. Zips the board folder **contents** (entries rooted at top level, no wrapper folder),
+   excluding dev junk (`ui.log`, `.git`, `node_modules`) and `versions-manifest.json`
+   (catalog metadata, not board content).
 3. `gh release create <board-id>-v<version> <board-id>.zip` (per-board tags keep releases
-   independent; old versions stay downloadable for rollback).
-4. Computes the asset's `size` + `sha256` and rewrites that board's entry in `boards-manifest.json`
-   (id/version/name/description/fileMasks/editorName/editorKind/archive).
-5. Prepends the same version entry (`{ version, date, notes?, archive }`) to
-   `boards/<board-id>/versions-manifest.json` — the per-board version history (see
-   "Version history & rollback"). Excluded from the release ZIP (catalog metadata, not board
-   content).
-6. Commits the manifest changes. Push/merge `main` is what makes it live — a release without a
-   manifest entry is invisible; the app never enumerates releases via the GitHub API.
+   independent; old versions stay downloadable for rollback). Computes the asset's `size` +
+   `sha256`.
+4. Rewrites that board's entry in `boards-manifest.json`
+   (id/version/name/description/fileMasks/editorName/editorKind/standalone/minAppVersion/archive)
+   and prepends `{ version, date, notes?, minAppVersion?, archive }` to
+   `boards/<board-id>/versions-manifest.json` (see "Version history & rollback").
+5. Commits + pushes the manifest updates back to `main`. No retrigger loop: commits made with
+   the default `GITHUB_TOKEN` do not trigger workflows. No client inconsistency either — the
+   catalog only ever points at already-created releases.
+
+The logic lives in `scripts/publish-board.mjs` (Node + `gh` CLI), runnable both by the workflow
+and locally as a manual fallback.
 
 ### Client architecture (persephone app)
 
@@ -122,12 +154,18 @@ Follows the version-check + download-progress patterns already in the codebase:
   chunk-by-chunk, feed each chunk to `createHash("sha256")` (node:crypto) **and** a write stream to
   a temp file; broadcast throttled (500ms, like `download-service.ts`) progress events
   `{ installId, receivedBytes, totalBytes }`; reject on digest mismatch (delete temp file).
-- **Install (renderer):** new `src/renderer/api/board-install.ts` — orchestrates: call the download
-  endpoint → extract the verified temp ZIP via `archiveService` (`listEntries` + `readFile` loop +
-  `app.fs` writes; there is no extract-to-dir today, we add the loop here) with **zip-slip
-  protection** (reject entries resolving outside the target dir) → validate `readBoardManifest`
-  succeeds → `boardTrust.trust(root)` → record in an install registry → done (the reactive
-  `customEditorRegistry` picks the trusted board up automatically; the switch re-renders).
+- **Download (renderer orchestration):** new `src/renderer/api/board-install.ts` — call the
+  download endpoint → extract the verified temp ZIP via `archiveService` (`listEntries` +
+  `readFile` loop + `app.fs` writes; there is no extract-to-dir today, we add the loop here)
+  with **zip-slip protection** (reject entries resolving outside the target dir) → validate
+  `readBoardManifest` succeeds → record in an install registry. **Downloading does NOT trust** —
+  the board sits on disk inert (unexecuted code is harmless), reviewable by the user or their
+  agent.
+- **Register (separate consent step):** the standard trust flow — `showTrustBoardDialog(root)` →
+  on accept `boardTrust.trust(root)` (exactly US-868's `registerBoard`). Only then does the
+  reactive `customEditorRegistry` pick the board up and the switch re-render. The existing
+  invariant — nothing is ever trusted without the user's dialog click — holds with no
+  exceptions.
 - **Install registry:** `installedBoards.json` in the data folder (`fs.saveDataFile` pattern, like
   `trustedBoards.txt`): `[{ id, root, version, installedAt }]`. Maps catalog ids to installed
   roots for update checks and prevents re-advertising an installed board in the "+" entry.
@@ -141,36 +179,43 @@ Follows the version-check + download-progress patterns already in the codebase:
 `SwitchWidget` (`src/renderer/editors/base/PageToolbar.tsx`) already merges built-in candidates
 with trusted-board matches. Additions:
 
-- Compute catalog matches for the current file name (masks from the cached catalog), minus boards
-  already installed (install registry) or already offered by a trusted board with the same id.
-  Apply the same non-local filter as trusted boards (non-local file → `content-host` only).
+- Compute catalog matches for the current file name (masks from the cached catalog), minus
+  boards already offered by a **trusted** board with the same id. The subtraction is **per
+  board id**: if one matching board is installed (it shows as its own switch segment), "+"
+  still appears for the remaining matches. A downloaded-but-unregistered board also still
+  matches — its "+" leads to the Board Info screen in the Register state. Apply the same
+  non-local filter as trusted boards (non-local file → `content-host` only).
 - If any remain, append a **pseudo segment** `"+"` (tooltip "Install an editor for this file
   type…"). Pseudo segments are excluded from the `merged`/current-id guard math, and the
   visibility rule relaxes to: show the switch when `merged.length >= 2` **or** a pseudo entry
   exists (so a plain "Text"-only file still shows `Text | +`).
-- `onChange` intercepts the pseudo value **before** `onSwitch` (it must never reach
-  `switchMainEditor`) and opens the install dialog.
-- **Install dialog** (`src/renderer/ui/dialogs/InstallBoardDialog.tsx`): board name, version,
-  description, download size; install-path input (Browse…, default `<userData>/data/boards`);
-  the trust/RCE warning (same wording as `TrustBoardDialog` — installing = trusting); an
-  **Install** button that turns into a byte-progress bar (driven by the progress events, rendered
-  in dialog state — Mneme-style, not the indeterminate overlay); error text on failure (hash
-  mismatch, network, extract). On success the dialog closes and the page auto-switches to the new
-  editor via `page.switchMainEditor(boardEditorId(root))`.
+- The "+" segment's value maps to the **Board Info editor** (next section) — a real registered,
+  host-capable editor — so selecting it is an ordinary `switchMainEditor` navigation: no modal,
+  no pseudo-segment interception of `onChange`, and the file's content host transfers
+  losslessly. Only the visibility-guard relaxation above is switch-widget-specific.
 
 ### Updates
 
 - On each catalog refresh, compare catalog versions to the install registry (semver compare —
-  reuse `compareVersions` from `version-service.ts`). Toast once per board+version
-  (`ui.notify(..., "info")`, click → opens the Board properties dialog; `lastNotified` map in
-  `electronStore`, same idea as the app-update toast).
+  reuse `compareVersions` from `version-service.ts`) and derive `updatesAvailable` **silently** —
+  it drives badges (sidebar, hub, properties dialog) only, never a toast by itself.
+- The toast is deferred until the user actually uses the board: when a board page is opened or
+  activated and its root has a pending update, `ui.notify(..., "info")` once per board+version
+  (click → opens the Board Info page; `lastNotified` map in `electronStore`, same idea
+  as the app-update toast). Boards the user isn't opening never toast.
 - Update action re-runs the install flow into the **existing** root: download + verify → extract
   to a sibling temp folder → swap (rename old away, rename new in, delete old) so a failed
   download never destroys a working board. Trust and pins are untouched (same root).
+- **Open-pages precondition, checked before the download starts** (and re-checked before the
+  swap): the board must not be busy (`setBoardBusy` processes) and must have no open pages
+  (any page whose editor targets that root — main views and secondary-view panels alike). If it
+  does, a dialog asks the user to close the board's pages first, with a **Close pages &
+  continue** shortcut that closes them via the normal page-close flow (unsaved content-host
+  state gets its usual say) and proceeds; a veto aborts the update.
 - Surfacing: the **Custom Boards & Editors** sidebar tab (`TrustedBoardsList.tsx`) gains an
-  "Update available" badge + context-menu "Update" for registry-installed boards, and an
-  **Available** section listing not-yet-installed catalog boards with an Install action (same
-  dialog) — the browse-the-catalog entry point that doesn't require opening a matching file.
+  "Update available" badge + context-menu "Update" for registry-installed boards — nothing
+  else; the sidebar stays installed/registered-only. Catalog browsing lives exclusively in the
+  hub page's **Search boards** tab (US-870).
 
 ### Version history & rollback
 
@@ -183,7 +228,7 @@ lives in a per-board `boards/<id>/versions-manifest.json` in the repo, fetched r
   "schemaVersion": 1,
   "id": "drawio-viewer",
   "versions": [
-    { "version": "1.0.1", "date": "2026-07-20", "notes": "Fix …", "archive": { "url": "…", "size": 1, "sha256": "…" } },
+    { "version": "1.0.1", "date": "2026-07-20", "notes": "Fix …", "minAppVersion": "4.0.14", "archive": { "url": "…", "size": 1, "sha256": "…" } },
     { "version": "1.0.0", "date": "2026-07-16", "archive": { "url": "…", "size": 1, "sha256": "…" } }
   ]
 }
@@ -195,20 +240,44 @@ installing any listed version is the **same flow as an update** — download + v
 installed, so "update available" naturally reappears after a rollback (expected — the user chose
 the older version knowingly, and the once-per-version toast gate prevents repeat nagging).
 
-### Board properties dialog
+### Board Info editor — one screen for install & properties
 
-`BoardToolbar` (`src/renderer/editors/board/BoardToolbar.tsx`) gains a **Properties** button
-opening `showBoardPropertiesDialog(root)`:
+A registered full-page editor (`src/renderer/editors/board-info/`) serving both an uninstalled
+catalog board (**install mode**) and an installed board (**properties mode**). Reached from: the
+"+" switch entry, the board-toolbar **Properties** button (`BoardToolbar.tsx` — navigates the
+current page to this editor), the hub's Search/Registered tabs, the update-toast click, and
+agent `installPublished`.
 
-- Always (any board, including locally-authored): name, description, author, root path, editor
-  association (masks/name/kind), trust state.
-- For catalog-installed boards (install-registry match): installed version, source repository,
-  and a **Versions** list fetched on demand from `versions-manifest.json` — each entry with an
-  **Install** action; the current version is marked, newer-than-installed is highlighted as the
-  update.
-- Installing any version routes through the same swap flow (busy-board guard, local-edits
-  warning).
-- The "update available" toast click opens this dialog.
+- **Host-capable holder:** like `BoardContentEditorModel`, it adopts/yields the shared content
+  host (`CONTENT_HOST_TRAIT`) without rendering it, so `Text ↔ + ↔ installed board` switches
+  transfer the same host with no reload, no confirm, no data loss. Opened standalone (hub,
+  toast) it simply has no host.
+- **Multi-match:** opened from a file whose mask matches **several** catalog boards, install
+  mode lists them all as tiles (name, version, description, size), each expanding into its own
+  Download → Register flow below; a single match renders directly. Mixed states are fine —
+  one tile may be "Downloaded — not registered" while another is not yet downloaded.
+- **Install mode** (not installed) — a two-step flow:
+  1. **Download**: name, version, description, download size, file masks; install-path input
+     (Browse…, default `<userData>/data/boards`); **Download** button → byte-progress bar
+     (progress events rendered from editor state, Mneme-style); inline errors (hash mismatch,
+     network, extract). No consent needed — nothing is trusted or executed yet.
+  2. **Register**: once downloaded, the screen shows "Downloaded — not registered" with the
+     local folder path and a hint that the user can ask their AI agent to review the board's
+     files before trusting; the button becomes **Register board** → the standard
+     `showTrustBoardDialog` → on accept, trust + activate. Only after registration does the
+     page auto-switch to the new editor via `page.switchMainEditor(boardEditorId(root))`
+     (file-page flow). A downloaded-but-unregistered board can be deleted from this screen
+     (removes the folder + registry entry; nothing was ever trusted).
+- **Properties mode** (installed): name, description, author, root path, editor association,
+  trust state, installed version, source repository; **Versions** list fetched on demand from
+  `versions-manifest.json` — current version marked, newer highlighted as the update,
+  per-version **Install** = update/rollback via the swap flow (open-pages/busy precondition
+  per Design — close-pages dialog if violated; no other confirmation — the click is the
+  intent), incompatible versions disabled with the "Requires Persephone ≥ X" hint;
+  **Uninstall** (delete confirmation); an **Open board** button switching the page (back) to
+  the board editor.
+- The screen flips between modes reactively — after a successful install it either auto-switches
+  away (file-page flow) or becomes the properties view (hub/standalone flow).
 
 ### Agent API — register / unregister / rename boards
 
@@ -243,11 +312,17 @@ privilege-granting step:
   Read-only, no dialog.
 - `app.boards.getPublishedVersions(id)` — the board's `versions-manifest.json`. Read-only,
   no dialog.
-- `app.boards.installPublished(id, opts?: { dir?, version? })` — opens the **Install dialog**
-  prefilled (board info, path, optional specific version); the user's Install click is the
-  consent (install = trust, as everywhere). Resolves the installed root, or `undefined` on
-  cancel. Version change (update or rollback) is the same call with `version` on an
-  already-installed board — the dialog then runs the swap flow with the local-edits warning.
+- `app.boards.downloadPublished(id, opts?: { dir?, version? })` — download + verify + extract
+  + registry record, **no dialog** (nothing is trusted; the code sits inert on disk). Resolves
+  the local root. This is the agent's "can I trust this board?" entry point: download, read the
+  files, report to the user — then `registerBoard(root)` shows the trust dialog.
+- `app.boards.installPublished(id, opts?: { dir?, version? })` — the interactive combo: opens
+  the **Board Info page** prefilled (install mode; path/version pre-set from opts); the user
+  walks the Download → Register steps there, and the trust-dialog click is the consent.
+  Resolves the installed root, or `undefined` if the user closes/navigates away without
+  registering. Version change (update or rollback) is the same call with `version` on an
+  already-installed board — the screen then runs the swap flow (no new trust dialog: same
+  root, same trust).
 - `app.boards.uninstallBoard(rootOrId)` — shows the existing delete confirmation
   ("permanently removes its folder"), then folder delete + untrust + unpin + install-registry
   removal. Dialog required because it deletes files, not because of privilege.
@@ -271,7 +346,8 @@ plus a **Pinned** rail on the right (same pin model as the panel):
   `TrustedBoardsList`), plus installed-version / update badges from the install registry.
 - **Search boards** — the published catalog: search box (name/description/mask), board cards
   (name, description, version, masks, size, installed state), actions **Install…** /
-  **Update…** / **Properties** routing to the same dialogs as everywhere else.
+  **Update…** / **Properties** opening the Board Info page — the same single surface as
+  everywhere else.
 - **Tools** — registered toolsets (`ToolsTree`, as `TrustedToolsList`).
 
 ## Linked Tasks
@@ -280,10 +356,10 @@ plus a **Pinned** rail on the right (same pin model as the panel):
 |------|-------|--------|
 | US-862 | Catalog service (main): manifest fetch, cache, periodic check, IPC | Planned |
 | US-863 | Install engine: download + sha256 verify + extract + trust + install registry | Planned |
-| US-864 | "+" editor-switch entry + Install Board dialog with progress | Planned |
-| US-865 | Updates (version compare, toast, safe re-install) + catalog in the sidebar | Planned |
-| US-866 | persephone-boards repo: initial commit + boards-manifest.json + publish script | Planned |
-| US-867 | Board properties dialog + version history & rollback | Planned |
+| US-864 | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
+| US-865 | Updates: version compare, activation toast, safe re-install, sidebar badges | Planned |
+| US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |
+| US-867 | Board Info editor: properties mode + version history & rollback | Planned |
 | US-868 | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
 | US-869 | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Planned |
 | US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
@@ -297,7 +373,9 @@ plus a **Pinned** rail on the right (same pin model as the panel):
 - `src/main/published-boards-service.ts` (new): `getPublishedBoards(force?)` — electronStore-gated
   `net.fetch` of the raw manifest URL; parse/validate (`schemaVersion`, drop malformed entries);
   cache last-good catalog + fetch timestamp in `electronStore`; broadcast
-  `ePublishedBoardsUpdated` when content changed.
+  `ePublishedBoardsUpdated` when content changed. **Dev-only catalog-source override** (env var
+  or hidden setting) switching the fetch base from `main` to another branch (e.g. `develop`) —
+  lets the whole flow be tested before anything is published to `main`.
 - IPC (4-file recipe): `Endpoint.getPublishedBoards` in `src/ipc/api-types.ts` (+ `Api` type),
   renderer call in `src/ipc/renderer/api.ts`, handler + `bindEndpoint` in
   `src/ipc/main/controller.ts`. Event: `EventEndpoint.ePublishedBoardsUpdated` in `api-types.ts`
@@ -306,10 +384,14 @@ plus a **Pinned** rail on the right (same pin model as the panel):
 - `src/renderer/api/published-boards.ts` (new): renderer-side reactive model (`TGlobalState`)
   holding the catalog; subscribes to the event; `refresh(force)`; hooks
   `useCatalog()` / `useCatalogBoardsForFile(fileName)` (mask match via `matchesFileMask`).
-- `src/renderer/editors/board/board-manifest.ts`: add `version?: string` and
-  `standalone?: boolean` to `BoardManifest`, plus a resolver
+- `src/renderer/editors/board/board-manifest.ts`: add `version?: string`,
+  `standalone?: boolean`, and `minAppVersion?: string` to `BoardManifest`, plus a resolver
   `isBoardStandalone(manifest): boolean` implementing the defaults (no masks → true,
   masks → false unless opted in) and a derived-group helper for UI grouping.
+- Compatibility helper in `src/renderer/api/published-boards.ts`:
+  `isCompatible(minAppVersion?): boolean` (semver compare vs the app version); applied in
+  `useCatalogBoardsForFile` and everywhere the catalog is surfaced (see Design →
+  "App-version compatibility").
 
 ### US-863 — Install engine
 
@@ -318,41 +400,54 @@ plus a **Pinned** rail on the right (same pin model as the panel):
   incremental sha256, throttled `eBoardInstallProgress { installId, receivedBytes, totalBytes }`
   events, digest check, returns the temp path. Cancel endpoint. IPC via the 4-file recipe.
 - Renderer `src/renderer/api/board-install.ts` (new):
-  `installBoard(catalogEntry, targetParentDir): Promise<string /* root */>` —
+  `downloadBoard(catalogEntry, targetParentDir): Promise<string /* root */>` —
   download → extract (archive-service loop, zip-slip guard, create dirs, write files via `app.fs`)
   into `<targetParentDir>/<id>` (error if the folder exists and is not an update) → validate
-  `readBoardManifest` non-null → `boardTrust.trust(root)` → append to install registry → return
-  root. Also `updateBoard(entry)` (temp-extract + folder swap, US-865 wires the UI).
+  `readBoardManifest` non-null → append to install registry → return root. **No trust** —
+  registration is a separate step (US-868's `registerBoard` / the Board Info screen's Register
+  button). Also `updateBoard(entry)` (temp-extract + folder swap, US-865 wires the UI; runs
+  under the board's existing trust).
 - Install registry module `src/renderer/api/board-install-registry.ts` (new, mirrors
   `board-trust.ts` structure): `installedBoards.json` via `fs.saveDataFile`/`getDataFile`;
   reactive list; `record(entry)`, `remove(id)`, `getByRoot`, `useInstalled()`.
 - Un-install stays the existing sidebar "Remove"/"Delete Board" actions; "Delete Board" on a
   registry-installed board also removes its registry entry.
 
-### US-864 — "+" switch entry + Install dialog
+### US-864 — "+" switch entry + Board Info editor (install mode)
 
-- `src/renderer/editors/base/PageToolbar.tsx` `SwitchWidget`: catalog-match computation, pseudo
-  segment, relaxed visibility guard, `onChange` interception (see Design). `ISegment` supports
-  `icon`/`label` — use a plain `+` label.
-- `src/renderer/ui/dialogs/InstallBoardDialog.tsx` (new):
-  `showInstallBoardDialog(entry: PublishedBoardInfo, opts?: { targetRoot?: string })` — info,
-  path input + Browse (`fs.showFolderDialog`), RCE warning block (wording aligned with
-  `TrustBoardDialog.tsx`), Install → progress bar (subscribe `eBoardInstallProgress`) → success
-  (resolve installed root) / inline error + retry.
-- Auto-switch after install when invoked from the switch: caller does
-  `page.switchMainEditor(boardEditorId(root))`.
+- `src/renderer/editors/base/PageToolbar.tsx` `SwitchWidget`: catalog-match computation
+  (compatible + uninstalled + mask match; non-local → content-host only), append the `+`
+  segment mapping to the Board Info editor, relaxed visibility guard (`Text | +` must show).
+- New editor `src/renderer/editors/board-info/` (model + view; registered in
+  `register-editors.ts`, dynamic import; state carries `catalogId`/`boardRoot`).
+  **Host-capable holder** — adopts/yields `CONTENT_HOST_TRAIT` like `BoardContentEditorModel`
+  but never renders the content, so switch round-trips are lossless; `findCompatibleEditors`
+  returns the built-ins + itself so the switch widget renders correctly while it's active.
+- Install-mode UI per Design — two steps: **Download** (info, path input + Browse via
+  `fs.showFolderDialog`, progress from `eBoardInstallProgress` in editor state, inline error +
+  retry; no consent), then **Register board** ("Downloaded — not registered" state with folder
+  path + ask-your-agent-to-review hint; button → `showTrustBoardDialog` → `boardTrust.trust`;
+  delete-download action for the unregistered state).
+- After registration from a file page: `page.switchMainEditor(boardEditorId(root))`.
+- Page persistence/restore: restore by `catalogId`/`boardRoot` (no host round-trip required
+  across restart — reopening in install mode is acceptable).
 
 ### US-865 — Updates + sidebar catalog
 
 - `src/renderer/api/published-boards.ts`: derive `updatesAvailable` (catalog × install registry,
-  `compareVersions`); toast once per board+version on catalog refresh (electronStore-persisted
-  `lastNotified` map lives main-side next to the catalog cache, or in the registry file —
-  decide at implementation).
+  `compareVersions`; an update counts only if compatible per `minAppVersion`) — silent,
+  badge-driving only.
+- Update toast on board activation: hook board-page open/activation (`BoardEditorModel` — its
+  open or activate path already knows the root); if the root has a pending update, toast once
+  per board+version (electronStore-persisted `lastNotified` map lives main-side next to the
+  catalog cache, or in the registry file — decide at implementation).
 - `src/renderer/ui/sidebar/TrustedBoardsList.tsx`: "Update available" badge on installed boards;
-  context-menu **Update** → `updateBoard` (temp-extract + swap); an **Available** section
-  (catalog minus installed) with per-board **Install…** opening the same dialog.
-- `src/renderer/api/board-install.ts`: `updateBoard(entry)` implementation (swap semantics,
-  busy-board guard — refuse to swap a board that is currently busy/running).
+  context-menu **Update** → `updateBoard` (temp-extract + swap). No catalog content in the
+  sidebar — it stays installed/registered-only.
+- `src/renderer/api/board-install.ts`: `updateBoard(entry)` implementation (swap semantics;
+  open-pages/busy precondition checked before download and re-checked before swap — scan
+  `pagesModel` for editors targeting the root plus `busy-boards.ts`; close-pages dialog with
+  "Close pages & continue" per Design).
 
 ### US-866 — persephone-boards repo publishing
 
@@ -364,28 +459,38 @@ Work in `C:\projects\persephone-boards` (separate repo):
   `board-manifest.json`; `lib/LICENSE` + `lib/VERSION.txt` already present — attribution
   requirement satisfied), `boards-manifest.json`, `scripts/publish-board.mjs`, `README.md`
   (what the repo is, how to publish), `.gitignore` (`ui.log`, `node_modules`, `*.zip`).
-- `scripts/publish-board.mjs`: zip (exclusions, incl. `versions-manifest.json`) →
-  `gh release create` → sha256/size → `boards-manifest.json` entry rewrite → prepend entry to
-  `boards/<id>/versions-manifest.json` → commit. Node-only + `gh` CLI; no npm dependencies if
-  feasible (use `zip` via jszip or spawn `tar`/PowerShell `Compress-Archive`).
-- Publish drawio-viewer v1.0.0 end-to-end as the acceptance test of the whole epic.
-- Decide what else from the folder is published (`todo/` board? `_test/`, `_lib_stash` are not).
-  If `todo/` is published, its `board-manifest.json` declares `standalone: true` (file editor
-  that can start empty); drawio-viewer relies on the default (`false` — file viewer).
+- `scripts/publish-board.mjs`: detect boards whose manifest `version` has no `<id>-v<version>`
+  tag → zip (exclusions, incl. `versions-manifest.json`) → `gh release create` → sha256/size →
+  `boards-manifest.json` entry rewrite → prepend entry to `boards/<id>/versions-manifest.json`
+  → commit. Node-only + `gh` CLI; no npm dependencies if feasible (spawn `tar` / PowerShell
+  `Compress-Archive` / `zip`). Dual-mode: run by CI or locally as fallback.
+- `.github/workflows/publish-boards.yml`: `on: push: branches: [main]`,
+  `permissions: contents: write`; checkout → run the script → the script pushes the manifest
+  commit (default `GITHUB_TOKEN` commits don't retrigger workflows).
+- Work lands on the **`develop` branch first**; `main` stays empty until the client side is
+  ready, then the merge to `main` runs the Action and publishes drawio-viewer v1.0.0
+  end-to-end as the acceptance test of the whole epic.
+- Scope: **drawio-viewer only** (`_test/`, `_lib_stash` are never published). The `todo/`
+  board is deferred past this epic — it needs polish plus removal of the built-in todo editor
+  first; when it ships, its `board-manifest.json` declares `standalone: true` (file editor
+  that can start empty), while drawio-viewer relies on the default (`false` — file viewer).
 
-### US-867 — Board properties dialog + version history & rollback
+### US-867 — Board Info editor: properties mode + version history & rollback
 
 - `src/main/published-boards-service.ts`: `getBoardVersions(id)` — on-demand raw fetch of
   `boards/<id>/versions-manifest.json` (no cache gate; it's a small file), validate, return.
   IPC endpoint via the 4-file recipe (`Endpoint.getBoardVersions`).
-- `src/renderer/ui/dialogs/BoardPropertiesDialog.tsx` (new): `showBoardPropertiesDialog(root)` —
-  see Design. Versions section with loading/error states; **Install** per entry → confirm
-  (local-edits warning) → same download/verify/swap flow as update.
+- Properties mode of the Board Info editor (see Design): board/install info; Versions section
+  with loading/error states, per-version **Install** → same download/verify/swap flow as update
+  (no confirmation dialog — swap overwrites any local edits by design), incompatible versions
+  disabled with hint; **Uninstall** (delete confirmation → folder delete + untrust + unpin +
+  registry removal); **Open board** button → `switchMainEditor` back to the board editor.
 - `src/renderer/api/board-install.ts`: generalize `updateBoard` into
   `installVersion(root, archive, version)` (US-865's update = install the catalog-latest);
   install registry updated with the actually-installed version.
-- `src/renderer/editors/board/BoardToolbar.tsx`: **Properties** button.
-- US-865's update-toast click target is this dialog.
+- `src/renderer/editors/board/BoardToolbar.tsx`: **Properties** button → navigate the current
+  page to the Board Info editor (content host preserved for content-host boards).
+- US-865's update-toast click target is this page.
 
 ### US-868 — Agent API: register / unregister / rename boards
 
@@ -407,14 +512,19 @@ Depends on US-862 (catalog), US-863 (install engine), US-864 (install dialog), U
 (versions). Implemented last.
 
 - `src/renderer/api/boards.ts`: `searchPublished`, `getPublishedVersions`,
-  `installPublished` (opens `showInstallBoardDialog` prefilled; `version` opt routes to the
-  swap flow), `uninstallBoard` (existing delete-confirm wording from
-  `BoardsSecondaryView`'s "Delete Board"), `checkPublishedUpdates` (delegates to the
-  catalog service with `force`).
-- `src/renderer/api/types/boards.d.ts` (`IBoards`): the five methods, with docs stating which
+  `downloadPublished` (headless download, no dialog), `installPublished` (opens the Board Info
+  page prefilled; `version` opt routes to the swap flow), `uninstallBoard` (existing
+  delete-confirm wording from `BoardsSecondaryView`'s "Delete Board"), `checkPublishedUpdates`
+  (delegates to the catalog service with `force`).
+- `src/renderer/api/types/boards.d.ts` (`IBoards`): the six methods, with docs stating which
   calls show a user dialog and what cancel returns.
-- `assets/mcp-res-boards.md`: agent-facing "published boards" section — discover → install →
-  update/rollback → uninstall flows and the one-click-consent expectations.
+- `assets/mcp-res-boards.md`: agent-facing "published boards" section — discover → download →
+  review → register → update/rollback → uninstall flows and the consent expectations. Includes
+  **board-review instructions**: when the user asks "can I trust this board?", download it
+  (`downloadPublished`), read every script/HTML file in the folder, and check for malicious or
+  vulnerable patterns — data exfiltration (unexpected network targets), credential/file-system
+  access beyond the board's purpose, destructive `persephone.execute` usage, obfuscated code —
+  then report findings and let the user decide before `registerBoard`.
 - No new MCP tools — `execute_script` reaches everything.
 
 ### US-870 — Tools & Editors hub page
@@ -433,60 +543,82 @@ sources, not duplicate them.
   new-page dropdown fed by `tools-editors-registry.ts`) offered only for standalone boards;
   board lists grouped by the derived type (File viewer / File editor / Tool).
 - "Search boards" tab: filter box over the cached catalog; per-board card with Install /
-  Update / Properties actions (existing dialogs); a "Refresh catalog" action calling the
-  force check.
+  Update / Properties actions (opening the Board Info page); a "Refresh catalog" action
+  calling the force check.
 - `src/renderer/ui/sidebar/ToolsEditorsPanel.tsx`: "Open in new tab" header button →
   open/activate the hub page (persist active tab between panel and page is NOT required).
 
 ## Concerns / Open questions
 
-1. **Install UX form — dialog vs. full-page editor.** The original idea describes "+" opening an
-   editor-like screen. This design uses a **modal install dialog** instead: far less machinery (a
-   pseudo editor id would have to be special-cased through `switchMainEditor`, restore/persist,
-   `findCompatibleEditors`, etc.), and the post-install auto-switch gives the same "screen changes
-   to the new editor" outcome. **Needs user confirmation.**
-2. **Install = trust.** The install dialog carries the RCE warning and Install implies
-   `boardTrust.trust()` (one consent, like `createBoard`'s provenance-based auto-trust). The
-   alternative — a second Trust dialog after install — is strictly more clicks for the same
-   consent. Recommended: install = trust.
-3. **Updates replace code the user may have edited locally.** The swap overwrites local
-   modifications to an installed board. Mitigation options: warn always, or detect modification
-   (store the release sha256 per file at install — heavier). Recommendation: plain warning in the
-   update confirm ("local changes to this board will be lost").
-4. **Memory during extraction:** `archive-service` reads the whole ZIP into memory (renderer).
-   Fine for boards in the single-to-tens-of-MB range (drawio-viewer ZIP ≈ 1–2 MB). A future
-   very large board (pdf.js) may want a main-side streaming extract — out of scope here, the
-   archive path in the manifest doesn't change.
-5. **Catalog trust model.** The catalog is single-source (the project's own repo) and the sha256
-   pins each release asset. If third-party authors are ever admitted, signing/review policy needs
-   its own epic.
-6. **`todo/` board publication** — user decision at US-866 time.
-7. **Possible overlap:** US-865's "Available" section in the sidebar Custom Boards & Editors tab
-   vs. US-870's hub "Search boards" tab both list not-yet-installed catalog boards. Option: drop
-   the sidebar Available section (keep the sidebar to installed/trusted boards + update badges)
-   and make the hub the only catalog-browsing surface. Decide at implementation.
+1. **Install UX form — RESOLVED (2026-07-16):** a single full-page **Board Info editor** serves
+   both install (uninstalled catalog board) and properties (installed board), replacing the
+   earlier modal-dialog draft. Registering it as a real, host-capable editor removes the
+   pseudo-segment machinery the dialog design was avoiding: "+" becomes an ordinary
+   `switchMainEditor` navigation with lossless host transfer. See "Board Info editor" in Design.
+2. **Install = trust — RESOLVED (2026-07-16): NO.** Install is split into **Download** (no
+   consent — verified code lands on disk inert and reviewable) and **Register board** (the
+   standard trust dialog; reuses US-868's `registerBoard`). This preserves the "nothing is
+   trusted without the dialog" invariant with zero exceptions and enables the
+   download-→-agent-review-→-register flow. The agent-facing boards guide gains instructions
+   for reviewing a downloaded board before registration (see US-869).
+3. **Updates replace code the user may have edited locally — RESOLVED (2026-07-16): no
+   warning.** Updating/rolling back a board obviously replaces its files; users who hand-edit
+   an installed catalog board own that risk. No local-edits detection or confirmation dialog —
+   the version-Install click itself is the intent (the busy-board guard remains, as a technical
+   safety, not a courtesy).
+4. **Memory during extraction — RESOLVED (2026-07-16): accepted as-is.** `archive-service`
+   reads the whole ZIP into memory (renderer); boards won't reach gigabyte scale (the app's own
+   baseline is ~0.5 GB, and the OS page file backstops the rest). No streaming extract — the
+   in-memory loop is the design.
+5. **Catalog trust model — RESOLVED (2026-07-16): single-source, owner-verified.** The
+   `persephone-boards` repo is the only catalog source, permanently. External contributions
+   arrive only as pull requests, reviewed by the owner before merge — and since only a merge to
+   `main` triggers the publish Action, contributors cannot release anything directly. The
+   sha256 in the manifest pins every asset end-to-end.
+6. **`todo/` board publication — RESOLVED (2026-07-16): deferred past this epic.** The epic
+   develops and tests the whole flow on drawio-viewer only, on the `develop` branch first.
+   The todo board follows later as separate work (polish + retiring the built-in todo editor).
+7. **Possible overlap — RESOLVED (2026-07-16): sidebar stays as-is.** No "Available"/search
+   content in the sidebar — it shows installed/registered boards only (plus update badges).
+   The hub page's **Search boards** tab (US-870) is the sole catalog-browsing surface.
 
 ## Acceptance criteria
 
 - With no drawio board installed, opening a `.drawio` file shows `Text | +` in the switch; "+"
-  opens the install dialog showing DrawIO Viewer v1.0.0 info and a path defaulting to
-  `<userData>/data/boards`; Install shows byte progress, then the page switches to the DrawIO
-  editor and the switch shows `Text | DrawIO`.
+  switches the page to the Board Info screen showing DrawIO Viewer v1.0.0 info and a path
+  defaulting to `<userData>/data/boards`; switching back to Text before installing loses no
+  content; **Download** shows byte progress and trusts nothing (the downloaded board is inert —
+  no editor association, not in the switch); **Register board** shows the trust dialog, and only
+  after accepting does the page switch to the DrawIO editor with the switch showing
+  `Text | DrawIO`.
+- When several catalog boards match the file's mask, the "+" screen lists them all as tiles,
+  each installable independently; "+" remains in the switch as long as any matching catalog
+  board is not yet offered by a trusted board — including when another matching board is
+  already installed.
 - The installed board appears in the Custom Boards & Editors tab and behaves identically to a
   locally-created trusted board (content-host round-trip, Ctrl+S, Remove).
 - A tampered/corrupt download (sha256 mismatch) fails with a clear error and leaves nothing
   installed; a mid-download cancel leaves nothing installed.
-- Re-publishing drawio-viewer as v1.0.1 produces an update toast within one catalog cycle (or on
-  force refresh); Update swaps the folder without losing trust/pins; a busy board refuses to swap.
-- The board toolbar's Properties button shows board info for any board; for a catalog-installed
-  board it lists all published versions, and installing an older one rolls the board back (same
-  safety as update) with the registry reflecting the installed version.
+- Re-publishing drawio-viewer as v1.0.1 shows the update badge within one catalog cycle (or on
+  force refresh), and the toast appears only the next time the board is opened/activated — never
+  for boards the user doesn't open; Update swaps the folder without losing trust/pins; if the
+  board is busy or open in any page, a dialog asks to close those pages (with a close-and-
+  continue shortcut) before the download even starts.
+- The board toolbar's Properties button navigates the page to the Board Info screen for any
+  board, and its **Open board** button returns to the board view; for a catalog-installed board
+  the screen lists all published versions, and installing an older one rolls the board back
+  (same safety as update) with the registry reflecting the installed version.
+- A board version whose `minAppVersion` exceeds the running app never appears in the "+" entry,
+  never counts as an available update, is disabled with a "Requires Persephone ≥ X" hint in the
+  versions list, and is refused by `installPublished` — while an older compatible version of the
+  same board remains installable.
 - An agent (via `execute_script`) can register a board with `app.boards.registerBoard` — the user
   sees exactly one trust dialog and nothing else; declining returns `false` and leaves the board
   untrusted. `app.boards.renameBoard` renames a trusted board with zero user interaction, and the
   board stays trusted, pinned, and (if catalog-installed) update-checkable at the new path.
 - An agent can run the full catalog lifecycle: `searchPublished("drawio")` finds the viewer,
-  `installPublished(id)` installs it after the user's single Install click,
+  `downloadPublished(id)` fetches it with no dialog for review ("can I trust this board?"),
+  `registerBoard(root)` activates it after the user's single trust-dialog click,
   `installPublished(id, { version })` rolls it back/forward, and `uninstallBoard(id)` removes it
   after the delete confirmation — with no other user interaction at any step.
 - The AppBar Tools & Editors panel's "Open in new tab" button opens the hub page; its "Search
@@ -494,8 +626,10 @@ sources, not duplicate them.
   open; the other tabs mirror the panel's content plus the Pinned rail.
 - Catalog fetch failures are silent (cached catalog keeps working; no error toasts on offline
   startup).
-- `boards-manifest.json` in the repo is generated only by the publish script and matches the
-  released assets (id/version/sha256/size).
+- Bumping a board's `version` and merging to `main` is the entire publish flow: the GitHub
+  Action creates the tagged release and updates both catalog manifests with no manual steps;
+  `boards-manifest.json` and `versions-manifest.json` are written only by the publish
+  automation and match the released assets (id/version/sha256/size).
 
 ## Notes
 
