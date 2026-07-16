@@ -152,6 +152,10 @@ export function setupMainProcess() {
             import("./published-boards-service").then(({ publishedBoardsService }) =>
                 publishedBoardsService.getPublishedBoards(),
             );
+            // Sweep any board-download ZIP orphaned by a crash mid-download (US-863).
+            import("./board-download-service").then(({ boardDownloadService }) =>
+                boardDownloadService.cleanDownloadsFolder(),
+            );
         }, 5000);
     });
 

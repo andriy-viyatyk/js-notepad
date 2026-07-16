@@ -176,6 +176,10 @@ class App {
         // initial catalog (US-862). Fire-and-forget — no view blocks on it, and a fetch
         // failure is silent (cached catalog / empty).
         import("./published-boards").then(({ publishedBoards }) => publishedBoards.load());
+
+        // Load the board install registry so update checks / "already installed" filters
+        // have data (US-863). Fire-and-forget; reconciles stale entries on load.
+        import("./board-install-registry").then(({ boardInstallRegistry }) => boardInstallRegistry.load());
     }
 
     /**

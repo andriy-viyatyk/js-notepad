@@ -377,7 +377,7 @@ plus a **Pinned** rail on the right (same pin model as the panel):
 | Task | Title | Status |
 |------|-------|--------|
 | [US-862](../tasks/US-862-catalog-service/README.md) | Catalog service (main): manifest fetch, cache, periodic check, IPC | Active |
-| US-863 | Install engine: download + sha256 verify + extract + trust + install registry | Planned |
+| [US-863](../tasks/US-863-install-engine/README.md) | Install engine: download + sha256 verify + extract + install registry | Active |
 | US-864 | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
 | US-865 | Updates: version compare, activation toast, safe re-install, sidebar badges | Planned |
 | US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |

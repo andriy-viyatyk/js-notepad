@@ -3,7 +3,7 @@ import { Api, BOARD_CDP_TAB, CaptureRect, Endpoint, EventEndpoint, McpStatus, Mn
 import { getAssetPath, getAppRootPath, getDataFolder } from "../../main/utils";
 import { showOpenFileDialog, showOpenFolderDialog, showSaveFileDialog } from "./dialog-handlers";
 import { getFileToOpen, getUrlToOpen, windowReady } from "./window-handlers";
-import { DownloadEntry, OpenFileDialogParams, PublishedBoardsResult, RuntimeVersions, SaveFileDialogParams, UpdateCheckResult, VideoStreamSessionConfig, VideoStreamSessionResult } from "../api-param-types";
+import { BoardArchiveDownloadRequest, DownloadEntry, OpenFileDialogParams, PublishedBoardsResult, RuntimeVersions, SaveFileDialogParams, UpdateCheckResult, VideoStreamSessionConfig, VideoStreamSessionResult } from "../api-param-types";
 import { openWindows } from "../../main/open-windows";
 import { initRendererEvents } from "./renderer-events";
 import { WindowPages, PageDragData } from "../../shared/types";
@@ -468,6 +468,16 @@ class Controller implements MainApi {
         const { publishedBoardsService } = await import("../../main/published-boards-service");
         return publishedBoardsService.getPublishedBoards(force);
     };
+
+    downloadBoardArchive = async (_event: IpcMainEvent, req: BoardArchiveDownloadRequest): Promise<string> => {
+        const { boardDownloadService } = await import("../../main/board-download-service");
+        return boardDownloadService.downloadBoardArchive(req);
+    };
+
+    cancelBoardDownload = async (_event: IpcMainEvent, installId: string): Promise<void> => {
+        const { boardDownloadService } = await import("../../main/board-download-service");
+        boardDownloadService.cancelBoardDownload(installId);
+    };
 }
 
 const controllerInstance = new Controller();
@@ -570,6 +580,8 @@ const init = () => {
     bindEndpoint(Endpoint.registerBoardFrame, controllerInstance.registerBoardFrame);
     bindEndpoint(Endpoint.unregisterBoardFrame, controllerInstance.unregisterBoardFrame);
     bindEndpoint(Endpoint.getPublishedBoards, controllerInstance.getPublishedBoards);
+    bindEndpoint(Endpoint.downloadBoardArchive, controllerInstance.downloadBoardArchive);
+    bindEndpoint(Endpoint.cancelBoardDownload, controllerInstance.cancelBoardDownload);
 
     initRendererEvents();
 }

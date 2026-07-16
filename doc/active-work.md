@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 - **EPIC-045** — [Published Boards Catalog — download & install boards from GitHub](epics/EPIC-045.md)
   - [ ] [US-862: Catalog service (main): manifest fetch, cache, periodic check, IPC](tasks/US-862-catalog-service/README.md)
-  - [ ] US-863: Install engine: download + sha256 verify + extract + trust + install registry
+  - [ ] [US-863: Install engine: download + sha256 verify + extract + install registry](tasks/US-863-install-engine/README.md)
   - [ ] US-864: "+" editor-switch entry + Board Info editor (install mode, progress)
   - [ ] US-865: Updates: version compare, activation toast, safe re-install, sidebar badges
   - [ ] US-866: persephone-boards repo: initial commit + publish script + GitHub Action

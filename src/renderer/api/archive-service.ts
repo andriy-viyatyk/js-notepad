@@ -15,7 +15,7 @@
 const nodefs = require("fs") as typeof import("fs");
 
 import type { IFileStat, IDirEntry } from "./types/fs";
-import { isZipBasedArchive } from "../core/utils/file-path";
+import { isZipBasedArchive, fpResolve, fpDirname, fpNormalizeForCompare } from "../core/utils/file-path";
 import type { LibarchiveWasm } from "libarchive-wasm";
 
 // =============================================================================
@@ -139,6 +139,49 @@ class ArchiveService {
     /** List all entries in an archive. */
     async listEntries(archivePath: string): Promise<ArchiveEntry[]> {
         return this.enqueue(archivePath, () => this.readAllEntries(archivePath));
+    }
+
+    /**
+     * Extract every entry of an archive into `targetDir` in a single pass (open once,
+     * write each entry). Guards against zip-slip — entries resolving outside `targetDir`
+     * are rejected. Creates parent directories as needed.
+     */
+    async extractTo(archivePath: string, targetDir: string): Promise<void> {
+        return this.enqueue(archivePath, async () => {
+            const { ArchiveReader } = await import("libarchive-wasm");
+            const mod = await this.getWasmModule();
+            const data = nodefs.readFileSync(archivePath);
+            const reader = new ArchiveReader(mod, new Int8Array(data.buffer, data.byteOffset, data.byteLength));
+            const rootKey = fpNormalizeForCompare(targetDir);
+            try {
+                nodefs.mkdirSync(targetDir, { recursive: true });
+                for (const entry of reader.entries()) {
+                    let entryPath = entry.getPathname();
+                    const isDir = entry.getFiletype() === "Directory";
+                    if (isDir && entryPath.endsWith("/")) entryPath = entryPath.slice(0, -1);
+                    if (!entryPath || entryPath === ".") continue;
+
+                    const dest = fpResolve(targetDir, entryPath);
+                    const destKey = fpNormalizeForCompare(dest);
+                    // zip-slip: dest must be inside targetDir (equal or under it)
+                    if (destKey !== rootKey && !destKey.startsWith(rootKey + "/")) {
+                        throw new Error(`Unsafe archive entry (zip-slip): ${entryPath}`);
+                    }
+                    if (isDir) {
+                        nodefs.mkdirSync(dest, { recursive: true });
+                    } else {
+                        nodefs.mkdirSync(fpDirname(dest), { recursive: true });
+                        const content = entry.readData();
+                        const buf = content
+                            ? Buffer.from(content.buffer, content.byteOffset, content.byteLength)
+                            : Buffer.alloc(0);
+                        nodefs.writeFileSync(dest, buf);
+                    }
+                }
+            } finally {
+                reader.free();
+            }
+        });
     }
 
     /** List immediate children of a directory inside an archive. */

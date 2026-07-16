@@ -1,5 +1,6 @@
 import { PageDragData, PageDescriptor, WindowPages } from "../shared/types";
 import {
+    BoardArchiveDownloadRequest,
     CommonFolder,
     DownloadEntry,
     OpenFileDialogParams,
@@ -101,6 +102,8 @@ export enum Endpoint {
     registerBoardFrame = "registerBoardFrame",
     unregisterBoardFrame = "unregisterBoardFrame",
     getPublishedBoards = "getPublishedBoards",
+    downloadBoardArchive = "downloadBoardArchive",
+    cancelBoardDownload = "cancelBoardDownload",
 }
 
 /** Synthetic CDP "tab" id for a board (boards have no tabs). The automation
@@ -238,6 +241,8 @@ export type Api = {
     [Endpoint.registerBoardFrame]: (boardId: string, boardHost: string, frameNonce?: string, tab?: string) => Promise<void>;
     [Endpoint.unregisterBoardFrame]: (boardId: string, tab?: string) => Promise<void>;
     [Endpoint.getPublishedBoards]: (force?: boolean) => Promise<PublishedBoardsResult>;
+    [Endpoint.downloadBoardArchive]: (req: BoardArchiveDownloadRequest) => Promise<string>;
+    [Endpoint.cancelBoardDownload]: (installId: string) => Promise<void>;
 };
 
 export enum EventEndpoint {
@@ -268,6 +273,8 @@ export enum EventEndpoint {
     eBoardPort = "eBoardPort",
     // Published-boards catalog changed (US-862) — carries the new catalog.
     ePublishedBoardsUpdated = "ePublishedBoardsUpdated",
+    // Board-archive download progress (US-863) — throttled byte progress per installId.
+    eBoardInstallProgress = "eBoardInstallProgress",
 }
 
 export interface EventSubscription {
@@ -311,6 +318,9 @@ export type EventApi = {
     // Published-boards catalog refresh (US-862): main broadcasts the new catalog when
     // it changes; the renderer catalog model updates reactively.
     [EventEndpoint.ePublishedBoardsUpdated]: EventObject<PublishedBoardsCatalog>;
+    // Board-archive download progress (US-863): main streams the ZIP and broadcasts
+    // throttled byte progress; the install UI (US-864) renders it from editor state.
+    [EventEndpoint.eBoardInstallProgress]: EventObject<{ installId: string; receivedBytes: number; totalBytes: number }>;
 };
 
 export enum RendererEvent {

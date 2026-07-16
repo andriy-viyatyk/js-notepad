@@ -131,6 +131,10 @@ class RendererEvents implements EventApi {
     [EventEndpoint.ePublishedBoardsUpdated] = new RendererEventObject<PublishedBoardsCatalog>(
         EventEndpoint.ePublishedBoardsUpdated
     );
+
+    [EventEndpoint.eBoardInstallProgress] = new RendererEventObject<{ installId: string; receivedBytes: number; totalBytes: number }>(
+        EventEndpoint.eBoardInstallProgress
+    );
 }
 
 const rendererEvents = new RendererEvents();

@@ -1,5 +1,6 @@
 import { PageDragData, WindowPages } from "../../shared/types";
 import {
+    BoardArchiveDownloadRequest,
     CommonFolder,
     DownloadEntry,
     OpenFileDialogParams,
@@ -423,6 +424,14 @@ class ApiCalls implements Api {
 
     getPublishedBoards = async (force?: boolean) => {
         return executeOnce<PublishedBoardsResult>(Endpoint.getPublishedBoards, force);
+    };
+
+    downloadBoardArchive = async (req: BoardArchiveDownloadRequest) => {
+        return executeOnce<string>(Endpoint.downloadBoardArchive, req);
+    };
+
+    cancelBoardDownload = async (installId: string) => {
+        return executeOnce<void>(Endpoint.cancelBoardDownload, installId);
     };
 }
 

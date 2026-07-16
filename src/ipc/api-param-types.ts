@@ -113,6 +113,17 @@ export interface PublishedBoardsResult {
     error?: string;
 }
 
+/** One in-flight board-archive download (EPIC-045 / US-863). `installId` is minted by the
+ *  renderer so it can match `eBoardInstallProgress` events and cancel a specific download. */
+export interface BoardArchiveDownloadRequest {
+    installId: string;
+    url: string;
+    /** Expected lowercase hex sha256 — the download rejects on mismatch. */
+    sha256: string;
+    /** Expected byte size (from the catalog) — used for the progress bar total. */
+    size: number;
+}
+
 export interface VideoStreamSessionConfig {
     /** Local file path to stream. Mutually exclusive with url. */
     filePath?: string;
