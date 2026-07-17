@@ -1151,6 +1151,50 @@ function VideoPlayerSection() {
 }
 
 // ============================================================================
+// Terminal Section
+// ============================================================================
+
+const TERMINAL_ITEMS: IListBoxItem[] = [
+    { value: "", label: "Auto-detect (pwsh → powershell → cmd)" },
+    { value: "pwsh", label: "PowerShell 7 (pwsh)" },
+    { value: "powershell", label: "Windows PowerShell (powershell)" },
+    { value: "cmd", label: "Command Prompt (cmd)" },
+    { value: "wt", label: "Windows Terminal (wt)" },
+];
+
+function TerminalSection() {
+    const terminalCommand = settings.use("terminal.command");
+    // Surface a custom command/path (not one of the known options) as its own
+    // item so the Select shows it instead of appearing empty.
+    const items =
+        terminalCommand && !TERMINAL_ITEMS.some((i) => i.value === terminalCommand)
+            ? [...TERMINAL_ITEMS, { value: terminalCommand, label: terminalCommand }]
+            : TERMINAL_ITEMS;
+    const selected = items.find((i) => i.value === terminalCommand) ?? items[0];
+
+    return (
+        <>
+            <Panel paddingBottom="lg"><Text bold size="sm">Terminal</Text></Panel>
+            <Panel paddingBottom="md">
+                <Text color="light" size="xs">
+                    Terminal opened by "Open Terminal here" on folders. Auto-detected on
+                    first use — change it here (e.g. to pwsh after installing PowerShell 7).
+                </Text>
+            </Panel>
+            <Panel maxWidth={360}>
+                <Select
+                    items={items}
+                    value={selected}
+                    onChange={(item) =>
+                        settings.set("terminal.command", (item?.value as string) ?? "")
+                    }
+                />
+            </Panel>
+        </>
+    );
+}
+
+// ============================================================================
 // SettingsView Component
 // ============================================================================
 
@@ -1306,6 +1350,10 @@ function SettingsView(_props: SettingsEditorProps) {
                     <Panel paddingY="xl"><Divider /></Panel>
 
                     <VideoPlayerSection />
+
+                    <Panel paddingY="xl"><Divider /></Panel>
+
+                    <TerminalSection />
 
                     <Panel paddingY="xl"><Divider /></Panel>
 

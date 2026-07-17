@@ -274,6 +274,16 @@ class Controller implements MainApi {
         deleteSessionsByPage(pageId);
     };
 
+    openTerminal = async (event: IpcMainEvent, path: string, command: string): Promise<void> => {
+        const { openTerminalAt } = await import("../../main/terminal-launcher");
+        openTerminalAt(path, command);
+    };
+
+    detectTerminal = async (_event: IpcMainEvent): Promise<string> => {
+        const { detectTerminal } = await import("../../main/terminal-launcher");
+        return detectTerminal();
+    };
+
     openInVlc = async (event: IpcMainEvent, url: string, vlcPath?: string): Promise<void> => {
         const { openInVlc } = await import("../../main/vlc-launcher");
         openInVlc(url, vlcPath);
@@ -554,6 +564,8 @@ const init = () => {
     bindEndpoint(Endpoint.deleteVideoStreamSession, controllerInstance.deleteVideoStreamSession);
     bindEndpoint(Endpoint.deleteVideoStreamSessionsByPage, controllerInstance.deleteVideoStreamSessionsByPage);
     bindEndpoint(Endpoint.openInVlc, controllerInstance.openInVlc);
+    bindEndpoint(Endpoint.openTerminal, controllerInstance.openTerminal);
+    bindEndpoint(Endpoint.detectTerminal, controllerInstance.detectTerminal);
     bindEndpoint(Endpoint.gitProbe, controllerInstance.gitProbe);
     bindEndpoint(Endpoint.gitDetectRepo, controllerInstance.gitDetectRepo);
     bindEndpoint(Endpoint.gitLog, controllerInstance.gitLog);

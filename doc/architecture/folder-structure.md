@@ -103,6 +103,7 @@ persephone/
 │   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers
 │   ├── mneme-status.ts     # Mneme health prober + reactive status (shared MCP connection; drives sidecar launch, indicators, and auto-opens the config editor when no model is provisioned)
 │   ├── proc.ts             # IProc implementation (app.proc.execute) — renderer client over the main-process command runner; compile-time drift guard keeps it in sync with runner-channels.ts
+│   ├── terminal.ts         # openTerminalAt(dir) helper — reads terminal.command, auto-detects pwsh→powershell→cmd on first use and saves it, then launches ("Open Terminal here")
 │   ├── board-trust.ts      # Per-board trust registry — persists trusted board roots (trustedBoards.txt); untrusted boards block rendering. This list IS the known-boards registry
 │   ├── boards.ts           # IBoards implementation (app.boards) — board lifecycle (create/open/register/rename) + published-catalog ops (search/download/install/uninstall/updates)
 │   ├── published-boards.ts # Reactive published-catalog model — useCatalog / useCatalogBoardsForFile / isCompatible / getVersions / updatesAvailable / refresh(force)
@@ -767,6 +768,7 @@ persephone/
 ├── board-download-service.ts # Streamed board-archive download — net.fetch → temp file + incremental sha256 verify, throttled eBoardInstallProgress, digest check
 ├── video-stream-server.ts  # Local HTTP streaming server (range requests, faststart MP4 relocation, session management)
 ├── vlc-launcher.ts         # VLC process launcher (spawn + auto-detect VLC path)
+├── terminal-launcher.ts    # Terminal launcher — detectTerminal (pwsh→powershell→cmd via `where`) + openTerminalAt (cmd /c start, gives the console shell its own window) for "Open Terminal here"
 ├── tray-setup.ts           # System tray
 ├── drag-model.ts           # Tab drag between windows
 ├── e-store.ts              # Electron store wrapper

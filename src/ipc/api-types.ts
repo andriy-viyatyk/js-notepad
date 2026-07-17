@@ -72,6 +72,8 @@ export enum Endpoint {
     deleteVideoStreamSession = "deleteVideoStreamSession",
     deleteVideoStreamSessionsByPage = "deleteVideoStreamSessionsByPage",
     openInVlc = "openInVlc",
+    openTerminal = "openTerminal",
+    detectTerminal = "detectTerminal",
     gitProbe = "gitProbe",
     gitDetectRepo = "gitDetectRepo",
     gitLog = "gitLog",
@@ -203,6 +205,8 @@ export type Api = {
     [Endpoint.deleteVideoStreamSession]: (sessionId: string) => Promise<void>;
     [Endpoint.deleteVideoStreamSessionsByPage]: (pageId: string) => Promise<void>;
     [Endpoint.openInVlc]: (url: string, vlcPath?: string) => Promise<void>;
+    [Endpoint.openTerminal]: (path: string, command: string) => Promise<void>;
+    [Endpoint.detectTerminal]: () => Promise<string>;
     [Endpoint.gitProbe]: () => Promise<GitProbeResult>;
     [Endpoint.gitDetectRepo]: (dir: string) => Promise<GitRepoInfo | null>;
     [Endpoint.gitLog]: (dir: string, opts: GitLogOptions) => Promise<GitCommit[]>;

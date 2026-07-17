@@ -159,7 +159,7 @@ Click a folder in the left panel to see its contents in the right panel.
 
 **Managing Custom Folders:**
 - Click the **Add Folder** button at the bottom of the left panel to pick a folder and add it as a shortcut
-- Right-click in the left panel for the same **Add Folder** option, plus **Open in New Tab** and **Remove Folder** on an existing shortcut
+- Right-click in the left panel for the same **Add Folder** option, plus **Open in New Tab**, **Show in File Explorer**, **Open Terminal here** (Windows only — see [Open Terminal here](#open-terminal-here)), and **Remove Folder** on an existing shortcut
 - Folders provide quick access to frequently used directories
 
 ### Right Panel — Contents
@@ -179,6 +179,7 @@ The right panel shows the contents of the selected folder:
 - Browse files and folders in a tree view
 - Click a file to open it
 - Right-click for options: Create File, Create Folder, Rename, Delete, Cut, Copy, Paste
+- Right-click a folder for **Open Terminal here** (Windows only — see [Open Terminal here](#open-terminal-here))
 - Search files by name with `Ctrl+F` when the file explorer is active
 - **Drag a file out to the OS** — drag a file from the tree onto Windows Explorer or into a Microsoft Teams chat to copy/attach it there. No modifier key needed. Dragging it into another folder in the tree instead asks whether to **Move** or **Copy** it there. Currently one file at a time.
 - **Drop files from Windows Explorer** — drag a file or folder from Windows Explorer (or another app) and drop it onto a folder in the tree; a **Move / Copy / Cancel** dialog asks which you want (folders are handled recursively), and dropping onto an existing name asks for confirmation before overwriting.
@@ -254,6 +255,7 @@ Any saved file can open a **File Explorer** panel alongside the editor. Click th
 - **Drag a file out to the OS** — Drag a file from the tree onto Windows Explorer to copy it there, or onto a Microsoft Teams chat compose box to attach it — a native OS drag, just like dragging from Windows Explorer itself. No modifier key needed. Not available on the tree's root, and one file at a time for now.
 - **Move or copy between folders** — Dragging a file onto another folder in the tree — whether the file comes from this tree or from Windows Explorer — opens a **Move / Copy / Cancel** dialog so you always choose the operation; folders dropped from Windows Explorer are handled the same way, recursively. Dropping a file back onto the folder it already lives in does nothing. Dropping onto a name that already exists asks for confirmation before overwriting.
 - **Open folder in new panel** — Right-click any folder and choose **Open in New Panel** to open it in a new File Explorer tab alongside the current editor
+- **Open Terminal here** — Right-click any folder (including the tree's root) and choose **Open Terminal here** to launch a terminal window with that folder as its working directory. Windows only. See [Open Terminal here](#open-terminal-here) below for details and configuration.
 - **Auto-reveal current file** — When the Explorer panel is active (expanded), navigating to a file automatically expands its parent folders and scrolls the tree to show the file. When the Search panel is active instead, the file is highlighted in the tree without expanding folders.
 - **Search files by name** — Press `Ctrl+F` within the panel to search files by name (filters the tree to matching entries)
 - **Search in file contents** — Click the **Search** icon in the Explorer panel header to open a content-search panel scoped to the root folder. You can also right-click any folder in the tree and choose **Search in Folder** to search only within that folder.
@@ -272,6 +274,16 @@ Any saved file can open a **File Explorer** panel alongside the editor. Click th
 - **Resizable** — Drag the panel border to resize
 - **Persistent state** — Expanded folders, panel width, and scroll position survive app restarts and in-tab navigation
 - **Focus stays where you left it** — Clicking a file from the Explorer tree (or any sidebar panel) loads it in the main editor without moving keyboard focus there, so the tree's selection highlight stays fully lit and you can keep navigating with the keyboard. Focus only moves to the editor when you actively activate a page — clicking a tab, opening a new file, or switching tabs — so typing works immediately in that case.
+
+### Open Terminal here
+
+Right-click any folder and choose **Open Terminal here** to open a terminal window with that folder as its working directory. **Windows only.** This is available in three places:
+
+- The File Explorer tree (sidebar panel or page-level panel), including the tree's root folder
+- The sidebar's flat Custom Folder list
+- The App bar left panel's pinned **Custom Folders** shortcuts
+
+**Choosing the terminal:** Go to **Settings → Terminal** to pick which terminal is launched — **Auto-detect** (the default), **PowerShell 7 (pwsh)**, **Windows PowerShell (powershell)**, **Command Prompt (cmd)**, or **Windows Terminal (wt)**. On first use, if no terminal is configured, persephone auto-detects one (preferring `pwsh`, then falling back to `powershell`, then `cmd`) and remembers the choice — change it any time in Settings if you install PowerShell 7 later or prefer a different terminal.
 
 ## Session Restore
 

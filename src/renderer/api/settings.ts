@@ -41,6 +41,7 @@ export type AppSettingsKey =
     | "tor.socks-port"
     | "tor.bookmarks-file"
     | "vlc-path"
+    | "terminal.command"
     | "video-stream.port"
     | "visualizer-effect"
     | "audio-shuffle"
@@ -75,6 +76,7 @@ const settingsComments: Partial<Record<AppSettingsKey, string>> = {
     "tor.socks-port": "SOCKS proxy port for Tor.\nDefault: 9050. Change if port 9050 is already in use.",
     "tor.bookmarks-file": "Path to the .link.json bookmarks file for Browser (Tor) mode.",
     "vlc-path": "Path to VLC executable.\nLeave empty to auto-detect C:\\Program Files\\VideoLAN\\VLC\\vlc.exe.",
+    "terminal.command": "Terminal launched by \"Open Terminal here\".\nCommand or path — pwsh, powershell, cmd, or wt. Leave empty to auto-detect (pwsh -> powershell -> cmd) on first use.",
     "video-stream.port": "Port for the local video streaming server.\nUsed by the video player for VLC integration and proxied HTTP sources. Default: 7866.",
     "visualizer-effect": "Audio visualizer effect type.\nAvailable: bars, circular.",
     "audio-shuffle": "Whether shuffle mode is enabled for audio playback.",
@@ -104,6 +106,7 @@ const defaultAppSettingsState = {
         "tor.socks-port": 9050,
         "tor.bookmarks-file": "",
         "vlc-path": "",
+        "terminal.command": "",
         "video-stream.port": 7866,
         "visualizer-effect": "bars" as string,
         "audio-shuffle": false,

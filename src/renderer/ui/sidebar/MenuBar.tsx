@@ -33,6 +33,7 @@ import {
     RemoveIcon,
     ScriptLibraryIcon,
     SettingsIcon,
+    TerminalIcon,
 } from "../../theme/icons";
 import { OpenTabsList } from "./OpenTabsList";
 import { RecentFileList } from "./RecentFileList";
@@ -324,6 +325,16 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
                 onClick: () => {
                     if (folder.path) {
                         api.showFolder(folder.path);
+                    }
+                },
+            },
+            {
+                label: "Open Terminal here",
+                icon: <TerminalIcon />,
+                onClick: async () => {
+                    if (folder.path) {
+                        const { openTerminalAt } = await import("../../api/terminal");
+                        openTerminalAt(folder.path);
                     }
                 },
             },

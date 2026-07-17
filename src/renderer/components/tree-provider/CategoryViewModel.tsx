@@ -13,6 +13,7 @@ import {
     NewFolderIcon,
     PasteIcon,
     RenameIcon,
+    TerminalIcon,
 } from "../../theme/icons";
 import {
     copyPathToOsClipboard,
@@ -318,6 +319,15 @@ export class CategoryViewModel extends TComponentModel<
                     label: "Paste",
                     icon: <PasteIcon />,
                     onClick: () => this.pasteIntoDir(this.getItemListPath(item)),
+                },
+                {
+                    startGroup: true,
+                    label: "Open Terminal here",
+                    icon: <TerminalIcon />,
+                    onClick: async () => {
+                        const { openTerminalAt } = await import("../../api/terminal");
+                        openTerminalAt(item.href);
+                    },
                 },
             );
         }

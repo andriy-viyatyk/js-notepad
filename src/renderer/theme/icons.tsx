@@ -1161,6 +1161,14 @@ export const LogIcon = createIcon(24)(
     </>,
 );
 
+export const TerminalIcon = createIcon(24)(
+    <>
+        <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M6 9l3 3-3 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 15h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </>,
+);
+
 export const ViewLandscapeIcon = createIcon(24)(
     <>
         <rect x="2" y="3" width="6" height="4" rx="1" fill="currentColor" />

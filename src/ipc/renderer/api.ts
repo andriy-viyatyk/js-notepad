@@ -272,6 +272,14 @@ class ApiCalls implements Api {
         return executeOnce<void>(Endpoint.deleteVideoStreamSessionsByPage, pageId);
     };
 
+    openTerminal = async (path: string, command: string) => {
+        return executeOnce<void>(Endpoint.openTerminal, path, command);
+    };
+
+    detectTerminal = async () => {
+        return executeOnce<string>(Endpoint.detectTerminal);
+    };
+
     openInVlc = async (url: string, vlcPath?: string) => {
         return executeOnce<void>(Endpoint.openInVlc, url, vlcPath);
     };

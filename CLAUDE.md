@@ -365,6 +365,8 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Audio visualizer         | `/src/renderer/editors/video/AudioVisualizer.tsx`  |
 | Video streaming server   | `/src/main/video-stream-server.ts`                |
 | VLC launcher             | `/src/main/vlc-launcher.ts`                       |
+| Terminal launcher (main; `detectTerminal` via `where`, `openTerminalAt` via `cmd /c start` so a console shell gets a visible window; supports pwsh/powershell/cmd/wt) | `/src/main/terminal-launcher.ts` |
+| Terminal open helper (renderer; reads `terminal.command`, auto-detects pwsh→powershell→cmd on first use and saves it, then launches — drives the "Open Terminal here" folder menu item) | `/src/renderer/api/terminal.ts` |
 | MCP resource guides      | `/assets/mcp-res-*.md`                            |
 | MCP command handler      | `/src/renderer/api/mcp-handler.ts`                |
 | Browser automation cmds  | `/src/renderer/automation/commands.ts`             |

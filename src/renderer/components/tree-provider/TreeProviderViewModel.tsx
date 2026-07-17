@@ -18,6 +18,7 @@ import {
     NewFolderIcon,
     PasteIcon,
     RenameIcon,
+    TerminalIcon,
 } from "../../theme/icons";
 import {
     copyPathToOsClipboard,
@@ -762,6 +763,15 @@ export class TreeProviderViewModel extends TComponentModel<
                     label: "Paste",
                     icon: <PasteIcon />,
                     onClick: () => this.pasteIntoDir(this.getListPath(node)),
+                },
+                {
+                    startGroup: true,
+                    label: "Open Terminal here",
+                    icon: <TerminalIcon />,
+                    onClick: async () => {
+                        const { openTerminalAt } = await import("../../api/terminal");
+                        openTerminalAt(node.data.href);
+                    },
                 },
             );
         }
