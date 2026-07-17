@@ -43,6 +43,24 @@ the **user** a trust prompt; a board you created never does.
 > and `app.boards.openBoard(root)`. (`app.openRawLink(href)` is a generic opener — files, URLs,
 > in-app links.)
 
+### Trust, forget & rename a board (script API)
+
+Three `app.boards` calls manage an **existing** board's lifecycle — for boards you did not
+create (a folder the user points you at, or one you downloaded for review):
+
+- **`app.boards.registerBoard(boardRoot)`** → `Promise<boolean>` — trust a board so it renders
+  and runs. Shows the **user** a trust dialog; you can never trust a board on their behalf
+  without that click. Returns `true` if trusted (or already trusted), `false` if the user
+  declines. Typical review flow: read the board's scripts/HTML, report to the user, then call
+  this and let them decide at the dialog.
+- **`app.boards.unregisterBoard(boardRoot)`** → `Promise<void>` — untrust the board and remove
+  its pin. No dialog (it only reduces privilege). The board stops running.
+- **`app.boards.renameBoard(boardRoot, newName)`** → `Promise<string>` — rename the board's
+  folder within its parent, carrying trust, pin, and any catalog-install registration to the
+  new path with **no dialog** (same trusted content, new path), and re-pointing any open board
+  page. Returns the new root. Throws if the board is running (busy), is not a board, or the new
+  name already exists. This solves "rename my board" as a single action with zero user clicks.
+
 ## Develop it
 
 `create_board` scaffolds a **working starter** — build on it, don't blindly overwrite it. A

@@ -11,7 +11,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-862: Catalog service (main): manifest fetch, cache, periodic check, IPC](tasks/US-862-catalog-service/README.md)
   - [ ] [US-863: Install engine: download + sha256 verify + extract + install registry](tasks/US-863-install-engine/README.md)
   - [ ] US-866: persephone-boards repo: initial commit + publish script + GitHub Action
-  - [ ] US-868: Agent API: app.boards.registerBoard / unregisterBoard / renameBoard
+  - [ ] [US-868: Agent API: app.boards.registerBoard / unregisterBoard / renameBoard](tasks/US-868-agent-board-lifecycle/README.md)
   - [ ] US-864: "+" editor-switch entry + Board Info editor (install mode, progress)
   - [ ] US-865: Updates: version compare, activation toast, safe re-install, sidebar badges
   - [ ] US-867: Board Info editor: properties mode + version history & rollback

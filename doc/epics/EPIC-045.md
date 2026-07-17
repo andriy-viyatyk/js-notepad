@@ -382,7 +382,7 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 | [US-862](../tasks/US-862-catalog-service/README.md) | Catalog service (main): manifest fetch, cache, periodic check, IPC | Active |
 | [US-863](../tasks/US-863-install-engine/README.md) | Install engine: download + sha256 verify + extract + install registry | Active |
 | US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |
-| US-868 | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
+| [US-868](../tasks/US-868-agent-board-lifecycle/README.md) | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
 | US-864 | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
 | US-865 | Updates: version compare, activation toast, safe re-install, sidebar badges | Planned |
 | US-867 | Board Info editor: properties mode + version history & rollback | Planned |

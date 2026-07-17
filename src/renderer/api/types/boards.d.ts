@@ -55,4 +55,42 @@ export interface IBoards {
      * @param boardRoot - Absolute path of the board's root folder.
      */
     openBoard(boardRoot: string): Promise<void>;
+
+    /**
+     * Register (trust) an existing board so it renders and runs. Shows the **user** a
+     * trust dialog — a script can *never* trust a board without that click. Returns
+     * `true` if the board is (or becomes) trusted, `false` if the user declines. A
+     * no-op `true` when the board is already trusted (including via a trusted ancestor
+     * folder).
+     *
+     * Use this after a board-review flow: download or open a board's folder, read its
+     * files, then ask the user to trust it here.
+     *
+     * @param boardRoot - Absolute path of the board's root folder.
+     * @returns Whether the board ended up trusted.
+     */
+    registerBoard(boardRoot: string): Promise<boolean>;
+
+    /**
+     * Unregister (untrust) a board and remove its pin. **No dialog** — untrusting only
+     * reduces privilege. The board stops rendering/running. Idempotent.
+     *
+     * @param boardRoot - Absolute path of the board's root folder.
+     */
+    unregisterBoard(boardRoot: string): Promise<void>;
+
+    /**
+     * Rename a board's folder to `newName` within the same parent folder, carrying its
+     * trust, pin, and catalog-install registration to the new path with **no dialog**
+     * (same trusted content at a new path — no privilege gain), and re-pointing any open
+     * board page to the new root. Returns the new absolute root.
+     *
+     * Throws if the board is currently running (busy), is not a board, or a folder named
+     * `newName` already exists in the parent.
+     *
+     * @param boardRoot - Absolute path of the board's current root folder.
+     * @param newName - New folder name (also the new default display name).
+     * @returns The board's new absolute root path.
+     */
+    renameBoard(boardRoot: string, newName: string): Promise<string>;
 }

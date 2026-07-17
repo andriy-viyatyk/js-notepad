@@ -277,6 +277,12 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
             && fpNormalizeForCompare(boardLink.boardRoot) === fpNormalizeForCompare(boardRoot);
     }
 
+    /** Absolute root of the board this editor runs (undefined for a plain, path-less board).
+     *  `BoardContentEditorModel` inherits this, so content-host board pages are covered too. */
+    get boardRoot(): string | undefined {
+        return this.state.get().boardRoot;
+    }
+
     /** The file path this board edits, from either entry point (switch → `state.filePath`;
      *  openRawLink → `sourceLink.filePath`). Undefined for a plain, non-custom-editor board. */
     currentFilePath(): string | undefined {
