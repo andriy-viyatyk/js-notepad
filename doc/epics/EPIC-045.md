@@ -387,7 +387,7 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 | [US-865](../tasks/US-865-updates/README.md) | Updates: version compare, activation toast, safe re-install, sidebar badges | Active |
 | [US-867](../tasks/US-867-board-info-properties/README.md) | Board Info editor: properties mode + version history & rollback | Active |
 | [US-869](../tasks/US-869-agent-catalog-api/README.md) | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Active |
-| US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
+| [US-870](../tasks/US-870-tools-hub/README.md) | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Active |
 | US-871 | SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up) | Planned |
 | US-872 | About "Check for Updates" also force-refreshes the boards catalog | Active |
 

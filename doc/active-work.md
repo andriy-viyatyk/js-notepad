@@ -16,7 +16,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-865: Updates: version compare, activation toast, safe re-install, sidebar badges](tasks/US-865-updates/README.md)
   - [ ] [US-867: Board Info editor: properties mode + version history & rollback](tasks/US-867-board-info-properties/README.md)
   - [ ] [US-869: Agent API: catalog — searchPublished / installPublished / versions / uninstall](tasks/US-869-agent-catalog-api/README.md)
-  - [ ] US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)
+  - [ ] [US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)](tasks/US-870-tools-hub/README.md)
   - [ ] US-871: SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up)
   - [ ] US-872: About "Check for Updates" also force-refreshes the boards catalog
 
