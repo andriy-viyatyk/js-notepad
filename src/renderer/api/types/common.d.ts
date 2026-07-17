@@ -54,6 +54,7 @@ export type EditorView =
     | "mneme-root"
     | "board-view"
     | "toolset-view"
+    | "board-info"
     | "file-diff";
 
 /** Monaco language identifier. */

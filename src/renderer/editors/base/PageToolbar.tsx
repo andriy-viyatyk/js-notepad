@@ -7,7 +7,10 @@ import { Spacer } from "../../uikit/Spacer/Spacer";
 import { NavPanelIcon } from "../../theme/icons";
 import { editorRegistry } from "./editorRegistry";
 import { customEditorRegistry } from "../board/custom-editor-registry";
-import { isPlainLocalPath } from "../../core/utils/file-path";
+import { isPlainLocalPath, fpNormalizeForCompare } from "../../core/utils/file-path";
+import { publishedBoards } from "../../api/published-boards";
+import { boardInstallRegistry } from "../../api/board-install-registry";
+import { BOARD_INFO_EDITOR_ID } from "../board-info/board-info-id";
 
 interface PageToolbarProps {
     name?: string;
@@ -94,13 +97,41 @@ export function SwitchWidget({ model }: { model: EditorModel }) {
     const boardMatches = local
         ? boardMatchesAll
         : boardMatchesAll.filter((b) => b.editorKind === "content-host");
+
+    // Uninstalled published-catalog boards matching this file (EPIC-045 / US-864), collapsed into
+    // a single "+" segment that maps to the Board Info editor (install mode). Reactive so a
+    // catalog refresh or an install updates the widget live. `useCatalogBoardsForFile` already
+    // filters to app-compatible boards + mask-match; here we apply the same non-local gate as
+    // trusted boards and drop catalog ids ALREADY offered by a trusted board segment.
+    const catalogAll = publishedBoards.useCatalogBoardsForFile(fileName ?? "");
+    const installed = boardInstallRegistry.useInstalled();
+    const trustedRoots = new Set(boardMatches.map((m) => fpNormalizeForCompare(m.boardRoot)));
+    const catalogMatches = catalogAll.filter((c) => {
+        if (!local && c.editorKind !== "content-host") return false;
+        const inst = installed.find((e) => e.id === c.id);
+        // Offered already iff this catalog id is installed AND its root is a trusted segment.
+        // A downloaded-but-UNregistered board (inst exists, root not trusted) is still advertised
+        // — its "+" leads to the Board Info screen in the Register state.
+        if (inst && trustedRoots.has(fpNormalizeForCompare(inst.root))) return false;
+        return true;
+    });
+
     const merged = [...options];
     for (const b of boardMatches) if (!merged.includes(b.editorId)) merged.push(b.editorId);
+    if (catalogMatches.length > 0 && !merged.includes(BOARD_INFO_EDITOR_ID)) {
+        merged.push(BOARD_INFO_EDITOR_ID);
+    }
     if (merged.length < 2 || !merged.includes(model.editorId)) return null;
     const boardNameById = new Map(boardMatches.map((b) => [b.editorId, b.name]));
     const items: ISegment[] = merged.map((id) => ({
         value: id,
-        label: boardNameById.get(id) ?? editorRegistry.getById(id)?.name ?? id,
+        // The Board Info segment always reads "+" (the install/switch affordance). Padded with
+        // non-breaking spaces (ordinary leading/trailing spaces collapse in HTML) so the segment
+        // isn't uncomfortably narrow.
+        label:
+            id === BOARD_INFO_EDITOR_ID
+                ? "  +  "
+                : boardNameById.get(id) ?? editorRegistry.getById(id)?.name ?? id,
     }));
     return (
         <SegmentedControl

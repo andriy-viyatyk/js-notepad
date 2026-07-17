@@ -78,6 +78,17 @@ class PublishedBoards {
         return compareVersions(this.appVersion, minAppVersion) <= 0;
     }
 
+    /** Compatible catalog boards whose masks match the given file name (sync, non-reactive).
+     *  Sync counterpart of `useCatalogBoardsForFile` for model code (e.g. the Board Info
+     *  editor) that computes matches outside a React render. */
+    catalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
+        const base = fpBasename(fileName);
+        return (this.state.get().catalog?.boards ?? []).filter((b) => {
+            if (!this.isCompatible(b.minAppVersion)) return false;
+            return normalizeFileMasks(b.fileMasks).some((m) => matchesFileMask(base, m));
+        });
+    }
+
     /** Compatible catalog boards whose masks match the given file name (basename). */
     useCatalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
         const base = fpBasename(fileName);

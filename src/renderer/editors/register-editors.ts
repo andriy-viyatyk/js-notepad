@@ -480,6 +480,21 @@ editorRegistry.register({
 });
 
 editorRegistry.register({
+    id: "board-info",
+    name: "Board Info",
+    // Host-capable holder (EPIC-045): adopts/yields the shared content host WITHOUT rendering
+    // it, so `Text ↔ + ↔ installed board` switches transfer the same host with no reload.
+    hasContentHost: true,
+    // Never a default open target — reached only via the "+" switch entry or explicit
+    // navigation (hub / update toast / Properties button, US-867).
+    accepts: () => -1,
+    loadModule: async () => {
+        const { boardInfoModule } = await import("./board-info");
+        return boardInfoModule;
+    },
+});
+
+editorRegistry.register({
     id: "file-diff",
     name: "Git Diff",
     hasContentHost: true,

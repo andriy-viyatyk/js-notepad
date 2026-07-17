@@ -26,6 +26,7 @@ function newInstallId(): string {
 export async function downloadBoard(
     entry: PublishedBoardInfo,
     targetParentDir: string,
+    installId: string = newInstallId(),
 ): Promise<string> {
     const root = fpJoin(targetParentDir, entry.id);
 
@@ -38,7 +39,8 @@ export async function downloadBoard(
         return updateBoard(entry);
     }
 
-    const installId = newInstallId();
+    // `installId` may be supplied by the caller (Board Info editor) so it can correlate
+    // `eBoardInstallProgress` events for the progress bar; otherwise minted here.
     const tempZip = await api.downloadBoardArchive({
         installId,
         url: entry.archive.url,
@@ -49,7 +51,9 @@ export async function downloadBoard(
         await archiveService.extractTo(tempZip, root);
         const manifest = await readBoardManifest(root);
         if (!manifest) {
-            await fs.delete(root);
+            // `root` is the extracted DIRECTORY — remove it recursively (fs.delete only unlinks
+            // a file), else a leftover invalid folder would block the next download attempt.
+            await fs.removeDir(root, true);
             throw new Error("Downloaded archive is not a valid board (no board-manifest.json).");
         }
         await boardInstallRegistry.record({

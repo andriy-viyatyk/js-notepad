@@ -383,11 +383,12 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 | [US-863](../tasks/US-863-install-engine/README.md) | Install engine: download + sha256 verify + extract + install registry | Active |
 | US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |
 | [US-868](../tasks/US-868-agent-board-lifecycle/README.md) | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
-| US-864 | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
+| [US-864](../tasks/US-864-switch-entry-board-info/README.md) | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
 | US-865 | Updates: version compare, activation toast, safe re-install, sidebar badges | Planned |
 | US-867 | Board Info editor: properties mode + version history & rollback | Planned |
 | US-869 | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Planned |
 | US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
+| US-871 | SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up) | Planned |
 
 ## Task details
 
@@ -523,6 +524,18 @@ Work in `C:\projects\persephone-boards` (separate repo):
   board is deferred past this epic — it needs polish plus removal of the built-in todo editor
   first; when it ships, its `board-manifest.json` declares `standalone: true` (file editor
   that can start empty), while drawio-viewer relies on the default (`false` — file viewer).
+
+### US-871 — SegmentedControl tooltip + "+" switch-entry tooltip
+
+Deferred follow-up split out of US-864 (Concern 1). `ISegment` has no `title`/tooltip field, so
+the "+" switch entry ships with a bare `"+"` label in US-864.
+
+- `src/renderer/uikit/SegmentedControl/SegmentedControl.tsx`: add an optional `title?: string`
+  to `ISegment`, forwarded to each segment's underlying `Button`/element (native `title` or a
+  UIKit `Tooltip` wrapper — follow the control's existing primitive).
+- `src/renderer/editors/base/PageToolbar.tsx` `SwitchWidget`: set `title: "Install an editor for
+  this file type…"` on the `board-info` `"+"` segment.
+- Low value, non-blocking; may instead be folded into US-870 when the hub reuses the control.
 
 ### US-867 — Board Info editor: properties mode + version history & rollback
 
