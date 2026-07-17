@@ -389,6 +389,7 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 | US-869 | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Planned |
 | US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
 | US-871 | SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up) | Planned |
+| US-872 | About "Check for Updates" also force-refreshes the boards catalog | Active |
 
 ## Task details
 
@@ -536,6 +537,22 @@ the "+" switch entry ships with a bare `"+"` label in US-864.
 - `src/renderer/editors/base/PageToolbar.tsx` `SwitchWidget`: set `title: "Install an editor for
   this file type…"` on the `board-info` `"+"` segment.
 - Low value, non-blocking; may instead be folded into US-870 when the hub reuses the control.
+
+### US-872 — About "Check for Updates" also force-refreshes the boards catalog
+
+Small follow-up. The About page's "Check for Updates" button checked only the app version
+(GitHub releases). The published-boards catalog is a separate service with its own 24h gate, so
+a newly published board version wouldn't surface from that button.
+
+- `src/renderer/editors/about/AboutView.tsx` `handleCheckForUpdates`: also call
+  `publishedBoards.refresh()` (force fetch, bypassing the 24h gate) alongside
+  `shell.version.checkForUpdates(true)`. `Promise.all` so the "Checking…" state covers both;
+  the boards refresh is best-effort (`.catch(() => {})`) so a catalog fetch failure never
+  breaks the app-version result, and its outcome surfaces reactively through the
+  `publishedBoards` model.
+- Same view: show an **"Available boards"** count under the Electron/Node.js/Chromium versions
+  list — `publishedBoards.useCatalog().length` (reactive, so it updates live on refresh);
+  `publishedBoards.load()` in the mount effect so the cached count shows on open.
 
 ### US-867 — Board Info editor: properties mode + version history & rollback
 

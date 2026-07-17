@@ -18,6 +18,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-869: Agent API: catalog — searchPublished / installPublished / versions / uninstall
   - [ ] US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)
   - [ ] US-871: SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up)
+  - [ ] US-872: About "Check for Updates" also force-refreshes the boards catalog
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
