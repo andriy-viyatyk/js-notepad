@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo } from "react";
 import { app } from "../../api/app";
 import { ui } from "../../api/ui";
 import { boardTrust } from "../../api/board-trust";
+import { publishedBoards } from "../../api/published-boards";
+import { boardInstallRegistry } from "../../api/board-install-registry";
+import { useBoardUpdates, runBoardUpdate } from "../../api/board-updates";
 import { createLinkData } from "../../../shared/link-data";
 import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
-import { fpDirname } from "../../core/utils/file-path";
-import { IconButton } from "../../uikit";
+import { fpDirname, fpNormalizeForCompare } from "../../core/utils/file-path";
+import { IconButton, Panel, Tag } from "../../uikit";
 import type { MenuItem } from "../../uikit";
 import { Text } from "../../uikit/Text";
 import { PinIcon, PinFilledIcon } from "../../theme/icons";
@@ -27,12 +30,17 @@ interface TrustedBoardsListProps {
 export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
     // board-trust is a recent.ts-style global model; load() populates the shared
     // reactive state. Idempotent, so a re-mount or a concurrent editor load is safe.
+    // The catalog + install registry back the "Update available" badge (US-865) — load
+    // them here too so the badge shows without first opening a board.
     useEffect(() => {
         void boardTrust.load();
+        void publishedBoards.load();
+        void boardInstallRegistry.load();
     }, []);
 
     const paths = boardTrust.useTrustedPaths();
     const pinnedRefs = usePinnedRefs();
+    const updates = useBoardUpdates();
 
     const pinnedRoots = useMemo(
         () => new Set(pinnedRefs.filter((r) => r.kind === "board").map((r) => (r as { root: string }).root)),
@@ -63,7 +71,7 @@ export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
         ui.notify("Removed from trusted boards", "info");
     }, []);
 
-    const renderTrailing = useCallback((root: string) => {
+    const pin = useCallback((root: string) => {
         const pinned = pinnedRoots.has(root);
         return (
             <IconButton
@@ -78,12 +86,37 @@ export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
         );
     }, [pinnedRoots, handleTogglePin]);
 
-    const getBoardContextMenu = useCallback((root: string): MenuItem[] => [
-        {
+    const renderTrailing = useCallback((root: string) => {
+        const update = updates.get(fpNormalizeForCompare(root));
+        if (!update) return pin(root);
+        return (
+            <Panel name="board-trailing" direction="row" align="center" gap="xs">
+                <Tag
+                    label="Update"
+                    size="sm"
+                    title={`Update to v${update.latestVersion}`}
+                    onClick={() => { void runBoardUpdate(update); }}
+                />
+                {pin(root)}
+            </Panel>
+        );
+    }, [updates, pin]);
+
+    const getBoardContextMenu = useCallback((root: string): MenuItem[] => {
+        const update = updates.get(fpNormalizeForCompare(root));
+        const items: MenuItem[] = [];
+        if (update) {
+            items.push({
+                label: `Update to v${update.latestVersion}`,
+                onClick: () => { void runBoardUpdate(update); },
+            });
+        }
+        items.push({
             label: "Remove",
             onClick: () => { void handleRemove(root); },
-        },
-    ], [handleRemove]);
+        });
+        return items;
+    }, [updates, handleRemove]);
 
     return (
         <BoardsTree
@@ -91,7 +124,9 @@ export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
             boards={paths}
             onOpenBoard={openBoard}
             renderTrailing={renderTrailing}
-            trailingVisible={(root) => pinnedRoots.has(root)}
+            trailingVisible={(root) =>
+                pinnedRoots.has(root) || updates.has(fpNormalizeForCompare(root))
+            }
             getBoardContextMenu={getBoardContextMenu}
             emptyMessage={<Text size="sm" color="light">No trusted boards yet</Text>}
         />

@@ -384,7 +384,7 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 | US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |
 | [US-868](../tasks/US-868-agent-board-lifecycle/README.md) | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
 | [US-864](../tasks/US-864-switch-entry-board-info/README.md) | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
-| US-865 | Updates: version compare, activation toast, safe re-install, sidebar badges | Planned |
+| [US-865](../tasks/US-865-updates/README.md) | Updates: version compare, activation toast, safe re-install, sidebar badges | Active |
 | US-867 | Board Info editor: properties mode + version history & rollback | Planned |
 | US-869 | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Planned |
 | US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
@@ -714,6 +714,24 @@ the "Open in new tab" button will be a plain header icon button.)
   automation and match the released assets (id/version/sha256/size).
 
 ## Notes
+
+### 2026-07-17 — US-865 implemented + update-surfacing direction
+- US-865 landed: silent `updatesAvailable` derivation (catalog × install registry ×
+  `compareVersions`, compatible-only), an "Update available" Tag + context-menu action in the
+  Custom Boards & Editors sidebar, a safe folder-swap update behind the open-pages/busy
+  precondition, and an activation toast (once per board+version on main-frame load).
+- **Direction agreed with the user (folds into US-867):** prefer surfacing update
+  availability on the board toolbar's **Properties** button (a small badge/indicator on the
+  button) over a per-navigation toast. Reconsider whether the activation **toast** is needed
+  at all — it can confuse a user who intentionally stays on an older version (e.g. the new
+  version has a bug). The toast stays for now but is a candidate for reduction/removal once
+  the Properties-button indicator exists; the silent badge + explicit user action (sidebar /
+  Properties) is the preferred, non-nagging surface.
+- Testing caveat observed: opening a board reads the **cached** catalog (board-open never
+  fetches), so a freshly published version only surfaces after a catalog refresh (24h
+  periodic check or About → Check for Updates). Confirmed the cache flips correctly on force
+  refresh; badge/toast require the app to be running the US-865 build (new module → prefer a
+  full restart over HMR).
 
 ### 2026-07-16 — US-866 done: persephone-boards live + first real publish
 - `andriy-viyatyk/persephone-boards` (public) set up: `main` (published) / `develop` (working) /

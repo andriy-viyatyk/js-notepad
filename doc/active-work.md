@@ -13,7 +13,7 @@ Overview of all active and planned epics and tasks.
   - [ ] US-866: persephone-boards repo: initial commit + publish script + GitHub Action
   - [ ] [US-868: Agent API: app.boards.registerBoard / unregisterBoard / renameBoard](tasks/US-868-agent-board-lifecycle/README.md)
   - [ ] [US-864: "+" editor-switch entry + Board Info editor (install mode, progress)](tasks/US-864-switch-entry-board-info/README.md)
-  - [ ] US-865: Updates: version compare, activation toast, safe re-install, sidebar badges
+  - [ ] [US-865: Updates: version compare, activation toast, safe re-install, sidebar badges](tasks/US-865-updates/README.md)
   - [ ] US-867: Board Info editor: properties mode + version history & rollback
   - [ ] US-869: Agent API: catalog — searchPublished / installPublished / versions / uninstall
   - [ ] US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)

@@ -94,6 +94,19 @@ class BoardInstallRegistry {
         await this.persist(entries);
     }
 
+    /** Record the version we last toasted an update for (US-865 toast dedup — once per
+     *  board+version). No-op if the id is not installed. */
+    async setLastNotified(id: string, version: string): Promise<void> {
+        await this.load();
+        const entries = this.state.get().entries.map((e) =>
+            e.id === id ? { ...e, lastNotifiedVersion: version } : e,
+        );
+        this.state.update((s) => {
+            s.entries = entries;
+        });
+        await this.persist(entries);
+    }
+
     /** Remove by catalog id (idempotent). */
     async remove(id: string): Promise<void> {
         await this.load();

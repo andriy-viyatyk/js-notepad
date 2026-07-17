@@ -75,8 +75,15 @@ export async function downloadBoard(
  * so a failed download never destroys the working board. Runs under the board's EXISTING
  * trust (same root). The open-pages / busy precondition + close-pages dialog is US-865's
  * responsibility (wired in the caller); this function performs the swap only.
+ *
+ * `opts.preSwap` is re-checked immediately before the swap (after the download completes) —
+ * US-865 passes an idle re-check so a page reopened mid-download aborts the swap with the
+ * working board left untouched.
  */
-export async function updateBoard(entry: PublishedBoardInfo): Promise<string> {
+export async function updateBoard(
+    entry: PublishedBoardInfo,
+    opts?: { preSwap?: () => Promise<boolean> },
+): Promise<string> {
     const existing = boardInstallRegistry.getById(entry.id);
     if (!existing) throw new Error(`Board not installed: ${entry.id}`);
     const root = existing.root;
@@ -97,6 +104,13 @@ export async function updateBoard(entry: PublishedBoardInfo): Promise<string> {
         const manifest = await readBoardManifest(stagingDir);
         if (!manifest) {
             throw new Error("Downloaded archive is not a valid board (no board-manifest.json).");
+        }
+
+        // Re-check the precondition right before the swap (a page may have reopened during
+        // the download). Aborting here leaves the working board untouched (staging is reaped
+        // in `finally`).
+        if (opts?.preSwap && !(await opts.preSwap())) {
+            throw new Error("Board was reopened during the update — aborted (nothing changed).");
         }
 
         // Swap: move old aside, move staging in; roll back on failure.
