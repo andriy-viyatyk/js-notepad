@@ -42,7 +42,9 @@ export function getBoardUpdate(root: string): BoardUpdate | null {
     const cat = publishedBoards.getCatalog().find((b) => b.id === inst.id);
     if (!cat) return null;
     if (!publishedBoards.isCompatible(cat.minAppVersion)) return null;
-    if (compareVersions(cat.version, inst.version) <= 0) return null;
+    // `compareVersions(current, latest)` returns 1 when `latest` (2nd arg) is newer. An update
+    // exists iff the catalog version is newer than the installed one → installed as current.
+    if (compareVersions(inst.version, cat.version) <= 0) return null;
     return {
         root: inst.root,
         id: inst.id,
@@ -65,7 +67,8 @@ export function useBoardUpdates(): Map<string, BoardUpdate> {
             const cat = catalog.find((b) => b.id === inst.id);
             if (!cat) continue;
             if (!publishedBoards.isCompatible(cat.minAppVersion)) continue;
-            if (compareVersions(cat.version, inst.version) <= 0) continue;
+            // See getBoardUpdate: installed as `current`, catalog as `latest` (1 ⇒ newer).
+            if (compareVersions(inst.version, cat.version) <= 0) continue;
             map.set(fpNormalizeForCompare(inst.root), {
                 root: inst.root,
                 id: inst.id,

@@ -746,6 +746,15 @@ the "Open in new tab" button will be a plain header icon button.)
   the purpose-built `useOptionalState` (stable hook count); widened that helper's param from
   `TOneState` to the `IState` interface so `contentHost.state` fits. Pre-existing latent bug my
   host-toggling holder was the first to exercise.
+- **Bug fixed during testing (2) — reversed `compareVersions` args (also fixes US-865):** the update
+  checks called `compareVersions(cat.version, inst.version)`, but the shared
+  `compareVersions(current, latest)` returns 1 when the **second** arg is newer — so with a catalog
+  1.0.1 over an installed 1.0.0 it returned −1 and `getBoardUpdate`/`useBoardUpdates` reported **no
+  update**. This is why the US-865 sidebar tag/toast never appeared (we had wrongly blamed the 24h
+  cache). Corrected to `compareVersions(inst.version, cat.version)` in both, and the properties-mode
+  `VersionRow` label logic (`compareVersions(installedVersion, version.version)`). Verified at
+  runtime: installed 1.0.0 vs catalog 1.0.1 now yields an available update, so the Properties-button
+  dot + sidebar badge light up.
 - tsc + eslint clean. Left `[ ]` on the dashboard per the epic deferred-review model.
 
 ### 2026-07-17 — US-865 implemented + update-surfacing direction

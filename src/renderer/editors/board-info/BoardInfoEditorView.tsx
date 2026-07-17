@@ -496,7 +496,10 @@ function VersionRow({
     version: PublishedBoardVersion;
     installedVersion?: string;
 }) {
-    const cmp = installedVersion ? compareVersions(version.version, installedVersion) : 1;
+    // `compareVersions(current, latest)` returns 1 when `latest` (2nd arg) is newer. With the
+    // installed version as `current`, cmp > 0 means THIS row is newer (an update), cmp < 0 older
+    // (a rollback), 0 the current one.
+    const cmp = installedVersion ? compareVersions(installedVersion, version.version) : 1;
     const isCurrent = cmp === 0;
     const isNewer = cmp > 0;
     const compatible = publishedBoards.isCompatible(version.minAppVersion);
