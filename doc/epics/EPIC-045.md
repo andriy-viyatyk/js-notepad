@@ -715,6 +715,12 @@ the "Open in new tab" button will be a plain header icon button.)
 
 ## Notes
 
+### 2026-07-17 — Fix: swap left `.old-*` folders behind (US-863 install engine)
+- `installVersion`'s folder swap called `fs.delete(backupDir)` / `fs.delete(stagingDir)`, but
+  `fs.delete` only unlinks a **file** — the old board **directories** (`.<id>.old-<uuid>`) were
+  never removed and piled up in the install parent. Changed both to `fs.removeDir(dir, true)`
+  (the same recursive-remove pattern `downloadBoard` already uses). Existing leftovers cleaned up.
+
 ### 2026-07-17 — US-869 implemented (Agent catalog API)
 - Six `app.boards` catalog methods added (`searchPublished`, `getPublishedVersions`,
   `downloadPublished`, `installPublished`, `uninstallBoard`, `checkPublishedUpdates`) — thin glue

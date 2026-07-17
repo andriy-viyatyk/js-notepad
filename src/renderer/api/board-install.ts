@@ -180,7 +180,9 @@ export async function installVersion(
             await fs.rename(backupDir, root); // restore the working board
             throw swapErr;
         }
-        await fs.delete(backupDir);
+        // `backupDir` is the old board DIRECTORY — remove it recursively (`fs.delete` only
+        // unlinks a file, which would silently leave `.<id>.old-*` folders piling up).
+        await fs.removeDir(backupDir, true);
 
         await boardInstallRegistry.record({
             id,
@@ -190,7 +192,9 @@ export async function installVersion(
         });
         return root;
     } finally {
-        try { await fs.delete(stagingDir); } catch { /* best-effort */ }
+        // Reap any staging dir left behind (failed/aborted swap; a successful swap already
+        // renamed it to `root`). It is a directory — `removeDir`, not `delete`.
+        try { await fs.removeDir(stagingDir, true); } catch { /* best-effort */ }
         try { await fs.delete(tempZip); } catch { /* best-effort */ }
     }
 }
