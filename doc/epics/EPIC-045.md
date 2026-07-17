@@ -385,7 +385,7 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 | [US-868](../tasks/US-868-agent-board-lifecycle/README.md) | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
 | [US-864](../tasks/US-864-switch-entry-board-info/README.md) | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
 | [US-865](../tasks/US-865-updates/README.md) | Updates: version compare, activation toast, safe re-install, sidebar badges | Active |
-| US-867 | Board Info editor: properties mode + version history & rollback | Planned |
+| [US-867](../tasks/US-867-board-info-properties/README.md) | Board Info editor: properties mode + version history & rollback | Active |
 | US-869 | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Planned |
 | US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
 | US-871 | SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up) | Planned |
@@ -714,6 +714,39 @@ the "Open in new tab" button will be a plain header icon button.)
   automation and match the released assets (id/version/sha256/size).
 
 ## Notes
+
+### 2026-07-17 — US-867 implemented (Board Info properties mode)
+- Added `getBoardVersions(id)` (main service `boardsRepoRawBase()`/`versionsUrl()` refactor +
+  `validateVersions`; 4-file IPC recipe; `PublishedBoardVersion`/`PublishedBoardVersions` types;
+  `publishedBoards.getVersions` renderer accessor — no cache gate, on demand).
+- Generalized the swap engine: `board-install.installVersion(id, archive, version, opts?)`
+  (`updateBoard` now delegates); `board-updates.runBoardVersionInstall(...)` shares the idle
+  precondition + progress + toasts (`runBoardUpdate` delegates); exported `ensureBoardIdle`.
+- Board Info editor gained **properties mode** (state `props`/`versions`/`versionsState`, `mode`
+  getter, `restore()` branch → `loadProperties`/`loadVersions`, `installBoardVersion`, `uninstall`,
+  `unregister`, `openBoard`); standalone `register` now flips the page into properties mode.
+  New `open-board-info.ts` helper (`openBoardInfo(page, {catalogId?, boardRoot?})`) — host-preserving
+  where a `CONTENT_HOST_TRAIT` is held, `confirmRelease` otherwise.
+- **Board toolbar Properties button** (`InfoIcon`) with a silent `Dot` update indicator (loads the
+  catalog + install registry on mount).
+- **Decisions folded in from review:**
+  - **Activation toast removed** (not retargeted) — `BoardEditorModel.maybeNotifyUpdate` deleted.
+    The silent Properties-button dot + the sidebar badge are the sole, non-nagging surfaces.
+    (`boardInstallRegistry.setLastNotified`/`lastNotifiedVersion` are now dead but left in place.)
+  - **Uninstall never closes the page** — after removal the board is unloaded via
+    `PageModel.setMainEditor(null)` (empty page), so a pinned page stays pinned and any
+    Explorer/secondary panel survives. Resolved via the concrete `PageModel` (`IPageHost` omits
+    `setMainEditor`).
+  - **Local vs catalog removal** — catalog installs show **Uninstall** (delete folder, reinstallable);
+    local boards show **Unregister** (untrust + unpin only, **folder kept** — no data loss).
+- **Bug fixed during testing:** `SwitchWidget` (`PageToolbar.tsx`) subscribed to the host via the
+  conditional hook `model.contentHost?.state.use(...)`. A host-holder editor that toggles its host
+  (the Board Info holder extracting its host on switch-away) changed the hook count between renders
+  → "Rendered fewer hooks than expected" editor crash on the second Properties open. Replaced with
+  the purpose-built `useOptionalState` (stable hook count); widened that helper's param from
+  `TOneState` to the `IState` interface so `contentHost.state` fits. Pre-existing latent bug my
+  host-toggling holder was the first to exercise.
+- tsc + eslint clean. Left `[ ]` on the dashboard per the epic deferred-review model.
 
 ### 2026-07-17 — US-865 implemented + update-surfacing direction
 - US-865 landed: silent `updatesAvailable` derivation (catalog × install registry ×

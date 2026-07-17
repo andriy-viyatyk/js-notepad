@@ -1,7 +1,10 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { app } from "../../api/app";
 import { boardTrust } from "../../api/board-trust";
+import { publishedBoards } from "../../api/published-boards";
+import { boardInstallRegistry } from "../../api/board-install-registry";
+import { useBoardUpdates } from "../../api/board-updates";
 import { createLinkData } from "../../../shared/link-data";
 import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { fpNormalizeForCompare } from "../../core/utils/file-path";
@@ -9,8 +12,10 @@ import { Panel } from "../../uikit/Panel";
 import { IconButton } from "../../uikit/IconButton";
 import { Text } from "../../uikit/Text";
 import { Popover } from "../../uikit/Popover";
-import { RefreshIcon, LogIcon, NavPanelIcon } from "../../theme/icons";
+import { Dot } from "../../uikit/Dot";
+import { RefreshIcon, LogIcon, NavPanelIcon, InfoIcon } from "../../theme/icons";
 import { SwitchWidget } from "../base/PageToolbar";
+import { openBoardInfo } from "../board-info/open-board-info";
 import { BoardsTree } from "./BoardsTree";
 import type { BoardEditorModel } from "./BoardEditorModel";
 
@@ -35,6 +40,22 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
     const pathRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
     const canSwitch = !!explorerRoot;
+
+    // Silent "update available" indicator on the Properties button. Load the catalog + install
+    // registry on mount so the dot shows without first opening the sidebar (mirrors TrustedBoardsList).
+    useEffect(() => {
+        void publishedBoards.load();
+        void boardInstallRegistry.load();
+    }, []);
+    const updates = useBoardUpdates();
+    const hasUpdate = !!boardRoot && updates.has(fpNormalizeForCompare(boardRoot));
+
+    const openProperties = useCallback(() => {
+        // `model.page` is the trimmed IPageHost; resolve the concrete PageModel the helper needs.
+        const id = model.page?.id;
+        const page = id ? app.pages.pages.find((p) => p.id === id) : undefined;
+        if (page) void openBoardInfo(page, { boardRoot });
+    }, [model, boardRoot]);
 
     const allPaths = boardTrust.useTrustedPaths();
     const boards = useMemo(() => {
@@ -115,6 +136,23 @@ export function BoardToolbar({ model }: { model: BoardEditorModel }) {
                 icon={<LogIcon width={14} height={14} />}
                 onClick={() => void openLog()}
             />
+            {/* Board properties (EPIC-045 / US-867) — navigates the page to the Board Info screen
+                (properties mode). A silent dot marks a pending compatible update (the non-nagging
+                surface that replaced the per-navigation update toast). */}
+            <Panel name="board-toolbar-properties-wrap" position="relative" direction="row" align="center">
+                <IconButton
+                    name="board-toolbar-properties"
+                    size="sm"
+                    title={hasUpdate ? "Board properties — update available" : "Board properties"}
+                    icon={<InfoIcon width={14} height={14} />}
+                    onClick={openProperties}
+                />
+                {hasUpdate && (
+                    <Panel position="absolute" top={0} right={0} zIndex={1}>
+                        <Dot name="board-toolbar-update-dot" color="info" size="xs" bordered />
+                    </Panel>
+                )}
+            </Panel>
             {/* Editor-switch widget (EPIC-042) — shown only when this board is acting as a
                 file editor (findCompatibleEditors yields the built-in + this board). Reuses the
                 exact PageToolbar widget so a board↔Monaco switch looks identical to every other

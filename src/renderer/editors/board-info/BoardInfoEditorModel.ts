@@ -8,18 +8,22 @@ import { editorRegistry } from "../base/editorRegistry";
 import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
 import { TextFileModel, isTextFileModel } from "../text/TextEditorModel";
 import { boardEditorId, customEditorRegistry } from "../board/custom-editor-registry";
+import { isBoardFolder, readBoardManifest, getBoardEditorAssociation } from "../board/board-manifest";
 import { BOARD_INFO_EDITOR_ID } from "./board-info-id";
 import { publishedBoards } from "../../api/published-boards";
 import { boardInstallRegistry } from "../../api/board-install-registry";
 import { downloadBoard } from "../../api/board-install";
 import { boardTrust } from "../../api/board-trust";
+import { app } from "../../api/app";
 import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
+import { createLinkData } from "../../../shared/link-data";
+import { encodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { fpBasename, fpJoin } from "../../core/utils/file-path";
 import { api } from "../../../ipc/renderer/api";
 import rendererEvents from "../../../ipc/renderer/renderer-events";
 import { EventEndpoint } from "../../../ipc/api-types";
-import type { PublishedBoardInfo } from "../../../ipc/api-param-types";
+import type { PublishedBoardInfo, PublishedBoardVersion } from "../../../ipc/api-param-types";
 import { BoardColorIcon } from "../../theme/icons";
 
 /** Transient per-board download UI (not persisted). Downloaded/registered state is read from
@@ -30,6 +34,31 @@ export interface InstallProgress {
     received?: number;
     total?: number;
     error?: string;
+}
+
+/** Properties-mode info for an installed board (present only when `boardRoot` is set). Derived
+ *  from the manifest + install registry + trust; recomputed on `restore()`, not persisted. */
+export interface BoardPropsInfo {
+    name: string;
+    description?: string;
+    author?: string;
+    repository?: string;
+    /** `version` from the board's own manifest (may lag the registry after a rollback). */
+    manifestVersion?: string;
+    /** Editor association (masks / editorName / kind), if the board is a file editor. */
+    fileMasks?: string[];
+    editorName?: string;
+    editorKind?: "simple" | "content-host";
+    root: string;
+    trusted: boolean;
+    /** True when the board has an install-registry entry (came from the catalog). Drives
+     *  "Uninstall" (delete folder) vs "Unregister" (untrust only) and the Versions section. */
+    isCatalogInstall: boolean;
+    catalogId?: string;
+    /** The actually-installed version (registry), falling back to the manifest version. */
+    installedVersion?: string;
+    /** `boardRoot` no longer points at a board folder (deleted externally). */
+    missing?: boolean;
 }
 
 export interface BoardInfoEditorState extends EditorStateBase {
@@ -46,6 +75,11 @@ export interface BoardInfoEditorState extends EditorStateBase {
     installDir?: string;
     /** Transient download UI, keyed by catalog id. */
     installUi: Record<string, InstallProgress>;
+    /** Properties-mode data (only when `boardRoot` is set). Not persisted; loaded in `restore()`. */
+    props?: BoardPropsInfo;
+    /** Fetched-on-demand version history (properties mode, catalog installs). */
+    versions?: PublishedBoardVersion[];
+    versionsState?: "idle" | "loading" | "error";
 }
 
 export const getDefaultBoardInfoEditorState = (): BoardInfoEditorState => ({
@@ -68,14 +102,30 @@ export const getDefaultBoardInfoEditorState = (): BoardInfoEditorState => ({
  *
  * It is a **host-capable holder**: it adopts/yields the shared content host (`CONTENT_HOST_TRAIT`)
  * WITHOUT rendering it — exactly like `BoardContentEditorModel` — so `Text ↔ + ↔ installed board`
- * switches transfer the same host with no reload and no data loss. Opened standalone (hub/toast —
- * US-867) it simply has no host. The host machinery below mirrors `BoardContentEditorModel`
+ * switches transfer the same host with no reload and no data loss. Opened standalone (hub/toast)
+ * it simply has no host. The host machinery below mirrors `BoardContentEditorModel`
  * (minus the board/iframe); `switchFrom` additionally TOLERATES a host-less source.
  *
- * (Properties mode for an installed board is US-867.)
+ * **Properties mode (US-867):** when `state.boardRoot` is set, the same editor shows an installed
+ * board's info + a fetched-on-demand Versions list (install/rollback), plus Open board and
+ * Uninstall/Unregister. The `openBoardInfo` helper sets `boardRoot` (and transfers a held host so a
+ * content-host board keeps its file for Open board). Mode = `boardRoot ? "properties" : "install"`.
  */
 export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     readonly editorId = BOARD_INFO_EDITOR_ID;
+
+    /** `boardRoot` set → properties mode (installed board); otherwise install mode (catalog tiles). */
+    get mode(): "install" | "properties" {
+        return this.state.get().boardRoot ? "properties" : "install";
+    }
+
+    /** Concrete `PageModel` for this editor's page. `this.page` is the trimmed `IPageHost`, which
+     *  omits `setMainEditor` (it is only ever called via the concrete `pagesModel`), so resolve it
+     *  here for the unload-to-empty-page path. */
+    private get pageModel() {
+        const id = this.page?.id;
+        return id ? app.pages.pages.find((p) => p.id === id) : undefined;
+    }
 
     noLanguage = true;
     skipSave = false; // delegates dirty/save to the held host (if any)
@@ -176,13 +226,175 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
         }
         this._pendingHost = undefined;
 
-        await this.ensureInstallDir();
-        await this.reconcile();
-        // Refresh tiles if the catalog changes while the screen is open.
+        if (this.mode === "properties") {
+            await this.loadProperties();
+        } else {
+            await this.ensureInstallDir();
+            await this.reconcile();
+        }
+        // Refresh install tiles if the catalog changes while the screen is open (install mode only).
         this._catalogSub?.unsubscribe();
         this._catalogSub = rendererEvents[EventEndpoint.ePublishedBoardsUpdated].subscribe(
-            () => void this.reconcile(),
+            () => { if (this.mode === "install") void this.reconcile(); },
         );
+    }
+
+    // ── Properties mode (US-867) ─────────────────────────────────────────
+
+    /** Load an installed board's manifest + registry + trust into `state.props`, and kick a
+     *  version-history fetch for catalog installs. A `boardRoot` that no longer holds a board
+     *  manifest renders a "no longer installed" empty state. */
+    async loadProperties(): Promise<void> {
+        const root = this.state.get().boardRoot;
+        if (!root) return;
+        if (!(await isBoardFolder(root))) {
+            this.state.update((s) => {
+                s.props = {
+                    name: fpBasename(root),
+                    root,
+                    trusted: false,
+                    isCatalogInstall: false,
+                    missing: true,
+                };
+                s.versions = undefined;
+                s.versionsState = "idle";
+            });
+            return;
+        }
+        await boardInstallRegistry.load();
+        const reg = boardInstallRegistry.getByRoot(root);
+        const manifest = await readBoardManifest(root);
+        const assoc = getBoardEditorAssociation(manifest);
+        const props: BoardPropsInfo = {
+            name: manifest?.name?.trim() || assoc?.editorName || fpBasename(root),
+            description: manifest?.description,
+            author: manifest?.author,
+            repository: manifest?.repository,
+            manifestVersion: manifest?.version,
+            fileMasks: assoc?.fileMasks,
+            editorName: assoc?.editorName,
+            editorKind: assoc?.editorKind,
+            root,
+            trusted: boardTrust.isTrusted(root),
+            isCatalogInstall: !!reg,
+            catalogId: reg?.id,
+            installedVersion: reg?.version ?? manifest?.version,
+        };
+        this.state.update((s) => {
+            s.props = props;
+            s.title = props.name;
+        });
+        if (reg) void this.loadVersions(reg.id);
+        else this.state.update((s) => { s.versions = undefined; s.versionsState = "idle"; });
+    }
+
+    /** Fetch the board's published version history on demand (catalog installs only). */
+    async loadVersions(id: string): Promise<void> {
+        this.state.update((s) => { s.versionsState = "loading"; });
+        const result = await publishedBoards.getVersions(id);
+        this.state.update((s) => {
+            if (result) {
+                s.versions = result.versions;
+                s.versionsState = "idle";
+            } else {
+                s.versions = undefined;
+                s.versionsState = "error";
+            }
+        });
+    }
+
+    /** Install a specific published version into the board's existing root (update/rollback). No
+     *  extra confirmation — the click is the intent; the busy/open-pages guard is the only safety
+     *  (epic Concern 3). Incompatible versions are refused. Re-loads properties on success. */
+    async installBoardVersion(version: PublishedBoardVersion): Promise<void> {
+        const props = this.state.get().props;
+        if (!props?.isCatalogInstall || !props.catalogId) return;
+        if (!publishedBoards.isCompatible(version.minAppVersion)) {
+            void ui.notify(
+                `This version requires Persephone ≥ ${version.minAppVersion}.`,
+                "warning",
+            );
+            return;
+        }
+        const { runBoardVersionInstall } = await import("../../api/board-updates");
+        const ok = await runBoardVersionInstall({
+            root: props.root,
+            id: props.catalogId,
+            name: props.name,
+            archive: version.archive,
+            version: version.version,
+        });
+        if (ok) await this.loadProperties();
+    }
+
+    /** Remove action for a CATALOG install: delete the folder + untrust + unpin + registry removal
+     *  (safe — reinstallable). Guarded by the busy/open-pages precondition. After removal the board
+     *  is unloaded from the page (empty page) — the page is NOT closed (it may be pinned or host an
+     *  Explorer panel). */
+    async uninstall(): Promise<void> {
+        const props = this.state.get().props;
+        if (!props) return;
+        const { showConfirmationDialog } = await import("../../ui/dialogs/ConfirmationDialog");
+        const choice = await showConfirmationDialog({
+            title: "Delete board",
+            message:
+                `Delete board "${props.name}"? This permanently removes its folder and all its files.`,
+            buttons: ["Delete", "Cancel"],
+        });
+        if (choice !== "Delete") return;
+
+        const { ensureBoardIdle } = await import("../../api/board-updates");
+        if (!(await ensureBoardIdle(props.root))) return;
+
+        try {
+            await fs.removeDir(props.root, true);
+        } catch (err) {
+            ui.notify((err as Error).message || "Failed to delete the board folder.", "error");
+            return;
+        }
+        await boardTrust.untrust(props.root);
+        const { removePin } = await import("../../ui/sidebar/pinned-items");
+        removePin({ kind: "board", root: props.root });
+        if (props.catalogId) await boardInstallRegistry.remove(props.catalogId);
+        await this.pageModel?.setMainEditor(null);
+    }
+
+    /** Remove action for a LOCAL (non-catalog) board: untrust + unpin only — the folder is left on
+     *  disk (it is the user's only copy; deleting it would be unrecoverable). Guarded by the
+     *  busy/open-pages precondition. Board unloaded from the page afterwards (page not closed). */
+    async unregister(): Promise<void> {
+        const props = this.state.get().props;
+        if (!props) return;
+        const { showConfirmationDialog } = await import("../../ui/dialogs/ConfirmationDialog");
+        const choice = await showConfirmationDialog({
+            title: "Remove board",
+            message:
+                `Remove board "${props.name}" from trusted boards? Its folder is left untouched on disk.`,
+            buttons: ["Remove", "Cancel"],
+        });
+        if (choice !== "Remove") return;
+
+        const { ensureBoardIdle } = await import("../../api/board-updates");
+        if (!(await ensureBoardIdle(props.root))) return;
+
+        await boardTrust.untrust(props.root);
+        const { removePin } = await import("../../ui/sidebar/pinned-items");
+        removePin({ kind: "board", root: props.root });
+        await this.pageModel?.setMainEditor(null);
+    }
+
+    /** Return to the board view. With a held content host, switch losslessly (host transfers back);
+     *  otherwise navigate the page to the board via `openRawLink` (BoardToolbar precedent). */
+    async openBoard(): Promise<void> {
+        const root = this.state.get().props?.root ?? this.state.get().boardRoot;
+        if (!root) return;
+        if (this._host) {
+            await this.page?.switchMainEditor(boardEditorId(root));
+        } else {
+            await app.events.openRawLink.sendAsync(
+                createLinkData(encodePersephoneBoardLink(root), { pageId: this.page?.id ?? "" }),
+            );
+        }
     }
 
     private async ensureInstallDir(): Promise<void> {
@@ -309,8 +521,9 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
             // File page ("+"): lossless host transfer into the board editor.
             await this.page?.switchMainEditor(boardEditorId(root));
         } else {
-            // Standalone open (hub/toast) — navigating to the board is US-867.
-            this.recomputeMatches();
+            // Standalone open (hub/toast): flip this page into properties mode for the board.
+            this.state.update((s) => { s.boardRoot = root; });
+            await this.loadProperties();
         }
     }
 

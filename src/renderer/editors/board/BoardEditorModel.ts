@@ -159,41 +159,6 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
             w.resolve(true);
             return false;
         });
-        // US-865: nudge once per board+version when the board is actually opened/reloaded.
-        // Main frame only — secondary views share the same board+version.
-        if (tab === BOARD_CDP_TAB) void this.maybeNotifyUpdate();
-    }
-
-    /** One-time (per board+version) "update available" toast for a catalog-installed board.
-     *  Best-effort — a catalog/registry hiccup must never break the board load. Click →
-     *  runs the update behind the idle precondition (US-865). */
-    private async maybeNotifyUpdate(): Promise<void> {
-        const root = this.state.get().boardRoot;
-        if (!root) return;
-        try {
-            const { publishedBoards } = await import("../../api/published-boards");
-            const { boardInstallRegistry } = await import("../../api/board-install-registry");
-            const { getBoardUpdate, runBoardUpdate } = await import("../../api/board-updates");
-            const { ui } = await import("../../api/ui");
-
-            await publishedBoards.load(); // idempotent; serves the cached catalog offline
-            await boardInstallRegistry.load();
-            const update = getBoardUpdate(root);
-            if (!update) return;
-
-            const entry = boardInstallRegistry.getByRoot(root);
-            if (entry?.lastNotifiedVersion === update.latestVersion) return; // already toasted
-            await boardInstallRegistry.setLastNotified(update.id, update.latestVersion);
-
-            const clicked = await ui.notify(
-                `An update for "${update.entry.name}" is available (v${update.latestVersion}). ` +
-                    `Click to update.`,
-                "info",
-            );
-            if (clicked === "clicked") await runBoardUpdate(update);
-        } catch {
-            /* best-effort */
-        }
     }
 
     /** Resolve `true` when the NEXT frame-load of `tab` completes (the frame is rendered

@@ -113,6 +113,22 @@ export interface PublishedBoardsResult {
     error?: string;
 }
 
+/** One published version of a board (from `boards/<id>/versions-manifest.json`, EPIC-045). */
+export interface PublishedBoardVersion {
+    version: string;
+    date?: string;
+    notes?: string;
+    minAppVersion?: string;
+    archive: PublishedBoardArchive;
+}
+
+/** A board's full version history (newest first). Fetched on demand (Board Info properties). */
+export interface PublishedBoardVersions {
+    schemaVersion: number;
+    id: string;
+    versions: PublishedBoardVersion[];
+}
+
 /** One in-flight board-archive download (EPIC-045 / US-863). `installId` is minted by the
  *  renderer so it can match `eBoardInstallProgress` events and cancel a specific download. */
 export interface BoardArchiveDownloadRequest {

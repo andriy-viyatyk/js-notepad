@@ -10,7 +10,7 @@
 import { useMemo } from "react";
 import { compareVersions } from "../../shared/version-utils";
 import { fpNormalizeForCompare } from "../core/utils/file-path";
-import type { PublishedBoardInfo } from "../../ipc/api-param-types";
+import type { PublishedBoardArchive, PublishedBoardInfo } from "../../ipc/api-param-types";
 import type { PageModel } from "./pages/PageModel";
 import { app } from "./app";
 import { ui } from "./ui";
@@ -18,7 +18,7 @@ import { publishedBoards } from "./published-boards";
 import { boardInstallRegistry } from "./board-install-registry";
 import { isBoardRootBusy } from "../editors/board/busy-boards";
 import { BoardEditorModel } from "../editors/board/BoardEditorModel";
-import { updateBoard } from "./board-install";
+import { installVersion } from "./board-install";
 
 export interface BoardUpdate {
     /** Installed root (the board folder), original case. */
@@ -100,7 +100,7 @@ export function isBoardIdle(root: string): boolean {
  * Ensure the board is idle, closing its open pages with the user's consent. A busy board is
  * a hard stop — we never auto-kill running processes. Returns true when clear to swap.
  */
-async function ensureBoardIdle(root: string): Promise<boolean> {
+export async function ensureBoardIdle(root: string): Promise<boolean> {
     if (isBoardRootBusy(root)) {
         void ui.notify("This board is currently running. Stop it before updating.", "warning");
         return false;
@@ -126,21 +126,41 @@ async function ensureBoardIdle(root: string): Promise<boolean> {
 }
 
 /**
- * Preconditioned, user-consented update: ensure idle (close-pages dialog if needed) → swap
- * via `updateBoard`, re-checking idleness right before the swap (a page could reopen during
- * the download). Returns whether the swap happened. Never throws — surfaces via toasts.
+ * Preconditioned, user-consented install of a SPECIFIC version into `root` (update, rollback, or
+ * forward): ensure idle (close-pages dialog if needed) → swap via `installVersion`, re-checking
+ * idleness right before the swap (a page could reopen during the download). Returns whether the
+ * swap happened. Never throws — surfaces via toasts.
  */
-export async function runBoardUpdate(update: BoardUpdate): Promise<boolean> {
-    if (!(await ensureBoardIdle(update.root))) return false;
+export async function runBoardVersionInstall(args: {
+    root: string;
+    id: string;
+    name: string;
+    archive: PublishedBoardArchive;
+    version: string;
+}): Promise<boolean> {
+    if (!(await ensureBoardIdle(args.root))) return false;
     try {
         await ui.showProgress(
-            updateBoard(update.entry, { preSwap: async () => isBoardIdle(update.root) }),
-            `Updating ${update.entry.name}…`,
+            installVersion(args.id, args.archive, args.version, {
+                preSwap: async () => isBoardIdle(args.root),
+            }),
+            `Installing ${args.name} v${args.version}…`,
         );
-        void ui.notify(`Updated ${update.entry.name} to v${update.latestVersion}.`, "success");
+        void ui.notify(`Installed ${args.name} v${args.version}.`, "success");
         return true;
     } catch (err) {
-        void ui.notify(`Update failed: ${(err as Error).message}`, "error");
+        void ui.notify(`Install failed: ${(err as Error).message}`, "error");
         return false;
     }
+}
+
+/** Update to the catalog-latest version (thin wrapper over `runBoardVersionInstall`). */
+export async function runBoardUpdate(update: BoardUpdate): Promise<boolean> {
+    return runBoardVersionInstall({
+        root: update.root,
+        id: update.id,
+        name: update.entry.name,
+        archive: update.entry.archive,
+        version: update.latestVersion,
+    });
 }

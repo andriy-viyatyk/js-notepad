@@ -8,6 +8,7 @@ import { NavPanelIcon } from "../../theme/icons";
 import { editorRegistry } from "./editorRegistry";
 import { customEditorRegistry } from "../board/custom-editor-registry";
 import { isPlainLocalPath, fpNormalizeForCompare } from "../../core/utils/file-path";
+import { useOptionalState } from "../../core/state/state";
 import { publishedBoards } from "../../api/published-boards";
 import { boardInstallRegistry } from "../../api/board-install-registry";
 import { BOARD_INFO_EDITOR_ID } from "../board-info/board-info-id";
@@ -75,24 +76,31 @@ export function SwitchWidget({ model }: { model: EditorModel }) {
     // Re-render when async git detection lands on the shared host (`gitRepo`), and when a
     // rename updates the host `title` — both live on the shared host state, not the editor's
     // own. Renaming an untitled page updates `title` here so the board switch re-evaluates.
-    const hostState = model.contentHost?.state.use((s) => ({
-        gitRepo: (s as { gitRepo?: unknown }).gitRepo,
-        filePath: (s as { filePath?: string }).filePath,
-        title: (s as { title?: string }).title,
-    }));
+    // `useOptionalState` (NOT `contentHost?.state.use(...)`) so the hook count stays stable even
+    // when a host-holder editor extracts its host on switch-away (a conditional `?.use` would
+    // "render fewer hooks" and crash — e.g. the Board Info holder toggling its host).
+    const hostState = useOptionalState(
+        model.contentHost?.state,
+        (s) => ({
+            gitRepo: (s as { gitRepo?: unknown }).gitRepo,
+            filePath: (s as { filePath?: string }).filePath as string | undefined,
+            title: (s as { title?: string }).title as string | undefined,
+        }),
+        { gitRepo: undefined as unknown, filePath: undefined, title: undefined },
+    );
     const options = model.findCompatibleEditors();
     // Append trusted file-associated boards for the current file (the single merge point for
     // the switch; the 16 text editors delegate here via the widget rather than each appending).
     // Reactive so a trust / mask change updates the widget live.
     // `model.filePath` (not `editorState.filePath`) so a board's `sourceLink.filePath` merge
     // (BoardEditorModel.filePath override) is preserved; the subscription above keeps it reactive.
-    const filePath = hostState?.filePath ?? model.filePath;
+    const filePath = hostState.filePath ?? model.filePath;
     const local = !!filePath && isPlainLocalPath(filePath);
     // No real file path (new/untitled page): fall back to the page title as the file name,
     // mirroring the built-in registry (editorRegistry.findEditorsAccepting). A title-only page
     // has no local path, so only content-host boards — which own the host and need no real
     // file — can claim it; simple boards require a real local file and stay hidden.
-    const fileName = filePath ?? hostState?.title ?? editorState.title;
+    const fileName = filePath ?? hostState.title ?? editorState.title;
     const boardMatchesAll = customEditorRegistry.useBoardsForFile(fileName ?? "");
     const boardMatches = local
         ? boardMatchesAll

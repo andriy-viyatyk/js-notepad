@@ -6,6 +6,8 @@ import {
     PublishedBoardInfo,
     PublishedBoardsCatalog,
     PublishedBoardsResult,
+    PublishedBoardVersion,
+    PublishedBoardVersions,
 } from "../ipc/api-param-types";
 
 /**
@@ -26,9 +28,18 @@ const STORE_KEYS = {
 
 /** Dev-only source override: PERSEPHONE_BOARDS_BRANCH switches the raw base off `main`
  *  (e.g. `develop`) so the whole flow is testable before anything ships to `main`. */
-function manifestUrl(): string {
+function boardsRepoRawBase(): string {
     const branch = process.env.PERSEPHONE_BOARDS_BRANCH?.trim() || "main";
-    return `https://raw.githubusercontent.com/andriy-viyatyk/persephone-boards/${branch}/boards-manifest.json`;
+    return `https://raw.githubusercontent.com/andriy-viyatyk/persephone-boards/${branch}`;
+}
+
+function manifestUrl(): string {
+    return `${boardsRepoRawBase()}/boards-manifest.json`;
+}
+
+/** Per-board version history lives in `boards/<id>/versions-manifest.json`, fetched on demand. */
+function versionsUrl(id: string): string {
+    return `${boardsRepoRawBase()}/boards/${encodeURIComponent(id)}/versions-manifest.json`;
 }
 
 function validateBoard(entry: unknown): PublishedBoardInfo | null {
@@ -68,6 +79,44 @@ function validateBoard(entry: unknown): PublishedBoardInfo | null {
             sha256: archive.sha256,
         },
     };
+}
+
+function validateVersion(entry: unknown): PublishedBoardVersion | null {
+    if (!entry || typeof entry !== "object") return null;
+    const e = entry as Record<string, unknown>;
+    const archive = e.archive as Record<string, unknown> | undefined;
+    if (
+        typeof e.version !== "string" || !e.version ||
+        !archive ||
+        typeof archive.url !== "string" ||
+        typeof archive.sha256 !== "string" ||
+        typeof archive.size !== "number"
+    ) {
+        return null;
+    }
+    return {
+        version: e.version,
+        date: typeof e.date === "string" ? e.date : undefined,
+        notes: typeof e.notes === "string" ? e.notes : undefined,
+        minAppVersion: typeof e.minAppVersion === "string" ? e.minAppVersion : undefined,
+        archive: {
+            url: archive.url,
+            size: archive.size,
+            sha256: archive.sha256,
+        },
+    };
+}
+
+function validateVersions(data: unknown): PublishedBoardVersions | null {
+    if (!data || typeof data !== "object") return null;
+    const raw = data as { schemaVersion?: unknown; id?: unknown; versions?: unknown };
+    if (raw.schemaVersion !== CATALOG_SCHEMA_VERSION) return null;
+    if (typeof raw.id !== "string" || !raw.id) return null;
+    if (!Array.isArray(raw.versions)) return null;
+    const versions = raw.versions
+        .map(validateVersion)
+        .filter((v): v is PublishedBoardVersion => v !== null);
+    return { schemaVersion: CATALOG_SCHEMA_VERSION, id: raw.id, versions };
 }
 
 function validateCatalog(data: unknown): PublishedBoardsCatalog | null {
@@ -139,4 +188,19 @@ export async function getPublishedBoards(force = false): Promise<PublishedBoards
     return { catalog: fetched, fetchedAt: now, fromCache: false };
 }
 
-export const publishedBoardsService = { getPublishedBoards };
+/** On-demand fetch of a board's full version history. No cache gate — the file is tiny and only
+ *  requested when the Board Info properties screen opens. Silent null on network/parse failure
+ *  (the view offers a Retry). */
+export async function getBoardVersions(id: string): Promise<PublishedBoardVersions | null> {
+    try {
+        const response = await net.fetch(versionsUrl(id), {
+            headers: { "User-Agent": "persephone" },
+        });
+        if (!response.ok) return null;
+        return validateVersions(await response.json());
+    } catch {
+        return null;
+    }
+}
+
+export const publishedBoardsService = { getPublishedBoards, getBoardVersions };

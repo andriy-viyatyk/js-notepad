@@ -11,7 +11,7 @@ import { fs } from "./fs";
 import { archiveService } from "./archive-service";
 import { fpJoin, fpDirname } from "../core/utils/file-path";
 import { readBoardManifest } from "../editors/board/board-manifest";
-import { PublishedBoardInfo } from "../../ipc/api-param-types";
+import { PublishedBoardArchive, PublishedBoardInfo } from "../../ipc/api-param-types";
 import { boardInstallRegistry } from "./board-install-registry";
 
 function newInstallId(): string {
@@ -84,20 +84,39 @@ export async function updateBoard(
     entry: PublishedBoardInfo,
     opts?: { preSwap?: () => Promise<boolean> },
 ): Promise<string> {
-    const existing = boardInstallRegistry.getById(entry.id);
-    if (!existing) throw new Error(`Board not installed: ${entry.id}`);
+    return installVersion(entry.id, entry.archive, entry.version, opts);
+}
+
+/**
+ * Install a SPECIFIC published version's archive into an already-installed board's existing root,
+ * via the same temp-extract + folder-swap as an update (EPIC-045 / US-867 — update, rollback, or
+ * forward). Runs under the board's EXISTING trust (same root); trust and pins are untouched. The
+ * install registry is updated to the version actually installed, so "update available" reappears
+ * correctly after a rollback.
+ *
+ * `opts.preSwap` is re-checked immediately before the swap (after the download completes) so a page
+ * reopened mid-download aborts the swap with the working board left untouched.
+ */
+export async function installVersion(
+    id: string,
+    archive: PublishedBoardArchive,
+    version: string,
+    opts?: { preSwap?: () => Promise<boolean> },
+): Promise<string> {
+    const existing = boardInstallRegistry.getById(id);
+    if (!existing) throw new Error(`Board not installed: ${id}`);
     const root = existing.root;
     const parent = fpDirname(root);
 
     const installId = newInstallId();
-    const stagingDir = fpJoin(parent, `.${entry.id}.staging-${installId}`);
-    const backupDir = fpJoin(parent, `.${entry.id}.old-${installId}`);
+    const stagingDir = fpJoin(parent, `.${id}.staging-${installId}`);
+    const backupDir = fpJoin(parent, `.${id}.old-${installId}`);
 
     const tempZip = await api.downloadBoardArchive({
         installId,
-        url: entry.archive.url,
-        sha256: entry.archive.sha256,
-        size: entry.archive.size,
+        url: archive.url,
+        sha256: archive.sha256,
+        size: archive.size,
     });
     try {
         await archiveService.extractTo(tempZip, stagingDir);
@@ -124,9 +143,9 @@ export async function updateBoard(
         await fs.delete(backupDir);
 
         await boardInstallRegistry.record({
-            id: entry.id,
+            id,
             root,
-            version: entry.version,
+            version,
             installedAt: Date.now(),
         });
         return root;

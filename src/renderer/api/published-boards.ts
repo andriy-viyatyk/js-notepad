@@ -11,7 +11,7 @@ import { TGlobalState } from "../core/state/state";
 import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import { EventEndpoint } from "../../ipc/api-types";
-import { PublishedBoardInfo, PublishedBoardsCatalog } from "../../ipc/api-param-types";
+import { PublishedBoardInfo, PublishedBoardsCatalog, PublishedBoardVersions } from "../../ipc/api-param-types";
 import { compareVersions } from "../../shared/version-utils";
 import { normalizeFileMasks, matchesFileMask } from "../editors/board/board-manifest";
 import { fpBasename } from "../core/utils/file-path";
@@ -47,6 +47,12 @@ class PublishedBoards {
             s.catalog = result.catalog;
             s.loaded = true;
         });
+    }
+
+    /** A board's full version history (on demand — no caching; the properties view calls this on
+     *  open). Returns null on network/parse failure. */
+    async getVersions(id: string): Promise<PublishedBoardVersions | null> {
+        return api.getBoardVersions(id);
     }
 
     /** Force a fresh network check (bypasses the 24h gate). */

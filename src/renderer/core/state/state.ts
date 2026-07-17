@@ -129,7 +129,7 @@ export class TComponentState<T> extends TOneState<T> {}
  * Use this instead of `state?.use()` which is a conditional hook and violates React rules.
  */
 export function useOptionalState<T, R>(
-    state: TOneState<T> | null | undefined,
+    state: IState<T> | null | undefined,
     selector: (s: T) => R,
     defaultValue: R,
 ): R {

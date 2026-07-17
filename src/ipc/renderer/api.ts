@@ -6,6 +6,7 @@ import {
     OpenFileDialogParams,
     OpenFolderDialogParams,
     PublishedBoardsResult,
+    PublishedBoardVersions,
     RuntimeVersions,
     SaveFileDialogParams,
     UpdateCheckResult,
@@ -424,6 +425,10 @@ class ApiCalls implements Api {
 
     getPublishedBoards = async (force?: boolean) => {
         return executeOnce<PublishedBoardsResult>(Endpoint.getPublishedBoards, force);
+    };
+
+    getBoardVersions = async (id: string) => {
+        return executeOnce<PublishedBoardVersions | null>(Endpoint.getBoardVersions, id);
     };
 
     downloadBoardArchive = async (req: BoardArchiveDownloadRequest) => {

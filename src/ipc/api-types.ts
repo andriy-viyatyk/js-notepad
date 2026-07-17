@@ -7,6 +7,7 @@ import {
     OpenFolderDialogParams,
     PublishedBoardsCatalog,
     PublishedBoardsResult,
+    PublishedBoardVersions,
     RuntimeVersions,
     SaveFileDialogParams,
     UpdateCheckResult,
@@ -102,6 +103,7 @@ export enum Endpoint {
     registerBoardFrame = "registerBoardFrame",
     unregisterBoardFrame = "unregisterBoardFrame",
     getPublishedBoards = "getPublishedBoards",
+    getBoardVersions = "getBoardVersions",
     downloadBoardArchive = "downloadBoardArchive",
     cancelBoardDownload = "cancelBoardDownload",
 }
@@ -241,6 +243,7 @@ export type Api = {
     [Endpoint.registerBoardFrame]: (boardId: string, boardHost: string, frameNonce?: string, tab?: string) => Promise<void>;
     [Endpoint.unregisterBoardFrame]: (boardId: string, tab?: string) => Promise<void>;
     [Endpoint.getPublishedBoards]: (force?: boolean) => Promise<PublishedBoardsResult>;
+    [Endpoint.getBoardVersions]: (id: string) => Promise<PublishedBoardVersions | null>;
     [Endpoint.downloadBoardArchive]: (req: BoardArchiveDownloadRequest) => Promise<string>;
     [Endpoint.cancelBoardDownload]: (installId: string) => Promise<void>;
 };
