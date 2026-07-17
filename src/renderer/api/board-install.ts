@@ -13,6 +13,7 @@ import { fpJoin, fpDirname } from "../core/utils/file-path";
 import { readBoardManifest } from "../editors/board/board-manifest";
 import { PublishedBoardArchive, PublishedBoardInfo } from "../../ipc/api-param-types";
 import { boardInstallRegistry } from "./board-install-registry";
+import { boardTrust } from "./board-trust";
 
 function newInstallId(): string {
     return crypto.randomUUID();
@@ -97,6 +98,45 @@ export async function updateBoard(
  * `opts.preSwap` is re-checked immediately before the swap (after the download completes) so a page
  * reopened mid-download aborts the swap with the working board left untouched.
  */
+/**
+ * Uninstall a catalog-installed board: confirm → ensure idle (close-pages / busy guard) → delete
+ * the folder → untrust → unpin → registry remove. Returns whether it was removed (`false` =
+ * cancelled / busy / delete failed). Shared by the Board Info editor's Uninstall action and
+ * `app.boards.uninstallBoard`, so the confirm wording lives in one place. Does NOT touch any page
+ * itself — `ensureBoardIdle` already closes the board's open pages, and a page-hosting caller
+ * unloads its own empty page afterward.
+ */
+export async function uninstallCatalogBoard(args: {
+    root: string;
+    name: string;
+    catalogId?: string;
+}): Promise<boolean> {
+    const { showConfirmationDialog } = await import("../ui/dialogs/ConfirmationDialog");
+    const choice = await showConfirmationDialog({
+        title: "Delete board",
+        message:
+            `Delete board "${args.name}"? This permanently removes its folder and all its files.`,
+        buttons: ["Delete", "Cancel"],
+    });
+    if (choice !== "Delete") return false;
+
+    const { ensureBoardIdle } = await import("./board-updates");
+    if (!(await ensureBoardIdle(args.root))) return false;
+
+    try {
+        await fs.removeDir(args.root, true);
+    } catch (err) {
+        const { ui } = await import("./ui");
+        ui.notify((err as Error).message || "Failed to delete the board folder.", "error");
+        return false;
+    }
+    await boardTrust.untrust(args.root);
+    const { removePin } = await import("../ui/sidebar/pinned-items");
+    removePin({ kind: "board", root: args.root });
+    if (args.catalogId) await boardInstallRegistry.remove(args.catalogId);
+    return true;
+}
+
 export async function installVersion(
     id: string,
     archive: PublishedBoardArchive,

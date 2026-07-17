@@ -1,6 +1,12 @@
 import { app } from "./app";
 import { fs } from "./fs";
-import type { IBoards } from "./types/boards";
+import type {
+    IBoards,
+    PublishedBoardResult,
+    PublishedVersionResult,
+    BoardUpdateInfo,
+} from "./types/boards";
+import type { EditorModel } from "../editors/base/EditorModel";
 
 /**
  * `app.boards` — board lifecycle for scripts / agents (EPIC-035 / US-750).
@@ -17,6 +23,11 @@ import type { IBoards } from "./types/boards";
  * lifecycle triples for agents: register requests trust via the user's dialog (never
  * self-trusts), unregister untrusts + unpins, rename moves a trusted board to a new
  * folder carrying its trust/pin/install registration along with no dialog.
+ *
+ * `searchPublished` / `getPublishedVersions` / `downloadPublished` / `installPublished` /
+ * `uninstallBoard` / `checkPublishedUpdates` (EPIC-045 / US-869) drive the published-boards
+ * catalog. The same request-vs-grant model holds: download trusts nothing (inert code on disk for
+ * review), install shows the user the trust dialog, uninstall shows the delete confirmation.
  */
 async function create(name: string, dir: string, template: string): Promise<string> {
     // Ensure the container exists (recursive; no-op if present) so creating into a
@@ -24,6 +35,21 @@ async function create(name: string, dir: string, template: string): Promise<stri
     await fs.mkdir(dir);
     const { createBoardFromTemplate } = await import("../editors/board/board-scaffold");
     return createBoardFromTemplate(name, dir, template);
+}
+
+/** Load the catalog + install registry so the sync catalog helpers below have data. */
+async function ensureCatalog(): Promise<void> {
+    const { publishedBoards } = await import("./published-boards");
+    const { boardInstallRegistry } = await import("./board-install-registry");
+    await publishedBoards.load();
+    await boardInstallRegistry.load();
+}
+
+/** Default install container when the caller passes no `dir`. */
+async function defaultInstallDir(): Promise<string> {
+    const { fpJoin } = await import("../core/utils/file-path");
+    const { api } = await import("../../ipc/renderer/api");
+    return fpJoin(await api.getCommonFolder("userData"), "data", "boards");
 }
 
 export const boards: IBoards = {
@@ -136,5 +162,192 @@ export const boards: IBoards = {
         }
 
         return newRoot;
+    },
+
+    // ── Published catalog — discover / install / update (EPIC-045 / US-869) ──────
+
+    searchPublished: async (query?: string): Promise<PublishedBoardResult[]> => {
+        await ensureCatalog();
+        const { publishedBoards } = await import("./published-boards");
+        const { boardInstallRegistry } = await import("./board-install-registry");
+        const { getBoardUpdate } = await import("./board-updates");
+        const q = query?.trim().toLowerCase();
+        const catalog = publishedBoards.getCatalog();
+        return catalog
+            .filter((b) => {
+                if (!q) return true;
+                const hay = [b.name, b.description ?? "", ...(b.fileMasks ?? [])]
+                    .join(" ")
+                    .toLowerCase();
+                return hay.includes(q);
+            })
+            .map((b): PublishedBoardResult => {
+                const inst = boardInstallRegistry.getById(b.id);
+                const update = inst ? getBoardUpdate(inst.root) : null;
+                return {
+                    id: b.id,
+                    name: b.name,
+                    description: b.description,
+                    version: b.version,
+                    fileMasks: b.fileMasks,
+                    editorName: b.editorName,
+                    editorKind: b.editorKind,
+                    standalone: b.standalone,
+                    minAppVersion: b.minAppVersion,
+                    size: b.archive.size,
+                    compatible: publishedBoards.isCompatible(b.minAppVersion),
+                    installed: !!inst,
+                    installedRoot: inst?.root,
+                    installedVersion: inst?.version,
+                    updateAvailable: !!update,
+                };
+            });
+    },
+
+    getPublishedVersions: async (id: string): Promise<PublishedVersionResult[]> => {
+        await ensureCatalog();
+        const { publishedBoards } = await import("./published-boards");
+        const { boardInstallRegistry } = await import("./board-install-registry");
+        const vm = await publishedBoards.getVersions(id);
+        if (!vm) return [];
+        const installedVersion = boardInstallRegistry.getById(id)?.version;
+        return vm.versions.map((v): PublishedVersionResult => ({
+            version: v.version,
+            date: v.date,
+            notes: v.notes,
+            minAppVersion: v.minAppVersion,
+            compatible: publishedBoards.isCompatible(v.minAppVersion),
+            installed: v.version === installedVersion,
+        }));
+    },
+
+    downloadPublished: async (
+        id: string,
+        opts?: { dir?: string; version?: string },
+    ): Promise<string> => {
+        await ensureCatalog();
+        const { publishedBoards } = await import("./published-boards");
+        const entry = publishedBoards.getCatalog().find((b) => b.id === id);
+        if (!entry) throw new Error(`Board not in catalog: "${id}"`);
+
+        // Resolve the archive + version to fetch: the catalog-latest, or a specific version from
+        // the version history.
+        let resolved = entry;
+        if (opts?.version && opts.version !== entry.version) {
+            const vm = await publishedBoards.getVersions(id);
+            const v = vm?.versions.find((x) => x.version === opts.version);
+            if (!v) throw new Error(`Version not found for "${id}": ${opts.version}`);
+            resolved = { ...entry, version: v.version, minAppVersion: v.minAppVersion, archive: v.archive };
+        }
+        if (!publishedBoards.isCompatible(resolved.minAppVersion)) {
+            throw new Error(`This board version requires Persephone ≥ ${resolved.minAppVersion}.`);
+        }
+
+        const dir = opts?.dir ?? (await defaultInstallDir());
+        const { downloadBoard } = await import("./board-install");
+        return downloadBoard(resolved, dir);
+    },
+
+    installPublished: async (
+        id: string,
+        opts?: { dir?: string; version?: string },
+    ): Promise<string | undefined> => {
+        await ensureCatalog();
+        const { publishedBoards } = await import("./published-boards");
+        const { boardInstallRegistry } = await import("./board-install-registry");
+        const { ui } = await import("./ui");
+        const entry = publishedBoards.getCatalog().find((b) => b.id === id);
+        if (!entry) throw new Error(`Board not in catalog: "${id}"`);
+
+        // Already installed + a target version → version change (update/rollback): auto-run the
+        // swap (no page, no button — the board is already trusted, the call is the intent).
+        const reg = boardInstallRegistry.getById(id);
+        if (reg && opts?.version) {
+            const vm = await publishedBoards.getVersions(id);
+            const v = vm?.versions.find((x) => x.version === opts.version);
+            if (!v) throw new Error(`Version not found for "${id}": ${opts.version}`);
+            if (!publishedBoards.isCompatible(v.minAppVersion)) {
+                void ui.notify(`This version requires Persephone ≥ ${v.minAppVersion}.`, "warning");
+                return undefined;
+            }
+            const { runBoardVersionInstall } = await import("./board-updates");
+            const ok = await runBoardVersionInstall({
+                root: reg.root,
+                id,
+                name: entry.name,
+                archive: v.archive,
+                version: v.version,
+            });
+            return ok ? reg.root : undefined;
+        }
+
+        // Already installed AND trusted, no version → nothing to do; return the root (opening the
+        // page would just hang until the user closes it). A downloaded-but-unregistered board
+        // (reg present, not trusted) falls through so the user can Register it.
+        if (reg) {
+            const { boardTrust } = await import("./board-trust");
+            await boardTrust.load();
+            if (boardTrust.isTrusted(reg.root)) return reg.root;
+        }
+
+        // Fresh install → open the Board Info page prefilled and let the user walk Download →
+        // Register. Resolve the root when registration succeeds, or undefined if the page closes
+        // first. (A fresh install installs the catalog-latest; opts.version is not honored here.)
+        const { TComponentState } = await import("../core/state/state");
+        const { BoardInfoEditorModel, getDefaultBoardInfoEditorState } = await import(
+            "../editors/board-info/BoardInfoEditorModel"
+        );
+        const model = new BoardInfoEditorModel(
+            new TComponentState({
+                ...getDefaultBoardInfoEditorState(),
+                catalogId: id,
+                installDir: opts?.dir,
+            }),
+        );
+        await model.restore();
+        const page = app.pages.addPage(model as unknown as EditorModel);
+
+        return await new Promise<string | undefined>((resolve) => {
+            let settled = false;
+            const settle = (root: string | undefined) => {
+                if (settled) return;
+                settled = true;
+                installedSub.unsubscribe();
+                pagesUnsub();
+                resolve(root);
+            };
+            const installedSub = model.installed.subscribe((root) => settle(root));
+            const pagesUnsub = app.pages.state.subscribe(() => {
+                if (!app.pages.pages.some((p) => p.id === page.id)) settle(undefined);
+            });
+        });
+    },
+
+    uninstallBoard: async (id: string): Promise<boolean> => {
+        await ensureCatalog();
+        const { boardInstallRegistry } = await import("./board-install-registry");
+        const reg = boardInstallRegistry.getById(id);
+        if (!reg) throw new Error(`Board not installed: "${id}"`);
+        const { readBoardManifest } = await import("../editors/board/board-manifest");
+        const { fpBasename } = await import("../core/utils/file-path");
+        const manifest = await readBoardManifest(reg.root);
+        const name = manifest?.name?.trim() || fpBasename(reg.root);
+        const { uninstallCatalogBoard } = await import("./board-install");
+        return uninstallCatalogBoard({ root: reg.root, name, catalogId: id });
+    },
+
+    checkPublishedUpdates: async (force?: boolean): Promise<BoardUpdateInfo[]> => {
+        const { publishedBoards } = await import("./published-boards");
+        if (force) await publishedBoards.refresh();
+        else await publishedBoards.load();
+        const { boardInstallRegistry } = await import("./board-install-registry");
+        await boardInstallRegistry.load();
+        const { listBoardUpdates } = await import("./board-updates");
+        return listBoardUpdates().map((u) => ({
+            id: u.id,
+            root: u.root,
+            installedVersion: u.installedVersion,
+            latestVersion: u.latestVersion,
+        }));
     },
 };

@@ -55,6 +55,19 @@ export function getBoardUpdate(root: string): BoardUpdate | null {
 }
 
 /**
+ * All available updates (sync, non-reactive) — the script-call counterpart of `useBoardUpdates`
+ * (a hook can't run in an `app.boards` call). Requires the catalog + install registry already
+ * loaded (callers await `publishedBoards.load()` / `boardInstallRegistry.load()` first). Reuses
+ * `getBoardUpdate` verbatim so this and the reactive surface can't drift.
+ */
+export function listBoardUpdates(): BoardUpdate[] {
+    return boardInstallRegistry
+        .listInstalled()
+        .map((e) => getBoardUpdate(e.root))
+        .filter((u): u is BoardUpdate => !!u);
+}
+
+/**
  * Reactive map (normalized root → update) over BOTH the catalog and the install registry.
  * Drives the sidebar badge + context menu.
  */

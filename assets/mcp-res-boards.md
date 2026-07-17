@@ -61,6 +61,58 @@ create (a folder the user points you at, or one you downloaded for review):
   page. Returns the new root. Throws if the board is running (busy), is not a board, or the new
   name already exists. This solves "rename my board" as a single action with zero user clicks.
 
+## Published boards — discover, install, update (script API)
+
+Persephone ships against a curated **published-boards catalog** (a GitHub repo). Six `app.boards`
+calls drive the whole lifecycle so you can do "find me a drawio viewer and install it" end-to-end
+with **at most one user click per privilege-granting step**. Boards install into
+`<userData>/data/boards/<id>` by default. Downloading a board **trusts nothing** — the code sits
+inert on disk; only `registerBoard` (a user trust-dialog click) activates it.
+
+- **`app.boards.searchPublished(query?)`** → `Promise<PublishedBoardResult[]>` — the catalog,
+  filtered by a case-insensitive `query` over name/description/file-masks (omit for all), each
+  result annotated with `installed`, `installedVersion`, `updateAvailable`, `compatible`, `size`.
+  **Read-only, no dialog.**
+- **`app.boards.getPublishedVersions(id)`** → `Promise<PublishedVersionResult[]>` — a board's
+  version history, newest first, each flagged `compatible` (vs this app) and `installed`.
+  **Read-only, no dialog.**
+- **`app.boards.downloadPublished(id, { dir?, version? })`** → `Promise<string>` — download +
+  sha256-verify + extract to disk and record it, **no dialog** and **without trusting**. Returns
+  the local root. This is your **"can I trust this board?" entry point** — download, read the
+  files, report, then let the user decide at `registerBoard`. Throws on an unknown id/version or
+  an incompatible version.
+- **`app.boards.installPublished(id, { dir?, version? })`** → `Promise<string | undefined>` — the
+  interactive combo. For a not-yet-installed board it opens the **Board Info page** prefilled and
+  the user walks Download → Register (the trust dialog is the consent); resolves the root once
+  registered, or `undefined` if they close the page first. For an **already-installed** board with
+  a `version`, it performs an update/rollback swap **with no dialog** (subject only to a
+  close-pages prompt if the board is open); resolves the root, or `undefined` if the user vetoes
+  that prompt. (A *fresh* install always installs the latest; for a specific fresh version use
+  `downloadPublished(id, { version })` + `registerBoard(root)`.)
+- **`app.boards.uninstallBoard(id)`** → `Promise<boolean>` — shows the **delete confirmation**,
+  then removes the board folder + trust + pin + registry entry. Returns `true` if removed, `false`
+  if cancelled. Throws if the id is not installed.
+- **`app.boards.checkPublishedUpdates(force?)`** → `Promise<BoardUpdateInfo[]>` — refresh the
+  catalog (`force: true` bypasses the periodic-check gate) and list installed boards with a
+  compatible newer version. **No dialog.**
+
+### Reviewing a board before trusting it
+
+When the user asks *"can I trust this board?"* (or you're about to register one they didn't
+author), **review it before `registerBoard`**:
+
+1. `const root = await app.boards.downloadPublished(id)` (or use a folder the user points you at).
+2. Read **every** file in the folder — `index.html`, `app.js`, all of `scripts/`, any bundled JS.
+   The board's iframe CSP blocks remote network at runtime, **but backend `scripts/` run as full
+   OS processes with the user's privileges and are NOT sandboxed** — that is where risk lives.
+3. Flag: data exfiltration (unexpected network hosts / uploads), credential or filesystem access
+   beyond the board's stated purpose, destructive `persephone.execute` usage (deletes, overwrites,
+   shelling out to dangerous commands), and obfuscated/minified logic that hides intent.
+4. Report your findings to the user, then call `app.boards.registerBoard(root)` — they make the
+   final call at the trust dialog. You can never trust a board on their behalf.
+
+All six calls are reached through **`execute_script`** — there are no dedicated MCP tools for them.
+
 ## Develop it
 
 `create_board` scaffolds a **working starter** — build on it, don't blindly overwrite it. A

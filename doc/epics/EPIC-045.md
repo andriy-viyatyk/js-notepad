@@ -386,7 +386,7 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 | [US-864](../tasks/US-864-switch-entry-board-info/README.md) | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
 | [US-865](../tasks/US-865-updates/README.md) | Updates: version compare, activation toast, safe re-install, sidebar badges | Active |
 | [US-867](../tasks/US-867-board-info-properties/README.md) | Board Info editor: properties mode + version history & rollback | Active |
-| US-869 | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Planned |
+| [US-869](../tasks/US-869-agent-catalog-api/README.md) | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Active |
 | US-870 | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Planned |
 | US-871 | SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up) | Planned |
 | US-872 | About "Check for Updates" also force-refreshes the boards catalog | Active |
@@ -714,6 +714,28 @@ the "Open in new tab" button will be a plain header icon button.)
   automation and match the released assets (id/version/sha256/size).
 
 ## Notes
+
+### 2026-07-17 — US-869 implemented (Agent catalog API)
+- Six `app.boards` catalog methods added (`searchPublished`, `getPublishedVersions`,
+  `downloadPublished`, `installPublished`, `uninstallBoard`, `checkPublishedUpdates`) — thin glue
+  over the existing catalog model / install engine / update detection. Result types
+  (`PublishedBoardResult`/`PublishedVersionResult`/`BoardUpdateInfo`) defined in `boards.d.ts`
+  (self-contained, install-state + compat annotated).
+- Three additive helpers: `board-updates.listBoardUpdates()` (sync counterpart of the reactive
+  `useBoardUpdates`, reuses `getBoardUpdate`); `board-install.uninstallCatalogBoard({root,name,
+  catalogId})` (shared confirm/idle/delete/untrust/unpin/registry-remove — `BoardInfoEditorModel.
+  uninstall()` now delegates to it); a `BoardInfoEditorModel.installed` Subscription fired from
+  `register()`, awaited by `installPublished`'s interactive flow.
+- **Decisions folded in from review:** `opts.version` on a *fresh* `installPublished` is not
+  honored (install-mode UI installs the catalog-latest) — the swap path (already-installed +
+  version) auto-runs and honors it; `downloadPublished` honors `version` headlessly.
+  `installPublished` resolves via the `installed` signal (success) or page-close (undefined) —
+  the registries expose no public `subscribe`. `uninstallBoard` throws on a not-installed id and
+  returns a `boolean`.
+- Agent guide (`assets/mcp-res-boards.md`) gained a "Published boards — discover, install, update"
+  section + a board-review checklist (backend `scripts/` run unsandboxed — review before
+  `registerBoard`).
+- tsc + eslint clean. Left `[ ]` on the dashboard per the epic deferred-review model.
 
 ### 2026-07-17 — US-867 implemented (Board Info properties mode)
 - Added `getBoardVersions(id)` (main service `boardsRepoRawBase()`/`versionsUrl()` refactor +

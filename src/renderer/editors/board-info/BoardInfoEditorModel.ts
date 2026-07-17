@@ -1,5 +1,6 @@
 import { createElement, type ReactNode } from "react";
 
+import { Subscription } from "../../core/state/events";
 import type { TComponentState } from "../../core/state/state";
 import { EditorModel, type EditorStateBase, type RestoreData } from "../base/EditorModel";
 import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
@@ -113,6 +114,10 @@ export const getDefaultBoardInfoEditorState = (): BoardInfoEditorState => ({
  */
 export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     readonly editorId = BOARD_INFO_EDITOR_ID;
+
+    /** Fires with the board root the moment registration succeeds (either branch of `register()`).
+     *  `app.boards.installPublished` awaits this to resolve its interactive install flow. */
+    readonly installed = new Subscription<string>();
 
     /** `boardRoot` set → properties mode (installed board); otherwise install mode (catalog tiles). */
     get mode(): "install" | "properties" {
@@ -334,29 +339,13 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     async uninstall(): Promise<void> {
         const props = this.state.get().props;
         if (!props) return;
-        const { showConfirmationDialog } = await import("../../ui/dialogs/ConfirmationDialog");
-        const choice = await showConfirmationDialog({
-            title: "Delete board",
-            message:
-                `Delete board "${props.name}"? This permanently removes its folder and all its files.`,
-            buttons: ["Delete", "Cancel"],
+        const { uninstallCatalogBoard } = await import("../../api/board-install");
+        const removed = await uninstallCatalogBoard({
+            root: props.root,
+            name: props.name,
+            catalogId: props.catalogId,
         });
-        if (choice !== "Delete") return;
-
-        const { ensureBoardIdle } = await import("../../api/board-updates");
-        if (!(await ensureBoardIdle(props.root))) return;
-
-        try {
-            await fs.removeDir(props.root, true);
-        } catch (err) {
-            ui.notify((err as Error).message || "Failed to delete the board folder.", "error");
-            return;
-        }
-        await boardTrust.untrust(props.root);
-        const { removePin } = await import("../../ui/sidebar/pinned-items");
-        removePin({ kind: "board", root: props.root });
-        if (props.catalogId) await boardInstallRegistry.remove(props.catalogId);
-        await this.pageModel?.setMainEditor(null);
+        if (removed) await this.pageModel?.setMainEditor(null);
     }
 
     /** Remove action for a LOCAL (non-catalog) board: untrust + unpin only — the folder is left on
@@ -414,9 +403,16 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
         this.recomputeMatches();
     }
 
-    /** Recompute the catalog match tiles from the current file name. */
+    /** Recompute the catalog match tiles from the current file name, plus the explicit
+     *  `catalogId` entry when one was set by a direct opener (hub / toast / `installPublished`) —
+     *  a standalone install page has no file to match, so the requested board is added directly. */
     recomputeMatches(): void {
         const matches = publishedBoards.catalogBoardsForFile(this.currentFileName());
+        const catalogId = this.state.get().catalogId;
+        if (catalogId && !matches.some((m) => m.id === catalogId)) {
+            const entry = publishedBoards.getCatalog().find((b) => b.id === catalogId);
+            if (entry) matches.push(entry);
+        }
         this.state.update((s) => { s.matches = matches; });
     }
 
@@ -516,6 +512,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
         const ok = await showTrustBoardDialog(root);
         if (!ok) return;
         await boardTrust.trust(root);
+        this.installed.send(root); // resolves app.boards.installPublished's interactive flow
         await customEditorRegistry.refresh();
         if (this._host) {
             // File page ("+"): lossless host transfer into the board editor.
