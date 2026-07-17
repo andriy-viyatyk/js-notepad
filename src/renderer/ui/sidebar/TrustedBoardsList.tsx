@@ -13,7 +13,31 @@ import type { MenuItem } from "../../uikit";
 import { Text } from "../../uikit/Text";
 import { PinIcon, PinFilledIcon } from "../../theme/icons";
 import { BoardsTree } from "../../editors/board/BoardsTree";
+import { useBoardStandalone } from "../../editors/board/board-usage-cache";
 import { usePinnedRefs, addPin, removePin, type PinnedRef } from "./pinned-items";
+
+// Pin control for a board row — gated to standalone boards (EPIC-045 / US-870): file-viewer
+// boards (masks, not standalone) are not pinnable, so no pin button shows for them. Renders
+// null while the manifest is still being probed (usage unknown) and for non-standalone boards.
+function BoardPinAction({ root, pinned, onToggle }: {
+    root: string;
+    pinned: boolean;
+    onToggle: (root: string) => void;
+}) {
+    const standalone = useBoardStandalone(root);
+    if (!standalone) return null;
+    return (
+        <IconButton
+            size="sm"
+            icon={pinned ? <PinFilledIcon /> : <PinIcon />}
+            title={pinned ? "Unpin" : "Pin to menu"}
+            onClick={(e) => {
+                e.stopPropagation();
+                onToggle(root);
+            }}
+        />
+    );
+}
 
 // =============================================================================
 // Global "Custom Boards & Editors" boards list (EPIC-036 / US-764). Renders the
@@ -71,24 +95,12 @@ export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
         ui.notify("Removed from trusted boards", "info");
     }, []);
 
-    const pin = useCallback((root: string) => {
-        const pinned = pinnedRoots.has(root);
-        return (
-            <IconButton
-                size="sm"
-                icon={pinned ? <PinFilledIcon /> : <PinIcon />}
-                title={pinned ? "Unpin" : "Pin to menu"}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleTogglePin(root);
-                }}
-            />
-        );
-    }, [pinnedRoots, handleTogglePin]);
-
     const renderTrailing = useCallback((root: string) => {
         const update = updates.get(fpNormalizeForCompare(root));
-        if (!update) return pin(root);
+        const pinBtn = (
+            <BoardPinAction root={root} pinned={pinnedRoots.has(root)} onToggle={handleTogglePin} />
+        );
+        if (!update) return pinBtn;
         return (
             <Panel name="board-trailing" direction="row" align="center" gap="xs">
                 <Tag
@@ -97,10 +109,10 @@ export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
                     title={`Update to v${update.latestVersion}`}
                     onClick={() => { void runBoardUpdate(update); }}
                 />
-                {pin(root)}
+                {pinBtn}
             </Panel>
         );
-    }, [updates, pin]);
+    }, [updates, pinnedRoots, handleTogglePin]);
 
     const getBoardContextMenu = useCallback((root: string): MenuItem[] => {
         const update = updates.get(fpNormalizeForCompare(root));

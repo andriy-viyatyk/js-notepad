@@ -33,3 +33,20 @@ export async function openBoardInfo(
     await model.restore();
     await page.setMainEditor(model as unknown as EditorModel);
 }
+
+/**
+ * Open the Board Info editor in a NEW page (EPIC-045 / US-870 — the hub's Install / Update /
+ * Properties actions). Unlike `openBoardInfo(page, …)`, which replaces an existing page's main
+ * editor, this creates a fresh Board Info page and focuses it, leaving all other pages untouched.
+ * `catalogId` → install mode; `boardRoot` → properties mode.
+ */
+export async function openBoardInfoPage(
+    opts: { catalogId?: string; boardRoot?: string },
+): Promise<void> {
+    const { app } = await import("../../api/app");
+    const model = new BoardInfoEditorModel(
+        new TComponentState({ ...getDefaultBoardInfoEditorState(), ...opts }),
+    );
+    await model.restore();
+    app.pages.addPage(model as unknown as EditorModel);
+}

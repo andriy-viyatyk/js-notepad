@@ -2,6 +2,7 @@ import { Subscription } from "../../core/state/events";
 import { TModel } from "../../core/state/model";
 import { TGlobalState } from "../../core/state/state";
 import type { EditorModel } from "../../editors/base";
+import type { HubTab } from "../../editors/tools-hub";
 import { EditorView, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
 import type { ILink } from "../types/io.tree";
@@ -264,6 +265,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         this.lifecycle.showMcpInspectorPage(options);
     showMnemeConfigPage = () => this.lifecycle.showMnemeConfigPage();
     showStorybookPage = () => this.lifecycle.showStorybookPage();
+    showToolsHubPage = (opts?: { tab?: HubTab }) => this.lifecycle.showToolsHubPage(opts);
     showVideoPlayerPage = () => this.lifecycle.showVideoPlayerPage();
     openImageInNewTab = (imageUrl: string, title?: string) =>
         this.lifecycle.openImageInNewTab(imageUrl, title);

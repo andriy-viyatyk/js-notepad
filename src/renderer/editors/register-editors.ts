@@ -385,6 +385,19 @@ editorRegistry.register({
 });
 
 editorRegistry.register({
+    id: "tools-hub-view",
+    name: "Tools & Editors",
+    hasContentHost: false,
+    // Reached only via showToolsHubPage (the AppBar panel's "Open in new tab" button) —
+    // never a file-open target.
+    accepts: () => -1,
+    loadModule: async () => {
+        const { toolsHubModule } = await import("./tools-hub");
+        return toolsHubModule;
+    },
+});
+
+editorRegistry.register({
     id: "mcp-view",
     name: "MCP Inspector",
     hasContentHost: false,

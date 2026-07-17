@@ -38,6 +38,7 @@ import {
     customEditorRegistry,
 } from "../../editors/board/custom-editor-registry";
 import type { BoardEditorModel } from "../../editors/board";
+import type { HubTab } from "../../editors/tools-hub";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { PageModel } from "./PageModel";
@@ -1243,6 +1244,19 @@ export class PagesLifecycleModel {
         if (model) {
             const page = new PageModel(storybookModule.STORYBOOK_PAGE_ID);
             this.addPage(wrap(model), page);
+        }
+    };
+
+    showToolsHubPage = async (opts?: { tab?: HubTab }): Promise<void> => {
+        const { TOOLS_HUB_PAGE_ID } = await import("../../editors/tools-hub");
+        const model = await editorRegistry.createEditor("tools-hub-view");
+        const page = new PageModel(TOOLS_HUB_PAGE_ID);
+        // addPage dedupes by id → returns the existing hub page if already open; set the tab on
+        // whichever editor actually ends up live (new or existing).
+        const result = this.addPage(wrap(model), page);
+        if (opts?.tab) {
+            const editor = result.mainEditorInstance as unknown as { setTab?: (t: HubTab) => void };
+            editor.setTab?.(opts.tab);
         }
     };
 

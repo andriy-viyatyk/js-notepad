@@ -1,4 +1,4 @@
-export type EditorType = "textFile" | "pdfFile" | "imageFile" | "aboutPage" | "settingsPage" | "browserPage" | "mcpInspectorPage" | "mnemeConfigPage" | "categoryPage" | "archiveFile" | "fileExplorer" | "videoPage" | "storybookPage" | "gitTreePage" | "mnemeRootPage" | "boardPage" | "toolsetPage" | "boardInfoPage";
+export type EditorType = "textFile" | "pdfFile" | "imageFile" | "aboutPage" | "settingsPage" | "browserPage" | "mcpInspectorPage" | "mnemeConfigPage" | "categoryPage" | "archiveFile" | "fileExplorer" | "videoPage" | "storybookPage" | "gitTreePage" | "mnemeRootPage" | "boardPage" | "toolsetPage" | "boardInfoPage" | "toolsHubPage";
 
 // `EditorView` lives in the public script-API types because that file is the
 // one copied verbatim into `assets/editor-types/` for Monaco IntelliSense in

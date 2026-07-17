@@ -55,6 +55,7 @@ export type EditorView =
     | "board-view"
     | "toolset-view"
     | "board-info"
+    | "tools-hub-view"
     | "file-diff";
 
 /** Monaco language identifier. */
