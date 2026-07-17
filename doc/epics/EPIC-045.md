@@ -2,8 +2,9 @@
 
 ## Status
 
-**Status:** Planned
+**Status:** Completed
 **Created:** 2026-07-16
+**Completed:** 2026-07-17
 
 ## Overview
 
@@ -379,17 +380,17 @@ Implementation order (revised 2026-07-16, see Notes): US-862 → US-863 → **US
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-862](../tasks/US-862-catalog-service/README.md) | Catalog service (main): manifest fetch, cache, periodic check, IPC | Active |
-| [US-863](../tasks/US-863-install-engine/README.md) | Install engine: download + sha256 verify + extract + install registry | Active |
-| US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Planned |
-| [US-868](../tasks/US-868-agent-board-lifecycle/README.md) | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Planned |
-| [US-864](../tasks/US-864-switch-entry-board-info/README.md) | "+" editor-switch entry + Board Info editor (install mode, progress) | Planned |
-| [US-865](../tasks/US-865-updates/README.md) | Updates: version compare, activation toast, safe re-install, sidebar badges | Active |
-| [US-867](../tasks/US-867-board-info-properties/README.md) | Board Info editor: properties mode + version history & rollback | Active |
-| [US-869](../tasks/US-869-agent-catalog-api/README.md) | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Active |
-| [US-870](../tasks/US-870-tools-hub/README.md) | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Active |
-| US-871 | SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up) | Planned |
-| US-872 | About "Check for Updates" also force-refreshes the boards catalog | Active |
+| [US-862](../tasks/US-862-catalog-service/README.md) | Catalog service (main): manifest fetch, cache, periodic check, IPC | Done |
+| [US-863](../tasks/US-863-install-engine/README.md) | Install engine: download + sha256 verify + extract + install registry | Done |
+| US-866 | persephone-boards repo: initial commit + publish script + GitHub Action | Done |
+| [US-868](../tasks/US-868-agent-board-lifecycle/README.md) | Agent API: app.boards.registerBoard / unregisterBoard / renameBoard | Done |
+| [US-864](../tasks/US-864-switch-entry-board-info/README.md) | "+" editor-switch entry + Board Info editor (install mode, progress) | Done |
+| [US-865](../tasks/US-865-updates/README.md) | Updates: version compare, activation toast, safe re-install, sidebar badges | Done |
+| [US-867](../tasks/US-867-board-info-properties/README.md) | Board Info editor: properties mode + version history & rollback | Done |
+| [US-869](../tasks/US-869-agent-catalog-api/README.md) | Agent API: catalog — searchPublished / installPublished / versions / uninstall | Done |
+| [US-870](../tasks/US-870-tools-hub/README.md) | Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned) | Done |
+| US-871 | SegmentedControl tooltip support + "+" switch-entry tooltip | Done |
+| US-872 | About "Check for Updates" also force-refreshes the boards catalog | Done |
 
 ## Task details
 

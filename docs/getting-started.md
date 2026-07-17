@@ -73,9 +73,12 @@ To manually check for updates:
 2. Click the Info button (ℹ) to open the About page
 3. Click "Check for Updates"
 
+"Check for Updates" also refreshes the catalog of [boards published by the project](./boards.md#published-boards-catalog--discover-install-update), so a newly published board or board update shows up immediately instead of waiting for the next automatic check.
+
 The About page also shows:
 - Current application version
 - Electron, Node.js, and Chromium versions
+- Available boards — the number of boards currently published in the catalog
 - Links to download the latest version and report issues
 
 ## Changing the Theme

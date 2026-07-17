@@ -67,7 +67,7 @@ The board opens immediately after creation.
 
 - **Boards panel** — click the **Boards** button in the Explorer header. All trusted boards under the current root are listed as a tree. Click any board name to open it in the current tab. Right-click a board for **Open in New Tab** — opens it in its own dedicated tab instead of replacing the current tab's content, so its iframe (and any dev-server process it spawned) keeps running while you work in other tabs. A board whose spawned processes are still running (via `persephone.setBoardBusy(true)` — see [Long-running processes](#long-running-processes-setboardbusy--getboardbusy--getjobs)) shows a green **running** dot next to its name, even after its tab has moved on to something else.
 - **File Explorer panel** — rows for `board-manifest.json` files show an **Open Board** button (board icon) directly in the row. Click it to open that board. (Clicking the row itself opens the JSON in Monaco.)
-- **Tools & Editors panel → Custom Boards & Editors tab** — lists all trusted boards, grouped by folder, across all locations. Click a board to open it in a new tab. Pin a board to make it appear in the top pinned section and in the **+** (add page) dropdown.
+- **Tools & Editors panel → Boards tab** — lists all trusted boards, grouped by folder, across all locations. Click a board to open it in a new tab. Pin a board to make it appear in the top pinned section and in the **+** (add page) dropdown. Click **Open in new tab** in the panel header for a full-page version of the same hub, with an additional **Search boards** tab for discovering and installing boards published by the project — see [Published boards catalog](#published-boards-catalog--discover-install-update) below.
 - **In-board toolbar** — when a board is open, click the board path label in the toolbar to open the boards-switcher popover and jump to another board under the same Explorer root.
 - **Scripting / agent** — call `app.boards.openBoard(boardRoot)` with the absolute path to the board's root folder.
 
@@ -343,6 +343,69 @@ Three things a content-host board can do that a simple board cannot:
 
 ---
 
+## Published boards catalog — discover, install, update
+
+Persephone maintains a small **catalog of boards published by the project** — ready-made custom editors and tools you can install without building them yourself (for example, a `.drawio` diagram viewer). The catalog is refreshed automatically in the background (roughly once a day) and can also be refreshed on demand.
+
+### Discovering a board
+
+- **From a file** — open a file whose type has no editor installed yet, but that matches a published board's file type. The editor-switch control at the top of the page shows an extra **+** entry next to **Text** (`Text | +`). Click it to open the **Board Info** screen for that board (or, if more than one published board matches the file type, a screen listing all of them).
+- **From the hub** — open the **Tools & Editors** panel (App menu) and click **Open in new tab**, or open its **Search boards** tab directly. This full-page **Search boards** tab browses the whole catalog — filter by name, description, or file type — and works without any matching file open. A **Refresh catalog** button forces an immediate check instead of waiting for the next automatic cycle.
+
+### Installing a board — Download, then Register
+
+Installing a published board is always two separate, explicit steps — nothing is ever trusted or executed on your behalf:
+
+1. **Download** — the Board Info screen shows the board's name, version, description, file types, and download size, plus an install-location field (defaults to a Persephone data folder; **Browse…** to choose another). Clicking **Download** fetches the ZIP with a byte-progress bar, verifies its checksum, and extracts it to disk. **Nothing is trusted yet** — the downloaded board sits inert on disk, exactly like any other folder of files. This is the point at which you (or your AI agent) can open the folder and read its scripts before deciding to trust it.
+2. **Register board** — once downloaded, the screen shows **"Downloaded — not registered"** with the folder's path and a reminder that you can ask your AI agent to review the board's files first. Clicking **Register board** shows the same **Trust board** dialog every board shows on first use (see [Board trust gate](#board-trust-gate) above). Only after you accept does the board become active — the file you opened switches to the new editor automatically, and the switch control now shows it (`Text | <Board Name>`) instead of `+`.
+
+You can delete a downloaded-but-not-yet-registered board directly from this screen — nothing was ever trusted, so there's nothing to untrust.
+
+### Board properties, updates, and rollback
+
+Once a board is installed, the same **Board Info** screen switches to a **properties** view — reached from the **Boards** tab, the in-board toolbar's **Properties** button (info icon), the hub, or an update notification. It shows the board's description, author, install location, file-type association, trust state, and installed version, plus:
+
+- **Versions** — the board's full published version history, newest first, fetched on demand. The version you have installed is marked **Current**; a newer compatible version is highlighted. Click **Update** (or **Install** on an older entry) to switch to that version — the swap is safe: your existing folder is only replaced once the new version has downloaded and verified successfully, so a failed download or a cancelled update never leaves you with a broken board. A version that needs a newer Persephone than the one you're running is shown disabled with a **"Requires Persephone ≥ X"** hint.
+- **Uninstall** — removes the board's folder from disk and forgets it (untrust + unpin). This only appears for boards installed from the catalog; a board you (or an agent) created locally shows **Unregister** instead, which only forgets it — the folder is kept.
+- **Open board** — switches back to the board itself.
+
+**Update notifications:** when a compatible newer version is published, installed boards get a silent **"Update available"** badge in the **Boards** tab (with an **Update** action in its context menu) and a small dot on the board's in-board **Properties** button — no pop-up interruptions, just a quiet indicator you can act on when convenient.
+
+If a board you're updating is currently open (or has background processes still running via `setBoardBusy`), Persephone asks you to close its pages first, with a **Close pages & continue** shortcut that does it for you (respecting any unsaved changes) and proceeds with the update.
+
+> Updating or rolling back a board replaces its files, including any local edits you made by hand — there's no separate warning for that beyond the click itself.
+
+### Checking for new boards
+
+Persephone checks the catalog automatically, but you can force an immediate check from two places:
+
+- The **Search boards** tab's **Refresh catalog** button.
+- The **About** page's **Check for Updates** button — it now refreshes both the app-update check and the boards catalog in one click, and the About page shows an **Available boards** count reflecting the current catalog. See [Checking for Updates](./getting-started.md#checking-for-updates).
+
+### Security model
+
+The same trust rule that governs every board applies here without exception: **a board never runs anything until you explicitly click Register/Trust.** Downloading a board only copies verified, inert files to disk — no script runs, and it isn't offered as an editor until registered. This means you (or your AI agent, on your behalf) always have a window to inspect a downloaded board's files before deciding whether to trust it. See [Board trust gate](#board-trust-gate) for the trust dialog itself.
+
+### Driving it from a script or AI agent
+
+An AI agent can perform the whole discover → download → review → install → update lifecycle through the scripting API, with the same one-click trust rule holding throughout — the agent can never trust a board on your behalf.
+
+| Method | Description |
+|--------|-------------|
+| `app.boards.searchPublished(query?)` | Search the catalog by name/description/file type; each result is annotated with its install state. Read-only, no dialog. |
+| `app.boards.getPublishedVersions(id)` | A board's full version history. Read-only, no dialog. |
+| `app.boards.downloadPublished(id, opts?)` | Download + verify + extract a board **without trusting it** — the "can I trust this board?" entry point: download it, read its files, then decide. No dialog. |
+| `app.boards.installPublished(id, opts?)` | Opens the Board Info screen for an interactive install (or drives an update/rollback if already installed and `opts.version` is given). |
+| `app.boards.uninstallBoard(id)` | Removes an installed catalog board, after the usual delete confirmation. |
+| `app.boards.checkPublishedUpdates(force?)` | Refresh the catalog and report which installed boards have an update available. No dialog. |
+| `app.boards.registerBoard(boardRoot)` | Show the trust dialog for a board already on disk (e.g. one downloaded with `downloadPublished`); resolves to whether it ended up trusted. |
+| `app.boards.unregisterBoard(boardRoot)` | Untrust a board (no dialog — untrusting only removes privilege). |
+| `app.boards.renameBoard(boardRoot, newName)` | Rename a trusted board's folder, carrying its trust, pin, and catalog registration to the new path. |
+
+See the [Scripting API Reference](./api/app.md#boards) for full method signatures, and ask your AI agent to `read_guide("boards")` for the complete authoring/automation reference, including a checklist for reviewing a downloaded board's files before registering it.
+
+---
+
 ## Secondary views — a board's own sidebar panel
 
 A board isn't limited to the single main view in its tab. It can declare one or more **secondary views** — extra pages that show up as sidebar panels next to the board, kept in sync with the main view automatically. This is how an editor-style board offers a companion panel such as "Lists", "Outline", or "Details" alongside its main content, the same way built-in editors like the Todo editor pair a main list with a sidebar panel.
@@ -359,7 +422,7 @@ A board isn't limited to the single main view in its tab. It can declare one or 
 
 ## Board icon
 
-Place an `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set a custom icon. The icon appears in the page tab (when the board is open), the **Boards** Explorer panel, and the **Custom Boards & Editors** sidebar tab. SVG is preferred; first match wins. Without an icon file, a default board glyph is shown.
+Place an `icon.svg`, `icon.png`, or `icon.ico` in the board folder to set a custom icon. The icon appears in the page tab (when the board is open), the **Boards** Explorer panel, and the **Boards** tab of the Tools & Editors panel/hub. SVG is preferred; first match wins. Without an icon file, a default board glyph is shown.
 
 If the board is also a [custom editor](#custom-editors--associate-a-board-with-a-file-type) and wins as a file type's **default** editor, its icon replaces the generic file-type icon everywhere that file type is listed — the File Explorer tree, other file lists, and page tabs — not just when the board itself is open.
 
@@ -461,16 +524,20 @@ browser_evaluate({ pageId: "abc", expression: "document.querySelector('#result')
 | Open a board in a new tab (keep it running) | Right-click the board in the **Boards** panel → **Open in New Tab** |
 | Keep a board's spawned processes running after navigating away or reloading | Board calls `persephone.setBoardBusy(true)` — see [Long-running processes](#long-running-processes-setboardbusy--getboardbusy--getjobs) |
 | See which boards have processes still running in the background | Look for the green **running** dot next to the board name in the **Boards** panel |
-| Open a board from the sidebar | **Tools & Editors** panel → **Custom Boards & Editors** tab → click the board |
+| Open a board from the sidebar | **Tools & Editors** panel → **Boards** tab → click the board |
 | Open a board (script) | `await app.boards.openBoard("C:/path/to/board/root")` |
 | Switch boards from inside a board | Click the board path label in the in-board toolbar → pick a board from the popover |
 | Open File Explorer from inside a board | Click the **File Explorer** button (folder icon) in the in-board toolbar |
 | Reload the board | Click the **Reload** button in the in-board toolbar |
 | View the error log | Click **Show log** (log icon) in the in-board toolbar |
-| Pin a board | In the **Custom Boards & Editors** tab, hover the board row and click the pin button |
-| Remove / untrust a board | Right-click the board in the **Custom Boards & Editors** tab → **Remove** |
-| Delete a board | Right-click in the **Boards** panel → **Delete Board** |
-| Rename a board | Rename the board's folder in the file system (Explorer, terminal, or the File Explorer sidebar) |
+| Pin a board | In the **Boards** tab, hover the board row and click the pin button |
+| Remove / untrust a locally-created board | Right-click the board in the **Boards** tab → **Remove** |
+| Delete a locally-created board | Right-click in the **Boards** Explorer panel → **Delete Board** |
+| Rename a locally-created board | Rename the board's folder in the file system (Explorer, terminal, or the File Explorer sidebar), or ask an AI agent to rename it (`app.boards.renameBoard`) |
+| Discover & install a board published by the project | Open a matching file and click **+** in the editor switch, or open the **Search boards** tab of the Tools & Editors hub — see [Published boards catalog](#published-boards-catalog--discover-install-update) |
+| Update an installed catalog board | **Boards** tab → **Update available** badge / context menu, or the dot on the board's **Properties** button |
+| Roll back an installed catalog board to an older version | Board's **Properties** screen → **Versions** list → **Install** on the older version |
+| Remove an installed catalog board (deletes its folder) | Board's **Properties** screen → **Uninstall** |
 
 ---
 

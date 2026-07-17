@@ -19,6 +19,8 @@ export interface ISegment {
     label?: React.ReactNode;
     /** Icon rendered before the label. */
     icon?: React.ReactNode;
+    /** Tooltip shown on hover/focus. Rendered via the underlying `Button`'s UIKit `Tooltip`. */
+    title?: React.ReactNode;
     /** Disables this segment without affecting siblings. */
     disabled?: boolean;
 }
@@ -177,6 +179,7 @@ export function SegmentedControl({
                         size={size}
                         background={background}
                         icon={segment.icon}
+                        title={segment.title}
                         disabled={segDisabled}
                         role="radio"
                         aria-checked={selected}

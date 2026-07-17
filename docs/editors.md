@@ -805,7 +805,9 @@ See **[Mneme — Knowledge Base](./mneme.md)** for complete documentation.
 
 A sandboxed HTML-page application that can live anywhere on disk. Boards let you build fully custom UIs backed by scripts in any language (Node.js, Python, PowerShell, shell, …).
 
-**Opening:** Click the **Boards** button in the **File Explorer** header to open the **Boards** panel, which lists every trusted board under the current Explorer root. Click any board name to open it. You can also click the **Open Board** button that appears on any `board-manifest.json` row in the Explorer, or open one from the **Tools & Editors** panel → **Custom Boards & Editors** tab.
+**Opening:** Click the **Boards** button in the **File Explorer** header to open the **Boards** panel, which lists every trusted board under the current Explorer root. Click any board name to open it. You can also click the **Open Board** button that appears on any `board-manifest.json` row in the Explorer, or open one from the **Tools & Editors** panel → **Boards** tab.
+
+**Installing a board published by the project:** open a file whose type has no editor installed yet but matches a board Persephone publishes (e.g. a `.drawio` diagram) and a **+** entry appears next to **Text** in the editor-switch control — click it to download and install that board in a couple of clicks. See [Boards — Published boards catalog](./boards.md#published-boards-catalog--discover-install-update).
 
 **Key features:**
 

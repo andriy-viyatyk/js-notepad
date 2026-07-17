@@ -42,12 +42,23 @@ function versionsUrl(id: string): string {
     return `${boardsRepoRawBase()}/boards/${encodeURIComponent(id)}/versions-manifest.json`;
 }
 
+/**
+ * A board `id` becomes a folder name (`<userData>/data/boards/<id>`) and is interpolated into
+ * install/staging paths, so it must never carry a path separator or `..`. Require it to start and
+ * end with an alphanumeric, allowing `.`/`-`/`_` only in between — this rejects `.`, `..`, leading
+ * dots, and any `/`/`\`, closing the catalog-driven path-traversal vector at the point of trust
+ * (a malformed/hostile catalog entry is simply dropped, so it never reaches the install engine).
+ */
+function isSafeBoardId(id: string): boolean {
+    return /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(id);
+}
+
 function validateBoard(entry: unknown): PublishedBoardInfo | null {
     if (!entry || typeof entry !== "object") return null;
     const e = entry as Record<string, unknown>;
     const archive = e.archive as Record<string, unknown> | undefined;
     if (
-        typeof e.id !== "string" || !e.id ||
+        typeof e.id !== "string" || !isSafeBoardId(e.id) ||
         typeof e.version !== "string" || !e.version ||
         typeof e.name !== "string" || !e.name ||
         !archive ||
@@ -111,7 +122,7 @@ function validateVersions(data: unknown): PublishedBoardVersions | null {
     if (!data || typeof data !== "object") return null;
     const raw = data as { schemaVersion?: unknown; id?: unknown; versions?: unknown };
     if (raw.schemaVersion !== CATALOG_SCHEMA_VERSION) return null;
-    if (typeof raw.id !== "string" || !raw.id) return null;
+    if (typeof raw.id !== "string" || !isSafeBoardId(raw.id)) return null;
     if (!Array.isArray(raw.versions)) return null;
     const versions = raw.versions
         .map(validateVersion)

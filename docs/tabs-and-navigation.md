@@ -194,14 +194,18 @@ The right panel shows the contents of the selected folder:
 
 ### Tools & Editors
 
-The **Tools & Editors** entry appears between Recent Files and Script Library. It lists all creatable editors and tools in two sections:
+The **Tools & Editors** entry appears between Recent Files and Script Library. It opens as a slide-out panel with a **Pinned** rail at the top and a row of tabs below it:
 
-- **Pinned** — Your favorite editors, shown at the top. Drag to reorder. These are also the items that appear in the **+** dropdown menu in the tab bar.
-- **All** — Every available editor/tool, sorted alphabetically. Click the pin button to add an item to your pinned list.
+- **Pinned** — Your favorite editors and boards, shown at the top. Drag to reorder. These are also the items that appear in the **+** dropdown menu in the tab bar.
+- **Built-in Editors** — Every standard editor/tool, sorted alphabetically. Click the pin button to add an item to your pinned list.
+- **Boards** — All trusted [boards](./boards.md) across every location, grouped by folder.
+- **Tools** — All registered [Agent Tools](./agent-tools.md) toolsets.
 
-Click any item to create a new page with that editor. Pinned editors are saved in settings (`pinned-editors`) and persist across restarts. The default pinned set (for new installations) is: **Open Folder**, Script (JS), Script (TS), Drawing, Grid (JSON), Grid (CSV), Browser.
+Click any item to create a new page (or open the board/toolset) with that editor. Pinned editors are saved in settings (`pinned-editors`) and persist across restarts. The default pinned set (for new installations) is: **Open Folder**, Script (JS), Script (TS), Drawing, Grid (JSON), Grid (CSV), Browser.
 
-**Open Folder** — The first entry in the default pinned set. Clicking it shows a native Select Folder dialog; once you pick a folder, a new tab opens with the File Explorer panel rooted at that folder. This is identical to right-clicking a folder in the Explorer sidebar and choosing **"Open in New Tab"**. Existing users can pin it from the **All Editors & Tools** tab.
+**Open in new tab** — A button in the panel header opens the same content as a full page instead of a slide-out panel — handy when you want more room, or want to keep browsing while doing something else in the app. The full-page **Tools & Editors hub** has the same **Pinned** rail plus four tabs: **Built-in**, **Registered boards**, **Search boards**, and **Tools**. **Search boards** is hub-only — it browses the catalog of boards published by the project and lets you install one directly, without needing a matching file open. See [Boards — Published boards catalog](./boards.md#published-boards-catalog--discover-install-update).
+
+**Open Folder** — The first entry in the default pinned set. Clicking it shows a native Select Folder dialog; once you pick a folder, a new tab opens with the File Explorer panel rooted at that folder. This is identical to right-clicking a folder in the Explorer sidebar and choosing **"Open in New Tab"**. Existing users can pin it from the **Built-in Editors** tab.
 
 Items include all standard editors (Script, Grid, Notebook, Todo, Links, Drawing, Force Graph, Browser, Video Player) as well as MCP Inspector and individual browser profiles (Incognito and named profiles).
 

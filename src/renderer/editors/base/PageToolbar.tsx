@@ -140,6 +140,10 @@ export function SwitchWidget({ model }: { model: EditorModel }) {
             id === BOARD_INFO_EDITOR_ID
                 ? "  +  "
                 : boardNameById.get(id) ?? editorRegistry.getById(id)?.name ?? id,
+        title:
+            id === BOARD_INFO_EDITOR_ID
+                ? "Install an editor for this file type…"
+                : undefined,
     }));
     return (
         <SegmentedControl

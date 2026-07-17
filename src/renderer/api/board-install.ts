@@ -9,7 +9,7 @@
 import { api } from "../../ipc/renderer/api";
 import { fs } from "./fs";
 import { archiveService } from "./archive-service";
-import { fpJoin, fpDirname } from "../core/utils/file-path";
+import { fpJoin, fpDirname, fpNormalizeForCompare } from "../core/utils/file-path";
 import { readBoardManifest } from "../editors/board/board-manifest";
 import { PublishedBoardArchive, PublishedBoardInfo } from "../../ipc/api-param-types";
 import { boardInstallRegistry } from "./board-install-registry";
@@ -17,6 +17,20 @@ import { boardTrust } from "./board-trust";
 
 function newInstallId(): string {
     return crypto.randomUUID();
+}
+
+/**
+ * Defense-in-depth path-containment guard: refuse any install/staging path that resolves outside
+ * its intended parent folder. The catalog `id` is already charset-validated in the main service
+ * (`isSafeBoardId`), so this should never trip in practice — but building a filesystem path from a
+ * network-supplied `id` warrants a second, local barrier regardless of who the caller is.
+ */
+function assertContained(parent: string, child: string): void {
+    const p = fpNormalizeForCompare(parent);
+    const c = fpNormalizeForCompare(child);
+    if (c !== p && !c.startsWith(p + "/")) {
+        throw new Error(`Refusing to write board files outside the boards folder: ${child}`);
+    }
 }
 
 /**
@@ -30,6 +44,7 @@ export async function downloadBoard(
     installId: string = newInstallId(),
 ): Promise<string> {
     const root = fpJoin(targetParentDir, entry.id);
+    assertContained(targetParentDir, root);
 
     if (await fs.exists(root)) {
         const existing = boardInstallRegistry.getByRoot(root);
@@ -151,6 +166,8 @@ export async function installVersion(
     const installId = newInstallId();
     const stagingDir = fpJoin(parent, `.${id}.staging-${installId}`);
     const backupDir = fpJoin(parent, `.${id}.old-${installId}`);
+    assertContained(parent, stagingDir);
+    assertContained(parent, backupDir);
 
     const tempZip = await api.downloadBoardArchive({
         installId,

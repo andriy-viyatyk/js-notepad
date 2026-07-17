@@ -7,18 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- **EPIC-045** — [Published Boards Catalog — download & install boards from GitHub](epics/EPIC-045.md)
-  - [ ] [US-862: Catalog service (main): manifest fetch, cache, periodic check, IPC](tasks/US-862-catalog-service/README.md)
-  - [ ] [US-863: Install engine: download + sha256 verify + extract + install registry](tasks/US-863-install-engine/README.md)
-  - [ ] US-866: persephone-boards repo: initial commit + publish script + GitHub Action
-  - [ ] [US-868: Agent API: app.boards.registerBoard / unregisterBoard / renameBoard](tasks/US-868-agent-board-lifecycle/README.md)
-  - [ ] [US-864: "+" editor-switch entry + Board Info editor (install mode, progress)](tasks/US-864-switch-entry-board-info/README.md)
-  - [ ] [US-865: Updates: version compare, activation toast, safe re-install, sidebar badges](tasks/US-865-updates/README.md)
-  - [ ] [US-867: Board Info editor: properties mode + version history & rollback](tasks/US-867-board-info-properties/README.md)
-  - [ ] [US-869: Agent API: catalog — searchPublished / installPublished / versions / uninstall](tasks/US-869-agent-catalog-api/README.md)
-  - [ ] [US-870: Tools & Editors hub page (Built-in / Registered boards / Search boards / Tools + Pinned)](tasks/US-870-tools-hub/README.md)
-  - [ ] US-871: SegmentedControl tooltip support + "+" switch-entry tooltip (deferred follow-up)
-  - [ ] US-872: About "Check for Updates" also force-refreshes the boards catalog
+_No active epics or tasks. See [completed epics](epics/completed.md)._
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

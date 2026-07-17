@@ -104,7 +104,11 @@ persephone/
 │   ├── mneme-status.ts     # Mneme health prober + reactive status (shared MCP connection; drives sidecar launch, indicators, and auto-opens the config editor when no model is provisioned)
 │   ├── proc.ts             # IProc implementation (app.proc.execute) — renderer client over the main-process command runner; compile-time drift guard keeps it in sync with runner-channels.ts
 │   ├── board-trust.ts      # Per-board trust registry — persists trusted board roots (trustedBoards.txt); untrusted boards block rendering. This list IS the known-boards registry
-│   ├── boards.ts           # IBoards implementation (app.boards) — createBoard / createDemoBoard / openBoard board lifecycle
+│   ├── boards.ts           # IBoards implementation (app.boards) — board lifecycle (create/open/register/rename) + published-catalog ops (search/download/install/uninstall/updates)
+│   ├── published-boards.ts # Reactive published-catalog model — useCatalog / useCatalogBoardsForFile / isCompatible / getVersions / updatesAvailable / refresh(force)
+│   ├── board-install.ts    # Install engine — downloadBoard (download→extract→validate→registry, traversal-guarded) + installVersion/updateBoard folder-swap + uninstallCatalogBoard
+│   ├── board-install-registry.ts # installedBoards.json reactive registry (record/remove/getByRoot/getById/useInstalled; one entry per catalog id; stale-entry reconciliation)
+│   ├── board-updates.ts    # Update detection + safe re-install — getBoardUpdate/useBoardUpdates/listBoardUpdates, runBoardUpdate/runBoardVersionInstall, ensureBoardIdle
 │   ├── internal.ts         # Disposable utilities (wrapSubscription, etc.)
 │   │
 │   ├── tools/              # Agent Tools registry (EPIC-038) — deliberately NOT on app or any script .d.ts
@@ -547,6 +551,7 @@ persephone/
 │   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one; Custom Editor fields (fileMasks/editorPriority/editorName) + matcher/accessor helpers
 │   │   ├── custom-editor-registry.ts # Reactive mask → trusted-board map; board-editor:<root> virtual ids; resolveEditorIdForFile (merges built-in + board at file-open); isBoardEditorId
 │   │   ├── board-icon-cache.ts       # Module-level icon cache (SVG/PNG/ICO → data URL, per board path)
+│   │   ├── board-usage-cache.ts      # Reactive board-standalone metadata cache (mirrors the icon cache; gates pin affordances)
 │   │   ├── busy-boards.ts            # Reactive registry of busy board roots (drives the Boards panel "running" dot)
 │   │   ├── board-theme.ts            # computeBoardThemePalette + BOARD_TOKEN_VARS (--p-* contract)
 │   │   ├── board-scaffold.ts         # Scaffold helpers — copy board-template into a new board folder (writes board-manifest.json)
@@ -554,6 +559,17 @@ persephone/
 │   │   ├── UntrustedBoardView.tsx    # Shown in place of the board iframe when the board is untrusted (Trust board button)
 │   │   ├── BoardNotFoundView.tsx     # Shown when a board root no longer exists on disk (e.g. stale trusted/pinned path)
 │   │   └── index.tsx                 # boardModule + legacy EditorModule factory
+│   ├── board-info/         # Board Info editor ("board-info") — install + properties over one host-capable holder
+│   │   ├── BoardInfoEditorModel.ts   # EditorModel — install/properties modes; adopts/yields CONTENT_HOST_TRAIT without rendering (lossless Text↔+↔board switch)
+│   │   ├── BoardInfoEditorView.tsx   # Download→Register install UI + properties/versions UI (UIKit only)
+│   │   ├── board-info-id.ts          # BOARD_INFO_EDITOR_ID constant (avoids an import cycle with PageToolbar)
+│   │   ├── open-board-info.ts        # openBoardInfo(page,opts) replaces a page's editor; openBoardInfoPage(opts) opens a new page
+│   │   └── index.tsx
+│   ├── tools-hub/          # Tools & Editors hub ("tools-hub-view") — full-page counterpart of the sidebar panel (singleton via fixed PageModel id)
+│   │   ├── ToolsHubEditor.ts         # EditorModel — HubTab state; Built-in / Registered boards / Search boards / Tools
+│   │   ├── ToolsHubView.tsx          # Tab strip + body + right Pinned rail (reuses the sidebar list components)
+│   │   ├── SearchBoardsTab.tsx       # Published-catalog browse/filter — board cards → Board Info page
+│   │   └── index.tsx
 │   ├── toolset/            # Per-toolset viewer (non-text, no trait) — opened via persephone-toolset://
 │   │   ├── ToolsetEditorModel.ts     # EditorModel ("toolset-view") — reads manifest, exposes tool list + log path; restore from toolsetRoot
 │   │   ├── ToolsetEditorView.tsx     # Read-only view — manifest info + registered chip + Open-Folder / Open-Log + tool cards (UIKit only)
@@ -747,6 +763,8 @@ persephone/
 ├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout; exports getSnipToolPath for clip-service)
 ├── clip-service.ts         # Windows file-clipboard (CF_HDROP) read/write via the snip exe's clipboard subcommands — Explorer copy/paste interop; degrades to empty result when the exe is missing
 ├── version-service.ts      # Version checking (runs in main, not renderer)
+├── published-boards-service.ts # Published-boards catalog — net.fetch raw boards-manifest.json (24h-gated, cached, isSafeBoardId-guarded), getBoardVersions(id) on demand, ePublishedBoardsUpdated broadcast; PERSEPHONE_BOARDS_BRANCH dev override
+├── board-download-service.ts # Streamed board-archive download — net.fetch → temp file + incremental sha256 verify, throttled eBoardInstallProgress, digest check
 ├── video-stream-server.ts  # Local HTTP streaming server (range requests, faststart MP4 relocation, session management)
 ├── vlc-launcher.ts         # VLC process launcher (spawn + auto-detect VLC path)
 ├── tray-setup.ts           # System tray
