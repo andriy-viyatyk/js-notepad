@@ -7,7 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-_No active epics or tasks. See [completed epics](epics/completed.md)._
+- *(no epic)*
+  - [ ] US-875: Editor switch — always render the "+" (Board Info) segment last
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

@@ -129,6 +129,15 @@ export function SwitchWidget({ model }: { model: EditorModel }) {
     if (catalogMatches.length > 0 && !merged.includes(BOARD_INFO_EDITOR_ID)) {
         merged.push(BOARD_INFO_EDITOR_ID);
     }
+    // The Board Info ("+") segment is the install/switch affordance — always render it LAST,
+    // even when it entered via `options` rather than the catalog append (e.g. the Board Info
+    // editor is the active one: its findCompatibleEditors lists "+" before the board segments
+    // appended above, which would otherwise put "+" between the text editor and a board).
+    const plusIdx = merged.indexOf(BOARD_INFO_EDITOR_ID);
+    if (plusIdx !== -1 && plusIdx !== merged.length - 1) {
+        merged.splice(plusIdx, 1);
+        merged.push(BOARD_INFO_EDITOR_ID);
+    }
     if (merged.length < 2 || !merged.includes(model.editorId)) return null;
     const boardNameById = new Map(boardMatches.map((b) => [b.editorId, b.name]));
     const items: ISegment[] = merged.map((id) => ({
