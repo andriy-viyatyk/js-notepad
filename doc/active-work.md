@@ -7,7 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- [ ] US-877: Fix broken PDF viewer — add `corsEnabled: true` to the `safe-file://` scheme so the pdf.js viewer (origin `app-asset://pdfjs`) can fetch the PDF cross-origin under Electron 43 (regression from US-821, which added the flag to `app-asset` but missed `safe-file`)
+_No active epics or tasks. See [completed epics](epics/completed.md)._
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
