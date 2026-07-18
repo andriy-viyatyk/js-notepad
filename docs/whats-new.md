@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.15 (Upcoming)
 
-*No changes yet.*
+### Bug Fixes
+
+- **Custom-editor boards — the switch no longer strands you when a simple board shares a ZIP-based file with the Archive Editor** — For a **simple** custom-editor board (e.g. an Excel viewer board associated with `*.xlsx`), switching from the board to its built-in peer previously made the editor-switch control disappear entirely whenever that peer was the **Archive Editor** (the built-in editor for ZIP-based files like `.xlsx`/`.docx`) — leaving no way back to the board. Opening the board's **Board properties** screen had a similar problem: it lost track of the file the board came from, showing only **Text | +** instead of the file's real editors. Both are fixed: the Archive Editor now participates in the switch like any other built-in editor, and **Board properties** remembers the originating file, so its switch offers the file's real editors and **Open board** returns you to the board with the file loaded. See [Boards — Custom editors](./boards.md#custom-editors--associate-a-board-with-a-file-type).
 
 ---
 

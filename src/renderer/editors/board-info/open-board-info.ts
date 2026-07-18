@@ -26,8 +26,16 @@ export async function openBoardInfo(
     const old = page.mainEditorInstance;
     const hostTrait = old?.traits.get(CONTENT_HOST_TRAIT);
     if (old && !hostTrait && !(await old.confirmRelease())) return; // simple/board-view veto
+    // A host-less source (a simple custom-editor board / `board-view`) carries no content host to
+    // hand over, so capture its file path directly. Board Info's switch widget then offers the
+    // file's real peers (e.g. Archive | Excel | +) and a working path back to the board (US-876).
+    const filePath = old && !hostTrait ? old.filePath : undefined;
     const model = new BoardInfoEditorModel(
-        new TComponentState({ ...getDefaultBoardInfoEditorState(), ...opts }),
+        new TComponentState({
+            ...getDefaultBoardInfoEditorState(),
+            ...opts,
+            ...(filePath ? { filePath } : {}),
+        }),
     );
     if (old && hostTrait) model.switchFrom(old); // lossless host transfer (tolerant of host-less)
     await model.restore();

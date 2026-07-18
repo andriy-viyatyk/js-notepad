@@ -70,6 +70,10 @@ export interface BoardInfoEditorState extends EditorStateBase {
      *  install, which derives its matches from the adopted host's file name. */
     catalogId?: string;
     boardRoot?: string;
+    /** Originating file path when opened from a host-less simple board / `board-view` (US-876).
+     *  A content-host source carries the file via its adopted host instead, so this stays unset
+     *  there. Drives the switch widget's file peers + the "Open board" return path. */
+    filePath?: string;
     /** Catalog match tiles (install mode), derived from the host file name + catalog. */
     matches: PublishedBoardInfo[];
     /** Install-path parent dir (default `<userData>/data/boards`); user-changeable. */
@@ -205,7 +209,9 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
 
     private currentFileName(): string {
         const hs = this._host?.state.get();
-        return hs?.filePath ?? hs?.title ?? this.title;
+        // Prefer the held host's file, then a host-less simple board's captured `filePath`
+        // (US-876), then titles — so the switch resolves the file's real built-in peer.
+        return hs?.filePath ?? this.state.get().filePath ?? hs?.title ?? this.title;
     }
 
     /** The file's natural built-in editor (to switch back) plus this editor, so the switch keeps
@@ -377,7 +383,10 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
     async openBoard(): Promise<void> {
         const root = this.state.get().props?.root ?? this.state.get().boardRoot;
         if (!root) return;
-        if (this._host) {
+        if (this._host || this.state.get().filePath) {
+            // Content-host: lossless host transfer. Host-less simple board (US-876): the
+            // captured `filePath` (this editor's `filePath`) lets `switchMainEditor` rebuild the
+            // board over the file, returning to the file-viewing board rather than a plain board.
             await this.page?.switchMainEditor(boardEditorId(root));
         } else {
             await app.events.openRawLink.sendAsync(
@@ -590,6 +599,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
                 title: s.title,
                 catalogId: s.catalogId,
                 boardRoot: s.boardRoot,
+                filePath: s.filePath,
                 installDir: s.installDir,
             } as Record<string, unknown>,
             // Persist the held host so a "+"-opened install returns its file across a restart.
@@ -607,6 +617,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
                 if (st.title !== undefined) s.title = st.title;
                 if (st.catalogId !== undefined) s.catalogId = st.catalogId;
                 if (st.boardRoot !== undefined) s.boardRoot = st.boardRoot;
+                if (st.filePath !== undefined) s.filePath = st.filePath;
                 if (st.installDir !== undefined) s.installDir = st.installDir;
             });
         }
