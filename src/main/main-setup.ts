@@ -48,6 +48,11 @@ export function setupMainProcess() {
                 secure: true,
                 supportFetchAPI: true,
                 bypassCSP: true,
+                // corsEnabled so the pdf.js viewer (origin app-asset://pdfjs)
+                // can fetch the PDF cross-origin from safe-file://. Electron 43 /
+                // Chromium blocks custom-scheme cross-origin fetch without it
+                // (same requirement as app-asset above — US-821 missed this one).
+                corsEnabled: true,
             },
         },
         {
