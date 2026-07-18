@@ -320,4 +320,25 @@ export function registerResolvers(): void {
         await app.events.openContent.sendAsync(data);
         data.handled = true;
     });
+
+    // draw-view + image data URL → import the image as a NEW untitled drawing (US-874).
+    // The target is the real editor id; an image `data:` URL is the discriminator. Routed to
+    // addDrawPage (a fresh untitled page) rather than a content-host bind, so Ctrl+S can't
+    // overwrite a source. Registered last → runs first (LIFO), before the file resolver builds a
+    // pipe. Accepts ONLY a data URL — a caller with an http/file image converts it first.
+    app.events.openLink.subscribe(async (data) => {
+        if (data.target !== "draw-view") return;
+        if (!data.url?.startsWith("data:image/")) return;
+        try {
+            const { pagesModel } = await import("../api/pages");
+            await pagesModel.addDrawPage(data.url, (data.title || "drawing") + ".excalidraw");
+        } catch (err) {
+            const { ui } = await import("../api/ui");
+            ui.notify(
+                `Failed to open image in Drawing editor: ${err instanceof Error ? err.message : String(err)}`,
+                "error",
+            );
+        }
+        data.handled = true; // don't fall through to the file-backed open path
+    });
 }

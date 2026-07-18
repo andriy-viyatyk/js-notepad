@@ -66,7 +66,7 @@ const result = await res.json();
 | `maxRedirects` | `number` | `10` | Maximum number of redirects to follow. |
 | `rejectUnauthorized` | `boolean` | `true` | Set to `false` to skip SSL certificate validation (e.g. self-signed certs). |
 
-### openRawLink(href)
+### openRawLink(href, options?)
 
 Open any link through Persephone's navigation pipeline — a local file path, a URL, or an in-app scheme (`persephone-board://`, etc.). Opens a new tab or reuses a matching one if it already exists.
 
@@ -79,11 +79,19 @@ await app.openRawLink("https://example.com");
 
 // Open a Board by its root path (prefer app.boards.openBoard for boards)
 await app.boards.openBoard("C:/work/boards/My Board");
+
+// Request a specific editor — render Markdown instead of opening its source
+await app.openRawLink("C:/notes/README.md", { editor: "md-view" });
+
+// An image data URL + "draw-view" opens a new, untitled, editable Excalidraw
+// drawing with the image embedded (equivalent to app.pages.addDrawPage)
+await app.openRawLink(imageDataUrl, { editor: "draw-view" });
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `href` | `string` | File path, URL, or in-app link scheme. |
+| `href` | `string` | File path, URL, in-app link scheme, or (for `{ editor: "draw-view" }`) an image `data:` URL. |
+| `options.editor` | `string` | Optional. Request a specific editor for `href` (e.g. `"md-view"`). Falls back to the default editor when omitted or when the requested editor doesn't accept `href`. |
 
 **Returns:** `Promise<void>` — resolves after the navigation is dispatched.
 

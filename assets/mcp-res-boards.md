@@ -163,6 +163,9 @@ const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page 
 - `persephone.openRawLink(href, options?)` — open a file/URL in a new Persephone page. Pass
   `{ editor }` to request a specific editor (e.g. `openRawLink(path, { editor: "md-view" })` to render
   a Markdown doc instead of its source); falls back to the default editor when omitted/unmatched.
+  An **image `data:` URL** with `{ editor: "draw-view" }` opens the image as a **new editable
+  Excalidraw drawing** (rasterize your view to a PNG data URL first) — see the how-to recipe
+  linked below.
 - `persephone.notify(message, type)` — toast (`"info"|"success"|"warning"|"error"`); errors are
   also appended to **`ui.log`** in the board folder (an on-board indicator opens it). `ui.log` also
   receives, automatically: load failures, CSP violations, uncaught errors / unhandled rejections,
@@ -370,6 +373,19 @@ browser_click / browser_type / browser_take_screenshot { pageId, … }  → driv
 - A screenshot of a selected secondary view is clipped to its sidebar panel.
 - All frames of one board share `persephone.state.*`, so a change you make in one frame is
   visible when you snapshot another.
+
+## Integration recipes (persephone-boards `how-to/`)
+
+Common **integration cases** — wiring a board into a Persephone feature via the `persephone.*`
+bridge — are written up as short, code-first recipes in the boards repo. When you need to open
+something in the app, drive a built-in editor, or otherwise integrate, **check there first** —
+the plumbing has usually been solved once already:
+
+**<https://github.com/andriy-viyatyk/persephone-boards/tree/main/how-to>**
+
+Example: *Open an image in the Drawing (Excalidraw) editor* documents the
+`openRawLink(imageDataUrl, { editor: "draw-view" })` case above (data-URL-only, opens a new
+untitled drawing, PNG-over-SVG). Add a new recipe there when you solve a fresh integration case.
 
 ## Richer reference — the bundled Demo board
 

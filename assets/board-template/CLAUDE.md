@@ -146,6 +146,8 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
 - `persephone.openRawLink(href, options?)` — open a file/URL in a new Persephone page. Pass
   `{ editor }` (e.g. `{ editor: "md-view" }`) to request a specific editor — useful to open a
   Markdown doc rendered rather than as source; falls back to the default editor when omitted/unmatched.
+  An **image `data:` URL** with `{ editor: "draw-view" }` opens the image as a **new editable
+  Excalidraw drawing** (rasterize your view to a PNG data URL first).
 - `persephone.notify(message, type)` — toast (`"info" | "success" | "warning" | "error"`).
 - `persephone.openFileDialog(params)` / `saveFileDialog(params)` / `openFolderDialog(params)`
   — native dialogs; each returns a path you hand to `execute()`.

@@ -520,7 +520,10 @@ export class PagesLifecycleModel {
         const { getImageDimensions, buildExcalidrawJsonWithImage } =
             await import("../../editors/draw/drawExport");
         const dims = await getImageDimensions(dataUrl);
-        const json = buildExcalidrawJsonWithImage(dataUrl, "image/png", dims.width, dims.height);
+        // Honor the image's real MIME (SVG/JPEG/… embed correctly, not just PNG). A data URL
+        // carries it in the `data:<mime>;…` prefix; fall back to png for a raw (non-data) URL.
+        const mime = /^data:([^;,]+)/.exec(dataUrl)?.[1] || "image/png";
+        const json = buildExcalidrawJsonWithImage(dataUrl, mime, dims.width, dims.height);
         return this.addEditorPage("draw-view", "json", title ?? "untitled.excalidraw", json);
     };
 
