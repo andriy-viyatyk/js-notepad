@@ -6,7 +6,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 4.0.14 (Upcoming)
+## Version 4.0.15 (Upcoming)
+
+*No changes yet.*
+
+---
+
+## Version 4.0.14
 
 ### New Features
 
@@ -49,8 +55,6 @@ Release notes and changelog for Persephone (formerly js-notepad).
 - **Grid Editor — toggling "First row is header" (or changing the CSV delimiter) no longer blanks the grid** — In the CSV Options popup, switching **First row is header** on or off, or changing the delimiter, could leave every cell empty while the column headers stayed stuck on `0`, `1`, `2`, … instead of picking up the real column names. The grid kept its previous columns instead of re-deriving them from the newly reparsed rows, so cells looked up column keys that no longer existed. Columns are now rebuilt correctly whenever the header or delimiter setting changes. See [Grid Editor — CSV Options](./grid-editor.md#csv-options).
 
 - **File Explorer — dropping files onto a folder now works, with a Move/Copy choice** — Dragging a file or folder onto a folder in the File Explorer tree — whether from Windows Explorer (or another app) or from elsewhere in the tree itself — previously either did nothing (no drop-highlight shown) or silently copied. It now always opens a **Move / Copy / Cancel** dialog so you choose the operation (folders are handled recursively), asking for confirmation before overwriting a same-named file. Dropping a file back onto the folder it already lives in does nothing. See [File Explorer Panel](./tabs-and-navigation.md#file-explorer-panel).
-
-- **Content-host boards — the unsaved-changes indicator now tracks edits made inside the board** — A [content-host board](./boards.md#content-host-editors--sharing-persephones-file-with-the-board) that changed content only through `persephone.host.setContent()` could show a clean tab (no unsaved-changes dot) even though the change hadn't been saved yet. The tab's dirty indicator now correctly reflects edits made from inside the board, matching the Text Editor and Grid.
 
 ---
 
