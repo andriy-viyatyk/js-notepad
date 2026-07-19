@@ -141,6 +141,42 @@ its own JSON) — the mixed stream won't parse. Two complementary habits fix thi
    both sides. `getJson()` with no argument still parses the whole stdout (fine for
    scripts that print only JSON).
 
+## Guaranteed Node runtime: `persephone.executeNode()`
+
+`persephone.execute("node script.js")` only works if the **user** has Node installed —
+a published board can't rely on that. `executeNode` runs a script on **Persephone's own
+bundled Node runtime**, so it works on any machine with zero dependencies:
+
+```js
+const handle = persephone.executeNode(script, args?, { cwd, env, name });
+```
+
+- `script` — a path relative to the board folder (or absolute). Prefer **`.mjs`** for
+  explicit ESM (boards ship no `package.json`).
+- `args` — a `string[]` passed argv-style: **no shell**, so no quoting hazards (a value
+  like `"a b"` arrives as one argument). The `shell` option is ignored.
+- Returns the **same handle** as `execute()` — buffered getters, streaming,
+  `write`/`endStdin`/`kill`, and `name`-based `getJobs()` re-association all work
+  identically.
+- The runtime is **Node 24** with **`node:sqlite` built in** (incl. FTS5) — no npm
+  install needed for SQLite. A missing script fires the handle's `error` event.
+
+### Resident backend server (the key pattern)
+
+Because the handle keeps stdin streaming, spawn **one** long-lived script per session and
+feed it jobs as JSON lines instead of paying a spawn per operation:
+
+```js
+const srv = persephone.executeNode("scripts/db-server.js", [dbPath], { name: "db" });
+srv.on("stdout", chunk => handleJsonLine(chunk));   // {id, columns, rows} | {id, error}
+srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — no spawn, db stays open
+```
+
+One ~150 ms spawn when the board opens; afterwards each operation costs only its own work
+(e.g. the SQLite query against a warm page cache). Pair with `setBoardBusy(true)` so the
+server survives a board reload, and re-attach by `name` via `getJobs()` (see below). Board
+close reaps the child.
+
 ## Integration tier (in-app effects `execute()` can't express)
 
 - `persephone.openRawLink(href, options?)` — open a file/URL in a new Persephone page. Pass

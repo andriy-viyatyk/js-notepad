@@ -432,7 +432,11 @@ function makeRunnerError(message: string, exitCode: number | null, stderr: strin
 
 type Mode = "idle" | "buffered" | "streaming";
 
-function createHandle(command: string, options?: IExecuteOptions): IExecuteHandle {
+function createHandle(
+    command: string,
+    options?: IExecuteOptions,
+    extra?: { node?: boolean; args?: string[] },
+): IExecuteHandle {
     const jobId = `b_${++idCounter}_${Date.now()}`;
 
     let mode: Mode = "idle";
@@ -517,7 +521,7 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
 
     // Default cwd is filled by main from the board registry; an explicit opts.cwd
     // (forwarded here) overrides it there.
-    post({ kind: "runner", channel: RunnerChannel.start, msg: { jobId, command, opts: options } });
+    post({ kind: "runner", channel: RunnerChannel.start, msg: { jobId, command, opts: options, ...extra } });
 
     const handle: IExecuteHandle = {
         jobId,
@@ -655,6 +659,14 @@ function createHandle(command: string, options?: IExecuteOptions): IExecuteHandl
 
     execute(command: string, options?: IExecuteOptions): IExecuteHandle {
         return createHandle(command, options);
+    },
+
+    /** Run a Node script on Persephone's bundled runtime — no Node install needed.
+     *  `script` is resolved against the board folder when relative. Same handle
+     *  contract as execute(); `shell` is ignored (always argv, no shell). */
+    executeNode(script: string, args?: string[], options?: IExecuteOptions): IExecuteHandle {
+        const { shell: _shell, ...opts } = options ?? {};
+        return createHandle(script, opts, { node: true, args });
     },
 
     openRawLink(href: string, options?: { editor?: string }): void {

@@ -20,7 +20,7 @@ The three parts:
 |------|-----------|
 | **Frontend** | `index.html` + your CSS/JS. Owns all UI and state. |
 | **Backend** | Scripts in `scripts/` (any language — `.js`, `.py`, `.ps1`, `.sh`, …). They run as real OS processes with your privileges. |
-| **Channel** | `persephone.execute(commandLine)`. The page calls a script, the script prints JSON to stdout, the page parses it and renders. |
+| **Channel** | `persephone.execute(commandLine)` — or `persephone.executeNode(script, args?)` to guarantee a Node backend with nothing installed on your machine (see below). The page calls a script, the script prints JSON to stdout, the page parses it and renders. |
 
 ### Where do boards live?
 
@@ -140,6 +140,31 @@ handle.kill();              // terminate the process
 ```
 
 > **Buffered vs streaming:** choose one per handle — mixing them throws an error. For a simple request-response pattern, use `getJson()` / `getText()`; for long-running or progress-reporting scripts, use `on(...)`.
+
+### `persephone.executeNode(script, args?, options?)` — a guaranteed Node backend
+
+`persephone.execute("node script.js")` only works if the **user's machine** happens to have Node installed — a board you build (or one someone else installs from the [published catalog](#published-boards-catalog--discover-install-update)) can't rely on that. `executeNode` instead runs the script on **Persephone's own bundled Node runtime** — the same Node build the app itself ships with — so it works on any machine with **zero setup**, no Node or Python install required:
+
+```js
+const handle = persephone.executeNode("scripts/query.mjs", ["arg1", "arg2"], { cwd, env, name });
+```
+
+- **`script`** — a path relative to the board folder (or absolute). Prefer a `.mjs` extension for explicit ES modules — boards ship no `package.json`, so Node's automatic module-type detection is the only other signal.
+- **`args`** — an array of strings passed **argv-style, with no shell involved**. A value containing spaces (e.g. `"a b"`) always arrives as a single argument — no quoting rules to get right, and no shell-injection risk. The `options.shell` setting exists only for symmetry with `execute()`; `executeNode` always ignores it and never runs through a shell.
+- **`options`** — same shape as `execute()`: `cwd` (defaults to the board folder), `env`, and `name` (the re-association key for `getJobs()`, same as below).
+- **Returns the same handle** as `execute()` — buffered (`getText()` / `getJson()` / `getBytes()`), streaming (`on("stdout"|"stderr")`), and `write()` / `endStdin()` / `kill()` all behave identically.
+- The runtime is **Node 24**, with **`node:sqlite` built in** (including FTS5 full-text search) — a board can query a SQLite database with zero `npm install`.
+- If the script file doesn't exist, the handle fires an `error` event with a clear message (`Node script not found: <path>`) instead of a cryptic process failure.
+
+**Resident backend server** — since the handle keeps stdin open for writing, a board can spawn **one long-lived script for the whole session** and send it requests as JSON lines, instead of paying a fresh process spawn for every operation:
+
+```js
+const srv = persephone.executeNode("scripts/db-server.js", [dbPath], { name: "db" });
+srv.on("stdout", chunk => handleJsonLine(chunk));               // e.g. {id, columns, rows} or {id, error}
+srv.write(JSON.stringify({ id: 1, sql: "SELECT ..." }) + "\n");  // per request — no re-spawn, db stays open
+```
+
+One spawn when the board opens; after that, each request costs only its own work (e.g. a SQLite query against an already-open, warm database). Pair this with `setBoardBusy(true)` (see below) so the server survives a board reload, and re-attach to it by `name` via `getJobs()`.
 
 ### Long-running processes: `setBoardBusy()` / `getBoardBusy()` / `getJobs()`
 

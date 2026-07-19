@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.16 (Upcoming)
 
-*No changes yet.*
+### New Features
+
+- **Boards — a guaranteed Node.js backend with `persephone.executeNode()`** — `persephone.execute("node script.js")` only works if the user's machine happens to have Node installed; a board can now call `persephone.executeNode(script, args?, options?)` instead to run the script on **Persephone's own bundled Node runtime**, so it works on any machine with zero setup — no Node or Python install required. Arguments are passed argv-style with no shell involved (no quoting hazards), and it returns the exact same process handle as `execute()` — buffered getters, streaming, stdin, and `kill()` all work the same way. The runtime includes `node:sqlite` (with FTS5), so a board can query a SQLite database with no `npm install` at all. Because the handle keeps stdin open, a board can also spawn one long-lived script for its whole session and feed it requests as JSON lines instead of spawning a process per operation. See [Boards — a guaranteed Node backend](./boards.md#persephoneexecutenodescript-args-options--a-guaranteed-node-backend).
 
 ---
 

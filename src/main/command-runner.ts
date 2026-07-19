@@ -207,7 +207,7 @@ export function startJobTo(sink: JobSink, msg: RunnerStartMsg): void {
 
     let proc: ChildProcessWithoutNullStreams;
     try {
-        proc = spawn(command, {
+        proc = spawn(command, msg.args ?? [], {
             shell: opts?.shell ?? true,
             cwd: opts?.cwd,
             env: { ...process.env, ...(opts?.env ?? {}) },

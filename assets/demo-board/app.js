@@ -4,7 +4,8 @@
 // contract, and documents how boards work. Content is split into tabs:
 // Overview / Theming / Capabilities / Build Guide.
 //
-// The Capabilities probes spawn `node`, so Node must be on PATH.
+// The execute() probes spawn `node`, so Node must be on PATH; the executeNode()
+// probes run on Persephone's own bundled runtime, so they always work.
 
 (() => {
     const P = window.persephone;
@@ -108,6 +109,34 @@
                 cwd: "C:\\",
             }).getText();
             print("explicit cwd 'C:\\': " + override);
+        },
+
+        // --- executeNode() — bundled runtime, no Node install --------------
+        async nodeInfo() {
+            header("executeNode → bundled runtime + node:sqlite");
+            const r = await P.executeNode("scripts/node-probe.mjs", ["demo"]).getJson(/@@RESULT@@(.*)/);
+            print("Node " + r.nodeVersion + " (Persephone's own binary — no install needed)");
+            print("execPath: " + r.execPath);
+            print("args round-trip: " + JSON.stringify(r.args));
+            print("node:sqlite → " + JSON.stringify(r.sqlite));
+        },
+        async nodeServer() {
+            header("executeNode → resident server (spawn once, JSON lines over stdin)");
+            const srv = P.executeNode("scripts/node-server.mjs", [], { name: "demo-server" });
+            srv.on("stdout", (chunk) => {
+                for (const line of dec.decode(chunk).split("\n")) {
+                    if (line.trim()) print("← " + line.trim());
+                }
+            });
+            const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+            await wait(300);
+            for (const [id, value] of [[1, "hello"], [2, "resident"], [3, "server"]]) {
+                print("→ " + JSON.stringify({ id, value }));
+                srv.write(JSON.stringify({ id, value }) + "\n");
+            }
+            await wait(300);
+            srv.kill();
+            print("killed the server (a real board keeps it alive with setBoardBusy).");
         },
 
         // --- integration tier ----------------------------------------------

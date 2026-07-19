@@ -256,9 +256,26 @@ function handleBoardMessage(boardId: string, data: BoardToMain): void {
     if (data.kind === "runner") {
         switch (data.channel) {
             case RunnerChannel.start: {
-                const msg = data.msg as RunnerStartMsg;
+                let msg = data.msg as RunnerStartMsg;
                 // Default cwd = board folder; an explicit opts.cwd overrides.
                 const opts = { ...(entry.root ? { cwd: entry.root } : {}), ...msg.opts };
+                if (msg.node) {
+                    // executeNode (US-882): run the script on the app's own binary as Node.
+                    const script = path.isAbsolute(msg.command)
+                        ? msg.command
+                        : path.resolve(entry.root, msg.command);
+                    if (!fs.existsSync(script)) {
+                        portSink(entry, boardId).send(RunnerChannel.error, {
+                            jobId: msg.jobId,
+                            message: `Node script not found: ${script}`,
+                        });
+                        return;
+                    }
+                    opts.shell = false; // argv spawn — never through a shell
+                    // Forced AFTER the board's env so it cannot be clobbered.
+                    opts.env = { ...opts.env, ELECTRON_RUN_AS_NODE: "1", NODE_NO_WARNINGS: "1" };
+                    msg = { ...msg, command: process.execPath, args: [script, ...(msg.args ?? [])] };
+                }
                 startJobTo(portSink(entry, boardId), { ...msg, opts });
                 return;
             }

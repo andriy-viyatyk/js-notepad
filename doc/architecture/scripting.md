@@ -265,7 +265,7 @@ h.on("exit", ({ code }) => console.log("done", code));
 const result = await app.proc.execute(cmd).getJson(/@@RESULT@@(.*)/);
 ```
 
-The same channel backs a board's `persephone.execute()` — both the board preload and `app.proc` call into the same `command-runner.ts` in the main process.
+The same channel backs a board's `persephone.execute()` — both the board bridge shim (over its `MessagePort`) and `app.proc` call into the same `command-runner.ts` in the main process. A board additionally has `persephone.executeNode(script, args?, options?)`: the board bridge rewrites it to spawn Persephone's own binary as Node (`process.execPath` with `ELECTRON_RUN_AS_NODE=1`, argv-style, no shell), giving boards a guaranteed Node runtime — including built-in `node:sqlite` — with no Node install on the machine. It returns the same handle.
 
 Type definitions: `/src/renderer/api/types/proc.d.ts` (`IProc`, `IExecuteHandle`, `IExecuteOptions`).
 

@@ -109,7 +109,8 @@
             <p class="muted">
                 The one method. Buffer the result (<code>getText</code>/<code>getJson</code>/<code>getBytes</code>) or
                 stream it (<code>on("stdout"/"exit"/…)</code>, <code>write</code>, <code>kill</code>).
-                These probes spawn <code>node</code>, so Node must be on PATH.
+                These probes spawn <code>node</code>, so Node must be on PATH — for a runtime that always
+                works, see <code>executeNode()</code> below.
             </p>
             <div class="row">
                 <button class="action" data-test="getText">getText</button>
@@ -119,6 +120,18 @@
                 <button class="action" data-test="stdin">stdin round-trip</button>
                 <button class="action" data-test="kill">kill long-runner</button>
                 <button class="action" data-test="cwd">default cwd = board folder</button>
+            </div>
+
+            <h2><code>persephone.executeNode()</code> — bundled Node runtime</h2>
+            <p class="muted">
+                Runs a script on Persephone's <strong>own</strong> Node — <strong>no Node install needed</strong>
+                on the machine. Same handle as <code>execute()</code>; args pass argv-style (no shell). The runtime
+                is Node 24 with <code>node:sqlite</code> built in. Spawn once and feed a resident server JSON lines
+                over stdin instead of a spawn per operation.
+            </p>
+            <div class="row">
+                <button class="action" data-test="nodeInfo">runtime + node:sqlite</button>
+                <button class="action" data-test="nodeServer">resident server (stdin)</button>
             </div>
 
             <h2>Integration tier — in-app effects</h2>
@@ -172,7 +185,7 @@
                 <li><code>board-manifest.json</code> — the board-identity file (<code>schemaVersion: 1</code> + optional metadata: name, description, author, repository). Its presence is what marks the folder as a board. Do not add trust flags or behavior fields.</li>
                 <li><code>index.html</code> — your page. Edit it, then hit <strong>Reload</strong> in the board toolbar to apply.</li>
                 <li><code>app.js</code> / <code>style.css</code> — your logic and styling (reference relatively, e.g. <code>./app.js</code>). Boards don't auto-reload — use the <strong>Reload</strong> button in the board toolbar (or the <code>board_refresh</code> MCP tool when an agent is driving) to apply edits.</li>
-                <li><code>scripts/</code> — backend scripts in any language, invoked via <code>persephone.execute("scripts/thing.js")</code>. <code>cwd</code> defaults to the board folder, so relative paths just work.</li>
+                <li><code>scripts/</code> — backend scripts in any language, invoked via <code>persephone.execute("scripts/thing.js")</code>. <code>cwd</code> defaults to the board folder, so relative paths just work. For a <strong>Node</strong> script that must run on any machine, use <code>persephone.executeNode("scripts/thing.mjs")</code> — it runs on Persephone's bundled Node (no install needed).</li>
             </ul>
 
             <h2>Returning data reliably</h2>

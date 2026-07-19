@@ -142,6 +142,15 @@ interface PersephoneBoardApi {
     readonly version: string;
     /** Spawn a command line on the host machine; returns a process handle. */
     execute(command: string, options?: PersephoneExecuteOptions): PersephoneExecuteHandle;
+    /** Run a Node script on Persephone's bundled Node runtime (no Node install
+     *  required on the machine). `script` is a path relative to the board folder
+     *  (or absolute); spawned argv-style, never through a shell (`shell` is
+     *  ignored). Returns the same handle as `execute()`. */
+    executeNode(
+        script: string,
+        args?: string[],
+        options?: PersephoneExecuteOptions,
+    ): PersephoneExecuteHandle;
     /** Open a link (file path or URL) in a new Persephone page. */
     openRawLink(href: string): void;
     /** Show a Persephone toast. */

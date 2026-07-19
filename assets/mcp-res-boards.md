@@ -158,6 +158,33 @@ console.log("@@RESULT@@" + JSON.stringify(result));               // backend (no
 const result = await persephone.execute(cmd).getJson(/@@RESULT@@(.*)/); // page extracts last match
 ```
 
+### `persephone.executeNode()` — guaranteed Node runtime
+
+`execute("node script.js")` only works if the **user** has Node installed — a published
+board can't assume that. `executeNode` runs a script on **Persephone's own bundled Node
+runtime**, so it works on any machine with zero dependencies:
+
+```js
+const handle = persephone.executeNode(script, args?, { cwd, env, name }); // script relative to the board folder
+```
+
+- `script` — relative to the board folder (or absolute); prefer **`.mjs`** for explicit ESM
+  (boards ship no `package.json`). `args` is a `string[]` passed **argv-style, no shell** (no
+  quoting hazards); the `shell` option is ignored. A missing script fires the handle's `error`.
+- Returns the **same handle** as `execute()` (buffered / streaming / `write`/`endStdin`/`kill`
+  / `name`-based `getJobs()`). Runtime is **Node 24** with **`node:sqlite` built in** (incl.
+  FTS5) — SQLite with no npm install.
+- **Resident-server pattern:** spawn one long-lived script and feed it JSON lines over stdin
+  instead of a spawn per operation — one ~150 ms spawn on open, then each op costs only its own
+  work. Pair with `setBoardBusy(true)` to survive a reload and re-attach by `name` via
+  `getJobs()`.
+
+```js
+const srv = persephone.executeNode("scripts/db-server.js", [dbPath], { name: "db" });
+srv.on("stdout", chunk => handleJsonLine(chunk));   // {id, columns, rows} | {id, error}
+srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays open, no re-spawn
+```
+
 ### Integration tier (in-app effects `execute()` can't express)
 
 - `persephone.openRawLink(href, options?)` — open a file/URL in a new Persephone page. Pass
