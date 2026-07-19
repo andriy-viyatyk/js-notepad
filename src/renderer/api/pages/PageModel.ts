@@ -1,6 +1,7 @@
 import { TComponentState, TOneState } from "../../core/state/state";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
 import { parseBoardEditorId } from "../../editors/board/custom-editor-registry";
+import { BOARD_INFO_EDITOR_ID } from "../../editors/board-info/board-info-id";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import type { NavEntry, PageDescriptor } from "../../../shared/persistence";
 import { SecondaryViewsModel, ISecondaryViewsState } from "../../ui/secondary-views/SecondaryViewsModel";
@@ -540,6 +541,38 @@ export class PageModel implements IPageHost {
         const def = editorRegistry.getById(newEditorId);
         if (!def) {
             throw new Error(`No editor registered for id: ${newEditorId}`);
+        }
+        // A host-transfer switch needs the OLD editor to actually hold a shared content host for
+        // the new one to adopt. A host-less source — the Board Info install page that never
+        // adopted a host, or the host-less Archive viewer for a zip-based file (US-864/US-876) —
+        // has nothing to hand over, and a real file editor's `switchFrom` would throw. When the
+        // target is such a file editor, dispose-and-rebuild it over the file instead (mirrors the
+        // simple-board branch above). The "+" install target (Board Info) is exempt: its tolerant
+        // `switchFrom` captures the file path itself, so it stays on the createEditor path below.
+        if (!oldEditor.contentHost && newEditorId !== BOARD_INFO_EDITOR_ID) {
+            const filePath = oldEditor.filePath;
+            if (!filePath) return;
+            const released = await oldEditor.confirmRelease();
+            if (!released) return; // Cancel → stay on the current editor
+            const { pagesModel } = await import("../pages");
+            const { attachEditorToPage } = await import("./PagesLifecycleModel");
+            const built = await pagesModel.lifecycle.createEditorFromFile(
+                filePath,
+                undefined,
+                newEditorId,
+            );
+            // Honor an explicit built-in target that differs from the file's natural resolveId
+            // (mirrors openFile / the simple-board branch); no-op for non-textFile editors.
+            if (
+                built.state.get().type === "textFile"
+                && parseBoardEditorId(newEditorId) === null
+            ) {
+                built.state.update((s) => {
+                    (s as { editor?: string }).editor = newEditorId;
+                });
+            }
+            await this.setMainEditor(attachEditorToPage(built));
+            return;
         }
         const newEditor = await editorRegistry.createEditor(newEditorId);
         newEditor.switchFrom(oldEditor);

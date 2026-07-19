@@ -14,6 +14,14 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **PDF Viewer showed a blank page** — Opening a `.pdf` file could show a blank, empty viewer instead of the document — a regression introduced by the recent platform upgrade to Electron 43 (see [Platform and dependency updates](#version-4014)). PDFs now open and render normally again.
 
+- **The "+" install switch could get stuck on a ZIP-based file already open in the built-in Archive Editor** — For a `.xlsx`/`.docx`/`.pptx` file with a matching published board not yet installed, clicking the editor-switch's **+** entry could show "No installable editor is published" instead of the board, and the tab's file name and the switch's **Archive** label could disappear. Fixed: the install screen (**Board Info**) now correctly lists the matching published board, the tab keeps the file's name, the switch stays **Archive | +**, and switching back to the built-in Archive Editor works as expected. See [Boards — Published boards catalog](./boards.md#published-boards-catalog--discover-install-update).
+
+- **The Tools & Editors hub page could vanish after restarting Persephone or dragging its tab to a new window** — Fixed: the hub page is now restored correctly in both cases. See [Tools & Editors](./tabs-and-navigation.md#tools--editors).
+
+### Improvements
+
+- **Tab-bar "+" dropdown — "Show All…" now opens the full Tools & Editors hub page** — Previously it opened the compact sidebar panel; it now opens the same full-page hub you get from the panel's **Open in new tab** button, which also includes the **Search boards** tab for browsing the published boards catalog. See [Tools & Editors](./tabs-and-navigation.md#tools--editors).
+
 ---
 
 ## Version 4.0.14

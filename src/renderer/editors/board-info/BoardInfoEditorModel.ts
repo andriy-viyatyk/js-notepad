@@ -195,7 +195,21 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
      *  standalone open) keep no host. */
     override switchFrom(oldEditor: EditorModel): void {
         const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) return; // host-less source — nothing to transfer
+        if (!trait) {
+            // Host-less source (e.g. the built-in Archive viewer for a zip-based .xlsx / .docx /
+            // .pptx): it owns no shared content host to adopt, but it still knows the file. Capture
+            // the path in the US-876 `filePath` field so the install page can match catalog editors
+            // by file mask, the switch keeps showing the file's real built-in peer (e.g. "Archive |
+            // +"), and the tab keeps the file name instead of collapsing to "Install editor".
+            const fp = oldEditor.filePath;
+            if (fp) {
+                this.state.update((s) => {
+                    s.filePath = fp;
+                    s.title = fpBasename(fp);
+                });
+            }
+            return;
+        }
         const host = trait.extractContentHost() as unknown as TextFileModel;
         if (!isTextFileModel(host)) {
             throw new Error("BoardInfoEditorModel.switchFrom: extracted host is not a TextFileModel");

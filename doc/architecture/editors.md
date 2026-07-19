@@ -50,7 +50,7 @@ All editor code lives in `/src/renderer/editors/`.
 | `board-view` | `BoardEditorModel` | folders carrying `board-manifest.json` (opened via `persephone-board://`; also acts as a custom editor for files it associates via `fileMasks` — see "Custom-Editor Boards") | — | — |
 | `toolset-view` | `ToolsetEditorModel` | folders carrying `tools-manifest.json` (opened via `persephone-toolset://`) | — | — |
 | `board-info` | `BoardInfoEditorModel` | (none — "+" switch entry / board toolbar Properties / Tools & Editors hub / update toast) | holder | ✓ |
-| `tools-hub-view` | `ToolsHubEditor` | (none — Tools & Editors panel "Open in new tab") | — | — |
+| `tools-hub-view` | `ToolsHubEditor` | (none — Tools & Editors panel "Open in new tab" / tab-bar "+" dropdown "Show All…") | — | — |
 
 > **Toolset editor:** `ToolsetEditorModel` is a lightweight read-only viewer for one registered *toolset* (a folder holding `tools-manifest.json` + tool scripts — the Agent Tools registry). Like the board and git-tree editors it is a **no-host target editor** (`hasContentHost: false`, `accepts: () => -1`): it is never resolved from a filename, but opened by the `persephone-toolset://` link scheme (encode/decode in `content/persephone-toolset-link.ts`, parsed in `parsers.ts` → `target: "toolset-view"`, built by the explicit case in `PagesLifecycleModel.buildEditorById`, and restored via the `NO_HOST_EDITOR_IDS` allow-list in `PagesPersistenceModel`). Opening it from a normal click on `tools-manifest.json` is deliberately *not* wired — that still opens the JSON in Monaco; instead the file gets an "Open Toolset" trailing icon in the Explorer tree (register-gated via `RegisterToolsetDialog` when the folder is untrusted), mirroring `board-manifest.json`'s "Open Board" icon. The view shows the manifest's metadata, a registered chip, Open-Folder / Open-Log buttons, and a card per declared tool. The registry/trust/executor layer it reads (`api/tools/`) is intentionally kept off the `app` model and every script `.d.ts`, so scripts can neither self-register nor execute tools — the same rule that keeps `board-trust.ts` unscriptable.
 
@@ -251,6 +251,8 @@ async function switchEditorViaContentHost(
 ```
 
 For non-text editors (PDF, Image, Browser, etc.) without `CONTENT_HOST_TRAIT`, there is no host to transfer — switching is a plain create+swap.
+
+When the **source** is host-less but the **target** is a built-in file editor, a plain create+swap is not enough — the target has no host to adopt and its `switchFrom` would have nothing to build over. This happens when switching back from the Board Info install page ("+"), or from the host-less Archive viewer that claims zip-based files (`.xlsx`/`.docx`/`.pptx`). In that case `switchMainEditor` dispose-and-rebuilds the target over the file (`createEditorFromFile(filePath, …)`), reading the source editor's `filePath` (which host-less editors like Archive expose via a getter override). The Board Info target itself is exempt — its tolerant `switchFrom` captures the source's `filePath` so the install page can still match catalog editors and keep the file name.
 
 ## EditorModule Interface
 

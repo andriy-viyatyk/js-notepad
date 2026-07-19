@@ -161,7 +161,7 @@ function BoardCard({ board, installed, updates }: {
             )}
 
             {!compatible && (
-                <Text size="sm" color="light">{`Requires Persephone ≥ ${board.minAppVersion}`}</Text>
+                <Text size="sm" color="warning">{`Requires Persephone ≥ ${board.minAppVersion}`}</Text>
             )}
 
             <Panel direction="row" gap="sm" align="center">

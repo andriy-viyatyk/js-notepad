@@ -158,7 +158,7 @@ export function PageTabs(props: object) {
         items.push({
             label: "Show All…",
             startGroup: true,
-            onClick: () => app.window.openMenuBar("tools-editors"),
+            onClick: () => void pagesModel.showToolsHubPage(),
         });
         return items;
     }, [browserProfiles, pinnedRefs]);
