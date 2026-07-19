@@ -10,8 +10,9 @@
  *    `uikit/tokens.ts`. Theme-independent constants → built once, delivered at init only.
  *
  * The `--p-*` names are the public contract (epic C5); the source mapping below may
- * change behind them. The board preload only *applies* the maps produced here — it
- * never imports this module, keeping the contract defined in exactly one place.
+ * change behind them. The board host (`board-protocol-service` inject + the bridge
+ * shim's theme sync) only *applies* the maps produced here — it never imports this
+ * module, keeping the contract defined in exactly one place.
  */
 import { getCurrentThemeId, getResolvedColor, isCurrentThemeDark } from "../../theme/themes";
 import { fontSize, gap, height, radius, spacing } from "../../uikit/tokens";
@@ -25,7 +26,10 @@ import type { BoardThemePalette } from "../../../ipc/board-bridge-channels";
 const P_VAR_SOURCES: Record<string, string> = {
     "--p-bg": "--color-bg-default",
     "--p-panel": "--color-bg-light",
+    "--p-bg-dark": "--color-bg-dark",
     "--p-overlay": "--color-bg-overlay",
+    "--p-hover": "--color-bg-overlay-hover",
+    "--p-tree-selection": "--color-bg-tree-selection",
     "--p-border": "--color-border-default",
     "--p-border-light": "--color-border-light",
     "--p-text": "--color-text-default",

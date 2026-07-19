@@ -397,11 +397,15 @@ sensible defaults for you — page background/text, a **monospace default font**
 **themed scrollbars** — all from the `--p-*` contract. Build your own styles on top
 (or edit it). The list below is the full palette + metric set you can use:
 
-- **Colors** (theme-dependent, update live): `--p-bg`, `--p-panel`, `--p-overlay`,
-  `--p-border`, `--p-border-light`, `--p-text`, `--p-text-muted`, `--p-text-strong`,
-  `--p-accent`, `--p-accent-text`, `--p-accent-hover`, `--p-selection-bg`,
-  `--p-selection-text`, `--p-link`, `--p-error`, `--p-success`, `--p-warning`,
-  `--p-scrollbar`, `--p-scrollbar-thumb`, `--p-shadow`.
+- **Colors** (theme-dependent, update live): `--p-bg`, `--p-panel`, `--p-bg-dark`,
+  `--p-overlay`, `--p-hover`, `--p-tree-selection`, `--p-border`, `--p-border-light`,
+  `--p-text`, `--p-text-muted`, `--p-text-strong`, `--p-accent`, `--p-accent-text`,
+  `--p-accent-hover`, `--p-selection-bg`, `--p-selection-text`, `--p-link`,
+  `--p-error`, `--p-success`, `--p-warning`, `--p-scrollbar`, `--p-scrollbar-thumb`,
+  `--p-shadow`.
+  - To render **Persephone-style chrome** (title bars, sidebar panels, grid headers):
+    `--p-bg-dark` is the app's chrome surface (darker than `--p-panel`), `--p-hover`
+    the list/button hover background, `--p-tree-selection` the selected-row background.
 - **Metrics** (constants): `--p-space-*`, `--p-gap-*`, `--p-radius-*`, `--p-size-*`,
   `--p-font-*` (e.g. `--p-space-md`, `--p-radius-sm`, `--p-font-base`).
 

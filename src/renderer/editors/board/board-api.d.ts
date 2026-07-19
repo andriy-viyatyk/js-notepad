@@ -119,11 +119,16 @@ interface PersephoneOpenFolderDialogParams {
  * `<html>` (use `var(--p-bg)`, `padding: var(--p-space-md)`, etc.) and mirrored here in JS.
  *
  * Color vars (theme-dependent, update live on a theme switch):
- *   --p-bg, --p-panel, --p-overlay, --p-border, --p-border-light,
+ *   --p-bg, --p-panel, --p-bg-dark, --p-overlay, --p-hover, --p-tree-selection,
+ *   --p-border, --p-border-light,
  *   --p-text, --p-text-muted, --p-text-strong,
  *   --p-accent, --p-accent-text, --p-accent-hover,
  *   --p-selection-bg, --p-selection-text, --p-link,
  *   --p-error, --p-success, --p-warning, --p-scrollbar, --p-scrollbar-thumb, --p-shadow
+ *
+ * --p-bg-dark is the app's chrome color (title bar / sidebar / grid header — darker
+ * than --p-panel); --p-hover is the list/button hover background; --p-tree-selection
+ * is the selected-row background. Use them to render Persephone-style chrome.
  *
  * Metric vars (theme-independent constants): --p-space-*, --p-gap-*, --p-radius-*,
  *   --p-size-* (icon/control), --p-font-* — e.g. --p-space-md, --p-radius-sm, --p-font-base.

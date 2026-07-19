@@ -297,7 +297,9 @@ Every board ships with **`board-base.css`** (linked first in `index.html`) apply
 defaults (page bg/text, monospace font, themed scrollbars). Colors (`--p-bg`, `--p-panel`,
 `--p-border`, `--p-text`, `--p-accent`, `--p-error`, `--p-success`, `--p-warning`, …) update
 live; metrics (`--p-space-*`, `--p-gap-*`, `--p-radius-*`, `--p-size-*`, `--p-font-*`) are
-constants. For JS-colored components (charts/diagrams) read the live palette via
+constants. To match **Persephone's own chrome** (title bar / sidebar / grid header) use
+`--p-bg-dark` (darker than `--p-panel`), plus `--p-hover` (list/button hover) and
+`--p-tree-selection` (selected row). For JS-colored components (charts/diagrams) read the live palette via
 `persephone.getTheme()` / `persephone.onThemeChange(cb)` and re-apply on each fire — never cache
 `persephone.theme.vars` across a switch.
 

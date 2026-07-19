@@ -246,11 +246,13 @@ The board template ships with a `board-base.css` (linked first in `index.html`) 
 
 | Group | Variables |
 |-------|-----------|
-| Colors | `--p-bg`, `--p-panel`, `--p-overlay`, `--p-border`, `--p-border-light`, `--p-text`, `--p-text-muted`, `--p-text-strong`, `--p-accent`, `--p-accent-text`, `--p-accent-hover`, `--p-selection-bg`, `--p-selection-text`, `--p-link`, `--p-error`, `--p-success`, `--p-warning`, `--p-scrollbar`, `--p-scrollbar-thumb`, `--p-shadow` |
+| Colors | `--p-bg`, `--p-panel`, `--p-bg-dark`, `--p-overlay`, `--p-hover`, `--p-tree-selection`, `--p-border`, `--p-border-light`, `--p-text`, `--p-text-muted`, `--p-text-strong`, `--p-accent`, `--p-accent-text`, `--p-accent-hover`, `--p-selection-bg`, `--p-selection-text`, `--p-link`, `--p-error`, `--p-success`, `--p-warning`, `--p-scrollbar`, `--p-scrollbar-thumb`, `--p-shadow` |
 | Spacing | `--p-space-xs`, `--p-space-sm`, `--p-space-md`, `--p-space-lg`, `--p-space-xl`, `--p-space-xxl` |
 | Gap | `--p-gap-xs`, `--p-gap-sm`, `--p-gap-md`, `--p-gap-lg` |
 | Radius | `--p-radius-sm`, `--p-radius-md`, `--p-radius-lg` |
 | Font | `--p-font-base`, `--p-font-sm`, `--p-font-lg`, `--p-size-icon` |
+
+To render **Persephone-style chrome** (title bars, sidebar panels, grid headers), use `--p-bg-dark` — the app's actual chrome surface, darker than `--p-panel` (which is an input/lighter-surface color) — together with `--p-hover` (hover background for list items/buttons) and `--p-tree-selection` (selected-row background).
 
 **Theme in JavaScript** — for libraries that color themselves from JS (charts, diagrams):
 
