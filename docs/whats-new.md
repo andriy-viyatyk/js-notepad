@@ -8,6 +8,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.17 (Upcoming)
 
+### New Features
+
+- **Boards — a default right-click menu, with no board code required** — Right-clicking inside a board now behaves like right-clicking anywhere else in Persephone: a link offers **Open Link** / **Copy Link**, an image offers **Open Image in New Tab** / **Copy Image** / **Save Image As…**, a text field or text area offers **Cut** / **Copy** / **Paste**, and selected text offers **Copy**. This applies to every board automatically — a board author who wants their own custom menu instead can call `event.preventDefault()` in their own `contextmenu` handler to opt out. See [Boards — Default right-click menu](./boards.md#default-right-click-menu).
+
 ### Bug Fixes
 
 - **Boards — clicking a link no longer blanks the board** — A hyperlink inside a board (for example a link in a document shown by a viewer board) used to navigate the board's own frame to the URL, which its locked-down origin can't load — leaving the board a blank white screen. External links are now intercepted and opened through Persephone's normal open flow (a new page or the browser) instead, so the board stays put. Links within the board itself still work as before. This applies to every board automatically.

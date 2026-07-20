@@ -198,6 +198,9 @@ srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays op
     automatically — so a stray link never navigates the board frame into a blank screen. Relative
     and `#fragment` links navigate in-frame as normal; call `e.preventDefault()` first to handle a
     link yourself.
+  - **Default context menu is built in.** Right-click gives Open/Copy Link (links), Open Image in
+    New Tab / Copy Image / Save Image As… (images), Cut/Copy/Paste (text fields), and Copy
+    (selection) with no board code. Call `e.preventDefault()` on `contextmenu` to render your own.
 - `persephone.notify(message, type)` — toast (`"info"|"success"|"warning"|"error"`); errors are
   also appended to **`ui.log`** in the board folder (an on-board indicator opens it). `ui.log` also
   receives, automatically: load failures, CSP violations, uncaught errors / unhandled rejections,

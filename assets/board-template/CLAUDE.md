@@ -191,6 +191,11 @@ close reaps the child.
     code needed. Relative and `#fragment` links resolve against the board and navigate in-frame
     as normal. To handle a link yourself instead, call `e.preventDefault()` in your own click
     handler first (the auto-router stands down when the event is already handled).
+  - **A default right-click menu is provided for you.** Persephone renders a themed context menu
+    inside your board — no code needed: _Open Link_ / _Copy Link_ on links, _Open Image in New
+    Tab_ / _Copy Image_ / _Save Image As…_ on images, _Cut_ / _Copy_ / _Paste_ in text fields, and
+    _Copy_ on a text selection. To show your own menu instead, call `e.preventDefault()` on the
+    `contextmenu` event in your handler (same opt-out as the link router and Ctrl+S).
 - `persephone.notify(message, type)` — toast (`"info" | "success" | "warning" | "error"`).
 - `persephone.openFileDialog(params)` / `saveFileDialog(params)` / `openFolderDialog(params)`
   — native dialogs; each returns a path you hand to `execute()`.

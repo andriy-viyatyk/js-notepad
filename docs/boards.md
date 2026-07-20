@@ -92,6 +92,25 @@ The boards-switcher popover shows the same tree as the **Boards** Explorer-sibli
 
 ---
 
+## Default right-click menu
+
+Right-clicking inside a board's content works exactly like right-clicking anywhere else in Persephone, with no setup needed from the board author:
+
+| Right-click target | Menu items |
+|---------------------|------------|
+| A link | **Open Link**, **Copy Link** |
+| An image | **Open Image in New Tab**, **Copy Image**, **Save Image As…** |
+| A text field, text area, or editable region | **Cut** / **Copy** / **Paste**, depending on whether there's a selection and whether the field is read-only |
+| Selected text (not in an editable field) | **Copy** |
+
+**Open Image in New Tab** opens the image in Persephone's Image Viewer as its own tab, the same way opening an image file normally does. **Save Image As…** shows the native Save dialog and writes the file to disk.
+
+If a right-click doesn't match any of the above (for example, empty space with nothing selected), no menu appears — the board's own page just gets a normal right-click with nothing added.
+
+A board that wants to draw its own custom right-click menu instead can call `event.preventDefault()` in its own `contextmenu` handler; Persephone's default menu only appears when the event reaches it unhandled.
+
+---
+
 ## The board bridge — `window.persephone`
 
 The only Persephone-specific API a board sees is `window.persephone`. Everything else is plain web development.
