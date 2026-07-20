@@ -41,3 +41,31 @@ a { color: var(--p-link, #3b82f6); }
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--p-text-muted, #888); }
 ::-webkit-scrollbar-corner { background: var(--p-scrollbar, transparent); }
+
+/* Checkboxes (Chromium) — reproduce Persephone's checkbox look: a rounded-square
+   outline with a check glyph, drawn as a CSS mask from the same SVG geometry the app
+   uses and painted in the muted text token, so it re-tints on a theme switch and
+   brightens on hover exactly like the app's checkbox. Applies to any native
+   <input type="checkbox"> in the board. Override it per control from your own
+   stylesheet if you want a different treatment. */
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: 0 0 auto;
+    width: 16px; height: 16px; margin: 0; padding: 0;
+    cursor: pointer;
+    background-color: var(--p-text-muted, #888);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='0.75' y='0.75' width='14.5' height='14.5' rx='3.25' fill='none' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='0.75' y='0.75' width='14.5' height='14.5' rx='3.25' fill='none' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: background-color 0.12s;
+}
+input[type="checkbox"]:hover:not(:disabled) { background-color: var(--p-text, #e0e0e0); }
+input[type="checkbox"]:checked {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='0.75' y='0.75' width='14.5' height='14.5' rx='3.25' fill='none' stroke='white' stroke-width='1.5'/%3E%3Cpath d='M3.75 7.75L6.75 10.75L12.25 5.25' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='0.75' y='0.75' width='14.5' height='14.5' rx='3.25' fill='none' stroke='white' stroke-width='1.5'/%3E%3Cpath d='M3.75 7.75L6.75 10.75L12.25 5.25' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:indeterminate {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='0.75' y='0.75' width='14.5' height='14.5' rx='3.25' fill='none' stroke='white' stroke-width='1.5'/%3E%3Cline x1='4.5' y1='8' x2='11.5' y2='8' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='0.75' y='0.75' width='14.5' height='14.5' rx='3.25' fill='none' stroke='white' stroke-width='1.5'/%3E%3Cline x1='4.5' y1='8' x2='11.5' y2='8' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:disabled { cursor: default; opacity: 0.5; }

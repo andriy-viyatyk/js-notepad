@@ -121,7 +121,8 @@ blank board contains:
 - `index.html` — the page shell (a starter button + output area), linked to `board-base.css`.
 - `app.js` — frontend logic with a `boardScript()` helper that calls `persephone.execute()`.
 - `scripts/hello.js` — an example backend script demonstrating the `@@RESULT@@` convention.
-- `board-base.css` — shared theme defaults (page bg/text, monospace font, themed scrollbars),
+- `board-base.css` — shared theme defaults (page bg/text, monospace font, themed scrollbars,
+  themed focus ring, and Persephone-style native checkboxes),
   **already linked in `index.html`; don't fetch or recreate it.**
 - `board-manifest.json` — the board-identity file (already valid).
 - `CLAUDE.md` — the generic board authoring guide. **When the board is built, rewrite this file
@@ -302,7 +303,8 @@ button { background: var(--p-accent); color: var(--p-accent-text); border-radius
 ```
 
 Every board ships with **`board-base.css`** (linked first in `index.html`) applying sensible
-defaults (page bg/text, monospace font, themed scrollbars). Colors (`--p-bg`, `--p-panel`,
+defaults (page bg/text, monospace font, themed scrollbars, themed focus ring, and
+Persephone-style native checkboxes). Colors (`--p-bg`, `--p-panel`,
 `--p-border`, `--p-text`, `--p-accent`, `--p-error`, `--p-success`, `--p-warning`, …) update
 live; metrics (`--p-space-*`, `--p-gap-*`, `--p-radius-*`, `--p-size-*`, `--p-font-*`) are
 constants. To match **Persephone's own chrome** (title bar / sidebar / grid header) use

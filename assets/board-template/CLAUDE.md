@@ -405,9 +405,11 @@ button { background: var(--p-accent); color: var(--p-accent-text); border-radius
 ```
 
 Your board ships with **`board-base.css`** (linked first in `index.html`). It applies
-sensible defaults for you — page background/text, a **monospace default font**, and
-**themed scrollbars** — all from the `--p-*` contract. Build your own styles on top
-(or edit it). The list below is the full palette + metric set you can use:
+sensible defaults for you — page background/text, a **monospace default font**,
+**themed scrollbars**, a **themed focus ring**, and **Persephone-style checkboxes**
+(any native `<input type="checkbox">` renders as the app's rounded-square + check,
+driven by the `--p-*` tokens) — all from the `--p-*` contract. Build your own styles
+on top (or edit it). The list below is the full palette + metric set you can use:
 
 - **Colors** (theme-dependent, update live): `--p-bg`, `--p-panel`, `--p-bg-dark`,
   `--p-overlay`, `--p-hover`, `--p-tree-selection`, `--p-border`, `--p-border-light`,
