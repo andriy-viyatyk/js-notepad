@@ -676,6 +676,21 @@ function showCtxMenu(x: number, y: number, items: CtxItem[]): void {
     menu.style.top = Math.max(4, Math.min(y, window.innerHeight - mh - 4)) + "px";
 }
 
+// The <img> at a right-click, or null. Prefers the clicked element's own <img> ancestor; falls
+// back to searching the hit stack under the cursor — some renderers layer another element on top
+// of a picture (e.g. pptx-preview stacks an SVG shape over the <img>), so the event target is that
+// overlay and closest("img") — which only walks ancestors — misses the sibling <img>.
+function imageAt(target: Element | null, x: number, y: number): HTMLImageElement | null {
+    const direct = target && target.closest ? target.closest("img") : null;
+    if (direct instanceof HTMLImageElement) return direct;
+    if (typeof document.elementsFromPoint === "function") {
+        for (const el of document.elementsFromPoint(x, y)) {
+            if (el instanceof HTMLImageElement) return el;
+        }
+    }
+    return null;
+}
+
 window.addEventListener("contextmenu", (e: MouseEvent) => {
     if (e.defaultPrevented) return; // the board renders its own menu — stand down
     const target = e.target as Element | null;
@@ -696,9 +711,9 @@ window.addEventListener("contextmenu", (e: MouseEvent) => {
 
     // Image → open in the Image Viewer (new tab), copy as PNG, or save to disk. `currentSrc`
     // reflects the actually-loaded source (srcset), with `src` as the fallback; skip an empty src.
-    const img = target && target.closest ? target.closest("img") : null;
-    const imgSrc = img instanceof HTMLImageElement ? img.currentSrc || img.src : "";
-    if (img instanceof HTMLImageElement && imgSrc && !imgSrc.startsWith("data:,")) {
+    const img = imageAt(target, e.clientX, e.clientY);
+    const imgSrc = img ? img.currentSrc || img.src : "";
+    if (img && imgSrc && !imgSrc.startsWith("data:,")) {
         groups.push([
             { label: "Open Image in New Tab", action: () => void openImageInNewTab(imgSrc) },
             { label: "Copy Image", action: () => void copyImage(img) },
