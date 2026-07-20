@@ -63,18 +63,21 @@ export class BoardContentEditorModel extends BoardEditorModel {
         return root ? boardEditorId(root) : "board-view";
     }
 
-    /** Switch options while ON the board: the file's natural built-in editor (to switch back)
-     *  plus this board. UNLIKE the base board, NO `isPlainLocalPath` gate — content-host boards
-     *  edit https/archive/encrypted files too (CH4). On an untitled page (no file path yet) the
-     *  host/page title stands in as the file name so the built-in editor stays resolvable and the
-     *  user can switch back — mirroring SwitchWidget / editorRegistry.findEditorsAccepting. */
+    /** Switch options while ON the board: ALL built-in editors that accept the host (to switch
+     *  back) plus this board. Uses the SAME `findEditorsAccepting(host)` call the built-in
+     *  editors use, so the board's option list is identical to theirs — e.g. a `*.todo.json`
+     *  board offers `Text Editor` + `ToDo` + `Todo`, matching what the built-in Todo editor
+     *  shows (US-886). UNLIKE the base board, NO `isPlainLocalPath` gate — content-host boards
+     *  edit https/archive/encrypted files too (CH4). `findEditorsAccepting` reads the host's
+     *  `filePath ?? title`, so an untitled page stays resolvable. Before the host is adopted
+     *  (pre-restore window) it falls back to the single natural built-in editor. */
     override findCompatibleEditors(): string[] {
         const root = this.state.get().boardRoot;
         if (!root) return [];
-        const fileName =
-            this.currentFilePath() ?? this._host?.state.get().title ?? this.title;
-        const builtinId = editorRegistry.resolveId(fileName) ?? "monaco";
-        return [builtinId, boardEditorId(root)];
+        const builtins = this._host
+            ? editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost)
+            : [editorRegistry.resolveId(this.currentFilePath() ?? this.title) ?? "monaco"];
+        return [...builtins, boardEditorId(root)];
     }
 
     // ── Host transfer on editor switch (template: MonacoEditor.switchFrom) ──

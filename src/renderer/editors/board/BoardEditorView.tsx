@@ -8,6 +8,9 @@ import { UntrustedBoardView } from "./UntrustedBoardView";
 import { BoardNotFoundView } from "./BoardNotFoundView";
 import { BoardWebview } from "./BoardWebview";
 import { BoardToolbar } from "./BoardToolbar";
+import { ScriptPanel } from "../text/ScriptPanel";
+import { ContentHostFooter } from "../base/ContentHostFooter";
+import type { TextFileModel } from "../text/TextEditorModel";
 
 // =============================================================================
 // Component — single-board host region (EPIC-034 / EPIC-035 / EPIC-036). Gated by
@@ -63,6 +66,12 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
         );
     }
 
+    // Content-host boards (EPIC-043) wrap a real TextFileModel — give them the same
+    // text-host footer (script toggle · provider · encoding) and Script panel the built-in
+    // editors get from TextChrome (US-886). `contentHost` is null on plain boards, so those
+    // stay footer-less.
+    const host = model.contentHost as unknown as TextFileModel | null;
+
     return (
         <Panel name="board-host" direction="column" flex={1} width="100%">
             <BoardToolbar model={model} />
@@ -73,6 +82,8 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                     boardRoot={selectedRoot}
                 />
             </Panel>
+            {host?.script && <ScriptPanel model={host} />}
+            {host && <ContentHostFooter host={host} />}
         </Panel>
     );
 }

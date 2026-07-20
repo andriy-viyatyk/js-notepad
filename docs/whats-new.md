@@ -14,6 +14,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ### Bug Fixes
 
+- **Content-host boards now match their built-in editor's chrome** — A content-host board (for example, a published Todo board that reimplements the built-in Todo editor) was missing the **Text Editor** option in the editor-switch control whenever its file's built-in editor offered more than one option — a `*.todo.json` file showed only `ToDo | Todo`, with no way to reach Monaco — and the board showed no footer at all: no `script` toggle and no encoding label. Both are fixed: a content-host board now offers the same switch options as its built-in editor (`Text Editor | ToDo | Todo`) and shows the same footer — the `script` toggle (opens the Script Panel to run a script against the file's content) and the encoding label with its provider icon. See [Boards — Content-host editors](./boards.md#content-host-editors--sharing-persephones-file-with-the-board).
+
 - **Boards — clicking a link no longer blanks the board** — A hyperlink inside a board (for example a link in a document shown by a viewer board) used to navigate the board's own frame to the URL, which its locked-down origin can't load — leaving the board a blank white screen. External links are now intercepted and opened through Persephone's normal open flow (a new page or the browser) instead, so the board stays put. Links within the board itself still work as before. This applies to every board automatically.
 
 ---
