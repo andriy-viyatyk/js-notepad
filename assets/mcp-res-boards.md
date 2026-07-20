@@ -193,6 +193,11 @@ srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays op
   An **image `data:` URL** with `{ editor: "draw-view" }` opens the image as a **new editable
   Excalidraw drawing** (rasterize your view to a PNG data URL first) — see the how-to recipe
   linked below.
+  - **External links are auto-routed.** A plain `<a href="https://…">` click inside a board is
+    intercepted (any link leaving the board's `board://` origin) and routed through `openRawLink`
+    automatically — so a stray link never navigates the board frame into a blank screen. Relative
+    and `#fragment` links navigate in-frame as normal; call `e.preventDefault()` first to handle a
+    link yourself.
 - `persephone.notify(message, type)` — toast (`"info"|"success"|"warning"|"error"`); errors are
   also appended to **`ui.log`** in the board folder (an on-board indicator opens it). `ui.log` also
   receives, automatically: load failures, CSP violations, uncaught errors / unhandled rejections,

@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.17 (Upcoming)
 
-*No changes yet.*
+### Bug Fixes
+
+- **Boards — clicking a link no longer blanks the board** — A hyperlink inside a board (for example a link in a document shown by a viewer board) used to navigate the board's own frame to the URL, which its locked-down origin can't load — leaving the board a blank white screen. External links are now intercepted and opened through Persephone's normal open flow (a new page or the browser) instead, so the board stays put. Links within the board itself still work as before. This applies to every board automatically.
 
 ---
 

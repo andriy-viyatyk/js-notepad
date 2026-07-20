@@ -313,6 +313,35 @@ window.addEventListener("keydown", (e: KeyboardEvent) => {
     }
 });
 
+// External-link routing (US-884) — a board frame lives on a locked-down `board://` origin.
+// A plain `<a href="http(s)://…">` (e.g. a hyperlink inside a rendered .docx) would navigate
+// the FRAME itself to that URL, which the host renderer's frame-src CSP blocks (ERR_BLOCKED_BY_CSP)
+// — leaving the board blank (white screen). The main-process `will-frame-navigate` guard can't
+// help here: the renderer's CSP cancels the navigation before it reaches the browser process.
+// So intercept anchor activations at the DOM level, BEFORE any navigation starts, and route the
+// URL through Persephone's normal openRawLink flow instead — the link opens in a Persephone page /
+// the browser. In-board navigation (board://<host>/…, including `#fragment` links, which resolve
+// against the board origin) is left untouched. Bubble phase + a `defaultPrevented` check so a
+// board that wants to handle its own links can opt out via `preventDefault()`.
+function routeExternalLinkClick(e: MouseEvent): void {
+    if (e.defaultPrevented) return; // the board claimed it — stand down
+    const target = e.target as Element | null;
+    const anchor = target && target.closest ? target.closest("a[href]") : null;
+    if (!(anchor instanceof HTMLAnchorElement)) return;
+    // `anchor.href` is the RESOLVED absolute URL — relative paths and `#fragments` resolve
+    // against the board:// document, so they start with `board://` and are left to navigate
+    // in-frame as normal. `javascript:` runs script, not a navigation — leave it alone too.
+    const href = anchor.href;
+    if (!href || href.startsWith("board://") || href.startsWith("javascript:")) return;
+    e.preventDefault();
+    fire("openRawLink", [href]);
+}
+window.addEventListener("click", routeExternalLinkClick);
+window.addEventListener("auxclick", (e: MouseEvent) => {
+    // Middle-click on a link also navigates in a plain browser context — route it too.
+    if (e.button === 1) routeExternalLinkClick(e);
+});
+
 // Host-overlay dismissal (EPIC-037 / US-773 C10): a cross-origin board's inner clicks
 // don't bubble to the host, so an open Persephone menu/popover/command-palette wouldn't
 // close when the user clicks into the board. Post a capture-phase interaction ping to

@@ -184,6 +184,13 @@ close reaps the child.
   Markdown doc rendered rather than as source; falls back to the default editor when omitted/unmatched.
   An **image `data:` URL** with `{ editor: "draw-view" }` opens the image as a **new editable
   Excalidraw drawing** (rasterize your view to a PNG data URL first).
+  - **External links are auto-routed for you.** A plain `<a href="https://…">` click inside a
+    board would otherwise navigate the board frame itself to a URL its `board://` origin can't
+    load, blanking the board. Persephone intercepts anchor clicks (and middle-clicks) and routes
+    any link that leaves the board's own origin through `openRawLink` automatically — no board
+    code needed. Relative and `#fragment` links resolve against the board and navigate in-frame
+    as normal. To handle a link yourself instead, call `e.preventDefault()` in your own click
+    handler first (the auto-router stands down when the event is already handled).
 - `persephone.notify(message, type)` — toast (`"info" | "success" | "warning" | "error"`).
 - `persephone.openFileDialog(params)` / `saveFileDialog(params)` / `openFolderDialog(params)`
   — native dialogs; each returns a path you hand to `execute()`.

@@ -185,6 +185,41 @@ export class OpenWindow {
             this.send(EventEndpoint.eOpenUrl, url);
         });
 
+        // US-884: `will-navigate` above covers only the MAIN frame. A board renders in an
+        // out-of-process subframe on a `board://<host>` origin; a stray link inside it (e.g.
+        // an <a href="http://…"> in a rendered .docx) navigates the FRAME away from board://,
+        // which can't load http — the frame goes blank (white screen). Subframe navigations
+        // fire `will-frame-navigate`, not `will-navigate`, so guard them here: never let a
+        // board frame leave its own origin, and route the intended URL through the normal
+        // openRawLink pipeline (eOpenUrl → RendererEventsService.handleOpenUrl) so the click
+        // still opens the link in a Persephone page / browser instead of dying silently.
+        this.window.webContents.on("will-frame-navigate", (details) => {
+            // The main frame is already handled by `will-navigate` above.
+            if (details.isMainFrame) return;
+
+            // Only guard frames that currently live on a board:// origin — other subframes
+            // (dev iframes, etc.) keep their default behavior. `frame` may be null if the
+            // frame was destroyed mid-navigation.
+            const currentUrl = details.frame?.url ?? "";
+            if (!currentUrl.startsWith("board://")) return;
+
+            // Same-origin in-board navigation (board://<host>/other.html) is a legitimate,
+            // supported path (BoardWebview re-handshakes on each load) — allow it. Anything
+            // that leaves the board's origin would blank the frame → block + route.
+            let currentOrigin = "";
+            let targetOrigin = "";
+            try {
+                currentOrigin = new URL(currentUrl).origin;
+                targetOrigin = new URL(details.url).origin;
+            } catch {
+                // Unparseable target → treat as external and block below.
+            }
+            if (targetOrigin && targetOrigin === currentOrigin) return;
+
+            details.preventDefault();
+            this.send(EventEndpoint.eOpenUrl, details.url);
+        });
+
         if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
             this.window.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
         } else {
