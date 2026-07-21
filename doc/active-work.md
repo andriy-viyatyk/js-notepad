@@ -10,6 +10,11 @@ Overview of all active and planned epics and tasks.
 _No active epics or tasks. See [completed epics](epics/completed.md)._
 
 ## Planned
+- **EPIC-046** — [Board Environment Variables (secure, out-of-board secret storage)](epics/EPIC-046.md)
+  - [ ] [US-887: Vars store foundation — settings path + `.env.json` schema + `BoardEnvStore`](tasks/US-887-board-vars-foundation/README.md)
+  - [ ] US-888: Board API `persephone.var.get/set/list` + "Create environment variables storage" dialog
+  - [ ] US-889: `*.env.json` built-in editor + `persephone.var.show()`
+  - [ ] US-890: Namespace collision warning at board registration
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
   - [ ] US-813: Crypto + identity foundation (libsodium keypair, encrypted-at-rest, seal/open helpers)
   - [ ] US-814: Pluggable transport + MQTT backend (`PeerTransport`, `MqttTransport`, `peerConnection` service)

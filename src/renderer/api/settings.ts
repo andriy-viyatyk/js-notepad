@@ -45,7 +45,8 @@ export type AppSettingsKey =
     | "video-stream.port"
     | "visualizer-effect"
     | "audio-shuffle"
-    | "git.enabled";
+    | "git.enabled"
+    | "board-vars.file";
 
 // =============================================================================
 // State
@@ -81,6 +82,7 @@ const settingsComments: Partial<Record<AppSettingsKey, string>> = {
     "visualizer-effect": "Audio visualizer effect type.\nAvailable: bars, circular.",
     "audio-shuffle": "Whether shuffle mode is enabled for audio playback.",
     "git.enabled": "Enable Git integration (Git Tree + File Diff editors).\nOff by default. Requires git installed and on PATH.",
+    "board-vars.file": "Path to the board environment-variables file (.env.json).\nStores per-board variables/secrets outside board folders. May be encrypted with a password via the file's encryption menu.",
 };
 
 const defaultAppSettingsState = {
@@ -111,6 +113,7 @@ const defaultAppSettingsState = {
         "visualizer-effect": "bars" as string,
         "audio-shuffle": false,
         "git.enabled": false,
+        "board-vars.file": "",
     },
 };
 
