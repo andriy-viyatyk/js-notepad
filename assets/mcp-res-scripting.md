@@ -19,6 +19,7 @@ Root application object with all services.
 | `app.recent` | Recently opened files |
 | `app.downloads` | Download tracking |
 | `app.boards` | Boards — `createBoard(name, dir)` / `createDemoBoard(name, dir)` / `openBoard(root)`. See `read_guide("boards")`. |
+| `app.boardVars` | Env vars/secrets store for boards — get/set/list per namespace, resolve a board's namespace, open the editor. See `read_guide("boards")`. |
 | `app.openRawLink(href, options?)` | Open any link (file path, URL, or in-app scheme) in a new/reused tab and make it active. `options.editor` requests a specific editor (e.g. `{ editor: "md-view" }` for rendered Markdown); falls back to the default when omitted/unmatched |
 
 ### app.pages

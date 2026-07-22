@@ -12,6 +12,7 @@ const EPHEMERAL_FIELDS: ReadonlySet<string> = new Set([
     "highlightText",
     "diffFrom",
     "diffTo",
+    "envNamespace",
     "browserMode",
     "browserPageId",
     "browserTabMode",

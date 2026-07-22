@@ -142,6 +142,21 @@ interface PersephoneThemePalette {
     vars: Record<string, string>;
 }
 
+/** Board environment variables (EPIC-046) — per-board secret/config storage kept OUTSIDE
+ *  the board folder in a user-configured `.env.json`, optionally password-encrypted. A board
+ *  reads/writes ONLY its own namespace. Every method rejects when the store is not configured
+ *  (and the user declines the create dialog), locked, or errors — always handle rejection. */
+interface PersephoneVarApi {
+    /** Read a value (the `default` profile unless `env` is given), or `undefined` if unset. */
+    get(name: string, env?: string): Promise<string | undefined>;
+    /** Write a value into this board's namespace. */
+    set(name: string, value: string, env?: string): Promise<void>;
+    /** This board's key names in a profile (names only, never values). */
+    list(env?: string): Promise<string[]>;
+    /** Open the Environment Variables editor, scoped to this board's namespace. */
+    show(): Promise<void>;
+}
+
 interface PersephoneBoardApi {
     /** Bridge version. */
     readonly version: string;
@@ -193,6 +208,8 @@ interface PersephoneBoardApi {
      *  on every switch. The callback argument is always the live palette — prefer it for
      *  re-theming. Returns an unsubscribe fn. */
     onThemeChange(cb: (theme: PersephoneThemePalette) => void): () => void;
+    /** Board environment variables (EPIC-046) — get/set/list this board's own namespace. */
+    readonly var: PersephoneVarApi;
 }
 
 interface Window {

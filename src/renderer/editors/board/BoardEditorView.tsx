@@ -47,7 +47,12 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                 path={selectedRoot}
                 onTrust={async () => {
                     if (await showTrustBoardDialog(selectedRoot)) {
-                        await boardTrust.trust(selectedRoot);
+                        const { confirmNamespaceNotColliding } = await import(
+                            "../../api/board-vars/namespace"
+                        );
+                        if (await confirmNamespaceNotColliding(selectedRoot)) {
+                            await boardTrust.trust(selectedRoot);
+                        }
                     }
                 }}
             />

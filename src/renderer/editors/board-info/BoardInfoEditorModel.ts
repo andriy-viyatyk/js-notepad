@@ -534,6 +534,8 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
         const { showTrustBoardDialog } = await import("../../ui/dialogs/TrustBoardDialog");
         const ok = await showTrustBoardDialog(root);
         if (!ok) return;
+        const { confirmNamespaceNotColliding } = await import("../../api/board-vars/namespace");
+        if (!(await confirmNamespaceNotColliding(root))) return;
         await boardTrust.trust(root);
         this.installed.send(root); // resolves app.boards.installPublished's interactive flow
         await customEditorRegistry.refresh();

@@ -152,9 +152,9 @@ export class TextFileEncryptionModel {
         }
     };
 
-    showEncryptionDialog = async () => {
+    showEncryptionDialog = async (message?: string) => {
         const mode = this.encrypted && !this.decrypted ? "decrypt" : "encrypt";
-        const password = await ui.password({ mode });
+        const password = await ui.password({ mode, message });
         if (!password) return;
 
         if (mode === "decrypt") {

@@ -82,6 +82,8 @@ export const boards: IBoards = {
         const { showTrustBoardDialog } = await import("../ui/dialogs/TrustBoardDialog");
         const ok = await showTrustBoardDialog(boardRoot);
         if (!ok) return false;
+        const { confirmNamespaceNotColliding } = await import("./board-vars/namespace");
+        if (!(await confirmNamespaceNotColliding(boardRoot))) return false;
         await boardTrust.trust(boardRoot);
         return true;
     },

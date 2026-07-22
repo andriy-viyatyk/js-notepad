@@ -15,6 +15,8 @@ const passwordDialogId = Symbol("passwordDialog");
 
 export interface PasswordDialogProps {
     mode: "encrypt" | "decrypt";
+    /** Optional explanatory text shown above the password field. */
+    message?: string;
 }
 
 const defaultPasswordDialogProps: PasswordDialogProps = {
@@ -75,6 +77,9 @@ function PasswordDialog({ model }: ViewPropsRO<PasswordDialogModel>) {
                 maxWidth={500}
             >
                 <Panel direction="column" paddingX="xxl" paddingY="xl" gap="md">
+                    {state.message && (
+                        <Text color="light">{state.message}</Text>
+                    )}
                     <Panel direction="column" gap="xs">
                         <Label>Password</Label>
                         <Input
@@ -103,7 +108,7 @@ function PasswordDialog({ model }: ViewPropsRO<PasswordDialogModel>) {
                     )}
                 </Panel>
                 <Panel direction="row" justify="end" gap="sm" padding="md">
-                    <Button name="password-submit" onClick={doSubmit}>
+                    <Button name="password-submit" variant="primary" onClick={doSubmit}>
                         {isDecrypt ? "Decrypt" : "Encrypt"}
                     </Button>
                     <Button name="password-cancel" onClick={() => model.close(undefined)}>

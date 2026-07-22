@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Planned
+**Status:** Completed
 **Created:** 2026-07-21
 
 ## Overview
@@ -132,14 +132,15 @@ simultaneously.
 
 ## Linked Tasks
 
-Implementation order: US-887 → US-888 → US-889 → US-890.
+Implementation order: US-887 → US-888 → US-889 → US-890 → US-891.
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-887](../tasks/US-887-board-vars-foundation/README.md) | Vars store foundation: settings path + `.env.json` schema + `BoardEnvStore` model (encryption reuse, session unlock, `author/name`→path namespace) | Implemented (unreviewed) |
-| US-888 | Board API `persephone.var.get/set/list` (shim + renderer routing) + "Create environment variables storage" dialog | Planned |
-| US-889 | `*.env.json` built-in editor (per-board/profile review view) + `persephone.var.show()` | Planned |
-| US-890 | Namespace collision warning at board registration | Planned |
+| [US-887](../tasks/US-887-board-vars-foundation/README.md) | Vars store foundation: settings path + `.env.json` schema + `BoardEnvStore` model (encryption reuse, session unlock, `author/name`→path namespace) | Reviewed |
+| [US-888](../tasks/US-888-board-vars-bridge-api/README.md) | Board API `persephone.var.get/set/list` (shim + renderer routing) + "Create environment variables storage" dialog | Reviewed |
+| [US-889](../tasks/US-889-board-vars-editor/README.md) | `*.env.json` built-in editor (per-board/profile review view) + `persephone.var.show()` | Reviewed |
+| [US-890](../tasks/US-890-board-vars-collision-warning/README.md) | Namespace collision warning at board registration | Reviewed |
+| [US-891](../tasks/US-891-board-vars-agent-api/README.md) | Agent-facing `app.boardVars` admin API (unrestricted namespace CRUD) + board-guide docs | Reviewed |
 
 _Task placeholders — each gets a full `doc/tasks/US-XXX-*/README.md` (Goal → Background →
 Implementation Plan → Concerns → Acceptance Criteria) when work on it begins._
@@ -174,7 +175,8 @@ Implementation Plan → Concerns → Acceptance Criteria) when work on it begins
   either field uses its root path. Registering a second board with a colliding `author/name` shows
   the advisory warning with Register-anyway / Cancel.
 - Opening the `.env.json` in its built-in editor shows values grouped by board namespace and
-  profile, masked by default; `persephone.var.show()` opens it scoped to the calling board.
+  profile (shown plainly in an editable grid — masking was dropped during implementation, see
+  Notes); `persephone.var.show()` opens it scoped to the calling board.
 - Encryption is optional: a plain-JSON `.env.json` works with no prompt; the user encrypts it via
   the existing file menu and subsequent board access prompts for the password.
 
@@ -186,3 +188,13 @@ Implementation Plan → Concerns → Acceptance Criteria) when work on it begins
   manifest field), reuse of the `BrowserBookmarks` encrypted-file pattern and a session-singleton
   `TextFileModel`-backed store, and a non-blocking collision warning at registration. Task READMEs
   to be authored per task at implementation time.
+
+### 2026-07-22
+- All five tasks (US-887–891) implemented and reviewed. One deviation from the original design:
+  the `.env.json` editor shows values plainly in an editable grid rather than masked-with-reveal —
+  simpler to implement and review-only editing of a file the user already chose to keep outside
+  the board folder didn't justify the extra masking UI. `/review` also caught and fixed one bug:
+  `app.boardVars.show()` with no namespace argument used a generic file-open call that could
+  resolve to the wrong editor if the configured `.env.json` path didn't literally end in that
+  extension — fixed to force the `env-vars-view` editor explicitly, matching every other opener
+  in the epic. `/document` and `/userdoc` completed; epic ready to close.

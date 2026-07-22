@@ -304,6 +304,18 @@ editorRegistry.register({
 });
 
 editorRegistry.register({
+    id: "env-vars-view",
+    name: "Env Vars",
+    hasContentHost: true,
+    accepts: makeAccepts(EDITOR_MATCHERS["env-vars-view"]),
+    match: EDITOR_MATCHERS["env-vars-view"],
+    loadModule: async () => {
+        const { envVarsModule } = await import("./env-vars");
+        return envVarsModule;
+    },
+});
+
+editorRegistry.register({
     id: "browser-view",
     name: "Browser",
     hasContentHost: false,

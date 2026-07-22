@@ -422,7 +422,7 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     encript = (password: string) => this.encryption.encript(password);
     encryptWithCurrentPassword = () => this.encryption.encryptWithCurrentPassword();
     decrypt = (password: string) => this.encryption.decrypt(password);
-    showEncryptionDialog = () => this.encryption.showEncryptionDialog();
+    showEncryptionDialog = (message?: string) => this.encryption.showEncryptionDialog(message);
     makeUnencrypted = () => this.encryption.makeUnencrypted();
     alertEncryptionError = (err: Error) => this.encryption.alertEncryptionError(err);
 

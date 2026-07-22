@@ -7,7 +7,13 @@ import { fpJoin } from "../../core/utils/file-path";
 import { settings } from "../../api/settings";
 import { pagesModel } from "../../api/pages";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
-import type { BoardHostContentMsg, BoardPortInitMsg, BoardStateSyncMsg } from "../../../ipc/board-bridge-channels";
+import type {
+    BoardHostContentMsg,
+    BoardPortInitMsg,
+    BoardStateSyncMsg,
+    BoardVarResultMsg,
+} from "../../../ipc/board-bridge-channels";
+import { resolveBoardNamespace, resolveBoardVarRequest } from "../../api/board-vars";
 import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
 import { boardSecondaryPanelId } from "./board-secondary";
@@ -235,6 +241,7 @@ export function BoardWebview({
                     state?: Record<string, unknown>; partial?: Record<string, unknown>;
                     defaults?: Record<string, unknown>; restorableKeys?: string[];
                     views?: unknown;
+                    reqId?: number; varMethod?: "get" | "set" | "list" | "show"; varArgs?: unknown[];
                 }
                 | undefined;
             if (!d || !d.__persephone) return;
@@ -272,6 +279,28 @@ export function BoardWebview({
                 model.initSharedState(d.defaults ?? {}, d.restorableKeys);
             } else if (d.__persephone === "board:setSecondaryViews") {
                 model.setSecondaryViews(d.views);
+            } else if (d.__persephone === "board:var" && typeof d.reqId === "number") {
+                const reqId = d.reqId;
+                const method = d.varMethod as "get" | "set" | "list" | "show";
+                const varArgs = Array.isArray(d.varArgs) ? d.varArgs : [];
+                void (async () => {
+                    let reply: { result?: unknown; error?: string };
+                    try {
+                        const namespace = await resolveBoardNamespace(boardRoot);
+                        reply = await resolveBoardVarRequest(namespace, method, varArgs);
+                    } catch (e) {
+                        reply = { error: e instanceof Error ? e.message : String(e) };
+                    }
+                    const win = iframeRef.current?.contentWindow;
+                    if (!win) return; // frame gone (reloaded/closed) — the board's promise rejects on unmount
+                    const msg: BoardVarResultMsg = {
+                        __persephone: "var:result",
+                        reqId,
+                        result: reply.result,
+                        error: reply.error,
+                    };
+                    win.postMessage(msg, `board://${host}`);
+                })();
             }
         };
         window.addEventListener("message", onMessage);
@@ -281,7 +310,7 @@ export function BoardWebview({
             if (el) model.clearIframe(el, tabId);
             void api.unregisterBoardFrame(model.id, tabId);
         };
-    }, [host, model, appendLog, tabId]);
+    }, [host, model, appendLog, tabId, boardRoot]);
 
     // Refresh the palette stored in main on theme switch. Main fans the new palette out
     // to every live board port (live retint, US-771) and refreshes the stored design so

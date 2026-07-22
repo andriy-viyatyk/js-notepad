@@ -640,3 +640,17 @@ export const RestClientIcon = createIconWithViewBox("2 2 28 28")(
         <path d="M26 21H12l4 4" stroke="#49cc90" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </g>,
 );
+
+// Env Vars editor icon — a key (bow + shaft + teeth), the universal glyph for
+// secrets/credentials files.
+export const EnvVarsIcon = createIconWithViewBox("0 0 32 32")(
+    <g>
+        {/* Bow (ring) */}
+        <circle cx="10" cy="16" r="6" fill="none" stroke="#4DD0E1" strokeWidth="3" />
+        {/* Shaft */}
+        <rect x="15" y="14.5" width="12" height="3" rx="1" fill="#4DD0E1" opacity="0.9" />
+        {/* Teeth */}
+        <rect x="21" y="17.5" width="2.5" height="4" rx="0.5" fill="#4DD0E1" opacity="0.75" />
+        <rect x="25" y="17.5" width="2.5" height="6" rx="0.5" fill="#4DD0E1" opacity="0.6" />
+    </g>,
+);

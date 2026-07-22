@@ -133,6 +133,40 @@ blank board contains:
 Edit these with your own file tools (or `app.fs` inside another `execute_script`). The key
 surfaces:
 
+### Give the board its secrets — env vars
+
+A board should never store secrets (connection strings, API keys, passwords) in its own folder —
+they'd leak the moment the board is copied, shared, or committed. Persephone keeps a single,
+optionally-encrypted `.env.json` file **outside every board folder**, namespaced per board.
+
+**Provision values before the board needs them (you, via `execute_script`):**
+
+```js
+const namespace = await app.boardVars.namespaceFor(boardRoot); // author/name, or the root path
+await app.boardVars.set(namespace, "SNOWFLAKE_SERVER", "abc123.snowflakecomputing.com");
+await app.boardVars.list(namespace);        // key names in the namespace
+await app.boardVars.listNamespaces();       // every namespace in the file
+await app.boardVars.show(namespace);        // open the built-in editor, focused there
+```
+
+**This call can block on a dialog.** The first-ever `app.boardVars.*` call on a machine with no
+`.env.json` configured shows the user a "Create environment variables storage" dialog (default
+path, editable) — your `execute_script` call does not resolve until the user responds; declining
+rejects it. The same applies if the file is encrypted and locked this session (a decrypt-password
+prompt). Don't treat a slow-to-resolve call as a hang — it is waiting on the user. Always resolve
+the namespace via `namespaceFor` rather than guessing the `author/name` string yourself.
+
+**Read them back at runtime (the board itself, from `app.js`):**
+
+```js
+const server = await persephone.var.get("SNOWFLAKE_SERVER"); // this board's own namespace only
+await persephone.var.set("SNOWFLAKE_USER", value);            // a board may write its own settings
+```
+
+`persephone.var.*` is always scoped to the calling board — it can never read or write another
+board's namespace. All calls are async and can reject (not configured / locked / user declined);
+handle rejection gracefully (e.g. show a "configure your connection" prompt in the board's UI).
+
 ### The `persephone.execute()` channel
 
 ```js

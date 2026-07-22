@@ -3,6 +3,7 @@
 
 export { boardVars } from "./BoardEnvStore";
 export { resolveBoardNamespace } from "./namespace";
+export { resolveBoardVarRequest, type BoardVarReply } from "./board-vars-bridge";
 export {
     DEFAULT_PROFILE,
     type BoardVarsFile,

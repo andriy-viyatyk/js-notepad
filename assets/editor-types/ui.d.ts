@@ -61,6 +61,9 @@ export interface IInputResult {
 export interface IPasswordOptions {
     /** Dialog mode: "encrypt" shows confirm field, "decrypt" does not. Defaults to "decrypt". */
     mode?: "encrypt" | "decrypt";
+    /** Optional explanatory text shown above the password field — use it to say WHAT is being
+     *  encrypted/decrypted and WHY the dialog appeared, so an unexpected prompt isn't confusing. */
+    message?: string;
 }
 
 /**

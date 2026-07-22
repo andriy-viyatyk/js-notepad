@@ -89,6 +89,10 @@ export interface ILinkData {
     /** Preselect the File Diff "to" (right) revision. Consumed once, only when
      *  a fresh File Diff editor is constructed on open (target === "file-diff"). */
     diffTo?: ILinkDiffRevision;
+    /** Preselect the Environment Variables editor's namespace section
+     *  (target === "env-vars-view"). Consumed once, only when a fresh env-vars-view editor is
+     *  constructed on open (see EnvVarsEditor.adoptHost). */
+    envNamespace?: string;
 
     // ── HTTP metadata (from cURL parser or callers) ───────────────
     /** HTTP headers. */

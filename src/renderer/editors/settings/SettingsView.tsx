@@ -946,6 +946,77 @@ function GitIntegrationSection() {
 }
 
 // ============================================================================
+// Board Environment Variables Section
+// ============================================================================
+
+function BoardVarsSection() {
+    const filePath = settings.use("board-vars.file");
+
+    const handleBrowse = async () => {
+        const { fs } = await import("../../api/fs");
+        const picked = await fs.showOpenDialog({
+            title: "Select environment variables file",
+            defaultPath: filePath || undefined,
+            filters: [
+                { name: "Env JSON", extensions: ["env.json"] },
+                { name: "JSON", extensions: ["json"] },
+            ],
+        });
+        if (picked && picked[0]) settings.set("board-vars.file", picked[0]);
+    };
+
+    const handleCreate = async () => {
+        const { showCreateBoardVarsStorageDialog } = await import("../../ui/dialogs/CreateBoardVarsStorageDialog");
+        await showCreateBoardVarsStorageDialog();
+    };
+
+    const handleUnlink = () => {
+        settings.set("board-vars.file", "");
+    };
+
+    return (
+        <>
+            <Panel paddingBottom="lg"><Text bold size="sm">Board Environment Variables</Text></Panel>
+            <Panel paddingBottom="md">
+                <Text color="light" size="xs">
+                    File storing per-board variables/secrets (.env.json), kept outside board folders.
+                </Text>
+            </Panel>
+            <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                <Panel flex minWidth={0} paddingY="sm" paddingX="md" background="dark" border rounded="sm" overflow="hidden">
+                    {filePath ? (
+                        <span style={pathDisplayStyle} title={filePath}>{filePath}</span>
+                    ) : (
+                        <Text size="sm" italic color="light">Not configured yet</Text>
+                    )}
+                </Panel>
+                <Button variant="link" size="sm" background="light" onClick={() => void handleBrowse()}>
+                    Browse...
+                </Button>
+                <Button variant="link" size="sm" background="light" onClick={() => void handleCreate()}>
+                    Create...
+                </Button>
+                {filePath && (
+                    <Button variant="link" size="sm" background="light" onClick={handleUnlink}>
+                        Unlink
+                    </Button>
+                )}
+            </Panel>
+            <Panel direction="row" align="center" gap="md" paddingBottom="lg">
+                <Button
+                    disabled={!filePath}
+                    onClick={() => {
+                        void app.openRawLink(filePath, { editor: "env-vars-view" });
+                    }}
+                >
+                    Open Environment Variables
+                </Button>
+            </Panel>
+        </>
+    );
+}
+
+// ============================================================================
 // Script Library Section
 // ============================================================================
 
@@ -1338,6 +1409,10 @@ function SettingsView(_props: SettingsEditorProps) {
                     <Panel paddingY="xl"><Divider /></Panel>
 
                     <GitIntegrationSection />
+
+                    <Panel paddingY="xl"><Divider /></Panel>
+
+                    <BoardVarsSection />
 
                     <Panel paddingY="xl"><Divider /></Panel>
 

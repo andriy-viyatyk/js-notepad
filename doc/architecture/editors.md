@@ -15,7 +15,7 @@ All editor code lives in `/src/renderer/editors/`.
 
 ## Editor Catalog
 
-28 editor classes (32 registered editor IDs — `GridEditor` serves three IDs). The `IContentHost?` column indicates whether the editor composes an `IContentHost` (text-bearing) — these can switch between each other on the same page. The `Trait?` column indicates whether the editor exposes `CONTENT_HOST_TRAIT` — these participate in owner-orchestrated switching.
+29 editor classes (33 registered editor IDs — `GridEditor` serves three IDs). The `IContentHost?` column indicates whether the editor composes an `IContentHost` (text-bearing) — these can switch between each other on the same page. The `Trait?` column indicates whether the editor exposes `CONTENT_HOST_TRAIT` — these participate in owner-orchestrated switching.
 
 | Editor ID | Class | File types | IContentHost? | Trait? |
 |-----------|-------|------------|---------------|--------|
@@ -34,6 +34,7 @@ All editor code lives in `/src/renderer/editors/`.
 | `graph-view` | `GraphEditor` | `.fg.json` | ✓ | ✓ |
 | `draw-view` | `DrawEditor` | `.excalidraw` | ✓ | ✓ |
 | `rest-client` | `RestClientEditor` | `.rest.json` | ✓ | ✓ |
+| `env-vars-view` | `EnvVarsEditor` | `.env.json` | ✓ | ✓ |
 | `file-diff` | `FileDiffEditor` | (switch — "Git Diff", offered for files in a git repo) | ✓ | ✓ |
 | `pdf-view` | `PdfEditor` | `.pdf` | — | — |
 | `image-view` | `ImageEditor` | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | — | — |

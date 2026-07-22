@@ -49,6 +49,7 @@ app.settings.set("mcp.enabled", true);
 | `mcp.enabled` | `boolean` | `false` | Enable the MCP HTTP server for AI agent integration. When `true`, external tools (e.g., Claude Desktop, Claude Code, ChatGPT) can connect to persephone and run scripts, read content, and list open tabs. The server listens on `http://127.0.0.1:{mcp.port}/mcp`. See [What's New](../whats-new.md) for details. |
 | `mcp.port` | `number` | `7865` | Port for the MCP HTTP server. The server URL will be `http://127.0.0.1:{port}/mcp`. Changing this setting requires toggling `mcp.enabled` off and on to take effect. |
 | `script-library.path` | `string` | `""` | Path to the Script Library folder. When set, a "Script Library" entry appears in the sidebar for quick access to reusable scripts. |
+| `board-vars.file` | `string` | `""` | Path to the board environment-variables file (`.env.json`) — stores per-board variables/secrets outside board folders. Empty means not configured yet. May be encrypted with a password via the file's own encryption menu. See [Boards — Environment variables](../boards.md#environment-variables--secrets-outside-the-board-folder). |
 
 Settings are stored in `appSettings.json`. You can open this file via Settings → "View Settings File".
 

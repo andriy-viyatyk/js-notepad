@@ -746,6 +746,7 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `pages.d.ts` | `IPageCollection` — pages management |
 | `common.d.ts` | `IDisposable`, `IEvent`, `Language`, `EditorView` |
 | `boards.d.ts` | `IBoards` — `app.boards` board lifecycle + published-catalog operations |
+| `board-vars.d.ts` | `IBoardVars` — `app.boardVars` admin access to the board secrets store (get/set/list per namespace, unrestricted — unlike a board's own sandboxed `persephone.var.*`) |
 | `text-editor.d.ts` | `ITextEditor` — Monaco editor operations |
 | `grid-editor.d.ts` | `IGridEditor` — grid editor operations |
 | `notebook-editor.d.ts` | `INotebookEditor` — notebook operations |

@@ -11,6 +11,7 @@ import type { IDownloads } from "./types/downloads";
 import type { IMenuFolders } from "./types/menu-folders";
 import type { IProc } from "./types/proc";
 import type { IBoards } from "./types/boards";
+import type { IBoardVars } from "./types/board-vars";
 import type { PagesModel } from "./pages/PagesModel";
 import { AppEvents } from "./events/AppEvents";
 import { createLinkData } from "../../shared/link-data";
@@ -40,6 +41,7 @@ class App {
     private _menuFolders = undefined as unknown as IMenuFolders;
     private _proc = undefined as unknown as IProc;
     private _boards = undefined as unknown as IBoards;
+    private _boardVars = undefined as unknown as IBoardVars;
     private _pages = undefined as unknown as PagesModel;
     private _events = new AppEvents();
 
@@ -89,6 +91,10 @@ class App {
 
     get boards(): IBoards {
         return this._boards;
+    }
+
+    get boardVars(): IBoardVars {
+        return this._boardVars;
     }
 
     get pages(): PagesModel {
@@ -144,7 +150,7 @@ class App {
         if (this._servicesInitialized) return;
         this._servicesInitialized = true;
 
-        const [{ settings }, { editors }, { recent }, { fs }, win, { shell }, { ui }, { downloads }, { menuFolders }, { proc }, { boards }] = await Promise.all([
+        const [{ settings }, { editors }, { recent }, { fs }, win, { shell }, { ui }, { downloads }, { menuFolders }, { proc }, { boards }, { boardVarsAdmin }] = await Promise.all([
             import("./settings"),
             import("./editors"),
             import("./recent"),
@@ -156,6 +162,7 @@ class App {
             import("./menu-folders"),
             import("./proc"),
             import("./boards"),
+            import("./board-vars/admin-api"),
         ]);
         this._settings = settings;
         this._editors = editors;
@@ -168,6 +175,7 @@ class App {
         this._menuFolders = menuFolders;
         this._proc = proc;
         this._boards = boards;
+        this._boardVars = boardVarsAdmin;
 
         // Initialize downloads tracking
         await this._downloads.init();

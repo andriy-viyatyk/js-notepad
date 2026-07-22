@@ -154,6 +154,12 @@ export const EDITOR_MATCHERS: Record<string, EditorMatcher> = {
     "category-view": {
         acceptFile: (fn) => (fn.startsWith("tree-category://") ? 200 : -1),
     },
+    "env-vars-view": {
+        acceptFile: (fn) => (matchesPattern(fn, /\.env\.json$/i) ? 20 : -1),
+        switchOption: (lang, fn) =>
+            lang === "json" && !!fn && matchesPattern(fn, /\.env\.json$/i) ? 10 : -1,
+        validForLanguage: (lang) => lang === "json",
+    },
 };
 
 export function makeAccepts(match: EditorMatcher): (input: AcceptanceInput) => number {

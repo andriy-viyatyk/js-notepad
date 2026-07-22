@@ -471,6 +471,18 @@ For `.rest.json` files — an HTTP request collection editor:
 
 Create a new Rest Client page via the **+** menu → **Rest Client**.
 
+## Environment Variables Editor
+
+For `.env.json` files — a structured editor for [Board environment variables](./boards.md#environment-variables--secrets-outside-the-board-folder), Persephone's per-board secrets store kept outside board folders:
+
+- **Namespace list** (left pane) — every namespace (board) currently stored in the file. Click one to select it; add or delete a namespace directly from this pane.
+- **Profile tabs + variable grid** (right pane) — tabs for the selected namespace's profiles (`default` plus any custom profiles a board has written, e.g. `dev`/`qa`), and below them a two-column (Name/Value) grid for that profile's variables. Values are shown in plain text — there is no masking, since this is a local file on your own machine.
+- **Grid editing** — add, edit, and delete variables with the same range-select, copy/paste, and add-row behavior as any other Persephone grid. An empty or duplicate variable name shows a validation warning and is not applied until fixed.
+- **Locked state** — an encrypted, not-yet-unlocked file shows a "Locked" message with an **Unlock** button instead of its contents; unlocking reuses the standard password dialog.
+- **Save** — `Ctrl+S` persists changes, re-encrypting automatically if the file is encrypted. Can switch to Monaco for raw JSON editing.
+
+Opening the file from **Settings → Board Environment Variables → Open Environment Variables** opens the currently-configured store file; a board calling `persephone.var.show()` opens the same file pre-scoped to its own namespace. See [Boards — Environment variables](./boards.md#environment-variables--secrets-outside-the-board-folder) for the full feature reference.
+
 ## Folder View
 
 Opens when you click a folder in the File Explorer or Archive panel. Displays the folder's contents in the main editor area with list or tile layouts.

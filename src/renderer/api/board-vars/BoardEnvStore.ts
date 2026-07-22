@@ -42,6 +42,13 @@ class BoardEnvStore {
         });
     }
 
+    /** The path most recently resolved by `ensureLoaded()` — lets `persephone.var.show()` open
+     *  the file without the editor itself needing to know about the `board-vars.file` setting
+     *  (US-889). Empty when never loaded. */
+    get filePath(): string {
+        return this.loadedPath ?? "";
+    }
+
     private reset(): void {
         void this.model?.dispose();
         this.model = null;
@@ -79,7 +86,10 @@ class BoardEnvStore {
             // `decrypted` is true once the password has been entered this session.
             if (!model.decrypted) {
                 if (opts?.silent) return { status: "locked" };
-                const password = await ui.password({ mode: "decrypt" });
+                const password = await ui.password({
+                    mode: "decrypt",
+                    message: "Decrypt the board environment variables file to continue.",
+                });
                 if (!password) return { status: "locked" };
                 const ok = await model.decrypt(password); // toasts on wrong password
                 if (!ok) return { status: "locked" };

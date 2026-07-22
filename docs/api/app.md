@@ -28,6 +28,7 @@ app.pages.activePage.content;
 | [downloads](./downloads.md) | `IDownloads` | Global download tracking. |
 | [proc](#proc) | `IProc` | Spawn external programs and stream their output. |
 | [boards](#boards) | `IBoards` | Create and open [Boards](../boards.md) from scripts or agents. |
+| [boardVars](#boardvars) | `IBoardVars` | Admin access to the [board environment-variables store](../boards.md#environment-variables--secrets-outside-the-board-folder) — any namespace, not just the calling board's own. |
 | `menuFolders` | `IMenuFolders` | User-configured sidebar folders. |
 
 ## Methods
@@ -257,6 +258,34 @@ await app.boards.uninstallBoard("drawio-viewer");
 | `installPublished(id, opts?)` | `Promise<string \| undefined>` | Interactive install: opens the Board Info page for **Download → Register** (fresh install) or auto-runs a version swap (update/rollback) if `id` is already installed and `opts.version` is given. Resolves the root, or `undefined` if the user abandons it. |
 | `uninstallBoard(id)` | `Promise<boolean>` | Uninstall a catalog-installed board: shows the delete confirmation, then removes its folder, trust, pin, and install-registry entry. |
 | `checkPublishedUpdates(force?)` | `Promise<BoardUpdateInfo[]>` | Refresh the catalog and return installed boards with a compatible newer version available. No dialog. |
+
+---
+
+## boardVars
+
+Admin-level access to the [board environment-variables store](../boards.md#environment-variables--secrets-outside-the-board-folder) (a single, optionally password-encrypted `.env.json` file kept outside every board folder). A board's own `persephone.var.*` bridge is locked to its own namespace; `app.boardVars` is unrestricted — since scripts already run with the same trust as `app.fs`/`app.settings`, the agent may target **any** namespace. The typical use is to provision a board's secrets ahead of time, right after scaffolding it, so the board finds its variables already in place the first time it calls `persephone.var.get(...)`.
+
+```javascript
+// Scaffold a board, then provision its connection secrets before the user ever opens it
+const root = await app.boards.createBoard("Snowflake Viewer", "C:/work/boards");
+const namespace = await app.boardVars.namespaceFor(root);
+await app.boardVars.set(namespace, "SNOWFLAKE_SERVER", "abc123.snowflakecomputing.com");
+await app.boardVars.set(namespace, "SNOWFLAKE_USER", "my-user");
+await app.boards.openBoard(root);
+```
+
+Every method may show the user a one-time **"Create environment variables storage"** dialog (no `.env.json` configured yet) or a decrypt-password prompt (the file is encrypted and locked this session) — both are real UI, so the call resolves only after the user responds, and rejects if they decline/cancel.
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|--------------|
+| `namespaceFor(boardRoot)` | `Promise<string>` | Resolves `boardRoot`'s vars namespace exactly as the board itself would see it — its manifest's `author`/`name` when both are explicitly set, otherwise the board's root path. Always use this instead of constructing the namespace string by hand. |
+| `get(namespace, name, env?)` | `Promise<string \| undefined>` | A single value from `namespace`'s profile (`default` when `env` is omitted), or `undefined` if unset. |
+| `set(namespace, name, value, env?)` | `Promise<void>` | Write one value into `namespace`'s profile (`default` when `env` is omitted), creating the namespace/profile if needed. Persisted immediately — re-encrypted on save if the file is encrypted. |
+| `list(namespace, env?)` | `Promise<string[]>` | Key names (not values) in `namespace`'s profile (`default` when `env` is omitted). |
+| `listNamespaces()` | `Promise<string[]>` | Every namespace currently present in the configured `.env.json`, including ones a board wrote to itself. |
+| `show(namespace?)` | `Promise<void>` | Open the built-in `.env.json` editor. Focused on `namespace` when given; opens the whole file unscoped when omitted. |
 
 ---
 

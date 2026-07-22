@@ -187,7 +187,8 @@ export interface BoardToHostMsg {
         | "board:setState"   // persephone.state.set — replace shared state (EPIC-044)
         | "board:mergeState" // persephone.state.merge — shallow-merge shared state
         | "board:stateInit"  // persephone.state.init — seed defaults + declare restorable keys
-        | "board:setSecondaryViews"; // persephone.setSecondaryViews — replace the board's views (EPIC-044)
+        | "board:setSecondaryViews" // persephone.setSecondaryViews — replace the board's views (EPIC-044)
+        | "board:var"; // board requested a var.get/set/list (EPIC-046) — request/reply, needs a reqId
     /** `board:error` / `board:log` detail. */
     message?: string;
     /** `board:log` severity: `"warn"` or `"error"` (the mirrored console method). */
@@ -208,6 +209,13 @@ export interface BoardToHostMsg {
      *  Structurally mirrors `SecondaryViewDecl` (this module stays dependency-free,
      *  so it can't import that type); normalized renderer-side by `normalizeSecondaryViews`. */
     views?: Array<{ id: string; html?: string; title?: string }>;
+    /** `board:var` request id — echoed back in the `var:result` push. */
+    reqId?: number;
+    /** `board:var` method. */
+    varMethod?: "get" | "set" | "list" | "show";
+    /** `board:var` positional args (get: [name, env?]; set: [name, value, env?]; list: [env?];
+     *  show: []). */
+    varArgs?: unknown[];
 }
 
 /** Host content pushed renderer → board over `iframe.contentWindow.postMessage` (EPIC-043).
@@ -228,6 +236,17 @@ export interface BoardStateSyncMsg {
     __persephone: "state:sync";
     state: Record<string, unknown>;
     seq: number;
+}
+
+/** Reply to a board `board:var` request pushed renderer → board (EPIC-046). Matched to the
+ *  request by `reqId`. `result` carries the method's return (get: string|undefined; list:
+ *  string[]; set: undefined); `error` is set instead when the request rejected (not configured
+ *  + user declined, locked, or a store error). */
+export interface BoardVarResultMsg {
+    __persephone: "var:result";
+    reqId: number;
+    result?: unknown;
+    error?: string;
 }
 
 // Re-export the dialog param shapes so the shim + bridge import one place.

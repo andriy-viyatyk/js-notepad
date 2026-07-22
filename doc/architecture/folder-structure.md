@@ -112,6 +112,14 @@ persephone/
 │   ├── board-updates.ts    # Update detection + safe re-install — getBoardUpdate/useBoardUpdates/listBoardUpdates, runBoardUpdate/runBoardVersionInstall, ensureBoardIdle
 │   ├── internal.ts         # Disposable utilities (wrapSubscription, etc.)
 │   │
+│   ├── board-vars/         # Board environment-variables store — secrets kept outside the board folder
+│   │   ├── BoardEnvStore.ts    # Session-singleton store over the settings-configured .env.json (namespace → profile → key → value; encryption reuse)
+│   │   ├── namespace.ts        # resolveBoardNamespace (author/name → path fallback) + registration-time collision check
+│   │   ├── board-vars-bridge.ts # Orchestrates a board's persephone.var.* request against ITS namespace (create-storage dialog, locked handling, serialized chain)
+│   │   ├── admin-api.ts        # BoardVarsAdmin — app.boardVars, unrestricted-namespace admin surface for scripts/agents
+│   │   ├── types.ts            # BoardVarsFile schema, DEFAULT_PROFILE
+│   │   └── index.ts            # Barrel
+│   │
 │   ├── tools/              # Agent Tools registry (EPIC-038) — deliberately NOT on app or any script .d.ts
 │   │   ├── tools-manifest.ts   # tools-manifest.json module — read/validate/write; isToolsetFolder; defaultToolsManifest
 │   │   ├── tools-trust.ts      # toolsTrust registry — registered toolset roots (trustedTools.txt), exact-match, reactive; registration ≡ trust
@@ -172,6 +180,7 @@ persephone/
 │       ├── settings.d.ts   # ISettings
 │       ├── editors.d.ts    # IEditorRegistry
 │       ├── boards.d.ts     # IBoards (app.boards) — board lifecycle API
+│       ├── board-vars.d.ts # IBoardVars (app.boardVars) — env-vars/secrets admin API
 │       ├── recent.d.ts     # IRecentFiles
 │       ├── fs.d.ts         # IFileSystem
 │       ├── window.d.ts     # IWindow
@@ -258,6 +267,8 @@ persephone/
 │   │   ├── InputDialog.tsx
 │   │   ├── PasswordDialog.tsx
 │   │   ├── RegisterToolsetDialog.tsx # Agent-initiated toolset registration confirmation (Allow/Deny; RCE gate — EPIC-038)
+│   │   ├── CreateBoardVarsStorageDialog.tsx # First-use "Create environment variables storage" prompt (default path, editable) — shown by both persephone.var.* and app.boardVars.*
+│   │   ├── NamespaceCollisionDialog.tsx # Non-blocking advisory at board registration when the new board's author/name namespace collides with an already-registered board
 │   │   ├── TextDialog.tsx            # Multi-purpose text dialog (Monaco editor)
 │   │   ├── alerts/                 # Notification bar
 │   │   │   ├── AlertsBar.tsx
@@ -455,6 +466,11 @@ persephone/
 │   │   ├── open-in-rest-client.ts
 │   │   ├── panels/                   # Secondary view panel components
 │   │   │   └── RestPanelSecondaryView.tsx        # "rest" panel
+│   │   └── index.tsx
+│   ├── env-vars/           # Board environment-variables editor (text-bearing, IContentHost + TRAIT)
+│   │   ├── EnvVarsEditor.ts          # EditorModel — namespace/profile selection, CRUD over the namespace's profile data
+│   │   ├── EnvVarsBody.tsx           # React component
+│   │   ├── open-env-vars.ts          # openEnvVarsPage(namespace) — used by persephone.var.show() and app.boardVars.show(namespace)
 │   │   └── index.tsx
 │   ├── pdf/                # PDF viewer (non-text, no trait)
 │   │   ├── PdfEditor.ts              # EditorModel — pipe-backed PDF state

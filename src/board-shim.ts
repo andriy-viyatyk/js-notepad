@@ -190,6 +190,26 @@ let rpcId = 0;
 /** Per-job runner routers (an execute handle registers/unregisters its jobId). */
 const runnerHandlers = new Map<string, (channel: RunnerChannel, msg: unknown) => void>();
 
+/** Pending var request/reply promises keyed by reqId (host-frame channel, EPIC-046). */
+const pendingVar = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+let varReqId = 0;
+
+function varRpc(method: "get" | "set" | "list" | "show", args: unknown[]): Promise<unknown> {
+    return new Promise<unknown>((resolve, reject) => {
+        const reqId = ++varReqId;
+        pendingVar.set(reqId, { resolve, reject });
+        try {
+            window.parent.postMessage(
+                { __persephone: "board:var", reqId, varMethod: method, varArgs: args },
+                hostPostTarget,
+            );
+        } catch {
+            pendingVar.delete(reqId);
+            reject(new Error("Persephone host is unavailable."));
+        }
+    });
+}
+
 function post(msg: BoardToMain): void {
     if (port) port.postMessage(msg);
     else sendQueue.push(msg);
@@ -296,6 +316,21 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (event.source !== window.parent) return;
     if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
     applyStateSync(data.state ?? {}, typeof data.seq === "number" ? data.seq : 0);
+});
+
+// Var request reply (EPIC-046) — renderer → board. Same trust gate as host:content/state:sync.
+window.addEventListener("message", (event: MessageEvent) => {
+    const data = event.data as
+        { __persephone?: string; reqId?: number; result?: unknown; error?: string }
+        | undefined;
+    if (!data || data.__persephone !== "var:result" || typeof data.reqId !== "number") return;
+    if (event.source !== window.parent) return;
+    if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
+    const p = pendingVar.get(data.reqId);
+    if (!p) return;
+    pendingVar.delete(data.reqId);
+    if (data.error != null) p.reject(new Error(data.error));
+    else p.resolve(data.result);
 });
 
 // Automatic save (EPIC-043 / CH3) — a content-host board saves through Persephone's pipe on
@@ -1308,6 +1343,29 @@ function createHandle(
                 const i = sharedStateCbs.indexOf(cb);
                 if (i >= 0) sharedStateCbs.splice(i, 1);
             };
+        },
+    },
+
+    /** Board environment variables (EPIC-046). Reads/writes ONLY this board's namespace
+     *  (resolved host-side from the board's identity — a board cannot name another's). All
+     *  reject when the store is not configured (and the user declines to create it), locked
+     *  (encrypted + cancelled/wrong password), or on a store error — handle rejection. */
+    var: {
+        /** A single value (the `default` profile when `env` is omitted), or undefined if unset. */
+        get(name: string, env?: string): Promise<string | undefined> {
+            return varRpc("get", [name, env]) as Promise<string | undefined>;
+        },
+        /** Write a value into this board's namespace (re-encrypts on save if the file is encrypted). */
+        set(name: string, value: string, env?: string): Promise<void> {
+            return varRpc("set", [name, value, env]) as Promise<void>;
+        },
+        /** This board's key names in a profile (NOT values). */
+        list(env?: string): Promise<string[]> {
+            return varRpc("list", [env]) as Promise<string[]>;
+        },
+        /** Open the Environment Variables editor, scoped to this board's namespace. */
+        show(): Promise<void> {
+            return varRpc("show", []) as Promise<void>;
         },
     },
 

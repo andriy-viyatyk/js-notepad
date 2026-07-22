@@ -1,5 +1,6 @@
 ai.d.ts
 app.d.ts
+board-vars.d.ts
 boards.d.ts
 browser-editor.d.ts
 common.d.ts

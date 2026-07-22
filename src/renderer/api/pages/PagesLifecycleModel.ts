@@ -24,6 +24,7 @@ import { LinkEditor, defaultLinkEditorState } from "../../editors/link-editor";
 import { TodoEditor, defaultTodoEditorState } from "../../editors/todo";
 import { RestClientEditor, defaultRestClientEditorState } from "../../editors/rest-client";
 import { NotebookEditor, defaultNotebookEditorState } from "../../editors/notebook";
+import { EnvVarsEditor, defaultEnvVarsEditorState } from "../../editors/env-vars";
 import { BrowserEditor } from "../../editors/browser";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import { TComponentState } from "../../core/state/state";
@@ -234,6 +235,17 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         const content = (legacy as TextFileModel).state.get().content ?? "";
         notebook.loadData(content);
         return notebook;
+    }
+
+    if (isTextFile && targetEditorId === "env-vars-view") {
+        const id = legacy.state.get().id || crypto.randomUUID();
+        const envVars = new EnvVarsEditor(
+            new TComponentState({ ...defaultEnvVarsEditorState, id }),
+        );
+        // adoptHost() calls loadData() internally (unlike Todo/Link/Notebook above) — no
+        // separate loadData call needed here.
+        envVars.adoptHost(legacy as TextFileModel);
+        return envVars;
     }
 
     throw new Error(
