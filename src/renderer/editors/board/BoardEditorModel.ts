@@ -64,6 +64,11 @@ export interface BoardEditorState extends EditorStateBase {
     /** Content-host boards only (EPIC-043): set when the content HOST fails to restore (file
      *  missing / unreadable), so the view shows a distinct empty state rather than a blank board. */
     contentHostError?: string;
+    /** Footer status text set via `persephone.setStatusText()` (US-892), e.g. a Todo board's
+     *  "N items" count. TRANSIENT — stripped in `getRestoreData()` and cleared in `restore()`
+     *  (like `busy`), so a persisted blob never resurrects a stale count; the board re-sets it on
+     *  load. Rendered by `BoardEditorView` in the `ContentHostFooter` slot (main-view footer only). */
+    statusText?: string;
 }
 
 export const getDefaultBoardEditorState = (): BoardEditorState => ({
@@ -327,7 +332,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
                 }
             }
         }
-        data.state = { ...(data.state as Record<string, unknown>), sharedState };
+        // `statusText` is transient footer chrome (US-892) — never persist it, or a stale count
+        // would resurrect on restore before the board re-sets it. `undefined` is dropped by JSON.
+        data.state = { ...(data.state as Record<string, unknown>), sharedState, statusText: undefined };
         return data;
     }
 
@@ -359,6 +366,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         // Busy is transient (US-799): processes never survive an app restart
         // (`will-quit` kills every child), so a persisted flag is always stale.
         if (s.busy) this.state.update((st) => { st.busy = false; });
+        // Footer status text (US-892) is transient too — clear any value carried in from a
+        // pre-fix persisted blob, so a stale count never flashes before the board re-sets it.
+        if (s.statusText) this.state.update((st) => { st.statusText = undefined; });
         void boardTrust.load();
         await this.refreshBoards();
     }
@@ -418,6 +428,13 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         const defs = normalizeSecondaryViews(views);
         this.state.update((s) => { s.secondaryViewDefs = defs; });
         this.deriveSecondaryPanels();
+    }
+
+    /** Set the content-host footer status text (`persephone.setStatusText`, US-892). TRANSIENT —
+     *  not persisted; the board re-sets it on load. Rendered by `BoardEditorView` via the
+     *  `ContentHostFooter` contributions slot (main-view footer only). */
+    setStatusText(text: string): void {
+        this.state.update((s) => { s.statusText = typeof text === "string" ? text : ""; });
     }
 
     /** A busy board that survived navigate-away (US-799) had its derived `secondaryView`

@@ -1147,6 +1147,21 @@ function createHandle(
         }
     },
 
+    /** Set the text shown in the board's footer status area — the same footer that shows the
+     *  provider/encoding for content-host boards (e.g. a Todo board's "N items" count). Called
+     *  from the board's MAIN view; a visual no-op for plain (non-content-host) boards, which have
+     *  no footer. Pass `""` to clear. */
+    setStatusText(text: string): void {
+        try {
+            window.parent.postMessage(
+                { __persephone: "board:setStatusText", statusText: typeof text === "string" ? text : String(text ?? "") },
+                hostPostTarget,
+            );
+        } catch {
+            // parent gone
+        }
+    },
+
     execute(command: string, options?: IExecuteOptions): IExecuteHandle {
         return createHandle(command, options);
     },

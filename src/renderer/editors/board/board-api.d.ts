@@ -175,6 +175,11 @@ interface PersephoneBoardApi {
     openRawLink(href: string): void;
     /** Show a Persephone toast. */
     notify(message: string, type?: PersephoneNotifyType): void;
+    /** Set the footer status text for a **content-host** board (e.g. a Todo board's "N items"
+     *  count) — shown in the same footer bar as the provider/encoding. Call from the board's
+     *  MAIN view; `""` clears it. A visual no-op for plain (non-content-host) boards, which have
+     *  no footer. */
+    setStatusText(text: string): void;
     /** Native open-file dialog → selected path(s), or undefined if cancelled. */
     openFileDialog(params?: PersephoneOpenFileDialogParams): Promise<string[] | undefined>;
     /** Native save-file dialog → chosen path, or undefined if cancelled. */

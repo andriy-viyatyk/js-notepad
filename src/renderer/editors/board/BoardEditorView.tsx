@@ -11,6 +11,7 @@ import { BoardToolbar } from "./BoardToolbar";
 import { ScriptPanel } from "../text/ScriptPanel";
 import { ContentHostFooter } from "../base/ContentHostFooter";
 import type { TextFileModel } from "../text/TextEditorModel";
+import color from "../../theme/color";
 
 // =============================================================================
 // Component — single-board host region (EPIC-034 / EPIC-035 / EPIC-036). Gated by
@@ -88,7 +89,18 @@ export function BoardEditorView({ model }: { model: BoardEditorModel }) {
                 />
             </Panel>
             {host?.script && <ScriptPanel model={host} />}
-            {host && <ContentHostFooter host={host} />}
+            {host && <ContentHostFooter host={host} footerContributions={<FooterStatus model={model} />} />}
         </Panel>
+    );
+}
+
+/** Content-host footer status text set by the board via `persephone.setStatusText()` (US-892),
+ *  e.g. a Todo board's "N items". Subscribes to `statusText` in isolation so a frequently-changing
+ *  status (a live filter count) re-renders only this span, never the board's iframe subtree. */
+function FooterStatus({ model }: { model: BoardEditorModel }) {
+    const statusText = model.state.use((st) => st.statusText);
+    if (!statusText) return null;
+    return (
+        <span style={{ color: color.text.light, fontSize: 13, padding: "0 4px" }}>{statusText}</span>
     );
 }

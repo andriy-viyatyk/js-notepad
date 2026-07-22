@@ -260,6 +260,11 @@ srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays op
   saves automatically (no board code). The board and Monaco share one host, so they switch back and
   forth on the same file with no reload. On a plain board `getContent`/`getLanguage` reject and a
   registered `onContentChange` never fires.
+- `persephone.setStatusText(text)` — set the text shown in a **content-host** board's footer bar
+  (the same footer that shows the provider/encoding), e.g. a Todo board's `"12 items"` count.
+  Call it from the board's **main** view; `""` clears it. It's a visual no-op for plain
+  (non-content-host) boards, which have no footer — so guard with `persephone.setStatusText?.(…)`
+  if the board must also run on older app builds.
 
 **Browser APIs (clipboard, etc.):** the board frame is a secure context with clipboard permission
 granted, so standard web APIs like `navigator.clipboard.write([...])` work directly (no bridge method;

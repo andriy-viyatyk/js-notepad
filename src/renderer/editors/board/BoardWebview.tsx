@@ -240,7 +240,7 @@ export function BoardWebview({
                     __persephone?: string; message?: string; level?: string; busy?: boolean; content?: string;
                     state?: Record<string, unknown>; partial?: Record<string, unknown>;
                     defaults?: Record<string, unknown>; restorableKeys?: string[];
-                    views?: unknown;
+                    views?: unknown; statusText?: string;
                     reqId?: number; varMethod?: "get" | "set" | "list" | "show"; varArgs?: unknown[];
                 }
                 | undefined;
@@ -279,6 +279,10 @@ export function BoardWebview({
                 model.initSharedState(d.defaults ?? {}, d.restorableKeys);
             } else if (d.__persephone === "board:setSecondaryViews") {
                 model.setSecondaryViews(d.views);
+            } else if (d.__persephone === "board:setStatusText") {
+                // Footer status (US-892) — main frame only; the footer belongs to the main editor
+                // view, so a secondary (sidebar) frame must not hijack it.
+                if (isMain) model.setStatusText(typeof d.statusText === "string" ? d.statusText : "");
             } else if (d.__persephone === "board:var" && typeof d.reqId === "number") {
                 const reqId = d.reqId;
                 const method = d.varMethod as "get" | "set" | "list" | "show";
@@ -310,7 +314,7 @@ export function BoardWebview({
             if (el) model.clearIframe(el, tabId);
             void api.unregisterBoardFrame(model.id, tabId);
         };
-    }, [host, model, appendLog, tabId, boardRoot]);
+    }, [host, model, appendLog, tabId, boardRoot, isMain]);
 
     // Refresh the palette stored in main on theme switch. Main fans the new palette out
     // to every live board port (live retint, US-771) and refreshes the stored design so

@@ -188,6 +188,7 @@ export interface BoardToHostMsg {
         | "board:mergeState" // persephone.state.merge — shallow-merge shared state
         | "board:stateInit"  // persephone.state.init — seed defaults + declare restorable keys
         | "board:setSecondaryViews" // persephone.setSecondaryViews — replace the board's views (EPIC-044)
+        | "board:setStatusText" // persephone.setStatusText — content-host footer status (US-892)
         | "board:var"; // board requested a var.get/set/list (EPIC-046) — request/reply, needs a reqId
     /** `board:error` / `board:log` detail. */
     message?: string;
@@ -209,6 +210,8 @@ export interface BoardToHostMsg {
      *  Structurally mirrors `SecondaryViewDecl` (this module stays dependency-free,
      *  so it can't import that type); normalized renderer-side by `normalizeSecondaryViews`. */
     views?: Array<{ id: string; html?: string; title?: string }>;
+    /** `board:setStatusText` payload — the footer status text (content-host boards). `""` clears. */
+    statusText?: string;
     /** `board:var` request id — echoed back in the `var:result` push. */
     reqId?: number;
     /** `board:var` method. */
