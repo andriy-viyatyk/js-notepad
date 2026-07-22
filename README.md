@@ -73,6 +73,12 @@ Optional, built-in git support — enable it with a single checkbox in Settings 
 | **Git Diff** | — | Side-by-side revision comparison for any tracked file *(Git integration)* |
 | **Compare** | any two files | Side-by-side diff view |
 
+### Published Boards — additional editors & viewers
+
+Beyond the built-in editors above, Persephone maintains a small catalog of ready-made **Boards** — portable custom editors, viewers, and tools you can install on demand. Open a file whose type matches a published board (a `.todo.json` task list, a `.drawio` diagram, an Office document) and an install entry appears right in the editor-switch control, or browse the full catalog from the **Search boards** tab of the Tools & Editors hub. Each board is downloaded, checksum-verified, and trusted only after you explicitly accept it. See the [Boards guide](docs/boards.md#published-boards-catalog--discover-install-update).
+
+The catalog is open source — browse the source, versions, and manifests, or publish your own board, at the **[persephone-boards](https://github.com/andriy-viyatyk/persephone-boards)** repository.
+
 ---
 
 ## Documentation
