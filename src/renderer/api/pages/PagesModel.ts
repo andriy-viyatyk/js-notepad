@@ -223,6 +223,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         this.lifecycle.openFileAsArchive(filePath);
     closePage = (pageId: string) => this.lifecycle.closePage(pageId);
     openFileWithDialog = () => this.lifecycle.openFileWithDialog();
+    openFileFromDialog = () => this.lifecycle.openFileFromDialog();
     openDiff = (
         params: { firstPath: string; secondPath: string } | undefined
     ) => this.lifecycle.openDiff(params);

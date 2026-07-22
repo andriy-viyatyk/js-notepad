@@ -6,7 +6,7 @@ import {
     DrawIcon, GraphIcon, GridIcon, IncognitoIcon, RestClientIcon, TorIcon,
     JavascriptIcon, LinkIcon, NotebookIcon, TodoIcon, TypescriptIcon,
 } from "../../theme/language-icons";
-import { GlobeIcon, McpIcon, MemoryIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
+import { GlobeIcon, McpIcon, MemoryIcon, OpenFileIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
 import { FolderIcon } from "../../components/icons/FileIcon";
 import { DEFAULT_BROWSER_COLOR, MEMORY_ICON_COLOR } from "../../theme/palette-colors";
 
@@ -32,7 +32,7 @@ export interface CreatableItem {
 // =============================================================================
 
 export const DEFAULT_PINNED_EDITORS = [
-    "open-folder", "script-js", "script-ts", "draw-view", "grid-json", "grid-csv", "browser",
+    "open-folder", "open-file", "script-js", "draw-view", "grid-csv", "browser",
 ];
 
 // =============================================================================
@@ -52,6 +52,20 @@ const staticItems: CreatableItem[] = [
                 await pagesModel.addEmptyPageWithNavPanel(folder);
             })();
         },
+        category: "tool",
+    },
+    {
+        id: "open-file",
+        label: "Open File",
+        icon: React.createElement(OpenFileIcon),
+        create: () => { void pagesModel.openFileFromDialog(); },
+        category: "tool",
+    },
+    {
+        id: "open-url",
+        label: "Open URL",
+        icon: React.createElement(OpenFileIcon),
+        create: () => { void pagesModel.openFileWithDialog(); },
         category: "tool",
     },
     {

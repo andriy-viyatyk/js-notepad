@@ -719,14 +719,18 @@ export class PagesLifecycleModel {
             const { app: appInstance } = await import("../app");
             await appInstance.events.openRawLink.sendAsync(createLinkData(result.value));
         } else if (result.type === "file") {
-            const filePaths = await api.showOpenFileDialog({
-                title: "Open File",
-                multiSelections: false,
-            });
-            if (filePaths && filePaths.length > 0) {
-                const { app: appInstance } = await import("../app");
-                await appInstance.events.openRawLink.sendAsync(createLinkData(filePaths[0]));
-            }
+            await this.openFileFromDialog();
+        }
+    };
+
+    openFileFromDialog = async () => {
+        const filePaths = await api.showOpenFileDialog({
+            title: "Open File",
+            multiSelections: false,
+        });
+        if (filePaths && filePaths.length > 0) {
+            const { app: appInstance } = await import("../app");
+            await appInstance.events.openRawLink.sendAsync(createLinkData(filePaths[0]));
         }
     };
 
