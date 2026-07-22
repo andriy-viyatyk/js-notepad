@@ -33,7 +33,6 @@ settings.d.ts
 shell.d.ts
 svg-editor.d.ts
 text-editor.d.ts
-todo-editor.d.ts
 ui-log.d.ts
 ui.d.ts
 window.d.ts

@@ -37,7 +37,6 @@ export type EditorView =
     | "mermaid-view"
     | "html-view"
     | "settings-view"
-    | "todo-view"
     | "link-view"
     | "log-view"
     | "browser-view"

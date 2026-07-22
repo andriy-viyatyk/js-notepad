@@ -62,7 +62,7 @@ gemini --mcp-server http://127.0.0.1:7865/mcp
 | **set_page_content** | Update text content of a page by ID. |
 | **open_url** | Open a URL in the [built-in browser](./browser.md). Accepts optional `profileName` (browser profile), `incognito` (boolean), and `tor` (boolean) parameters. Reuse is profile-matched: with `profileName` it adds the tab to (or focuses) an existing page of that profile, or creates a new page with that profile — never attaches to a different-profile page. |
 | **ui_push** | Push log entries, interactive dialogs, and output widgets to a Log View page — the recommended output channel for AI agents. Strings are shorthand for `log.info`. Dialog entries (`input.confirm`, `input.text`, `input.buttons`, `input.checkboxes`, `input.radioboxes`, `input.select`) block until the user responds. Output entries (`output.progress`, `output.grid`) support rich display — progress bars with upsert-by-id for real-time updates, and inline data grids from JSON or CSV strings. The Log View page is created automatically on first call and reused on subsequent calls. |
-| **read_guide** | Read a documentation guide by name (`ui-push`, `pages`, `scripting`, `graph`, `notebook`, `todo`, `links`, `boards`, `tools`). Returns the guide content as text. An alternative to fetching `notepad://guides/*` resources — works with AI clients that don't support MCP resources. |
+| **read_guide** | Read a documentation guide by name (`ui-push`, `pages`, `scripting`, `graph`, `notebook`, `links`, `boards`, `tools`). Returns the guide content as text. An alternative to fetching `notepad://guides/*` resources — works with AI clients that don't support MCP resources. |
 | **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), and the default profile name (`defaultBrowserProfile`). Use this to discover valid profile names before calling browser tools. |
 
 ### Browser Automation Tools
@@ -194,7 +194,6 @@ MCP resources are read-only documents that AI clients can discover and read to g
 | **Scripting Guide** | `notepad://guides/scripting` | Full scripting API — `app` object, editor facades, TypeScript, Node.js access. Read when using `execute_script`. |
 | **Graph Guide** | `notepad://guides/graph` | Graph editor data format and scripting API — node/link schema, `page.asGraph()` facade, query and traversal methods. Read when working with force-graph pages. |
 | **Notebook Guide** | `notepad://guides/notebook` | Notebook editor JSON format — NoteItem structure, content types (text, markdown, code, mermaid, grid). Read before creating or editing notebook pages. |
-| **Todo Guide** | `notepad://guides/todo` | Todo editor JSON format — TodoItem structure, lists, tags. Read before creating or editing todo pages. |
 | **Links Guide** | `notepad://guides/links` | Links editor JSON format — LinkItem structure, categories, tags. Read before creating or editing links pages. |
 | **Full Guide** | `notepad://guides/full` | All guides combined into one document. Only read if you need the complete reference. |
 

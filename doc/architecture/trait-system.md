@@ -104,7 +104,6 @@ Every draggable type must have a `TraitTypeId`. Values are serializable strings.
 export enum TraitTypeId {
     // Data items (carry registered TraitSets)
     ILink             = "ILink",
-    TodoItem          = "TodoItem",
     Note              = "Note",
     NotebookCategory  = "NotebookCategory",
     RestRequest       = "RestRequest",
@@ -130,7 +129,7 @@ Registration happens once, at module load time, in the file that defines the tra
 traitRegistry.register(TraitTypeId.ILink, linkTraits);
 ```
 
-> **Registered TraitSets:** `ILink` (`LINK` *and* `FILE_LINK` — a link to a local file also yields its bytes), `OsFile` (the `FILE_LINK` trait), and `MnemeLink` (both `LINK` *and* `FILE_LINK`). The remaining `TraitTypeId` values (`TodoItem`, `Note`, etc.) are type discriminators only — their TraitSets are not registered. Cross-type drops include dropping links into the Notes category tree, dropping **OS files, file-tree nodes, or links into a link collection**, and dropping **OS files, local-file links, or Mneme nodes into the Mneme tree** via the `FILE_LINK` trait (see "File content drops" below).
+> **Registered TraitSets:** `ILink` (`LINK` *and* `FILE_LINK` — a link to a local file also yields its bytes), `OsFile` (the `FILE_LINK` trait), and `MnemeLink` (both `LINK` *and* `FILE_LINK`). The remaining `TraitTypeId` values (`Note`, `RestRequest`, etc.) are type discriminators only — their TraitSets are not registered. Cross-type drops include dropping links into the Notes category tree, dropping **OS files, file-tree nodes, or links into a link collection**, and dropping **OS files, local-file links, or Mneme nodes into the Mneme tree** via the `FILE_LINK` trait (see "File content drops" below).
 
 ---
 
@@ -273,24 +272,24 @@ const handleDrop = useCallback((e: React.DragEvent) => {
 
 Some drags reorder items within a single component (tab reorder, grid column reorder, pinned editors). These don't need cross-type drops or trait resolution — the `TraitTypeId` is used only to confirm the drag originated from the right component. No `TraitSet` is registered.
 
-Example from `TodoItemView.tsx`:
+Example from `BrowserTabsPanel.tsx`:
 
 ```typescript
 // Drag source
 const handleDragStart = useCallback((e: React.DragEvent) => {
     e.stopPropagation();
-    setTraitDragData(e.dataTransfer, TraitTypeId.TodoItem, { id: item.id });
+    setTraitDragData(e.dataTransfer, TraitTypeId.BrowserTab, { tabId: tab.id });
     setIsDragging(true);
-}, [item.id]);
+}, [tab.id]);
 
 // Drop target
 const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const payload = getTraitDragData(e.dataTransfer);
-    if (!payload || payload.typeId !== TraitTypeId.TodoItem) return;
-    const data = payload.data as { id: string };
-    pageModel.moveItem(data.id, item.id);
-}, [item.id, pageModel]);
+    if (!payload || payload.typeId !== TraitTypeId.BrowserTab) return;
+    const data = payload.data as { tabId: string };
+    model.moveTab(data.tabId, tab.id);
+}, [model, tab.id]);
 ```
 
 ---
@@ -329,7 +328,7 @@ const handleDrop = useCallback((e: React.DragEvent) => {
 
 **Required when:** The drop target element has child elements that can receive mouse events. Used in: `BrowserTabsPanel`, `FolderItem`, `PageTab`, `HeaderCell`.
 
-**Not required when:** The element has no interactive children (e.g., a plain `<div>` with only text). Used in: `TodoItemView`, `NoteItemView`, `PinnedLinksPanel`.
+**Not required when:** The element has no interactive children (e.g., a plain `<div>` with only text). Used in: `NoteItemView`, `PinnedLinksPanel`.
 
 ---
 
@@ -440,7 +439,6 @@ The `LINK`/`FILE_LINK` split keeps each trait single-purpose: identity lives in 
 | TraitTypeId | Drag source | Drop targets | TraitSet registered |
 |---|---|---|---|
 | `ILink` | `LinksList`, `LinksTiles`, `TreeProviderView` | `TreeProviderView` (link collection, Mneme tree), `NotebookEditor` | Yes — `LINK` + `FILE_LINK` traits |
-| `TodoItem` | `TodoItemView` | `TodoItemView` (reorder) | No |
 | `Note` | `NoteItemView` | `NotebookEditor` category tree | No |
 | `NotebookCategory` | `NotebookEditor` category tree (via Tree) | `NotebookEditor` category tree | No |
 | `RestRequest` | `RestClientEditor` | `RestClientEditor` (reorder) | No |

@@ -348,7 +348,7 @@ export class FileDiffEditor extends EditorModel<FileDiffEditorState> {
         });
 
         // Register the "Revisions" sidebar panel (Pattern B — the main editor is
-        // also its own secondary view; mirrors TodoEditor.adoptHost). We do NOT
+        // also its own secondary view). We do NOT
         // override `beforeNavigateAway`, so the base default clears this panel when
         // the editor stops being main — it disappears on navigation to another file
         // AND on switching the Git Diff back to the Text Editor (US-618).

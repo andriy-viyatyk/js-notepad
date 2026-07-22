@@ -354,7 +354,7 @@ PageModel is the tab container that owns the sidebar layout (open/close/width vi
 
 ### Mandatory sidebar and auto-Explorer (EPIC-029)
 
-`PageModel.sidebarMandatory` is a computed boolean. It is `true` when any secondary view other than the file Explorer is contributing panels. This happens for Link, Archive, Todo, Notebook, and Rest Client editors when their panels are open.
+`PageModel.sidebarMandatory` is a computed boolean. It is `true` when any secondary view other than the file Explorer is contributing panels. This happens for Link, Archive, Notebook, and Rest Client editors when their panels are open.
 
 When `sidebarMandatory` is `true`:
 - `setSecondaryViewsState({ open: false })` is ignored — the close request is silently clamped to `open: true`.

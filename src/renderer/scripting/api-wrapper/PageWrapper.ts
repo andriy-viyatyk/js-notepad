@@ -8,7 +8,6 @@ import { editorRegistry } from "../../editors/base/editorRegistry";
 import { MonacoEditor } from "../../editors/monaco/MonacoEditor";
 import { GridEditor } from "../../editors/grid/GridEditor";
 import { NotebookEditor } from "../../editors/notebook";
-import { TodoEditor } from "../../editors/todo";
 import { LinkEditor } from "../../editors/link-editor";
 import { MarkdownEditor } from "../../editors/markdown";
 import { SvgEditor } from "../../editors/svg";
@@ -22,7 +21,6 @@ import type { McpInspectorEditorModel } from "../../editors/mcp-inspector/McpIns
 import { TextEditorFacade } from "./TextEditorFacade";
 import { GridEditorFacade } from "./GridEditorFacade";
 import { NotebookEditorFacade } from "./NotebookEditorFacade";
-import { TodoEditorFacade } from "./TodoEditorFacade";
 import { LinkEditorFacade } from "./LinkEditorFacade";
 import { MarkdownEditorFacade } from "./MarkdownEditorFacade";
 import { SvgEditorFacade } from "./SvgEditorFacade";
@@ -174,15 +172,6 @@ export class PageWrapper {
             throw new Error("asNotebook(): page is not a NotebookEditor after switch");
         }
         return new NotebookEditorFacade(editor);
-    }
-
-    async asTodo(force = false): Promise<TodoEditorFacade> {
-        await this.ensureEditor("todo-view", "Todo", "asTodo", force);
-        const editor = this.mainEditor;
-        if (!(editor instanceof TodoEditor)) {
-            throw new Error("asTodo(): page is not a TodoEditor after switch");
-        }
-        return new TodoEditorFacade(editor);
     }
 
     async asLink(force = false): Promise<LinkEditorFacade> {

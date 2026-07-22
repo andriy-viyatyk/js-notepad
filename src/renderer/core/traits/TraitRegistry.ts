@@ -7,7 +7,6 @@ import { TraitSet } from "./traits";
  */
 export enum TraitTypeId {
     ILink = "ILink",
-    TodoItem = "TodoItem",
     Note = "Note",
     NotebookCategory = "NotebookCategory",
     RestRequest = "RestRequest",

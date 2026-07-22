@@ -4,7 +4,7 @@ import { fs } from "../../api/fs";
 import { BrowserProfile } from "../../api/settings";
 import {
     DrawIcon, GraphIcon, GridIcon, IncognitoIcon, RestClientIcon, TorIcon,
-    JavascriptIcon, LinkIcon, NotebookIcon, TodoIcon, TypescriptIcon,
+    JavascriptIcon, LinkIcon, NotebookIcon, TypescriptIcon,
 } from "../../theme/language-icons";
 import { GlobeIcon, McpIcon, MemoryIcon, OpenFileIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
 import { FolderIcon } from "../../components/icons/FileIcon";
@@ -108,13 +108,6 @@ const staticItems: CreatableItem[] = [
         label: "Notebook",
         icon: React.createElement(NotebookIcon),
         create: () => pagesModel.addEditorPage("notebook-view", "json", "untitled.note.json"),
-        category: "editor",
-    },
-    {
-        id: "todo-view",
-        label: "Todo",
-        icon: React.createElement(TodoIcon),
-        create: () => pagesModel.addEditorPage("todo-view", "json", "untitled.todo.json"),
         category: "editor",
     },
     {

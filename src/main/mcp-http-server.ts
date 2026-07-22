@@ -302,12 +302,6 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             description: "Notebook editor guide — NoteItem JSON format, content types (text, markdown, code, mermaid, grid). Read BEFORE creating or updating notebook pages.",
         },
         {
-            name: "todo-guide",
-            uri: "notepad://guides/todo",
-            file: "mcp-res-todo.md",
-            description: "Todo editor guide — TodoItem JSON format, lists, tags. Read BEFORE creating or updating todo pages.",
-        },
-        {
             name: "links-guide",
             uri: "notepad://guides/links",
             file: "mcp-res-links.md",
@@ -401,7 +395,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     // ── Page & script tools ──────────────────────────────────────────
     server.tool(
         "execute_script",
-        "Execute JavaScript or TypeScript in Persephone. Returns { text, language, isError, consoleLogs }. IMPORTANT: use read_guide(\"scripting\") (or read resource notepad://guides/scripting) BEFORE using this tool — it documents the full API for `page` (active page), `app` (pages, fs, settings, ui, shell, window), and editor facades (asGrid, asNotebook, asTodo, etc.). Do NOT guess API method names or signatures — the scripting API has specific conventions that differ from typical Node.js patterns.",
+        "Execute JavaScript or TypeScript in Persephone. Returns { text, language, isError, consoleLogs }. IMPORTANT: use read_guide(\"scripting\") (or read resource notepad://guides/scripting) BEFORE using this tool — it documents the full API for `page` (active page), `app` (pages, fs, settings, ui, shell, window), and editor facades (asGrid, asNotebook, etc.). Do NOT guess API method names or signatures — the scripting API has specific conventions that differ from typical Node.js patterns.",
         {
             script: z.string().describe("JavaScript or TypeScript code to execute. Supports async/await. Last expression is returned as result. Use read_guide(\"scripting\") for the API reference before writing scripts."),
             pageId: z.string().optional().describe("Target page ID. If omitted, uses the active page."),
@@ -441,10 +435,10 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "create_page",
-        "Create a new page (tab) with optional content. For showing results/analysis, prefer ui_push instead. Returns { id, title, editor, language }. The default editor is \"monaco\" — works with any language, no guide needed. Other editors: md-view, mermaid-view, grid-json, grid-csv, grid-jsonl, svg-view, html-view, notebook-view, todo-view, link-view, graph-view, draw-view. Non-monaco editors require a matching language and sometimes a title suffix — use read_guide(\"pages\") (or read resource notepad://guides/pages) BEFORE using any non-monaco editor. Structured editors (notebook, todo, link, graph, draw) have strict JSON formats — use read_guide with the specific guide BEFORE creating these pages. Page-editors (browser-view, pdf-view, image-view) are NOT supported — use open_url or execute_script.",
+        "Create a new page (tab) with optional content. For showing results/analysis, prefer ui_push instead. Returns { id, title, editor, language }. The default editor is \"monaco\" — works with any language, no guide needed. Other editors: md-view, mermaid-view, grid-json, grid-csv, grid-jsonl, svg-view, html-view, notebook-view, link-view, graph-view, draw-view. Non-monaco editors require a matching language and sometimes a title suffix — use read_guide(\"pages\") (or read resource notepad://guides/pages) BEFORE using any non-monaco editor. Structured editors (notebook, link, graph, draw) have strict JSON formats — use read_guide with the specific guide BEFORE creating these pages. Page-editors (browser-view, pdf-view, image-view) are NOT supported — use open_url or execute_script.",
         {
             title: z.string().optional().describe("Page title. Defaults to 'Untitled'."),
-            content: z.string().optional().describe("Initial text content. For structured editors (notebook, todo, link, graph, draw) you MUST use read_guide with the specific guide first — do NOT guess the JSON format."),
+            content: z.string().optional().describe("Initial text content. For structured editors (notebook, link, graph, draw) you MUST use read_guide with the specific guide first — do NOT guess the JSON format."),
             language: z.string().optional().describe("Monaco language ID (e.g. 'javascript', 'json', 'markdown'). Defaults to 'plaintext'."),
             editor: z.string().optional().describe("Editor type. Default: 'monaco'. Other editors require reading a guide first — use read_guide('pages') for the full editor+language table."),
             windowIndex: windowIndexParam,
@@ -813,16 +807,15 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             "Available guides:",
             "- ui-push — log messages, dialogs, output types (markdown, mermaid, grid, code). For ui_push tool.",
             "- pages — page properties, editor types, editor+language table, multi-window. For create_page and set_page_content tools.",
-            "- scripting — app API (pages, fs, settings, ui, shell, window), editor facades (grid, notebook, todo, browser), Node.js access. For execute_script tool.",
+            "- scripting — app API (pages, fs, settings, ui, shell, window), editor facades (grid, notebook, browser), Node.js access. For execute_script tool.",
             "- notebook — NoteItem JSON format, content types. For notebook-view editor.",
-            "- todo — TodoItem JSON format, lists, tags. For todo-view editor.",
             "- links — LinkItem JSON format, categories, tags. For link-view editor.",
             "- graph — graph JSON format, node/link data, page.asGraph() API. For graph-view editor.",
             "- boards — what a board is, the app.boards create/open lifecycle (via execute_script), develop & test a board.",
             "- tools — reusable Agent Tools registry: search_tools/execute_tool, stdin-JSON + result-marker contract, .env secrets, self-repair. For search_tools/execute_tool tools.",
         ].join("\n"),
         {
-            guide: z.enum(["ui-push", "pages", "scripting", "notebook", "todo", "links", "graph", "boards", "tools"])
+            guide: z.enum(["ui-push", "pages", "scripting", "notebook", "links", "graph", "boards", "tools"])
                 .describe("Guide name to read."),
         },
         async ({ guide }) => {

@@ -21,7 +21,6 @@ import { MermaidEditor, defaultMermaidEditorState } from "../../editors/mermaid"
 import { GraphEditor, defaultGraphEditorState } from "../../editors/graph";
 import { DrawEditor, defaultDrawEditorState } from "../../editors/draw";
 import { LinkEditor, defaultLinkEditorState } from "../../editors/link-editor";
-import { TodoEditor, defaultTodoEditorState } from "../../editors/todo";
 import { RestClientEditor, defaultRestClientEditorState } from "../../editors/rest-client";
 import { NotebookEditor, defaultNotebookEditorState } from "../../editors/notebook";
 import { EnvVarsEditor, defaultEnvVarsEditorState } from "../../editors/env-vars";
@@ -202,17 +201,6 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
         const content = (legacy as TextFileModel).state.get().content ?? "";
         link.loadData(content);
         return link;
-    }
-
-    if (isTextFile && targetEditorId === "todo-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const todo = new TodoEditor(
-            new TComponentState({ ...defaultTodoEditorState, id }),
-        );
-        todo.adoptHost(legacy as TextFileModel);
-        const content = (legacy as TextFileModel).state.get().content ?? "";
-        todo.loadData(content);
-        return todo;
     }
 
     if (isTextFile && targetEditorId === "rest-client") {

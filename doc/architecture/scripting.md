@@ -97,7 +97,6 @@ interface IPage {
     asText(): Promise<ITextEditor>;
     asGrid(): Promise<IGridEditor>;
     asNotebook(): Promise<INotebookEditor>;
-    asTodo(): Promise<ITodoEditor>;
     asLink(): Promise<ILinkEditor>;
     asMarkdown(): Promise<IMarkdownEditor>;
     asSvg(): Promise<ISvgEditor>;
@@ -468,7 +467,6 @@ Facades provide safe, typed access to editor-specific features. Each facade wrap
 | `page.asText()` | `TextEditorFacade` | `MonacoEditor` | `getSelectedText()`, `insertText()`, `replaceSelection()`, `revealLine()`, cursor position |
 | `page.asGrid()` | `GridEditorFacade` | `GridEditor` | `rows`, `columns`, `editCell()`, `addRows()`, `deleteRows()`, `addColumns()`, `deleteColumns()` |
 | `page.asNotebook()` | `NotebookEditorFacade` | `NotebookEditor` | `notes`, `categories`, `tags`, `addNote()`, `deleteNote()`, `updateNoteTitle()` |
-| `page.asTodo()` | `TodoEditorFacade` | `TodoEditor` | `items`, `lists`, `tags`, `addItem()`, `toggleItem()`, `deleteItem()`, `addList()`, `selectList()`, `selectTag()`, `setSearch()`, `clearSearch()` |
 | `page.asLink()` | `LinkEditorFacade` | `LinkEditor` | `links`, `categories`, `tags`, `addLink()`, `deleteLink()`, `updateLink()` |
 | `page.asMarkdown()` | `MarkdownEditorFacade` | `MarkdownEditor` | `viewMounted`, `html` (read-only) |
 | `page.asSvg()` | `SvgEditorFacade` | `SvgEditor` | `svg` (read-only), `savePngToFile()` |
@@ -750,7 +748,6 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `text-editor.d.ts` | `ITextEditor` — Monaco editor operations |
 | `grid-editor.d.ts` | `IGridEditor` — grid editor operations |
 | `notebook-editor.d.ts` | `INotebookEditor` — notebook operations |
-| `todo-editor.d.ts` | `ITodoEditor` — todo list operations |
 | `link-editor.d.ts` | `ILinkEditor` — link manager operations |
 | `markdown-editor.d.ts` | `IMarkdownEditor` |
 | `svg-editor.d.ts` | `ISvgEditor` |
@@ -783,7 +780,6 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
     ├── TextEditorFacade.ts      # Monaco operations
     ├── GridEditorFacade.ts      # Grid data operations
     ├── NotebookEditorFacade.ts  # Notebook operations
-    ├── TodoEditorFacade.ts      # Todo list operations
     ├── LinkEditorFacade.ts      # Link manager operations
     ├── MarkdownEditorFacade.ts  # Markdown preview (read-only)
     ├── SvgEditorFacade.ts       # SVG preview (read-only)
@@ -812,7 +808,6 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
 ├── text-editor.d.ts             # ITextEditor
 ├── grid-editor.d.ts             # IGridEditor
 ├── notebook-editor.d.ts         # INotebookEditor
-├── todo-editor.d.ts             # ITodoEditor
 ├── link-editor.d.ts             # ILinkEditor
 ├── markdown-editor.d.ts         # IMarkdownEditor
 ├── svg-editor.d.ts              # ISvgEditor

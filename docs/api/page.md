@@ -32,7 +32,7 @@ page.data.counter = (page.data.counter || 0) + 1;
 
 ### Editor IDs
 
-`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"todo-view"` · `"link-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"pdf-view"` · `"image-view"` · `"browser-view"` · `"graph-view"` · `"draw-view"` · `"log-view"` · `"mcp-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"`
+`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"pdf-view"` · `"image-view"` · `"browser-view"` · `"graph-view"` · `"draw-view"` · `"log-view"` · `"mcp-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"`
 
 ## Methods
 
@@ -58,7 +58,7 @@ const grid = await page.asGrid();
 grid.addRows(5);
 ```
 
-> **`force` parameter** — Every text-bearing facade (`asText`, `asGrid`, `asNotebook`, `asTodo`, `asLink`, `asMarkdown`, `asSvg`, `asHtml`, `asMermaid`, `asGraph`, `asDraw`) accepts an optional `force?: boolean` argument. By default the call throws if the page isn't already running the target editor. Pass `true` to attempt a switch from any compatible editor — the same compatibility source the UI's editor-switch widget uses. Throws if no compatible switch is possible.
+> **`force` parameter** — Every text-bearing facade (`asText`, `asGrid`, `asNotebook`, `asLink`, `asMarkdown`, `asSvg`, `asHtml`, `asMermaid`, `asGraph`, `asDraw`) accepts an optional `force?: boolean` argument. By default the call throws if the page isn't already running the target editor. Pass `true` to attempt a switch from any compatible editor — the same compatibility source the UI's editor-switch widget uses. Throws if no compatible switch is possible.
 
 > **Lifecycle:** Editor facades are stateless wrappers — there is nothing to release. They expose operations on the editor model directly. Event subscriptions made via `app.events` are still auto-unsubscribed when the script completes.
 
@@ -144,42 +144,6 @@ const note = nb.addNote();
 nb.updateNoteTitle(note.id, "Meeting Notes");
 nb.updateNoteContent(note.id, "Discussed project timeline...");
 nb.updateNoteCategory(note.id, "Work");
-```
-
----
-
-### asTodo() → `Promise<ITodoEditor>`
-
-Todo list editor. Only for `.todo.json` pages.
-
-| Member | Type | Description |
-|--------|------|-------------|
-| `items` | `ITodoItem[]` | All items. Each has `id`, `title`, `completed`, `list`, `tag`. |
-| `lists` | `string[]` | All list names. |
-| `tags` | `ITodoTag[]` | All tag definitions (`name`, `color`). |
-| `addItem(title)` | `void` | Add item to the current list. |
-| `toggleItem(id)` | `void` | Toggle completion. |
-| `deleteItem(id)` | `void` | Delete an item. |
-| `updateItemTitle(id, title)` | `void` | Update item title. |
-| `addList(name)` | `boolean` | Add a list. Returns false if name exists. |
-| `renameList(oldName, newName)` | `boolean` | Rename a list. Returns false on conflict. |
-| `deleteList(name)` | `void` | Delete a list and all its items. |
-| `addTag(name)` | `boolean` | Add a tag. Returns false if name exists. |
-| `selectList(name)` | `void` | Select a list by name. Empty string selects "All". |
-| `selectTag(name)` | `void` | Select a tag filter by name. Empty string selects "All Tags". |
-| `setSearch(text)` | `void` | Set search filter text. |
-| `clearSearch()` | `void` | Clear search filter. |
-
-```javascript
-const todo = await page.asTodo();
-todo.addList("Shopping");
-todo.addItem("Buy milk");
-todo.addItem("Buy bread");
-
-// List all incomplete items
-todo.items
-    .filter(i => !i.completed)
-    .forEach(i => console.log(i.title));
 ```
 
 ---

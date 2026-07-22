@@ -208,7 +208,7 @@ Click any item to create a new page (or open the board/toolset) with that editor
 
 **Open Folder** — The first entry in the default pinned set. Clicking it shows a native Select Folder dialog; once you pick a folder, a new tab opens with the File Explorer panel rooted at that folder. This is identical to right-clicking a folder in the Explorer sidebar and choosing **"Open in New Tab"**. Existing users can pin it from the **Built-in Editors** tab.
 
-Items include all standard editors (Script, Grid, Notebook, Todo, Links, Drawing, Force Graph, Browser, Video Player) as well as MCP Inspector and individual browser profiles (Incognito and named profiles).
+Items include all standard editors (Script, Grid, Notebook, Links, Drawing, Force Graph, Browser, Video Player) as well as MCP Inspector and individual browser profiles (Incognito and named profiles).
 
 ### Script Library
 
@@ -233,7 +233,6 @@ The page sidebar is shared across editors. Different editors contribute their ow
 - **Link Editor panels** — When a `.link.json` file is open, the sidebar is always open and shows **Collections**, **Tags**, and **Hostnames** panels for filtering links. The sidebar cannot be closed while a link file is open. Click a panel header to expand it; click an item to filter the link list. The breadcrumb in the Link Editor toolbar shows the current filter path. A File Explorer panel is also added automatically for the link file's folder.
 - **Links panel** — When a standalone link collection page is open (created by multi-file drop, `app.pages.openLinks()`, or "Show Resources"), a **Collections** panel appears in the sidebar. Click a link to navigate the page's main area to that file or URL. Hover a non-directory link to see a rich tooltip with title, URL, and image preview. Right-click a non-directory link for an **Edit Link** context menu.
 - **Notebook panels** — When a `.note.json` file is open, the sidebar shows **Categories** and **Tags** panels.
-- **Todo panel** — When a `.todo.json` file is open, the sidebar shows a **Todo** panel containing the list selector and tag filter.
 - **Rest Client panel** — When a `.rest.json` file is open, the sidebar shows a **Rest** panel containing the request collection tree.
 
 ## File Explorer Panel

@@ -14,7 +14,6 @@ const matchesPattern = (fileName: string, pattern: RegExp): boolean =>
 // Patterns for specialized JSON editors (excluded from grid-json switch).
 const SPECIALIZED_JSON_PATTERNS = [
     /\.note\.json$/i,
-    /\.todo\.json$/i,
     /\.link\.json$/i,
     /\.fg\.json$/i,
     /\.excalidraw$/i,
@@ -88,17 +87,6 @@ export const EDITOR_MATCHERS: Record<string, EditorMatcher> = {
     "mermaid-view": {
         switchOption: (lang) => (lang === "mermaid" ? 10 : -1),
         validForLanguage: (lang) => lang === "mermaid",
-    },
-    "todo-view": {
-        acceptFile: (fn) => (matchesPattern(fn, /\.todo\.json$/i) ? 20 : -1),
-        switchOption: (lang, fn) =>
-            lang === "json" && !!fn && matchesPattern(fn, /\.todo\.json$/i) ? 10 : -1,
-        validForLanguage: (lang) => lang === "json",
-        detectsContent: (lang, content) =>
-            lang === "json"
-            && content.includes('"type"')
-            && /"type"\s*:\s*"todo-editor"/.test(content)
-            && content.includes('"items"'),
     },
     "rest-client": {
         acceptFile: (fn) => (matchesPattern(fn, /\.rest\.json$/i) ? 20 : -1),

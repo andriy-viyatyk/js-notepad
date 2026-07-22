@@ -205,26 +205,6 @@ nb.removeNoteTag(id, tagIndex)
 nb.deleteNote(id)
 ```
 
-### asTodo() — Todo list editor (.todo.json)
-
-```javascript
-const todo = await page.asTodo();
-todo.items                           // [{ id, title, completed, list, tag }]
-todo.lists                           // List names
-todo.addItem(title)                  // Add to current list
-todo.toggleItem(id)
-todo.deleteItem(id)
-todo.updateItemTitle(id, title)
-todo.addList(name)                   // Returns false if exists
-todo.renameList(old, new)
-todo.deleteList(name)                // Deletes list and items
-todo.addTag(name)
-todo.selectList(name)                // Select list ("" = All)
-todo.selectTag(name)                 // Select tag filter ("" = All)
-todo.setSearch(text)                 // Filter items by text
-todo.clearSearch()
-```
-
 ### asLink() — Link collection (.link.json)
 
 ```javascript

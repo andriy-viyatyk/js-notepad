@@ -2,7 +2,6 @@ import type { EditorView } from "./common";
 import type { ITextEditor } from "./text-editor";
 import type { IGridEditor } from "./grid-editor";
 import type { INotebookEditor } from "./notebook-editor";
-import type { ITodoEditor } from "./todo-editor";
 import type { ILinkEditor } from "./link-editor";
 import type { IBrowserEditor } from "./browser-editor";
 import type { IMarkdownEditor } from "./markdown-editor";
@@ -88,12 +87,6 @@ export interface IPage {
      * @param force - If true and the page isn't currently a Notebook editor, attempt to switch.
      */
     asNotebook(force?: boolean): Promise<INotebookEditor>;
-
-    /**
-     * Get todo editor interface. Only for text pages with `.todo.json` content.
-     * @param force - If true and the page isn't currently a Todo editor, attempt to switch.
-     */
-    asTodo(force?: boolean): Promise<ITodoEditor>;
 
     /**
      * Get link editor interface. Only for text pages with `.link.json` content.

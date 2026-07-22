@@ -265,26 +265,11 @@ Compare two files side-by-side using Monaco's built-in diff viewer:
 
 See [Tabs & Navigation](./tabs-and-navigation.md) for more on tab grouping.
 
-## Todo Editor
+## Todo Lists
 
-For `.todo.json` files — a structured task list interface:
+Persephone no longer ships a built-in Todo editor. `.todo.json` files now open like any other JSON file (Text, with a Grid switch if the content is an array of objects).
 
-- **Multiple lists** — organize tasks into named lists (e.g., "Project A", "Personal")
-- **Tags** — define colored tags and assign one tag per item for categorization (e.g., "bug", "feature")
-- **Sidebar panel** — A **Todo** panel in the page sidebar contains the list selector and tag filter. Click a list to filter items; click a tag to filter by tag. Filters combine with search.
-- **Item counts** — each list shows undone/total count badges
-- **Quick add** — type and press Enter to add new items
-- **Checkbox toggle** — mark items done/undone with a click
-- **Sorting** — undone items first, then done items sorted by completion date
-- **Drag-to-reorder** — reorder undone items via drag handle (select a specific list first)
-- **Optional comments** — add multiline comments to any item
-- **Dates** — hover to see created/done dates
-- **Search** — toolbar search filters items with highlighted matches
-- **Inline editing** — edit titles and comments for both done and undone items
-- **List management** — add, rename, and delete lists
-- **Tag management** — add, rename, delete tags; assign colors from a predefined palette
-- **Session state persistence** — selected list and tag are remembered across app restarts
-- Can switch to Monaco for raw JSON editing
+For the full task-list experience — multiple lists, tags, drag-to-reorder, search, and more — install the **Todo board** from the published boards catalog (requires Persephone 4.0.17 or later). See [Boards — Published boards catalog](./boards.md#published-boards-catalog--discover-install-update) and [Tools & Editors — Search boards](./tabs-and-navigation.md#tools--editors).
 
 ## Notebook Editor
 
@@ -851,7 +836,6 @@ Some files support multiple editors:
 |-----------|-------------------|
 | `.json` | Text, Grid |
 | `.note.json` | Text, Notebook |
-| `.todo.json` | Text, ToDo |
 | `.link.json` | Text, Links |
 | `.csv` | Text, Grid |
 | `.jsonl` / `.ndjson` | Text, Grid |
@@ -873,7 +857,7 @@ Some files support multiple editors:
 
 Use the buttons in the toolbar to switch between available editors.
 
-**Content-based detection:** JSON pages that contain a `"type"` property (`"note-editor"`, `"todo-editor"`, `"link-editor"`, `"rest-client"`, or `"force-graph"`) automatically show the corresponding switch button — even without the special file extension. For the Graph View, the JSON must also contain a `"nodes"` property; for the Rest Client, it must also contain a `"requests"` property. This is useful for pages created via MCP or scripting.
+**Content-based detection:** JSON pages that contain a `"type"` property (`"note-editor"`, `"link-editor"`, `"rest-client"`, or `"force-graph"`) automatically show the corresponding switch button — even without the special file extension. For the Graph View, the JSON must also contain a `"nodes"` property; for the Rest Client, it must also contain a `"requests"` property. This is useful for pages created via MCP or scripting.
 
 **Board-provided editors:** A trusted [Board](#board) that declares a file association in its manifest also appears in this switch control alongside the built-in entries above — and can be configured to open by default instead of the Text Editor. A "simple" board only offers itself for matching local files; a **content-host** board also offers itself for a file opened over `https://`, inside an archive, or encrypted. See [Boards — Custom editors](./boards.md#custom-editors--associate-a-board-with-a-file-type).
 

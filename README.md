@@ -12,7 +12,7 @@
 Syntax highlighting, IntelliSense, and search/replace for 50+ languages. Drag tabs between windows for multi-monitor workflows. Side-by-side grouping and a full diff editor for comparing files.
 
 ### Specialized Editors
-Beyond text: JSON/CSV grids with sorting and filtering, Markdown preview, Mermaid diagrams, SVG/HTML preview, PDF viewer, image viewer, a structured notebook, todo lists, force-directed graphs, Excalidraw drawings, and an HTTP Rest Client.
+Beyond text: JSON/CSV grids with sorting and filtering, Markdown preview, Mermaid diagrams, SVG/HTML preview, PDF viewer, image viewer, a structured notebook, force-directed graphs, Excalidraw drawings, and an HTTP Rest Client.
 
 ### Scripting Engine
 Write and execute JavaScript or TypeScript directly in a tab. Scripts access open documents via the `page` object, the application via `app`, and have full Node.js access for file I/O, HTTP requests, and npm packages. A Script Library with autoload support lets you extend the application — add context menu items, hook into events, and automate workflows.
@@ -63,7 +63,6 @@ Optional, built-in git support — enable it with a single checkbox in Settings 
 | **PDF Viewer** | `.pdf` | Integrated pdf.js document viewer |
 | **Archive** | `.zip`, `.rar`, `.7z`, `.tar`, `.docx`, `.xlsx`, `.epub`, `.iso` | Browse archive contents as a file tree; open entries inline (ZIP-based formats are writable) |
 | **Notebook** | `.note.json` | Structured notes with categories, tags, and search |
-| **Todo** | `.todo.json` | Task lists with multiple lists, drag-to-reorder, and search |
 | **Force Graph** | `.fg.json` | Interactive force-directed graph with node editing, search, and BFS expansion |
 | **Drawing** | `.excalidraw` | Excalidraw-based drawing editor with library persistence, export, and screen snip |
 | **Links** | `.link.json` | Bookmark/link manager with tiles, list view, categories, and pinned links |

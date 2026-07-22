@@ -34,11 +34,6 @@ Tests for creating pages with different editors via MCP.
 **Expected:** Agent reads `notepad://guides/notebook` BEFORE creating, creates page with `editor: notebook-view`, `language: json`, title ends `.note.json`, content has correct NoteItem structure (id, title, category, tags[], content.language, content.content, createdDate, updatedDate)
 **Verify:** Notebook editor renders with 3 note items (no crash)
 
-## Test 1.7: Todo list page
-**Request:** "Create a todo list with 2 lists: 'Work' and 'Personal'. Add 3 tasks to each list"
-**Expected:** Agent reads `notepad://guides/todo` BEFORE creating, creates with `editor: todo-view`, `language: json`, title ends `.todo.json`, content has correct structure (lists[], tags[], items[] with id/list/title/done/createdDate/doneDate/comment/tag)
-**Verify:** Todo editor renders with 2 lists and 6 items
-
 ## Test 1.8: Links page
 **Request:** "Create a bookmarks page with 5 useful developer links: GitHub, Stack Overflow, MDN, npm, and TypeScript docs"
 **Expected:** Agent reads `notepad://guides/links` BEFORE creating, creates with `editor: link-view`, `language: json`, title ends `.link.json`, content has correct LinkItem structure (id, title, href, category, tags[])

@@ -136,7 +136,7 @@ The current page (tab). Available as a global in scripts.
 
 ### Editor Types
 
-`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"todo-view"` · `"link-view"` · `"graph-view"` · `"draw-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"log-view"` · `"rest-client"` · `"pdf-view"` · `"image-view"` · `"browser-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"` · `"mcp-view"`
+`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"graph-view"` · `"draw-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"log-view"` · `"rest-client"` · `"pdf-view"` · `"image-view"` · `"browser-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"` · `"mcp-view"`
 
 ### Creating Pages with Specialized Editors
 
@@ -149,7 +149,6 @@ The current page (tab). Available as a global in scripts.
 | `grid-json` | **`json`** | `.grid.json` (optional) | `"Data.grid.json"` or `"Data"` |
 | `grid-csv` | **`csv`** | — | `"Data"` |
 | `notebook-view` | **`json`** | `.note.json` (**required**) | `"My Notes.note.json"` |
-| `todo-view` | **`json`** | `.todo.json` (**required**) | `"Tasks.todo.json"` |
 | `link-view` | **`json`** | `.link.json` (**required**) | `"Bookmarks.link.json"` |
 | `svg-view` | **`xml`** | `.svg` (**required**) | `"Logo.svg"` |
 | `html-view` | **`html`** | — | `"Page.html"` |
@@ -166,7 +165,6 @@ The current page (tab). Available as a global in scripts.
 
 **Initial content:** Structured editors expect valid JSON content on creation. **Read the dedicated resource guide BEFORE creating pages with these editors** — incorrect JSON will crash the editor:
 - **Notebook:** Read `notepad://guides/notebook` for NoteItem format. Empty: `{"notes":[],"state":{}}`
-- **Todo:** Read `notepad://guides/todo` for TodoItem format. Empty: `{"lists":[],"tags":[],"items":[],"state":{}}`
 - **Links:** Read `notepad://guides/links` for LinkItem format. Empty: `{"links":[],"state":{}}`
 - **Graph:** Read `notepad://guides/graph` for node/link format. Empty: `{"nodes":[],"links":[],"options":{}}`
 - **Rest Client:** Empty: `{"type":"rest-client","requests":[]}`

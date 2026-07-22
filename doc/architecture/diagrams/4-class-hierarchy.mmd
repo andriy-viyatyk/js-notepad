@@ -60,7 +60,6 @@ classDiagram
     EditorModel <|-- HtmlEditor
     EditorModel <|-- MermaidEditor
     EditorModel <|-- NotebookEditor
-    EditorModel <|-- TodoEditor
     EditorModel <|-- LinkEditor
     EditorModel <|-- LogViewEditor
     EditorModel <|-- GraphEditor
@@ -84,7 +83,6 @@ classDiagram
     HtmlEditor ..|> IContentHostTrait
     MermaidEditor ..|> IContentHostTrait
     NotebookEditor ..|> IContentHostTrait
-    TodoEditor ..|> IContentHostTrait
     LinkEditor ..|> IContentHostTrait
     LogViewEditor ..|> IContentHostTrait
     GraphEditor ..|> IContentHostTrait

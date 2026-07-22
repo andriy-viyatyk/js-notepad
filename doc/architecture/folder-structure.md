@@ -33,7 +33,6 @@ persephone/
 │   ├── mcp-res-scripting.md # MCP resource: scripting API reference
 │   ├── mcp-res-graph.md    # MCP resource: force-graph data format & page.asGraph() API
 │   ├── mcp-res-notebook.md # MCP resource: notebook editor JSON format
-│   ├── mcp-res-todo.md     # MCP resource: todo editor JSON format
 │   ├── mcp-res-links.md    # MCP resource: links editor JSON format
 │   ├── mcp-res-tools.md    # MCP resource: Agent Tools registry guide (manifest format, stdin/stdout contract, .env, self-repair)
 │   ├── board-template/     # Scaffold copied into every new board
@@ -191,7 +190,6 @@ persephone/
 │       ├── text-editor.d.ts    # ITextEditor
 │       ├── grid-editor.d.ts    # IGridEditor
 │       ├── notebook-editor.d.ts # INotebookEditor
-│       ├── todo-editor.d.ts    # ITodoEditor
 │       ├── link-editor.d.ts    # ILinkEditor
 │       ├── browser-editor.d.ts # IBrowserEditor
 │       ├── markdown-editor.d.ts # IMarkdownEditor
@@ -371,15 +369,6 @@ persephone/
 │   │   ├── panels/                   # Secondary view panel components
 │   │   │   ├── NotebookCategoriesSecondaryView.tsx  # "notebook-categories" panel
 │   │   │   └── NotebookTagsSecondaryView.tsx        # "notebook-tags" panel
-│   │   └── index.tsx
-│   ├── todo/               # Todo editor (text-bearing, IContentHost + TRAIT)
-│   │   ├── TodoEditor.ts             # EditorModel — items, lists, tags
-│   │   ├── TodoBody.tsx              # React component
-│   │   ├── todoTypes.ts
-│   │   ├── todoColors.ts
-│   │   ├── components/
-│   │   ├── panels/                   # Secondary view panel components
-│   │   │   └── TodoSecondaryView.tsx             # "todo" panel
 │   │   └── index.tsx
 │   ├── link-editor/        # Link collection editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── LinkEditor.ts             # EditorModel — links, categories, tags, filters
@@ -619,7 +608,6 @@ persephone/
 │       ├── TextEditorFacade.ts     # ITextEditor facade
 │       ├── GridEditorFacade.ts     # IGridEditor facade
 │       ├── NotebookEditorFacade.ts # INotebookEditor facade
-│       ├── TodoEditorFacade.ts     # ITodoEditor facade
 │       ├── LinkEditorFacade.ts     # ILinkEditor facade
 │       ├── BrowserEditorFacade.ts  # IBrowserEditor facade
 │       ├── MarkdownEditorFacade.ts # IMarkdownEditor facade

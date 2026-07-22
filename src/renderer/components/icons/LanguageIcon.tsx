@@ -39,7 +39,6 @@ import {
     MermaidIcon,
     NotebookIcon,
     RestClientIcon,
-    TodoIcon,
     LinkIcon,
     EnvVarsIcon,
     PascalIcon,
@@ -130,7 +129,6 @@ export const languageIconMap: { [key: string]: SvgIconComponent } = {
 
 const filePatternIcons: Array<{ pattern: RegExp; icon: SvgIconComponent }> = [
     { pattern: /\.note\.json$/i, icon: NotebookIcon },
-    { pattern: /\.todo\.json$/i, icon: TodoIcon },
     { pattern: /\.grid\.json$/i, icon: GridIcon },
     { pattern: /\.grid\.csv$/i, icon: GridIcon },
     { pattern: /\.link\.json$/i, icon: LinkIcon },

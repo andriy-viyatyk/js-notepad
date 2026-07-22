@@ -64,7 +64,6 @@ For specialized access to editor-specific features, use `page.asX()` methods. Ea
 const grid = await page.asGrid();    // Grid — rows, columns, cells
 const graph = await page.asGraph();  // Graph — nodes, links, search, traversal
 const nb = await page.asNotebook();  // Notebook — notes, categories
-const todo = await page.asTodo();    // Todo — items, lists, tags
 const text = await page.asText();    // Text — Monaco selection, cursor
 const browser = await page.asBrowser(); // Browser — navigation, tab management, DOM query, interaction, wait, snapshot
 const mcp = await page.asMcpInspector(); // MCP Inspector — connection, history

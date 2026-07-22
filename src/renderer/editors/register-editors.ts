@@ -73,12 +73,6 @@ secondaryViewRegistry.register({
 });
 
 secondaryViewRegistry.register({
-    id: "todo-panel",
-    label: "Todo",
-    loadComponent: () => import("./todo/panels/TodoSecondaryView"),
-});
-
-secondaryViewRegistry.register({
     id: "rest-panel",
     label: "Rest",
     loadComponent: () => import("./rest-client/panels/RestPanelSecondaryView"),
@@ -264,18 +258,6 @@ editorRegistry.register({
     loadModule: async () => {
         const { linkModule } = await import("./link-editor");
         return linkModule;
-    },
-});
-
-editorRegistry.register({
-    id: "todo-view",
-    name: "ToDo",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["todo-view"]),
-    match: EDITOR_MATCHERS["todo-view"],
-    loadModule: async () => {
-        const { todoModule } = await import("./todo");
-        return todoModule;
     },
 });
 
