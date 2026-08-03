@@ -14,7 +14,7 @@ import { GlobeIcon, OpenLinkIcon } from "../../theme/icons";
 import { settings, BrowserProfile } from "../../api/settings";
 import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
 import { BrowserChannel } from "../../../ipc/browser-ipc";
-import { TorChannel } from "../../../ipc/tor-ipc";
+import { TorChannel, TorStatus } from "../../../ipc/tor-ipc";
 import { globalPopupRateLimiter } from "../../../ipc/popup-rate-limiter";
 import { searchHistoryManager } from "./browser-search-history";
 import { BrowserBookmarks } from "./BrowserBookmarks";
@@ -158,6 +158,16 @@ export class BrowserEditor extends EditorModel<
             icon: createElement(OpenLinkIcon),
             onClick: () => this.addTab(link.href),
         }] : [];
+        // US-896 — the Link editor draws bookmark images in the app renderer,
+        // which this page's Tor session proxy does NOT cover. Hand it a resolver
+        // so those URLs are routed through the page's Tor session instead of
+        // leaking direct. Read live rather than snapshotted: `torStatus` flips
+        // later (initTorProxy / reconnectTor) and `bm` outlives every blank tab.
+        bm.linkEditor.imageProxySource = () => {
+            const s = this.state.get();
+            if (!s.isTor) return null;
+            return { partition: this.partition, ready: s.torStatus === "connected" };
+        };
         // US-601 Concern C — restore the persisted SecondaryViews sidebar width
         // and mirror user resizes back into browser state.
         bm.panelHost.setInitialWidth(this.state.get().bookmarksSidebarWidth);
@@ -191,6 +201,42 @@ export class BrowserEditor extends EditorModel<
         });
     };
 
+    /**
+     * Listener for main-initiated Tor status changes (US-897).
+     *
+     * The daemon is shared by every Tor page, so a restart triggered from one
+     * page's info dialog takes the network down for all of them. Without this,
+     * the other pages would keep showing a green "connected" dot while Tor is
+     * down.
+     */
+    private torStatusListener = (
+        _event: unknown,
+        payload: { status: TorStatus; error?: string },
+    ) => {
+        this.state.update((s) => {
+            s.torStatus = payload.status;
+            if (payload.error) {
+                s.torLog += (s.torLog ? "\n" : "") + payload.error;
+            }
+            if (payload.status !== "connected") {
+                s.torOverlayVisible = true;
+            }
+        });
+        if (payload.status === "connected") {
+            // Match initTorProxy: let the "Connected" state read for a moment
+            // before the overlay gets out of the way.
+            setTimeout(() => {
+                this.state.update((s) => { s.torOverlayVisible = false; });
+            }, 500);
+        }
+    };
+
+    /** Open the Tor connection info dialog (exit IP, location, Reconnect). */
+    showTorInfoDialog = async (): Promise<void> => {
+        const { showTorInfoDialog } = await import("../../ui/dialogs/TorInfoDialog");
+        await showTorInfoDialog(this.partition);
+    };
+
     /** Start Tor proxy for this page's partition. Shows overlay with progress. */
     initTorProxy = async (): Promise<{ success: boolean; error?: string }> => {
         this.state.update((s) => {
@@ -198,7 +244,12 @@ export class BrowserEditor extends EditorModel<
             s.torOverlayVisible = true;
             s.torLog = "";
         });
+        // Remove first: initTorProxy runs again on reconnectTor, and a plain `on`
+        // would stack a second copy of each listener every time.
+        ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
+        ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
         ipcRenderer.on(TorChannel.log, this.torLogListener);
+        ipcRenderer.on(TorChannel.status, this.torStatusListener);
 
         const torExePath = settings.get("tor.exe-path");
         const socksPort = settings.get("tor.socks-port");
@@ -236,6 +287,7 @@ export class BrowserEditor extends EditorModel<
         const s = this.state.get();
         if (s.isTor) {
             ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
+            ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
             ipcRenderer.invoke(TorChannel.stop, this.partition);
         }
     };
@@ -251,9 +303,10 @@ export class BrowserEditor extends EditorModel<
 
         const s = this.state.get();
 
-        // Clean up Tor listener and stop partition
+        // Clean up Tor listeners and stop partition
         if (s.isTor) {
             ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
+            ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
             ipcRenderer.invoke(TorChannel.stop, this.partition);
         }
 

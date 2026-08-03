@@ -1,6 +1,7 @@
 import { app } from "../../api/app";
 import { PageCollectionWrapper } from "./PageCollectionWrapper";
 import type { EventChannel, EventHandler } from "../../api/events/EventChannel";
+import type { IApp } from "../../api/types/app";
 
 /**
  * Wrap an EventChannel to auto-track subscriptions in the releaseList.
@@ -49,7 +50,8 @@ function createEventsProxy<T extends object>(target: T, releaseList: Array<() =>
 
 /**
  * Safe wrapper around App for script access.
- * Implements the IApp interface from api/types/app.d.ts.
+ * Mirrors the IApp interface from api/types/app.d.ts — every member IApp declares must
+ * have a getter here, enforced by the compile-time check at the bottom of this file.
  *
  * - Most sub-interfaces (settings, fs, ui, etc.) pass through directly —
  *   they are already safe (.d.ts hides internals like .use()).
@@ -114,6 +116,10 @@ export class AppWrapper {
         return app.boards;
     }
 
+    get boardVars() {
+        return app.boardVars;
+    }
+
     get pages(): PageCollectionWrapper {
         return this._pages;
     }
@@ -138,3 +144,22 @@ export class AppWrapper {
         return workerRunAsync(fn, data, proxyObj);
     };
 }
+
+/**
+ * Compile-time guard: every member IApp declares must have a getter/property on AppWrapper.
+ *
+ * `implements IApp` is not usable here. The wrapper deliberately returns richer concrete types
+ * than the script-facing interfaces — `pages` yields `PageCollectionWrapper` (whose `PageWrapper`
+ * facades are structurally narrower than `IPage`'s), and `events` is an `unknown`-typed lazy
+ * proxy — so a structural assertion fails on types that are intentionally mismatched.
+ *
+ * This checks member *names* only, which is the failure this guards against: a namespace can be
+ * added to `App` and `IApp` yet silently omitted here, leaving it `undefined` for every script
+ * (which is how `app.boardVars` shipped unreachable for a release). If the facade types are ever
+ * reconciled with their interfaces, replace this with `implements IApp` and delete it.
+ *
+ * On failure tsc names the offender:
+ *   Type '"boardVars"' does not satisfy the constraint 'never'.
+ */
+type AssertNever<T extends never> = T;
+type _AppWrapperCoversIApp = AssertNever<Exclude<keyof IApp, keyof AppWrapper>>;

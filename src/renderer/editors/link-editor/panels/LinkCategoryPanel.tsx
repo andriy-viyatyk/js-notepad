@@ -96,14 +96,14 @@ export function LinkCategoryPanel({ vm }: LinkCategoryPanelProps) {
             // "innermost wins" rule lets it beat the row's path tooltip, so only this one
             // shows. Match the row tooltip's default delay so the swap is flash-free.
             return (
-                <Tooltip content={<LinkTooltipContent link={item} showCopyJson />}>
+                <Tooltip content={<LinkTooltipContent link={item} showCopyJson imageProxy={vm.imageProxy} />}>
                     <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {label}
                     </span>
                 </Tooltip>
             );
         },
-        [],
+        [vm],
     );
 
     return (

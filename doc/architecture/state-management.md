@@ -331,7 +331,35 @@ const { title } = state.use(s => ({ title: s.title }));
 const state = model.state.use();
 ```
 
-### 2. Use Immer Updates
+### 2. Derive Computed Values Inside the Selector
+
+`use(selector)` re-renders only when the selector's **result** changes (structural compare via
+`compareSelection`). A helper that reads state through `this.state.get()` at render time is therefore
+invisible to that comparison — if the state it reads is not also part of the selector's result, the
+component never re-renders when it changes, and the stale value persists until some *other* selected
+field happens to change.
+
+```typescript
+// BAD — getViewMode() reads data.state.*ViewMode, which the selector never returns.
+// Changing the view mode updates the state but produces an equal selection: no re-render.
+const { searchText } = model.state.use(s => ({ searchText: s.searchText }));
+const viewMode = model.getViewMode();
+
+// GOOD — derived inside the selector, so it participates in the comparison
+const { searchText, viewMode } = model.state.use(s => ({
+    searchText: s.searchText,
+    viewMode: model.getViewMode(s),
+}));
+```
+
+Give such helpers an optional state-snapshot parameter (`getViewMode(snapshot?)`) so the selector
+stays pure instead of reaching back into `this.state.get()`.
+
+This failure mode is easy to miss because it looks like a working feature: the value updates as soon
+as anything else triggers a render. Prefer deriving from state over caching computed values in state —
+but when a getter derives from state, call it through the selector.
+
+### 3. Use Immer Updates
 
 ```typescript
 // GOOD — Immer mutation syntax
@@ -341,10 +369,10 @@ state.update(s => { s.items.push(newItem); });
 state.set({ ...state.get(), items: [...state.get().items, newItem] });
 ```
 
-### 3. Prefer Object Model Over Raw State
+### 4. Prefer Object Model Over Raw State
 
 Access state through `app.*` interfaces when available. Only use raw `state.use()` inside the component/editor that owns the state.
 
-### 4. EditorModel for New Editors
+### 5. EditorModel for New Editors
 
 When creating a new editor, subclass `EditorModel<T>` and register the EditorModule in `register-editors.ts`. For text-bearing editors that should be switchable from other text views, also implement `IContentHost` (or compose one) and expose `CONTENT_HOST_TRAIT`. See [editor-guide.md](../standards/editor-guide.md) for the full recipe.

@@ -197,10 +197,14 @@ export class BrowserBookmarksUIModel {
         const bm = await this.ensureBookmarks();
         if (!bm) return;
 
-        const { urlInput, activeTabId, tabs, isIncognito } = this.model.state.get();
+        const { urlInput, activeTabId, tabs, isIncognito, isTor } = this.model.state.get();
 
-        // Cache the favicon for this hostname before showing the dialog
-        if (!isIncognito) {
+        // Cache the favicon for this hostname before showing the dialog.
+        // US-896 — skip on Tor pages too: `saveFavicon` downloads over a raw Node
+        // https request (no proxy at all) AND writes to the persistent on-disk
+        // cache. The `page-favicon-updated` path in BrowserView already excludes
+        // Tor; this one used to check only incognito.
+        if (!isIncognito && !isTor) {
             const activeTab = tabs.find((t) => t.id === activeTabId);
             if (activeTab?.favicon) {
                 const { getHostname, saveFavicon } = await import("../../components/tree-provider/favicon-cache");
@@ -274,6 +278,7 @@ export class BrowserBookmarksUIModel {
             categories: bmState.categories,
             tags: bmState.tags,
             discoveredImages: bookmarkEvent.discoveredImages,
+            imageProxy: bm.linkEditor.imageProxy,
         });
 
         if (!result) return;

@@ -15,6 +15,7 @@ import {
     CloseIcon,
     HomeIcon,
     MoreVertIcon,
+    QuestionIcon,
     RefreshIcon,
     SettingsIcon,
     StarFilledIcon,
@@ -571,6 +572,16 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                         title="Open Bookmarks"
                         onClick={bookmarksUI.handleOpenBookmarks}
                     />
+                    {/* US-897 — Tor-only: exit IP / location + Reconnect. */}
+                    {isTor && (
+                        <IconButton
+                            name="toolbar-tor-info"
+                            size="sm"
+                            icon={<QuestionIcon />}
+                            title="Tor connection info"
+                            onClick={model.showTorInfoDialog}
+                        />
+                    )}
                     <DownloadButton />
                     <WithMenu name="page-menu" items={webview.getPageMenuItems()}>
                         {(openMenu) => (

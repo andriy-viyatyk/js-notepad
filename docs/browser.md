@@ -136,6 +136,24 @@ Browse through the [Tor network](https://www.torproject.org/) for anonymous, tra
 - `tor.exe` is stopped automatically when the last Tor browser page closes
 - After a **session restore** (app restart), Tor pages show a **"Reconnect"** button instead of auto-connecting — click it to restart `tor.exe` and resume browsing
 
+#### Connection Info and Reconnecting
+
+A **"?" button** appears on the toolbar only in Tor mode. Click it to open the **Tor connection info** dialog:
+
+- Shows the **exit IP address** a remote server actually sees, plus its approximate **country / city** when a geolocation lookup succeeds
+- Confirms whether traffic is really exiting through the Tor network
+- **Reconnect** restarts the Tor daemon so a fresh circuit — and usually a new exit node — is selected; if the same exit is reused, the dialog says so and you can click Reconnect again
+- Reconnecting is **app-wide**: it briefly disconnects every open Tor page, not just the one showing the dialog; the other pages' status indicators follow along and recover automatically
+- The IP/location lookup and the reconnect itself both go through the Tor proxy, so nothing about the check reveals your real IP
+
+#### Bookmark Images in Tor Mode
+
+Bookmark thumbnails and preview images in a Tor page's Link Editor (blank-tab bookmarks view, the bookmarks drawer, tooltips, the Edit Link dialog) are fetched **through the Tor connection**, never directly:
+
+- Images load normally once Tor is connected
+- While Tor is connecting, disconnected, or in an error state, no image request is made at all — a placeholder icon is shown instead
+- Adding a bookmark while browsing in Tor mode does **not** download or save a favicon to disk, unlike normal and Incognito browsing
+
 ---
 
 ## Bookmarks

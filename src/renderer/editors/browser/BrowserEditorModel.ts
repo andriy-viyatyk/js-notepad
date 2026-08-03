@@ -1,4 +1,5 @@
 import { IEditorState } from "../../../shared/types";
+import { TorStatus } from "../../../ipc/tor-ipc";
 import { getDefaultEditorModelState } from "../base";
 
 // ============================================================================
@@ -165,7 +166,7 @@ export interface BrowserEditorState extends IEditorState {
     /** Whether this is a Tor browsing session. */
     isTor: boolean;
     /** Tor connection status. */
-    torStatus: "disconnected" | "connecting" | "connected" | "error";
+    torStatus: TorStatus;
     /** Accumulated Tor log text (stdout from tor.exe). */
     torLog: string;
     /** Whether the Tor status overlay is visible. */

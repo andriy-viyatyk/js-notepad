@@ -106,7 +106,7 @@ function PinnedItem({ link, index, isSelected, model, onOpenLink, onContextMenu 
                 selected={isSelected}
                 icon={<TreeProviderItemIcon item={link} />}
                 label={link.title || "Untitled"}
-                tooltip={<LinkTooltipContent link={link} />}
+                tooltip={<LinkTooltipContent link={link} imageProxy={model.imageProxy} />}
                 tooltipDelayShow={1200}
                 draggable
                 onDragStart={handleDragStart}
@@ -168,7 +168,8 @@ export function PinnedLinksPanel({ pinnedLinks, model, selectedLinkId, width }: 
 
     const handleOpenLink = useCallback((link: LinkItem) => {
         if (link.href) {
-            requestFaviconSave(getHostname(link.href));
+            // US-896 — never arm a favicon save from a Tor page (see LinkItemTiles).
+            if (!model.isTorPage) requestFaviconSave(getHostname(link.href));
             model.openLink(link);
         }
     }, [model]);

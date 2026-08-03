@@ -44,7 +44,10 @@ export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLi
 
     const handleOpen = useCallback((link: ILink) => {
         if (link.href) {
-            requestFaviconSave(getHostname(link.href));
+            // US-896 — never arm a favicon save from a Tor page. `saveForHosts` is a
+            // module-level set shared by every browser page, so a marker set here
+            // would otherwise be honoured later by a non-Tor page.
+            if (!model.isTorPage) requestFaviconSave(getHostname(link.href));
             model.openLink(link);
         }
     }, [model]);
@@ -139,6 +142,7 @@ export function LinkItemTiles({ links, model, viewMode, selectedLinkId, pinnedLi
             onContextMenu={handleContextMenu}
             getAdditionalIcon={getAdditionalIcon}
             dragSourceId={model.treeProvider.sourceUrl}
+            imageProxy={model.imageProxy}
             onGridModel={handleGridModel}
         />
     );

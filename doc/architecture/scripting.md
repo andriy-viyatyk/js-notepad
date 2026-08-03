@@ -227,16 +227,22 @@ for (const item of largeArray) {
 interface IApp {
     readonly version: string;
     readonly settings: ISettings;
-    readonly editors: IEditors;
-    readonly recent: IRecent;
+    readonly editors: IEditorRegistry;
+    readonly recent: IRecentFiles;
     readonly fs: IFileSystem;
     readonly window: IWindow;
     readonly shell: IShell;
     readonly ui: IUserInterface;
     readonly downloads: IDownloads;
     readonly menuFolders: IMenuFolders;
-    readonly pages: IPageCollection;
     readonly proc: IProc;
+    readonly boards: IBoards;
+    readonly boardVars: IBoardVars;
+    readonly pages: IPageCollection;
+    readonly events: IAppEvents;
+
+    fetch(url: string, options?: IFetchOptions): Promise<Response>;
+    openRawLink(href: string, options?: { editor?: string }): Promise<void>;
 
     runAsync<TData, TProxy, TResult>(
         fn: (data: TData, proxy: TProxy) => Promise<TResult>,
@@ -554,11 +560,22 @@ class GroupedPageWrapper extends PageWrapper {
 
 ### AppWrapper
 
-Wraps the `app` singleton, implements `IApp`. Delegates most properties directly. Wraps `pages` in `PageCollectionWrapper`. `fetch` delegates directly to `app.fetch` (Node.js HTTP client with full header control — see `src/renderer/api/node-fetch.ts`).
+Wraps the `app` singleton and mirrors `IApp`. Delegates most properties directly. Wraps `pages` in `PageCollectionWrapper`. `fetch` delegates directly to `app.fetch` (Node.js HTTP client with full header control — see `src/renderer/api/node-fetch.ts`).
+
+None of the wrappers carry an `implements` clause, and they cannot: they intentionally return richer concrete types than the script-facing interfaces (`PageCollectionWrapper` for `pages`, `PageWrapper` for each page, an `unknown`-typed lazy proxy for `events`), and the editor facades are structurally narrower than their interfaces — `GraphEditorFacade.nodes` is `GraphNode[]`, while `IGraphEditor.nodes` is `IGraphNode[]` with an index signature `GraphNode` does not declare. A structural assertion therefore fails on mismatches that are deliberate.
+
+The consequence is that nothing stopped a namespace from being added to `App` and `IApp` while being silently omitted from the wrapper, leaving it `undefined` for every script. `AppWrapper` closes that gap with a **member-name** check at the bottom of the file:
+
+```ts
+type AssertNever<T extends never> = T;
+type _AppWrapperCoversIApp = AssertNever<Exclude<keyof IApp, keyof AppWrapper>>;
+```
+
+It is fully type-erased (no runtime cost) and names the offender on failure: `Type '"boardVars"' does not satisfy the constraint 'never'`. It verifies names, not shapes — a getter returning the wrong type still compiles. If the facade types are ever reconciled with their interfaces, replace it with a real `implements IApp`.
 
 ### PageCollectionWrapper
 
-Wraps `PagesModel`, implements `IPageCollection`. Returns `PageWrapper` instances instead of raw `EditorModel` for all query methods.
+Wraps `PagesModel` and mirrors `IPageCollection`. Returns `PageWrapper` instances instead of raw `EditorModel` for all query methods.
 
 ## Script Execution
 

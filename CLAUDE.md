@@ -321,6 +321,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Async worker (renderer)  | `/src/renderer/scripting/worker/WorkerRunner.ts`  |
 | Async worker (main)      | `/src/main/worker-host.ts`                        |
 | Script API types         | `/src/renderer/api/types/*.d.ts`                  |
+| Script-facing `app` wrapper (whitelists one getter per namespace — a namespace added to `IApp` is invisible to scripts until it gets a getter here; a type-only `Exclude<keyof IApp, keyof AppWrapper>` check at the bottom of the file fails the build on omission, since the wrapper's richer return types rule out a real `implements IApp`) | `/src/renderer/scripting/api-wrapper/AppWrapper.ts` |
 | Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry          | `/src/renderer/editors/base/editorRegistry.ts`    |
 | Secondary view registry| `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
@@ -355,7 +356,10 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | Selectable-row primitive (Rule-7-clean bespoke-row host for the focus-aware selection; `selected`/`active` props) | `/src/renderer/uikit/SelectableRow/SelectableRow.tsx` |
 | Color tokens             | `/src/renderer/theme/color.ts`                    |
 | Theme definitions        | `/src/renderer/theme/themes/`                     |
-| Tor service              | `/src/main/tor-service.ts`                        |
+| Tor service (main; tor.exe lifecycle + restart-based reconnect, per-partition SOCKS5 proxy, exit-IP/geo lookup through the partition's session) | `/src/main/tor-service.ts` |
+| `tor-src://` scheme handler (main; fetches an `http(s)` URL through a Tor partition's session so the SOCKS proxy applies — the app renderer is unproxied, so a Tor page's Link-editor images would otherwise leak direct. Three guards required together: partition-shape regex, live-partition check, `http(s)`-only target; target travels in `?u=` because Chromium canonicalizes standard-scheme paths) | `/src/main/tor-src-protocol.ts` |
+| Tor image-src resolver (renderer; rewrites remote `src` → `tor-src://`, passes local schemes through, renders nothing when the circuit is down. Lives in `link-editor/` to keep the `browser → link-editor` dependency arrow one-way) | `/src/renderer/editors/link-editor/tor-src.ts` |
+| Tor connection info dialog (exit IP + location + `check.torproject.org` verdict; Reconnect restarts tor.exe) | `/src/renderer/ui/dialogs/TorInfoDialog.tsx` |
 | Named Pipe server        | `/src/main/pipe-server.ts`                        |
 | Windows browser registration | `/src/main/browser-registration.ts`           |
 | MCP HTTP server          | `/src/main/mcp-http-server.ts`                    |
@@ -372,7 +376,7 @@ See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete
 | MCP command handler      | `/src/renderer/api/mcp-handler.ts`                |
 | Browser automation cmds  | `/src/renderer/automation/commands.ts`             |
 | Browser input dispatch   | `/src/renderer/automation/input.ts`                |
-| Browser ref resolution   | `/src/renderer/automation/ref.ts`                  |
+| Browser ref resolution (a snapshot ref is a `backendDOMNodeId`, so a `StaticText` ref denotes a **text node** — `callOnRef` coerces to the nearest element before invoking, since text nodes have no `Element` methods and roleless list rows often expose no other ref; its `fn` must be a plain `function(){}` expression, invoked via `.call(element)`) | `/src/renderer/automation/ref.ts` |
 | CDP session wrapper      | `/src/renderer/automation/CdpSession.ts`           |
 | Accessibility snapshot   | `/src/renderer/automation/snapshot.ts`              |
 | App-window automation adapter (`IBrowserTarget` for the app's own UI; `browser_*` with `pageId: "app"`; `APP_WINDOW_CDP_KEY` sentinel routed to the calling window's own webContents in `cdp-service`; explicit-only in `getTarget`; snapshot shows only the active page — hidden pages excluded by the AX tree) | `/src/renderer/automation/AppTargetModel.ts` |

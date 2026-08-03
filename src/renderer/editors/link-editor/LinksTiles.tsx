@@ -8,6 +8,7 @@ import type { ILink } from "../../api/types/io.tree";
 import { LinkViewMode } from "./linkTypes";
 import { TraitTypeId, setTraitDragData } from "../../core/traits";
 import { getHostname, getFaviconPathSync, useFavicons } from "../../components/tree-provider/favicon-cache";
+import { resolveTorSrc, type TorProxyInfo } from "./tor-src";
 
 // =============================================================================
 // Tile dimensions per view mode
@@ -39,6 +40,8 @@ interface LinksTileCellProps {
     additionalIcon?: React.ReactNode;
     /** When set, tile is draggable. Value is used as sourceId in drag payload. */
     dragSourceId?: string;
+    /** US-896 — Tor session to fetch remote images through, when on a Tor page. */
+    imageProxy?: TorProxyInfo | null;
     onSelect?: (link: ILink) => void;
     onEdit?: (link: ILink) => void;
     onDelete?: (link: ILink, skipConfirm: boolean) => void;
@@ -48,9 +51,16 @@ interface LinksTileCellProps {
 
 function LinksTileCell({
     link, isSelected, imageHeight, additionalIcon,
-    dragSourceId, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
+    dragSourceId, imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
 }: LinksTileCellProps) {
     const [isDragging, setIsDragging] = useState(false);
+    // Remembering the failed URL (rather than a bool) self-resets when the link's
+    // image or its Tor routing changes — no effect needed.
+    const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+    // US-896 — null when the image must not be loaded (Tor page, Tor not up).
+    const imageSrc = resolveTorSrc(link.imgSrc, imageProxy);
+    const showImage = !!imageSrc && imageSrc !== failedSrc;
 
     const handleDragStart = useCallback((e: React.DragEvent) => {
         if (!dragSourceId) { e.preventDefault(); return; }
@@ -102,14 +112,15 @@ function LinksTileCell({
                         alignItems: "center",
                         justifyContent: "center",
                         overflow: "hidden",
-                        ...(link.imgSrc ? {} : { color: color.text.light, fontSize: 12 }),
+                        ...(showImage ? {} : { color: color.text.light, fontSize: 12 }),
                     }}
                 >
-                    {link.imgSrc ? (
+                    {showImage ? (
                         <img
-                            src={link.imgSrc}
+                            src={imageSrc}
                             alt={link.title}
                             loading="lazy"
+                            onError={() => setFailedSrc(imageSrc)}
                             style={{
                                 maxWidth: "calc(100% - 8px)",
                                 maxHeight: "calc(100% - 8px)",
@@ -244,6 +255,8 @@ export interface LinksTilesProps {
     getAdditionalIcon?: (link: ILink) => React.ReactNode;
     /** Enable drag. When set, items are draggable with this sourceId in drag payload. */
     dragSourceId?: string;
+    /** US-896 — Tor session to fetch remote images through, when on a Tor page. */
+    imageProxy?: TorProxyInfo | null;
     /** Called with the RenderGridModel on mount, null on unmount. */
     onGridModel?: (model: RenderGridModel | null) => void;
 }
@@ -251,7 +264,7 @@ export interface LinksTilesProps {
 export function LinksTiles({
     links, viewMode, selectedId, getId = defaultGetId,
     onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
-    getAdditionalIcon, dragSourceId, onGridModel,
+    getAdditionalIcon, dragSourceId, imageProxy, onGridModel,
 }: LinksTilesProps) {
     const gridRef = useRef<RenderGridModel>(null);
     const [gridSize, setGridSize] = useState<RenderSizeOptional>({
@@ -314,6 +327,7 @@ export function LinksTiles({
                         imageHeight={dims.imageHeight}
                         additionalIcon={getAdditionalIcon?.(link)}
                         dragSourceId={dragSourceId}
+                        imageProxy={imageProxy}
                         onSelect={onSelect}
                         onEdit={onEdit}
                         onDelete={onDelete}
@@ -325,7 +339,8 @@ export function LinksTiles({
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps -- faviconVersion bumps on favicon load to force re-render of tiles (no direct read in body)
         [links, counts.colCount, dims, selectedId, getId, getAdditionalIcon,
-         dragSourceId, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, faviconVersion],
+         dragSourceId, imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
+         faviconVersion],
     );
 
     return (

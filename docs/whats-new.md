@@ -8,7 +8,19 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.18 (Upcoming)
 
-*No changes yet.*
+### New Features
+
+- **Tor browser — connection info dialog with exit IP and Reconnect** — A new **"?" button** on the toolbar, shown only in Tor mode, opens a dialog reporting the exit IP address a remote server actually sees, its approximate country/city, and whether traffic is confirmed to be exiting through Tor. A **Reconnect** button restarts the Tor daemon to get a fresh circuit (and usually a new exit node); if Tor selects the same exit again, the dialog says so. Reconnecting is app-wide — every open Tor page briefly shows "connecting" and recovers automatically. See [Browser — Connection Info and Reconnecting](./browser.md#connection-info-and-reconnecting).
+
+### Bug Fixes
+
+- **Link editor bookmark images no longer leak your IP in Tor mode** — Bookmark thumbnails and preview images shown in a Tor browser page's Link Editor (blank tab, bookmarks drawer, tooltips, Edit Link dialog) are now fetched through the page's Tor connection instead of going out directly. If Tor isn't connected yet, a placeholder is shown instead of fetching anything. Adding a bookmark while browsing in Tor mode also no longer saves a favicon to disk. See [Browser — Bookmark Images in Tor Mode](./browser.md#bookmark-images-in-tor-mode).
+
+- **`app.boardVars` now works from a script** — The scripting namespace an AI agent uses to provision a board's environment variables ahead of time (introduced in 4.0.17) was `undefined` in scripts, so every call failed with *"Cannot read properties of undefined"*. It is now reachable, and the documented flow (`namespaceFor` → `set` / `get` / `list` / `listNamespaces` / `show`) works as described. See [app.boardVars](./api/app.md#boardvars).
+
+- **Link editor view-mode switch (List / Landscape / Portrait) now updates immediately** — Switching view modes in the Link Editor used to leave the previous layout on screen until some unrelated change triggered a re-render. The switch now takes effect right away.
+
+- **Browser automation — clicking/hovering/typing by ref now works on plain `<div>`/`<span>` rows** — `browser_click { ref }` (and `browser_hover` / `browser_type` / `browser_select_option` / focus by ref) used to throw `TypeError: this.scrollIntoView is not a function` whenever the ref came from a `StaticText` line in a `browser_snapshot`. This happened whenever a row had no ARIA role of its own (custom lists, sidebar panels, tag chips built from unstyled `<div>`/`<span>` elements), which is common — and since the StaticText ref was often the only ref on such a row, it made the row unclickable by ref at all. Refs now resolve to the element that displays the text, so the click/hover/type reaches the row as expected.
 
 ---
 

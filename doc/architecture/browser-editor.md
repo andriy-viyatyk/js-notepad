@@ -242,10 +242,13 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 | `src/main/browser-service.ts` | Main | Attaches to webContents, relays events via IPC, audio state, hotkeys, cache cleanup, DOM collection (incl. iframes) |
 | `src/main/cdp-service.ts` | Main | CDP session management — debugger attach/detach/send via IPC |
 | `src/main/network-logger.ts` | Main | Per-page HTTP request/response logging via `session.webRequest`, circular buffer, IPC access |
-| `src/main/tor-service.ts` | Main | Tor process lifecycle: spawn/kill tor.exe, per-partition SOCKS5 proxy, torrc generation |
+| `src/main/tor-service.ts` | Main | Tor process lifecycle: spawn/kill tor.exe, restart, per-partition SOCKS5 proxy, torrc generation, exit-IP lookup |
+| `src/main/tor-src-protocol.ts` | Main | `tor-src://` handler — fetches an `http(s)` URL through a Tor partition's session |
+| `src/renderer/editors/link-editor/tor-src.ts` | Renderer | Rewrites remote image `src` values to `tor-src://` for a Tor page's Link editor |
+| `src/renderer/ui/dialogs/TorInfoDialog.tsx` | Renderer | Tor connection info: exit IP, location, Reconnect |
 | `src/preload-webview.ts` | Guest | MutationObserver for title/favicon, image tracking on link clicks, cinema mode (expand `<video>` to full page), `window.chrome` compatibility shim |
 | `src/ipc/browser-ipc.ts` | Shared | IPC channel names and type definitions |
-| `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels: start, stop, log |
+| `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels + `TorStatus`/`TorIpInfo` types: start, stop, log, check-ip, restart, status |
 | `src/ipc/popup-rate-limiter.ts` | Shared | Time-window rate limiter for popup/tab spam blocking |
 | `src/renderer/editors/shared/link-open-menu.tsx` | Renderer | Shared helper for "Open in..." browser menu items |
 | `src/renderer/core/state/events.ts` | Renderer | `globalKeyDown` Subscription for keyboard event broadcasting, `browserUrlChanged` for cross-editor URL event broadcasting, `windowClosing` for resource cleanup on window close, `secondaryViewsToggled` for sidebar open/close, `panelExpanded` for secondary panel expansion |
@@ -376,8 +379,9 @@ Tor mode routes all webview traffic through the Tor network via a SOCKS5 proxy. 
 
 **Architecture:**
 - `src/main/tor-service.ts` — manages `tor.exe` child process lifecycle, generates minimal torrc, sets `socks5://` proxy per partition via `session.fromPartition().setProxy()`
-- `src/ipc/tor-ipc.ts` — IPC channels: `tor:start`, `tor:stop`, `tor:log`
+- `src/ipc/tor-ipc.ts` — IPC channels: `tor:start`, `tor:stop`, `tor:log`, `tor:check-ip`, `tor:restart`, `tor:status`
 - `src/renderer/editors/browser/TorStatusOverlay.tsx` — overlay shown during connection with live log, spinner, and reconnect button
+- `src/renderer/ui/dialogs/TorInfoDialog.tsx` — connection info dialog (exit IP, location, Reconnect)
 - `activePartitions: Set<string>` acts as consumer counter — Tor stops only when all partitions are released
 
 **Tor indicator in URL bar:** A clickable TorIcon with a small status dot (green=connected, red=error, yellow=disconnected). Clicking toggles the `TorStatusOverlay`.
@@ -385,6 +389,73 @@ Tor mode routes all webview traffic through the Tor network via a SOCKS5 proxy. 
 **Session restore:** Tor pages are restored with `torStatus: "disconnected"`, `torOverlayVisible: true`, and an empty tab. User must click "Reconnect" — no auto-connect on restore.
 
 **Window close cleanup:** `BrowserEditorModel` subscribes to the `windowClosing` event (from `GlobalEventService.beforeunload`) to release Tor partitions when the window closes without explicit tab disposal.
+
+#### The proxy covers the webview, not the renderer
+
+The SOCKS proxy is attached to the **page's session partition**, so it covers only what the
+`<webview>` loads. Renderer-side React code runs in the app window's own session (`nopersist`),
+which is unproxied. Any feature that fetches a remote URL from the renderer on behalf of a Tor page
+therefore bypasses Tor unless it is routed deliberately.
+
+Two consequences are handled explicitly:
+
+- **Link-editor images.** A Tor page's blank tab renders the bookmarks `LinkEditor`, whose tile and
+  tooltip images are plain `<img>` tags in the app renderer. `LinkEditor.imageProxySource` (wired by
+  `BrowserEditor.configureBookmarks`) hands it the page's partition, and
+  `resolveTorSrc()` (`src/renderer/editors/link-editor/tor-src.ts`) rewrites remote `src` values to
+  `tor-src://<partition>/?u=<encoded url>`. Local schemes (`data:`, `blob:`, `file:`, `safe-file:`,
+  `app-asset:`) pass through untouched, and when the circuit is not connected the image is not
+  rendered at all rather than fetched direct.
+- **Favicon persistence.** Favicons are normally written to the app data folder. `LinkEditor.isTorPage`
+  gates the `requestFaviconSave` call sites, and `BrowserBookmarksUIModel` skips the save for Tor as
+  it already did for incognito. The marker set behind `requestFaviconSave` is module-level and shared
+  by every browser page, so a marker armed from a Tor page would otherwise be honoured later by a
+  non-Tor one.
+
+The proxy resolver lives in `link-editor/`, not `browser/`, to keep the dependency arrow one-way —
+`browser` already imports `link-editor`.
+
+#### `tor-src://` scheme
+
+`src/main/tor-src-protocol.ts` registers a handler on the app window's session that fetches an
+arbitrary `http(s)` URL through a Tor partition's session, so the SOCKS proxy applies. Three guards
+are load-bearing and required together:
+
+1. The host must match the `browser-tor-<uuid>` partition shape.
+2. `TorService.isActiveTorPartition()` must confirm a live, bootstrapped Tor session — the scheme is
+   inert whenever no Tor page is running.
+3. The target must be `http:` or `https:`.
+
+The target URL travels in a `?u=` query parameter rather than a path segment: Chromium canonicalizes
+`standard: true` scheme paths and can rewrite percent-escapes, corrupting a target that carries
+escapes of its own. Responses are returned with `Cache-Control: no-store`, and the scheme is
+registered **without** `corsEnabled` — enabling CORS would turn it into "any document in the app
+session can read arbitrary cross-origin content through Tor".
+
+#### Connection info dialog
+
+A `QuestionIcon` toolbar button, rendered only for Tor pages, opens `TorInfoDialog`. It reports the
+exit IP, an approximate location, and whether `check.torproject.org` confirms the request arrived
+over Tor. Lookups run in main (`TorService.checkIp`) via `session.fromPartition(partition).fetch()` —
+a renderer-side fetch would go out unproxied and hand the checker the user's real IP. The exit-IP call
+and the geo providers carry separate timeouts, and a failing geo provider still leaves the IP visible.
+
+**Reconnect** restarts `tor.exe` (`TorService.restart`) rather than signalling `NEWNYM` over a control
+port; that keeps `torrc` untouched and adds no loopback control surface. Two invariants make the
+restart safe:
+
+- The old process's `close`/`error` handlers only clear shared state when
+  `this.torProcess === child`. The old child's `close` event arrives after the replacement is already
+  assigned, so an unguarded reset would null out a healthy process and leave `running` false while
+  Tor is up.
+- `stopTorProcessAndWait()` awaits the old process's exit before respawning. Tor holds a `lock` file
+  inside its `DataDirectory`, and a replacement that races the exit fails to start.
+
+Because the daemon is shared, a restart affects every open Tor page. Their `torStatus` lives in
+renderer state that main cannot see, so `TorService` broadcasts `tor:status` and each Tor page's
+`torStatusListener` follows it — otherwise the other pages would keep showing a green dot while Tor
+is down. A new circuit may legitimately reuse the same exit node, so the dialog reports an unchanged
+IP as such instead of implying the reconnect failed.
 
 ### Clear Profile Data
 
@@ -602,6 +673,12 @@ For browser/board targets the resolved page is **activated** (`showPage`) becaus
 **14 Playwright-compatible tools:** `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_hover`, `browser_type`, `browser_select_option`, `browser_press_key`, `browser_evaluate`, `browser_tabs`, `browser_navigate_back`, `browser_wait_for`, `browser_take_screenshot`, `browser_network_requests`, `browser_close`
 
 Tools support both CSS selectors (`selector` param) and accessibility snapshot refs (`ref` param, e.g. `ref=e52`). Ref resolution (`automation/ref.ts`) uses CDP `DOM.resolveNode` + `Runtime.callFunctionOn`. Stale refs produce helpful "re-take the snapshot" error messages.
+
+**A ref does not always denote an element.** A ref is a `backendDOMNodeId`, and a `StaticText` node's id backs a DOM **text** node — which has none of the `Element` methods the command bodies call (`scrollIntoView`, `click`, `focus`, `value`, …). This is not an edge case: in list-style UI built from roleless `<div>`/`<span>` elements the ancestors resolve to the `generic` role and are dropped by `SKIP_ROLES`, so the `StaticText` ref is frequently the *only* ref on a row. `callOnRef` therefore coerces before invoking — `this.nodeType === 1 ? this : this.parentElement` — so the action lands on the element that displays the text, which is what the snapshot line denotes. Because DOM events bubble, acting on the inner element still reaches a handler bound to the row around it. A ref with no element parent fails with a message naming the ref and the node type instead of a `TypeError`.
+
+Refs are minted from the node's own `backendDOMNodeId` and are deliberately **not** rewritten to the nearest element ancestor in `snapshot.ts`: sibling text nodes under one element (ordinary prose with inline markup — `first text <b>bold</b> second text` — produces two) would collapse onto the same ref, making all but one of those lines unaddressable. Coercing at invocation time keeps every ref unique *and* usable.
+
+Consequently `callOnRef`'s `fn` argument must be a plain `function () {…}` expression: it is invoked with `.call(element)`, so an arrow function would keep its lexical `this` and silently act on the wrong object.
 
 ### App-Window Target (`pageId: "app"`)
 

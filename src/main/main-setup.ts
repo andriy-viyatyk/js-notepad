@@ -11,6 +11,7 @@ import { versionService } from "./version-service";
 import { initSearchHandlers } from "./search-service";
 import { initBrowserHandlers } from "./browser-service";
 import { initTorHandlers, torService } from "./tor-service";
+import { registerTorSrcProtocol } from "./tor-src-protocol";
 import { initWorkerHost } from "./worker-host";
 import { initCommandRunner, killAllCommands } from "./command-runner";
 import { disposeAllBoardPorts } from "./board-bridge";
@@ -53,6 +54,17 @@ export function setupMainProcess() {
                 // Chromium blocks custom-scheme cross-origin fetch without it
                 // (same requirement as app-asset above — US-821 missed this one).
                 corsEnabled: true,
+            },
+        },
+        {
+            // Tor-routed remote resources for renderer-drawn content (US-896).
+            // The app renderer is not covered by a Tor page's session proxy, so
+            // e.g. the Link editor's bookmark images opt in via this scheme.
+            scheme: "tor-src",
+            privileges: {
+                standard: true,
+                secure: true,
+                supportFetchAPI: true,
             },
         },
         {
@@ -142,6 +154,10 @@ export function setupMainProcess() {
 
         registerAssetProtocol(appPartition);
         registerAssetProtocol(fileAccessPersistPartition);
+        // US-896 — lets renderer-drawn content (the Link editor's bookmark images on
+        // a Tor page's blank tab) fetch a remote URL through that page's Tor session.
+        // Only the app window's session needs it — do not widen to other partitions.
+        registerTorSrcProtocol(appPartition);
         // Single host-routed board:// handler on the main window's session (EPIC-037 /
         // US-770) — boards load board://<host> iframes in this session, routed by host.
         const { initBoardProtocol } = await import("./board-protocol-service");

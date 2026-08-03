@@ -9,6 +9,7 @@ import type { IDownloads } from "./downloads";
 import type { IMenuFolders } from "./menu-folders";
 import type { IProc } from "./proc";
 import type { IBoards } from "./boards";
+import type { IBoardVars } from "./board-vars";
 import type { IPageCollection } from "./pages";
 import type { IAppEvents } from "./events";
 
@@ -58,6 +59,9 @@ export interface IApp {
 
     /** Create Persephone Boards (sandboxed mini web-apps you build for the user). */
     readonly boards: IBoards;
+
+    /** Board environment variables / secrets — administration across all namespaces. */
+    readonly boardVars: IBoardVars;
 
     /** Open pages (tabs) in the current window. */
     readonly pages: IPageCollection;

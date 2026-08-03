@@ -59,7 +59,8 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: Li
 
     const handleOpen = useCallback((link: ILink) => {
         if (link.href) {
-            requestFaviconSave(getHostname(link.href));
+            // US-896 — never arm a favicon save from a Tor page (see LinkItemTiles).
+            if (!model.isTorPage) requestFaviconSave(getHostname(link.href));
             model.openLink(link);
         }
     }, [model]);
@@ -155,6 +156,7 @@ export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: Li
             getAdditionalIcon={getAdditionalIcon}
             dragSourceId={model.treeProvider.sourceUrl}
             allTags={allTags}
+            imageProxy={model.imageProxy}
             onToggleTag={handleToggleTag}
             onGridModel={handleGridModel}
         />

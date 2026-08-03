@@ -17,6 +17,7 @@ import { TComponentState } from "../../core/state/state";
 import { showDialog } from "../../ui/dialogs/Dialogs";
 import { CloseIcon, RenameIcon } from "../../theme/icons";
 import { LinkItem } from "./linkTypes";
+import { resolveTorSrc, type TorProxyInfo } from "./tor-src";
 
 // =============================================================================
 // Types
@@ -33,6 +34,8 @@ interface EditLinkDialogState {
     categories: string[];
     availableTags: string[];
     discoveredImages: string[];
+    /** US-896 — Tor session to fetch preview/discovered images through. */
+    imageProxy: TorProxyInfo | null;
 }
 
 export type EditLinkResult = Omit<LinkItem, "id"> | undefined;
@@ -154,6 +157,8 @@ function IndentedRow({ children }: { children: React.ReactNode }) {
 function EditLinkDialog({ model }: ViewPropsRO<EditLinkDialogModel>) {
     const state = model.state.use();
     const selectedTarget = targetEditorOptions.find((o) => o.value === state.target) ?? targetEditorOptions[0];
+    // US-896 — null when the preview must not be loaded (Tor page, Tor not up).
+    const previewSrc = resolveTorSrc(state.imgSrc, state.imageProxy);
 
     return (
         <Dialog name="edit-link-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
@@ -237,7 +242,7 @@ function EditLinkDialog({ model }: ViewPropsRO<EditLinkDialogModel>) {
                         />
                     </FormRow>
 
-                    {state.imgSrc && (
+                    {previewSrc && (
                         <IndentedRow>
                             <Panel
                                 flex
@@ -251,7 +256,7 @@ function EditLinkDialog({ model }: ViewPropsRO<EditLinkDialogModel>) {
                                 overflow="hidden"
                             >
                                 <img
-                                    src={state.imgSrc}
+                                    src={previewSrc}
                                     alt="Preview"
                                     style={{ maxWidth: "100%", maxHeight: 192, objectFit: "contain" }}
                                 />
@@ -265,6 +270,10 @@ function EditLinkDialog({ model }: ViewPropsRO<EditLinkDialogModel>) {
                             <Panel direction="row" wrap gap="sm">
                                 {state.discoveredImages.map((url, i) => {
                                     const isSelected = url === state.imgSrc;
+                                    // US-896 — null suppresses the thumbnail on a Tor page whose
+                                    // circuit isn't up. The tile stays clickable: the URL is still
+                                    // a valid choice even when it can't be previewed.
+                                    const thumbSrc = resolveTorSrc(url, state.imageProxy);
                                     return (
                                         <Panel
                                             key={i}
@@ -272,15 +281,19 @@ function EditLinkDialog({ model }: ViewPropsRO<EditLinkDialogModel>) {
                                             borderColor={isSelected ? "active" : "subtle"}
                                             rounded="sm"
                                             overflow="hidden"
+                                            width={60}
+                                            height={60}
                                             onClick={() => model.selectDiscoveredImage(url)}
                                         >
-                                            <img
-                                                src={url}
-                                                alt={`Image ${i + 1}`}
-                                                width={60}
-                                                height={60}
-                                                style={{ objectFit: "cover", display: "block", cursor: "pointer" }}
-                                            />
+                                            {thumbSrc && (
+                                                <img
+                                                    src={thumbSrc}
+                                                    alt={`Image ${i + 1}`}
+                                                    width={60}
+                                                    height={60}
+                                                    style={{ objectFit: "cover", display: "block", cursor: "pointer" }}
+                                                />
+                                            )}
                                         </Panel>
                                     );
                                 })}
@@ -315,6 +328,9 @@ export interface ShowEditLinkDialogOptions {
     tags?: string[];
     /** Discovered images from browser (for future integration) */
     discoveredImages?: string[];
+    /** US-896 — Tor session to fetch preview/discovered images through. Pass the
+     *  owning LinkEditor's `imageProxy`; omit outside Tor pages. */
+    imageProxy?: TorProxyInfo | null;
 }
 
 export function showEditLinkDialog(options: ShowEditLinkDialogOptions = {}): Promise<EditLinkResult> {
@@ -331,6 +347,7 @@ export function showEditLinkDialog(options: ShowEditLinkDialogOptions = {}): Pro
         categories,
         availableTags: tags,
         discoveredImages,
+        imageProxy: options.imageProxy ?? null,
     };
 
     const model = new EditLinkDialogModel(new TComponentState(modelState));

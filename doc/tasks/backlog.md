@@ -37,6 +37,23 @@ dependency-update epic when the next upgrade cycle starts.
 
 ## Architecture Improvements
 
+### Smoke-test the script `app` surface at runtime
+
+The project has no test framework, so nothing exercises `app.*` through the real script path
+(`ScriptContext` → `AppWrapper`). That is why `app.boardVars` shipped a full release as `undefined`
+for every script while `app.boardVars` on the real singleton worked fine — the code was there, the
+wrapper getter was not.
+
+`AppWrapper` now carries a compile-time member-name check against `IApp`, which catches an omitted
+getter. It cannot catch a getter that returns `undefined` because a service failed to load in
+`App.initServices()` — the whole namespace block is `undefined as unknown as I…` until that runs.
+
+- [ ] Decide on a test runner (none exists today; Vitest is the natural fit for a Vite project)
+- [ ] Add a script-path smoke check asserting every `IApp` member is defined after
+  `initServices()` resolves — cheap, and it covers the failure the type check cannot see
+- [ ] Consider extending the member-name check to `PageCollectionWrapper` / `PageWrapper`, which
+  have the same shape of gap (no `implements` clause, richer concrete return types)
+
 ### Script Service Enhancements
 
 **Goal:** Expand scripting with hooks and toolbar builder API.

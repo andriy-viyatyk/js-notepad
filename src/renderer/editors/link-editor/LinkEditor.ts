@@ -26,6 +26,7 @@ import { createLinkData } from "../../../shared/link-data";
 import { LinkTreeProvider } from "./LinkTreeProvider";
 import type { ILinkSource, LinkItem, LinkEditorData, LinkViewMode } from "./linkTypes";
 import { showEditLinkDialog } from "./EditLinkDialog";
+import type { TorProxyInfo } from "./tor-src";
 
 export type ExpandedPanel = "tags" | "categories" | "hostnames";
 
@@ -134,6 +135,29 @@ export class LinkEditor
     // Optional callback fields (LK9 — duck-typed today, preserved on the class):
     onLinkOpen?: (data: ILinkData) => void;
     onGetLinkMenuItems?: (link: LinkItem) => MenuItem[];
+
+    /**
+     * US-896 — set by an embedder whose page has a Tor session (the browser's
+     * bookmarks editor) so remote link images are fetched through it instead of
+     * leaking direct. A function, not a value: `torStatus` changes after this
+     * editor is wired up, and this model outlives every blank tab in the page.
+     * Left null for standalone `.links.json` editors and non-Tor pages.
+     */
+    imageProxySource?: () => TorProxyInfo | null;
+
+    /** Current Tor routing for remote images, read fresh at render time. */
+    get imageProxy(): TorProxyInfo | null {
+        return this.imageProxySource?.() ?? null;
+    }
+
+    /**
+     * True when this editor is embedded in a Tor browser page. Gates anything
+     * that would touch the network un-proxied or leave a trace on disk — e.g.
+     * arming a favicon download (US-896).
+     */
+    get isTorPage(): boolean {
+        return !!this.imageProxy;
+    }
 
     // Save debounce — today's pattern:
     private onDataChangedDebounced = debounce(() => this.onDataChanged(), 300);
@@ -737,9 +761,17 @@ export class LinkEditor
 
     // ── View Mode (per category / tag / hostname) ───────────────────────
 
-    getViewMode = (): LinkViewMode => {
+    /**
+     * View mode for the current category / tag / hostname.
+     *
+     * Pass `snapshot` when calling this from inside a `state.use(...)` selector.
+     * The mode lives under `data.state.*ViewMode`, so a component whose selector
+     * doesn't read those keys will not re-render when the mode changes — reading
+     * it through the selector's own snapshot is what makes it reactive.
+     */
+    getViewMode = (snapshot?: LinkEditorState): LinkViewMode => {
         const { expandedPanel, selectedCategory, selectedTag, selectedHostname, data } =
-            this.state.get();
+            snapshot ?? this.state.get();
         if (expandedPanel === "tags") {
             return data.state.tagViewMode?.[selectedTag] ?? "list";
         }
@@ -1146,6 +1178,7 @@ export class LinkEditor
             link: defaults,
             categories: state.categories,
             tags: state.tags,
+            imageProxy: this.imageProxy,
         });
 
         this.containerElement?.focus();

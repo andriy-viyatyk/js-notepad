@@ -101,8 +101,11 @@ export function LinkBreadcrumbBits({ model: editor }: { model: LinkEditor }) {
 // =============================================================================
 
 export function LinkActionBits({ model: editor }: { model: LinkEditor }) {
-    const { searchText } = editor.state.use((s) => ({ searchText: s.searchText }));
-    const viewMode = editor.getViewMode();
+    const { searchText, viewMode } = editor.state.use((s) => ({
+        searchText: s.searchText,
+        // Must be derived inside the selector — see LinkEditor.getViewMode().
+        viewMode: editor.getViewMode(s),
+    }));
 
     const showViewModeMenu = useCallback((e: React.MouseEvent) => {
         const rect = e.currentTarget.getBoundingClientRect();

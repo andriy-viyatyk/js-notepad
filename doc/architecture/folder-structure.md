@@ -264,6 +264,7 @@ persephone/
 │   │   ├── ConfirmationDialog.tsx
 │   │   ├── InputDialog.tsx
 │   │   ├── PasswordDialog.tsx
+│   │   ├── TorInfoDialog.tsx       # Tor connection info — exit IP, location, check.torproject.org verdict; Reconnect restarts tor.exe
 │   │   ├── RegisterToolsetDialog.tsx # Agent-initiated toolset registration confirmation (Allow/Deny; RCE gate — EPIC-038)
 │   │   ├── CreateBoardVarsStorageDialog.tsx # First-use "Create environment variables storage" prompt (default path, editable) — shown by both persephone.var.* and app.boardVars.*
 │   │   ├── NamespaceCollisionDialog.tsx # Non-blocking advisory at board registration when the new board's author/name namespace collides with an already-registered board
@@ -376,6 +377,7 @@ persephone/
 │   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state; drag-drop import (files→links, links across windows)
 │   │   ├── linkTypes.ts
 │   │   ├── linkTraits.ts             # ILink trait definition + registration (LINK + FILE_LINK — local-file links yield bytes)
+│   │   ├── tor-src.ts                # Rewrites remote image src → tor-src:// when the editor is hosted by a Tor browser page (the app renderer is unproxied); local schemes pass through
 │   │   ├── panels/                   # Shared panel components (inline + secondary view)
 │   │   │   ├── LinkCategoryPanel.tsx       # Categories tree panel
 │   │   │   ├── LinkTagsPanel.tsx           # Tags list panel
@@ -602,7 +604,7 @@ persephone/
 │   ├── worker/             # Background worker execution (app.runAsync)
 │   │   └── WorkerRunner.ts # Renderer-side: IPC to main, proxy dispatch
 │   └── api-wrapper/        # Safe wrappers for script access
-│       ├── AppWrapper.ts           # Wraps app → IApp (events proxy for auto-cleanup)
+│       ├── AppWrapper.ts           # Wraps app → IApp (events proxy; compile-time member check)
 │       ├── PageCollectionWrapper.ts # Wraps pages → IPageCollection
 │       ├── PageWrapper.ts          # Wraps page → IPage (with asX() + auto-release)
 │       ├── TextEditorFacade.ts     # ITextEditor facade
@@ -628,7 +630,7 @@ persephone/
 │   ├── CdpSession.ts       # CDP session wrapper (IPC to main process debugger)
 │   ├── snapshot.ts         # Accessibility snapshot (main frame + iframes, overlay detection)
 │   ├── input.ts            # Keyboard/text input (typeText, pressKey, fill strategies)
-│   ├── ref.ts              # Ref resolution (parseRef, resolveRef, callOnRef)
+│   ├── ref.ts              # Ref resolution (parseRef, resolveRef, callOnRef → element coercion)
 │   ├── AppTargetModel.ts   # Automation adapter (IBrowserTarget) for the app's own UI (pageId "app")
 │   └── commands.ts         # browser_* MCP command handlers
 │
@@ -755,7 +757,8 @@ persephone/
 ├── mcp-http-server.ts      # MCP Streamable HTTP server (MCP SDK, AI agent integration)
 ├── browser-service.ts      # Browser page support (webview management)
 ├── browser-registration.ts # Default browser registration
-├── tor-service.ts          # Tor process lifecycle and per-partition SOCKS5 proxy
+├── tor-service.ts          # Tor process lifecycle (incl. restart-based reconnect) and per-partition SOCKS5 proxy; exit-IP/geo lookup through the partition's session
+├── tor-src-protocol.ts     # tor-src:// scheme handler — fetches an http(s) URL through a Tor partition's session (the app renderer itself is unproxied); guarded by partition shape, live-partition check, and http(s)-only target
 ├── git-service.ts          # Git access via simple-git — status, stage/unstage/commit, branch/switch, fetch/push/pull, ahead-behind, log/show, --version probe — main-process only
 ├── download-service.ts     # Download management
 ├── search-service.ts       # File search service
@@ -788,7 +791,7 @@ persephone/
 ├── api-types.ts            # IPC channel definitions
 ├── api-param-types.ts      # IPC parameter types
 ├── browser-ipc.ts          # Browser-specific IPC channels
-├── tor-ipc.ts              # Tor service IPC channels (start, stop, log)
+├── tor-ipc.ts              # Tor service IPC channels (start, stop, log, check-ip, restart, status) + TorStatus/TorIpInfo types
 ├── git-ipc.ts              # Git service IPC channel names + request/response types (EPIC-030)
 ├── clipboard-ipc.ts        # File-clipboard DTOs (ClipboardFileList — CF_HDROP paths + drop effect)
 ├── search-ipc.ts           # Search IPC channels

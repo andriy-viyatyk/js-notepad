@@ -4,6 +4,7 @@ import { Input, Panel, Tag } from "../../uikit";
 import color from "../../theme/color";
 import { CopyIcon } from "../../theme/icons";
 import type { ILink } from "../../api/types/io.tree";
+import { resolveTorSrc, type TorProxyInfo } from "./tor-src";
 
 interface LinkTooltipContentProps {
     link: ILink;
@@ -11,6 +12,8 @@ interface LinkTooltipContentProps {
     onToggleTag?: (link: ILink, tag: string) => void;
     /** Show "Copy link as JSON" affordance next to the title. Default: false. */
     showCopyJson?: boolean;
+    /** US-896 — Tor session to fetch the preview image through, on a Tor page. */
+    imageProxy?: TorProxyInfo | null;
 }
 
 /**
@@ -18,8 +21,10 @@ interface LinkTooltipContentProps {
  * `<Tooltip content={<LinkTooltipContent ... />}>`. The legacy id-anchored
  * Tooltip wrapper is gone (replaced by per-trigger inline Tooltip wrapping).
  */
-export function LinkTooltipContent({ link, allTags, onToggleTag, showCopyJson }: Readonly<LinkTooltipContentProps>) {
+export function LinkTooltipContent({ link, allTags, onToggleTag, showCopyJson, imageProxy }: Readonly<LinkTooltipContentProps>) {
     const [newTag, setNewTag] = useState("");
+    // US-896 — null when the preview must not be loaded (Tor page, Tor not up).
+    const imageSrc = resolveTorSrc(link.imgSrc, imageProxy);
 
     const commitNewTag = useCallback((value: string) => {
         const trimmed = value.trim().replace(/:$/, "");
@@ -82,7 +87,7 @@ export function LinkTooltipContent({ link, allTags, onToggleTag, showCopyJson }:
                     {link.href}
                 </span>
             )}
-            {link.imgSrc && (
+            {imageSrc && (
                 <img
                     style={{
                         marginTop: 4,
@@ -92,7 +97,7 @@ export function LinkTooltipContent({ link, allTags, onToggleTag, showCopyJson }:
                         borderRadius: 4,
                         border: `1px solid ${color.border.default}`,
                     }}
-                    src={link.imgSrc}
+                    src={imageSrc}
                     alt=""
                 />
             )}

@@ -9,6 +9,7 @@ import { TreeProviderItemIcon } from "../../components/tree-provider/TreeProvide
 import { LinkTooltipContent } from "./LinkTooltip";
 import { useFavicons } from "../../components/tree-provider/favicon-cache";
 import { TraitTypeId, setTraitDragData } from "../../core/traits";
+import type { TorProxyInfo } from "./tor-src";
 
 const ROW_HEIGHT = 24;
 
@@ -26,6 +27,8 @@ interface LinksListRowProps {
     /** When set, row is draggable. Value is used as sourceId in drag payload. */
     dragSourceId?: string;
     allTags?: string[];
+    /** US-896 — Tor session for the tooltip's preview image, on a Tor page. */
+    imageProxy?: TorProxyInfo | null;
     onSelect?: (link: ILink) => void;
     onEdit?: (link: ILink) => void;
     onDelete?: (link: ILink, skipConfirm: boolean) => void;
@@ -36,7 +39,7 @@ interface LinksListRowProps {
 
 function LinksListRow({
     link, isSelected, searchText, additionalIcon,
-    dragSourceId, allTags, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag,
+    dragSourceId, allTags, imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag,
 }: LinksListRowProps) {
     const [isDragging, setIsDragging] = useState(false);
 
@@ -122,7 +125,7 @@ function LinksListRow({
                     searchText={link.isDirectory ? undefined : searchText}
                     icon={<TreeProviderItemIcon item={link} />}
                     label={label}
-                    tooltip={<LinkTooltipContent link={link} allTags={allTags} onToggleTag={onToggleTag} />}
+                    tooltip={<LinkTooltipContent link={link} allTags={allTags} onToggleTag={onToggleTag} imageProxy={imageProxy} />}
                     tooltipDelayShow={1200}
                     trailing={trailing}
                     draggable={!!dragSourceId}
@@ -161,6 +164,8 @@ export interface LinksListProps {
     allTags?: string[];
     /** Toggle a tag on a link (add if absent, remove if present). */
     onToggleTag?: (link: ILink, tag: string) => void;
+    /** US-896 — Tor session for the tooltip's preview image, on a Tor page. */
+    imageProxy?: TorProxyInfo | null;
     /** Called with the RenderGridModel on mount, null on unmount. */
     onGridModel?: (model: RenderGridModel | null) => void;
 }
@@ -168,7 +173,7 @@ export interface LinksListProps {
 export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(function LinksList({
     links, selectedId, getId = defaultGetId, searchText = "",
     onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
-    getAdditionalIcon, dragSourceId, allTags, onToggleTag, onGridModel,
+    getAdditionalIcon, dragSourceId, allTags, imageProxy, onToggleTag, onGridModel,
 }: LinksListProps, ref: React.ForwardedRef<RenderGridModel>) {
     const gridRef = useRef<RenderGridModel>(null);
     const [gridWidth, setGridWidth] = useState<number | undefined>(undefined);
@@ -211,6 +216,7 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
                         additionalIcon={getAdditionalIcon?.(link)}
                         dragSourceId={dragSourceId}
                         allTags={allTags}
+                        imageProxy={imageProxy}
                         onSelect={onSelect}
                         onEdit={onEdit}
                         onDelete={onDelete}
@@ -223,7 +229,8 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps -- faviconVersion bumps on favicon load to force re-render of cells (no direct read in body)
         [links, selectedId, getId, searchText, getAdditionalIcon, dragSourceId, allTags,
-         onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag, faviconVersion],
+         imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag,
+         faviconVersion],
     );
 
     return (

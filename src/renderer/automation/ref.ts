@@ -90,6 +90,14 @@ export async function resolveRef(cdp: CdpSession, ref: string): Promise<string> 
  * Resolve a ref and call a function on the resolved DOM element.
  * The function receives `this` bound to the element.
  * For frame-scoped refs, the function executes in the iframe's JS context.
+ *
+ * `fn` must be a plain `function () {…}` expression — it is invoked with `.call(element)`, so an
+ * arrow function would keep its lexical `this` and silently act on the wrong object.
+ *
+ * `fn` must also stay code authored in this repo. It is interpolated into the function declaration
+ * sent to the page, so a body built from agent- or user-supplied input would be an injection
+ * surface. Callers embed untrusted values with `JSON.stringify` (see `fillInput` in `input.ts`)
+ * rather than concatenating them into the body.
  */
 export async function callOnRef(
     cdp: CdpSession,
@@ -101,9 +109,23 @@ export async function callOnRef(
     const sessionId = frameIndex !== null ? frameSessionMap.get(frameIndex) : undefined;
     const objectId = await resolveRef(cdp, ref);
 
+    // A ref is a backendDOMNodeId, and a StaticText node's id backs a DOM *text* node — which has
+    // none of the Element methods every caller body uses (scrollIntoView/click/focus/value/...).
+    // In a list of roleless <div>s the StaticText ref is often the only ref on the row, so those
+    // rows would be unclickable by ref at all. Coerce to the element that displays the text: it is
+    // what the snapshot line denotes, and since DOM events bubble, acting on the inner element
+    // still reaches a handler bound to the row around it.
+    const notAnElement = JSON.stringify(`Ref "${ref}" resolved to a `);
+    const noParent = JSON.stringify(" node with no element parent. Re-take the snapshot.");
+    const wrapped = `function() {
+        const el = this.nodeType === 1 ? this : this.parentElement;
+        if (!el) throw new Error(${notAnElement} + this.nodeName + ${noParent});
+        return (${fn}).call(el);
+    }`;
+
     const result = await cdp.send("Runtime.callFunctionOn", {
         objectId,
-        functionDeclaration: fn,
+        functionDeclaration: wrapped,
         returnByValue,
         awaitPromise: true,
     }, sessionId);

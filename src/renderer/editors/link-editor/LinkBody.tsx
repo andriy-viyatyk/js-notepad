@@ -18,6 +18,11 @@ export function LinkBody({ model }: { model: LinkEditor }) {
         allLinks: s.data.links,
         pinnedLinksRaw: s.data.state.pinnedLinks,
         pinnedPanelWidth: s.data.state.pinnedPanelWidth ?? 100,
+        // Derived inside the selector on purpose: the mode is stored under
+        // `data.state.*ViewMode`, which nothing else here reads, so calling
+        // getViewMode() outside the selector left the body frozen on the old
+        // mode until some other selected field happened to change.
+        viewMode: model.getViewMode(s),
     }));
 
     // The sidebar active-panel → `expandedPanel` sync lives on the model
@@ -34,7 +39,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
         model.gridModel?.update({ all: true });
     }, [model, pageState.filteredLinks]);
 
-    const viewMode = model.getViewMode();
+    const viewMode = pageState.viewMode;
     const pinnedLinks = model.getPinnedLinks();
     const pinnedLinkIds = useMemo(
         () => new Set(pageState.pinnedLinksRaw ?? []),
