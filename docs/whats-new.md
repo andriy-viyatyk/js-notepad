@@ -12,6 +12,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Tor browser — connection info dialog with exit IP and Reconnect** — A new **"?" button** on the toolbar, shown only in Tor mode, opens a dialog reporting the exit IP address a remote server actually sees, its approximate country/city, and whether traffic is confirmed to be exiting through Tor. A **Reconnect** button restarts the Tor daemon to get a fresh circuit (and usually a new exit node); if Tor selects the same exit again, the dialog says so. Reconnecting is app-wide — every open Tor page briefly shows "connecting" and recovers automatically. See [Browser — Connection Info and Reconnecting](./browser.md#connection-info-and-reconnecting).
 
+- **"Copy board path" context-menu item** — Right-clicking a board in the **Boards** Explorer panel or the **Boards** tab of the Tools & Editors sidebar now offers **Copy board path**, copying the board's folder path to the clipboard. See [Boards — Managing boards](./boards.md#managing-boards).
+
 ### Bug Fixes
 
 - **Link editor bookmark images no longer leak your IP in Tor mode** — Bookmark thumbnails and preview images shown in a Tor browser page's Link Editor (blank tab, bookmarks drawer, tooltips, Edit Link dialog) are now fetched through the page's Tor connection instead of going out directly. If Tor isn't connected yet, a placeholder is shown instead of fetching anything. Adding a bookmark while browsing in Tor mode also no longer saves a favicon to disk. See [Browser — Bookmark Images in Tor Mode](./browser.md#bookmark-images-in-tor-mode).

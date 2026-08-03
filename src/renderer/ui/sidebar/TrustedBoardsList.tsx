@@ -124,8 +124,13 @@ export function TrustedBoardsList({ onClose }: TrustedBoardsListProps) {
             });
         }
         items.push({
+            label: "Copy board path",
+            onClick: () => { void navigator.clipboard.writeText(root); },
+        });
+        items.push({
             label: "Remove",
             onClick: () => { void handleRemove(root); },
+            startGroup: true,
         });
         return items;
     }, [updates, handleRemove]);

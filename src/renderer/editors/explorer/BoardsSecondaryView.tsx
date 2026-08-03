@@ -24,7 +24,7 @@ import { SplitButton } from "../../uikit/SplitButton";
 import { Button } from "../../uikit/Button";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { CloseIcon, PlusIcon, BoardIcon, DeleteIcon, OpenLinkIcon, RemoveIcon } from "../../theme/icons";
+import { CloseIcon, PlusIcon, BoardIcon, DeleteIcon, OpenLinkIcon, RemoveIcon, CopyIcon } from "../../theme/icons";
 import color from "../../theme/color";
 import { BoardsTree } from "../board/BoardsTree";
 import { ToolsTree } from "../tools/ToolsTree";
@@ -211,6 +211,11 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
             label: "Open in New Tab",
             icon: <OpenLinkIcon width={14} height={14} />,
             onClick: () => openBoardInNewTab(root),
+        },
+        {
+            label: "Copy board path",
+            icon: <CopyIcon width={14} height={14} />,
+            onClick: () => { void navigator.clipboard.writeText(root); },
         },
         {
             label: "Delete Board",

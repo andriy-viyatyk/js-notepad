@@ -669,6 +669,7 @@ browser_evaluate({ pageId: "abc", expression: "document.querySelector('#result')
 | Reload the board | Click the **Reload** button in the in-board toolbar |
 | View the error log | Click **Show log** (log icon) in the in-board toolbar |
 | Pin a board | In the **Boards** tab, hover the board row and click the pin button |
+| Copy a board's folder path | Right-click the board in the **Boards** Explorer panel or the **Boards** tab → **Copy board path** |
 | Remove / untrust a locally-created board | Right-click the board in the **Boards** tab → **Remove** |
 | Delete a locally-created board | Right-click in the **Boards** Explorer panel → **Delete Board** |
 | Rename a locally-created board | Rename the board's folder in the file system (Explorer, terminal, or the File Explorer sidebar), or ask an AI agent to rename it (`app.boards.renameBoard`) |
