@@ -318,6 +318,15 @@ export abstract class EditorModel<
      *  may have gone stale since it was last the main editor. */
     onNavigationReuse?(): void;
 
+    // ── In-document anchor navigation (US-901) ────────────────────────────
+
+    /** Optional. Scroll to a document fragment (anchor / heading slug) after this
+     *  editor is attached to a page. Called once by the pages lifecycle when the
+     *  opening `ILinkData` carried a `fragment` — including when an already-open
+     *  editor instance is reused for the navigation. Default: undefined — editors
+     *  without in-document anchors simply don't implement it. */
+    revealFragment?(fragment: string): void;
+
     // ── View focus signal (walkthrough 20 / MO7) ──────────────────────────
 
     /** Called by `<TextChrome>` after its 200ms root-focus subscription fires

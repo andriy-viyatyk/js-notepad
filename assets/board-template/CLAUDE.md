@@ -55,11 +55,32 @@ fields that let the board act as a file editor:
 
 - `fileMasks` (optional) — glob masks (matched against the file **name**) this board edits,
   e.g. `["*.drawio"]` or `["*.grid.json"]`. `*` = any run of chars, `?` = one char; a bare
-  extension (`".drawio"`) is accepted and treated as `*.drawio`. When set, the board appears
-  in the editor **switch** for matching files.
+  extension (`"drawio"` / `".drawio"`) is accepted and treated as `*.drawio`. A wildcard-free
+  mask with a dot **inside** it is an exact **file name**, not an extension — `["DASHBOARD.md"]`
+  claims files named exactly that (pair it with `folderMasks` to scope where). When set, the
+  board appears in the editor **switch** for matching files.
+- `folderMasks` (optional) — narrows `fileMasks` to files sitting in matching **folders**, e.g.
+  `"fileMasks": ["DASHBOARD.md"], "folderMasks": ["*/tasks"]` claims `…/dev/tasks/DASHBOARD.md`
+  but leaves every other `DASHBOARD.md` to its built-in editor. Omit for "any folder" (the default). Matched
+  against the file's **parent folder**, case-insensitively, with either separator, and anchored
+  at the **end** of the path — a mask is a folder-path *suffix*, so it need not spell out the
+  drive. `*` and `?` stop at a separator, `**` crosses them: `*/tasks` = exactly one segment
+  above `tasks`, `tasks` = a folder of that name at any depth, `**/dev/tasks` = `dev/tasks`
+  anywhere, `c:/projects/acme/**` = anything *under* that tree (the tree root itself is not
+  matched — add it as a second mask if you need it). Narrowing only: `folderMasks` with no
+  `fileMasks` registers nothing. One exception, by design — the **file icon** ignores
+  `folderMasks` (icon lookups have only a file name, no path), so every name-matching file
+  shows this board's icon even outside the folder scope; only the editor that actually *opens*
+  the file respects the scope.
 - `editorPriority` (optional) — number; makes the board the **default** editor for its masks
-  when it outranks the built-in editor. Omit or `0` → the board is a switch option only and
-  the built-in editor stays the default.
+  when it **strictly outranks** the built-in editor that also claims the file. Omit or `0` → the
+  board is a switch option only and the built-in editor stays the default. The built-in ladder:
+  Monaco `0` (the catch-all floor), Markdown Preview `10` (`.md` & friends), compound-name
+  editors `20` (`*.grid.json`, `*.note.json`, `*.rest.json`, …), Drawing `50`, PDF / image /
+  archive / video viewers `100`. So `1` is enough to beat Monaco on a plain text file, but a
+  board claiming `DASHBOARD.md` needs **more than 10** to win over Markdown Preview — ties go
+  to the built-in. When in doubt, `100` beats everything except the media viewers, and `200`
+  beats those too.
 - `editorName` (optional) — label shown on the editor-switch widget (falls back to `name`).
 - `editorKind` (optional) — how Persephone backs this editor. Omit or `"simple"` (default) → the
   board gets the file path via `persephone.getFilePath()` and reads/writes it directly with

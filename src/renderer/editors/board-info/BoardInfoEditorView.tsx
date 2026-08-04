@@ -298,6 +298,25 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
     );
 }
 
+/** One bordered mask chip (file or folder glob) in the properties "Editor for" row. */
+function MaskChip({ mask }: { mask: string }) {
+    return (
+        <Panel
+            name="board-info-mask"
+            direction="row"
+            align="center"
+            background="light"
+            border
+            borderColor="default"
+            rounded="sm"
+            paddingX="sm"
+            paddingY="xs"
+        >
+            <Text size="sm">{mask}</Text>
+        </Panel>
+    );
+}
+
 function PropertiesBody({
     model,
     props,
@@ -355,22 +374,15 @@ function PropertiesBody({
                     <InfoRow label="Editor for">
                         <Panel direction="row" align="center" gap="xs" wrap>
                             {props.editorName && <Text size="sm">{props.editorName}</Text>}
-                            {props.fileMasks?.map((m) => (
-                                <Panel
-                                    key={m}
-                                    name="board-info-mask"
-                                    direction="row"
-                                    align="center"
-                                    background="light"
-                                    border
-                                    borderColor="default"
-                                    rounded="sm"
-                                    paddingX="sm"
-                                    paddingY="xs"
-                                >
-                                    <Text size="sm">{m}</Text>
-                                </Panel>
-                            ))}
+                            {props.fileMasks?.map((m) => <MaskChip key={m} mask={m} />)}
+                            {/* Folder scope, when the board narrows its file masks to certain
+                                locations — without it the row would read as "every DASHBOARD.md". */}
+                            {(props.folderMasks?.length ?? 0) > 0 && (
+                                <>
+                                    <Text size="sm" color="light">in</Text>
+                                    {props.folderMasks?.map((m) => <MaskChip key={m} mask={m} />)}
+                                </>
+                            )}
                             {props.editorKind && (
                                 <Text size="sm" color="light">{`(${props.editorKind})`}</Text>
                             )}

@@ -333,8 +333,9 @@ Declare the association with fields in `board-manifest.json`:
 
 | Field | Purpose |
 |-------|---------|
-| `fileMasks` | One or more glob masks matched against the file's name — `*` matches any run of characters, `?` matches a single character. A bare extension (e.g. `.drawio`) is treated the same as `*.drawio`. Masks also support compound extensions, e.g. `*.grid.json`. |
-| `editorPriority` | A number that decides whether the board also becomes the **default** editor for matching files (not just a switch option). Persephone's built-in editors each sit at their own priority level, with the Text Editor lowest; set a value higher than the built-in editor for that file type to make the board the one that opens automatically. Omit it (or leave it `0`) and the board is offered only as a switch option — the built-in editor keeps opening by default. |
+| `fileMasks` | One or more glob masks matched against the file's name — `*` matches any run of characters, `?` matches a single character. A bare extension (e.g. `drawio` or `.drawio`) is treated the same as `*.drawio`. A mask with no wildcard but a dot inside it is an **exact file name** — `"DASHBOARD.md"` claims files named exactly that, not every `.md` file. Masks also support compound extensions, e.g. `*.grid.json`. |
+| `folderMasks` | Optional — one or more glob masks matched against the file's *parent folder*, narrowing where `fileMasks` applies. See [Scoping to a folder](#scoping-to-a-folder--foldermasks) below. |
+| `editorPriority` | A number that decides whether the board also becomes the **default** editor for matching files (not just a switch option). Persephone's built-in editors each sit at their own priority level; set a value higher than the built-in editor for that file type to make the board the one that opens automatically. Ties go to the built-in editor. Omit it (or leave it `0`) and the board is offered only as a switch option — the built-in editor keeps opening by default. Built-in priority levels: Text Editor `0`, Markdown Preview `10`, compound-name editors such as `*.grid.json`/`*.note.json` `20`, Drawing `50`, PDF/image/archive/video viewers `100`. For example, a board claiming `.md` files (like the `folderMasks` example below, which uses `fileMasks: ["DASHBOARD.md"]`) needs `editorPriority` **above 10** to open by default — Markdown Preview now claims that slot, not the Text Editor's floor of `0`. |
 | `editorName` | The label shown for the board in the editor-switch control. Falls back to the board's folder name if omitted. |
 | `editorKind` | Optional — `"simple"` (default, if omitted) or `"content-host"`. Decides *how* the board gets the file's content. See [Simple editors](#simple-editors--reading-the-file-directly) and [Content-host editors](#content-host-editors--sharing-persephones-file-with-the-board) below. |
 
@@ -343,7 +344,34 @@ Declare the association with fields in `board-manifest.json`:
 - **The board must be trusted.** An untrusted board's file association is completely ignored — no switch option, no default-editor behavior — until you trust it. Un-trusting a board removes the association immediately.
 - **The tab and icon follow the file, not the board.** When a board is opened as a file's editor, the page tab shows the **file's name** (not the board's folder name). Wherever that board wins as the file's *default* editor, its icon also replaces the generic file icon — in the File Explorer tree, other file lists, and page tabs (see [Board icon](#board-icon)).
 - **Unsaved changes are protected.** Switching away from a modified built-in editor to a **simple** board runs the usual "Save changes?" prompt (Save / Don't Save / Cancel) before the switch happens, the same prompt used when navigating away from unsaved changes anywhere else in Persephone. A **content-host** board doesn't need this — its content transfers directly with nothing to lose (see below).
-- A change to `fileMasks` / `editorPriority` / `editorName` / `editorKind` in the manifest takes effect the next time the board or trust list is refreshed, not while a page is already showing the board.
+- A change to `fileMasks` / `folderMasks` / `editorPriority` / `editorName` / `editorKind` in the manifest takes effect the next time the board or trust list is refreshed, not while a page is already showing the board.
+- **The full set of switch buttons stays visible while the board is active.** Whichever editor is currently showing — the board or one of the file's built-in editors — the same switch buttons appear in the same order, so you can jump directly from the board to any other available editor (e.g. Preview) without detouring through the Text Editor first.
+
+### Scoping to a folder — `folderMasks`
+
+By default, a board's `fileMasks` claim every matching file name, anywhere on disk. `folderMasks` narrows that to files that also sit in a matching folder:
+
+```json
+{
+  "fileMasks": ["DASHBOARD.md"],
+  "folderMasks": ["*/tasks"]
+}
+```
+
+This claims only a `DASHBOARD.md` that lives directly inside a folder named `tasks` (for example `…/dev/tasks/DASHBOARD.md`) — any other `DASHBOARD.md` elsewhere on disk is left to Monaco (or whichever editor would normally open it).
+
+**Matching rules:**
+
+- Matched against the file's **parent folder**, case-insensitive, and either slash style (`/` or `\`) is accepted.
+- A mask is anchored at the **end** of the path — it's a folder-path *suffix*, so it doesn't need to spell out the drive letter or every ancestor folder.
+- `*` and `?` stop at a folder separator; `**` crosses them:
+  - `*/tasks` — exactly one folder segment above `tasks` (matches `…/dev/tasks`, not `…/dev/sub/tasks`).
+  - `tasks` — a folder named `tasks` at **any** depth.
+  - `**/dev/tasks` — `dev/tasks` anywhere in the path, with any number of segments in between.
+  - `c:/projects/acme/**` — anything under that tree (the tree root itself, `c:/projects/acme`, is not matched — only what's inside it).
+- **Narrowing only.** `folderMasks` with no `fileMasks` registers nothing — there's nothing to narrow.
+- **The board icon is the one exception.** A file-icon lookup (File Explorer tree, other file lists, page tabs) often has only a file *name*, no path, so it can't evaluate a folder scope — a folder-scoped board's icon still shows for every name-matching file, even outside the folder. Only the editor that actually **opens** the file (the default-editor choice and the editor-switch control) honors `folderMasks`; the icon is cosmetic.
+- The Board Info page's **"Editor for"** row shows both `fileMasks` and, when present, `folderMasks`, and folder masks are carried through the [published-boards catalog](#published-boards-catalog--discover-install-update) alongside `fileMasks`.
 
 ### Simple editors — reading the file directly
 

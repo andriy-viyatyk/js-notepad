@@ -1,8 +1,7 @@
 import { globalKeyDown } from "../../core/state/events";
 import { pagesModel } from "../pages";
 import { api } from "../../../ipc/renderer/api";
-import { cycleTheme, getCurrentThemeId } from "../../theme/themes";
-import { settings } from "../settings";
+import { cycleAppTheme } from "../cycle-app-theme";
 
 /**
  * Global keyboard service for application-wide shortcuts.
@@ -60,9 +59,7 @@ export class KeyboardService {
             case "BracketLeft":
                 if (e.ctrlKey && e.altKey) {
                     e.preventDefault();
-                    const direction = e.code === "BracketRight" ? 1 : -1;
-                    cycleTheme(direction);
-                    settings.set("theme", getCurrentThemeId());
+                    cycleAppTheme(e.code === "BracketRight" ? 1 : -1);
                 }
                 break;
         }

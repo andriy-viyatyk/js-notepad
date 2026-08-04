@@ -46,7 +46,7 @@ See **[Grid Editor](./grid-editor.md)** for complete documentation including all
 
 ## Markdown Preview
 
-For `.md` and `.markdown` files — click **Preview** in the toolbar:
+`.md`, `.markdown`, and the other recognized Markdown extensions (`.mkd`, `.mdown`, `.mkdn`, `.mdwn`, …) open directly in **Preview**, however you got there — from the Explorer, a clicked link, drag-and-drop, a script, or an MCP tool. Click **Text Editor** in the toolbar to see and edit the raw source, and **Preview** to come back:
 
 - **GitHub-flavored Markdown** rendering
 - **Text search** — press `Ctrl+F` to find text, `F3`/`Shift+F3` to navigate matches, `Esc` to close
@@ -61,7 +61,14 @@ For `.md` and `.markdown` files — click **Preview** in the toolbar:
 - **Azure DevOps wiki links** — when the Markdown file lives inside a git repository, root-relative ADO wiki paths are resolved against the wiki root (the folder that contains `.git`):
   - **Images** — a leading-slash image path such as `![](/.attachments/diagram.png)` resolves to `<wiki-root>/.attachments/diagram.png` and renders inline
   - **Page links** — a link like `[Page](/Area/Some%20Page)` or `[Page](/Business-Rule-Engine-(BRE))` resolves to the on-disk file at `<wiki-root>/Area/Some-Page.md` (literal dashes and parentheses in the path are kept as-is; only bare spaces are converted to dashes). Clicking the link navigates in the same tab (see **in-page navigation** below)
-- **In-page navigation** — clicking a link to a local Markdown file (`.md` or `.markdown`) loads the target document **in the same tab** without opening a new one. The tab stays in Markdown Preview mode. A **← Back** button appears in the toolbar after the first such navigation; clicking it returns to the previous document. The back history is per-tab, unlimited depth, and **persists across app restarts and moving the tab to another window**. All other links — `http`/`https`, images, non-Markdown files, `#fragment` anchors, and `mailto:` — continue to open as before (new tab or current behavior)
+- **In-page navigation** — clicking a link to a local Markdown file (`.md` or `.markdown`) loads the target document **in the same tab** without opening a new one. The tab stays in Markdown Preview mode. A **← Back** button appears in the toolbar after the first such navigation; clicking it returns to the previous document. The back history is per-tab, unlimited depth, and **persists across app restarts and moving the tab to another window**. All other links — `http`/`https`, images, non-Markdown files, and `mailto:` — continue to open as before (new tab or current behavior)
+- **Anchor links (`#fragment`)** — a link to a heading works whether it points at another document or the current one:
+  - **`[text](other-doc.md#heading)`** — opens the target document (same-tab navigation, as above) and scrolls to the heading once it renders.
+  - **`[text](#heading)`** — scrolls to the heading in the current document, in place — it does not navigate, and does not add a **← Back** entry.
+  - Every rendered heading gets a stable, GitHub-style anchor id (lowercased, punctuation stripped, spaces → hyphens; duplicate headings get `-1`, `-2`, … suffixes). Matching a link's fragment against these ids is tolerant: exact match first, then case-insensitive, then a slug comparison against the heading's text — so both GitHub-style fragments (`#some-heading`) and Azure DevOps wiki-style fragments (`#some.heading`) resolve to the same heading.
+  - If the fragment doesn't match any heading, the document still opens normally at the top — no error.
+  - Works for Azure DevOps wiki root-relative links and for `mneme://` documents, the same as any other Markdown link.
+  - **Ctrl+click** (or **Cmd+click**) on any link, including an anchor link, opens it in a new tab instead of navigating/scrolling in place.
 - **Live preview** updates as you type
 - **Minimap** navigation on the right side
 - **Link context menu** — right-click a link for: "Copy Link", "Open in Default Browser", "Open in Internal Browser", browser profiles, "Open in Incognito"
@@ -835,17 +842,17 @@ Some files support multiple editors:
 | File Type | Available Editors |
 |-----------|-------------------|
 | `.json` | Text, Grid |
-| `.note.json` | Text, Notebook |
-| `.link.json` | Text, Links |
+| `.note.json` | Text, **Notebook (default)** |
+| `.link.json` | Text, **Links (default)** |
 | `.csv` | Text, Grid |
 | `.jsonl` / `.ndjson` | Text, Grid |
-| `.md` | Text, Preview |
+| `.md` / `.markdown` (and other recognized Markdown extensions) | Text, **Preview (default)** |
 | `.svg` | Text, Preview |
 | `.html` | Text, Preview |
 | `.mmd` | Text, Mermaid |
-| `.excalidraw` | Text, Drawing |
-| `.fg.json` | Text, Graph |
-| `.rest.json` | Text, Rest Client |
+| `.excalidraw` | Text, **Drawing (default)** |
+| `.fg.json` | Text, **Graph (default)** |
+| `.rest.json` | Text, **Rest Client (default)** |
 | `.zip`, `.docx`, `.xlsx`, etc. | Archive Editor |
 | `.asar` | Archive Editor (read-only) |
 | `.pdf` | PDF only |
@@ -855,7 +862,7 @@ Some files support multiple editors:
 | Any text file in a git repo (requires Git integration enabled) | + Git Diff |
 | Other | Text only |
 
-Use the buttons in the toolbar to switch between available editors.
+Use the buttons in the toolbar to switch between available editors. Where a row marks one editor **(default)**, that is the editor the file opens in and Text is the switch option; otherwise the file opens in the Text editor and the others are switch options.
 
 **Content-based detection:** JSON pages that contain a `"type"` property (`"note-editor"`, `"link-editor"`, `"rest-client"`, or `"force-graph"`) automatically show the corresponding switch button — even without the special file extension. For the Graph View, the JSON must also contain a `"nodes"` property; for the Rest Client, it must also contain a `"requests"` property. This is useful for pages created via MCP or scripting.
 

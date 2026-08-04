@@ -233,18 +233,27 @@ The registry stores the module factory; the factory runs on first `getById` / `r
 | `create()` | Factory returning a new `EditorModel` instance |
 | `hasContentHost` | `true` for text-bearing editors that compose an `IContentHost` |
 | `accepts(input)` | Returns priority ≥ 0 if this editor accepts the input (file/url/content), -1 otherwise |
+| `acceptFile(fileName)` | Returns priority ≥ 0 if this editor should **open** the file by default, -1 otherwise. File **name** only — no language, no content |
 | `validateForLanguage(lang)` | Returns `true` if the editor is valid for the language |
 | `switchOption(lang, filePath?)` | Returns priority ≥ 0 to show in the switch dropdown, -1 to hide |
 | `isEditorContent(lang, content)` | Returns `true` if content matches this editor (regex-based, no JSON parsing) |
 
+`acceptFile` and `switchOption` answer different questions and are independently optional. `acceptFile` decides which editor a file *opens* in (`editorRegistry.resolve` / `resolveId` consult nothing else); `switchOption` decides which editors appear in the switch widget for a *language*. An editor may declare either or both — `md-view` declares both (so Markdown opens in Preview *and* is switchable), while `html-view` and `mermaid-view` declare only `switchOption` (so they are reachable by switching but never claim a file on open).
+
 ### Priority Guidelines
 
-- `0` — Fallback (monaco text editor)
-- `10` — Alternative text views (markdown preview, grid view)
-- `20` — Specialized text editors (e.g., `*.grid.json` → grid editor)
-- `50` — Standard editors for specific file types
-- `90` — Content-based detection (e.g., JSON with `"type": "note-editor"`)
-- `100` — Exclusive editors (PDF, image)
+The `acceptFile` ladder as actually registered — highest wins, and ties go to whichever editor the registry iterates first, so avoid ties:
+
+- `0` — Fallback: monaco, the floor that guarantees every file resolves
+- `10` — Rendered view preferred over source: markdown preview
+- `20` — Compound file names: `*.grid.json`, `*.note.json`, `*.rest.json`, `*.link.json`, `*.fg.json`, `*.log.jsonl`, `*.env.json`, `*.grid.csv`
+- `50` — Dedicated format editors: `.excalidraw` → drawing
+- `100` — Exclusive viewers with no text view: PDF, image, archive, video
+- `200` — Pseudo-paths: `tree-category://` links
+
+Content-based detection is **not** on this ladder — it scores `60` inside `accepts()` and never reaches `acceptFile`, so it influences the switch widget and `detectContentEditor`, not which editor opens a file.
+
+A trusted board declaring `editorPriority` in its `board-manifest.json` competes on this same ladder and must **strictly** exceed the best built-in claimant to become the default. See [Custom-Editor Boards](../architecture/editors.md#custom-editor-boards).
 
 ## Step 6: Update Shared Types (if introducing new IDs)
 

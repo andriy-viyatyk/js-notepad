@@ -35,6 +35,7 @@ export function registerOpenHandler(): void {
                 await pagesModel.lifecycle.navigatePageTo(pageId, filePath, {
                     revealLine: data.revealLine,
                     highlightText: data.highlightText,
+                    fragment: data.fragment,
                     title: data.title,
                     sourceLink,
                     pipe: data.pipe,
@@ -52,6 +53,7 @@ export function registerOpenHandler(): void {
             try {
                 await pagesModel.lifecycle.openFile(filePath, data.pipe, {
                     sourceLink,
+                    fragment: data.fragment,
                     target: data.target,
                     diffFrom: data.diffFrom,
                     diffTo: data.diffTo,

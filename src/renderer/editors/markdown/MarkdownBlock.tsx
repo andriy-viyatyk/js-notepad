@@ -8,6 +8,7 @@ import { CheckedIcon, CopyIcon, UncheckedIcon } from "../../theme/icons";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { createRehypeHighlight } from "./rehypeHighlight";
+import { rehypeHeadingIds, slugifyHeading } from "./rehypeHeadingIds";
 import { CodeBlock, createPreBlock } from "./CodeBlock";
 import { MarkdownImage } from "./MarkdownImage";
 import { isCurrentThemeDark } from "../../theme/themes";
@@ -43,6 +44,9 @@ export interface MarkdownBlockHandle {
     readonly totalMatches: number;
     /** Scroll to and highlight the Nth match (0-based). */
     scrollToMatch(index: number): void;
+    /** Scroll to a `#fragment` anchor (without the "#"). Returns false when no
+     *  matching element exists yet — the caller may retry after a render. */
+    scrollToAnchor(fragment: string): boolean;
 }
 
 // =============================================================================
@@ -416,6 +420,37 @@ function preprocessFrontmatter(content: string): string {
 }
 
 // =============================================================================
+// Anchor resolution (US-901)
+// =============================================================================
+
+/**
+ * Find the element a `#fragment` refers to, tolerantly. Three passes, in order:
+ *
+ * 1. exact `id` — the common case, matching the slugs `rehypeHeadingIds` emits;
+ * 2. case-insensitive `id` — hand-authored links that don't match the slug's case;
+ * 3. slug-of-fragment vs slug-of-heading-text — absorbs the GitHub / Azure DevOps
+ *    dialect gap (ADO writes `#rtb.rul.2` where GitHub slugs `rtbrul2`).
+ *
+ * Scoped to `root`, never `document`: several Markdown views can be mounted at once.
+ */
+function findAnchorTarget(root: HTMLElement, fragment: string): HTMLElement | null {
+    const exact = root.querySelector<HTMLElement>(`[id="${CSS.escape(fragment)}"]`);
+    if (exact) return exact;
+
+    const lower = fragment.toLowerCase();
+    const withId = Array.from(root.querySelectorAll<HTMLElement>("[id]"));
+    const caseInsensitive = withId.find((el) => el.id.toLowerCase() === lower);
+    if (caseInsensitive) return caseInsensitive;
+
+    const slug = slugifyHeading(fragment);
+    if (!slug) return null;
+    const headings = Array.from(
+        root.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6"),
+    );
+    return headings.find((h) => slugifyHeading(h.textContent || "") === slug) ?? null;
+}
+
+// =============================================================================
 // Components for ReactMarkdown
 // =============================================================================
 
@@ -494,7 +529,9 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
 
         // Rehype plugin for search text highlighting
         const rehypePlugins = useMemo(() => {
-            const plugins: unknown[] = [rehypeRaw];
+            // rehypeHeadingIds runs unconditionally — `#fragment` links need heading
+            // ids whether or not a search is active (US-901).
+            const plugins: unknown[] = [rehypeRaw, rehypeHeadingIds];
             if (highlightText) {
                 plugins.push(createRehypeHighlight(highlightText));
             }
@@ -558,6 +595,18 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
                         spans[index]?.scrollIntoView({ block: "center", behavior: "smooth" });
                     });
                 }
+            },
+            scrollToAnchor(fragment: string) {
+                const el = rootRef.current;
+                if (!el || !fragment) return false;
+                const target = findAnchorTarget(el, fragment);
+                if (!target) return false;
+                // Synchronous and instant, unlike scrollToMatch: an anchor jump is the
+                // reader's starting position for a document, not a movement within one.
+                // The caller relies on the scroll being complete when this returns so it
+                // can record the position (see MarkdownBody's PV4 handling).
+                target.scrollIntoView({ block: "start", behavior: "auto" });
+                return true;
             },
         }), []);
 

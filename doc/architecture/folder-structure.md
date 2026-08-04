@@ -325,10 +325,11 @@ persephone/
 │   ├── markdown/           # Markdown preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── MarkdownEditor.ts         # EditorModel — search state, scroll, compact
 │   │   ├── MarkdownBody.tsx          # React component
-│   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (CSS, ReactMarkdown, search handle)
+│   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (CSS, ReactMarkdown, search + anchor handle)
 │   │   ├── CodeBlock.tsx             # Code block + inline Mermaid (+ copyImageToClipboard helper)
 │   │   ├── MarkdownImage.tsx         # Rendered image + hover toolbar (Copy / Open in new tab)
 │   │   ├── rehypeHighlight.ts        # Search text highlighting
+│   │   ├── rehypeHeadingIds.ts       # Heading slug ids for #fragment links (+ slugifyHeading)
 │   │   ├── markdown-nav.ts           # isLocalMarkdownHref — local-.md link detection for in-page nav
 │   │   └── index.tsx
 │   │
@@ -556,7 +557,7 @@ persephone/
 │   │   ├── boards-tree-build.ts      # Pure builder: board path list → compacted folder/board node tree
 │   │   ├── BoardGlyph.tsx            # Default board glyph icon
 │   │   ├── BoardTargetModel.ts       # Automation adapter (IBrowserTarget for browser_* MCP tools)
-│   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one; Custom Editor fields (fileMasks/editorPriority/editorName) + matcher/accessor helpers
+│   │   ├── board-manifest.ts         # board-manifest.json identity file — read/ensure; a folder is a board iff it carries one; Custom Editor fields (fileMasks/folderMasks/editorPriority/editorName) + matcher/accessor helpers
 │   │   ├── custom-editor-registry.ts # Reactive mask → trusted-board map; board-editor:<root> virtual ids; resolveEditorIdForFile (merges built-in + board at file-open); isBoardEditorId
 │   │   ├── board-icon-cache.ts       # Module-level icon cache (SVG/PNG/ICO → data URL, per board path)
 │   │   ├── board-usage-cache.ts      # Reactive board-standalone metadata cache (mirrors the icon cache; gates pin affordances)

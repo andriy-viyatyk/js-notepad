@@ -19,11 +19,11 @@ All editor code lives in `/src/renderer/editors/`.
 
 | Editor ID | Class | File types | IContentHost? | Trait? |
 |-----------|-------|------------|---------------|--------|
-| `monaco` | `MonacoEditor` | `*` (all, default) | ✓ | ✓ |
+| `monaco` | `MonacoEditor` | `*` (all — the fallback when nothing else claims the file) | ✓ | ✓ |
 | `grid-json` | `GridEditor` | `.json`, `.grid.json` | ✓ | ✓ |
 | `grid-csv` | `GridEditor` | `.csv`, `.grid.csv` | ✓ | ✓ |
 | `grid-jsonl` | `GridEditor` | `.jsonl`, `.ndjson`, `.grid.jsonl` | ✓ | ✓ |
-| `md-view` | `MarkdownEditor` | `.md`, `.markdown` | ✓ | ✓ |
+| `md-view` | `MarkdownEditor` | `.md`, `.markdown`, … (opens by default) | ✓ | ✓ |
 | `svg-view` | `SvgEditor` | `.svg` | ✓ | ✓ |
 | `html-view` | `HtmlEditor` | `.html` | ✓ | ✓ |
 | `mermaid-view` | `MermaidEditor` | `.mmd`, `.mermaid` | ✓ | ✓ |
@@ -306,29 +306,47 @@ When a file is opened:
 File path → editorRegistry.resolve(filePath) → EditorModule → create() → Render
 ```
 
-Resolution priority (higher priority wins):
-1. Content-based detection (e.g., `"type": "note-editor"` in JSON) — priority 90 (when applicable)
-2. Filename patterns (e.g., `*.note.json`) — priority 20
-3. File extensions (e.g., `.pdf`) — priority 100
-4. Default to monaco text editor — priority 0
+`resolve` consults **only** each matcher's `acceptFile(fileName)` — a pure file-name test — and the highest returned priority wins. The tiers:
 
-All editor registration is in `/src/renderer/editors/register-editors.ts`.
+| Priority | Claimants | Matched on |
+|----------|-----------|------------|
+| 0 | `monaco` | everything — the floor that guarantees a file always resolves |
+| 10 | `md-view` | any extension the Monaco language table maps to `markdown` |
+| 20 | `grid-json`, `grid-csv`, `grid-jsonl`, `log-view`, `notebook-view`, `rest-client`, `link-view`, `graph-view`, `env-vars-view` | compound file-name patterns (`*.note.json`, `*.grid.csv`, …) |
+| 50 | `draw-view` | `.excalidraw` |
+| 100 | `pdf-view`, `image-view`, `archive-view`, `video-view` | binary-format extensions |
+| 200 | `category-view` | `tree-category://` links |
+
+Markdown sits at 10 rather than sharing monaco's floor because Persephone is used far more as a documentation *viewer* than as a Markdown editor, so `.md` files open in the rendered Preview by default. The tier is kept below 20 so a compound name always outranks it, and `md-view` derives its extension set from the shared Monaco language table (`getLanguageByExtension`) instead of a duplicated list — `.md`, `.markdown`, `.mkd`, `.mdown`, and the rest come along automatically.
+
+Content-based detection is **not** part of this path: `acceptFile` never sees content. It belongs to `accepts()` (priority 60 when a `detectsContent` matcher fires) and reaches the user through the switch widget and `detectContentEditor` — see [Content-Based Editor Detection](#content-based-editor-detection).
+
+All editor registration is in `/src/renderer/editors/register-editors.ts`; the matchers themselves are in `/src/renderer/editors/base/editor-matchers.ts`.
 
 ## Custom-Editor Boards
 
 A trusted **Board** can register itself as the editor for a file type, so it appears in the editor switch next to Monaco (and can become the default open target) — the same extensibility the built-in editors have, but authored entirely outside Persephone's code. A board declares the association in its `board-manifest.json`:
 
-- `fileMasks` — glob masks (`*`, `?`) matched against the file **basename** (e.g. `["*.drawio"]`, `["*.grid.json"]`). A bare extension is coerced to a suffix mask.
-- `editorPriority` — the board's slot on the same numeric resolution ladder the built-in editors use (monaco 0 / grid 20 / draw 50 / viewers 100 / category 200). The board becomes the **default** editor for its masks only when this strictly exceeds the best built-in claimant; omitted/`0` makes it a switch option only.
+- `fileMasks` — glob masks (`*`, `?`) matched against the file **basename** (e.g. `["*.drawio"]`, `["*.grid.json"]`). A wildcard-free entry is read by shape: one that starts with a dot or contains none at all is an **extension** (`"drawio"`, `".drawio"` → `*.drawio`), while one with a dot inside it is a whole **file name** kept exact (`"DASHBOARD.md"`, `"package.json"`) — that is how a board claims one specific file rather than a file type.
+- `folderMasks` — optional folder globs that **narrow** `fileMasks` to certain locations (e.g. `fileMasks: ["DASHBOARD.md"]` + `folderMasks: ["*/tasks"]` claims only a dashboard that sits in a `tasks` folder, not every `DASHBOARD.md`).
+- `editorPriority` — the board's slot on the same numeric resolution ladder the built-in editors use (monaco 0 / markdown 10 / compound names 20 / draw 50 / viewers 100 / category 200 — see [Editor Resolution](#editor-resolution)). The board becomes the **default** editor for its masks only when this strictly exceeds the best built-in claimant; omitted/`0` makes it a switch option only. Note the floor is not always 0: a board claiming a Markdown file competes with `md-view` at 10, so it needs `editorPriority` above **10** — not merely above 0 — to open by default.
 - `editorName` — the switch-widget label (falls back to the manifest `name`, then the folder name).
 
 These fields are honored **only when the board is trusted**.
+
+**The mask predicate.** `matchesBoardMasks(filePathOrName, fileMasks, folderMasks)` is the single entry point for the whole axis — every consumer (the registry, the published-catalog matchers) goes through it rather than testing masks itself. A board claims a file iff the **basename** matches one of `fileMasks` **and** either there are no folder masks or the file's **parent folder** matches one of them. Folder masks only narrow: a board with no `fileMasks` has no association at all, even when `folderMasks` is present, so `getBoardEditorAssociation` still gates on `fileMasks` alone.
+
+A folder mask is a path **suffix**, so it need not spell out the drive or root, and it is separator-aware: `*` and `?` stop at `/` while `**` crosses it. That is what makes `*/tasks` mean "exactly one segment above a `tasks` folder"; `tasks` matches a folder of that name at any depth, `**/dev/tasks` spans intermediate segments, and an absolute mask such as `c:/projects/acme/**` scopes a board to one tree. Masks are normalized to lowercase forward-slash form (a trailing slash is accepted and ignored) and matched case-insensitively.
+
+Callers may legitimately pass a bare file **name** instead of a path — a page title, or a tree row's display name in the file-icon surfaces. With no directory to inspect the folder gate cannot be evaluated, and it is **skipped rather than failed**: a folder-scoped board still lends its icon to every name-matching file. That is a deliberate trade. An icon is cosmetic and carries no path, whereas the two paths that actually **decide** which editor opens a file — `resolveEditorIdForFile` and the editor-switch widget — always hold a full path and therefore always honor the folder scope.
 
 **Two registries, merged.** Board editors are runtime-discovered, so they are **not** injected into the static `editorRegistry`. They live in a separate reactive registry, `customEditorRegistry` (`editors/board/custom-editor-registry.ts`), which enumerates `boardTrust.listPaths()`, reads each manifest, and maps file → claiming boards. It reacts to trust changes (an untrust drops the association live) and re-reads a manifest on refresh — there is no filesystem watcher, mirroring the Agent Tools `registeredTools` precedent. Each associated board is a distinct **virtual editor id** `board-editor:<boardRoot>` (`boardEditorId` / `parseBoardEditorId`), where the remainder after the prefix is the board root verbatim (original case; may contain `:` and `\` — parse by prefix, never by split).
 
 **Merged resolution.** `resolveEditorIdForFile(filePath)` reads both registries and returns the winning id: it compares the best built-in `acceptFile` priority against the highest-priority trusted board claiming the file. A board wins only for a real local file (`isPlainLocalPath` — boards edit local files only; the option is hidden for `https://` / archive paths) and only on a strictly-greater priority (built-ins win exact ties; among boards, trusted-list order). This helper — **not** `editorRegistry.resolveId` — is the merge point, called at the two file-open decision points: direct open (`PagesLifecycleModel.newEditorModel`) and the Layer 2 `openRawLink` file resolver (`content/resolvers.ts`). It is deliberately kept out of `editorRegistry.resolveId` so a `board-editor:<root>` id never leaks into `TextFileModel`/`resolvers` internal lookups.
 
 **Construction & switch.** When resolution yields a `board-editor:<root>` id, `PagesLifecycleModel.buildEditorById` decodes the root (in a branch placed *before* the text-fallback, so an unrecognized board id can't silently open as text) and builds a `BoardEditorModel` initialized with the target file path. `PageModel.switchMainEditor` branches on the `board-editor:` prefix *before* the `editorRegistry.getById` lookup (which throws on unregistered ids): it runs the old editor's `confirmRelease()` guard (abort on cancel — reusing navigation's unsaved-changes prompt), then rebuilds through `createEditorFromFile` in both directions (a board has no shared content host to transfer). The switch widget (`SwitchWidget` in `PageToolbar.tsx`, and its reuse in `BoardToolbar.tsx`) merges the board options from `customEditorRegistry.useBoardsForFile` and resolves their labels from the registry rather than `editorRegistry.getById`. For the switch to stay visible while the user is *on* the built-in peer, that peer must expose `filePath` (the `switchMainEditor` board branch reads `oldEditor.filePath` and aborts if it is absent) and return itself from `findCompatibleEditors()` (the widget hides unless the active id is among its options, then appends the file-associated boards). Text editors inherit both from the shared host; a **no-host** built-in that can be a simple board's peer overrides them explicitly — the Archive editor does (exposing its `archiveUrl` as `filePath`, returning `["archive-view"]`), so it can be the built-in peer of a board claiming a ZIP-based file such as `.xlsx` / `.docx`.
+
+**The switch list while the board is active.** The mirror-image requirement: `BoardEditorModel.findCompatibleEditors()` has to name the built-in editors the user should be able to return to, and it must agree with what those editors themselves offer — otherwise segments appear and disappear as the user switches, which reads as a bug. Getting that agreement takes deliberate work, because the two sides ask different questions. A built-in text editor calls `findEditorsAccepting(host)`, which evaluates the **live content host** and therefore knows the file's `language`; that is the only way language-only editors (`md-view`, `html-view`, `mermaid-view`, `svg-view` — matchers with a `switchOption` but no `acceptFile`) can ever be named. A *simple* board never loads the file into a host, so it has no language to offer and a name-based `resolveId` lookup structurally cannot return any of them. It therefore reconstructs the language from the file extension via `getLanguageByExtension` and takes `editorRegistry.getSwitchOptions(language, filePath).options`, then appends the `resolveId` winner if the language pass missed it (`getSwitchOptions` deliberately returns an empty list when fewer than two options apply) and finally its own id. `getSwitchOptions` sorts ascending, so Monaco leads — the same order the built-in editors show. The general rule for any future host-less editor joining the switch: **`findEditorsAccepting` sees language, `resolveId` does not** — derive the language yourself or language-only peers will silently drop out of the widget.
 
 **Identity & persistence.** A `BoardEditorModel` acting as a custom editor reports its `editorId` as the dynamic `board-editor:<root>` so the switch widget matches; but `getRestoreData()` pins the persisted id to `"board-view"` (the virtual id is re-derived from the persisted `filePath` on restore), keeping the board inside the `NO_HOST_EDITOR_IDS` allow-list and the automation guards. MCP/automation board detection uses `isBoardEditorId` (true for both `"board-view"` and any `board-editor:<root>`) so a file-associated board stays automatable. Note that `list_pages` reports the live `board-editor:<root>` id as a custom-editor board's editor — match such a page by its `boardRoot` / `selectedBoard`.
 
@@ -438,10 +456,11 @@ The detected editor is stored in `TextFileModel.state.detectedContentEditor` and
 editorRegistry.register(module)                    // Register an EditorModule
 editorRegistry.getById(id)                         // Get module by ID
 editorRegistry.getAll()                            // Get all registered modules
-editorRegistry.resolve(input)                      // Resolve module for file path / content / language
-editorRegistry.resolveId(input)                    // Resolve just the editor ID
+editorRegistry.resolve(fileName)                   // Best module for a file NAME (acceptFile only)
+editorRegistry.resolveId(fileName)                 // Resolve just the editor ID
+editorRegistry.findEditorsAccepting(host)          // All ids accepting a live content host (sees language)
 editorRegistry.validateForLanguage(editor, lang)   // Validate editor/language combo
-editorRegistry.getSwitchOptions(lang, filePath)    // Get UI switch options
+editorRegistry.getSwitchOptions(lang, filePath)    // Get UI switch options ([] when fewer than 2 apply)
 editorRegistry.getPreviewEditor(lang, filePath)    // Get auto-preview editor for the file
 editorRegistry.detectContentEditor(lang, content)  // Detect editor from content `type` field
 editorRegistry.createEditor(id)                    // Create an EditorModel instance

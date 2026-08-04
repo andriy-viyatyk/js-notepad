@@ -5,7 +5,8 @@ import { editorRegistry } from "../base/editorRegistry";
 import { api } from "../../../ipc/renderer/api";
 import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import { BoardIcon } from "../../theme/icons";
-import { fpBasename, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../../core/utils/file-path";
+import { fpBasename, fpExtname, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../../core/utils/file-path";
+import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { boardTrust } from "../../api/board-trust";
 import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { boardEditorId } from "./custom-editor-registry";
@@ -301,15 +302,24 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         return this.currentFilePath();
     }
 
-    /** Switch options while ON the board (base returns []): the file's natural BUILT-IN
-     *  editor (so the user can switch back) plus this board. Board peers claiming the same
-     *  file are appended by the switch widget. Empty for a plain board / non-local file. */
+    /** Switch options while ON the board (base returns []): the file's BUILT-IN editors
+     *  (so the user can switch back) plus this board. Board peers claiming the same file
+     *  are appended by the switch widget. Empty for a plain board / non-local file.
+     *
+     *  The built-in editors compute their list from the live content host's language
+     *  (`findEditorsAccepting`), but a simple board never loads the file — so derive the
+     *  language from the extension and take the registry's language-based switch options
+     *  too. Otherwise language-only editors (md-view "Preview" et al.) would vanish from
+     *  the widget while the board is active. */
     override findCompatibleEditors(): string[] {
         const filePath = this.currentFilePath();
         const root = this.state.get().boardRoot;
         if (!filePath || !root || !isPlainLocalPath(filePath)) return [];
+        const language = getLanguageByExtension(fpExtname(filePath).toLowerCase())?.id ?? "";
+        const builtins = editorRegistry.getSwitchOptions(language, filePath).options;
         const builtinId = editorRegistry.resolveId(filePath) ?? "monaco";
-        return [builtinId, boardEditorId(root)];
+        if (!builtins.includes(builtinId)) builtins.push(builtinId);
+        return [...builtins, boardEditorId(root)];
     }
 
     /** Persist the STABLE `"board-view"` id so restore + cross-window keys on it

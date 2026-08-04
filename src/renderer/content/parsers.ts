@@ -9,6 +9,27 @@ import { PERSEPHONE_TOOLSET_PREFIX } from "./persephone-toolset-link";
 import { normalizeFileUrl, isFileUrl, isPlausibleFilePath } from "./link-utils";
 
 /**
+ * Split a trailing `#fragment` off a URL-shaped href (US-901).
+ *
+ * Safe ONLY for real URLs (`file://`, `mneme://`) where a literal "#" must be
+ * percent-encoded as `%23` — `url.pathToFileURL` does encode it, so the split is
+ * unambiguous. Never call this on a bare filesystem path: "#" is legal in Windows
+ * file and folder names (`C:\notes\C#\readme.md`).
+ */
+function splitUrlFragment(href: string): { url: string; fragment?: string } {
+    const hashIndex = href.indexOf("#");
+    if (hashIndex < 0) return { url: href };
+    const raw = href.slice(hashIndex + 1);
+    let fragment: string;
+    try {
+        fragment = decodeURIComponent(raw);
+    } catch {
+        fragment = raw;
+    }
+    return { url: href.slice(0, hashIndex), fragment: fragment || undefined };
+}
+
+/**
  * Register Layer 1 parsers on openRawLink.
  *
  * Registration order matters (LIFO execution):
@@ -22,7 +43,11 @@ export function registerRawLinkParsers(): void {
     app.events.openRawLink.subscribe(async (data) => {
         let filePath = data.href;
         if (isFileUrl(filePath)) {
-            filePath = normalizeFileUrl(filePath);
+            // A `#fragment` on a file:// URL is an in-document anchor, not part of the
+            // path — carry it as metadata so the editor can scroll to it (US-901).
+            const split = splitUrlFragment(filePath);
+            filePath = normalizeFileUrl(split.url);
+            if (split.fragment) data.fragment ??= split.fragment;
         }
         if (!isPlausibleFilePath(filePath)) {
             const { ui } = await import("../api/ui");
@@ -41,7 +66,9 @@ export function registerRawLinkParsers(): void {
         if (!isArchivePath(data.href)) return;
         let archivePath = data.href;
         if (isFileUrl(archivePath)) {
-            archivePath = normalizeFileUrl(archivePath);
+            const split = splitUrlFragment(archivePath);
+            archivePath = normalizeFileUrl(split.url);
+            if (split.fragment) data.fragment ??= split.fragment;
         }
         data.url = archivePath;
         data.handled = false;
@@ -72,7 +99,11 @@ export function registerRawLinkParsers(): void {
     // first (LIFO) and the file parser never sees the scheme.
     app.events.openRawLink.subscribe(async (data) => {
         if (!data.href.startsWith("mneme://")) return;
-        data.url = data.href;
+        // Same fragment treatment as the file parser — a `#anchor` must not become
+        // part of the mneme document address (US-901).
+        const split = splitUrlFragment(data.href);
+        data.url = split.url;
+        if (split.fragment) data.fragment ??= split.fragment;
         data.handled = false;
         await app.events.openLink.sendAsync(data);
         data.handled = true;

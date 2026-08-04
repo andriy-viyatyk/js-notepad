@@ -233,6 +233,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         options?: {
             revealLine?: number;
             highlightText?: string;
+            fragment?: string;
             forceTextEditor?: boolean;
         }
     ) => this.lifecycle.navigatePageTo(pageId, newFilePath, options);

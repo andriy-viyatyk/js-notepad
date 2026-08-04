@@ -77,7 +77,7 @@ export interface PublishedBoardArchive {
 
 /**
  * One board entry in the catalog `boards-manifest.json` (EPIC-045). The association
- * fields (fileMasks/editorName/editorKind/standalone) are copied by the publish
+ * fields (fileMasks/folderMasks/editorName/editorKind/standalone) are copied by the publish
  * automation from the board's own board-manifest.json so the client can advertise a
  * board (the "+" switch entry, the catalog list) WITHOUT downloading it.
  */
@@ -87,6 +87,7 @@ export interface PublishedBoardInfo {
     name: string;
     description?: string;
     fileMasks?: string[];
+    folderMasks?: string[];
     editorName?: string;
     editorKind?: "simple" | "content-host";
     standalone?: boolean;

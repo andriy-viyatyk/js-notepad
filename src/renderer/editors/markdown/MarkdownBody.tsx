@@ -40,10 +40,41 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         ? host.state.use((s) => ({ content: s.content, filePath: s.filePath }))
         : noopState;
 
+    // US-901 — anchor scrolling. The `anchor` queue event can be delivered on the
+    // very first mount (the editor queues it before the view exists) or while a
+    // large document is still committing, so retry across a few frames before
+    // giving up. Giving up is silent: the reader simply lands at the top.
+    const anchorRetryRef = useRef<number | null>(null);
+    const cancelAnchorRetry = useCallback(() => {
+        if (anchorRetryRef.current !== null) {
+            cancelAnimationFrame(anchorRetryRef.current);
+            anchorRetryRef.current = null;
+        }
+    }, []);
+    const scrollToAnchor = useCallback((fragment: string) => {
+        cancelAnchorRetry();
+        let attempts = 0;
+        const attempt = () => {
+            anchorRetryRef.current = null;
+            if (blockRef.current?.scrollToAnchor(fragment)) {
+                // The anchor position IS this view's position now. Without this, the PV4
+                // restore below — which fires on the `onFocus` that every navigation
+                // sends right after `revealFragment` — would snap the reader back to 0.
+                if (scrollRef.current) scrollTopRef.current = scrollRef.current.scrollTop;
+                return;
+            }
+            if (++attempts > 10) return;
+            anchorRetryRef.current = requestAnimationFrame(attempt);
+        };
+        attempt();
+    }, [cancelAnchorRetry]);
+    useEffect(() => cancelAnchorRetry, [cancelAnchorRetry]);
+
     // PV8 — focus queue drain. Routes <TextChrome>'s root-focus into the
     // scroll panel so Tab / arrow keys work from the page.
     model.typedQueue.use((ev) => {
         if (ev.type === "focus") scrollRef.current?.focus();
+        else if (ev.type === "anchor") scrollToAnchor(ev.fragment);
     });
 
     // PV4 — scroll-restore on page focus. View-local; not persisted across restart.
@@ -76,6 +107,16 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         const anchor = (e.target as HTMLElement).closest("a");
         if (!anchor) return;
         const href = anchor.getAttribute("href") || "";
+        // US-901 — same-document anchor: scroll in place. Not a document change, so
+        // no openRawLink and nothing pushed onto the back-stack.
+        if (href.startsWith("#")) {
+            e.preventDefault();
+            e.stopPropagation();
+            let fragment = href.slice(1);
+            try { fragment = decodeURIComponent(fragment); } catch { /* keep raw */ }
+            scrollToAnchor(fragment);
+            return;
+        }
         if (!isLocalMarkdownHref(href)) return;
         const page = model.page;
         const pageId = page?.id;
@@ -91,7 +132,7 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         void app.events.openRawLink.sendAsync(
             createLinkData(href, { pageId, target: "md-view", sourceId: "markdown-link" }),
         );
-    }, [model]);
+    }, [model, scrollToAnchor]);
 
     // Effective highlight text: own search takes priority over external
     // (notebook embedded highlight via editorConfig.highlightText).

@@ -15,7 +15,9 @@ import { editorRegistry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 
-export type MarkdownQueueEvent = { type: "focus" };
+export type MarkdownQueueEvent =
+    | { type: "focus" }
+    | { type: "anchor"; fragment: string };
 
 export type MarkdownQueueRequest = never;
 
@@ -121,6 +123,13 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
 
     focus(): void {
         this.typedQueue.send({ type: "focus" });
+    }
+
+    /** US-901 — scroll to a heading anchor from a `#fragment` link. The body may
+     *  not be mounted yet (this runs right after the editor is attached to the
+     *  page); `ComponentQueue` buffers the event and drains it on subscribe. */
+    revealFragment(fragment: string): void {
+        if (fragment) this.typedQueue.send({ type: "anchor", fragment });
     }
 
     /** Back-navigate the page to the previous Markdown document (US-784). Pops

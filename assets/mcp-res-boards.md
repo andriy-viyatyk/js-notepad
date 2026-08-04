@@ -386,10 +386,18 @@ the manifest's `loadOrder`.
 
 - `board-manifest.json` — keep `schemaVersion: 1`; add optional `name`/`description`/`author`/
   `repository` (metadata only). No secrets, no trust flags. To make the board a **custom editor**
-  for a file type, add `fileMasks` (glob masks matched against the file name, e.g. `["*.drawio"]`),
+  for a file type, add `fileMasks` (glob masks matched against the file name, e.g. `["*.drawio"]`;
+  a wildcard-free mask with a dot inside it is an exact file **name**, e.g. `["DASHBOARD.md"]`),
+  optional `folderMasks` to scope those masks to certain folders (e.g. `"fileMasks": ["DASHBOARD.md"]`
+  + `"folderMasks": ["*/tasks"]` claims only `…/dev/tasks/DASHBOARD.md`; matched against the parent
+  folder as a case-insensitive path *suffix* — `*`/`?` stop at a separator, `**` crosses them; omit
+  for any folder; the file **icon** deliberately ignores it, since icon lookups have no path),
   optional `editorPriority` (a number; makes the board the *default* editor for those masks when it
-  outranks the built-in — omit/`0` = switch option only), and optional `editorName` (switch-widget
-  label). Honored only when the board is trusted. Optional `editorKind`: `"simple"` (default) → the
+  strictly outranks the built-in that also claims the file — omit/`0` = switch option only. Built-in
+  ladder: Monaco `0`, Markdown Preview `10`, compound-name editors like `*.grid.json` `20`, Drawing
+  `50`, PDF/image/archive/video `100`; ties go to the built-in, so a `DASHBOARD.md` board needs more
+  than `10`, and `100` beats everything but the media viewers), and optional `editorName`
+  (switch-widget label). Honored only when the board is trusted. Optional `editorKind`: `"simple"` (default) → the
   file arrives via `persephone.getFilePath()` (read/write it yourself); `"content-host"` → Persephone
   owns the file and the board works through `persephone.host.*` (shares the host with Monaco, edits
   non-local files, auto-saves).

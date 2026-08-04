@@ -1,5 +1,5 @@
 import { fs } from "../../api/fs";
-import { fpJoin } from "../../core/utils/file-path";
+import { fpBasename, fpDirname, fpJoin } from "../../core/utils/file-path";
 
 /** File name of the board-identity manifest, at the board folder root. */
 export const BOARD_MANIFEST_FILE = "board-manifest.json";
@@ -70,6 +70,23 @@ export interface BoardManifest {
      */
     fileMasks?: string[];
     /**
+     * Optional FOLDER scope for `fileMasks` — the board claims a matching file only when the
+     * folder CONTAINING it also matches one of these masks. Absent/empty → any folder (the
+     * default, and what every board without this field keeps doing). Narrowing only: folder
+     * masks alone, with no `fileMasks`, register nothing.
+     *
+     * Matched against the file's parent folder, separator-agnostic (`\` and `/` both accepted)
+     * and case-insensitive, anchored at the END of the path — a mask is a folder-path SUFFIX.
+     * `*` and `?` stop at a separator; `**` crosses them. So `*\/tasks` (a trailing slash is
+     * accepted and ignored) matches `…/dev/tasks`, `tasks` matches any folder of that name at
+     * any depth, `**\/dev/tasks` spans intermediate segments, and an absolute mask
+     * (`c:/projects/evergreen/**`) scopes the board to one tree.
+     *
+     * The gate is SKIPPED — not failed — when the caller knows only a file NAME and no path
+     * (file-icon resolution). See `matchesBoardMasks`.
+     */
+    folderMasks?: string[];
+    /**
      * File-open resolution priority on Persephone's editor ladder (monaco 0 / grid 20 /
      * draw 50 / viewers 100 / category 200). The board becomes the DEFAULT editor for its
      * masks when this exceeds the best built-in claimant's priority for the file.
@@ -135,9 +152,23 @@ export async function readBoardManifest(boardRoot: string): Promise<BoardManifes
 
 /**
  * Normalize a raw `fileMasks` value into lowercase, trimmed, de-duplicated glob masks.
- * A bare extension (no wildcard) is coerced to a suffix mask: "drawio" / ".DRAWIO" →
- * "*.drawio"; an explicit glob ("*.grid.json") is kept as-is. Non-string / empty entries
- * are dropped. Non-array input → [].
+ * An explicit glob ("*.grid.json") is kept as-is. A wildcard-free entry is interpreted
+ * by shape:
+ *
+ * - starts with "." → an extension: ".DRAWIO" → "*.drawio", ".grid.json" → "*.grid.json"
+ * - no dot at all   → an extension: "drawio" → "*.drawio"
+ * - a dot inside it → a whole FILE NAME, kept exact: "DASHBOARD.md" → "dashboard.md",
+ *   "package.json" → "package.json"
+ *
+ * The last case is what lets a board claim one specific file rather than a file type
+ * (the case `folderMasks` exists to narrow further). Coercing it to "*.dashboard.md" —
+ * as an extension-only reading does — yields a mask that matches nothing at all.
+ *
+ * Known limit: an extension-less name ("Makefile") is genuinely ambiguous and is read as
+ * an extension, since that is overwhelmingly the common intent for a bare word. Spell such
+ * a mask with a wildcard if you need it.
+ *
+ * Non-string / empty entries are dropped. Non-array input → [].
  */
 export function normalizeFileMasks(raw: unknown): string[] {
     if (!Array.isArray(raw)) return [];
@@ -146,10 +177,13 @@ export function normalizeFileMasks(raw: unknown): string[] {
         if (typeof entry !== "string") continue;
         let mask = entry.trim().toLowerCase();
         if (!mask) continue;
-        // Forgiving: a bare extension (no glob char) becomes a "*.<ext>" suffix mask.
         if (!mask.includes("*") && !mask.includes("?")) {
-            if (!mask.startsWith(".")) mask = "." + mask;
-            mask = "*" + mask;
+            if (mask.startsWith(".")) {
+                mask = "*" + mask;             // ".drawio" / ".grid.json" → extension
+            } else if (!mask.includes(".")) {
+                mask = "*." + mask;            // "drawio" → extension
+            }
+            // else: a dot inside a wildcard-free entry → an exact file name; keep as-is.
         }
         if (!out.includes(mask)) out.push(mask);
     }
@@ -171,10 +205,93 @@ export function matchesFileMask(fileName: string, mask: string): boolean {
     return maskToRegExp(mask).test(fileName);
 }
 
+/**
+ * Normalize a raw `folderMasks` value into lowercase, trimmed, de-duplicated folder globs.
+ * Separators are unified to "/", a leading "./" and any leading/trailing slashes are stripped
+ * (so "*\/tasks/" and "*\/tasks" are the same mask). Unlike `normalizeFileMasks` there is NO
+ * bare-name coercion — a plain "tasks" is already a meaningful folder mask. Non-string /
+ * empty entries are dropped. Non-array input → [].
+ */
+export function normalizeFolderMasks(raw: unknown): string[] {
+    if (!Array.isArray(raw)) return [];
+    const out: string[] = [];
+    for (const entry of raw) {
+        if (typeof entry !== "string") continue;
+        const mask = entry
+            .trim()
+            .toLowerCase()
+            .replace(/\\/g, "/")
+            .replace(/^\.\//, "")
+            .replace(/^\/+/, "")
+            .replace(/\/+$/, "");
+        if (!mask) continue;
+        if (!out.includes(mask)) out.push(mask);
+    }
+    return out;
+}
+
+/** Stands in for `**` while the single-`*` pass runs. NUL cannot occur in a path (nor in any
+ *  sane mask), so it can never collide with authored text — unlike a printable stand-in such
+ *  as a space, which is perfectly legal in a folder name. */
+const GLOB_SENTINEL = "\u0000";
+
+/** Compile a folder glob into a case-insensitive RegExp anchored at the END of the path
+ *  (a folder mask is a path SUFFIX, so it need not spell out the drive/root). `**` crosses
+ *  separators; `*` and `?` do not — which is what makes "*\/tasks" mean exactly one segment
+ *  above "tasks". */
+function folderMaskToRegExp(mask: string): RegExp {
+    // Escape regex specials EXCEPT the glob wildcards, then expand those. `**` is parked on
+    // the sentinel first so the single-`*` pass cannot chew through it.
+    const escaped = mask.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+    const body = escaped
+        .replace(/\*\*/g, GLOB_SENTINEL)
+        .replace(/\*/g, "[^/]*")
+        .replace(/\?/g, "[^/]")
+        .replace(new RegExp(GLOB_SENTINEL, "g"), ".*");
+    return new RegExp(`(?:^|/)${body}$`, "i");
+}
+
+/** True iff `folderPath` (a file's parent folder) matches the folder glob `mask`.
+ *  `mask` is assumed already normalized (lowercase, "/"-separated) by `normalizeFolderMasks`;
+ *  `folderPath` may use either separator and may carry a trailing one. */
+export function matchesFolderMask(folderPath: string, mask: string): boolean {
+    const normalized = folderPath.replace(/\\/g, "/").replace(/\/+$/, "");
+    if (!normalized) return false;
+    return folderMaskToRegExp(mask).test(normalized);
+}
+
+/**
+ * The single mask predicate for the Custom Editor axis: the board claims `filePathOrName`
+ * iff its BASENAME matches one of `fileMasks` **and** (no folder masks, or its parent FOLDER
+ * matches one of `folderMasks`).
+ *
+ * `filePathOrName` may legitimately be a bare file name rather than a path — a page title, or
+ * a tree row's display name in the file-icon surfaces. With no directory to inspect, the
+ * folder gate cannot be evaluated, and it is SKIPPED rather than failed: a folder-scoped board
+ * still lends its icon to every name-matching file. That is a deliberate trade — the icon
+ * carries no path, and an icon is cosmetic, whereas the two paths that DECIDE which editor
+ * opens a file (`resolveEditorIdForFile`, the editor-switch widget) always hold a full path
+ * and so always honor the folder scope.
+ */
+export function matchesBoardMasks(
+    filePathOrName: string,
+    fileMasks: string[],
+    folderMasks: string[] = [],
+): boolean {
+    if (!filePathOrName) return false;
+    if (!fileMasks.some((m) => matchesFileMask(fpBasename(filePathOrName), m))) return false;
+    if (folderMasks.length === 0) return true;
+    if (!/[\\/]/.test(filePathOrName)) return true; // a bare name — nothing to gate on
+    const folder = fpDirname(filePathOrName);
+    return folderMasks.some((m) => matchesFolderMask(folder, m));
+}
+
 /** A board's parsed, validated file-editor association (Custom Editor axis). */
 export interface BoardEditorAssociation {
     /** Normalized, lowercase glob masks (e.g. "*.drawio", "*.grid.json"). Guaranteed non-empty. */
     fileMasks: string[];
+    /** Normalized folder globs narrowing `fileMasks` to certain locations. Empty = any folder. */
+    folderMasks: string[];
     /** Resolution priority (>= 0). Non-finite / negative input → 0. */
     editorPriority: number;
     /** Optional switch-widget display name (trimmed; empty → undefined). */
@@ -193,7 +310,10 @@ export function getBoardEditorAssociation(
 ): BoardEditorAssociation | null {
     if (!manifest) return null;
     const fileMasks = normalizeFileMasks(manifest.fileMasks);
+    // Folder masks only NARROW file masks — masks-free means no association at all, even when
+    // `folderMasks` is present, so the check stays on `fileMasks` alone.
     if (fileMasks.length === 0) return null;
+    const folderMasks = normalizeFolderMasks(manifest.folderMasks);
     const rawPriority = manifest.editorPriority;
     const editorPriority =
         typeof rawPriority === "number" && Number.isFinite(rawPriority) && rawPriority > 0
@@ -203,6 +323,7 @@ export function getBoardEditorAssociation(
     const editorKind = manifest.editorKind === "content-host" ? "content-host" : "simple";
     return {
         fileMasks,
+        folderMasks,
         editorPriority,
         editorName: name || undefined,
         editorKind,

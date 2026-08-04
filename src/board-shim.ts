@@ -348,6 +348,25 @@ window.addEventListener("keydown", (e: KeyboardEvent) => {
     }
 });
 
+// App theme shortcuts (Ctrl+Alt+[ / Ctrl+Alt+]) — the host's global KeyboardService listens on
+// the HOST document, which a cross-origin board frame's keydown never reaches (SOP). Board authors
+// switch themes constantly while testing a board, so forward the two theme keys to the host the
+// same way Ctrl+S is forwarded: `window` bubble phase, `defaultPrevented` opt-out.
+window.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (!e.ctrlKey || !e.altKey) return;
+    if (e.code !== "BracketRight" && e.code !== "BracketLeft") return;
+    if (e.defaultPrevented) return; // the board claimed it — stand down
+    e.preventDefault();
+    try {
+        window.parent.postMessage(
+            { __persephone: "board:cycleTheme", direction: e.code === "BracketRight" ? 1 : -1 },
+            hostPostTarget,
+        );
+    } catch {
+        // parent gone — nothing to theme
+    }
+});
+
 // External-link routing (US-884) — a board frame lives on a locked-down `board://` origin.
 // A plain `<a href="http(s)://…">` (e.g. a hyperlink inside a rendered .docx) would navigate
 // the FRAME itself to that URL, which the host renderer's frame-src CSP blocks (ERR_BLOCKED_BY_CSP)

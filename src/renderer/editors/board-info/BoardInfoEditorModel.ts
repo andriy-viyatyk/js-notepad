@@ -48,6 +48,8 @@ export interface BoardPropsInfo {
     manifestVersion?: string;
     /** Editor association (masks / editorName / kind), if the board is a file editor. */
     fileMasks?: string[];
+    /** Folder globs narrowing `fileMasks` to certain locations (absent/empty = any folder). */
+    folderMasks?: string[];
     editorName?: string;
     editorKind?: "simple" | "content-host";
     root: string;
@@ -297,6 +299,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
             repository: manifest?.repository,
             manifestVersion: manifest?.version,
             fileMasks: assoc?.fileMasks,
+            folderMasks: assoc?.folderMasks,
             editorName: assoc?.editorName,
             editorKind: assoc?.editorKind,
             root,

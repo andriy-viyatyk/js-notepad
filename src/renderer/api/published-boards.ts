@@ -13,12 +13,27 @@ import rendererEvents from "../../ipc/renderer/renderer-events";
 import { EventEndpoint } from "../../ipc/api-types";
 import { PublishedBoardInfo, PublishedBoardsCatalog, PublishedBoardVersions } from "../../ipc/api-param-types";
 import { compareVersions } from "../../shared/version-utils";
-import { normalizeFileMasks, matchesFileMask } from "../editors/board/board-manifest";
-import { fpBasename } from "../core/utils/file-path";
+import {
+    normalizeFileMasks,
+    normalizeFolderMasks,
+    matchesBoardMasks,
+} from "../editors/board/board-manifest";
 
 interface CatalogState {
     catalog: PublishedBoardsCatalog | null;
     loaded: boolean;
+}
+
+/** Does an UNINSTALLED catalog board claim this file? Same predicate as a trusted board's
+ *  (`matchesBoardMasks`), but over the catalog entry's raw manifest-copied masks — the catalog
+ *  carries them unnormalized, so normalize per call (the lists are tiny and the call sites are
+ *  filters over a small catalog). */
+function matchesCatalogMasks(board: PublishedBoardInfo, fileName: string): boolean {
+    return matchesBoardMasks(
+        fileName,
+        normalizeFileMasks(board.fileMasks),
+        normalizeFolderMasks(board.folderMasks),
+    );
 }
 
 class PublishedBoards {
@@ -88,22 +103,20 @@ class PublishedBoards {
      *  Sync counterpart of `useCatalogBoardsForFile` for model code (e.g. the Board Info
      *  editor) that computes matches outside a React render. */
     catalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
-        const base = fpBasename(fileName);
         return (this.state.get().catalog?.boards ?? []).filter((b) => {
             if (!this.isCompatible(b.minAppVersion)) return false;
-            return normalizeFileMasks(b.fileMasks).some((m) => matchesFileMask(base, m));
+            return matchesCatalogMasks(b, fileName);
         });
     }
 
-    /** Compatible catalog boards whose masks match the given file name (basename). */
+    /** Compatible catalog boards whose masks match the given file (path preferred over a bare
+     *  name — a folder-scoped catalog board can only be gated when a path is available). */
     useCatalogBoardsForFile(fileName: string): PublishedBoardInfo[] {
-        const base = fpBasename(fileName);
         return this.state.use((s) => {
             const boards = s.catalog?.boards ?? [];
             return boards.filter((b) => {
                 if (!this.isCompatible(b.minAppVersion)) return false;
-                const masks = normalizeFileMasks(b.fileMasks);
-                return masks.some((m) => matchesFileMask(base, m));
+                return matchesCatalogMasks(b, fileName);
             });
         });
     }

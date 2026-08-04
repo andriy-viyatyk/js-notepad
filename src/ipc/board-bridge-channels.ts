@@ -189,6 +189,7 @@ export interface BoardToHostMsg {
         | "board:stateInit"  // persephone.state.init — seed defaults + declare restorable keys
         | "board:setSecondaryViews" // persephone.setSecondaryViews — replace the board's views (EPIC-044)
         | "board:setStatusText" // persephone.setStatusText — content-host footer status (US-892)
+        | "board:cycleTheme" // Ctrl+Alt+[ / ] pressed inside the frame — cycle the app theme
         | "board:var"; // board requested a var.get/set/list (EPIC-046) — request/reply, needs a reqId
     /** `board:error` / `board:log` detail. */
     message?: string;
@@ -212,6 +213,8 @@ export interface BoardToHostMsg {
     views?: Array<{ id: string; html?: string; title?: string }>;
     /** `board:setStatusText` payload — the footer status text (content-host boards). `""` clears. */
     statusText?: string;
+    /** `board:cycleTheme` direction: `1` = next theme (Ctrl+Alt+]), `-1` = previous (Ctrl+Alt+[). */
+    direction?: 1 | -1;
     /** `board:var` request id — echoed back in the `var:result` push. */
     reqId?: number;
     /** `board:var` method. */

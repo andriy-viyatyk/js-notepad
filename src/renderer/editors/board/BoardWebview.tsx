@@ -14,6 +14,7 @@ import type {
     BoardVarResultMsg,
 } from "../../../ipc/board-bridge-channels";
 import { resolveBoardNamespace, resolveBoardVarRequest } from "../../api/board-vars";
+import { cycleAppTheme } from "../../api/cycle-app-theme";
 import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
 import { boardSecondaryPanelId } from "./board-secondary";
@@ -240,7 +241,7 @@ export function BoardWebview({
                     __persephone?: string; message?: string; level?: string; busy?: boolean; content?: string;
                     state?: Record<string, unknown>; partial?: Record<string, unknown>;
                     defaults?: Record<string, unknown>; restorableKeys?: string[];
-                    views?: unknown; statusText?: string;
+                    views?: unknown; statusText?: string; direction?: 1 | -1;
                     reqId?: number; varMethod?: "get" | "set" | "list" | "show"; varArgs?: unknown[];
                 }
                 | undefined;
@@ -283,6 +284,11 @@ export function BoardWebview({
                 // Footer status (US-892) — main frame only; the footer belongs to the main editor
                 // view, so a secondary (sidebar) frame must not hijack it.
                 if (isMain) model.setStatusText(typeof d.statusText === "string" ? d.statusText : "");
+            } else if (d.__persephone === "board:cycleTheme") {
+                // Ctrl+Alt+[ / ] inside the frame: the host document never sees the keydown
+                // (cross-origin), so the shim forwards it here. Any frame may switch — the
+                // theme is app-global, and the live retint below repaints every board.
+                cycleAppTheme(d.direction === 1 ? 1 : -1);
             } else if (d.__persephone === "board:var" && typeof d.reqId === "number") {
                 const reqId = d.reqId;
                 const method = d.varMethod as "get" | "set" | "list" | "show";

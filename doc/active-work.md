@@ -7,6 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
+- *(no epic)*
+  - [ ] US-903: Theme-cycling hotkeys (Ctrl+Alt+[ / ]) work while focus is inside a board frame
 
 ## Planned
 - **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)

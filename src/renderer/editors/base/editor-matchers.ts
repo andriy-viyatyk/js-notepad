@@ -1,5 +1,6 @@
 import type { AcceptanceInput, EditorMatcher } from "./editorRegistry";
 import { isArchiveFile } from "../../core/utils/file-path";
+import { getLanguageByExtension } from "../../core/utils/language-mapping";
 
 // ── Shared helpers (relocated from register-editors.ts) ──────────────────────
 
@@ -21,6 +22,12 @@ const SPECIALIZED_JSON_PATTERNS = [
 
 const isSpecializedJson = (fileName?: string): boolean =>
     fileName ? SPECIALIZED_JSON_PATTERNS.some((p) => p.test(fileName)) : false;
+
+// Any extension the monaco language table maps to "markdown" (.md, .markdown, .mkd, …).
+const isMarkdownFile = (fileName: string): boolean => {
+    const dot = fileName.lastIndexOf(".");
+    return dot >= 0 && getLanguageByExtension(fileName.slice(dot))?.id === "markdown";
+};
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico"];
 const VIDEO_EXTENSIONS = [
@@ -62,6 +69,11 @@ export const EDITOR_MATCHERS: Record<string, EditorMatcher> = {
             lang === "jsonl" && /"type"\s*:\s*"log\./.test(content),
     },
     "md-view": {
+        // Markdown files default to Preview: Persephone is used as a docs viewer far more
+        // than a markdown editor. Priority 10 — above monaco's 0 floor, below the
+        // specialized 20-tier — so a file-associated board needs editorPriority > 10 to
+        // claim a markdown file.
+        acceptFile: (fn) => (isMarkdownFile(fn) ? 10 : -1),
         switchOption: (lang) => (lang === "markdown" ? 10 : -1),
         validForLanguage: (lang) => lang === "markdown",
     },

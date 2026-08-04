@@ -83,6 +83,10 @@ export interface ILinkData {
     revealLine?: number;
     /** Highlight occurrences of this text after opening. */
     highlightText?: string;
+    /** Scroll to this document fragment (anchor / heading slug) after opening.
+     *  Set by Layer 1 parsers from a `file://` / `mneme://` href's `#…`; consumed
+     *  once by the target editor via `revealFragment`. Never includes the "#". */
+    fragment?: string;
     /** Preselect the File Diff "from" (left) revision. Consumed once, only when
      *  a fresh File Diff editor is constructed on open (target === "file-diff"). */
     diffFrom?: ILinkDiffRevision;

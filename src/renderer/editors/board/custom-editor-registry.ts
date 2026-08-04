@@ -20,7 +20,7 @@ import { editorRegistry } from "../base/editorRegistry";
 import { boardTrust } from "../../api/board-trust";
 import {
     getBoardEditorAssociation,
-    matchesFileMask,
+    matchesBoardMasks,
     readBoardManifest,
 } from "./board-manifest";
 
@@ -54,6 +54,9 @@ export interface CustomEditorMatch {
     priority: number;
     /** The board's normalized glob masks (for matching + introspection). */
     fileMasks: string[];
+    /** The board's normalized folder globs, narrowing `fileMasks` to certain locations.
+     *  Empty = any folder (the default for boards that declare no `folderMasks`). */
+    folderMasks: string[];
     /** Board editor kind (US-843): "simple" (EPIC-042, direct file I/O) or "content-host"
      *  (EPIC-043, Persephone owns the content host). Consumed by the construction path (US-845). */
     editorKind: "simple" | "content-host";
@@ -113,6 +116,7 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
                 name,
                 priority: assoc.editorPriority,
                 fileMasks: assoc.fileMasks,
+                folderMasks: assoc.folderMasks,
                 editorKind: assoc.editorKind,
             });
         }
@@ -128,25 +132,26 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
     }
 
     /**
-     * Boards claiming `fileName`, in trusted-list order (SYNC — safe for resolveId). Matches the
-     * BASENAME against each board's masks (a mask like "*.drawio" must not match a directory
-     * segment). Returns [] before `ensureInitialized()` completes → graceful built-in fallback.
-     * Local-file gating (CE4: hide the option for https/archive) is the CALLER's job, not here.
+     * Boards claiming `fileName`, in trusted-list order (SYNC — safe for resolveId). Matching is
+     * `matchesBoardMasks`: the BASENAME against each board's file masks (a mask like "*.drawio"
+     * must not match a directory segment), plus the parent FOLDER against its folder masks when
+     * it declares any. Pass a full path whenever one is available — a bare name cannot satisfy
+     * the folder gate, so `matchesBoardMasks` skips it (see its doc). Returns [] before
+     * `ensureInitialized()` completes → graceful built-in fallback. Local-file gating (CE4: hide
+     * the option for https/archive) is the CALLER's job, not here.
      */
     getBoardsForFile(fileName: string): CustomEditorMatch[] {
         if (!fileName) return [];
-        const base = fpBasename(fileName);
         return this.state
             .get()
-            .entries.filter((e) => e.fileMasks.some((m) => matchesFileMask(base, m)));
+            .entries.filter((e) => matchesBoardMasks(fileName, e.fileMasks, e.folderMasks));
     }
 
     /** Reactive variant for the switch widget — re-renders when trust/masks change. */
     useBoardsForFile(fileName: string): CustomEditorMatch[] {
         return this.state.use((s) => {
             if (!fileName) return [];
-            const base = fpBasename(fileName);
-            return s.entries.filter((e) => e.fileMasks.some((m) => matchesFileMask(base, m)));
+            return s.entries.filter((e) => matchesBoardMasks(fileName, e.fileMasks, e.folderMasks));
         });
     }
 

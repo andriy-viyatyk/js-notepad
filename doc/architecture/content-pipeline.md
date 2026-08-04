@@ -45,6 +45,8 @@ Registered in `parsers.ts` via `registerRawLinkParsers()`. Each parser receives 
 | Archive | `!` separator (via `isArchivePath`) | `C:\docs.zip!data/report.json` |
 | File | Everything else (fallback) | `C:\Users\file.txt`, `file:///path` |
 
+**Fragment extraction.** A trailing `#fragment` on an incoming href is an in-document anchor, not part of the path, so the file, archive and `mneme://` parsers split it off into the ephemeral `data.fragment` hint (URL-decoded, without the `#`) before resolving. This is done **only for real URLs** (`file://`, `mneme://`), never for a bare filesystem path: in a URL a literal `#` must be percent-encoded as `%23`, which makes the split unambiguous, whereas `#` is a legal character in Windows file and folder names (`C:\notes\C#\readme.md`). The HTTP parser leaves fragments in the URL, where the browser handles them.
+
 ### Layer 2 — Resolvers
 
 Registered in `resolvers.ts` via `registerResolvers()`. Each resolver uses `resolveUrlToPipeDescriptor()` (from `link-utils.ts`) to create a pipe descriptor, then `createPipeFromDescriptor()` (from `registry.ts`) to instantiate the pipe. Enriches the `ILinkData` object (sets `data.pipe`, `data.pipeDescriptor`, `data.target`) and forwards the same object on `app.events.openContent`.
@@ -59,11 +61,13 @@ The `resolveUrlToPipeDescriptor()` utility is also used by tree providers to cre
 
 ### Layer 3 — Open Handler
 
-Registered in `open-handler.ts` via `registerOpenHandler()`. Reconstructs the full file path from the pipe (combining provider `sourceUrl` + ArchiveTransformer `entryPath` for archive files). Cleans the `ILinkData` via `cleanForStorage()` (strips ephemeral fields like `handled`, `pipe`, `pageId`, `revealLine`, `highlightText`, `diffFrom`, `diffTo`) and stores the result as `IEditorState.sourceLink`. Then either:
+Registered in `open-handler.ts` via `registerOpenHandler()`. Reconstructs the full file path from the pipe (combining provider `sourceUrl` + ArchiveTransformer `entryPath` for archive files). Cleans the `ILinkData` via `cleanForStorage()` (strips ephemeral fields like `handled`, `pipe`, `pageId`, `revealLine`, `highlightText`, `fragment`, `diffFrom`, `diffTo`) and stores the result as `IEditorState.sourceLink`. Then either:
 - Opens a new page via `pagesModel.lifecycle.openFile(filePath, pipe, { sourceLink })` -- the page owns the pipe.
 - Navigates an existing page via `pagesModel.lifecycle.navigatePageTo()` (when `data.pageId` is set) -- disposes the pipe since navigation creates its own.
 
-Both paths forward the ephemeral **navigation hints** to the freshly-built editor: `revealLine`/`highlightText` scroll/highlight a text editor, and `diffFrom`/`diffTo` (each an `ILinkDiffRevision` — `unstaged` / `staged` / `head` / `commit`, where a `commit` with an empty hash denotes the empty tree) preselect the two sides of a File Diff comparison. Hints are consumed only on a fresh editor build, never on a reuse/activate path, so they cannot perturb an already-open page.
+Both paths forward the ephemeral **navigation hints** to the editor: `revealLine`/`highlightText` scroll/highlight a text editor, `diffFrom`/`diffTo` (each an `ILinkDiffRevision` — `unstaged` / `staged` / `head` / `commit`, where a `commit` with an empty hash denotes the empty tree) preselect the two sides of a File Diff comparison, and `fragment` scrolls to an in-document anchor.
+
+Most hints are consumed only on a **fresh editor build**, never on a reuse/activate path, so they cannot perturb an already-open page. `fragment` is the deliberate exception: an anchor link into a document that happens to be open already is still a jump request, so it is applied on every exit of both open paths — including the editor-reuse early returns and `openFile`'s existing-page dedupe — through the optional `EditorModel.revealFragment?(fragment)` hook (same opt-in shape as `onNavigationReuse?()`; editors without in-document anchors simply don't implement it). A fragment also does **not** join `revealLine`/`highlightText` in forcing the Monaco text editor: those hints address lines and therefore need Monaco, whereas an anchor must keep the language preview editor (e.g. the Markdown view) that renders the headings it points at.
 
 The `sourceLink` (`ILinkData` with ephemeral fields removed) is stored in `IEditorState.sourceLink` and persisted across app restarts. It records the page's origin (URL, target editor, title, ILink metadata, HTTP fields, etc.) but is informational only — it does not affect page content or I/O.
 

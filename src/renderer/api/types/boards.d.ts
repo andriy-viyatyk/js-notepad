@@ -11,6 +11,8 @@ export interface PublishedBoardResult {
     version: string;
     /** Glob masks the board associates itself with, if it is a file editor. */
     fileMasks?: string[];
+    /** Folder globs narrowing `fileMasks` to certain locations (absent = any folder). */
+    folderMasks?: string[];
     editorName?: string;
     editorKind?: "simple" | "content-host";
     /** True when the board can be pinned / opened empty (tool/dashboard-style). */

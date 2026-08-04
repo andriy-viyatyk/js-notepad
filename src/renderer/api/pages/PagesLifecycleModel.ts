@@ -587,6 +587,7 @@ export class PagesLifecycleModel {
             target?: string;
             diffFrom?: ILinkDiffRevision;
             diffTo?: ILinkDiffRevision;
+            fragment?: string;
         },
     ): Promise<PageModel | undefined> => {
         if (!filePath) return undefined;
@@ -602,6 +603,11 @@ export class PagesLifecycleModel {
         if (existingPage) {
             pipe?.dispose();
             this.model.navigation.showPage(existingPage.id);
+            // The document is already open — an anchor link into it is still a jump
+            // request, so honor the fragment on the live editor (US-901).
+            if (options?.fragment) {
+                existingPage.mainEditorInstance?.revealFragment?.(options.fragment);
+            }
             return existingPage;
         }
 
@@ -627,6 +633,9 @@ export class PagesLifecycleModel {
         // (no-op for any other editor type / when no revisions given) (US-637).
         (adapter as { applyDiffRevisions?: (f?: ILinkDiffRevision, t?: ILinkDiffRevision) => void })
             .applyDiffRevisions?.(options?.diffFrom, options?.diffTo);
+        // Anchor target from the opening link. The editor's view may not be mounted
+        // yet — implementations queue the request (US-901).
+        if (options?.fragment) adapter.revealFragment?.(options.fragment);
         // A new-tab open carrying a preselected comparison (diffFrom/diffTo) is a
         // File Diff — expand its own first panel ("File History") instead of the
         // default "explorer" active panel (US-637). Uses the editor's registered
@@ -770,6 +779,7 @@ export class PagesLifecycleModel {
         options?: {
             revealLine?: number;
             highlightText?: string;
+            fragment?: string;
             forceTextEditor?: boolean;
             sourceLink?: ILinkData;
             pipe?: IContentPipe;
@@ -813,6 +823,7 @@ export class PagesLifecycleModel {
                     await page.setMainEditor(existing);
                 }
                 existing.onNavigationReuse?.();
+                if (options?.fragment) existing.revealFragment?.(options.fragment);
                 this.model.onShow.send(page);
                 // Navigation (not activation): don't pull focus out of a sidebar
                 // panel the user is working in — e.g. the Explorer tree (US-808).
@@ -839,6 +850,7 @@ export class PagesLifecycleModel {
             options?.pipe?.dispose();
             await page.setMainEditor(existingForFile);
             existingForFile.onNavigationReuse?.();
+            if (options?.fragment) existingForFile.revealFragment?.(options.fragment);
             this.model.onShow.send(page);
             if (!isFocusInSidebar()) this.model.onFocus.send(page);
             this.model.persistence.saveState();
@@ -930,6 +942,11 @@ export class PagesLifecycleModel {
         // runs on a fresh build (US-637).
         (adapter as { applyDiffRevisions?: (f?: ILinkDiffRevision, t?: ILinkDiffRevision) => void })
             .applyDiffRevisions?.(options?.diffFrom, options?.diffTo);
+
+        // Anchor target from the opening link. Deliberately NOT part of skipPreview
+        // above: revealLine / highlightText force the Monaco text editor, while a
+        // fragment must keep the language preview editor (e.g. md-view) (US-901).
+        if (options?.fragment) adapter.revealFragment?.(options.fragment);
 
         // revealLine / highlightText apply after the editor has mounted.
         if (isTextFile && skipPreview) {
