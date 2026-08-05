@@ -42,7 +42,7 @@ export abstract class EditorModel<
     E extends ComponentQueueEvent = ComponentQueueEvent,
 > extends TDialogModel<T, R> {
     /** Registry key — set by each subclass to its registry id ("monaco",
-     *  "grid-json", "pdf-view", …). Used by `editorRegistry.createEditor` to
+     *  "grid-json", "image-view", …). Used by `editorRegistry.createEditor` to
      *  pick the class, by `PageModel.switchMainEditor` short-circuit, by
      *  the switch widget's "current" highlight, and by persistence
      *  (`EditorDescriptor.editorId`). Replaces today's `state.type` discriminator. */

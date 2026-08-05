@@ -28,6 +28,34 @@ export function formatDate(isoString: string): string {
     return `${year}-${month}-${day}`;
 }
 
+/**
+ * Resolve with `promise`'s value if it settles within `ms`, otherwise with `fallback`.
+ *
+ * For probes whose result is a nice-to-have rather than a requirement. The motivating
+ * case is `<webview>.executeJavaScript`, which queues on the *page's* renderer main
+ * thread: a page that is mid-load or busy can leave the call pending for a minute or
+ * more, and anything awaiting it stalls with it. Racing keeps our UI responsive and
+ * degrades to what we already know.
+ *
+ * A rejection resolves to `fallback` too — before or after the deadline — so a late
+ * failure of an abandoned probe can never surface as an unhandled rejection.
+ */
+export function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+    return new Promise<T>((resolve) => {
+        const timer = setTimeout(() => resolve(fallback), ms);
+        promise.then(
+            (value) => {
+                clearTimeout(timer);
+                resolve(value);
+            },
+            () => {
+                clearTimeout(timer);
+                resolve(fallback);
+            },
+        );
+    });
+}
+
 export function splitWithSeparators(text: string, separators: string, withTrim = true): string[] {
     // Escape special regex characters in the separators string
     const escapedSeparators = separators.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

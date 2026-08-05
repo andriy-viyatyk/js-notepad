@@ -76,7 +76,7 @@ fields that let the board act as a file editor:
   when it **strictly outranks** the built-in editor that also claims the file. Omit or `0` → the
   board is a switch option only and the built-in editor stays the default. The built-in ladder:
   Monaco `0` (the catch-all floor), Markdown Preview `10` (`.md` & friends), compound-name
-  editors `20` (`*.grid.json`, `*.note.json`, `*.rest.json`, …), Drawing `50`, PDF / image /
+  editors `20` (`*.grid.json`, `*.note.json`, `*.rest.json`, …), Drawing `50`, image /
   archive / video viewers `100`. So `1` is enough to beat Monaco on a plain text file, but a
   board claiming `DASHBOARD.md` needs **more than 10** to win over Markdown Preview — ties go
   to the built-in. When in doubt, `100` beats everything except the media viewers, and `200`
@@ -88,6 +88,14 @@ fields that let the board act as a file editor:
   encoding, encryption, auto-save, dirty tracking) and the board works through
   `persephone.host.getContent()` / `setContent()` instead. Content-host boards also edit non-local
   files (`https://`, inside archives, encrypted).
+- `editorSources` (optional) — `"local"` (default) or `"any"`. Persephone opens more than plain
+  local files: a file inside an archive (`archive.zip!doc.pdf`), an `http(s)` URL, an encrypted
+  file. By default a **simple** board is offered only for a real local file, because the common
+  shape — `readFile(await getFilePath())` — would break on a source with no readable path. Set
+  `"any"` when your board can handle every source; `getFilePath()` then still hands you a readable
+  **local** path (Persephone materializes the source into a cache file first), so you need **no
+  source-specific code** — see *Opened as a custom editor* below for the two consequences you must
+  handle. Ignored for `"content-host"` boards, which always get every source.
 
 Don't put secrets or trust flags here — a board is trusted by the user inside Persephone,
 never by the manifest. (The board icon is **not** set here; see *Board icon* below.)
@@ -245,6 +253,23 @@ close reaps the child.
       // …render / edit, then persephone.writeFile(filePath, updated) to save
   }
   ```
+  The path is **always local and always readable**, whatever the file really was. For an archive
+  entry or an `http(s)` URL (which reach you only with `"editorSources": "any"`) Persephone reads
+  the source through its content pipe and hands you a cache file named after it, so one code path
+  serves every source. Two consequences, and a board declaring `"any"` must handle both:
+  ```js
+  // 1. It can be SLOW — a URL completes only after the whole download. Don't make your UI
+  //    wait on it if there is anything else to do first.
+  const pending = persephone.getFilePath();
+  buildUi();                       // runs while the source is still being fetched
+  // 2. It can REJECT — missing archive entry, HTTP failure. Distinct from `undefined`,
+  //    which just means "not opened for a file".
+  let filePath;
+  try { filePath = await pending; }
+  catch (err) { showError(err.message); return; }   // never leave a blank frame
+  ```
+  Materialized files are **read-only**: writing to the cache path does not write back to the
+  original source.
 
 ### Content-host boards — `persephone.host.*`
 
@@ -454,6 +479,12 @@ Also mirrored in JS — for colors you set from JS (e.g. a chart library):
 - `persephone.onThemeChange(cb)` — fires once immediately, then on every switch; the
   callback **argument** is the live palette.
 
+**Switching themes while testing.** The app's theme shortcuts — `Ctrl+Alt+]` (next) and
+`Ctrl+Alt+[` (previous) — work while focus is inside the board frame, so you can flip through
+themes to check your styling without clicking out to the app first. Persephone forwards them
+out of the frame for you; if your board binds either combo itself, call `preventDefault()` in
+your own handler and the forwarding stands down (same opt-out as `Ctrl+S` and the context menu).
+
 **Re-theming a JS-colored component (charts, diagrams):** read the palette from the
 `onThemeChange` argument (or `getTheme()`) and re-apply on each fire — never cache
 `persephone.theme.vars` and reuse it across a switch, or your colors will go stale.
@@ -506,6 +537,12 @@ Boards do **not** auto-reload when you edit their files. After editing `index.ht
 toolbar. When an AI agent is driving the board, it reloads with the **`board_refresh`**
 MCP tool instead — the tool returns only after the reloaded main frame has finished
 loading, so a `browser_snapshot` right after it sees the new content.
+
+**`board-manifest.json` is the exception — a reload does not pick it up.** Persephone reads a
+board's manifest when the board becomes trusted and caches it from then on, so a manifest edit
+(new `fileMasks`, a changed `editorPriority`, adding `editorSources`) takes effect only after
+toggling the board's trust off and on, or restarting the app. A reload that appears to ignore a
+manifest change is this, not a broken manifest.
 
 ## Testing & automation (for an AI agent)
 

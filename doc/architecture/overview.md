@@ -6,7 +6,7 @@
 
 persephone is an **Electron desktop application** — a Windows Notepad replacement designed for developers. It combines:
 - Monaco Editor (VS Code engine) for text editing
-- Custom editors for specific file types (Grid, PDF, Markdown, Notebook, etc.)
+- Custom editors for specific file types (Grid, Markdown, Notebook, etc.)
 - JavaScript/TypeScript execution environment for data transformation
 - Built-in browser with multi-tab support
 
@@ -272,11 +272,11 @@ Keep the core text editing experience fast and lightweight. Heavy features load 
 ### 2. Async Imports for Editors
 ```typescript
 // CORRECT - async import preserves code splitting
-const getPdfModule = async () =>
-    (await import("../editors/pdf")).default;
+const getArchiveModule = async () =>
+    (await import("../editors/archive")).default;
 
 // WRONG - synchronous import increases main bundle
-import pdfModule from "../editors/pdf";
+import archiveModule from "../editors/archive";
 ```
 
 ### 3. Container with Building Blocks

@@ -109,6 +109,18 @@ export interface BoardManifest {
      * the construction path consumes it (US-845).
      */
     editorKind?: "simple" | "content-host";
+    /**
+     * Which SOURCES this board's `fileMasks` association accepts.
+     * - absent / "local": plain local files only.
+     * - "any": also archive entries (`archive.zip!doc.pdf`) and `http(s)` URLs. Persephone
+     *   materializes such a source into a local cache file, so `getFilePath()` still hands the
+     *   board a readable LOCAL path and the board needs no special handling.
+     * Default-closed on purpose: a board that reads via `readFile(getFilePath())` would FAIL on a
+     * bang path or a URL, so an undeclared board keeps losing those files to the built-in editor
+     * (a clean fallback) instead of opening and erroring.
+     * Honored only when the board is TRUSTED, like every other Custom Editor field.
+     */
+    editorSources?: "local" | "any";
 
     /**
      * Secondary (sidebar) views this board contributes (EPIC-044). Independent of
@@ -298,6 +310,8 @@ export interface BoardEditorAssociation {
     editorName?: string;
     /** Normalized board editor kind. Any value other than "content-host" → "simple". */
     editorKind: "simple" | "content-host";
+    /** Normalized accepted sources. Any value other than "any" → "local". */
+    editorSources: "local" | "any";
 }
 
 /**
@@ -321,12 +335,14 @@ export function getBoardEditorAssociation(
             : 0;
     const name = typeof manifest.editorName === "string" ? manifest.editorName.trim() : "";
     const editorKind = manifest.editorKind === "content-host" ? "content-host" : "simple";
+    const editorSources = manifest.editorSources === "any" ? "any" : "local";
     return {
         fileMasks,
         folderMasks,
         editorPriority,
         editorName: name || undefined,
         editorKind,
+        editorSources,
     };
 }
 

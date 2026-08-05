@@ -248,7 +248,7 @@ The `acceptFile` ladder as actually registered — highest wins, and ties go to 
 - `10` — Rendered view preferred over source: markdown preview
 - `20` — Compound file names: `*.grid.json`, `*.note.json`, `*.rest.json`, `*.link.json`, `*.fg.json`, `*.log.jsonl`, `*.env.json`, `*.grid.csv`
 - `50` — Dedicated format editors: `.excalidraw` → drawing
-- `100` — Exclusive viewers with no text view: PDF, image, archive, video
+- `100` — Exclusive viewers with no text view: image, archive, video
 - `200` — Pseudo-paths: `tree-category://` links
 
 Content-based detection is **not** on this ladder — it scores `60` inside `accepts()` and never reaches `acceptFile`, so it influences the switch widget and `detectContentEditor`, not which editor opens a file.
@@ -317,7 +317,7 @@ Register the panel React component in `/src/renderer/ui/secondary-views/secondar
 
 ## Examples
 
-- **Simple viewer:** `/src/renderer/editors/pdf/` — read-only PDF viewer, no content host
+- **Simple viewer:** `/src/renderer/editors/image/` — read-only image viewer, no content host
 - **Text-bearing minimal:** `/src/renderer/editors/html/` — HTML preview, composes IContentHost + trait
 - **Text-bearing complex:** `/src/renderer/editors/grid/` — JSON/CSV grid editor with full edit/save flow
 - **Per-note embedding:** `/src/renderer/editors/notebook/note-editor/` — Notebook embeds text-bearing editors per-note via `NoteItemEditModel` (a non-file IContentHost)

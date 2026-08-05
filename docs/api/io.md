@@ -386,7 +386,7 @@ console.log("Written to " + pipe.displayName);
 ### Open a URL in a new tab
 
 ```javascript
-// Persephone auto-selects the right editor (PDF viewer, grid, text, etc.)
+// Persephone auto-selects the right editor (grid, text, browser, etc.)
 await app.events.openRawLink.sendAsync(
     io.createLinkData("https://example.com/report.pdf")
 );

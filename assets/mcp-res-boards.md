@@ -249,7 +249,13 @@ srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays op
 - `persephone.getFilePath()` → `Promise<string | undefined>` — when the board is opened as a **custom
   editor** for a file (associated via `fileMasks` in `board-manifest.json`), resolves to that file's
   absolute path (read/write it with `readFile`/`writeFile`); `undefined` for a board opened plainly.
-  Safe to `await` at any time (waits for the host handshake).
+  Safe to `await` at any time (waits for the host handshake). The path is **always local**: with
+  `"editorSources": "any"` the board also opens archive entries and `http(s)` URLs, and Persephone
+  materializes those into a read-only cache file first — so one code path serves every source. Such a
+  board must handle two edges: the call can be **slow** (a URL completes only after the whole
+  download — build your UI in parallel rather than awaiting first) and it can **reject** (missing
+  archive entry, HTTP failure), which is different from `undefined`. Report a rejection; never leave a
+  blank frame.
 - `persephone.host.*` — for a **content-host** editor board (`"editorKind": "content-host"` in the
   manifest) Persephone owns the file (pipe, encoding, encryption, auto-save, dirty tracking) and the
   board works with the content instead of a path: `host.getContent()` → `Promise<string>`,
@@ -350,7 +356,9 @@ constants. To match **Persephone's own chrome** (title bar / sidebar / grid head
 `--p-bg-dark` (darker than `--p-panel`), plus `--p-hover` (list/button hover) and
 `--p-tree-selection` (selected row). For JS-colored components (charts/diagrams) read the live palette via
 `persephone.getTheme()` / `persephone.onThemeChange(cb)` and re-apply on each fire — never cache
-`persephone.theme.vars` across a switch.
+`persephone.theme.vars` across a switch. The app theme shortcuts (`Ctrl+Alt+]` / `Ctrl+Alt+[`) work
+with focus inside the board frame — Persephone forwards them out — so a theme pass over a board needs
+no clicking back into the app; a board binding either combo opts out with `preventDefault()`.
 
 ### Libraries & assets — vendor them locally
 
@@ -395,12 +403,15 @@ the manifest's `loadOrder`.
   optional `editorPriority` (a number; makes the board the *default* editor for those masks when it
   strictly outranks the built-in that also claims the file — omit/`0` = switch option only. Built-in
   ladder: Monaco `0`, Markdown Preview `10`, compound-name editors like `*.grid.json` `20`, Drawing
-  `50`, PDF/image/archive/video `100`; ties go to the built-in, so a `DASHBOARD.md` board needs more
+  `50`, image/archive/video `100`; ties go to the built-in, so a `DASHBOARD.md` board needs more
   than `10`, and `100` beats everything but the media viewers), and optional `editorName`
   (switch-widget label). Honored only when the board is trusted. Optional `editorKind`: `"simple"` (default) → the
   file arrives via `persephone.getFilePath()` (read/write it yourself); `"content-host"` → Persephone
   owns the file and the board works through `persephone.host.*` (shares the host with Monaco, edits
-  non-local files, auto-saves).
+  non-local files, auto-saves). Optional `editorSources`: `"local"` (default) → a simple board is
+  offered only for real local files; `"any"` → also for an archive entry or an `http(s)` URL, where
+  `getFilePath()` still returns a readable local path (see the bridge section). Ignored for
+  content-host boards, which always get every source.
 - Optional `icon.svg` / `icon.png` / `icon.ico` in the board folder sets the board's icon (SVG
   preferred). Without one, a default glyph is used.
 - **Reload model:** boards do **not** auto-reload on file changes. After editing a board's files,
@@ -408,6 +419,10 @@ the manifest's `loadOrder`.
   as an agent, the **`board_refresh`** MCP tool (pass the board's `pageId`, or omit it to reload the
   active board). The tool returns after the reloaded main frame has finished loading, so an iterate
   loop is race-free: edit files → `board_refresh` → `browser_snapshot`.
+- **`board-manifest.json` is not covered by a reload.** Persephone caches a board's manifest from the
+  moment the board is trusted, so a manifest edit (`fileMasks`, `editorPriority`, `editorSources`)
+  applies only after toggling the board's trust off and on, or restarting the app — not after
+  `board_refresh`.
 
 ## Test it
 

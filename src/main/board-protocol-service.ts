@@ -1,4 +1,4 @@
-import { net, session } from "electron";
+import { app, net, session } from "electron";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -64,12 +64,23 @@ export function boardRootToHost(boardRoot: string): string {
  *  (author convenience, US-723 C2); remote forbidden. Set as a response header. */
 const BOARD_CSP = [
     "default-src 'none'",
-    "script-src 'self' 'unsafe-inline'",
+    // 'wasm-unsafe-eval' permits compiling WebAssembly and nothing else — it does not
+    // re-admit JavaScript eval(). Vendored libraries increasingly ship a .wasm core
+    // (image codecs, database engines, parsers), and without it they fail at load.
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     "connect-src 'self'",
     "media-src 'self' blob:",
+    // Same-origin nested frames only. A board that embeds a vendored web app (a PDF or
+    // diagram viewer shipped as its own HTML page) needs this; it cannot reach remote
+    // content, since 'self' is the board's own `board://<host>` origin.
+    "frame-src 'self'",
+    // Explicit rather than inherited: workers already resolve through the
+    // worker-src → child-src → script-src fallback chain, but stating the directive keeps
+    // that from silently breaking if script-src is ever tightened.
+    "worker-src 'self'",
 ].join("; ");
 
 /** Build a `:root{…}` `<style>` defining the board's `--p-*` color palette + static
@@ -104,12 +115,15 @@ function buildBootScript(design: BoardDesign | undefined): string {
     return `<script id="persephone-boot">window.__persephoneBoot=${safeJson(boot)};</script>`;
 }
 
-/** The bridge shim source (`board-shim.js`, built beside `main.js`), read once and
- *  cached. Inlined into served HTML so `window.persephone` exists synchronously,
- *  before the first author script (US-771). */
+/** The bridge shim source (`board-shim.js`, built beside `main.js`). Inlined into served HTML so
+ *  `window.persephone` exists synchronously, before the first author script (US-771).
+ *
+ *  Cached for the process lifetime in a packaged build (the file cannot change under us). In DEV the
+ *  cache is skipped, because the dev server rebuilds the shim on every edit WITHOUT restarting
+ *  Electron — caching there would serve a stale shim to every board until a manual restart. */
 let shimSource: string | null = null;
 function getShimSource(): string {
-    if (shimSource === null) {
+    if (shimSource === null || !app.isPackaged) {
         try {
             shimSource = fs.readFileSync(path.join(__dirname, "board-shim.js"), "utf8");
         } catch (e) {

@@ -227,6 +227,20 @@ export interface TreeProps<T = ITreeItem>
      * keyboard with no way to re-open it. Expansion is never blocked. Default: allowed.
      */
     canCollapse?: (source: T, level: number) => boolean;
+    /**
+     * When true, collapsing a row also collapses every descendant, so re-expanding it shows
+     * a fully-closed subtree. Default: false (a subtree keeps its inner expansion).
+     *
+     * Beyond being a UX preference, this is the correct mode for lazy trees whose consumer
+     * discards children of collapsed rows: a descendant left flagged expanded but with its
+     * children dropped renders an open chevron over nothing, and the user has to toggle it
+     * twice to reload.
+     *
+     * `onExpandChange` fires once — for the toggled row only. Consumers that persist
+     * expansion should read `getExpandedMap()` (already updated when the callback runs)
+     * rather than accumulate the per-node callbacks.
+     */
+    collapseDescendants?: boolean;
 
     // ── Lazy children loading ────────────────────────────────────────
 

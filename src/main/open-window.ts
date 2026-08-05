@@ -173,10 +173,7 @@ export class OpenWindow {
             }
 
             // Allow navigation within your app protocols
-            if (
-                url.startsWith("safe-file://") ||
-                url.startsWith("app-asset://")
-            ) {
+            if (url.startsWith("app-asset://")) {
                 return;
             }
 

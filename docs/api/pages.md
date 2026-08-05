@@ -177,7 +177,7 @@ Open a browser page.
 Options:
 - `profileName?: string` — browser profile to use
 - `incognito?: boolean` — open in incognito mode
-- `tor?: boolean` — open using the Tor network (requires Tor to be configured in Settings)
+- `tor?: boolean` — open using the Tor network (requires Tor to be configured in Settings). The page's proxy is applied before the page opens, so nothing can load outside Tor; if that fails, a notification is shown and **no page is opened**. A `url` passed alongside `tor` will not load until Tor finishes connecting — reload the page once the status dot turns green.
 - `url?: string` — initial URL
 
 ```javascript

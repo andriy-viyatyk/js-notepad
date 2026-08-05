@@ -50,9 +50,8 @@ import { fs as appFs } from "../fs";
 import { getWellKnownPageDef } from "./well-known-pages";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import { ContentPipe } from "../../content/ContentPipe";
-import { FileProvider } from "../../content/providers/FileProvider";
 import { HttpProvider } from "../../content/providers/HttpProvider";
-import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
+import { pipeFromSourcePath } from "../../content/rebuild-pipe";
 
 function normalizeLinksTitle(title?: string): string {
     if (!title) return "untitled.link.json";
@@ -250,19 +249,7 @@ export class PagesLifecycleModel {
     // ── Pipe helpers ──────────────────────────────────────────────────
 
     private createPipeFromPath(path: string): IContentPipe {
-        if (path.startsWith("http://") || path.startsWith("https://")) {
-            return new ContentPipe(new HttpProvider(path));
-        }
-        const bangIndex = path.indexOf("!");
-        if (bangIndex >= 0) {
-            const archivePath = path.slice(0, bangIndex);
-            const entryPath = path.slice(bangIndex + 1);
-            return new ContentPipe(
-                new FileProvider(archivePath),
-                [new ArchiveTransformer(archivePath, entryPath)],
-            );
-        }
-        return new ContentPipe(new FileProvider(path));
+        return pipeFromSourcePath(path);
     }
 
 
@@ -322,10 +309,6 @@ export class PagesLifecycleModel {
             return newTextFileModel(filePath) as unknown as EditorOrHost;
         }
         switch (editorId) {
-            case "pdf-view": {
-                const mod = await import("../../editors/pdf/PdfView");
-                return mod.default.newEditorModel(filePath);
-            }
             case "image-view": {
                 const mod = await import("../../editors/image/ImageView");
                 return mod.default.newEditorModel(filePath);
@@ -1231,8 +1214,36 @@ export class PagesLifecycleModel {
                 });
             }
             await model.restore();
+
+            // Arm the Tor proxy BEFORE the page is added. `addPage` mounts the
+            // webview, which begins loading `options.url` immediately, whereas the
+            // daemon takes seconds to bootstrap — and an unproxied Electron
+            // session is DIRECT. Arming first makes that window fail closed
+            // instead of leaking the opening navigation onto the normal network.
+            if (options?.tor) {
+                try {
+                    await (model as unknown as {
+                        armTorProxy: () => Promise<void>;
+                    }).armTorProxy();
+                } catch (err) {
+                    // Refuse to open rather than open unproxied: a Tor page whose
+                    // partition could not be armed would browse over the normal
+                    // network, which is the exact failure this guards against.
+                    ui.notify(
+                        `Could not secure the Tor session — the page was not opened: ${
+                            (err as Error).message
+                        }`,
+                        "error",
+                    );
+                    return;
+                }
+            }
+
             this.addPage(model);
 
+            // Bootstrapping stays un-awaited: it can take tens of seconds, and the
+            // partition is already fail-closed, so the page may mount behind the
+            // Tor overlay while the daemon comes up.
             if (options?.tor) {
                 (model as unknown as { initTorProxy: () => void }).initTorProxy();
             }

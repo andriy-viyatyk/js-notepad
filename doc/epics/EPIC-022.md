@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Planned
+**Status:** Backlog (recorded idea — see `../tasks/backlog.md`)
 **Created:** 2026-04-10
 **Updated:** 2026-04-11
 

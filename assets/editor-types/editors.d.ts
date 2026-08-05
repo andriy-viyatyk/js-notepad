@@ -4,7 +4,7 @@ import type { EditorView } from "./common";
  * Read-only information about a registered editor.
  */
 export interface IEditorInfo {
-    /** Unique editor identifier (e.g. "monaco", "grid-json", "pdf-view"). */
+    /** Unique editor identifier (e.g. "monaco", "grid-json", "image-view"). */
     readonly id: EditorView;
     /** Human-readable editor name (e.g. "Text Editor", "JSON Grid"). */
     readonly name: string;

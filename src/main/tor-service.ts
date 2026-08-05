@@ -43,6 +43,13 @@ class TorService {
     private torProcess: ChildProcessWithoutNullStreams | null = null;
     private activePartitions = new Set<string>();
     private startPromise: Promise<{ success: boolean; error?: string }> | null = null;
+    /**
+     * Shared by every partition, and written by both `armPartition` and
+     * `startForPartition`. That is sound only because `tor.socks-port` is a single
+     * global setting feeding a single shared daemon — a caller awaiting a start can
+     * read a value another caller wrote in the meantime, but it is the same value.
+     * Per-partition ports would need a `Map<partition, port>` instead.
+     */
     private socksPort = 9050;
     /** Retained so `restart()` can respawn without the renderer re-supplying it. */
     private torExePath = "";
@@ -51,6 +58,24 @@ class TorService {
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
+
+    /**
+     * Point `partition` at the SOCKS port before the daemon exists, so the
+     * partition fails closed from the moment it is created.
+     *
+     * Chromium treats a proxy-less session as DIRECT, so without this every Tor
+     * page leaks whatever loads while the daemon is still bootstrapping — and
+     * everything, forever, if the bootstrap fails. Arming makes that window
+     * surface as ERR_SOCKS_CONNECTION_FAILED instead.
+     *
+     * Deliberately does **not** touch `activePartitions`: that set (via
+     * `isActiveTorPartition`) answers "is this a live, bootstrapped Tor session?"
+     * for `tor-src://` and `checkIp`, and an armed partition is not one yet.
+     */
+    async armPartition(socksPort: number, partition: string): Promise<void> {
+        this.socksPort = socksPort;
+        await this.setProxyForPartition(partition);
+    }
 
     async startForPartition(
         torExePath: string,
@@ -69,13 +94,7 @@ class TorService {
 
         // Tor is currently starting — wait for it, then configure partition
         if (this.startPromise) {
-            const result = await this.startPromise;
-            if (result.success) {
-                await this.setProxyForPartition(partition);
-            } else {
-                this.activePartitions.delete(partition);
-            }
-            return result;
+            return this.settleStart(await this.startPromise, partition);
         }
 
         // Start Tor
@@ -83,11 +102,37 @@ class TorService {
         const result = await this.startPromise;
         this.startPromise = null;
 
-        if (result.success) {
-            await this.setProxyForPartition(partition);
-        } else {
+        return this.settleStart(result, partition);
+    }
+
+    /**
+     * Apply the outcome of a start attempt to `partition`.
+     *
+     * The proxy is (re-)applied on **both** outcomes. On success that is what
+     * puts traffic on Tor; on failure it is what keeps the partition failing
+     * closed — the invariant must hold even for a caller that never armed, such
+     * as a reconnect after `stopForPartition` cleared the proxy.
+     */
+    private async settleStart(
+        result: { success: boolean; error?: string },
+        partition: string,
+    ): Promise<{ success: boolean; error?: string }> {
+        if (!result.success) {
             this.activePartitions.delete(partition);
+            // The attempt already failed; a session that has gone away too must
+            // not turn that into a rejected invoke. Logged rather than swallowed
+            // silently, because a partition we could not proxy is a leak risk.
+            try {
+                await this.setProxyForPartition(partition);
+            } catch (err) {
+                this.broadcastLog(
+                    `Could not apply the fail-closed proxy to ${partition}: ${(err as Error).message}`,
+                );
+            }
+            return result;
         }
+
+        await this.setProxyForPartition(partition);
         return result;
     }
 
@@ -307,7 +352,8 @@ class TorService {
                 // old child's close event arrives after the new one is already
                 // assigned, so an unguarded reset here would null out a healthy
                 // process and leave `running` false while Tor is actually up.
-                if (this.isCurrent(child)) {
+                const wasCurrent = this.isCurrent(child);
+                if (wasCurrent) {
                     this.running = false;
                     this.torProcess = null;
                 }
@@ -315,6 +361,16 @@ class TorService {
                     resolved = true;
                     clearTimeout(timeout);
                     resolve({ success: false, error: `Tor exited with code ${code}` });
+                    return;
+                }
+                // Died after bootstrapping. `isCurrent` is what makes this an
+                // *unexpected* death: `stopTorProcess` and `restart` both null out
+                // `torProcess` synchronously, so their own close events land here
+                // with `wasCurrent` false. Without this broadcast the page keeps a
+                // green dot while Tor is gone — requests fail closed, but the user
+                // has no way to know short of opening the info dialog.
+                if (wasCurrent) {
+                    this.broadcastStatus("error", `Tor exited with code ${code}`);
                 }
             });
         });
@@ -491,6 +547,13 @@ function normalizeGeo(data: Record<string, unknown>): Partial<TorIpInfo> | null 
 const torService = new TorService();
 
 export function initTorHandlers(): void {
+    ipcMain.handle(
+        TorChannel.arm,
+        async (_event, socksPort: number, partition: string) => {
+            return torService.armPartition(socksPort, partition);
+        },
+    );
+
     ipcMain.handle(
         TorChannel.start,
         async (

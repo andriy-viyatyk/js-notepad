@@ -103,6 +103,14 @@ let filePathSettled = false;
 let filePathValue: string | undefined;
 const filePathResolvers: Array<(p: string | undefined) => void> = [];
 
+// True when the handshake `filePath` is NOT directly readable — its real source is an archive entry
+// or an `http(s)` URL. `getFilePath()` then resolves through a `board:filePath` request, so the
+// board always receives a readable LOCAL path (Persephone materializes the source into a cache
+// file). The resolved path is memoized below, so repeated calls cost one request.
+let filePathNeedsMaterialize = false;
+let materializedPath: string | undefined;
+let materializedPromise: Promise<string | undefined> | null = null;
+
 function settleFilePath(value: string | undefined): void {
     filePathSettled = true;
     filePathValue = value;
@@ -194,6 +202,32 @@ const runnerHandlers = new Map<string, (channel: RunnerChannel, msg: unknown) =>
 const pendingVar = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let varReqId = 0;
 
+/** Pending content-path request/reply promises keyed by reqId (host-frame channel). */
+const pendingFilePath = new Map<
+    number,
+    { resolve: (v: string | undefined) => void; reject: (e: Error) => void }
+>();
+let filePathReqId = 0;
+
+/** Ask the renderer for a readable local path for this board's file. Used only when the source is
+ *  non-local — the renderer materializes it (which for an `http(s)` source means downloading it),
+ *  so this can take a while. */
+function filePathRpc(): Promise<string | undefined> {
+    return new Promise<string | undefined>((resolve, reject) => {
+        const reqId = ++filePathReqId;
+        pendingFilePath.set(reqId, { resolve, reject });
+        try {
+            window.parent.postMessage(
+                { __persephone: "board:filePath", reqId },
+                hostPostTarget,
+            );
+        } catch {
+            pendingFilePath.delete(reqId);
+            reject(new Error("Persephone host is unavailable."));
+        }
+    });
+}
+
 function varRpc(method: "get" | "set" | "list" | "show", args: unknown[]): Promise<unknown> {
     return new Promise<unknown>((resolve, reject) => {
         const reqId = ++varReqId;
@@ -281,7 +315,10 @@ function attachPort(p: MessagePort): void {
 // would never match the baked "file://" (see `hostOriginStrict` above).
 window.addEventListener("message", (event: MessageEvent) => {
     const data = event.data as
-        { __persephoneInit?: boolean; busy?: boolean; filePath?: string; contentHost?: boolean }
+        {
+            __persephoneInit?: boolean; busy?: boolean; filePath?: string;
+            contentHost?: boolean; materialize?: boolean;
+        }
         | undefined;
     if (!data || data.__persephoneInit !== true) return;
     if (event.source !== window.parent) return;
@@ -291,7 +328,12 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (busyState === null) settleBusy(!!data.busy);
     // filePath carried at handshake (EPIC-042). Every handshake settles it — a plain board
     // carries `undefined`, so `getFilePath()` still resolves (to undefined).
-    if (!filePathSettled) settleFilePath(data.filePath);
+    if (!filePathSettled) {
+        // Non-local source flag — read BEFORE settling, since settling releases waiting
+        // `getFilePath()` calls and they branch on it.
+        filePathNeedsMaterialize = !!data.materialize;
+        settleFilePath(data.filePath);
+    }
     // Content-host flag (EPIC-043) — gates the persephone.host content API.
     if (data.contentHost) hostEnabled = true;
     const p = event.ports && event.ports[0];
@@ -316,6 +358,21 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (event.source !== window.parent) return;
     if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
     applyStateSync(data.state ?? {}, typeof data.seq === "number" ? data.seq : 0);
+});
+
+// Content-path request reply — renderer → board. Same trust gate as host:content/state:sync.
+window.addEventListener("message", (event: MessageEvent) => {
+    const data = event.data as
+        { __persephone?: string; reqId?: number; path?: string; error?: string }
+        | undefined;
+    if (!data || data.__persephone !== "filePath:result" || typeof data.reqId !== "number") return;
+    if (event.source !== window.parent) return;
+    if (hostOriginStrict && event.origin !== boot.hostOrigin) return;
+    const p = pendingFilePath.get(data.reqId);
+    if (!p) return;
+    pendingFilePath.delete(data.reqId);
+    if (data.error != null) p.reject(new Error(data.error));
+    else p.resolve(data.path);
 });
 
 // Var request reply (EPIC-046) — renderer → board. Same trust gate as host:content/state:sync.
@@ -1247,10 +1304,28 @@ function createHandle(
 
     /** The absolute path of the file this board edits as a custom editor (EPIC-042), or
      *  `undefined` for a board opened plainly. Resolves when the host handshake lands, so it
-     *  is safe to await at any time. Read/write the file with `persephone.readFile`/`writeFile`. */
-    getFilePath(): Promise<string | undefined> {
-        if (filePathSettled) return Promise.resolve(filePathValue);
-        return new Promise<string | undefined>((resolve) => filePathResolvers.push(resolve));
+     *  is safe to await at any time. Read/write the file with `persephone.readFile`/`writeFile`.
+     *
+     *  Always a readable LOCAL path. When the file's real source is an archive entry
+     *  (`archive.zip!doc.pdf`) or an `http(s)` URL, Persephone materializes it into a temp file and
+     *  returns THAT path — so a board never handles non-local sources itself, and this call may take
+     *  as long as the download. Requires `"editorSources": "any"` in the board manifest; without it
+     *  such files are never routed to the board at all. REJECTS when the source cannot be read
+     *  (missing archive entry, HTTP failure), so handle rejection — it is not the same as the
+     *  `undefined` a plainly-opened board gets. */
+    async getFilePath(): Promise<string | undefined> {
+        await whenHandshake();
+        if (!filePathNeedsMaterialize) return filePathValue;
+        // Non-local source: resolve through the renderer, once. Concurrent callers share the
+        // in-flight request; a failure clears it so a later call can retry.
+        if (materializedPath) return materializedPath;
+        if (!materializedPromise) {
+            materializedPromise = filePathRpc().then(
+                (p) => { materializedPath = p; return p; },
+                (e) => { materializedPromise = null; throw e; },
+            );
+        }
+        return materializedPromise;
     },
 
     /** Content-host bridge (EPIC-043). Meaningful only when this board is a content-host editor

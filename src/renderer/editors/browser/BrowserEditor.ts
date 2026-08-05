@@ -237,6 +237,32 @@ export class BrowserEditor extends EditorModel<
         await showTorInfoDialog(this.partition);
     };
 
+    /** True once this partition carries the SOCKS proxy. See `armTorProxy`. */
+    private torArmed = false;
+
+    /**
+     * Put this page's partition behind the SOCKS proxy before anything can load.
+     *
+     * Must be awaited *before* the page is added to the window: the first webview
+     * mounts with `src` already set and starts fetching at once, while the daemon
+     * needs seconds to bootstrap. An unproxied Electron session is DIRECT, so
+     * without this the opening navigation goes out on the normal network — and
+     * keeps doing so if the bootstrap fails. Arming makes that window fail closed.
+     *
+     * Idempotent, because several paths must guarantee it and none of them can see
+     * whether another already did: `restore()` covers every way a Tor page comes
+     * into being (including session restore), `showBrowserPage` re-asserts it so a
+     * failure can refuse to open the page, and `reconnectTor` covers a partition
+     * whose earlier arming failed. The flag is set only on success, so a failed
+     * attempt is retried by the next caller rather than being remembered as done.
+     */
+    armTorProxy = async (): Promise<void> => {
+        if (this.torArmed) return;
+        const socksPort = settings.get("tor.socks-port");
+        await ipcRenderer.invoke(TorChannel.arm, socksPort, this.partition);
+        this.torArmed = true;
+    };
+
     /** Start Tor proxy for this page's partition. Shows overlay with progress. */
     initTorProxy = async (): Promise<{ success: boolean; error?: string }> => {
         this.state.update((s) => {
@@ -272,8 +298,28 @@ export class BrowserEditor extends EditorModel<
         return result;
     };
 
-    /** Reconnect Tor (e.g. after session restore). */
+    /**
+     * Reconnect Tor (e.g. after session restore).
+     *
+     * Arms first: `initTorProxy` only reaches `setProxyForPartition` *after* the
+     * daemon settles, so on a cold daemon this would otherwise leave a 5–30 s
+     * window with the partition unproxied — and the URL bar is never disabled, so
+     * that window is reachable. Normally a no-op, since `restore()` already armed
+     * this partition; it matters when that attempt failed.
+     */
     reconnectTor = async (): Promise<void> => {
+        try {
+            await this.armTorProxy();
+        } catch (err) {
+            // Refuse to bring Tor up over a partition we could not secure.
+            this.state.update((s) => {
+                s.torStatus = "error";
+                s.torOverlayVisible = true;
+                s.torLog += (s.torLog ? "\n" : "")
+                    + `Could not secure the session: ${(err as Error).message}`;
+            });
+            return;
+        }
         await this.initTorProxy();
     };
 
@@ -383,6 +429,29 @@ export class BrowserEditor extends EditorModel<
     async restore(): Promise<void> {
         await super.restore();
         const s = this.state.get();
+
+        // Arm here rather than only at the `showBrowserPage` call site: this runs on
+        // every path that produces a Tor page, session restore included, and always
+        // before the page is added to the window. A restored Tor page resets its tabs
+        // to about:blank and waits for Reconnect, but its URL bar is live — without
+        // this, typing a URL before reconnecting would navigate a bare partition
+        // straight out onto the normal network. Failures are recorded rather than
+        // thrown, so a page is never dropped from a restore; the overlay then shows
+        // the error, `reconnectTor` retries the arming, and for a newly opened page
+        // `showBrowserPage` re-asserts it and declines to open on failure.
+        if (s.isTor) {
+            try {
+                await this.armTorProxy();
+            } catch (err) {
+                this.state.update((st) => {
+                    st.torStatus = "error";
+                    st.torOverlayVisible = true;
+                    st.torLog += (st.torLog ? "\n" : "")
+                        + `Could not secure the session: ${(err as Error).message}`;
+                });
+            }
+        }
+
         if (s.url && s.url !== DEFAULT_URL) {
             this.state.update((st) => {
                 st.title = st.pageTitle || "Browser";

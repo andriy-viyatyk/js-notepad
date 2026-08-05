@@ -309,18 +309,6 @@ editorRegistry.register({
 });
 
 editorRegistry.register({
-    id: "pdf-view",
-    name: "PDF Viewer",
-    hasContentHost: false,
-    accepts: makeAccepts(EDITOR_MATCHERS["pdf-view"]),
-    match: EDITOR_MATCHERS["pdf-view"],
-    loadModule: async () => {
-        const { pdfModule } = await import("./pdf");
-        return pdfModule;
-    },
-});
-
-editorRegistry.register({
     id: "image-view",
     name: "Image Viewer",
     hasContentHost: false,

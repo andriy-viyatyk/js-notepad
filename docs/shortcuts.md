@@ -21,8 +21,8 @@ These shortcuts work regardless of which editor is active.
 | `Ctrl+-` | Zoom out |
 | `Ctrl+0` | Reset zoom |
 | `Ctrl+Mouse Wheel` | Zoom in/out |
-| `Ctrl+Alt+]` | Next theme |
-| `Ctrl+Alt+[` | Previous theme |
+| `Ctrl+Alt+]` | Next theme (also works with focus inside a board) |
+| `Ctrl+Alt+[` | Previous theme (also works with focus inside a board) |
 | `F5` | Run script (JavaScript or TypeScript) |
 | `Ctrl+V` | Paste clipboard image into a new viewer tab — bitmap images (screenshots, Snipping Tool) open in the **Image Viewer**; HTML-only images (PowerPoint / Office copies) open in the **HTML viewer**. Has no effect when a text editor or input has focus (those paste normally). |
 

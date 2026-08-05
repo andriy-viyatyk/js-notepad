@@ -130,6 +130,22 @@ Browse through the [Tor network](https://www.torproject.org/) for anonymous, tra
 - Once connected, all traffic is routed through the Tor network via a SOCKS5 proxy
 - A **Tor indicator** appears in the URL bar — click it to show or hide the status overlay; a colored dot shows the connection status
 
+#### Nothing loads outside Tor
+
+A Tor page never falls back to your normal internet connection. The proxy is applied to the page
+before anything can load, so pages that try to load while Tor is still connecting — or after it
+failed to connect — **fail with a proxy error rather than loading directly**.
+
+What that means in practice:
+
+- Opening **Browser (Tor)** with a URL: if Tor is not connected yet, that first page will not
+  load. Wait for the indicator dot to turn green, then reload.
+- If Tor fails to connect, browsing does not work at all until you click **Reconnect**. This is
+  intentional — a page that loaded anyway would have been fetched over your regular connection,
+  revealing your real IP address.
+- If the Tor daemon stops unexpectedly, the indicator dot turns **red** and requests stop
+  working. Click **Reconnect** to restart it.
+
 #### Lifecycle
 
 - `tor.exe` is started automatically when the first Tor browser page opens
@@ -167,6 +183,7 @@ The **star button (☆)** in the URL bar lets you quickly bookmark or edit the c
 - **Empty star** when URL is not bookmarked; **filled star** when already bookmarked
 - Click to open the **Edit Link Dialog** with URL and title prefilled
 - **Discovered images** from page meta tags and click tracking are shown in the dialog for choosing a thumbnail
+- The dialog opens immediately, even while the page is still loading. If the page can't report its images within a second, the dialog opens without suggestions — the URL, title, and favicon are unaffected
 
 ### Bookmarks Panel
 

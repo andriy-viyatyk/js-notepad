@@ -8,6 +8,7 @@ import type { BrowserEditorModel } from "./BrowserEditorModel";
 import type { LinkItem } from "../link-editor/linkTypes";
 import { app } from "../../api/app";
 import { BookmarkEvent } from "../../api/events/events";
+import { withTimeout } from "../../core/utils/utils";
 
 /** Tracked image URLs from a specific navigation level. */
 export interface TrackedImageLevel {
@@ -16,6 +17,14 @@ export interface TrackedImageLevel {
 }
 
 const BOOKMARKS_FILE_FILTER = { name: "Link Files", extensions: ["link.json"] };
+
+/**
+ * How long a bookmark may wait on the page for its suggested images before the dialog
+ * opens without them. The probe runs on the page's own renderer thread, so a loading or
+ * busy page can hold it indefinitely — and the URL and title, which are the parts that
+ * matter, are already known from our own tab state.
+ */
+const IMAGE_DISCOVERY_TIMEOUT = 1000;
 
 /**
  * Manages bookmarks UI: drawer visibility, star button, image discovery,
@@ -192,8 +201,26 @@ export class BrowserBookmarksUIModel {
     // Star Button
     // =====================================================================
 
+    /**
+     * Re-entrancy guard for the star button. Everything before the dialog is async
+     * (bookmark-file setup, favicon cache, the page image probe), so without this a user
+     * who clicks the star again because nothing appeared yet ends up with one dialog per
+     * click, all opening at once when the awaits finally settle.
+     */
+    private starClickBusy = false;
+
     /** Star button click: add or edit bookmark for the current URL. */
     handleStarClick = async () => {
+        if (this.starClickBusy) return;
+        this.starClickBusy = true;
+        try {
+            await this.runStarClick();
+        } finally {
+            this.starClickBusy = false;
+        }
+    };
+
+    private runStarClick = async () => {
         const bm = await this.ensureBookmarks();
         if (!bm) return;
 
@@ -294,12 +321,16 @@ export class BrowserBookmarksUIModel {
     // Image Discovery
     // =====================================================================
 
-    /** Extract og:image, twitter:image, and similar meta tag images from the active webview. */
+    /**
+     * Extract og:image, twitter:image, and similar meta tag images from the active webview.
+     * Bounded by `IMAGE_DISCOVERY_TIMEOUT` — returns `[]` rather than making the caller wait
+     * on a page that cannot answer.
+     */
     discoverImages = async (): Promise<string[]> => {
         const webview = this.model.webview.getActiveWebview();
         if (!webview) return [];
         try {
-            const images: string[] = await webview.executeJavaScript(`
+            const probe: Promise<string[]> = webview.executeJavaScript(`
                 (() => {
                     const imgs = [];
                     const seen = new Set();
@@ -326,7 +357,7 @@ export class BrowserBookmarksUIModel {
                     return imgs;
                 })()
             `);
-            return images || [];
+            return (await withTimeout(probe, IMAGE_DISCOVERY_TIMEOUT, [])) || [];
         } catch {
             return [];
         }

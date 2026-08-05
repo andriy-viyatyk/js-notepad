@@ -32,7 +32,9 @@ page.data.counter = (page.data.counter || 0) + 1;
 
 ### Editor IDs
 
-`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"pdf-view"` · `"image-view"` · `"browser-view"` · `"graph-view"` · `"draw-view"` · `"log-view"` · `"mcp-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"`
+`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"image-view"` · `"browser-view"` · `"graph-view"` · `"draw-view"` · `"log-view"` · `"mcp-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"`
+
+> `"pdf-view"` was removed in 4.0.18 along with the built-in PDF viewer — see [What's New](../whats-new.md#version-4018-upcoming). PDF viewing is now provided by the published **PDF Viewer** board, which has its own board-specific editor id and isn't addressable through this list. See [Editors — PDF Viewer](../editors.md#pdf-viewer).
 
 ## Methods
 

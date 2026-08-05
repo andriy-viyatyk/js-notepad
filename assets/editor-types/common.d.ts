@@ -29,7 +29,6 @@ export type EditorView =
     | "grid-csv"
     | "grid-jsonl"
     | "md-view"
-    | "pdf-view"
     | "image-view"
     | "svg-view"
     | "about-view"

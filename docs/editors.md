@@ -75,12 +75,14 @@ See **[Grid Editor](./grid-editor.md)** for complete documentation including all
 
 ## PDF Viewer
 
-For `.pdf` files — opens automatically:
+Persephone no longer ships a built-in PDF viewer. What happens when you open a `.pdf` depends on how it's opened:
 
-- Page navigation (scroll or page controls)
-- Zoom controls (in/out, fit to page)
-- Text search within PDF
-- Read-only view
+- **A local `.pdf` file** opens in the **Text Editor**, which detects the large binary content and shows a warning instead of trying to render it.
+- **A `.pdf` at an `http(s)` URL** opens in the built-in [Browser](./browser.md), rendered by Chromium's own PDF viewer.
+
+For the full PDF experience — search, thumbnails sidebar, document outline, page navigation, zoom / fit-width / fit-page, rotate, text selection and copy, and print — install the **PDF Viewer** board from the published boards catalog (requires Persephone 4.0.18 or later): open the **Tools & Editors** sidebar panel → **Open in new tab** → **Search boards** tab, find "PDF Viewer", click **Install**, then register/trust it when prompted. Once installed, it becomes the default editor for `.pdf` files — local, inside an archive (e.g. `archive.zip!doc.pdf`), and at `http(s)` URLs all open in the board instead. The board is read-only (no annotation editing) and fully offline — it never makes a network request. It keeps pdf.js's own light/dark styling rather than following the Persephone app theme.
+
+See [Boards — Published boards catalog](./boards.md#published-boards-catalog--discover-install-update) for the install/trust flow.
 
 ## Video Player
 
@@ -421,7 +423,7 @@ For `.link.json` files — a structured link manager:
 - **Multiple view modes** — List, Landscape tiles, Portrait tiles (normal and large variants)
 - **View mode per category, per tag, and per hostname** — each filter remembers its preferred layout
 - **Image tiles** — tile views display preview images with "no image" placeholder for links without images
-- **Edit/Create dialog** — title (auto-growing), URL, category (with autocomplete), tags (chip-based with autocomplete), image URL with preview, **Target** editor dropdown (auto-detect, Text Editor, Browser, PDF Viewer, Image Viewer, Markdown Preview, HTML Preview, SVG Preview, JSON Grid, CSV Grid)
+- **Edit/Create dialog** — title (auto-growing), URL, category (with autocomplete), tags (chip-based with autocomplete), image URL with preview, **Target** editor dropdown (auto-detect, Text Editor, Browser, Image Viewer, Markdown Preview, HTML Preview, SVG Preview, JSON Grid, CSV Grid)
 - **Search** — toolbar search filters links by title or URL
 - **Context menu** — Edit, Open in Default Browser, Open in Internal Browser, browser profiles, Open in Incognito, Copy URL, Pin/Unpin, Delete
   - For links with images: Copy Image URL, Open Image in New Tab (opens in Image Viewer)
@@ -533,7 +535,7 @@ Opens automatically when you open an archive file. Supports:
 **How it works:**
 
 - **Archive panel** — Opens in the page sidebar showing the archive's file tree. Click the Archive panel header to expand it and browse entries as a folder tree.
-- **Inline entry viewing** — Click any file inside the archive to view it in the main editor area. Text-based files (XML, JSON, CSS, etc.) open in Monaco; images open in the Image Viewer; PDFs open in the PDF Viewer.
+- **Inline entry viewing** — Click any file inside the archive to view it in the main editor area. Text-based files (XML, JSON, CSS, etc.) open in Monaco; images open in the Image Viewer; PDFs open in the installed **PDF Viewer** board (see [PDF Viewer](#pdf-viewer)) if you have it, or as a Text Editor warning otherwise.
 - **Entry highlighting** — The Archive panel highlights the currently viewed entry in the tree as you navigate between files.
 - **Auto-reveal** — When the Archive panel is expanded, navigating to a file automatically expands its parent folders and scrolls the tree to reveal the entry.
 - **Auto-expand/collapse** — The Archive panel expands automatically when navigating to files inside the archive and collapses when you navigate away to unrelated files.
@@ -855,7 +857,7 @@ Some files support multiple editors:
 | `.rest.json` | Text, **Rest Client (default)** |
 | `.zip`, `.docx`, `.xlsx`, etc. | Archive Editor |
 | `.asar` | Archive Editor (read-only) |
-| `.pdf` | PDF only |
+| `.pdf` | Text only, unless the [PDF Viewer board](#pdf-viewer) is installed (then that board, by default) |
 | `.mp4`, `.webm`, `.avi`, `.mkv`, `.mov`, `.m3u8`, `.m3u` | Video Player only |
 | `.mp3`, `.wav`, `.aac`, `.flac`, `.m4a`, `.wma`, `.ogg`, `.opus` | Video Player only (audio with visualizer) |
 | Images | Image Viewer only |

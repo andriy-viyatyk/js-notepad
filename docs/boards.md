@@ -261,6 +261,8 @@ button { background: var(--p-accent); color: var(--p-accent-text); }
 
 The board template ships with a `board-base.css` (linked first in `index.html`) that applies sensible defaults — page background, text color, monospace font, and themed scrollbars — all from `--p-*`. Build your own styles on top.
 
+The app's theme shortcuts — **Ctrl+Alt+]** (next theme) and **Ctrl+Alt+[** (previous) — work with focus inside a board, so you can cycle themes to check a board's styling without clicking back into the app first. A board that binds either combination itself takes precedence.
+
 **Full token list:**
 
 | Group | Variables |
@@ -338,6 +340,7 @@ Declare the association with fields in `board-manifest.json`:
 | `editorPriority` | A number that decides whether the board also becomes the **default** editor for matching files (not just a switch option). Persephone's built-in editors each sit at their own priority level; set a value higher than the built-in editor for that file type to make the board the one that opens automatically. Ties go to the built-in editor. Omit it (or leave it `0`) and the board is offered only as a switch option — the built-in editor keeps opening by default. Built-in priority levels: Text Editor `0`, Markdown Preview `10`, compound-name editors such as `*.grid.json`/`*.note.json` `20`, Drawing `50`, PDF/image/archive/video viewers `100`. For example, a board claiming `.md` files (like the `folderMasks` example below, which uses `fileMasks: ["DASHBOARD.md"]`) needs `editorPriority` **above 10** to open by default — Markdown Preview now claims that slot, not the Text Editor's floor of `0`. |
 | `editorName` | The label shown for the board in the editor-switch control. Falls back to the board's folder name if omitted. |
 | `editorKind` | Optional — `"simple"` (default, if omitted) or `"content-host"`. Decides *how* the board gets the file's content. See [Simple editors](#simple-editors--reading-the-file-directly) and [Content-host editors](#content-host-editors--sharing-persephones-file-with-the-board) below. |
+| `editorSources` | Optional — `"local"` (default, if omitted) or `"any"`. A **simple** board only handles a plain local file by default; set `"any"` to also have it offered for a file inside an archive (e.g. `archive.zip!doc.pdf`) or at an `http(s)` URL. Persephone materializes those non-local sources to a local cache file first, so the board's own code is unchanged — it still just calls `persephone.getFilePath()` and reads the returned path. Ignored by content-host boards, which already support non-local sources through `persephone.host.*`. The published **PDF Viewer** board uses this to open archive-embedded and remote PDFs the same way it opens local ones. |
 
 **Requirements and behavior:**
 
@@ -423,7 +426,7 @@ Three things a content-host board can do that a simple board cannot:
 
 ## Published boards catalog — discover, install, update
 
-Persephone maintains a small **catalog of boards published by the project** — ready-made custom editors and tools you can install without building them yourself (for example, a `.drawio` diagram viewer). The catalog is refreshed automatically in the background (roughly once a day) and can also be refreshed on demand.
+Persephone maintains a small **catalog of boards published by the project** — ready-made custom editors and tools you can install without building them yourself. The flagship example is the **PDF Viewer** board — it replaced Persephone's former built-in PDF viewer (see [Editors — PDF Viewer](./editors.md#pdf-viewer)), so PDF viewing is now a ~3.5 MB opt-in download instead of ~21 MB of pdf.js shipped to every installation. Other examples include a `.drawio` diagram viewer. The catalog is refreshed automatically in the background (roughly once a day) and can also be refreshed on demand.
 
 ### Discovering a board
 

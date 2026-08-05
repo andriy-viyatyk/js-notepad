@@ -171,6 +171,12 @@ export interface BoardPortInitMsg {
      *  host and pushes `host:content`. Gates `persephone.host.getContent/getLanguage` in the shim
      *  (a plain board rejects instead of hanging). */
     contentHost?: boolean;
+    /** True when `filePath` is NOT directly readable — its real source is an archive entry
+     *  (`archive.zip!doc.pdf`) or an `http(s)` URL, which Persephone must materialize into a local
+     *  cache file first. `getFilePath()` then resolves through a `board:filePath` request instead of
+     *  returning `filePath` verbatim, so the board always receives a readable LOCAL path. Absent
+     *  (the common case) keeps the zero-round-trip handshake path. */
+    materialize?: boolean;
 }
 
 /** Messages the shim posts to the HOST FRAME via `window.parent.postMessage` (the
@@ -190,7 +196,8 @@ export interface BoardToHostMsg {
         | "board:setSecondaryViews" // persephone.setSecondaryViews — replace the board's views (EPIC-044)
         | "board:setStatusText" // persephone.setStatusText — content-host footer status (US-892)
         | "board:cycleTheme" // Ctrl+Alt+[ / ] pressed inside the frame — cycle the app theme
-        | "board:var"; // board requested a var.get/set/list (EPIC-046) — request/reply, needs a reqId
+        | "board:var" // board requested a var.get/set/list (EPIC-046) — request/reply, needs a reqId
+        | "board:filePath"; // board asked for its readable local content path — request/reply, needs a reqId
     /** `board:error` / `board:log` detail. */
     message?: string;
     /** `board:log` severity: `"warn"` or `"error"` (the mirrored console method). */
@@ -242,6 +249,17 @@ export interface BoardStateSyncMsg {
     __persephone: "state:sync";
     state: Record<string, unknown>;
     seq: number;
+}
+
+/** Reply to a board `board:filePath` request pushed renderer → board. Matched to the request by
+ *  `reqId`. `path` is a readable LOCAL path holding the board's content (the source path itself for
+ *  a plain local file, else a cache file materialized from the content pipe); `error` is set instead
+ *  when the source could not be read (missing archive entry, HTTP failure). */
+export interface BoardFilePathResultMsg {
+    __persephone: "filePath:result";
+    reqId: number;
+    path?: string;
+    error?: string;
 }
 
 /** Reply to a board `board:var` request pushed renderer → board (EPIC-046). Matched to the

@@ -377,6 +377,7 @@ export function TreeProviderView(
                 isSelected={isSelected}
                 keyboardNav
                 canCollapse={canCollapse}
+                collapseDescendants
                 activeIndex={activeIndex}
                 onActiveChange={setActiveIndex}
                 onChange={model.onItemClick}

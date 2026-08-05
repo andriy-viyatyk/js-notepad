@@ -43,20 +43,6 @@ export function setupMainProcess() {
             },
         },
         {
-            scheme: "safe-file",
-            privileges: {
-                standard: true,
-                secure: true,
-                supportFetchAPI: true,
-                bypassCSP: true,
-                // corsEnabled so the pdf.js viewer (origin app-asset://pdfjs)
-                // can fetch the PDF cross-origin from safe-file://. Electron 43 /
-                // Chromium blocks custom-scheme cross-origin fetch without it
-                // (same requirement as app-asset above — US-821 missed this one).
-                corsEnabled: true,
-            },
-        },
-        {
             // Tor-routed remote resources for renderer-drawn content (US-896).
             // The app renderer is not covered by a Tor page's session proxy, so
             // e.g. the Link editor's bookmark images opt in via this scheme.
@@ -106,40 +92,6 @@ export function setupMainProcess() {
             const fileUrl = pathToFileURL(file).toString();
 
             return net.fetch(fileUrl, { bypassCustomProtocolHandlers: true });
-        });
-
-        customSession.protocol.handle("safe-file", async (request) => {
-            let filePath = decodeURIComponent(
-                request.url.replace("safe-file://", ""),
-            );
-
-            if (process.platform === "win32") {
-                // Check if it's a Windows path without drive letter separator
-                const match = filePath.match(/^([a-zA-Z])\/(.+)$/);
-                if (match) {
-                    filePath = `${match[1]}:\\${match[2].replace(/\//g, "\\")}`;
-                }
-            }
-
-            if (!isValidFilePath(filePath)) {
-                return new Response("Invalid file path", { status: 403 });
-            }
-
-            const url = pathToFileURL(filePath).toString();
-            const response = await net.fetch(url, {
-                bypassCustomProtocolHandlers: true,
-            });
-
-            const headers = new Headers(response.headers);
-            if (filePath.toLowerCase().endsWith(".pdf")) {
-                headers.set("Content-Type", "application/pdf");
-            }
-
-            return new Response(response.body, {
-                status: response.status,
-                statusText: response.statusText,
-                headers: headers,
-            });
         });
     }
 

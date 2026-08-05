@@ -51,7 +51,6 @@ const targetEditorOptions: TargetOption[] = [
     { value: "monaco", label: "Text Editor" },
     { value: "browser", label: "Browser" },
     { value: "image-view", label: "Image Viewer" },
-    { value: "pdf-view", label: "PDF Viewer" },
     { value: "md-view", label: "Markdown Preview" },
     { value: "html-view", label: "HTML Preview" },
     { value: "svg-view", label: "SVG Preview" },

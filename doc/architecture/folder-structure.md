@@ -25,7 +25,6 @@ persephone/
 ├── assets/                 # Static assets
 │   ├── editor-types/       # GENERATED — Vite plugin auto-copies .d.ts files from src/renderer/api/types/ (never hand-edit)
 │   ├── icons/              # App icons
-│   ├── pdfjs/              # PDF.js library
 │   ├── excalidraw/fonts/   # Self-hosted Excalidraw fonts (woff2, OFL-1.1 licensed)
 │   ├── script-library/     # Bundled example scripts (copied to user library on setup)
 │   ├── mcp-res-ui-push.md  # MCP resource: ui_push tool guide
@@ -212,6 +211,7 @@ persephone/
 │   ├── parsers.ts          # Layer 1: raw link parsers (file, HTTP/cURL, archive, data:) on openRawLink
 │   ├── resolvers.ts        # Layer 2: pipe resolvers (file, HTTP, archive) on openLink
 │   ├── link-utils.ts       # URL → pipe descriptor resolution (used by resolvers + tree providers)
+│   ├── rebuild-pipe.ts     # pipeFromSourcePath() — rebuild a pipe from a persisted source path (plain, archive-bang, http); shared by the Image editor, board file materialization and page restore
 │   ├── open-handler.ts     # Layer 3: open handler on openContent — creates/navigates pages
 │   ├── persephone-board-link.ts # persephone-board:// link encode/decode (addresses a board root); parsed in parsers.ts → target "board-view"
 │   ├── persephone-toolset-link.ts # persephone-toolset:// link encode/decode (addresses a toolset root) + openToolset() helper; parsed in parsers.ts → target "toolset-view"
@@ -463,10 +463,6 @@ persephone/
 │   │   ├── EnvVarsEditor.ts          # EditorModel — namespace/profile selection, CRUD over the namespace's profile data
 │   │   ├── EnvVarsBody.tsx           # React component
 │   │   ├── open-env-vars.ts          # openEnvVarsPage(namespace) — used by persephone.var.show() and app.boardVars.show(namespace)
-│   │   └── index.tsx
-│   ├── pdf/                # PDF viewer (non-text, no trait)
-│   │   ├── PdfEditor.ts              # EditorModel — pipe-backed PDF state
-│   │   ├── PdfView.tsx               # React component (pdf.js)
 │   │   └── index.tsx
 │   ├── image/              # Image viewer (non-text, no trait)
 │   │   ├── ImageEditor.ts            # EditorModel — pipe-backed image state
@@ -836,5 +832,5 @@ import { Button } from "../../uikit/Button/Button";
 import type { BrowserEditorModel } from "../../editors/browser/BrowserEditorModel";
 
 // Dynamic imports for editors (preserves code splitting)
-const { PdfViewer } = await import("../editors/pdf/PdfViewer");
+const { ArchiveEditorView } = await import("../editors/archive/ArchiveEditorView");
 ```

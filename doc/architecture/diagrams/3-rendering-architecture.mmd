@@ -6,12 +6,12 @@ graph TB
 
     RE --> AE["AsyncEditor<br/><i>Lazy-loads module</i>"]
     AE --> EBB["EditorErrorBoundary"]
-    EBB --> ED["editor module Editor component<br/><i>e.g. MonacoBody / GridBody / PdfView</i>"]
+    EBB --> ED["editor module Editor component<br/><i>e.g. MonacoBody / GridBody / ImageView</i>"]
 
     ED -->|"text-bearing editors compose"| TC["TextChrome<br/><i>shared toolbar / script-panel / footer</i>"]
     TC --> EB["Editor body<br/><i>MonacoBody / GridBody / NotebookBody / etc.</i>"]
 
-    ED -->|"non-text editors render directly"| DE["Direct body<br/><i>PdfView / ImageView / BrowserView / etc.</i>"]
+    ED -->|"non-text editors render directly"| DE["Direct body<br/><i>ImageView / BrowserView / ArchiveView / etc.</i>"]
 
     style PC fill:#e1f5fe
     style CMP fill:#f3e5f5

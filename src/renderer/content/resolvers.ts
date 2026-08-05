@@ -1,7 +1,7 @@
 import { app } from "../api/app";
 import { editorRegistry } from "../editors/base/editorRegistry";
-import { resolveEditorIdForFile } from "../editors/board/custom-editor-registry";
-import { isArchivePath, parseArchivePath, isPlainLocalPath } from "../core/utils/file-path";
+import { isBoardEditorId, resolveEditorIdForFile } from "../editors/board/custom-editor-registry";
+import { isArchivePath, parseArchivePath } from "../core/utils/file-path";
 import { createPipeFromDescriptor } from "./registry";
 import { resolveUrlToPipeDescriptor, isHttpUrl, toFileUrl } from "./link-utils";
 import type { ILinkData } from "../../shared/link-data";
@@ -157,15 +157,16 @@ export function registerResolvers(): void {
             return;
         }
 
-        // Resolve target editor if not already specified. For a plain local file, use the
-        // merged resolver (built-in registry + trusted file-associated boards, EPIC-042):
-        // a board that wins by priority becomes the target, and its file rides the normal
-        // openFile path (→ buildEditorById board branch → initFromBoardRoot). Archive /
-        // virtual sources never route to a board — built-in resolution only.
+        // Resolve target editor if not already specified via the merged resolver (built-in registry
+        // + trusted file-associated boards, EPIC-042): a board that wins by priority becomes the
+        // target, and its file rides the normal openFile path (→ buildEditorById board branch →
+        // initFromBoardRoot). Two paths are passed because they answer different questions: masks
+        // and built-in matching run on the EFFECTIVE path (an archive entry's inner name, a URL's
+        // last segment minus its query), while the SOURCE capability gate is judged on the original
+        // url — a non-local source reaches only a content-host board or one declaring
+        // `editorSources: "any"`.
         data.target = data.target
-            || (isPlainLocalPath(data.url)
-                ? resolveEditorIdForFile(data.url)
-                : editorRegistry.resolveId(extractEffectivePath(data.url)))
+            || resolveEditorIdForFile(data.url, extractEffectivePath(data.url))
             || "monaco";
         data.pipeDescriptor = pipeDescriptor;
         data.pipe = createPipeFromDescriptor(pipeDescriptor);
@@ -200,8 +201,19 @@ export function registerResolvers(): void {
     // Extension map is self-contained — does not rely on editor registry.
     // Extension map determines which editor handles each URL.
 
-    /** Maps file extensions to { editor, language? } for HTTP content opening. */
-    const httpContentExtensions: Record<string, { editor: string }> = {
+    /**
+     * Maps file extensions to { editor, language? } for HTTP content opening.
+     *
+     * `editor` is optional: an entry with only `browserFallback` means the extension has NO
+     * built-in editor, so the URL becomes content only if a trusted board claims the type —
+     * otherwise it opens in a browser tab. The entry must still exist, because this table also
+     * decides browser-vs-content and the board lookup below is skipped entirely when there is
+     * no mapping.
+     */
+    const httpContentExtensions: Record<
+        string,
+        { editor?: string; browserFallback?: boolean }
+    > = {
         // Programming languages → Monaco
         ".js": { editor: "monaco" }, ".mjs": { editor: "monaco" }, ".cjs": { editor: "monaco" },
         ".ts": { editor: "monaco" }, ".mts": { editor: "monaco" }, ".cts": { editor: "monaco" },
@@ -246,8 +258,8 @@ export function registerResolvers(): void {
         ".webp": { editor: "image-view" },
         ".bmp": { editor: "image-view" },
         ".ico": { editor: "image-view" },
-        // PDF → PDF viewer
-        ".pdf": { editor: "pdf-view" },
+        // PDF → the pdf-viewer board if installed, else a browser tab (Chromium renders it)
+        ".pdf": { browserFallback: true },
         // Video → Video Player
         ".mp4": { editor: "video-view" },
         ".webm": { editor: "video-view" },
@@ -282,7 +294,7 @@ export function registerResolvers(): void {
             else if (accept.includes("css")) mapping = { editor: "monaco" };
             else if (accept.includes("javascript")) mapping = { editor: "monaco" };
             else if (accept.includes("image/")) mapping = { editor: "image-view" };
-            else if (accept.includes("pdf")) mapping = { editor: "pdf-view" };
+            else if (accept.includes("pdf")) mapping = { browserFallback: true };
             else if (accept.includes("text/") || accept.includes("*/*")) mapping = { editor: "monaco" };
         }
 
@@ -308,8 +320,30 @@ export function registerResolvers(): void {
             return;
         }
 
-        // Recognized extension or explicit editor target — open as content via pipe
-        data.target = data.target || mapping?.editor;
+        // Recognized extension or explicit editor target — open as content via pipe.
+        // A trusted board may claim this file type (EPIC-042): ask the merged resolver, which
+        // applies the same priority ladder and the same source-capability gate as a local open, so
+        // only a content-host board or one declaring `editorSources: "any"` can win a remote source.
+        // Deliberately narrow — ONLY a board id is taken from it. The hardcoded table above still
+        // decides browser-vs-content AND remains the built-in editor choice, so no existing URL
+        // routing changes.
+        const boardTarget = mapping
+            ? resolveEditorIdForFile(data.url, effectivePath)
+            : undefined;
+        const boardWins = !!boardTarget && isBoardEditorId(boardTarget);
+
+        // The extension has no built-in editor (`.pdf`) and no board claimed it — hand it to the
+        // browser tab, which renders PDFs natively. Deliberately after the board lookup: an
+        // installed board must still win, which is the whole reason the mapping exists.
+        if (mapping?.browserFallback && !boardWins && !hasExplicitEditorTarget) {
+            await openLinkInBrowser(data);
+            data.handled = true;
+            return;
+        }
+
+        data.target = data.target
+            || (boardWins ? boardTarget : undefined)
+            || mapping?.editor;
 
         const pipeDescriptor = resolveUrlToPipeDescriptor(data.url, data);
         if (!pipeDescriptor) return;

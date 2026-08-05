@@ -678,6 +678,13 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         }
 
         const next = !r.expanded;
+        // Collapsing with `collapseDescendants`: close the whole subtree in the same state
+        // write, so re-expanding this row reveals a fully-closed subtree — and, for lazy
+        // trees, so no descendant is left flagged expanded after its children are dropped.
+        const descendants =
+            !next && this.props.collapseDescendants
+                ? this.collectDescendantValues(r.source)
+                : null;
         // Defer the state write past the current render — model effects with deps run inside
         // setPropsInternal during the render phase, and synchronous state.update from here
         // would trigger React's "Cannot update a component while rendering a different
@@ -687,10 +694,32 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             if (!this.isLive) return;
             this.state.update((s) => {
                 s.expanded[r.value] = next;
+                if (descendants) {
+                    for (const v of descendants) s.expanded[v] = false;
+                }
             });
             this.props.onExpandChange?.(r.value, next);
             this.gridRef?.update({ all: true });
         });
+    };
+
+    /**
+     * Every descendant `value` under `source`, excluding `source` itself. Walks the SOURCE
+     * tree, so it reaches collapsed-but-loaded descendants; a lazy descendant with no loaded
+     * children contributes only itself. Leaves are included — writing `false` for a leaf is
+     * harmless and clears any stale flag it picked up while it still had children.
+     */
+    private collectDescendantValues = (source: T): (string | number)[] => {
+        const accessor = this.itemsAccessor;
+        const values: (string | number)[] = [];
+        const walk = (src: T) => {
+            const { item, children } = this.resolveOne(src, accessor);
+            values.push(item.value);
+            if (children) for (const child of children) walk(child);
+        };
+        const { children } = this.resolveOne(source, accessor);
+        if (children) for (const child of children) walk(child);
+        return values;
     };
 
     expandItem = (value: string | number) => {

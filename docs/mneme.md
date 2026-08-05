@@ -69,7 +69,7 @@ The **Mneme** sidebar panel shows the root as a navigable tree — like the File
 
 ## Opening documents & `mneme://` links
 
-Documents and attachments are addressed as `mneme://{root}/{path}`. A relative `mneme://` link inside a document opens its target in Persephone — Markdown in Preview, images and PDFs in the Image / PDF viewer. Right-clicking a node in the Mneme tree and choosing **Copy Path** copies this full URL to the clipboard so you can paste it anywhere.
+Documents and attachments are addressed as `mneme://{root}/{path}`. A relative `mneme://` link inside a document opens its target in Persephone — Markdown in Preview, images in the Image Viewer, and PDFs in the Text Editor unless the [PDF Viewer board](./editors.md#pdf-viewer) is installed. Right-clicking a node in the Mneme tree and choosing **Copy Path** copies this full URL to the clipboard so you can paste it anywhere.
 
 ## AI agent integration (MCP)
 

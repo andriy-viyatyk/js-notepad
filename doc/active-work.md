@@ -7,38 +7,10 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(no epic)*
-  - [ ] US-903: Theme-cycling hotkeys (Ctrl+Alt+[ / ]) work while focus is inside a board frame
+*(nothing active)*
 
 ## Planned
-- **EPIC-039** — [Secure Peer-to-Peer Connections (Contacts, Chat, Remote Control)](epics/EPIC-039.md)
-  - [ ] US-813: Crypto + identity foundation (libsodium keypair, encrypted-at-rest, seal/open helpers)
-  - [ ] US-814: Pluggable transport + MQTT backend (`PeerTransport`, `MqttTransport`, `peerConnection` service)
-  - [ ] US-815: Contacts registry + out-of-band pairing (`contacts.json`, generate/import contact file, key pinning)
-  - [ ] US-816: Secure message channel (`PeerSession`, envelope framing, connect/timeout lifecycle)
-  - [ ] US-817: Chat editor (standalone editor over the encrypted channel)
-  - [ ] US-818: `peer://` remote-file provider (open/edit/save a file on the peer's disk)
-  - [ ] US-819: Remote command control (forward `handleCommand`, controlled-side grant + opt-in auto-trust)
-  - [ ] US-820: Remote window mirror (App bar peer list; screencast the remote main window + input-injection)
-- **EPIC-022** — [LinkEditor Embedded Scripts](epics/EPIC-022.md)
-  - [ ] US-396: Data model — `LinkScriptItem` type and `scripts` field in `LinkEditorData`
-  - [ ] US-397: ScriptRunner — `runWithScope()` for custom context variable injection
-  - [ ] US-398: LinkEditorScriptProvider — virtual IProvider backed by LinkViewModel
-  - [ ] US-399: Resolver — handle `link-editor-script://` URL scheme
-  - [ ] US-400: Scripts panel UI — collapsible panel with tree view in LinkEditor
-  - [ ] US-401: Add/Edit Script dialog
-  - [ ] US-402: Script execution engine — event matching and execution in LinkViewModel
-  - [ ] US-403: Script types and facade for script API
-- **EPIC-014** — [Claude AI Chat Panel](epics/EPIC-014.md)
-  - [ ] US-385: Right panel slot in Pages.tsx layout
-  - [ ] US-386: ClaudeChatModel + SDK integration (query, streaming, abort)
-  - [ ] US-387: Chat UI — message list, input, markdown rendering
-  - [ ] US-388: MCP auto-registration + page context injection
-  - [ ] US-389: Conversation persistence + session resume
-  - [ ] US-390: Settings: API key, model, system prompt
-  - [ ] US-391: PowerShell shortcut (Ctrl+\`) — open shell at cwd
-- **EPIC-011** — [Chrome Extension Support for Built-in Browser](epics/EPIC-011.md)
-
+*(nothing planned — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 
 ---
 
@@ -75,7 +47,10 @@ Each section (Active / Planned) lists epics as top-level items and tasks as sub-
 
 ### Creating new work
 
-- **New epic:** Add to Planned with link to its doc in `/doc/epics/`
+- **New epic:** Add to Planned with link to its doc in `/doc/epics/` — but only when it is
+  genuinely next up. An epic that is a recorded idea rather than scheduled work belongs in
+  [`/doc/tasks/backlog.md`](tasks/backlog.md) under "Recorded Epics", with its doc's
+  **Status** set to `Backlog`. Move it here when work is about to start.
 - **New task (with epic):** Add as sub-item under the epic
 - **New task (standalone):** Add under `*(no epic)*`
 

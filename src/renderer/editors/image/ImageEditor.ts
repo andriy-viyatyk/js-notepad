@@ -11,9 +11,7 @@ import { fpBasename, fpExtname } from "../../core/utils/file-path";
 import { fs as appFs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { pagesModel } from "../../api/pages";
-import { ContentPipe } from "../../content/ContentPipe";
-import { FileProvider } from "../../content/providers/FileProvider";
-import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
+import { pipeFromSourcePath } from "../../content/rebuild-pipe";
 import type { BaseImageViewRef } from "../shared/BaseImageView";
 import type { IImageExport } from "../base/IImageExport";
 import type { MenuItem } from "../../uikit";
@@ -83,18 +81,7 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
         if (this.pipe) return;
         const filePath = this.state.get().filePath;
         if (!filePath) return;
-
-        const bangIndex = filePath.indexOf("!");
-        if (bangIndex >= 0) {
-            const archivePath = filePath.slice(0, bangIndex);
-            const entryPath = filePath.slice(bangIndex + 1);
-            this.pipe = new ContentPipe(
-                new FileProvider(archivePath),
-                [new ArchiveTransformer(archivePath, entryPath)],
-            );
-        } else {
-            this.pipe = new ContentPipe(new FileProvider(filePath));
-        }
+        this.pipe = pipeFromSourcePath(filePath);
     }
 
     private async cacheImageBuffer(buffer: Buffer): Promise<void> {

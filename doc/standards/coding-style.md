@@ -212,7 +212,6 @@ const nodefs = require("fs");
 - `content/providers/CacheFileProvider.ts` — low-level cache I/O provider for content pipe cache files
 - `content/tree-providers/FileTreeProvider.ts` — filesystem tree provider that intentionally bypasses `app.fs` archive transparency (archive browsing is handled by ArchiveTreeProvider)
 - `content/tree-providers/ArchiveTreeProvider.ts` — archive tree provider, uses `path.basename`/`path.extname` on plain filenames (not archive-aware path operations)
-- `editors/pdf/PdfViewer.tsx` — writes PDF cache file for non-local sources (HTTP, archive)
 - `library-require.ts` — custom `require()` transpiler that uses `fs.readFileSync` for module compilation
 - `ScriptPanel.tsx` — uses `fs.readFileSync`/`writeFileSync` for script file operations (will be migrated in future tasks)
 - `themes/index.ts` — uses `fs.readFileSync` at startup before `app.fs` is initialized
@@ -322,6 +321,46 @@ that needs a modal confirmation imports `showConfirmationDialog` from
 For toasts, use the `ui` singleton's `ui.notify(message, "error")` (the global alerts bar). The
 `app.ui.confirm` / `app.ui.*` surface is the **script-facing** Object Model API (it routes to the script's
 log/output context) — do not use it for the app's own UI.
+
+### Bound Awaits on a Thread You Don't Own
+
+A `try`/`catch` protects against failure, not against never answering. When an `await` crosses
+into code whose scheduling you don't control — most notably `webview.executeJavaScript()`, which
+queues on the *page's* renderer main thread — a busy or mid-load target can leave the promise
+pending for a minute or more, and every await up the chain stalls with it. The user sees a
+dialog or menu that simply does not open, clicks again, and eventually gets one per click.
+
+Decide whether the result is **required** or a **suggestion**. A suggestion gets a deadline:
+
+```typescript
+// GOOD - the page's image hints are nice to have; the dialog opens regardless
+const probe: Promise<string[]> = webview.executeJavaScript(script);
+const images = await withTimeout(probe, 1000, []);
+
+// BAD - a loading page holds the dialog hostage
+const images = await webview.executeJavaScript(script);
+```
+
+`withTimeout(promise, ms, fallback)` lives in `core/utils/utils.ts`. Pick the budget per call
+site — a menu item that merely appears or disappears can afford far less than a dialog gathering
+suggestions — and proceed with what the app already knows from its own state.
+
+Pair this with a re-entrancy guard on any handler that awaits before it shows something. Users
+retry when nothing appears, and each retry queues another dialog:
+
+```typescript
+private starClickBusy = false;
+
+handleStarClick = async () => {
+    if (this.starClickBusy) return;
+    this.starClickBusy = true;
+    try {
+        await this.runStarClick();
+    } finally {
+        this.starClickBusy = false;
+    }
+};
+```
 
 ## Comments
 

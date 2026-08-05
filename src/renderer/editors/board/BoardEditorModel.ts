@@ -7,7 +7,10 @@ import { BOARD_CDP_TAB } from "../../../ipc/api-types";
 import { BoardIcon } from "../../theme/icons";
 import { fpBasename, fpExtname, fpJoin, fpNormalizeForCompare, isPlainLocalPath } from "../../core/utils/file-path";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
+import { fs as appFs } from "../../api/fs";
 import { boardTrust } from "../../api/board-trust";
+import { createPipeFromDescriptor } from "../../content/registry";
+import { pipeFromSourcePath } from "../../content/rebuild-pipe";
 import { decodePersephoneBoardLink } from "../../content/persephone-board-link";
 import { boardEditorId } from "./custom-editor-registry";
 import { isBoardFolder, normalizeSecondaryViews, readBoardManifest, readBoardSecondaryViews, type SecondaryViewDecl } from "./board-manifest";
@@ -47,6 +50,19 @@ export interface BoardEditorState extends EditorStateBase {
      *  `state.sourceLink.filePath` instead. Read both via `currentFilePath()`. Served to the
      *  board via `persephone.getFilePath()`. Undefined for a plain board. */
     filePath?: string;
+    /** A readable LOCAL path holding this board's content — what `persephone.getFilePath()`
+     *  actually hands the board. Equals `filePath` for a plain local file; for a non-local source
+     *  (archive entry / `http(s)` URL) it is a cache file materialized from the content pipe, so
+     *  the board reads any source as an ordinary local file. Resolved on demand by
+     *  `ensureContentPath()` and memoized here. TRANSIENT — stripped in `getRestoreData()` and
+     *  cleared in `restore()`, since a persisted temp path may point at a GC'd cache file. */
+    contentPath?: string;
+    /** True once a cache file was materialized for this board's content (non-local sources only).
+     *  Gates the `dispose()` cleanup. PERSISTED, unlike `contentPath`: the path is recomputed but the
+     *  *fact* that a cache folder exists must survive a restore, or a page restored and then closed
+     *  without ever re-materializing would orphan its folder. Cleanup targets
+     *  `<cache>/<editor id>/`, which is derived from the stable id, so it needs no path. */
+    contentCached?: boolean;
     /** Sidebar panel contributions — DERIVED from `secondaryViewDefs`
      *  (`board-secondary:<id>` per declared view). Read by `contributesPanels()`. */
     secondaryView?: string[];
@@ -296,6 +312,60 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         return s.filePath ?? s.sourceLink?.filePath;
     }
 
+    /**
+     * Resolve a readable LOCAL path holding this board's content — what `getFilePath()` returns to
+     * the board. Plain local file → the source path itself, untouched and with no I/O. Any other
+     * source (archive entry, `http(s)` URL, transformed pipe) → a cache file materialized from the
+     * content pipe, so a board reads every source as an ordinary local file and needs no awareness
+     * of where the bytes came from.
+     *
+     * Read-only: the cache file is never written back through the pipe. (`ImageEditor` does the same
+     * job for itself; this is the generalized, board-facing version of that pattern.)
+     *
+     * Memoized for the model's lifetime — the cache file outlives the iframe, so a `board_refresh`
+     * or an in-board reload re-resolves for free. Materializes UNCONDITIONALLY on the first call
+     * rather than trusting a same-named cache file from a previous session, whose source may have
+     * changed since. Throws when the source cannot be read, so the caller can surface a real error
+     * instead of a silent "no file".
+     */
+    async ensureContentPath(): Promise<string | undefined> {
+        const existing = this.state.get().contentPath;
+        if (existing) return existing;
+        const source = this.currentFilePath();
+        if (!source) return undefined; // plain board — no file to resolve
+
+        if (!this.pipe) {
+            // Prefer the PERSISTED pipe descriptor: it carries the true provider (e.g. HttpProvider
+            // with its method/headers), which a path-shape guess cannot reconstruct. Falls back to
+            // the path-derived pipe for the switch path, which has no sourceLink.
+            const descriptor = this.state.get().sourceLink?.pipeDescriptor;
+            this.pipe = descriptor
+                ? createPipeFromDescriptor(descriptor)
+                : pipeFromSourcePath(source);
+        }
+
+        // A plain file pipe already points at a real local file — hand over the source path
+        // itself. No copy, no read: the overwhelmingly common case stays free.
+        if (this.pipe.provider.type === "file" && this.pipe.transformers.length === 0) {
+            const local = this.pipe.provider.sourceUrl;
+            this.state.update((s) => { s.contentPath = local; });
+            return local;
+        }
+
+        const buffer = await this.pipe.readBinary();
+        // Cache as `<cache>/<editorId>/<sourceBaseName>` — the per-editor subfolder keeps the file
+        // collision-free across tabs while PRESERVING THE SOURCE'S BASE NAME, which boards show as
+        // their file-name label. Keying the file itself on the editor id would make every board
+        // display a UUID for an archive/remote file. `fs.writeBinary` creates the folder.
+        const cachePath = appFs.resolveCachePath(fpJoin(this.id, fpBasename(source)));
+        await appFs.writeBinary(cachePath, buffer);
+        this.state.update((s) => {
+            s.contentPath = cachePath;
+            s.contentCached = true;
+        });
+        return cachePath;
+    }
+
     /** Merge both filePath sources so host-less consumers (the switch widget, the
      *  `switchMainEditor` board-boundary extraction) read a single value. */
     override get filePath(): string | undefined {
@@ -344,7 +414,14 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         }
         // `statusText` is transient footer chrome (US-892) — never persist it, or a stale count
         // would resurrect on restore before the board re-sets it. `undefined` is dropped by JSON.
-        data.state = { ...(data.state as Record<string, unknown>), sharedState, statusText: undefined };
+        // `contentPath` is transient too: a persisted cache path would point at a file the cache may
+        // have GC'd, and the source could have changed — `ensureContentPath` re-materializes.
+        data.state = {
+            ...(data.state as Record<string, unknown>),
+            sharedState,
+            statusText: undefined,
+            contentPath: undefined,
+        };
         return data;
     }
 
@@ -379,6 +456,9 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
         // Footer status text (US-892) is transient too — clear any value carried in from a
         // pre-fix persisted blob, so a stale count never flashes before the board re-sets it.
         if (s.statusText) this.state.update((st) => { st.statusText = undefined; });
+        // Same for a materialized content path carried in from a pre-fix persisted blob: the cache
+        // file is gone (or stale), so force a re-resolve on the next `ensureContentPath()`.
+        if (s.contentPath) this.state.update((st) => { st.contentPath = undefined; });
         void boardTrust.load();
         await this.refreshBoards();
     }
@@ -496,9 +576,17 @@ export class BoardEditorModel extends EditorModel<BoardEditorState> {
      *  `reapBoardOwner` tree-kills every job this board owner kept alive while busy —
      *  page close overrides busy ("page closed → kill anyway"). */
     override async dispose(): Promise<void> {
-        // A custom-editor board opened via openRawLink is handed a (never-read)
-        // FileProvider pipe by the open-handler — dispose it for hygiene (EPIC-042 CC8).
+        // A custom-editor board opened via openRawLink is handed a FileProvider pipe by the
+        // open-handler — dispose it for hygiene (EPIC-042 CC8). `ensureContentPath` may have read
+        // it since; disposing is correct either way.
         (this as { pipe?: { dispose?: () => void } }).pipe?.dispose?.();
+        // Drop the materialized content cache (non-local sources only). The whole per-editor
+        // subfolder goes, since the cache file lives inside one.
+        if (this.state.get().contentCached) {
+            try {
+                await appFs.removeDir(appFs.resolveCachePath(this.id), true);
+            } catch { /* best-effort cleanup — never block teardown */ }
+        }
         markBoardBusy(this.id, undefined, false);
         void api.reapBoardOwner(this.id);
         this.frames.clear();

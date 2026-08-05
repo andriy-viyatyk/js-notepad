@@ -245,7 +245,6 @@ function hintForEditor(editorId: string | undefined): string {
         case "browser-view":
             return "This is a browser page. Use the browser_* tools — browser_snapshot for the DOM, browser_take_screenshot for pixels.";
         case "video-view":
-        case "pdf-view":
             return "This page has no extractable text or image content. Its source file path is available via list_pages → filePath.";
         default:
             return `This is a "${editorId ?? "unknown"}" page with no text content. Use execute_script with the page facades (see read_guide("scripting")).`;
@@ -354,7 +353,6 @@ function createPage(params: McpParams): McpResponse {
     if (!editorDef.hasContentHost) {
         const hints: Record<string, string> = {
             "browser-view": "Use the open_url tool to open a URL in the built-in browser.",
-            "pdf-view": 'Use execute_script with: await app.pages.openFile("/path/to/file.pdf")',
             "image-view": 'Use execute_script with: await app.pages.openFile("/path/to/image.png")',
             "archive-view": 'Use execute_script with: await app.pages.openFile("/path/to/archive.zip")',
             "video-view": 'Use execute_script with: await app.pages.openFile("/path/to/video.mp4")',

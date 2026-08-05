@@ -136,7 +136,7 @@ The current page (tab). Available as a global in scripts.
 
 ### Editor Types
 
-`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"graph-view"` · `"draw-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"log-view"` · `"rest-client"` · `"pdf-view"` · `"image-view"` · `"browser-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"` · `"mcp-view"`
+`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"graph-view"` · `"draw-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"log-view"` · `"rest-client"` · `"image-view"` · `"browser-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"` · `"mcp-view"`
 
 ### Creating Pages with Specialized Editors
 

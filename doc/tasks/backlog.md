@@ -35,6 +35,44 @@ dependency-update epic when the next upgrade cycle starts.
 
 ---
 
+## Recorded Epics (not currently planned)
+
+Epics with a written design that are **not** scheduled work — recorded ideas kept out of the
+dashboard so it only shows what is actually being worked on. Each doc keeps its full breakdown;
+the task ids below are reserved. To pick one up, move its entry back to the **Planned** section
+of [`active-work.md`](../active-work.md) along with its task list.
+
+### [EPIC-039: Secure Peer-to-Peer Connections](../epics/EPIC-039.md) (Contacts, Chat, Remote Control)
+
+End-to-end-encrypted connection between two Persephone instances — out-of-band contact pairing
+(pinned public keys), chat, a `peer://` provider for editing a file on the peer's disk, remote
+command control, and a remote window mirror. Persephone's own libsodium layer is the security
+boundary; the transport is pluggable (MQTT backend first). 8 tasks: US-813 … US-820.
+
+### [EPIC-022: LinkEditor Embedded Scripts](../epics/EPIC-022.md)
+
+Scripts stored inside `.link.json` files, organized in a "Scripts" panel and triggered by link
+events (add/update, before open), so a link collection is self-contained and portable. Runs on
+the existing ScriptRunner with an injected scope; each script edits in Monaco over a virtual
+`IProvider` backed by the LinkViewModel. 8 tasks: US-396 … US-403.
+
+### [EPIC-014: Claude AI Chat Panel](../epics/EPIC-014.md)
+
+A right-side chat panel over `@anthropic-ai/claude-agent-sdk` (reusing Claude CLI auth), with
+Persephone MCP auto-registration, active-page context injection, streamed markdown responses and
+conversation persistence. App-level, so conversations survive tab switches. Includes the
+`Ctrl+\`` open-PowerShell-at-cwd shortcut that stands in for a full terminal editor.
+7 tasks: US-385 … US-391.
+
+### [EPIC-011: Chrome Extension Support for Built-in Browser](../epics/EPIC-011.md)
+
+Load Chrome extensions (ad blockers, password managers, devtools) into the built-in browser's
+tabs, per the `electron-chrome-web-store` / profile-scoped-session approach that Flow Browser
+uses on the same Castlabs fork. Manifest V3 support is only partial upstream. No task breakdown
+written; the doc carries the research notes.
+
+---
+
 ## Architecture Improvements
 
 ### Smoke-test the script `app` surface at runtime
@@ -455,7 +493,7 @@ When ready to work on a backlog item:
 
 1. Create task folder: `doc/tasks/US-XXX-name/`
 2. Write detailed README.md
-3. Add to `active.md` in Planned section
+3. Add to [`active-work.md`](../active-work.md) in the Planned section
 4. Remove from this file
 
 ## Adding Ideas

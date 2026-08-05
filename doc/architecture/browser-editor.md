@@ -197,7 +197,14 @@ The renderer builds the menu dynamically based on `params` fields from the `cont
 ### Key Implementation Details
 
 - **Coordinates:** `params.x/y` are in host window coordinate space (used for popup position). For `webview.inspectElement()` and `elementFromPoint()`, subtract the webview's bounding rect to get webview-relative coordinates.
-- **SVG extraction:** Uses `webview.executeJavaScript()` to probe the click target with `elementFromPoint()` + `closest('svg')`. The SVG is cloned and auto-fixed (xmlns, viewBox from `getBBox()`, width/height, HTML comment stripping). The probe is raced against a 250 ms timeout (`Promise.race`) — `executeJavaScript` queues on the page renderer's main thread, so on a still-loading page the await would otherwise block the entire menu from opening until load completes. On timeout the "Open SVG in Editor" item is dropped and the menu opens immediately; on idle pages the probe resolves near-instantly and the item is included.
+- **SVG extraction:** Uses `webview.executeJavaScript()` to probe the click target with `elementFromPoint()` + `closest('svg')`. The SVG is cloned and auto-fixed (xmlns, viewBox from `getBBox()`, width/height, HTML comment stripping). The probe is bounded by `withTimeout(..., SVG_PROBE_TIMEOUT, null)` — see [Bounding page probes](#bounding-page-probes). On timeout the "Open SVG in Editor" item is dropped and the menu opens immediately; on idle pages the probe resolves near-instantly and the item is included.
+- **"Add to Bookmarks" link info:** Probes the right-clicked `<a>` for a title and an `<img>` src, bounded the same way (`LINK_PROBE_TIMEOUT`, 1 s). The URL comes from the context-menu params rather than the page, so a timed-out probe costs only the suggested title and image.
+
+### Bounding page probes
+
+`webview.executeJavaScript()` queues on the **page's** renderer main thread, not ours. A page that is mid-load or busy can leave the call pending for as long as the load takes, and anything awaiting it stalls with it — a menu that never opens, a dialog that appears a minute later. Every probe whose result is a *suggestion* rather than a requirement is therefore bounded by `withTimeout(promise, ms, fallback)` (`core/utils/utils.ts`) and the UI proceeds with what the app already knows from its own state. `withTimeout` also maps a rejection to the fallback whether it arrives before or after the deadline, so an abandoned probe cannot resurface as an unhandled rejection.
+
+The budget is per call site: a context-menu item that merely appears or disappears can afford 250 ms, while a dialog gathering image suggestions is given 1 s.
 - **View Actual DOM / Show Resources:** Uses `ipcRenderer.invoke(BrowserChannel.collectDom, key)` to collect the full DOM from the main process. The main process iterates `webContents.mainFrame.framesInSubtree` to collect DOM from all frames (including cross-origin iframes), then uses cheerio to inject each iframe's DOM inside the corresponding `<iframe>` element in the parent HTML.
 - **Copy for selections:** Uses `navigator.clipboard.writeText(selectionText)` instead of `webview.copy()` because the webview loses focus when the popup menu opens.
 - **Popup dismissal:** Webview clicks don't bubble to the renderer DOM. A transparent overlay (`webview-click-overlay`) is rendered over the webview area while a popup menu is open, allowing clicks to reach the renderer's `document` and trigger the popup's dismiss handler.
@@ -242,13 +249,13 @@ The browser editor mounts a `SecondaryViews` component inside both `BlankPageLin
 | `src/main/browser-service.ts` | Main | Attaches to webContents, relays events via IPC, audio state, hotkeys, cache cleanup, DOM collection (incl. iframes) |
 | `src/main/cdp-service.ts` | Main | CDP session management — debugger attach/detach/send via IPC |
 | `src/main/network-logger.ts` | Main | Per-page HTTP request/response logging via `session.webRequest`, circular buffer, IPC access |
-| `src/main/tor-service.ts` | Main | Tor process lifecycle: spawn/kill tor.exe, restart, per-partition SOCKS5 proxy, torrc generation, exit-IP lookup |
+| `src/main/tor-service.ts` | Main | Tor process lifecycle: spawn/kill tor.exe, restart, per-partition SOCKS5 proxy (armed before the daemon starts so the partition fails closed), torrc generation, exit-IP lookup |
 | `src/main/tor-src-protocol.ts` | Main | `tor-src://` handler — fetches an `http(s)` URL through a Tor partition's session |
 | `src/renderer/editors/link-editor/tor-src.ts` | Renderer | Rewrites remote image `src` values to `tor-src://` for a Tor page's Link editor |
 | `src/renderer/ui/dialogs/TorInfoDialog.tsx` | Renderer | Tor connection info: exit IP, location, Reconnect |
 | `src/preload-webview.ts` | Guest | MutationObserver for title/favicon, image tracking on link clicks, cinema mode (expand `<video>` to full page), `window.chrome` compatibility shim |
 | `src/ipc/browser-ipc.ts` | Shared | IPC channel names and type definitions |
-| `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels + `TorStatus`/`TorIpInfo` types: start, stop, log, check-ip, restart, status |
+| `src/ipc/tor-ipc.ts` | Shared | Tor IPC channels + `TorStatus`/`TorIpInfo` types: arm, start, stop, log, check-ip, restart, status |
 | `src/ipc/popup-rate-limiter.ts` | Shared | Time-window rate limiter for popup/tab spam blocking |
 | `src/renderer/editors/shared/link-open-menu.tsx` | Renderer | Shared helper for "Open in..." browser menu items |
 | `src/renderer/core/state/events.ts` | Renderer | `globalKeyDown` Subscription for keyboard event broadcasting, `browserUrlChanged` for cross-editor URL event broadcasting, `windowClosing` for resource cleanup on window close, `secondaryViewsToggled` for sidebar open/close, `panelExpanded` for secondary panel expansion |
@@ -379,7 +386,7 @@ Tor mode routes all webview traffic through the Tor network via a SOCKS5 proxy. 
 
 **Architecture:**
 - `src/main/tor-service.ts` — manages `tor.exe` child process lifecycle, generates minimal torrc, sets `socks5://` proxy per partition via `session.fromPartition().setProxy()`
-- `src/ipc/tor-ipc.ts` — IPC channels: `tor:start`, `tor:stop`, `tor:log`, `tor:check-ip`, `tor:restart`, `tor:status`
+- `src/ipc/tor-ipc.ts` — IPC channels: `tor:arm`, `tor:start`, `tor:stop`, `tor:log`, `tor:check-ip`, `tor:restart`, `tor:status`
 - `src/renderer/editors/browser/TorStatusOverlay.tsx` — overlay shown during connection with live log, spinner, and reconnect button
 - `src/renderer/ui/dialogs/TorInfoDialog.tsx` — connection info dialog (exit IP, location, Reconnect)
 - `activePartitions: Set<string>` acts as consumer counter — Tor stops only when all partitions are released
@@ -389,6 +396,51 @@ Tor mode routes all webview traffic through the Tor network via a SOCKS5 proxy. 
 **Session restore:** Tor pages are restored with `torStatus: "disconnected"`, `torOverlayVisible: true`, and an empty tab. User must click "Reconnect" — no auto-connect on restore.
 
 **Window close cleanup:** `BrowserEditorModel` subscribes to the `windowClosing` event (from `GlobalEventService.beforeunload`) to release Tor partitions when the window closes without explicit tab disposal.
+
+#### The partition fails closed
+
+An Electron session with no proxy is **DIRECT**, so the absence of a proxy is not a neutral
+state — it is an unproxied one. The proxy is therefore applied to the partition *before* the
+daemon exists, not once it bootstraps:
+
+1. `BrowserEditor.armTorProxy()` invokes `tor:arm`, and it is awaited from
+   `BrowserEditor.restore()` — which runs on **every** path that produces a Tor page, session
+   restore included, and always before the page is added to the window. That ordering is
+   load-bearing: `addPage` mounts the first `<webview>` with its `src` already set, so the guest
+   starts fetching immediately, whereas a cold daemon bootstrap takes seconds.
+2. `TorService.armPartition()` points the session at the SOCKS port while nothing is listening
+   on it yet. Anything that loads during the bootstrap window therefore fails with
+   `ERR_SOCKS_CONNECTION_FAILED` instead of reaching the network.
+3. `settleStart()` applies the proxy on **both** start outcomes. On success that is what puts
+   traffic on Tor; on failure it is what keeps the partition failing closed, so a daemon that
+   never bootstraps does not leave a page browsing normally.
+
+`armTorProxy` is idempotent — the flag is set only on success — because three callers each have
+to guarantee arming without being able to see whether another already did:
+
+- **`restore()`** is the one that always runs, and it records a failure into `torStatus` rather
+  than throwing, so a failed arm never drops a page from a session restore.
+- **`showBrowserPage`** re-asserts it and, if arming fails, notifies and **does not open the
+  page** — a Tor page whose partition could not be proxied would browse over the normal network,
+  so no page is the correct outcome.
+- **`reconnectTor`** covers a partition whose earlier arming failed. It matters because
+  `initTorProxy` reaches `setProxyForPartition` only *after* the daemon settles: on a cold daemon
+  that is another 5–30 s window, and it is reachable, since a restored Tor page resets its tabs
+  to `about:blank` but leaves the URL bar live.
+
+Arming deliberately does not add the partition to `activePartitions`. That set, via
+`isActiveTorPartition()`, answers a different question — "is this a live, *bootstrapped* Tor
+session?" — for the `tor-src://` handler and `checkIp`, and an armed partition is not one yet.
+
+Consequently no navigation site consults `torStatus`: the armed proxy is the single enforcement
+point, rather than a check duplicated across `navigateWebview`, `addTab`, and the URL bar.
+
+One gap remains by design. A daemon that dies is caught — `child.on("close")` broadcasts
+`tor:status` `"error"` when `isCurrent(child)` still holds, which distinguishes an unexpected
+exit from a deliberate `stopTorProcess()` or `restart()` (both null out `torProcess`
+synchronously, before their own close event arrives). But a daemon that stays alive while its
+circuits fail keeps a green dot: detecting that needs active probing. It is a status-honesty
+gap, not a leak — such requests already fail closed.
 
 #### The proxy covers the webview, not the renderer
 
@@ -403,7 +455,7 @@ Two consequences are handled explicitly:
   tooltip images are plain `<img>` tags in the app renderer. `LinkEditor.imageProxySource` (wired by
   `BrowserEditor.configureBookmarks`) hands it the page's partition, and
   `resolveTorSrc()` (`src/renderer/editors/link-editor/tor-src.ts`) rewrites remote `src` values to
-  `tor-src://<partition>/?u=<encoded url>`. Local schemes (`data:`, `blob:`, `file:`, `safe-file:`,
+  `tor-src://<partition>/?u=<encoded url>`. Local schemes (`data:`, `blob:`, `file:`,
   `app-asset:`) pass through untouched, and when the circuit is not connected the image is not
   rendered at all rather than fetched direct.
 - **Favicon persistence.** Favicons are normally written to the app data folder. `LinkEditor.isTorPage`
@@ -555,19 +607,21 @@ After initialization, `BrowserEditorModel` sets two callbacks on `linkModel`:
 ### Three Entry Points
 
 - **Blank page overlay** — when a tab shows `about:blank` and bookmarks are loaded (not encrypted), the `BlankPageLinks` component renders the Link Editor over the empty webview. Has its own toolbar (with breadcrumb, view mode, search). Disappears when user navigates to a URL.
-- **Star button (☆)** in the URL bar — quick bookmark add/edit. Empty star when URL not bookmarked, filled star when bookmarked. Opens Edit Link Dialog with URL/title prefilled and discovered images.
+- **Star button (☆)** in the URL bar — quick bookmark add/edit. Empty star when URL not bookmarked, filled star when bookmarked. Opens Edit Link Dialog with URL/title prefilled and discovered images. Everything the handler does before the dialog is async (bookmark-file setup, favicon caching, the page image probe), so it is guarded by a `starClickBusy` flag: without it, a user clicking again because nothing has appeared yet gets one dialog per click, all opening together once the awaits settle.
 - **"Open Links" button** on the toolbar — opens the `BookmarksDrawer`, a right-anchored overlay with the full Link Editor. Link clicks navigate to the URL (in current tab if `about:blank`, otherwise new internal tab) and close the drawer.
 
 ### Image Discovery
 
 Images for bookmarks are collected from multiple sources:
 
-1. **Meta tags** — `og:image`, `twitter:image`, `meta[name="thumbnail"]` extracted via `executeJavaScript` on the webview
+1. **Meta tags** — `og:image`, `twitter:image`, `meta[name="thumbnail"]` extracted via `executeJavaScript` on the webview, bounded by `IMAGE_DISCOVERY_TIMEOUT` (1 s) — see [Bounding page probes](#bounding-page-probes)
 2. **Click tracking** — the preload script captures all `<img>` URLs inside clicked `<a>` elements and sends them via `ipcRenderer.sendToHost("clicked-images", urls)`
 3. **Per-tab image tracking** — `trackedImagesRef` stores discovered images per internal tab with navigation levels (level 0 = current page, level 1 = previous page, level 2 = two pages back; levels > 2 are dropped)
 4. **Context menu** — "Use Image for Bookmark" pushes an image URL to level 0; "Add to Bookmarks" captures href, imgSrc, and title from the right-clicked element
 
 All discovered images are merged (deduplicated) and passed to the Edit Link Dialog.
+
+Only source 1 reads the live page, and it is the one that can be slow. The URL, title and favicon the dialog needs all come from the browser's own tab state, so a page that cannot answer costs image *suggestions* and nothing else.
 
 ### BookmarksDrawer
 

@@ -26,7 +26,7 @@ export interface TorProxyInfo {
  * fail-closed, so an unexpected form (e.g. a protocol-relative `//host/x`) is
  * suppressed rather than silently fetched direct.
  */
-const LOCAL_SRC_RE = /^(?:data:|blob:|file:\/\/|safe-file:\/\/|app-asset:\/\/)/i;
+const LOCAL_SRC_RE = /^(?:data:|blob:|file:\/\/|app-asset:\/\/)/i;
 
 /**
  * Rewrite a resource URL so it is fetched through the page's Tor session.

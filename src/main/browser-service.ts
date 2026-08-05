@@ -21,7 +21,7 @@ import { globalPopupRateLimiter } from "../ipc/popup-rate-limiter";
 import { initNetworkLogger, setWebContentsResolver, clearNetworkLog } from "./network-logger";
 import { initCdpHandlers } from "./cdp-service";
 
-const BLOCKED_PROTOCOLS = ["file:", "app-asset:", "safe-file:"];
+const BLOCKED_PROTOCOLS = ["file:", "app-asset:"];
 
 /** Generic event-listener shape — used for storing handlers we attach to
  *  WebContents. WebContents extends EventEmitter; this matches that surface

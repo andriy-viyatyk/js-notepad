@@ -100,7 +100,7 @@ Each editor contributes only the actions that are relevant to it. Editors with n
 | Open Git Root Folder | Reveal the repository root folder in Windows Explorer |
 | Copy Remote URL | Copy the configured remote URL (origin preferred) to the clipboard |
 
-*PDF, Image, and Archive tabs:*
+*Image and Archive tabs:*
 
 | Action | Description |
 |--------|-------------|
@@ -242,12 +242,13 @@ Any saved file can open a **File Explorer** panel alongside the editor. Click th
 - **Tree-based browser** — Shows all files and folders in the same directory as the current file
 - **In-place navigation** — Click any file to load it in the same tab (no new tabs created)
 - **Auto-preview** — Navigated files switch to preview mode automatically (Markdown preview, SVG view, etc.)
-- **All editor types** — Available for text files, markdown, images, PDFs, and more
+- **All editor types** — Available for text files, markdown, images, and more (a `.pdf` opens in the Text Editor unless the [PDF Viewer board](./editors.md#pdf-viewer) is installed)
 - **Navigate up** — Click the up arrow button in the panel header to move the root to the parent folder
 - **Make root** — Right-click any folder and choose "Make Root" to focus the tree on that folder, or double-click a folder to do the same
 - **Collapse all** — Click the collapse button in the panel header to collapse all expanded folders at once
 - **Selection** — Clicking a file or folder selects it and highlights the row; unlike before, selecting a folder keeps it highlighted even after its folder view opens in the main area, and right-clicking a row selects it before the context menu opens (same as Windows Explorer). Opening a file another way — switching tabs, opening it from Recent — also highlights and reveals it in the tree.
 - **Chevron-only expand/collapse** — Clicking a folder's label only selects it; it no longer expands or collapses the folder. Use the chevron arrow (or `ArrowRight`/`ArrowLeft` on the keyboard) to expand or collapse.
+- **Collapsing a folder collapses its subfolders too** — Collapsing a folder also closes any subfolders inside it that were expanded, so re-expanding it later shows a fully closed subtree rather than picking up where you left off.
 - **Keyboard navigation** — Once the tree has focus (click a row, or Tab into it), arrow keys move the selection cursor, `Home`/`End` jump to the first/last row, `Page Up`/`Page Down` move by a page, `Enter` opens the highlighted row, and `ArrowRight`/`ArrowLeft` expand/collapse a folder. When the tree has keyboard focus, the selected row shows an accent highlight with a focus outline around the cursor row; move focus elsewhere (for example, into the editor) and the selection falls back to a plain highlight, but stays visible.
 - **File operations** — Right-click files for: create files/folders, rename, delete, copy path, show in explorer, open in new tab. `F2` renames the selected row and `Delete` deletes it (with the usual confirmation dialog) directly from the keyboard, without opening the context menu.
 - **Cut / Copy / Paste with Windows Explorer** — Right-click a file or folder for **Cut** or **Copy**, then paste it into Windows Explorer (or another Persephone Explorer panel) — this uses the real Windows clipboard, so files copied in Windows Explorer can also be pasted here. Right-click a folder (or empty space in the tree) and choose **Paste** to paste files/folders copied or cut from Windows Explorer into that folder; folders are copied recursively. **Cut** from Windows Explorer and pasted here moves the files (originals are removed only after the copy succeeds); **Cut** here and pasted into Windows Explorer works the same way. Pasting over existing files/folders asks for confirmation before overwriting, and large pastes show a progress indicator. The same actions are also available from the keyboard on the selected row: `Ctrl+C` copies, `Ctrl+X` cuts (not available on the tree's root), and `Ctrl+V` pastes into the selected folder (or the selected file's parent folder, or the root if nothing is selected).

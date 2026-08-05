@@ -12,6 +12,15 @@ import { ui } from "../../api/ui";
 import { globalPopupRateLimiter } from "../../../ipc/popup-rate-limiter";
 import { browserUrlChanged } from "../../core/state/events";
 import type { BrowserEditorModel } from "./BrowserEditorModel";
+import { withTimeout } from "../../core/utils/utils";
+
+/**
+ * Budgets for the two context-menu page probes. Both run on the page's own renderer
+ * thread, so a loading or busy page can hold them indefinitely; both results are
+ * optional, so the menu / dialog opens without them instead of waiting.
+ */
+const SVG_PROBE_TIMEOUT = 250;
+const LINK_PROBE_TIMEOUT = 1000;
 
 /**
  * Manages webview references, IPC event handling, context menu,
@@ -332,10 +341,7 @@ export class BrowserWebviewModel {
                 return html;
             })()
         `);
-        const svgSource: string | null = await Promise.race([
-            svgProbe,
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
-        ]);
+        const svgSource = await withTimeout<string | null>(svgProbe, SVG_PROBE_TIMEOUT, null);
 
         const items: MenuItem[] = [];
 
@@ -358,7 +364,9 @@ export class BrowserWebviewModel {
                 onClick: async () => {
                     const bm = await this.model.bookmarksUI.ensureBookmarks();
                     if (!bm) return;
-                    const linkInfo: { title: string; imgSrc: string } = await webview.executeJavaScript(`
+                    // Same busy-page hazard as the SVG probe above: the title/image are
+                    // suggestions only, so open the dialog without them rather than wait.
+                    const linkProbe: Promise<{ title: string; imgSrc: string }> = webview.executeJavaScript(`
                         (() => {
                             const el = document.elementFromPoint(${probeX}, ${probeY});
                             const link = el?.closest('a');
@@ -369,6 +377,12 @@ export class BrowserWebviewModel {
                             };
                         })()
                     `);
+                    // `linkURL` — not `linkInfo` — is what guarantees the dialog always has
+                    // a URL; it comes from the context-menu params, never from the page.
+                    const linkInfo = await withTimeout(linkProbe, LINK_PROBE_TIMEOUT, {
+                        title: "",
+                        imgSrc: "",
+                    });
                     const existingLink = bm.findByUrl(linkURL);
                     await this.model.bookmarksUI.showBookmarkDialog({
                         title: linkInfo.title,

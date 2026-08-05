@@ -139,9 +139,6 @@ export const EDITOR_MATCHERS: Record<string, EditorMatcher> = {
         validForLanguage: (lang) => lang === "json",
         detectsContent: (_lang, content) => /^\s*\{\s*"type"\s*:\s*"excalidraw"/.test(content),
     },
-    "pdf-view": {
-        acceptFile: (fn) => (matchesExtension(fn, [".pdf"]) ? 100 : -1),
-    },
     "image-view": {
         acceptFile: (fn) => (matchesExtension(fn, IMAGE_EXTENSIONS) ? 100 : -1),
     },

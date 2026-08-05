@@ -33,6 +33,24 @@ export interface TorIpInfo {
 
 export const TorChannel = {
     /**
+     * Apply the SOCKS proxy to a browser partition *before* the Tor daemon is up.
+     * Renderer → Main (invoke).
+     *
+     * This is what makes a Tor page fail **closed**. A partition with no proxy
+     * goes DIRECT in Chromium, so anything that loads between page creation and
+     * `Bootstrapped 100%` — or after a failed bootstrap — would otherwise reach
+     * the network unproxied. Arming points the session at a SOCKS port that is
+     * not listening yet, turning that window into ERR_SOCKS_CONNECTION_FAILED.
+     *
+     * Must be awaited before the page is added to the window, i.e. before any
+     * webview can mount. Arming alone does not make the partition a live Tor
+     * session — `tor:start` still has to bootstrap the daemon.
+     *
+     * Args: (socksPort: number, partition: string)
+     */
+    arm: "tor:arm",
+
+    /**
      * Start Tor for a browser partition.
      * Renderer → Main (invoke).
      * Args: (torExePath: string, socksPort: number, partition: string)

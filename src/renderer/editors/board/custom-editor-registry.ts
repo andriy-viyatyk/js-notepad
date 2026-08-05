@@ -60,6 +60,10 @@ export interface CustomEditorMatch {
     /** Board editor kind (US-843): "simple" (EPIC-042, direct file I/O) or "content-host"
      *  (EPIC-043, Persephone owns the content host). Consumed by the construction path (US-845). */
     editorKind: "simple" | "content-host";
+    /** Which sources the board accepts: "local" (plain local files only — the default) or "any"
+     *  (also archive entries and `http(s)` URLs, materialized by Persephone into a local cache
+     *  file). Consumed by the non-local branch of `resolveEditorIdForFile`. */
+    editorSources: "local" | "any";
 }
 
 interface CustomEditorRegistryState {
@@ -118,6 +122,7 @@ class CustomEditorRegistry extends TModel<CustomEditorRegistryState> {
                 fileMasks: assoc.fileMasks,
                 folderMasks: assoc.folderMasks,
                 editorKind: assoc.editorKind,
+                editorSources: assoc.editorSources,
             });
         }
         if (gen !== this.refreshGen) return; // superseded by a newer refresh — discard
@@ -165,27 +170,42 @@ export const customEditorRegistry = new CustomEditorRegistry();
 
 /**
  * Resolve the winning editor id for opening a file, merging the built-in registry with
- * trusted file-associated boards (EPIC-042). A board wins only when the path is a real
- * local file (boards edit local files only) and its `editorPriority` is STRICTLY greater
- * than the best built-in claimant (built-ins win exact ties; among boards, trusted-list
- * order — `getBoardsForFile` preserves it). Returns the built-in id otherwise.
+ * trusted file-associated boards (EPIC-042). A board wins when it can handle the SOURCE (see the
+ * capability gate below) and its `editorPriority` is STRICTLY greater than the best built-in
+ * claimant (built-ins win exact ties; among boards, trusted-list order — `getBoardsForFile`
+ * preserves it). Returns the built-in id otherwise.
  *
  * Consumed by the two file-open decision points — `PagesLifecycleModel.newEditorModel`
  * (direct open) and the Layer 2 file resolver (`content/resolvers.ts`, openRawLink). Both
  * registries stay separate data structures; this only READS both.
+ *
+ * `matchPath` exists because those two callers hold different strings for a non-local source. The
+ * openRawLink path matches on the source's EFFECTIVE path (`extractEffectivePath` — the entry name
+ * inside an archive, the last URL segment without its query), while locality — the capability gate —
+ * must still be judged on the ORIGINAL url. Passing the effective path as `filePath` would read as
+ * "plain local file" and hand every simple board a source it cannot read.
  */
-export function resolveEditorIdForFile(filePath?: string): string | undefined {
-    const builtinDef = filePath ? editorRegistry.resolve(filePath) : undefined;
+export function resolveEditorIdForFile(
+    filePath?: string,
+    matchPath?: string,
+): string | undefined {
+    const match = matchPath || filePath;
+    const builtinDef = match ? editorRegistry.resolve(match) : undefined;
     const builtinId = builtinDef?.id;
-    if (!filePath) return builtinId;
-    // Simple boards edit real local files only (EPIC-042 CE4); content-host boards also
-    // handle https/archive/encrypted (EPIC-043 CH4). So the local-path gate now filters
-    // the board scan by kind rather than short-circuiting it entirely.
+    if (!filePath || !match) return builtinId;
+    // A simple board reads the file itself, so by default it is offered real local files only
+    // (EPIC-042 CE4); a content-host board also handles https/archive/encrypted (EPIC-043 CH4).
+    // So the local-path gate filters the board scan by capability rather than short-circuiting it.
     const local = isPlainLocalPath(filePath);
-    const builtinPriority = builtinDef?.match?.acceptFile?.(filePath) ?? 0;
+    const builtinPriority = builtinDef?.match?.acceptFile?.(match) ?? 0;
     let best: CustomEditorMatch | undefined;
-    for (const b of customEditorRegistry.getBoardsForFile(filePath)) {
-        if (!local && b.editorKind !== "content-host") continue;
+    for (const b of customEditorRegistry.getBoardsForFile(match)) {
+        // Non-local source (archive entry / URL): a content-host board reads through the host, and
+        // a board declaring `editorSources: "any"` still gets a readable local path out of
+        // `getFilePath()` because Persephone materializes the pipe into a cache file for it. Any
+        // OTHER simple board would fail inside `readFile`, so it stays unoffered and the built-in
+        // editor keeps the file — a clean fallback beats a board that opens and errors.
+        if (!local && b.editorKind !== "content-host" && b.editorSources !== "any") continue;
         // Strict `>` so the FIRST (earliest-trusted) board wins ties among boards.
         if (!best || b.priority > best.priority) best = b;
     }

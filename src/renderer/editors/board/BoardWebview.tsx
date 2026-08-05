@@ -3,11 +3,12 @@ import { Panel } from "../../uikit/Panel";
 import color from "../../theme/color";
 import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
-import { fpJoin } from "../../core/utils/file-path";
+import { fpJoin, isPlainLocalPath } from "../../core/utils/file-path";
 import { settings } from "../../api/settings";
 import { pagesModel } from "../../api/pages";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import type {
+    BoardFilePathResultMsg,
     BoardHostContentMsg,
     BoardPortInitMsg,
     BoardStateSyncMsg,
@@ -139,11 +140,17 @@ export function BoardWebview({
         const win = iframeRef.current?.contentWindow;
         const port = pendingPortRef.current;
         if (!win || !port || !host) return;
+        const filePath = model.currentFilePath();
         const init: BoardPortInitMsg = {
             __persephoneInit: true,
             busy: !!model.state.get().busy,
-            filePath: model.currentFilePath(),
+            filePath,
             contentHost: !!model.contentHost,
+            // A non-local source (archive entry / URL) is not readable as a path, so the shim must
+            // ask for the materialized one instead of using `filePath` verbatim. Same predicate the
+            // custom-editor resolution gate uses, so the two decisions cannot disagree; the model's
+            // `ensureContentPath` re-checks the actual pipe shape anyway.
+            materialize: !!filePath && !isPlainLocalPath(filePath),
         };
         win.postMessage(init, `board://${host}`, [port]);
         pendingPortRef.current = null;
@@ -289,6 +296,29 @@ export function BoardWebview({
                 // (cross-origin), so the shim forwards it here. Any frame may switch — the
                 // theme is app-global, and the live retint below repaints every board.
                 cycleAppTheme(d.direction === 1 ? 1 : -1);
+            } else if (d.__persephone === "board:filePath" && typeof d.reqId === "number") {
+                // The board asked for a readable local path for its file. Only a non-local source
+                // gets here (a local one is answered from the handshake value, no round trip).
+                // Materializing can take a while — an HTTP source downloads here — so the board's
+                // promise stays pending until the pipe read completes.
+                const reqId = d.reqId;
+                void (async () => {
+                    let reply: { path?: string; error?: string };
+                    try {
+                        reply = { path: await model.ensureContentPath() };
+                    } catch (e) {
+                        reply = { error: e instanceof Error ? e.message : String(e) };
+                    }
+                    const win = iframeRef.current?.contentWindow;
+                    if (!win) return; // frame gone — the board's promise rejects on unmount
+                    const msg: BoardFilePathResultMsg = {
+                        __persephone: "filePath:result",
+                        reqId,
+                        path: reply.path,
+                        error: reply.error,
+                    };
+                    win.postMessage(msg, `board://${host}`);
+                })();
             } else if (d.__persephone === "board:var" && typeof d.reqId === "number") {
                 const reqId = d.reqId;
                 const method = d.varMethod as "get" | "set" | "list" | "show";
