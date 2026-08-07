@@ -433,6 +433,8 @@ Persephone maintains a small **catalog of boards published by the project** — 
 - **From a file** — open a file whose type has no editor installed yet, but that matches a published board's file type. The editor-switch control at the top of the page shows an extra **+** entry next to **Text** (`Text | +`). Click it to open the **Board Info** screen for that board (or, if more than one published board matches the file type, a screen listing all of them).
 - **From the hub** — open the **Tools & Editors** panel (App menu) and click **Open in new tab**, or open its **Search boards** tab directly. This full-page **Search boards** tab browses the whole catalog — filter by name, description, or file type — and works without any matching file open. A **Refresh catalog** button forces an immediate check instead of waiting for the next automatic cycle.
 
+Each board's card in the **Search boards** tab shows a **screenshot** of the board alongside its name, version, size, description, and file types, so browsing the catalog looks like a gallery rather than a text list. The **Board Info** screen shows the same screenshot, in both its install and its properties view. A board with no screenshot — or a screenshot that can't be loaded (for example while offline) — shows a neutral placeholder in its place, so cards stay the same size either way. The catalog listing itself is cached and browsable offline, but screenshots are loaded from the internet on demand, so they fall back to the placeholder until you're back online.
+
 ### Installing a board — Download, then Register
 
 Installing a published board is always two separate, explicit steps — nothing is ever trusted or executed on your behalf:
@@ -484,6 +486,8 @@ An AI agent can perform the whole discover → download → review → install �
 | `app.boards.renameBoard(boardRoot, newName)` | Rename a trusted board's folder, carrying its trust, pin, and catalog registration to the new path. |
 
 See the [Scripting API Reference](./api/app.md#boards) for full method signatures, and ask your AI agent to `read_guide("boards")` for the complete authoring/automation reference, including a checklist for reviewing a downloaded board's files before registering it.
+
+> **Publishing a board to the catalog?** A `board-manifest.json` can declare `"screenshot": "screenshot.png"` (a file name, not a path) to give the board a screenshot on its catalog card and Board Info page. This only applies to boards published through the `persephone-boards` project — see that repository's own documentation for the full publishing contract.
 
 ---
 

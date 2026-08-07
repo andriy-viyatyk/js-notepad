@@ -7,9 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(no epic)*
-  - [ ] US-921: Rewrite README.md — reposition as universal viewer + AI-agent workspace
-  - [ ] [US-922: Board screenshots in the "Search boards" catalog](tasks/US-922-board-screenshots/README.md)
+*(nothing active)*
 
 ## Planned
 *(nothing planned — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*

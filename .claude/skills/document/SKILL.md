@@ -49,7 +49,12 @@ Check if new patterns were established that should be standardized.
 ### 3. CLAUDE.md
 
 Check the root `CLAUDE.md` file:
-- **Key Files table** — Does it list all important files? Any new key files to add? Any deleted files to remove?
+- **Key Files** — the full purpose→path index lives in
+  [`/doc/architecture/key-files.md`](../../../doc/architecture/key-files.md), **not** in
+  `CLAUDE.md`. New, changed and deleted key files go **there**. `CLAUDE.md` keeps only a short
+  starting-point list; add a row to it only when a file is genuinely needed on most tasks.
+  The split exists because `CLAUDE.md` is loaded into every session and the full index was
+  ~73% of it — do not let the big table creep back in.
 - **Folder Structure** — Does the summary match reality?
 - **Critical Patterns** — Any new patterns to document?
 - **Documentation Map** — Any new docs to link?

@@ -568,6 +568,7 @@ persephone/
 │   ├── board-info/         # Board Info editor ("board-info") — install + properties over one host-capable holder
 │   │   ├── BoardInfoEditorModel.ts   # EditorModel — install/properties modes; adopts/yields CONTENT_HOST_TRAIT without rendering (lossless Text↔+↔board switch)
 │   │   ├── BoardInfoEditorView.tsx   # Download→Register install UI + properties/versions UI (UIKit only)
+│   │   ├── BoardScreenshot.tsx       # Catalog screenshot at a fixed 16:10 footprint — remote <img>, placeholder on no-URL/404; also used by the hub's Search boards tab
 │   │   ├── board-info-id.ts          # BOARD_INFO_EDITOR_ID constant (avoids an import cycle with PageToolbar)
 │   │   ├── open-board-info.ts        # openBoardInfo(page,opts) replaces a page's editor; openBoardInfoPage(opts) opens a new page
 │   │   └── index.tsx
@@ -770,7 +771,7 @@ persephone/
 ├── snip-service.ts         # Screen snip (spawns persephone-snip.exe, reads PNG from stdout; exports getSnipToolPath for clip-service)
 ├── clip-service.ts         # Windows file-clipboard (CF_HDROP) read/write via the snip exe's clipboard subcommands — Explorer copy/paste interop; degrades to empty result when the exe is missing
 ├── version-service.ts      # Version checking (runs in main, not renderer)
-├── published-boards-service.ts # Published-boards catalog — net.fetch raw boards-manifest.json (24h-gated, cached, isSafeBoardId-guarded), getBoardVersions(id) on demand, ePublishedBoardsUpdated broadcast; PERSEPHONE_BOARDS_BRANCH dev override
+├── published-boards-service.ts # Published-boards catalog — net.fetch raw boards-manifest.json (24h-gated, cached, isSafeBoardId/isSafeAssetName-guarded), getBoardVersions(id) on demand, ePublishedBoardsUpdated broadcast; screenshotUrl derived on the way out (never cached); PERSEPHONE_BOARDS_BRANCH dev override
 ├── board-download-service.ts # Streamed board-archive download — net.fetch → temp file + incremental sha256 verify, throttled eBoardInstallProgress, digest check
 ├── video-stream-server.ts  # Local HTTP streaming server (range requests, faststart MP4 relocation, session management)
 ├── vlc-launcher.ts         # VLC process launcher (spawn + auto-detect VLC path)

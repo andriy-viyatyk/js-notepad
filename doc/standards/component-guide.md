@@ -25,7 +25,7 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 - **Rule 4** — roving tabindex inside keyboard-navigable widgets (Toolbar, Tree, ListBox, SegmentedControl, Tab bar).
 - **Rule 5** — focus trap inside modal dialogs.
 - **Rule 6** — `ComponentSet` descriptor pattern for runtime-built UIs.
-- **Rule 7** — no Emotion / `style=` / `className=` outside `uikit/` in app code (exception: `src/renderer/ui/` chrome).
+- **Rule 7** — no Emotion outside `uikit/` in app code, and no `style=` / `className=` **on a UIKit component** (exception: `src/renderer/ui/` chrome). The `style`/`className` half of the rule scopes to UIKit components, not to raw HTML elements — an inline style object on a plain `<img>` or `<div>` in app code is fine, and is the intended escape hatch when a one-off element needs sizing that no UIKit primitive covers.
 - **Rule 8** — model-view pattern (`TComponentModel`) once a component exceeds the small-and-readable threshold.
 
 **Persephone-coupled components** (the KEEP folders inside `components/`) may import `api/`, `core/`, and `theme/` directly — that's the criterion for living in `components/` at all. They should still use UIKit primitives (`Button`, `Tooltip`, `IconButton`, `Panel`, …) for primitive rendering rather than re-implementing them.
