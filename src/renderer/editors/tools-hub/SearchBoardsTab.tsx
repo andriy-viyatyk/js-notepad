@@ -4,6 +4,7 @@ import { publishedBoards } from "../../api/published-boards";
 import { boardInstallRegistry } from "../../api/board-install-registry";
 import { useBoardUpdates } from "../../api/board-updates";
 import { openBoardInfoPage } from "../board-info/open-board-info";
+import { BoardScreenshot } from "../board-info/BoardScreenshot";
 import { boardUsageGroup, type BoardUsageGroup, type BoardManifest } from "../board/board-manifest";
 import { fpNormalizeForCompare } from "../../core/utils/file-path";
 import { formatBytes } from "../../core/utils/format-bytes";
@@ -130,49 +131,53 @@ function BoardCard({ board, installed, updates }: {
     return (
         <Panel
             data-type="board-card"
-            direction="column"
-            gap="sm"
+            direction="row"
+            align="start"
+            gap="md"
             padding="md"
             border
             rounded="md"
         >
-            <Panel direction="row" align="center" gap="sm">
-                <Text bold>{board.name}</Text>
-                <Text size="sm" color="light">{`v${board.version}`}</Text>
-                <Text size="sm" color="light">{formatBytes(board.archive.size)}</Text>
-                <Panel flex={1} minWidth={0} />
-                {inst && update && (
-                    <Tag label="Update available" size="sm" title={`Update to v${update.latestVersion}`} />
-                )}
-                {inst && !update && (
-                    <Tag label={`Installed v${inst.version}`} size="sm" variant="outlined" />
-                )}
-            </Panel>
-
-            {board.description && <Text size="sm">{board.description}</Text>}
-
-            {board.fileMasks && board.fileMasks.length > 0 && (
-                <Panel direction="row" wrap gap="xs" align="center">
-                    <Text size="sm" color="light">Files:</Text>
-                    {board.fileMasks.map((m) => (
-                        <Tag key={m} label={m} size="sm" variant="outlined" />
-                    ))}
+            <BoardScreenshot url={board.screenshotUrl} />
+            <Panel direction="column" gap="sm" flex={1} minWidth={0} align="stretch">
+                <Panel direction="row" align="center" gap="sm">
+                    <Text bold>{board.name}</Text>
+                    <Text size="sm" color="light">{`v${board.version}`}</Text>
+                    <Text size="sm" color="light">{formatBytes(board.archive.size)}</Text>
+                    <Panel flex={1} minWidth={0} />
+                    {inst && update && (
+                        <Tag label="Update available" size="sm" title={`Update to v${update.latestVersion}`} />
+                    )}
+                    {inst && !update && (
+                        <Tag label={`Installed v${inst.version}`} size="sm" variant="outlined" />
+                    )}
                 </Panel>
-            )}
 
-            {!compatible && (
-                <Text size="sm" color="warning">{`Requires Persephone ≥ ${board.minAppVersion}`}</Text>
-            )}
+                {board.description && <Text size="sm">{board.description}</Text>}
 
-            <Panel direction="row" gap="sm" align="center">
-                {!inst ? (
-                    <Button size="sm" disabled={!compatible} onClick={openInstall}>Install…</Button>
-                ) : (
-                    <>
-                        {update && <Button size="sm" onClick={openProperties}>Update…</Button>}
-                        <Button size="sm" variant="ghost" onClick={openProperties}>Properties</Button>
-                    </>
+                {board.fileMasks && board.fileMasks.length > 0 && (
+                    <Panel direction="row" wrap gap="xs" align="center">
+                        <Text size="sm" color="light">Files:</Text>
+                        {board.fileMasks.map((m) => (
+                            <Tag key={m} label={m} size="sm" variant="outlined" />
+                        ))}
+                    </Panel>
                 )}
+
+                {!compatible && (
+                    <Text size="sm" color="warning">{`Requires Persephone ≥ ${board.minAppVersion}`}</Text>
+                )}
+
+                <Panel direction="row" gap="sm" align="center">
+                    {!inst ? (
+                        <Button size="sm" disabled={!compatible} onClick={openInstall}>Install…</Button>
+                    ) : (
+                        <>
+                            {update && <Button size="sm" onClick={openProperties}>Update…</Button>}
+                            <Button size="sm" variant="ghost" onClick={openProperties}>Properties</Button>
+                        </>
+                    )}
+                </Panel>
             </Panel>
         </Panel>
     );

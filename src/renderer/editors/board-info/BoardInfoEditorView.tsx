@@ -11,6 +11,7 @@ import { compareVersions } from "../../../shared/version-utils";
 import { formatBytes } from "../../core/utils/format-bytes";
 import type { PublishedBoardInfo, PublishedBoardVersion } from "../../../ipc/api-param-types";
 import type { BoardInfoEditorModel, BoardPropsInfo, InstallProgress } from "./BoardInfoEditorModel";
+import { BoardScreenshot } from "./BoardScreenshot";
 
 function isHttpUrl(s: string | undefined): boolean {
     return !!s && /^https?:\/\//i.test(s);
@@ -152,129 +153,132 @@ function InstallBody({
                     return (
                         <Panel
                             key={entry.id}
-                            direction="column"
-                            gap="sm"
-                            align="stretch"
+                            direction="row"
+                            gap="md"
+                            align="start"
                             border
                             borderColor="default"
                             rounded="sm"
                             padding="md"
                         >
-                            <Panel direction="row" align="baseline" gap="sm">
-                                <Text bold>{entry.name}</Text>
-                                <Text size="sm" color="light">{`v${entry.version}`}</Text>
-                                <Text size="sm" color="light">
-                                    {formatBytes(entry.archive.size)}
-                                </Text>
-                            </Panel>
-                            {entry.description && <Text size="sm">{entry.description}</Text>}
-                            {(entry.fileMasks?.length ?? 0) > 0 && (
-                                <Panel direction="row" align="center" gap="xs" wrap>
-                                    <Text size="sm" color="light">Files:</Text>
-                                    {entry.fileMasks?.map((m) => (
-                                        // Panel chip (not Tag) so the mask text stays selectable/copyable.
-                                        <Panel
-                                            key={m}
-                                            name="board-info-mask"
-                                            direction="row"
-                                            align="center"
-                                            background="light"
-                                            border
-                                            borderColor="default"
-                                            rounded="sm"
-                                            paddingX="sm"
-                                            paddingY="xs"
-                                        >
-                                            <Text size="sm">{m}</Text>
-                                        </Panel>
-                                    ))}
-                                </Panel>
-                            )}
-
-                            {status.kind === "idle" && (
-                                <Panel direction="row" gap="sm">
-                                    <Button
-                                        name="board-info-download"
-                                        variant="link"
-                                        onClick={() => void model.download(entry)}
-                                    >
-                                        Download
-                                    </Button>
-                                </Panel>
-                            )}
-
-                            {status.kind === "downloading" && (
-                                <Panel direction="column" gap="xs" align="stretch">
-                                    <ProgressBar
-                                        name="board-info-progress"
-                                        value={status.received}
-                                        max={status.total ?? entry.archive.size}
-                                    />
-                                    <Panel direction="row" align="center" gap="sm">
-                                        <Text size="sm" color="light">
-                                            {`${formatBytes(status.received ?? 0)} / ${formatBytes(
-                                                status.total ?? entry.archive.size,
-                                            )}`}
-                                        </Text>
-                                        <Button
-                                            name="board-info-cancel"
-                                            size="sm"
-                                            variant="link"
-                                            onClick={() => model.cancelDownload(entry)}
-                                        >
-                                            Cancel
-                                        </Button>
-                                    </Panel>
-                                </Panel>
-                            )}
-
-                            {status.kind === "error" && (
-                                <Panel direction="column" gap="xs" align="stretch">
-                                    <Text size="sm" color="danger">
-                                        {status.error ?? "Download failed."}
+                            <BoardScreenshot url={entry.screenshotUrl} />
+                            <Panel direction="column" gap="sm" align="stretch" flex={1} minWidth={0}>
+                                <Panel direction="row" align="baseline" gap="sm">
+                                    <Text bold>{entry.name}</Text>
+                                    <Text size="sm" color="light">{`v${entry.version}`}</Text>
+                                    <Text size="sm" color="light">
+                                        {formatBytes(entry.archive.size)}
                                     </Text>
+                                </Panel>
+                                {entry.description && <Text size="sm">{entry.description}</Text>}
+                                {(entry.fileMasks?.length ?? 0) > 0 && (
+                                    <Panel direction="row" align="center" gap="xs" wrap>
+                                        <Text size="sm" color="light">Files:</Text>
+                                        {entry.fileMasks?.map((m) => (
+                                            // Panel chip (not Tag) so the mask text stays selectable/copyable.
+                                            <Panel
+                                                key={m}
+                                                name="board-info-mask"
+                                                direction="row"
+                                                align="center"
+                                                background="light"
+                                                border
+                                                borderColor="default"
+                                                rounded="sm"
+                                                paddingX="sm"
+                                                paddingY="xs"
+                                            >
+                                                <Text size="sm">{m}</Text>
+                                            </Panel>
+                                        ))}
+                                    </Panel>
+                                )}
+
+                                {status.kind === "idle" && (
                                     <Panel direction="row" gap="sm">
                                         <Button
-                                            name="board-info-retry"
+                                            name="board-info-download"
                                             variant="link"
                                             onClick={() => void model.download(entry)}
                                         >
-                                            Retry
+                                            Download
                                         </Button>
                                     </Panel>
-                                </Panel>
-                            )}
+                                )}
 
-                            {status.kind === "downloaded" && (
-                                <Panel direction="column" gap="sm" align="stretch">
-                                    <Text size="sm" color="warning">Downloaded — not registered</Text>
-                                    <Text size="sm" color="light">{status.root}</Text>
-                                    <Text size="sm" color="light">
-                                        You can ask your AI agent to review this board's files
-                                        before trusting it.
-                                    </Text>
-                                    <Panel direction="row" gap="sm">
-                                        <Button
-                                            name="board-info-register"
-                                            variant="link"
-                                            onClick={() => void model.register(entry)}
-                                        >
-                                            Register board
-                                        </Button>
-                                        <Button
-                                            name="board-info-delete"
-                                            variant="danger"
-                                            onClick={() => void model.deleteDownload(entry)}
-                                        >
-                                            Delete download
-                                        </Button>
+                                {status.kind === "downloading" && (
+                                    <Panel direction="column" gap="xs" align="stretch">
+                                        <ProgressBar
+                                            name="board-info-progress"
+                                            value={status.received}
+                                            max={status.total ?? entry.archive.size}
+                                        />
+                                        <Panel direction="row" align="center" gap="sm">
+                                            <Text size="sm" color="light">
+                                                {`${formatBytes(status.received ?? 0)} / ${formatBytes(
+                                                    status.total ?? entry.archive.size,
+                                                )}`}
+                                            </Text>
+                                            <Button
+                                                name="board-info-cancel"
+                                                size="sm"
+                                                variant="link"
+                                                onClick={() => model.cancelDownload(entry)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </Panel>
                                     </Panel>
-                                </Panel>
-                            )}
+                                )}
 
-                            {status.kind === "registered" && (
-                                <Text size="sm" color="success">Installed</Text>
-                            )}
+                                {status.kind === "error" && (
+                                    <Panel direction="column" gap="xs" align="stretch">
+                                        <Text size="sm" color="danger">
+                                            {status.error ?? "Download failed."}
+                                        </Text>
+                                        <Panel direction="row" gap="sm">
+                                            <Button
+                                                name="board-info-retry"
+                                                variant="link"
+                                                onClick={() => void model.download(entry)}
+                                            >
+                                                Retry
+                                            </Button>
+                                        </Panel>
+                                    </Panel>
+                                )}
+
+                                {status.kind === "downloaded" && (
+                                    <Panel direction="column" gap="sm" align="stretch">
+                                        <Text size="sm" color="warning">Downloaded — not registered</Text>
+                                        <Text size="sm" color="light">{status.root}</Text>
+                                        <Text size="sm" color="light">
+                                            You can ask your AI agent to review this board's files
+                                            before trusting it.
+                                        </Text>
+                                        <Panel direction="row" gap="sm">
+                                            <Button
+                                                name="board-info-register"
+                                                variant="link"
+                                                onClick={() => void model.register(entry)}
+                                            >
+                                                Register board
+                                            </Button>
+                                            <Button
+                                                name="board-info-delete"
+                                                variant="danger"
+                                                onClick={() => void model.deleteDownload(entry)}
+                                            >
+                                                Delete download
+                                            </Button>
+                                        </Panel>
+                                    </Panel>
+                                )}
+
+                                {status.kind === "registered" && (
+                                    <Text size="sm" color="success">Installed</Text>
+                                )}
+                            </Panel>
                         </Panel>
                     );
                 })
@@ -328,6 +332,15 @@ function PropertiesBody({
     versions?: PublishedBoardVersion[];
     versionsState?: "idle" | "loading" | "error";
 }) {
+    // The screenshot is catalog-side only (it is excluded from the published ZIP), so an
+    // installed board has none on disk — resolve it by catalog id instead. A locally
+    // registered board that was never in the catalog simply has no entry and shows the
+    // placeholder. Hook must precede the early returns below to keep hook order stable.
+    const catalog = publishedBoards.useCatalog();
+    const screenshotUrl = props?.catalogId
+        ? catalog.find((b) => b.id === props.catalogId)?.screenshotUrl
+        : undefined;
+
     if (!props) return null;
 
     if (props.missing) {
@@ -349,14 +362,17 @@ function PropertiesBody({
 
     return (
         <>
-            <Panel direction="row" align="baseline" gap="sm" wrap>
-                <Text size="lg" bold>{props.name}</Text>
-                {props.installedVersion && (
-                    <Text size="sm" color="light">{`v${props.installedVersion}`}</Text>
-                )}
-                <Text size="sm" color={props.trusted ? "success" : "warning"}>
-                    {props.trusted ? "Trusted" : "Not trusted"}
-                </Text>
+            <Panel direction="row" align="start" gap="md">
+                <BoardScreenshot url={screenshotUrl} />
+                <Panel direction="row" align="baseline" gap="sm" wrap flex={1} minWidth={0}>
+                    <Text size="lg" bold>{props.name}</Text>
+                    {props.installedVersion && (
+                        <Text size="sm" color="light">{`v${props.installedVersion}`}</Text>
+                    )}
+                    <Text size="sm" color={props.trusted ? "success" : "warning"}>
+                        {props.trusted ? "Trusted" : "Not trusted"}
+                    </Text>
+                </Panel>
             </Panel>
 
             <Panel direction="column" gap="xs" align="stretch">

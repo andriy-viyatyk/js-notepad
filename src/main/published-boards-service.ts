@@ -53,6 +53,38 @@ function isSafeBoardId(id: string): boolean {
     return /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(id);
 }
 
+/**
+ * A catalog-declared asset name (currently only `screenshot`) is interpolated into a raw
+ * URL under the board's own folder, so it must be a bare file name. The same charset rule
+ * as `isSafeBoardId` rejects `/`, `\`, `..`, a leading dot, and anything carrying a scheme
+ * — a hostile catalog entry cannot aim the app at an arbitrary host or escape the folder.
+ */
+function isSafeAssetName(name: string): boolean {
+    return /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(name);
+}
+
+/** Raw URL of a board's screenshot, or undefined when it declares none. */
+function screenshotUrl(id: string, screenshot: string | undefined): string | undefined {
+    if (!screenshot) return undefined;
+    return `${boardsRepoRawBase()}/boards/${encodeURIComponent(id)}/${encodeURIComponent(screenshot)}`;
+}
+
+/**
+ * Add the derived `screenshotUrl` to every entry. Applied when a catalog LEAVES the service
+ * — never before it is cached — so the stored copy holds only what the manifest said and the
+ * branch override stays live.
+ */
+function withScreenshotUrls(catalog: PublishedBoardsCatalog | null): PublishedBoardsCatalog | null {
+    if (!catalog) return null;
+    return {
+        ...catalog,
+        boards: catalog.boards.map((b) => ({
+            ...b,
+            screenshotUrl: screenshotUrl(b.id, b.screenshot),
+        })),
+    };
+}
+
 function validateBoard(entry: unknown): PublishedBoardInfo | null {
     if (!entry || typeof entry !== "object") return null;
     const e = entry as Record<string, unknown>;
@@ -87,6 +119,10 @@ function validateBoard(entry: unknown): PublishedBoardInfo | null {
         editorKind,
         standalone: typeof e.standalone === "boolean" ? e.standalone : undefined,
         minAppVersion: typeof e.minAppVersion === "string" ? e.minAppVersion : undefined,
+        screenshot:
+            typeof e.screenshot === "string" && isSafeAssetName(e.screenshot)
+                ? e.screenshot
+                : undefined,
         archive: {
             url: archive.url,
             size: archive.size,
@@ -176,7 +212,11 @@ export async function getPublishedBoards(force = false): Promise<PublishedBoards
     if (!force) {
         const now = Date.now();
         if (now - lastCheckTime < CHECK_INTERVAL_MS) {
-            return { catalog: cached, fetchedAt: lastCheckTime, fromCache: true };
+            return {
+                catalog: withScreenshotUrls(cached),
+                fetchedAt: lastCheckTime,
+                fromCache: true,
+            };
         }
     }
 
@@ -184,7 +224,7 @@ export async function getPublishedBoards(force = false): Promise<PublishedBoards
     if (!fetched) {
         // Silent failure: keep serving the cached catalog (offline-friendly).
         return {
-            catalog: cached,
+            catalog: withScreenshotUrls(cached),
             fetchedAt: lastCheckTime,
             fromCache: true,
             error: "fetch-failed",
@@ -194,12 +234,14 @@ export async function getPublishedBoards(force = false): Promise<PublishedBoards
     const now = Date.now();
     electronStore.set(STORE_KEYS.lastCheckTime, now);
 
+    // Compare and store the RAW catalog (no derived URL), so a branch switch does not read
+    // as a content change and the cache never pins a stale base URL.
     if (!catalogsEqual(cached, fetched)) {
         electronStore.set(STORE_KEYS.catalog, fetched);
-        openWindows.send(EventEndpoint.ePublishedBoardsUpdated, fetched);
+        openWindows.send(EventEndpoint.ePublishedBoardsUpdated, withScreenshotUrls(fetched));
     }
 
-    return { catalog: fetched, fetchedAt: now, fromCache: false };
+    return { catalog: withScreenshotUrls(fetched), fetchedAt: now, fromCache: false };
 }
 
 /** On-demand fetch of a board's full version history. No cache gate — the file is tiny and only

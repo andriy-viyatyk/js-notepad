@@ -102,6 +102,13 @@ export interface PublishedBoardInfo {
     editorKind?: "simple" | "content-host";
     standalone?: boolean;
     minAppVersion?: string;
+    /** Screenshot file name inside the board's catalog folder (e.g. `"screenshot.png"`).
+     *  A bare name by contract — never a path or a URL; see `isSafeAssetName`. */
+    screenshot?: string;
+    /** `screenshot` resolved against the catalog's raw base URL. Derived on the way out of
+     *  the service rather than stored, so the cached catalog stays branch-agnostic and a
+     *  `PERSEPHONE_BOARDS_BRANCH` switch takes effect without a refetch. */
+    screenshotUrl?: string;
     archive: PublishedBoardArchive;
 }
 
