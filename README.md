@@ -1,42 +1,39 @@
 # <img src="assets/icon.png" width="38" /> Persephone
 
-**Persephone** is a developer notepad for Windows — built with Electron, Monaco Editor, and a JavaScript/TypeScript runtime. It extends the classic tabbed text editor with specialized viewers, a scripting engine, and an MCP server that lets AI agents drive the UI.
-
-
+**Persephone** is a notepad for Windows that opens almost anything. It starts exactly like a notepad — one empty text page — but drop in a JSON file, a Word document, a SQLite database, or a ZIP archive and it shows the content, not the bytes. And it is built to be shared with AI agents: everything you see on screen, an agent can see and drive too.
 
 ![Demo Video](https://github.com/user-attachments/assets/bfe1df27-1c16-45b5-89e6-6510387f3a7c)
 
-## Key Features
+## One viewer for everything
 
-### Monaco Editor
-Syntax highlighting, IntelliSense, and search/replace for 50+ languages. Drag tabs between windows for multi-monitor workflows. Side-by-side grouping and a full diff editor for comparing files.
+Any file a developer meets during the day opens in place — in three tiers:
 
-### Specialized Editors
-Beyond text: JSON/CSV grids with sorting and filtering, Markdown preview, Mermaid diagrams, SVG/HTML preview, PDF viewer, image viewer, a structured notebook, force-directed graphs, Excalidraw drawings, and an HTTP Rest Client.
+- **Built in** — code with syntax highlighting (Monaco, 50+ languages), JSON/CSV grids, Markdown, Mermaid diagrams, SVG and HTML previews, images, PDF, audio/video, archives (ZIP, RAR, 7z — including a look inside `.docx`/`.xlsx`), side-by-side diffs, and more. See the [full list](#built-in-editors) below.
+- **Installable** — the **[persephone-boards](https://github.com/andriy-viyatyk/persephone-boards)** catalog adds viewers and editors on demand: Word, Excel, PowerPoint, PDF, draw.io diagrams, SQLite databases, Windows executables, todo lists. Open a matching file and an install offer appears right in the editor-switch control; each board is downloaded, checksum-verified, and trusted only after you accept it. The catalog keeps growing.
+- **Made to order** — if no viewer exists for your file, ask an AI agent to build one. A viewer is a **Board**: a folder of plain HTML/JS/CSS with optional backend scripts. A simple viewer takes an agent a few minutes to create, and it plugs in like a native editor.
 
-### Scripting Engine
-Write and execute JavaScript or TypeScript directly in a tab. Scripts access open documents via the `page` object, the application via `app`, and have full Node.js access for file I/O, HTTP requests, and npm packages. A Script Library with autoload support lets you extend the application — add context menu items, hook into events, and automate workflows.
+## A workspace shared with AI agents
 
-### Event System
-An extensible event channel system (`app.events`) lets scripts subscribe to application events — file explorer context menus, browser bookmarks, and more. Autoload scripts register handlers at startup that persist for the session.
+Persephone ships a built-in [MCP](https://modelcontextprotocol.io/) server — enabled with one checkbox in Settings ([setup guide](docs/mcp-setup.md)). Through it the whole app is transparent to an agent, and the agent works in the same UI you are looking at:
 
-### AI Agent Integration (MCP Server)
-A built-in [MCP](https://modelcontextprotocol.io/) HTTP server lets AI agents (Claude, ChatGPT, Gemini, etc.) create pages, execute scripts, display diagrams and grids, and manipulate documents — all programmatically. Enable with a single checkbox in Settings. See the [MCP Setup Guide](docs/mcp-setup.md).
+- **It shows you things.** An agent opens pages with rendered Markdown, diagrams, sortable grids, and highlighted code — instead of dumping walls of text into a chat.
+- **It sees what you see.** Snapshot, click, and type — browser-style MCP tools work on the app itself and on the built-in web browser, so an agent can find something online for you or summarize the page you have open.
+- **It works your content.** The full application API (`app.*` — pages, files, settings, dialogs) is scriptable, so an agent reads and edits documents right alongside you.
 
-### Boards
-Build fully custom HTML-page mini-apps — dashboards, tools, viewers, even custom editors — that run locally in a sandboxed webview with **no remote network access**. A **Board** is any folder with a `board-manifest.json`; it pairs a plain HTML/JS/CSS frontend with backend scripts in any language, wired together by a single `persephone.execute()` bridge and themed automatically to match the app. Boards are trusted per-board, pinnable in the sidebar alongside the built-in editors, and can be created, opened, and developed end-to-end by an AI agent over MCP (`create_board` / `open_board`) or from scripts (`app.boards`). See the [Boards guide](docs/boards.md).
+Content lives in one place and both of you operate on it: the agent drafts, you correct; you paste, the agent transforms.
 
-### Mneme — Vector Memory *(off by default)*
-A built-in knowledge-base service that turns any folder of Markdown notes into a searchable **vector memory**. Mneme indexes your files locally (SQLite + an on-device embedding model) and exposes hybrid full-text + semantic search over MCP — so AI agents can read, write, and search a persistent knowledge base across sessions. Browse and edit roots in an Explorer-like sidebar, search with a dedicated results view, and manage indexing from a config editor. Files on disk stay the source of truth; the index is derived. Enable in Settings — the embedding model (~357 MB) downloads on first use. See the [Mneme guide](docs/mneme.md).
+## Boards — a platform for mini apps
 
-### Built-in Web Browser
-Browse the web in a dedicated tab with profiles, incognito mode, Tor routing, bookmarks, and DRM video support. Links from Markdown and Monaco open in the nearest browser tab automatically.
+Boards turn Persephone into a platform for small personal applications: dashboards, data browsers, deployment helpers, tools specific to one project. A board runs locally in a sandboxed webview with **no remote network access**, is trusted per board, and pins to the sidebar next to the built-in editors.
 
-### Browser Automation *(experimental)*
-Automate the built-in browser from scripts using `page.asBrowser()` — click elements, fill forms, extract text, run JavaScript, manage tabs, and wait for dynamic content via a CDP-powered API. AI agents can drive the browser directly through MCP browser tools (`browser_navigate`, `browser_click`, `browser_type`, and more) without writing a script.
+The practical loop: describe the tool you need to your agent — it scaffolds the board, builds it, opens it, and iterates while you watch. Tools that used to stay on a "someday" list become things you get within a coffee break. See the [Boards guide](docs/boards.md).
 
-### Git Integration *(off by default)*
-Optional, built-in git support — enable it with a single checkbox in Settings (requires git on your PATH). Browse a repository's full commit history in the **Git Tree** editor: a swimlane graph across all branches, a Branches & Tags panel, and a Changes panel for staging, unstaging, resetting, and committing. Create and switch branches, and pull, fetch, or push to remotes. A side-by-side **Git Diff** editor compares any tracked file across revisions (unstaged, staged, or any commit). See the [What's New](docs/whats-new.md) notes for details.
+## Also inside
+
+- **Web browser** — tabs with profiles, incognito mode, Tor routing, bookmarks, and DRM video support. Links from Markdown and code open in the nearest browser tab.
+- **Git integration** *(off by default)* — a commit-graph editor across all branches, staging and committing, push/pull, and revision diffs for any tracked file.
+- **Mneme — vector memory** *(off by default)* — turns any folder of Markdown notes into a locally indexed knowledge base with hybrid full-text + semantic search, exposed over MCP so agents remember across sessions. See the [Mneme guide](docs/mneme.md).
+- **Scripting** — the same `app.*` API agents use is available to you in a JavaScript/TypeScript tab with full Node.js access. See the [Scripting guide](docs/scripting.md).
 
 ## Download (Windows)
 
@@ -45,7 +42,7 @@ Optional, built-in git support — enable it with a single checkbox in Settings 
 | **Installer** | [![Download EXE](https://img.shields.io/badge/Download-Installer%20(.exe)-blue?style=for-the-badge&logo=windows)](https://github.com/andriy-viyatyk/persephone/releases/latest) |
 | **Portable** | [![Download ZIP](https://img.shields.io/badge/Download-Portable%20(.zip)-orange?style=for-the-badge&logo=windows)](https://github.com/andriy-viyatyk/persephone/releases/latest) |
 
-## Editors
+## Built-in editors
 
 | Editor | File Types | Description |
 | :--- | :--- | :--- |
@@ -67,28 +64,24 @@ Optional, built-in git support — enable it with a single checkbox in Settings 
 | **Drawing** | `.excalidraw` | Excalidraw-based drawing editor with library persistence, export, and screen snip |
 | **Links** | `.link.json` | Bookmark/link manager with tiles, list view, categories, and pinned links |
 | **Rest Client** | `.rest.json` | HTTP request builder with collections, body types, and response viewer |
-| **Board** | folder w/ `board-manifest.json` | Sandboxed custom HTML mini-app — dashboard, tool, viewer, or custom editor — with backend scripts via `persephone.execute()` |
+| **Board** | folder w/ `board-manifest.json` | Sandboxed custom HTML mini-app — dashboard, tool, viewer, or custom editor |
 | **Browser** | — | Web browser with profiles, incognito, Tor, bookmarks, and DRM support |
 | **Git Tree** | — | Commit-history graph with branches & tags, staging, commit, and pull/push *(Git integration)* |
 | **Git Diff** | — | Side-by-side revision comparison for any tracked file *(Git integration)* |
 | **Compare** | any two files | Side-by-side diff view |
 
-### Published Boards — additional editors & viewers
-
-Beyond the built-in editors above, Persephone maintains a small catalog of ready-made **Boards** — portable custom editors, viewers, and tools you can install on demand. Open a file whose type matches a published board (a `.todo.json` task list, a `.drawio` diagram, an Office document) and an install entry appears right in the editor-switch control, or browse the full catalog from the **Search boards** tab of the Tools & Editors hub. Each board is downloaded, checksum-verified, and trusted only after you explicitly accept it. See the [Boards guide](docs/boards.md#published-boards-catalog--discover-install-update).
-
-The catalog is open source — browse the source, versions, and manifests, or publish your own board, at the **[persephone-boards](https://github.com/andriy-viyatyk/persephone-boards)** repository.
+More viewers and editors — Word, Excel, PowerPoint, draw.io, SQLite, and others — install on demand from the **[persephone-boards](https://github.com/andriy-viyatyk/persephone-boards)** catalog: browse it from the **Search boards** tab of the Tools & Editors hub, or just open a matching file. See the [Boards guide](docs/boards.md#published-boards-catalog--discover-install-update).
 
 ---
 
 ## Documentation
 
 * **[User Guide](docs/index.md)** — Getting started, editors, keyboard shortcuts
+* **[MCP Setup](docs/mcp-setup.md)** — Connect AI agents to Persephone
+* **[Boards Guide](docs/boards.md)** — Custom viewers, editors, and mini apps
+* **[Mneme Guide](docs/mneme.md)** — Vector memory / Markdown knowledge base for AI agents
 * **[Scripting Guide](docs/scripting.md)** — Script execution, `page`/`app` API, autoload scripts
 * **[API Reference](docs/api/index.md)** — `app.pages`, `app.fs`, `app.settings`, `app.ui`, `app.fetch`
-* **[MCP Setup](docs/mcp-setup.md)** — Configure AI agents to control Persephone
-* **[Mneme Guide](docs/mneme.md)** — Vector memory / Markdown knowledge base for AI agents
-* **[Boards Guide](docs/boards.md)** — Build sandboxed custom HTML mini-apps and editors
 
 ---
 
@@ -97,7 +90,7 @@ The catalog is open source — browse the source, versions, and manifests, or pu
 Contributions, bug reports, and feature requests are more than welcome!
 
 * **Found a bug?** Please [open an issue](https://github.com/andriy-viyatyk/persephone/issues) with a description and steps to reproduce.
-* **Want to contribute?** Feel free to fork the repository and submit a pull request. Whether it's a new "Alternative Editor," a bug fix, or a typo in the documentation, every bit helps!
+* **Want to contribute?** Feel free to fork the repository and submit a pull request — a new viewer, a bug fix, or a typo in the documentation, every bit helps!
 * **Ideas?** If you have a "cool idea" for a tool that should be built into Persephone, jump into the [discussions](https://github.com/andriy-viyatyk/persephone/discussions) and let's talk about it.
 
 ### For Contributors
