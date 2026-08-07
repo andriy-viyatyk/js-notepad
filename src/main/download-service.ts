@@ -5,6 +5,7 @@ import { DownloadEntry } from "../ipc/api-param-types";
 import { EventEndpoint } from "../ipc/api-types";
 import { openWindows } from "./open-windows";
 import { getDataFolder, preparePath } from "./utils";
+import { rememberDirFromPick, resolveDefaultPath } from "./dialog-folder-memory";
 
 const PERSIST_FILE = "recentDownloads.json";
 const MAX_PERSISTED = 5;
@@ -88,8 +89,15 @@ class DownloadService {
         // Show our own save dialog to reliably capture the save path.
         // Electron's getSavePath() returns empty for webview session downloads.
         const parentWindow = this.getParentWindow(webContents);
-        const defaultDir = app.getPath("downloads");
-        const defaultPath = path.join(defaultDir, item.getFilename());
+        // Downloads share the app-wide "save" folder memory: the Downloads folder is only the
+        // starting point until the user has saved somewhere, after which that folder wins.
+        // The dialog stays sync here — see dialog-folder-memory.ts for why that rules out the
+        // shared handlers in ipc/main/dialog-handlers.
+        const defaultPath = resolveDefaultPath({
+            kind: "save",
+            defaultPath: item.getFilename(),
+            location: "downloads",
+        });
 
         const savePath = dialog.showSaveDialogSync(
             parentWindow,
@@ -101,6 +109,7 @@ class DownloadService {
             return;
         }
 
+        rememberDirFromPick("save", savePath);
         item.setSavePath(savePath);
 
         const entry: DownloadEntry = {

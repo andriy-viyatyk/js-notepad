@@ -61,6 +61,31 @@ state.update(s => {
 
 **Design Note:** Both `TGlobalState` and `TComponentState` extend `TOneState` with the same API. The distinction is organizational — `TGlobalState` clears on logout, `TComponentState` is scoped to a React component's lifetime via `useComponentModel`.
 
+### Large Accumulating Collections Don't Belong in State
+
+`update()` runs Immer `produce`, so appending to an array inside state **copies that array on every
+call**. That is invisible at UI scale and quadratic at data scale: a stream that appends to a list
+of `n` items pays O(n) per message, plus the re-render each new array identity triggers.
+
+When a collection grows without a fixed bound — streamed search results, log lines, an import
+buffer — keep it as a plain field on the model and put only a change signal in state:
+
+```typescript
+// BAD - every arriving item copies the whole array
+this.state.update(s => { s.results.push(...rows); });
+
+// GOOD - O(k) append; the view watches a counter instead of the array identity
+this.allResults.push(...rows);
+this.state.update(s => { s.resultsVersion += 1; });
+```
+
+The view then depends on `resultsVersion` rather than the array, and reads the rows from the model
+when it rebuilds. Batch the producer as well where you control it — one state write per flush
+rather than per item. `components/file-search/FileSearchModel.ts` does both.
+
+This is a scale exception, not a general licence: ordinary component state stays in `TOneState`,
+where Immer's copying is what makes selective subscription and change detection work.
+
 ### useOptionalState Hook
 
 `useOptionalState(state, selector, defaultValue)` — subscribes to a `TOneState` that may be null. Always calls `useState` + `useEffect` (stable hook count), returns `defaultValue` when state is null. Use this instead of `state?.use()` which is a conditional hook and violates React Rules of Hooks.

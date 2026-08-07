@@ -3,9 +3,17 @@ export interface FileFilter {
     extensions: string[];
 }
 
+/**
+ * `defaultPath` vs `location` — both say where a dialog should open, with different strength.
+ * A `defaultPath` carrying a directory is an explicit choice and beats the remembered folder;
+ * a bare file name in it is only a suggested name. `location` is a weak preference used until
+ * the user has picked a folder for that dialog kind, after which the memory wins. See
+ * `main/dialog-folder-memory.ts`.
+ */
 export interface OpenFileDialogParams {
     title?: string;
     defaultPath?: string;
+    location?: CommonFolder;
     filters?: FileFilter[];
     multiSelections?: boolean;
 }
@@ -13,12 +21,14 @@ export interface OpenFileDialogParams {
 export interface SaveFileDialogParams {
     title?: string;
     defaultPath?: string;
+    location?: CommonFolder;
     filters?: FileFilter[];
 }
 
 export interface OpenFolderDialogParams {
     title?: string;
     defaultPath?: string;
+    location?: CommonFolder;
     multiSelections?: boolean;
 }
 

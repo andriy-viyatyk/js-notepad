@@ -5,14 +5,14 @@
  * JS API directly (the same way scripts/build-prod.mjs drives production):
  *
  *   1. Start a Vite dev server for the renderer (HMR).
- *   2. Build main / preload / preload-webview / board-shim in watch mode,
+ *   2. Build main / preload / preload-webview / board-shim / search-worker in watch mode,
  *      injecting the dev-server URL so the main process loads the renderer
  *      over http:// (see src/main/open-window.ts).
  *   3. Launch Electron; restart it whenever a main/preload bundle changes.
  *      Renderer edits are picked up by Vite HMR — no Electron restart.
  *
  * Output layout matches build-prod.mjs and package.json "main":
- *   .vite/build/main.js, preload.js, preload-webview.js, board-shim.js
+ *   .vite/build/main.js, preload.js, preload-webview.js, board-shim.js, search-worker.js
  *   renderer served from the dev server at MAIN_WINDOW_VITE_DEV_SERVER_URL
  */
 
@@ -98,6 +98,33 @@ function boardShimConfig() {
                     entryFileNames: "[name].js",
                     chunkFileNames: "[name].js",
                 },
+            },
+        },
+    };
+}
+
+// The search walk runs in a worker_thread. search-service.ts reads this bundle as
+// SOURCE and runs it with `{ eval: true }`, so every surviving require() must be a
+// node builtin — npm deps (picomatch) MUST stay bundled in. Do not widen `external`.
+function searchWorkerConfig() {
+    return {
+        configFile: false,
+        mode: "development",
+        resolve: { conditions: ["node"] },
+        build: {
+            outDir: ".vite/build",
+            emptyOutDir: false,
+            minify: false,
+            sourcemap: true,
+            watch: {},
+            rollupOptions: {
+                input: { "search-worker": "src/main/search-worker.ts" },
+                output: {
+                    format: "cjs",
+                    entryFileNames: "[name].js",
+                    chunkFileNames: "[name].js",
+                },
+                external: nodeExternals,
             },
         },
     };
@@ -223,7 +250,7 @@ server.printUrls();
 const devServerUrl = server.resolvedUrls?.local?.[0] ?? "http://localhost:5273/";
 console.log(`\x1b[36m[dev]\x1b[0m Renderer at ${devServerUrl}`);
 
-console.log("\x1b[36m[dev]\x1b[0m Building main / preload / board-shim (watch)...");
+console.log("\x1b[36m[dev]\x1b[0m Building main / preload / board-shim / search-worker (watch)...");
 await Promise.all([
     watchBuild("main", mainConfig(devServerUrl), { restartOnChange: true }),
     watchBuild("preload", preloadConfig({ preload: "src/preload.ts" }), { restartOnChange: true }),
@@ -231,6 +258,9 @@ await Promise.all([
     // board-shim is read fresh from disk by the board:// handler on each board
     // load, so a rebuild does not require an Electron restart.
     watchBuild("board-shim", boardShimConfig(), { restartOnChange: false }),
+    // search-worker is likewise re-read from disk per search in dev (getWorkerSource
+    // only caches when packaged), so a rebuild needs no Electron restart either.
+    watchBuild("search-worker", searchWorkerConfig(), { restartOnChange: false }),
 ]);
 
 console.log("\x1b[36m[dev]\x1b[0m Launching Electron...");

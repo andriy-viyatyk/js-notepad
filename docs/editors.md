@@ -482,7 +482,7 @@ Opening the file from **Settings → Board Environment Variables → Open Enviro
 Opens when you click a folder in the File Explorer or Archive panel. Displays the folder's contents in the main editor area with list or tile layouts.
 
 - **List mode** — Files and folders shown as a vertical list with file-type icons
-- **Tile modes** — Switch between landscape tiles, portrait tiles (normal and large) for a visual grid layout. Images show a preview thumbnail; links show favicons as fallback icons
+- **Tile modes** — Switch between landscape tiles, portrait tiles (normal and large) for a visual grid layout. Images show a preview thumbnail — including images inside an archive (e.g. browsing `document.docx!word/media` in the Archive panel), so opening an Office file's media folder in a tile mode gives you a visual contact sheet of its embedded pictures; links show favicons as fallback icons
 - **View mode per folder** — Each folder remembers its preferred view mode. Child folders inherit the parent's mode unless overridden
 - **Breadcrumb navigation** — The toolbar shows a breadcrumb with the root folder name and one chip per ancestor folder, up to the current folder. Click any chip to jump to that ancestor. On deep paths the breadcrumb clips the start (root side) so the current folder is always visible
 - **View mode toggle** — Switch between list and tile modes using the toolbar button

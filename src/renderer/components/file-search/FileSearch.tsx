@@ -8,6 +8,7 @@ import { IconButton } from "../../uikit/IconButton";
 import { FileIcon } from "../icons/FileIcon";
 import { RenderGrid, RenderGridModel } from "../../uikit/RenderGrid";
 import type { RenderCellParams } from "../../uikit/RenderGrid";
+import { maxSearchResults } from "../../../ipc/search-ipc";
 import {
     FileSearchModel,
     type FileSearchState,
@@ -169,8 +170,9 @@ export function FileSearch({ folder, state: savedState, onStateChange, onResultC
     // Build filtered results (excludes collapsed file lines)
     const filteredResults = useMemo(
         () => model.getFilteredResults(),
-        // Rebuild when results array changes (new search results or expand/collapse toggle)
-        [model, searchState.results], // eslint-disable-line
+        // The rows live on the model, not in state — resultsVersion is the change signal
+        // (bumped once per arriving batch, and on an expand/collapse toggle).
+        [model, searchState.resultsVersion], // eslint-disable-line
     );
 
     // Refresh grid when filtered results change
@@ -252,6 +254,10 @@ export function FileSearch({ folder, state: savedState, onStateChange, onResultC
         statusText = "No results";
     } else {
         statusText = `${searchState.totalMatches} matches in ${searchState.totalFiles} files`;
+        if (searchState.truncated) {
+            // The cap has to be visible — a silently short result list reads as a bug.
+            statusText += ` (first ${maxSearchResults} results — refine your search)`;
+        }
     }
 
     // ── Render ───────────────────────────────────────────────────────
@@ -287,7 +293,9 @@ export function FileSearch({ folder, state: savedState, onStateChange, onResultC
                         <Input
                             value={searchState.excludePattern}
                             onChange={model.setExcludePattern}
-                            placeholder="Exclude (e.g. node_modules)"
+                            // node_modules and .git come from the search-exclude setting, so
+                            // naming one here would imply the field is what excludes it.
+                            placeholder="Exclude — adds to Settings (e.g. dist, *.min.js)"
                         />
                     </>
                 )}

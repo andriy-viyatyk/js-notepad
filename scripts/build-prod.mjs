@@ -9,6 +9,7 @@
  *   .vite/build/preload.js        – preload script (CJS)
  *   .vite/build/preload-webview.js – webview preload (CJS)
  *   .vite/build/board-shim.js     – board bridge shim (IIFE, inlined into board HTML)
+ *   .vite/build/search-worker.js  – file-search worker thread (CJS, run via eval)
  *   .vite/renderer/main_window/   – renderer (ESM, HTML entry)
  */
 
@@ -118,6 +119,37 @@ await build({
                 entryFileNames: "[name].js",
                 chunkFileNames: "[name].js",
             },
+        },
+    },
+});
+
+// ── 3c. Search worker ────────────────────────────────────────────────
+//
+// The file-content search walk runs in a worker_thread so it never blocks the
+// main-process event loop. search-service.ts reads this bundle as SOURCE and
+// runs it with `{ eval: true }` (the packaged app is an asar archive, which a
+// worker's own module loader cannot be relied on to read).
+//
+// Because there is no meaningful module resolution base under `eval: true`,
+// every surviving require() must be a node builtin — so npm dependencies
+// (picomatch) MUST stay bundled in. Do not widen `external` here.
+
+console.log("\n🔨 Building search-worker...");
+await build({
+    configFile: false,
+    resolve: nodeResolve,
+    build: {
+        outDir: ".vite/build",
+        emptyOutDir: false,
+        minify: false,
+        rollupOptions: {
+            input: { "search-worker": "src/main/search-worker.ts" },
+            output: {
+                format: "cjs",
+                entryFileNames: "[name].js",
+                chunkFileNames: "[name].js",
+            },
+            external: nodeExternals,
         },
     },
 });

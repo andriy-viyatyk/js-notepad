@@ -4,6 +4,7 @@ import {
     OpenFolderDialogParams,
     SaveFileDialogParams,
 } from "../api-param-types";
+import { rememberDirFromPick, resolveDefaultPath } from "../../main/dialog-folder-memory";
 
 export async function showOpenFileDialog(
     browserWindow: Electron.BrowserWindow | undefined,
@@ -13,7 +14,11 @@ export async function showOpenFileDialog(
 
     const result = await dialog.showOpenDialog(browserWindow, {
         title: params.title,
-        defaultPath: params.defaultPath,
+        defaultPath: resolveDefaultPath({
+            kind: "open",
+            defaultPath: params.defaultPath,
+            location: params.location,
+        }),
         filters: params.filters,
         properties: [
             "openFile",
@@ -26,6 +31,7 @@ export async function showOpenFileDialog(
     if (result.canceled) {
         return undefined;
     }
+    if (result.filePaths[0]) rememberDirFromPick("open", result.filePaths[0]);
     return result.filePaths;
 }
 
@@ -36,12 +42,17 @@ export async function showSaveFileDialog(
     if (!browserWindow) return Promise.resolve(undefined);
     const result = await dialog.showSaveDialog(browserWindow, {
         title: params.title,
-        defaultPath: params.defaultPath,
+        defaultPath: resolveDefaultPath({
+            kind: "save",
+            defaultPath: params.defaultPath,
+            location: params.location,
+        }),
         filters: params.filters,
     });
     if (result.canceled) {
         return undefined;
     }
+    if (result.filePath) rememberDirFromPick("save", result.filePath);
     return result.filePath;
 }
 
@@ -52,7 +63,11 @@ export async function showOpenFolderDialog(
     if (!mainWindow) return Promise.resolve(undefined);
     const result = await dialog.showOpenDialog(mainWindow, {
         title: params.title,
-        defaultPath: params.defaultPath,
+        defaultPath: resolveDefaultPath({
+            kind: "folder",
+            defaultPath: params.defaultPath,
+            location: params.location,
+        }),
         properties: [
             "openDirectory",
             ...((params.multiSelections
@@ -63,5 +78,6 @@ export async function showOpenFolderDialog(
     if (result.canceled) {
         return undefined;
     }
+    if (result.filePaths[0]) rememberDirFromPick("folder", result.filePaths[0]);
     return result.filePaths;
 }

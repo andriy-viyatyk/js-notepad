@@ -437,9 +437,21 @@ It is content-height (no percentage height), so a single child provides the layo
 child `flex={1}`/`minWidth={0}` where it must stretch, and size it to the grid `rowHeight` in a
 virtualized list.
 
+**Descendants that declare their own colors.** All three fragments paint only `backgroundColor`,
+`color`, and `outline` on the matched row itself. Label text follows because it inherits the
+row's `color` — but any descendant that sets a color of its own silently opts out of the state
+change. A row primitive with such children must restate them under the same
+`[data-focus-selection]:focus-within &[data-selected]` ancestor selector, so the rule activates
+in exactly the states the container override does. `TreeItem` does this for its two: the chevron
+(which sets `icon.default`) takes `icon.selection`, and the level guides (`border.light`) go
+`borderLeftColor: transparent` — invisible against the highlight, rather than needing a guide
+color that reads correctly against both the row and the selection background in every theme.
+Both are targeted through plain child-hook classes (`.tree-chevron`, `.tree-indent`), which
+express structure, not state, so Rule 1 still holds.
+
 No new color tokens are needed — the look reuses `background.light` / `background.message`
-(blurred) and `background.treeSelection` / `border.active` / `text.selection` (focused), all
-defined in every theme.
+(blurred) and `background.treeSelection` / `border.active` / `text.selection` / `icon.selection`
+(focused), all defined in every theme.
 
 ---
 

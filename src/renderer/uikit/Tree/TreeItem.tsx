@@ -97,6 +97,20 @@ const Root = styled.div(
         // Blurred-state selected/active backgrounds — single-sourced with ListBox + the
         // Tree container's focused override via uikit/shared/selection-style.
         ...rowSelectionBase,
+        // The focused-list selected row is painted with the dark treeSelection background
+        // by the Tree container's override, and its label follows via the row's `color`.
+        // The chevron and the level guides set colors of their own, so they don't inherit
+        // it — left alone, a dark chevron and light-gray guides sit on top of the highlight.
+        // The chevron takes the selected icon color; the guides simply disappear into the
+        // highlight rather than needing a token that reads correctly against it.
+        "[data-focus-selection]:focus-within &[data-selected]": {
+            "& > .tree-chevron, & > .tree-chevron:hover": {
+                color: color.icon.selection,
+            },
+            "& > .tree-indent": {
+                borderLeftColor: "transparent",
+            },
+        },
         "&[data-dragging]": {
             opacity: 0.5,
         },
@@ -249,7 +263,7 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
             {...rest}
         >
             {Array.from({ length: level }).map((_, i) => (
-                <Indent key={i} size={indentSize} first={i === 0} />
+                <Indent key={i} className="tree-indent" size={indentSize} first={i === 0} />
             ))}
             {hideChevron ? null : loading ? (
                 <ChevronStub size={chevronColumnSize} aria-label="Loading">
@@ -257,6 +271,7 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
                 </ChevronStub>
             ) : hasChildren ? (
                 <Chevron
+                    className="tree-chevron"
                     size={chevronColumnSize}
                     type="button"
                     tabIndex={-1}

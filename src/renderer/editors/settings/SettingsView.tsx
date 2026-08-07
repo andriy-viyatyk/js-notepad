@@ -1276,12 +1276,15 @@ interface SettingsEditorProps {
 function SettingsView(_props: SettingsEditorProps) {
     const currentThemeId = settings.use("theme");
     const searchExtensions = settings.use("search-extensions");
+    const searchExclude = settings.use("search-exclude");
     const themes = getAvailableThemes();
     const darkThemes = themes.filter((t) => t.isDark);
     const lightThemes = themes.filter((t) => !t.isDark);
 
     const extensionsText = searchExtensions.join(", ");
     const extensionsRef = useRef<TextareaRef>(null);
+    const excludeText = searchExclude.join(", ");
+    const excludeRef = useRef<TextareaRef>(null);
 
     const handleThemeChange = (themeId: string) => {
         applyTheme(themeId);
@@ -1295,6 +1298,15 @@ function SettingsView(_props: SettingsEditorProps) {
             .map((s) => s.trim())
             .filter((s) => s.length > 0);
         settings.set("search-extensions", extensions);
+    }, []);
+
+    const handleExcludeBlur = useCallback(() => {
+        const value = excludeRef.current?.getText() ?? "";
+        const patterns = value
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+        settings.set("search-exclude", patterns);
     }, []);
 
     const handleOpenSettingsFile = () => {
@@ -1398,6 +1410,20 @@ function SettingsView(_props: SettingsEditorProps) {
                         singleLine
                         value={extensionsText}
                         onBlur={handleExtensionsBlur}
+                        maxHeight={200}
+                        size="sm"
+                    />
+                    <Panel paddingTop="lg" paddingBottom="md">
+                        <Text color="light" size="xs">
+                            Folders and globs always skipped (comma-separated). Never applied to the
+                            search root itself, so searching inside one of these folders still works
+                        </Text>
+                    </Panel>
+                    <Textarea
+                        ref={excludeRef}
+                        singleLine
+                        value={excludeText}
+                        onBlur={handleExcludeBlur}
                         maxHeight={200}
                         size="sm"
                     />

@@ -19,8 +19,8 @@ persephone/
 │   ├── build.rs
 │   └── Cargo.toml
 ├── scripts/                # Build scripts
-│   ├── dev.mjs             # Dev orchestrator (npm start) — Vite renderer dev server + HMR, watch-builds main/preload/preload-webview/board-shim, launches Electron with restart-on-change
-│   ├── build-prod.mjs      # Vite production build (main, preload, preload-webview, renderer, board-shim)
+│   ├── dev.mjs             # Dev orchestrator (npm start) — Vite renderer dev server + HMR, watch-builds main/preload/preload-webview/board-shim/search-worker, launches Electron with restart-on-change
+│   ├── build-prod.mjs      # Vite production build (main, preload, preload-webview, renderer, board-shim, search-worker)
 │   └── vmp-sign.mjs        # electron-builder afterPack hook for Widevine VMP signing
 ├── assets/                 # Static assets
 │   ├── editor-types/       # GENERATED — Vite plugin auto-copies .d.ts files from src/renderer/api/types/ (never hand-edit)
@@ -379,6 +379,7 @@ persephone/
 │   │   ├── linkTypes.ts
 │   │   ├── linkTraits.ts             # ILink trait definition + registration (LINK + FILE_LINK — local-file links yield bytes)
 │   │   ├── tor-src.ts                # Rewrites remote image src → tor-src:// when the editor is hosted by a Tor browser page (the app renderer is unproxied); local schemes pass through
+│   │   ├── pipe-image-src.ts         # usePipeImageSrc — reads an archive-entry imgSrc through a content pipe into a cached blob URL; every other src shape passes through
 │   │   ├── panels/                   # Shared panel components (inline + secondary view)
 │   │   │   ├── LinkCategoryPanel.tsx       # Categories tree panel
 │   │   │   ├── LinkTagsPanel.tsx           # Tags list panel
@@ -689,7 +690,7 @@ persephone/
 │   ├── tree-provider/      # TreeProviderView — generic tree viewer for any ITreeProvider (EPIC-015)
 │   │   ├── favicon-cache.ts # Favicon download/cache for HTTP links (shared by link-editor, browser, tree icons)
 │   │   └── os-clipboard.ts  # OS file-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer) shared by the tree + category view models; file provider only
-│   ├── file-search/        # FileSearch — standalone file content search with virtualized results (EPIC-015)
+│   ├── file-search/        # FileSearch — standalone file content search with virtualized results; accumulated rows live on the model, not in reactive state
 │   ├── file-list/          # FileList — flat file list (FileIcon + single-click + search), reused by the Recent files panel and the git Changes panel; getTrailing/compact props (EPIC-031)
 │   ├── file-grid/          # FileGrid — AVGrid-based file list (icon/path/status columns, header-as-label, sorting, range select + range-copy, single/double click, context-menu passthrough); git Changes panel; eventual FileList replacement (EPIC-031)
 │   ├── icons/              # FileIcon, LanguageIcon
@@ -758,7 +759,8 @@ persephone/
 ├── tor-src-protocol.ts     # tor-src:// scheme handler — fetches an http(s) URL through a Tor partition's session (the app renderer itself is unproxied); guarded by partition shape, live-partition check, and http(s)-only target
 ├── git-service.ts          # Git access via simple-git — status, stage/unstage/commit, branch/switch, fetch/push/pull, ahead-behind, log/show, --version probe — main-process only
 ├── download-service.ts     # Download management
-├── search-service.ts       # File search service
+├── search-service.ts       # File search host — owns one search-worker thread per sender window, relays its batches to the renderer; cancel/window-close is worker.terminate()
+├── search-worker.ts        # File search walk — runs in a worker_thread (bundled separately to .vite/build/search-worker.js); never imports electron
 ├── worker-host.ts          # Worker thread host for app.runAsync (IPC + worker_threads)
 ├── command-runner.ts       # Streaming command runner — spawns child processes, streams stdout/stderr/exit over IPC by jobId; shared by app.proc.execute and the board bridge's execute(); whole-tree kill via taskkill; jobs carry an optional caller-chosen name + a getJobsBySinkIds query (board job re-association)
 ├── board-protocol-service.ts # board:// scheme handler — host→board-root registry; serves board files + CSP; injects --p-* palette, boot context, and the bridge shim into served HTML
@@ -776,6 +778,7 @@ persephone/
 ├── tray-setup.ts           # System tray
 ├── drag-model.ts           # Tab drag between windows
 ├── e-store.ts              # Electron store wrapper
+├── dialog-folder-memory.ts # Last-used folder per native dialog kind (open/save/folder), persisted in electronStore under dialog.lastDir.<kind>; resolveDefaultPath applies the precedence, rememberDirFromPick records a completed pick
 ├── fileIconCache.ts        # File icon caching
 ├── constants.ts            # Main process constants
 └── utils.ts                # Main process utilities
@@ -789,15 +792,15 @@ persephone/
 ├── api-param-types.ts      # IPC parameter types
 ├── browser-ipc.ts          # Browser-specific IPC channels
 ├── tor-ipc.ts              # Tor service IPC channels (start, stop, log, check-ip, restart, status) + TorStatus/TorIpInfo types
-├── git-ipc.ts              # Git service IPC channel names + request/response types (EPIC-030)
+├── git-ipc.ts              # Git service IPC channel names + request/response types
 ├── clipboard-ipc.ts        # File-clipboard DTOs (ClipboardFileList — CF_HDROP paths + drop effect)
-├── search-ipc.ts           # Search IPC channels
+├── search-ipc.ts           # Search IPC channels + wire types; also the batch-flush bounds, the matched-line result cap, and the default exclude patterns that seed the search-exclude setting
 ├── worker-channels.ts      # Worker thread IPC channels (app.runAsync)
 ├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, IExecuteHandle contract shared by proc.ts and board-shim.ts)
 ├── popup-rate-limiter.ts   # Global popup/tab rate limiter (app-wide singleton)
 ├── main/                   # Main process handlers
 │   ├── controller.ts       # IPC handler registration
-│   ├── dialog-handlers.ts  # File dialog handlers
+│   ├── dialog-handlers.ts  # File dialog handlers — the single place all three native dialogs are opened (renderer app.fs and the board bridge both route here); resolves the starting folder through dialog-folder-memory and records the pick
 │   ├── renderer-events.ts  # Events sent TO renderer
 │   └── window-handlers.ts  # Window management handlers
 └── renderer/               # Renderer process API

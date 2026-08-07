@@ -362,6 +362,49 @@ handleStarClick = async () => {
 };
 ```
 
+### Long Work Belongs Off the Main-Process Event Loop
+
+The main process owns the window message pump, the window `close` event, and every `ipcMain`
+handler. A long synchronous run there — a directory walk over `fs.readdirSync` /
+`readFileSync`, a big parse, a hash over a large file — does not merely feel slow: Windows
+paints the window "Not Responding", the app cannot be closed, and **any IPC that was supposed
+to interrupt the work cannot arrive**, because the handler that would receive it is queued
+behind the work itself.
+
+That last point is the one that bites. A cancellation flag polled inside the loop looks like it
+works and is dead code:
+
+```typescript
+// BAD - activeSearches is only written by the cancel IPC handler, which cannot
+// run until this loop finishes. Every check reads a value that can never change.
+const isCancelled = () => activeSearches.get(senderId) !== searchId;
+while (dirStack.length > 0) {
+    if (isCancelled()) return;
+    ...
+}
+```
+
+`async` alone does not fix this. A function marked `async` whose body never actually `await`s
+anything still runs to completion in a single tick.
+
+Move the work to a `worker_thread` and make termination the cancel:
+
+```typescript
+// GOOD - the walk stays synchronous, but in a thread that owns nothing
+const worker = new Worker(source, { eval: true });
+worker.on("message", (msg) => { /* relay to the renderer */ });
+// cancel, replaced search, or window closed:
+worker.terminate();
+```
+
+Two existing hosts follow this shape: `main/worker-host.ts` (script `app.runAsync`) and
+`main/search-service.ts` (file-content search). Both also show the packaging constraint — a
+worker bundle is loaded as **source** via `fs.readFileSync` + `{ eval: true }` rather than
+`new Worker(path)`, because a worker bootstraps its own Node environment whose module loader
+cannot be relied on to read an entry inside the packaged asar. Under `eval`, every surviving
+`require` must be a node builtin, so such a bundle must keep its npm dependencies inlined and
+must not import `electron`.
+
 ## Comments
 
 ### When to Comment

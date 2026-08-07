@@ -675,16 +675,24 @@ export const FilterTableIcon = createIcon(24)(
     </>,
 );
 
+// The dot is a real filled circle rather than the zero-length `M12 19V18.99` stroke
+// segment this icon used to carry. That idiom draws a dot of radius strokeWidth/2 — 0.75
+// here — which at the 16px the Tor toolbar button renders at collapses to a ~1px speck
+// that antialiases away, leaving a question mark that reads as cut off at the bottom.
+// WarningIcon and InfoIcon already use `<circle r="1">` for the same feature; this goes
+// slightly larger because those render at dialog size while this one lives in a toolbar.
 export const QuestionIcon = createIcon(24)(
-    <path
-        xmlns="http://www.w3.org/2000/svg"
-        d="M12 19V18.99M12 16C12 11.5 16 12.5 16 9C16 6.79086 14.2091 5 12 5C10.1361 5 8.57002 6.27477 8.12598 8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-    />,
+    <>
+        <path
+            d="M8.5 8.75C8.5 6.817 10.067 5 12 5C13.933 5 15.5 6.817 15.5 8.75C15.5 11.2 12 12.3 12 14.8"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+        />
+        <circle cx="12" cy="18.5" r="1.25" fill="currentColor" />
+    </>,
 );
 
 export const DeleteIcon = createIcon(24)(

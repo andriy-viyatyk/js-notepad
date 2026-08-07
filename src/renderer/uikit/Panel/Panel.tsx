@@ -281,6 +281,32 @@ function isScrollable(v?: Overflow): boolean {
     return v === "auto" || v === "scroll";
 }
 
+/**
+ * Drop `undefined` entries from the inline style object.
+ *
+ * React does not skip a style key whose value is `undefined` — it *clears* that property by
+ * writing `""` to it. When a shorthand and its own longhands are both present, that clearing
+ * destroys the shorthand: `{ overflow: "hidden", overflowX: undefined, overflowY: undefined }`
+ * applies `overflow: hidden` and then removes both longhands, leaving the element with no
+ * overflow at all. The same happens to `flex` via an unset `flexShrink`, which silently turns
+ * `flex="0 0 auto"` into a shrinkable item.
+ *
+ * A key that is simply absent is never cleared, so removing the undefined entries makes the
+ * shorthands survive. React's update path still clears a property that disappears between
+ * renders, and it re-applies the new styles afterwards — so a shorthand that is still set
+ * wins on the next commit.
+ */
+function compactStyle(style: React.CSSProperties): React.CSSProperties {
+    const out: Record<string, unknown> = {};
+    // for-in rather than Object.entries — Panel renders on nearly every screen, and this
+    // avoids allocating an entry array per instance per render.
+    for (const key in style) {
+        const value = (style as Record<string, unknown>)[key];
+        if (value !== undefined) out[key] = value;
+    }
+    return out as React.CSSProperties;
+}
+
 // --- Component ---
 
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(function Panel(
@@ -348,7 +374,9 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(function Panel
     const padLeft   = paddingLeft   ?? paddingX ?? padding;
     const padRight  = paddingRight  ?? paddingX ?? padding;
 
-    const inlineStyle: React.CSSProperties = {
+    // compactStyle is mandatory here — this object deliberately mixes the `flex` and
+    // `overflow` shorthands with their longhands, and undefined longhands would erase them.
+    const inlineStyle: React.CSSProperties = compactStyle({
         flex: flexVal(flex),
         flexShrink: shrink === false ? 0 : undefined,
         flexWrap: wrap ? "wrap" : undefined,
@@ -385,7 +413,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(function Panel
         left,
 
         borderRadius: radiusVal(rounded),
-    };
+    });
 
     const scrollable =
         isScrollable(overflow) || isScrollable(overflowX) || isScrollable(overflowY);

@@ -9,6 +9,7 @@ import { LinkViewMode } from "./linkTypes";
 import { TraitTypeId, setTraitDragData } from "../../core/traits";
 import { getHostname, getFaviconPathSync, useFavicons } from "../../components/tree-provider/favicon-cache";
 import { resolveTorSrc, type TorProxyInfo } from "./tor-src";
+import { usePipeImageSrc } from "./pipe-image-src";
 
 // =============================================================================
 // Tile dimensions per view mode
@@ -58,8 +59,14 @@ function LinksTileCell({
     // image or its Tor routing changes — no effect needed.
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
+    // Archive entries (`archive.zip!inner/img.png`) are unloadable by the DOM and resolve
+    // to a blob URL read through a content pipe — null until that read lands, so the tile
+    // shows its fallback glyph meanwhile. Every other shape passes through untouched.
+    // Runs BEFORE the Tor rewrite so the resulting `blob:` is seen as local and is never
+    // routed through the proxy.
+    const pipedSrc = usePipeImageSrc(link.imgSrc);
     // US-896 — null when the image must not be loaded (Tor page, Tor not up).
-    const imageSrc = resolveTorSrc(link.imgSrc, imageProxy);
+    const imageSrc = resolveTorSrc(pipedSrc ?? undefined, imageProxy);
     const showImage = !!imageSrc && imageSrc !== failedSrc;
 
     const handleDragStart = useCallback((e: React.DragEvent) => {

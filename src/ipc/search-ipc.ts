@@ -1,10 +1,13 @@
 /**
  * IPC channel definitions and types for file content search.
  *
- * Search uses a streaming pattern: renderer sends a start request,
- * main process streams back results per-file, then sends a complete message.
- * This is separate from the standard request/response Endpoint pattern
- * because search produces multiple response messages per request.
+ * Search uses a streaming pattern: renderer sends a start request, the main process
+ * streams back batches of matched files, then sends a complete message. This is separate
+ * from the standard request/response Endpoint pattern because search produces multiple
+ * response messages per request.
+ *
+ * The walk itself runs in a worker thread (`main/search-worker.ts`), so results are
+ * coalesced into batches rather than sent per file — see `searchFlushIntervalMs`.
  */
 
 // IPC channel names
@@ -22,16 +25,21 @@ export interface SearchRequest {
     searchId: string;
     rootPath: string;
     query: string;
-    includePattern: string;  // comma-separated globs, e.g. "*.ts,*.tsx"
-    excludePattern: string;  // comma-separated globs, e.g. "node_modules,.git"
+    includePattern: string;  // comma-separated globs from the panel, e.g. "*.ts,*.tsx"
+    excludePattern: string;  // comma-separated globs from the panel, e.g. "dist,*.min.js"
     caseSensitive: boolean;
     maxFileSize: number;     // bytes, files larger than this are skipped
     extensions: string[];    // file extensions to search (e.g. [".ts", ".tsx"])
+    /**
+     * Always-on excludes from settings (`search-exclude`), applied ahead of `excludePattern`.
+     * Never applied to the search root itself — searching *inside* an excluded folder such as
+     * node_modules must work, while still skipping any nested one.
+     */
+    excludePatterns: string[];
 }
 
-// Main → Renderer (streamed per file)
+// One matched file within a batch
 export interface SearchFileResult {
-    searchId: string;
     filePath: string;        // absolute path
     matches: SearchMatch[];
 }
@@ -43,7 +51,15 @@ export interface SearchMatch {
     matchLength: number;
 }
 
-// Main → Renderer (periodic progress)
+// Main → Renderer (streamed, one message per flush)
+export interface SearchResultBatch {
+    searchId: string;
+    files: SearchFileResult[];
+    /** Running total of files *examined* (not matched) — same counter as SearchProgress. */
+    filesSearched: number;
+}
+
+// Main → Renderer (flush with no matched files — keeps the counter ticking)
 export interface SearchProgress {
     searchId: string;
     filesSearched: number;
@@ -55,6 +71,8 @@ export interface SearchComplete {
     totalMatches: number;
     totalFiles: number;
     filesSearched: number;
+    /** True when the walk stopped early at `maxSearchResults`. */
+    truncated: boolean;
 }
 
 // Main → Renderer (on error)
@@ -80,8 +98,25 @@ export const defaultSearchableExtensions = [
     ".todo.json",
 ];
 
-// Default exclude patterns
-export const defaultExcludePatterns = "node_modules,.git";
+// Default exclude patterns — seeds the `search-exclude` setting, which the renderer sends
+// as `excludePatterns` on every request. A plain name excludes any folder with that name;
+// a glob (containing / * ?) is matched against the path relative to the search root.
+export const defaultExcludePatterns = ["node_modules", ".git"];
 
 // Default max file size (1 MB)
 export const defaultMaxFileSize = 1024 * 1024;
+
+// Result batching — a flush is sent when either bound is reached
+export const searchFlushIntervalMs = 100;
+export const searchFlushMaxFiles = 50;
+
+/**
+ * Hard cap on matched lines — the line rows the user sees, with the per-file header rows on
+ * top of that. Beyond this the walk stops and `SearchComplete.truncated` is set. Deliberately
+ * not a setting: more than this is not reviewable by a human, and an uncapped search can
+ * exhaust renderer memory.
+ *
+ * Checked between files, never inside one, so a file's matches are never cut in half — the
+ * total can overshoot by at most one file's worth.
+ */
+export const maxSearchResults = 10000;

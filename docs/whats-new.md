@@ -8,7 +8,17 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.19 (Upcoming)
 
-*No changes yet.*
+### Improvements
+
+- **File dialogs now remember the last folder you used** — Every native Open File, Save File, and Open Folder dialog in Persephone now opens where you left off, instead of always starting at a default location. Each dialog kind remembers its own folder: saving a drawing export or a Rest Client response starts the next Save dialog in that same folder (with the suggested file name unaffected), and separately, opening a file or opening a folder each starts where you last opened one. Browser downloads share the save-folder memory — a fresh profile starts in your Downloads folder, then follows wherever you last saved to. The memory is shared across all open windows and survives an app restart. A few dialogs deliberately keep their own placement instead: **Save As** on a file that already has a path still opens next to that file, and the Settings and board-path pickers still open at their configured location.
+
+- **Explorer content search no longer freezes the app on large folders** — Searching file contents now runs in the background instead of on the main thread, so the app stays fully responsive while a big search is in progress. Results stream in progressively in batches instead of one file at a time, keeping the panel smooth as matches accumulate. Closing the search panel or changing the query now cancels the running search immediately, and the search also stops cleanly if you close the window or exit the app mid-search. A search also now stops after 10,000 matched lines, with the status line reading "N matches in M files (first 10000 results — refine your search)" — narrow your query if you hit it. Also new: a **"search-exclude"** setting in Settings → File Search lists folders/globs content search always skips (defaults to `node_modules, .git`) — previously these were hardcoded and invisible. A plain name skips any folder with that name anywhere under the search root; a glob (containing `/`, `*`, or `?`) matches against the path relative to the search root. Excludes are never applied to the search root itself, so searching inside a `node_modules` folder searches it normally, while any `node_modules` nested inside it is still skipped. The search panel's own **Exclude** box adds to this setting rather than replacing it. See [Search in file contents](./tabs-and-navigation.md#file-explorer-panel).
+
+### Bug Fixes
+
+- **Tile views now show real thumbnails for images inside archives** — In the Folder View's tile modes (landscape/portrait), image files located inside an archive (e.g. `document.docx!word/media/image1.png`) previously showed the generic fallback icon instead of a preview. They now render their actual thumbnail, just like images in ordinary folders. This makes it easy to review or copy the images embedded in a Word/PowerPoint/Excel file: open the document in the Archive panel, navigate to its media folder, switch to a tile view, and see every embedded image as a visual contact sheet.
+
+- **Selected tree row — chevron and level guides now follow the selection colors** — In a focused tree (Explorer, Archive, Mneme, script library, link categories), selecting a row painted the background and label with the selection colors as expected, but the expand/collapse chevron stayed its default dark color and the vertical level guides kept their light-gray color — both nearly invisible against the highlight, especially in light themes. Both now switch to selection-matching colors along with the rest of the row.
 
 ---
 

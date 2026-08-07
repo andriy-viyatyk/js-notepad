@@ -5,7 +5,7 @@ import { parseJSON5 } from "../core/utils/parse-utils";
 import { fs } from "./fs";
 import { FileWatcher } from "../core/utils/file-watcher";
 import { applyTheme } from "../theme/themes";
-import { defaultSearchableExtensions, defaultMaxFileSize } from "../../ipc/search-ipc";
+import { defaultSearchableExtensions, defaultMaxFileSize, defaultExcludePatterns } from "../../ipc/search-ipc";
 import { wrapSubscription } from "./internal";
 import type { ISettings } from "./types/settings";
 
@@ -23,6 +23,7 @@ export type AppSettingsKey =
     | "tab-recent-languages"
     | "theme"
     | "search-extensions"
+    | "search-exclude"
     | "search-max-file-size"
     | "browser-profiles"
     | "browser-default-profile"
@@ -59,6 +60,7 @@ const settingsComments: Partial<Record<AppSettingsKey, string>> = {
         "Recently selected languages.\nMore recent languages will appear on top of 'change language' menu.",
     "theme": "Application color theme.\nAvailable themes: default-dark, solarized-dark, monokai, abyss, red, tomorrow-night-blue, light-modern, solarized-light, quiet-light",
     "search-extensions": "File extensions to include in file content search.\nAdd or remove extensions to customize which files are searchable.",
+    "search-exclude": "Folders and globs always skipped by file content search.\nA plain name skips any folder with that name; a glob (with / * ?) is matched against the path relative to the search root.\nNever applied to the search root itself — searching inside node_modules works, while nested ones are still skipped.",
     "search-max-file-size": "Maximum file size (in bytes) for file content search.\nFiles larger than this are skipped. Default: 1048576 (1 MB).",
     "browser-profiles": "Browser profiles for isolated browsing sessions.\nEach profile has its own cookies, storage, and cache.",
     "browser-default-profile": "Default browser profile name used when opening a new browser tab.\nEmpty string means the built-in default profile.",
@@ -90,6 +92,7 @@ const defaultAppSettingsState = {
         "tab-recent-languages": ["plaintext"] as string[],
         "theme": "default-dark",
         "search-extensions": defaultSearchableExtensions as string[],
+        "search-exclude": defaultExcludePatterns as string[],
         "search-max-file-size": defaultMaxFileSize,
         "browser-profiles": [] as BrowserProfile[],
         "browser-default-profile": "",

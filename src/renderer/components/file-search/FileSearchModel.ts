@@ -11,7 +11,7 @@ import { debounce } from "../../../shared/utils";
 import {
     SearchChannel,
     SearchRequest,
-    SearchFileResult,
+    SearchResultBatch,
     SearchProgress,
     SearchComplete,
     SearchError,
@@ -57,9 +57,22 @@ export interface FileSearchState {
     totalFiles: number;
 }
 
-export interface FileSearchInternalState extends FileSearchState {
+/**
+ * Reactive state. Note what is NOT here: the result rows themselves.
+ *
+ * `TOneState.update` runs immer `produce`, so keeping the accumulating array in state would
+ * copy the whole array on every arriving batch — quadratic over a large search, on top of the
+ * full re-render each copy triggers. The rows live in a plain field on the model instead, and
+ * `resultsVersion` is the cheap signal the view watches.
+ */
+export interface FileSearchInternalState
+    extends Omit<FileSearchState, "results"> {
     isSearching: boolean;
     filesSearched: number;
+    /** Bumped once per arriving batch — the view's cue to rebuild its filtered rows. */
+    resultsVersion: number;
+    /** True when the search stopped early at the result cap. */
+    truncated: boolean;
 }
 
 export const defaultFileSearchState: FileSearchInternalState = {
@@ -69,10 +82,11 @@ export const defaultFileSearchState: FileSearchInternalState = {
     showFilters: false,
     searchFolder: "",
     isSearching: false,
-    results: [],
     totalMatches: 0,
     totalFiles: 0,
     filesSearched: 0,
+    resultsVersion: 0,
+    truncated: false,
 };
 
 // =============================================================================
@@ -83,6 +97,9 @@ let searchIdCounter = 0;
 
 export class FileSearchModel {
     state: TComponentState<FileSearchInternalState>;
+
+    /** Accumulated result rows — deliberately outside the immer-managed state (see above). */
+    private allResults: SearchResultRow[] = [];
 
     private currentSearchId: string | null = null;
     private ipcListeners: Array<{ channel: string; handler: (...args: any[]) => void }> = []; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -95,8 +112,15 @@ export class FileSearchModel {
 
         // Restore from saved state or use defaults
         const initial: FileSearchInternalState = savedState
-            ? { ...savedState, isSearching: false, filesSearched: 0 }
+            ? {
+                  ...savedState,
+                  isSearching: false,
+                  filesSearched: 0,
+                  resultsVersion: 0,
+                  truncated: false,
+              }
             : { ...defaultFileSearchState };
+        this.allResults = savedState?.results ?? [];
 
         this.state = new TComponentState<FileSearchInternalState>(initial);
         this.subscribeToIpc();
@@ -111,35 +135,42 @@ export class FileSearchModel {
     }
 
     private subscribeToIpc = () => {
-        this.onIpc<SearchFileResult>(SearchChannel.result, (data) => {
+        this.onIpc<SearchResultBatch>(SearchChannel.result, (data) => {
             if (data.searchId !== this.currentSearchId) return;
-            const fileRow: SearchResultFileRow = {
-                type: "file",
-                filePath: data.filePath,
-                fileName: fpBasename(data.filePath),
-                matchedLinesCount: data.matches.length,
-                expanded: true,
-            };
-            // Deduplicate lines by lineNumber (multiple matches on same line → show first)
-            const seenLines = new Set<number>();
-            const lineRows: SearchResultLineRow[] = [];
-            for (const m of data.matches) {
-                if (!seenLines.has(m.lineNumber)) {
-                    seenLines.add(m.lineNumber);
-                    lineRows.push({
-                        type: "line",
-                        filePath: data.filePath,
-                        lineNumber: m.lineNumber,
-                        lineText: m.lineText,
-                        matchStart: m.matchStart,
-                        matchLength: m.matchLength,
-                    });
+
+            let batchMatches = 0;
+            for (const file of data.files) {
+                this.allResults.push({
+                    type: "file",
+                    filePath: file.filePath,
+                    fileName: fpBasename(file.filePath),
+                    matchedLinesCount: file.matches.length,
+                    expanded: true,
+                });
+                // Deduplicate lines by lineNumber (multiple matches on same line → show first)
+                const seenLines = new Set<number>();
+                for (const m of file.matches) {
+                    if (!seenLines.has(m.lineNumber)) {
+                        seenLines.add(m.lineNumber);
+                        this.allResults.push({
+                            type: "line",
+                            filePath: file.filePath,
+                            lineNumber: m.lineNumber,
+                            lineText: m.lineText,
+                            matchStart: m.matchStart,
+                            matchLength: m.matchLength,
+                        });
+                    }
                 }
+                batchMatches += file.matches.length;
             }
+
+            // One state write per batch, regardless of how many files it carried.
             this.state.update((s) => {
-                s.results.push(fileRow, ...lineRows);
-                s.totalMatches += data.matches.length;
-                s.totalFiles += 1;
+                s.totalMatches += batchMatches;
+                s.totalFiles += data.files.length;
+                s.filesSearched = data.filesSearched;
+                s.resultsVersion += 1;
             });
         });
 
@@ -157,6 +188,7 @@ export class FileSearchModel {
                 s.filesSearched = data.filesSearched;
                 s.totalMatches = data.totalMatches;
                 s.totalFiles = data.totalFiles;
+                s.truncated = data.truncated;
             });
             this.emitStateChange();
         });
@@ -182,12 +214,14 @@ export class FileSearchModel {
         const searchId = `search-${++searchIdCounter}`;
         this.currentSearchId = searchId;
 
+        this.allResults = [];
         this.state.update((s) => {
             s.isSearching = true;
-            s.results = [];
             s.totalMatches = 0;
             s.totalFiles = 0;
             s.filesSearched = 0;
+            s.truncated = false;
+            s.resultsVersion += 1;
         });
 
         const request: SearchRequest = {
@@ -199,6 +233,7 @@ export class FileSearchModel {
             caseSensitive: false,
             maxFileSize: settings.get("search-max-file-size"),
             extensions: settings.get("search-extensions"),
+            excludePatterns: settings.get("search-exclude"),
         };
 
         ipcRenderer.send(SearchChannel.start, request);
@@ -218,8 +253,17 @@ export class FileSearchModel {
 
     private emitStateChange = () => {
         if (!this.onStateChange) return;
-        const { query, includePattern, excludePattern, showFilters, searchFolder, results, totalMatches, totalFiles } = this.state.get();
-        this.onStateChange({ query, includePattern, excludePattern, showFilters, searchFolder, results, totalMatches, totalFiles });
+        const { query, includePattern, excludePattern, showFilters, searchFolder, totalMatches, totalFiles } = this.state.get();
+        this.onStateChange({
+            query,
+            includePattern,
+            excludePattern,
+            showFilters,
+            searchFolder,
+            results: this.allResults,
+            totalMatches,
+            totalFiles,
+        });
     };
 
     // ── Public API ────────────────────────────────────────────────────
@@ -230,11 +274,13 @@ export class FileSearchModel {
             this.sendSearchDebounced();
         } else {
             this.cancelSearch();
+            this.allResults = [];
             this.state.update((s) => {
-                s.results = [];
                 s.totalMatches = 0;
                 s.totalFiles = 0;
                 s.filesSearched = 0;
+                s.truncated = false;
+                s.resultsVersion += 1;
             });
             this.emitStateChange();
         }
@@ -274,19 +320,19 @@ export class FileSearchModel {
 
     /** Toggle file row expand/collapse and rebuild filtered view. */
     toggleFileExpanded = (filePath: string) => {
+        const fileRow = this.allResults.find(
+            (r): r is SearchResultFileRow => r.type === "file" && r.filePath === filePath,
+        );
+        if (!fileRow) return;
+        fileRow.expanded = !fileRow.expanded;
         this.state.update((s) => {
-            const fileRow = s.results.find(
-                (r): r is SearchResultFileRow => r.type === "file" && r.filePath === filePath,
-            );
-            if (fileRow) {
-                fileRow.expanded = !fileRow.expanded;
-            }
+            s.resultsVersion += 1;
         });
     };
 
     /** Build filtered result array (collapsed files have their lines removed). */
     getFilteredResults(): SearchResultRow[] {
-        const results = this.state.get().results;
+        const results = this.allResults;
         const filtered: SearchResultRow[] = [];
         let currentFileExpanded = true;
 
@@ -303,15 +349,17 @@ export class FileSearchModel {
 
     clearSearch = () => {
         this.cancelSearch();
+        this.allResults = [];
         this.state.update((s) => {
             s.query = "";
             s.includePattern = "";
             s.excludePattern = "";
             s.isSearching = false;
-            s.results = [];
             s.totalMatches = 0;
             s.totalFiles = 0;
             s.filesSearched = 0;
+            s.truncated = false;
+            s.resultsVersion += 1;
         });
         this.emitStateChange();
     };
