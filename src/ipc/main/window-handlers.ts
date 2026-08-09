@@ -1,6 +1,6 @@
 import { BrowserWindow } from "electron";
 import { openWindows } from "../../main/open-windows";
-import { isValidFilePath } from "../../main/utils";
+import { isValidOpenPath } from "../../main/utils";
 
 function isUrl(arg: string): boolean {
     return arg.startsWith("http://") || arg.startsWith("https://");
@@ -12,7 +12,7 @@ let argUrl: string | undefined;
 if (isUrl(argFile ?? "")) {
     argUrl = argFile;
     argFile = undefined;
-} else if (!isValidFilePath(argFile)) {
+} else if (!isValidOpenPath(argFile)) {
     argFile = undefined;
 }
 
@@ -25,7 +25,7 @@ export async function windowReady(window: BrowserWindow): Promise<void> {
 export async function getFileToOpen(): Promise<string | undefined> {
     const path = argFile;
     argFile = undefined;
-    if (path && isValidFilePath(path)) {
+    if (path && isValidOpenPath(path)) {
         return path;
     }
     return undefined;

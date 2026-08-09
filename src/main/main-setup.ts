@@ -3,7 +3,7 @@ import { app, components, net, protocol, session } from "electron";
 import path from "node:path";
 import { appPartition, fileAccessPersistPartition } from "./constants";
 import { controller } from "../ipc/main/controller";
-import { getAssetPath, isValidFilePath } from "./utils";
+import { getAssetPath, isValidFilePath, isValidOpenPath } from "./utils";
 import { pathToFileURL } from "node:url";
 import { openWindows } from "./open-windows";
 import { setupTray } from "./tray-setup";
@@ -182,10 +182,10 @@ export function setupMainProcess() {
             }
         } else if (!path.isAbsolute(arg)) {
             const resolvedPath = path.resolve(workingDirectory, arg);
-            if (isValidFilePath(resolvedPath)) {
+            if (isValidOpenPath(resolvedPath)) {
                 openWindows.handleOpenFile(resolvedPath);
             }
-        } else if (isValidFilePath(arg)) {
+        } else if (isValidOpenPath(arg)) {
             openWindows.handleOpenFile(arg);
         }
     });

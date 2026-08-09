@@ -45,17 +45,17 @@ export const getDataFolder = (): string => {
     return dataFolder;
 };
 
-export function isValidFilePath(filePath: string | undefined): boolean {
+function pathExists(filePath: string | undefined): boolean {
     if (!filePath) {
         console.warn('No file path provided');
         return false;
     }
-    
+
     if (typeof filePath !== 'string' || filePath.trim() === '') {
         console.warn('Invalid file path string');
         return false;
     }
-    
+
     try {
         if (!fs.existsSync(filePath)) {
             console.warn('File does not exist:', filePath);
@@ -65,7 +65,15 @@ export function isValidFilePath(filePath: string | undefined): boolean {
         console.warn('Error checking file path:', error?.message);
         return false;
     }
-    
+
+    return true;
+}
+
+export function isValidFilePath(filePath: string | undefined): boolean {
+    if (!pathExists(filePath)) {
+        return false;
+    }
+
     try {
         const stats = fs.statSync(filePath);
         if (!stats.isFile()) {
@@ -76,6 +84,23 @@ export function isValidFilePath(filePath: string | undefined): boolean {
         console.warn('Error reading file stats:', error?.message);
         return false;
     }
-    
+
     return true;
+}
+
+/**
+ * Accepts a file **or** a folder — the check for the "open this path" entry
+ * points (cold-start argv, launcher pipe, second-instance).
+ *
+ * A folder is a legitimate thing to open: the renderer's content resolver stats
+ * the path and opens a directory as an empty page with the Explorer panel rooted
+ * at it, the same page the "Open Folder" tool produces. Everything downstream of
+ * these entry points already handles that, so this predicate is the only thing
+ * standing between Explorer's folder context menu and a working page.
+ *
+ * Entry points that need readable *content* (the DIFF pair) keep using
+ * isValidFilePath — comparing a directory is meaningless.
+ */
+export function isValidOpenPath(filePath: string | undefined): boolean {
+    return pathExists(filePath);
 }

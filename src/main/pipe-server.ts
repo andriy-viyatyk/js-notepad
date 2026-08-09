@@ -1,7 +1,7 @@
 import net from "node:net";
 import os from "node:os";
 import { openWindows } from "./open-windows";
-import { isValidFilePath } from "./utils";
+import { isValidFilePath, isValidOpenPath } from "./utils";
 
 const PIPE_NAME = `persephone-${os.userInfo().username}`;
 const PIPE_PATH = `\\\\.\\pipe\\${PIPE_NAME}`;
@@ -25,7 +25,7 @@ function handleMessage(message: string): void {
 
         if (isUrl(argument)) {
             openWindows.handleOpenUrl(argument);
-        } else if (isValidFilePath(argument)) {
+        } else if (isValidOpenPath(argument)) {
             openWindows.handleOpenFile(argument);
         }
     } else if (trimmed === "SHOW") {
