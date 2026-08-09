@@ -2,7 +2,7 @@
 
 **Persephone** is a notepad for Windows that opens almost anything. It starts exactly like a notepad — one empty text page — but drop in a JSON file, a Word document, a SQLite database, or a ZIP archive and it shows the content, not the bytes. And it is built to be shared with AI agents: everything you see on screen, an agent can see and drive too.
 
-![Demo Video](https://github.com/user-attachments/assets/bfe1df27-1c16-45b5-89e6-6510387f3a7c)
+![Demo Video](https://github.com/user-attachments/assets/bb1e393d-5470-4eb8-8ebc-55d6e47260e9)
 
 ## One viewer for everything
 
