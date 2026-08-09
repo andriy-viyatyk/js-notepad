@@ -164,6 +164,21 @@ did-start-navigation    →   Check protocol →   If blocked: wc.stop()
                                                 → webview.goBack()
 ```
 
+**`BLOCKED_PROTOCOLS` is a navigation guard only.** It is checked on `did-start-navigation`, so
+it stops a page from *navigating* to `file:` or `app-asset:` — it does not and cannot stop a
+`fetch`, an `XMLHttpRequest`, a `<script src>`, or an `<iframe src>`.
+
+What actually keeps `app-asset:` out of reach of web content is that **the protocol handler is
+never registered on a browser page's session.** `registerAssetProtocol` (`src/main/main-setup.ts`)
+installs it on the app partition and the file-access partition only, while browser pages run in
+`persist:browser-*`, incognito, or Tor partitions — where the scheme simply has no handler and
+every request fails. Boards are the deliberate exception: their frames live in the app session,
+so board content *can* read `app-asset:`.
+
+Keep both mechanisms in mind when changing either. Removing `app-asset:` from
+`BLOCKED_PROTOCOLS` as "redundant" would re-open top-level navigation to it, and adding a
+protocol to that list does **not** make it unreadable from page script.
+
 ## Context Menu
 
 The webview's right-click context menu is intercepted in the main process and relayed to the renderer for display as the app's popup menu.

@@ -389,6 +389,12 @@ Changes to Expand Depth and Max Visible are deferred — they take effect when t
 
 **Example file:** See [greek-gods.fg.json](./examples/greek-gods.fg.json) — a family tree of Greek gods showing parent-child and spouse relationships. This is also where the name "Persephone" comes from — the goddess of spring and queen of the underworld.
 
+## Log View
+
+For `.log.jsonl` files — a structured log reader that renders each line as a typed entry (info, warning, error, success, plain text, progress bars, inline grids, Markdown, Mermaid diagrams, and interactive dialogs) instead of raw JSON text.
+
+You'll most often meet this editor without opening a file yourself: it's what powers the **Log View page** that scripts (via the `ui` global) and AI agents (via the MCP `ui_push` tool) use as their output channel. The page is created automatically on first use and reused afterward. See [Scripting — The `ui` Object](./scripting.md#the-ui-object-log-view) for what scripts can push to it, and [MCP Server Setup](./mcp-setup.md#available-tools) for the `ui_push` tool agents use the same way.
+
 ## Drawing Editor
 
 For `.excalidraw` files — an Excalidraw-based drawing canvas. Click **Drawing** in the toolbar to switch between the text editor and the drawing view.

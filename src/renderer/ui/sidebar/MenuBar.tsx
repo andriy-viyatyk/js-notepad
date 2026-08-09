@@ -467,6 +467,7 @@ export function MenuBar(props: MenuBarProps) {
     return (
         <MenuBarRoot
             key="menu-bar-root"
+            data-name="menu-bar"
             className={clsx("menu-bar-backdrop", {
                 open: state.isAnimating,
                 doDisplay: open,
@@ -476,6 +477,7 @@ export function MenuBar(props: MenuBarProps) {
             <div
                 ref={model.setContentRef}
                 className="menu-bar-content"
+                data-name="menu-bar-content"
                 onClick={model.contentClick}
                 onKeyDown={model.handleContentKeyDown}
                 tabIndex={0}

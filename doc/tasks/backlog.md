@@ -4,6 +4,32 @@ Ideas and future tasks not yet planned for implementation.
 
 ---
 
+## Agent cold start — the parts deferred from US-929
+
+[US-929](US-929-agent-cold-start/README.md) covered what an agent can do with filesystem tools
+alone (settings apply on disk change, an install-root `README.txt`, settings documented in the
+guides). Three things were deliberately left out.
+
+- [ ] **Main-process ownership of global settings.** Today every renderer window actuates
+  `mcp.enabled` / `mneme.enabled`, so opening two windows double-calls start/stop and correctness
+  rests entirely on those functions being idempotent. The clean end state: the main process
+  watches `appSettings.json` and owns starting/stopping MCP and Mneme; renderers stop calling
+  `setMcpEnabled` / `setMnemeEnabled`. Removes the startup double-call and the fragile reliance
+  on idempotency. Per-window settings (script library path, theme, board vars, connection models)
+  stay in the renderer — the split is global-vs-per-window, not main-vs-renderer.
+- [ ] **Stop-during-start.** `stopMcpHttpServer` returns early on `!httpServer`, so a stop issued
+  while the server is still starting is lost and the server ends up running after being disabled.
+  `stopMneme` has the same shape. Fold into the item above.
+- [ ] **Configure the agent for the user.** The real cold-start blocker is not documentation but
+  the client config. Settings already offers *Copy Config*; going from "copy this" to "write it
+  for me" (the MCP entry in the user's agent config, optionally a short block appended to
+  `~/.claude/CLAUDE.md` — the only file that loads on every session regardless of directory)
+  removes the step a first-time user is least equipped to do. A **Claude Code plugin** published
+  from the repo could carry the MCP config and the guides together and install in one command;
+  worth evaluating first, as it may subsume the rest.
+
+---
+
 ## Publish the todo board (follow-up to EPIC-045)
 
 Deferred out of [EPIC-045](../epics/EPIC-045.md) (Published Boards Catalog), which develops and
@@ -457,6 +483,41 @@ persephone
 |------|-------------|------------|
 | Video Tutorials | Screen recordings of features | Medium |
 | API Reference | Script API documentation | Low |
+
+### Guide routing for models that skip guides
+
+QA against Haiku found a failure mode prose cannot fix: on **imperative** requests about the app
+("change the language of this tab", "highlight this link", "open this in the built-in PDF
+editor") the agent reads no guide at all, then improvises against live state — one run spent 42
+tool calls rediscovering a fact `list_pages` answers in one, another closed the user's tab while
+guessing. Strengthening the server `instructions` was tried and verified live; it changed
+nothing on two of the three, because the instructions are part of what gets skipped. The same
+test passes first try on Sonnet, which reads the guide before doing anything.
+
+One of the three was fixed by prose after all: naming the thing precisely ("the Monaco
+syntax-highlighting mode" instead of "the language") took that case from 42 tool calls and no
+guide read to 15 calls opening the guide first. Worth trying **before** reaching for structure —
+ambiguity, not indifference, is what sends a weak model exploring. What remains below is for the
+cases where the request is already unambiguous and the guide is still skipped.
+
+The remaining lever is **structural rather than textual** — put the correction where an agent
+cannot route around it:
+
+- Editor-related tool errors (`create_page` with an unknown editor id, `set_page_content` on a
+  page with no language) name the guide *and* the fact, e.g. "there is no `pdf-view` editor; PDF
+  is a board — `read_guide(\"ui-editors\")`".
+- Tool descriptions for `create_page` / `list_pages` state that `language` is the Monaco
+  syntax-highlighting mode and that non-text editors have none.
+
+Worth doing only if agent-facing quality on weak models matters; on capable models the guides
+already work.
+
+### `app.editors.resolveId()` ignores board-provided editors
+
+`app.editors.resolveId("x.pdf")` returns `"monaco"` on a machine where the **PDF Viewer board is
+installed and does open `.pdf`** — so the script API contradicts what `app.pages.openFile()`
+actually does. Found during QA, when a test agent used it as a sanity check and was misled.
+Either resolve through the same board-aware path, or document the limitation on the method.
 
 ---
 

@@ -8,7 +8,7 @@
 
 Any file a developer meets during the day opens in place — in three tiers:
 
-- **Built in** — code with syntax highlighting (Monaco, 50+ languages), JSON/CSV grids, Markdown, Mermaid diagrams, SVG and HTML previews, images, PDF, audio/video, archives (ZIP, RAR, 7z — including a look inside `.docx`/`.xlsx`), side-by-side diffs, and more. See the [full list](#built-in-editors) below.
+- **Built in** — code with syntax highlighting (Monaco, 50+ languages), JSON/CSV grids, Markdown, Mermaid diagrams, SVG and HTML previews, images, audio/video, archives (ZIP, RAR, 7z — including a look inside `.docx`/`.xlsx`), side-by-side diffs, and more. See the [full list](#built-in-editors) below.
 - **Installable** — the **[persephone-boards](https://github.com/andriy-viyatyk/persephone-boards)** catalog adds viewers and editors on demand: Word, Excel, PowerPoint, PDF, draw.io diagrams, SQLite databases, Windows executables, todo lists. Open a matching file and an install offer appears right in the editor-switch control; each board is downloaded, checksum-verified, and trusted only after you accept it. The catalog keeps growing.
 - **Made to order** — if no viewer exists for your file, ask an AI agent to build one. A viewer is a **Board**: a folder of plain HTML/JS/CSS with optional backend scripts. A simple viewer takes an agent a few minutes to create, and it plugs in like a native editor.
 
@@ -57,7 +57,6 @@ The practical loop: describe the tool you need to your agent — it scaffolds th
 | **HTML Preview** | `.html` | Sandboxed rendered preview with script support |
 | **Image Viewer** | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.ico` | Image viewer with zoom and pan |
 | **Audio / Video Player** | `.mp4`, `.mkv`, `.webm`, `.mov`, `.mp3`, `.flac`, `.wav`, `.m3u8` | Plays local and streamed media, with HLS support and an audio spectrum visualizer |
-| **PDF Viewer** | `.pdf` | Integrated pdf.js document viewer |
 | **Archive** | `.zip`, `.rar`, `.7z`, `.tar`, `.docx`, `.xlsx`, `.epub`, `.iso` | Browse archive contents as a file tree; open entries inline (ZIP-based formats are writable) |
 | **Notebook** | `.note.json` | Structured notes with categories, tags, and search |
 | **Force Graph** | `.fg.json` | Interactive force-directed graph with node editing, search, and BFS expansion |
@@ -70,7 +69,7 @@ The practical loop: describe the tool you need to your agent — it scaffolds th
 | **Git Diff** | — | Side-by-side revision comparison for any tracked file *(Git integration)* |
 | **Compare** | any two files | Side-by-side diff view |
 
-More viewers and editors — Word, Excel, PowerPoint, draw.io, SQLite, and others — install on demand from the **[persephone-boards](https://github.com/andriy-viyatyk/persephone-boards)** catalog: browse it from the **Search boards** tab of the Tools & Editors hub, or just open a matching file. See the [Boards guide](docs/boards.md#published-boards-catalog--discover-install-update).
+More viewers and editors — PDF, Word, Excel, PowerPoint, draw.io, SQLite, and others — install on demand from the **[persephone-boards](https://github.com/andriy-viyatyk/persephone-boards)** catalog: browse it from the **Search boards** tab of the Tools & Editors hub, or just open a matching file. See the [Boards guide](docs/boards.md#published-boards-catalog--discover-install-update).
 
 ---
 

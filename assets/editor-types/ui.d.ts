@@ -113,6 +113,41 @@ export interface ITextDialogResult {
     button: string;
 }
 
+/**
+ * Options for `app.ui.highlightElement()`.
+ */
+export interface IHighlightOptions {
+    /** Explanatory text shown in the callout card. Omit (with no `title`) for a bare ring. */
+    text?: string;
+    /** Bold heading above the text. */
+    title?: string;
+    /** Highlight every match instead of only the first (capped at 20 rings). Defaults to false. */
+    all?: boolean;
+    /** Scroll the target into view first. Defaults to true. */
+    scroll?: boolean;
+    /** Reuse an id to replace an existing highlight instead of stacking a second one. */
+    id?: string;
+}
+
+/**
+ * Result of `app.ui.highlightElement()`. Always inspect `found` — a selector that matches
+ * nothing is reported, not thrown.
+ */
+export interface IHighlightResult {
+    /** The highlight's id — pass it to `clearHighlights(id)` to remove just this one. */
+    id: string;
+    /** Whether the selector matched anything. */
+    found: boolean;
+    /** How many elements the selector matched (may exceed the number highlighted). */
+    count: number;
+    /** How many were actually ringed (1 unless `all: true`; capped at 20). */
+    highlighted?: number;
+    /** The selector that was used. */
+    selector: string | null;
+    /** Present only when the selector was malformed or missing. */
+    error?: string;
+}
+
 /** Notification type for toast alerts. */
 export type NotificationType = "info" | "success" | "warning" | "error";
 
@@ -241,4 +276,42 @@ export interface IUserInterface {
      * finally { lock.release(); }
      */
     addScreenLock(): Promise<{ release: () => void }>;
+
+    /**
+     * Draw a highlight ring over an element in Persephone's own window, with an optional
+     * card carrying your explanation and a Close button. Use it to *show* the user where
+     * something is instead of describing it.
+     *
+     * Selectors for the app shell are listed in the UI guide — prefer a documented
+     * `[data-name="…"]` over a hand-built selector. Check `found` in the result: a selector
+     * that matches nothing returns `{ found: false }` rather than throwing.
+     *
+     * The user dismisses a highlight with its Close button or `Esc`.
+     *
+     * @example
+     * // Point at the button that opens the sidebar
+     * await app.ui.highlightElement(
+     *     '[data-name="persephone-menu"]',
+     *     "This opens the Menu Bar — your open tabs, recent files, and script library.",
+     *     { title: "Menu" },
+     * );
+     *
+     * @example
+     * // Ring every open tab, no card
+     * await app.ui.highlightElement('[data-name="page-tab"]', undefined, { all: true });
+     */
+    highlightElement(
+        selector: string,
+        text?: string,
+        options?: IHighlightOptions,
+    ): Promise<IHighlightResult>;
+
+    /**
+     * Remove one highlight by id, or all of them when called with no argument.
+     * Returns how many were removed.
+     *
+     * @example
+     * await app.ui.clearHighlights();
+     */
+    clearHighlights(id?: string): Promise<number>;
 }

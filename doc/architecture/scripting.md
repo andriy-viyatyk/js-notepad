@@ -772,7 +772,7 @@ Script API types are defined in `/src/renderer/api/types/`:
 | `mermaid-editor.d.ts` | `IMermaidEditor` |
 | `graph-editor.d.ts` | `IGraphEditor`, `IGraphNode`, `IGraphComponent`, `IGraphSearchResult` |
 | `browser-editor.d.ts` | `IBrowserEditor` — browser page operations |
-| `ui.d.ts` | `IUserInterface`, `ITextDialogOptions`, `ITextDialogResult` — dialogs and notifications |
+| `ui.d.ts` | `IUserInterface`, `ITextDialogOptions`, `ITextDialogResult`, `IHighlightOptions`, `IHighlightResult` — dialogs, notifications, and element highlights |
 | `ui-log.d.ts` | `IUiLog`, `IUiDialog`, `IUiShow`, `IProgress`, `IGrid`, `IGridColumn`, `IDialogResult`, `IStyledTextBuilder`, `IStyledLogBuilder` — Log View UI facade |
 
 These files serve dual purpose: TypeScript type checking **and** IDE IntelliSense for script authors.
@@ -819,7 +819,7 @@ These files serve dual purpose: TypeScript type checking **and** IDE IntelliSens
 ├── app.d.ts                     # IApp
 ├── page.d.ts                    # IPage, IPageInfo
 ├── pages.d.ts                   # IPageCollection
-├── ui.d.ts                      # IUserInterface, ITextDialogOptions, ITextDialogResult
+├── ui.d.ts                      # IUserInterface, ITextDialogOptions, ITextDialogResult, IHighlightOptions, IHighlightResult
 ├── ui-log.d.ts                  # IUiLog, IUiDialog, IDialogResult
 ├── common.d.ts                  # IDisposable, IEvent, EditorView, Language
 ├── text-editor.d.ts             # ITextEditor

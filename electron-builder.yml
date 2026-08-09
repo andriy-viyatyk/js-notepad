@@ -19,6 +19,13 @@ extraResources:
 
 # Rust binaries sit next to the main exe (outside asar)
 extraFiles:
+  # Plain-text orientation file in the installation root. Its real audience is an AI agent
+  # helping a first-time user: nothing auto-loads an installed app's folder into an agent's
+  # context, but an agent pointed at this directory finds a README, and this one tells it
+  # that the full guides are already on disk under resources/assets and how to switch the
+  # MCP server on by editing appSettings.json.
+  - from: build/README.txt
+    to: README.txt
   - from: launcher/target/release/persephone-launcher.exe
     to: persephone-launcher.exe
   - from: snip-tool/target/release/persephone-snip.exe

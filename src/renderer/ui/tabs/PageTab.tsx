@@ -509,6 +509,7 @@ export function PageTab(props: PageTabProps) {
     return (
         <PageTabRoot
             data-type="page-tab"
+            data-name="page-tab"
             data-active={tabModel.isActive || undefined}
             data-modified={modified || undefined}
             data-drag-over={isOver || undefined}

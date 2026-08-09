@@ -164,7 +164,7 @@ export function PageTabs(props: object) {
     }, [browserProfiles, pinnedRefs]);
 
     return (
-        <PageTabsRoot data-type="page-tabs" className="page-tabs">
+        <PageTabsRoot data-type="page-tabs" data-name="page-tabs" className="page-tabs">
             {tabsState.showScrollButtons && (
                 <IconButton
                     name="page-tabs-scroll-left"
@@ -175,6 +175,7 @@ export function PageTabs(props: object) {
             )}
             <div
                 className="tabs-wrapper"
+                data-name="page-tabs-wrapper"
                 ref={model.setScrollingDiv}
             >
                 {state.pages?.map((page) => {

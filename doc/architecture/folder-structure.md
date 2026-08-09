@@ -37,6 +37,10 @@ persephone/
 │   ├── mcp-res-boards.md   # MCP resource: boards guide (create/open lifecycle, bridge, testing)
 │   ├── mcp-res-tools.md    # MCP resource: Agent Tools registry guide (manifest format, stdin/stdout contract, .env, self-repair)
 │   ├── mcp-res-browser.md  # MCP resource: browser_* automation guide (targeting resolution, snapshot/ref lifecycle, waiting)
+│   ├── mcp-res-ui.md       # MCP resource: Persephone's own interface — element purposes, data-name selectors, highlight recipe
+│   ├── mcp-res-ui-editors.md # MCP resource: editor catalog for explaining the app's capabilities to the user
+│   ├── agent/              # Standalone modules injected into a page by an agent (not part of the renderer bundle)
+│   │   └── ui-highlight.js # Highlight-and-tooltip overlay behind app.ui.highlightElement; also pasteable into browser_evaluate
 │   ├── board-template/     # Scaffold copied into every new board
 │   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, reload, MCP debug)
 │   ├── tool-template/      # Scaffold copied into every new toolset (create_toolset)

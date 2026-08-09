@@ -64,6 +64,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Monaco setup             | `/src/renderer/api/setup/configure-monaco.ts`     |
 | Editor registry          | `/src/renderer/editors/base/editorRegistry.ts`    |
 | File→editor matchers (the per-editor `acceptFile`/`switchOption`/`validForLanguage`/`detectsContent` rules + the numeric priority ladder that decides which editor OPENS a file — monaco 0, markdown 10, compound names 20, draw 50, viewers 100, category 200; `acceptFile` is name-only while `switchOption` is language-based, which is why language-only editors like `html-view` never claim a file on open) | `/src/renderer/editors/base/editor-matchers.ts` |
+| App shell (header strip, tab strip, status indicators, Menu Bar host) | `/src/renderer/ui/app/MainPage.tsx` |
+| UI element addressing contract (the `data-name` convention, `data-name` vs `data-type`/`data-part`/state attributes, and the shell selector table that MCP UI guides quote — renaming a listed name is a documentation change) | [`ui-element-contract.md`](ui-element-contract.md) |
 | Secondary view registry| `/src/renderer/ui/secondary-views/secondary-view-registry.ts` |
 | Composite panel keys (sidebar) | `/src/renderer/ui/secondary-views/panel-key.ts` |
 | Shared sidebar panel header (icon + badge + truncating title + pinned actions; owns the header portal; standardized right-edge "show main view" zone-button via `onShowMain`/`showMainActive`/`showMainTitle` props) | `/src/renderer/ui/secondary-views/SideBarPanelHeader.tsx` |
@@ -119,6 +121,8 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Terminal launcher (main; `detectTerminal` via `where`, `openTerminalAt` via `cmd /c start` so a console shell gets a visible window; supports pwsh/powershell/cmd/wt) | `/src/main/terminal-launcher.ts` |
 | Terminal open helper (renderer; reads `terminal.command`, auto-detects pwsh→powershell→cmd on first use and saves it, then launches — drives the "Open Terminal here" folder menu item) | `/src/renderer/api/terminal.ts` |
 | MCP resource guides      | `/assets/mcp-res-*.md`                            |
+| Agent highlight overlay (the ring + explanation card an agent draws on an element; dependency-free IIFE exposing `window.__persephoneHighlight`. Three constraints that are not guessable: it must live under a **directory** host because `app-asset://` maps the URL's *host* to a folder, so a top-level `assets/*.js` has no reachable URL; removal is **visibility-based**, since the Menu Bar is hidden with `display: none` rather than unmounted and a detach-only check left a ring floating over empty space the moment the user closed the menu; and the file is kept strictly ASCII because it is pasted between contexts and served by handlers that do not always declare a charset) | `/assets/agent/ui-highlight.js` |
+| Highlight API (`app.ui.highlightElement` / `clearHighlights`; fetches the overlay once via `app-asset://` and caches the loader promise, resetting it on failure so a failed load can retry) | `/src/renderer/api/ui.ts` |
 | MCP command handler      | `/src/renderer/api/mcp-handler.ts`                |
 | Browser automation cmds  | `/src/renderer/automation/commands.ts`             |
 | Browser input dispatch   | `/src/renderer/automation/input.ts`                |

@@ -59,7 +59,53 @@ Check the root `CLAUDE.md` file:
 - **Critical Patterns** — Any new patterns to document?
 - **Documentation Map** — Any new docs to link?
 
-### 4. Board documentation (`assets/` — consumer-facing)
+### 4. UI guides (`assets/mcp-res-ui*.md` — agent-facing)
+
+Two guides describe Persephone to an agent that is helping the user with the app itself:
+
+- **`assets/mcp-res-ui.md`** — the chrome: what each always-visible element is *for*, its
+  `data-name` selector, and the `app.ui.highlightElement` recipe.
+- **`assets/mcp-res-ui-editors.md`** — the editor catalog: what each editor is for, how the user
+  opens it, what it can do. Its source material is the user doc `docs/editors.md`, which stays
+  authoritative for humans; the guide is a condensation, not a second copy.
+
+Both describe a moving target, so they are the guides most likely to rot silently — nothing
+fails when they go stale, an agent just tells the user something untrue.
+
+Check **`mcp-res-ui.md`** whenever a change touched:
+
+- **The app shell** — `src/renderer/ui/app/MainPage.tsx`, `ui/tabs/`, `ui/sidebar/MenuBar.tsx`,
+  `ui/app/Pages.tsx`, `ui/secondary-views/`. Verify every selector the guide names still
+  resolves, and that new always-visible chrome is described.
+- **The selector contract** — [`doc/architecture/ui-element-contract.md`](../../../doc/architecture/ui-element-contract.md).
+  A `data-name` quoted in the guide is agent-facing API: renaming one is a documentation change,
+  and the guide and the contract doc must be updated in the same commit.
+- **`app.ui.highlightElement` / `clearHighlights`** — `src/renderer/api/ui.ts`,
+  `src/renderer/api/types/ui.d.ts`, `assets/agent/ui-highlight.js`. Options and return fields
+  are quoted in the guide.
+
+Check **`mcp-res-ui-editors.md`** whenever a change touched:
+
+- **The editor set** — `src/renderer/editors/register-editors.ts` (an editor added, removed, or
+  renamed), or `editor-matchers.ts` (which files open in which editor, and which switch buttons
+  appear).
+- **`docs/editors.md`** — if the user doc gained or lost a capability, the condensation is stale
+  too. Reconcile the two rather than editing one.
+- **A feature moving out of the app into a board** — the guide's *"Things that are no longer
+  built in"* section exists so an agent never promises a removed feature (Todo, PDF). Anything
+  that follows them belongs there.
+
+Keep both **thin on layout, thick on purpose**. An element's purpose survives a refactor; its
+position does not. Prefer "opens the Menu Bar" over "third button from the left".
+
+Keep `mcp-res-ui-editors.md` free of the required-`language` and title-suffix tables — those live
+in `mcp-res-pages.md`, and duplicating them means two copies drifting apart on the one detail
+that silently produces a broken page.
+
+The fastest verification is live, not by reading source: `browser_snapshot({ pageId: "app" })`
+and `app.ui.highlightElement(selector)` — `found: false` names the stale selector for you.
+
+### 5. Board documentation (`assets/` — consumer-facing)
 
 Boards are built and debugged by AI agents, so their reference docs **are** documentation and must track changes to board functionality (the `persephone.*` bridge, the `--p-*` theme/token contract, the `board://` host, scaffolding, reload, MCP debugging). When board functionality changed, verify and update **both**:
 

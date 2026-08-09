@@ -196,7 +196,7 @@ export function MainPage() {
 
     return (
         <AppRoot>
-            <div className="app-header">
+            <div className="app-header" data-name="app-header">
                 <button
                     type="button"
                     data-name="persephone-menu"
@@ -248,12 +248,13 @@ export function MainPage() {
                 >
                     <CloseIcon />
                 </button>
-                <div className="status-indicators">
+                <div className="status-indicators" data-name="status-indicators">
                     <SnipMenu />
                     <MnemeIndicator />
                     {state.mcpRunning && (
                         <span
                             className="mcp-indicator"
+                            data-name="mcp-indicator"
                             title={state.mcpClientCount > 0
                                 ? `MCP is active, ${state.mcpClientCount} active connection${state.mcpClientCount !== 1 ? "s" : ""} — click to view request log`
                                 : "MCP server is running — click to view request log"
@@ -268,8 +269,8 @@ export function MainPage() {
                     )}
                 </div>
             </div>
-            <div className="app-content">
-                <div className="pages-container">
+            <div className="app-content" data-name="app-content">
+                <div className="pages-container" data-name="pages-container">
                     <Pages />
                 </div>
                 <MenuBar
@@ -336,6 +337,7 @@ function MnemeIndicator() {
     return (
         <span
             className="mneme-indicator"
+            data-name="mneme-indicator"
             title={title}
             onClick={() => pagesModel.showMnemeConfigPage()}
         >

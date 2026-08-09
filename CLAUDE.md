@@ -127,6 +127,7 @@ The user may say "review done tasks" or "run review for completed tasks" at any 
 | Build complex components      | [/doc/standards/model-view-pattern.md](doc/standards/model-view-pattern.md) |
 | Understand state management   | [/doc/architecture/state-management.md](doc/architecture/state-management.md) |
 | Work with pages/tabs          | [/doc/architecture/pages-architecture.md](doc/architecture/pages-architecture.md) |
+| Address a UI element / add `data-name` | [/doc/architecture/ui-element-contract.md](doc/architecture/ui-element-contract.md) |
 | Add sidebar panels            | [/doc/architecture/secondary-views.md](doc/architecture/secondary-views.md) |
 | Work with scripting system    | [/doc/architecture/scripting.md](doc/architecture/scripting.md) |
 | Check coding style            | [/doc/standards/coding-style.md](doc/standards/coding-style.md) |
@@ -190,7 +191,7 @@ npm run lint        # Run ESLint
     /theme           # Styling
   /ipc               # Inter-process communication
 /boards-assets       # Recommended-components catalog for Boards (manifest + 10 skins)
-/assets              # Static assets (board-template/, demo-board/, mcp-res-*.md, editor-types/, …)
+/assets              # Static assets (board-template/, demo-board/, agent/, mcp-res-*.md, editor-types/, …)
 /doc                 # Developer documentation
   /epics             # Epic tracking (big ideas with linked tasks)
 /docs                # User documentation

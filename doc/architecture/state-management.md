@@ -311,6 +311,34 @@ class PagesModel extends TModel<PagesState> {
 
 **Key point:** Consumers (React components, scripts) access state through Object Model interfaces (`app.settings`, `app.pages`), not through raw state primitives.
 
+### Settings actuation and the idempotency rule
+
+Settings live in a JSON5 file under the user-data folder, watched by a `FileWatcher`. A setting
+that merely gets *read* needs nothing beyond the state update; a setting that *does* something —
+`mcp.enabled`, `mcp.browser-tools.enabled`, `mneme.enabled`, `script-library.path` — is actuated
+by a subscriber to `settings.onChanged`. Both write paths therefore have to emit:
+
+- **`set()`** emits for the key it changed.
+- **The watcher reload** diffs previous against new settings and emits per changed key, so an
+  edit made to the file outside the app takes effect with no restart. The diff runs over the
+  **union** of both key sets, because deleting a key restores its default and that is as much a
+  change as an edit. Comparison is by value (JSON form for objects and arrays) — reference
+  equality would report every array setting as changed on every reload.
+- **The initial load must not emit.** Startup already starts the MCP server and Mneme explicitly
+  after `settings.wait()`; emitting there would start each of them twice.
+
+The consequence worth internalizing: **every renderer window has its own watcher and its own
+subscribers, so a global service can be started or stopped once per open window.** Anything
+`onChanged` actuates must be idempotent — `startMneme`/`startMcpHttpServer` guard on a running
+instance *and* on an in-flight start promise (the flag alone leaves a window in which two callers
+both reach `listen()` on the same port), and the stop functions no-op when nothing is running.
+This is not a new constraint introduced by file watching; every window already actuated these at
+startup. File watching only makes it easy to hit.
+
+Most `onChanged` subscribers are legitimately per-window — the script-library service, the board
+env store, the Mneme connection and status models — so the emit is not suppressed outside the
+originating window. Global services are the exception that must absorb it.
+
 ## Using State in Components
 
 ### Via Object Model

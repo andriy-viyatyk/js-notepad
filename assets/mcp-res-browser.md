@@ -111,6 +111,19 @@ an action** — you already have the updated tree.
   function, not its result — auto-invoke applies only to the `function` parameter).
 - Exceptions in the page surface as tool errors with the page-side message.
 
+## Pointing at an element on a web page
+
+**Persephone has no highlight overlay for web pages.** The overlay module lives in the app's
+assets, which a browser page's session cannot reach — a deliberate security boundary, not a gap
+to route around. Do not fetch `app-asset://` from a page, and do not imply the app has a
+highlight feature here.
+
+What you can do instead: set a plain `outline` on the element with `browser_evaluate`, then
+explain the element in your reply. Say both things out loud — that this is an ordinary style
+change to the page's own DOM (it disappears on reload and is not something Persephone drew), and
+that it is *not* the app's highlight. Persephone's real highlight — an orange ring and an
+explanation card — exists only in its own window and in boards: `read_guide("ui")`.
+
 ## Tabs, screenshots, network
 
 - `browser_tabs { action: "list" | "new" | "close" | "select", index?, url? }` operates on the

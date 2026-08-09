@@ -181,6 +181,21 @@ const Header = styled.div({
 
 If a needed color doesn't exist in `color`, add it to `color.ts` and all theme definitions in `src/renderer/theme/themes/`.
 
+#### Documented exception: `assets/agent/ui-highlight.js`
+
+The agent highlight overlay carries its own literal colors and is exempt from this rule. Two
+reasons, both intrinsic rather than incidental:
+
+- It is a **standalone injectable asset**, not part of the renderer bundle. The same file is
+  pasted into `browser_evaluate` to run inside board frames and browser pages, where no Persephone
+  module graph exists — it cannot import `theme/color` in the contexts it must work in.
+- Its accent look is a **fixed identity, not a theme surface**. A callout styled to match the
+  surrounding theme is indistinguishable from Persephone's own UI, and the user must be able to
+  tell at a glance that an agent placed it. Reading a board's `--p-*` tokens was considered and
+  rejected for exactly this reason.
+
+This exception covers that one file. Anything rendered by React still uses `color`.
+
 ## No Direct Node.js `fs` or `path` Imports
 
 Renderer modules must NOT use `require("fs")` or `require("path")` directly. All file system operations go through `app.fs` (`/src/renderer/api/fs.ts`), and all path operations go through the `file-path` utility module (`/src/renderer/core/utils/file-path.ts`).

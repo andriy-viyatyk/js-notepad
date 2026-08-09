@@ -126,17 +126,17 @@ function PageContent({ pageId }: { pageId: string }) {
                         <OrnamentWrapper>
                             <Ornament style={{ width: "100%", height: "100%" }} />
                         </OrnamentWrapper>
-                        <PageEditorContainer className="scroll-container">
+                        <PageEditorContainer className="scroll-container" data-name="page-editor">
                             <RenderEditor key={editor.id} model={editor} />
                         </PageEditorContainer>
                     </OrnamentPageArea>
                 ) : (
-                    <PageEditorContainer key={page.id} className="scroll-container">
+                    <PageEditorContainer key={page.id} className="scroll-container" data-name="page-editor">
                         <RenderEditor key={editor.id} model={editor} />
                     </PageEditorContainer>
                 )
             ) : (
-                <EmptyPageRoot key={page.id}>
+                <EmptyPageRoot key={page.id} data-name="page-empty">
                     <OrnamentWrapper>
                         <Ornament style={{ width: "100%", height: "100%" }} />
                     </OrnamentWrapper>

@@ -19,6 +19,7 @@ The **test runner** (you, in the main conversation) sends test prompts to the ag
 | `mcp-test-execute-script.md` | Script execution | Expression eval, page content access, transformations, facades, FS, settings |
 | `mcp-test-page-operations.md` | Page CRUD | List, read, update pages, multi-window, browser, app info, pageId targeting, overview guide |
 | `mcp-test-browser.md` | Browser automation | Targeting, snapshots, refs, click, evaluate, wait_for, screenshots, app window |
+| `mcp-test-ui-guidance.md` | Explaining the app itself | UI guide lookups, highlight overlay, editor catalog, settings, features that don't exist |
 
 ## Running Tests
 

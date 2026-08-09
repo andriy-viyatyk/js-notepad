@@ -1,6 +1,10 @@
 # Pages & Windows
 
-Persephone uses tabbed pages (like browser tabs). Each page has an editor and (when file-backed) a language.
+Persephone uses tabbed pages (like browser tabs). Each page has an editor and, where the editor
+supports one, a **`language`** — which throughout Persephone means the **Monaco
+syntax-highlighting mode** (`javascript`, `json`, `python`, …), never a UI locale or a spoken
+language. Editors that are not text editors (grids, notebooks, browser, boards, app pages) have
+none, and `list_pages` reports theirs as empty or absent.
 
 ## Reading Page Content
 

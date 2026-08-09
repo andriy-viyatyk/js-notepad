@@ -63,7 +63,7 @@ The **Object Model** is the central architectural concept. It provides a single,
 | `app.fs` | `IFileSystem` | File I/O, dialogs, paths |
 | `app.window` | `IWindow` | Window state, zoom, multi-window |
 | `app.shell` | `IShell` | OS integration, screen snip, encryption, version |
-| `app.ui` | `IUserInterface` | Dialogs, notifications |
+| `app.ui` | `IUserInterface` | Dialogs, notifications, element highlights |
 | `app.downloads` | `IDownloads` | Download tracking |
 | `app.menuFolders` | `IMenuFolders` | Sidebar folder shortcuts |
 | `app.pages` | `PagesModel` | Page/tab collection, lifecycle |
