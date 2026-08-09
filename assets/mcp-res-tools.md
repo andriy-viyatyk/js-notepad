@@ -191,3 +191,22 @@ A registered tool that fails is a **bug to fix**, not an obstacle to route aroun
 hands you everything you need: the exact `stderr`, the `exitCode`, and the `toolsetRoot` folder.
 Open the script at that path, fix it, `refresh_toolset`, and re-run. Every fix makes the tool
 more reliable for the next session — that is what makes the registry *memory*.
+
+## Errors & verification
+
+Failure shapes are part of this guide's contract already — the short version:
+
+- **Tool failed** → `{ ok: false, error, exitCode, stderr, logs, toolsetRoot }` — everything
+  needed for self-repair (see above). A tool that exceeds its `timeoutMs` is killed and fails
+  the same way.
+- **Unknown toolId** → an error naming the id; run `search_tools` with no query to list what
+  actually exists (tool ids are `<toolset>/<tool>` — the toolset half comes from the manifest's
+  `name`, not the folder name).
+- **After editing a manifest**, `refresh_toolset` is your verification: it returns `valid` +
+  `errors` per toolset — check it **before** running anything, a manifest typo otherwise
+  surfaces as a confusing execute failure.
+- **`create_toolset` → `{ registered: false }`** means the user declined registration — the
+  folder exists but tools won't run. Re-offer by calling `create_toolset` again with the same
+  `name` + `dir` (it never overwrites your edits).
+- **Success isn't `ok: true` alone** — a tool that prints no marker returns its stdout as
+  `resultText`; validate the payload shape you expect, not just the flag.

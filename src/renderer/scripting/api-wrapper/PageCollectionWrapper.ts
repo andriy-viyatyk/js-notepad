@@ -132,7 +132,9 @@ export class PageCollectionWrapper {
         tor?: boolean;
         url?: string;
     }): Promise<void> {
-        return this.pages.showBrowserPage(options);
+        // Internal showBrowserPage returns the PageModel; the script-facing API
+        // stays void — scripts must not receive internal model instances.
+        return this.pages.showBrowserPage(options).then((): void => undefined);
     }
 
     openUrlInBrowserTab(
@@ -142,7 +144,7 @@ export class PageCollectionWrapper {
             profileName?: string;
             external?: boolean;
         },
-    ): Promise<void> {
+    ): Promise<string | undefined> {
         return this.pages.openUrlInBrowserTab(url, options);
     }
 

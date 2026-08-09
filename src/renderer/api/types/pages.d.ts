@@ -111,12 +111,16 @@ export interface IPageCollection {
         url?: string;
     }): Promise<void>;
 
-    /** Open a URL in a browser tab (internal or existing). */
+    /**
+     * Open a URL in a browser tab (internal or existing).
+     * Resolves to the id of the browser page the URL was opened in
+     * (undefined only if no page could be opened, e.g. Tor misconfiguration).
+     */
     openUrlInBrowserTab(url: string, options?: {
         incognito?: boolean;
         profileName?: string;
         external?: boolean;
-    }): Promise<void>;
+    }): Promise<string | undefined>;
 
     // ── Navigation ───────────────────────────────────────────────────
 

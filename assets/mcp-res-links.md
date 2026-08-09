@@ -93,3 +93,13 @@ A links collection with 3 bookmarks in 2 categories:
 - **Tags** are flat strings for cross-category labeling
 - The left panel shows categories as a tree and tags as a flat list
 - Links can be viewed in list mode or tile mode (with preview images)
+
+## Errors & verification
+
+- **`create_page` / `set_page_content` accept broken content silently** — the tool returns
+  success; unparseable JSON shows a parse error in the editor, and valid JSON missing required
+  LinkItem fields renders a broken/empty editor or crashes it (`Editor crashed` + exception).
+- **Verify**: `JSON.parse` your content before sending; include `tags: []` and `category: ""`
+  even when empty; to confirm the render, activate the page and
+  `browser_snapshot({ pageId: "app" })`.
+- **Fixing a broken page**: content survives — `get_page_content`, repair, `set_page_content`.

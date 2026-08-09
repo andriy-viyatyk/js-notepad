@@ -209,8 +209,9 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 "",
                 "## IMPORTANT: Read guides before using tools",
                 "",
+                "New to Persephone? `read_guide(\"overview\")` gives the mental model and a task → tool → guide routing table in one short page.",
                 "Some tools require reading a documentation guide before use. Tool descriptions will tell you which guide to read.",
-                "Use the `read_guide` tool or read the MCP resource directly (e.g. notepad://guides/pages). Example: read_guide(\"pages\"), read_guide(\"ui-push\").",
+                "Use the `read_guide` tool or read the MCP resource directly (e.g. persephone://guides/pages). Example: read_guide(\"pages\"), read_guide(\"ui-push\").",
                 "",
                 "## Common scenarios",
                 "",
@@ -272,52 +273,64 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     // ── Resource file definitions (used by read_guide tool and resource registration) ──
     const resourceFiles = [
         {
+            name: "overview-guide",
+            uri: "persephone://guides/overview",
+            file: "mcp-res-overview.md",
+            description: "Start here — Persephone's mental model (windows, pages, editors, boards, tools) and a task → tool → guide routing table. Read this first if you are new to Persephone.",
+        },
+        {
             name: "ui-push-guide",
-            uri: "notepad://guides/ui-push",
+            uri: "persephone://guides/ui-push",
             file: "mcp-res-ui-push.md",
             description: "ui_push tool guide — log messages, dialogs, entry types, and examples. Read this first when the user asks to show, display, or present something.",
         },
         {
             name: "pages-guide",
-            uri: "notepad://guides/pages",
+            uri: "persephone://guides/pages",
             file: "mcp-res-pages.md",
             description: "Pages & windows guide — page properties, editor types, creating pages, multi-window support. Read when working with tabs, reading content, or creating documents.",
         },
         {
             name: "scripting-guide",
-            uri: "notepad://guides/scripting",
+            uri: "persephone://guides/scripting",
             file: "mcp-res-scripting.md",
             description: "Scripting API reference — app object (pages, fs, settings, ui, shell, window), editor facades (grid, notebook, todo, links, browser), TypeScript, Node.js access. Read when using execute_script.",
         },
         {
             name: "graph-guide",
-            uri: "notepad://guides/graph",
+            uri: "persephone://guides/graph",
             file: "mcp-res-graph.md",
             description: "Force-graph editor guide — JSON data format, page.asGraph() API, editing graph data, group nodes. Read BEFORE working with graph pages.",
         },
         {
             name: "notebook-guide",
-            uri: "notepad://guides/notebook",
+            uri: "persephone://guides/notebook",
             file: "mcp-res-notebook.md",
             description: "Notebook editor guide — NoteItem JSON format, content types (text, markdown, code, mermaid, grid). Read BEFORE creating or updating notebook pages.",
         },
         {
             name: "links-guide",
-            uri: "notepad://guides/links",
+            uri: "persephone://guides/links",
             file: "mcp-res-links.md",
             description: "Links editor guide — LinkItem JSON format, categories, tags. Read BEFORE creating or updating links pages.",
         },
         {
             name: "boards-guide",
-            uri: "notepad://guides/boards",
+            uri: "persephone://guides/boards",
             file: "mcp-res-boards.md",
             description: "Boards guide — what a board is, the execute_script + app.boards create/open lifecycle, the execute() channel, --p-* theme contract, local vendoring, and browser_* testing. Read BEFORE building or opening a board.",
         },
         {
             name: "tools-guide",
-            uri: "notepad://guides/tools",
+            uri: "persephone://guides/tools",
             file: "mcp-res-tools.md",
             description: "Agent Tools registry guide — discover/run reusable parameterized tools (any language) via search_tools/execute_tool, the stdin-JSON + ##PERSEPHONE_RESULT## contract, .env secrets, and the self-repair loop. Read BEFORE using search_tools/execute_tool.",
+        },
+        {
+            name: "browser-guide",
+            uri: "persephone://guides/browser",
+            file: "mcp-res-browser.md",
+            description: "Browser automation guide — page targeting resolution, snapshot format, ref lifecycle (when refs go stale), waiting strategies, profiles, driving boards and the app window. Read when using browser_* tools beyond the basics.",
         },
     ];
 
@@ -395,7 +408,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     // ── Page & script tools ──────────────────────────────────────────
     server.tool(
         "execute_script",
-        "Execute JavaScript or TypeScript in Persephone. Returns { text, language, isError, consoleLogs }. IMPORTANT: use read_guide(\"scripting\") (or read resource notepad://guides/scripting) BEFORE using this tool — it documents the full API for `page` (active page), `app` (pages, fs, settings, ui, shell, window), and editor facades (asGrid, asNotebook, etc.). Do NOT guess API method names or signatures — the scripting API has specific conventions that differ from typical Node.js patterns.",
+        "Execute JavaScript or TypeScript in Persephone. Returns { text, language, isError, consoleLogs }. IMPORTANT: use read_guide(\"scripting\") (or read resource persephone://guides/scripting) BEFORE using this tool — it documents the full API for `page` (active page), `app` (pages, fs, settings, ui, shell, window), and editor facades (asGrid, asNotebook, etc.). Do NOT guess API method names or signatures — the scripting API has specific conventions that differ from typical Node.js patterns.",
         {
             script: z.string().describe("JavaScript or TypeScript code to execute. Supports async/await. Last expression is returned as result. Use read_guide(\"scripting\") for the API reference before writing scripts."),
             pageId: z.string().optional().describe("Target page ID. If omitted, uses the active page."),
@@ -435,7 +448,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "create_page",
-        "Create a new page (tab) with optional content. For showing results/analysis, prefer ui_push instead. Returns { id, title, editor, language }. The default editor is \"monaco\" — works with any language, no guide needed. Other editors: md-view, mermaid-view, grid-json, grid-csv, grid-jsonl, svg-view, html-view, notebook-view, link-view, graph-view, draw-view. Non-monaco editors require a matching language and sometimes a title suffix — use read_guide(\"pages\") (or read resource notepad://guides/pages) BEFORE using any non-monaco editor. Structured editors (notebook, link, graph, draw) have strict JSON formats — use read_guide with the specific guide BEFORE creating these pages. Page-editors (browser-view, image-view) are NOT supported — use open_url or execute_script.",
+        "Create a new page (tab) with optional content. For showing results/analysis, prefer ui_push instead. Returns { id, title, editor, language }. The default editor is \"monaco\" — works with any language, no guide needed. Other editors: md-view, mermaid-view, grid-json, grid-csv, grid-jsonl, svg-view, html-view, notebook-view, link-view, graph-view, draw-view. Non-monaco editors require a matching language and sometimes a title suffix — use read_guide(\"pages\") (or read resource persephone://guides/pages) BEFORE using any non-monaco editor. Structured editors (notebook, link, graph, draw) have strict JSON formats — use read_guide with the specific guide BEFORE creating these pages. Page-editors (browser-view, image-view) are NOT supported — use open_url or execute_script.",
         {
             title: z.string().optional().describe("Page title. Defaults to 'Untitled'."),
             content: z.string().optional().describe("Initial text content. For structured editors (notebook, link, graph, draw) you MUST use read_guide with the specific guide first — do NOT guess the JSON format."),
@@ -449,7 +462,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "set_page_content",
-        "Update the text content of a page by ID. Works for text-based pages only. IMPORTANT: For structured editors, use read_guide (or read the MCP resource) BEFORE updating content: read_guide(\"notebook\"), read_guide(\"todo\"), read_guide(\"links\"), read_guide(\"graph\"). Incorrect JSON WILL crash the editor.",
+        "Update the text content of a page by ID. Works for text-based pages only. IMPORTANT: For structured editors, use read_guide (or read the MCP resource) BEFORE updating content: read_guide(\"notebook\"), read_guide(\"links\"), read_guide(\"graph\"). Incorrect JSON WILL crash the editor.",
         {
             pageId: z.string().describe("The page ID (from list_pages)."),
             content: z.string().describe("The new text content to set."),
@@ -467,7 +480,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
                 z.object({
                     type: z.string(),
                 }).passthrough(),
-            ])).describe("Array of flat entries. Strings are shorthand for log.info. Objects: { type, ...fields } — type-specific fields at top level.\n\nLog types: log.text/info/warn/error/success — fields: text.\nDialog types: supports confirm, text input, buttons, checkboxes, radio buttons, and dropdown select. IMPORTANT: dialogs BLOCK until the user responds. Incorrect fields will crash the dialog and cause a permanent hang. You MUST use read_guide('ui-push') (or read resource notepad://guides/ui-push) BEFORE using any dialog type. Do NOT guess dialog fields.\nOutput types:\n  output.text — fields: text, language?, title?, wordWrap?, lineNumbers?, minimap?\n  output.markdown — fields: text, title?\n  output.mermaid — fields: text, title?\n  output.grid — fields: content (JSON array or CSV string), contentType? ('json'|'csv'), title?\n  output.progress — fields: label?, value?, max?, completed?"),
+            ])).describe("Array of flat entries. Strings are shorthand for log.info. Objects: { type, ...fields } — type-specific fields at top level.\n\nLog types: log.text/info/warn/error/success — fields: text.\nDialog types: supports confirm, text input, buttons, checkboxes, radio buttons, and dropdown select. IMPORTANT: dialogs BLOCK until the user responds. Incorrect fields will crash the dialog and cause a permanent hang. You MUST use read_guide('ui-push') (or read resource persephone://guides/ui-push) BEFORE using any dialog type. Do NOT guess dialog fields.\nOutput types:\n  output.text — fields: text, language?, title?, wordWrap?, lineNumbers?, minimap?\n  output.markdown — fields: text, title?\n  output.mermaid — fields: text, title?\n  output.grid — fields: content (JSON array or CSV string), contentType? ('json'|'csv'), title?\n  output.progress — fields: label?, value?, max?, completed?"),
 
             windowIndex: windowIndexParam,
         },
@@ -493,7 +506,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
 
     server.tool(
         "open_url",
-        "Open a URL in the built-in browser. Persephone has a full browser with tabs, profiles, and incognito mode. Reuse is profile-matched: with profileName it adds the tab to (and focuses) an existing page of that profile, or creates a new page with that profile; never attaches to a different-profile page. Returns { opened: url }.",
+        "Open a URL in the built-in browser. Persephone has a full browser with tabs, profiles, and incognito mode. Reuse is profile-matched: with profileName it adds the tab to (and focuses) an existing page of that profile, or creates a new page with that profile; never attaches to a different-profile page. The target page is focused. Returns { opened, pageId, title } — pass that pageId to browser_* tools to target this page explicitly (recommended: the active page can change between calls, e.g. when the user or another agent switches tabs).",
         {
             url: z.string().describe("The URL to open."),
             profileName: z.string().optional().describe("Browser profile name. Uses the default profile if omitted."),
@@ -519,7 +532,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     );
     server.tool(
         "open_board",
-        "Open an existing Persephone Board by its root folder path (the folder containing board-manifest.json). Opens a new tab (or reuses the board's tab) and makes it active. A board created via create_board is auto-trusted and opens immediately; a board Persephone did not create prompts the user for trust before rendering. Returns { opened: path }. IMPORTANT: read read_guide(\"boards\") first.",
+        "Open an existing Persephone Board by its root folder path (the folder containing board-manifest.json). Opens a new tab (or reuses the board's tab) and makes it active. A board created via create_board is auto-trusted and opens immediately; a board Persephone did not create prompts the user for trust before rendering. Returns { opened, pageId, title } — pass that pageId to browser_* tools / board_refresh to target this board explicitly. IMPORTANT: read read_guide(\"boards\") first.",
         {
             path: z.string().describe("Absolute path of the board's root folder (the folder containing board-manifest.json)."),
             windowIndex: windowIndexParam,
@@ -805,6 +818,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             "Read a Persephone documentation guide. IMPORTANT: You MUST use this tool to read the relevant guide BEFORE using tools that require it. Tool descriptions will tell you which guide to read.",
             "",
             "Available guides:",
+            "- overview — START HERE if new to Persephone: the mental model (windows, pages, editors, boards, tools) and a task → tool → guide routing table.",
             "- ui-push — log messages, dialogs, output types (markdown, mermaid, grid, code). For ui_push tool.",
             "- pages — page properties, editor types, editor+language table, multi-window. For create_page and set_page_content tools.",
             "- scripting — app API (pages, fs, settings, ui, shell, window), editor facades (grid, notebook, browser), Node.js access. For execute_script tool.",
@@ -813,16 +827,17 @@ function createMcpServer(): InstanceType<typeof McpServer> {
             "- graph — graph JSON format, node/link data, page.asGraph() API. For graph-view editor.",
             "- boards — what a board is, the app.boards create/open lifecycle (via execute_script), develop & test a board.",
             "- tools — reusable Agent Tools registry: search_tools/execute_tool, stdin-JSON + result-marker contract, .env secrets, self-repair. For search_tools/execute_tool tools.",
+            "- browser — browser_* automation in depth: page targeting resolution, snapshot format, ref lifecycle, waiting, profiles, boards, the app window.",
         ].join("\n"),
         {
-            guide: z.enum(["ui-push", "pages", "scripting", "notebook", "links", "graph", "boards", "tools"])
+            guide: z.enum(["overview", "ui-push", "pages", "scripting", "notebook", "links", "graph", "boards", "tools", "browser"])
                 .describe("Guide name to read."),
         },
         async ({ guide }) => {
-            const res = resourceFiles.find(r => r.uri === `notepad://guides/${guide}`);
+            const res = resourceFiles.find(r => r.uri === `persephone://guides/${guide}`);
             if (!res) {
                 return {
-                    content: [{ type: "text" as const, text: `Unknown guide: ${guide}. Available: ui-push, pages, scripting, notebook, todo, links, graph, boards.` }],
+                    content: [{ type: "text" as const, text: `Unknown guide: ${guide}. Available: overview, ui-push, pages, scripting, notebook, links, graph, boards, tools, browser.` }],
                     isError: true,
                 };
             }
@@ -858,7 +873,7 @@ function createMcpServer(): InstanceType<typeof McpServer> {
     // Full API guide — concatenation of all resource files (for agents that want everything)
     server.registerResource(
         "full-api-guide",
-        "notepad://guides/full",
+        "persephone://guides/full",
         {
             description: "Complete API guide — all resources combined. Only read this if you need the full reference; prefer the focused guides above for specific tasks.",
             mimeType: "text/markdown",

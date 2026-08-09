@@ -158,3 +158,17 @@ A notebook with 3 notes — a text note, a markdown note, and a code snippet:
 - **Categories** are hierarchical strings separated by `/` (e.g., `"Work"`, `"Work/Projects"`)
 - **Tags** are flat strings, optionally namespaced with `:` (e.g., `"status:active"`, `"priority:high"`)
 - Both are user-defined — use any values that make sense for the content
+
+## Errors & verification
+
+- **`create_page` / `set_page_content` accept broken content silently** — the tool returns
+  success and the failure appears in the editor (verified):
+  - Unparseable JSON → the editor shows the parse error in place of notes (page otherwise fine).
+  - Valid JSON with a **missing required field** → the editor **crashes**: the page shows
+    `Editor crashed` with the exception (e.g. `TypeError: note.tags is not iterable`).
+- **Verify**: `JSON.parse` your content before sending, include every required NoteItem field
+  (`tags: []` and `category: ""` even when empty), and — to confirm the render — activate the
+  page and `browser_snapshot({ pageId: "app" })`: a healthy notebook shows its notes; a broken
+  one shows the error text.
+- **Fixing a crashed page**: the content is still intact — `get_page_content`, repair the JSON,
+  `set_page_content`. The editor recovers as soon as valid content arrives.

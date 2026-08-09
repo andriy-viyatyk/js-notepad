@@ -1175,7 +1175,7 @@ export class PagesLifecycleModel {
         incognito?: boolean;
         tor?: boolean;
         url?: string;
-    }): Promise<void> => {
+    }): Promise<PageModel | undefined> => {
         if (options?.tor) {
             const torPath = settings.get("tor.exe-path");
             if (!torPath) {
@@ -1239,7 +1239,7 @@ export class PagesLifecycleModel {
                 }
             }
 
-            this.addPage(model);
+            const page = this.addPage(model);
 
             // Bootstrapping stays un-awaited: it can take tens of seconds, and the
             // partition is already fail-closed, so the page may mount behind the
@@ -1247,7 +1247,9 @@ export class PagesLifecycleModel {
             if (options?.tor) {
                 (model as unknown as { initTorProxy: () => void }).initTorProxy();
             }
+            return page;
         }
+        return undefined;
     };
 
     showMcpInspectorPage = async (
@@ -1334,7 +1336,7 @@ export class PagesLifecycleModel {
             profileName?: string;
             external?: boolean;
         },
-    ): Promise<void> => {
+    ): Promise<string | undefined> => {
         const pages = this.model.state.get().pages;
         const activePage = this.model.query.activePage;
         const activeIndex = activePage ? pages.indexOf(activePage) : -1;
@@ -1359,10 +1361,10 @@ export class PagesLifecycleModel {
             );
         };
 
-        const addTabToPage = (index: number) => {
+        const addTabToPage = (index: number): string | undefined => {
             const page = pages[index];
             const editor = page.mainEditorInstance;
-            if (!(editor instanceof BrowserEditor)) return;
+            if (!(editor instanceof BrowserEditor)) return undefined;
             const tabs = editor.state.get().tabs;
             if (tabs?.length === 1 && tabs[0].url === "about:blank") {
                 editor.navigate(url);
@@ -1370,34 +1372,30 @@ export class PagesLifecycleModel {
                 editor.addTab(url);
             }
             this.model.navigation.showPage(page.id);
+            return page.id;
         };
 
         if (options?.external) {
             if (activeIndex >= 0 && matchesBrowser(pages[activeIndex])) {
-                addTabToPage(activeIndex);
-                return;
+                return addTabToPage(activeIndex);
             }
             for (let i = 0; i < pages.length; i++) {
                 if (matchesBrowser(pages[i])) {
-                    addTabToPage(i);
-                    return;
+                    return addTabToPage(i);
                 }
             }
         } else {
             if (activeIndex >= 0 && matchesBrowser(pages[activeIndex])) {
-                addTabToPage(activeIndex);
-                return;
+                return addTabToPage(activeIndex);
             }
             for (let i = activeIndex + 1; i < pages.length; i++) {
                 if (matchesBrowser(pages[i])) {
-                    addTabToPage(i);
-                    return;
+                    return addTabToPage(i);
                 }
             }
             for (let i = activeIndex - 1; i >= 0; i--) {
                 if (matchesBrowser(pages[i])) {
-                    addTabToPage(i);
-                    return;
+                    return addTabToPage(i);
                 }
             }
         }
@@ -1414,7 +1412,8 @@ export class PagesLifecycleModel {
                   ? { profileName }
                   : {}),
         };
-        await this.showBrowserPage(showOptions);
+        const page = await this.showBrowserPage(showOptions);
+        return page?.id;
     };
 }
 

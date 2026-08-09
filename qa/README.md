@@ -4,18 +4,21 @@ Quality assurance tests for persephone MCP server documentation. The goal is to 
 
 ## How It Works
 
-A **test agent** (`.claude/agents/mcp-test-agent.md`) simulates a generic AI assistant that only knows about persephone through its MCP connection. It has no access to CLAUDE.md, source code, or project files — only MCP tools and resources.
+A **test agent** (the `mcp-test-agent` skill, `.claude/skills/mcp-test-agent/SKILL.md`) simulates a generic AI assistant that only knows about persephone through its MCP connection. It is told to ignore CLAUDE.md, source code, and project files — only MCP tools and resources.
 
 The **test runner** (you, in the main conversation) sends test prompts to the agent, then verifies the results by checking persephone pages via MCP.
+
+**Model choice:** the skill's frontmatter `model:` field selects the model. It is set to `haiku` on purpose — the weaker the model, the stronger the documentation test: if Haiku can drive persephone correctly from the docs alone, the docs work. Bump to `sonnet` only to distinguish "docs unclear" from "model too weak" on a failing test.
 
 ## Test Files
 
 | File | Area | Tests |
 |------|------|-------|
-| `mcp-test-create-page.md` | Page creation | All editor types: text, markdown, mermaid, grid, notebook, todo, links, graph, SVG, HTML |
+| `mcp-test-create-page.md` | Page creation | All editor types: text, markdown, mermaid, grid, notebook, links, graph, SVG, HTML, rest-client, JSONL; standalone-editor refusal |
 | `mcp-test-ui-push.md` | Log View output | Log messages, dialogs, rich output (markdown, mermaid, grid, code) |
 | `mcp-test-execute-script.md` | Script execution | Expression eval, page content access, transformations, facades, FS, settings |
-| `mcp-test-page-operations.md` | Page CRUD | List, read, update pages, multi-window, browser, app info |
+| `mcp-test-page-operations.md` | Page CRUD | List, read, update pages, multi-window, browser, app info, pageId targeting, overview guide |
+| `mcp-test-browser.md` | Browser automation | Targeting, snapshots, refs, click, evaluate, wait_for, screenshots, app window |
 
 ## Running Tests
 
@@ -34,29 +37,35 @@ The **test runner** (you, in the main conversation) sends test prompts to the ag
 
 For each test:
 
-1. **Prepare** — Clean up notepad (close all non-pinned pages, leave pinned tabs untouched):
+1. **Prepare** — On a **dedicated test instance**, clean up first (close all non-pinned pages,
+   leave pinned tabs untouched):
    ```javascript
    // via execute_script
    const nonPinned = app.pages.all.filter(p => !p.pinned);
    for (const p of nonPinned) { app.pages.closePage(p.id); }
    ```
-   If the test requires a preparation page, create it after cleanup (it will be non-pinned).
+   **On the user's live instance, skip the blanket cleanup** — instead note the page ids that
+   exist before the run (`list_pages`) and close only pages the test created afterwards.
+   If the test requires a preparation page, create (and activate) it just before the run.
 
-2. **Run test agent** with the test prompt:
-   ```bash
-   echo "<test request>" | claude --agent .claude/agents/mcp-test-agent.md --print --verbose --output-format stream-json --max-turns 15 2>&1 | grep -E '"type":"(assistant|user)"'
+2. **Run test agent** — invoke the `mcp-test-agent` skill with the test request as its
+   argument (it runs as a forked subagent and returns a report of what it did):
+   ```
+   Skill(skill: "mcp-test-agent", args: "<test request>")
    ```
 
 3. **Verify results** — Check what the agent created:
    - `list_pages` — verify page exists with correct editor/language/title
    - `get_page_content` — verify content structure
-   - Visual check — confirm the page renders correctly in persephone (no crashes, correct editor shown)
+   - Visual check — `browser_snapshot({ pageId: "app" })` with the page active: a healthy
+     editor shows its content; a broken one shows a parse error or `Editor crashed`
 
-4. **Record result** — PASS, PARTIAL (works but suboptimal), or FAIL (broken/wrong)
+4. **Record result** — PASS, PARTIAL (works but suboptimal), or FAIL (broken/wrong), in a run
+   log under `qa/runs/` (e.g. `qa/runs/2026-08-09-haiku.md`), then close the created pages
 
 ### What to Check
 
-For **structured editors** (notebook, todo, links, graph):
+For **structured editors** (notebook, links, graph):
 - Did the agent read the dedicated resource guide BEFORE creating/updating?
 - Is the JSON structure correct (all required fields present)?
 - Does the editor render without crashes?

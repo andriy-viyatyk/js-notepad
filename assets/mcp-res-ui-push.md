@@ -190,3 +190,20 @@ This works for **any entry type** — not just progress bars. Use it to update d
 | Ask user a question | `ui_push` with dialog entries |
 | Show data that user will edit | `create_page` with appropriate editor |
 | Open a file in a specific editor | `create_page` or `execute_script` |
+
+## Errors & verification
+
+- **Dialogs wait forever.** A `ui_push` containing dialog entries has **no timeout** — the call
+  blocks until the user responds (or closes the Log View page, which resolves every pending
+  dialog with `button: null`). A long wait means the user hasn't answered yet, not a hang.
+  Don't stack questions the user might never see; one dialog at a time reads better.
+- **Non-dialog pushes** use the standard ~30 s tool timeout; they return `{ }` immediately in
+  practice.
+- **Which window?** The Log View page lives in the window addressed by `windowIndex` (the
+  first open window when omitted). With multiple windows, pass `windowIndex` consistently or
+  your log entries will split across two Log View pages.
+- **Malformed entries fail loudly** with a message that includes the expected shape and an
+  example (e.g. `output.grid requires 'content' field (JSON string or CSV string). Example: …`)
+  — fix the entry per the message; nothing was appended.
+- **Treat `button: null` as "cancelled"**, never as consent — the user closed the page without
+  answering.

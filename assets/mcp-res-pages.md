@@ -106,13 +106,19 @@ browser_click({ pageId: "abc", ref: "e12" })
 
 Targeting **focuses** (activates) the resolved page — the page content must be visible for input. A useful side effect: subsequent untargeted calls stick to the now-active page.
 
+The exact resolution algorithm (including how board pages participate and why an untargeted call can land on a board) is in `read_guide("browser")` → "Page targeting resolution". Rule of thumb: **always pass `pageId` when you care which page you hit** — the active page can change between your calls (the user, or another agent on the same Persephone, can switch tabs).
+
 ### Opening a URL in a profile
 
 `open_url` reuse is profile-matched: with `profileName` it adds the tab to (and focuses) an existing page of that profile, or creates a new page with that profile — it never attaches to a different-profile page.
 
 ```
 open_url({ url: "https://outlook.com", profileName: "work" })
+→ { "opened": "https://outlook.com", "pageId": "abc-123", "title": "Outlook" }
 ```
+
+`open_url` focuses the target page and returns its `pageId` — capture it and pass it to
+subsequent `browser_*` calls instead of relying on the active-page default.
 
 ### Privacy
 
@@ -136,7 +142,21 @@ The current page (tab). Available as a global in scripts.
 
 ### Editor Types
 
-`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"graph-view"` · `"draw-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"log-view"` · `"rest-client"` · `"image-view"` · `"browser-view"` · `"archive-view"` · `"category-view"` · `"about-view"` · `"settings-view"` · `"mcp-view"`
+**Creatable with `create_page`** (content-hosting editors — see the table below for the
+required `language` and title suffix):
+
+`"monaco"` · `"grid-json"` · `"grid-csv"` · `"grid-jsonl"` · `"md-view"` · `"notebook-view"` · `"link-view"` · `"graph-view"` · `"draw-view"` · `"svg-view"` · `"html-view"` · `"mermaid-view"` · `"log-view"` · `"rest-client"`
+
+**Standalone editors** — `create_page` rejects these with a hint; open them the way listed:
+
+| Editor | What it is | How to open |
+|--------|------------|-------------|
+| `browser-view` | Built-in web browser | `open_url` tool |
+| `board-view` | A Board (your mini web-app) | `open_board` tool |
+| `image-view` / `archive-view` / `video-view` | File viewers | `execute_script`: `await app.pages.openFile(path)` |
+| `mcp-view` | MCP Inspector | `execute_script`: `await app.pages.showMcpInspectorPage()` |
+| `about-view` / `settings-view` | App pages | `execute_script`: `showAboutPage()` / `showSettingsPage()` |
+| `category-view`, `tools-hub-view`, `toolset-view`, `board-info`, `file-diff`, `env-vars-view`, and other ids you may see in `list_pages` | Internal app views | Opened by the app itself — read them, don't create them |
 
 ### Creating Pages with Specialized Editors
 
@@ -164,72 +184,19 @@ The current page (tab). Available as a global in scripts.
 **Title suffix:** Suffixes marked **required** are needed for the editor switch buttons to appear (e.g., XML/Preview toggle for SVG, JSON/Graph toggle for graphs). Without the suffix, the page renders but the user cannot switch between editor modes.
 
 **Initial content:** Structured editors expect valid JSON content on creation. **Read the dedicated resource guide BEFORE creating pages with these editors** — incorrect JSON will crash the editor:
-- **Notebook:** Read `notepad://guides/notebook` for NoteItem format. Empty: `{"notes":[],"state":{}}`
-- **Links:** Read `notepad://guides/links` for LinkItem format. Empty: `{"links":[],"state":{}}`
-- **Graph:** Read `notepad://guides/graph` for node/link format. Empty: `{"nodes":[],"links":[],"options":{}}`
+- **Notebook:** Read `persephone://guides/notebook` for NoteItem format. Empty: `{"notes":[],"state":{}}`
+- **Links:** Read `persephone://guides/links` for LinkItem format. Empty: `{"links":[],"state":{}}`
+- **Graph:** Read `persephone://guides/graph` for node/link format. Empty: `{"nodes":[],"links":[],"options":{}}`
 - **Rest Client:** Empty: `{"type":"rest-client","requests":[]}`
 
 ### Graph Editor Format (`graph-view`)
 
-The graph editor renders an interactive force-directed graph. Content is JSON with this structure:
-
-```json
-{
-  "type": "force-graph",
-  "nodes": [
-    { "id": "server", "title": "API Server", "level": 1, "shape": "hexagon" },
-    { "id": "db", "title": "Database", "level": 2, "shape": "square" },
-    { "id": "cache", "title": "Redis Cache", "level": 3 },
-    { "id": "client", "title": "Web Client", "level": 2, "shape": "diamond", "team": "frontend" }
-  ],
-  "links": [
-    { "source": "client", "target": "server" },
-    { "source": "server", "target": "db" },
-    { "source": "server", "target": "cache" }
-  ],
-  "options": {
-    "rootNode": "server",
-    "expandDepth": 3,
-    "maxVisible": 500
-  }
-}
-```
-
-**Node properties:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | string (required) | Unique node identifier, used in links |
-| `title` | string | Display label (falls back to `id` if omitted) |
-| `level` | number (1-5) | Hierarchy level — controls node size (1=largest, 5=smallest) |
-| `shape` | string | `"circle"` (default), `"square"`, `"diamond"`, `"triangle"`, `"star"`, `"hexagon"` |
-| *custom* | any | Any additional properties are preserved and displayed in the detail panel |
-
-**Link properties:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `source` | string (required) | Source node `id` |
-| `target` | string (required) | Target node `id` |
-
-**Options:**
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `rootNode` | string | Root node ID — BFS expansion starts here |
-| `expandDepth` | number | How many hops from root to show initially (default: show all) |
-| `maxVisible` | number | Hard ceiling on visible nodes (default 500) — use for large graphs |
-| `charge` | number | Repulsion force between nodes (default -70) |
-| `linkDistance` | number | Desired link length in pixels (default 40) |
-| `collide` | number | Collision radius multiplier (default 0.7) |
-
-**Tips for generating graphs:**
-- Always include `"type": "force-graph"` for content detection
-- Use `level` to visually distinguish node importance (1=central/important, 5=leaf/minor)
-- Use `shape` to encode node categories (e.g., hexagons for services, squares for databases)
-- Add custom properties for metadata (e.g., `"team"`, `"status"`, `"url"`) — they appear in the detail panel
-- For large graphs (>200 nodes), set `rootNode` and `expandDepth` to avoid overwhelming the view
-- Title suffix `.fg.json` ensures the graph editor opens by default and shows the JSON/Graph switch
+The graph editor renders an interactive force-directed graph. The full data format (node/link
+properties, options and their defaults, group nodes, legend) and the `page.asGraph()` scripting
+API live in **`read_guide("graph")`** — read it before creating or editing graph pages. The
+minimum you need here: content is JSON with `"type": "force-graph"`, `nodes`, `links`, and
+`options`; the empty page is `{"type":"force-graph","nodes":[],"links":[],"options":{}}`; the
+`.fg.json` title suffix enables the JSON/Graph editor switch.
 
 ### Rest Client Format (`rest-client`)
 
@@ -309,3 +276,30 @@ return data.filter(item => item.active);
 ```
 
 Access `page.grouped` to auto-create a grouped page. Set `page.grouped.language` and `page.grouped.editor` before returning.
+
+## Errors & verification
+
+What failures actually look like, and how to check your work (verified against the app):
+
+- **`create_page` does NOT validate content.** Creating a structured-editor page (notebook,
+  links, graph, rest-client) with broken content returns a normal `{ id, title }` success — the
+  failure happens at render time, in the editor:
+  - **Unparseable JSON** → the editor shows a parse error in place of content (e.g.
+    `Unexpected token 'h', "this is not"… is not valid JSON`).
+  - **Valid JSON with a missing required field** → the editor **crashes** into an error
+    boundary: the page shows `Editor crashed` with the exception (e.g.
+    `TypeError: note.tags is not iterable`) and a stack trace.
+- **`get_page_content` is not a validity check** — it returns the raw content you sent,
+  byte-for-byte, whether or not the editor can render it. Use it to verify *what* the page
+  holds, not *whether* it renders.
+- **To verify rendering**, snapshot the app window: `browser_snapshot({ pageId: "app" })` shows
+  the active page's UI — a healthy editor shows its content tree; a broken one shows the parse
+  error text or `Editor crashed`. (Activate the page first if it isn't active.)
+- **Cheapest prevention**: `JSON.parse` your content yourself before `create_page` /
+  `set_page_content`, and read the format guide (`notebook` / `links` / `graph`) — the required
+  fields are exactly the ones that crash when missing.
+- **Wrong `editor` id** → `create_page` errors with `Unknown editor '…'. Valid editors: …`.
+  A standalone editor id (e.g. `browser-view`) errors with a hint telling you the right tool.
+- **`Page not found: <id>`** — the page was closed since you got the id; call `list_pages`.
+- **Every tool result is authoritative** — if `create_page` returned an error, no page was
+  created; there is nothing to clean up.

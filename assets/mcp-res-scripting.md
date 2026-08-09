@@ -2,6 +2,24 @@
 
 The `execute_script` tool runs JavaScript or TypeScript in Persephone's context. Scripts have access to `page` (current tab), `app` (application services), and full Node.js APIs.
 
+## Execution model & security
+
+- **No sandbox.** Scripts run inside Persephone's renderer with **full Node.js and the user's
+  OS privileges** — they can read/write any file the user can, spawn processes, and reach the
+  network. Treat a script like code you'd run in the user's terminal: be deliberate with
+  deletes, overwrites, and anything that leaves the machine.
+- **30-second tool timeout.** The MCP call returns `Error: Request timeout` after ~30 s — but
+  the script itself **keeps running** in Persephone; only your view of the result is lost.
+  For long work: report progress out-of-band (`ui_push` entries or `app.ui.notify`) so results
+  aren't tied to the tool response, or split the work into shorter script calls. For recurring
+  long-running integrations, prefer a registered tool (`read_guide("tools")`) — `execute_tool`
+  has no fixed MCP timeout (the tool's own `timeoutMs` governs).
+- **Dialogs block the call.** APIs like `app.ui.confirm` / `app.ui.input` (and the first
+  `app.boardVars.*` call) wait for the user — a slow response is a waiting user, not a hang,
+  but the 30 s tool timeout still applies to your view of it.
+- **Result = last expression** (or `return …`), serialized to text in the tool result.
+  `console.log` output is captured separately into `consoleLogs`.
+
 ## The `app` Object
 
 Root application object with all services.
@@ -26,7 +44,9 @@ Root application object with all services.
 
 ```javascript
 app.pages.activePage              // Current active page (IPage)
+app.pages.all                     // All open pages (IPage[]) — e.g. all.find(p => p.title === "x")
 app.pages.findPage(pageId)        // Find page by ID
+await app.pages.closePage(pageId) // Close a page — true if closed, false if cancelled
 await app.pages.openFile(path)    // Open a file in a tab
 app.pages.addEmptyPage()          // Add empty text page
 app.pages.addEditorPage(editor, language, title)  // Add page with specific editor
@@ -40,7 +60,7 @@ app.pages.unpinTab(pageId)        // Unpin a tab
 app.pages.moveTab(fromId, toId)   // Reorder tabs
 await app.pages.openDiff({ firstPath, secondPath })  // Diff view
 await app.pages.showBrowserPage({ url })              // Open browser tab
-await app.pages.openUrlInBrowserTab(url)              // Open URL in browser
+await app.pages.openUrlInBrowserTab(url)              // Open URL in browser — returns the page id
 await app.pages.navigatePageTo(pageId, filePath, { revealLine, highlightText })
 ```
 
@@ -341,3 +361,26 @@ const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
 ```
+
+## Errors & verification
+
+What failures actually look like in the `execute_script` result (verified against the app):
+
+- **A thrown exception** (or syntax error) returns `isError: true` with the error message and
+  the **full stack trace** in `text`, plus whatever `consoleLogs` were captured before the
+  throw. There is no partial return value — but side effects the script performed before
+  throwing (files written, pages created) **have already happened**.
+- **Reserved globals.** `page` and `app` are injected into the script scope — declaring
+  `const page = …` fails with `Identifier 'page' has already been declared`. Pick another name.
+- **Wrong API guesses fail loudly and cheaply** — e.g. `app.pages.list is not a function` with
+  a stack trace. The fix is this guide, not trial-and-error: the `app` surface is exactly what
+  this document lists.
+- **`Error: Request timeout`** after ~30 s — see "Execution model & security" above: the script
+  is still running; only the response was abandoned. A common non-obvious cause:
+  `app.pages.closePage()` on a **modified** page shows the user an "Unsaved Changes" dialog and
+  blocks until they answer — if you truly don't need the content, it is your responsibility to
+  have saved or discarded deliberately, not to assume the close is silent.
+- **Verify side effects, not intentions**: after writing a file, `await app.fs.exists(path)`;
+  after creating/modifying a page, `get_page_content` (content) or
+  `browser_snapshot({ pageId: "app" })` (rendering). A `true`/content response from those is
+  ground truth; your script returning without error is not.

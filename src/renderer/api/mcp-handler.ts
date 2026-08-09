@@ -364,7 +364,7 @@ function createPage(params: McpParams): McpResponse {
                 + 'await app.pages.requireWellKnownPage("mcp-ui-log")',
         };
         const hint = hints[editorId]
-            ?? `Read resource 'notepad://guides/pages' for details on editor types.`;
+            ?? `Read resource 'persephone://guides/pages' for details on editor types.`;
         return {
             error: {
                 code: -32602,
@@ -540,7 +540,7 @@ async function handleUiPush(params: McpParams): Promise<McpResponse> {
             const spec = dialogSpecs[type];
             if (!spec) {
                 const validTypes = Object.keys(dialogSpecs).join(", ");
-                return { error: { code: -32602, message: `Unknown dialog type '${type}'. Valid types: ${validTypes}. Read notepad://guides/ui-push for details.` } };
+                return { error: { code: -32602, message: `Unknown dialog type '${type}'. Valid types: ${validTypes}. Read persephone://guides/ui-push for details.` } };
             }
 
             // Validate no unknown properties
@@ -643,11 +643,12 @@ async function openUrl(params: McpParams): Promise<McpResponse> {
     if (!url) {
         return { error: { code: -32602, message: "Missing or invalid 'url' parameter" } };
     }
-    await pagesModel.openUrlInBrowserTab(url, {
+    const pageId = await pagesModel.openUrlInBrowserTab(url, {
         profileName: asString(params?.profileName),
         incognito: asBoolean(params?.incognito),
     });
-    return { result: { opened: url } };
+    const page = pageId ? pagesModel.findPage(pageId) : undefined;
+    return { result: { opened: url, pageId, title: page?.title } };
 }
 
 async function createBoard(params: McpParams): Promise<McpResponse> {
@@ -676,7 +677,18 @@ async function openBoard(params: McpParams): Promise<McpResponse> {
     }
     try {
         await app.boards.openBoard(path);
-        return { result: { opened: path } };
+        // openBoard goes through the generic openRawLink pipeline, which doesn't
+        // return the page — find the board page by its root path afterwards.
+        const norm = (s?: string) =>
+            s?.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+        const boardPage = pagesModel.state.get().pages.find((p) => {
+            if (!isBoardEditorId(p.mainEditorInstance?.editorId)) return false;
+            const bs = p.mainEditor?.state.get() as
+                | { boardRoot?: string }
+                | undefined;
+            return norm(bs?.boardRoot) === norm(path);
+        });
+        return { result: { opened: path, pageId: boardPage?.id, title: boardPage?.title } };
     } catch (err) {
         return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
     }

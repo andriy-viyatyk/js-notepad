@@ -19,9 +19,9 @@ Force-graph pages (`.fg.json`) visualize node-link data as an interactive graph 
     "rootNode": "node-1",
     "expandDepth": 3,
     "maxVisible": 500,
-    "charge": -40,
-    "linkDistance": 30,
-    "collide": 0.5,
+    "charge": -70,
+    "linkDistance": 40,
+    "collide": 0.7,
     "legend": {
       "levels": { "1": "Core modules", "root": "Entry point" },
       "shapes": { "circle": "TypeScript", "diamond": "React" }
@@ -56,9 +56,9 @@ Links from a group node to another node indicate **group membership** (the targe
 | `rootNode` | string | — | Root node ID for BFS expansion |
 | `expandDepth` | number | — | BFS depth limit from root |
 | `maxVisible` | number | 500 | Max visible nodes |
-| `charge` | number | -40 | D3 force charge strength |
-| `linkDistance` | number | 30 | D3 force link distance |
-| `collide` | number | 0.5 | D3 collision radius multiplier |
+| `charge` | number | -70 | D3 charge force strength (repulsion between nodes; more negative = more spread) |
+| `linkDistance` | number | 40 | D3 link force distance (desired link length in px) |
+| `collide` | number | 0.7 | D3 collision force strength (0–1) |
 | `legend` | object | — | Level/shape descriptions for the legend panel |
 
 ## `page.asGraph()` API Reference
@@ -210,3 +210,20 @@ const members = graph.getGroupMembers("my-group");
 const allMembers = graph.getGroupMembersDeep("my-group");
 const chain = graph.getGroupChain("some-node"); // [parent-group, grandparent-group, ...]
 ```
+
+## Errors & verification
+
+- **`create_page` / `set_page_content` accept broken graph JSON silently** — the failure shows
+  up in the editor, not in the tool result. Unparseable JSON renders as a parse-error message;
+  structurally wrong JSON (e.g. a link pointing at a nonexistent node id) renders a partial or
+  empty graph.
+- **Verify**: `JSON.parse` the content yourself before writing it, keep `"type": "force-graph"`,
+  and make sure every link's `source`/`target` matches a node `id`. To confirm the render,
+  activate the page and `browser_snapshot({ pageId: "app" })` — a crashed editor shows
+  `Editor crashed` plus the exception text.
+- **`page.asGraph()` on a non-graph page** rejects — check `list_pages` for
+  `editor: "graph-view"` first.
+- **Writing `page.content` from stale parsed data**: if you `JSON.parse(page.content)` on a
+  live graph, nodes may carry D3 runtime fields (`x`, `y`, `vx`, `vy`, `index`). Writing them
+  back bloats the file and pins node positions. Read via `graph.nodes` / `graph.getNode(id)`
+  (cleaned), modify, and merge into the parsed JSON only the fields you changed.

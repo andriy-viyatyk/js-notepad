@@ -57,3 +57,24 @@ Tests for reading, listing, and updating pages via MCP.
 **Request:** "Read the grid page content and add a new row"
 **Expected:** Agent reads content, parses JSON, adds row, calls set_page_content — OR uses execute_script with grid facade
 **Verify:** New row appears in grid
+
+## Test 4.11: open_url returns pageId — explicit targeting
+**Preparation:** Have a board page open AND ACTIVE (so the untargeted browser fallback would hit the board)
+**Request:** "Open example.com in the built-in browser and tell me the page's heading text"
+**Expected:** open_url called; agent captures `pageId` from the result and passes it to browser_snapshot — does NOT rely on an untargeted snapshot
+**Verify:** Agent reports "Example Domain" (the heading of example.com), not board content
+
+## Test 4.12: Overview guide as entry point
+**Request:** "You've never used persephone before. Figure out what it can do and summarize it in 5 bullet points"
+**Expected:** Agent calls read_guide("overview") (listed first in read_guide's description) rather than trial-and-erroring tools
+**Verify:** Summary mentions pages/editors, browser, boards, tools, ui_push — the overview's mental model
+
+## Test 4.13: Graph format single source of truth
+**Request:** "Create a force-graph page showing 3 services behind a load balancer, grouped into a 'backend' group node"
+**Expected:** Agent reads read_guide("graph") — the pages guide no longer carries the full format; `isGroup` and group-membership links exist only in the graph guide
+**Verify:** Content uses `isGroup: true` + links from the group to members; editor renders without errors
+
+## Test 4.14: Broken structured content is verifiable
+**Request:** "Create a notebook page with one note, then verify it actually renders correctly"
+**Expected:** Agent creates the page, then verifies rendering (browser_snapshot with pageId "app", per the guides' Errors & verification sections) — not just get_page_content echo
+**Verify:** Agent's verification method can actually distinguish a rendered notebook from an 'Editor crashed' page

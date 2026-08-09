@@ -488,6 +488,30 @@ Example: *Open an image in the Drawing (Excalidraw) editor* documents the
 `openRawLink(imageDataUrl, { editor: "draw-view" })` case above (data-URL-only, opens a new
 untitled drawing, PNG-over-SVG). Add a new recipe there when you solve a fresh integration case.
 
+## Errors & verification
+
+The debugging surfaces, in the order to check them:
+
+- **`ui.log`** (in the board folder) is the board's black box: load failures, CSP violations,
+  uncaught errors, unhandled rejections, and every `console.error`/`console.warn` from the
+  board's frames land there automatically. Read it first when a board renders blank or a
+  feature silently does nothing.
+- **`board_refresh` returning `frameReady: false`** means the reloaded frame never signalled
+  load — almost always broken board HTML/JS; `ui.log` has the reason.
+- **A silently-dead feature after adding a library** is usually the CSP: remote
+  `<script>`/`<link>`/`fetch` are blocked without a visible error in the UI — but the violation
+  is in `ui.log`. Vendor the file locally (see "Libraries & assets").
+- **Snapshot vs screenshot**: `browser_snapshot` includes invisible elements, so verify visual
+  changes with `browser_take_screenshot { pageId }` before declaring the UI correct.
+- **`open_board` / `create_board` failures** return real errors (`Not a board: …` — missing
+  `board-manifest.json`; name collision on create). `open_board` success returns
+  `{ opened, pageId, title }` — use that `pageId` for all `browser_*` calls; boards are never
+  reached by the untargeted browser-page fallback unless they are the active page.
+- **Manifest edits don't apply on refresh** — `fileMasks`/`editorPriority`/`editorSources` are
+  cached from trust time; toggle trust or restart the app (see "Manifest, icon, reload").
+- **`getJson()` rejections** carry `exitCode` + captured `stderr` from the backend script —
+  surface them in the board UI rather than leaving a blank panel.
+
 ## Richer reference — the bundled Demo board
 
 Persephone ships a full **Demo board** that exercises the whole surface (buffered/streaming/
