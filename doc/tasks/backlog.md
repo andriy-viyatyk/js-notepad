@@ -61,6 +61,58 @@ dependency-update epic when the next upgrade cycle starts.
 
 ---
 
+## Code signing — apply to SignPath Foundation
+
+Persephone ships unsigned. Verified on an installed 4.0.20 build: `Get-AuthenticodeSignature`
+on `persephone.exe` returns `NotSigned`. That is worth fixing on its own merits, and it is also
+the hard prerequisite for the Windows 11 context-menu item below.
+
+**[SignPath Foundation](https://signpath.io) signs qualifying open-source projects for free**,
+OV-level, through a managed CI pipeline. Persephone is MIT-licensed with a public repo, which is
+their target profile. Apply there first — every other route costs money:
+
+| Option | Cost | Catch |
+|---|---|---|
+| SignPath Foundation | Free | Must qualify as OSS |
+| Microsoft Store (MSIX) | Free | Store re-signs, but it is a different distribution path |
+| Azure Artifact Signing (was Trusted Signing) | ~$9.99/mo | Individuals: **USA and Canada only**; organizations add EU and UK |
+| OV certificate | $150–300/yr | HSM or USB token required since June 2023 — a physical token cannot be used from GitHub Actions |
+| EV certificate | $400+/yr | Not worth it, see below |
+
+- [ ] **Apply to SignPath Foundation**, then wire signing into `.github/workflows/publish.yml`.
+  Note the existing Castlabs EVS step is **VMP** signing for Widevine — unrelated to Authenticode
+  and not a substitute. `scripts/vmp-sign.mjs` runs on `afterSign` precisely because on Windows
+  VMP signing must follow Authenticode, so an added signtool step must stay ahead of it.
+
+Two facts that change the usual reasoning, both current as of Microsoft's April 2026 guidance:
+
+- **Signing does not remove the SmartScreen warning.** EV's instant-bypass behavior was removed in
+  2024; every certificate type now builds reputation per file hash over time. Unsigned still gets
+  a materially stronger block, and enterprises may refuse unsigned binaries outright — but do not
+  expect a clean first-download experience the day signing lands.
+- **From 15 February 2026 certificate lifespans are capped at one year**, so multi-year prepaid
+  discounts on traditional certificates are gone.
+
+### Dependent: "Open with persephone" in the Windows 11 top-level context menu
+
+Our Explorer entries are classic registry verbs (`*\shell\`, `Directory\shell\`,
+`Directory\Background\shell\`), and Windows 11 puts **every** classic verb under *Show more
+options* regardless of publisher. The modern menu only shows commands from apps implementing
+`IExplorerCommand` registered through an MSIX package manifest.
+
+VS Code does exactly this — confirmed by reading its manifest on a dev machine: a sparse package
+(`Microsoft.VisualStudioCode_…_neutral`, `AllowExternalContent`) declaring
+`windows.fileExplorerContextMenus` for `Directory`, `Directory\Background` and `*` — the same
+three surfaces we already register — backed by a COM server (`code_explorer_command_x64.dll`).
+
+- [ ] **Blocked on signing above.** Needs a native `IExplorerCommand` DLL (Rust + `windows-rs` is
+  viable — the repo already ships three Rust binaries), a sparse MSIX manifest, and installer
+  registration. The package must be signed by a certificate the machine already trusts;
+  self-signed only works where the cert has been deployed to Trusted Root, so it is not an option
+  for public distribution. Users can reach the current entry with Shift+right-click meanwhile.
+
+---
+
 ## Recorded Epics (not currently planned)
 
 Epics with a written design that are **not** scheduled work — recorded ideas kept out of the
