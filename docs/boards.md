@@ -680,7 +680,7 @@ browser_evaluate({ pageId: "abc", expression: "document.querySelector('#result')
 | Tool | Parameters | Description |
 |------|-----------|-------------|
 | `create_board` | `name`, `dir`, `demo?` | Create a blank board (or demo board when `demo: true`) in `<dir>/<name>`. Returns `{ boardRoot }`. Auto-trusted. |
-| `open_board` | `path` | Open an existing board by its root folder path. Returns `{ opened: path }`. |
+| `open_board` | `path` | Open an existing board by its root folder path. Returns `{ opened, pageId, title }` — pass `pageId` to `browser_*` tools or `board_refresh` to target this board explicitly. |
 | `board_refresh` | `pageId?` | Reload a board to pick up edited files. Omit `pageId` to reload the active board. Returns `{ refreshed: true, pageId }`. |
 | `read_guide("boards")` | — | Load the full board authoring reference guide. |
 

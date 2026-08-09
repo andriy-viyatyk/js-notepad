@@ -60,9 +60,9 @@ gemini --mcp-server http://127.0.0.1:7865/mcp
 | **get_active_page** | Get the active page with metadata plus the same content/image/hint handling as `get_page_content`. Browser pages also include `profileName`, `isIncognito`, `isTor`, and `url` (active tab URL; omitted for incognito/Tor pages). |
 | **create_page** | Create a new page with optional content, language, and editor. Returns a clear error with specific hints for standalone editor types (browser, PDF, image, MCP Inspector, etc.) — use `open_url` or `execute_script` instead. |
 | **set_page_content** | Update text content of a page by ID. |
-| **open_url** | Open a URL in the [built-in browser](./browser.md). Accepts optional `profileName` (browser profile), `incognito` (boolean), and `tor` (boolean) parameters. Reuse is profile-matched: with `profileName` it adds the tab to (or focuses) an existing page of that profile, or creates a new page with that profile — never attaches to a different-profile page. |
+| **open_url** | Open a URL in the [built-in browser](./browser.md). Accepts optional `profileName` (browser profile), `incognito` (boolean), and `tor` (boolean) parameters. Reuse is profile-matched: with `profileName` it adds the tab to (or focuses) an existing page of that profile, or creates a new page with that profile — never attaches to a different-profile page. Focuses the target page and returns `{ opened, pageId, title }` — pass `pageId` to `browser_*` tools to target this exact page (recommended, since the active page can change between calls). |
 | **ui_push** | Push log entries, interactive dialogs, and output widgets to a Log View page — the recommended output channel for AI agents. Strings are shorthand for `log.info`. Dialog entries (`input.confirm`, `input.text`, `input.buttons`, `input.checkboxes`, `input.radioboxes`, `input.select`) block until the user responds. Output entries (`output.progress`, `output.grid`) support rich display — progress bars with upsert-by-id for real-time updates, and inline data grids from JSON or CSV strings. The Log View page is created automatically on first call and reused on subsequent calls. |
-| **read_guide** | Read a documentation guide by name (`ui-push`, `pages`, `scripting`, `graph`, `notebook`, `links`, `boards`, `tools`). Returns the guide content as text. An alternative to fetching `notepad://guides/*` resources — works with AI clients that don't support MCP resources. |
+| **read_guide** | Read a documentation guide by name (`overview`, `ui-push`, `pages`, `scripting`, `graph`, `notebook`, `links`, `boards`, `tools`, `browser`). Returns the guide content as text. An alternative to fetching `persephone://guides/*` resources — works with AI clients that don't support MCP resources. New to Persephone? Start with `read_guide("overview")` for the mental model and a task → tool → guide routing table. |
 | **get_app_info** | Get app version, page count, active page ID, configured browser profile names (`browserProfiles`), and the default profile name (`defaultBrowserProfile`). Use this to discover valid profile names before calling browser tools. |
 
 ### Browser Automation Tools
@@ -189,17 +189,21 @@ MCP resources are read-only documents that AI clients can discover and read to g
 
 | Resource | URI | Description |
 |----------|-----|-------------|
-| **ui_push Guide** | `notepad://guides/ui-push` | Log View output channel — entry types, dialogs, examples. Read when showing output to the user. |
-| **Pages Guide** | `notepad://guides/pages` | Pages & windows — page properties, editor types, creating pages, multi-window support. Read when working with tabs or documents. |
-| **Scripting Guide** | `notepad://guides/scripting` | Full scripting API — `app` object, editor facades, TypeScript, Node.js access. Read when using `execute_script`. |
-| **Graph Guide** | `notepad://guides/graph` | Graph editor data format and scripting API — node/link schema, `page.asGraph()` facade, query and traversal methods. Read when working with force-graph pages. |
-| **Notebook Guide** | `notepad://guides/notebook` | Notebook editor JSON format — NoteItem structure, content types (text, markdown, code, mermaid, grid). Read before creating or editing notebook pages. |
-| **Links Guide** | `notepad://guides/links` | Links editor JSON format — LinkItem structure, categories, tags. Read before creating or editing links pages. |
-| **Full Guide** | `notepad://guides/full` | All guides combined into one document. Only read if you need the complete reference. |
+| **Overview Guide** | `persephone://guides/overview` | Start here — the mental model (windows, pages, editors, boards, tools) and a task → tool → guide routing table. Read this first if you are new to Persephone. |
+| **ui_push Guide** | `persephone://guides/ui-push` | Log View output channel — entry types, dialogs, examples. Read when showing output to the user. |
+| **Pages Guide** | `persephone://guides/pages` | Pages & windows — page properties, editor types, creating pages, multi-window support. Read when working with tabs or documents. |
+| **Scripting Guide** | `persephone://guides/scripting` | Full scripting API — `app` object, editor facades, TypeScript, Node.js access. Read when using `execute_script`. |
+| **Graph Guide** | `persephone://guides/graph` | Graph editor data format and scripting API — node/link schema, `page.asGraph()` facade, query and traversal methods. Read when working with force-graph pages. |
+| **Notebook Guide** | `persephone://guides/notebook` | Notebook editor JSON format — NoteItem structure, content types (text, markdown, code, mermaid, grid). Read before creating or editing notebook pages. |
+| **Links Guide** | `persephone://guides/links` | Links editor JSON format — LinkItem structure, categories, tags. Read before creating or editing links pages. |
+| **Boards Guide** | `persephone://guides/boards` | Board authoring/automation reference — bridge API, theme contract, local vendoring, `browser_*` testing. Read before building or opening a board. |
+| **Tools Guide** | `persephone://guides/tools` | Agent Tools registry — `search_tools`/`execute_tool`, the stdin-JSON + result-marker contract, `.env` secrets. Read before using `search_tools`/`execute_tool`. |
+| **Browser Guide** | `persephone://guides/browser` | Browser automation in depth — page targeting resolution, snapshot format, ref lifecycle, waiting strategies, errors. Read when using `browser_*` tools beyond the basics. |
+| **Full Guide** | `persephone://guides/full` | All guides combined into one document. Only read if you need the complete reference. |
 
 AI agents also receive **server instructions** on connection — a concise overview of persephone and its main workflows, with pointers to which guide to read for each task. This means agents have immediate context without reading any resource.
 
-> **Tip:** All guides are also available via the `read_guide` tool — call `read_guide({ guide: "scripting" })` instead of fetching `notepad://guides/scripting`. This is useful for AI clients that don't support MCP resources.
+> **Tip:** All guides are also available via the `read_guide` tool — call `read_guide({ guide: "scripting" })` instead of fetching `persephone://guides/scripting`. This is useful for AI clients that don't support MCP resources.
 
 > **Note:** Claude Code users working inside the persephone project already have full documentation context via CLAUDE.md, so they rarely need to fetch resources explicitly. Resources are most useful for standalone AI clients connecting without any project context.
 

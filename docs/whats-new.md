@@ -8,7 +8,15 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.20 (Upcoming)
 
-*No changes yet.*
+### Improvements
+
+- **MCP guides for AI agents — new overview and browser guides, every guide gets an "Errors & verification" section** — Two new guides: `read_guide("overview")` gives an AI agent the mental model (windows, pages, editors, boards, tools) plus a task → tool → guide routing table, the recommended starting point for any agent new to Persephone; `read_guide("browser")` documents the exact page-targeting resolution used by `browser_*` tools, the accessibility snapshot format, when element refs go stale, and waiting strategies. Every existing guide (`ui-push`, `pages`, `scripting`, `notebook`, `links`, `graph`, `boards`, `tools`) now has an "Errors & verification" section describing failure modes agents actually hit. The force-graph data format is now documented only in the `graph` guide (the `pages` guide points there instead of duplicating it), and its documented option defaults were corrected to match the code (`charge: -70`, `linkDistance: 40`, `collide: 0.7`). See [MCP Server Setup](./mcp-setup.md#available-resources).
+
+- **MCP resource URIs renamed `notepad://` → `persephone://`** — All MCP guide resources now use the `persephone://guides/*` URI scheme (e.g. `persephone://guides/pages`) instead of the old `notepad://guides/*`. This only affects AI clients that hardcoded the old URI scheme directly — the `read_guide` tool and guide names (`"pages"`, `"scripting"`, etc.) are unchanged. See [MCP Server Setup — Available Resources](./mcp-setup.md#available-resources).
+
+- **`open_url` and `open_board` MCP tools now return the opened page's ID** — Both tools now return `{ opened, pageId, title }` instead of just `{ opened }`, so an AI agent can pass `pageId` to `browser_*` tools (or `board_refresh`) to target the exact page it just opened, instead of relying on it staying the active tab. See [MCP Server Setup](./mcp-setup.md#available-tools) and [Boards — MCP tools for boards](./boards.md#mcp-tools-for-boards).
+
+- **`app.pages.openUrlInBrowserTab()` now returns the opened page's ID** — Previously resolved to `void`; it now resolves to the target page's `id` (`Promise<string>`), useful for scripts that need to act on the browser tab right after opening it. See [Scripting API — app.pages](./api/pages.md#openurlinbrowsertaburl-options--promisestring).
 
 ---
 

@@ -27,13 +27,16 @@ persephone/
 │   ├── icons/              # App icons
 │   ├── excalidraw/fonts/   # Self-hosted Excalidraw fonts (woff2, OFL-1.1 licensed)
 │   ├── script-library/     # Bundled example scripts (copied to user library on setup)
+│   ├── mcp-res-overview.md # MCP resource: start-here mental model + task→tool→guide routing
 │   ├── mcp-res-ui-push.md  # MCP resource: ui_push tool guide
 │   ├── mcp-res-pages.md    # MCP resource: pages & windows guide
 │   ├── mcp-res-scripting.md # MCP resource: scripting API reference
 │   ├── mcp-res-graph.md    # MCP resource: force-graph data format & page.asGraph() API
 │   ├── mcp-res-notebook.md # MCP resource: notebook editor JSON format
 │   ├── mcp-res-links.md    # MCP resource: links editor JSON format
+│   ├── mcp-res-boards.md   # MCP resource: boards guide (create/open lifecycle, bridge, testing)
 │   ├── mcp-res-tools.md    # MCP resource: Agent Tools registry guide (manifest format, stdin/stdout contract, .env, self-repair)
+│   ├── mcp-res-browser.md  # MCP resource: browser_* automation guide (targeting resolution, snapshot/ref lifecycle, waiting)
 │   ├── board-template/     # Scaffold copied into every new board
 │   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, reload, MCP debug)
 │   ├── tool-template/      # Scaffold copied into every new toolset (create_toolset)

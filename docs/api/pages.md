@@ -184,9 +184,9 @@ Options:
 await app.pages.showBrowserPage({ url: "https://github.com" });
 ```
 
-### openUrlInBrowserTab(url, options?) → `Promise<void>`
+### openUrlInBrowserTab(url, options?) → `Promise<string>`
 
-Open a URL in a browser tab (reuses existing browser page if possible).
+Open a URL in a browser tab (reuses existing browser page if possible). Resolves to the id of the target page.
 
 Options:
 - `incognito?: boolean`
@@ -194,7 +194,7 @@ Options:
 - `external?: boolean` — open in OS default browser instead
 
 ```javascript
-await app.pages.openUrlInBrowserTab("https://docs.github.com");
+const pageId = await app.pages.openUrlInBrowserTab("https://docs.github.com");
 ```
 
 ## Navigation
