@@ -15,6 +15,7 @@ import {
 } from "../../editors/explorer";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
+import { signalReadyToQuit } from "../window";
 import { fs as appFs } from "../fs";
 import { app } from "../app";
 import { createLinkData } from "../../../shared/link-data";
@@ -256,7 +257,7 @@ export class PagesPersistenceModel {
             this.model.state.get().pages.map((page) => page.saveState()),
         );
         await this.saveState();
-        api.setCanQuit(true);
+        signalReadyToQuit();
     };
 }
 

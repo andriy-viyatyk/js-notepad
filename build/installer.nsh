@@ -352,7 +352,13 @@ FunctionEnd
 ; ========================================================================
 
 !macro customUnInstall
-    ; Read what was installed
+    ; Read what was installed.
+    ;
+    ; ORDER MATTERS BELOW: _UnRegisterFileAssoc reuses $R0 and $R1 as scratch,
+    ; so every ${If} that tests $R0/$R1 must run BEFORE the $R3 branch that
+    ; invokes it. It does today, and $R5 is never touched by the macro — but
+    ; moving a cleanup block past the TextFiles loop would silently turn this
+    ; into a real clobber, with no error, just skipped cleanup.
     ReadRegDWORD $R0 HKCU "Software\persephone\Install" "Desktop"
     ReadRegDWORD $R1 HKCU "Software\persephone\Install" "StartMenu"
     ReadRegDWORD $R2 HKCU "Software\persephone\Install" "ContextMenu"

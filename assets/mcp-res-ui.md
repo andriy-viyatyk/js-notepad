@@ -182,6 +182,7 @@ Two things to know before editing it:
 | `git.enabled` | **Off by default** — the reason a user sees no Git Tree or Git Diff. |
 | `mneme.enabled` | **Off by default** — the reason a user sees no Mneme features. Mneme runs its own MCP server on `mneme.port`, separate from `mcp.port`. |
 | `theme` | Applies on save. One of nine names; the file's own comment lists them. |
+| `window.close-to-tray` | **On by default** — why closing the last window does not quit Persephone; it hides into the tray and its background services keep running. Set false to make closing the last window exit. Tray → Quit always exits either way. |
 
 The file's comments carry the accepted values and defaults for every key, so read it before
 guessing — it is written to be self-describing.

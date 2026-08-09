@@ -7,8 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(no epic)*
-  - [ ] US-930: Installer — folder context menu, retire text-file associations
+*(nothing active)*
 
 ## Planned
 *(nothing planned — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*

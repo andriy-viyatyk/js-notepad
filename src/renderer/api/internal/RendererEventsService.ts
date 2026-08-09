@@ -2,7 +2,7 @@ import rendererEvents from "../../../ipc/renderer/renderer-events";
 import { pagesModel } from "../pages";
 import { app } from "../app";
 import { createLinkData } from "../../../shared/link-data";
-import { api } from "../../../ipc/renderer/api";
+import { signalReadyToQuit } from "../window";
 import { ui } from "../ui";
 import { UpdateCheckResult } from "../../../ipc/api-param-types";
 import { EventEndpoint } from "../../../ipc/api-types";
@@ -120,7 +120,7 @@ export class RendererEventsService {
         } catch (err) {
             console.error("Failed to save pages on quit:", err);
         }
-        api.setCanQuit(true);
+        signalReadyToQuit();
     };
 
     private handleBoardNotify = (data: { message: string; type?: "info" | "success" | "warning" | "error" }) => {

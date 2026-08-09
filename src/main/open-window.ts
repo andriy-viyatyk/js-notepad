@@ -68,7 +68,16 @@ export class OpenWindow {
             if (!this.canQuit) {
                 event.preventDefault();
                 this.send(EventEndpoint.eBeforeQuit, undefined);
-                // If renderer is crashed or unresponsive, force-quit after timeout
+                // If renderer is crashed or unresponsive, force-quit after timeout.
+                //
+                // This deliberately calls close() directly rather than going
+                // through openWindows.setCanQuit, so it does NOT honour the
+                // close-to-tray setting: a hung last window is destroyed, and
+                // the app quits with it. That is the intended failure mode.
+                // Hiding a renderer that never answered would leave a frozen
+                // window behind the tray icon, which looks like a working
+                // background app until the user clicks it. Failing closed is
+                // recoverable; failing into a zombie is not.
                 if (!this.quitTimeout) {
                     this.quitTimeout = setTimeout(() => {
                         this.close();

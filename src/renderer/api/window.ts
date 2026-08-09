@@ -1,7 +1,26 @@
 import { api } from "../../ipc/renderer/api";
 import rendererEvents from "../../ipc/renderer/renderer-events";
 import { TOneState } from "../core/state/state";
+import { settings } from "./settings";
 import type { IWindow } from "./types/window";
+
+/**
+ * Tell the main process this window has finished persisting its state and may
+ * now be disposed of — the reply to the `eBeforeQuit` round-trip.
+ *
+ * The boolean carries the close-behavior policy with it, which is why this is a
+ * function rather than a bare `api.setCanQuit(true)`. The main process cannot
+ * read settings (it never loads `appSettings.json`), so rather than mirroring
+ * the value over a second IPC channel and keeping it in sync per window, the
+ * renderer answers with the decision already applied. There is no startup race
+ * this way: whoever is closing has the current setting by definition.
+ *
+ * `false` means "hide me instead" — and main only honours that for the *last*
+ * window, and never when the user picked Quit from the tray.
+ */
+export function signalReadyToQuit(): void {
+    api.setCanQuit(!settings.get("window.close-to-tray"));
+}
 
 interface WindowState {
     isMaximized: boolean;

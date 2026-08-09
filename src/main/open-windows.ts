@@ -85,14 +85,29 @@ class OpenWindows {
         return this.findWindowDataByWindow(browserWindow)?.window;
     };
 
+    /**
+     * The renderer's reply to `eBeforeQuit`: its state is saved and the window
+     * can go. `canQuit` carries the user's close-behavior setting, resolved in
+     * the renderer because the main process never loads `appSettings.json` —
+     * see `signalReadyToQuit` in the renderer's window API.
+     *
+     * `false` (close to tray, the default) hides the last window instead of
+     * destroying it. A hidden BrowserWindow still counts as open, so
+     * `window-all-closed` does not fire and the app stays resident with its
+     * services up. `true` destroys it, `window-all-closed` fires, and the app
+     * quits — which is exactly the wiring the setting is switching between.
+     *
+     * Only the LAST window is ever hidden; any other window really closes. And
+     * `doQuit` (set only by tray → Quit) overrides the setting entirely.
+     */
     setCanQuit = (
         browserWindow: BrowserWindow | undefined,
-        _canQuit: boolean
+        canQuit: boolean
     ) => {
         const openWindowData = this.findWindowDataByWindow(browserWindow);
         const openWindow = openWindowData?.window;
         const isLastWindow = !this.windows.some(w => w !== openWindowData && w.window);
-        if (isLastWindow && !this.doQuit) {
+        if (isLastWindow && !this.doQuit && !canQuit) {
             if (openWindow.quitTimeout) {
                 clearTimeout(openWindow.quitTimeout);
                 openWindow.quitTimeout = null;

@@ -339,6 +339,16 @@ Most `onChanged` subscribers are legitimately per-window — the script-library 
 env store, the Mneme connection and status models — so the emit is not suppressed outside the
 originating window. Global services are the exception that must absorb it.
 
+**Not every setting that affects the main process needs actuating, though.** The main process
+never loads the settings file, so a value it depends on has to travel over IPC — but pushing it
+eagerly is only worth it when main must *act* the moment the value changes, as the MCP server and
+Mneme do. When main instead needs the value at a specific decision point, the cheaper shape is to
+let the renderer resolve it and send the answer along with whatever message it was already
+sending. `window.close-to-tray` works this way: the renderer folds it into its `setCanQuit` reply
+when a window is closing, so there is no mirrored copy in main to keep in sync, no per-window
+divergence, and no startup window in which a stale default would be consulted. Prefer this
+whenever the decision point is already a renderer→main message.
+
 ## Using State in Components
 
 ### Via Object Model

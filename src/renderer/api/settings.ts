@@ -47,6 +47,7 @@ export type AppSettingsKey =
     | "visualizer-effect"
     | "audio-shuffle"
     | "git.enabled"
+    | "window.close-to-tray"
     | "board-vars.file";
 
 // =============================================================================
@@ -116,6 +117,7 @@ const settingsComments: Partial<Record<AppSettingsKey, string>> = {
     "visualizer-effect": "Audio visualizer style shown while playing audio files.\nOne of: bars, circular, none. Default: bars.",
     "audio-shuffle": "Shuffle mode for audio playback across a folder, category, or tag set.\nBoolean. Default: false. Toggled by the Shuffle button in the player.",
     "git.enabled": "Enable Git integration — the Git Tree and Git Diff editors.\nBoolean. Default: false, and with it off Persephone performs no git activity at all.\nRequires git installed and on PATH. This is usually why a user cannot find git features.",
+    "window.close-to-tray": "Keep Persephone running in the notification tray after its last window is closed.\nBoolean. Default: true — closing the last window only hides it, and the app is\nrestored from the tray icon. Background services (MCP server, Mneme, the launcher\npipe that makes \"Open with persephone\" instant) stay up, which is the point.\nSet false to make closing the last window quit the app outright. The tray icon is\nstill there while the app runs; Quit from it always exits regardless of this setting.",
     "board-vars.file": "Absolute path to the board environment-variables file (.env.json).\nHolds per-board variables and secrets, deliberately OUTSIDE board folders so a board\nfolder can be shared without its secrets. May be password-encrypted via the file's\nencryption menu, in which case its values cannot be read until the user unlocks it.",
 };
 
@@ -148,6 +150,7 @@ const defaultAppSettingsState = {
         "visualizer-effect": "bars" as string,
         "audio-shuffle": false,
         "git.enabled": false,
+        "window.close-to-tray": true,
         "board-vars.file": "",
     },
 };

@@ -10,6 +10,13 @@
 2. Run the installer or extract the ZIP
 3. Launch persephone
 
+The installer's **Additional Options** page offers three checkboxes:
+- **Add "Open with persephone" for files to Explorer context menu** (checked by default)
+- **Add "Open with persephone" for folders to Explorer context menu** (checked by default) — lets you open a folder straight into persephone from Explorer; it opens as a new tab with the File Explorer panel rooted at that folder
+- **Register as default browser** (unchecked by default)
+
+Passing a folder path on the command line opens the same way. If you're upgrading from an older version that had the (now removed) "Set as default app for text files" option checked, that upgrade releases those file associations — each extension reverts to whatever app previously handled it.
+
 ### From Source
 
 ```bash
@@ -97,6 +104,18 @@ You can also cycle through themes with `Ctrl+Alt+]` (next) and `Ctrl+Alt+[` (pre
 Your theme preference is saved automatically and applied on next launch.
 
 The Settings page also has a "View Settings File" button to open the raw `appSettings.json` for manual editing (`%APPDATA%\persephone\data\appSettings.json`). Edits to the file — made by hand, by a script, or by an AI agent — take effect immediately, with no restart needed, including settings that start or stop something (the MCP server, browser tools, Mneme). The file carries a header comment plus a per-setting comment (accepted values, default, and any gotcha — for example, changing a port only moves a running server if you also toggle the feature off and on). Persephone rewrites these comments on every save, so they always match the current version.
+
+## Window Behavior
+
+Closing persephone's last window hides it into the notification tray by default, keeping background services (the MCP server, Mneme) running. The tray icon stays visible while the app is running — left-click it to toggle window visibility, or use its menu (**Show App**, **Quit**).
+
+To make closing the last window quit the app instead:
+
+1. Click the app button (persephone icon) in the top-left corner to open the sidebar menu
+2. Click the Settings button (gear icon) to open the Settings page
+3. In the **Window Behavior** section, uncheck **"Keep running in the tray after closing the last window"**
+
+Settings file key: `window.close-to-tray` (boolean, default `true`). The tray's **Quit** action always exits persephone, regardless of this setting.
 
 ## Next Steps
 

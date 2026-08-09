@@ -118,7 +118,7 @@ For multi-window transfer, `movePageOut()` calls `detachPage()` WITHOUT calling 
 
 **Portal-based rendering:** Pages are rendered through `AppPageManager` (`src/renderer/components/page-manager/AppPageManager.tsx`) using React portals with imperatively managed placeholder divs. Each page gets a stable placeholder that is never destroyed until the page closes. This prevents iframes, webviews, and canvas elements from reloading when pages are closed, reordered, grouped, or ungrouped. Placeholders are never reparented (moved between containers) — grouping is achieved purely via CSS absolute positioning within the same container. See `GroupContainer` and `ImperativeSplitter` in the same folder.
 
-**Main editor view keyed by model id:** within a page, the main editor view is rendered as `<RenderEditor key={editor.id} model={editor} />` (`src/renderer/ui/app/Pages.tsx`). The `key` is the editor **model instance id**, so navigating within a page to another file of the *same* editor type (Monaco A→B, Git Diff A→B) **remounts** the view rather than reusing the component with a new `model` prop — the latter left the body model (`useComponentModel`) and Monaco/DiffEditor internal state (content, scroll) stale. An editor-type switch preserves the id (the component swap is handled by `AsyncEditor`'s module cache), so the key does not cause a spurious remount there. This is the original design; it regressed during a refactor and was restored in US-618.
+**Main editor view keyed by model id:** within a page, the main editor view is rendered as `<RenderEditor key={editor.id} model={editor} />` (`src/renderer/ui/app/Pages.tsx`). The `key` is the editor **model instance id**, so navigating within a page to another file of the *same* editor type (Monaco A→B, Git Diff A→B) **remounts** the view rather than reusing the component with a new `model` prop — the latter left the body model (`useComponentModel`) and Monaco/DiffEditor internal state (content, scroll) stale. An editor-type switch preserves the id (the component swap is handled by `AsyncEditor`'s module cache), so the key does not cause a spurious remount there. This is the original design; it regressed during a refactor and was restored.
 
 ---
 
@@ -240,7 +240,7 @@ import { pagesModel } from "../api/pages";
 - `removePage(page)` — removes from `pages[]` and `ordered[]` arrays
 - `fixGrouping()` — invariant repair
 - `checkEmptyPage()` — auto-create empty page when last one closes
-- `addEmptyPageWithNavPanel(folderPath)` — creates a PageModel with `mainEditor = null` and an initialized sidebar (Explorer panel). Used by sidebar double-click, archive browsing, the "Open Folder" menu, the "Open Folder" item in the Tools & Editors list, the folder-tree context menu, and opening a link that points to a directory. The page renders just the sidebar with an empty content area.
+- `addEmptyPageWithNavPanel(folderPath)` — creates a PageModel with `mainEditor = null` and an initialized sidebar (Explorer panel). Used by sidebar double-click, archive browsing, the "Open Folder" menu, the "Open Folder" item in the Tools & Editors list, the folder-tree context menu, opening a link that points to a directory, and a folder path arriving from the command line or Explorer's "Open with persephone" folder context menu. The page renders just the sidebar with an empty content area.
 - `openFileAsArchive(filePath)` — opens an archive for browsing. Creates a PageModel with sidebar root set to the archive root. Reuses existing tab if the archive is already open. ZIP archives use `!` separator (e.g., `doc.zip!word/document.xml`) via `archive-service.ts`; `.asar` archives use the regular path directly (e.g., `app.asar`) via Electron's native fs patching — see `file-path.ts`.
 - `openLinks(links, title?)` — creates a link collection page. A `LinkEditor` with `.link.json` content is added as a Pattern A secondary view (never mainEditor). The Categories panel appears in the sidebar; clicking a link navigates the page's main area to that file. Accepts `(ILink | string)[]` — strings are converted to LinkItems with auto-generated titles.
 - `save()` / `restore()` — persistence (called by bootstrap, not by scripts)
@@ -352,7 +352,7 @@ PageModel is the tab container that owns the sidebar layout (open/close/width vi
 
 **Source:** [`/src/renderer/api/pages/PageModel.ts`](../../src/renderer/api/pages/PageModel.ts)
 
-### Mandatory sidebar and auto-Explorer (EPIC-029)
+### Mandatory sidebar and auto-Explorer
 
 `PageModel.sidebarMandatory` is a computed boolean. It is `true` when any secondary view other than the file Explorer is contributing panels. This happens for Link, Archive, Notebook, and Rest Client editors when their panels are open.
 
@@ -438,3 +438,78 @@ PageModel holds a `secondaryViews[]` array of EditorModel instances that appear 
 - Lifecycle hooks: `beforeNavigateAway()`, `onMainEditorChanged()`, `onPanelExpanded()`
 - Portal-based headers: panel components use `createPortal()` to render into CollapsiblePanel headers
 - Persistence: saved as `SecondaryModelDescriptor[]` in sidebar cache, with deduplication for Pattern B
+
+---
+
+## 11. Window Shutdown, Tray, and Quit
+
+Closing a window is a round-trip, not an event. The main process cannot let a window
+die until the renderer has flushed its page state to disk, so every close is refused
+once and then completed on the renderer's reply.
+
+```mermaid
+sequenceDiagram
+    participant U as User / Tray
+    participant W as OpenWindow — main
+    participant R as Renderer
+    participant OW as OpenWindows — main
+
+    U->>W: close
+    W->>W: event.preventDefault()
+    W->>R: eBeforeQuit
+    Note over W: 2s watchdog armed
+    R->>R: save all page state
+    R->>OW: setCanQuit(canQuit)
+    alt last window AND not tray-Quit AND !canQuit
+        OW->>W: hide() — app stays resident
+    else
+        OW->>W: destroy() → window-all-closed → app.quit()
+    end
+```
+
+**The close is always prevented first.** `OpenWindow`'s `close` handler calls
+`event.preventDefault()` and sends `eBeforeQuit`; the window is only ever really
+disposed of through `OpenWindow.close()` → `win.destroy()`, which bypasses the
+`close` event entirely.
+
+**Hiding is what keeps the app alive.** A hidden `BrowserWindow` still counts as
+open, so `window-all-closed` does not fire and `app.quit()` is never reached —
+which is the whole mechanism behind close-to-tray. Destroying the last window
+instead lets `window-all-closed` run, and the `will-quit` handler tears down every
+background service (Tor, child commands, board ports, the named pipe, the MCP HTTP
+server, the video stream server, Mneme). The `window.close-to-tray` setting is
+simply a choice between those two paths.
+
+**Policy rides on the reply, because main cannot read settings.** The main process
+never loads `appSettings.json` — settings live in the renderer. Rather than mirror
+the value over a second IPC channel and keep it in sync per window, the renderer
+resolves it at the moment it answers and sends the decision in `setCanQuit`'s
+boolean. Nothing to synchronize, and no startup race: whichever window is closing
+has the current value by definition.
+
+**Three guards decide the outcome**, all in `OpenWindows.setCanQuit`:
+
+| Guard | Effect |
+|---|---|
+| `doQuit` | Set only by tray → Quit; overrides everything so Quit always exits |
+| `isLastWindow` | Non-last windows always really close; only the last one can hide |
+| `canQuit` | The renderer-resolved `window.close-to-tray` setting |
+
+**An unresponsive renderer force-closes.** If no reply arrives within 2 s the
+watchdog calls `OpenWindow.close()` directly, skipping all three guards — so a hung
+last window is destroyed and the app quits regardless of the setting. This is
+deliberate: hiding a renderer that never answered would leave a frozen window behind
+the tray icon, looking like a working background app until the user clicks it.
+
+**Whether a closed window is remembered** is decided in `OpenWindows.windowOnClose`.
+A secondary window's persisted state (`openFiles<index>.json`) survives only if some
+page is **modified or pinned**; otherwise the file is deleted and the window slot is
+dropped. The last window is exempt from the check entirely — its state is always
+kept, which is what makes a normal quit restore the session. Remembered windows are
+reopenable from the app bar's "Open Tabs" menu.
+
+**Implementation:** [`/src/main/open-window.ts`](../../src/main/open-window.ts),
+[`/src/main/open-windows.ts`](../../src/main/open-windows.ts),
+[`/src/main/tray-setup.ts`](../../src/main/tray-setup.ts),
+[`/src/main/window-states.ts`](../../src/main/window-states.ts),
+[`/src/renderer/api/window.ts`](../../src/renderer/api/window.ts) (`signalReadyToQuit`)

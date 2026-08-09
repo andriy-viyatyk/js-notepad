@@ -487,6 +487,8 @@ Opening the file from **Settings → Board Environment Variables → Open Enviro
 
 Opens when you click a folder in the File Explorer or Archive panel. Displays the folder's contents in the main editor area with list or tile layouts.
 
+You can also open a folder from outside the app: pass a folder path on the command line, or use the **"Open with persephone" for folders** Explorer context-menu entry (enabled during install — see [Getting Started — Installation](./getting-started.md#installation)). Either one opens a new tab with the File Explorer panel rooted at that folder, same as the **Open Folder** pinned tool.
+
 - **List mode** — Files and folders shown as a vertical list with file-type icons
 - **Tile modes** — Switch between landscape tiles, portrait tiles (normal and large) for a visual grid layout. Images show a preview thumbnail — including images inside an archive (e.g. browsing `document.docx!word/media` in the Archive panel), so opening an Office file's media folder in a tile mode gives you a visual contact sheet of its embedded pictures; links show favicons as fallback icons
 - **View mode per folder** — Each folder remembers its preferred view mode. Child folders inherit the parent's mode unless overridden

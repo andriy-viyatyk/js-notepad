@@ -896,6 +896,42 @@ function McpSection() {
 }
 
 // ============================================================================
+// Window Behavior Section
+// ============================================================================
+
+function WindowBehaviorSection() {
+    const closeToTray = settings.use("window.close-to-tray");
+
+    return (
+        <>
+            <Panel paddingBottom="lg"><Text bold size="sm">Window Behavior</Text></Panel>
+            <Panel paddingBottom="md">
+                <Text color="light" size="xs">
+                    What happens when you close the last Persephone window.
+                </Text>
+            </Panel>
+
+            <Panel direction="row" align="center" gap="md" paddingBottom="md">
+                <Checkbox
+                    checked={closeToTray}
+                    onChange={() => settings.set("window.close-to-tray", !closeToTray)}
+                >
+                    Keep running in the tray after closing the last window
+                </Checkbox>
+            </Panel>
+
+            <Panel paddingBottom="lg">
+                <Text color="light" size="xs">
+                    {closeToTray
+                        ? "Closing the last window hides it — click the tray icon to bring it back. Background services stay running."
+                        : "Closing the last window quits Persephone. Background services (MCP server, Mneme) stop with it."}
+                </Text>
+            </Panel>
+        </>
+    );
+}
+
+// ============================================================================
 // Git Integration Section
 // ============================================================================
 
@@ -1377,6 +1413,10 @@ function SettingsView(_props: SettingsEditorProps) {
                         <Text variant="uppercased" color="light" bold size="xs">Light</Text>
                     </Panel>
                     {renderThemeGrid(lightThemes)}
+
+                    <Panel paddingY="xl"><Divider /></Panel>
+
+                    <WindowBehaviorSection />
 
                     <Panel paddingY="xl"><Divider /></Panel>
 
