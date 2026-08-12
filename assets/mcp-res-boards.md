@@ -244,8 +244,16 @@ srv.write(JSON.stringify({ id: 1, sql }) + "\n");   // per query — db stays op
   native dialogs returning a path you hand to `execute()`.
 - `persephone.readFile(path, options?)` / `writeFile(path, data, options?)` — read/write a file with
   no backend script. Relative `path` resolves against the board folder; absolute reads/writes anywhere.
-  Text by default, `{ encoding: "base64" }` for binary; `writeFile` creates parent dirs. Both return
-  Promises (reject on error). Use it to persist small board state and load board-local config.
+  `writeFile` creates parent dirs. Both return Promises (reject on error). Encodings: `"utf8"`
+  (default) → string; **`"binary"` → a `Uint8Array`, the right choice for ANY binary file** (image,
+  PDF, zip, spreadsheet) — it feeds a parser directly and is the only way to read a file over
+  ~400 MB, since base64 of one exceeds V8's max string length; `"base64"` → a base64 string, for
+  when you actually want base64 (a `data:` URI). `"binary"` needs app 4.0.21+, so declare
+  `"minAppVersion": "4.0.21"` in `board-manifest.json` — Persephone then refuses to run the board on
+  older apps and no runtime check is needed. Use it to persist small board state and load config.
+  ```js
+  const bytes = await persephone.readFile(path, { encoding: "binary" });  // Uint8Array
+  ```
 - `persephone.getFilePath()` → `Promise<string | undefined>` — when the board is opened as a **custom
   editor** for a file (associated via `fileMasks` in `board-manifest.json`), resolves to that file's
   absolute path (read/write it with `readFile`/`writeFile`); `undefined` for a board opened plainly.

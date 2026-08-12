@@ -227,8 +227,8 @@ These handle in-app effects that `execute()` cannot express:
 | `persephone.openFileDialog(params?)` | Show a native Open File dialog; returns the selected path. |
 | `persephone.saveFileDialog(params?)` | Show a native Save File dialog; returns the chosen path. |
 | `persephone.openFolderDialog(params?)` | Show a native Open Folder dialog; returns the selected path. |
-| `persephone.readFile(path, options?)` | Read a file and return its contents (Promise). A relative `path` resolves against the board folder; absolute reads anywhere. Text by default, or `{ encoding: "base64" }` for binary. |
-| `persephone.writeFile(path, data, options?)` | Write a file (Promise); creates parent folders. A relative `path` resolves against the board folder. Text by default, or `{ encoding: "base64" }` for binary. |
+| `persephone.readFile(path, options?)` | Read a file and return its contents (Promise). A relative `path` resolves against the board folder; absolute reads anywhere. Text by default; `{ encoding: "binary" }` returns a `Uint8Array` (the right choice for binary files — app 4.0.21+), `{ encoding: "base64" }` a base64 string. |
+| `persephone.writeFile(path, data, options?)` | Write a file (Promise); creates parent folders. A relative `path` resolves against the board folder. Text by default; `{ encoding: "binary" }` takes a `Uint8Array`, `{ encoding: "base64" }` a base64 string. |
 
 Use `readFile`/`writeFile` to persist small board state (last filter, column layout, selected item) or load a board-local config — no backend script needed:
 

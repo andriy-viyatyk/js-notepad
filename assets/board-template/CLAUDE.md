@@ -230,10 +230,24 @@ close reaps the child.
   — native dialogs; each returns a path you hand to `execute()`.
 - `persephone.readFile(path, options?)` / `writeFile(path, data, options?)` — read/write a file
   directly, no backend script needed. A **relative** `path` resolves against the board folder (the
-  same default as `execute()`'s cwd); an absolute path reads/writes anywhere. Text by default; pass
-  `{ encoding: "base64" }` for binary. `writeFile` creates parent folders. Both return Promises and
-  reject on error. Ideal for persisting small board state (column layout, last filter, selected
-  item) and loading a board-local config:
+  same default as `execute()`'s cwd); an absolute path reads/writes anywhere. `writeFile` creates
+  parent folders. Both return Promises and reject on error. Three encodings:
+  - **`"utf8"`** (default) — a plain string.
+  - **`"binary"`** — a **`Uint8Array`** of the raw bytes. **Use this for any binary file** (an
+    image, a PDF, a zip, a spreadsheet). It hands the bytes straight to your parser with no
+    conversion, and it is the only way to read a file over ~400 MB, because base64 of one exceeds
+    V8's maximum string length. Requires app **4.0.21+** — declare `"minAppVersion": "4.0.21"` in
+    `board-manifest.json` and Persephone will refuse to run the board on anything older, so no
+    runtime check is needed.
+  - **`"base64"`** — a base64 string. Correct when you genuinely want base64 (building a `data:`
+    URI); a poor way to move bytes. Measured on a 20 MB file: ~65 ms of pure conversion (`atob`
+    plus a per-byte decode) and roughly 3x the transient memory of the binary path.
+  ```js
+  const bytes = await persephone.readFile(await persephone.getFilePath(), { encoding: "binary" });
+  const workbook = XLSX.read(bytes, { type: "array" });   // no atob, no copy loop
+  ```
+  Ideal for persisting small board state (column layout, last filter, selected item) and loading a
+  board-local config:
   ```js
   // persist UI state
   await persephone.writeFile("state.json", JSON.stringify(state));

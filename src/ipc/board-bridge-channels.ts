@@ -75,9 +75,17 @@ export interface BoardOpenRawLinkMsg {
     editor?: string;
 }
 
-/** Text encoding for the board file bridge (US-756 C4). "utf8" returns/accepts a
- *  plain string; "base64" returns/accepts base64 for binary content. */
-export type BoardFileEncoding = "utf8" | "base64";
+/** Encoding for the board file bridge (US-756 C4). "utf8" returns/accepts a plain
+ *  string; "base64" returns/accepts base64; "binary" returns/accepts the bytes
+ *  themselves as a `Uint8Array` (bridge API 1.1.0 / app 4.0.21 — US-933).
+ *
+ *  Prefer "binary" for binary files. "base64" costs an encode in main, a ~33% larger
+ *  payload over the port, and an `atob` + per-byte decode in the board (measured: 65 ms
+ *  of pure conversion on a 20 MB file, and ~3x the transient memory), and it cannot
+ *  carry a file over ~400 MB at all, because base64 of one exceeds V8's max string
+ *  length. It remains the right choice only when the board actually wants base64 text
+ *  (a `data:` URI, say). */
+export type BoardFileEncoding = "utf8" | "base64" | "binary";
 
 export interface BoardReadFileMsg {
     /** Absolute, or relative to the board root. */
@@ -88,8 +96,8 @@ export interface BoardReadFileMsg {
 export interface BoardWriteFileMsg {
     /** Absolute, or relative to the board root. */
     path: string;
-    /** File contents — a plain string ("utf8") or base64 ("base64"). */
-    data: string;
+    /** File contents — a plain string ("utf8"), base64 ("base64"), or bytes ("binary"). */
+    data: string | Uint8Array;
     encoding?: BoardFileEncoding;
 }
 

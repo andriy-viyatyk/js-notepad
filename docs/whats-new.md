@@ -8,7 +8,9 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ## Version 4.0.21 (Upcoming)
 
-*No changes yet.*
+### Improvements
+
+- **Boards can read and write files as raw bytes** — `persephone.readFile(path, { encoding: "binary" })` now returns a `Uint8Array` instead of forcing binary content through base64, and `writeFile` accepts one. This is what a board hands straight to a PDF, spreadsheet or image parser, so opening a large file gets faster and uses roughly a third of the memory it used to. It also removes a hard limit: a file over about 400 MB could not be opened by a board at all, because its base64 form exceeded the browser's maximum string length. `"utf8"` (the default) and `"base64"` are unchanged — the latter is still the right choice when you actually want base64, such as building a `data:` URI. An unrecognised encoding is now reported as an error instead of quietly falling back to text. Boards that use the new encoding declare `"minAppVersion": "4.0.21"`.
 
 ---
 

@@ -172,6 +172,30 @@ function resolveBoardFilePath(root: string, p: string | undefined): string {
 }
 
 /** Run a request/reply RPC and return its result (thrown errors reject the caller). */
+/** Validate a board's `encoding` argument. Absent → "utf8" (the historical default).
+ *  An UNKNOWN value throws rather than falling back: the old code coerced anything that
+ *  wasn't "base64" to "utf8", so a board asking a too-old Persephone for "binary" got a
+ *  UTF-8 string back — silently mangled bytes instead of an error. Boards gate on
+ *  `minAppVersion`, so a loud failure here only ever means a genuine typo. */
+function fileEncoding(value: unknown): BoardFileEncoding {
+    if (value == null) return "utf8";
+    if (value === "utf8" || value === "base64" || value === "binary") return value;
+    throw new Error(
+        `Unknown file encoding "${String(value)}" — expected "utf8", "base64" or "binary".`,
+    );
+}
+
+/** The bytes a board sent for a "binary" write. Structured clone delivers a Uint8Array;
+ *  accept a bare ArrayBuffer too, since that is the easy thing for a board to pass. */
+function toBytes(data: unknown): Uint8Array {
+    if (data instanceof Uint8Array) return data;
+    if (data instanceof ArrayBuffer) return new Uint8Array(data);
+    if (ArrayBuffer.isView(data)) {
+        return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+    throw new Error('writeFile with encoding "binary" needs a Uint8Array or ArrayBuffer.');
+}
+
 async function runRpc(
     entry: BoardPortEntry,
     method: string,
@@ -187,15 +211,27 @@ async function runRpc(
             return showOpenFolderDialog(win, (args[0] as OpenFolderDialogParams) ?? {});
         case "readFile": {
             const filePath = resolveBoardFilePath(entry.root, args[0] as string);
-            const encoding: BufferEncoding = (args[1] as BoardFileEncoding) === "base64" ? "base64" : "utf8";
+            const encoding = fileEncoding(args[1]);
             const buf = await fs.promises.readFile(filePath);
+            if (encoding === "binary") {
+                // Structured-cloned over the port as bytes — no base64 string in between.
+                // Copy out of Node's (possibly pooled) buffer so the clone can't see more
+                // than this file, and so nothing downstream holds the pool alive.
+                return new Uint8Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+            }
             return buf.toString(encoding);
         }
         case "writeFile": {
             const filePath = resolveBoardFilePath(entry.root, args[0] as string);
-            const encoding: BufferEncoding = (args[2] as BoardFileEncoding) === "base64" ? "base64" : "utf8";
+            const encoding = fileEncoding(args[2]);
+            const data = args[1];
             await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-            await fs.promises.writeFile(filePath, Buffer.from((args[1] as string) ?? "", encoding));
+            // "binary" carries the bytes themselves; the string encodings carry text.
+            const body =
+                encoding === "binary"
+                    ? Buffer.from(toBytes(data))
+                    : Buffer.from((data as string) ?? "", encoding);
+            await fs.promises.writeFile(filePath, body);
             return undefined;
         }
         case "getJobs": {

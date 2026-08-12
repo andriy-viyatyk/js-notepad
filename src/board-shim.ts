@@ -1202,7 +1202,9 @@ function createHandle(
 // ── The `persephone` bridge (same surface as the old preload) ─────────────────
 
 (window as unknown as { persephone: unknown }).persephone = {
-    version: "1.0.0",
+    // Bridge API version — bumped when the `persephone.*` surface gains something.
+    // 1.1.0: readFile/writeFile accept `encoding: "binary"` (US-933).
+    version: "1.1.0",
 
     /** This frame's view role (EPIC-044): "main" for the board's main view, or the id of a
      *  declared secondary view. Branch on it to render every view from one HTML file. */
@@ -1271,11 +1273,25 @@ function createHandle(
         return rpc("openFolderDialog", [params ?? {}]) as Promise<string[] | undefined>;
     },
 
-    readFile(path: string, options?: { encoding?: "utf8" | "base64" }): Promise<string> {
-        return rpc("readFile", [path, options?.encoding]) as Promise<string>;
+    /** Read a file. `encoding` picks what you get back: "utf8" (default) or "base64" give
+     *  a string, "binary" gives a `Uint8Array` of the bytes — no base64 round-trip, which
+     *  is both faster and the only way to read a file over ~400 MB (base64 of one exceeds
+     *  V8's max string length). "binary" needs bridge API 1.1.0 / app 4.0.21: declare it
+     *  with `minAppVersion` in board-manifest.json. */
+    readFile(
+        path: string,
+        options?: { encoding?: "utf8" | "base64" | "binary" },
+    ): Promise<string | Uint8Array> {
+        return rpc("readFile", [path, options?.encoding]) as Promise<string | Uint8Array>;
     },
 
-    writeFile(path: string, data: string, options?: { encoding?: "utf8" | "base64" }): Promise<void> {
+    /** Write a file. With `encoding: "binary"`, `data` is a `Uint8Array` (or ArrayBuffer);
+     *  otherwise it is a string, interpreted as "utf8" (default) or "base64". */
+    writeFile(
+        path: string,
+        data: string | Uint8Array | ArrayBuffer,
+        options?: { encoding?: "utf8" | "base64" | "binary" },
+    ): Promise<void> {
         return rpc("writeFile", [path, data, options?.encoding]) as Promise<void>;
     },
 
