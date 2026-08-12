@@ -5,9 +5,33 @@
   "baseUrlNote": "Resolve every skin's `skin.file` as `baseUrl + file` to fetch it on a clean machine (skins are not bundled in the installer). Pinned to `main` (not a tag): skins are version-stamped in their headers and skin drift is expected — see README.md. The manifest itself is fetchable at `baseUrl + manifest.json`.",
   "components": [
     {
+      "id": "av-grid",
+      "name": "av-grid",
+      "purpose": "Data grid — THE DEFAULT GRID FOR A BOARD. Sortable / filterable columns (checklist funnels + a removable-chip filter bar), free-text search with in-cell highlighting, Excel-style range select + clipboard copy/paste, virtualized rendering, in-cell editing with validation, add/delete rows and columns, a context menu, column resize + drag-reorder, and status columns (row numbers, checkboxes) pinned left.",
+      "homepage": "https://github.com/andriy-viyatyk/av-grid",
+      "docs": "https://raw.githubusercontent.com/andriy-viyatyk/av-grid/main/docs/api.md",
+      "docsNote": "One file, complete, written FOR AN AGENT — fetch it before building a grid board. It has a 'Driving the grid from an agent' section covering the MCP browser tools (the grid resolves gestures on `pointerdown`, which `browser_click` does not send; prefer the grid API, and see the DOM contract for selectors).",
+      "npm": "av-grid",
+      "testedVersion": "latest",
+      "versionNote": "Unlike the third-party entries, av-grid is NOT pinned — the vendor URLs below resolve to the newest published version, and `docs` always serves the matching api.md. It is a first-party library that moves with Persephone, so the latest release is the tested one; check `AVGrid.version` (or lib/VERSION.txt in your board) to record what you actually vendored. Last verified here: 2.1.0 (2026-08).",
+      "preferThisOne": "Choose av-grid over Tabulator unless you need a feature it lacks. It is a port of Persephone's own internal grid (VAGrid), so it is native to the app: it reads the --p-* contract directly with NO skin to fetch and NO JS re-theming, it matches the look and keyboard behaviour of Persephone's built-in grid editors, and it renders more smoothly than Tabulator — noticeably so even on small datasets. Reach for Tabulator ONLY when the board genuinely needs one of: variable row heights (av-grid's `rowHeight` is uniform, explicitly), row grouping with collapsible group headers, tree / nested rows, nested (multi-level) column headers, pagination, footer column calculations / totals, built-in export (CSV / XLSX / PDF / print), remote-ajax data with server-side sort/filter/page, drag-to-reorder ROWS (av-grid drag-reorders columns, not rows), responsive column collapse, undo/redo history, freezing arbitrary DATA columns (av-grid pins only the leading status columns), or Tabulator's library of ready-made formatters (progress bar, star rating, traffic light) — av-grid gives you `render` / `formatValue` hooks and you write the cell yourself.",
+      "vendor": {
+        "css": "https://cdn.jsdelivr.net/npm/av-grid/dist/av-grid.css",
+        "js": "https://cdn.jsdelivr.net/npm/av-grid/dist/av-grid.umd.cjs",
+        "note": "Download BOTH INTO the board folder (e.g. lib/) and reference them with relative paths — the board CSP forbids remote network, so a CDN <script>/<link> will not load. RENAME the UMD bundle from .cjs to .js (e.g. lib/av-grid.umd.js) so it loads as a plain classic script; it puts the module namespace on `window.AVGrid`, and the class is `AVGrid.AVGrid` (the helpers — inferColumns, RenderGrid, Popover, … — hang off the same object). Load <script> order: lib/av-grid.umd.js → app.js."
+      },
+      "skin": {
+        "file": null,
+        "type": "none",
+        "tunedFor": "av-grid (unpinned — whatever the vendor URLs currently serve)",
+        "loadOrder": "board-base.css → lib/av-grid.css → your board's own <style> (last, so board rules win) — and pass `injectStyles: false` to create(), or the grid appends its stylesheet AFTER your page and out-orders your overrides.",
+        "cssVsJs": "NO SKIN TO FETCH — this is the point of av-grid on a board. Every --avg-* token falls back to its --p-* counterpart (--avg-bg→--p-bg, --avg-header-bg→--p-bg-dark, --avg-grid-line→--p-border-light, --avg-accent→--p-accent, --avg-font-size→--p-font-base, …), so the grid is themed on arrival and a live theme switch re-tints it with ZERO JavaScript and zero repaints — there is nothing to re-apply in onThemeChange. To make ONE grid deviate, set --avg-* on the grid ROOT (`grid.element.style.setProperty(...)`, or a `[data-type=\"render-grid\"].avg-grid { … }` rule — two classes' worth of specificity); --avg-* on an ancestor does NOTHING, because the root, popovers, the virtual list and the filter bar each define the whole block on themselves. Board CSS that overrides grid chrome must likewise out-specify av-grid's own one-class selectors (write `.avg-data-cell.my-class`, not a bare `.my-class`). Two gotchas that cost real time: the grid host MUST have a definite height (`getState().viewport.width === 0` means it doesn't, and the grid renders blank), and with `filterBar: true` the grid wraps itself in `.avg-grid-wrap` — give that `height: 100%`."
+      }
+    },
+    {
       "id": "tabulator",
       "name": "Tabulator",
-      "purpose": "Data grid — sortable / filterable columns, Excel-style range select + clipboard copy/paste, virtualized rendering for large datasets, in-cell editing, grouping, and tree data.",
+      "purpose": "Data grid — the FALLBACK grid, for the features av-grid does not have: variable row heights, row grouping, tree data, nested column headers, pagination, footer calculations, built-in export, remote-ajax data, row drag-reorder, responsive collapse, undo history, frozen data columns, and a library of ready-made formatters. For a plain sortable / filterable / editable grid, prefer `av-grid` (above) — it is native to Persephone, needs no skin, and renders more smoothly.",
       "homepage": "https://tabulator.info/",
       "npm": "tabulator-tables",
       "testedVersion": "6.5.1",

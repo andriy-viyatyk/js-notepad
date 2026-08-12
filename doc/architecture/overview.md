@@ -262,7 +262,7 @@ A **Board** is a small local web application (plain HTML + JS) owned by the user
 
 **MCP automation:** Boards are `browser_*` targets. `list_pages` returns board pages with `editor: "board-view"` and a `selectedBoard` field; all `browser_*` tools (snapshot, click, type, evaluate, …) work by `pageId`.
 
-**Recommended components** in `boards-assets/`: a catalog of 10 pre-built skins for popular libraries (Tabulator, Chart.js, Flatpickr, Tom Select, marked/highlight.js, Mermaid, Split.js, SortableJS, Tippy.js, native `<dialog>`). Described in `boards-assets/manifest.json`; adoption playbook in `boards-assets/README.md`.
+**Recommended components** in `boards-assets/`: a catalog of 11 vetted libraries — av-grid (the default data grid; **no skin**, it reads `--p-*` itself), plus 10 with pre-built skins (Tabulator, Chart.js, Flatpickr, Tom Select, marked/highlight.js, Mermaid, Split.js, SortableJS, Tippy.js, native `<dialog>`). Described in `boards-assets/manifest.json`; adoption playbook in `boards-assets/README.md`.
 
 ## Design Principles
 

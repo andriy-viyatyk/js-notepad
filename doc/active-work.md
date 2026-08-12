@@ -7,7 +7,8 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-*(nothing active)*
+- *(no epic)*
+  - [ ] US-932: Recommend av-grid as the default board data grid (catalog manifest, board scaffold CLAUDE.md, MCP boards resource, demo board, user docs)
 
 ## Planned
 *(nothing planned — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*

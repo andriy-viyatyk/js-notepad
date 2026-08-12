@@ -38,11 +38,14 @@ only if a frozen, reproducible skin set is ever needed.
    component's JS/CSS into the board folder (e.g. `lib/`) and reference them with relative
    paths — never a CDN `<script>`/`<link>`. The `vendor` URLs in `manifest.json` are where
    to fetch from.
-2. **Copy the skin** into the board folder as a frozen local copy. A skin is one of two
+2. **Copy the skin** into the board folder as a frozen local copy. A skin is one of three
    shapes (the manifest's `skin.type` / `loadOrder` says which):
-   - a **CSS skin** (e.g. `tabulator.css`) for components that style themselves with CSS, or
+   - a **CSS skin** (e.g. `tabulator.css`) for components that style themselves with CSS,
    - a **JS adapter** (e.g. `chart-theme.js`) for **canvas / JS-colored** components (Chart.js,
-     and later Mermaid) that have no stylesheet to override.
+     Mermaid) that have no stylesheet to override, or
+   - **none at all** (`"type": "none"`, `skin.file: null`) for a component that reads the
+     `--p-*` contract itself — currently **av-grid**. Nothing to fetch, nothing to re-apply on
+     a theme switch; just vendor the library and use it.
 3. **Link it in `index.html`** in the documented order:
    - A **CSS skin** must come **after** the component's own CSS so it can override it. For Tabulator:
      ```html
@@ -66,6 +69,11 @@ only if a frozen, reproducible skin set is ever needed.
 
 ## Version drift
 
+**av-grid is the exception:** it is first-party, has no skin to drift, and its `vendor` URLs
+are **unpinned** — they serve the newest release, and `docs` serves the matching `api.md`.
+Vendor the latest and record what you got (`AVGrid.version`, or a `lib/VERSION.txt` in the
+board). Every other entry is pinned to a tested version:
+
 Each skin header is stamped with the component version it was tuned for, e.g.
 `/* persephone skin · tabulator-tables@6.5.1 · tuned 2026-06 */`. If you vendor a newer
 component version, expect possible drift: test the board, and patch your local skin copy
@@ -76,9 +84,17 @@ published skin stays current.
 
 See [`manifest.json`](manifest.json) for the machine-readable list. Currently:
 
+**Which grid?** Default to **av-grid**. It is a port of Persephone's own internal grid
+(VAGrid), so it is native to the app — it reads `--p-*` with no skin and no JS re-theming,
+it matches the built-in grid editors' look and keys, and it renders more smoothly than
+Tabulator, noticeably so even on small datasets. Fall back to **Tabulator** only for a
+feature av-grid does not have (the fallback list is in its row below, and in the manifest's
+`preferThisOne` note on the av-grid entry).
+
 | Component | Use | Tested version | Skin |
 |-----------|-----|----------------|------|
-| [Tabulator](https://tabulator.info/) | Data grid (sort/filter, range-select + clipboard, virtualized, edit, group, tree) | 6.5.1 | [`tabulator.css`](tabulator.css) (CSS) |
+| [av-grid](https://github.com/andriy-viyatyk/av-grid) | **Data grid — the default.** Sort/filter (funnels + chip bar), search + highlight, range-select + clipboard, virtualized, edit, add/delete rows & columns | **latest** (unpinned) | **none needed** — reads `--p-*` directly ([api.md](https://github.com/andriy-viyatyk/av-grid/blob/main/docs/api.md)) |
+| [Tabulator](https://tabulator.info/) | Data grid — **fallback**, for what av-grid lacks (variable row heights, grouping, tree, nested headers, pagination, footer calcs, export, ajax, row drag, undo, frozen data columns, ready-made formatters) | 6.5.1 | [`tabulator.css`](tabulator.css) (CSS) |
 | [Chart.js](https://www.chartjs.org/) | Charts & plots (line, bar, doughnut/pie, radar, scatter, mixed) | 4.4.6 | [`chart-theme.js`](chart-theme.js) (JS adapter) |
 | [Flatpickr](https://flatpickr.js.org/) | Date / time picker (single, date+time, time-only, range, inline, week numbers, min/max + disabled dates) | 4.6.13 | [`flatpickr.css`](flatpickr.css) (CSS) |
 | [Tom Select](https://tom-select.js.org/) | Rich select / tags / autocomplete (searchable single + multi, removable chips, create, option groups, remote options) | 2.4.3 | [`tom-select.css`](tom-select.css) (CSS) |

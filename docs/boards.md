@@ -613,7 +613,7 @@ A board's sandbox forbids remote network requests — the Content Security Polic
 
 ```html
 <!-- Correct: relative path to a local copy -->
-<script src="./lib/tabulator.min.js"></script>
+<script src="./lib/av-grid.umd.js"></script>
 
 <!-- Wrong: blocked by CSP -->
 <script src="https://cdn.jsdelivr.net/..."></script>
@@ -629,7 +629,8 @@ Persephone publishes a catalog of components recommended for boards, with a pre-
 
 | Component | Use | Skin type |
 |-----------|-----|-----------|
-| [Tabulator](https://tabulator.info/) | Data grid with sort, filter, range select, clipboard, editing | CSS |
+| [av-grid](https://github.com/andriy-viyatyk/av-grid) | **Data grid — the default.** Sort, filter, search + highlight, range select, clipboard, editing | none needed |
+| [Tabulator](https://tabulator.info/) | Data grid — fallback, for grouping, tree data, pagination, export, variable row heights, … | CSS |
 | [Chart.js](https://www.chartjs.org/) | Line, bar, pie, radar, scatter charts | JS adapter |
 | [Flatpickr](https://flatpickr.js.org/) | Date / time / range picker | CSS |
 | [Tom Select](https://tom-select.js.org/) | Rich select, tags, autocomplete | CSS |
@@ -646,6 +647,8 @@ Persephone publishes a catalog of components recommended for boards, with a pre-
 3. Link the component's CSS first, then the skin CSS (the skin overrides the defaults). For JS adapters, load the adapter after the library and before your `app.js`.
 
 The `boards-assets/manifest.json` file has machine-readable details — vendor URLs, tested versions, and skin type notes — that an AI agent can use to automate the setup.
+
+**For tabular data, av-grid is the default.** It is a port of Persephone's own internal grid, so it matches the app's built-in grid editors, needs **no skin** (it reads the `--p-*` variables directly, so a theme switch re-tints it with no code), and renders more smoothly than Tabulator — noticeably so even on small tables. Tabulator remains in the catalog for the features av-grid does not have: variable row heights, row grouping, tree data, nested column headers, pagination, footer calculations, built-in export, remote data loading, row drag-reorder, undo/redo, and its library of ready-made cell formatters.
 
 > **Skins are not guaranteed.** Each skin is stamped with the component version it was tuned for (e.g. `tabulator-tables@6.5.1`). If you vendor a newer version, test the board and patch your local copy where needed.
 

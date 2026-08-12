@@ -497,9 +497,9 @@ to another host. So when you use a component library (grids, charts, markdown, i
 fonts, …), **download it into the board folder and reference it relatively** — never
 link a CDN.
 
-- Put files under the board folder, e.g. `lib/tabulator.min.js`, `lib/tabulator.min.css`,
-  and load them with **relative paths**: `<script src="./lib/tabulator.min.js"></script>`,
-  `<link rel="stylesheet" href="./lib/tabulator.min.css" />`. A relative path resolves
+- Put files under the board folder, e.g. `lib/av-grid.umd.js`, `lib/av-grid.css`,
+  and load them with **relative paths**: `<script src="./lib/av-grid.umd.js"></script>`,
+  `<link rel="stylesheet" href="./lib/av-grid.css" />`. A relative path resolves
   under the page's `board://` origin automatically (subfolders included) — just like the
   board's own `./app.js` / `./style.css`. You don't write the scheme yourself (and never
   the two-slash `board://lib/…` form — the URL parser would read `lib` as the host).
@@ -510,6 +510,39 @@ link a CDN.
 This keeps the board self-contained: it works with no network connection and won't
 break if a CDN changes or disappears. (As an agent: download the library files into
 the board folder before referencing them.)
+
+**Which library?** The recommended-components catalog
+(`boards-assets/manifest.json`, link at the bottom of this file) lists a pre-tested,
+theme-checked library per job — grid, charts, date picker, select, markdown, diagrams,
+split panes, drag-reorder, tooltips, modals — with vendor URLs, load order, and the skin
+to fetch. Prefer a catalog component over an arbitrary one you pick yourself.
+
+### Tabular data — use av-grid
+
+For **anything grid-shaped**, the default is **[av-grid](https://github.com/andriy-viyatyk/av-grid)**
+(npm `av-grid`), not Tabulator. It is a port of Persephone's own internal grid (VAGrid), so
+it is native to the app: it matches the built-in grid editors' look and keyboard behaviour,
+and it renders more smoothly than Tabulator — noticeably so **even on small datasets**.
+
+- **No skin to fetch, no theme code.** Every `--avg-*` token falls back to its `--p-*`
+  counterpart, so the grid is themed on arrival and a live theme switch re-tints it with
+  **zero JavaScript** — nothing to re-apply in `onThemeChange`.
+- **Vendor:** `av-grid.css` + `av-grid.umd.cjs` from jsDelivr into `lib/`, **renaming the
+  `.cjs` to `.js`** so it loads as a classic script. It exposes `window.AVGrid`; the class
+  is `AVGrid.AVGrid`.
+- **Read the API doc first:** https://raw.githubusercontent.com/andriy-viyatyk/av-grid/main/docs/api.md
+  — one complete file, written for an agent, with a *"Driving the grid from an agent"*
+  section on the MCP browser tools and a DOM contract for selectors.
+- **Load order:** `board-base.css` → `lib/av-grid.css` → your own `<style>`, and pass
+  `injectStyles: false` to `create()` — otherwise the grid appends its stylesheet *after*
+  your page and out-orders your overrides. Give the grid host a **definite height** (a host
+  with no height renders blank; `getState().viewport.width === 0` says so), and with
+  `filterBar: true` give `.avg-grid-wrap` `height: 100%`.
+- **Reach for Tabulator only** when the board genuinely needs something av-grid does not
+  have: variable row heights, row grouping, tree/nested rows, nested column headers,
+  pagination, footer calculations, built-in export (CSV/XLSX/PDF/print), remote-ajax data,
+  drag-to-reorder **rows**, responsive column collapse, undo/redo, freezing arbitrary data
+  columns, or Tabulator's ready-made formatters (progress bar, star rating, traffic light).
 
 ## Errors & the log
 
@@ -598,3 +631,5 @@ read the Demo board's files (`index.html`, `app.js`, `style.css`, `board-base.cs
 - Recommended components + skins catalog:
   https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/manifest.json
   (also returned by `get_app_info` as `boardsManifestUrl`). Fetch a skin as its `baseUrl + skin.file`.
+- av-grid (the default data grid) API reference:
+  https://raw.githubusercontent.com/andriy-viyatyk/av-grid/main/docs/api.md

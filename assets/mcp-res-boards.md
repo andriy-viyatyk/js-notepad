@@ -367,8 +367,8 @@ A board is **offline-first** and its CSP **forbids remote network** (`connect-sr
 into the board folder and reference it with a **relative** path:
 
 ```html
-<script src="./lib/tabulator.min.js"></script>
-<link rel="stylesheet" href="./lib/tabulator.min.css" />
+<script src="./lib/av-grid.umd.js"></script>
+<link rel="stylesheet" href="./lib/av-grid.css" />
 ```
 
 Never use `https://…cdn…` URLs in `<script>`/`<link>`/`@import`/`fetch()` — they are blocked and
@@ -382,7 +382,24 @@ each skin from the raw base URL (also returned by `get_app_info` as `boardsManif
 
 - Manifest: `https://raw.githubusercontent.com/andriy-viyatyk/persephone/main/boards-assets/manifest.json`
 - Each component's `skin.file` (e.g. `tabulator.css`) is fetchable as **`baseUrl + skin.file`**, where
-  `baseUrl` is the manifest's top-level `baseUrl` field.
+  `baseUrl` is the manifest's top-level `baseUrl` field. A component with `skin.file: null`
+  (`"type": "none"`) has **no skin to fetch** — it reads `--p-*` itself.
+
+**Tabular data → use `av-grid`.** It is the catalog's default grid and a port of Persephone's own
+internal grid (VAGrid), so it is native to the app: it matches the built-in grid editors, needs **no
+skin and no theme code** (its `--avg-*` tokens fall back to `--p-*`, so a theme switch re-tints it
+with zero JS), and it renders more smoothly than Tabulator — noticeably so even on small datasets.
+It covers sorting, checklist filters + a chip bar, search with in-cell highlighting, range select +
+clipboard, virtualization, editing, and add/delete rows and columns. Vendor `av-grid.css` +
+`av-grid.umd.cjs` (rename the `.cjs` to `.js`; it exposes `window.AVGrid`, class `AVGrid.AVGrid`),
+link its CSS **before** your own `<style>` and pass `injectStyles: false`, and give the host a
+definite height. Read its API doc first — one complete file written for an agent, including a
+*"Driving the grid from an agent"* section on the MCP browser tools:
+`https://raw.githubusercontent.com/andriy-viyatyk/av-grid/main/docs/api.md`.
+Choose **Tabulator** instead only for a feature av-grid lacks: variable row heights, row grouping,
+tree/nested rows, nested column headers, pagination, footer calculations, built-in export, remote-ajax
+data, drag-to-reorder rows, responsive collapse, undo/redo, frozen data columns, or its ready-made
+formatters (progress bar, star rating, traffic light).
 
 Vendor flow on any machine: **GET the manifest → read the component's `vendor` URLs (the third-party
 library, from a CDN) and its `skin.file` → GET `baseUrl + skin.file` → write both into the board folder**

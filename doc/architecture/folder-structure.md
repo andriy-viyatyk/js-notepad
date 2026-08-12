@@ -75,6 +75,8 @@ persephone/
 │   ├── README.md           # Adoption playbook
 │   └── *.css / *.js        # Pre-built skins: tabulator, chart-theme, flatpickr, tom-select,
 │                           #   markdown, mermaid-theme, split, sortablejs, tippy, dialog
+│                           #   (av-grid, the default grid, is in the catalog with NO skin —
+│                           #    it reads the --p-* contract itself)
 ├── patches/                # Dependency patches (patch-package)
 ├── .mcp.json               # MCP server config for Claude Code (points to MCP HTTP server)
 ├── doc/                    # Developer documentation
