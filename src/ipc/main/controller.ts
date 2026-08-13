@@ -105,6 +105,14 @@ class Controller implements MainApi {
         await shell.openPath(path);
     }
 
+    /** Open a file or folder with the OS default application. Same `shell.openPath` as
+     *  `showFolder`, but the error string is returned instead of discarded: the shell
+     *  reports "no application is registered for this extension" that way, and without
+     *  it an unopenable file looks like a menu item that does nothing. Empty = accepted. */
+    openPath = async (event: IpcMainEvent, path: string): Promise<string> => {
+        return shell.openPath(path);
+    }
+
     windowReady = async (event: IpcMainEvent): Promise<void> => {
         const window = BrowserWindow.fromWebContents(event.sender);
         return windowReady(window);
@@ -528,6 +536,7 @@ const init = () => {
     bindEndpoint(Endpoint.resetZoom, controllerInstance.resetZoom);
     bindEndpoint(Endpoint.showItemInFolder, controllerInstance.showItemInFolder);
     bindEndpoint(Endpoint.showFolder, controllerInstance.showFolder);
+    bindEndpoint(Endpoint.openPath, controllerInstance.openPath);
     bindEndpoint(Endpoint.windowReady, controllerInstance.windowReady);
     bindEndpoint(Endpoint.getFileToOpen, controllerInstance.getFileToOpen);
     bindEndpoint(Endpoint.getUrlToOpen, controllerInstance.getUrlToOpen);

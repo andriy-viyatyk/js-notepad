@@ -4,7 +4,7 @@ import rehypeRaw from "rehype-raw";
 import styled from "@emotion/styled";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import color from "../../theme/color";
-import { CheckedIcon, CopyIcon, UncheckedIcon } from "../../theme/icons";
+import { CheckedIcon, CopyIcon, OpenFileIcon, UncheckedIcon } from "../../theme/icons";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { createRehypeHighlight } from "./rehypeHighlight";
@@ -545,12 +545,42 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
                 const href = anchor.getAttribute("href");
                 if (href) {
                     const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "markdown-link");
+                    const isExternal = href.startsWith("http://") || href.startsWith("https://");
+                    // Same-document `#anchor` links scroll in place — there is no
+                    // document to open in a tab. External links get the browser
+                    // items below instead. Everything else (file://, mneme://, …)
+                    // is a document: offer the tab that Ctrl+click already gives,
+                    // for when the other hand isn't free. No pageId on the link
+                    // data is what makes the open handler use a new tab rather
+                    // than navigating this one.
+                    if (!isExternal && !href.startsWith("#")) {
+                        ctxEvent.items.push({
+                            // Matches the tree/file menus, which group "Open in New Tab" off
+                            // from what precedes it. Harmless when ours is the first item —
+                            // `MenuModel` drops a leading separator (`&& out.length > 0`) —
+                            // and correct when a deeper handler (a code block) got there first.
+                            startGroup: true,
+                            label: "Open in New Tab",
+                            icon: <OpenFileIcon />,
+                            onClick: async () => {
+                                const { app } = await import("../../api/app");
+                                const { createLinkData } = await import("../../../shared/link-data");
+                                await app.events.openRawLink.sendAsync(
+                                    // No `target`: a new tab picks its editor from the file
+                                    // name, so a .md link lands in Preview and a .ts link in
+                                    // Monaco. (The in-place navigation in MarkdownBody must
+                                    // force "md-view" because an existing page keeps its
+                                    // current editor otherwise — a new page has none to keep.)
+                                    createLinkData(href, { sourceId: "markdown-link" }),
+                                );
+                            },
+                        });
+                    }
                     ctxEvent.items.push({
                         label: "Copy Link",
                         icon: <CopyIcon />,
                         onClick: () => navigator.clipboard.writeText(href),
                     });
-                    const isExternal = href.startsWith("http://") || href.startsWith("https://");
                     if (isExternal) {
                         appendLinkOpenMenuItems(ctxEvent.items, href);
                     }

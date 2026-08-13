@@ -161,12 +161,48 @@ GlobalEventService
 
 The folder-content view (`CategoryView`, shown on a page when a folder is opened from
 the Explorer) fires the **same** `linkContextMenu` channel for its file/folder items. So
-the href-based items ("Open in New Tab", "Open in New Window", "Show in File Explorer",
-"Open in Browser", …) are defined once in `tree-context-menus.tsx` and appear identically
-in the Explorer tree and the folder page. The Categories list/tiles (`LinkItemList` /
+the href-based items ("Open in New Tab", "Open in New Window", "Open with Default App",
+"Show in File Explorer", "Open in Browser", …) are defined once in `tree-context-menus.tsx`
+and appear identically in the Explorer tree and the folder page. The Categories list/tiles (`LinkItemList` /
 `LinkItemTiles`) fire it too. A right-click on empty space in `CategoryView` adds "New
 File" / "New Folder" scoped to the open category (gated on a writable provider), mirroring
 the tree's `onBackgroundContextMenu`.
+
+"Open with Default App" (`shell.openPath` via `Endpoint.openPath`) is offered on **files
+only**. A folder's "Show in File Explorer" is already that same `shell.openPath` call — on a
+directory it opens an Explorer window there — so a second entry would duplicate it. On a file
+"Show in File Explorer" is `shell.showItemInFolder`, which reveals rather than opens, hence
+the separate item. `shell.openPath` does not throw on failure; it resolves with an error
+string (typically "no application is registered for this extension"), which is why
+`Endpoint.openPath` returns that string instead of discarding it as the older `showFolder`
+endpoint does — otherwise an unopenable file looks like a menu item that does nothing.
+
+Double-clicking a file in the Explorer tree runs the same action, giving the panel
+Windows-Explorer behavior for formats Persephone has no editor for. The first of the two
+clicks has already opened the file in a Persephone tab, so it opens in both places: the
+alternative is debouncing every single click, and single-click navigation is the tree's hot
+path. Directories are routed to a separate `onFolderDoubleClick` hook and keep
+expand/collapse.
+
+### Markdown links
+
+`MarkdownBlock`'s `onContextMenu` builds its own items rather than firing `linkContextMenu` —
+its target is an anchor in rendered HTML, not an `ILink` tree item. It offers "Open in New Tab"
+first, then "Copy Link", then the browser items for `http(s)` links.
+
+"Open in New Tab" is the pointer-only equivalent of Ctrl+click, which the view already
+supports: a plain click navigates the current page in place (pushing the document onto the
+page back-stack), and a modified click falls through to the anchor's default navigation, which
+the main process routes into a new tab. Both are offered because a link can be followed with
+one hand on the mouse. It is shown for every href except `http(s)` — already served by the
+"Open in …Browser" items — and `#` anchors, which scroll in place and have no document to open.
+
+The item omits `ILinkData.target`, unlike the in-place navigation in `MarkdownBody`, which
+forces `"md-view"`. An existing page keeps its current editor unless told otherwise, so
+navigating in place must name the editor; a new page has none to keep and picks from the file
+name via `EDITOR_MATCHERS`. Passing `"md-view"` here would render a linked `.ts` file as
+markdown. Omitting `pageId` is what makes the open handler call `openFile` (new tab) instead
+of `navigatePageTo`.
 
 ### Script subscription example
 

@@ -6,6 +6,13 @@
  * board, then your own stylesheet — so the board matches the app out of the box and
  * restyles live on a theme switch. It's a plain file in your board folder; edit it
  * (or override its rules from your own CSS) freely.
+ *
+ * Two halves: element defaults at the top (they apply to every board with no markup
+ * change), then an OPT-IN chrome layer at the bottom — `.p-toolbar`, `.p-btn`,
+ * `.p-input` and friends, which do nothing until you put the class on the element.
+ * Use them for toolbars and buttons instead of styling your own; they carry the
+ * app's exact control metrics, which is what makes a board look built-in rather
+ * than embedded.
  */
 
 * { box-sizing: border-box; }
@@ -69,3 +76,199 @@ input[type="checkbox"]:indeterminate {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='0.75' y='0.75' width='14.5' height='14.5' rx='3.25' fill='none' stroke='white' stroke-width='1.5'/%3E%3Cline x1='4.5' y1='8' x2='11.5' y2='8' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 input[type="checkbox"]:disabled { cursor: default; opacity: 0.5; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Chrome: toolbars, buttons, fields.
+ *
+ * OPT-IN — these rules fire only on the `.p-*` classes, never on a bare <button>
+ * or <input>. That keeps a vendored library's own controls (av-grid's icon
+ * buttons, flatpickr, tom-select) untouched, since board-base.css is linked
+ * before them.
+ *
+ * The numbers are ported verbatim from the app's own UIKit (`uikit/Toolbar.tsx`,
+ * `uikit/Button.tsx`, `uikit/Input.tsx`, `uikit/tokens.ts`), so a board built from
+ * these classes is the same size as the app around it. The two mistakes they exist
+ * to prevent:
+ *
+ *   • A tall toolbar. Persephone's is 30px (31px once the bottom rule is counted),
+ *     holding 24px controls — the app's SMALL button, which is what its own editor
+ *     toolbars use. Reaching for a comfortable-looking `padding: 8px 12px` with
+ *     26px controls yields 45px, half again too tall, and it reads as a web page
+ *     bolted into the app rather than part of it. `.p-toolbar` fixes the bar height
+ *     and shrinks the controls inside it for you; see the `.p-btn` rules below.
+ *   • A pale toolbar. `--p-panel` is a *content* surface. App chrome sits on
+ *     `--p-bg-dark`, which is darker than the page background, not lighter.
+ *
+ * Controls take horizontal padding ONLY; their height is fixed. Vertical padding
+ * on a control is what silently inflates the row that contains it.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+.p-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--p-gap-sm, 4px);
+    min-height: 30px;
+    padding: var(--p-space-xs, 2px) var(--p-space-sm, 4px);
+    flex-shrink: 0;
+    overflow: hidden;
+    background: var(--p-bg-dark, #181818);
+    border-bottom: 1px solid var(--p-border, #333);
+}
+.p-toolbar[data-orientation="vertical"] {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    padding: var(--p-space-sm, 4px) var(--p-space-xs, 2px);
+    border-bottom: none;
+    border-right: 1px solid var(--p-border, #333);
+}
+
+/* Push everything after it to the right edge of the toolbar. */
+.p-spacer { flex: 1 1 auto; min-width: 0; }
+
+/* Vertical hairline between toolbar groups. */
+.p-sep {
+    flex: 0 0 auto;
+    width: 1px;
+    align-self: stretch;
+    margin: var(--p-space-xs, 2px) var(--p-space-sm, 4px);
+    background: var(--p-border, #333);
+}
+
+/* Button. The rest/hover/active fills ride three local vars, the way the app's
+   Button adapts to the surface it sits on: on the page it lightens on hover, in a
+   toolbar (already the darkest surface) it lightens toward the page background.
+   Use `.on-dark` for the toolbar treatment outside a toolbar. */
+.p-btn {
+    --pb-rest: var(--p-bg, #1e1e1e);
+    --pb-hover: var(--p-panel, #313131);
+    --pb-active: var(--p-bg-dark, #181818);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--p-gap-md, 6px);
+    height: var(--p-size-control-md, 26px);
+    padding: 0 var(--p-space-md, 8px);
+    flex-shrink: 0;
+    font: inherit;
+    font-size: var(--p-font-base, 14px);
+    color: var(--p-text, #e0e0e0);
+    background: var(--pb-rest);
+    border: 1px solid transparent;
+    border-radius: var(--p-radius-md, 4px);
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.p-toolbar .p-btn,
+.p-btn.on-dark {
+    --pb-rest: var(--p-bg-dark, #181818);
+    --pb-hover: var(--p-bg, #1e1e1e);
+    --pb-active: var(--p-panel, #313131);
+}
+.p-btn:hover { background: var(--pb-hover); }
+.p-btn:active { background: var(--pb-active); }
+
+/* Icons inside a button are 16px — the app's `iconMd`. An unconstrained inline
+   SVG defaults to 300×150 and blows the button apart. */
+.p-btn > svg { width: var(--p-size-icon-md, 16px); height: var(--p-size-icon-md, 16px); flex: 0 0 auto; }
+
+/* The one filled button in a bar — "Refresh", "Run", "Save". Hover and active
+   shift brightness on the SAME accent fill rather than swapping color, so the
+   button never changes hue mid-interaction. */
+.p-btn.primary {
+    background: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+.p-btn.primary:hover { background: var(--p-accent, #0078d4); filter: brightness(1.1); }
+.p-btn.primary:active { background: var(--p-accent, #0078d4); filter: brightness(0.9); }
+
+.p-btn.ghost { background: transparent; }
+.p-btn.ghost:hover { background: var(--pb-hover); }
+.p-btn.ghost:active { background: var(--pb-active); }
+
+/* The app's danger button tints its hover with an error *background*, which the
+   `--p-*` contract does not expose (`--p-error` is a text color). Deliberate
+   simplification: the fill stays generic and only the label carries the warning. */
+.p-btn.danger { background: transparent; color: var(--p-error, #f87171); }
+.p-btn.danger:hover { background: var(--pb-hover); }
+
+.p-btn.link {
+    background: transparent;
+    color: var(--p-link, #3b82f6);
+    border-color: var(--p-border, #333);
+}
+.p-btn.link:hover { background: var(--pb-hover); }
+
+/* Selected/toggled state for a segmented pair ("Active" / "All"). */
+.p-btn.selected {
+    background: var(--p-accent, #0078d4);
+    color: var(--p-accent-text, #ffffff);
+}
+
+/* Icon-only button — square, so a lone glyph isn't sitting in a wide slab. */
+.p-btn.icon { width: var(--p-size-control-md, 26px); padding: 0; }
+
+.p-btn.sm {
+    height: var(--p-size-control-sm, 24px);
+    padding: 0 var(--p-space-sm, 4px);
+    font-size: var(--p-font-sm, 12px);
+}
+.p-btn.sm.icon { width: var(--p-size-control-sm, 24px); padding: 0; }
+
+/* In a toolbar a button is SMALL by default — 24px with 12px text, i.e. the `.sm`
+   metrics without having to say `.sm`. That is what the app's own toolbars use
+   (`size="sm"` in every editor toolbar); the 26px default above is the app's
+   *medium* button, which belongs on a page or in a dialog, not in a bar. Getting
+   this wrong is subtle — a 26px bar full of 26px buttons still looks plausible on
+   its own and only reads as oversized next to the app's real chrome.
+   Put `.md` on a toolbar button to opt back out.
+   The bar itself does not move: `min-height: 30px` holds it at 30px whether the
+   controls inside are 24 or 26. */
+.p-toolbar .p-btn:not(.md) {
+    height: var(--p-size-control-sm, 24px);
+    padding: 0 var(--p-space-sm, 4px);
+    font-size: var(--p-font-sm, 12px);
+}
+.p-toolbar .p-btn.icon:not(.md) { width: var(--p-size-control-sm, 24px); padding: 0; }
+
+.p-btn:disabled, .p-btn.disabled { opacity: 0.4; pointer-events: none; }
+
+/* Text field / dropdown, sized to line up with the buttons beside them. */
+.p-input, .p-select {
+    height: var(--p-size-control-md, 26px);
+    padding: 0 var(--p-space-md, 8px);
+    font: inherit;
+    font-size: var(--p-font-base, 14px);
+    color: var(--p-text, #e0e0e0);
+    background: var(--p-bg-dark, #181818);
+    border: 1px solid var(--p-border-light, #444);
+    border-radius: var(--p-radius-md, 4px);
+    outline: none;
+}
+.p-input:focus, .p-select:focus { border-color: var(--p-accent-hover, #0078d4); }
+.p-input:disabled, .p-select:disabled { opacity: 0.5; pointer-events: none; }
+.p-input.sm, .p-select.sm {
+    height: var(--p-size-control-sm, 24px);
+    font-size: var(--p-font-sm, 12px);
+}
+/* A toolbar sits on --p-bg-dark, so a field with the same fill would vanish into
+   it — lift it to the page background instead. And, like the buttons beside them,
+   toolbar fields take the small metrics by default. */
+.p-toolbar .p-input, .p-toolbar .p-select { background: var(--p-bg, #1e1e1e); }
+.p-toolbar .p-input:not(.md), .p-toolbar .p-select:not(.md) {
+    height: var(--p-size-control-sm, 24px);
+    font-size: var(--p-font-sm, 12px);
+}
+
+/* Toolbar label / caption text — the board title or a breadcrumb beside the
+   buttons, not a control. A step above the 12px controls, not the 14px body size:
+   a title that outsizes the whole bar is the same mistake as an oversized button. */
+.p-toolbar-title {
+    font-size: var(--p-font-md, 13px);
+    color: var(--p-text-strong, #fff);
+    padding: 0 var(--p-space-sm, 4px);
+    white-space: nowrap;
+}

@@ -79,30 +79,19 @@ li { margin: var(--p-space-sm, 4px) 0; }
 
 /* ── Action buttons + console ───────────────────────────────────────── */
 .row { display: flex; flex-wrap: wrap; gap: var(--p-gap-lg, 8px); margin: var(--p-space-md, 10px) 0; }
-/* Buttons mirror the Persephone UIKit primary button — a worked example of a
-   "persephone-like" button. Note the two things that make it match the app:
-     • Fixed control height + horizontal padding only (no vertical padding) — this
-       is what keeps it compact; padding top/bottom is what made it look oversized.
-     • Hover/active shift via brightness on the SAME accent fill, not a color swap. */
-button.action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--p-gap-md, 6px);
-    height: var(--p-size-control-md, 26px);
-    padding: 0 var(--p-space-md, 8px);
-    font-family: inherit;
-    font-size: var(--p-font-base, 14px);
-    border: 1px solid transparent;
+/* The chrome showcase on the Theming tab. The toolbar is full-bleed in a real
+   board (edge to edge, no radius); here it sits inside prose, so it gets a margin
+   and a rounded box. Nothing else about it is overridden. */
+.chrome-demo {
+    margin: var(--p-space-md, 8px) 0;
+    border: 1px solid var(--p-border, #cbd5e1);
     border-radius: var(--p-radius-md, 4px);
-    background: var(--p-accent, #3b82f6);
-    color: var(--p-accent-text, #ffffff);
-    cursor: pointer;
-    white-space: nowrap;
-    user-select: none;
 }
-button.action:hover { filter: brightness(1.1); }
-button.action:active { filter: brightness(0.9); }
+
+/* The demo's action buttons carry no styling of their own: they are
+   `class="p-btn primary"`, the shared chrome layer from board-base.css. That is
+   the point — a board should not hand-roll a button. See the "Persephone chrome"
+   section on the Theming tab for the whole set. */
 
 /* Output console — a pinned pane below the scroll area, shown on the interactive
    tabs (Theming / Capabilities) so a button's result is visible immediately,

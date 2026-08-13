@@ -41,8 +41,9 @@ persephone/
 │   ├── mcp-res-ui-editors.md # MCP resource: editor catalog for explaining the app's capabilities to the user
 │   ├── agent/              # Standalone modules injected into a page by an agent (not part of the renderer bundle)
 │   │   └── ui-highlight.js # Highlight-and-tooltip overlay behind app.ui.highlightElement; also pasteable into browser_evaluate
+│   ├── board-base.css      # Shared board stylesheet copied into every board — theme defaults + the opt-in .p-* chrome layer
 │   ├── board-template/     # Scaffold copied into every new board
-│   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, reload, MCP debug)
+│   │   └── CLAUDE.md       # Board authoring guide (bridge surface, --p-* contract, chrome classes, reload, MCP debug)
 │   ├── tool-template/      # Scaffold copied into every new toolset (create_toolset)
 │   │   ├── tools-manifest.json # Example manifest (one echo tool)
 │   │   ├── echo.js         # Example stdin-JSON tool with the ##PERSEPHONE_RESULT## contract
@@ -235,13 +236,14 @@ persephone/
 │   ├── transformers/
 │   │   ├── ArchiveTransformer.ts # ITransformer for archive entry extraction/replacement
 │   │   └── DecryptTransformer.ts # ITransformer for AES-GCM decrypt/encrypt (non-persistent)
-│   ├── tree-providers/           # ITreeProvider implementations (EPIC-015)
+│   ├── tree-providers/           # ITreeProvider implementations
 │   │   ├── FileTreeProvider.ts  # Local filesystem directories
 │   │   ├── ArchiveTreeProvider.ts # Archives (ZIP, RAR, 7z, TAR, cab, ISO — read-only)
 │   │   ├── tree-provider-link.ts # tree-category:// link format (encode/decode)
 │   │   ├── MnemeTreeProvider.ts  # ITreeProvider over a Mneme root — browse like a filesystem; create/rename/delete; drag-drop import
 │   │   └── mnemeLinkTraits.ts    # MnemeLink TraitSet (LINK + FILE_LINK) for tree drag-drop (move within / copy across roots)
-│   └── tree-context-menus.tsx   # Default context menu handlers for tree provider items (EPIC-015)
+│   ├── tree-context-menus.tsx   # Default context menu handlers for tree provider items
+│   └── open-with-default-app.ts # Hand a path to the OS shell (shell.openPath); shared by the tree context menu and Explorer double-click
 │
 ├── ui/                     # Application Shell
 │   ├── app/                # Root layout

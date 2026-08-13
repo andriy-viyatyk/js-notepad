@@ -259,7 +259,22 @@ body { background: var(--p-bg); color: var(--p-text); }
 button { background: var(--p-accent); color: var(--p-accent-text); }
 ```
 
-The board template ships with a `board-base.css` (linked first in `index.html`) that applies sensible defaults — page background, text color, monospace font, and themed scrollbars — all from `--p-*`. Build your own styles on top.
+The board template ships with a `board-base.css` (linked first in `index.html`, copied into every **new** board at creation) that applies sensible defaults — page background, text color, monospace font, themed scrollbars, a themed focus ring, and styled checkboxes — all from `--p-*`. Build your own styles on top.
+
+`board-base.css` also ships an **opt-in "Persephone chrome" layer**: ready-made classes for toolbars and controls, sized and colored to match the app exactly, so a board built from them looks built-in rather than embedded. They fire only when you put the class on an element — a bare `<button>` or `<input>` is untouched, which keeps a vendored library's own controls (av-grid, Flatpickr, Tom Select) styled by their own skin instead.
+
+| Class | What it is |
+|-------|------------|
+| `.p-toolbar` | 30px chrome bar on `--p-bg-dark` with a bottom rule. Add `data-orientation="vertical"` for a side rail (right border instead, no min-height). |
+| `.p-btn` | Button — 26px on a page, 24px inside a `.p-toolbar` automatically. Modifiers: `primary` (the one filled/accent button in a bar), `ghost` (transparent), `danger`, `link`, `selected` (toggled/active state), `icon` (square, for a lone glyph), `sm` (24px anywhere), `md` (keep 26px inside a bar), `on-dark` (toolbar-style fill outside a toolbar). |
+| `.p-input`, `.p-select` | Text field / dropdown, sized to line up with `.p-btn` — same 26px / 24px pair and the same `sm` / `md` modifiers. |
+| `.p-sep` | Vertical hairline separating toolbar groups. |
+| `.p-spacer` | Pushes everything after it to the right edge of the toolbar. |
+| `.p-toolbar-title` | Label/caption text inside a toolbar (a board title or breadcrumb, not a control). |
+
+The numbers are ported from the app's own UIKit, so controls come out the same size Persephone uses everywhere else — a fixed height with horizontal padding only; adding vertical padding is the most common way to end up with an oversized bar. The size split matters: Persephone's own editor toolbars are built from *small* (24px) buttons, and the 26px medium size belongs on a page or in a dialog, so a bar of medium buttons looks plausible in isolation and oversized next to the app's chrome. Putting `.p-btn` in a `.p-toolbar` applies the small tier for you. See the **Theming** tab of the Demo board (`assets/demo-board/`) for a live, working example of the whole set.
+
+**Existing boards are unaffected** — this only changes what a **newly created** board's `board-base.css` contains. A board created before this layer was added keeps the copy of `board-base.css` it was created with; copy the file (or its rules) in from a fresh board's template if you want the chrome classes in an older board.
 
 The app's theme shortcuts — **Ctrl+Alt+]** (next theme) and **Ctrl+Alt+[** (previous) — work with focus inside a board, so you can cycle themes to check a board's styling without clicking back into the app first. A board that binds either combination itself takes precedence.
 

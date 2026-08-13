@@ -7,9 +7,7 @@ Overview of all active and planned epics and tasks.
 - Ideas and future concepts in [`/doc/tasks/backlog.md`](tasks/backlog.md)
 
 ## Active
-- *(no epic)*
-  - [ ] US-932: Recommend av-grid as the default board data grid (catalog manifest, board scaffold CLAUDE.md, MCP boards resource, demo board, user docs)
-  - [ ] US-933: Board bridge — `readFile`/`writeFile` `encoding: "binary"` (Uint8Array, no base64); bridge API 1.1.0, ships in app 4.0.21
+*(nothing active)*
 
 ## Planned
 *(nothing planned — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*

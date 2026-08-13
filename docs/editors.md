@@ -71,7 +71,10 @@ See **[Grid Editor](./grid-editor.md)** for complete documentation including all
   - **Ctrl+click** (or **Cmd+click**) on any link, including an anchor link, opens it in a new tab instead of navigating/scrolling in place.
 - **Live preview** updates as you type
 - **Minimap** navigation on the right side
-- **Link context menu** — right-click a link for: "Copy Link", "Open in Default Browser", "Open in Internal Browser", browser profiles, "Open in Incognito"
+- **Link context menu** — right-click a link for:
+  - **Local/document links** (`file://`, `mneme://`, and any other link that isn't `http(s)` or a same-page `#anchor`) — **"Open in New Tab"** (first item) followed by **"Copy Link"**. "Open in New Tab" is the no-keyboard equivalent of Ctrl+click: it opens the link in a new tab instead of navigating the current one in place, and the new tab's editor is picked from the file name — a `.md` link opens in Markdown Preview, a `.ts` link in the Text Editor. A plain click still navigates the current page.
+  - **`http(s)` links** — "Copy Link", "Open in Default Browser", "Open in Internal Browser", browser profiles, "Open in Incognito" (no "Open in New Tab" — the browser items already cover opening the link).
+  - **Same-page `#anchor` links** — "Copy Link" only (there's no document to open in a tab).
 
 ## PDF Viewer
 
@@ -506,6 +509,7 @@ Right-clicking a file or folder item opens a context menu with link actions:
 |--------|-------------|
 | Open in New Tab | Opens the item in a new tab |
 | Open in New Window | Opens the item in a new Persephone window |
+| Open with Default App | (files only) Hands the file to the OS default app, the way double-clicking it in Windows Explorer would |
 | Show in File Explorer | Reveals the file or folder in Windows Explorer |
 | Open in Browser | (URL items only) Opens the link in the built-in browser |
 | Open in Rest Client | (URL items only) Opens the link as a Rest Client request |
@@ -841,7 +845,7 @@ A sandboxed HTML-page application that can live anywhere on disk. Boards let you
 
 **MCP automation:** AI agents can drive an open board using the `browser_*` MCP tools (same Playwright-compatible tools used for the built-in browser). Find the board in `list_pages` by `editor: "board-view"`, then use `browser_snapshot`, `browser_click`, `browser_evaluate`, etc. to test and debug without touching source files.
 
-**Recommended components:** Persephone publishes a catalog of component libraries (Tabulator, Chart.js, Flatpickr, Tom Select, Mermaid, and more) with pre-built skins that match the `--p-*` theme. The catalog lives in `boards-assets/` in the repository.
+**Recommended components:** Persephone publishes a catalog of component libraries — av-grid (the default data grid), Tabulator (fallback for grouping/tree data/pagination/export), Chart.js, Flatpickr, Tom Select, Mermaid, and more — with pre-built skins that match the `--p-*` theme. The catalog lives in `boards-assets/` in the repository.
 
 See **[Boards](./boards.md)** for complete documentation.
 

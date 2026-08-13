@@ -132,6 +132,12 @@ class ApiCalls implements Api {
         return executeOnce<void>(Endpoint.showFolder, path);
     }
 
+    /** Open a file or folder with the OS default application. Resolves to Electron's
+     *  error string — empty when the shell accepted the path. */
+    openPath = async (path: string) => {
+        return executeOnce<string>(Endpoint.openPath, path);
+    }
+
     windowReady = async () => {
         return executeOnce<void>(Endpoint.windowReady);
     };

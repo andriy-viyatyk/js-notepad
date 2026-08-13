@@ -35,6 +35,7 @@ export enum Endpoint {
     zoom = "zoom",
     showItemInFolder = "showItemInFolder",
     showFolder = "showFolder",
+    openPath = "openPath",
     windowReady = "windowReady",
     getFileToOpen = "getFileToOpen",
     getUrlToOpen = "getUrlToOpen",
@@ -168,6 +169,8 @@ export type Api = {
     [Endpoint.zoom]: (delta: number) => Promise<void>;
     [Endpoint.showItemInFolder]: (path: string) => Promise<void>;
     [Endpoint.showFolder]: (path: string) => Promise<void>;
+    /** Resolves to Electron's error string — empty when the shell accepted the path. */
+    [Endpoint.openPath]: (path: string) => Promise<string>;
     [Endpoint.windowReady]: () => Promise<void>;
     [Endpoint.getFileToOpen]: () => Promise<string | undefined>;
     [Endpoint.getUrlToOpen]: () => Promise<string | undefined>;

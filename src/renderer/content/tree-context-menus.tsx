@@ -4,7 +4,9 @@ import {
     FolderOpenIcon,
     NewWindowIcon,
     OpenFileIcon,
+    OpenLinkIcon,
 } from "../theme/icons";
+import { openWithDefaultApp } from "./open-with-default-app";
 
 /**
  * Register default context menu handlers for ILink items.
@@ -86,6 +88,14 @@ export function registerTreeContextMenuHandlers(): void {
                         const { pagesModel } = await import("../api/pages");
                         pagesModel.openPathInNewWindow(item.href);
                     },
+                },
+                {
+                    // Files only. A folder's "Show in File Explorer" below is ALREADY this
+                    // same `shell.openPath` call (it opens an Explorer window on the folder),
+                    // so a second entry there would just duplicate it.
+                    label: "Open with Default App",
+                    icon: <OpenLinkIcon />,
+                    onClick: () => openWithDefaultApp(item.href),
                 },
                 {
                     label: "Show in File Explorer",

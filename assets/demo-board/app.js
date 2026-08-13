@@ -325,7 +325,7 @@
             `<p class="muted">The <code>${role}</code> secondary view — served from ` +
             `<code>index.html</code>, told apart by <code>persephone.view</code>. It shares ` +
             `state with the main view and the Notes panel.</p>` +
-            `<button class="action" id="ss-frame-inc">counter ＋</button>` +
+            `<button class="p-btn primary" id="ss-frame-inc">counter ＋</button>` +
             `<pre id="ss-frame-readout" class="ss-readout">shared state: …</pre>` +
             `</div>`;
         const readout = document.getElementById("ss-frame-readout");

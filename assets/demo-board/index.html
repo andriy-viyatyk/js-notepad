@@ -90,9 +90,9 @@
             </p>
 
             <div class="row">
-                <button class="action" data-test="showTheme">persephone.theme (JSON)</button>
-                <button class="action" data-test="showTokens">persephone.tokens (JSON)</button>
-                <button class="action" data-test="readCss">read --p-* live from the DOM</button>
+                <button class="p-btn primary" data-test="showTheme">persephone.theme (JSON)</button>
+                <button class="p-btn primary" data-test="showTokens">persephone.tokens (JSON)</button>
+                <button class="p-btn primary" data-test="readCss">read --p-* live from the DOM</button>
             </div>
             <p id="theme-status" class="muted">onThemeChange: waiting for first fire…</p>
 
@@ -101,6 +101,55 @@
 
             <h3>Metric tokens — radius / font / spacing</h3>
             <div id="metrics"></div>
+
+            <h2>Persephone chrome — the <code>.p-*</code> classes</h2>
+            <p>
+                <code>board-base.css</code> ships the app's toolbar and controls as ready-made classes.
+                They are <strong>opt-in</strong> — a bare <code>&lt;button&gt;</code> is untouched, so a
+                vendored library's own controls keep their styling. Use them instead of hand-styling
+                chrome: the sizes below are the app's, which is what makes a board look built in rather
+                than embedded.
+            </p>
+
+            <div class="p-toolbar chrome-demo">
+                <span class="p-toolbar-title">Board title</span>
+                <span class="p-sep"></span>
+                <button class="p-btn selected">Active</button>
+                <button class="p-btn">All</button>
+                <input class="p-input" placeholder="Search…" style="width: 140px">
+                <span class="p-spacer"></span>
+                <button class="p-btn ghost">Ghost</button>
+                <button class="p-btn primary">Refresh</button>
+            </div>
+            <p class="muted">
+                That bar is <strong>30px</strong> tall (31px once the bottom rule is counted) on
+                <code>--p-bg-dark</code>, and the buttons in it are <strong>24px</strong> — the app's
+                <em>small</em> button, which is what Persephone's own editor toolbars are built from.
+                Putting <code>.p-btn</code> in a <code>.p-toolbar</code> shrinks it for you; add
+                <code>.md</code> if you really want the 26px page size in a bar. The three mistakes
+                this exists to prevent: a comfortable-looking <code>padding: 8px 12px</code> makes the
+                bar <strong>45px</strong>, half again too tall; painting it on <code>--p-panel</code>
+                makes it pale, because app chrome is <em>darker</em> than the page, never lighter; and
+                filling it with 26px buttons looks fine on its own but oversized the moment it sits
+                under the app's chrome.
+            </p>
+
+            <h3>The set</h3>
+            <div class="note">
+                <code>.p-toolbar</code> 30px bar (<code>data-orientation="vertical"</code> for a rail) ·
+                <code>.p-btn</code> 26px button, 24px in a toolbar — <code>primary</code>,
+                <code>ghost</code>, <code>danger</code>, <code>link</code>, <code>selected</code>,
+                <code>icon</code>, <code>sm</code>, <code>md</code>, <code>on-dark</code> ·
+                <code>.p-input</code> / <code>.p-select</code> field, same two sizes ·
+                <code>.p-sep</code> · <code>.p-spacer</code> · <code>.p-toolbar-title</code>
+            </div>
+            <p class="muted">
+                Writing your own chrome instead? Keep the numbers: fixed <code>height</code> with
+                <strong>horizontal padding only</strong> — vertical padding on a button is the usual
+                cause of an oversized bar. In a bar: <code>height: 24px; padding: 0 4px</code>, 12px
+                text. Outside one: 26px, <code>0 8px</code>, 14px. Everywhere: 4px radius (the same
+                radius on every button in a bar), 4px between controls, 6px inside one, 16px icons.
+            </p>
         </section>
 
         <!-- ════════════════════════ CAPABILITIES ════════════════════════ -->
@@ -113,13 +162,13 @@
                 works, see <code>executeNode()</code> below.
             </p>
             <div class="row">
-                <button class="action" data-test="getText">getText</button>
-                <button class="action" data-test="getJson">getJson</button>
-                <button class="action" data-test="getJsonReject">getJson reject (exit 3)</button>
-                <button class="action" data-test="stream">streaming</button>
-                <button class="action" data-test="stdin">stdin round-trip</button>
-                <button class="action" data-test="kill">kill long-runner</button>
-                <button class="action" data-test="cwd">default cwd = board folder</button>
+                <button class="p-btn primary" data-test="getText">getText</button>
+                <button class="p-btn primary" data-test="getJson">getJson</button>
+                <button class="p-btn primary" data-test="getJsonReject">getJson reject (exit 3)</button>
+                <button class="p-btn primary" data-test="stream">streaming</button>
+                <button class="p-btn primary" data-test="stdin">stdin round-trip</button>
+                <button class="p-btn primary" data-test="kill">kill long-runner</button>
+                <button class="p-btn primary" data-test="cwd">default cwd = board folder</button>
             </div>
 
             <h2><code>persephone.executeNode()</code> — bundled Node runtime</h2>
@@ -130,18 +179,18 @@
                 over stdin instead of a spawn per operation.
             </p>
             <div class="row">
-                <button class="action" data-test="nodeInfo">runtime + node:sqlite</button>
-                <button class="action" data-test="nodeServer">resident server (stdin)</button>
+                <button class="p-btn primary" data-test="nodeInfo">runtime + node:sqlite</button>
+                <button class="p-btn primary" data-test="nodeServer">resident server (stdin)</button>
             </div>
 
             <h2>Integration tier — in-app effects</h2>
             <p class="muted">Effects <code>execute()</code> can't express: toasts, opening links/pages, native dialogs.</p>
             <div class="row">
-                <button class="action" data-test="notify">notify (toast)</button>
-                <button class="action" data-test="openRawLink">openRawLink (GitHub)</button>
-                <button class="action" data-test="openFileDialog">openFileDialog</button>
-                <button class="action" data-test="saveFileDialog">saveFileDialog</button>
-                <button class="action" data-test="openFolderDialog">openFolderDialog</button>
+                <button class="p-btn primary" data-test="notify">notify (toast)</button>
+                <button class="p-btn primary" data-test="openRawLink">openRawLink (GitHub)</button>
+                <button class="p-btn primary" data-test="openFileDialog">openFileDialog</button>
+                <button class="p-btn primary" data-test="saveFileDialog">saveFileDialog</button>
+                <button class="p-btn primary" data-test="openFolderDialog">openFolderDialog</button>
             </div>
         </section>
 
@@ -168,7 +217,7 @@
 
             <div class="ss-controls">
                 <div class="row">
-                    <button class="action" id="ss-inc">counter ＋</button>
+                    <button class="p-btn primary" id="ss-inc">counter ＋</button>
                     <span class="muted">bumps the shared <code>counter</code></span>
                 </div>
                 <div class="row">

@@ -15,6 +15,7 @@ import { toolsTrust } from "../../api/tools/tools-trust";
 import { registeredTools } from "../../api/tools/registered-tools";
 import { showRegisterToolsetDialog } from "../../ui/dialogs/RegisterToolsetDialog";
 import { openToolset } from "../../content/persephone-toolset-link";
+import { openWithDefaultApp } from "../../content/open-with-default-app";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
@@ -80,6 +81,18 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
                 : (model.treeProvider?.getNavigationUrl(item) ?? item.href);
         app.events.openRawLink.sendAsync(createLinkData(url, { pageId, sourceId: "explorer" }));
     }, [pageId, model, rootPath]);
+
+    // Double-click hands the file to the OS, the way Windows Explorer does — which is the
+    // only way to reach a format Persephone has no editor for (.vsdx, .docx, …).
+    // The tree routes directories to `onFolderDoubleClick` instead, so this is files only;
+    // folders keep expand/collapse, which is what double-click does in Explorer too.
+    //
+    // The first of the two clicks has already run `handleItemClick`, so the file also opens
+    // in a Persephone tab. That is deliberate (US-934): suppressing it would mean debouncing
+    // every single click by ~250ms, and single-click navigation is the tree's hot path.
+    const handleItemDoubleClick = useCallback((item: ITreeProviderItem) => {
+        void openWithDefaultApp(item.href);
+    }, []);
 
     // Open the toolset editor for a `tools-manifest.json` folder (US-805). When the folder isn't
     // registered, show the confirmation dialog first — Allow trusts + opens; Deny does nothing.
@@ -277,7 +290,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
                 provider={provider}
                 selectedHref={selectedHref ?? undefined}
                 onItemClick={handleItemClick}
-                onItemDoubleClick={handleItemClick}
+                onItemDoubleClick={handleItemDoubleClick}
                 onContextMenu={handleContextMenu}
                 renderTrailing={renderTrailingAction}
                 initialState={initialState}

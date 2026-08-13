@@ -468,8 +468,10 @@ Your board ships with **`board-base.css`** (linked first in `index.html`). It ap
 sensible defaults for you — page background/text, a **monospace default font**,
 **themed scrollbars**, a **themed focus ring**, and **Persephone-style checkboxes**
 (any native `<input type="checkbox">` renders as the app's rounded-square + check,
-driven by the `--p-*` tokens) — all from the `--p-*` contract. Build your own styles
-on top (or edit it). The list below is the full palette + metric set you can use:
+driven by the `--p-*` tokens) — all from the `--p-*` contract. It also carries an
+**opt-in chrome layer** (`.p-toolbar`, `.p-btn`, `.p-input`, …) covered in the next
+section. Build your own styles on top (or edit it). The list below is the full
+palette + metric set you can use:
 
 - **Colors** (theme-dependent, update live): `--p-bg`, `--p-panel`, `--p-bg-dark`,
   `--p-overlay`, `--p-hover`, `--p-tree-selection`, `--p-border`, `--p-border-light`,
@@ -482,6 +484,57 @@ on top (or edit it). The list below is the full palette + metric set you can use
     the list/button hover background, `--p-tree-selection` the selected-row background.
 - **Metrics** (constants): `--p-space-*`, `--p-gap-*`, `--p-radius-*`, `--p-size-*`,
   `--p-font-*` (e.g. `--p-space-md`, `--p-radius-sm`, `--p-font-base`).
+
+### Toolbars and buttons — use the `.p-*` classes, don't invent your own
+
+`board-base.css` ships ready-made chrome carrying the app's exact control metrics.
+Use it rather than styling a toolbar yourself — the sizes below are what make a board
+look built into Persephone instead of embedded in it:
+
+```html
+<div class="p-toolbar">
+    <span class="p-toolbar-title">Dev Dashboard</span>
+    <span class="p-sep"></span>
+    <button class="p-btn selected">Active</button>
+    <button class="p-btn">All</button>
+    <input class="p-input" placeholder="Search…" />
+    <span class="p-spacer"></span>
+    <button class="p-btn primary">Refresh</button>
+</div>
+```
+
+| Class | What it is |
+|-------|-----------|
+| `.p-toolbar` | 30px bar on `--p-bg-dark` (+1px rule). Add `data-orientation="vertical"` for a side rail. |
+| `.p-btn` | 26px button — **24px inside a `.p-toolbar`**, automatically. Modifiers: `primary` (accent fill), `ghost`, `danger`, `link`, `selected`, `icon` (square), `sm` (24px anywhere), `md` (keep 26px in a bar), `on-dark`. |
+| `.p-input` / `.p-select` | Field aligned with the buttons beside it — 26px, 24px in a toolbar. Same `sm` / `md` modifiers. |
+| `.p-sep` | Hairline between toolbar groups. |
+| `.p-spacer` | Pushes everything after it to the right edge. |
+| `.p-toolbar-title` | Caption text in a bar (board name, breadcrumb) — not a control. |
+
+They are opt-in: a bare `<button>` is untouched, so a vendored library's own controls
+keep their styling.
+
+**If you do write your own chrome CSS, keep these numbers.** They are the whole
+difference between a compact board and a bloated one:
+
+- **Toolbar: 30px tall, holding 24px controls** (31px with the bottom rule). A
+  comfortable-looking `padding: 8px 12px` produces a **45px** bar, half again too tall.
+- **A toolbar button is the SMALL tier: `height: 24px; padding: 0 4px;
+  font-size: 12px`.** This is the one that looks fine in isolation and wrong in place —
+  Persephone's own editor toolbars are built from small buttons, so a bar of 26px
+  medium buttons reads as oversized the moment it sits under the app's chrome. 26px is
+  the *page and dialog* size.
+- **Toolbar surface: `--p-bg-dark`.** App chrome is *darker* than the page, never
+  lighter. `--p-panel` is a content surface — using it is what makes a board's toolbar
+  look pale and web-like next to the app.
+- **Controls: fixed `height`, horizontal padding only.** Vertical padding on a button
+  is the single most common cause of an oversized bar.
+- **Radius 4px (`--p-radius-md`), gap 4px between controls, 6px inside a button,
+  icons 16px** — and use the *same* radius on every button in a bar.
+
+Outside a bar (a form, a dialog, a page action) the medium tier is right: 26px,
+`padding: 0 8px`, 14px text.
 
 Also mirrored in JS — for colors you set from JS (e.g. a chart library):
 

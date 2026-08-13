@@ -122,8 +122,9 @@ blank board contains:
 - `app.js` — frontend logic with a `boardScript()` helper that calls `persephone.execute()`.
 - `scripts/hello.js` — an example backend script demonstrating the `@@RESULT@@` convention.
 - `board-base.css` — shared theme defaults (page bg/text, monospace font, themed scrollbars,
-  themed focus ring, and Persephone-style native checkboxes),
-  **already linked in `index.html`; don't fetch or recreate it.**
+  themed focus ring, Persephone-style native checkboxes) plus the opt-in `.p-*` chrome
+  layer (`.p-toolbar`, `.p-btn`, `.p-input`, …).
+  **Already linked in `index.html`; don't fetch or recreate it.**
 - `board-manifest.json` — the board-identity file (already valid).
 - `CLAUDE.md` — the generic board authoring guide. **When the board is built, rewrite this file
   to document _this_ board** (purpose, how it works, key files, run/test steps, gotchas) so a
@@ -367,6 +368,44 @@ constants. To match **Persephone's own chrome** (title bar / sidebar / grid head
 `persephone.theme.vars` across a switch. The app theme shortcuts (`Ctrl+Alt+]` / `Ctrl+Alt+[`) work
 with focus inside the board frame — Persephone forwards them out — so a theme pass over a board needs
 no clicking back into the app; a board binding either combo opts out with `preventDefault()`.
+
+### Toolbars and buttons — use the `.p-*` classes
+
+`board-base.css` also carries an **opt-in chrome layer** with the app's exact control metrics.
+Use it instead of hand-styling a toolbar:
+
+```html
+<div class="p-toolbar">
+    <span class="p-toolbar-title">Dashboard</span>
+    <span class="p-sep"></span>
+    <button class="p-btn selected">Active</button>
+    <button class="p-btn">All</button>
+    <input class="p-input" placeholder="Search…" />
+    <span class="p-spacer"></span>
+    <button class="p-btn primary">Refresh</button>
+</div>
+```
+
+`.p-toolbar` (30px, `--p-bg-dark`; `data-orientation="vertical"` for a rail) · `.p-btn` (26px, and
+**24px automatically inside a toolbar**; `primary` / `ghost` / `danger` / `link` / `selected` /
+`icon` / `sm` / `md` / `on-dark`) · `.p-input` / `.p-select` (same two sizes) · `.p-sep` ·
+`.p-spacer` · `.p-toolbar-title`. Bare `<button>`/`<input>` are untouched, so vendored library
+controls keep their own styling.
+
+**Writing your own chrome instead? Keep these numbers** — they are the difference between a
+compact board and a bloated one:
+
+- **Toolbar 30px**, holding 24px controls (31px with the bottom rule). `padding: 8px 12px`
+  gives **45px**.
+- **A toolbar button is the small tier: `height: 24px; padding: 0 4px; font-size: 12px`.**
+  Persephone's own editor toolbars use small buttons; a bar of 26px medium buttons looks fine
+  alone and oversized under the app's chrome. 26px/`0 8px`/14px is the page-and-dialog size.
+- **Toolbar on `--p-bg-dark`** — chrome is *darker* than the page. `--p-panel` is a content
+  surface; using it is what makes a board's bar look pale next to the app.
+- **Controls: fixed `height`, horizontal padding only.** Vertical padding on a button is the
+  usual cause of an oversized bar.
+- Radius 4px (the same radius on every button in a bar), 4px between controls, 6px inside one,
+  icons 16px.
 
 ### Libraries & assets — vendor them locally
 
