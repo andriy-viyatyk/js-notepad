@@ -6,7 +6,13 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 ---
 
-## Version 4.0.21 (Upcoming)
+## Version 4.0.22 (Upcoming)
+
+*No changes yet.*
+
+---
+
+## Version 4.0.21
 
 ### Improvements
 
@@ -18,7 +24,7 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **"Open in New Tab" on Markdown link right-click** — Right-clicking a local or document link (`file://`, `mneme://`, and similar — everything except `http(s)` links and same-page `#anchor` links) in the Markdown Preview now offers **Open in New Tab** as the first item, above **Copy Link**. It's the no-keyboard equivalent of Ctrl+click, which already opened a link in a new tab — a plain click still navigates the current page in place. The new tab picks its editor from the file name, so a `.md` link opens in Markdown Preview and a `.ts` link in the Text Editor. See [Editors — Markdown Preview](./editors.md#markdown-preview).
 
-- **Boards get ready-made toolbar/button chrome** — `board-base.css`, copied into every **newly created** board, now ships an opt-in "Persephone chrome" layer: `.p-toolbar`, `.p-btn` (with `primary` / `ghost` / `danger` / `link` / `selected` / `icon` / `sm` / `on-dark` modifiers), `.p-input`, `.p-select`, `.p-sep`, `.p-spacer`, and `.p-toolbar-title` — all sized and colored to match the app's own controls exactly. They're opt-in: a plain `<button>` or `<input>` is untouched, so a vendored library's own controls (av-grid, Flatpickr, Tom Select) keep their own styling. The Demo board's **Theming** tab now shows a live example of the whole set. This only affects boards created from now on — an existing board keeps the `board-base.css` copy it was created with. See [Boards — Theme](./boards.md#theme).
+- **Boards get ready-made toolbar/button chrome** — `board-base.css`, copied into every **newly created** board, now ships an opt-in "Persephone chrome" layer: `.p-toolbar`, `.p-btn` (with `primary` / `ghost` / `danger` / `link` / `selected` / `icon` / `sm` / `md` / `on-dark` modifiers), `.p-input`, `.p-select`, `.p-sep`, `.p-spacer`, and `.p-toolbar-title` — all sized and colored to match the app's own controls exactly. A button or field inside a `.p-toolbar` automatically takes the app's small control size (24px, 12px text), which is what every editor toolbar in Persephone itself uses; add `md` to opt a single control back up to the standard 26px. They're opt-in: a plain `<button>` or `<input>` is untouched, so a vendored library's own controls (av-grid, Flatpickr, Tom Select) keep their own styling. The Demo board's **Theming** tab now shows a live example of the whole set. This only affects boards created from now on — an existing board keeps the `board-base.css` copy it was created with. See [Boards — Theme](./boards.md#theme).
 
 ---
 
