@@ -6,11 +6,11 @@
  * last Tor page closes. Each Tor page gets its own ephemeral Electron
  * session with a SOCKS5h proxy pointing to the local Tor daemon.
  */
-import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { app, BrowserWindow, ipcMain, session } from "electron";
 import { TorChannel, TorIpInfo, TorStatus } from "../ipc/tor-ipc";
+import { SidecarProcess } from "./sidecar-process";
 
 const TOR_BOOTSTRAP_TIMEOUT_MS = 90_000;
 
@@ -40,9 +40,7 @@ const GEO_URLS = [
 ];
 
 class TorService {
-    private torProcess: ChildProcessWithoutNullStreams | null = null;
     private activePartitions = new Set<string>();
-    private startPromise: Promise<{ success: boolean; error?: string }> | null = null;
     /**
      * Shared by every partition, and written by both `armPartition` and
      * `startForPartition`. That is sound only because `tor.socks-port` is a single
@@ -53,7 +51,20 @@ class TorService {
     private socksPort = 9050;
     /** Retained so `restart()` can respawn without the renderer re-supplying it. */
     private torExePath = "";
-    private running = false;
+
+    private sidecar = new SidecarProcess({
+        name: "Tor",
+        isReady: (line) => line.includes("Bootstrapped 100%"),
+        readinessTimeoutMs: TOR_BOOTSTRAP_TIMEOUT_MS,
+        timeoutMessage: "Tor bootstrap timed out (90 s)",
+        exitTimeoutMs: PROCESS_EXIT_TIMEOUT_MS,
+        log: (line) => this.broadcastLog(line),
+        // Died after bootstrapping. Without this broadcast the page keeps a
+        // green dot while Tor is gone — requests fail closed, but the user has
+        // no way to know short of opening the info dialog.
+        onUnexpectedExit: (code) =>
+            this.broadcastStatus("error", `Tor exited with code ${code}`),
+    });
 
     // -------------------------------------------------------------------------
     // Public API
@@ -87,21 +98,17 @@ class TorService {
         this.torExePath = torExePath;
 
         // Tor already running — just configure the new partition
-        if (this.running) {
+        if (this.sidecar.isRunning) {
             await this.setProxyForPartition(partition);
             return { success: true };
         }
 
-        // Tor is currently starting — wait for it, then configure partition
-        if (this.startPromise) {
-            return this.settleStart(await this.startPromise, partition);
-        }
-
-        // Start Tor
-        this.startPromise = this.startTorProcess(torExePath, socksPort);
-        const result = await this.startPromise;
-        this.startPromise = null;
-
+        // Starts Tor, or joins an in-flight start/restart if one is pending —
+        // either way the outcome is applied to this caller's partition.
+        const result = await this.sidecar.start(torExePath, [
+            "-f",
+            this.ensureTorrc(socksPort),
+        ]);
         return this.settleStart(result, partition);
     }
 
@@ -141,12 +148,12 @@ class TorService {
         this.activePartitions.delete(partition);
 
         if (this.activePartitions.size === 0) {
-            this.stopTorProcess();
+            this.sidecar.stop();
         }
     }
 
     shutdown(): void {
-        this.stopTorProcess();
+        this.sidecar.stop();
         this.activePartitions.clear();
     }
 
@@ -156,7 +163,7 @@ class TorService {
      * Tor page is running — do not relax this to a plain `activePartitions` check.
      */
     isActiveTorPartition(partition: string): boolean {
-        return this.running && this.activePartitions.has(partition);
+        return this.sidecar.isRunning && this.activePartitions.has(partition);
     }
 
     /**
@@ -175,32 +182,34 @@ class TorService {
         }
 
         // A start or another restart is already in flight — join it rather than
-        // spawning a second daemon onto the same DataDirectory. Assigned
-        // synchronously below so two concurrent callers cannot both get past
-        // this check while the first is awaiting the old process's exit.
-        if (this.startPromise) {
-            return this.startPromise;
+        // spawning a second daemon onto the same DataDirectory. The sidecar
+        // registers its pending promise synchronously, so two concurrent
+        // callers cannot both get past this check while the first is awaiting
+        // the old process's exit. A joiner may resolve before the initiating
+        // call has re-applied proxies and broadcast the final status — that is
+        // safe: the initiator still does both, and the joiner's result value
+        // is identical.
+        const pending = this.sidecar.pending;
+        if (pending) {
+            return pending;
         }
 
-        this.startPromise = this.runRestart();
-        try {
-            return await this.startPromise;
-        } finally {
-            // Must clear even on failure: a stuck startPromise would make every
-            // later start/restart return this dead attempt's result forever.
-            this.startPromise = null;
-        }
+        return this.runRestart();
     }
 
     private async runRestart(): Promise<{ success: boolean; error?: string }> {
         this.broadcastStatus("connecting");
         this.broadcastLog("Reconnecting: restarting Tor...");
 
-        await this.stopTorProcessAndWait();
-
+        // Tor holds a `lock` file inside DataDirectory; spawning a replacement
+        // while the old process still holds it fails with "Could not lock data
+        // directory", so the sidecar's restart waits for the exit first.
         let result: { success: boolean; error?: string };
         try {
-            result = await this.startTorProcess(this.torExePath, this.socksPort);
+            result = await this.sidecar.restart(this.torExePath, [
+                "-f",
+                this.ensureTorrc(this.socksPort),
+            ]);
         } catch (err) {
             result = { success: false, error: (err as Error).message };
         }
@@ -276,156 +285,6 @@ class TorService {
             info.error = "Could not determine the exit IP address.";
         }
         return info;
-    }
-
-    // -------------------------------------------------------------------------
-    // Tor process lifecycle
-    // -------------------------------------------------------------------------
-
-    private startTorProcess(
-        torExePath: string,
-        socksPort: number,
-    ): Promise<{ success: boolean; error?: string }> {
-        return new Promise((resolve) => {
-            const torrcPath = this.ensureTorrc(socksPort);
-            this.broadcastLog(`Starting Tor: ${torExePath}`);
-            this.broadcastLog(`Using torrc: ${torrcPath}`);
-
-            let child: ChildProcessWithoutNullStreams;
-            try {
-                child = spawn(torExePath, ["-f", torrcPath]);
-            } catch (err) {
-                const msg = `Failed to spawn tor.exe: ${err.message}`;
-                this.broadcastLog(msg);
-                resolve({ success: false, error: msg });
-                return;
-            }
-
-            this.torProcess = child;
-            let resolved = false;
-
-            const timeout = setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    const msg = "Tor bootstrap timed out (90 s)";
-                    this.broadcastLog(msg);
-                    this.stopTorProcess();
-                    resolve({ success: false, error: msg });
-                }
-            }, TOR_BOOTSTRAP_TIMEOUT_MS);
-
-            child.stdout.on("data", (data: Buffer) => {
-                const text = data.toString().trim();
-                if (text) this.broadcastLog(text);
-
-                if (!resolved && text.includes("Bootstrapped 100%")) {
-                    resolved = true;
-                    clearTimeout(timeout);
-                    this.running = true;
-                    this.broadcastLog("Tor is ready.");
-                    resolve({ success: true });
-                }
-            });
-
-            child.stderr.on("data", (data: Buffer) => {
-                const text = data.toString().trim();
-                if (text) this.broadcastLog(text);
-            });
-
-            child.on("error", (err) => {
-                const msg = `Tor process error: ${err.message}`;
-                this.broadcastLog(msg);
-                if (this.isCurrent(child)) {
-                    this.running = false;
-                }
-                if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeout);
-                    resolve({ success: false, error: msg });
-                }
-            });
-
-            child.on("close", (code) => {
-                this.broadcastLog(`Tor process exited with code ${code}`);
-                // Only clear shared state if this child is still the live one.
-                // `restart()` kills the old process and spawns a replacement; the
-                // old child's close event arrives after the new one is already
-                // assigned, so an unguarded reset here would null out a healthy
-                // process and leave `running` false while Tor is actually up.
-                const wasCurrent = this.isCurrent(child);
-                if (wasCurrent) {
-                    this.running = false;
-                    this.torProcess = null;
-                }
-                if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeout);
-                    resolve({ success: false, error: `Tor exited with code ${code}` });
-                    return;
-                }
-                // Died after bootstrapping. `isCurrent` is what makes this an
-                // *unexpected* death: `stopTorProcess` and `restart` both null out
-                // `torProcess` synchronously, so their own close events land here
-                // with `wasCurrent` false. Without this broadcast the page keeps a
-                // green dot while Tor is gone — requests fail closed, but the user
-                // has no way to know short of opening the info dialog.
-                if (wasCurrent) {
-                    this.broadcastStatus("error", `Tor exited with code ${code}`);
-                }
-            });
-        });
-    }
-
-    private stopTorProcess(): void {
-        if (this.torProcess) {
-            this.broadcastLog("Stopping Tor process...");
-            try {
-                this.torProcess.kill();
-            } catch {
-                // Process may already be dead
-            }
-            this.torProcess = null;
-            this.running = false;
-        }
-    }
-
-    /** True while `child` is the process this service considers live. */
-    private isCurrent(child: ChildProcessWithoutNullStreams): boolean {
-        return this.torProcess === child;
-    }
-
-    /**
-     * Kill tor and wait for the OS to reap it. Tor holds a `lock` file inside
-     * DataDirectory; spawning a replacement while the old process still holds it
-     * fails with "Could not lock data directory", so a restart must not race the
-     * exit. On timeout we proceed anyway and let the spawn failure surface as a
-     * normal error rather than deadlocking the restart.
-     */
-    private stopTorProcessAndWait(timeoutMs = PROCESS_EXIT_TIMEOUT_MS): Promise<void> {
-        const child = this.torProcess;
-        if (!child) {
-            this.stopTorProcess();
-            return Promise.resolve();
-        }
-
-        const exited = new Promise<void>((resolve) => {
-            let done = false;
-            const finish = () => {
-                if (done) return;
-                done = true;
-                clearTimeout(timer);
-                resolve();
-            };
-            const timer = setTimeout(() => {
-                this.broadcastLog("Tor did not exit in time; continuing anyway.");
-                finish();
-            }, timeoutMs);
-            child.once("close", finish);
-            child.once("exit", finish);
-        });
-
-        this.stopTorProcess();
-        return exited;
     }
 
     // -------------------------------------------------------------------------
