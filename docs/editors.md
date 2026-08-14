@@ -499,7 +499,28 @@ You can also open a folder from outside the app: pass a folder path on the comma
 - **View mode toggle** — Switch between list and tile modes using the toolbar button
 - **Single click to select** — Click an item to highlight it; double-click to open files or navigate into folders
 - **Sidebar sync** — The sidebar panel tree stays in sync with the folder you are viewing
-- **Works with any tree provider** — File Explorer folders, archive subfolders, and link categories all use the same Folder View with breadcrumb
+- **Works with any tree provider** — File Explorer folders, archive subfolders, Mneme folders, and link categories all use the same Folder View with breadcrumb
+- **Auto-refresh** — For a file-system folder, a Mneme folder, or a link category, the listing updates automatically when files change elsewhere — the Explorer tree, another Persephone window, Windows Explorer, or an AI agent. No manual refresh is needed. Archive folders don't refresh, since a ZIP's contents don't change while it's open.
+
+### Selecting multiple items (File Explorer folders only)
+
+Opening a **local folder** — from the File Explorer, the command line, or the folder-association entry — gives the Folder View the same multi-selection as the [File Explorer tree](./tabs-and-navigation.md#file-explorer-panel):
+
+- `Ctrl+click` adds or removes an item from the selection; `Shift+click` selects the range from the last-clicked item; `Ctrl+A` selects everything currently visible; plain click resets the selection to one item and opens/navigates it. Building a selection with `Ctrl`/`Shift` opens nothing.
+- `Delete` deletes the whole selection (with one confirmation showing the count); `Escape` collapses a multi-item selection back to the primary item.
+- With more than one item selected, right-click shows the plural actions instead of the single-item menu: **Copy Paths (N)**, **Cut (N)**, **Copy (N)**, and **Delete (N)** — same wording and behavior as the File Explorer tree. Selecting a folder together with items inside it acts on the folder only, so the count can be smaller than the number of highlighted rows.
+- Only the *primary* item (the last one you plain-clicked or navigated to) stays highlighted in the sidebar tree — the same asymmetry Windows Explorer has between its two panes. The selection itself isn't saved; reopening the folder starts fresh.
+
+Archive folders, Mneme folders, and link categories stay single-select — click one item at a time, as before.
+
+### Drag and drop (File Explorer folders only)
+
+A local folder's Folder View accepts and initiates drags the same way the File Explorer tree does:
+
+- **Drag files in from Windows Explorer** — drop them onto a folder row/tile to file them into that folder, or onto empty space (or the "Empty folder" placeholder) to file them into the currently open folder. You get the same Move/Copy choice, overwrite confirmation, progress, and error reporting as dropping onto the tree.
+- **Drag a selection out** — drag any selected row to hand the whole selection to Windows Explorer, a Teams chat, or another Persephone window (a native OS drag, just like the tree). Dragging a row that isn't part of the selection carries only that row.
+- **Drag onto a folder inside the view** — moves the dragged selection into that folder, prompting for Move/Copy as usual.
+- **Drag from the Explorer tree, another window, or a Links page** — dropping any of those into a local Folder View works the same way: a drop from the same root moves the items, a drop from elsewhere imports them.
 
 **Right-click context menu:**
 
@@ -519,6 +540,8 @@ Right-clicking a file or folder item opens a context menu with link actions:
 | Rename | Renames the file or folder inline |
 | Delete | Deletes the file or folder (with confirmation) |
 
+With more than one item selected in a local folder, this menu is replaced by the plural menu described above — Rename, Open, Paste, and the other single-item actions are hidden.
+
 Right-clicking an empty area (no item under the cursor) opens a **New** menu — available for writable locations such as file-system folders (not archive subfolders):
 
 | Action | Description |
@@ -529,7 +552,7 @@ Right-clicking an empty area (no item under the cursor) opens a **New** menu —
 
 Right-clicking a **subfolder** item in the list also offers **New File** and **New Folder** options, which create the item inside that subfolder rather than the currently-viewed folder.
 
-**Footer:** The item count ("N items") is displayed in the right-aligned footer bar, matching the height and font of the Monaco editor status bar.
+**Footer:** The item count ("N items") is displayed in the right-aligned footer bar, matching the height and font of the Monaco editor status bar. With more than one item selected, the footer also shows "(N selected)".
 
 The Folder View uses editor ID `"category-view"` in scripts:
 ```javascript

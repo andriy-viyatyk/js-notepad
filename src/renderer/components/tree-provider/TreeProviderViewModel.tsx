@@ -6,8 +6,7 @@ import type { MenuItem } from "../../uikit/Menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
 import { ui } from "../../api/ui";
-import { fpBasename, fpDirname, fpNormalizeForCompare } from "../../core/utils/file-path";
-import { copyPathsInto } from "../../core/utils/copy-files";
+import { fpBasename, fpDirname } from "../../core/utils/file-path";
 import { isUrlOrCurl } from "../../content/link-utils";
 import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import {
@@ -26,6 +25,17 @@ import {
     pasteOsClipboardInto,
     supportsOsClipboard,
 } from "./os-clipboard";
+import {
+    buildMultiItemMenuItems,
+    deleteItemsBatch,
+    pruneNestedItems,
+} from "./plural-actions";
+import {
+    dropOsFilesInto as dropOsFilesIntoTarget,
+    importFilesInto,
+    moveItemsInto,
+    type DropTarget,
+} from "./tree-drop-actions";
 
 // =============================================================================
 // Types
@@ -196,29 +206,9 @@ export class TreeProviderViewModel extends TComponentModel<
         return findNode(tree, selectedValues[selectedValues.length - 1]);
     };
 
-    /**
-     * Drop any selected item that lives inside another selected folder (epic D9). A
-     * folder-level action already affects everything under it, so keeping the descendants
-     * would double-process them — a delete would fail on the second pass, a move would look
-     * for an already-moved source, and Windows would copy the same file twice.
-     *
-     * Path-prefix test, case-insensitive, on `href`. Correct for the file provider (hrefs are
-     * absolute paths) and for the archive / category providers (hrefs are `/`-joined inner
-     * paths). A provider whose hrefs are not path-shaped returns its input unchanged — the
-     * prefix test just never matches.
-     *
-     * EVERY plural action must run its input through this, at the action's entry point.
-     */
-    operationItems = <T extends Pick<ILink, "href" | "isDirectory">>(items: T[]): T[] => {
-        const dirs = items
-            .filter((i) => i.isDirectory)
-            .map((i) => i.href.replace(/\\/g, "/").toLowerCase().replace(/\/?$/, "/"));
-        return items.filter((i) => {
-            const href = i.href.replace(/\\/g, "/").toLowerCase();
-            // `href !== d.slice(0, -1)` keeps a selected folder from pruning itself.
-            return !dirs.some((d) => href !== d.slice(0, -1) && href.startsWith(d));
-        });
-    };
+    /** Nested-selection pruning — see `pruneNestedItems`, which both views share. */
+    private operationItems = <T extends Pick<ILink, "href" | "isDirectory">>(items: T[]): T[] =>
+        pruneNestedItems(items);
 
     /** Prune `nodes` through `operationItems` (which works on ILink shapes). */
     private operationNodes = (nodes: TreeProviderNode[]): TreeProviderNode[] => {
@@ -844,51 +834,12 @@ export class TreeProviderViewModel extends TComponentModel<
 
     /** Set-shaped actions over N selected rows. `nodes` is already pruned, so every count
      *  shown here is the pruned count (epic D9). */
-    private getMultiMenuItems = (nodes: TreeProviderNode[]): MenuItem[] => {
-        const { provider } = this.props;
-        const hrefs = nodes.map((n) => n.data.href);
-        const hasRoot = hrefs.includes(provider.rootPath);
-        const n = nodes.length;
-        const items: MenuItem[] = [];
-
-        items.push({
-            label: nodes.every((x) => isUrlOrCurl(x.data.href))
-                ? `Copy Hrefs (${n})`
-                : `Copy Paths (${n})`,
-            icon: <CopyIcon />,
-            onClick: () => navigator.clipboard.writeText(hrefs.join("\n")),
-        });
-
-        // OS file clipboard — Windows Explorer interop, file provider only. No Cut when the
-        // tree root is in the set (mirrors the single-row gating).
-        if (supportsOsClipboard(provider)) {
-            if (!hasRoot) {
-                items.push({
-                    startGroup: true,
-                    label: `Cut (${n})`,
-                    icon: <CutIcon />,
-                    onClick: () => copyPathsToOsClipboard(hrefs, true),
-                });
-            }
-            items.push({
-                startGroup: hasRoot,
-                label: `Copy (${n})`,
-                icon: <CopyIcon />,
-                onClick: () => copyPathsToOsClipboard(hrefs, false),
-            });
-        }
-
-        if (provider.writable && provider.deleteItem && !hasRoot) {
-            items.push({
-                startGroup: true,
-                label: `Delete (${n})`,
-                icon: <DeleteIcon />,
-                onClick: () => this.deleteItemsAction(nodes),
-            });
-        }
-
-        return items;
-    };
+    private getMultiMenuItems = (nodes: TreeProviderNode[]): MenuItem[] =>
+        buildMultiItemMenuItems(
+            this.props.provider,
+            nodes.map((n) => n.data),
+            () => this.deleteItemsAction(nodes),
+        );
 
     private getFileMenuItems = (node: TreeProviderNode): MenuItem[] => {
         const { provider } = this.props;
@@ -930,7 +881,7 @@ export class TreeProviderViewModel extends TComponentModel<
                 items.push({
                     label: "Delete",
                     icon: <DeleteIcon />,
-                    onClick: () => this.deleteItemAction(node),
+                    onClick: () => this.deleteItemAction(node.data),
                 });
             }
         }
@@ -1013,7 +964,7 @@ export class TreeProviderViewModel extends TComponentModel<
                 items.push({
                     label: "Delete",
                     icon: <DeleteIcon />,
-                    onClick: () => this.deleteItemAction(node),
+                    onClick: () => this.deleteItemAction(node.data),
                 });
             }
         }
@@ -1106,18 +1057,18 @@ export class TreeProviderViewModel extends TComponentModel<
     };
 
     /** Confirm dialog + provider.deleteItem. Public: invoked by both the context menu and Delete. */
-    deleteItemAction = async (node: TreeProviderNode) => {
+    deleteItemAction = async (item: ITreeProviderItem) => {
         const { provider } = this.props;
         if (!provider.deleteItem) return;
 
         const bt = await ui.confirm(
-            `Are you sure you want to delete "${node.data.title}"?`,
+            `Are you sure you want to delete "${item.title}"?`,
             { title: "Delete Confirmation", buttons: ["Delete", "Cancel"] },
         );
         if (bt !== "Delete") return;
 
         try {
-            await provider.deleteItem(node.data.href);
+            await provider.deleteItem(item.href);
         } catch (err) {
             ui.notify(err.message || "Failed to delete.", "warning");
             return;
@@ -1132,49 +1083,14 @@ export class TreeProviderViewModel extends TComponentModel<
      * count only, no name list).
      */
     deleteItemsAction = async (nodes: TreeProviderNode[]) => {
-        const { provider } = this.props;
-        if (!provider.deleteItem || !nodes.length) return;
-
-        const targets = this.operationNodes(nodes);
-        if (!targets.length) return;
-        // One item → the existing wording, no progress overlay. Nothing changes for the
-        // common case.
-        if (targets.length === 1) {
-            await this.deleteItemAction(targets[0]);
-            return;
-        }
-
-        const bt = await ui.confirm(
-            `Do you want to delete ${targets.length} items?`,
-            { title: "Delete Confirmation", buttons: ["Delete", "Cancel"] },
+        const outcome = await deleteItemsBatch(
+            this.props.provider,
+            nodes.map((n) => n.data),
+            // One item → the existing singular wording, no progress overlay, and
+            // deleteItemAction does its own refresh.
+            this.deleteItemAction,
         );
-        if (bt !== "Delete") return;
-
-        const errors: string[] = [];
-        const progress = await ui.createProgress("Deleting...");
-        try {
-            await progress.show((async () => {
-                let done = 0;
-                for (const target of targets) {
-                    progress.label =
-                        `Deleting ${done + 1} of ${targets.length}: ${target.data.title}`;
-                    try {
-                        await provider.deleteItem?.(target.data.href);
-                    } catch (err) {
-                        errors.push(`${target.data.title}: ${err?.message || "failed"}`);
-                    }
-                    done++;
-                }
-            })());
-        } catch (err) {
-            ui.notify(err?.message || "Failed to delete.", "warning");
-        }
-        if (errors.length) {
-            const shown = errors.slice(0, 5).join("\n");
-            const more = errors.length > 5 ? `\n(+${errors.length - 5} more)` : "";
-            ui.notify(`Some items could not be deleted:\n${shown}${more}`, "warning");
-        }
-
+        if (outcome !== "batch") return;
         // Nothing sensible stays selected after a batch delete.
         this.setSelection([]);
         await this.buildTree();
@@ -1201,257 +1117,56 @@ export class TreeProviderViewModel extends TComponentModel<
         return this.operationItems(items).filter((i) => i.href !== provider.rootPath);
     };
 
+    // ── Drop targets ─────────────────────────────────────────────────────
+    //
+    // The tree's only tree-specific job in a drop is turning "where did this land" into a
+    // target the shared actions understand. Two flavors, deliberately not unified — see
+    // `DropTarget.path`:
+
+    /** Move target: the provider's list path for the folder, plus its name for the confirm.
+     *  Drop on a folder → into it; drop on a file → its parent folder. */
+    private moveTargetFor = (node: TreeProviderNode): DropTarget | null => {
+        const dir = node.data.isDirectory
+            ? node
+            : findParent(this.state.get().tree, node.data.href);
+        if (!dir) return null;
+        return { path: this.getListPath(dir), title: dir.data.title };
+    };
+
+    /** Import target: the category href written into. Drop on a folder → the folder itself;
+     *  drop on a file → its parent category. */
+    private importCategoryFor = (node: TreeProviderNode): string =>
+        node.data.isDirectory
+            ? node.data.href
+            : (node.data.category || this.props.provider.rootPath);
+
     moveItems = async (sourceItems: ILink[], targetNode: TreeProviderNode) => {
-        const { provider } = this.props;
-
-        const targetDir = targetNode.data.isDirectory
-            ? targetNode
-            : findParent(this.state.get().tree, targetNode.data.href);
-        if (!targetDir) return;
-
-        const targetPath = this.getListPath(targetDir);
-
-        // Separate directory (category) items from regular link items
-        const dirItems = sourceItems.filter(i => i.isDirectory);
-        const linkItems = sourceItems.filter(i => !i.isDirectory);
-        const dirsHandled = !!(provider.renameCategoryPath && dirItems.length);
-
-        // Move category sub-trees via renameCategoryPath (link providers)
-        if (dirsHandled) {
-            for (const dir of dirItems) {
-                await provider.renameCategoryPath?.(dir.href, targetPath);
-            }
+        const target = this.moveTargetFor(targetNode);
+        if (!target) return;
+        if (await moveItemsInto(this.props.provider, sourceItems, target)) {
+            await this.buildTree();
         }
-
-        // Items still needing handling: links always, dirs only if not handled above
-        const remaining = dirsHandled ? linkItems : sourceItems;
-
-        if (provider.moveToCategory && remaining.length) {
-            // Link provider path: moveToCategory (no confirmation needed)
-            await provider.moveToCategory(remaining.map(i => i.href), targetPath);
-        } else if (supportsOsClipboard(provider) && remaining.length) {
-            // File provider path (hrefs are absolute paths): batch move via copyPathsInto —
-            // the same machinery the clipboard paste and the OS-file drop use, so N items move
-            // with one confirm, one progress overlay and collected per-item failures. The
-            // pre-US-939 code renamed a single item and silently did nothing for N.
-            if (!(await this.moveFilesInto(remaining, targetDir, targetPath))) return;
-        } else if (provider.rename && remaining.length === 1) {
-            // Non-file provider with a rename (Mneme): provider-level single-item move.
-            const source = remaining[0];
-            const newPath = targetPath
-                ? targetPath + "/" + source.title
-                : source.title;
-
-            const bt = await ui.confirm(
-                `Move "${source.title}" to "${targetDir.data.title}/"?`,
-                { title: "Move", buttons: ["Move", "Cancel"] },
-            );
-            if (bt !== "Move") return;
-
-            try {
-                await provider.rename(source.href, newPath);
-            } catch (err) {
-                ui.notify(err.message || "Failed to move.", "warning");
-                return;
-            }
-        } else {
-            return;
-        }
-
-        await this.buildTree();
     };
 
-    /**
-     * Move N absolute-path items into `targetPath` (file providers only). Returns false when
-     * the caller should skip its refresh — nothing was attempted (all no-ops, an illegal
-     * folder-into-itself move, or a cancelled confirm).
-     */
-    private moveFilesInto = async (
-        items: ILink[],
-        targetDir: TreeProviderNode,
-        targetPath: string,
-    ): Promise<boolean> => {
-        const { provider } = this.props;
-
-        // Prune again rather than trusting the sender: a drag from this tree arrives pruned
-        // (dragItemsFor), but a cross-window drop is a raw payload (epic D9).
-        const targets = this.operationItems(items);
-        const targetCmp = fpNormalizeForCompare(targetPath);
-
-        // Sources already sitting in the target folder are pure no-ops — skip them silently
-        // (copyPathsInto does the same, but filtering here keeps them out of the confirm count).
-        const moving = targets.filter(
-            (i) => fpNormalizeForCompare(fpDirname(i.href)) !== targetCmp,
-        );
-        if (!moving.length) return false;
-
-        // A folder can't move into itself or one of its own descendants — copyPathsInto throws
-        // on this, but catching it after the confirm would be a worse experience.
-        const illegal = moving.find((i) => {
-            if (!i.isDirectory) return false;
-            const srcCmp = fpNormalizeForCompare(i.href);
-            return targetCmp === srcCmp || targetCmp.startsWith(srcCmp + "/");
-        });
-        if (illegal) {
-            ui.notify(`Cannot move folder "${illegal.title}" into itself.`, "warning");
-            return false;
-        }
-
-        const label = moving.length === 1
-            ? `"${moving[0].title}"`
-            : `${moving.length} items`;
-        const bt = await ui.confirm(
-            `Move ${label} to "${targetDir.data.title}/"?`,
-            { title: "Move", buttons: ["Move", "Cancel"] },
-        );
-        if (bt !== "Move") return false;
-
-        // Overwrite-collision confirm (same wording/pattern as importFiles / dropOsFilesInto).
-        const existing = new Set(
-            (await provider.list(targetPath)).map((l) => l.title.toLowerCase()),
-        );
-        const clashing = moving
-            .filter((i) => existing.has(i.title.toLowerCase()))
-            .map((i) => i.title);
-        if (clashing.length) {
-            const ob = await ui.confirm(
-                `${clashing.length} item(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
-                { title: "Overwrite?", buttons: ["Overwrite", "Cancel"] },
-            );
-            if (ob !== "Overwrite") return false;
-        }
-
-        const progress = await ui.createProgress("Moving...");
-        try {
-            const result = await progress.show(
-                copyPathsInto(moving.map((i) => i.href), targetPath, {
-                    move: true,
-                    onProgress: (done, total, name) => {
-                        progress.label = `Moving ${done} of ${total}: ${name}`;
-                    },
-                }),
-            );
-            if (result.errors.length) {
-                const shown = result.errors.slice(0, 5).join("\n");
-                const more = result.errors.length > 5
-                    ? `\n(+${result.errors.length - 5} more)`
-                    : "";
-                ui.notify(`Some items could not be moved:\n${shown}${more}`, "warning");
-            }
-        } catch (err) {
-            ui.notify(err?.message || "Failed to move.", "warning");
-        }
-        return true;
-    };
-
-    /** Import dropped file-like items (IFileLink) into the drop target's folder.
-     *  Drop on a folder → into it; drop on a file → its parent folder. Confirms before
-     *  overwriting same-named files. */
+    /** Import dropped file-like items (IFileLink) into the drop target's folder. */
     importFiles = async (items: IFileLink[], dropNode: TreeProviderNode) => {
-        const { provider } = this.props;
-        if (!provider.importFiles || !items.length) return;
-
-        const targetCategory = dropNode.data.isDirectory
-            ? dropNode.data.href
-            : (dropNode.data.category || provider.rootPath);
-
-        // Collision check via the provider's existing list(); confirm overwrite.
-        // Only meaningful for file-backed providers (those with fs rename) where a
-        // same-named file would be overwritten. Catalog providers (link collections)
-        // dedupe by href inside importFiles, so skip the title-based overwrite prompt.
-        if (provider.rename) {
-            const existing = new Set((await provider.list(targetCategory)).map((l) => l.title));
-            const clashing = items.filter((i) => existing.has(i.name)).map((i) => i.name);
-            if (clashing.length) {
-                const bt = await ui.confirm(
-                    `${clashing.length} file(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
-                    { title: "Overwrite files?", buttons: ["Overwrite", "Cancel"] },
-                );
-                if (bt !== "Overwrite") return;
-            }
+        const target = this.importCategoryFor(dropNode);
+        if (await importFilesInto(this.props.provider, items, target)) {
+            await this.buildTree();
         }
-
-        try {
-            await provider.importFiles(items, targetCategory);
-        } catch (err) {
-            ui.notify(err.message || "Failed to import files.", "warning");
-            return;
-        }
-        await this.buildTree();
     };
 
-    /** OS-file drop into a file-tree folder. Real files (with a path) get a
-     *  Move / Copy / Cancel choice; byte-only items (e.g. a Mneme doc dragged in)
-     *  can't be "moved", so they fall back to the plain byte import. File providers
-     *  only — non-file providers route to `importFiles` (see TreeProviderView). */
+    /** OS-file drop into a file-tree folder — Move / Copy choice, then a batch copy. File
+     *  providers only; non-file providers route to `importFiles` (see TreeProviderView). */
     dropOsFilesInto = async (items: IFileLink[], dropNode: TreeProviderNode) => {
-        const { provider } = this.props;
-        if (!items.length) return;
-
-        const targetDir = dropNode.data.isDirectory
-            ? dropNode.data.href
-            : (dropNode.data.category || provider.rootPath);
-
-        const paths = items.map((i) => i.filePath).filter((p): p is string => !!p);
-        const allRealFiles = paths.length > 0 && paths.length === items.length;
-
-        // Byte-only content can't be relocated — keep the existing import (copy/write).
-        if (!allRealFiles) {
-            await this.importFiles(items, dropNode);
-            return;
+        const path = this.importCategoryFor(dropNode);
+        const target: DropTarget = {
+            path,
+            title: dropNode.data.isDirectory ? dropNode.data.title : fpBasename(path),
+        };
+        if (await dropOsFilesIntoTarget(this.props.provider, items, target)) {
+            await this.buildTree();
         }
-
-        const label = items.length === 1 ? `"${items[0].name}"` : `${items.length} items`;
-        const targetTitle = dropNode.data.isDirectory
-            ? dropNode.data.title
-            : fpBasename(targetDir);
-        const bt = await ui.confirm(`Move or copy ${label} into "${targetTitle}"?`, {
-            title: "Move or Copy",
-            buttons: ["Move", "Copy", "Cancel"],
-        });
-        if (bt !== "Move" && bt !== "Copy") return;
-        const move = bt === "Move";
-
-        // Overwrite-collision confirm (same wording/pattern as importFiles).
-        const existing = new Set(
-            (await provider.list(targetDir)).map((l) => l.title.toLowerCase()),
-        );
-        const clashing = items
-            .filter((i) => existing.has(i.name.toLowerCase()))
-            .map((i) => i.name);
-        if (clashing.length) {
-            const ob = await ui.confirm(
-                `${clashing.length} file(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
-                { title: "Overwrite files?", buttons: ["Overwrite", "Cancel"] },
-            );
-            if (ob !== "Overwrite") return;
-        }
-
-        const verb = move ? "Moving" : "Copying";
-        const progress = await ui.createProgress(`${verb}...`);
-        try {
-            const result = await progress.show(
-                copyPathsInto(paths, targetDir, {
-                    move,
-                    onProgress: (done, total, name) => {
-                        progress.label = `${verb} ${done} of ${total}: ${name}`;
-                    },
-                }),
-            );
-            if (result.errors.length) {
-                const shown = result.errors.slice(0, 5).join("\n");
-                const more = result.errors.length > 5
-                    ? `\n(+${result.errors.length - 5} more)`
-                    : "";
-                ui.notify(
-                    `Some items could not be ${move ? "moved" : "copied"}:\n${shown}${more}`,
-                    "warning",
-                );
-            }
-        } catch (err) {
-            ui.notify(err?.message || `Failed to ${move ? "move" : "copy"}.`, "warning");
-        }
-        await this.buildTree();
     };
 
     /** Import links dragged from another collection into the drop target's category.

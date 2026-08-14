@@ -37,22 +37,35 @@ const defaultGetId = (link: ILink) => link.id ?? link.href;
 interface LinksTileCellProps {
     link: ILink;
     isSelected: boolean;
+    isDropTarget: boolean;
     imageHeight: number;
     additionalIcon?: React.ReactNode;
     /** When set, tile is draggable. Value is used as sourceId in drag payload. */
     dragSourceId?: string;
+    /** First chance to take over the gesture — return true when the app started a drag of its
+     *  own (e.g. a native OS file drag) and the trait payload must NOT be set. */
+    onDragStartOverride?: (link: ILink, e: React.DragEvent) => boolean;
     /** US-896 — Tor session to fetch remote images through, when on a Tor page. */
     imageProxy?: TorProxyInfo | null;
-    onSelect?: (link: ILink) => void;
+    /** The click event is forwarded so a consumer can read ctrlKey / shiftKey for
+     *  multi-selection. Omitted by the tile's own action buttons, which always mean
+     *  "this tile" — see LinksTilesProps.selectedIds. */
+    onSelect?: (link: ILink, e?: React.MouseEvent) => void;
     onEdit?: (link: ILink) => void;
     onDelete?: (link: ILink, skipConfirm: boolean) => void;
     onDoubleClick?: (link: ILink) => void;
     onContextMenu?: (e: React.MouseEvent, link: ILink) => void;
+    onDragEnter?: (link: ILink, e: React.DragEvent) => void;
+    onDragOver?: (link: ILink, e: React.DragEvent) => void;
+    onDragLeave?: (link: ILink, e: React.DragEvent) => void;
+    onDrop?: (link: ILink, e: React.DragEvent) => void;
 }
 
 function LinksTileCell({
-    link, isSelected, imageHeight, additionalIcon,
-    dragSourceId, imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
+    link, isSelected, isDropTarget, imageHeight, additionalIcon,
+    dragSourceId, onDragStartOverride,
+    imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
+    onDragEnter, onDragOver, onDragLeave, onDrop,
 }: LinksTileCellProps) {
     const [isDragging, setIsDragging] = useState(false);
     // Remembering the failed URL (rather than a bool) self-resets when the link's
@@ -72,9 +85,15 @@ function LinksTileCell({
     const handleDragStart = useCallback((e: React.DragEvent) => {
         if (!dragSourceId) { e.preventDefault(); return; }
         e.stopPropagation();
-        setTraitDragData(e.dataTransfer, TraitTypeId.ILink, { items: [link], sourceId: dragSourceId });
+        // First chance: the app may replace the gesture with a native OS drag. It gets no
+        // `dragend`, so the tile must not enter its dragging (dimmed) state either.
+        if (onDragStartOverride?.(link, e)) return;
+        setTraitDragData(e.dataTransfer, TraitTypeId.ILink, {
+            items: [link],
+            sourceId: dragSourceId,
+        });
         setIsDragging(true);
-    }, [link, dragSourceId]);
+    }, [link, dragSourceId, onDragStartOverride]);
 
     const handleDragEnd = useCallback(() => {
         setIsDragging(false);
@@ -89,7 +108,11 @@ function LinksTileCell({
             draggable={!!dragSourceId}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            onClick={() => onSelect?.(link)}
+            onDragEnter={onDragEnter ? (e) => onDragEnter(link, e) : undefined}
+            onDragOver={onDragOver ? (e) => onDragOver(link, e) : undefined}
+            onDragLeave={onDragLeave ? (e) => onDragLeave(link, e) : undefined}
+            onDrop={onDrop ? (e) => onDrop(link, e) : undefined}
+            onClick={(e) => onSelect?.(link, e)}
             onDoubleClick={handleDoubleClick}
             onContextMenu={(e) => onContextMenu?.(e, link)}
             title={link.href || link.title}
@@ -226,13 +249,20 @@ function LinksTileCell({
                         )}
                     </Panel>
                 )}
-                {isSelected && (
+                {/* A tile can be selected AND the drop target at once, so the two states are
+                    layered rather than exclusive: the wash carries selection, the ring carries
+                    drop feedback (and reads clearly on top of the wash). */}
+                {(isSelected || isDropTarget) && (
                     <div
                         style={{
                             position: "absolute",
                             inset: 0,
                             backgroundColor: color.background.selection,
-                            opacity: 0.3,
+                            opacity: isDropTarget ? 0.5 : 0.3,
+                            outline: isDropTarget
+                                ? `2px solid ${color.border.active}`
+                                : undefined,
+                            outlineOffset: -2,
                             pointerEvents: "none",
                         }}
                     />
@@ -250,9 +280,13 @@ export interface LinksTilesProps {
     links: ILink[];
     viewMode: Exclude<LinkViewMode, "list">;
     selectedId?: string;
+    /** Multi-selection. When set it replaces `selectedId` as the source of the per-tile
+     *  selected state, and `onSelect` receives the click event so the consumer can
+     *  implement Ctrl/Shift gestures. The consumer owns the set. */
+    selectedIds?: ReadonlySet<string>;
     /** Extract ID from a link for selection matching. Defaults to link.id ?? link.href. */
     getId?: (link: ILink) => string;
-    onSelect?: (link: ILink) => void;
+    onSelect?: (link: ILink, e?: React.MouseEvent) => void;
     onEdit?: (link: ILink) => void;
     onDelete?: (link: ILink, skipConfirm: boolean) => void;
     /** Override double-click behavior. When not set, double-click calls onEdit. */
@@ -262,16 +296,28 @@ export interface LinksTilesProps {
     getAdditionalIcon?: (link: ILink) => React.ReactNode;
     /** Enable drag. When set, items are draggable with this sourceId in drag payload. */
     dragSourceId?: string;
+    /** First chance to take over the gesture (native OS file drag). Return true to suppress the
+     *  in-process trait drag entirely. */
+    onDragStartOverride?: (link: ILink, e: React.DragEvent) => boolean;
     /** US-896 — Tor session to fetch remote images through, when on a Tor page. */
     imageProxy?: TorProxyInfo | null;
     /** Called with the RenderGridModel on mount, null on unmount. */
     onGridModel?: (model: RenderGridModel | null) => void;
+    /** Tile drop targets. Raw DragEvents are forwarded untouched — the consumer owns the whole
+     *  policy. Leave unset and tiles are not drop targets at all. */
+    onItemDragEnter?: (link: ILink, e: React.DragEvent) => void;
+    onItemDragOver?: (link: ILink, e: React.DragEvent) => void;
+    onItemDragLeave?: (link: ILink, e: React.DragEvent) => void;
+    onItemDrop?: (link: ILink, e: React.DragEvent) => void;
+    /** Id (per `getId`) of the tile currently under a drag. */
+    dropTargetId?: string | null;
 }
 
 export function LinksTiles({
-    links, viewMode, selectedId, getId = defaultGetId,
+    links, viewMode, selectedId, selectedIds, getId = defaultGetId,
     onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
-    getAdditionalIcon, dragSourceId, imageProxy, onGridModel,
+    getAdditionalIcon, dragSourceId, onDragStartOverride, imageProxy, onGridModel,
+    onItemDragEnter, onItemDragOver, onItemDragLeave, onItemDrop, dropTargetId,
 }: LinksTilesProps) {
     const gridRef = useRef<RenderGridModel>(null);
     const [gridSize, setGridSize] = useState<RenderSizeOptional>({
@@ -296,7 +342,7 @@ export function LinksTiles({
 
     useEffect(() => {
         gridRef.current?.update({ all: true });
-    }, [selectedId]);
+    }, [selectedId, selectedIds, dropTargetId]);
 
     const counts = useMemo(() => {
         const colCount = gridSize.width
@@ -330,23 +376,34 @@ export function LinksTiles({
                 >
                     <LinksTileCell
                         link={link}
-                        isSelected={getId(link) === selectedId}
+                        isSelected={selectedIds
+                            ? selectedIds.has(getId(link))
+                            : getId(link) === selectedId}
+                        isDropTarget={!!dropTargetId && getId(link) === dropTargetId}
                         imageHeight={dims.imageHeight}
                         additionalIcon={getAdditionalIcon?.(link)}
                         dragSourceId={dragSourceId}
+                        onDragStartOverride={onDragStartOverride}
                         imageProxy={imageProxy}
                         onSelect={onSelect}
                         onEdit={onEdit}
                         onDelete={onDelete}
                         onDoubleClick={onDoubleClick}
                         onContextMenu={onContextMenu}
+                        onDragEnter={onItemDragEnter}
+                        onDragOver={onItemDragOver}
+                        onDragLeave={onItemDragLeave}
+                        onDrop={onItemDrop}
                     />
                 </div>
             );
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps -- faviconVersion bumps on favicon load to force re-render of tiles (no direct read in body)
-        [links, counts.colCount, dims, selectedId, getId, getAdditionalIcon,
-         dragSourceId, imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
+        [links, counts.colCount, dims, selectedId, selectedIds, dropTargetId, getId,
+         getAdditionalIcon,
+         dragSourceId, onDragStartOverride,
+         imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
+         onItemDragEnter, onItemDragOver, onItemDragLeave, onItemDrop,
          faviconVersion],
     );
 

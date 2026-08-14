@@ -68,6 +68,13 @@ export interface ListItemProps
      * pane. Ignored when a custom `trailing` is provided. Default: `true`.
      */
     showSelectionIcon?: boolean;
+    /**
+     * True while a drag is hovering this row and it is the active drop target. Paints the
+     * drop feedback, which deliberately outranks the selection and hover states — a row can
+     * be selected *and* be the drop target, and the drop is the transient thing the user
+     * needs to see. Mirrors `TreeItem`'s `dropActive`.
+     */
+    dropActive?: boolean;
 }
 
 // --- Styled ---
@@ -105,7 +112,18 @@ const Root = styled.div(
         // ListItem (outside ListBox) lights up whenever it sits inside any focused-within
         // [data-focus-selection] container. The container needs only data-focus-selection +
         // tabIndex=0 (no Emotion). Also covers ListItem inside ListBox.
-        ...rowFocusSelectionOverride('[data-selection-style="focus"]'),
+        // `:not([data-drop-active])` keeps the focused-list selection paint off a row that is
+        // showing drop feedback. Without it that override — one attribute more specific than
+        // any rule below — would win on a row that is both selected and the drop target.
+        ...rowFocusSelectionOverride('[data-selection-style="focus"]:not([data-drop-active])'),
+
+        // Last, so it outranks the hover and accent-selection rules above at equal specificity.
+        "&[data-drop-active]:not([data-disabled])": {
+            backgroundColor: color.background.selection,
+            color: color.text.dark,
+            outline: `1px solid ${color.border.active}`,
+            outlineOffset: -1,
+        },
 
         "& > svg": {
             width: height.iconMd,
@@ -142,6 +160,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
         variant = "select",
         selectionStyle = "check",
         showSelectionIcon = true,
+        dropActive,
         ...rest
     },
     ref,
@@ -164,6 +183,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
             data-selected={selected || undefined}
             data-active={active || undefined}
             data-disabled={disabled || undefined}
+            data-drop-active={dropActive || undefined}
             role="option"
             aria-selected={selected ? "true" : "false"}
             aria-disabled={disabled ? "true" : undefined}

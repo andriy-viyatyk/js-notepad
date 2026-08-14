@@ -159,7 +159,8 @@ GlobalEventService
     -> showAppPopupMenu with final items (copies array to avoid Immer freeze)
 ```
 
-**Multi-selection.** In a multi-select tree (the Explorer panel), Layer 1 builds a plural menu
+**Multi-selection.** In a multi-select tree or folder page (the Explorer panel and, for local-file
+providers, the folder-content view), Layer 1 builds a plural menu
 (`Copy Paths (N)` / `Cut (N)` / `Copy (N)` / `Delete (N)`) when the right-clicked row is part of a
 selection of more than one; a right-click outside the selection moves the selection to that row and
 builds the ordinary single-row menu. Layer 2 subscribers still receive one `event.target` — the
@@ -178,6 +179,13 @@ and appear identically in the Explorer tree and the folder page. The Categories 
 `LinkItemTiles`) fire it too. A right-click on empty space in `CategoryView` adds "New
 File" / "New Folder" scoped to the open category (gated on a writable provider), mirroring
 the tree's `onBackgroundContextMenu`.
+
+Where the folder page is multi-selectable it builds the same plural menu from the same
+`buildMultiItemMenuItems` helper as the tree, with one difference: it **skips Layer 2** rather than
+awaiting `contextMenuPromise`. The reason is the one above — a `linkContextMenu` subscriber receives
+a single `event.target`, so letting a plural menu through would invite singular items onto a menu
+that acts on N. The per-row hover action buttons stay singular for the same reason, and always
+confirm.
 
 "Open with Default App" (`shell.openPath` via `Endpoint.openPath`) is offered on **files
 only**. A folder's "Show in File Explorer" is already that same `shell.openPath` call — on a

@@ -389,7 +389,7 @@ const handleDragEnd = useCallback(() => {
 The `Tree` internally uses the same native HTML5 handlers (`onDragStart`, `onDragEnter`, etc.) with `dragEnterCount` for visual feedback. Return `null` from `getDragData` to prevent dragging a specific node.
 
 **A tree drag may carry N items.** In a multi-select tree (`multiSelect`, currently the Explorer
-panel only) a drag that starts on a *selected* row carries the whole selection; a drag on an
+panel) a drag that starts on a *selected* row carries the whole selection; a drag on an
 unselected row carries that row alone and leaves the selection untouched, the way Windows Explorer
 behaves. `TreeProviderViewModel.dragItemsFor(node)` makes that call and feeds **both** payload
 paths — `getDragData`'s `LinkDragData.items` and the native OS drag-out's path list. It prunes any
@@ -407,6 +407,20 @@ A drag source can choose its **trait-type id** instead of defaulting to `ILink`.
 `TreeProviderView` uses it so that **every** local-file-provider row drag is a native OS drag: it hands off to `webContents.startDrag` (via the `startOsFileDrag` IPC endpoint → `src/main/os-drag-service.ts`), producing a real Windows **CF_HDROP** drag that Windows Explorer and Microsoft Teams accept as a file copy. No modifier is needed.
 
 One gesture serves both directions because a native OS drag dropped **back inside** a Persephone window re-enters as an ordinary OS file drop: `GlobalEventService.captureDrop` tags it (capture phase) with an `OsFile` (`FILE_LINK`) descriptor, so trait-aware drop targets receive it identically to a drop from Windows Explorer. The drag payload is therefore always `FILE_LINK` (never `LINK`/`sourceId`), which is why a drop into another Explorer folder is treated as an import rather than a same-source move — the move-vs-copy choice is instead offered at drop time (see the `FILE_LINK` import branch below). Non-file providers (Mneme, archive, link collections) don't start an OS drag; they keep the in-process HTML5 trait drag.
+
+The folder-content view drags out the same way, through the same override prop on `LinksList` /
+`LinksTiles` (see [secondary-views.md](secondary-views.md) §12). It has no second, in-process path:
+because the override is gated to the local-file provider and returns `true` for every draggable
+row there, the trait payload is only ever reached when nothing is draggable — so its list
+components keep their single-item trait payload rather than carrying an unused plural one. The tree
+needs both paths only because it also serves Mneme and link-collection providers, where the trait
+drag is live.
+
+**Hover cannot inspect the payload.** Chrome's protected mode releases only `dataTransfer.types`
+during `dragenter`/`dragover` — the data itself arrives at `drop`. So a drop target's hover
+decision is necessarily *type-level* (would this view accept a drag of this kind at all), and any
+check that needs the actual items — above all "is this folder inside the set being dragged" — can
+only run at drop time and must fail there, with a message, rather than by refusing the hover.
 
 ---
 

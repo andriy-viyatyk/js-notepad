@@ -22,33 +22,52 @@ const defaultGetId = (link: ILink) => link.id ?? link.href;
 interface LinksListRowProps {
     link: ILink;
     isSelected: boolean;
+    isDropTarget: boolean;
     searchText: string;
     additionalIcon?: React.ReactNode;
     /** When set, row is draggable. Value is used as sourceId in drag payload. */
     dragSourceId?: string;
+    /** First chance to take over the gesture — return true when the app started a drag of its
+     *  own (e.g. a native OS file drag) and the trait payload must NOT be set. */
+    onDragStartOverride?: (link: ILink, e: React.DragEvent) => boolean;
     allTags?: string[];
     /** US-896 — Tor session for the tooltip's preview image, on a Tor page. */
     imageProxy?: TorProxyInfo | null;
-    onSelect?: (link: ILink) => void;
+    /** The click event is forwarded so a consumer can read ctrlKey / shiftKey for
+     *  multi-selection. Omitted by the row's own action buttons, which always mean
+     *  "this row" — see LinksListProps.selectedIds. */
+    onSelect?: (link: ILink, e?: React.MouseEvent) => void;
     onEdit?: (link: ILink) => void;
     onDelete?: (link: ILink, skipConfirm: boolean) => void;
     onDoubleClick?: (link: ILink) => void;
     onContextMenu?: (e: React.MouseEvent, link: ILink) => void;
     onToggleTag?: (link: ILink, tag: string) => void;
+    onDragEnter?: (link: ILink, e: React.DragEvent) => void;
+    onDragOver?: (link: ILink, e: React.DragEvent) => void;
+    onDragLeave?: (link: ILink, e: React.DragEvent) => void;
+    onDrop?: (link: ILink, e: React.DragEvent) => void;
 }
 
 function LinksListRow({
-    link, isSelected, searchText, additionalIcon,
-    dragSourceId, allTags, imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag,
+    link, isSelected, isDropTarget, searchText, additionalIcon,
+    dragSourceId, onDragStartOverride,
+    allTags, imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag,
+    onDragEnter, onDragOver, onDragLeave, onDrop,
 }: LinksListRowProps) {
     const [isDragging, setIsDragging] = useState(false);
 
     const handleDragStart = useCallback((e: React.DragEvent) => {
         if (!dragSourceId) { e.preventDefault(); return; }
         e.stopPropagation(); // Prevent parent elements from interfering with this drag
-        setTraitDragData(e.dataTransfer, TraitTypeId.ILink, { items: [link], sourceId: dragSourceId });
+        // First chance: the app may replace the gesture with a native OS drag. It gets no
+        // `dragend`, so the row must not enter its dragging (dimmed) state either.
+        if (onDragStartOverride?.(link, e)) return;
+        setTraitDragData(e.dataTransfer, TraitTypeId.ILink, {
+            items: [link],
+            sourceId: dragSourceId,
+        });
         setIsDragging(true);
-    }, [link, dragSourceId]);
+    }, [link, dragSourceId, onDragStartOverride]);
 
     const handleDragEnd = useCallback(() => {
         setIsDragging(false);
@@ -122,6 +141,7 @@ function LinksListRow({
                     selectionStyle="focus"
                     showSelectionIcon={false}
                     selected={isSelected}
+                    dropActive={isDropTarget}
                     searchText={link.isDirectory ? undefined : searchText}
                     icon={<TreeProviderItemIcon item={link} />}
                     label={label}
@@ -131,7 +151,11 @@ function LinksListRow({
                     draggable={!!dragSourceId}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
-                    onClick={() => onSelect?.(link)}
+                    onDragEnter={onDragEnter ? (e) => onDragEnter(link, e) : undefined}
+                    onDragOver={onDragOver ? (e) => onDragOver(link, e) : undefined}
+                    onDragLeave={onDragLeave ? (e) => onDragLeave(link, e) : undefined}
+                    onDrop={onDrop ? (e) => onDrop(link, e) : undefined}
+                    onClick={(e) => onSelect?.(link, e)}
                     onDoubleClick={handleDoubleClick}
                     onContextMenu={(e) => onContextMenu?.(e, link)}
                 />
@@ -147,10 +171,15 @@ function LinksListRow({
 export interface LinksListProps {
     links: ILink[];
     selectedId?: string;
+    /** Multi-selection. When set it replaces `selectedId` as the source of the per-row
+     *  selected state, and `onSelect` receives the click event so the consumer can
+     *  implement Ctrl/Shift gestures. The consumer owns the set; this component derives
+     *  nothing and stores nothing. */
+    selectedIds?: ReadonlySet<string>;
     /** Extract ID from a link for selection matching. Defaults to link.id ?? link.href. */
     getId?: (link: ILink) => string;
     searchText?: string;
-    onSelect?: (link: ILink) => void;
+    onSelect?: (link: ILink, e?: React.MouseEvent) => void;
     onEdit?: (link: ILink) => void;
     onDelete?: (link: ILink, skipConfirm: boolean) => void;
     /** Override double-click behavior. When not set, double-click calls onEdit. */
@@ -160,6 +189,9 @@ export interface LinksListProps {
     getAdditionalIcon?: (link: ILink) => React.ReactNode;
     /** Enable drag. When set, items are draggable with this sourceId in drag payload. */
     dragSourceId?: string;
+    /** First chance to take over the gesture (native OS file drag). Return true to suppress the
+     *  in-process trait drag entirely. */
+    onDragStartOverride?: (link: ILink, e: React.DragEvent) => boolean;
     /** All available tags for inline tag editing in tooltip. */
     allTags?: string[];
     /** Toggle a tag on a link (add if absent, remove if present). */
@@ -168,12 +200,24 @@ export interface LinksListProps {
     imageProxy?: TorProxyInfo | null;
     /** Called with the RenderGridModel on mount, null on unmount. */
     onGridModel?: (model: RenderGridModel | null) => void;
+    /** Row drop targets. Raw DragEvents are forwarded untouched — the consumer owns the whole
+     *  policy (whether to accept, the dropEffect, preventDefault/stopPropagation), because
+     *  acceptance depends on the drag payload and on the provider, neither of which this
+     *  component knows about. Leave unset and rows are not drop targets at all. */
+    onItemDragEnter?: (link: ILink, e: React.DragEvent) => void;
+    onItemDragOver?: (link: ILink, e: React.DragEvent) => void;
+    onItemDragLeave?: (link: ILink, e: React.DragEvent) => void;
+    onItemDrop?: (link: ILink, e: React.DragEvent) => void;
+    /** Id (per `getId`) of the row currently under a drag, painted as the drop target. */
+    dropTargetId?: string | null;
 }
 
 export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(function LinksList({
-    links, selectedId, getId = defaultGetId, searchText = "",
+    links, selectedId, selectedIds, getId = defaultGetId, searchText = "",
     onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
-    getAdditionalIcon, dragSourceId, allTags, imageProxy, onToggleTag, onGridModel,
+    getAdditionalIcon, dragSourceId, onDragStartOverride,
+    allTags, imageProxy, onToggleTag, onGridModel,
+    onItemDragEnter, onItemDragOver, onItemDragLeave, onItemDrop, dropTargetId,
 }: LinksListProps, ref: React.ForwardedRef<RenderGridModel>) {
     const gridRef = useRef<RenderGridModel>(null);
     const [gridWidth, setGridWidth] = useState<number | undefined>(undefined);
@@ -211,10 +255,14 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
                 >
                     <LinksListRow
                         link={link}
-                        isSelected={getId(link) === selectedId}
+                        isSelected={selectedIds
+                            ? selectedIds.has(getId(link))
+                            : getId(link) === selectedId}
+                        isDropTarget={!!dropTargetId && getId(link) === dropTargetId}
                         searchText={searchText}
                         additionalIcon={getAdditionalIcon?.(link)}
                         dragSourceId={dragSourceId}
+                        onDragStartOverride={onDragStartOverride}
                         allTags={allTags}
                         imageProxy={imageProxy}
                         onSelect={onSelect}
@@ -223,13 +271,19 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
                         onDoubleClick={onDoubleClick}
                         onContextMenu={onContextMenu}
                         onToggleTag={onToggleTag}
+                        onDragEnter={onItemDragEnter}
+                        onDragOver={onItemDragOver}
+                        onDragLeave={onItemDragLeave}
+                        onDrop={onItemDrop}
                     />
                 </div>
             );
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps -- faviconVersion bumps on favicon load to force re-render of cells (no direct read in body)
-        [links, selectedId, getId, searchText, getAdditionalIcon, dragSourceId, allTags,
+        [links, selectedId, selectedIds, dropTargetId, getId, searchText, getAdditionalIcon,
+         dragSourceId, onDragStartOverride, allTags,
          imageProxy, onSelect, onEdit, onDelete, onDoubleClick, onContextMenu, onToggleTag,
+         onItemDragEnter, onItemDragOver, onItemDragLeave, onItemDrop,
          faviconVersion],
     );
 

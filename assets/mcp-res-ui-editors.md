@@ -172,7 +172,11 @@ Opens when the user clicks a folder in the File Explorer or Archive panel. List 
 (each folder remembers its own), breadcrumb navigation, and image thumbnails — including images
 *inside* an archive, so browsing `document.docx!word/media` in tile mode gives a contact sheet of
 the file's embedded pictures. Right-click offers open/rename/delete/copy-path plus **New File** /
-**New Folder** / **Paste** in writable locations.
+**New Folder** / **Paste** in writable locations. On local folders it behaves like the File Explorer
+panel: Ctrl/Shift+click multi-selection (Ctrl+A, `Delete`, `Escape`), plural copy/cut/delete,
+dragging files in from Windows Explorer — onto a folder row or onto empty space, meaning the open
+folder — and dragging a selection back out to Windows Explorer or another app. Archive folders stay
+single-select and read-only.
 
 ## Drawing
 

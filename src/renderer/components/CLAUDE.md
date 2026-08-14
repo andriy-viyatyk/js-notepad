@@ -8,7 +8,7 @@ Remaining folders:
 - `icons/` — uses Persephone's icon registration system
 - `page-manager/` — coupled to `PageModel` lifecycle
 - `file-search/` — uses `app.fs`
-- `tree-provider/` — coupled to `ITreeProvider` contracts
+- `tree-provider/` — coupled to `ITreeProvider` contracts; holds both the tree (`TreeProviderView`) and the folder page it navigates to (`CategoryView`), plus the plural / drop actions they share
 - `file-list/` — flat file list (icons + single-click) built on `ListBox` + `FileIcon`; reused by the Recent files panel and the Git Tree "Changes" panel
 - `file-grid/` — `AVGrid`-based flat file list (icon / path / status columns, header-as-label, sorting, range selection + range-copy, single/double click, context-menu passthrough); built on `AVGrid` + `FileIcon`. Used by the Git Tree "Changes" panel; designed as the eventual `FileList` replacement
 - `git-tree/` — Git Tree component (`AVGrid` + SVG branch graph) and the git data submodels (`GitTreeModel`, `GitChangesModel`)

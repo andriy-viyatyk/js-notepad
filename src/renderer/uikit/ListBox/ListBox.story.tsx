@@ -49,6 +49,7 @@ interface DemoProps {
     sections?: boolean;
     variant?: "select" | "browse";
     selectionStyle?: "check" | "accent" | "focus";
+    dropActive?: boolean;
 }
 
 function ListBoxDemo({
@@ -62,6 +63,7 @@ function ListBoxDemo({
     sections = false,
     variant = "select",
     selectionStyle = "check",
+    dropActive = false,
 }: DemoProps) {
     const [value, setValue] = useState<IListBoxItem | null>(null);
     const [active, setActive] = useState<number>(0);
@@ -83,6 +85,7 @@ function ListBoxDemo({
                 searchText={searchText}
                 selected={ctx.selected}
                 active={ctx.active}
+                dropActive={dropActive && ctx.index === 2}
                 tooltip={tooltip ? `Tooltip: ${ctx.item.label}` : undefined}
                 trailing={
                     <IconButton
@@ -178,5 +181,8 @@ export const listBoxStory: Story = {
         { name: "sections",           type: "boolean", default: false },
         { name: "variant",            type: "enum",    options: ["select", "browse"], default: "select" },
         { name: "selectionStyle",     type: "enum",    options: ["check", "accent", "focus"],  default: "check" },
+        // Drop feedback is set per row by the consumer (ListBox never sets it), so this needs
+        // customRow to be on. Marks the third row as the active drop target.
+        { name: "dropActive",         type: "boolean", default: false },
     ],
 };

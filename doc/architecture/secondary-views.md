@@ -55,7 +55,8 @@ PageModel
 - Created by `PageModel.createExplorer(rootPath)` or during restore
 - Survives navigation — `beforeNavigateAway()` never clears (Explorer is always present)
 - Disposed when user closes the panel or the page closes
-- The **only** panel that passes `multiSelect` to `TreeProviderView`: Ctrl/Shift+click
+- The **only** panel that passes `multiSelect` to `TreeProviderView` (the folder page it navigates
+  to is multi-selectable too, but independently — see §12): Ctrl/Shift+click
   builds a set that copy/cut/delete/drag act on. The plural set lives in the tree view model and is
   persisted inside `treeState.selectedHrefs`; `selectionState.selectedHref` stays single — it is the
   one-way "the main editor navigated here" channel, and adopting it collapses the set to that row.
@@ -554,6 +555,52 @@ interface ITreeProvider {
 - **FileTreeProvider** — `category` is an **absolute** OS path (`rootPath === sourceUrl`). Its implementation strips the `rootPath` prefix for the segment labels but keeps `/`-joined absolute paths as each segment's navigation `category` (`readdirSync` accepts `/` on Windows).
 
 The UIKit `Breadcrumb` is used with its opt-in `clipStart` prop: on overflow it shrinks within the toolbar row and clips the **start** (root) side, keeping the trailing (current) folder visible. See [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md) for the component contract.
+
+### Selection, Drag-and-Drop and Live Refresh
+
+The folder page is a peer of the Explorer tree, not a read-only preview: where the provider allows
+it, the same gestures work in both. `CategoryEditor` gates this with a single call —
+`multiSelect={supportsMultiSelect(provider)}` — and `supportsMultiSelect` is currently
+`type === "file"`. Archive and Mneme folder pages therefore stay single-select, because the plural
+actions are the file-move / file-import pair and a catalog provider would need the `importLinks`
+branch the tree has.
+
+What the gate turns on:
+
+- **Selection** — Ctrl/Shift+click, Ctrl+A, `Delete`, `Escape`. Shift is tested *before* Ctrl,
+  which is what makes Ctrl+Shift+click a range extend without a third rule. The set lives in
+  `CategoryViewModel.state.selectedHrefs` and is transient: it is cleared when the category or
+  provider changes and never persisted, because a folder page re-lists from scratch each time it
+  opens. `props.selectedHref` remains the singular *primary* item — the one-way channel the
+  Explorer tree shares — so the two never fight over one value.
+- **Plural context menu** — replaces the single-row menu and skips the `linkContextMenu` layer
+  entirely, since Layer-2/3 subscribers are written against one item. Counts shown in the labels
+  are the *pruned* counts.
+- **Drops** — onto a folder row (into that folder) or onto whitespace, an empty-folder
+  placeholder, or a file row (all meaning *the open folder*, because a file's parent **is** the
+  open folder). `drop` stops propagation, which is what suppresses the global
+  open-dropped-files-as-tabs fallback.
+- **Drag-out** — a native OS drag (`api.startOsFileDrag`) carrying N paths, so Windows Explorer
+  and Teams accept it. A native drag dropped back inside any Persephone window re-enters as an
+  ordinary OS file drop, so one gesture serves external and internal targets alike.
+
+Only *visible* items participate: rows hidden by the search filter are excluded from every plural
+action, and the selection is pruned so an item inside a selected folder is never acted on twice.
+
+**Live refresh.** The page subscribes to the provider's optional `watch(callback)` and re-lists on
+each tick, so it tracks changes made anywhere else — the Explorer tree beside it, another window,
+Windows Explorer, or an agent. `watch` is an opt-in capability rather than part of `ITreeProvider`,
+so the check is duck-typed exactly as the tree's is; the file provider implements it with one
+recursive `fs.watch` debounced at 500ms. Re-listing never flashes, because the loading placeholder
+is gated on an empty listing and the previous items stay on screen; the selection is re-validated
+against the new listing, so an externally deleted file drops out instead of being carried into the
+next batch action.
+
+The set-shaped actions themselves are shared with the Explorer tree rather than reimplemented —
+see [`plural-actions.tsx`](../../src/renderer/components/tree-provider/plural-actions.tsx) and
+[`tree-drop-actions.ts`](../../src/renderer/components/tree-provider/tree-drop-actions.ts). Both
+are *target-shaped*: the drop helpers take a `DropTarget` of `{ path, title }`, not a tree node,
+which is the whole reason two very different views can call them.
 
 ### Diagram
 

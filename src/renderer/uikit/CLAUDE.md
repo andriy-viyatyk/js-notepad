@@ -56,6 +56,7 @@ Pass `undefined` (not `false`) when a boolean attribute is inactive — `data-di
 | `data-disabled` | present / absent | component is disabled |
 | `data-selected` | present / absent | item is selected |
 | `data-active` | present / absent | item is focused / highlighted |
+| `data-drop-active` | present / absent | item is the current drag-and-drop target |
 | `data-checked` | `"true"` / `"false"` / `"mixed"` | checkbox or toggle state |
 | `data-state` | `"open"` / `"closed"` | expandable or floating element |
 | `data-orientation` | `"horizontal"` / `"vertical"` | layout direction |
@@ -468,6 +469,16 @@ Ctrl+A, Shift+Arrow/Home/End/PageUp/Down): it stores **no** selection, derives t
 calling `isSelected` per visible row, keeps only a transient anchor, and emits the resulting set
 through `onSelectionChange` for the consumer to store — Rule 2, with the range math staying in the
 Tree because it alone knows the flat visible row order.
+
+**A transient row state that must outrank selection.** `ListItem` also accepts `dropActive`, which
+marks the row currently under a drag (`data-drop-active` → selection background plus a
+`border.active` outline). Selection is persistent and drop-target is momentary, so the momentary
+one has to win — but the focused-selection override is *more* specific by one attribute and would
+otherwise swallow it. The fix belongs at the source, not in an `!important`: `ListItem` narrows the
+`rowMatch` it hands `rowFocusSelectionOverride` with `:not([data-drop-active])`, so the two rules
+are mutually exclusive by construction. Anything adding a similar transient state should carve it
+out of the selection override the same way, and keep the exclusion in the row primitive where both
+rules are visible together.
 
 ---
 

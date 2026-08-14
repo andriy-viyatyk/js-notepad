@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import styled from "@emotion/styled";
 import { useComponentModel } from "../../core/state/model";
@@ -89,6 +89,13 @@ const CategoryViewRoot = styled.div({
         fontSize: 12,
         color: color.text.light,
     },
+
+    // Whitespace drop target — an inset ring around the whole view, so it reads as "into this
+    // folder" and never competes with a folder row's own highlight.
+    "&[data-drop-active]": {
+        outline: `2px solid ${color.border.active}`,
+        outlineOffset: -2,
+    },
 });
 
 const getIdByHref = (link: ILink) => link.href;
@@ -105,12 +112,21 @@ export function CategoryView(props: CategoryViewProps) {
 
     const viewMode = props.viewMode ?? "list";
     const isTileMode = viewMode !== "list";
-    const { filteredItems } = state;
-    const { provider } = props;
+    const { filteredItems, selectedHrefs } = state;
+    const { provider, multiSelect } = props;
 
+    // In multiSelect mode the set replaces `selectedId` as the source of the per-row selected
+    // state; leaving it undefined otherwise keeps every other consumer on the single-select path.
+    const selectedIds = useMemo(
+        () => (multiSelect ? new Set(selectedHrefs) : undefined),
+        [multiSelect, selectedHrefs],
+    );
+
+    // RenderGrid does not repaint a row on its own — selection and drop-target changes must
+    // be pushed.
     useEffect(() => {
         gridModelRef.current?.update({ all: true });
-    }, [filteredItems, props.selectedHref]);
+    }, [filteredItems, props.selectedHref, selectedIds, state.dropTargetHref]);
 
     useEffect(() => {
         gridModelRef.current?.scrollToRow(0);
@@ -121,8 +137,8 @@ export function CategoryView(props: CategoryViewProps) {
         gridModelRef.current = gm;
     }, []);
 
-    const handleSelect = useCallback((link: ILink) => {
-        model.onItemClick(link);
+    const handleSelect = useCallback((link: ILink, e?: React.MouseEvent) => {
+        model.onItemClick(link, e);
     }, [model]);
 
     const handleDoubleClick = useCallback((link: ILink) => {
@@ -131,6 +147,46 @@ export function CategoryView(props: CategoryViewProps) {
 
     const handleContextMenu = useCallback((e: React.MouseEvent, link: ILink) => {
         model.onItemContextMenu(link, e);
+    }, [model]);
+
+    // Row drop targets — only folders take a drop of their own; a file row is the same target
+    // as whitespace (the open folder), so its events are left to bubble to the root.
+    const acceptsDrops = model.acceptsDrops;
+    const handleItemDragEnter = useCallback((link: ILink, e: React.DragEvent) => {
+        if (link.isDirectory) model.onDragEnter(link, e);
+    }, [model]);
+    const handleItemDragOver = useCallback((link: ILink, e: React.DragEvent) => {
+        if (link.isDirectory) model.onDragOver(link, e);
+    }, [model]);
+    const handleItemDragLeave = useCallback((link: ILink, e: React.DragEvent) => {
+        if (link.isDirectory) model.onDragLeave(link, e);
+    }, [model]);
+    const handleItemDrop = useCallback((link: ILink, e: React.DragEvent) => {
+        if (link.isDirectory) model.onDrop(link, e);
+    }, [model]);
+
+    // Drag out. Every row hands off to a native OS drag (`startOsFileDrag`) — see
+    // model.handleOsDragStart for why that beats the in-process trait drag here. `dragSourceId`
+    // is what makes the rows draggable at all; the trait payload it names is only reached if the
+    // override declines (nothing draggable), so it never carries a real drag in this view.
+    const allowsDrag = model.allowsDrag;
+    const handleDragStartOverride = useCallback((link: ILink, e: React.DragEvent) => {
+        return model.handleOsDragStart(link, e);
+    }, [model]);
+
+    // Whitespace: the root covers the gaps below/between items and the "Empty folder"
+    // placeholder — dropping into an empty folder is the likeliest first use of this.
+    const handleRootDragEnter = useCallback((e: React.DragEvent) => {
+        model.onDragEnter(null, e);
+    }, [model]);
+    const handleRootDragOver = useCallback((e: React.DragEvent) => {
+        model.onDragOver(null, e);
+    }, [model]);
+    const handleRootDragLeave = useCallback((e: React.DragEvent) => {
+        model.onDragLeave(null, e);
+    }, [model]);
+    const handleRootDrop = useCallback((e: React.DragEvent) => {
+        model.onDrop(null, e);
     }, [model]);
 
     // `useCallback` must be called unconditionally; the ternary then chooses
@@ -214,7 +270,23 @@ export function CategoryView(props: CategoryViewProps) {
     );
 
     return (
-        <CategoryViewRoot onContextMenu={model.onBackgroundContextMenu}>
+        // tabIndex lets the root receive the keys that bubble up from the focused item grid
+        // (Ctrl+A / Delete / Escape). The search Input renders through toolbarPortalRef into
+        // the page toolbar — outside this subtree — so typing there never reaches onKeyDown.
+        <CategoryViewRoot
+            onContextMenu={model.onBackgroundContextMenu}
+            onKeyDown={model.onKeyDown}
+            tabIndex={-1}
+            // The whitespace highlight means "the open folder is the target" — shown only
+            // while the drag is inside the view and no folder row has claimed it.
+            data-drop-active={
+                (state.dropOverView && !state.dropTargetHref) || undefined
+            }
+            onDragEnter={acceptsDrops ? handleRootDragEnter : undefined}
+            onDragOver={acceptsDrops ? handleRootDragOver : undefined}
+            onDragLeave={acceptsDrops ? handleRootDragLeave : undefined}
+            onDrop={acceptsDrops ? handleRootDrop : undefined}
+        >
             {props.toolbarPortalRef && createPortal(toolbarElement, props.toolbarPortalRef)}
             <div className="cv-content">
                 {filteredItems.length === 0 ? (
@@ -222,22 +294,45 @@ export function CategoryView(props: CategoryViewProps) {
                         {state.searchText ? "No matching items" : "Empty folder"}
                     </div>
                 ) : isTileMode ? (
-                    <LinksTiles
-                        links={filteredItems}
-                        viewMode={viewMode as Exclude<CategoryViewMode, "list">}
-                        selectedId={props.selectedHref ?? undefined}
-                        getId={getIdByHref}
-                        onSelect={handleSelect}
-                        onDoubleClick={handleDoubleClick}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete ? (link) => handleDelete(link) : undefined}
-                        onContextMenu={handleContextMenu}
-                        onGridModel={handleGridModel}
-                    />
+                    // LinksTiles has no focus scope of its own (LinksList brings one), so wrap
+                    // it — without a focusable element the keyboard actions never fire in tile
+                    // mode, and the focus-aware selection color has nothing to key off.
+                    <Panel
+                        name="links-tiles-focus-scope"
+                        direction="column"
+                        flex={1}
+                        minWidth={0}
+                        minHeight={0}
+                        overflow="hidden"
+                        tabIndex={0}
+                        data-focus-selection=""
+                    >
+                        <LinksTiles
+                            links={filteredItems}
+                            viewMode={viewMode as Exclude<CategoryViewMode, "list">}
+                            selectedId={props.selectedHref ?? undefined}
+                            selectedIds={selectedIds}
+                            getId={getIdByHref}
+                            onSelect={handleSelect}
+                            onDoubleClick={handleDoubleClick}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete ? (link) => handleDelete(link) : undefined}
+                            onContextMenu={handleContextMenu}
+                            onGridModel={handleGridModel}
+                            onItemDragEnter={acceptsDrops ? handleItemDragEnter : undefined}
+                            onItemDragOver={acceptsDrops ? handleItemDragOver : undefined}
+                            onItemDragLeave={acceptsDrops ? handleItemDragLeave : undefined}
+                            onItemDrop={acceptsDrops ? handleItemDrop : undefined}
+                            dropTargetId={state.dropTargetHref}
+                            dragSourceId={allowsDrag ? provider.sourceUrl : undefined}
+                            onDragStartOverride={allowsDrag ? handleDragStartOverride : undefined}
+                        />
+                    </Panel>
                 ) : (
                     <LinksList
                         links={filteredItems}
                         selectedId={props.selectedHref ?? undefined}
+                        selectedIds={selectedIds}
                         getId={getIdByHref}
                         searchText={state.searchText}
                         onSelect={handleSelect}
@@ -246,6 +341,13 @@ export function CategoryView(props: CategoryViewProps) {
                         onDelete={handleDelete ? (link) => handleDelete(link) : undefined}
                         onContextMenu={handleContextMenu}
                         onGridModel={handleGridModel}
+                        onItemDragEnter={acceptsDrops ? handleItemDragEnter : undefined}
+                        onItemDragOver={acceptsDrops ? handleItemDragOver : undefined}
+                        onItemDragLeave={acceptsDrops ? handleItemDragLeave : undefined}
+                        onItemDrop={acceptsDrops ? handleItemDrop : undefined}
+                        dropTargetId={state.dropTargetHref}
+                        dragSourceId={allowsDrag ? provider.sourceUrl : undefined}
+                        onDragStartOverride={allowsDrag ? handleDragStartOverride : undefined}
                     />
                 )}
             </div>
@@ -270,6 +372,9 @@ export function CategoryView(props: CategoryViewProps) {
                     {filteredCount === totalCount
                         ? `${totalCount} items`
                         : `${filteredCount} of ${totalCount} items`}
+                    {/* Raw selection count — it describes what is highlighted, not what an
+                        action would touch (a nested selection prunes to fewer). */}
+                    {selectedHrefs.length > 1 && ` (${selectedHrefs.length} selected)`}
                 </span>
             </Panel>
         </CategoryViewRoot>

@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { CategoryView } from "../../components/tree-provider/CategoryView";
 import type { CategoryViewMode } from "../../components/tree-provider/CategoryViewModel";
+import { supportsMultiSelect } from "../../components/tree-provider/plural-actions";
 import { PageToolbar } from "../base";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
@@ -169,6 +170,10 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
                 selectedHref={selectedHref}
+                // `handleSelect` writes the shared (singular) selectionState, and the model
+                // only calls it for a plain click — so building a set with Ctrl/Shift leaves
+                // the Explorer tree's highlight where it is.
+                multiSelect={supportsMultiSelect(provider)}
                 onItemClick={handleSelect}
                 onItemDoubleClick={handleNavigate}
                 onFolderClick={handleNavigate}
