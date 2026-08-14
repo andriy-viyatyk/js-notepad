@@ -159,6 +159,17 @@ GlobalEventService
     -> showAppPopupMenu with final items (copies array to avoid Immer freeze)
 ```
 
+**Multi-selection.** In a multi-select tree (the Explorer panel), Layer 1 builds a plural menu
+(`Copy Paths (N)` / `Cut (N)` / `Copy (N)` / `Delete (N)`) when the right-clicked row is part of a
+selection of more than one; a right-click outside the selection moves the selection to that row and
+builds the ordinary single-row menu. Layer 2 subscribers still receive one `event.target` — the
+right-clicked row — so a handler that adds a singular action to a plural menu is possible in
+principle; none does today. Layer 3 gets the selection explicitly: the `onContextMenu` prop is
+called as `(event, selection)`, where `selection` is the pruned set the menu acts on (`[target]` for
+a single row). A parent adding singular actions returns early when `selection.length > 1` — the
+Explorer does this for *Make Root* and *Search in Folder*. The plural set is deliberately **not** a
+field on the shared `ContextMenuEvent`: only this one consumer would ever set it.
+
 The folder-content view (`CategoryView`, shown on a page when a folder is opened from
 the Explorer) fires the **same** `linkContextMenu` channel for its file/folder items. So
 the href-based items ("Open in New Tab", "Open in New Window", "Open with Default App",

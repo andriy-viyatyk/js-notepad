@@ -55,6 +55,12 @@ PageModel
 - Created by `PageModel.createExplorer(rootPath)` or during restore
 - Survives navigation — `beforeNavigateAway()` never clears (Explorer is always present)
 - Disposed when user closes the panel or the page closes
+- The **only** panel that passes `multiSelect` to `TreeProviderView`: Ctrl/Shift+click
+  builds a set that copy/cut/delete/drag act on. The plural set lives in the tree view model and is
+  persisted inside `treeState.selectedHrefs`; `selectionState.selectedHref` stays single — it is the
+  one-way "the main editor navigated here" channel, and adopting it collapses the set to that row.
+  Layer-3 context-menu items are singular, so `handleContextMenu` bails out when its `selection`
+  argument holds more than one item
 
 ### Pattern B: mainEditor as secondary (ArchiveEditorModel)
 

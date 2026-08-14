@@ -129,6 +129,14 @@ function Input({ value, onChange }: { value: string; onChange: (v: string) => vo
 **Allowed** internal transient state:
 - `isHovered`, `isFocused` — visual-only feedback
 - `isOpen` — dropdown open/closed when not controlled externally
+- A **gesture anchor** — the reference point a range gesture extends from (`Tree`'s multi-select
+  anchor). It is not the value; it only says where the next range starts.
+
+When a gesture needs to compute a *new* composite value the component doesn't own — a
+Ctrl/Shift-click producing the next selection **set** — read the current value back through the
+props predicate (`isSelected` per visible row), compute the result, and emit it
+(`onSelectionChange`). The component keeps the derivation because it alone knows the presentation
+order; the consumer keeps the state.
 
 ---
 
@@ -452,6 +460,14 @@ express structure, not state, so Rule 1 still holds.
 No new color tokens are needed — the look reuses `background.light` / `background.message`
 (blurred) and `background.treeSelection` / `border.active` / `text.selection` / `icon.selection`
 (focused), all defined in every theme.
+
+**Multi-selection needs nothing extra.** The fragments key off each row's own `[data-selected]`, so
+N selected rows paint correctly with no styling change — `[data-active]` stays singular (one
+highlighted row). `Tree` supports opt-in multi-selection via `multiSelect` (Ctrl/Shift+click,
+Ctrl+A, Shift+Arrow/Home/End/PageUp/Down): it stores **no** selection, derives the current set by
+calling `isSelected` per visible row, keeps only a transient anchor, and emits the resulting set
+through `onSelectionChange` for the consumer to store — Rule 2, with the range math staying in the
+Tree because it alone knows the flat visible row order.
 
 ---
 

@@ -6,7 +6,7 @@ import type { MenuItem } from "../../uikit/Menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
 import { ui } from "../../api/ui";
-import { fpBasename, fpDirname } from "../../core/utils/file-path";
+import { fpBasename, fpDirname, fpNormalizeForCompare } from "../../core/utils/file-path";
 import { copyPathsInto } from "../../core/utils/copy-files";
 import { isUrlOrCurl } from "../../content/link-utils";
 import type { IFileLink } from "../../core/traits/fileLinkTraits";
@@ -22,6 +22,7 @@ import {
 } from "../../theme/icons";
 import {
     copyPathToOsClipboard,
+    copyPathsToOsClipboard,
     pasteOsClipboardInto,
     supportsOsClipboard,
 } from "./os-clipboard";
@@ -39,7 +40,11 @@ export interface TreeProviderNode {
 
 export interface TreeProviderViewSavedState {
     expandedPaths: string[];
+    /** Last-clicked row (the primary selection). Kept for single-select consumers
+     *  and for state persisted before multi-select existed. */
     selectedHref?: string;
+    /** Full selection in flat visible order. Preferred over `selectedHref` on restore. */
+    selectedHrefs?: string[];
 }
 
 export interface TreeProviderViewProps {
@@ -49,8 +54,14 @@ export interface TreeProviderViewProps {
     onItemClick?: (item: ITreeProviderItem) => void;
     onItemDoubleClick?: (item: ITreeProviderItem) => void;
     onFolderDoubleClick?: (item: ITreeProviderItem) => void;
-    /** Called after generic + event channel menu items are added. Parent can add/modify items. */
-    onContextMenu?: (event: import("../../api/events/events").ContextMenuEvent<ITreeProviderItem>) => void;
+    /** Called after generic + event channel menu items are added. Parent can add/modify items.
+     *  `selection` is the pruned set the menu acts on — `[event.target]` for a single row, N items
+     *  for a multi-selection containing the right-clicked row. Handlers that add singular actions
+     *  (rename-like, navigate-like) should bail out when `selection.length > 1`. */
+    onContextMenu?: (
+        event: import("../../api/events/events").ContextMenuEvent<ITreeProviderItem>,
+        selection: ITreeProviderItem[],
+    ) => void;
     selectedHref?: string;
     initialState?: TreeProviderViewSavedState;
     onStateChange?: (state: TreeProviderViewSavedState) => void;
@@ -62,6 +73,9 @@ export interface TreeProviderViewProps {
     renderTrailing?: (item: ITreeProviderItem) => React.ReactNode;
     /** Override root node label. When omitted, uses provider.displayName. */
     rootLabel?: string;
+    /** Allow Ctrl/Shift-click multi-selection and plural actions (EPIC-049).
+     *  Explorer-only for now — every other tree stays single-select. */
+    multiSelect?: boolean;
 }
 
 export interface TreeProviderViewState {
@@ -73,13 +87,15 @@ export interface TreeProviderViewState {
     searchKey: number;
     error: string | null;
     /**
-     * The tree's own selection (href of the last-clicked row — file OR folder). Synced
-     * FROM `props.selectedHref` when it changes to a non-null value (main-editor
-     * navigation), but never cleared by a null — selection is sticky, VS Code style.
-     * (`props.selectedHref` goes null right after a folder click because the folder
-     * view carries no `filePath`; adopting that null was why folders lost highlight.)
+     * The tree's own selection (hrefs of the selected rows — files OR folders), in flat
+     * visible order; the LAST entry is the primary (last-clicked) row. Single-select trees
+     * simply never hold more than one. Synced FROM `props.selectedHref` when it changes to
+     * a non-null value (main-editor navigation), but never cleared by a null — selection is
+     * sticky, VS Code style. (`props.selectedHref` goes null right after a folder click
+     * because the folder view carries no `filePath`; adopting that null was why folders
+     * lost highlight.)
      */
-    selectedValue: string | null;
+    selectedValues: string[];
 }
 
 export const defaultTreeProviderViewState: TreeProviderViewState = {
@@ -89,7 +105,7 @@ export const defaultTreeProviderViewState: TreeProviderViewState = {
     searchVisible: false,
     searchKey: 0,
     error: null,
-    selectedValue: null,
+    selectedValues: [],
 };
 
 // =============================================================================
@@ -114,8 +130,19 @@ export class TreeProviderViewModel extends TComponentModel<
                 }
                 this.initialExpandMap = map;
             }
+            // Restore the persisted plural selection when it is consistent with the incoming
+            // `selectedHref` (the Explorer seeds that from its own navigation state, which on
+            // restart is normally the primary row of the very same set). When navigation points
+            // somewhere the restored set doesn't contain, navigation wins — it reflects what the
+            // main editor is actually showing. Pre-epic state carries only `selectedHref` and so
+            // restores as a one-item selection.
+            const restored = this.props.initialState?.selectedHrefs;
             const seed = this.props.selectedHref ?? this.props.initialState?.selectedHref;
-            if (seed) this.adoptSelection(seed);
+            if (restored?.length && (!seed || restored.some((h) => sameHref(h, seed)))) {
+                this.adoptSelection(restored);
+            } else if (seed) {
+                this.adoptSelection([seed]);
+            }
             this.initializeTree();
             this.subscribeWatch();
         } else if (this.oldProps?.provider !== this.props.provider) {
@@ -126,24 +153,84 @@ export class TreeProviderViewModel extends TComponentModel<
         }
 
         // Adopt an external selection change (main-editor navigation). A null
-        // selectedHref never clears — see TreeProviderViewState.selectedValue.
+        // selectedHref never clears — see TreeProviderViewState.selectedValues.
         if (
             !this.isFirstUse &&
             this.props.selectedHref &&
             this.props.selectedHref !== this.oldProps?.selectedHref
         ) {
-            this.adoptSelection(this.props.selectedHref);
+            this.adoptSelection([this.props.selectedHref]);
         }
     };
 
     /** Deferred selection write — setProps runs during render, so a synchronous
-     *  state.update here would trip React's update-while-rendering warning. */
-    private adoptSelection = (href: string) => {
+     *  state.update here would trip React's update-while-rendering warning.
+     *  External navigation always collapses the selection to the navigated item. */
+    private adoptSelection = (hrefs: string[]) => {
         queueMicrotask(() => {
             if (!this.isLive) return;
-            if (this.state.get().selectedValue === href) return;
-            this.state.update((s) => { s.selectedValue = href; });
+            if (sameHrefs(this.state.get().selectedValues, hrefs)) return;
+            this.state.update((s) => { s.selectedValues = hrefs; });
         });
+    };
+
+    // ── Selection ────────────────────────────────────────────────────────
+
+    /** Selected hrefs resolved to live nodes. Misses are dropped — a refresh can
+     *  delete a file that is still in `selectedValues`. */
+    get selectedNodes(): TreeProviderNode[] {
+        const { tree, selectedValues } = this.state.get();
+        if (!tree) return [];
+        return selectedValues
+            .map((href) => findNode(tree, href))
+            .filter((n): n is TreeProviderNode => !!n);
+    }
+
+    /** The primary row — what paste targeting operates on when several rows are selected.
+     *  The Tree emits selections in flat visible order (US-937), so with a multi-selection
+     *  this is the bottom-most selected row rather than literally the last-clicked one.
+     *  Exact for a single selection, which is the case that matters for Ctrl+V. */
+    private primaryNode = (): TreeProviderNode | null => {
+        const { tree, selectedValues } = this.state.get();
+        if (!tree || !selectedValues.length) return null;
+        return findNode(tree, selectedValues[selectedValues.length - 1]);
+    };
+
+    /**
+     * Drop any selected item that lives inside another selected folder (epic D9). A
+     * folder-level action already affects everything under it, so keeping the descendants
+     * would double-process them — a delete would fail on the second pass, a move would look
+     * for an already-moved source, and Windows would copy the same file twice.
+     *
+     * Path-prefix test, case-insensitive, on `href`. Correct for the file provider (hrefs are
+     * absolute paths) and for the archive / category providers (hrefs are `/`-joined inner
+     * paths). A provider whose hrefs are not path-shaped returns its input unchanged — the
+     * prefix test just never matches.
+     *
+     * EVERY plural action must run its input through this, at the action's entry point.
+     */
+    operationItems = <T extends Pick<ILink, "href" | "isDirectory">>(items: T[]): T[] => {
+        const dirs = items
+            .filter((i) => i.isDirectory)
+            .map((i) => i.href.replace(/\\/g, "/").toLowerCase().replace(/\/?$/, "/"));
+        return items.filter((i) => {
+            const href = i.href.replace(/\\/g, "/").toLowerCase();
+            // `href !== d.slice(0, -1)` keeps a selected folder from pruning itself.
+            return !dirs.some((d) => href !== d.slice(0, -1) && href.startsWith(d));
+        });
+    };
+
+    /** Prune `nodes` through `operationItems` (which works on ILink shapes). */
+    private operationNodes = (nodes: TreeProviderNode[]): TreeProviderNode[] => {
+        const keep = new Set(this.operationItems(nodes.map((n) => n.data)).map((d) => d.href));
+        return nodes.filter((n) => keep.has(n.data.href));
+    };
+
+    /** Sink for the UIKit Tree's `onSelectionChange` (multiSelect mode). */
+    setSelection = (hrefs: string[]) => {
+        if (sameHrefs(this.state.get().selectedValues, hrefs)) return;
+        this.state.update((s) => { s.selectedValues = hrefs; });
+        this.props.onStateChange?.(this.getState());
     };
 
     private subscribeWatch = () => {
@@ -207,15 +294,14 @@ export class TreeProviderViewModel extends TComponentModel<
         // User-toggled state wins where both are defined (so an explicitly collapsed
         // hint-expanded folder stays collapsed across refresh).
         const treeStateMap = this.treeRef?.getExpandedMap() ?? {};
+        const isExpanded = this.expandedResolver(treeStateMap);
         const allKeys = new Set<string>([
             ...Object.keys(treeStateMap).map((k) => String(k)),
             ...Object.keys(this.initialExpandMap ?? {}),
         ]);
         const expandedPaths: string[] = [];
         for (const key of allKeys) {
-            const fromState = treeStateMap[key];
-            const effective = fromState !== undefined ? fromState : !!this.initialExpandMap?.[key];
-            if (effective) expandedPaths.push(key);
+            if (isExpanded(key)) expandedPaths.push(key);
         }
 
         try {
@@ -379,16 +465,66 @@ export class TreeProviderViewModel extends TComponentModel<
         const expandedPaths = Object.entries(expandMap)
             .filter(([, expanded]) => expanded)
             .map(([id]) => id);
+        const selectedValues = this.state.get().selectedValues;
         return {
             expandedPaths,
-            selectedHref: this.state.get().selectedValue ?? this.props.selectedHref,
+            selectedHref: selectedValues.length
+                ? selectedValues[selectedValues.length - 1]
+                : this.props.selectedHref,
+            selectedHrefs: selectedValues,
         };
     };
 
     onExpandChange = (id: string, expanded: boolean) => {
         if (expanded) {
             this.loadChildrenIfNeeded(id);
+        } else {
+            // Only visible rows may stay selected (epic D10). The Tree fires this for the
+            // toggled row only, even with `collapseDescendants` — fine, because
+            // pruneSelectionToVisible recomputes the whole visible set.
+            this.pruneSelectionToVisible();
         }
+        this.props.onStateChange?.(this.getState());
+    };
+
+    // ── Visible-row selection pruning (epic D10) ─────────────────────────
+
+    /** Resolve effective expansion the way `buildTree` does: user-toggled Tree state wins
+     *  where defined, restored hints (`initialExpandMap`) fill in, default collapsed. */
+    private expandedResolver = (
+        map: Record<string, boolean> = this.treeRef?.getExpandedMap() ?? {},
+    ) => (href: string): boolean => {
+        const fromState = map[href];
+        return fromState !== undefined ? !!fromState : !!this.initialExpandMap?.[href];
+    };
+
+    /** Every href currently rendered as a row: walk from the root, descending into a
+     *  directory only when it is effectively expanded. The root is always expanded (it is
+     *  chevron-less and `canCollapse` blocks collapsing it). */
+    private visibleHrefs = (): Set<string> => {
+        const { tree } = this.state.get();
+        const out = new Set<string>();
+        if (!tree) return out;
+        const isExpanded = this.expandedResolver();
+        const walk = (node: TreeProviderNode, isRoot: boolean) => {
+            out.add(node.data.href);
+            if (!node.data.isDirectory || !node.items) return;
+            if (!isRoot && !isExpanded(node.data.href)) return;
+            for (const child of node.items) walk(child, false);
+        };
+        walk(tree, true);
+        return out;
+    };
+
+    /** Drop selected rows that are no longer visible (their folder was collapsed).
+     *  No-op — no state write, no onStateChange — when nothing changed. */
+    pruneSelectionToVisible = () => {
+        const { selectedValues } = this.state.get();
+        if (!selectedValues.length) return;
+        const visible = this.visibleHrefs();
+        const kept = selectedValues.filter((href) => visible.has(href));
+        if (kept.length === selectedValues.length) return;
+        this.state.update((s) => { s.selectedValues = kept; });
         this.props.onStateChange?.(this.getState());
     };
 
@@ -525,7 +661,11 @@ export class TreeProviderViewModel extends TComponentModel<
     // ── Click handlers ───────────────────────────────────────────────────
 
     onItemClick = (node: TreeProviderNode) => {
-        this.state.update((s) => { s.selectedValue = node.data.href; });
+        // In multiSelect mode the Tree's gesture path already published the new selection
+        // through `setSelection` — writing it again here would fight the plural emit.
+        if (!this.props.multiSelect) {
+            this.setSelection([node.data.href]);
+        }
         // Expansion is chevron-only (TreeProviderView.renderItem onChevronClick, plus
         // ArrowRight/ArrowLeft) — clicking the label selects + navigates without toggling.
         // Fire onItemClick for all items (files and folders).
@@ -557,23 +697,30 @@ export class TreeProviderViewModel extends TComponentModel<
         }
 
         const { provider } = this.props;
-        const { selectedValue, tree } = this.state.get();
-        const node = selectedValue && tree ? findNode(tree, selectedValue) : null;
-        const isRoot = node?.data.href === provider.rootPath;
+        const nodes = this.selectedNodes;
+        const node = this.primaryNode();
+        const hasRoot = nodes.some((n) => n.data.href === provider.rootPath);
         const consume = () => {
             e.preventDefault();
             e.stopPropagation();
             return true;
         };
 
-        // Delete → existing confirm dialog; F2 → existing rename dialog. Same gating
-        // as the context-menu items: writable provider capability, never on the root.
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && node && !isRoot) {
+        // Delete → confirm dialog over the whole (pruned) selection; F2 → rename dialog, which
+        // stays singular. Same gating as the context-menu items: writable provider capability,
+        // never on the root.
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && nodes.length && !hasRoot) {
             if (e.key === "Delete" && provider.writable && provider.deleteItem) {
-                void this.deleteItemAction(node);
+                void this.deleteItemsAction(nodes);
                 return consume();
             }
-            if (e.key === "F2" && provider.writable && provider.rename) {
+            if (
+                e.key === "F2"
+                && nodes.length === 1
+                && node
+                && provider.writable
+                && provider.rename
+            ) {
                 void this.renameItem(node);
                 return consume();
             }
@@ -586,7 +733,8 @@ export class TreeProviderViewModel extends TComponentModel<
         if (!supportsOsClipboard(provider)) return false;
 
         if (key === "v") {
-            // Selected folder → into it; selected file → its parent; nothing → root.
+            // The primary row decides the target: folder → into it; file → its parent;
+            // nothing selected → root.
             const targetDir = !node
                 ? provider.rootPath
                 : node.data.isDirectory
@@ -595,25 +743,34 @@ export class TreeProviderViewModel extends TComponentModel<
             void this.pasteIntoDir(targetDir);
             return consume();
         }
-        if (!node) return false;
+        if (!nodes.length) return false;
         // Copy is allowed on the root (mirrors the context menu); Cut is not.
-        if (isRoot && key === "x") return false;
-        void copyPathToOsClipboard(node.data.href, key === "x");
+        if (hasRoot && key === "x") return false;
+        const targets = this.operationItems(nodes.map((n) => n.data));
+        void copyPathsToOsClipboard(targets.map((d) => d.href), key === "x");
         return consume();
     };
 
     // ── Context menus ────────────────────────────────────────────────────
 
     onItemContextMenu = (node: TreeProviderNode, e: React.MouseEvent) => {
-        // Right-click selects the row (Windows Explorer / VS Code behavior).
-        this.state.update((s) => { s.selectedValue = node.data.href; });
+        // Right-click selects the row (Windows Explorer / VS Code behavior). In multiSelect
+        // mode TreeModel owns that rule (it keeps a right-click inside an existing selection
+        // intact and emits through setSelection first), so only single-select writes here.
+        if (!this.props.multiSelect) {
+            this.setSelection([node.data.href]);
+        }
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-item");
         ctxEvent.target = node.data;
 
-        // Layer 1: Generic items (Copy Path, Rename, Delete)
-        const items = node.data.isDirectory
-            ? this.getFolderMenuItems(node)
-            : this.getFileMenuItems(node);
+        // Layer 1: Generic items (Copy Path, Rename, Delete). A multi-selection containing
+        // the right-clicked row gets the plural menu; anything else the single-row menu.
+        const multi = this.multiTargets(node);
+        const items = multi
+            ? this.getMultiMenuItems(multi)
+            : node.data.isDirectory
+                ? this.getFolderMenuItems(node)
+                : this.getFileMenuItems(node);
         ctxEvent.items.push(...items);
 
         // Layer 2: Event channel — type-specific items added by registered handlers
@@ -624,7 +781,10 @@ export class TreeProviderViewModel extends TComponentModel<
             const result = await app.events.linkContextMenu.sendAsync(
                 ctxEvent as ContextMenuEvent<ITreeProviderItem>,
             );
-            this.props.onContextMenu?.(ctxEvent as ContextMenuEvent<ITreeProviderItem>);
+            this.props.onContextMenu?.(
+                ctxEvent as ContextMenuEvent<ITreeProviderItem>,
+                multi ? multi.map((n) => n.data) : [node.data],
+            );
             return result;
         })();
         e.nativeEvent.contextMenuPromise = promise;
@@ -664,6 +824,70 @@ export class TreeProviderViewModel extends TComponentModel<
 
         const bgEvent = ContextMenuEvent.fromNativeEvent(e, "tree-provider-background");
         bgEvent.items.push(...items);
+    };
+
+    /**
+     * The pruned selection to act on when `node` was right-clicked, or null when the
+     * single-row menu should be built instead — i.e. multiSelect is off, the row is outside
+     * the selection, or pruning (epic D9) collapsed the set to one node. A "Copy (1)" label
+     * over a plural code path is a worse menu than the single-row one, which also offers
+     * Rename, Paste and Open Terminal here.
+     */
+    private multiTargets = (node: TreeProviderNode): TreeProviderNode[] | null => {
+        if (!this.props.multiSelect) return null;
+        const { selectedValues } = this.state.get();
+        if (selectedValues.length < 2) return null;
+        if (!selectedValues.includes(node.data.href)) return null;
+        const targets = this.operationNodes(this.selectedNodes);
+        return targets.length > 1 ? targets : null;
+    };
+
+    /** Set-shaped actions over N selected rows. `nodes` is already pruned, so every count
+     *  shown here is the pruned count (epic D9). */
+    private getMultiMenuItems = (nodes: TreeProviderNode[]): MenuItem[] => {
+        const { provider } = this.props;
+        const hrefs = nodes.map((n) => n.data.href);
+        const hasRoot = hrefs.includes(provider.rootPath);
+        const n = nodes.length;
+        const items: MenuItem[] = [];
+
+        items.push({
+            label: nodes.every((x) => isUrlOrCurl(x.data.href))
+                ? `Copy Hrefs (${n})`
+                : `Copy Paths (${n})`,
+            icon: <CopyIcon />,
+            onClick: () => navigator.clipboard.writeText(hrefs.join("\n")),
+        });
+
+        // OS file clipboard — Windows Explorer interop, file provider only. No Cut when the
+        // tree root is in the set (mirrors the single-row gating).
+        if (supportsOsClipboard(provider)) {
+            if (!hasRoot) {
+                items.push({
+                    startGroup: true,
+                    label: `Cut (${n})`,
+                    icon: <CutIcon />,
+                    onClick: () => copyPathsToOsClipboard(hrefs, true),
+                });
+            }
+            items.push({
+                startGroup: hasRoot,
+                label: `Copy (${n})`,
+                icon: <CopyIcon />,
+                onClick: () => copyPathsToOsClipboard(hrefs, false),
+            });
+        }
+
+        if (provider.writable && provider.deleteItem && !hasRoot) {
+            items.push({
+                startGroup: true,
+                label: `Delete (${n})`,
+                icon: <DeleteIcon />,
+                onClick: () => this.deleteItemsAction(nodes),
+            });
+        }
+
+        return items;
     };
 
     private getFileMenuItems = (node: TreeProviderNode): MenuItem[] => {
@@ -901,7 +1125,81 @@ export class TreeProviderViewModel extends TComponentModel<
         await this.buildTree();
     };
 
+    /**
+     * Confirm once, then delete every node in `nodes`. Public: plural context menu + the
+     * Delete key. Prunes nested selections first (epic D9), so a folder plus files inside it
+     * deletes the folder only — and the count in the confirm is the pruned count (epic D8:
+     * count only, no name list).
+     */
+    deleteItemsAction = async (nodes: TreeProviderNode[]) => {
+        const { provider } = this.props;
+        if (!provider.deleteItem || !nodes.length) return;
+
+        const targets = this.operationNodes(nodes);
+        if (!targets.length) return;
+        // One item → the existing wording, no progress overlay. Nothing changes for the
+        // common case.
+        if (targets.length === 1) {
+            await this.deleteItemAction(targets[0]);
+            return;
+        }
+
+        const bt = await ui.confirm(
+            `Do you want to delete ${targets.length} items?`,
+            { title: "Delete Confirmation", buttons: ["Delete", "Cancel"] },
+        );
+        if (bt !== "Delete") return;
+
+        const errors: string[] = [];
+        const progress = await ui.createProgress("Deleting...");
+        try {
+            await progress.show((async () => {
+                let done = 0;
+                for (const target of targets) {
+                    progress.label =
+                        `Deleting ${done + 1} of ${targets.length}: ${target.data.title}`;
+                    try {
+                        await provider.deleteItem?.(target.data.href);
+                    } catch (err) {
+                        errors.push(`${target.data.title}: ${err?.message || "failed"}`);
+                    }
+                    done++;
+                }
+            })());
+        } catch (err) {
+            ui.notify(err?.message || "Failed to delete.", "warning");
+        }
+        if (errors.length) {
+            const shown = errors.slice(0, 5).join("\n");
+            const more = errors.length > 5 ? `\n(+${errors.length - 5} more)` : "";
+            ui.notify(`Some items could not be deleted:\n${shown}${more}`, "warning");
+        }
+
+        // Nothing sensible stays selected after a batch delete.
+        this.setSelection([]);
+        await this.buildTree();
+    };
+
     // ── Drag-drop ────────────────────────────────────────────────────────
+
+    /**
+     * The items a drag starting on `node` should carry: the whole selection when the row is
+     * part of it, otherwise just that row (Explorer behavior — dragging an unselected row does
+     * not silently carry the selection). Pruned through `operationItems` (epic D9), so a folder
+     * dragged together with items inside it carries the folder only, and never includes the
+     * tree root. Single-select trees always get the one row.
+     */
+    dragItemsFor = (node: TreeProviderNode): ITreeProviderItem[] => {
+        const { provider, multiSelect } = this.props;
+        const { selectedValues } = this.state.get();
+        const dragsSelection = !!multiSelect
+            && selectedValues.length > 1
+            && selectedValues.includes(node.data.href);
+        const items = dragsSelection
+            ? this.selectedNodes.map((n) => n.data)
+            : [node.data];
+        return this.operationItems(items).filter((i) => i.href !== provider.rootPath);
+    };
 
     moveItems = async (sourceItems: ILink[], targetNode: TreeProviderNode) => {
         const { provider } = this.props;
@@ -931,9 +1229,15 @@ export class TreeProviderViewModel extends TComponentModel<
         if (provider.moveToCategory && remaining.length) {
             // Link provider path: moveToCategory (no confirmation needed)
             await provider.moveToCategory(remaining.map(i => i.href), targetPath);
+        } else if (supportsOsClipboard(provider) && remaining.length) {
+            // File provider path (hrefs are absolute paths): batch move via copyPathsInto —
+            // the same machinery the clipboard paste and the OS-file drop use, so N items move
+            // with one confirm, one progress overlay and collected per-item failures. The
+            // pre-US-939 code renamed a single item and silently did nothing for N.
+            if (!(await this.moveFilesInto(remaining, targetDir, targetPath))) return;
         } else if (provider.rename && remaining.length === 1) {
-            // File provider path: rename (with confirmation)
-            const source = sourceItems[0];
+            // Non-file provider with a rename (Mneme): provider-level single-item move.
+            const source = remaining[0];
             const newPath = targetPath
                 ? targetPath + "/" + source.title
                 : source.title;
@@ -955,6 +1259,89 @@ export class TreeProviderViewModel extends TComponentModel<
         }
 
         await this.buildTree();
+    };
+
+    /**
+     * Move N absolute-path items into `targetPath` (file providers only). Returns false when
+     * the caller should skip its refresh — nothing was attempted (all no-ops, an illegal
+     * folder-into-itself move, or a cancelled confirm).
+     */
+    private moveFilesInto = async (
+        items: ILink[],
+        targetDir: TreeProviderNode,
+        targetPath: string,
+    ): Promise<boolean> => {
+        const { provider } = this.props;
+
+        // Prune again rather than trusting the sender: a drag from this tree arrives pruned
+        // (dragItemsFor), but a cross-window drop is a raw payload (epic D9).
+        const targets = this.operationItems(items);
+        const targetCmp = fpNormalizeForCompare(targetPath);
+
+        // Sources already sitting in the target folder are pure no-ops — skip them silently
+        // (copyPathsInto does the same, but filtering here keeps them out of the confirm count).
+        const moving = targets.filter(
+            (i) => fpNormalizeForCompare(fpDirname(i.href)) !== targetCmp,
+        );
+        if (!moving.length) return false;
+
+        // A folder can't move into itself or one of its own descendants — copyPathsInto throws
+        // on this, but catching it after the confirm would be a worse experience.
+        const illegal = moving.find((i) => {
+            if (!i.isDirectory) return false;
+            const srcCmp = fpNormalizeForCompare(i.href);
+            return targetCmp === srcCmp || targetCmp.startsWith(srcCmp + "/");
+        });
+        if (illegal) {
+            ui.notify(`Cannot move folder "${illegal.title}" into itself.`, "warning");
+            return false;
+        }
+
+        const label = moving.length === 1
+            ? `"${moving[0].title}"`
+            : `${moving.length} items`;
+        const bt = await ui.confirm(
+            `Move ${label} to "${targetDir.data.title}/"?`,
+            { title: "Move", buttons: ["Move", "Cancel"] },
+        );
+        if (bt !== "Move") return false;
+
+        // Overwrite-collision confirm (same wording/pattern as importFiles / dropOsFilesInto).
+        const existing = new Set(
+            (await provider.list(targetPath)).map((l) => l.title.toLowerCase()),
+        );
+        const clashing = moving
+            .filter((i) => existing.has(i.title.toLowerCase()))
+            .map((i) => i.title);
+        if (clashing.length) {
+            const ob = await ui.confirm(
+                `${clashing.length} item(s) already exist here and will be overwritten:\n${clashing.join(", ")}`,
+                { title: "Overwrite?", buttons: ["Overwrite", "Cancel"] },
+            );
+            if (ob !== "Overwrite") return false;
+        }
+
+        const progress = await ui.createProgress("Moving...");
+        try {
+            const result = await progress.show(
+                copyPathsInto(moving.map((i) => i.href), targetPath, {
+                    move: true,
+                    onProgress: (done, total, name) => {
+                        progress.label = `Moving ${done} of ${total}: ${name}`;
+                    },
+                }),
+            );
+            if (result.errors.length) {
+                const shown = result.errors.slice(0, 5).join("\n");
+                const more = result.errors.length > 5
+                    ? `\n(+${result.errors.length - 5} more)`
+                    : "";
+                ui.notify(`Some items could not be moved:\n${shown}${more}`, "warning");
+            }
+        } catch (err) {
+            ui.notify(err?.message || "Failed to move.", "warning");
+        }
+        return true;
     };
 
     /** Import dropped file-like items (IFileLink) into the drop target's folder.
@@ -1094,6 +1481,19 @@ export class TreeProviderViewModel extends TComponentModel<
 /** Filter out ".." parent navigation entries (used by FileTreeProvider for flat views, not trees). */
 function filterTreeItems(items: ITreeProviderItem[]): ITreeProviderItem[] {
     return items.filter((item) => item.title !== "..");
+}
+
+/** Case-insensitive href compare — the tree paints selection case-insensitively (hrefs can
+ *  reach us from the OS with different casing), so restore must match the same way. */
+function sameHref(a: string, b: string): boolean {
+    return a.toLowerCase() === b.toLowerCase();
+}
+
+/** Order-sensitive href-list compare — the last entry is the primary selection, so a
+ *  reordered set is a different selection. Guards the selection writes against
+ *  no-op state updates (and the renders they would trigger). */
+function sameHrefs(a: string[], b: string[]): boolean {
+    return a.length === b.length && a.every((href, i) => href === b[i]);
 }
 
 function toNode(item: ITreeProviderItem): TreeProviderNode {

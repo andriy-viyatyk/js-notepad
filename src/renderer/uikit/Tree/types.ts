@@ -150,9 +150,33 @@ export interface TreeProps<T = ITreeItem>
     onItemDoubleClick?: (source: T, level: number) => void;
     /**
      * Predicate that overrides `value`-based identity. When supplied, `value` is ignored.
-     * Mirrors `ListBox.isSelected`. Single-select only — multi-select is out of scope for V1.
+     * Mirrors `ListBox.isSelected`.
+     *
+     * In `multiSelect` mode this is also the Tree's READ path for the current selection: it is
+     * called once per visible row at the start of a selection gesture to derive the set that
+     * gesture starts from. Keep it cheap (a `Set` lookup); the Tree stores no selection of its own.
      */
     isSelected?: (item: T, level: number) => boolean;
+
+    /**
+     * Enables multi-selection gestures: Ctrl+click toggles a row, Shift+click extends a range from
+     * the anchor over the flat visible order, a plain click resets the selection to the clicked row.
+     * With `keyboardNav`, also enables Ctrl+A (select every interactive row) and Shift+ArrowUp/Down
+     * (extend from the anchor). Ctrl+Shift+click extends the range (it is not a disjoint-range add).
+     *
+     * The Tree does NOT store the selection — it computes the resulting set and emits it through
+     * `onSelectionChange`. Paint the result via `isSelected` (or `value`). Default: false.
+     */
+    multiSelect?: boolean;
+    /**
+     * Fires with the FULL resulting selection whenever a selection gesture runs in `multiSelect`
+     * mode (any row click, Ctrl+A, Shift+Arrow, or a right-click that moves the selection). Emits
+     * the source items and their `value`s in flat visible order.
+     *
+     * A plain click fires this AND `onChange` (the navigation signal); a Ctrl/Shift click fires only
+     * this — building a set must not navigate once per row.
+     */
+    onSelectionChange?: (sources: T[], values: (string | number)[]) => void;
 
     /** Index of the highlighted row (across the flat visible list). Controlled. */
     activeIndex?: number | null;

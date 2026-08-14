@@ -388,6 +388,16 @@ const handleDragEnd = useCallback(() => {
 
 The `Tree` internally uses the same native HTML5 handlers (`onDragStart`, `onDragEnter`, etc.) with `dragEnterCount` for visual feedback. Return `null` from `getDragData` to prevent dragging a specific node.
 
+**A tree drag may carry N items.** In a multi-select tree (`multiSelect`, currently the Explorer
+panel only) a drag that starts on a *selected* row carries the whole selection; a drag on an
+unselected row carries that row alone and leaves the selection untouched, the way Windows Explorer
+behaves. `TreeProviderViewModel.dragItemsFor(node)` makes that call and feeds **both** payload
+paths — `getDragData`'s `LinkDragData.items` and the native OS drag-out's path list. It prunes any
+item living inside a dragged folder (the folder already carries them, and handing the OS
+overlapping paths would copy the inner files twice) and never includes the tree root. Drop
+consumers were already plural (`LinkDragData.items`, `FILE_LINK.getFiles`), so this changed the
+payload size, not the contracts.
+
 A drag source can choose its **trait-type id** instead of defaulting to `ILink`. `TreeProviderView` passes `provider.dragTraitTypeId ?? TraitTypeId.ILink`, so a provider whose nodes carry extra capabilities drags under its own registered TraitSet — e.g. `MnemeTreeProvider` returns `MnemeLink`, whose set implements `LINK` *and* `FILE_LINK`.
 
 ### Dragging files out to the OS (`onDragStartOverride`)

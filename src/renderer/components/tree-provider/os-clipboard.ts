@@ -18,13 +18,25 @@ export function supportsOsClipboard(provider: ITreeProvider): boolean {
     return provider.type === "file";
 }
 
-/** Put one file/folder on the OS clipboard (Windows Explorer can paste it).
- *  `cut: true` marks it for move — pasting (here or in Explorer) relocates it. */
-export async function copyPathToOsClipboard(path: string, cut: boolean): Promise<void> {
-    const ok = await api.clipboardWriteFilePaths([path], cut);
+/** Put N files/folders on the OS clipboard (Windows Explorer can paste them).
+ *  `cut: true` marks them for move — pasting (here or in Explorer) relocates them. */
+export async function copyPathsToOsClipboard(paths: string[], cut: boolean): Promise<void> {
+    if (!paths.length) return;
+    const ok = await api.clipboardWriteFilePaths(paths, cut);
     if (!ok) {
-        ui.notify("Failed to put the file on the clipboard.", "warning");
+        ui.notify(
+            paths.length === 1
+                ? "Failed to put the file on the clipboard."
+                : "Failed to put the files on the clipboard.",
+            "warning",
+        );
     }
+}
+
+/** Single-path shim over `copyPathsToOsClipboard` (kept for the many single-item
+ *  call sites in TreeProviderViewModel and CategoryViewModel). */
+export async function copyPathToOsClipboard(path: string, cut: boolean): Promise<void> {
+    await copyPathsToOsClipboard([path], cut);
 }
 
 /** Paste the OS clipboard's file list into `targetDir`. Confirms overwrites,

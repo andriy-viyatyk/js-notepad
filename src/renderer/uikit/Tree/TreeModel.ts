@@ -79,6 +79,16 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         this.gridRef = ref;
     };
 
+    // --- multi-selection transient state (not in TreeState) ---
+
+    /**
+     * Range anchor for Shift+click / Shift+Arrow, held as a source `value` rather than a row
+     * index: a consumer rebuild (e.g. an FS watcher tick re-listing folders) shifts every index,
+     * which would silently move the anchor. Resolved to an index at gesture time by `anchorIndex`.
+     * Transient on purpose — it must not trigger a render, and the visual anchor is `activeIndex`.
+     */
+    private anchorValue: string | number | null = null;
+
     // --- drag-and-drop transient state (not in TreeState) ---
 
     /**
@@ -265,6 +275,52 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         return -1;
     };
 
+    // --- multi-selection ---
+
+    /**
+     * The anchor as a row index, or null when it no longer resolves (the row was collapsed away or
+     * deleted). Callers fall back to the row the gesture started on.
+     */
+    private anchorIndex = (): number | null => {
+        if (this.anchorValue == null) return null;
+        const idx = this.indexByValue.value.get(this.anchorValue);
+        return idx == null ? null : idx;
+    };
+
+    /**
+     * Indices of the rows currently selected, read through the consumer's selection (predicate or
+     * `value` prop). O(visible rows), called once per gesture — never per render.
+     */
+    private currentSelectionIndices = (): number[] => {
+        const out: number[] = [];
+        for (let i = 0; i < this.rows.value.length; i++) {
+            if (this.isSelectedAt(i)) out.push(i);
+        }
+        return out;
+    };
+
+    /** De-dupe, drop non-interactive rows, sort into visible order, emit. */
+    private emitSelection = (indices: number[]) => {
+        const handler = this.props.onSelectionChange;
+        if (!handler) return;
+        const unique = [...new Set(indices)]
+            .filter((i) => this.isInteractive(i))
+            .sort((a, b) => a - b);
+        const rows = this.rows.value;
+        handler(
+            unique.map((i) => rows[i].source),
+            unique.map((i) => rows[i].value),
+        );
+    };
+
+    /** Inclusive index range between two rows, in either direction. */
+    private rangeIndices = (from: number, to: number): number[] => {
+        const [lo, hi] = from <= to ? [from, to] : [to, from];
+        const out: number[] = [];
+        for (let i = lo; i <= hi; i++) out.push(i);
+        return out;
+    };
+
     findParentIndex = (rowIndex: number): number => {
         const rows = this.rows.value;
         const cur = rows[rowIndex];
@@ -277,9 +333,37 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
     // --- handlers ---
 
-    onItemClick = (rowIndex: number) => {
+    /**
+     * Row click. In single-select mode (the default) this is unchanged: fire `onChange`.
+     *
+     * In `multiSelect` mode the modifier decides. Shift is tested BEFORE Ctrl deliberately — that
+     * ordering is what makes Ctrl+Shift+click a range extend rather than needing a third rule; a
+     * disjoint-range add is not a gesture we support.
+     */
+    onItemClick = (rowIndex: number, e?: React.MouseEvent) => {
         const r = this.rows.value[rowIndex];
         if (!r || r.item.disabled || r.item.section) return;
+
+        if (!this.props.multiSelect) {
+            this.props.onChange?.(r.source);
+            return;
+        }
+
+        if (e?.shiftKey) {
+            this.emitSelection(this.rangeIndices(this.anchorIndex() ?? rowIndex, rowIndex));
+            return; // anchor unchanged — successive Shift+clicks pivot on the same row
+        }
+        if (e?.ctrlKey) {
+            const current = this.currentSelectionIndices();
+            const next = current.includes(rowIndex)
+                ? current.filter((i) => i !== rowIndex)
+                : [...current, rowIndex];
+            this.anchorValue = r.value;
+            this.emitSelection(next);
+            return;
+        }
+        this.anchorValue = r.value;
+        this.emitSelection([rowIndex]);
         this.props.onChange?.(r.source);
     };
 
@@ -307,6 +391,16 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     onItemContextMenu = (e: React.MouseEvent<HTMLDivElement>, rowIndex: number) => {
         const r = this.rows.value[rowIndex];
         if (!r || r.item.section) return;
+
+        // Right-click moves the selection to this row ONLY when the row is outside the current
+        // selection. Right-clicking one of N selected rows must keep all N, so the menu it opens
+        // can act on the whole set (Windows Explorer / VS Code behavior). No `onChange` — a
+        // right-click never navigates.
+        if (this.props.multiSelect && this.isInteractive(rowIndex) && !this.isSelectedAt(rowIndex)) {
+            this.anchorValue = r.value;
+            this.emitSelection([rowIndex]);
+        }
+
         const items = this.props.getContextMenu?.(r.source, r.level);
         if (!items || items.length === 0) return;
         const ctxEvent = ContextMenuEvent.fromNativeEvent(e, "generic");
@@ -333,29 +427,62 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             this.props.onActiveChange?.(target);
             this.gridRef?.scrollToRow(target);
         };
+        /**
+         * Arrow move in `multiSelect` mode. With Shift, extend the selection from the anchor to the
+         * new active row; without it, leave the selection alone but re-anchor, so a later
+         * Shift+Arrow pivots on where the user actually is.
+         */
+        const applyWithSelection = (target: number) => {
+            if (target < 0) return;
+            apply(target);
+            if (!this.props.multiSelect) return;
+            if (e.shiftKey) {
+                this.emitSelection(this.rangeIndices(this.anchorIndex() ?? target, target));
+            } else {
+                this.anchorValue = this.rows.value[target]?.value ?? null;
+            }
+        };
+        // Ctrl+A — select every interactive row. Handled before the switch: `key` is "a", which no
+        // other branch claims. `stopPropagation` because the gesture is consumed here — otherwise it
+        // keeps bubbling to whatever select-all the surrounding chrome binds.
+        if (
+            this.props.multiSelect
+            && e.ctrlKey
+            && !e.altKey
+            && !e.shiftKey
+            && e.key.toLowerCase() === "a"
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.emitSelection(this.rows.value.map((_, i) => i));
+            return;
+        }
         switch (e.key) {
             case "ArrowDown":
                 e.preventDefault();
-                apply(this.findNextInteractive(Math.min(n - 1, cur + 1), 1));
+                applyWithSelection(this.findNextInteractive(Math.min(n - 1, cur + 1), 1));
                 break;
             case "ArrowUp":
                 e.preventDefault();
-                apply(this.findNextInteractive(Math.max(0, cur - 1), -1));
+                applyWithSelection(this.findNextInteractive(Math.max(0, cur - 1), -1));
                 break;
+            // Home / End / PageUp / PageDown route through applyWithSelection too, so Shift+Home,
+            // Shift+End and Shift+PageUp/Down extend the range the same way Shift+Arrow does. In
+            // single-select mode it is identical to `apply`.
             case "Home":
                 e.preventDefault();
-                apply(this.findNextInteractive(0, 1));
+                applyWithSelection(this.findNextInteractive(0, 1));
                 break;
             case "End":
                 e.preventDefault();
-                apply(this.findNextInteractive(n - 1, -1));
+                applyWithSelection(this.findNextInteractive(n - 1, -1));
                 break;
             case "PageDown": {
                 e.preventDefault();
                 const page = Math.max(1, this.gridRef?.visibleRowCount ?? 1);
                 const start = (cur < 0 ? 0 : cur) + page;
                 const target = this.findNextInteractive(Math.min(n - 1, start), 1);
-                apply(target >= 0 ? target : this.findNextInteractive(n - 1, -1));
+                applyWithSelection(target >= 0 ? target : this.findNextInteractive(n - 1, -1));
                 break;
             }
             case "PageUp": {
@@ -363,7 +490,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
                 const page = Math.max(1, this.gridRef?.visibleRowCount ?? 1);
                 const start = (cur < 0 ? 0 : cur) - page;
                 const target = this.findNextInteractive(Math.max(0, start), -1);
-                apply(target >= 0 ? target : this.findNextInteractive(0, 1));
+                applyWithSelection(target >= 0 ? target : this.findNextInteractive(0, 1));
                 break;
             }
             case "ArrowRight": {

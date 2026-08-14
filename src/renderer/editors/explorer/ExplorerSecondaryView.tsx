@@ -210,7 +210,13 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
         model.setTreeState(state);
     }, [model]);
 
-    const handleContextMenu = useCallback((event: ContextMenuEvent<ITreeProviderItem>) => {
+    // Layer 3 — both items act on exactly one folder, so they are omitted for a
+    // multi-selection (the plural menu offers the set-shaped actions instead).
+    const handleContextMenu = useCallback((
+        event: ContextMenuEvent<ITreeProviderItem>,
+        selection: ITreeProviderItem[],
+    ) => {
+        if (selection.length > 1) return;
         const item = event.target;
         if (item?.isDirectory && provider?.navigable) {
             const rootLower = rootPath.toLowerCase();
@@ -288,6 +294,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
                 ref={treeProviderRef}
                 key={rootPath}
                 provider={provider}
+                multiSelect
                 selectedHref={selectedHref ?? undefined}
                 onItemClick={handleItemClick}
                 onItemDoubleClick={handleItemDoubleClick}

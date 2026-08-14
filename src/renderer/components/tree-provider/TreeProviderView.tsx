@@ -45,6 +45,11 @@ const tpvNodeTraits = new TraitSet().add(TREE_ITEM_KEY, {
 
 const getNodeChildren = (node: TreeProviderNode) => node.items;
 
+/** Case- and separator-insensitive href form for the drop guards. Harmless for
+ *  non-path hrefs (they simply compare as themselves, lowercased). */
+const normalizeHref = (href: string) =>
+    href.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+
 // Chrome wrapper — purely keyboard-plumbing chrome (clipboard/Delete/F2 + Ctrl+F
 // intercepts on bubbled keys; the Tree root itself is the tab stop). UIKit Panel doesn't
 // expose `outline` suppression, and the wiring is unique to this shared view, so we keep
@@ -115,8 +120,14 @@ export function TreeProviderView(
                 // sequences after the microtask queue.
                 setTimeout(() => {
                     treeRef.current?.expandItem(rootPath);
+                    // collapseAll fires no per-node onExpandChange, so the selection prune
+                    // (epic D10) happens here, once the expansion map has settled.
+                    model.pruneSelectionToVisible();
                 }, 0);
-                onStateChange?.({ expandedPaths: [rootPath] });
+                // expandedPaths is hardcoded (expandItem above is queued, so getState can't
+                // see the re-expanded root yet); the selection rides along from the model and
+                // the prune inside the timeout re-persists it if it shrank.
+                onStateChange?.({ ...model.getState(), expandedPaths: [rootPath] });
             },
             getState: model.getState,
             revealItem: model.revealItem,
@@ -134,6 +145,8 @@ export function TreeProviderView(
             }
         };
     }, [ref, model, provider, onStateChange]);
+    // `model` is stable for the component's lifetime, so the ref object is not rebuilt
+    // by the added model.getState / pruneSelectionToVisible reads.
 
     const isDeepSearch = state.searchText.length >= 3;
     const showLinks = props.showLinks !== false;
@@ -150,13 +163,26 @@ export function TreeProviderView(
         [showLinks],
     );
 
-    // Selection is the model's own `selectedValue` (sticky; folders included) —
-    // `props.selectedHref` feeds it via the model's setProps sync, not directly.
-    const selectedValue = state.selectedValue;
-    const isSelected = useCallback((node: TreeProviderNode) => {
-        if (!selectedValue) return false;
-        return node.data.href.toLowerCase() === selectedValue.toLowerCase();
-    }, [selectedValue]);
+    // Selection is the model's own `selectedValues` (sticky; folders included) —
+    // `props.selectedHref` feeds it via the model's setProps sync, not directly. In
+    // multiSelect mode this predicate is also the Tree's read path for the current set
+    // (US-937), so it must stay cheap: a lowercase Set, not a scan.
+    const selectedValues = state.selectedValues;
+    const selectedSet = useMemo(
+        () => new Set(selectedValues.map((href) => href.toLowerCase())),
+        [selectedValues],
+    );
+    const isSelected = useCallback(
+        (node: TreeProviderNode) => selectedSet.has(node.data.href.toLowerCase()),
+        [selectedSet],
+    );
+
+    const handleSelectionChange = useCallback(
+        (sources: TreeProviderNode[]) => {
+            model.setSelection(sources.map((s) => s.data.href));
+        },
+        [model],
+    );
 
     // The chevron-less permanent root must never collapse — without this, keyboard
     // ArrowLeft could close it with no way to re-open (its chevron is hidden).
@@ -168,11 +194,16 @@ export function TreeProviderView(
     // Drag-drop (only if writable)
     const writable = props.provider.writable;
 
+    // A drag that starts on a selected row carries the whole selection (model.dragItemsFor);
+    // dragging an unselected row carries that row alone and leaves the selection untouched —
+    // so dragstart deliberately does not write the selection.
     const getDragData = useCallback((node: TreeProviderNode) => {
         if (!writable) return null;
         if (node.data.href === props.provider.rootPath) return null;
-        return { items: [node.data], sourceId: props.provider.sourceUrl };
-    }, [writable, props.provider.rootPath, props.provider.sourceUrl]);
+        const items = model.dragItemsFor(node);
+        if (!items.length) return null;
+        return { items, sourceId: props.provider.sourceUrl };
+    }, [model, writable, props.provider.rootPath, props.provider.sourceUrl]);
 
     // OS file drag-out (Windows Explorer / Teams) for local-file providers, where
     // `href` is an absolute path. Every file-row drag hands off to a native OS drag
@@ -186,11 +217,15 @@ export function TreeProviderView(
         (node: TreeProviderNode, _level: number, e: React.DragEvent): boolean => {
             const href = node.data.href;
             if (!href || href === props.provider.rootPath) return false;
+            const paths = model.dragItemsFor(node).map((i) => i.href);
+            if (!paths.length) return false;
             e.preventDefault();
-            void api.startOsFileDrag([href]);
+            // `webContents.startDrag` renders the icon of paths[0] only — Windows shows no
+            // count badge for a multi-file drag and Electron exposes no way to compose one.
+            void api.startOsFileDrag(paths);
             return true;
         },
-        [props.provider.rootPath],
+        [model, props.provider.rootPath],
     );
 
     const canTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
@@ -200,9 +235,18 @@ export function TreeProviderView(
         const items = linkTrait?.getItems(payload.data) ?? [];
         const sameSource = !!linkTrait
             && linkTrait.getSourceId?.(payload.data) === props.provider.sourceUrl;
-        // Same-source move (intra-provider). Reject dropping a single item on its own row.
+        // Same-source move (intra-provider).
         if (sameSource && items.length) {
-            if (items.length === 1 && items[0].href === dropNode.data.href) return false;
+            const dropHref = normalizeHref(dropNode.data.href);
+            // Never drop onto a row that is itself being dragged (the single-item self-drop
+            // case generalized), …
+            if (items.some((i) => normalizeHref(i.href) === dropHref)) return false;
+            // … and never into a descendant of a dragged folder (a folder can't move into
+            // itself). Path-prefix test — valid wherever hrefs are path-shaped.
+            const draggedDirs = items
+                .filter((i) => i.isDirectory)
+                .map((i) => normalizeHref(i.href) + "/");
+            if (draggedDirs.some((d) => dropHref.startsWith(d))) return false;
             return true;
         }
         // Cross-source / OS drop: file content this provider can import (copy), …
@@ -375,6 +419,8 @@ export function TreeProviderView(
                 items={tNodes}
                 getChildren={getNodeChildren}
                 isSelected={isSelected}
+                multiSelect={viewProps.multiSelect}
+                onSelectionChange={handleSelectionChange}
                 keyboardNav
                 canCollapse={canCollapse}
                 collapseDescendants

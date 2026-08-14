@@ -195,6 +195,7 @@ interface DemoProps {
     tooltip?: boolean;
     contextMenu?: boolean;
     predicateSelection?: boolean;
+    multiSelect?: boolean;
     sections?: boolean;
     defaultExpandAll?: boolean;
     dnd?: boolean;
@@ -209,6 +210,7 @@ function TreeDemo({
     tooltip = false,
     contextMenu = false,
     predicateSelection = false,
+    multiSelect = false,
     sections = false,
     defaultExpandAll = false,
     dnd = false,
@@ -216,6 +218,10 @@ function TreeDemo({
 }: DemoProps) {
     const treeRef = useRef<TreeRef>(null);
     const [value, setValue] = useState<ITreeItem | null>(null);
+    // Multi-selection lives here, in the consumer — the Tree stores none of it. Held as a Set of
+    // `value`s and painted back through `isSelected`, which is also how the Tree reads the current
+    // selection when a gesture starts.
+    const [selectedValues, setSelectedValues] = useState<Set<ITreeItem["value"]>>(new Set());
     const [active, setActive] = useState<number | null>(0);
     const [removed, setRemoved] = useState<Set<ITreeItem["value"]>>(new Set());
     const [lazyTree, setLazyTree] = useState<ITreeItem[] | null>(null);
@@ -295,10 +301,13 @@ function TreeDemo({
         }
         : undefined;
 
-    const isSelected = predicateSelection
-        ? (it: ITreeItem) =>
-            typeof it.value === "string" && it.value.endsWith(".tsx")
-        : undefined;
+    // multiSelect wins over predicateSelection: the Set-backed predicate IS the selection.
+    const isSelected = multiSelect
+        ? (it: ITreeItem) => selectedValues.has(it.value)
+        : predicateSelection
+            ? (it: ITreeItem) =>
+                typeof it.value === "string" && it.value.endsWith(".tsx")
+            : undefined;
 
     // DnD demo wiring — getDragData returns a serializable shape; canTraitDrop forbids
     // self-drop; onTraitDrop logs (consumer migration tasks own the actual move).
@@ -371,12 +380,22 @@ function TreeDemo({
                     Reveal Tree.tsx
                 </Button>
             </Panel>
+            {multiSelect && (
+                <Panel direction="row" gap="sm">
+                    <span style={{ fontSize: 12, color: color.text.light }}>
+                        {selectedValues.size} selected — Ctrl+click toggles, Shift+click extends,
+                        Ctrl+A all
+                    </span>
+                </Panel>
+            )}
             <Tree
                 ref={treeRef}
                 items={items}
-                value={predicateSelection ? null : value}
+                value={predicateSelection || multiSelect ? null : value}
                 onChange={(item) => setValue(item)}
                 isSelected={isSelected}
+                multiSelect={multiSelect}
+                onSelectionChange={(_sources, values) => setSelectedValues(new Set(values))}
                 activeIndex={active}
                 onActiveChange={setActive}
                 searchText={searchText}
@@ -414,6 +433,7 @@ export const treeStory: Story = {
         { name: "tooltip",            type: "boolean", default: false },
         { name: "contextMenu",        type: "boolean", default: false },
         { name: "predicateSelection", type: "boolean", default: false },
+        { name: "multiSelect",        type: "boolean", default: false },
         { name: "sections",           type: "boolean", default: false },
         { name: "defaultExpandAll",   type: "boolean", default: false },
         { name: "dnd",                type: "boolean", default: false },

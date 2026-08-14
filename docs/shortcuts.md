@@ -174,16 +174,31 @@ All navigation keys (except Tab) support **Shift** to extend selection.
 | `Ctrl+F` | Search files by name |
 | `Escape` | Close search / name filter |
 
-### File Operations
+### Selection
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+C` | Copy the selected file/folder to the Windows clipboard |
-| `Ctrl+X` | Cut the selected file/folder to the Windows clipboard (not on the tree's root) |
+| `Ctrl+Click` | Add / remove a row from the selection |
+| `Shift+Click` | Select the range from the last clicked row |
+| `Ctrl+A` | Select every visible row |
+| `Shift+Arrow Up/Down` | Extend the selection by one row |
+| `Shift+Home` / `Shift+End` | Extend the selection to the first/last row |
+| `Shift+Page Up` / `Shift+Page Down` | Extend the selection by one page |
+
+Collapsing a folder deselects everything inside it. Selecting a folder together with items inside it acts on the folder only.
+
+### File Operations
+
+Every operation below applies to the whole selection when more than one row is selected.
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+C` | Copy the selected file(s)/folder(s) to the Windows clipboard |
+| `Ctrl+X` | Cut the selected file(s)/folder(s) to the Windows clipboard (not on the tree's root) |
 | `Ctrl+V` | Paste from the Windows clipboard into the selected folder (or the selected file's parent, or the root) |
-| Drag | Drag a file out to Windows Explorer or Teams (native OS drag; not on the tree's root). Dragging it onto another folder in the tree instead opens a Move/Copy/Cancel dialog |
-| `Delete` | Delete the selected file/folder (shows the confirmation dialog) |
-| `F2` | Rename the selected file/folder |
+| Drag | Drag the selection out to Windows Explorer or Teams (native OS drag; not on the tree's root). Dragging onto another folder in the tree instead opens a Move/Copy/Cancel dialog. Dragging a row outside the selection carries only that row |
+| `Delete` | Delete the selected file(s)/folder(s) (shows the confirmation dialog) |
+| `F2` | Rename the selected file/folder (single selection only) |
 
 These file-operation shortcuts are disabled while typing in the panel's search box, and Ctrl+C/X/V require a real file-system folder (not archive, Mneme, or link panels).
 

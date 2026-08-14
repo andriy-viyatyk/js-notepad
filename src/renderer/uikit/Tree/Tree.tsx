@@ -97,6 +97,7 @@ function TreeView<T = ITreeItem>(
         renderItem,
         keyboardNav = false,
         focusSelection = false,
+        multiSelect = false,
         rowHeight = defaultRowHeight,
         indentSize = defaultIndentSize,
         growToHeight,
@@ -116,6 +117,8 @@ function TreeView<T = ITreeItem>(
         onItemDoubleClick: _onItemDoubleClick,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         isSelected: _isSelected,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        onSelectionChange: _onSelectionChange,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onActiveChange: _onActiveChange,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -246,7 +249,7 @@ function TreeView<T = ITreeItem>(
                 key={key}
                 style={style}
                 draggable={canDrag || undefined}
-                onClick={() => model.onItemClick(idx)}
+                onClick={(e) => model.onItemClick(idx, e)}
                 onDoubleClick={() => model.onItemDoubleClick(idx)}
                 onMouseEnter={() => model.onItemMouseEnter(idx)}
                 onContextMenu={(e) => model.onItemContextMenu(e, idx)}
@@ -310,7 +313,9 @@ function TreeView<T = ITreeItem>(
             data-name={name}
             data-keyboard-nav={keyboardNav || undefined}
             data-focus-selection={focusAware || undefined}
+            data-multi-select={multiSelect || undefined}
             role="tree"
+            aria-multiselectable={multiSelect || undefined}
             tabIndex={focusAware ? 0 : -1}
             aria-activedescendant={activeId}
             onKeyDown={model.onKeyDown}
