@@ -13,6 +13,7 @@ import type { IPageHost } from "../../api/pages/IPageHost";
 import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
 import { editorRegistry } from "../base/editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
+import { tryParseJson } from "../../core/utils/parse-utils";
 import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
 import type { LogEntry, StyledText } from "./logTypes";
@@ -342,13 +343,8 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         // Check if first line matches (simple heuristic for detecting edits in existing lines)
         const firstLine = lines[0].trim();
         if (firstLine && currentEntries.length > 0) {
-            try {
-                const firstParsed = JSON.parse(firstLine);
-                if (firstParsed.id !== currentEntries[0].id) {
-                    this.loadContent(content);
-                    return;
-                }
-            } catch {
+            const firstParsed = tryParseJson<{ id?: string } | null>(firstLine, null);
+            if (!firstParsed || firstParsed.id !== currentEntries[0].id) {
                 this.loadContent(content);
                 return;
             }
@@ -422,15 +418,11 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         for (let i = 0; i < lines.length; i++) {
             const trimmed = lines[i].trim();
             if (!trimmed) continue;
-            try {
-                const parsed = JSON.parse(trimmed);
-                if (parsed.id === entry.id) {
-                    lines[i] = JSON.stringify(entry);
-                    updated = true;
-                    break;
-                }
-            } catch {
-                // skip malformed lines
+            const parsed = tryParseJson<{ id?: string } | null>(trimmed, null);
+            if (parsed?.id === entry.id) {
+                lines[i] = JSON.stringify(entry);
+                updated = true;
+                break;
             }
         }
 
@@ -455,17 +447,15 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
             for (let i = 0; i < lines.length; i++) {
                 const trimmed = lines[i].trim();
                 if (!trimmed) continue;
-                try {
-                    const parsed = JSON.parse(trimmed);
-                    if (parsed.id === entry.id) {
-                        const updated = JSON.stringify(entry);
-                        if (lines[i] !== updated) {
-                            lines[i] = updated;
-                            changed = true;
-                        }
-                        break;
+                const parsed = tryParseJson<{ id?: string } | null>(trimmed, null);
+                if (parsed?.id === entry.id) {
+                    const updated = JSON.stringify(entry);
+                    if (lines[i] !== updated) {
+                        lines[i] = updated;
+                        changed = true;
                     }
-                } catch { /* skip */ }
+                    break;
+                }
             }
         }
         this.dirtyIndices.clear();

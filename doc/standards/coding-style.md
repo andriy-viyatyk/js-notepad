@@ -313,7 +313,8 @@ async function loadFile(path: string) {
     const content = await fs.readFile(path, 'utf-8');
     return content;
   } catch (error) {
-    alertWarning(`Failed to load file: ${error.message}`);
+    // `error` is `unknown` — narrow it before reading `.message`
+    ui.notify(`Failed to load file: ${error instanceof Error ? error.message : String(error)}`, "warning");
     return null;
   }
 }
@@ -323,7 +324,7 @@ async function loadFile(path: string) {
 
 ```typescript
 // GOOD - user sees what happened
-alertWarning('Failed to save file. Check if the file is writable.');
+ui.notify('Failed to save file. Check if the file is writable.', "warning");
 
 // BAD - silent failure
 console.error(error);
@@ -336,6 +337,29 @@ that needs a modal confirmation imports `showConfirmationDialog` from
 For toasts, use the `ui` singleton's `ui.notify(message, "error")` (the global alerts bar). The
 `app.ui.confirm` / `app.ui.*` surface is the **script-facing** Object Model API (it routes to the script's
 log/output context) — do not use it for the app's own UI.
+
+### Parsing JSON That May Be Malformed
+
+Decide first whether a parse failure is worth reporting.
+
+When it is **not** — a cached blob, a drag payload, a JSONL scan that skips junk lines — use
+`tryParseJson<T>(text, fallback)` from `core/utils/parse-utils.ts` rather than hand-rolling a
+`try`/`catch`. It returns `fallback` for absent, blank, and malformed input alike, so it also
+replaces the `text.trim() ? JSON.parse(text) : {}` idiom, and it types the result at the call site
+instead of leaking `any`.
+
+```typescript
+// GOOD
+const payload = tryParseJson<TraitDragPayload | null>(raw, null);
+
+// BAD - one more copy of a block that already exists a dozen times
+try { return JSON.parse(raw) as TraitDragPayload; } catch { return null; }
+```
+
+Keep an explicit `try`/`catch` in two cases. First, when the user needs to know *why* their
+content failed to load — `LogViewEditor` and the Grid's JSONL reader report `Line N: <message>`,
+which a silent fallback would destroy. Second, when the `try` also guards the surrounding file
+I/O rather than the parse alone; swapping the helper in there removes nothing.
 
 ### Bound Awaits on a Thread You Don't Own
 

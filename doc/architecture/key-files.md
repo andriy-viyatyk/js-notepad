@@ -29,6 +29,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Markdown heading anchors (GitHub-style slug ids + `-1`/`-2` dedupe; exports `slugifyHeading`, reused by `MarkdownBlock.scrollToAnchor` to match a `#fragment` against heading text so Azure-DevOps and GitHub dialects meet) | `/src/renderer/editors/markdown/rehypeHeadingIds.ts` |
 | File / directory watchers (`FileWatcher`, `DirectoryWatcher`) | `/src/renderer/core/utils/file-watcher.ts` |
 | Performance-timeline janitor (caps React dev-build `performance.measure` accumulation; self-gating no-op in release) | `/src/renderer/core/utils/performance-janitor.ts` |
+| JSON parsing helpers (`tryParseJson<T>` parse-or-fall-back; `parseObject` / `parseJSON5`) | `/src/renderer/core/utils/parse-utils.ts` |
 | App settings             | `/src/renderer/api/settings.ts`                   |
 | Event channel system     | `/src/renderer/api/events/EventChannel.ts`        |
 | App events namespace     | `/src/renderer/api/events/AppEvents.ts`           |

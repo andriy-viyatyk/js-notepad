@@ -1,3 +1,4 @@
+import { tryParseJson } from "../utils/parse-utils";
 import { TraitSet } from "./traits";
 import { traitRegistry } from "./TraitRegistry";
 import type { TraitTypeId } from "./TraitRegistry";
@@ -27,11 +28,7 @@ export function setTraitDragData(
 export function getTraitDragData(dataTransfer: DataTransfer): TraitDragPayload | null {
     const raw = dataTransfer.getData(MIME_TYPE);
     if (!raw) return null;
-    try {
-        return JSON.parse(raw) as TraitDragPayload;
-    } catch {
-        return null;
-    }
+    return tryParseJson<TraitDragPayload | null>(raw, null);
 }
 
 /** Check if a drag event carries trait data (for dragover/dragenter). */

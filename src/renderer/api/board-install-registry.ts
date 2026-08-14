@@ -14,6 +14,7 @@
  */
 import { TGlobalState } from "../core/state/state";
 import { fpNormalizeForCompare } from "../core/utils/file-path";
+import { tryParseJson } from "../core/utils/parse-utils";
 import { fs } from "./fs";
 import { isBoardFolder } from "../editors/board/board-manifest";
 
@@ -64,19 +65,15 @@ class BoardInstallRegistry {
 
     private parse(raw: string | undefined): InstalledBoardEntry[] {
         if (!raw) return [];
-        try {
-            const data = JSON.parse(raw);
-            if (!Array.isArray(data)) return [];
-            return data.filter(
-                (e): e is InstalledBoardEntry =>
-                    !!e &&
-                    typeof e.id === "string" &&
-                    typeof e.root === "string" &&
-                    typeof e.version === "string",
-            );
-        } catch {
-            return [];
-        }
+        const data = tryParseJson<unknown>(raw, null);
+        if (!Array.isArray(data)) return [];
+        return data.filter(
+            (e): e is InstalledBoardEntry =>
+                !!e &&
+                typeof e.id === "string" &&
+                typeof e.root === "string" &&
+                typeof e.version === "string",
+        );
     }
 
     private async persist(entries: InstalledBoardEntry[]): Promise<void> {

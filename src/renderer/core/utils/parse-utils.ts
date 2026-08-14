@@ -39,6 +39,27 @@ export const parseObject = (value: unknown, onError?: (error: unknown) => void):
     }
 }
 
+/**
+ * Parse JSON text, returning `fallback` when it is absent, blank, or malformed.
+ *
+ * For the very common "read a string that *should* be JSON, but carry on if it
+ * isn't" case. Unlike `parseObject` it is generic, so the result is typed at the
+ * call site instead of `unknown`, and it accepts the fallback rather than always
+ * yielding `undefined`.
+ *
+ * Only use this where a parse failure is genuinely not worth reporting. When the
+ * caller needs to tell the user *why* the text failed to parse, keep an explicit
+ * `try`/`catch` so the error message survives.
+ */
+export function tryParseJson<T>(text: string | null | undefined, fallback: T): T {
+    if (!text || !text.trim()) return fallback;
+    try {
+        return JSON.parse(text) as T;
+    } catch {
+        return fallback;
+    }
+}
+
 export const parseJSON5 = (value: unknown, onError?: (error: unknown) => void): unknown => {
     if (value === null || value === undefined) return undefined;
     if (typeof value === "object") return value;

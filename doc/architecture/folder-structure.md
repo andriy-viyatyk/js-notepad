@@ -725,7 +725,7 @@ persephone/
 │   │   └── index.ts        # Public exports
 │   ├── utils/              # Utility functions
 │   │   ├── utils.ts        # General helpers
-│   │   ├── parse-utils.ts  # JSON5, JS parsing
+│   │   ├── parse-utils.ts  # JSON/JSON5 parsing, tryParseJson fallback
 │   │   ├── csv-utils.ts    # CSV parsing/generation
 │   │   ├── html-resources.ts  # HTML resource extraction (cheerio)
 │   │   ├── file-path.ts    # Archive-aware path utility (wraps ALL path.* usage)

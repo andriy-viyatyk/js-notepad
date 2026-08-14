@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { TComponentState } from "../../../core/state/state";
+import { tryParseJson } from "../../../core/utils/parse-utils";
 import { TModel } from "../../../core/state/model";
 import { EditorView } from "../../../../shared/types";
 import { NoteItem, NotebookSource } from "../notebookTypes";
@@ -332,11 +333,7 @@ export class NoteItemEditModel {
     getEditorState<T>(editorId: string): T | undefined {
         const raw = this.notebookModel.getNoteState(this.noteId, `editorSettings:${editorId}`);
         if (!raw) return undefined;
-        try {
-            return JSON.parse(raw) as T;
-        } catch {
-            return undefined;
-        }
+        return tryParseJson<T | undefined>(raw, undefined);
     }
 
     setEditorState<T>(editorId: string, value: T): void {

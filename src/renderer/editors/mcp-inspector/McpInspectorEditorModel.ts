@@ -6,6 +6,7 @@ import {
 } from "../base/EditorModel";
 import type { EditorDescriptor } from "../../../shared/persistence";
 import { TComponentState, TOneState } from "../../core/state/state";
+import { tryParseJson } from "../../core/utils/parse-utils";
 import { McpIcon } from "../../theme/icons";
 import {
     McpConnectionManager,
@@ -409,7 +410,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
             } else if (propType === "boolean") {
                 args[key] = value === "true";
             } else if (propType === "object" || propType === "array") {
-                try { args[key] = JSON.parse(value); } catch { args[key] = value; }
+                args[key] = tryParseJson<unknown>(value, value);
             } else {
                 args[key] = value;
             }

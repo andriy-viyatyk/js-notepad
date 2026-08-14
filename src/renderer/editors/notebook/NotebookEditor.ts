@@ -16,6 +16,7 @@ import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
+import { tryParseJson } from "../../core/utils/parse-utils";
 import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../core/traits";
 import { LINK } from "../link-editor/linkTraits";
 import type { ILink } from "../../api/types/io.tree";
@@ -101,22 +102,18 @@ function getContentSearchText(note: NoteItem): string {
     if (!content.content) return "";
 
     if (content.editor === "grid-json" && content.language === "json") {
-        try {
-            const parsed = JSON.parse(content.content);
-            if (!Array.isArray(parsed)) return content.content;
-            const parts: string[] = [];
-            for (const row of parsed) {
-                if (typeof row !== "object" || row === null) continue;
-                for (const val of Object.values(row)) {
-                    if (typeof val === "string" || typeof val === "number") {
-                        parts.push(String(val));
-                    }
+        const parsed = tryParseJson<unknown>(content.content, null);
+        if (!Array.isArray(parsed)) return content.content;
+        const parts: string[] = [];
+        for (const row of parsed) {
+            if (typeof row !== "object" || row === null) continue;
+            for (const val of Object.values(row)) {
+                if (typeof val === "string" || typeof val === "number") {
+                    parts.push(String(val));
                 }
             }
-            return parts.join(" ");
-        } catch {
-            return content.content;
         }
+        return parts.join(" ");
     }
 
     return content.content;

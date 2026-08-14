@@ -4,6 +4,8 @@
 // (`mneme/src/mcp/results.rs`). Field names match the serialized JSON exactly
 // (camelCase where Rust applies `#[serde(rename)]`, otherwise as-is).
 
+import { tryParseJson } from "../../core/utils/parse-utils";
+
 /** Per-root entry of `status`. Note: `model` here is the model *name*
  *  (a plain string), not the model object — that lives at the top level. */
 export interface WikiRootStatus {
@@ -131,11 +133,7 @@ export function parseToolResult<T>(result: unknown): T | null {
     }
     const text = r.content?.find((c) => c.type === "text")?.text;
     if (!text) return null;
-    try {
-        return JSON.parse(text) as T;
-    } catch {
-        return null;
-    }
+    return tryParseJson<T | null>(text, null);
 }
 
 /** Human-readable byte size (e.g. "4.2 MB"). */
