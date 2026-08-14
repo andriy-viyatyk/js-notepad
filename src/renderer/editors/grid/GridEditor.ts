@@ -1,20 +1,9 @@
 import { SetStateAction } from "react";
 import { TComponentState } from "../../core/state/state";
-import {
-    EditorModel,
-    type EditorStateBase,
-    type RestoreData,
-} from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
-import type { IContentHost } from "../base/IContentHost";
+import { type EditorStateBase, type RestoreData } from "../base/EditorModel";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
-import type { IContentPipe } from "../../api/types/io.pipe";
-import type { IPageHost } from "../../api/pages/IPageHost";
-import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry } from "../base/editorRegistry";
-import { fpBasename } from "../../core/utils/file-path";
-import { ui } from "../../api/ui";
+import { TextFileModel } from "../text/TextEditorModel";
 import {
     type CellFocus,
     type Column,
@@ -93,21 +82,11 @@ export const defaultGridEditorState: GridEditorState = {
     error: undefined,
 };
 
-function isLegacyTextFileHost(host: unknown): host is TextFileModel {
-    return (host as { type?: string } | null)?.type === "textFile";
-}
-
-export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEvent> {
+export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQueueEvent> {
     readonly editorId: GridEditorId;
+    protected readonly displayName = "Grid";
     readonly format: GridFormat;
 
-    private _host: TextFileModel | null = null;
-    private _hostStateUnsub: (() => void) | null = null;
-    private _hostContentUnsub: (() => void) | null = null;
-    private _hostEncryptionUnsub: (() => void) | null = null;
-    private _csvOptionsUnsub: (() => void) | null = null;
-    private _settingsUnsub: (() => void) | null = null;
-    private _pendingHost: HostDescriptor | undefined = undefined;
     /** HS1 — descriptors carried Grid view-config directly on
      *  `EditorDescriptor.state` (per GR4's original resolution). One-shot
      *  legacy promotion: applyRestoreData stashes the legacy fields here;
@@ -133,45 +112,6 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
             GridQueueEvent,
             GridQueueRequest
         >;
-
-        const trait: IContentHostTrait = {
-            extractContentHost: (): IContentHost => {
-                const host = this._host;
-                if (!host) throw new Error("Host already extracted from GridEditor");
-                this._hostStateUnsub?.();
-                this._hostContentUnsub?.();
-                this._hostEncryptionUnsub?.();
-                this._csvOptionsUnsub?.();
-                this._settingsUnsub?.();
-                this._hostStateUnsub = null;
-                this._hostContentUnsub = null;
-                this._hostEncryptionUnsub = null;
-                this._csvOptionsUnsub = null;
-                this._settingsUnsub = null;
-                this._host = null;
-                return host as unknown as IContentHost;
-            },
-        };
-        this.traits.add(CONTENT_HOST_TRAIT, trait);
-    }
-
-    // ── Host accessors ──────────────────────────────────────────────────
-
-    get contentHost(): IContentHost | null {
-        return (this._host as unknown as IContentHost) ?? null;
-    }
-
-    findCompatibleEditors(): string[] {
-        if (!this._host) return [];
-        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
-    }
-
-    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
-        if (!this._host) return null;
-        const { filePath } = this._host.state.get();
-        const pipe = this._host.pipe;
-        if (!pipe && !filePath) return {};
-        return { pipe, filePath };
     }
 
     focus(): void {
@@ -185,36 +125,13 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
 
     // ── Persistence ─────────────────────────────────────────────────────
 
-    getRestoreData(): EditorDescriptor {
-        const s = this.state.get();
-        return {
-            editorId: this.editorId,
-            id: s.id,
-            // HS1 — descriptor collapses to identity-only. View-config
-            // (columns / filters / sortColumn / search / focus / csv options)
-            // rides `host.editorSettings[this.editorId]` via the host
-            // descriptor; rows + error stripped (view-derived per GR8 / MO5).
-            state: {
-                title: s.title,
-                modified: s.modified,
-                secondaryView: s.secondaryView,
-            } as Record<string, unknown>,
-            host: this._host?.getDescriptor(),
-        };
-    }
-
     applyRestoreData(data: RestoreData<GridEditorState>): void {
-        this.state.update((cur) => {
-            if (data.title !== undefined) cur.title = data.title;
-            if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
-            // NOTE: columns / filters / sortColumn / search / focus /
-            // csvDelimiter / csvWithColumns no longer applied here — they
-            // arrive from host.getEditorState in adoptHost. Legacy descriptors
-            // that still carry them are picked up below for one-shot
-            // promotion into the host slot.
-        });
-
+        super.applyRestoreData(data);
+        // NOTE: columns / filters / sortColumn / search / focus /
+        // csvDelimiter / csvWithColumns no longer applied here — they
+        // arrive from host.getEditorState in adoptHost. Legacy descriptors
+        // that still carry them are picked up below for one-shot
+        // promotion into the host slot.
         const hasLegacy =
             data.columns !== undefined ||
             data.filters !== undefined ||
@@ -234,148 +151,57 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
                 focus: data.focus,
             };
         }
-
-        if (data.host) this._pendingHost = data.host;
     }
 
-    // ── Three-phase lifecycle ──────────────────────────────────────────
+    // ── Host adoption ───────────────────────────────────────────────────
 
-    switchFrom(oldEditor: EditorModel): void {
-        const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) {
-            throw new Error(
-                `GridEditor.switchFrom: ${oldEditor.editorId} has no CONTENT_HOST_TRAIT`,
-            );
-        }
-        const host = trait.extractContentHost() as unknown as TextFileModel;
-        if (!isLegacyTextFileHost(host)) {
-            throw new Error("GridEditor.switchFrom: extracted host is not a TextFileModel");
-        }
-        // Preserve cache-file id across the swap (C9).
-        this.state.update((s) => {
-            s.id = oldEditor.id;
-        });
-        // Tag the legacy host with the target editor id so ScriptPanel /
-        // encoding / IO submodels keep their existing assumptions.
-        host.state.update((s) => {
-            s.editor = this.editorId;
-        });
-        this.adoptHost(host);
-        // CSV — fresh switch-in re-detects delimiter from current content
-        // if no user-chosen value was carried in via applyRestoreData.
-        if (this.format === "csv") {
-            const s = this.state.get();
-            if (!s.csvDelimiter || s.csvDelimiter === ",") {
-                const content = host.state.get().content ?? "";
-                const detected = GridEditor.detectCsvDelimiter(content);
-                if (detected !== s.csvDelimiter) {
-                    this.state.update((x) => {
-                        x.csvDelimiter = detected;
-                    });
-                }
-            }
-        }
-        // Trigger an initial row parse against current host content.
-        const content = host.state.get().content ?? "";
-        this.reparseRows(content);
-    }
-
-    async restore(): Promise<void> {
-        try {
-            if (!this._host) {
-                if (this._pendingHost) {
-                    this._host = await TextFileModel.fromDescriptor(this._pendingHost);
-                } else {
-                    this._host = newTextFileModel("");
-                }
-            }
-            if (!this._host.state.get().restored) {
-                await this._host.restore();
-            }
-            this.adoptHost(this._host);
-
-            // GR7 — variant-aware CSV delimiter detection. Runs once on
-            // restore. Skipped when a user-chosen delimiter was persisted
-            // (anything other than the default ",").
-            if (this.format === "csv") {
-                const s = this.state.get();
-                if (!s.csvDelimiter || s.csvDelimiter === ",") {
-                    const content = this._host.state.get().content ?? "";
-                    const detected = GridEditor.detectCsvDelimiter(content);
-                    if (detected !== s.csvDelimiter) {
-                        this.state.update((x) => {
-                            x.csvDelimiter = detected;
-                        });
-                    }
-                }
-            }
-
-            // Initial row parse from host content (or empty-page bootstrap).
-            const content = this._host.state.get().content ?? "";
-            this.reparseRows(content);
-        } catch (err) {
-            ui.notify((err as Error).message || "Failed to restore Grid editor.", "error");
-            this._host = newTextFileModel("");
-            this.adoptHost(this._host);
-        }
-        this._pendingHost = undefined;
-    }
-
-    /** Adopt a host without going through `switchFrom`. Used by
-     *  `attachEditorToPage` in PagesLifecycleModel when constructing a fresh
-     *  GridEditor over a freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
-        this._host = host;
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._hostEncryptionUnsub?.();
-        this._csvOptionsUnsub?.();
-        this._settingsUnsub?.();
-
-        // descriptorChanged forwarder — host metadata changes ride the
-        // page-level persistence debounce.
-        this._hostStateUnsub = host.state.subscribe(() =>
-            this.descriptorChanged.send(undefined),
-        );
+        super.adoptHost(host);
 
         // Re-parse rows when host content mutates (script API write,
         // encryption decrypt, content pipe refresh).
-        this._hostContentUnsub = host.state.subscribe(
-            (content) => {
-                if (content !== this._changedContent) {
-                    this.reparseRows(content as string);
-                }
-            },
-            (s) => s.content,
+        this.registerHostSubscription(
+            host.state.subscribe(
+                (content) => {
+                    if (content !== this._changedContent) {
+                        this.reparseRows(content as string);
+                    }
+                },
+                (s) => s.content,
+            ),
         );
 
         // G17 — re-run the encryption gate when lock/unlock toggles. The
         // gate lives inside reparseRows; re-firing it on the current content
         // refreshes state.error to (un)set the "Content is encrypted…"
         // message.
-        this._hostEncryptionUnsub = host.state.subscribe(
-            () => {
-                const content = this._host?.state.get().content ?? "";
-                this.reparseRows(content);
-            },
-            (s) => s.encrypted,
+        this.registerHostSubscription(
+            host.state.subscribe(
+                () => {
+                    const content = this._host?.state.get().content ?? "";
+                    this.reparseRows(content);
+                },
+                (s) => s.encrypted,
+            ),
         );
 
         // CSV-only — reload rows when user changes delimiter / header toggle.
         if (this.format === "csv") {
             let lastDelimiter = this.state.get().csvDelimiter;
             let lastWithColumns = this.state.get().csvWithColumns;
-            this._csvOptionsUnsub = this.state.subscribe(() => {
-                const { csvDelimiter, csvWithColumns } = this.state.get();
-                if (csvDelimiter !== lastDelimiter || csvWithColumns !== lastWithColumns) {
-                    lastDelimiter = csvDelimiter;
-                    lastWithColumns = csvWithColumns;
-                    const content = this._host?.state.get().content ?? "";
-                    // Delimiter / header changes redefine the columns, so force
-                    // re-derivation instead of preserving the stale ones.
-                    this.reparseRows(content, true);
-                }
-            });
+            this.registerHostSubscription(
+                this.state.subscribe(() => {
+                    const { csvDelimiter, csvWithColumns } = this.state.get();
+                    if (csvDelimiter !== lastDelimiter || csvWithColumns !== lastWithColumns) {
+                        lastDelimiter = csvDelimiter;
+                        lastWithColumns = csvWithColumns;
+                        const content = this._host?.state.get().content ?? "";
+                        // Delimiter / header changes redefine the columns, so force
+                        // re-derivation instead of preserving the stale ones.
+                        this.reparseRows(content, true);
+                    }
+                }),
+            );
         }
 
         if (
@@ -391,30 +217,26 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
 
         // HS1 — seed editor state from the host slot (sync, no flicker).
         // Field-by-field with `=== undefined` guards so future shape evolution
-        // safely falls back to defaults on missing fields.
-        const saved = host.getEditorState<GridViewSettings>(this.editorId);
-        if (saved) {
-            this.state.update((s) => {
-                if (saved.columns !== undefined) s.columns = saved.columns;
-                if (saved.filters !== undefined) s.filters = saved.filters;
-                if (saved.search !== undefined) s.search = saved.search;
-                if (saved.sortColumn !== undefined) s.sortColumn = saved.sortColumn;
-                if (saved.csvDelimiter !== undefined) s.csvDelimiter = saved.csvDelimiter;
-                if (saved.csvWithColumns !== undefined) {
-                    s.csvWithColumns = saved.csvWithColumns;
-                }
-                if (saved.focus !== undefined) s.focus = saved.focus;
-            });
-        }
-
-        // HS1 — mirror editor state changes back to the host slot. Full-state
-        // subscription is fine — each fire writes one small object into
-        // `host.state.editorSettings`; downstream `descriptorChanged` debounces
-        // at 500ms per P3, so disk-write rate is unchanged.
-        this._settingsUnsub = this.state.subscribe(() => {
-            if (!this._host) return;
-            const s = this.state.get();
-            this._host.setEditorState<GridViewSettings>(this.editorId, {
+        // safely falls back to defaults on missing fields. Mirror editor state
+        // changes back to the host slot. Full-state subscription is fine —
+        // each fire writes one small object into `host.state.editorSettings`;
+        // downstream `descriptorChanged` debounces at 500ms per P3, so
+        // disk-write rate is unchanged.
+        this.mirrorHostSettings<GridViewSettings>(
+            (saved) => {
+                this.state.update((s) => {
+                    if (saved.columns !== undefined) s.columns = saved.columns;
+                    if (saved.filters !== undefined) s.filters = saved.filters;
+                    if (saved.search !== undefined) s.search = saved.search;
+                    if (saved.sortColumn !== undefined) s.sortColumn = saved.sortColumn;
+                    if (saved.csvDelimiter !== undefined) s.csvDelimiter = saved.csvDelimiter;
+                    if (saved.csvWithColumns !== undefined) {
+                        s.csvWithColumns = saved.csvWithColumns;
+                    }
+                    if (saved.focus !== undefined) s.focus = saved.focus;
+                });
+            },
+            (s) => ({
                 columns: s.columns,
                 filters: s.filters,
                 search: s.search,
@@ -422,23 +244,29 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
                 csvDelimiter: s.csvDelimiter,
                 csvWithColumns: s.csvWithColumns,
                 focus: s.focus,
-            });
-        });
-
-        const { filePath, title } = host.state.get();
-        this.state.update((s) => {
-            s.title = title || (filePath ? fpBasename(filePath) : s.title || "untitled");
-            if (host.state.get().id) s.id = host.state.get().id;
-        });
-        host.state.update((s) => {
-            if (s.editor !== this.editorId) s.editor = this.editorId;
-        });
-        if (this.page) host.setPage(this.page);
+            }),
+        );
     }
 
-    setPage(page: IPageHost | null): void {
-        super.setPage(page);
-        this._host?.setPage(page);
+    /** Initial load on the switch-in and session-restore paths. CSV variants
+     *  re-detect the delimiter from current content if no user-chosen value
+     *  was persisted (anything other than the default ",") — GR7. */
+    protected onHostAttached(host: TextFileModel): void {
+        if (this.format === "csv") {
+            const s = this.state.get();
+            if (!s.csvDelimiter || s.csvDelimiter === ",") {
+                const content = host.state.get().content ?? "";
+                const detected = GridEditor.detectCsvDelimiter(content);
+                if (detected !== s.csvDelimiter) {
+                    this.state.update((x) => {
+                        x.csvDelimiter = detected;
+                    });
+                }
+            }
+        }
+        // Trigger an initial row parse against current host content.
+        const content = host.state.get().content ?? "";
+        this.reparseRows(content);
     }
 
     // ── Row parsing ─────────────────────────────────────────────────────
@@ -726,36 +554,6 @@ export class GridEditor extends EditorModel<GridEditorState, void, GridQueueEven
         this._changedContent = content;
         this._host?.changeContent(content, true);
     };
-
-    // ── Reaction hooks — delegate to host ───────────────────────────────
-
-    async confirmRelease(closing?: boolean): Promise<boolean> {
-        return this._host ? this._host.confirmRelease(closing) : true;
-    }
-
-    async saveState(): Promise<void> {
-        // GR4 — no per-editor cache file. Host content saves via
-        // host.io.saveState; editor state rides EditorDescriptor.state.
-        await this._host?.io.saveState();
-    }
-
-    async dispose(): Promise<void> {
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._hostEncryptionUnsub?.();
-        this._csvOptionsUnsub?.();
-        this._settingsUnsub?.();
-        this._hostStateUnsub = null;
-        this._hostContentUnsub = null;
-        this._hostEncryptionUnsub = null;
-        this._csvOptionsUnsub = null;
-        this._settingsUnsub = null;
-        if (this._host) {
-            await this._host.dispose();
-            this._host = null;
-        }
-        await super.dispose();
-    }
 
     // ── Static helpers ──────────────────────────────────────────────────
 

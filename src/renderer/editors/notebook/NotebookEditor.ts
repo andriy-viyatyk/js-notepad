@@ -1,18 +1,8 @@
 import { TComponentState } from "../../core/state/state";
-import {
-    EditorModel,
-    type EditorStateBase,
-    type RestoreData,
-} from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
-import type { IContentHost } from "../base/IContentHost";
+import type { EditorStateBase } from "../base/EditorModel";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
-import type { IContentPipe } from "../../api/types/io.pipe";
-import type { IPageHost } from "../../api/pages/IPageHost";
-import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry } from "../base/editorRegistry";
-import { fpBasename } from "../../core/utils/file-path";
+import { TextFileModel } from "../text/TextEditorModel";
 import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
@@ -84,10 +74,6 @@ export const defaultNotebookEditorState: NotebookEditorState = {
  *  navigate-away (Pattern-B; no survival override). */
 const NOTEBOOK_PANELS = ["notebook-categories", "notebook-tags"];
 
-function isLegacyTextFileHost(host: unknown): host is TextFileModel {
-    return (host as { type?: string } | null)?.type === "textFile";
-}
-
 // =============================================================================
 // Content Search Helper (relocated verbatim from NotebookViewModel)
 // =============================================================================
@@ -123,18 +109,11 @@ function getContentSearchText(note: NoteItem): string {
 // Editor class
 // =============================================================================
 
-export class NotebookEditor extends EditorModel<NotebookEditorState, void, NotebookQueueEvent> {
+export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, void, NotebookQueueEvent> {
     readonly editorId = "notebook-view";
+    protected readonly displayName = "Notebook";
 
-    private _host: TextFileModel | null = null;
-    private _hostStateUnsub: (() => void) | null = null;
-    private _hostContentUnsub: (() => void) | null = null;
-    private _settingsUnsub: (() => void) | null = null;
-    private _saveSubUnsub: (() => void) | null = null;
-    private _pendingHost: HostDescriptor | undefined = undefined;
-
-    // NB5 — self-write guard. NB4 — ref-equality marker for serialization skip.
-    private skipNextContentUpdate = false;
+    // NB4 — ref-equality marker for serialization skip.
     private lastSerializedData: NotebookData | null = null;
     // Incremental-filter optimization (today's pattern preserved):
     private lastFilterState = {
@@ -155,38 +134,10 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
             NotebookQueueEvent,
             NotebookQueueRequest
         >;
-
-        const trait: IContentHostTrait = {
-            extractContentHost: (): IContentHost => {
-                const host = this._host;
-                if (!host) throw new Error("Host already extracted from NotebookEditor");
-                this._tearDownHostSubscriptions();
-                this._host = null;
-                return host as unknown as IContentHost;
-            },
-        };
-        this.traits.add(CONTENT_HOST_TRAIT, trait);
     }
 
-    private _tearDownHostSubscriptions(): void {
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._settingsUnsub?.();
-        this._saveSubUnsub?.();
-        this._hostStateUnsub = null;
-        this._hostContentUnsub = null;
-        this._settingsUnsub = null;
-        this._saveSubUnsub = null;
-    }
-
-    // ── Host accessors ──────────────────────────────────────────────────
-
-    get host(): TextFileModel | null {
-        return this._host;
-    }
-
-    get contentHost(): IContentHost | null {
-        return (this._host as unknown as IContentHost) ?? null;
+    protected untitledName(): string {
+        return "untitled.note.json";
     }
 
     /**
@@ -202,183 +153,60 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
         return this._host;
     }
 
-    findCompatibleEditors(): string[] {
-        if (!this._host) return [];
-        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
-    }
-
-    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
-        if (!this._host) return null;
-        const { filePath } = this._host.state.get();
-        const pipe = this._host.pipe;
-        if (!pipe && !filePath) return {};
-        return { pipe, filePath };
-    }
-
     focus(): void {
         this.typedQueue.send({ type: "focus" });
     }
 
-    // ── Persistence ─────────────────────────────────────────
+    // ── Host adoption ───────────────────────────────────────────────────
 
-    getRestoreData(): EditorDescriptor {
-        const s = this.state.get();
-        // Identity-only descriptor. The 4 HS1 fields ride the host slot.
-        // View-derived (data / error / categories / categoriesSize / tags /
-        // tagsSize / filteredNotes / expandedNoteId) and transient
-        // (searchText) stripped per NB2.
-        return {
-            editorId: this.editorId,
-            id: s.id,
-            state: {
-                title: s.title,
-                modified: s.modified,
-                secondaryView: s.secondaryView,
-            } as Record<string, unknown>,
-            host: this._host?.getDescriptor(),
-        };
-    }
-
-    applyRestoreData(data: RestoreData<NotebookEditorState>): void {
-        this.state.update((cur) => {
-            if (data.title !== undefined) cur.title = data.title;
-            if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
-        });
-        if (data.host) this._pendingHost = data.host;
-    }
-
-    // ── Three-phase lifecycle ──────────────────────────────────────────
-
-    switchFrom(oldEditor: EditorModel): void {
-        const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) {
-            throw new Error(
-                `NotebookEditor.switchFrom: ${oldEditor.editorId} has no CONTENT_HOST_TRAIT`,
-            );
-        }
-        const host = trait.extractContentHost() as unknown as TextFileModel;
-        if (!isLegacyTextFileHost(host)) {
-            throw new Error(
-                "NotebookEditor.switchFrom: extracted host is not a TextFileModel",
-            );
-        }
-        this.state.update((s) => {
-            s.id = oldEditor.id;
-        });
-        host.state.update((s) => {
-            s.editor = this.editorId;
-        });
-        this.adoptHost(host);
-        this.loadData(host.state.get().content ?? "");
-    }
-
-    async restore(): Promise<void> {
-        try {
-            if (!this._host) {
-                this._host = this._pendingHost
-                    ? await TextFileModel.fromDescriptor(this._pendingHost)
-                    : newTextFileModel("");
-            }
-            if (!this._host.state.get().restored) {
-                await this._host.restore();
-            }
-            this.adoptHost(this._host);
-            this.loadData(this._host.state.get().content ?? "");
-        } catch (err) {
-            ui.notify(
-                (err as Error).message || "Failed to restore Notebook editor.",
-                "error",
-            );
-            this._host = newTextFileModel("");
-            this.adoptHost(this._host);
-        }
-        this._pendingHost = undefined;
-    }
-
-    /** Adopt a host without going through `switchFrom`. Used by
-     *  `attachEditorToPage` when constructing a fresh NotebookEditor over a
-     *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
-        this._host = host;
-        this._tearDownHostSubscriptions();
+        super.adoptHost(host);
 
         // Panels are a property of "the Notebook is on a page" — registered once
         // here, constant for the editor's life. The base beforeNavigateAway
         // clears them on navigate-away (Pattern-B; no survival override). The
         // sidebar is mandatory-open per PageModel.sidebarMandatory.
+        // (Panels contribution now runs after the base host attach — accepted
+        // micro-difference from the pre-base ordering.)
         this.secondaryView = NOTEBOOK_PANELS;
 
-        // Forward host metadata changes to descriptorChanged (P3 debounce).
-        this._hostStateUnsub = host.state.subscribe(() =>
-            this.descriptorChanged.send(undefined),
-        );
+        // NB4 + NB5 — re-parse on external content changes; the base's echo
+        // guard prevents the loop from our own serialize-back writes.
+        this.subscribeHostContent((content) => this.loadData(content));
 
-        // NB4 + NB5 — re-parse on external content changes; skipNext guard
-        // prevents the loop from our own serialize-back writes.
-        this._hostContentUnsub = host.state.subscribe(
-            (content) => {
-                if (this.skipNextContentUpdate) {
-                    this.skipNextContentUpdate = false;
-                    return;
-                }
-                this.loadData(content as string);
-            },
-            (s) => s.content,
-        );
-
-        // HS1 — seed the 3 selection fields from host slot (sync, no flicker).
-        const saved = host.getEditorState<NotebookViewSettings>(this.editorId);
-        if (saved) {
-            this.state.update((s) => {
-                if (saved.expandedPanel !== undefined) {
-                    s.expandedPanel = saved.expandedPanel;
-                }
-                if (saved.selectedCategory !== undefined) {
-                    s.selectedCategory = saved.selectedCategory;
-                }
-                if (saved.selectedTag !== undefined) {
-                    s.selectedTag = saved.selectedTag;
-                }
-            });
-        }
-
-        // HS1 — mirror back. Slice-subscribe over a composite key so the
-        // mirror fires on any of the 3 slot fields but NOT on data /
-        // derived / transient mutations.
-        this._settingsUnsub = this.state.subscribe(
-            () => {
-                if (!this._host) return;
-                const s = this.state.get();
-                this._host.setEditorState<NotebookViewSettings>(this.editorId, {
-                    expandedPanel: s.expandedPanel,
-                    selectedCategory: s.selectedCategory,
-                    selectedTag: s.selectedTag,
+        // HS1 — seed the 3 selection fields from host slot (sync, no flicker)
+        // and mirror back. Slice-subscribe over a composite key so the mirror
+        // fires on any of the 3 slot fields but NOT on data / derived /
+        // transient mutations.
+        this.mirrorHostSettings<NotebookViewSettings>(
+            (saved) => {
+                this.state.update((s) => {
+                    if (saved.expandedPanel !== undefined) {
+                        s.expandedPanel = saved.expandedPanel;
+                    }
+                    if (saved.selectedCategory !== undefined) {
+                        s.selectedCategory = saved.selectedCategory;
+                    }
+                    if (saved.selectedTag !== undefined) {
+                        s.selectedTag = saved.selectedTag;
+                    }
                 });
             },
+            (s) => ({
+                expandedPanel: s.expandedPanel,
+                selectedCategory: s.selectedCategory,
+                selectedTag: s.selectedTag,
+            }),
             (s) => `${s.expandedPanel}|${s.selectedCategory}|${s.selectedTag}`,
         );
 
         // NB4 — state subscription → debounced serialize-back. Replaces
         // today's NotebookViewModel.onInit subscription.
-        this._saveSubUnsub = this.state.subscribe(() => this.onDataChangedDebounced());
-
-        const { filePath, title } = host.state.get();
-        this.state.update((s) => {
-            s.title =
-                title ||
-                (filePath ? fpBasename(filePath) : s.title || "untitled.note.json");
-            if (host.state.get().id) s.id = host.state.get().id;
-        });
-        host.state.update((s) => {
-            if (s.editor !== this.editorId) s.editor = this.editorId;
-        });
-        if (this.page) host.setPage(this.page);
+        this.registerHostSubscription(this.state.subscribe(() => this.onDataChangedDebounced()));
     }
 
-    setPage(page: IPageHost | null): void {
-        super.setPage(page);
-        this._host?.setPage(page);
+    protected onHostAttached(host: TextFileModel): void {
+        this.loadData(host.state.get().content ?? "");
     }
 
     // ────────────────────────────────────────────────────────────────────
@@ -397,9 +225,8 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
         if (!this._host) return;
         if (data !== this.lastSerializedData) {
             this.lastSerializedData = data;
-            this.skipNextContentUpdate = true;
             const content = JSON.stringify({ type: "note-editor", ...data }, null, 4);
-            this._host.changeContent(content, true);
+            this.writeToHost(content, true);
         }
     };
 
@@ -978,25 +805,15 @@ export class NotebookEditor extends EditorModel<NotebookEditorState, void, Noteb
 
     // ── Save / release / dispose ────────────────────────────────────────
 
-    async confirmRelease(closing?: boolean): Promise<boolean> {
-        return this._host ? this._host.confirmRelease(closing) : true;
-    }
-
     async saveState(): Promise<void> {
         // Flush pending debounced save before host's saveState
         this.onDataChanged();
-        await this._host?.io.saveState();
+        await super.saveState();
     }
 
     async dispose(): Promise<void> {
         // Flush pending debounced save
         this.onDataChanged();
-
-        this._tearDownHostSubscriptions();
-        if (this._host) {
-            await this._host.dispose();
-            this._host = null;
-        }
         await super.dispose();
     }
 }

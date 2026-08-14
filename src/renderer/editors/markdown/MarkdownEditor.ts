@@ -1,19 +1,8 @@
 import { TComponentState } from "../../core/state/state";
-import {
-    EditorModel,
-    type EditorStateBase,
-    type RestoreData,
-} from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
-import type { IContentHost } from "../base/IContentHost";
+import type { EditorStateBase } from "../base/EditorModel";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
-import type { IContentPipe } from "../../api/types/io.pipe";
-import type { IPageHost } from "../../api/pages/IPageHost";
-import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry } from "../base/editorRegistry";
-import { fpBasename } from "../../core/utils/file-path";
-import { ui } from "../../api/ui";
+import { TextFileModel } from "../text/TextEditorModel";
 
 export type MarkdownQueueEvent =
     | { type: "focus" }
@@ -54,17 +43,13 @@ export const defaultMarkdownEditorState: MarkdownEditorState = {
     totalMatches: 0,
 };
 
-function isLegacyTextFileHost(host: unknown): host is TextFileModel {
-    return (host as { type?: string } | null)?.type === "textFile";
-}
-
-export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, MarkdownQueueEvent> {
+export class MarkdownEditor extends TextHostEditorModel<
+    MarkdownEditorState,
+    void,
+    MarkdownQueueEvent
+> {
     readonly editorId = "md-view";
-
-    private _host: TextFileModel | null = null;
-    private _hostStateUnsub: (() => void) | null = null;
-    private _settingsUnsub: (() => void) | null = null;
-    private _pendingHost: HostDescriptor | undefined = undefined;
+    protected readonly displayName = "Markdown";
 
     /** PV9 — non-state DOM ref set by the body via `setContainer(el)` callback.
      *  Facade reads through `containerInnerHtml` / `viewMounted` getters. NOT
@@ -80,45 +65,6 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
             MarkdownQueueEvent,
             MarkdownQueueRequest
         >;
-
-        const trait: IContentHostTrait = {
-            extractContentHost: (): IContentHost => {
-                const host = this._host;
-                if (!host) throw new Error("Host already extracted from MarkdownEditor");
-                this._hostStateUnsub?.();
-                this._settingsUnsub?.();
-                this._hostStateUnsub = null;
-                this._settingsUnsub = null;
-                this._host = null;
-                return host as unknown as IContentHost;
-            },
-        };
-        this.traits.add(CONTENT_HOST_TRAIT, trait);
-    }
-
-    // ── Host accessors ──────────────────────────────────────────────────
-
-    get contentHost(): IContentHost | null {
-        return (this._host as unknown as IContentHost) ?? null;
-    }
-
-    /** Typed host accessor for body-only consumption (avoids the
-     *  `IContentHost`→`TextFileModel` cast at every read site). */
-    get host(): TextFileModel | null {
-        return this._host;
-    }
-
-    findCompatibleEditors(): string[] {
-        if (!this._host) return [];
-        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
-    }
-
-    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
-        if (!this._host) return null;
-        const { filePath } = this._host.state.get();
-        const pipe = this._host.pipe;
-        if (!pipe && !filePath) return {};
-        return { pipe, filePath };
     }
 
     focus(): void {
@@ -149,132 +95,27 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
         );
     };
 
-    // ── Persistence ─────────────────────────────────────────────────────
-
-    getRestoreData(): EditorDescriptor {
-        const s = this.state.get();
-        // HS1 — descriptor collapses to identity-only. `compactMode` rides
-        // host.editorSettings["md-view"]; search fields stripped per PV2 / MO5.
-        return {
-            editorId: this.editorId,
-            id: s.id,
-            state: {
-                title: s.title,
-                modified: s.modified,
-                secondaryView: s.secondaryView,
-            } as Record<string, unknown>,
-            host: this._host?.getDescriptor(),
-        };
-    }
-
-    applyRestoreData(data: RestoreData<MarkdownEditorState>): void {
-        this.state.update((cur) => {
-            if (data.title !== undefined) cur.title = data.title;
-            if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
-        });
-        // No legacy promotion needed — today's MarkdownViewModel doesn't
-        // persist compactMode (in-memory only). `adoptHost` seeds compactMode
-        // from the host slot on first read.
-        if (data.host) this._pendingHost = data.host;
-    }
-
-    // ── Three-phase lifecycle ──────────────────────────────────────────
-
-    switchFrom(oldEditor: EditorModel): void {
-        const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) {
-            throw new Error(
-                `MarkdownEditor.switchFrom: ${oldEditor.editorId} has no CONTENT_HOST_TRAIT`,
-            );
-        }
-        const host = trait.extractContentHost() as unknown as TextFileModel;
-        if (!isLegacyTextFileHost(host)) {
-            throw new Error("MarkdownEditor.switchFrom: extracted host is not a TextFileModel");
-        }
-        // Preserve cache-file id across the swap (C9).
-        this.state.update((s) => {
-            s.id = oldEditor.id;
-        });
-        // Tag the host with the target editor id so submodels keep their assumptions.
-        host.state.update((s) => {
-            s.editor = this.editorId;
-        });
-        this.adoptHost(host);
-    }
-
-    async restore(): Promise<void> {
-        try {
-            if (!this._host) {
-                this._host = this._pendingHost
-                    ? await TextFileModel.fromDescriptor(this._pendingHost)
-                    : newTextFileModel("");
-            }
-            if (!this._host.state.get().restored) {
-                await this._host.restore();
-            }
-            this.adoptHost(this._host);
-        } catch (err) {
-            ui.notify((err as Error).message || "Failed to restore Markdown editor.", "error");
-            this._host = newTextFileModel("");
-            this.adoptHost(this._host);
-        }
-        this._pendingHost = undefined;
-    }
-
-    /** Adopt a host without going through `switchFrom`. Used by
-     *  `attachEditorToPage` when constructing a fresh MarkdownEditor over a
-     *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
-        this._host = host;
-        this._hostStateUnsub?.();
-        this._settingsUnsub?.();
-
-        // Forward host metadata changes to descriptorChanged (P3 debounce).
-        this._hostStateUnsub = host.state.subscribe(() =>
-            this.descriptorChanged.send(undefined),
-        );
+        super.adoptHost(host);
 
         // No host-content subscription needed — the body reads
         // `host.state.use((s) => s.content)` directly; MarkdownBlock re-renders
         // on every content change via React props.
 
-        // HS1 — seed `compactMode` from host slot (sync, no flicker).
-        const saved = host.getEditorState<MarkdownViewSettings>(this.editorId);
-        if (saved?.compactMode !== undefined) {
-            this.state.update((s) => {
-                s.compactMode = saved.compactMode;
-            });
-        }
-
-        // HS1 — mirror `compactMode` changes back to host slot via a selector
-        // subscription. Slice-subscribe keeps the mirror from firing on
-        // search-state mutations (the dominant write source) — only the
-        // bounded boolean actually triggers a host-slot write.
-        this._settingsUnsub = this.state.subscribe(
-            (compactMode) => {
-                if (!this._host) return;
-                this._host.setEditorState<MarkdownViewSettings>(this.editorId, {
-                    compactMode: compactMode as boolean,
-                });
+        // HS1 — seed `compactMode` from host slot (sync, no flicker) and mirror
+        // changes back. Slice-bound so search-state mutations (the dominant
+        // write source) never trigger a host-slot write.
+        this.mirrorHostSettings<MarkdownViewSettings>(
+            (saved) => {
+                if (saved.compactMode !== undefined) {
+                    this.state.update((s) => {
+                        s.compactMode = saved.compactMode;
+                    });
+                }
             },
+            (s) => ({ compactMode: s.compactMode }),
             (s) => s.compactMode,
         );
-
-        const { filePath, title } = host.state.get();
-        this.state.update((s) => {
-            s.title = title || (filePath ? fpBasename(filePath) : s.title || "untitled");
-            if (host.state.get().id) s.id = host.state.get().id;
-        });
-        host.state.update((s) => {
-            if (s.editor !== this.editorId) s.editor = this.editorId;
-        });
-        if (this.page) host.setPage(this.page);
-    }
-
-    setPage(page: IPageHost | null): void {
-        super.setPage(page);
-        this._host?.setPage(page);
     }
 
     // ── View-driven setters / state mutators ────────────────────────────
@@ -347,27 +188,5 @@ export class MarkdownEditor extends EditorModel<MarkdownEditorState, void, Markd
 
     get viewMounted(): boolean {
         return this._containerRef !== null;
-    }
-
-    // ── Save / release / dispose ────────────────────────────────────────
-
-    async confirmRelease(closing?: boolean): Promise<boolean> {
-        return this._host ? this._host.confirmRelease(closing) : true;
-    }
-
-    async saveState(): Promise<void> {
-        await this._host?.io.saveState();
-    }
-
-    async dispose(): Promise<void> {
-        this._hostStateUnsub?.();
-        this._settingsUnsub?.();
-        this._hostStateUnsub = null;
-        this._settingsUnsub = null;
-        if (this._host) {
-            await this._host.dispose();
-            this._host = null;
-        }
-        await super.dispose();
     }
 }

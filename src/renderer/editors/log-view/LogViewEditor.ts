@@ -1,20 +1,9 @@
 import { TComponentState } from "../../core/state/state";
-import {
-    EditorModel,
-    type EditorStateBase,
-    type RestoreData,
-} from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
-import type { IContentHost } from "../base/IContentHost";
+import type { EditorStateBase } from "../base/EditorModel";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
-import type { IContentPipe } from "../../api/types/io.pipe";
-import type { IPageHost } from "../../api/pages/IPageHost";
-import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry } from "../base/editorRegistry";
-import { fpBasename } from "../../core/utils/file-path";
+import { TextFileModel } from "../text/TextEditorModel";
 import { tryParseJson } from "../../core/utils/parse-utils";
-import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
 import type { LogEntry, StyledText } from "./logTypes";
 
@@ -60,23 +49,13 @@ export const defaultLogViewEditorState: LogViewEditorState = {
     error: undefined,
 };
 
-function isLegacyTextFileHost(host: unknown): host is TextFileModel {
-    return (host as { type?: string } | null)?.type === "textFile";
-}
-
-export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueueEvent> {
+export class LogViewEditor extends TextHostEditorModel<LogViewEditorState, void, LogQueueEvent> {
     readonly editorId = "log-view";
-
-    private _host: TextFileModel | null = null;
-    private _hostStateUnsub: (() => void) | null = null;
-    private _hostContentUnsub: (() => void) | null = null;
-    private _settingsUnsub: (() => void) | null = null;
-    private _pendingHost: HostDescriptor | undefined = undefined;
+    protected readonly displayName = "Log View";
 
     // LogView-specific private fields (verbatim from today's LogViewModel):
     private pendingDialogs = new Map<string, { resolve: (result: LogEntry) => void }>();
     private nextId = 1;
-    private skipNextContentUpdate = false;
     private lastLineCount = 0;
     private heightCache = new Map<string, number>();
     private dirtyIndices = new Set<number>();
@@ -89,190 +68,42 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
             LogQueueEvent,
             LogQueueRequest
         >;
-
-        const trait: IContentHostTrait = {
-            extractContentHost: (): IContentHost => {
-                const host = this._host;
-                if (!host) throw new Error("Host already extracted from LogViewEditor");
-                this._hostStateUnsub?.();
-                this._hostContentUnsub?.();
-                this._settingsUnsub?.();
-                this._hostStateUnsub = null;
-                this._hostContentUnsub = null;
-                this._settingsUnsub = null;
-                this._host = null;
-                return host as unknown as IContentHost;
-            },
-        };
-        this.traits.add(CONTENT_HOST_TRAIT, trait);
-    }
-
-    // ── Host accessors ──────────────────────────────────────────────────
-
-    get contentHost(): IContentHost | null {
-        return (this._host as unknown as IContentHost) ?? null;
-    }
-
-    findCompatibleEditors(): string[] {
-        if (!this._host) return [];
-        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
-    }
-
-    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
-        if (!this._host) return null;
-        const { filePath } = this._host.state.get();
-        const pipe = this._host.pipe;
-        if (!pipe && !filePath) return {};
-        return { pipe, filePath };
     }
 
     focus(): void {
         this.typedQueue.send({ type: "focus" });
     }
 
-    // ── Persistence ─────────────────────────────────────────────────────
-
-    getRestoreData(): EditorDescriptor {
-        const s = this.state.get();
-        // Descriptor collapses to identity-only. View-derived (entries /
-        // entryCount / error) stripped per GR8 / MO5. `showTimestamps` rides
-        // the HS1 host slot. `itemsState` is transient (size carve-out).
-        return {
-            editorId: this.editorId,
-            id: s.id,
-            state: {
-                title: s.title,
-                modified: s.modified,
-                secondaryView: s.secondaryView,
-            } as Record<string, unknown>,
-            host: this._host?.getDescriptor(),
-        };
-    }
-
-    applyRestoreData(data: RestoreData<LogViewEditorState>): void {
-        this.state.update((cur) => {
-            if (data.title !== undefined) cur.title = data.title;
-            if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
-        });
-        // No legacy promotion: today's LogViewModel doesn't persist
-        // showTimestamps (in-memory only) and itemsState lived in a separate
-        // cache file (orphaned on upgrade per P9). `adoptHost` seeds
-        // showTimestamps from the host slot on first read.
-        if (data.host) this._pendingHost = data.host;
-    }
-
     // ── Three-phase lifecycle ──────────────────────────────────────────
 
-    switchFrom(oldEditor: EditorModel): void {
-        const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) {
-            throw new Error(
-                `LogViewEditor.switchFrom: ${oldEditor.editorId} has no CONTENT_HOST_TRAIT`,
-            );
-        }
-        const host = trait.extractContentHost() as unknown as TextFileModel;
-        if (!isLegacyTextFileHost(host)) {
-            throw new Error("LogViewEditor.switchFrom: extracted host is not a TextFileModel");
-        }
-        // Preserve cache-file id across the swap (C9).
-        this.state.update((s) => {
-            s.id = oldEditor.id;
-        });
-        // Tag the host with the target editor id so submodels keep their assumptions.
-        host.state.update((s) => {
-            s.editor = this.editorId;
-        });
-        this.adoptHost(host);
-        // Initial parse against the inherited content.
-        this.loadContent(host.state.get().content ?? "");
-    }
-
-    async restore(): Promise<void> {
-        try {
-            if (!this._host) {
-                this._host = this._pendingHost
-                    ? await TextFileModel.fromDescriptor(this._pendingHost)
-                    : newTextFileModel("");
-            }
-            if (!this._host.state.get().restored) {
-                await this._host.restore();
-            }
-            this.adoptHost(this._host);
-            this.loadContent(this._host.state.get().content ?? "");
-        } catch (err) {
-            ui.notify((err as Error).message || "Failed to restore Log View editor.", "error");
-            this._host = newTextFileModel("");
-            this.adoptHost(this._host);
-        }
-        this._pendingHost = undefined;
-    }
-
-    /** Adopt a host without going through `switchFrom`. Used by
-     *  `attachEditorToPage` when constructing a fresh LogViewEditor over a
-     *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
-        this._host = host;
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._settingsUnsub?.();
+        super.adoptHost(host);
 
-        // Forward host metadata changes to descriptorChanged (P3 debounce).
-        this._hostStateUnsub = host.state.subscribe(() =>
-            this.descriptorChanged.send(undefined),
-        );
+        // LV4 + LV6 — re-parse incrementally on external content changes; the
+        // base's echo guard protects against the editor's own self-writes.
+        this.subscribeHostContent((content) => this.loadContentIncremental(content));
 
-        // LV4 + LV6 — re-parse incrementally on external content changes;
-        // skipNextContentUpdate guards against the editor's own self-writes.
-        this._hostContentUnsub = host.state.subscribe(
-            (content) => {
-                if (this.skipNextContentUpdate) {
-                    this.skipNextContentUpdate = false;
-                    return;
+        // HS1 — seed `showTimestamps` from host slot (sync, no flicker) and
+        // mirror changes back. `itemsState` is intentionally NOT seeded — it's
+        // transient per the size carve-out. Slice-subscribe keeps the mirror
+        // from firing on `itemsState` mutations (the dominant write source on
+        // log pages) — only the bounded boolean actually triggers a host-slot write.
+        this.mirrorHostSettings<LogViewSettings>(
+            (saved) => {
+                if (saved.showTimestamps !== undefined) {
+                    this.state.update((s) => {
+                        s.showTimestamps = saved.showTimestamps;
+                    });
                 }
-                this.loadContentIncremental(content as string);
             },
-            (s) => s.content,
-        );
-
-        // HS1 — seed `showTimestamps` from host slot (sync, no flicker).
-        // `itemsState` is intentionally NOT seeded — it's transient per the
-        // size carve-out.
-        const saved = host.getEditorState<LogViewSettings>(this.editorId);
-        if (saved?.showTimestamps !== undefined) {
-            this.state.update((s) => {
-                s.showTimestamps = saved.showTimestamps;
-            });
-        }
-
-        // HS1 — mirror `showTimestamps` changes back to host slot via a
-        // selector subscription. Slice-subscribe keeps the mirror from firing
-        // on `itemsState` mutations (the dominant write source on log pages)
-        // — only the bounded boolean actually triggers a host-slot write.
-        this._settingsUnsub = this.state.subscribe(
-            (showTimestamps) => {
-                if (!this._host) return;
-                this._host.setEditorState<LogViewSettings>(this.editorId, {
-                    showTimestamps: showTimestamps as boolean,
-                });
-            },
+            (s) => ({ showTimestamps: s.showTimestamps }),
             (s) => s.showTimestamps,
         );
-
-        const { filePath, title } = host.state.get();
-        this.state.update((s) => {
-            s.title = title || (filePath ? fpBasename(filePath) : s.title || "untitled");
-            if (host.state.get().id) s.id = host.state.get().id;
-        });
-        host.state.update((s) => {
-            if (s.editor !== this.editorId) s.editor = this.editorId;
-        });
-        if (this.page) host.setPage(this.page);
     }
 
-    setPage(page: IPageHost | null): void {
-        super.setPage(page);
-        this._host?.setPage(page);
+    protected onHostAttached(host: TextFileModel): void {
+        // Initial parse against the adopted host content (switch + restore paths).
+        this.loadContent(host.state.get().content ?? "");
     }
 
     // ── JSONL parse (verbatim from today's LogViewModel) ────────────────
@@ -404,8 +235,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         const newContent = currentContent ? currentContent + "\n" + line : line;
 
         this.lastLineCount = newContent.split("\n").length;
-        this.skipNextContentUpdate = true;
-        this._host.changeContent(newContent);
+        this.writeToHost(newContent);
     }
 
     /** Re-serialize a single entry's line in the host content. */
@@ -427,8 +257,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         }
 
         if (updated) {
-            this.skipNextContentUpdate = true;
-            this._host.changeContent(lines.join("\n"));
+            this.writeToHost(lines.join("\n"));
         }
     }
 
@@ -461,8 +290,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         this.dirtyIndices.clear();
 
         if (changed) {
-            this.skipNextContentUpdate = true;
-            this._host.changeContent(lines.join("\n"));
+            this.writeToHost(lines.join("\n"));
         }
     }, 300);
 
@@ -593,8 +421,7 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
             s.error = undefined;
         });
 
-        this.skipNextContentUpdate = true;
-        this._host?.changeContent("");
+        this.writeToHost("");
     };
 
     toggleTimestamps = (): void => {
@@ -641,14 +468,6 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
 
     // ── Save / release / dispose ────────────────────────────────────────
 
-    async confirmRelease(closing?: boolean): Promise<boolean> {
-        return this._host ? this._host.confirmRelease(closing) : true;
-    }
-
-    async saveState(): Promise<void> {
-        await this._host?.io.saveState();
-    }
-
     async dispose(): Promise<void> {
         // LV7 — cancel pending dialogs (sentinel resolve; preserved from
         // today's onDispose). Fires for BOTH page-close AND switch-out.
@@ -658,16 +477,6 @@ export class LogViewEditor extends EditorModel<LogViewEditorState, void, LogQueu
         this.pendingDialogs.clear();
         this.dirtyIndices.clear();
 
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._settingsUnsub?.();
-        this._hostStateUnsub = null;
-        this._hostContentUnsub = null;
-        this._settingsUnsub = null;
-        if (this._host) {
-            await this._host.dispose();
-            this._host = null;
-        }
         await super.dispose();
     }
 }

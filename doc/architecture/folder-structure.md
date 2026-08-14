@@ -302,6 +302,7 @@ persephone/
 ├── editors/                # Editor Implementations — each editor is an EditorModel subclass
 │   ├── base/               # Shared editor infrastructure
 │   │   ├── EditorModel.ts            # Abstract base class for all editors
+│   │   ├── TextHostEditorModel.ts    # Base for TextFileModel-wrapping editors — host-adoption lifecycle, subscription registry, content echo guard, host-settings mirror
 │   │   ├── IContentHost.ts           # Interface for text-content hosting (TextFileModel, NoteItemEditModel)
 │   │   ├── EditorStateStorage.ts     # Per-editor view-state storage interface (id, name → state)
 │   │   ├── editor-traits.ts          # CONTENT_HOST_TRAIT — owner-orchestrated editor switching

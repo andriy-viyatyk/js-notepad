@@ -1,19 +1,9 @@
 import { TComponentState, TOneState } from "../../core/state/state";
-import {
-    EditorModel,
-    type EditorStateBase,
-    type RestoreData,
-} from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
-import type { IContentHost } from "../base/IContentHost";
+import { EditorModel, type EditorStateBase } from "../base/EditorModel";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
-import type { IContentPipe } from "../../api/types/io.pipe";
 import type { NavigationState } from "../base/navigation-state";
-import type { IPageHost } from "../../api/pages/IPageHost";
-import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry } from "../base/editorRegistry";
-import { fpBasename } from "../../core/utils/file-path";
+import { TextFileModel } from "../text/TextEditorModel";
 import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
@@ -95,25 +85,14 @@ export const defaultLinkEditorState: LinkEditorState = {
  *  on external navigation). */
 const LINK_PANELS = ["link-category", "link-tags", "link-hostnames"];
 
-function isLegacyTextFileHost(host: unknown): host is TextFileModel {
-    return (host as { type?: string } | null)?.type === "textFile";
-}
-
 export class LinkEditor
-    extends EditorModel<LinkEditorState, void, LinkQueueEvent>
+    extends TextHostEditorModel<LinkEditorState, void, LinkQueueEvent>
     implements ILinkSource
 {
     readonly editorId = "link-view";
+    protected readonly displayName = "Link";
 
-    private _host: TextFileModel | null = null;
-    private _hostStateUnsub: (() => void) | null = null;
-    private _hostContentUnsub: (() => void) | null = null;
-    private _settingsUnsub: (() => void) | null = null;
-    private _saveSubUnsub: (() => void) | null = null;
-    private _pendingHost: HostDescriptor | undefined = undefined;
-
-    // LK5 — self-write guard. LK4 — ref-equality marker.
-    private skipNextContentUpdate = false;
+    // LK4 — ref-equality marker.
     private lastSerializedData: LinkEditorData | null = null;
     // Incremental-filter optimization (today's pattern preserved):
     private lastFilterState = {
@@ -170,52 +149,16 @@ export class LinkEditor
             LinkQueueEvent,
             LinkQueueRequest
         >;
-
-        const trait: IContentHostTrait = {
-            extractContentHost: (): IContentHost => {
-                const host = this._host;
-                if (!host) throw new Error("Host already extracted from LinkEditor");
-                this._tearDownHostSubscriptions();
-                this._treeProvider = null;
-                this._host = null;
-                return host as unknown as IContentHost;
-            },
-        };
-        this.traits.add(CONTENT_HOST_TRAIT, trait);
     }
 
-    private _tearDownHostSubscriptions(): void {
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._settingsUnsub?.();
-        this._saveSubUnsub?.();
-        this._hostStateUnsub = null;
-        this._hostContentUnsub = null;
-        this._settingsUnsub = null;
-        this._saveSubUnsub = null;
+    /** The trait extracted the host (switch away) — drop the host-bound
+     *  tree provider. */
+    protected onHostExtracted(): void {
+        this._treeProvider = null;
     }
 
-    // ── Host accessors ──────────────────────────────────────────────────
-
-    get host(): TextFileModel | null {
-        return this._host;
-    }
-
-    get contentHost(): IContentHost | null {
-        return (this._host as unknown as IContentHost) ?? null;
-    }
-
-    findCompatibleEditors(): string[] {
-        if (!this._host) return [];
-        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
-    }
-
-    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
-        if (!this._host) return null;
-        const { filePath } = this._host.state.get();
-        const pipe = this._host.pipe;
-        if (!pipe && !filePath) return {};
-        return { pipe, filePath };
+    protected untitledName(): string {
+        return "untitled.link.json";
     }
 
     focus(): void {
@@ -241,156 +184,53 @@ export class LinkEditor
         if (link?.id) this.selectLink(link.id);
     };
 
-    // ── Persistence ─────────────────────────────────────────
+    // ── Host adoption ───────────────────────────────────────────────────
 
-    getRestoreData(): EditorDescriptor {
-        const s = this.state.get();
-        // Descriptor collapses to identity-only. The 5 HS1 fields ride the
-        // host slot. View-derived (data / categories / tags / hostnames /
-        // filteredLinks / error / searchText / selectedLinkId) stripped per
-        // MO5 / GR8 / LK2.
-        return {
-            editorId: this.editorId,
-            id: s.id,
-            state: {
-                title: s.title,
-                modified: s.modified,
-                secondaryView: s.secondaryView,
-            } as Record<string, unknown>,
-            host: this._host?.getDescriptor(),
-        };
-    }
-
-    applyRestoreData(data: RestoreData<LinkEditorState>): void {
-        this.state.update((cur) => {
-            if (data.title !== undefined) cur.title = data.title;
-            if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
-        });
-        if (data.host) this._pendingHost = data.host;
-    }
-
-    // ── Three-phase lifecycle ──────────────────────────────────────────
-
-    switchFrom(oldEditor: EditorModel): void {
-        const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) {
-            throw new Error(
-                `LinkEditor.switchFrom: ${oldEditor.editorId} has no CONTENT_HOST_TRAIT`,
-            );
-        }
-        const host = trait.extractContentHost() as unknown as TextFileModel;
-        if (!isLegacyTextFileHost(host)) {
-            throw new Error("LinkEditor.switchFrom: extracted host is not a TextFileModel");
-        }
-        this.state.update((s) => {
-            s.id = oldEditor.id;
-        });
-        host.state.update((s) => {
-            s.editor = this.editorId;
-        });
-        this.adoptHost(host);
-        this.loadData(host.state.get().content ?? "");
-    }
-
-    async restore(): Promise<void> {
-        try {
-            if (!this._host) {
-                this._host = this._pendingHost
-                    ? await TextFileModel.fromDescriptor(this._pendingHost)
-                    : newTextFileModel("");
-            }
-            if (!this._host.state.get().restored) {
-                await this._host.restore();
-            }
-            this.adoptHost(this._host);
-            this.loadData(this._host.state.get().content ?? "");
-        } catch (err) {
-            ui.notify((err as Error).message || "Failed to restore Link editor.", "error");
-            this._host = newTextFileModel("");
-            this.adoptHost(this._host);
-        }
-        this._pendingHost = undefined;
-    }
-
-    /** Adopt a host without going through `switchFrom`. Used by
-     *  `attachEditorToPage` when constructing a fresh LinkEditor over a
-     *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
-        this._host = host;
-        this._tearDownHostSubscriptions();
+        super.adoptHost(host);
 
         // Panels are a property of "the Link editor is on a page" — registered
         // once here, independent of the sidebar open flag (the sidebar is
         // mandatory-open per PageModel.sidebarMandatory). Constant for the
         // editor's life on the page; only the survival hooks clear it.
+        // (Panels contribution now runs after the base host attach — accepted
+        // micro-difference from the pre-base ordering.)
         this.secondaryView = LINK_PANELS;
 
-        // Forward host metadata changes to descriptorChanged (P3 debounce).
-        this._hostStateUnsub = host.state.subscribe(() =>
-            this.descriptorChanged.send(undefined),
-        );
+        // LK4 + LK5 — re-parse on external content changes; the base's echo
+        // guard prevents the loop from our own serialize-back writes.
+        this.subscribeHostContent((content) => this.loadData(content));
 
-        // LK4 + LK5 — re-parse on external content changes; skipNext guard
-        // prevents the loop from our own serialize-back writes.
-        this._hostContentUnsub = host.state.subscribe(
-            (content) => {
-                if (this.skipNextContentUpdate) {
-                    this.skipNextContentUpdate = false;
-                    return;
-                }
-                this.loadData(content as string);
-            },
-            (s) => s.content,
-        );
-
-        // HS1 — seed the 5 selection fields from host slot (sync, no flicker).
-        const saved = host.getEditorState<LinkViewSettings>(this.editorId);
-        if (saved) {
-            this.state.update((s) => {
-                if (saved.expandedPanel !== undefined) s.expandedPanel = saved.expandedPanel;
-                if (saved.selectedCategory !== undefined) s.selectedCategory = saved.selectedCategory;
-                if (saved.selectedTag !== undefined) s.selectedTag = saved.selectedTag;
-                if (saved.selectedHostname !== undefined) s.selectedHostname = saved.selectedHostname;
-            });
-        }
-
-        // HS1 — mirror back. Slice-subscribe over a composite key so the
-        // mirror fires on any of the 5 slot fields but NOT on data /
-        // derived / transient mutations.
-        this._settingsUnsub = this.state.subscribe(
-            () => {
-                if (!this._host) return;
-                const s = this.state.get();
-                this._host.setEditorState<LinkViewSettings>(this.editorId, {
-                    expandedPanel: s.expandedPanel,
-                    selectedCategory: s.selectedCategory,
-                    selectedTag: s.selectedTag,
-                    selectedHostname: s.selectedHostname,
+        // HS1 — seed the 5 selection fields from host slot (sync, no flicker)
+        // and mirror back. Slice-subscribe over a composite key so the mirror
+        // fires on any of the 5 slot fields but NOT on data / derived /
+        // transient mutations.
+        this.mirrorHostSettings<LinkViewSettings>(
+            (saved) => {
+                this.state.update((s) => {
+                    if (saved.expandedPanel !== undefined) s.expandedPanel = saved.expandedPanel;
+                    if (saved.selectedCategory !== undefined) s.selectedCategory = saved.selectedCategory;
+                    if (saved.selectedTag !== undefined) s.selectedTag = saved.selectedTag;
+                    if (saved.selectedHostname !== undefined) s.selectedHostname = saved.selectedHostname;
                 });
             },
+            (s) => ({
+                expandedPanel: s.expandedPanel,
+                selectedCategory: s.selectedCategory,
+                selectedTag: s.selectedTag,
+                selectedHostname: s.selectedHostname,
+            }),
             (s) =>
                 `${s.expandedPanel}|${s.selectedCategory}|${s.selectedTag}|${s.selectedHostname}`,
         );
 
         // LK4 — state subscription → debounced serialize-back. Replaces
         // today's LinkViewModel.onInit subscription.
-        this._saveSubUnsub = this.state.subscribe(() => this.onDataChangedDebounced());
-
-        const { filePath, title } = host.state.get();
-        this.state.update((s) => {
-            s.title = title || (filePath ? fpBasename(filePath) : s.title || "untitled.link.json");
-            if (host.state.get().id) s.id = host.state.get().id;
-        });
-        host.state.update((s) => {
-            if (s.editor !== this.editorId) s.editor = this.editorId;
-        });
-        if (this.page) host.setPage(this.page);
+        this.registerHostSubscription(this.state.subscribe(() => this.onDataChangedDebounced()));
     }
 
-    setPage(page: IPageHost | null): void {
-        super.setPage(page);
-        this._host?.setPage(page);
+    protected onHostAttached(host: TextFileModel): void {
+        this.loadData(host.state.get().content ?? "");
     }
 
     // ── LK6 — Sidebar lifecycle hooks ───────────────────────────────────
@@ -489,9 +329,8 @@ export class LinkEditor
         if (!this._host) return;
         if (data !== this.lastSerializedData) {
             this.lastSerializedData = data;
-            this.skipNextContentUpdate = true;
             const content = JSON.stringify({ type: "link-editor", ...data }, null, 4);
-            this._host.changeContent(content, true);
+            this.writeToHost(content, true);
         }
     };
 
@@ -1266,28 +1105,19 @@ export class LinkEditor
         return this._host ? this._host.modified : super.modified;
     }
 
-    async confirmRelease(closing?: boolean): Promise<boolean> {
-        return this._host ? this._host.confirmRelease(closing) : true;
-    }
-
     async saveState(): Promise<void> {
         // Flush pending debounced save before host's saveState
         this.onDataChanged();
-        await this._host?.io.saveState();
+        await super.saveState();
     }
 
     async dispose(): Promise<void> {
         // Flush pending debounced save (today's onDispose pattern)
         this.onDataChanged();
 
-        this._tearDownHostSubscriptions();
         this._treeProvider = null;
         this.containerElement = null;
         this.gridModel = null;
-        if (this._host) {
-            await this._host.dispose();
-            this._host = null;
-        }
         await super.dispose();
     }
 }

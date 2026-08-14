@@ -13,12 +13,18 @@ Read these first:
 Three questions decide the shape of your editor:
 
 1. **Does it work on editable text content?** (e.g. JSON, CSV, Markdown — yes; PDF, Image, Browser — no)
-   - **Yes** → compose an `IContentHost` (via `this.contentHost`). Skip to step 2.
-   - **No** → your editor stores its own state directly. Skip to "Step 1: Folder structure" below.
+   - **Yes** → extend `TextHostEditorModel` (`editors/base/TextHostEditorModel.ts`). It composes
+     the `TextFileModel` host, registers `CONTENT_HOST_TRAIT` (so the editor participates in
+     switching automatically), and owns the whole host lifecycle. Skip to step 2.
+   - **No** → extend `EditorModel` directly; your editor stores its own state. Skip to "Step 1:
+     Folder structure" below.
 
-2. **Should users be able to switch *to* this editor while looking at a sibling text view?** (e.g. Grid view when looking at JSON — yes; Markdown preview from Monaco — yes)
-   - **Yes** → expose `CONTENT_HOST_TRAIT` (with `extractContentHost` / `inheritContentHost`).
-   - **No** → just compose the host; no trait needed.
+2. **Does the editor write content back into the host?** (e.g. Grid edits — yes; Markdown
+   preview — no)
+   - **Yes** → route every write through `this.writeToHost(content, true)` and read external
+     changes via `this.subscribeHostContent(handler)` — the pair forms the echo guard.
+   - **No** → the body can read `host.state.use((s) => s.content)` directly; no subscription
+     needed.
 
 3. **Should the editor have its own sidebar panel(s)?** (e.g. Link Editor's Categories panel)
    - **Yes** → set `this.secondaryView = ["my-panel"]` in `setPage()` or `restore()`. See [Secondary Editors](../architecture/secondary-views.md).
@@ -85,53 +91,58 @@ export class MyEditor extends EditorModel<MyEditorState> {
 }
 ```
 
-### Text-bearing editor (with `IContentHost` + `CONTENT_HOST_TRAIT`)
+### Text-bearing editor (extends `TextHostEditorModel`)
+
+The base owns the entire host lifecycle (trait, `switchFrom`, `restore`, `adoptHost`,
+persistence, `confirmRelease`/`saveState`/`dispose`) — a subclass supplies only its domain:
 
 ```typescript
 // MyEditor.ts
-import { EditorModel } from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, IContentHostTrait } from "../base/editor-traits";
-import { IContentHost } from "../base/IContentHost";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
+import { TextFileModel } from "../text/TextEditorModel";
 
-export class MyEditor extends EditorModel<MyEditorState> implements IContentHostTrait {
+export class MyEditor extends TextHostEditorModel<MyEditorState> {
     readonly editorId = "my-view";
-    contentHost: IContentHost | null = null;
+    protected readonly displayName = "My Editor";   // error/notify strings
 
-    constructor() {
-        super(/* state */);
-        this.traits.set(CONTENT_HOST_TRAIT, this);
+    adoptHost(host: TextFileModel): void {
+        super.adoptHost(host);
+
+        // React to external content changes (echo-guarded against writeToHost):
+        this.subscribeHostContent((content) => this.parse(content));
+
+        // Persist a view setting in the host's per-editor slot (survives
+        // editor switches AND app restarts):
+        this.mirrorHostSettings<{ compact?: boolean }>(
+            (saved) => { if (saved.compact !== undefined) /* seed state */; },
+            (s) => ({ compact: s.compact }),
+            (s) => s.compact,                        // slice-bound mirror
+        );
+
+        this.parse(host.state.get().content ?? "");   // initial parse
     }
 
-    extractContentHost(): IContentHost {
-        const host = this.contentHost!;
-        this.contentHost = null;   // detach — do NOT dispose
-        return host;
-    }
-
-    inheritContentHost(host: IContentHost): void {
-        this.contentHost = host;
-        // Read content via this.contentHost.state, subscribe to changes, etc.
-    }
-
-    async restore(): Promise<void> {
-        // Initial parse of content from this.contentHost.state.get().content
-    }
-
-    dispose(): void {
-        // Only dispose this.contentHost if WE created it (not if it was inherited).
-        // The owner is responsible for host lifecycle across editor swaps.
-        super.dispose();
+    private serializeBack(): void {
+        this.writeToHost(JSON.stringify(this.buildData(), null, 4), true);
     }
 }
 ```
 
+Editors whose initial load must run only on the switch/session-restore paths (because
+`attachEditorToPage` open-file callers trigger it themselves after a bare `adoptHost` — the
+Grid/Link/Notebook pattern) put it in `protected onHostAttached(host)` instead of at the end
+of `adoptHost`. Clean up domain refs on switch-away in `protected onHostExtracted()`. Custom
+subscriptions registered via `this.registerHostSubscription(unsub)` are torn down
+automatically on re-adopt, switch-away, and dispose.
+
 The lifecycle hook order during a switch is:
 
-1. Owner calls `oldEditor.traits.get(CONTENT_HOST_TRAIT)?.extractContentHost()` → returns the host (no dispose)
-2. Owner creates new editor instance via `editorRegistry.createEditor(newId)`
-3. Owner calls `newEditor.traits.get(CONTENT_HOST_TRAIT)?.inheritContentHost(host)`
-4. Owner installs newEditor (e.g., `page.setMainEditor(newEditor)`)
-5. `newEditor.restore()` runs — reads from the inherited host
+1. Owner (`PageModel.switchMainEditor`) creates the new editor via `editorRegistry.createEditor(newId)`
+2. Owner calls `newEditor.switchFrom(oldEditor)` — the base extracts the host through the old
+   editor's `CONTENT_HOST_TRAIT` (`extractContentHost()`, no dispose), preserves the old
+   editor's `id` for cache-file continuity, `adoptHost()`s the host, then calls
+   `onHostAttached(host)`
+3. Owner installs newEditor (e.g., `page.setMainEditor(newEditor)`)
 
 ## Step 3: Implement the React Component
 
@@ -301,13 +312,12 @@ Register the panel React component in `/src/renderer/ui/secondary-views/secondar
 
 ## Checklist
 
-- [ ] `MyEditor` extends `EditorModel<MyEditorState>` with a unique `editorId`
+- [ ] `MyEditor` extends `TextHostEditorModel<MyEditorState>` (text-bearing) or `EditorModel<MyEditorState>` (no host) with a unique `editorId`
 - [ ] Constructor calls `super()` with a `TOneState` seeded from `IEditorState` fields
-- [ ] `restore()` handles the initial async load (returns immediately if nothing to load)
-- [ ] `getDescriptor()` returns persisted state (stripped of runtime-only fields)
-- [ ] `dispose()` calls `super.dispose()` and cleans up subscriptions / sub-models
-- [ ] For text-bearing editors: implements `IContentHostTrait` and registers `CONTENT_HOST_TRAIT`
-- [ ] For text-bearing editors: `inheritContentHost(host)` does NOT recreate state if the host has content already
+- [ ] Non-host editors: `restore()` handles the initial async load; text-bearing editors inherit `restore()` and wire domain logic in the `adoptHost` override (calling `super.adoptHost(host)` first)
+- [ ] `getRestoreData()` returns persisted state (stripped of runtime-only fields) — text-bearing editors inherit the identity-only base and extend it only for extra durable fields
+- [ ] `dispose()` calls `super.dispose()` and cleans up domain-only resources (host subscriptions registered via `registerHostSubscription` are torn down by the base)
+- [ ] For text-bearing editors: `displayName` set; host content writes go through `writeToHost`; view settings ride `mirrorHostSettings`
 - [ ] `EditorModule` exports all required fields (`id`, `name`, `Editor`, `create`, optional matchers)
 - [ ] Registered via `editorRegistry.register(...)` in `register-editors.ts`
 - [ ] `accepts()` returns appropriate priority (see priority guide)
@@ -318,8 +328,8 @@ Register the panel React component in `/src/renderer/ui/secondary-views/secondar
 ## Examples
 
 - **Simple viewer:** `/src/renderer/editors/image/` — read-only image viewer, no content host
-- **Text-bearing minimal:** `/src/renderer/editors/html/` — HTML preview, composes IContentHost + trait
-- **Text-bearing complex:** `/src/renderer/editors/grid/` — JSON/CSV grid editor with full edit/save flow
+- **Text-bearing minimal:** `/src/renderer/editors/svg/` — read-only preview over the host, no domain subscriptions (`/src/renderer/editors/html/` adds an image-export capability)
+- **Text-bearing complex:** `/src/renderer/editors/grid/` — JSON/CSV grid editor with full edit/save flow, custom write-guard, and host-slot settings
 - **Per-note embedding:** `/src/renderer/editors/notebook/note-editor/` — Notebook embeds text-bearing editors per-note via `NoteItemEditModel` (a non-file IContentHost)
 - **No-host with sidebar:** `/src/renderer/editors/explorer/` — Explorer sidebar editor with no main content area
 - **Multi-process editor:** `/src/renderer/editors/browser/` — webview-based browser spanning three processes ([architecture doc](../architecture/browser-editor.md))

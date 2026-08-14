@@ -1,19 +1,8 @@
 import { TComponentState } from "../../core/state/state";
-import {
-    EditorModel,
-    type EditorStateBase,
-    type RestoreData,
-} from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
-import type { IContentHost } from "../base/IContentHost";
+import { type EditorStateBase } from "../base/EditorModel";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
-import type { IContentPipe } from "../../api/types/io.pipe";
-import type { IPageHost } from "../../api/pages/IPageHost";
-import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry } from "../base/editorRegistry";
-import { fpBasename } from "../../core/utils/file-path";
-import { ui } from "../../api/ui";
+import { TextFileModel } from "../text/TextEditorModel";
 import { ForceGraphRenderer, ForceParams } from "./ForceGraphRenderer";
 import { GraphVisibilityModel } from "./GraphVisibilityModel";
 import { GraphDataModel } from "./GraphDataModel";
@@ -107,12 +96,9 @@ export type { SearchInfo, SearchPropertyMatch, SearchResult } from "./GraphSearc
 /** D3 simulation fields to strip when extracting nodes. */
 const SIM_FIELDS = new Set(["x", "y", "vx", "vy", "fx", "fy", "index"]);
 
-function isLegacyTextFileHost(host: unknown): host is TextFileModel {
-    return (host as { type?: string } | null)?.type === "textFile";
-}
-
-export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueEvent> {
+export class GraphEditor extends TextHostEditorModel<GraphEditorState, void, GraphQueueEvent> {
     readonly editorId = "graph-view";
+    protected readonly displayName = "Graph";
 
     // ── Owned submodels ───────────────────────────────────────────
     readonly renderer = new ForceGraphRenderer();
@@ -130,13 +116,6 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
     /** Set by GraphLegendPanel to handle "Highlight" action from selection menu. */
     onHighlightSelection: (() => void) | null = null;
 
-    // ── Host adoption state ─────────────────────────────────────────────
-    private _host: TextFileModel | null = null;
-    private _hostStateUnsub: (() => void) | null = null;
-    private _hostContentUnsub: (() => void) | null = null;
-    private _settingsUnsub: (() => void) | null = null;
-    private _pendingHost: HostDescriptor | undefined = undefined;
-
     // ── Timers + parse-loop guard ───────────────────────────────────────
     private _parseTimer: ReturnType<typeof setTimeout> | undefined;
     private _tooltipTimer: ReturnType<typeof setTimeout> | undefined;
@@ -146,8 +125,6 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
     /** Full parsed JSON — preserved for serialization (keeps `type` and any
      *  extra user properties). */
     private originalJson: Record<string, unknown> = {};
-    /** GR7 — Skip flag to prevent re-parsing our own serialized changes. */
-    private skipNextContentUpdate = false;
     /** First load uses updateData (full sim init); subsequent loads use
      *  updateVisibleData (position-preserving). New editor instance per
      *  switch starts with `isFirstLoad = true` — correct (renderer is fresh,
@@ -163,27 +140,10 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
             GraphQueueRequest
         >;
         this.searchModel = new GraphSearchModel(this.renderer, this.visibilityModel);
-
-        const trait: IContentHostTrait = {
-            extractContentHost: (): IContentHost => {
-                const host = this._host;
-                if (!host) throw new Error("Host already extracted from GraphEditor");
-                this._tearDownHostSubscriptions();
-                this._clearTimers();
-                this._host = null;
-                return host as unknown as IContentHost;
-            },
-        };
-        this.traits.add(CONTENT_HOST_TRAIT, trait);
     }
 
-    private _tearDownHostSubscriptions(): void {
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._settingsUnsub?.();
-        this._hostStateUnsub = null;
-        this._hostContentUnsub = null;
-        this._settingsUnsub = null;
+    protected onHostExtracted(): void {
+        this._clearTimers();
     }
 
     private _clearTimers(): void {
@@ -195,154 +155,35 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
         this._tooltipHideTimer = undefined;
     }
 
-    // ── Host accessors ──────────────────────────────────────────────────
-
-    get contentHost(): IContentHost | null {
-        return (this._host as unknown as IContentHost) ?? null;
-    }
-
-    /** Typed host accessor for body + facade + sub-panels (MK4 pattern from
-     *  mirrors Svg/Html/Markdown/Mermaid). */
-    get host(): TextFileModel | null {
-        return this._host;
-    }
-
-    findCompatibleEditors(): string[] {
-        if (!this._host) return [];
-        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
-    }
-
-    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
-        if (!this._host) return null;
-        const { filePath } = this._host.state.get();
-        const pipe = this._host.pipe;
-        if (!pipe && !filePath) return {};
-        return { pipe, filePath };
-    }
-
     focus(): void {
         this.typedQueue.send({ type: "focus" });
     }
 
-    // ── Persistence ─────────────────────────────────────────────────────
+    // ── Host adoption ───────────────────────────────────────────────────
 
-    getRestoreData(): EditorDescriptor {
-        const s = this.state.get();
-        // Identity-only descriptor. groupingEnabled rides host.editorSettings["graph-view"]
-        //. All other view-derived state stripped per PV7 / MO5.
-        return {
-            editorId: this.editorId,
-            id: s.id,
-            state: {
-                title: s.title,
-                modified: s.modified,
-                secondaryView: s.secondaryView,
-            } as Record<string, unknown>,
-            host: this._host?.getDescriptor(),
-        };
-    }
-
-    applyRestoreData(data: RestoreData<GraphEditorState>): void {
-        this.state.update((cur) => {
-            if (data.title !== undefined) cur.title = data.title;
-            if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
-        });
-        // groupingEnabled is NOT carried via descriptor — read from host.editorSettings
-        // in adoptHost. View-derived state re-derived by initial parse.
-        if (data.host) this._pendingHost = data.host;
-    }
-
-    // ── Three-phase lifecycle ──────────────────────────────────────────
-
-    switchFrom(oldEditor: EditorModel): void {
-        const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) {
-            throw new Error(
-                `GraphEditor.switchFrom: ${oldEditor.editorId} has no CONTENT_HOST_TRAIT`,
-            );
-        }
-        const host = trait.extractContentHost() as unknown as TextFileModel;
-        if (!isLegacyTextFileHost(host)) {
-            throw new Error("GraphEditor.switchFrom: extracted host is not a TextFileModel");
-        }
-        // Preserve cache-file id across the swap (C9).
-        this.state.update((s) => {
-            s.id = oldEditor.id;
-        });
-        // Tag the host with the target editor id so submodels keep their assumptions.
-        host.state.update((s) => {
-            s.editor = this.editorId;
-        });
-        this.adoptHost(host);
-    }
-
-    async restore(): Promise<void> {
-        try {
-            if (!this._host) {
-                this._host = this._pendingHost
-                    ? await TextFileModel.fromDescriptor(this._pendingHost)
-                    : newTextFileModel("");
-            }
-            if (!this._host.state.get().restored) {
-                await this._host.restore();
-            }
-            this.adoptHost(this._host);
-        } catch (err) {
-            ui.notify((err as Error).message || "Failed to restore Graph editor.", "error");
-            this._host = newTextFileModel("");
-            this.adoptHost(this._host);
-        }
-        this._pendingHost = undefined;
-    }
-
-    /** Adopt a host without going through `switchFrom`. Used by
-     *  `attachEditorToPage` when constructing a fresh GraphEditor over a
-     *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
-        this._host = host;
-        this._tearDownHostSubscriptions();
-
-        // Forward host metadata changes to descriptorChanged (P3 debounce).
-        this._hostStateUnsub = host.state.subscribe(() =>
-            this.descriptorChanged.send(undefined),
-        );
+        super.adoptHost(host);
 
         // HS1 — seed `groupingEnabled` from host slot (sync, no flicker). If
-        // the slot is absent, retain the default `true`.
-        const saved = host.getEditorState<GraphViewSettings>(this.editorId);
-        if (saved?.groupingEnabled !== undefined) {
-            this.state.update((s) => {
-                s.groupingEnabled = saved.groupingEnabled;
-            });
-        }
-
-        // HS1 — mirror `groupingEnabled` changes back to host slot. Slice-
-        // subscribe keeps the mirror from firing on transient field
-        // mutations (the dominant write source) — only the bounded boolean
-        // triggers a host-slot write.
-        this._settingsUnsub = this.state.subscribe(
-            (groupingEnabled) => {
-                if (!this._host) return;
-                this._host.setEditorState<GraphViewSettings>(this.editorId, {
-                    groupingEnabled: groupingEnabled as boolean,
-                });
+        // the slot is absent, retain the default `true`. Mirror changes back
+        // to the host slot. Slice-subscribe keeps the mirror from firing on
+        // transient field mutations (the dominant write source) — only the
+        // bounded boolean triggers a host-slot write.
+        this.mirrorHostSettings<GraphViewSettings>(
+            (saved) => {
+                if (saved.groupingEnabled !== undefined) {
+                    this.state.update((s) => {
+                        s.groupingEnabled = saved.groupingEnabled;
+                    });
+                }
             },
+            (s) => ({ groupingEnabled: s.groupingEnabled }),
             (s) => s.groupingEnabled,
         );
 
-        // GR7 — content changes retrigger parse. The skipNextContentUpdate
-        // guard prevents the loop from our own serializeToHost writes.
-        this._hostContentUnsub = host.state.subscribe(
-            () => {
-                if (this.skipNextContentUpdate) {
-                    this.skipNextContentUpdate = false;
-                    return;
-                }
-                this.parseDebounced();
-            },
-            (s) => s.content,
-        );
+        // GR7 — content changes retrigger parse (own serializeToHost writes
+        // are skipped by the base's echo guard).
+        this.subscribeHostContent(() => this.parseDebounced());
 
         // Wire renderer callbacks (relocated verbatim from legacy onInit).
         this.renderer.onBadgeExpand = (nodeId, deep) => this.handleBadgeExpand(nodeId, deep);
@@ -352,45 +193,17 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
         this.renderer.onSelectionChanged = (selectedIds) => this.handleSelectionChanged(selectedIds);
         this.renderer.onDoubleClick = (nodeId) => this.onDoubleClickNode?.(nodeId);
 
-        const { filePath, title } = host.state.get();
-        this.state.update((s) => {
-            s.title = title || (filePath ? fpBasename(filePath) : s.title || "untitled");
-            if (host.state.get().id) s.id = host.state.get().id;
-        });
-        host.state.update((s) => {
-            if (s.editor !== this.editorId) s.editor = this.editorId;
-        });
-        if (this.page) host.setPage(this.page);
-
         // GR6 — initial parse against the freshly-adopted host (mirrors
         // today's GraphViewModel.onInit's final parseContent call). Sync,
         // not debounced — avoids a 400 ms spinner on every open.
         this.parseContent();
     }
 
-    setPage(page: IPageHost | null): void {
-        super.setPage(page);
-        this._host?.setPage(page);
-    }
-
-    // ── Save / release / dispose ────────────────────────────────────────
-
-    async confirmRelease(closing?: boolean): Promise<boolean> {
-        return this._host ? this._host.confirmRelease(closing) : true;
-    }
-
-    async saveState(): Promise<void> {
-        await this._host?.io.saveState();
-    }
+    // ── Dispose ─────────────────────────────────────────────────────────
 
     async dispose(): Promise<void> {
         this._clearTimers();
-        this._tearDownHostSubscriptions();
         this.renderer.dispose();
-        if (this._host) {
-            await this._host.dispose();
-            this._host = null;
-        }
         await super.dispose();
     }
 
@@ -1787,8 +1600,7 @@ export class GraphEditor extends EditorModel<GraphEditorState, void, GraphQueueE
             json.options = this.dataModel.sourceData.options;
         }
 
-        this.skipNextContentUpdate = true;
-        this._host.changeContent(JSON.stringify(json, null, 4), true);
+        this.writeToHost(JSON.stringify(json, null, 4), true);
     }
 
     // =========================================================================

@@ -1,17 +1,6 @@
-import { TComponentState } from "../../core/state/state";
-import {
-    EditorModel,
-    type EditorStateBase,
-    type RestoreData,
-} from "../base/EditorModel";
-import { CONTENT_HOST_TRAIT, type IContentHostTrait } from "../base/editor-traits";
-import type { IContentHost } from "../base/IContentHost";
-import type { EditorDescriptor, HostDescriptor } from "../../../shared/persistence";
-import type { IContentPipe } from "../../api/types/io.pipe";
-import type { IPageHost } from "../../api/pages/IPageHost";
-import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
-import { editorRegistry } from "../base/editorRegistry";
-import { fpBasename } from "../../core/utils/file-path";
+import type { EditorStateBase } from "../base/EditorModel";
+import { TextHostEditorModel } from "../base/TextHostEditorModel";
+import { TextFileModel } from "../text/TextEditorModel";
 import { ui } from "../../api/ui";
 import { debounce } from "../../../shared/utils";
 // Import directly from types.ts (not the api/board-vars barrel) — the barrel re-exports
@@ -49,203 +38,45 @@ export const defaultEnvVarsEditorState: EnvVarsEditorState = {
     errorMessage: undefined,
 };
 
-function isLegacyTextFileHost(host: unknown): host is TextFileModel {
-    return (host as { type?: string } | null)?.type === "textFile";
-}
-
-export class EnvVarsEditor extends EditorModel<EnvVarsEditorState> {
+export class EnvVarsEditor extends TextHostEditorModel<EnvVarsEditorState> {
     readonly editorId = "env-vars-view";
+    protected readonly displayName = "Environment Variables";
 
-    private _host: TextFileModel | null = null;
-    private _hostStateUnsub: (() => void) | null = null;
-    private _hostContentUnsub: (() => void) | null = null;
-    private _settingsUnsub: (() => void) | null = null;
-    private _saveSubUnsub: (() => void) | null = null;
-    private _pendingHost: HostDescriptor | undefined = undefined;
-
-    // TD5 — self-write guard. TD4 — ref-equality marker for serialization skip.
-    private skipNextContentUpdate = false;
+    // TD4 — ref-equality marker for serialization skip.
     private lastSerializedData: BoardVarsFile | null = null;
 
     private onDataChangedDebounced = debounce(() => this.onDataChanged(), 300);
 
-    constructor(state: TComponentState<EnvVarsEditorState>) {
-        super(state);
-
-        const trait: IContentHostTrait = {
-            extractContentHost: (): IContentHost => {
-                const host = this._host;
-                if (!host) throw new Error("Host already extracted from EnvVarsEditor");
-                this._tearDownHostSubscriptions();
-                this._host = null;
-                return host as unknown as IContentHost;
-            },
-        };
-        this.traits.add(CONTENT_HOST_TRAIT, trait);
+    protected untitledName(): string {
+        return "untitled.env.json";
     }
 
-    private _tearDownHostSubscriptions(): void {
-        this._hostStateUnsub?.();
-        this._hostContentUnsub?.();
-        this._settingsUnsub?.();
-        this._saveSubUnsub?.();
-        this._hostStateUnsub = null;
-        this._hostContentUnsub = null;
-        this._settingsUnsub = null;
-        this._saveSubUnsub = null;
-    }
-
-    // ── Host accessors ──────────────────────────────────────────────────
-
-    get host(): TextFileModel | null {
-        return this._host;
-    }
-
-    get contentHost(): IContentHost | null {
-        return (this._host as unknown as IContentHost) ?? null;
-    }
-
-    findCompatibleEditors(): string[] {
-        if (!this._host) return [];
-        return editorRegistry.findEditorsAccepting(this._host as unknown as IContentHost);
-    }
-
-    getNavigatorTarget(): { pipe?: IContentPipe | null; filePath?: string | null } | null {
-        if (!this._host) return null;
-        const { filePath } = this._host.state.get();
-        const pipe = this._host.pipe;
-        if (!pipe && !filePath) return {};
-        return { pipe, filePath };
-    }
-
-    // ── Persistence ─────────────────────────────────────────
-
-    getRestoreData(): EditorDescriptor {
-        const s = this.state.get();
-        // Identity-only descriptor. selectedNamespace/selectedProfile ride the HS1 host slot;
-        // data/status/errorMessage are view-derived, recomputed by loadData on restore.
-        return {
-            editorId: this.editorId,
-            id: s.id,
-            state: {
-                title: s.title,
-                modified: s.modified,
-                secondaryView: s.secondaryView,
-            } as Record<string, unknown>,
-            host: this._host?.getDescriptor(),
-        };
-    }
-
-    applyRestoreData(data: RestoreData<EnvVarsEditorState>): void {
-        this.state.update((cur) => {
-            if (data.title !== undefined) cur.title = data.title;
-            if (data.modified !== undefined) cur.modified = data.modified;
-            if (data.secondaryView !== undefined) cur.secondaryView = data.secondaryView;
-        });
-        if (data.host) this._pendingHost = data.host;
-    }
-
-    // ── Three-phase lifecycle ──────────────────────────────────────────
-
-    switchFrom(oldEditor: EditorModel): void {
-        const trait = oldEditor.traits.get(CONTENT_HOST_TRAIT);
-        if (!trait) {
-            throw new Error(
-                `EnvVarsEditor.switchFrom: ${oldEditor.editorId} has no CONTENT_HOST_TRAIT`,
-            );
-        }
-        const host = trait.extractContentHost() as unknown as TextFileModel;
-        if (!isLegacyTextFileHost(host)) {
-            throw new Error("EnvVarsEditor.switchFrom: extracted host is not a TextFileModel");
-        }
-        this.state.update((s) => {
-            s.id = oldEditor.id;
-        });
-        host.state.update((s) => {
-            s.editor = this.editorId;
-        });
-        this.adoptHost(host);
-    }
-
-    async restore(): Promise<void> {
-        try {
-            if (!this._host) {
-                this._host = this._pendingHost
-                    ? await TextFileModel.fromDescriptor(this._pendingHost)
-                    : newTextFileModel("");
-            }
-            if (!this._host.state.get().restored) {
-                await this._host.restore();
-            }
-            this.adoptHost(this._host);
-        } catch (err) {
-            ui.notify((err as Error).message || "Failed to restore Environment Variables editor.", "error");
-            this._host = newTextFileModel("");
-            this.adoptHost(this._host);
-        }
-        this._pendingHost = undefined;
-    }
-
-    /** Adopt a host without going through `switchFrom`. Used by
-     *  `attachEditorToPage` when constructing a fresh EnvVarsEditor over a
-     *  freshly-restored legacy TextFileModel. */
     adoptHost(host: TextFileModel): void {
-        this._host = host;
-        this._tearDownHostSubscriptions();
+        super.adoptHost(host);
 
-        // Forward host metadata changes to descriptorChanged (P3 debounce).
-        this._hostStateUnsub = host.state.subscribe(() =>
-            this.descriptorChanged.send(undefined),
-        );
+        // TD4 + TD5 — re-parse on external content changes; the base's echo
+        // guard prevents the loop from our own serialize-back writes.
+        this.subscribeHostContent((content) => this.loadData(content));
 
-        // TD4 + TD5 — re-parse on external content changes; skipNext guard
-        // prevents the loop from our own serialize-back writes.
-        this._hostContentUnsub = host.state.subscribe(
-            (content) => {
-                if (this.skipNextContentUpdate) {
-                    this.skipNextContentUpdate = false;
-                    return;
-                }
-                this.loadData(content as string);
-            },
-            (s) => s.content,
-        );
-
-        // HS1 — seed the 2 selection fields from host slot (sync, no flicker).
-        const saved = host.getEditorState<EnvVarsViewSettings>(this.editorId);
-        if (saved) {
-            this.state.update((s) => {
-                if (saved.selectedNamespace !== undefined) s.selectedNamespace = saved.selectedNamespace;
-                if (saved.selectedProfile !== undefined) s.selectedProfile = saved.selectedProfile;
-            });
-        }
-
-        // HS1 — mirror back. Slice-subscribe over a composite key so the
+        // HS1 — seed the 2 selection fields from host slot (sync, no flicker)
+        // and mirror back. Slice-subscribe over a composite key so the
         // mirror fires on any of the 2 slot fields but NOT on data / status mutations.
-        this._settingsUnsub = this.state.subscribe(
-            () => {
-                if (!this._host) return;
-                const s = this.state.get();
-                this._host.setEditorState<EnvVarsViewSettings>(this.editorId, {
-                    selectedNamespace: s.selectedNamespace,
-                    selectedProfile: s.selectedProfile,
+        this.mirrorHostSettings<EnvVarsViewSettings>(
+            (saved) => {
+                this.state.update((s) => {
+                    if (saved.selectedNamespace !== undefined) s.selectedNamespace = saved.selectedNamespace;
+                    if (saved.selectedProfile !== undefined) s.selectedProfile = saved.selectedProfile;
                 });
             },
+            (s) => ({
+                selectedNamespace: s.selectedNamespace,
+                selectedProfile: s.selectedProfile,
+            }),
             (s) => `${s.selectedNamespace}|${s.selectedProfile}`,
         );
 
         // TD4 — state subscription → debounced serialize-back.
-        this._saveSubUnsub = this.state.subscribe(() => this.onDataChangedDebounced());
-
-        const { filePath, title } = host.state.get();
-        this.state.update((s) => {
-            s.title = title || (filePath ? fpBasename(filePath) : s.title || "untitled.env.json");
-            if (host.state.get().id) s.id = host.state.get().id;
-        });
-        host.state.update((s) => {
-            if (s.editor !== this.editorId) s.editor = this.editorId;
-        });
-        if (this.page) host.setPage(this.page);
+        this.registerHostSubscription(this.state.subscribe(() => this.onDataChangedDebounced()));
 
         this.loadData(host.state.get().content ?? "");
 
@@ -255,11 +86,6 @@ export class EnvVarsEditor extends EditorModel<EnvVarsEditorState> {
         // already populated.
         const envNamespace = (host.state.get() as { sourceLink?: ILinkData }).sourceLink?.envNamespace;
         if (envNamespace) this.focusNamespace(envNamespace);
-    }
-
-    setPage(page: IPageHost | null): void {
-        super.setPage(page);
-        this._host?.setPage(page);
     }
 
     // ── Data loading ────────────────────────────────────────────────────
@@ -321,9 +147,8 @@ export class EnvVarsEditor extends EditorModel<EnvVarsEditorState> {
         if (!this._host) return;
         if (data === this.lastSerializedData) return;
         this.lastSerializedData = data;
-        this.skipNextContentUpdate = true;
         const content = JSON.stringify(data, null, 4);
-        this._host.changeContent(content, true);
+        this.writeToHost(content, true);
     };
 
     // ── Namespace focus (US-889 — persephone.var.show()) ─────────────────
@@ -443,25 +268,15 @@ export class EnvVarsEditor extends EditorModel<EnvVarsEditorState> {
         return this._host ? this._host.modified : super.modified;
     }
 
-    async confirmRelease(closing?: boolean): Promise<boolean> {
-        return this._host ? this._host.confirmRelease(closing) : true;
-    }
-
     async saveState(): Promise<void> {
         // Flush pending debounced save before host's saveState
         this.onDataChanged();
-        await this._host?.io.saveState();
+        await super.saveState();
     }
 
     async dispose(): Promise<void> {
         // Flush pending debounced save
         this.onDataChanged();
-
-        this._tearDownHostSubscriptions();
-        if (this._host) {
-            await this._host.dispose();
-            this._host = null;
-        }
         await super.dispose();
     }
 }

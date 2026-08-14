@@ -93,7 +93,7 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
 
     // Lifecycle (three-phase)
     applyRestoreData(data: Partial<TState>): void;
-    switchFrom?(oldEditor: EditorModel): Promise<void>;  // optional content-host transfer
+    switchFrom(oldEditor: EditorModel): void;   // content-host transfer (throws if unsupported)
     restore(): Promise<void>;
 
     // Navigation hooks
@@ -128,6 +128,44 @@ abstract class EditorModel<TState extends IEditorState = IEditorState> {
 ```
 
 `EditorModel` extends `TDialogModel` indirectly via the queue/state primitives — every editor can `close()` with confirmation and has a `canClose` guard.
+
+## TextHostEditorModel Base Class
+
+Every text-bearing editor that wraps a `TextFileModel` host extends
+`TextHostEditorModel` (`/src/renderer/editors/base/TextHostEditorModel.ts`), a layer between
+`EditorModel` and the concrete editors (Monaco, Grid, Markdown, Mermaid, SVG, HTML, Graph,
+Link, Notebook, Rest Client, Draw, EnvVars, FileDiff, LogView). It owns the host-adoption
+lifecycle those editors would otherwise each reimplement:
+
+- `CONTENT_HOST_TRAIT` registration (host transfer on editor switch), `switchFrom`,
+  `restore` (with the fallback-to-empty-host error path), the public `adoptHost(host)`
+  (teardown → `descriptorChanged` forward → title/id stamp → host `state.editor` tag →
+  `setPage` propagation), identity-only `getRestoreData`/`applyRestoreData`,
+  `confirmRelease`/`saveState`/`setPage`/`dispose`, and the `contentHost`/`host` accessors
+  plus `findCompatibleEditors`/`getNavigatorTarget`.
+- A **host-subscription registry**: subclasses attach domain subscriptions via
+  `registerHostSubscription(unsub)`; the whole set is torn down together on re-adopt, on
+  trait extraction (switch-away), and on dispose — a subclass cannot leak a subscription by
+  forgetting an unsubscribe field.
+- A **content echo guard**: editors that serialize back into the host call
+  `writeToHost(content, byUser?)`, and read external changes via
+  `subscribeHostContent(handler)` — the handler skips the echo of the editor's own writes.
+- A **host-settings mirror**: `mirrorHostSettings(apply, snapshot, selector?)` seeds editor
+  state from `host.getEditorState(editorId)` and mirrors later changes back with
+  `setEditorState`, so per-editor view settings (Markdown `compactMode`, Mermaid
+  `lightMode`, Grid columns/filters, …) survive both editor switches and app restarts.
+
+Subclass hooks: `displayName` (error/notify strings), `adoptHost` override (call `super`
+first, then wire domain subscriptions / kick an in-adoption parse), `onHostAttached(host)`
+(initial load on the switch and session-restore paths only — open-file callers in
+`attachEditorToPage` trigger that load themselves after a bare `adoptHost`),
+`onHostExtracted()` (clear domain refs when a successor extracts the host), and
+`untitledName()` (title fallback, e.g. `"untitled.link.json"`).
+
+The two board editors do **not** extend it: `BoardContentEditorModel` already extends
+`BoardEditorModel` (single inheritance), and `BoardInfoEditorModel` deliberately deviates
+from the standard lifecycle (optional host, tolerant `switchFrom`, no host `editor` stamp,
+no fallback host on restore failure). Both keep their own host plumbing.
 
 ## Editor icons
 
@@ -201,15 +239,19 @@ Text-bearing editors (Monaco, Grid, Markdown, ...) hold a reference to an `ICont
 Switchable text-bearing editors expose `CONTENT_HOST_TRAIT` so any owner can transfer their host to a new editor instance:
 
 ```typescript
-const CONTENT_HOST_TRAIT = TraitRegistry.register<IContentHostTrait>("content-host");
+const CONTENT_HOST_TRAIT = new TraitKey<IContentHostTrait>("content-host");
 
 interface IContentHostTrait {
     extractContentHost(): IContentHost;     // detach — old editor must NOT dispose it
-    inheritContentHost(host: IContentHost): void;
 }
 ```
 
-The owner-side switch helper (`switchEditorViaContentHost`) calls `extractContentHost()` on the old editor, creates the new editor instance, then calls `inheritContentHost(host)` on it. Content, file path, modifications, I/O state, encryption all survive the switch untouched because the host is the same object.
+The transfer runs through the **new** editor's `switchFrom(oldEditor)` (implemented once in
+`TextHostEditorModel`): it reads the old editor's `CONTENT_HOST_TRAIT`, calls
+`extractContentHost()` (which tears down the old editor's host subscriptions and detaches
+without disposing), preserves the old editor's `id` for cache-file continuity, then
+`adoptHost()`s the extracted host. Content, file path, modifications, I/O state, encryption
+all survive the switch untouched because the host is the same object.
 
 ## IImageExport
 
@@ -232,23 +274,12 @@ Two shared entry points sit on top of `exportPng()`: `savePngViaDialog(source)` 
 
 ## Owner-Orchestrated Switching
 
-Editor switching is initiated by the owner (the page, or a notebook), not by the editor itself. `PageModel.switchMainEditor(newEditorId)` and notebook-level note switching both call the same helper:
+Editor switching is initiated by the owner (the page, or a notebook), not by the editor itself. `PageModel.switchMainEditor(newEditorId)` creates the new editor via `editorRegistry.createEditor(newEditorId)` and hands it the old one:
 
 ```typescript
-async function switchEditorViaContentHost(
-    oldEditor: EditorModel | null,
-    newEditorId: string,
-    swap: (newEditor: EditorModel) => Promise<void>,
-): Promise<void> {
-    const oldTrait = oldEditor?.traits.get(CONTENT_HOST_TRAIT);
-    const host = oldTrait?.extractContentHost();
-    const newEditor = await createEditor(newEditorId);
-    const newTrait = newEditor.traits.get(CONTENT_HOST_TRAIT);
-    if (host && newTrait) {
-        newTrait.inheritContentHost(host);
-    }
-    await swap(newEditor);   // owner-specific install (e.g., `page.setMainEditor`)
-}
+const newEditor = await editorRegistry.createEditor(newEditorId);
+newEditor.switchFrom(oldEditor);   // extracts + adopts the shared host (TextHostEditorModel)
+await page.setMainEditor(newEditor);
 ```
 
 For non-text editors (Image, Browser, etc.) without `CONTENT_HOST_TRAIT`, there is no host to transfer — switching is a plain create+swap.
@@ -441,7 +472,7 @@ if (opts.options.length > 1) {
 }
 ```
 
-The page-level switch invokes `PageModel.switchMainEditor(newEditorId)`, which delegates to `switchEditorViaContentHost` to transfer the host.
+The page-level switch invokes `PageModel.switchMainEditor(newEditorId)`, which transfers the host through the new editor's `switchFrom(oldEditor)` (see [Owner-Orchestrated Switching](#owner-orchestrated-switching)).
 
 **Host-state-driven switch offers:** an editor's `accepts(input)` receives the candidate `input.host`, so a switch can be offered conditionally on host state — not just file type. The `file-diff` editor uses this: `accepts` returns a positive priority only when `input.host.state.gitRepo` is set (the file lives in a git repo), otherwise `-1`. Because the `SwitchWidget` (`PageToolbar.tsx`) also subscribes to `host.state`, the "Git Diff" switch appears the moment async git detection lands on the shared host (see [state-management.md](state-management.md#host-centric-git-detection)). This is how every text editor inherits the File Diff switch with zero per-editor code.
 
