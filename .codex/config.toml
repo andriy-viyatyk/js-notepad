@@ -1,0 +1,20 @@
+[mcp_servers.persephone]
+url = "http://127.0.0.1:7865/mcp"
+
+[mcp_servers.persephone.tools.get_app_info]
+approval_mode = "approve"
+
+[mcp_servers.persephone.tools.read_guide]
+approval_mode = "approve"
+
+[mcp_servers.persephone.tools.create_page]
+approval_mode = "approve"
+
+[mcp_servers.persephone.tools.browser_snapshot]
+approval_mode = "approve"
+
+[mcp_servers.persephone.tools.browser_click]
+approval_mode = "approve"
+
+[mcp_servers.mneme]
+url = "http://127.0.0.1:7700/mcp"

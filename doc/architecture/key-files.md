@@ -95,7 +95,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Notebook editor          | `/src/renderer/editors/notebook/NotebookEditor.ts` |
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Note item edit model     | `/src/renderer/editors/notebook/note-editor/NoteItemEditModel.ts` |
-| Graph editor             | `/src/renderer/editors/graph/GraphEditor.ts`      |
+| Graph editor host lifecycle, parsing, serialization and composed-model orchestration | `/src/renderer/editors/graph/GraphEditor.ts` |
+| Graph interactive grouping and membership operations | `/src/renderer/editors/graph/GraphGroupActionsModel.ts` |
+| Graph mutation, export and rebuild/persist workflows | `/src/renderer/editors/graph/GraphMutationModel.ts` |
+| Graph tooltip timing, hover state and status hints | `/src/renderer/editors/graph/GraphTooltipModel.ts` |
 | Draw editor              | `/src/renderer/editors/draw/DrawEditor.ts`        |
 | Rest Client editor       | `/src/renderer/editors/rest-client/RestClientEditor.ts` |
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |

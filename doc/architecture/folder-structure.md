@@ -431,6 +431,9 @@ persephone/
 │   │   ├── GraphDataModel.ts         # Source data ownership + node/link CRUD + legend data
 │   │   ├── GraphSearchModel.ts       # Search query matching + result computation
 │   │   ├── GraphGroupModel.ts        # Group membership analysis + link pre-processing
+│   │   ├── GraphGroupActionsModel.ts # Interactive grouping + membership operations
+│   │   ├── GraphMutationModel.ts     # Graph edits, exports + rebuild/persist orchestration
+│   │   ├── GraphTooltipModel.ts      # Tooltip timers, hover state + status hints
 │   │   ├── GraphConnectivityModel.ts # Read-only query layer
 │   │   ├── GraphHighlightModel.ts    # Highlight layers + selection/hover state
 │   │   ├── GraphContextMenu.ts       # Context menu item builders

@@ -419,17 +419,17 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
         const hasNonGroups = selectedNodes.some(n => !n.isGroup);
         const info: SelectionMenuInfo = { count, hasGroups, hasNonGroups };
         const actions: SelectionMenuActions = {
-            selectChildren: () => editor.selectChildren(),
-            selectMembers: () => editor.selectMembers(),
-            selectMembersDeep: () => editor.selectMembersDeep(),
-            highlight: () => editor.highlightSelection(),
-            copyMarkdown: () => editor.copySelectedMarkdown(),
-            openMarkdown: () => editor.openSelectedMarkdown(),
-            openGrid: () => editor.openSelectedGrid(),
-            extract: () => editor.extractSelected(false),
-            extractWithChildren: () => editor.extractSelected(true),
-            deleteNodes: () => editor.deleteSelectedNodes(),
-            groupSelected: () => editor.groupSelectedNodes(),
+            selectChildren: () => editor.groupActions.selectChildren(),
+            selectMembers: () => editor.groupActions.selectMembers(),
+            selectMembersDeep: () => editor.groupActions.selectMembersDeep(),
+            highlight: () => editor.onHighlightSelection?.(),
+            copyMarkdown: () => editor.mutationModel.copySelectedMarkdown(),
+            openMarkdown: () => editor.mutationModel.openSelectedMarkdown(),
+            openGrid: () => editor.mutationModel.openSelectedGrid(),
+            extract: () => editor.mutationModel.extractSelected(false),
+            extractWithChildren: () => editor.mutationModel.extractSelected(true),
+            deleteNodes: () => editor.mutationModel.deleteSelectedNodes(),
+            groupSelected: () => editor.groupActions.groupSelectedNodes(),
         };
         const rect = (e.target as HTMLElement).getBoundingClientRect();
         editor.isPopupOpen = true;
@@ -630,19 +630,19 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                     {tooltip && (
                         <GraphTooltip
                             node={tooltip.node} x={tooltip.x} y={tooltip.y} isRoot={tooltip.isRoot}
-                            onMouseEnter={() => editor.setTooltipHovered(true)}
-                            onMouseLeave={() => editor.setTooltipHovered(false)}
+                            onMouseEnter={() => editor.tooltipModel.setHovered(true)}
+                            onMouseLeave={() => editor.tooltipModel.setHovered(false)}
                         />
                     )}
                     <GraphDetailPanel
                         nodes={selectedNodes.filter((n) => !n.isGroup)}
                         linkedNodes={linkedNodes}
-                        onUpdateProps={(nodeId, props) => editor.updateNodeProps(nodeId, props)}
-                        onBatchUpdateProps={(nodeIds, props) => editor.batchUpdateNodeProps(nodeIds, props)}
-                        onRenameNode={(oldId, newId) => editor.renameNode(oldId, newId)}
-                        onApplyLinks={(nodeId, rows, origIds) => editor.applyLinkedNodesUpdate(nodeId, rows, origIds)}
-                        onApplyProperties={(nodeId, propsToSet, keysToRemove) => editor.applyPropertiesUpdate(nodeId, propsToSet, keysToRemove)}
-                        onBatchApplyProperties={(nodeIds, propsToSet, keysToRemove) => editor.batchApplyPropertiesUpdate(nodeIds, propsToSet, keysToRemove)}
+                        onUpdateProps={(nodeId, props) => editor.mutationModel.updateNodeProps(nodeId, props)}
+                        onBatchUpdateProps={(nodeIds, props) => editor.mutationModel.batchUpdateNodeProps(nodeIds, props)}
+                        onRenameNode={(oldId, newId) => editor.mutationModel.renameNode(oldId, newId)}
+                        onApplyLinks={(nodeId, rows, origIds) => editor.mutationModel.applyLinkedNodesUpdate(nodeId, rows, origIds)}
+                        onApplyProperties={(nodeId, propsToSet, keysToRemove) => editor.mutationModel.applyPropertiesUpdate(nodeId, propsToSet, keysToRemove)}
+                        onBatchApplyProperties={(nodeIds, propsToSet, keysToRemove) => editor.mutationModel.batchApplyPropertiesUpdate(nodeIds, propsToSet, keysToRemove)}
                         onPanelDirtyChange={onPanelDirtyChange}
                         onPanelExpandedChange={onPanelExpandedChange}
                         onHighlightSet={(ids) => editor.setHighlightSet(ids)}
