@@ -96,6 +96,16 @@ EditorModel (the content inside a page — replaceable during navigation)
 
 **Source:** [`PageModel.ts`](../../src/renderer/api/pages/PageModel.ts), [`EditorModel.ts`](../../src/renderer/editors/base/EditorModel.ts)
 
+Three page concerns live in their own modules rather than in `PageModel`:
+[`editor-switch.ts`](../../src/renderer/editors/base/editor-switch.ts) implements the
+switch-widget transition (`switchMainEditor` — the page keeps a dynamic-import delegate, so
+the board/registry switching machinery stays out of the page model);
+[`page-explorer.ts`](../../src/renderer/editors/explorer/page-explorer.ts) provisions the
+sidebar Explorer (`toggleNavigator`, auto-init beside a mandatory sidebar — constructing an
+`ExplorerEditor` is an editor concern, so it lives beside the editor); and
+[`NavBackStack.ts`](../../src/renderer/api/pages/NavBackStack.ts) is the Markdown
+back-navigation stack the page owns, mirrors into `navBackCount`, and persists.
+
 ### Page lifecycle
 
 - **Created:** `new PageModel()` + `page.mainEditor = editor` + `editor.setPage(page)` (or `mainEditor = null` for empty pages with sidebar only)
@@ -421,7 +431,7 @@ A third optional hook, `revealFragment?(fragment)`, follows the same shape for i
 The Markdown ("Preview") view navigates **within the current page** when the user clicks a link to a local markdown file, keeps a per-page **back history** so the user can return to the previously-viewed document, and scrolls to `#fragment` anchors.
 
 - **Interception.** `MarkdownBody` installs an `onClickCapture` handler on its scroll container. A plain left-click on an anchor whose resolved href is a local markdown file — detected by `isLocalMarkdownHref` (`src/renderer/editors/markdown/markdown-nav.ts`: a `file://` URL ending in `.md`/`.markdown`, fragment ignored for the extension test) — is intercepted: the handler pushes the current document onto the page's back stack and dispatches `openRawLink` with `pageId` set (so the pipeline navigates this page in place rather than opening a new tab) and `target: "md-view"` (so the target stays in the rendered Preview). A **same-document** link (a bare `#fragment`) is intercepted too, but only scrolls — it is not a document change, so nothing is pushed onto the back stack and no link event is dispatched. Every other link — non-markdown files, `http(s)`, images, `mailto:` — is left untouched and keeps its normal behavior. The interceptor is disabled for notebook-embedded Markdown, where same-document anchors are consequently not handled.
-- **History storage.** `PageModel` owns the back stack (`pushNavBack` / `popNavBack`, declared on the `IPageHost` contract). It lives on the page, not the editor, so it survives the editor swaps each in-place navigation creates. `IPageState.navBackCount` mirrors the stack depth and drives the Back button's visibility. The stack is **persisted** as `PageDescriptor.navBack` (`NavEntry[]` in [`/src/shared/persistence.ts`](../../src/shared/persistence.ts)) and re-seeded in `PagesPersistenceModel.restorePage` via `seedNavBack`, so history survives app restart and window-to-window transfer.
+- **History storage.** `PageModel` owns the back stack — a [`NavBackStack`](../../src/renderer/api/pages/NavBackStack.ts) instance behind the `pushNavBack` / `popNavBack` delegates declared on the `IPageHost` contract. It lives on the page, not the editor, so it survives the editor swaps each in-place navigation creates. `IPageState.navBackCount` mirrors the stack depth and drives the Back button's visibility. The stack is **persisted** as `PageDescriptor.navBack` (`NavEntry[]` in [`/src/shared/persistence.ts`](../../src/shared/persistence.ts)) and re-seeded in `PagesPersistenceModel.restorePage` via `seedNavBack`, so history survives app restart and window-to-window transfer.
 - **Back.** `MarkdownEditor.navigateBack()` (wired to the Back button in the Markdown toolbar) pops the stack and re-opens that entry in place — going straight through `openRawLink`, so it does not push a new entry. History is not cleared on unrelated in-page navigation; it lives for the page's lifetime.
 - **Anchors.** A cross-document anchor arrives as the `fragment` navigation hint and reaches the editor through `revealFragment`, which queues an `anchor` event on the editor's `ComponentQueue`; a same-document one is handled directly by the click interceptor. Both end at `MarkdownBlock.scrollToAnchor(fragment)` on the block's imperative handle. Heading ids come from the `rehypeHeadingIds` plugin (sibling of `rehypeHighlight`), which slugs heading text GitHub-style and disambiguates duplicates with `-1`, `-2`; author-supplied ids arriving as raw HTML are never overwritten.
 - `BrowserPanelHost` (the other `IPageHost`) implements the back-stack methods as inert no-ops — it has no main-editor navigation.

@@ -275,7 +275,7 @@ Two shared entry points sit on top of `exportPng()`: `savePngViaDialog(source)` 
 
 ## Owner-Orchestrated Switching
 
-Editor switching is initiated by the owner (the page, or a notebook), not by the editor itself. `PageModel.switchMainEditor(newEditorId)` creates the new editor via `editorRegistry.createEditor(newEditorId)` and hands it the old one:
+Editor switching is initiated by the owner (the page, or a notebook), not by the editor itself. `PageModel.switchMainEditor(newEditorId)` — implemented in [`editor-switch.ts`](../../src/renderer/editors/base/editor-switch.ts), reached through a thin dynamic-import delegate on the page — creates the new editor via `editorRegistry.createEditor(newEditorId)` and hands it the old one:
 
 ```typescript
 const newEditor = await editorRegistry.createEditor(newEditorId);

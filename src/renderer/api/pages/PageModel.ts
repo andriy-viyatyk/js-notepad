@@ -1,15 +1,17 @@
-import { TComponentState, TOneState } from "../../core/state/state";
+import { TOneState } from "../../core/state/state";
 import type { EditorModel, EditorOrHost } from "../../editors/base";
-import { parseBoardEditorId } from "../../editors/board/custom-editor-registry";
-import { BOARD_INFO_EDITOR_ID } from "../../editors/board-info/board-info-id";
-import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
+import {
+    explorerRootForPanels,
+    autoInitExplorer,
+    toggleNavigator as togglePageNavigator,
+} from "../../editors/explorer/page-explorer";
 import type { NavEntry, PageDescriptor } from "../../../shared/persistence";
 import { SecondaryViewsModel, ISecondaryViewsState } from "../../ui/secondary-views/SecondaryViewsModel";
 import type { IPageHost } from "./IPageHost";
 import type { IContentPipe } from "../types/io.pipe";
 import { fs } from "../fs";
+import { NavBackStack } from "./NavBackStack";
 import { secondaryViewsToggled, panelExpanded } from "../../core/state/events";
-import { fpDirname } from "../../core/utils/file-path";
 import { panelKey, parsePanelKey, panelIdOf, isCompositePanelKey } from "../../ui/secondary-views/panel-key";
 
 /** Unwrap a text-bearing editor to its TextFileModel host, so legacy consumers
@@ -126,31 +128,27 @@ export class PageModel implements IPageHost {
         }
     }
 
-    // ── Markdown back-navigation history (US-784) ──────────────────────
+    // ── Markdown back-navigation history ────────────────────────────────
 
-    /** Back-navigation stack for the Markdown view (oldest first). Pushed by the
-     *  Markdown link interceptor, popped by its Back button. Lives on the page so
-     *  it survives the editor swaps each in-place navigation creates, and is
-     *  persisted in the page descriptor (survives restart + window moves). */
-    private _navBack: NavEntry[] = [];
+    /** Back-navigation stack for the Markdown view — see NavBackStack. Owned
+     *  by the page so it survives editor swaps; count mirrored into state. */
+    private _navBack = new NavBackStack((count) => {
+        this.state.update((s) => { s.navBackCount = count; });
+    });
 
     /** Push the document being navigated away from onto the back stack. */
     pushNavBack(entry: NavEntry): void {
         this._navBack.push(entry);
-        this.state.update((s) => { s.navBackCount = this._navBack.length; });
     }
 
     /** Pop and return the most recent back entry, or undefined when empty. */
     popNavBack(): NavEntry | undefined {
-        const entry = this._navBack.pop();
-        if (entry) this.state.update((s) => { s.navBackCount = this._navBack.length; });
-        return entry;
+        return this._navBack.pop();
     }
 
     /** Seed the back stack from a persisted descriptor (restore path). */
     seedNavBack(entries: NavEntry[] | undefined): void {
-        this._navBack = entries ? [...entries] : [];
-        this.state.update((s) => { s.navBackCount = this._navBack.length; });
+        this._navBack.seed(entries);
     }
 
     constructor(id?: string) {
@@ -449,135 +447,12 @@ export class PageModel implements IPageHost {
         }
     }
 
+    /** Switch-widget transition ("open this file in editor X"). Implementation
+     *  lives in editors/base/editor-switch.ts; the dynamic import keeps the
+     *  board/registry switching machinery out of the page model. */
     async switchMainEditor(newEditorId: string): Promise<void> {
-        const oldEditor = this.mainEditorInstance;
-        if (!oldEditor) return;
-        if (oldEditor.editorId === newEditorId) return;
-
-        // A board editor (either side) has no shared content host to hand over via
-        // `switchFrom`, so a board-boundary switch confirms release of the old editor
-        // (CE4) and rebuilds the target FRESH over the file (dispose-and-rebuild). The
-        // board writes the file directly, so a rebuilt built-in reads current disk
-        // content — no stale-cache handling needed.
-        const newBoardRoot = parseBoardEditorId(newEditorId);
-        const boardInvolved =
-            newBoardRoot !== null
-            || parseBoardEditorId(oldEditor.editorId) !== null;
-        if (boardInvolved) {
-            const { editorRegistry } = await import("../../editors/base");
-            // A content-host board (EPIC-043) transfers the shared host like Monaco↔Grid;
-            // a simple board (EPIC-042) has no host and dispose-and-rebuilds. Determine the
-            // NEW board's kind from the registry (a plain built-in is host-capable iff it
-            // declares `hasContentHost`).
-            let newBoardKind: "simple" | "content-host" | undefined;
-            if (newBoardRoot !== null) {
-                const { customEditorRegistry } = await import(
-                    "../../editors/board/custom-editor-registry"
-                );
-                newBoardKind =
-                    customEditorRegistry.entries.find((e) => e.editorId === newEditorId)
-                        ?.editorKind ?? "simple";
-            }
-            const oldHostCapable = !!oldEditor.contentHost;
-            const newHostCapable =
-                newBoardRoot !== null
-                    ? newBoardKind === "content-host"
-                    : !!editorRegistry.getById(newEditorId)?.hasContentHost;
-
-            if (oldHostCapable && newHostCapable) {
-                // Host-transfer switch — no reload, no confirmRelease (nothing is lost).
-                let newEditor: EditorModel;
-                if (newBoardRoot !== null) {
-                    const { getDefaultBoardEditorState } = await import("../../editors/board");
-                    const { BoardContentEditorModel } = await import(
-                        "../../editors/board/BoardContentEditorModel"
-                    );
-                    const filePath =
-                        (oldEditor.contentHost as { filePath?: string } | null)?.filePath
-                        ?? oldEditor.filePath;
-                    const model = new BoardContentEditorModel(
-                        new TComponentState(getDefaultBoardEditorState()),
-                    );
-                    model.initFromBoardRoot(newBoardRoot, filePath ?? undefined);
-                    newEditor = model as unknown as EditorModel;
-                } else {
-                    newEditor = await editorRegistry.createEditor(newEditorId);
-                }
-                newEditor.switchFrom(oldEditor); // extracts + adopts the shared host
-                await newEditor.restore();
-                await this.setMainEditor(newEditor);
-                return;
-            }
-
-            // Simple board (either direction) — dispose-and-rebuild + confirmRelease (EPIC-042).
-            const filePath =
-                (oldEditor.contentHost as { filePath?: string } | null)?.filePath
-                ?? oldEditor.filePath;
-            if (!filePath) return;
-            const released = await oldEditor.confirmRelease();
-            if (!released) return; // Cancel → stay on the current editor
-            const { pagesModel } = await import("../pages");
-            const { attachEditorToPage } = await import("./PagesLifecycleModel");
-            const built = await pagesModel.lifecycle.createEditorFromFile(
-                filePath,
-                undefined,
-                newEditorId,
-            );
-            // Honor an explicit built-in target that differs from the file's natural
-            // resolveId (mirrors openFile / navigatePageTo); no-op for board targets.
-            if (
-                built.state.get().type === "textFile"
-                && parseBoardEditorId(newEditorId) === null
-            ) {
-                built.state.update((s) => {
-                    (s as { editor?: string }).editor = newEditorId;
-                });
-            }
-            await this.setMainEditor(attachEditorToPage(built));
-            return;
-        }
-
-        const { editorRegistry } = await import("../../editors/base");
-        const def = editorRegistry.getById(newEditorId);
-        if (!def) {
-            throw new Error(`No editor registered for id: ${newEditorId}`);
-        }
-        // A host-transfer switch needs the OLD editor to actually hold a shared content host for
-        // the new one to adopt. A host-less source — the Board Info install page that never
-        // adopted a host, or the host-less Archive viewer for a zip-based file (US-864/US-876) —
-        // has nothing to hand over, and a real file editor's `switchFrom` would throw. When the
-        // target is such a file editor, dispose-and-rebuild it over the file instead (mirrors the
-        // simple-board branch above). The "+" install target (Board Info) is exempt: its tolerant
-        // `switchFrom` captures the file path itself, so it stays on the createEditor path below.
-        if (!oldEditor.contentHost && newEditorId !== BOARD_INFO_EDITOR_ID) {
-            const filePath = oldEditor.filePath;
-            if (!filePath) return;
-            const released = await oldEditor.confirmRelease();
-            if (!released) return; // Cancel → stay on the current editor
-            const { pagesModel } = await import("../pages");
-            const { attachEditorToPage } = await import("./PagesLifecycleModel");
-            const built = await pagesModel.lifecycle.createEditorFromFile(
-                filePath,
-                undefined,
-                newEditorId,
-            );
-            // Honor an explicit built-in target that differs from the file's natural resolveId
-            // (mirrors openFile / the simple-board branch); no-op for non-textFile editors.
-            if (
-                built.state.get().type === "textFile"
-                && parseBoardEditorId(newEditorId) === null
-            ) {
-                built.state.update((s) => {
-                    (s as { editor?: string }).editor = newEditorId;
-                });
-            }
-            await this.setMainEditor(attachEditorToPage(built));
-            return;
-        }
-        const newEditor = await editorRegistry.createEditor(newEditorId);
-        newEditor.switchFrom(oldEditor);
-        await newEditor.restore();
-        await this.setMainEditor(newEditor);
+        const { switchMainEditor } = await import("../../editors/base/editor-switch");
+        return switchMainEditor(this, newEditorId);
     }
 
     /**
@@ -709,57 +584,23 @@ export class PageModel implements IPageHost {
         this.setActivePanel(panels[0].key);
     }
 
-    /** When the sidebar is mandatory (a panel editor like Links is present) and
-     *  there is no Explorer yet, auto-create one rooted at the panel editor's
-     *  file folder — restoring the pre-mandatory-sidebar affordance where the
-     *  user could toggle a file-folder Explorer alongside the panels. Deferred
-     *  to a microtask + guarded by `findExplorer()` so a persisted Explorer
-     *  re-attached during session restore is never duplicated (all restore
-     *  attaches run synchronously before the microtask fires). */
+    /** Auto-create an Explorer alongside a mandatory sidebar (implementation in
+     *  editors/explorer/page-explorer.ts). Deferred to a microtask + guarded by
+     *  `findExplorer()` so a persisted Explorer re-attached during session
+     *  restore is never duplicated (all restore attaches run synchronously
+     *  before the microtask fires). */
     private _autoInitExplorerQueued = false;
 
     private _maybeAutoInitExplorer(): void {
         if (this._autoInitExplorerQueued) return;
         if (!this.sidebarMandatory) return;
         if (this.findExplorer()) return;
-        if (!this._explorerRootForPanels()) return;
+        if (!explorerRootForPanels(this)) return;
         this._autoInitExplorerQueued = true;
         queueMicrotask(() => {
             this._autoInitExplorerQueued = false;
-            void this._autoInitExplorer();
+            void autoInitExplorer(this);
         });
-    }
-
-    /** Derive the Explorer root folder from the first panel-contributing editor
-     *  exposing a local-file navigator target (Link/Todo/Notebook/…). Returns
-     *  "" when none has a file target (e.g. an unsaved collection). */
-    private _explorerRootForPanels(): string {
-        for (const e of this.editors) {
-            if (!e.contributesPanels()) continue;
-            const target = e.getNavigatorTarget();
-            if (!target) continue;
-            if (target.pipe?.provider.type === "file" && target.pipe.provider.sourceUrl) {
-                return fpDirname(target.pipe.provider.sourceUrl);
-            }
-            if (target.filePath) {
-                return fpDirname(target.filePath);
-            }
-        }
-        return "";
-    }
-
-    private async _autoInitExplorer(): Promise<void> {
-        if (this.findExplorer()) return;
-        if (!this.sidebarMandatory) return;
-        const rootPath = this._explorerRootForPanels();
-        if (!rootPath) return;
-        const state = new TComponentState({
-            ...getDefaultExplorerEditorState(),
-            rootPath,
-        });
-        const explorer = new ExplorerEditor(state);
-        this.attach(explorer);
-        await explorer.restore();
     }
 
     // ── Explorer helpers ─────────────────────────────────────────────
@@ -792,32 +633,10 @@ export class PageModel implements IPageHost {
 
     // ── Navigator toggle ─────────────────────────────────────────────
 
-    /** Toggle the SecondaryViews panel. Creates ExplorerEditorModel if needed. */
+    /** Toggle the SecondaryViews panel. Creates an ExplorerEditor if needed —
+     *  implementation in editors/explorer/page-explorer.ts. */
     async toggleNavigator(pipe?: IContentPipe | null, filePath?: string): Promise<void> {
-        const existing = this.findExplorer();
-        if (existing || this.secondaryViewsModel) {
-            const open = this.ensureSecondaryViewsModel().state.get().open;
-            this.setSecondaryViewsState({ open: !open });
-            return;
-        }
-
-        let rootPath = "";
-        if (pipe?.provider.type === "file" && pipe.provider.sourceUrl) {
-            rootPath = fpDirname(pipe.provider.sourceUrl);
-        } else if (filePath) {
-            rootPath = fpDirname(filePath);
-        }
-        if (!rootPath) return;
-
-        const state = new TComponentState({
-            ...getDefaultExplorerEditorState(),
-            rootPath,
-        });
-        const explorer = new ExplorerEditor(state);
-        this.attach(explorer);
-        await explorer.restore();
-
-        this.setSecondaryViewsState({ open: true });
+        return togglePageNavigator(this, pipe, filePath);
     }
 
     /** Whether the navigator can be opened. */
@@ -876,7 +695,7 @@ export class PageModel implements IPageHost {
                     activePanel: this.activePanel,
                 }
                 : undefined,
-            navBack: this._navBack.length ? [...this._navBack] : undefined,
+            navBack: this._navBack.snapshot(),
         };
     }
 

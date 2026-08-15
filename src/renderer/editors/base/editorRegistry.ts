@@ -295,3 +295,18 @@ class EditorRegistry {
 }
 
 export const editorRegistry = new EditorRegistry();
+
+/** An explicit content-host target (e.g. "file-diff") that is NOT the file's
+ *  natural editor must win over preview/default editor selection. Normal opens
+ *  carry target === resolveId(filePath), so they return false here and fall
+ *  through to the preview editor. Shared by the open-file and navigate flows. */
+export function isExplicitHostTarget(
+    target: string | undefined,
+    filePath: string,
+): boolean {
+    return (
+        !!target &&
+        target !== editorRegistry.resolveId(filePath) &&
+        !!editorRegistry.getById(target)?.hasContentHost
+    );
+}

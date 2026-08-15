@@ -15,7 +15,7 @@ import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/exp
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
-import { editorRegistry } from "../../editors/base/editorRegistry";
+import { editorRegistry, isExplicitHostTarget } from "../../editors/base/editorRegistry";
 import {
     resolveEditorIdForFile,
     parseBoardEditorId,
@@ -386,10 +386,8 @@ export class PagesLifecycleModel {
         // mirrors navigatePageTo's isExplicitHostTarget handling (US-637).
         const explicitTarget = options?.target;
         if (
-            explicitTarget &&
             editor.state.get().type === "textFile" &&
-            explicitTarget !== editorRegistry.resolveId(filePath) &&
-            editorRegistry.getById(explicitTarget)?.hasContentHost
+            isExplicitHostTarget(explicitTarget, filePath)
         ) {
             editor.state.update((s) => { s.editor = explicitTarget as EditorView; });
         }

@@ -6,7 +6,7 @@ import type { ILinkData } from "../../../shared/link-data";
 import type { ILinkDiffRevision } from "../types/io.link-data";
 import type { IContentPipe } from "../types/io.pipe";
 import { newTextFileModel, TextFileModel } from "../../editors/text";
-import { editorRegistry } from "../../editors/base/editorRegistry";
+import { editorRegistry, isExplicitHostTarget } from "../../editors/base/editorRegistry";
 import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { fpBasename, fpExtname } from "../../core/utils/file-path";
@@ -179,11 +179,7 @@ function applyEditorSelection(
     const lang = getLanguageByExtension(ext);
     const languageId = lang?.id || "plaintext";
     const explicitTarget = options?.target;
-    const isExplicitHostTarget =
-        !!explicitTarget &&
-        explicitTarget !== editorRegistry.resolveId(newFilePath) &&
-        !!editorRegistry.getById(explicitTarget)?.hasContentHost;
-    if (isExplicitHostTarget) {
+    if (isExplicitHostTarget(explicitTarget, newFilePath)) {
         legacy.state.update((s) => {
             s.editor = explicitTarget as EditorView;
         });

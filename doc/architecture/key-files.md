@@ -23,6 +23,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Well-known pages         | `/src/renderer/api/pages/well-known-pages.ts`     |
 | Page navigation (`navigatePageTo` as named steps: confirm-release-unless-survives, singleton-target reuse, same-file reuse, build with missing-file/error fallbacks, preview-vs-explicit-target selection, shared show/focus-unless-sidebar/save exit) | `/src/renderer/api/pages/PageNavigator.ts` |
 | Browser page opening (`showBrowserPage` — Tor gate + arm-before-mount fail-closed sequence; `openUrlInBrowserTab` — profile matching + nearest-tab reuse. Lives beside the browser editor so the startup-loaded pages model has no static import of the browser chunk; the lifecycle reaches it via dynamic import) | `/src/renderer/editors/browser/browser-pages.ts` |
+| Editor switch (`switchMainEditor` — host transfer via `switchFrom` when both sides are host-capable; dispose-and-rebuild over the file for board boundaries and host-less sources, with a shared `rebuildEditorOverFile` helper; reached via dynamic import from `PageModel`) | `/src/renderer/editors/base/editor-switch.ts` |
+| Explorer provisioning for a page (`toggleNavigator`, auto-init of an Explorer beside a mandatory sidebar, root-folder derivation from panel editors) | `/src/renderer/editors/explorer/page-explorer.ts` |
+| Markdown back-nav stack (page-owned, persisted in the page descriptor, count mirrored into `IPageState.navBackCount`) | `/src/renderer/api/pages/NavBackStack.ts` |
 | File operations          | `/src/renderer/api/fs.ts`                         |
 | Archive I/O (ZIP/RAR/7z/TAR) | `/src/renderer/api/archive-service.ts`          |
 | Node.js HTTP client      | `/src/renderer/api/node-fetch.ts`                 |

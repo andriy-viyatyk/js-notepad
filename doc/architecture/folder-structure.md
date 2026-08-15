@@ -146,6 +146,7 @@ persephone/
 │   │   ├── PagesNavigationModel.ts # Navigation: show, focus, next/prev
 │   │   ├── PagesLifecycleModel.ts  # Lifecycle: create, close, empty page
 │   │   ├── PageNavigator.ts        # navigatePageTo — named-steps navigation of an existing page
+│   │   ├── NavBackStack.ts         # Markdown back-nav stack owned by the page (persisted)
 │   │   ├── PagesLayoutModel.ts     # Layout: grouping (side-by-side)
 │   │   ├── PagesPersistenceModel.ts # Persistence: save/restore, debounced
 │   │   └── well-known-pages.ts     # Singleton page definitions (MCP Log, etc.)
@@ -309,6 +310,7 @@ persephone/
 │   │   ├── editor-traits.ts          # CONTENT_HOST_TRAIT — owner-orchestrated editor switching
 │   │   ├── editor-matchers.ts        # Acceptance / resolution priority helpers
 │   │   ├── editorRegistry.ts         # Native editor registry — resolve, register, switch options
+│   │   ├── editor-switch.ts          # switchMainEditor — switch-widget transition (host transfer / rebuild)
 │   │   ├── PageToolbar.tsx           # Shared toolbar shell — NavPanel + switch widget auto-slots
 │   │   ├── TextChrome.tsx            # Host-aware chrome wrapper (toolbar, script panel, footer)
 │   │   ├── EditorToolbar.tsx         # Toolbar root component used by individual editors
@@ -543,6 +545,7 @@ persephone/
 │   │   └── index.tsx
 │   ├── explorer/           # File explorer (non-text, sidebar-only)
 │   │   ├── ExplorerEditorModel.ts    # EditorModel — tree provider, selection, search, root navigation
+│   │   ├── page-explorer.ts          # Explorer provisioning for a page — toggleNavigator, auto-init
 │   │   ├── ExplorerSecondaryView.tsx # "explorer" panel — tree view with portaled header
 │   │   ├── SearchSecondaryView.tsx # "search" panel — file search with portaled header
 │   │   ├── BoardsSecondaryView.tsx # "boards" panel — Boards/Tools body switch: trusted boards (BoardsTree) or registered toolsets (ToolsTree) under the Explorer root; "+ New board" in the switch row
