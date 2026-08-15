@@ -13,12 +13,12 @@ import {
 } from "../../uikit";
 import type { TreeRef, TreeItemRenderContext } from "../../uikit";
 import { CloseIcon } from "../../theme/icons";
-import { LINK } from "../../editors/link-editor/linkTraits";
-import { TraitTypeId, resolveTraits, FILE_LINK } from "../../core/traits";
+import { TraitTypeId } from "../../core/traits";
 import type { TraitDragPayload } from "../../core/traits";
 import { api } from "../../../ipc/renderer/api";
 import { supportsOsClipboard } from "./os-clipboard";
 import { TreeProviderItemIcon } from "./TreeProviderItemIcon";
+import { getTraitDropAction } from "./drop-dispatch";
 import {
     TreeProviderViewModel,
     TreeProviderViewProps,
@@ -44,11 +44,6 @@ const tpvNodeTraits = new TraitSet().add(TREE_ITEM_KEY, {
 });
 
 const getNodeChildren = (node: TreeProviderNode) => node.items;
-
-/** Case- and separator-insensitive href form for the drop guards. Harmless for
- *  non-path hrefs (they simply compare as themselves, lowercased). */
-const normalizeHref = (href: string) =>
-    href.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
 
 // Chrome wrapper — purely keyboard-plumbing chrome (clipboard/Delete/F2 + Ctrl+F
 // intercepts on bubbled keys; the Tree root itself is the tab stop). UIKit Panel doesn't
@@ -230,75 +225,24 @@ export function TreeProviderView(
 
     const canTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
         if (!writable) return false;
-        const traits = resolveTraits(payload.typeId);
-        const linkTrait = traits?.get(LINK);
-        const items = linkTrait?.getItems(payload.data) ?? [];
-        const sameSource = !!linkTrait
-            && linkTrait.getSourceId?.(payload.data) === props.provider.sourceUrl;
-        // Same-source move (intra-provider).
-        if (sameSource && items.length) {
-            const dropHref = normalizeHref(dropNode.data.href);
-            // Never drop onto a row that is itself being dragged (the single-item self-drop
-            // case generalized), …
-            if (items.some((i) => normalizeHref(i.href) === dropHref)) return false;
-            // … and never into a descendant of a dragged folder (a folder can't move into
-            // itself). Path-prefix test — valid wherever hrefs are path-shaped.
-            const draggedDirs = items
-                .filter((i) => i.isDirectory)
-                .map((i) => normalizeHref(i.href) + "/");
-            if (draggedDirs.some((d) => dropHref.startsWith(d))) return false;
-            return true;
-        }
-        // Cross-source / OS drop: file content this provider can import (copy), …
-        const fileLink = traits?.get(FILE_LINK);
-        if (props.provider.importFiles
-            && (fileLink?.getFiles(payload.data).length ?? 0) > 0) {
-            return true;
-        }
-        // … or a link this catalog provider can ingest by href (e.g. an http link
-        // dragged from another window's collection).
-        if (props.provider.importLinks && linkTrait && items.length) {
-            return true;
-        }
-        return false;
+        return !!getTraitDropAction(props.provider, dropNode.data.href, payload);
     }, [writable, props.provider]);
 
     const onTraitDrop = useCallback((dropNode: TreeProviderNode, payload: TraitDragPayload) => {
-        const traits = resolveTraits(payload.typeId);
-        // Dispatch by trait + target capability — no "what kind of object" check.
-        const linkTrait = traits?.get(LINK);
-        const items = linkTrait?.getItems(payload.data) ?? [];
-        const sameSource = !!linkTrait
-            && linkTrait.getSourceId?.(payload.data) === props.provider.sourceUrl;
-        // 1. Same source → move (intra-provider rename / category reassign). Same root,
-        //    even across windows.
-        if (sameSource && items.length) {
-            model.moveItems(items, dropNode);
+        const action = getTraitDropAction(props.provider, dropNode.data.href, payload);
+        if (!action) return;
+        if (action.kind === "move") {
+            void model.moveItems(action.items, dropNode);
             return;
         }
-        // 2. Target that catalogs links by reference (a link collection) → store the
-        //    dragged item's href. Preferred over byte-copy so any node exposing a
-        //    usable link href — a Mneme document, an http link, a local-file path —
-        //    becomes a proper link in the collection rather than being copied as bytes.
-        //    Only catalog providers implement importLinks; file-backed targets fall
-        //    through to the byte-copy branch below.
-        if (props.provider.importLinks && linkTrait && items.length) {
-            void model.importLinksTo(items, dropNode);
+        if (action.kind === "import-links") {
+            void model.importLinksTo(action.items, dropNode);
             return;
         }
-        // 3. File content present → import/copy bytes into a file-backed target (OS
-        //    file, or a cross-root Mneme node dropped on a folder). A file-backed
-        //    provider has no importLinks, so it lands here.
-        const fileLink = traits?.get(FILE_LINK);
-        const files = fileLink?.getFiles(payload.data) ?? [];
-        if (props.provider.importFiles && files.length) {
-            // File providers (absolute-path items) offer Move/Copy; other file-backed
-            // targets (Mneme etc.) keep the plain byte import.
-            if (supportsOsClipboard(props.provider)) {
-                void model.dropOsFilesInto(files, dropNode);
-            } else {
-                void model.importFiles(files, dropNode);
-            }
+        if (supportsOsClipboard(props.provider)) {
+            void model.dropOsFilesInto(action.files, dropNode);
+        } else {
+            void model.importFiles(action.files, dropNode);
         }
     }, [model, props.provider]);
 

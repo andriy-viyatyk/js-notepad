@@ -374,7 +374,7 @@ project's own standard. One outright bug-shaped hack: `DefaultBrowserSection:618
 - `BrowserEditor.ts` still owns tab management (~210 lines), Tor, bookmarks, favicon cache —
   extract `BrowserTabsModel` and `BrowserTorModel`.
 
-### 2.8 `components/tree-provider/` — two 1,000+-line ViewModels, ~370 lines shared
+### 2.8 ~~`components/tree-provider/` — two 1,000+-line ViewModels, ~370 lines shared~~ ✅ done (US-958, 2026-08-15)
 
 `TreeProviderViewModel.tsx` (1,339 — grown since last measured) and `CategoryViewModel.tsx`
 (1,005). Byte-identical-modulo-accessor pairs: `createNewFile`/`createNewFolder`/`renameItem`/
@@ -391,6 +391,15 @@ following the pattern the folder already established (`plural-actions.tsx`,
 `href-utils.ts`. After extraction both models lose their JSX → rename to `.ts` (satisfying the
 "1,000-line `.tsx` ViewModel is suspicious" smell — they're `.tsx` only because 17 JSX icon
 literals sit inside menu builders).
+
+**✅ Outcome (US-958):** extracted the shared CRUD/dialog operations, context-menu builders,
+href comparison helpers, and trait-drop routing into focused tree-provider modules. Both
+ViewModels now compose those modules, retain their view-specific selection/refresh/path
+responsibilities, and are JSX-free `.ts` implementations (with tiny `.tsx` HMR compatibility
+re-export shims for running development sessions). Explorer root protections, Category's
+`Open` action, menu ordering, same-provider move guards, cross-provider file/link routing, and
+the existing provider contracts are preserved. `npm run typecheck`, `npm run lint`, and
+`git diff --check` pass; a fresh dev build confirmed the Explorer tree renders correctly.
 
 ### 2.9 `uikit/Tree/TreeModel.ts` (1,123) and friends
 
@@ -564,7 +573,7 @@ fine), `monaco-languages.ts` (pure data — at most move it out of `utils/`).
 ### Phase 1 — the big duplication removals (mechanical, low risk)
 5. ~~**`TextHostEditorModel` base class** (§1.1) — ~1,300 lines, 16 editors.~~ ✅ done
    (US-948; 14 editors, board editors excluded by design, net ≈ −2,180 lines).
-6. tree-provider shared modules (§2.8) — ~370 lines, kills the double-maintenance of file CRUD.
+6. ~~tree-provider shared modules (§2.8) — ~370 lines, kills the double-maintenance of file CRUD.~~ ✅ done (US-958).
 7. ~~Table-drive `register-editors.ts`~~ ✅ done (US-949) — ~~and the MCP tool catalog (§2.4)~~
    ✅ done (US-954).
 8. Split renderer `mcp-handler.ts` into `api/mcp/` (§2.3).

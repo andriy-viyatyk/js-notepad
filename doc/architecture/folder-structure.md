@@ -723,9 +723,17 @@ persephone/
 │   │                       # system, or scripting — that's the criterion. No new pure
 │   │                       # primitives go here.
 │   ├── tree-provider/      # TreeProviderView (generic tree viewer) + CategoryView (the folder page a tree navigates to) — both over any ITreeProvider
+│   │   ├── TreeProviderView.tsx # Tree chrome and UIKit Tree wiring
+│   │   ├── TreeProviderViewModel.ts # Tree loading, selection, actions, and drops
+│   │   ├── CategoryView.tsx # Folder-content view
+│   │   ├── CategoryViewModel.ts # Folder listing, selection, actions, and drops
 │   │   ├── favicon-cache.ts # Favicon download/cache for HTTP links (shared by link-editor, browser, tree icons)
 │   │   ├── os-clipboard.ts  # OS file-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer) shared by the tree + category view models; file provider only
 │   │   ├── plural-actions.tsx # Set-shaped actions shared by the tree + folder page: the multi-select gate, nested-item pruning, the plural menu, batch delete
+│   │   ├── item-crud-actions.ts # Shared create/rename/delete/paste operations and refresh handling
+│   │   ├── item-menus.tsx # Shared single-item and background menu construction
+│   │   ├── drop-dispatch.ts # Trait payload to provider-level move/import action resolution
+│   │   ├── href-utils.ts # Case-insensitive selection and normalized href helpers
 │   │   └── tree-drop-actions.ts # Move/import drop actions, taking a { path, title } target rather than a tree node so both views can call them
 │   ├── file-search/        # FileSearch — standalone file content search with virtualized results; accumulated rows live on the model, not in reactive state
 │   ├── file-list/          # FileList — flat file list (FileIcon + single-click + search), reused by the Recent files panel and the git Changes panel; getTrailing/compact props (EPIC-031)
