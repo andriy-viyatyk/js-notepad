@@ -59,11 +59,11 @@ export class BrowserBookmarksUIModel {
 
     /** Ensure bookmarks are loaded, prompting user to associate a file if needed. */
     ensureBookmarks = async (): Promise<BrowserBookmarks | null> => {
-        if (this.model.bookmarks) {
-            return this.model.bookmarks;
+        if (this.model.tabs.bookmarks) {
+            return this.model.tabs.bookmarks;
         }
 
-        let filePath = this.model.getBookmarksFilePath();
+        let filePath = this.model.tabs.getBookmarksFilePath();
 
         // If the configured file no longer exists, treat as unconfigured
         if (filePath && !fs.existsSync(filePath)) {
@@ -118,7 +118,7 @@ export class BrowserBookmarksUIModel {
             }
         }
 
-        const bm = await this.model.initBookmarks(filePath);
+        const bm = await this.model.tabs.initBookmarks(filePath);
         if (bm) {
             this.model.state.update((s) => { s.bookmarksReady = true; });
             this.startBookmarkTracking(bm);
@@ -154,7 +154,7 @@ export class BrowserBookmarksUIModel {
     };
 
     private updateIsBookmarked = () => {
-        const bm = this.model.bookmarks;
+        const bm = this.model.tabs.bookmarks;
         if (!bm) {
             this.model.state.update((s) => { s.isBookmarked = false; });
             return;
@@ -274,7 +274,7 @@ export class BrowserBookmarksUIModel {
         tags?: string[];
         existingLink?: LinkItem;
     }): Promise<void> => {
-        const bm = this.model.bookmarks;
+        const bm = this.model.tabs.bookmarks;
         if (!bm) return;
 
         const isEdit = !!params.existingLink;

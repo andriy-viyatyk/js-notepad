@@ -96,6 +96,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Note item edit model     | `/src/renderer/editors/notebook/note-editor/NoteItemEditModel.ts` |
 | Settings page composition and section models | `/src/renderer/editors/settings/` |
+| Browser editor coordinator (restore/persistence, navigation normalization, profile presentation, keyboard shortcuts, and composed browser sub-model lifecycle) | `/src/renderer/editors/browser/BrowserEditor.ts` |
+| Browser internal-tab and bookmark resource model (tab lifecycle, current URL/favicon caches, mute/panel operations, bookmark initialization) | `/src/renderer/editors/browser/BrowserTabsModel.ts` |
+| Browser Tor lifecycle model (per-page partition IDs, fail-closed proxy arming, listeners/reconnect, window-close cleanup) | `/src/renderer/editors/browser/BrowserTorModel.ts` |
+| Browser webview context-menu builder (bounded DOM/SVG/resource probes and menu actions) | `/src/renderer/editors/browser/webview-context-menu.ts` |
 | Graph editor host lifecycle, parsing, serialization and composed-model orchestration | `/src/renderer/editors/graph/GraphEditor.ts` |
 | Graph interactive grouping and membership operations | `/src/renderer/editors/graph/GraphGroupActionsModel.ts` |
 | Graph mutation, export and rebuild/persist workflows | `/src/renderer/editors/graph/GraphMutationModel.ts` |

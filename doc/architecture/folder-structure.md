@@ -350,9 +350,12 @@ persephone/
 │   │
 │   ├── browser/            # Built-in browser (non-text, no trait)
 │   │   ├── BrowserEditor.ts          # EditorModel subclass — registry entry point
-│   │   ├── BrowserEditorModel.ts     # Multi-tab browser state
+│   │   ├── BrowserEditorModel.ts     # Browser state types, defaults, and partition helper
+│   │   ├── BrowserTabsModel.ts       # Internal tabs, URL/favicon caches, bookmarks resource
+│   │   ├── BrowserTorModel.ts         # Tor partition and daemon lifecycle
 │   │   ├── BrowserView.tsx           # Browser UI
 │   │   ├── BrowserWebviewModel.ts    # Webview management
+│   │   ├── webview-context-menu.ts    # Webview context-menu construction
 │   │   ├── BrowserUrlBarModel.ts     # URL bar state
 │   │   ├── BrowserTargetModel.ts     # Automation adapter (implements IBrowserTarget)
 │   │   ├── BrowserTabsPanel.tsx      # Browser tab bar
@@ -363,7 +366,7 @@ persephone/
 │   │   ├── TorStatusOverlay.tsx      # Tor connection status
 │   │   ├── BrowserBookmarks.ts       # Bookmarks data management (wraps TextFileModel + LinkEditor)
 │   │   ├── BrowserBookmarksUIModel.ts # Bookmarks UI state
-│   │   ├── BrowserPanelHost.ts       # IPageHost impl for browser's bookmarks sidebar (EPIC-029 US-601)
+│   │   ├── BrowserPanelHost.ts       # IPageHost impl for browser's bookmarks sidebar
 │   │   ├── BrowserSecondaryViews.tsx # SecondaryViews mount for browser empty page and BookmarksDrawer
 │   │   ├── browser-search-history.ts # Search history
 │   │   ├── network-log-links.ts      # Network log → ILink[] conversion

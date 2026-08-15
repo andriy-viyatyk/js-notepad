@@ -349,7 +349,14 @@ constants** and `GraphBody.tsx` with 138 — move to `.styles.ts` files; extract
 the pure `extractCustomProperties`/`extractMultiProperties` helpers. `ForceGraphRenderer.renderData`
 (158 lines) → `drawLinks`/`drawNodes`/`drawBadges`/`drawLabels` (the `drawShape` precedent exists).
 
-### 2.6 `editors/settings/SettingsView.tsx` (1,536) — no model-view split at all
+### 2.6 `editors/settings/SettingsView.tsx` (1,536) — no model-view split at all — ✅ DONE (US-956, 2026-08-15)
+
+**✅ Outcome (US-956):** `SettingsView.tsx` is now a 98-line page composer. Settings sections
+and their stateful behavior moved into `settings/sections/`; `BrowserProfilesSectionModel`,
+`McpSectionModel`, and `DefaultBrowserSectionModel` own the asynchronous operations and
+external-status state. Theme, file search, and the remaining settings sections are isolated
+views. Existing section order, setting keys, persistence, and behavior were preserved.
+Typecheck and lint pass; review found no architecture concerns.
 
 `SettingsEditor.ts` is 34 lines; all logic lives in the view: 14 section components each with
 their own `useState`/`useEffect` async I/O. `McpSection` (224 lines, 5 useState + 4 useEffect)
@@ -358,7 +365,7 @@ project's own standard. One outright bug-shaped hack: `DefaultBrowserSection:618
 `useState(() => { checkStatus(); })` as a mount hook (fires during render) — should be
 `useEffect` or a model. Split into `settings/sections/*.tsx` (+3 section models).
 
-### 2.7 `editors/browser/` — good model split, three leaks
+### 2.7 ~~`editors/browser/` — good model split, three leaks~~ ✅ done (US-957)
 
 - `BrowserWebviewModel.handleContextMenu` (289–548) is **260 lines** — the longest method in
   the editors layer. Extract `browser/webview-context-menu.ts` section builders.
@@ -578,8 +585,8 @@ fine), `monaco-languages.ts` (pure data — at most move it out of `utils/`).
 
 ### Phase 3 — god-class decomposition (schedule deliberately, one at a time)
 15. ~~`GraphEditor` → delegate along its existing sub-model seams (§2.5).~~ ✅ done (US-955).
-16. `SettingsView` → sections + models (§2.6).
-17. Browser: `webview-context-menu.ts`, `BrowserTabsModel`, `BrowserTorModel` (§2.7).
+16. ~~`SettingsView` → sections + models (§2.6).~~ ✅ done (US-956).
+17. ~~Browser: `webview-context-menu.ts`, `BrowserTabsModel`, `BrowserTorModel` (§2.7).~~ ✅ done (US-957).
 18. `TreeModel` → `TreeDndModel` + `TreeKeyboardHandler`; `MultiListBoxModel` (§2.9).
 19. board-shim split; `fs.ts` provider polymorphism + codec extraction.
 

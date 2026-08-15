@@ -7,21 +7,22 @@ import {
 } from "../base/EditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import type { EditorDescriptor } from "../../../shared/persistence";
-import { globalKeyDown, windowClosing, SubscriptionObject } from "../../core/state/events";
+import { globalKeyDown, SubscriptionObject } from "../../core/state/events";
 import { pagesModel } from "../../api/pages";
 import { IncognitoIcon, TorIcon } from "../../theme/language-icons";
-import { GlobeIcon, OpenLinkIcon } from "../../theme/icons";
+import { GlobeIcon } from "../../theme/icons";
 import { settings, BrowserProfile } from "../../api/settings";
 import { DEFAULT_BROWSER_COLOR } from "../../theme/palette-colors";
 import { BrowserChannel } from "../../../ipc/browser-ipc";
-import { TorChannel, TorStatus } from "../../../ipc/tor-ipc";
 import { globalPopupRateLimiter } from "../../../ipc/popup-rate-limiter";
 import { searchHistoryManager } from "./browser-search-history";
-import { BrowserBookmarks } from "./BrowserBookmarks";
+import { errMessage } from "../../../shared/utils";
 import { BrowserWebviewModel } from "./BrowserWebviewModel";
 import { BrowserUrlBarModel } from "./BrowserUrlBarModel";
 import { BrowserBookmarksUIModel } from "./BrowserBookmarksUIModel";
 import { BrowserTargetModel } from "./BrowserTargetModel";
+import { BrowserTabsModel } from "./BrowserTabsModel";
+import { BrowserTorModel } from "./BrowserTorModel";
 import {
     BrowserEditorState,
     BrowserTabData,
@@ -31,9 +32,7 @@ import {
     createInternalTabId,
     createTabGroupId,
     detectSearchEngine,
-    getPartitionString,
 } from "./BrowserEditorModel";
-import { errMessage } from "../../../shared/utils";
 
 export type BrowserQueueEvent = { type: "focus" };
 export type BrowserQueueRequest = never;
@@ -55,11 +54,14 @@ export class BrowserEditor extends EditorModel<
     readonly bookmarksUI: BrowserBookmarksUIModel;
     /** Sub-model: automation adapter for Playwright-compatible MCP tools. */
     readonly target: BrowserTargetModel;
+    /** Sub-model: internal tabs, bookmark resource, and favicon/current-URL caches. */
+    readonly tabs: BrowserTabsModel;
+    /** Sub-model: Tor partition and daemon lifecycle. */
+    readonly tor: BrowserTorModel;
 
     readonly typedQueue: ComponentQueue<BrowserQueueEvent, BrowserQueueRequest>;
 
     private keyDownSub: SubscriptionObject;
-    private windowClosingSub: SubscriptionObject;
 
     constructor(state: TComponentState<BrowserEditorState>) {
         super(state);
@@ -67,300 +69,39 @@ export class BrowserEditor extends EditorModel<
             BrowserQueueEvent,
             BrowserQueueRequest
         >;
+        this.tabs = new BrowserTabsModel(this);
+        this.tor = new BrowserTorModel(this);
         this.webview = new BrowserWebviewModel(this);
         this.urlBar = new BrowserUrlBarModel(this);
         this.bookmarksUI = new BrowserBookmarksUIModel(this);
         this.target = new BrowserTargetModel(this);
         this.keyDownSub = globalKeyDown.subscribe((e) => this.handleGlobalKeyDown(e));
-        this.windowClosingSub = windowClosing.subscribe(() => this.handleWindowClosing());
-        // Preload bookmarks silently after a short delay (don't block browser page opening)
-        setTimeout(() => this.preloadBookmarks(), 300);
     }
-
-    /** Stable random ID for incognito partitions (generated once per model instance). */
-    private incognitoId = crypto.randomUUID();
-    /** Stable random ID for Tor partitions (generated once per model instance). */
-    private torId = crypto.randomUUID();
 
     /** Electron session partition string, derived from profile state. */
     get partition(): string {
-        const s = this.state.get();
-        return getPartitionString(s.profileName, s.isIncognito, this.incognitoId, s.isTor, this.torId);
+        return this.tor.partition;
     }
 
-    /** Per-tab actual current URL (may differ from state after redirects). Keyed by internalTabId. */
-    currentUrls = new Map<string, string>();
-    private faviconCache = new Map<string, string>();
-    /** Stack of previously active tab IDs (most recent last). Used to restore active tab on close. */
-    private activeTabHistory: string[] = [];
-
-    /** Lazily initialized bookmarks model (null until user opens bookmarks). */
-    bookmarks: BrowserBookmarks | null = null;
-
-    /** Get the bookmarks file path for the current profile from settings. */
-    getBookmarksFilePath(): string {
-        const { profileName, isIncognito, isTor } = this.state.get();
-        if (isTor) {
-            return settings.get("tor.bookmarks-file") || "";
-        }
-        if (isIncognito) {
-            return settings.get("browser-incognito-bookmarks-file") || "";
-        }
-        if (profileName) {
-            const profiles = settings.get("browser-profiles");
-            const profile = profiles.find((p: BrowserProfile) => p.name === profileName);
-            return profile?.bookmarksFile || "";
-        }
-        // Default profile — check if current default-profile setting points to a named profile
-        const defaultName = settings.get("browser-default-profile");
-        if (defaultName) {
-            const profiles = settings.get("browser-profiles");
-            const profile = profiles.find((p: BrowserProfile) => p.name === defaultName);
-            return profile?.bookmarksFile || "";
-        }
-        return settings.get("browser-default-bookmarks-file") || "";
-    }
-
-    /**
-     * Preload bookmarks silently (no password dialog for encrypted files).
-     * Called automatically after browser page is created.
-     */
-    preloadBookmarks = async (): Promise<void> => {
-        const filePath = this.getBookmarksFilePath();
-        if (!filePath) return; // no bookmarks configured
-        if (this.bookmarks) return; // already loaded
-        const bm = new BrowserBookmarks(filePath);
-        const ok = await bm.init({ silent: true });
-        if (!ok) {
-            await bm.dispose();
-            return; // encrypted or failed — user will trigger manually
-        }
-        this.bookmarks = bm;
-        this.configureBookmarks(bm);
-        this.state.update((s) => { s.bookmarksReady = true; });
-    }
-
-    /** Wire the bookmarks Link editor's open/menu hooks and the panel-host
-     *  sidebar-width persistence (US-601). Shared by preload + explicit init. */
-    private configureBookmarks(bm: BrowserBookmarks): void {
-        bm.linkEditor.onLinkOpen = (data) => {
-            data.target = "browser";
-            data.browserPageId = this.page?.id;
-            // Navigate current tab if it's empty; otherwise add a new tab
-            const s = this.state.get();
-            const currentTab = s.tabs.find((t) => t.id === s.activeTabId);
-            const currentUrl = currentTab?.url || "";
-            if (!currentUrl || currentUrl === "about:blank") {
-                data.browserTabMode = "navigate";
-            }
-        };
-        bm.linkEditor.onGetLinkMenuItems = (link) => link.href ? [{
-            label: "Open in New Tab",
-            icon: createElement(OpenLinkIcon),
-            onClick: () => this.addTab(link.href),
-        }] : [];
-        // US-896 — the Link editor draws bookmark images in the app renderer,
-        // which this page's Tor session proxy does NOT cover. Hand it a resolver
-        // so those URLs are routed through the page's Tor session instead of
-        // leaking direct. Read live rather than snapshotted: `torStatus` flips
-        // later (initTorProxy / reconnectTor) and `bm` outlives every blank tab.
-        bm.linkEditor.imageProxySource = () => {
-            const s = this.state.get();
-            if (!s.isTor) return null;
-            return { partition: this.partition, ready: s.torStatus === "connected" };
-        };
-        // US-601 Concern C — restore the persisted SecondaryViews sidebar width
-        // and mirror user resizes back into browser state.
-        bm.panelHost.setInitialWidth(this.state.get().bookmarksSidebarWidth);
-        bm.panelHost.onWidthChange = (w) => this.state.update((s) => { s.bookmarksSidebarWidth = w; });
-    }
-
-    /** Initialize bookmarks from a file path. Returns null if user cancels (e.g. encrypted file). */
-    async initBookmarks(filePath: string): Promise<BrowserBookmarks | null> {
-        if (this.bookmarks) {
-            await this.bookmarks.dispose();
-        }
-        const bm = new BrowserBookmarks(filePath);
-        const ok = await bm.init();
-        if (!ok) {
-            await bm.dispose();
-            return null;
-        }
-        this.bookmarks = bm;
-        this.configureBookmarks(bm);
-        return this.bookmarks;
-    }
-
-    // -------------------------------------------------------------------------
-    // Tor proxy
-    // -------------------------------------------------------------------------
-
-    /** Listener for Tor log events from the main process. */
-    private torLogListener = (_event: unknown, line: string) => {
-        this.state.update((s) => {
-            s.torLog += (s.torLog ? "\n" : "") + line;
-        });
-    };
-
-    /**
-     * Listener for main-initiated Tor status changes (US-897).
-     *
-     * The daemon is shared by every Tor page, so a restart triggered from one
-     * page's info dialog takes the network down for all of them. Without this,
-     * the other pages would keep showing a green "connected" dot while Tor is
-     * down.
-     */
-    private torStatusListener = (
-        _event: unknown,
-        payload: { status: TorStatus; error?: string },
-    ) => {
-        this.state.update((s) => {
-            s.torStatus = payload.status;
-            if (payload.error) {
-                s.torLog += (s.torLog ? "\n" : "") + payload.error;
-            }
-            if (payload.status !== "connected") {
-                s.torOverlayVisible = true;
-            }
-        });
-        if (payload.status === "connected") {
-            // Match initTorProxy: let the "Connected" state read for a moment
-            // before the overlay gets out of the way.
-            setTimeout(() => {
-                this.state.update((s) => { s.torOverlayVisible = false; });
-            }, 500);
-        }
-    };
-
-    /** Open the Tor connection info dialog (exit IP, location, Reconnect). */
-    showTorInfoDialog = async (): Promise<void> => {
-        const { showTorInfoDialog } = await import("../../ui/dialogs/TorInfoDialog");
-        await showTorInfoDialog(this.partition);
-    };
-
-    /** True once this partition carries the SOCKS proxy. See `armTorProxy`. */
-    private torArmed = false;
-
-    /**
-     * Put this page's partition behind the SOCKS proxy before anything can load.
-     *
-     * Must be awaited *before* the page is added to the window: the first webview
-     * mounts with `src` already set and starts fetching at once, while the daemon
-     * needs seconds to bootstrap. An unproxied Electron session is DIRECT, so
-     * without this the opening navigation goes out on the normal network — and
-     * keeps doing so if the bootstrap fails. Arming makes that window fail closed.
-     *
-     * Idempotent, because several paths must guarantee it and none of them can see
-     * whether another already did: `restore()` covers every way a Tor page comes
-     * into being (including session restore), `showBrowserPage` re-asserts it so a
-     * failure can refuse to open the page, and `reconnectTor` covers a partition
-     * whose earlier arming failed. The flag is set only on success, so a failed
-     * attempt is retried by the next caller rather than being remembered as done.
-     */
-    armTorProxy = async (): Promise<void> => {
-        if (this.torArmed) return;
-        const socksPort = settings.get("tor.socks-port");
-        await ipcRenderer.invoke(TorChannel.arm, socksPort, this.partition);
-        this.torArmed = true;
-    };
-
-    /** Start Tor proxy for this page's partition. Shows overlay with progress. */
-    initTorProxy = async (): Promise<{ success: boolean; error?: string }> => {
-        this.state.update((s) => {
-            s.torStatus = "connecting";
-            s.torOverlayVisible = true;
-            s.torLog = "";
-        });
-        // Remove first: initTorProxy runs again on reconnectTor, and a plain `on`
-        // would stack a second copy of each listener every time.
-        ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
-        ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
-        ipcRenderer.on(TorChannel.log, this.torLogListener);
-        ipcRenderer.on(TorChannel.status, this.torStatusListener);
-
-        const torExePath = settings.get("tor.exe-path");
-        const socksPort = settings.get("tor.socks-port");
-        const result = await ipcRenderer.invoke(
-            TorChannel.start, torExePath, socksPort, this.partition,
-        );
-
-        this.state.update((s) => {
-            s.torStatus = result.success ? "connected" : "error";
-            if (result.error) {
-                s.torLog += (s.torLog ? "\n" : "") + result.error;
-            }
-            if (result.success) {
-                // Auto-hide overlay after brief delay
-                setTimeout(() => {
-                    this.state.update((s2) => { s2.torOverlayVisible = false; });
-                }, 500);
-            }
-        });
-        return result;
-    };
-
-    /**
-     * Reconnect Tor (e.g. after session restore).
-     *
-     * Arms first: `initTorProxy` only reaches `setProxyForPartition` *after* the
-     * daemon settles, so on a cold daemon this would otherwise leave a 5–30 s
-     * window with the partition unproxied — and the URL bar is never disabled, so
-     * that window is reachable. Normally a no-op, since `restore()` already armed
-     * this partition; it matters when that attempt failed.
-     */
-    reconnectTor = async (): Promise<void> => {
-        try {
-            await this.armTorProxy();
-        } catch (err) {
-            // Refuse to bring Tor up over a partition we could not secure.
-            this.state.update((s) => {
-                s.torStatus = "error";
-                s.torOverlayVisible = true;
-                s.torLog += (s.torLog ? "\n" : "")
-                    + `Could not secure the session: ${errMessage(err)}`;
-            });
-            return;
-        }
-        await this.initTorProxy();
-    };
-
-    /** Toggle the Tor status overlay visibility. */
-    toggleTorOverlay = () => {
-        this.state.update((s) => { s.torOverlayVisible = !s.torOverlayVisible; });
-    };
-
-    /** Release Tor resources when the renderer window is closing. */
-    private handleWindowClosing = () => {
-        const s = this.state.get();
-        if (s.isTor) {
-            ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
-            ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
-            ipcRenderer.invoke(TorChannel.stop, this.partition);
-        }
-    };
+    /** Ensure the Tor partition is armed before the first navigation. */
+    armTorProxy = async (): Promise<void> => this.tor.armProxy();
+    initTorProxy = async (): Promise<{ success: boolean; error?: string }> => this.tor.init();
+    reconnectTor = async (): Promise<void> => this.tor.reconnect();
+    showTorInfoDialog = async (): Promise<void> => this.tor.showInfoDialog();
+    toggleTorOverlay = () => this.tor.toggleOverlay();
 
     async dispose(): Promise<void> {
         this.keyDownSub.unsubscribe();
-        this.windowClosingSub.unsubscribe();
         this.bookmarksUI.dispose();
-        if (this.bookmarks) {
-            await this.bookmarks.dispose();
-            this.bookmarks = null;
-        }
 
         const s = this.state.get();
-
-        // Clean up Tor listeners and stop partition
-        if (s.isTor) {
-            ipcRenderer.removeListener(TorChannel.log, this.torLogListener);
-            ipcRenderer.removeListener(TorChannel.status, this.torStatusListener);
-            ipcRenderer.invoke(TorChannel.stop, this.partition);
-        }
+        await this.tabs.dispose();
+        this.tor.dispose();
 
         await super.dispose();
 
         // Clear HTTP cache for this partition to free disk space.
-        // Skip incognito/tor — no persist: prefix means no disk storage.
+        // Skip incognito/tor: no persist: prefix means no disk storage.
         if (!s.isIncognito && !s.isTor) {
             ipcRenderer.invoke(BrowserChannel.clearCache, this.partition);
         }
@@ -373,7 +114,7 @@ export class BrowserEditor extends EditorModel<
 
         const keyLower = e.key.toLowerCase();
 
-        // F5 / Ctrl+F5 / Ctrl+R / Ctrl+Shift+R — reload
+        // F5 / Ctrl+F5 / Ctrl+R / Ctrl+Shift+R reload
         if (e.key === "F5" || (keyLower === "r" && e.ctrlKey)) {
             e.preventDefault();
             if (e.key === "F5" ? e.ctrlKey : e.shiftKey) {
@@ -383,19 +124,19 @@ export class BrowserEditor extends EditorModel<
             }
             return;
         }
-        // F12 — devtools
+        // F12 devtools
         if (e.key === "F12") {
             e.preventDefault();
             this.webview.openDevTools();
             return;
         }
-        // Ctrl+F — open find bar
+        // Ctrl+F open find bar
         if (keyLower === "f" && e.ctrlKey) {
             e.preventDefault();
             this.webview.openFind();
             return;
         }
-        // Escape — close find bar first, then stop loading
+        // Escape: close find bar first, then stop loading
         if (e.key === "Escape") {
             e.preventDefault();
             if (this.state.get().findBarVisible) {
@@ -405,7 +146,7 @@ export class BrowserEditor extends EditorModel<
             }
             return;
         }
-        // Alt+Left / Alt+Right — back / forward
+        // Alt+Left / Alt+Right: back / forward
         if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
             e.preventDefault();
             if (e.key === "ArrowLeft") {
@@ -415,7 +156,7 @@ export class BrowserEditor extends EditorModel<
             }
             return;
         }
-        // Alt+Home — go to home page
+        // Alt+Home: go to home page
         if (e.altKey && e.key === "Home") {
             e.preventDefault();
             this.goHome();
@@ -434,7 +175,7 @@ export class BrowserEditor extends EditorModel<
         // Arm here rather than only at the `showBrowserPage` call site: this runs on
         // every path that produces a Tor page, session restore included, and always
         // before the page is added to the window. A restored Tor page resets its tabs
-        // to about:blank and waits for Reconnect, but its URL bar is live — without
+        // to about:blank and waits for Reconnect, but its URL bar is live without
         // this, typing a URL before reconnecting would navigate a bare partition
         // straight out onto the normal network. Failures are recorded rather than
         // thrown, so a page is never dropped from a restore; the overlay then shows
@@ -465,7 +206,7 @@ export class BrowserEditor extends EditorModel<
         // Save all tabs with their actual current URLs
         const tabs = s.tabs.map((t) => ({
             ...t,
-            url: this.currentUrls.get(t.id) || t.url,
+            url: this.tabs.currentUrls.get(t.id) || t.url,
         }));
         // Top-level url = active tab's actual URL
         const activeTab = tabs.find((t) => t.id === s.activeTabId);
@@ -482,8 +223,8 @@ export class BrowserEditor extends EditorModel<
                 tabs,
                 activeTabId: s.activeTabId,
                 tabsPanelWidth: s.tabsPanelWidth,
-                bookmarksWidth: s.bookmarksWidth, // NH3 — promoted to persisted (sixth instance of leftPanelWidth-equivalent silent fix)
-                bookmarksSidebarWidth: s.bookmarksSidebarWidth, // US-601 — SecondaryViews sidebar width
+                bookmarksWidth: s.bookmarksWidth, // NH3 promoted to persisted (sixth instance of leftPanelWidth-equivalent silent fix)
+                bookmarksSidebarWidth: s.bookmarksSidebarWidth, // US-601 SecondaryViews sidebar width
 
                 profileName: s.profileName,
                 isIncognito: s.isIncognito,
@@ -577,7 +318,7 @@ export class BrowserEditor extends EditorModel<
             const profiles = settings.get("browser-profiles");
             return profiles.find((p: BrowserProfile) => p.name === profileName)?.color || DEFAULT_BROWSER_COLOR;
         }
-        // No explicit profile — resolve from the default profile setting
+        // No explicit profile: resolve from the default profile setting
         const defaultName = settings.get("browser-default-profile");
         if (defaultName) {
             const profiles = settings.get("browser-profiles");
@@ -585,23 +326,6 @@ export class BrowserEditor extends EditorModel<
         }
         return DEFAULT_BROWSER_COLOR;
     }
-
-    cacheFavicon = (url: string, favicon: string) => {
-        try {
-            const origin = new URL(url).origin;
-            this.faviconCache.set(origin, favicon);
-        } catch {
-            // Invalid URL
-        }
-    };
-
-    getCachedFavicon = (url: string): string => {
-        try {
-            return this.faviconCache.get(new URL(url).origin) || "";
-        } catch {
-            return "";
-        }
-    };
 
     /** Get the currently selected search engine. */
     getSearchEngine(): SearchEngine {
@@ -617,7 +341,7 @@ export class BrowserEditor extends EditorModel<
     /** Switch the current search query to a different engine. Also updates the tab's homeUrl. */
     switchSearchEngine = (engineId: string) => {
         const s = this.state.get();
-        const currentUrl = this.currentUrls.get(s.activeTabId) || s.url;
+        const currentUrl = this.tabs.currentUrls.get(s.activeTabId) || s.url;
         const detected = detectSearchEngine(currentUrl);
         this.setSearchEngine(engineId);
         const query = detected?.query || s.lastSearchQuery;
@@ -757,202 +481,20 @@ export class BrowserEditor extends EditorModel<
     /** Add a new internal tab and switch to it.
      *  If parentGroupId is provided, the new tab inherits that group and is inserted after the active tab.
      *  Otherwise the tab is appended at the end. Returns the new tab's ID. */
-    addTab = (url = DEFAULT_URL, parentGroupId?: string): string => {
-        const tab: BrowserTabData = {
-            id: createInternalTabId(),
-            url,
-            pageTitle: "",
-            loading: false,
-            canGoBack: false,
-            canGoForward: false,
-            favicon: "",
-            audible: false,
-            muted: false,
-            homeUrl: url !== DEFAULT_URL ? url : "",
-            navHistory: [],
-            groupId: parentGroupId || createTabGroupId(),
-        };
-        this.state.update((s) => {
-            if (parentGroupId) {
-                const activeIdx = s.tabs.findIndex((t) => t.id === s.activeTabId);
-                s.tabs.splice(activeIdx + 1, 0, tab);
-            } else {
-                s.tabs.push(tab);
-            }
-            this.activeTabHistory.push(s.activeTabId);
-            s.activeTabId = tab.id;
-            // Sync top-level state
-            s.url = tab.url;
-            s.pageTitle = tab.pageTitle;
-            s.loading = false;
-            s.canGoBack = false;
-            s.canGoForward = false;
-            s.favicon = "";
-            s.title = "Browser";
-        });
-        return tab.id;
-    };
+    addTab = (url = DEFAULT_URL, parentGroupId?: string): string => this.tabs.addTab(url, parentGroupId);
+    closeTab = (internalTabId: string) => this.tabs.closeTab(internalTabId);
+    closeOtherTabs = (internalTabId: string) => this.tabs.closeOtherTabs(internalTabId);
+    closeTabsBelow = (internalTabId: string) => this.tabs.closeTabsBelow(internalTabId);
+    moveTab = (fromId: string, toId: string) => this.tabs.moveTab(fromId, toId);
+    switchTab = (internalTabId: string) => this.tabs.switchTab(internalTabId);
+    toggleMute = (internalTabId: string) => this.tabs.toggleMute(internalTabId);
+    toggleMuteAll = () => this.tabs.toggleMuteAll();
+    setTabsPanelWidth = (width: number) => this.tabs.setPanelWidth(width);
 
-    /** Close an internal tab. If it's the active one, activate the previously
-     *  active tab from history, or fall back to an adjacent tab.
-     *  Closing the last tab replaces it with a fresh about:blank tab. */
-    closeTab = (internalTabId: string) => {
-        this.state.update((s) => {
-            const idx = s.tabs.findIndex((t) => t.id === internalTabId);
-            if (idx < 0) return;
-
-            // Remove closed tab from activation history
-            this.activeTabHistory = this.activeTabHistory.filter((id) => id !== internalTabId);
-
-            if (s.tabs.length <= 1) {
-                // Replace the last tab with a fresh one
-                const fresh: BrowserTabData = {
-                    id: createInternalTabId(),
-                    url: DEFAULT_URL,
-                    pageTitle: "",
-                    loading: false,
-                    canGoBack: false,
-                    canGoForward: false,
-                    favicon: "",
-                    audible: false,
-                    muted: false,
-                    homeUrl: "",
-                    navHistory: [],
-                    groupId: createTabGroupId(),
-                };
-                s.tabs = [fresh];
-                s.activeTabId = fresh.id;
-                this.currentUrls.delete(internalTabId);
-                this.activeTabHistory = [];
-                this.syncTopLevelFromTab(s, fresh);
-                return;
-            }
-
-            s.tabs.splice(idx, 1);
-            this.currentUrls.delete(internalTabId);
-
-            if (s.activeTabId === internalTabId) {
-                // Try to activate the previously active tab from history
-                const tabIds = new Set(s.tabs.map((t) => t.id));
-                let newActive: BrowserTabData | undefined;
-                while (this.activeTabHistory.length > 0) {
-                    const prevId = this.activeTabHistory.pop();
-                    if (tabIds.has(prevId)) {
-                        newActive = s.tabs.find((t) => t.id === prevId);
-                        break;
-                    }
-                }
-                // Fall back to adjacent tab if no history
-                if (!newActive) {
-                    const newIdx = Math.min(idx, s.tabs.length - 1);
-                    newActive = s.tabs[newIdx];
-                }
-                s.activeTabId = newActive.id;
-                this.syncTopLevelFromTab(s, newActive);
-            }
-        });
-    };
-
-    /** Close all tabs except the specified one. */
-    closeOtherTabs = (internalTabId: string) => {
-        this.state.update((s) => {
-            const tab = s.tabs.find((t) => t.id === internalTabId);
-            if (!tab) return;
-            for (const t of s.tabs) {
-                if (t.id !== internalTabId) {
-                    this.currentUrls.delete(t.id);
-                }
-            }
-            s.tabs = [tab];
-            s.activeTabId = tab.id;
-            this.activeTabHistory = [];
-            this.syncTopLevelFromTab(s, tab);
-        });
-    };
-
-    /** Close all tabs below (after) the specified one. */
-    closeTabsBelow = (internalTabId: string) => {
-        this.state.update((s) => {
-            const idx = s.tabs.findIndex((t) => t.id === internalTabId);
-            if (idx < 0 || idx >= s.tabs.length - 1) return;
-            const removed = s.tabs.splice(idx + 1);
-            const removedIds = new Set(removed.map((t) => t.id));
-            for (const t of removed) {
-                this.currentUrls.delete(t.id);
-            }
-            this.activeTabHistory = this.activeTabHistory.filter((id) => !removedIds.has(id));
-            // If active tab was removed, switch to the specified tab
-            if (!s.tabs.find((t) => t.id === s.activeTabId)) {
-                const tab = s.tabs[idx];
-                s.activeTabId = tab.id;
-                this.syncTopLevelFromTab(s, tab);
-            }
-        });
-    };
-
-    /** Move a tab to a new position. If dropped into a different group, assign a new group. */
-    moveTab = (fromId: string, toId: string) => {
-        if (fromId === toId) return;
-        this.state.update((s) => {
-            const fromIndex = s.tabs.findIndex((t) => t.id === fromId);
-            const toIndex = s.tabs.findIndex((t) => t.id === toId);
-            if (fromIndex === -1 || toIndex === -1) return;
-            const fromTab = s.tabs[fromIndex];
-            const toTab = s.tabs[toIndex];
-            if (fromTab.groupId !== toTab.groupId) {
-                fromTab.groupId = createTabGroupId();
-            }
-            const [moved] = s.tabs.splice(fromIndex, 1);
-            s.tabs.splice(toIndex, 0, moved);
-        });
-    };
-
-    switchTab = (internalTabId: string) => {
-        this.state.update((s) => {
-            if (s.activeTabId === internalTabId) return;
-            const tab = s.tabs.find((t) => t.id === internalTabId);
-            if (!tab) return;
-            this.activeTabHistory.push(s.activeTabId);
-            s.activeTabId = internalTabId;
-            this.syncTopLevelFromTab(s, tab);
-            // Close find bar — search context changes with the tab
-            if (s.findBarVisible) {
-                s.findBarVisible = false;
-                s.findText = "";
-                s.findActiveMatch = 0;
-                s.findTotalMatches = 0;
-            }
-        });
-    };
-
-    /** Toggle mute on an internal tab. Effective mute = tabMuted || pageMuted. */
-    toggleMute = (internalTabId: string) => {
-        const s = this.state.get();
-        const tab = s.tabs.find((t) => t.id === internalTabId);
-        if (!tab) return;
-        const newMuted = !tab.muted;
-        this.updateTab(internalTabId, { muted: newMuted });
-        const key = `${this.id}/${internalTabId}`;
-        ipcRenderer.send(BrowserChannel.setAudioMuted, key, newMuted || s.pageMuted);
-    };
-
-    /** Toggle page-level mute for all internal tabs. */
-    toggleMuteAll = () => {
-        const s = this.state.get();
-        const newPageMuted = !s.pageMuted;
-        this.state.update((st) => { st.pageMuted = newPageMuted; });
-        for (const tab of s.tabs) {
-            const key = `${this.id}/${tab.id}`;
-            ipcRenderer.send(BrowserChannel.setAudioMuted, key, tab.muted || newPageMuted);
-        }
-    };
-
-    /** Dismiss the "popups blocked" notification bar. */
     dismissBlockedPopups = () => {
         this.state.update((s) => { s.blockedPopupCount = 0; });
     };
 
-    /** Allow popups for this page (disables rate limiting). */
     allowPopups = () => {
         this.webview.popupsAllowed = true;
         globalPopupRateLimiter.allow("tabs");
@@ -960,20 +502,4 @@ export class BrowserEditor extends EditorModel<
         this.state.update((s) => { s.blockedPopupCount = 0; });
     };
 
-    setTabsPanelWidth = (width: number) => {
-        const clamped = Math.max(34, Math.min(400, width));
-        this.state.update((s) => {
-            s.tabsPanelWidth = clamped;
-        });
-    };
-
-    private syncTopLevelFromTab(s: BrowserEditorState, tab: BrowserTabData) {
-        s.url = this.currentUrls.get(tab.id) || tab.url;
-        s.pageTitle = tab.pageTitle;
-        s.loading = tab.loading;
-        s.canGoBack = tab.canGoBack;
-        s.canGoForward = tab.canGoForward;
-        s.favicon = tab.favicon;
-        s.title = tab.pageTitle || "Browser";
-    }
 }

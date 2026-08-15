@@ -167,7 +167,7 @@ function BrowserWebviewItemImpl({
         const onDomReady = () => {
             const currentUrl = webview.getURL();
             if (currentUrl && currentUrl !== "about:blank") {
-                model.currentUrls.set(internalTabId, currentUrl);
+                model.tabs.currentUrls.set(internalTabId, currentUrl);
             }
 
             model.webview.webviewReady.add(internalTabId);
@@ -199,8 +199,8 @@ function BrowserWebviewItemImpl({
                 const faviconUrl = args[0] as string;
                 if (faviconUrl) {
                     const currentUrl =
-                        webview.getURL() || model.currentUrls.get(internalTabId) || "";
-                    model.cacheFavicon(currentUrl, faviconUrl);
+                        webview.getURL() || model.tabs.currentUrls.get(internalTabId) || "";
+                    model.tabs.cacheFavicon(currentUrl, faviconUrl);
                     model.updateTab(internalTabId, { favicon: faviconUrl });
                     if (!model.state.get().isIncognito && !model.state.get().isTor) {
                         import("../../components/tree-provider/favicon-cache").then(({ getHostname, saveFavicon, consumeFaviconSaveRequest }) => {
@@ -210,8 +210,8 @@ function BrowserWebviewItemImpl({
                                 saveFavicon(hostname, faviconUrl);
                                 return;
                             }
-                            if (model.bookmarks) {
-                                const links = model.bookmarks.linkEditor.state.get().data.links;
+                            if (model.tabs.bookmarks) {
+                                const links = model.tabs.bookmarks.linkEditor.state.get().data.links;
                                 const hasLink = links.some((l: { href: string }) => getHostname(l.href) === hostname);
                                 if (hasLink) saveFavicon(hostname, faviconUrl);
                             }
@@ -679,8 +679,8 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                             const isBlank = !tab.url || tab.url === "about:blank";
                             return (
                                 <>
-                                    {isBlank && bookmarksReady && model.bookmarks && (
-                                        <BlankPageLinks bookmarks={model.bookmarks} />
+                                    {isBlank && bookmarksReady && model.tabs.bookmarks && (
+                                        <BlankPageLinks bookmarks={model.tabs.bookmarks} />
                                     )}
                                     <BrowserWebviewItem
                                         model={model}
@@ -713,10 +713,10 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                         />
                     )}
                 </Panel>
-                {bookmarksReady && model.bookmarks && (
+                {bookmarksReady && model.tabs.bookmarks && (
                     <BookmarksDrawer
                         open={bookmarksOpen}
-                        bookmarks={model.bookmarks}
+                        bookmarks={model.tabs.bookmarks}
                         width={bookmarksWidth}
                         onChangeWidth={(w) => model.state.update((s) => { s.bookmarksWidth = w; })}
                         onClose={bookmarksUI.handleCloseBookmarks}
