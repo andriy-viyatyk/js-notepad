@@ -774,7 +774,16 @@ persephone/
 ├── open-windows.ts         # Multi-window management and broadcasting
 ├── window-states.ts        # Window state persistence
 ├── pipe-server.ts          # Named Pipe server (launcher integration)
-├── mcp-http-server.ts      # MCP Streamable HTTP server (MCP SDK, AI agent integration)
+├── mcp-http-server.ts      # MCP Streamable HTTP transport — sessions (idle reaper, cap), HTTP handling, start/stop lifecycle
+├── mcp/                    # What the MCP server offers, separate from how it is served
+│   ├── server-factory.ts   # createMcpServer({ browserTools }) — assembles manifest + tool groups + guide resources
+│   ├── manifest.ts         # Server identity, client instructions, guide resource list, mtime-cached guide reader
+│   ├── register-tools.ts   # Generic registrar + the pass-through that implements most tools
+│   ├── renderer-bridge.ts  # MCP_EXECUTE/MCP_RESULT IPC — sendToRenderer with per-call timeout
+│   ├── sdk.ts              # Lazy MCP SDK + zod loader (loadSdk / requireSdk)
+│   ├── tool-results.ts     # Response → MCP content mappers (text, page content with image, screenshot)
+│   ├── types.ts            # IMcpToolDef and friends
+│   └── tools/              # The tools themselves, as data — one module per group (window, page, board, agent, browser, guide)
 ├── browser-service.ts      # Browser page support (webview management)
 ├── browser-registration.ts # Default browser registration
 ├── sidecar-process.ts      # Shared sidecar lifecycle (spawn → stdout-readiness sentinel → stop) used by tor-service and mneme-service: start dedupe, readiness timeout, stale-child guard, unexpected-death callback, stop-and-wait before respawn

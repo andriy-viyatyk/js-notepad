@@ -124,7 +124,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Window close / hide / quit arbitration (main; the `eBeforeQuit` round-trip, the last-window hide that implements close-to-tray, the `doQuit` tray-Quit override, and the modified-or-pinned rule deciding whether a closed secondary window is remembered. Reasoning in [pages-architecture.md § Window Shutdown, Tray, and Quit](pages-architecture.md#11-window-shutdown-tray-and-quit)) | `/src/main/open-windows.ts` |
 | System tray (main; Show App / Quit menu, click-toggles-visibility. Quit sets `openWindows.doQuit`, the one flag that overrides close-to-tray) | `/src/main/tray-setup.ts` |
 | Windows browser registration | `/src/main/browser-registration.ts`           |
-| MCP HTTP server          | `/src/main/mcp-http-server.ts`                    |
+| MCP HTTP transport (sessions, HTTP, lifecycle) | `/src/main/mcp-http-server.ts`  |
+| MCP server definition — instructions, guides, tools | `/src/main/mcp/`             |
+| MCP tool definitions (one module per group, tools as data) | `/src/main/mcp/tools/` |
 | Audio/Video player editor| `/src/renderer/editors/video/VideoPlayerEditor.tsx` |
 | Video playback component | `/src/renderer/editors/video/VPlayer.tsx`          |
 | Audio player component   | `/src/renderer/editors/video/AudioPlayer.tsx`      |
