@@ -743,7 +743,7 @@ const tabs = browser.tabs;                  // list of internal tabs
 Browser automation for AI agents lives in `src/renderer/automation/`. This layer is separate from the browser editor — the editor exposes a lightweight `BrowserTargetModel` adapter, and the automation layer builds Playwright-compatible MCP tools on top. The same tools can drive three kinds of `IBrowserTarget`: a **browser page** (`BrowserTargetModel`), a **board** frame (`BoardTargetModel`), and **Persephone's own app window** (`AppTargetModel`, selected with `pageId: "app"`).
 
 ```
-MCP tool call (browser_click) → mcp-handler.ts → automation/commands.ts
+MCP tool call (browser_click) → mcp-handler.ts → api/mcp/command-registry.ts → automation/commands.ts
     → getTarget(params) → resolved IBrowserTarget (browser page / board / app window)
     → perform action via CDP → return accessibility snapshot
 ```
@@ -757,7 +757,7 @@ MCP tool call (browser_click) → mcp-handler.ts → automation/commands.ts
 
 For browser/board targets the resolved page is **activated** (`showPage`) because the webview needs `display != none` for focus/input — so targeting a background page brings it to front, and subsequent untargeted calls naturally stick to it. The app-window target needs no activation.
 
-**Profile visibility & discovery:** `list_pages` / `get_active_page` (renderer `mcp-handler.ts`) include `profileName` / `isIncognito` / `isTor` / `url` for browser pages — `url` is the **active internal tab's** URL and is omitted for incognito/Tor pages. The fields are read via a structural state cast keyed on `editorId === "browser-view"` — deliberately **no static `BrowserEditor` import** in `mcp-handler.ts` (it loads at startup; the browser chunk must stay dynamically imported). `get_app_info` returns `browserProfiles` (configured names) + `defaultBrowserProfile`. `list_windows` (main process) exposes the same three identity fields from the persisted page descriptors (works for closed windows; no `url` — not persisted).
+**Profile visibility & discovery:** `list_pages` / `get_active_page` (renderer `api/mcp/page-commands.ts`) include `profileName` / `isIncognito` / `isTor` / `url` for browser pages — `url` is the **active internal tab's** URL and is omitted for incognito/Tor pages. The fields are read via a structural state cast keyed on `editorId === "browser-view"` — deliberately **no static `BrowserEditor` import** in the page command module (it loads at startup; the browser chunk must stay dynamically imported). `get_app_info` returns `browserProfiles` (configured names) + `defaultBrowserProfile`. `list_windows` (main process) exposes the same three identity fields from the persisted page descriptors (works for closed windows; no `url` — not persisted).
 
 **Privacy guard:** `getTarget()` checks `isIncognito` and `isTor` on the resolved browser page before returning the target. If it is incognito or Tor, all `browser_*` commands return a descriptive error and suggest using `open_url` to open a normal browser page — this holds for direct `pageId` targeting too, and `profileName` matching skips private pages entirely. This prevents AI agents from silently reading or interacting with private sessions.
 

@@ -109,7 +109,15 @@ persephone/
 │   ├── library-service.ts  # LibraryService — script library scanning, caching, file watching
 │   ├── autoload-service.ts # Thin wrapper exposing AutoloadRunner to app lifecycle
 │   ├── pages.ts            # PagesModel singleton export
-│   ├── mcp-handler.ts      # MCP command handler (receives IPC from main, dispatches commands)
+│   ├── mcp-handler.ts      # Thin MCP IPC shell (receives commands from main, logs and returns results)
+│   ├── mcp/                # Renderer MCP command dispatch and focused command handlers
+│   │   ├── command-registry.ts # Built-in command registry + dynamic browser_* dispatch
+│   │   ├── page-commands.ts # Page, script, app-info, and URL command handlers
+│   │   ├── board-commands.ts # Board lifecycle and refresh command handlers
+│   │   ├── ui-push.ts       # ui_push validation and Log View integration
+│   │   ├── tool-commands.ts # Agent Tools registry command handlers
+│   │   ├── request-log.ts   # Bounded MCP request history and server-log page integration
+│   │   └── types.ts         # Shared renderer MCP request/response types
 │   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers
 │   ├── mneme-status.ts     # Mneme health prober + reactive status (shared MCP connection; drives sidecar launch, indicators, and auto-opens the config editor when no model is provisioned)
 │   ├── proc.ts             # IProc implementation (app.proc.execute) — the ipcRenderer transport for the shared execute() handle (shared/execute-handle.ts); compile-time drift guard keeps it in sync with runner-channels.ts

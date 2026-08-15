@@ -125,6 +125,7 @@ interface EditorRow {
     id: string;
     name: string;
     hasContentHost?: boolean;
+    mcpHint?: string;
     /** Explicit acceptance override (monaco, file-diff). */
     accepts?: EditorDefinition["accepts"];
     load: () => Promise<EditorModule>;
@@ -150,7 +151,7 @@ const EDITORS: EditorRow[] = [
     { id: "grid-json", name: "Grid (JSON)", hasContentHost: true, load: async () => (await import("./grid")).gridJsonModule },
     { id: "grid-csv", name: "Grid (CSV)", hasContentHost: true, load: async () => (await import("./grid")).gridCsvModule },
     { id: "grid-jsonl", name: "Grid (JSONL)", hasContentHost: true, load: async () => (await import("./grid")).gridJsonlModule },
-    { id: "log-view", name: "Log View", hasContentHost: true, load: async () => (await import("./log-view")).logViewModule },
+    { id: "log-view", name: "Log View", hasContentHost: true, mcpHint: 'Use ui_push to write entries to the MCP log page, or execute_script with: await app.pages.requireWellKnownPage("mcp-ui-log")', load: async () => (await import("./log-view")).logViewModule },
     { id: "md-view", name: "Preview", hasContentHost: true, load: async () => (await import("./markdown")).markdownModule },
     { id: "svg-view", name: "Preview", hasContentHost: true, load: async () => (await import("./svg")).svgModule },
     { id: "html-view", name: "Preview", hasContentHost: true, load: async () => (await import("./html")).htmlModule },
@@ -161,16 +162,16 @@ const EDITORS: EditorRow[] = [
     { id: "rest-client", name: "Rest Client", hasContentHost: true, load: async () => (await import("./rest-client")).restClientModule },
     { id: "notebook-view", name: "Notebook", hasContentHost: true, load: async () => (await import("./notebook")).notebookModule },
     { id: "env-vars-view", name: "Env Vars", hasContentHost: true, load: async () => (await import("./env-vars")).envVarsModule },
-    { id: "browser-view", name: "Browser", load: async () => (await import("./browser")).browserModule },
-    { id: "image-view", name: "Image Viewer", load: async () => (await import("./image")).imageModule },
-    { id: "archive-view", name: "Archive", load: async () => (await import("./archive")).archiveModule },
-    { id: "video-view", name: "Video Player", load: async () => (await import("./video")).videoModule },
-    { id: "settings-view", name: "Settings", load: async () => (await import("./settings")).settingsModule },
-    { id: "about-view", name: "About", load: async () => (await import("./about")).aboutModule },
+    { id: "browser-view", name: "Browser", mcpHint: "Use the open_url tool to open a URL in the built-in browser.", load: async () => (await import("./browser")).browserModule },
+    { id: "image-view", name: "Image Viewer", mcpHint: 'Use execute_script with: await app.pages.openFile("/path/to/image.png")', load: async () => (await import("./image")).imageModule },
+    { id: "archive-view", name: "Archive", mcpHint: 'Use execute_script with: await app.pages.openFile("/path/to/archive.zip")', load: async () => (await import("./archive")).archiveModule },
+    { id: "video-view", name: "Video Player", mcpHint: 'Use execute_script with: await app.pages.openFile("/path/to/video.mp4")', load: async () => (await import("./video")).videoModule },
+    { id: "settings-view", name: "Settings", mcpHint: "Use execute_script with: await app.pages.showSettingsPage()", load: async () => (await import("./settings")).settingsModule },
+    { id: "about-view", name: "About", mcpHint: "Use execute_script with: await app.pages.showAboutPage()", load: async () => (await import("./about")).aboutModule },
     // Reached only via showToolsHubPage (the AppBar panel's "Open in new tab" button) —
     // never a file-open target.
     { id: "tools-hub-view", name: "Tools & Editors", load: async () => (await import("./tools-hub")).toolsHubModule },
-    { id: "mcp-view", name: "MCP Inspector", load: async () => (await import("./mcp-inspector")).mcpModule },
+    { id: "mcp-view", name: "MCP Inspector", mcpHint: 'Use execute_script with: await app.pages.showMcpInspectorPage() or await app.pages.showMcpInspectorPage({ url: "http://host:port/mcp" })', load: async () => (await import("./mcp-inspector")).mcpModule },
     { id: "mneme-config", name: "Mneme", load: async () => (await import("./mneme-config")).mnemeConfigModule },
     { id: "storybook-view", name: "Storybook", load: async () => (await import("./storybook")).storybookModule },
     { id: "category-view", name: "Folder View", load: async () => (await import("./category")).categoryModule },
@@ -208,6 +209,7 @@ for (const e of EDITORS) {
         id: e.id,
         name: e.name,
         hasContentHost: e.hasContentHost ?? false,
+        mcpHint: e.mcpHint,
         accepts: e.accepts ?? (match ? makeAccepts(match) : () => -1),
         match,
         loadModule: e.load,

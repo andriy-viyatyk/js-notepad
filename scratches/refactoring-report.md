@@ -291,7 +291,7 @@ concerns. tsc + eslint clean; production build confirms browser chunks stayed la
 - The "explicit content-host target wins" predicate exists in **4 copies** across
   PageModel and PagesLifecycleModel — extract one helper.
 
-### 2.3 `api/mcp-handler.ts` (970) — split into `api/mcp/`
+### 2.3 `api/mcp-handler.ts` (970) — split into `api/mcp/` — ✅ DONE (US-961, 2026-08-16)
 
 One file per command group (`page-commands`, `board-commands`, `tool-commands`, `ui-push`,
 `request-log`), a `commandRegistry` map replacing the 16-case switch, handler file reduced to
@@ -302,6 +302,13 @@ IPC + dispatch (~80 lines). Specific defects to fix on the way:
   page-summary assembly duplicated ×3 (`toPageSummary(page)` helper).
 - The hardcoded per-editor `hints` map duplicates knowledge the editor registry should own —
   move to an `EditorDefinition.mcpHint` field.
+
+**✅ Outcome (US-961):** `mcp-handler.ts` is now a 30-line IPC/distribution shell. Page,
+Board, tool, UI-push, request-log, and registry logic live in focused `api/mcp/` modules;
+the 16 non-browser commands use an exhaustive typed registry while `browser_*` retains its
+lazy automation import. Dialog specifications are module-scoped, page summaries and browser
+privacy extraction are shared, and standalone-editor MCP hints come from editor metadata.
+Typecheck, lint, diff-check, and live MCP smoke tests for page operations and `ui_push` passed.
 
 ### 2.4 `main/mcp-http-server.ts` (1,119) — 714-line `createMcpServer` — ✅ DONE (US-954, 2026-08-15)
 

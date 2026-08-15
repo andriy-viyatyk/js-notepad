@@ -66,6 +66,10 @@ export interface EditorDefinition {
      *  explicit during the inert phase for clarity. */
     readonly hasContentHost: boolean;
 
+    /** MCP-specific recovery guidance when this standalone editor is passed to
+     *  `create_page`, which only constructs content-host editors. */
+    readonly mcpHint?: string;
+
     /** Granular matching rules. Absent for pure standalone editors
      *  (browser / settings / about / mcp / storybook) that never match a file
      *  and never appear in the switch widget. */
