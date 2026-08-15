@@ -465,7 +465,7 @@ that uses an icon transitively depends on `api/`).
 `uikit/**` (no `api/`, `ui/`, `editors/`, `components/`), grandfathering the 4 cases with
 TODO-tagged disables. Without enforcement this erodes again.
 
-### 3.2 The tree-provider ⇄ link-editor cycle
+### 3.2 The tree-provider ⇄ link-editor cycle — ✅ DONE (US-962, 2026-08-16)
 
 `components/tree-provider` imports `LinksList`/`LinksTiles`/`linkTraits` from
 `editors/link-editor`, while six link-editor files import `favicon-cache`/`TreeProviderItemIcon`
@@ -600,7 +600,7 @@ fine), `monaco-languages.ts` (pure data — at most move it out of `utils/`).
 10. ~~Registry-driven editor construction: retire `attachEditorToPage`'s 15-branch block and
     `buildEditorById`'s import switch (§1.2).~~ ✅ done (US-949; legacy module system removed
     entirely, `attachEditorToPage` kept sync via `createEditorSync` + startup preload).
-11. Break the tree-provider ⇄ link-editor cycle (§3.2).
+11. ~~Break the tree-provider ⇄ link-editor cycle (§3.2).~~ ✅ done (US-962).
 12. ~~Decompose `navigatePageTo` (§2.1) and `switchMainEditor` (§2.2)~~ ✅ done
     (US-952 for §2.1, US-953 for §2.2 incl. the rest of that section) — manual
     navigation/switch regression pass still outstanding (these carry

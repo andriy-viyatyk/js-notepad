@@ -6,7 +6,7 @@ import { app } from "../../api/app";
 import type { ILink } from "../../api/types/io.tree";
 import { LinkItem, LinkViewMode, LinkSource } from "./linkTypes";
 import { LinksTiles } from "./LinksTiles";
-import { getHostname, requestFaviconSave } from "../../components/tree-provider/favicon-cache";
+import { getHostname, requestFaviconSave } from "../../components/icons/favicon-cache";
 
 const { clipboard } = require("electron");
 

@@ -125,7 +125,7 @@ The first group (`ILink` through `PinnedLink`) have TraitSets registered, so dro
 Registration happens once, at module load time, in the file that defines the trait:
 
 ```typescript
-// src/renderer/editors/link-editor/linkTraits.ts
+// src/renderer/core/traits/linkTraits.ts
 traitRegistry.register(TraitTypeId.ILink, linkTraits);
 ```
 
@@ -485,5 +485,5 @@ The `LINK`/`FILE_LINK` split keeps each trait single-purpose: identity lives in 
 | TraitRegistry + TraitTypeId enum | `/src/renderer/core/traits/TraitRegistry.ts` |
 | Drag-and-drop utilities | `/src/renderer/core/traits/dnd.ts` |
 | Public exports | `/src/renderer/core/traits/index.ts` |
-| ILink trait definition + registration | `/src/renderer/editors/link-editor/linkTraits.ts` |
+| ILink trait definition + registration | `/src/renderer/core/traits/linkTraits.ts` |
 | Tree trait props | `/src/renderer/uikit/Tree/TreeModel.ts` |

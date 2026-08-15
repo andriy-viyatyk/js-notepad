@@ -407,7 +407,6 @@ persephone/
 │   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state; drag-drop import (files→links, links across windows)
 │   │   ├── linkTypes.ts
 │   │   ├── link-open.ts              # buildLinkEditorContent — links → .link.json content; dependency-light for the sync openLinks API
-│   │   ├── linkTraits.ts             # ILink trait definition + registration (LINK + FILE_LINK — local-file links yield bytes)
 │   │   ├── tor-src.ts                # Rewrites remote image src → tor-src:// when the editor is hosted by a Tor browser page (the app renderer is unproxied); local schemes pass through
 │   │   ├── pipe-image-src.ts         # usePipeImageSrc — reads an archive-entry imgSrc through a content pipe into a cached blob URL; every other src shape passes through
 │   │   ├── panels/                   # Shared panel components (inline + secondary view)
@@ -737,7 +736,6 @@ persephone/
 │   │   ├── TreeProviderViewModel.ts # Tree loading, selection, actions, and drops
 │   │   ├── CategoryView.tsx # Folder-content view
 │   │   ├── CategoryViewModel.ts # Folder listing, selection, actions, and drops
-│   │   ├── favicon-cache.ts # Favicon download/cache for HTTP links (shared by link-editor, browser, tree icons)
 │   │   ├── os-clipboard.ts  # OS file-clipboard actions (Cut/Copy/Paste ⇄ Windows Explorer) shared by the tree + category view models; file provider only
 │   │   ├── plural-actions.tsx # Set-shaped actions shared by the tree + folder page: the multi-select gate, nested-item pruning, the plural menu, batch delete
 │   │   ├── item-crud-actions.ts # Shared create/rename/delete/paste operations and refresh handling
@@ -748,7 +746,7 @@ persephone/
 │   ├── file-search/        # FileSearch — standalone file content search with virtualized results; accumulated rows live on the model, not in reactive state
 │   ├── file-list/          # FileList — flat file list (FileIcon + single-click + search), reused by the Recent files panel and the git Changes panel; getTrailing/compact props (EPIC-031)
 │   ├── file-grid/          # FileGrid — AVGrid-based file list (icon/path/status columns, header-as-label, sorting, range select + range-copy, single/double click, context-menu passthrough); git Changes panel; eventual FileList replacement (EPIC-031)
-│   ├── icons/              # FileIcon, LanguageIcon
+│   ├── icons/              # FileIcon, LanguageIcon, TreeProviderItemIcon, favicon-cache
 │   ├── page-manager/       # Portal-based page/tab host (prevents iframe/webview reload on reorder)
 │   └── git-tree/           # Git history view (AVGrid + SVG BranchTreeCell + swimlane layout) + git data submodels (GitTreeModel = commits, GitChangesModel = staged/unstaged status, GitStatusBadge) — shared by the git-tree editor + File Diff picker + Changes panel (EPIC-030/031)
 │
@@ -763,6 +761,8 @@ persephone/
 │   │   ├── traits.ts       # TraitKey<T>, TraitSet, Traited<V>, traited(), isTraited()
 │   │   ├── TraitRegistry.ts # TraitRegistry singleton + TraitTypeId enum
 │   │   ├── dnd.ts          # setTraitDragData, getTraitDragData, hasTraitDragData, resolveTraits
+│   │   ├── fileLinkTraits.ts # FILE_LINK trait definition + registration
+│   │   ├── linkTraits.ts    # ILink trait definition + registration (LINK + FILE_LINK)
 │   │   └── index.ts        # Public exports
 │   ├── utils/              # Utility functions
 │   │   ├── utils.ts        # General helpers

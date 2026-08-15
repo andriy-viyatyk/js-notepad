@@ -14,18 +14,18 @@ import { showAppPopupMenu } from "../../ui/dialogs";
 import color from "../../theme/color";
 import { Panel } from "../../uikit/Panel/Panel";
 import { Spacer } from "../../uikit/Spacer/Spacer";
-import { LinksList } from "../../editors/link-editor/LinksList";
-import { LinksTiles } from "../../editors/link-editor/LinksTiles";
 import type { ILink } from "../../api/types/io.tree";
 import {
     CategoryViewModel,
     CategoryViewProps,
     CategoryViewMode,
+    type CategoryItemsRendererProps,
     defaultCategoryViewState,
 } from "./CategoryViewModel";
 
 export type { CategoryViewProps } from "./CategoryViewModel";
 export type { CategoryViewMode } from "./CategoryViewModel";
+export type { CategoryItemsRendererProps } from "./CategoryViewModel";
 
 // =============================================================================
 // View mode constants
@@ -97,8 +97,6 @@ const CategoryViewRoot = styled.div({
         outlineOffset: -2,
     },
 });
-
-const getIdByHref = (link: ILink) => link.href;
 
 export function CategoryView(props: CategoryViewProps) {
     const model = useComponentModel(
@@ -220,6 +218,27 @@ export function CategoryView(props: CategoryViewProps) {
         searchInputRef.current?.blur();
     }, [model]);
 
+    const renderedItems = props.renderItems({
+        items: filteredItems,
+        viewMode,
+        selectedId: props.selectedHref ?? undefined,
+        selectedIds,
+        searchText: state.searchText,
+        onSelect: handleSelect,
+        onDoubleClick: handleDoubleClick,
+        onEdit: handleEdit,
+        onDelete: handleDelete ? (link, _skipConfirm) => handleDelete(link) : undefined,
+        onContextMenu: handleContextMenu,
+        onGridModel: handleGridModel,
+        onItemDragEnter: acceptsDrops ? handleItemDragEnter : undefined,
+        onItemDragOver: acceptsDrops ? handleItemDragOver : undefined,
+        onItemDragLeave: acceptsDrops ? handleItemDragLeave : undefined,
+        onItemDrop: acceptsDrops ? handleItemDrop : undefined,
+        dropTargetId: state.dropTargetHref,
+        dragSourceId: allowsDrag ? provider.sourceUrl : undefined,
+        onDragStartOverride: allowsDrag ? handleDragStartOverride : undefined,
+    } satisfies CategoryItemsRendererProps);
+
     // Error state
     if (state.error) {
         return (
@@ -307,48 +326,10 @@ export function CategoryView(props: CategoryViewProps) {
                         tabIndex={0}
                         data-focus-selection=""
                     >
-                        <LinksTiles
-                            links={filteredItems}
-                            viewMode={viewMode as Exclude<CategoryViewMode, "list">}
-                            selectedId={props.selectedHref ?? undefined}
-                            selectedIds={selectedIds}
-                            getId={getIdByHref}
-                            onSelect={handleSelect}
-                            onDoubleClick={handleDoubleClick}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete ? (link) => handleDelete(link) : undefined}
-                            onContextMenu={handleContextMenu}
-                            onGridModel={handleGridModel}
-                            onItemDragEnter={acceptsDrops ? handleItemDragEnter : undefined}
-                            onItemDragOver={acceptsDrops ? handleItemDragOver : undefined}
-                            onItemDragLeave={acceptsDrops ? handleItemDragLeave : undefined}
-                            onItemDrop={acceptsDrops ? handleItemDrop : undefined}
-                            dropTargetId={state.dropTargetHref}
-                            dragSourceId={allowsDrag ? provider.sourceUrl : undefined}
-                            onDragStartOverride={allowsDrag ? handleDragStartOverride : undefined}
-                        />
+                        {renderedItems}
                     </Panel>
                 ) : (
-                    <LinksList
-                        links={filteredItems}
-                        selectedId={props.selectedHref ?? undefined}
-                        selectedIds={selectedIds}
-                        getId={getIdByHref}
-                        searchText={state.searchText}
-                        onSelect={handleSelect}
-                        onDoubleClick={handleDoubleClick}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete ? (link) => handleDelete(link) : undefined}
-                        onContextMenu={handleContextMenu}
-                        onGridModel={handleGridModel}
-                        onItemDragEnter={acceptsDrops ? handleItemDragEnter : undefined}
-                        onItemDragOver={acceptsDrops ? handleItemDragOver : undefined}
-                        onItemDragLeave={acceptsDrops ? handleItemDragLeave : undefined}
-                        onItemDrop={acceptsDrops ? handleItemDrop : undefined}
-                        dropTargetId={state.dropTargetHref}
-                        dragSourceId={allowsDrag ? provider.sourceUrl : undefined}
-                        onDragStartOverride={allowsDrag ? handleDragStartOverride : undefined}
-                    />
+                    renderedItems
                 )}
             </div>
             {/* Footer mirrors the Monaco editor's EditorToolbar footer (same dark bg /

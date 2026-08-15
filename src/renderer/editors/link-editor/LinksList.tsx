@@ -5,9 +5,9 @@ import { IconButton, ListItem, Panel } from "../../uikit";
 import { highlight } from "../../uikit/shared/highlight";
 import { DeleteIcon, RenameIcon } from "../../theme/icons";
 import type { ILink } from "../../api/types/io.tree";
-import { TreeProviderItemIcon } from "../../components/tree-provider/TreeProviderItemIcon";
+import { TreeProviderItemIcon } from "../../components/icons/TreeProviderItemIcon";
 import { LinkTooltipContent } from "./LinkTooltip";
-import { useFavicons } from "../../components/tree-provider/favicon-cache";
+import { useFavicons } from "../../components/icons/favicon-cache";
 import { TraitTypeId, setTraitDragData } from "../../core/traits";
 import type { TorProxyInfo } from "./tor-src";
 

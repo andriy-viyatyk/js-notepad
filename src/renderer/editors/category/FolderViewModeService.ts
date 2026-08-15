@@ -1,4 +1,4 @@
-import type { CategoryViewMode } from "../../components/tree-provider/CategoryViewModel";
+import type { CategoryViewMode } from "../../components/tree-provider";
 import { fs } from "../../api/fs";
 
 const FILE_NAME = "folderViewMode.json";

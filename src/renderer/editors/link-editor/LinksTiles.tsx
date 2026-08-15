@@ -7,7 +7,7 @@ import { DeleteIcon, GlobeIcon, RenameIcon } from "../../theme/icons";
 import type { ILink } from "../../api/types/io.tree";
 import { LinkViewMode } from "./linkTypes";
 import { TraitTypeId, setTraitDragData } from "../../core/traits";
-import { getHostname, getFaviconPathSync, useFavicons } from "../../components/tree-provider/favicon-cache";
+import { getHostname, getFaviconPathSync, useFavicons } from "../../components/icons/favicon-cache";
 import { resolveTorSrc, type TorProxyInfo } from "./tor-src";
 import { usePipeImageSrc } from "./pipe-image-src";
 

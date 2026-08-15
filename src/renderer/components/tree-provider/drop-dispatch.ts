@@ -1,6 +1,5 @@
 import type { IFileLink, ILink, ITreeProvider } from "../../api/types/io.tree";
-import { FILE_LINK, resolveTraits, type TraitDragPayload } from "../../core/traits";
-import { LINK } from "../../editors/link-editor/linkTraits";
+import { FILE_LINK, LINK, resolveTraits, type TraitDragPayload } from "../../core/traits";
 import { normalizeHref } from "./href-utils";
 
 export type TraitDropAction =

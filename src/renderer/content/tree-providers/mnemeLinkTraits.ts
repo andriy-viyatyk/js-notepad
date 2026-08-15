@@ -1,8 +1,7 @@
 import type { ILink } from "../../api/types/io.tree";
 import type { IFileLink } from "../../core/traits/fileLinkTraits";
 import { FILE_LINK } from "../../core/traits/fileLinkTraits";
-import { LINK } from "../../editors/link-editor/linkTraits";
-import { TraitSet, TraitTypeId, traitRegistry } from "../../core/traits";
+import { LINK, TraitSet, TraitTypeId, traitRegistry } from "../../core/traits";
 import { mnemeConnection } from "../../api/mneme-connection";
 import { toMnemeHref } from "../mneme-link";
 

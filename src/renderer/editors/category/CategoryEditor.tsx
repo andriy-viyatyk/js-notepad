@@ -1,7 +1,10 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { CategoryView } from "../../components/tree-provider/CategoryView";
-import type { CategoryViewMode } from "../../components/tree-provider/CategoryViewModel";
-import { supportsMultiSelect } from "../../components/tree-provider/plural-actions";
+import {
+    CategoryView,
+    supportsMultiSelect,
+    type CategoryItemsRendererProps,
+    type CategoryViewMode,
+} from "../../components/tree-provider";
 import { PageToolbar } from "../base";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
@@ -18,6 +21,8 @@ import { LinkEditor } from "../link-editor/LinkEditor";
 import { ExplorerEditor } from "../explorer";
 import { ArchiveEditor } from "../archive";
 import { folderViewModeService } from "./FolderViewModeService";
+import { LinksList } from "../link-editor/LinksList";
+import { LinksTiles } from "../link-editor/LinksTiles";
 
 
 interface ITreeProviderHost {
@@ -90,6 +95,33 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
         setViewMode(mode);
         folderViewModeService.setViewMode(categoryPath, mode);
     }, [categoryPath]);
+
+    const renderItems = useCallback((itemProps: CategoryItemsRendererProps) => {
+        const commonProps = {
+            links: itemProps.items,
+            selectedId: itemProps.selectedId,
+            selectedIds: itemProps.selectedIds,
+            getId: (item: ITreeProviderItem) => item.href,
+            onSelect: itemProps.onSelect,
+            onDoubleClick: itemProps.onDoubleClick,
+            onEdit: itemProps.onEdit,
+            onDelete: itemProps.onDelete,
+            onContextMenu: itemProps.onContextMenu,
+            onGridModel: itemProps.onGridModel,
+            onItemDragEnter: itemProps.onItemDragEnter,
+            onItemDragOver: itemProps.onItemDragOver,
+            onItemDragLeave: itemProps.onItemDragLeave,
+            onItemDrop: itemProps.onItemDrop,
+            dropTargetId: itemProps.dropTargetId,
+            dragSourceId: itemProps.dragSourceId,
+            onDragStartOverride: itemProps.onDragStartOverride,
+        };
+        return itemProps.viewMode === "list" ? (
+            <LinksList {...commonProps} searchText={itemProps.searchText} />
+        ) : (
+            <LinksTiles {...commonProps} viewMode={itemProps.viewMode} />
+        );
+    }, []);
 
     const handleSelect = useCallback((item: ITreeProviderItem) => {
         host?.selectionState.update((s) => { s.selectedHref = item.href; });
@@ -175,6 +207,7 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
                 onItemClick={handleSelect}
                 onItemDoubleClick={handleNavigate}
                 onFolderClick={handleNavigate}
+                renderItems={renderItems}
                 toolbarPortalRef={searchPortal}
             />
         </Panel>

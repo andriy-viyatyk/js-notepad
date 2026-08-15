@@ -203,7 +203,7 @@ function BrowserWebviewItemImpl({
                     model.tabs.cacheFavicon(currentUrl, faviconUrl);
                     model.updateTab(internalTabId, { favicon: faviconUrl });
                     if (!model.state.get().isIncognito && !model.state.get().isTor) {
-                        import("../../components/tree-provider/favicon-cache").then(({ getHostname, saveFavicon, consumeFaviconSaveRequest }) => {
+                        import("../../components/icons/favicon-cache").then(({ getHostname, saveFavicon, consumeFaviconSaveRequest }) => {
                             const hostname = getHostname(currentUrl);
                             if (!hostname) return;
                             if (consumeFaviconSaveRequest(hostname)) {

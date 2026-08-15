@@ -8,7 +8,7 @@ import type {
 } from "../../api/types/io.tree";
 import type { ISubscriptionObject } from "../../api/types/events";
 import { encodeCategoryLink, relativeCategorySegments } from "../../content/tree-providers/tree-provider-link";
-import { getHostname } from "../../components/tree-provider/favicon-cache";
+import { getHostname } from "../../components/icons/favicon-cache";
 import { fpBasename } from "../../core/utils/file-path";
 import { fs } from "../../api/fs";
 import type { ILinkSource, LinkItem } from "./linkTypes";

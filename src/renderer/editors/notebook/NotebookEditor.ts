@@ -8,7 +8,7 @@ import { debounce, errMessage } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
 import { tryParseJson } from "../../core/utils/parse-utils";
 import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../core/traits";
-import { LINK } from "../link-editor/linkTraits";
+import { LINK } from "../../core/traits";
 import type { ILink } from "../../api/types/io.tree";
 import type { CategoryItem } from "./category-tree";
 import { NoteItem, NotebookData } from "./notebookTypes";

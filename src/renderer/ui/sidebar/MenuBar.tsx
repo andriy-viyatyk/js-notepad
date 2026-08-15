@@ -41,7 +41,7 @@ import {
     TreeProviderView,
     type TreeProviderViewRef,
     type TreeProviderViewSavedState,
-} from "../../components/tree-provider/TreeProviderView";
+} from "../../components/tree-provider";
 import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider";
 import { FileListRef } from "../../components/file-list";
 import { ContextMenuEvent } from "../../api/events/events";

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Panel, Tooltip } from "../../../uikit";
 import { highlight } from "../../../uikit/shared/highlight";
-import { TreeProviderView } from "../../../components/tree-provider/TreeProviderView";
+import { TreeProviderView } from "../../../components/tree-provider";
 import type { ContextMenuEvent } from "../../../api/events/events";
 import type { ILink } from "../../../api/types/io.tree";
 import color from "../../../theme/color";

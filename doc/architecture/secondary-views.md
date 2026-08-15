@@ -503,6 +503,8 @@ this.secondaryView = ["my-panel"];
 
 CategoryEditor is the main content area editor for `tree-category://` links. It renders CategoryView for any ITreeProvider — file system folders, archive subfolders, or future link categories.
 
+`CategoryView` owns provider-backed listing, selection, search, drag-and-drop, and file actions. It does not import the link editor's list/tile components. Instead, `CategoryEditor` supplies the `renderItems` callback, which adapts the model's `CategoryItemsRendererProps` to `LinksList` or `LinksTiles`. This keeps the reusable tree-provider layer below the editor layer while preserving the link-specific presentation and behavior.
+
 ### Provider Resolution
 
 CategoryEditor resolves its ITreeProvider by scanning `page.secondaryViews[]`. It matches the `tree-category://` link's `type` and `url` against each secondary view's `treeProvider.type` and `treeProvider.sourceUrl`:

@@ -234,7 +234,7 @@ export class BrowserBookmarksUIModel {
         if (!isIncognito && !isTor) {
             const activeTab = tabs.find((t) => t.id === activeTabId);
             if (activeTab?.favicon) {
-                const { getHostname, saveFavicon } = await import("../../components/tree-provider/favicon-cache");
+                const { getHostname, saveFavicon } = await import("../../components/icons/favicon-cache");
                 const hostname = getHostname(urlInput);
                 if (hostname) saveFavicon(hostname, activeTab.favicon);
             }

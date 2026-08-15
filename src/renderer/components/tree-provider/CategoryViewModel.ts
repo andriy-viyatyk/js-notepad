@@ -41,6 +41,7 @@ import {
 import { getTraitDropAction } from "./drop-dispatch";
 import { DragEnterCounter } from "../../uikit/shared/drag-enter-counter";
 import { sameHref, sameHrefs } from "./href-utils";
+import type { RenderGridModel } from "../../uikit/RenderGrid";
 
 // =============================================================================
 // Types
@@ -53,6 +54,28 @@ export type CategoryViewMode =
     | "tiles-landscape-big"
     | "tiles-portrait"
     | "tiles-portrait-big";
+
+/** Presentation callbacks owned by a folder page and rendered by its editor-level host. */
+export interface CategoryItemsRendererProps {
+    items: ITreeProviderItem[];
+    viewMode: CategoryViewMode;
+    selectedId?: string;
+    selectedIds?: ReadonlySet<string>;
+    searchText: string;
+    onSelect: (item: ITreeProviderItem, e?: React.MouseEvent) => void;
+    onDoubleClick: (item: ITreeProviderItem) => void;
+    onEdit?: (item: ITreeProviderItem) => void;
+    onDelete?: (item: ITreeProviderItem, skipConfirm: boolean) => void;
+    onContextMenu: (e: React.MouseEvent, item: ITreeProviderItem) => void;
+    onGridModel: (model: RenderGridModel | null) => void;
+    onItemDragEnter?: (item: ITreeProviderItem, e: React.DragEvent) => void;
+    onItemDragOver?: (item: ITreeProviderItem, e: React.DragEvent) => void;
+    onItemDragLeave?: (item: ITreeProviderItem, e: React.DragEvent) => void;
+    onItemDrop?: (item: ITreeProviderItem, e: React.DragEvent) => void;
+    dropTargetId?: string | null;
+    dragSourceId?: string;
+    onDragStartOverride?: (item: ITreeProviderItem, e: React.DragEvent) => boolean;
+}
 
 export interface CategoryViewProps {
     provider: ITreeProvider;
@@ -76,6 +99,8 @@ export interface CategoryViewProps {
      *  file operation is meaningful (`supportsMultiSelect`) — every other provider's folder
      *  page stays single-select. */
     multiSelect?: boolean;
+    /** Editor-level renderer for the Link-style folder items. */
+    renderItems: (props: CategoryItemsRendererProps) => React.ReactNode;
 }
 
 export interface CategoryViewState {

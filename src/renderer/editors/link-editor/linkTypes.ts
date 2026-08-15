@@ -2,7 +2,7 @@ import type { ILink } from "../../api/types/io.tree";
 import { TextFileModel } from "../text/TextEditorModel";
 
 // Ensure link traits are registered at startup
-import "./linkTraits";
+import "../../core/traits/linkTraits";
 
 // =============================================================================
 // Link Item

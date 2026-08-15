@@ -7,7 +7,7 @@ import { TextFileModel } from "../text/TextEditorModel";
 import { ui } from "../../api/ui";
 import { debounce, errMessage } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
-import { getHostname } from "../../components/tree-provider/favicon-cache";
+import { getHostname } from "../../components/icons/favicon-cache";
 import type { RenderGridModel } from "../../uikit/RenderGrid";
 import type { ILink } from "../../api/types/io.tree";
 import type { MenuItem } from "../../uikit/Menu/types";

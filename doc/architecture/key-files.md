@@ -43,7 +43,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Trait system core        | `/src/renderer/core/traits/traits.ts`             |
 | Trait registry + TraitTypeId | `/src/renderer/core/traits/TraitRegistry.ts`  |
 | Drag-and-drop utilities  | `/src/renderer/core/traits/dnd.ts`                |
-| ILink trait definition   | `/src/renderer/editors/link-editor/linkTraits.ts` |
+| ILink trait definition   | `/src/renderer/core/traits/linkTraits.ts` |
 | Content pipe             | `/src/renderer/content/ContentPipe.ts`            |
 | Content pipe registry    | `/src/renderer/content/registry.ts`               |
 | File provider            | `/src/renderer/content/providers/FileProvider.ts` |
@@ -92,6 +92,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Log view editor          | `/src/renderer/editors/log-view/LogViewEditor.ts` |
 | Syntax-highlighted code  | `/src/renderer/editors/shared/ColorizedCode.tsx`  |
 | Editor icon resolver (tab + sidebar panel headers; `noLanguage`/`getIcon` vs `LanguageIcon`) | `/src/renderer/components/icons/EditorIcon.tsx` |
+| Tree-provider item icon and HTTP favicon cache (directory/provider icons plus shared favicon lookup for link and browser surfaces) | `/src/renderer/components/icons/TreeProviderItemIcon.tsx`, `/src/renderer/components/icons/favicon-cache.ts` |
 | Notebook editor          | `/src/renderer/editors/notebook/NotebookEditor.ts` |
 | Notebook types           | `/src/renderer/editors/notebook/notebookTypes.ts` |
 | Note item edit model     | `/src/renderer/editors/notebook/note-editor/NoteItemEditModel.ts` |
@@ -175,6 +176,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Shared plural tree-provider actions (`supportsMultiSelect` — the one place that answers "may this provider be multi-selected", currently `type === "file"`; `pruneNestedItems` — drops any item living inside a selected folder, applied at every plural entry point because a folder-level action already covers its descendants; `buildMultiItemMenuItems` — the `Copy Paths (N)` / `Cut (N)` / `Copy (N)` / `Delete (N)` menu; `deleteItemsBatch` — one count-only confirm for N items, returning `"none" \| "single" \| "batch"` so a single-item delete keeps the caller's existing per-item path untouched) | `/src/renderer/components/tree-provider/plural-actions.tsx` |
 | Shared tree-provider drop actions (`moveItemsInto` / `importFilesInto` / `dropOsFilesInto`, all taking a `DropTarget` of `{ path, title }` rather than a tree node — which is what lets the Explorer tree and the folder page share them. `moveItemsInto`'s branch order is load-bearing: `provider.moveToCategory` first, then a batched same-source file move onto `copyPathsInto`, then a single-item `provider.rename` for providers like Mneme) | `/src/renderer/components/tree-provider/tree-drop-actions.ts` |
 | Folder-content view model (the page a folder opens into; list/tile rendering state, search, and — where the provider allows it — Ctrl/Shift multi-selection, plural menus, Ctrl+A/Delete/Escape, drops, and native OS drag-out. Its selection is `state.selectedHrefs`, deliberately transient and NOT persisted: a folder page re-lists from scratch each time it opens, while `props.selectedHref` stays the singular "primary" item the Explorer tree shares. `dragEnterCounts` counts dragenter/dragleave per target keyed by href with `null` for the view itself, because child elements fire spurious `dragleave` and a boolean flickers; the whitespace highlight is then "inside the view AND no row targeted". See [secondary-views.md](secondary-views.md) §12) | `/src/renderer/components/tree-provider/CategoryViewModel.ts` |
+| Folder-content view (provider-backed folder state/actions plus an editor-supplied item renderer; keeps link-specific list/tile components out of the generic tree-provider layer) | `/src/renderer/components/tree-provider/CategoryView.tsx` |
 | Shared tree-provider item actions (create file/folder, rename, delete, and OS-clipboard paste with caller-provided refresh) | `/src/renderer/components/tree-provider/item-crud-actions.ts` |
 | Shared tree-provider item/background menus (single-item operations, writable-provider gates, and terminal/open actions) | `/src/renderer/components/tree-provider/item-menus.tsx` |
 | Tree-provider trait-drop dispatcher (resolves same-source moves, link imports, and file imports while applying self/descendant guards) | `/src/renderer/components/tree-provider/drop-dispatch.ts` |

@@ -17,7 +17,7 @@ import { TraitTypeId } from "../../core/traits";
 import type { TraitDragPayload } from "../../core/traits";
 import { api } from "../../../ipc/renderer/api";
 import { supportsOsClipboard } from "./os-clipboard";
-import { TreeProviderItemIcon } from "./TreeProviderItemIcon";
+import { TreeProviderItemIcon } from "../icons/TreeProviderItemIcon";
 import { getTraitDropAction } from "./drop-dispatch";
 import {
     TreeProviderViewModel,

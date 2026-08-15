@@ -4,7 +4,7 @@ import { SideBarPanelHeader } from "../../../ui/secondary-views/SideBarPanelHead
 import { Panel } from "../../../uikit/Panel";
 import { Tree } from "../../../uikit/Tree";
 import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../../core/traits";
-import { LINK } from "../../link-editor/linkTraits";
+import { LINK } from "../../../core/traits";
 import { buildCategoryTreeItems, type CategoryItem } from "../category-tree";
 import { NotebookEditor } from "../NotebookEditor";
 

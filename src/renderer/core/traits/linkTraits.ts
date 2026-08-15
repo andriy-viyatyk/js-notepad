@@ -1,6 +1,7 @@
 import type { ILink, IFileLink } from "../../api/types/io.tree";
-import { TraitKey, TraitSet, TraitTypeId, traitRegistry } from "../../core/traits";
-import { FILE_LINK } from "../../core/traits/fileLinkTraits";
+import { TraitKey, TraitSet } from "./traits";
+import { TraitTypeId, traitRegistry } from "./TraitRegistry";
+import { FILE_LINK } from "./fileLinkTraits";
 import { fs } from "../../api/fs";
 import { fpBasename } from "../../core/utils/file-path";
 

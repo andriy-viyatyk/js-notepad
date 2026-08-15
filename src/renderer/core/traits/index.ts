@@ -15,3 +15,5 @@ export {
 export type { TraitDragPayload } from './dnd';
 export { FILE_LINK, makeOsFileDescriptor } from './fileLinkTraits';
 export type { IFileLink, FileLinkTrait, OsFileData } from './fileLinkTraits';
+export { LINK } from './linkTraits';
+export type { LinkTrait, LinkDragData } from './linkTraits';

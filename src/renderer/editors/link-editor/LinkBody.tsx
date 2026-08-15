@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, Splitter, Text } from "../../uikit";
 import { HighlightedTextProvider } from "../../uikit/shared/highlight";
-import { hasTraitDragData, getTraitDragData, resolveTraits } from "../../core/traits";
-import { LINK } from "./linkTraits";
+import { hasTraitDragData, getTraitDragData, LINK, resolveTraits } from "../../core/traits";
 import { LinkItemList } from "./LinkItemList";
 import { LinkItemTiles } from "./LinkItemTiles";
 import { PinnedLinksPanel } from "./PinnedLinksPanel";

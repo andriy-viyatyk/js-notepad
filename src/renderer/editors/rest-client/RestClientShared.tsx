@@ -20,7 +20,7 @@ import { ResponseViewer, getResponseSize } from "./ResponseViewer";
 import { METHOD_COLORS } from "./httpConstants";
 import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../core/traits";
 import { TraitSet, type Traited } from "../../core/traits/traits";
-import { LINK } from "../link-editor/linkTraits";
+import { LINK } from "../../core/traits";
 import { RestClientData, RestRequest } from "./restClientTypes";
 import type { RestClientSource, RestClientViewState } from "./restClientTypes";
 

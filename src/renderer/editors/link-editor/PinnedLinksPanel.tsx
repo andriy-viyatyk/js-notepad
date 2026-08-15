@@ -7,8 +7,8 @@ import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
 import { LinkItem, LinkSource } from "./linkTypes";
 import { LinkTooltipContent } from "./LinkTooltip";
-import { TreeProviderItemIcon } from "../../components/tree-provider/TreeProviderItemIcon";
-import { getHostname, requestFaviconSave, useFavicons } from "../../components/tree-provider/favicon-cache";
+import { TreeProviderItemIcon } from "../../components/icons/TreeProviderItemIcon";
+import { getHostname, requestFaviconSave, useFavicons } from "../../components/icons/favicon-cache";
 
 const { clipboard } = require("electron");
 
