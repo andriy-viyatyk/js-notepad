@@ -1,20 +1,11 @@
 import React from "react";
-import { IEditorState, EditorType } from "../../../shared/types";
-import type { EditorModel } from "../base";
-import { EditorModule } from "../types";
 import { PageToolbar } from "../base";
-import { TComponentState } from "../../core/state/state";
 import { Button, Panel, Text, Textarea } from "../../uikit";
 import color from "../../theme/color";
 import { VlcIcon } from "../../theme/icons";
-import { detectVideoFormat } from "./video-types";
 import { VPlayer } from "./VPlayer";
 import { settings } from "../../api/settings";
-import {
-    VideoEditor,
-    getDefaultVideoEditorState,
-    type VideoEditorState,
-} from "./VideoEditor";
+import { VideoEditor } from "./VideoEditor";
 
 // ── Inline-style constants ───────────────────────────────────────────────────
 
@@ -114,39 +105,4 @@ export function VideoView({ model }: VideoViewProps) {
     );
 }
 
-
-const videoEditorModule: EditorModule = {
-    Editor: VideoView as unknown as EditorModule["Editor"],
-    newEditorModel: async (filePath?: string) => {
-        const initialState = getDefaultVideoEditorState();
-        if (filePath) {
-            initialState.filePath = filePath;
-            initialState.inputText = filePath;
-            initialState.url = filePath;
-            initialState.format = detectVideoFormat(filePath);
-            initialState.playerState = "loading";
-        }
-        return new VideoEditor(
-            new TComponentState(initialState),
-        ) as unknown as EditorModel;
-    },
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "videoPage") return null;
-        return new VideoEditor(
-            new TComponentState(getDefaultVideoEditorState()),
-        ) as unknown as EditorModel;
-    },
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const initialState: VideoEditorState = {
-            ...getDefaultVideoEditorState(),
-            ...(state as Partial<VideoEditorState>),
-            streamUrl: "", // always reset — streaming sessions are ephemeral
-        };
-        return new VideoEditor(
-            new TComponentState(initialState),
-        ) as unknown as EditorModel;
-    },
-};
-
-export default videoEditorModule;
 export type { VideoViewProps };

@@ -18,6 +18,3 @@ export { AboutEditor, getDefaultAboutEditorState, ABOUT_PAGE_ID } from "./AboutE
 export type { AboutEditorState } from "./AboutEditor";
 export { AboutEditor as AboutEditorModel } from "./AboutEditor";
 export type { AboutEditorState as AboutEditorModelState } from "./AboutEditor";
-// Legacy EditorModule default-export — consumed by `showAboutPage` and the
-// legacy `editorRegistry` `loadModule` safety-net.
-export { default as aboutEditorModule, default } from "./AboutView";

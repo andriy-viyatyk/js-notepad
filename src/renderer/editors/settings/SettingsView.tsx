@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IEditorState, EditorType } from "../../../shared/types";
-import type { EditorModel } from "../base";
-import { TComponentState } from "../../core/state/state";
-import { EditorModule } from "../types";
-import {
-    SettingsEditor,
-    getDefaultSettingsEditorState,
-    type SettingsEditorState,
-} from "./SettingsEditor";
+import { SettingsEditor } from "./SettingsEditor";
 import color from "../../theme/color";
 import { settings } from "../../api/settings";
 import { app } from "../../api/app";
@@ -1505,32 +1497,6 @@ function SettingsView(_props: SettingsEditorProps) {
         </Panel>
     );
 }
-
-
-const settingsEditorModule: EditorModule = {
-    Editor: SettingsView as unknown as EditorModule["Editor"],
-    newEditorModel: async () =>
-        new SettingsEditor(
-            new TComponentState(getDefaultSettingsEditorState()),
-        ) as unknown as EditorModel,
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "settingsPage") return null;
-        return new SettingsEditor(
-            new TComponentState(getDefaultSettingsEditorState()),
-        ) as unknown as EditorModel;
-    },
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const initialState: SettingsEditorState = {
-            ...getDefaultSettingsEditorState(),
-            ...(state as Partial<SettingsEditorState>),
-        };
-        return new SettingsEditor(
-            new TComponentState(initialState),
-        ) as unknown as EditorModel;
-    },
-};
-
-export default settingsEditorModule;
 
 export { SettingsView };
 export type { SettingsEditorProps };

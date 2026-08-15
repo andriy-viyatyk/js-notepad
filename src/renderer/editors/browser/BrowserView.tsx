@@ -1,11 +1,7 @@
 import { memo, useEffect, useRef } from "react";
 const { ipcRenderer } = require("electron");
 import styled from "@emotion/styled";
-import { IEditorState, EditorType } from "../../../shared/types";
-import { EditorModel } from "../base";
 import { EditorToolbar } from "../base/EditorToolbar";
-import { TComponentState } from "../../core/state/state";
-import { EditorModule, FileEditorComponent } from "../types";
 import color from "../../theme/color";
 import { Panel, Input, Button, IconButton, Spinner, Text, Dot, Splitter, WithMenu } from "../../uikit";
 import {
@@ -26,9 +22,7 @@ import { IncognitoIcon, TorIcon } from "../../theme/language-icons";
 import { TorStatusOverlay } from "./TorStatusOverlay";
 import {
     BrowserEditorModel,
-    BrowserEditorState,
     BrowserTabData,
-    getDefaultBrowserPageState,
 } from "./BrowserEditorModel";
 import {
     BrowserChannel,
@@ -744,36 +738,4 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
     );
 }
 
-// ============================================================================
-// EditorModule
-// ============================================================================
-
-const browserEditorModule: EditorModule = {
-    Editor: BrowserEditorView as FileEditorComponent,
-    newEditorModel: async () => {
-        return new BrowserEditorModel(
-            new TComponentState(getDefaultBrowserPageState()),
-        ) as unknown as EditorModel;
-    },
-    newEmptyEditorModel: async (
-        editorType: EditorType,
-    ): Promise<EditorModel | null> => {
-        if (editorType !== "browserPage") return null;
-        const model = new BrowserEditorModel(
-            new TComponentState(getDefaultBrowserPageState()),
-        );
-        return model as unknown as EditorModel;
-    },
-    newEditorModelFromState: async (
-        state: Partial<IEditorState>,
-    ): Promise<EditorModel> => {
-        const initialState: BrowserEditorState = {
-            ...getDefaultBrowserPageState(),
-            ...(state as Partial<BrowserEditorState>),
-        };
-        return new BrowserEditorModel(new TComponentState(initialState)) as unknown as EditorModel;
-    },
-};
-
-export default browserEditorModule;
 export { BrowserEditorView, BrowserEditorModel };

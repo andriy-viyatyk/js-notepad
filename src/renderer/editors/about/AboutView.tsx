@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
-import { IEditorState, EditorType } from "../../../shared/types";
-import type { EditorModel } from "../base";
-import { TComponentState } from "../../core/state/state";
-import { EditorModule } from "../types";
-import {
-    AboutEditor,
-    getDefaultAboutEditorState,
-    type AboutEditorState,
-} from "./AboutEditor";
+import { AboutEditor } from "./AboutEditor";
 import { PersephoneIcon } from "../../theme/icons";
 import { Panel, Text, Button, Divider } from "../../uikit";
 import { app } from "../../api/app";
@@ -190,32 +182,6 @@ function AboutView(_props: AboutEditorProps) {
         </Panel>
     );
 }
-
-
-const aboutEditorModule: EditorModule = {
-    Editor: AboutView as unknown as EditorModule["Editor"],
-    newEditorModel: async () =>
-        new AboutEditor(
-            new TComponentState(getDefaultAboutEditorState()),
-        ) as unknown as EditorModel,
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "aboutPage") return null;
-        return new AboutEditor(
-            new TComponentState(getDefaultAboutEditorState()),
-        ) as unknown as EditorModel;
-    },
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const initialState: AboutEditorState = {
-            ...getDefaultAboutEditorState(),
-            ...(state as Partial<AboutEditorState>),
-        };
-        return new AboutEditor(
-            new TComponentState(initialState),
-        ) as unknown as EditorModel;
-    },
-};
-
-export default aboutEditorModule;
 
 export { AboutView };
 export type { AboutEditorProps };

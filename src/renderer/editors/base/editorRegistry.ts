@@ -17,6 +17,12 @@ export interface AcceptanceInput {
 export interface EditorModule {
     /** Factory for a new editor instance. */
     createEditor(): EditorModel;
+    /** File-open factory for standalone (no-host) editors whose construction
+     *  depends on the opened path — decoding a link (git-tree, mneme-root,
+     *  board, toolset, category), seeding path-derived state (image, video),
+     *  or reading the target (archive). Editors without it open through the
+     *  default text-host flow. */
+    newEditorModel?(filePath?: string): Promise<EditorModel>;
     /** The React component that renders this editor (with chrome). */
     Component: React.ComponentType<{ model: EditorModel }>;
     /** Chrome-free body — the editor content WITHOUT `<TextChrome>`. Supplied
@@ -221,18 +227,49 @@ class EditorRegistry {
      *  `instanceId` (walkthrough 04 / P6 / C2 + walkthrough 05 / M5 / C1):
      *  when provided, preserves cache-file id continuity across app restarts
      *  and multi-window transfer. Omit for new pages / switch widget /
-     *  open-file (a fresh UUID is allocated). */
+     *  open-file. */
     async createEditor(id: string, instanceId?: string): Promise<EditorModel> {
-        const module = await this.loadModule(id);
+        await this.loadModule(id);
+        return this.createEditorSync(id, instanceId);
+    }
+
+    /** Synchronous `createEditor` against the module cache. Exists for the
+     *  construction paths that cannot await — `attachEditorToPage` sits under
+     *  sync public APIs (`addEditorPage`, `openLinks`, `page.grouped`).
+     *  Content-host modules are preloaded at startup
+     *  (`preloadContentHostModules`), so a miss only happens in the first
+     *  moments after launch; it throws a descriptive error rather than
+     *  falling back silently. */
+    createEditorSync(id: string, instanceId?: string): EditorModel {
+        const def = this.definitions.get(id);
+        if (!def) throw new Error(`No editor registered for id: ${id}`);
+        const module = this.modules.get(id);
+        if (!module) {
+            throw new Error(
+                `Editor module "${id}" is not loaded yet (startup preload still running). Retry in a moment.`,
+            );
+        }
         const editor = module.createEditor();
-        // Only override the module-generated id with a real instance id. An
-        // empty string must NOT clobber it — a falsy id breaks all id-based
-        // dedup downstream (panel keys, addSecondaryView), causing duplicate
-        // editors to accumulate (EPIC-031 / US-616 regression fix).
+        // Modules construct with the default state's empty id — only a real
+        // instance id may be stamped. An empty string must NOT clobber state:
+        // a falsy id breaks all id-based dedup downstream (panel keys,
+        // addSecondaryView), causing duplicate editors to accumulate
+        // (EPIC-031 / US-616 regression fix).
         if (instanceId) {
             editor.state.update((s) => { s.id = instanceId; });
         }
         return editor;
+    }
+
+    /** Warm the module cache for every content-host editor so the synchronous
+     *  construction path (`attachEditorToPage`) can build any text-host editor
+     *  without awaiting. Fire-and-forget per module; a load failure here is
+     *  swallowed and surfaces on first real use instead. */
+    preloadContentHostModules(): void {
+        for (const def of this.definitions.values()) {
+            if (!def.hasContentHost) continue;
+            void this.loadModule(def.id).catch((): undefined => undefined);
+        }
     }
 
     /** Public module accessor — loads (and caches) the module for an id so

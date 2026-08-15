@@ -15,6 +15,16 @@ export const categoryModule: EditorModule = {
     createEditor: () =>
         new CategoryEditorModel(new TComponentState(getDefaultCategoryEditorModelState())),
     Component: CategoryEditorComponent,
+    newEditorModel: async (filePath?: string) => {
+        const { CategoryEditorModel } = await import("./CategoryEditorModel");
+        const { decodeCategoryLink } = await import("../../content/tree-providers/tree-provider-link");
+        const model = new CategoryEditorModel();
+        if (filePath) {
+            const link = decodeCategoryLink(filePath);
+            if (link) model.initFromLink(link);
+        }
+        return model as unknown as EditorModel;
+    },
 };
 
 export {
@@ -22,6 +32,3 @@ export {
     getDefaultCategoryEditorModelState,
 } from "./CategoryEditorModel";
 export type { CategoryEditorModelState } from "./CategoryEditorModel";
-// Legacy EditorModule default-export — consumed by the legacy `editorRegistry`
-// `loadModule` (which imports `./category/CategoryEditor` directly).
-export { default as categoryEditorModule, default } from "./CategoryEditor";

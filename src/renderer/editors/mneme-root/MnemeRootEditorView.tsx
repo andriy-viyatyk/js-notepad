@@ -1,5 +1,4 @@
 import { useMemo, useState, type KeyboardEvent } from "react";
-import { TComponentState } from "../../core/state/state";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Textarea } from "../../uikit/Textarea";
@@ -13,15 +12,9 @@ import type { IListBoxItem } from "../../uikit/ListBox";
 import { MarkdownBlock } from "../markdown";
 import {
     MnemeRootEditorModel,
-    getDefaultMnemeRootEditorState,
-    type MnemeRootEditorState,
     type MnemeSearchMode,
 } from "./MnemeRootEditorModel";
 import { resultsToMarkdown } from "./results-to-markdown";
-import { decodeMnemeFolderLink } from "../../content/mneme-folder-link";
-import type { EditorModule } from "../types";
-import type { EditorOrHost } from "../base";
-import type { EditorType, IEditorState } from "../../../shared/types";
 
 // =============================================================================
 // Component — search main view (US-676). A query input + mode combobox feeds
@@ -258,44 +251,3 @@ export function MnemeRootEditorView({ model }: { model: MnemeRootEditorModel }) 
         </Panel>
     );
 }
-
-// =============================================================================
-// Legacy EditorModule default export — consumed by `buildEditorById`
-// (navigatePageTo path) and session restore.
-// =============================================================================
-
-const mnemeRootEditorModule: EditorModule = {
-    Editor: MnemeRootEditorView as unknown as EditorModule["Editor"],
-
-    newEditorModel: async (filePath?: string) => {
-        const model = new MnemeRootEditorModel(
-            new TComponentState(getDefaultMnemeRootEditorState()),
-        );
-        if (filePath) {
-            const link = decodeMnemeFolderLink(filePath);
-            if (link) model.initFromRootFolder(link.rootFolder);
-        }
-        return model as unknown as EditorOrHost;
-    },
-
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "mnemeRootPage") return null;
-        return new MnemeRootEditorModel(
-            new TComponentState(getDefaultMnemeRootEditorState()),
-        ) as unknown as EditorOrHost;
-    },
-
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const model = new MnemeRootEditorModel(
-            new TComponentState({
-                ...getDefaultMnemeRootEditorState(),
-                ...(state as Partial<MnemeRootEditorState>),
-            }),
-        );
-        // Session restore: rootFolder rides the persisted state — resolve now.
-        model.restoreFromState();
-        return model as unknown as EditorOrHost;
-    },
-};
-
-export default mnemeRootEditorModule;

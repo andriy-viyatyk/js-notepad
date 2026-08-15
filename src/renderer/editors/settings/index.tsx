@@ -18,6 +18,3 @@ export { SettingsEditor, getDefaultSettingsEditorState, SETTINGS_PAGE_ID } from 
 export type { SettingsEditorState } from "./SettingsEditor";
 export { SettingsEditor as SettingsEditorModel } from "./SettingsEditor";
 export type { SettingsEditorState as SettingsEditorModelState } from "./SettingsEditor";
-// Legacy EditorModule default-export — consumed by `showSettingsPage` and the
-// legacy `editorRegistry` `loadModule` safety-net.
-export { default as settingsEditorModule, default } from "./SettingsView";

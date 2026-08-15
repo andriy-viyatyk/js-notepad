@@ -1,8 +1,3 @@
-import React from "react";
-import { EditorType, IEditorState } from "../../../shared/types";
-import type { EditorModel } from "../base";
-import { TComponentState } from "../../core/state/state";
-import { EditorModule } from "../types";
 import { Panel } from "../../uikit/Panel/Panel";
 import { Toolbar } from "../../uikit/Toolbar/Toolbar";
 import { SegmentedControl } from "../../uikit/SegmentedControl/SegmentedControl";
@@ -12,8 +7,6 @@ import { Text } from "../../uikit/Text/Text";
 import {
     PreviewBackground,
     StorybookEditorModel,
-    StorybookEditorState,
-    getDefaultStorybookEditorState,
     STORYBOOK_PAGE_ID,
 } from "./StorybookEditorModel";
 import { ComponentBrowser } from "./ComponentBrowser";
@@ -80,32 +73,4 @@ function StorybookEditorView({ model }: { model: StorybookEditorModel }) {
     );
 }
 
-
-const storybookEditorModule: EditorModule = {
-    Editor: StorybookEditorView as unknown as EditorModule["Editor"],
-
-    newEditorModel: async () =>
-        new StorybookEditorModel(
-            new TComponentState(getDefaultStorybookEditorState()),
-        ) as unknown as EditorModel,
-
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "storybookPage") return null;
-        return new StorybookEditorModel(
-            new TComponentState(getDefaultStorybookEditorState()),
-        ) as unknown as EditorModel;
-    },
-
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const s: StorybookEditorState = {
-            ...getDefaultStorybookEditorState(),
-            ...(state as Partial<StorybookEditorState>),
-        };
-        return new StorybookEditorModel(
-            new TComponentState(s),
-        ) as unknown as EditorModel;
-    },
-};
-
-export default storybookEditorModule;
 export { StorybookEditorView, STORYBOOK_PAGE_ID };

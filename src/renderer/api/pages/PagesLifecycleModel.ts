@@ -11,19 +11,7 @@ import {
     TextFileModel,
 } from "../../editors/text";
 import { MonacoEditor, defaultMonacoEditorState } from "../../editors/monaco/MonacoEditor";
-import { GridEditor, defaultGridEditorState, type GridEditorId } from "../../editors/grid";
-import { LogViewEditor, defaultLogViewEditorState } from "../../editors/log-view";
-import { MarkdownEditor, defaultMarkdownEditorState } from "../../editors/markdown";
-import { FileDiffEditor, defaultFileDiffEditorState } from "../../editors/file-diff";
-import { SvgEditor, defaultSvgEditorState } from "../../editors/svg";
-import { HtmlEditor, defaultHtmlEditorState } from "../../editors/html";
-import { MermaidEditor, defaultMermaidEditorState } from "../../editors/mermaid";
-import { GraphEditor, defaultGraphEditorState } from "../../editors/graph";
-import { DrawEditor, defaultDrawEditorState } from "../../editors/draw";
-import { LinkEditor, defaultLinkEditorState } from "../../editors/link-editor";
-import { RestClientEditor, defaultRestClientEditorState } from "../../editors/rest-client";
-import { NotebookEditor, defaultNotebookEditorState } from "../../editors/notebook";
-import { EnvVarsEditor, defaultEnvVarsEditorState } from "../../editors/env-vars";
+import { TextHostEditorModel } from "../../editors/base/TextHostEditorModel";
 import { BrowserEditor } from "../../editors/browser";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import { TComponentState } from "../../core/state/state";
@@ -70,174 +58,42 @@ export function attachEditorToPage(legacy: EditorOrHost): EditorModel {
     }
 
     const legacyState = legacy.state.get() as { type?: string; editor?: string };
-    const targetEditorId =
-        legacyState.type === "textFile" && legacyState.editor
-            ? legacyState.editor
-            : "monaco";
-    const isTextFile = legacyState.type === "textFile";
+    if (legacyState.type !== "textFile") {
+        throw new Error(
+            `attachEditorToPage: no mapping for editor id "${legacyState.editor ?? "monaco"}" (type "${legacyState.type ?? "?"}").`,
+        );
+    }
+    const host = legacy as TextFileModel;
+    const targetEditorId = legacyState.editor || "monaco";
+    const id = host.state.get().id || crypto.randomUUID();
 
-    if (targetEditorId === "monaco" && isTextFile) {
-        const id = legacy.state.get().id || crypto.randomUUID();
+    // Monaco is the guaranteed-synchronous floor: the startup empty page and
+    // `requireGroupedText` build it before the registry's content-host module
+    // preload can be assumed complete, so it stays a static construction.
+    if (targetEditorId === "monaco") {
         const monaco = new MonacoEditor(
             new TComponentState({ ...defaultMonacoEditorState, id }),
         );
-        monaco.adoptHost(legacy as TextFileModel);
+        monaco.adoptHost(host);
         return monaco;
     }
 
-    if (
-        isTextFile &&
-        (targetEditorId === "grid-json" ||
-            targetEditorId === "grid-csv" ||
-            targetEditorId === "grid-jsonl")
-    ) {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const grid = new GridEditor(
-            new TComponentState({ ...defaultGridEditorState, id }),
-            targetEditorId as GridEditorId,
+    // Every other text-host editor comes from the registry's module cache
+    // (warmed at startup by `preloadContentHostModules` — construction here
+    // must stay synchronous, see `createEditorSync`).
+    const editor = editorRegistry.createEditorSync(targetEditorId, id);
+    if (!(editor instanceof TextHostEditorModel)) {
+        throw new Error(
+            `attachEditorToPage: editor "${targetEditorId}" does not wrap a text host.`,
         );
-        grid.adoptHost(legacy as TextFileModel);
-        // adoptHost only wires subscriptions — open-file callers have
-        // already invoked legacy.restore(), so we trigger the CSV-delimiter
-        // bootstrap and the initial row parse inline (mirrors what
-        // GridEditor.restore() does on the session-restore path).
-        const content = (legacy as TextFileModel).state.get().content ?? "";
-        if (targetEditorId === "grid-csv") {
-            const s = grid.state.get();
-            if (!s.csvDelimiter || s.csvDelimiter === ",") {
-                const detected = GridEditor.detectCsvDelimiter(content);
-                if (detected !== s.csvDelimiter) {
-                    grid.state.update((x) => {
-                        x.csvDelimiter = detected;
-                    });
-                }
-            }
-        }
-        grid.reparseRows(content);
-        return grid;
     }
-
-    if (isTextFile && targetEditorId === "log-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const logView = new LogViewEditor(
-            new TComponentState({ ...defaultLogViewEditorState, id }),
-        );
-        logView.adoptHost(legacy as TextFileModel);
-        const content = (legacy as TextFileModel).state.get().content ?? "";
-        logView.loadContent(content);
-        return logView;
-    }
-
-    if (isTextFile && targetEditorId === "md-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const markdown = new MarkdownEditor(
-            new TComponentState({ ...defaultMarkdownEditorState, id }),
-        );
-        markdown.adoptHost(legacy as TextFileModel);
-        return markdown;
-    }
-
-    if (isTextFile && targetEditorId === "file-diff") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const fileDiff = new FileDiffEditor(
-            new TComponentState({ ...defaultFileDiffEditorState, id }),
-        );
-        fileDiff.adoptHost(legacy as TextFileModel);
-        return fileDiff;
-    }
-
-    if (isTextFile && targetEditorId === "svg-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const svg = new SvgEditor(
-            new TComponentState({ ...defaultSvgEditorState, id }),
-        );
-        svg.adoptHost(legacy as TextFileModel);
-        return svg;
-    }
-
-    if (isTextFile && targetEditorId === "html-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const html = new HtmlEditor(
-            new TComponentState({ ...defaultHtmlEditorState, id }),
-        );
-        html.adoptHost(legacy as TextFileModel);
-        return html;
-    }
-
-    if (isTextFile && targetEditorId === "mermaid-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const mermaid = new MermaidEditor(
-            new TComponentState({ ...defaultMermaidEditorState, id }),
-        );
-        mermaid.adoptHost(legacy as TextFileModel);
-        return mermaid;
-    }
-
-    if (isTextFile && targetEditorId === "graph-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const graph = new GraphEditor(
-            new TComponentState({ ...defaultGraphEditorState, id }),
-        );
-        graph.adoptHost(legacy as TextFileModel);
-        return graph;
-    }
-
-    if (isTextFile && targetEditorId === "draw-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const draw = new DrawEditor(
-            new TComponentState({ ...defaultDrawEditorState, id }),
-        );
-        draw.adoptHost(legacy as TextFileModel);
-        return draw;
-    }
-
-    if (isTextFile && targetEditorId === "link-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const link = new LinkEditor(
-            new TComponentState({ ...defaultLinkEditorState, id }),
-        );
-        link.adoptHost(legacy as TextFileModel);
-        const content = (legacy as TextFileModel).state.get().content ?? "";
-        link.loadData(content);
-        return link;
-    }
-
-    if (isTextFile && targetEditorId === "rest-client") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const rest = new RestClientEditor(
-            new TComponentState({ ...defaultRestClientEditorState, id }),
-        );
-        rest.adoptHost(legacy as TextFileModel);
-        const content = (legacy as TextFileModel).state.get().content ?? "";
-        rest.loadData(content);
-        return rest;
-    }
-
-    if (isTextFile && targetEditorId === "notebook-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const notebook = new NotebookEditor(
-            new TComponentState({ ...defaultNotebookEditorState, id }),
-        );
-        notebook.adoptHost(legacy as TextFileModel);
-        const content = (legacy as TextFileModel).state.get().content ?? "";
-        notebook.loadData(content);
-        return notebook;
-    }
-
-    if (isTextFile && targetEditorId === "env-vars-view") {
-        const id = legacy.state.get().id || crypto.randomUUID();
-        const envVars = new EnvVarsEditor(
-            new TComponentState({ ...defaultEnvVarsEditorState, id }),
-        );
-        // adoptHost() calls loadData() internally (unlike Todo/Link/Notebook above) — no
-        // separate loadData call needed here.
-        envVars.adoptHost(legacy as TextFileModel);
-        return envVars;
-    }
-
-    throw new Error(
-        `attachEditorToPage: no mapping for editor id "${targetEditorId}" (type "${legacyState.type ?? "?"}").`,
-    );
+    editor.adoptHost(host);
+    // adoptHost only wires subscriptions — open-file callers have already
+    // invoked host.restore(), so trigger the same initial parse/load the
+    // switch and session-restore paths get via onHostAttached (no-op for
+    // editors that parse inside adoptHost, e.g. env-vars).
+    editor.bootstrapFromHost();
+    return editor;
 }
 
 /** Module-private alias preserved for the existing call sites below. */
@@ -308,43 +164,15 @@ export class PagesLifecycleModel {
             // or by `resolveId` for fresh file opens).
             return newTextFileModel(filePath) as unknown as EditorOrHost;
         }
-        switch (editorId) {
-            case "image-view": {
-                const mod = await import("../../editors/image/ImageView");
-                return mod.default.newEditorModel(filePath);
-            }
-            case "archive-view": {
-                const mod = await import("../../editors/archive/ArchiveEditorView");
-                return mod.default.newEditorModel(filePath);
-            }
-            case "video-view": {
-                const mod = await import("../../editors/video/VideoView");
-                return mod.default.newEditorModel(filePath);
-            }
-            case "category-view": {
-                const mod = await import("../../editors/category/CategoryEditor");
-                return mod.default.newEditorModel(filePath);
-            }
-            case "git-tree": {
-                const mod = await import("../../editors/git-tree");
-                return mod.default.newEditorModel(filePath);
-            }
-            case "mneme-root": {
-                const mod = await import("../../editors/mneme-root");
-                return mod.default.newEditorModel(filePath);
-            }
-            case "board-view": {
-                const mod = await import("../../editors/board");
-                return mod.default.newEditorModel(filePath);
-            }
-            case "toolset-view": {
-                const mod = await import("../../editors/toolset");
-                return mod.default.newEditorModel(filePath);
-            }
-            default:
-                // Unknown no-host id — fall back to Monaco text host.
-                return newTextFileModel(filePath) as unknown as EditorOrHost;
+        // No-host editor: modules that open from a file path (image, archive,
+        // video, category, git-tree, mneme-root, board, toolset) declare
+        // `newEditorModel`; a no-host id without it (browser, settings, …) is
+        // never a file-open target and falls back to a Monaco text host.
+        const module = await editorRegistry.getModule(editorId);
+        if (module.newEditorModel) {
+            return (await module.newEditorModel(filePath)) as unknown as EditorOrHost;
         }
+        return newTextFileModel(filePath) as unknown as EditorOrHost;
     };
 
     // ── Core page operations ─────────────────────────────────────────
@@ -1145,22 +973,17 @@ export class PagesLifecycleModel {
     // ── Page-actions (from old page-actions.ts) ──────────────────────
 
     showAboutPage = async (): Promise<void> => {
-        const aboutModule = await import("../../editors/about");
-        const model = await aboutModule.default.newEmptyEditorModel("aboutPage");
-        if (model) {
-            const page = new PageModel(aboutModule.ABOUT_PAGE_ID);
-            this.addPage(wrap(model), page);
-        }
+        const { ABOUT_PAGE_ID } = await import("../../editors/about");
+        const model = await editorRegistry.createEditor("about-view");
+        const page = new PageModel(ABOUT_PAGE_ID);
+        this.addPage(model, page);
     };
 
     showSettingsPage = async (): Promise<void> => {
-        const settingsModule = await import("../../editors/settings");
-        const model =
-            await settingsModule.default.newEmptyEditorModel("settingsPage");
-        if (model) {
-            const page = new PageModel(settingsModule.SETTINGS_PAGE_ID);
-            this.addPage(wrap(model), page);
-        }
+        const { SETTINGS_PAGE_ID } = await import("../../editors/settings");
+        const model = await editorRegistry.createEditor("settings-view");
+        const page = new PageModel(SETTINGS_PAGE_ID);
+        this.addPage(model, page);
     };
 
     showMnemeConfigPage = async (): Promise<void> => {
@@ -1255,33 +1078,27 @@ export class PagesLifecycleModel {
     showMcpInspectorPage = async (
         options?: { url?: string; name?: string; autoConnect?: boolean },
     ): Promise<void> => {
-        const mcpModule = await import("../../editors/mcp-inspector");
-        const model =
-            await mcpModule.default.newEmptyEditorModel("mcpInspectorPage");
-        if (model) {
-            if (options?.url || options?.name) {
-                model.state.update((s) => {
-                    const cs = s as unknown as { url?: string; connectionName?: string };
-                    if (options.url) cs.url = options.url;
-                    if (options.name) cs.connectionName = options.name;
-                });
-            }
-            this.addPage(wrap(model));
-            // Auto-connect (HTTP transport is the default state) — fire-and-forget so
-            // the page opens immediately and shows the "connecting" state itself.
-            if (options?.autoConnect && options?.url) {
-                void (model as unknown as { connect?: () => Promise<void> }).connect?.();
-            }
+        const model = await editorRegistry.createEditor("mcp-view");
+        if (options?.url || options?.name) {
+            model.state.update((s) => {
+                const cs = s as unknown as { url?: string; connectionName?: string };
+                if (options.url) cs.url = options.url;
+                if (options.name) cs.connectionName = options.name;
+            });
+        }
+        this.addPage(model);
+        // Auto-connect (HTTP transport is the default state) — fire-and-forget so
+        // the page opens immediately and shows the "connecting" state itself.
+        if (options?.autoConnect && options?.url) {
+            void (model as unknown as { connect?: () => Promise<void> }).connect?.();
         }
     };
 
     showStorybookPage = async (): Promise<void> => {
-        const storybookModule = await import("../../editors/storybook");
-        const model = await storybookModule.default.newEmptyEditorModel("storybookPage");
-        if (model) {
-            const page = new PageModel(storybookModule.STORYBOOK_PAGE_ID);
-            this.addPage(wrap(model), page);
-        }
+        const { STORYBOOK_PAGE_ID } = await import("../../editors/storybook");
+        const model = await editorRegistry.createEditor("storybook-view");
+        const page = new PageModel(STORYBOOK_PAGE_ID);
+        this.addPage(model, page);
     };
 
     showToolsHubPage = async (opts?: { tab?: HubTab }): Promise<void> => {
@@ -1298,34 +1115,27 @@ export class PagesLifecycleModel {
     };
 
     showVideoPlayerPage = async (): Promise<void> => {
-        const videoModule = await import("../../editors/video");
-        const model = await videoModule.default.newEmptyEditorModel("videoPage");
-        if (model) {
-            this.addPage(wrap(model));
-        }
+        const model = await editorRegistry.createEditor("video-view");
+        this.addPage(model);
     };
 
     openImageInNewTab = async (imageUrl: string, title?: string): Promise<void> => {
         const imgModule = await import("../../editors/image");
-        const imgModel =
-            await imgModule.default.newEmptyEditorModel("imageFile");
-        if (imgModel) {
-            imgModel.state.update(
-                (s: { title: string; url?: string }) => {
-                    s.title =
-                        title || imageUrl.split("/").pop()?.split("?")[0] || "Image";
-                    s.url = imageUrl;
-                },
-            );
-            if (/^https?:\/\//i.test(imageUrl)) {
-                imgModel.pipe = new ContentPipe(new HttpProvider(imageUrl));
-            }
-            await imgModel.restore();
-            this.addPage(wrap(imgModel));
+        const imgModel = await editorRegistry.createEditor("image-view");
+        imgModel.state.update((s) => {
+            const is = s as unknown as { title: string; url?: string };
+            is.title =
+                title || imageUrl.split("/").pop()?.split("?")[0] || "Image";
+            is.url = imageUrl;
+        });
+        if (/^https?:\/\//i.test(imageUrl)) {
+            imgModel.pipe = new ContentPipe(new HttpProvider(imageUrl));
+        }
+        await imgModel.restore();
+        this.addPage(imgModel);
 
-            if (imageUrl.startsWith("blob:") && imgModel instanceof imgModule.ImageEditorModel) {
-                imgModel.cacheBlobUrl(imageUrl);
-            }
+        if (imageUrl.startsWith("blob:") && imgModel instanceof imgModule.ImageEditorModel) {
+            imgModel.cacheBlobUrl(imageUrl);
         }
     };
 

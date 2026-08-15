@@ -24,6 +24,3 @@ export type {
     McpResourceInfo, McpResourceContent, McpResourcesPanelState,
     McpPromptInfo, McpPromptMessage, McpPromptsPanelState,
 } from "./McpInspectorEditorModel";
-// Legacy EditorModule default-export — consumed by `showMcpInspectorPage` and
-// the legacy `editorRegistry` `loadModule` safety-net.
-export { default as mcpInspectorEditorModule, default } from "./McpInspectorView";

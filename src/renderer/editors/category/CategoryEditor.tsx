@@ -10,12 +10,10 @@ import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import { encodeCategoryLink } from "../../content/tree-providers/tree-provider-link";
 import type { ITreeProvider, ITreeProviderItem, ICategorySegment } from "../../api/types/io.tree";
-import { TComponentState, useOptionalState, type TOneState } from "../../core/state/state";
+import { useOptionalState, type TOneState } from "../../core/state/state";
 import type { NavigationState } from "../base/navigation-state";
 import type { EditorModel } from "../base";
-import type { CategoryEditorModel, CategoryEditorModelState } from "./CategoryEditorModel";
-import type { EditorModule } from "../types";
-import type { EditorType, IEditorState } from "../../../shared/types";
+import type { CategoryEditorModel } from "./CategoryEditorModel";
 import { LinkEditor } from "../link-editor/LinkEditor";
 import { ExplorerEditor } from "../explorer";
 import { ArchiveEditor } from "../archive";
@@ -182,39 +180,3 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
         </Panel>
     );
 }
-
-
-const categoryEditorModule: EditorModule = {
-    Editor: CategoryEditor as unknown as EditorModule["Editor"],
-
-    newEditorModel: async (filePath?: string) => {
-        const { CategoryEditorModel } = await import("./CategoryEditorModel");
-        const { decodeCategoryLink } = await import("../../content/tree-providers/tree-provider-link");
-        const model = new CategoryEditorModel();
-        if (filePath) {
-            const link = decodeCategoryLink(filePath);
-            if (link) model.initFromLink(link);
-        }
-        return model as unknown as EditorModel;
-    },
-
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "categoryPage") return null;
-        const { CategoryEditorModel } = await import("./CategoryEditorModel");
-        return new CategoryEditorModel() as unknown as EditorModel;
-    },
-
-    // Seed state via the constructor — the base `applyRestoreData` is a no-op.
-    // Dead on the restore path (`category-view` ∈ NO_HOST_EDITOR_IDS → generic
-    // Object.assign branch); kept correct for contract completeness.
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const { CategoryEditorModel, getDefaultCategoryEditorModelState } =
-            await import("./CategoryEditorModel");
-        return new CategoryEditorModel(new TComponentState({
-            ...getDefaultCategoryEditorModelState(),
-            ...(state as Partial<CategoryEditorModelState>),
-        })) as unknown as EditorModel;
-    },
-};
-
-export default categoryEditorModule;

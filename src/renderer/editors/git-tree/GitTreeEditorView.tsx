@@ -12,19 +12,10 @@ import { Tag } from "../../uikit/Tag";
 import type { MenuItem } from "../../uikit/Menu";
 import { RefreshIcon, GitIcon, GlobeIcon, DownloadIcon, UploadIcon } from "../../theme/icons";
 import color from "../../theme/color";
-import { TComponentState } from "../../core/state/state";
 import { GitTree, type GitCommitRow } from "../../components/git-tree";
 import { CommitInfoPanel } from "./CommitInfoPanel";
 import { CommitDiffPanel } from "./CommitDiffPanel";
-import { decodeGitTreeLink } from "../../content/git-tree-link";
-import {
-    GitTreeEditorModel,
-    getDefaultGitTreeEditorState,
-    type GitTreeEditorState,
-} from "./GitTreeEditorModel";
-import type { EditorModule } from "../types";
-import type { EditorModel } from "../base";
-import type { EditorType, IEditorState } from "../../../shared/types";
+import { GitTreeEditorModel } from "./GitTreeEditorModel";
 
 // =============================================================================
 // Component — thin render over the editor-owned GitTreeModel (model-view).
@@ -317,44 +308,3 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
         </Panel>
     );
 }
-
-// =============================================================================
-// Legacy EditorModule default-export — consumed by `buildEditorById`
-// (navigatePageTo path) and the legacy `editorRegistry` `loadModule` safety-net.
-// =============================================================================
-
-const gitTreeEditorModule: EditorModule = {
-    Editor: GitTreeEditorView as unknown as EditorModule["Editor"],
-
-    newEditorModel: async (filePath?: string) => {
-        const model = new GitTreeEditorModel(
-            new TComponentState(getDefaultGitTreeEditorState()),
-        );
-        if (filePath) {
-            const link = decodeGitTreeLink(filePath);
-            if (link) model.initFromRepoRoot(link.repoRoot);
-        }
-        return model as unknown as EditorModel;
-    },
-
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "gitTreePage") return null;
-        return new GitTreeEditorModel(
-            new TComponentState(getDefaultGitTreeEditorState()),
-        ) as unknown as EditorModel;
-    },
-
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const model = new GitTreeEditorModel(
-            new TComponentState({
-                ...getDefaultGitTreeEditorState(),
-                ...(state as Partial<GitTreeEditorState>),
-            }),
-        );
-        // Session restore: repoRoot rides the persisted state — load history now.
-        model.syncGitTree();
-        return model as unknown as EditorModel;
-    },
-};
-
-export default gitTreeEditorModule;

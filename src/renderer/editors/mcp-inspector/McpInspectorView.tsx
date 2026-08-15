@@ -12,15 +12,10 @@ import { Divider } from "../../uikit/Divider";
 import { SegmentedControl, ISegment } from "../../uikit/SegmentedControl";
 import { CloseIcon } from "../../theme/icons";
 import { EditorToolbar } from "../base/EditorToolbar";
-import { IEditorState, EditorType } from "../../../shared/types";
-import { TComponentState } from "../../core/state/state";
-import { EditorModule } from "../types";
-import type { EditorModel } from "../base";
 import {
     McpInspectorEditorModel,
     McpInspectorEditorState,
     McpPanelId,
-    getDefaultMcpInspectorEditorState,
 } from "./McpInspectorEditorModel";
 import { mcpConnectionStore } from "./McpConnectionStore";
 import { ToolsPanel } from "./ToolsPanel";
@@ -435,34 +430,5 @@ function HistoryPanel({ model }: { model: McpInspectorEditorModel }) {
         </Panel>
     );
 }
-
-const mcpInspectorEditorModule: EditorModule = {
-    Editor: McpInspectorView as unknown as EditorModule["Editor"],
-
-    newEditorModel: async () => {
-        return new McpInspectorEditorModel(
-            new TComponentState(getDefaultMcpInspectorEditorState()),
-        ) as unknown as EditorModel;
-    },
-
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "mcpInspectorPage") return null;
-        return new McpInspectorEditorModel(
-            new TComponentState(getDefaultMcpInspectorEditorState()),
-        ) as unknown as EditorModel;
-    },
-
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const sx: McpInspectorEditorState = {
-            ...getDefaultMcpInspectorEditorState(),
-            ...(state as Partial<McpInspectorEditorState>),
-        };
-        return new McpInspectorEditorModel(
-            new TComponentState(sx),
-        ) as unknown as EditorModel;
-    },
-};
-
-export default mcpInspectorEditorModule;
 
 export { McpInspectorView };

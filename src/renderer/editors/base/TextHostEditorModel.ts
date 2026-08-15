@@ -224,6 +224,15 @@ export abstract class TextHostEditorModel<
         this._pendingHost = undefined;
     }
 
+    /** Public bridge for the open-file construction path
+     *  (`attachEditorToPage`): run the initial-load hook against the
+     *  already-adopted host. Keeps `onHostAttached` protected while letting
+     *  the generic constructor site trigger the same bootstrap the
+     *  switch/session-restore paths get. */
+    bootstrapFromHost(): void {
+        if (this._host) this.onHostAttached(this._host);
+    }
+
     /** Adopt a host without going through `switchFrom`. Public API — called
      *  directly by `attachEditorToPage` when constructing a fresh editor over
      *  a freshly-restored legacy TextFileModel. Subclasses override, calling

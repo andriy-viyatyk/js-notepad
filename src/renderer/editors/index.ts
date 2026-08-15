@@ -1,8 +1,6 @@
 export type {
     FileEditorComponent,
-    EditorModelCreations,
     EditorViewModule,
-    EditorCategory,
 } from './types';
 
 // Base classes and components

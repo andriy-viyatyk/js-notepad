@@ -23,6 +23,3 @@ export {
     STORYBOOK_PAGE_ID,
 } from "./StorybookEditorModel";
 export type { StorybookEditorState, PreviewBackground } from "./StorybookEditorModel";
-// Legacy EditorModule default-export — consumed by `showStorybookPage` and the
-// legacy `editorRegistry` `loadModule` safety-net.
-export { default as storybookEditorModule, default } from "./StorybookEditorView";

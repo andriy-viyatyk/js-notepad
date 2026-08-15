@@ -12,10 +12,6 @@ import {
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
-import type { EditorModel } from "../base";
-import { EditorModule } from "../types";
-import type { EditorType, IEditorState } from "../../../shared/types";
-import type { RestoreData } from "../base/EditorModel";
 import {
     ArchiveEditor,
     getDefaultArchiveEditorState,
@@ -96,33 +92,9 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditor }) {
 }
 
 
-function makeArchiveEditor(): ArchiveEditor {
+export function makeArchiveEditor(): ArchiveEditor {
     return new ArchiveEditor(new TComponentState(getDefaultArchiveEditorState()));
 }
 
-const archiveEditorModule: EditorModule = {
-    Editor: ArchiveEditorView as unknown as EditorModule["Editor"],
-    newEditorModel: async (filePath?: string) => {
-        const model = makeArchiveEditor();
-        if (filePath) await model.initFromArchive(filePath);
-        return model as unknown as EditorModel;
-    },
-    newEmptyEditorModel: async (editorType: EditorType) => {
-        if (editorType !== "archiveFile") return null;
-        return makeArchiveEditor() as unknown as EditorModel;
-    },
-    newEditorModelFromState: async (state: Partial<IEditorState>) => {
-        const model = new ArchiveEditor(
-            new TComponentState({
-                ...getDefaultArchiveEditorState(),
-                ...(state as Partial<ArchiveEditorState>),
-            }),
-        );
-        model.applyRestoreData(state as RestoreData<ArchiveEditorState>);
-        return model as unknown as EditorModel;
-    },
-};
-
-export default archiveEditorModule;
 export { ArchiveEditor };
 export type { ArchiveEditorState };

@@ -1,5 +1,6 @@
 import { createElement } from "react";
 import { editorRegistry } from "./base/editorRegistry";
+import type { EditorDefinition, EditorModule } from "./base/editorRegistry";
 import { EDITOR_MATCHERS, makeAccepts } from "./base/editor-matchers";
 import { customEditorRegistry } from "./board/custom-editor-registry";
 import { BOARD_SECONDARY_PREFIX } from "./board/board-secondary";
@@ -108,399 +109,120 @@ secondaryViewRegistry.registerPrefix(BOARD_SECONDARY_PREFIX, {
     loadComponent: () => import("./board/BoardSecondaryView"),
 });
 
-editorRegistry.register({
-    id: "monaco",
-    name: "Text Editor",
-    hasContentHost: true,
-    // Explicit accepts (NOT makeAccepts): monaco is the universal text fallback
-    // and the page-switch floor — walkthrough 20 §accepts. Its number outranks
-    // content editors so it leads `findEditorsAccepting`; specific viewers
-    // outrank it in view mode. `match` carries the separate file-resolution
-    // floor (0) + switch-first (0) priorities for the registry's resolve /
-    // getSwitchOptions / validateForLanguage.
-    accepts: (input) => {
-        if (input.mode === "view") return 10;
-        return 50;
-    },
-    match: EDITOR_MATCHERS["monaco"],
-    loadModule: async () => {
-        const { monacoModule } = await import("./monaco");
-        return monacoModule;
-    },
-});
+// =============================================================================
+// Editor Registrations — table-driven
+// =============================================================================
+// One row per editor. Derived defaults keep the rows to the three things that
+// actually differ (id, name, module importer):
+//   - `match` comes from EDITOR_MATCHERS[id] (absent for pure standalone
+//     editors that never match a file and never appear in the switch widget);
+//   - `accepts` defaults to makeAccepts(match) when a matcher exists, else
+//     `() => -1`; rows with special acceptance semantics override it.
+// Each row's `load` MUST keep a literal `import("./…")` so Vite code splitting
+// is preserved — never build the specifier dynamically.
 
-editorRegistry.register({
-    id: "grid-json",
-    name: "Grid (JSON)",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["grid-json"]),
-    match: EDITOR_MATCHERS["grid-json"],
-    loadModule: async () => {
-        const { gridJsonModule } = await import("./grid");
-        return gridJsonModule;
-    },
-});
+interface EditorRow {
+    id: string;
+    name: string;
+    hasContentHost?: boolean;
+    /** Explicit acceptance override (monaco, file-diff). */
+    accepts?: EditorDefinition["accepts"];
+    load: () => Promise<EditorModule>;
+}
 
-editorRegistry.register({
-    id: "grid-csv",
-    name: "Grid (CSV)",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["grid-csv"]),
-    match: EDITOR_MATCHERS["grid-csv"],
-    loadModule: async () => {
-        const { gridCsvModule } = await import("./grid");
-        return gridCsvModule;
+const EDITORS: EditorRow[] = [
+    {
+        id: "monaco",
+        name: "Text Editor",
+        hasContentHost: true,
+        // Explicit accepts (NOT makeAccepts): monaco is the universal text fallback
+        // and the page-switch floor — walkthrough 20 §accepts. Its number outranks
+        // content editors so it leads `findEditorsAccepting`; specific viewers
+        // outrank it in view mode. Its matcher carries the separate file-resolution
+        // floor (0) + switch-first (0) priorities for the registry's resolve /
+        // getSwitchOptions / validateForLanguage.
+        accepts: (input) => {
+            if (input.mode === "view") return 10;
+            return 50;
+        },
+        load: async () => (await import("./monaco")).monacoModule,
     },
-});
-
-editorRegistry.register({
-    id: "grid-jsonl",
-    name: "Grid (JSONL)",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["grid-jsonl"]),
-    match: EDITOR_MATCHERS["grid-jsonl"],
-    loadModule: async () => {
-        const { gridJsonlModule } = await import("./grid");
-        return gridJsonlModule;
-    },
-});
-
-editorRegistry.register({
-    id: "log-view",
-    name: "Log View",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["log-view"]),
-    match: EDITOR_MATCHERS["log-view"],
-    loadModule: async () => {
-        const { logViewModule } = await import("./log-view");
-        return logViewModule;
-    },
-});
-
-editorRegistry.register({
-    id: "md-view",
-    name: "Preview",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["md-view"]),
-    match: EDITOR_MATCHERS["md-view"],
-    loadModule: async () => {
-        const { markdownModule } = await import("./markdown");
-        return markdownModule;
-    },
-});
-
-editorRegistry.register({
-    id: "svg-view",
-    name: "Preview",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["svg-view"]),
-    match: EDITOR_MATCHERS["svg-view"],
-    loadModule: async () => {
-        const { svgModule } = await import("./svg");
-        return svgModule;
-    },
-});
-
-editorRegistry.register({
-    id: "html-view",
-    name: "Preview",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["html-view"]),
-    match: EDITOR_MATCHERS["html-view"],
-    loadModule: async () => {
-        const { htmlModule } = await import("./html");
-        return htmlModule;
-    },
-});
-
-editorRegistry.register({
-    id: "mermaid-view",
-    name: "Mermaid",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["mermaid-view"]),
-    match: EDITOR_MATCHERS["mermaid-view"],
-    loadModule: async () => {
-        const { mermaidModule } = await import("./mermaid");
-        return mermaidModule;
-    },
-});
-
-editorRegistry.register({
-    id: "graph-view",
-    name: "Graph",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["graph-view"]),
-    match: EDITOR_MATCHERS["graph-view"],
-    loadModule: async () => {
-        const { graphModule } = await import("./graph");
-        return graphModule;
-    },
-});
-
-editorRegistry.register({
-    id: "draw-view",
-    name: "Drawing",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["draw-view"]),
-    match: EDITOR_MATCHERS["draw-view"],
-    loadModule: async () => {
-        const { drawModule } = await import("./draw");
-        return drawModule;
-    },
-});
-
-editorRegistry.register({
-    id: "link-view",
-    name: "Links",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["link-view"]),
-    match: EDITOR_MATCHERS["link-view"],
-    loadModule: async () => {
-        const { linkModule } = await import("./link-editor");
-        return linkModule;
-    },
-});
-
-editorRegistry.register({
-    id: "rest-client",
-    name: "Rest Client",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["rest-client"]),
-    match: EDITOR_MATCHERS["rest-client"],
-    loadModule: async () => {
-        const { restClientModule } = await import("./rest-client");
-        return restClientModule;
-    },
-});
-
-editorRegistry.register({
-    id: "notebook-view",
-    name: "Notebook",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["notebook-view"]),
-    match: EDITOR_MATCHERS["notebook-view"],
-    loadModule: async () => {
-        const { notebookModule } = await import("./notebook");
-        return notebookModule;
-    },
-});
-
-editorRegistry.register({
-    id: "env-vars-view",
-    name: "Env Vars",
-    hasContentHost: true,
-    accepts: makeAccepts(EDITOR_MATCHERS["env-vars-view"]),
-    match: EDITOR_MATCHERS["env-vars-view"],
-    loadModule: async () => {
-        const { envVarsModule } = await import("./env-vars");
-        return envVarsModule;
-    },
-});
-
-editorRegistry.register({
-    id: "browser-view",
-    name: "Browser",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { browserModule } = await import("./browser");
-        return browserModule;
-    },
-});
-
-editorRegistry.register({
-    id: "image-view",
-    name: "Image Viewer",
-    hasContentHost: false,
-    accepts: makeAccepts(EDITOR_MATCHERS["image-view"]),
-    match: EDITOR_MATCHERS["image-view"],
-    loadModule: async () => {
-        const { imageModule } = await import("./image");
-        return imageModule;
-    },
-});
-
-editorRegistry.register({
-    id: "archive-view",
-    name: "Archive",
-    hasContentHost: false,
-    accepts: makeAccepts(EDITOR_MATCHERS["archive-view"]),
-    match: EDITOR_MATCHERS["archive-view"],
-    loadModule: async () => {
-        const { archiveModule } = await import("./archive");
-        return archiveModule;
-    },
-});
-
-editorRegistry.register({
-    id: "video-view",
-    name: "Video Player",
-    hasContentHost: false,
-    accepts: makeAccepts(EDITOR_MATCHERS["video-view"]),
-    match: EDITOR_MATCHERS["video-view"],
-    loadModule: async () => {
-        const { videoModule } = await import("./video");
-        return videoModule;
-    },
-});
-
-editorRegistry.register({
-    id: "settings-view",
-    name: "Settings",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { settingsModule } = await import("./settings");
-        return settingsModule;
-    },
-});
-
-editorRegistry.register({
-    id: "about-view",
-    name: "About",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { aboutModule } = await import("./about");
-        return aboutModule;
-    },
-});
-
-editorRegistry.register({
-    id: "tools-hub-view",
-    name: "Tools & Editors",
-    hasContentHost: false,
+    { id: "grid-json", name: "Grid (JSON)", hasContentHost: true, load: async () => (await import("./grid")).gridJsonModule },
+    { id: "grid-csv", name: "Grid (CSV)", hasContentHost: true, load: async () => (await import("./grid")).gridCsvModule },
+    { id: "grid-jsonl", name: "Grid (JSONL)", hasContentHost: true, load: async () => (await import("./grid")).gridJsonlModule },
+    { id: "log-view", name: "Log View", hasContentHost: true, load: async () => (await import("./log-view")).logViewModule },
+    { id: "md-view", name: "Preview", hasContentHost: true, load: async () => (await import("./markdown")).markdownModule },
+    { id: "svg-view", name: "Preview", hasContentHost: true, load: async () => (await import("./svg")).svgModule },
+    { id: "html-view", name: "Preview", hasContentHost: true, load: async () => (await import("./html")).htmlModule },
+    { id: "mermaid-view", name: "Mermaid", hasContentHost: true, load: async () => (await import("./mermaid")).mermaidModule },
+    { id: "graph-view", name: "Graph", hasContentHost: true, load: async () => (await import("./graph")).graphModule },
+    { id: "draw-view", name: "Drawing", hasContentHost: true, load: async () => (await import("./draw")).drawModule },
+    { id: "link-view", name: "Links", hasContentHost: true, load: async () => (await import("./link-editor")).linkModule },
+    { id: "rest-client", name: "Rest Client", hasContentHost: true, load: async () => (await import("./rest-client")).restClientModule },
+    { id: "notebook-view", name: "Notebook", hasContentHost: true, load: async () => (await import("./notebook")).notebookModule },
+    { id: "env-vars-view", name: "Env Vars", hasContentHost: true, load: async () => (await import("./env-vars")).envVarsModule },
+    { id: "browser-view", name: "Browser", load: async () => (await import("./browser")).browserModule },
+    { id: "image-view", name: "Image Viewer", load: async () => (await import("./image")).imageModule },
+    { id: "archive-view", name: "Archive", load: async () => (await import("./archive")).archiveModule },
+    { id: "video-view", name: "Video Player", load: async () => (await import("./video")).videoModule },
+    { id: "settings-view", name: "Settings", load: async () => (await import("./settings")).settingsModule },
+    { id: "about-view", name: "About", load: async () => (await import("./about")).aboutModule },
     // Reached only via showToolsHubPage (the AppBar panel's "Open in new tab" button) —
     // never a file-open target.
-    accepts: () => -1,
-    loadModule: async () => {
-        const { toolsHubModule } = await import("./tools-hub");
-        return toolsHubModule;
+    { id: "tools-hub-view", name: "Tools & Editors", load: async () => (await import("./tools-hub")).toolsHubModule },
+    { id: "mcp-view", name: "MCP Inspector", load: async () => (await import("./mcp-inspector")).mcpModule },
+    { id: "mneme-config", name: "Mneme", load: async () => (await import("./mneme-config")).mnemeConfigModule },
+    { id: "storybook-view", name: "Storybook", load: async () => (await import("./storybook")).storybookModule },
+    { id: "category-view", name: "Folder View", load: async () => (await import("./category")).categoryModule },
+    { id: "git-tree", name: "Git Tree", load: async () => (await import("./git-tree")).gitTreeModule },
+    { id: "mneme-root", name: "Mneme", load: async () => (await import("./mneme-root")).mnemeRootModule },
+    { id: "board-view", name: "Boards", load: async () => (await import("./board")).boardModule },
+    { id: "toolset-view", name: "Agent Tool", load: async () => (await import("./toolset")).toolsetModule },
+    {
+        id: "board-info",
+        name: "Board Info",
+        // Host-capable holder (EPIC-045): adopts/yields the shared content host WITHOUT rendering
+        // it, so `Text ↔ + ↔ installed board` switches transfer the same host with no reload.
+        hasContentHost: true,
+        // Never a default open target — reached only via the "+" switch entry or explicit
+        // navigation (hub / update toast / Properties button, US-867). No matcher → accepts -1.
+        load: async () => (await import("./board-info")).boardInfoModule,
     },
-});
+    {
+        id: "file-diff",
+        name: "Git Diff",
+        hasContentHost: true,
+        // Host-aware (EPIC-030 / US-613): offered for any file detected in a git
+        // repo, regardless of changes (Concern 2A). No host (file-open resolution)
+        // → -1, so it never becomes a default open target. Below monaco (50) so
+        // editing stays the primary editor.
+        accepts: (input) =>
+            (input.host?.state.get() as { gitRepo?: unknown } | undefined)?.gitRepo ? 25 : -1,
+        load: async () => (await import("./file-diff")).fileDiffModule,
+    },
+];
 
-editorRegistry.register({
-    id: "mcp-view",
-    name: "MCP Inspector",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { mcpModule } = await import("./mcp-inspector");
-        return mcpModule;
-    },
-});
-
-editorRegistry.register({
-    id: "mneme-config",
-    name: "Mneme",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { mnemeConfigModule } = await import("./mneme-config");
-        return mnemeConfigModule;
-    },
-});
-
-editorRegistry.register({
-    id: "storybook-view",
-    name: "Storybook",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { storybookModule } = await import("./storybook");
-        return storybookModule;
-    },
-});
-
-editorRegistry.register({
-    id: "category-view",
-    name: "Folder View",
-    hasContentHost: false,
-    accepts: makeAccepts(EDITOR_MATCHERS["category-view"]),
-    match: EDITOR_MATCHERS["category-view"],
-    loadModule: async () => {
-        const { categoryModule } = await import("./category");
-        return categoryModule;
-    },
-});
-
-editorRegistry.register({
-    id: "git-tree",
-    name: "Git Tree",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { gitTreeModule } = await import("./git-tree");
-        return gitTreeModule;
-    },
-});
-
-editorRegistry.register({
-    id: "mneme-root",
-    name: "Mneme",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { mnemeRootModule } = await import("./mneme-root");
-        return mnemeRootModule;
-    },
-});
-
-editorRegistry.register({
-    id: "board-view",
-    name: "Boards",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { boardModule } = await import("./board");
-        return boardModule;
-    },
-});
+for (const e of EDITORS) {
+    const match = EDITOR_MATCHERS[e.id];
+    editorRegistry.register({
+        id: e.id,
+        name: e.name,
+        hasContentHost: e.hasContentHost ?? false,
+        accepts: e.accepts ?? (match ? makeAccepts(match) : () => -1),
+        match,
+        loadModule: e.load,
+    });
+}
 
 // Warm the custom-editor registry (EPIC-042) so file-open resolution sees trusted
-// file-associated boards from the first open — `resolveEditorIdForFile` is sync but the
+// file-associated boards from the first open - `resolveEditorIdForFile` is sync but the
 // registry loads manifests async. Safe pre-init: an unresolved registry yields no matches
-// → built-in fallback.
+// -> built-in fallback.
 void customEditorRegistry.ensureInitialized();
 
-editorRegistry.register({
-    id: "toolset-view",
-    name: "Agent Tool",
-    hasContentHost: false,
-    accepts: () => -1,
-    loadModule: async () => {
-        const { toolsetModule } = await import("./toolset");
-        return toolsetModule;
-    },
-});
+// Warm the content-host editor modules so the synchronous construction path
+// (`attachEditorToPage` under the sync public APIs `addEditorPage` / `openLinks` /
+// `page.grouped`) can build any text-host editor from the registry's module cache.
+// Fire-and-forget: the chunks load in the background right after registration.
+editorRegistry.preloadContentHostModules();
 
-editorRegistry.register({
-    id: "board-info",
-    name: "Board Info",
-    // Host-capable holder (EPIC-045): adopts/yields the shared content host WITHOUT rendering
-    // it, so `Text ↔ + ↔ installed board` switches transfer the same host with no reload.
-    hasContentHost: true,
-    // Never a default open target — reached only via the "+" switch entry or explicit
-    // navigation (hub / update toast / Properties button, US-867).
-    accepts: () => -1,
-    loadModule: async () => {
-        const { boardInfoModule } = await import("./board-info");
-        return boardInfoModule;
-    },
-});
-
-editorRegistry.register({
-    id: "file-diff",
-    name: "Git Diff",
-    hasContentHost: true,
-    // Host-aware (EPIC-030 / US-613): offered for any file detected in a git
-    // repo, regardless of changes (Concern 2A). No host (file-open resolution)
-    // → -1, so it never becomes a default open target. Below monaco (50) so
-    // editing stays the primary editor.
-    accepts: (input) =>
-        (input.host?.state.get() as { gitRepo?: unknown } | undefined)?.gitRepo ? 25 : -1,
-    loadModule: async () => {
-        const { fileDiffModule } = await import("./file-diff");
-        return fileDiffModule;
-    },
-});
