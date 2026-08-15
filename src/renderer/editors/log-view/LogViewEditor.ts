@@ -102,7 +102,7 @@ export class LogViewEditor extends TextHostEditorModel<LogViewEditorState, void,
     }
 
     protected onHostAttached(host: TextFileModel): void {
-        // Initial parse against the adopted host content (switch + restore paths).
+        // Initial parse against the adopted host content (switch/restore/open paths).
         this.loadContent(host.state.get().content ?? "");
     }
 

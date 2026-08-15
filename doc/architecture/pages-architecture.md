@@ -323,7 +323,7 @@ About and Settings pages use a similar pattern with hardcoded IDs directly in th
 - `ABOUT_PAGE_ID = "about-page"` in `AboutPage.tsx`
 - `SETTINGS_PAGE_ID = "settings-page"` in `SettingsPage.tsx`
 
-These work as singletons through the same `addPage()` deduplication — `newEmptyEditorModel()` always creates with the same ID.
+These work as singletons through the same `addPage()` deduplication — each `showXPage()` method builds its editor via `editorRegistry.createEditor(id)` and attaches it to a `PageModel` constructed with the fixed page ID.
 
 ### When to use well-known pages
 

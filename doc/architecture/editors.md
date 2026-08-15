@@ -51,7 +51,7 @@ All editor code lives in `/src/renderer/editors/`.
 | `board-info` | `BoardInfoEditorModel` | (none — "+" switch entry / board toolbar Properties / Tools & Editors hub / update toast) | holder | ✓ |
 | `tools-hub-view` | `ToolsHubEditor` | (none — Tools & Editors panel "Open in new tab" / tab-bar "+" dropdown "Show All…") | — | — |
 
-> **Toolset editor:** `ToolsetEditorModel` is a lightweight read-only viewer for one registered *toolset* (a folder holding `tools-manifest.json` + tool scripts — the Agent Tools registry). Like the board and git-tree editors it is a **no-host target editor** (`hasContentHost: false`, `accepts: () => -1`): it is never resolved from a filename, but opened by the `persephone-toolset://` link scheme (encode/decode in `content/persephone-toolset-link.ts`, parsed in `parsers.ts` → `target: "toolset-view"`, built by the explicit case in `PagesLifecycleModel.buildEditorById`, and restored via the `NO_HOST_EDITOR_IDS` allow-list in `PagesPersistenceModel`). Opening it from a normal click on `tools-manifest.json` is deliberately *not* wired — that still opens the JSON in Monaco; instead the file gets an "Open Toolset" trailing icon in the Explorer tree (register-gated via `RegisterToolsetDialog` when the folder is untrusted), mirroring `board-manifest.json`'s "Open Board" icon. The view shows the manifest's metadata, a registered chip, Open-Folder / Open-Log buttons, and a card per declared tool. The registry/trust/executor layer it reads (`api/tools/`) is intentionally kept off the `app` model and every script `.d.ts`, so scripts can neither self-register nor execute tools — the same rule that keeps `board-trust.ts` unscriptable.
+> **Toolset editor:** `ToolsetEditorModel` is a lightweight read-only viewer for one registered *toolset* (a folder holding `tools-manifest.json` + tool scripts — the Agent Tools registry). Like the board and git-tree editors it is a **no-host target editor** (`hasContentHost: false`, `accepts: () => -1`): it is never resolved from a filename, but opened by the `persephone-toolset://` link scheme (encode/decode in `content/persephone-toolset-link.ts`, parsed in `parsers.ts` → `target: "toolset-view"`, built by its module's `newEditorModel` through `PagesLifecycleModel.buildEditorById`, and restored via the `NO_HOST_EDITOR_IDS` allow-list in `PagesPersistenceModel`). Opening it from a normal click on `tools-manifest.json` is deliberately *not* wired — that still opens the JSON in Monaco; instead the file gets an "Open Toolset" trailing icon in the Explorer tree (register-gated via `RegisterToolsetDialog` when the folder is untrusted), mirroring `board-manifest.json`'s "Open Board" icon. The view shows the manifest's metadata, a registered chip, Open-Folder / Open-Log buttons, and a card per declared tool. The registry/trust/executor layer it reads (`api/tools/`) is intentionally kept off the `app` model and every script `.d.ts`, so scripts can neither self-register nor execute tools — the same rule that keeps `board-trust.ts` unscriptable.
 
 > **Board editor:** `BoardEditorModel` is a Pattern-B (survive-navigation) editor. It hosts the board's `index.html` in an in-DOM cross-origin `<iframe src="board://<host>/index.html">` (no `sandbox` attribute; `host` is a stable hash of the board root minted by main; isolated by SOP + `nodeIntegrationInSubFrames: false` + a CSP that forbids remote network). The `board://` protocol is registered once on the host session and routes host→board-root. A browser-IIFE shim (`src/board-shim.ts`), inlined into the served HTML by the `board://` handler, rebuilds `window.persephone` — the bridge object — over a per-board `MessagePort` (minted by `MessageChannelMain` in main, handed off through a one-time renderer-brokered handshake): `execute()` (thin client over the main-process command runner), the integration tier (`openRawLink`, `notify`, file/folder dialogs, `readFile`/`writeFile`), and the theme/token contract (`--p-*` CSS variables injected into the served `<head>` for a themed first paint, live across theme switches). The theme shortcuts travel the other way for the same SOP reason the content bridge exists: the host's global `KeyboardService` listens on the **host** document, which a cross-origin frame's keydown never reaches, so the shim forwards Ctrl+Alt+`[` / `]` to the host as `board:cycleTheme` and both paths converge on the shared `api/cycle-app-theme.ts`. It uses the same bubble-phase `defaultPrevented` opt-out as the forwarded Ctrl+S, and — unlike `board:setStatusText`, which is main-frame-only because the footer is main-view state — it is accepted from **any** frame, since the app theme is global rather than per-board. Automation (`browser_*`) targets the board **frame** via CDP through `BoardTargetModel`. Trust is per-board (`board-trust.ts`): an untrusted board blocks rendering (see `UntrustedBoardView.tsx`), and a missing board root shows `BoardNotFoundView.tsx`. The `boards-assets/` root holds the recommended-components catalog (skins + manifest). See `assets/board-template/CLAUDE.md` for the board authoring guide.
 
@@ -157,9 +157,10 @@ lifecycle those editors would otherwise each reimplement:
 
 Subclass hooks: `displayName` (error/notify strings), `adoptHost` override (call `super`
 first, then wire domain subscriptions / kick an in-adoption parse), `onHostAttached(host)`
-(initial load on the switch and session-restore paths only — open-file callers in
-`attachEditorToPage` trigger that load themselves after a bare `adoptHost`),
-`onHostExtracted()` (clear domain refs when a successor extracts the host), and
+(initial load — runs on the switch, session-restore, and open-file paths; the open-file
+constructor `attachEditorToPage` reaches it through the public `bootstrapFromHost()` bridge
+after `adoptHost`. It does NOT run on a bare `adoptHost` or on `restore`'s error-fallback
+path), `onHostExtracted()` (clear domain refs when a successor extracts the host), and
 `untitledName()` (title fallback, e.g. `"untitled.link.json"`).
 
 The two board editors do **not** extend it: `BoardContentEditorModel` already extends
@@ -286,25 +287,54 @@ For non-text editors (Image, Browser, etc.) without `CONTENT_HOST_TRAIT`, there 
 
 When the **source** is host-less but the **target** is a built-in file editor, a plain create+swap is not enough — the target has no host to adopt and its `switchFrom` would have nothing to build over. This happens when switching back from the Board Info install page ("+"), or from the host-less Archive viewer that claims zip-based files (`.xlsx`/`.docx`/`.pptx`). In that case `switchMainEditor` dispose-and-rebuilds the target over the file (`createEditorFromFile(filePath, …)`), reading the source editor's `filePath` (which host-less editors like Archive expose via a getter override). The Board Info target itself is exempt — its tolerant `switchFrom` captures the source's `filePath` so the install page can still match catalog editors and keep the file name.
 
-## EditorModule Interface
+## EditorModule Interface & Registration
 
-Each editor folder's `index.tsx` exports an `EditorModule` registered with `editorRegistry`:
+Each editor folder's `index.tsx` exports an `EditorModule` — the lazily-loaded half of the
+registration (`/src/renderer/editors/base/editorRegistry.ts`):
 
 ```typescript
 interface EditorModule {
-    id: string;                          // e.g. "grid-json"
-    name: string;                        // display name
-    Editor: React.ComponentType<{ model: EditorModel }>;
-    create(): EditorModel;               // factory for a new instance
-    accepts?(input: AcceptanceInput): number;  // priority >= 0 if this editor accepts the input, -1 otherwise
-    hasContentHost?: boolean;            // true for text-bearing editors
-    validateForLanguage?(language: string): boolean;
-    switchOption?(language: string, filePath?: string): number;
-    isEditorContent?(language: string, content: string): boolean;
+    createEditor(): EditorModel;         // factory for a new instance (default state, id: "")
+    newEditorModel?(filePath?: string): Promise<EditorModel>;
+        // file-open factory for standalone (no-host) editors whose construction depends on
+        // the opened path — decoding a link (git-tree, mneme-root, board, toolset, category),
+        // seeding path-derived state (image, video), or reading the target (archive)
+    Component: React.ComponentType<{ model: EditorModel }>;  // editor WITH chrome
+    Body?: React.ComponentType<{ model: EditorModel }>;      // chrome-free (embeddable editors)
 }
 ```
 
-Editors are registered in `/src/renderer/editors/register-editors.ts` via `editorRegistry.register(module)`.
+The eagerly-registered half is the `EditorDefinition` (`id`, `name`, `accepts`,
+`hasContentHost`, `match?`, `loadModule`). Registration lives in
+`/src/renderer/editors/register-editors.ts` as a **table + loop**: one row per editor
+(`{ id, name, hasContentHost?, accepts?, load }`), with `match` derived from
+`EDITOR_MATCHERS[id]` and `accepts` defaulting to `makeAccepts(match)` (or `() => -1` for
+standalone editors with no matcher). Monaco and `file-diff` carry explicit `accepts`
+overrides. Each row's `load` keeps a literal `import("./…")` so Vite code splitting is
+preserved, and row order is preserved deliberately — it breaks priority ties in
+`resolveForFile`.
+
+## Editor Construction Paths
+
+All construction is registry-driven; there are three paths:
+
+- **Open a file (text-bearing).** The open flow builds a `TextFileModel` host, restores it,
+  and hands it to `attachEditorToPage` (`api/pages/PagesLifecycleModel.ts`), which
+  constructs the editor named by `host.state.editor` via `editorRegistry.createEditorSync`,
+  calls `adoptHost(host)`, then `bootstrapFromHost()`. `attachEditorToPage` must stay
+  **synchronous** — it sits under the sync scripting APIs (`addEditorPage`, `openLinks`,
+  `addEmptyPage`, `page.grouped`) — so `createEditorSync` reads the registry's module cache,
+  which `preloadContentHostModules()` warms in the background at the end of registration.
+  Monaco is the one static exception (the guaranteed-sync floor): the startup empty page and
+  `requireGroupedText` construct it before the preload can be assumed complete.
+- **Open a file (standalone).** `buildEditorById` asks the module for `newEditorModel(filePath)`;
+  a no-host id without one (browser, settings, …) is never a file-open target and falls back
+  to a text host.
+- **Editor switch / session restore.** `editorRegistry.createEditor(id, instanceId?)` +
+  `switchFrom(oldEditor)` (switch) or `applyRestoreData` + `restore()` (restore) — see
+  Owner-Orchestrated Switching above. `createEditor` awaits the module load, then delegates
+  to `createEditorSync`, so the id-stamp rule lives once: modules construct with `id: ""`,
+  and only a real (non-empty) `instanceId` is stamped.
 
 ## Scripting Facades
 
@@ -335,7 +365,7 @@ The `page.asX(force?: boolean)` methods optionally accept `force: true` to bypas
 When a file is opened:
 
 ```
-File path → editorRegistry.resolve(filePath) → EditorModule → create() → Render
+File path → editorRegistry.resolve(filePath) → EditorModule → createEditor() / newEditorModel(filePath) → Render
 ```
 
 `resolve` consults **only** each matcher's `acceptFile(fileName)` — a pure file-name test — and the highest returned priority wins. The tiers:

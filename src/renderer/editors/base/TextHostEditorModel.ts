@@ -32,10 +32,10 @@ function isLegacyTextFileHost(host: unknown): host is TextFileModel {
  *    `subscribeHostContent` / `mirrorHostSettings` and to kick the initial
  *    parse when the editor parses inside adoption (Graph, Draw, Mermaid,
  *    EnvVars pattern).
- *  - override `onHostAttached` when the initial load runs only on the
- *    switch/session-restore paths (Grid, Link, Notebook, Rest, LogView
- *    pattern) — open-file callers (`attachEditorToPage`) trigger that load
- *    themselves after a bare `adoptHost`.
+ *  - override `onHostAttached` when the initial load must not run inside
+ *    `adoptHost` itself (Grid, Link, Notebook, Rest, LogView pattern) — the
+ *    hook runs on the switch, session-restore, and open-file
+ *    (`attachEditorToPage` → `bootstrapFromHost`) paths.
  *  - `writeToHost` for every host content write, so the editor's own
  *    `subscribeHostContent` handler skips the echo.
  *
@@ -105,11 +105,11 @@ export abstract class TextHostEditorModel<
         // Override in subclasses.
     }
 
-    /** Called after `adoptHost` on the switch (`switchFrom`) and
-     *  session-restore (`restore` success) paths ONLY — not by a bare
-     *  `adoptHost` (open-file callers run the initial load themselves) and
-     *  not on `restore`'s error-fallback path. Put the initial content
-     *  parse/load here when it must not run inside `adoptHost`. */
+    /** Called after `adoptHost` on the switch (`switchFrom`), session-restore
+     *  (`restore` success), and open-file (`attachEditorToPage` via
+     *  `bootstrapFromHost`) paths — never by a bare `adoptHost` and never on
+     *  `restore`'s error-fallback path. Put the initial content parse/load
+     *  here when it must not run inside `adoptHost`. */
     protected onHostAttached(_host: TextFileModel): void {
         // Override in subclasses.
     }

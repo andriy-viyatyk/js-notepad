@@ -600,8 +600,8 @@ persephone/
 │   │   ├── link-open-menu.tsx
 │   │   └── ColorizedCode.tsx         # Syntax-highlighted code via Monaco colorize()
 │   │
-│   ├── register-editors.ts # Editor registration (all editors call editorRegistry.register)
-│   ├── types.ts            # Shared editor types
+│   ├── register-editors.ts # Editor registration — table-driven (EDITORS rows + loop) + content-host module preload
+│   ├── types.ts            # View-module prop types (FileEditorComponent, EditorViewModule)
 │   └── index.ts
 │
 ├── scripting/              # Script Execution

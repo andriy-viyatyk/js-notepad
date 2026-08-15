@@ -263,12 +263,15 @@ class EditorRegistry {
 
     /** Warm the module cache for every content-host editor so the synchronous
      *  construction path (`attachEditorToPage`) can build any text-host editor
-     *  without awaiting. Fire-and-forget per module; a load failure here is
-     *  swallowed and surfaces on first real use instead. */
+     *  without awaiting. Fire-and-forget per module; a load failure is logged
+     *  here and surfaces to the user on first real use. */
     preloadContentHostModules(): void {
         for (const def of this.definitions.values()) {
             if (!def.hasContentHost) continue;
-            void this.loadModule(def.id).catch((): undefined => undefined);
+            void this.loadModule(def.id).catch((err: unknown): undefined => {
+                console.warn(`[editorRegistry] preload of "${def.id}" failed:`, err);
+                return undefined;
+            });
         }
     }
 

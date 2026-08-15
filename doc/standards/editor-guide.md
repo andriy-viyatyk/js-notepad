@@ -128,12 +128,15 @@ export class MyEditor extends TextHostEditorModel<MyEditorState> {
 }
 ```
 
-Editors whose initial load must run only on the switch/session-restore paths (because
-`attachEditorToPage` open-file callers trigger it themselves after a bare `adoptHost` — the
-Grid/Link/Notebook pattern) put it in `protected onHostAttached(host)` instead of at the end
-of `adoptHost`. Clean up domain refs on switch-away in `protected onHostExtracted()`. Custom
-subscriptions registered via `this.registerHostSubscription(unsub)` are torn down
-automatically on re-adopt, switch-away, and dispose.
+Editors whose initial load must not run inside `adoptHost` itself (the Grid/Link/Notebook
+pattern) put it in `protected onHostAttached(host)` instead. The base runs that hook on all
+three construction paths — editor switch (`switchFrom`), session restore (`restore` success),
+and open-file (`attachEditorToPage` via the public `bootstrapFromHost()` bridge) — but never
+on a bare `adoptHost` and never on `restore`'s error-fallback path. Editors that parse during
+adoption (the Mermaid/EnvVars pattern) need no hook. Clean up domain refs on switch-away in
+`protected onHostExtracted()`. Custom subscriptions registered via
+`this.registerHostSubscription(unsub)` are torn down automatically on re-adopt, switch-away,
+and dispose.
 
 The lifecycle hook order during a switch is:
 
@@ -199,55 +202,61 @@ export function MyEditorBody({ model }: Props) {
 
 ```typescript
 // index.tsx
-import { EditorModule } from "../base/editorRegistry";
-import { MyEditor } from "./MyEditor";
-import { MyEditorBody } from "./MyEditorBody";
+import { TComponentState } from "../../core/state/state";
+import { MyEditor, defaultMyEditorState } from "./MyEditor";
+import { MyEditorView } from "./MyEditorView";
+import type { EditorModule } from "../base/editorRegistry";
+import type { EditorModel } from "../base/EditorModel";
 
-const myEditorModule: EditorModule = {
-    id: "my-editor",
-    name: "My Editor",
-    Editor: MyEditorBody,
-    create: () => new MyEditor(),
-    hasContentHost: false,              // true if text-bearing
-    accepts: (input) => {
-        if (input.kind === "file" && input.fileName?.toLowerCase().endsWith(".myext")) {
-            return 50;                  // priority — see Editor System § Resolution
-        }
-        return -1;
-    },
+function MyEditorComponent({ model }: { model: EditorModel }) {
+    return <MyEditorView model={model as MyEditor} />;
+}
+
+export const myEditorModule: EditorModule = {
+    createEditor: () =>
+        new MyEditor(new TComponentState({ ...defaultMyEditorState })),
+    Component: MyEditorComponent,
+    // Only for standalone (no-host) editors that open FROM a file path
+    // (link decode / path-derived state) — text-bearing editors never need it:
+    // newEditorModel: async (filePath?: string) => { ... },
+    // Only for embeddable editors (rendered inside Notebook notes):
+    // Body: MyEditorEmbeddedBody,
 };
-
-export default myEditorModule;
 ```
+
+Default states carry `id: ""` — never generate an id in the module; the registry stamps a
+real `instanceId` when one exists (host id, restore descriptor, switch source).
 
 ## Step 5: Register the Editor
 
-In `/src/renderer/editors/register-editors.ts`:
+Registration is a **table** in `/src/renderer/editors/register-editors.ts` — add one row to
+`EDITORS`:
 
 ```typescript
-import { editorRegistry } from "./base/editorRegistry";
-
-editorRegistry.register(
-    async () => (await import("./myeditor")).default,
-);
+{ id: "my-editor", name: "My Editor", hasContentHost: true, load: async () => (await import("./myeditor")).myEditorModule },
 ```
 
-The registry stores the module factory; the factory runs on first `getById` / `resolve` call, populating the actual `EditorModule`. This preserves code splitting — the editor module is only loaded when needed.
+The `load` closure MUST keep a literal `import("./…")` so Vite code splitting is preserved.
+The loop derives the rest: `match` comes from `EDITOR_MATCHERS["my-editor"]` (add your
+matcher in `/src/renderer/editors/base/editor-matchers.ts`), and `accepts` defaults to
+`makeAccepts(match)` — or `() => -1` when there is no matcher (standalone editors that never
+match a file). Only editors with special acceptance semantics (monaco, file-diff) set an
+explicit `accepts` on their row. Row order matters — it breaks priority ties in
+`resolveForFile` — so append unless you have a reason not to.
 
-### Registration Options
+### Row / Matcher Options
 
-| Property | Description |
-|----------|-------------|
-| `id` | Unique editor ID (must be in `EditorView` type) |
-| `name` | Display name shown in UI |
-| `Editor` | React component (`React.ComponentType<{ model: EditorModel }>`) |
-| `create()` | Factory returning a new `EditorModel` instance |
-| `hasContentHost` | `true` for text-bearing editors that compose an `IContentHost` |
-| `accepts(input)` | Returns priority ≥ 0 if this editor accepts the input (file/url/content), -1 otherwise |
-| `acceptFile(fileName)` | Returns priority ≥ 0 if this editor should **open** the file by default, -1 otherwise. File **name** only — no language, no content |
-| `validateForLanguage(lang)` | Returns `true` if the editor is valid for the language |
-| `switchOption(lang, filePath?)` | Returns priority ≥ 0 to show in the switch dropdown, -1 to hide |
-| `isEditorContent(lang, content)` | Returns `true` if content matches this editor (regex-based, no JSON parsing) |
+| Property | Where | Description |
+|----------|-------|-------------|
+| `id` | row | Unique editor ID (must be in `EditorView` type) |
+| `name` | row | Display name shown in UI |
+| `hasContentHost` | row | `true` for text-bearing editors (extend `TextHostEditorModel`) |
+| `accepts(input)` | row (override) | Returns priority ≥ 0 if this editor accepts the input, -1 otherwise; default derived from the matcher |
+| `load()` | row | Module importer (literal dynamic `import`) |
+| `acceptFile(fileName)` | matcher | Returns priority ≥ 0 if this editor should **open** the file by default, -1 otherwise. File **name** only — no language, no content |
+| `validForLanguage(lang)` | matcher | Returns `true` if the editor is valid for the language |
+| `switchOption(lang, filePath?)` | matcher | Returns priority ≥ 0 to show in the switch dropdown, -1 to hide |
+| `detectsContent(lang, content)` | matcher | Returns `true` if content matches this editor (regex-based, no JSON parsing) |
 
 `acceptFile` and `switchOption` answer different questions and are independently optional. `acceptFile` decides which editor a file *opens* in (`editorRegistry.resolve` / `resolveId` consult nothing else); `switchOption` decides which editors appear in the switch widget for a *language*. An editor may declare either or both — `md-view` declares both (so Markdown opens in Preview *and* is switchable), while `html-view` and `mermaid-view` declare only `switchOption` (so they are reachable by switching but never claim a file on open).
 
@@ -318,10 +327,9 @@ Register the panel React component in `/src/renderer/ui/secondary-views/secondar
 - [ ] `getRestoreData()` returns persisted state (stripped of runtime-only fields) — text-bearing editors inherit the identity-only base and extend it only for extra durable fields
 - [ ] `dispose()` calls `super.dispose()` and cleans up domain-only resources (host subscriptions registered via `registerHostSubscription` are torn down by the base)
 - [ ] For text-bearing editors: `displayName` set; host content writes go through `writeToHost`; view settings ride `mirrorHostSettings`
-- [ ] `EditorModule` exports all required fields (`id`, `name`, `Editor`, `create`, optional matchers)
-- [ ] Registered via `editorRegistry.register(...)` in `register-editors.ts`
-- [ ] `accepts()` returns appropriate priority (see priority guide)
-- [ ] Async import in the registration factory preserves code splitting
+- [ ] `EditorModule` exports `createEditor` + `Component` (plus `newEditorModel` for standalone file-open editors, `Body` for embeddable ones)
+- [ ] Row added to the `EDITORS` table in `register-editors.ts`; matcher added to `EDITOR_MATCHERS` in `editor-matchers.ts` if the editor matches files/languages
+- [ ] The row's `load` keeps a literal `import("./…")` — preserves code splitting
 - [ ] Error states and loading states are handled in the React component
 - [ ] (Optional) Scripting facade added with type declaration
 
