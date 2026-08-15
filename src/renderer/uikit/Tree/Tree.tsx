@@ -158,6 +158,12 @@ function TreeView<T = ITreeItem>(
         onTraitDrop: _onTraitDrop,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         expandOnDragHoverDelay: _expandOnDragHoverDelay,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        acceptsFileDrop: _acceptsFileDrop,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        onDragStartOverride: _onDragStartOverride,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        collapseDescendants: _collapseDescendants,
         ...rest
     } = props;
 

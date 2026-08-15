@@ -6,6 +6,31 @@ import type { RenderCell } from "../../RenderGrid";
 
 type SelType = "click" | "shiftClick" | "rightClick" | "startDrag" | "drag";
 
+const navigationKeys = [
+    "ArrowDown",
+    "ArrowUp",
+    "ArrowLeft",
+    "ArrowRight",
+    "Tab",
+    "PageDown",
+    "PageUp",
+    "Home",
+    "End",
+] as const;
+
+type NavigationKey = (typeof navigationKeys)[number];
+
+type NavigationContext<R> = {
+    rows: readonly R[];
+    columns: Column[];
+    rowIndex: number;
+    columnIndex: number;
+};
+
+function isNavigationKey(key: string): key is NavigationKey {
+    return navigationKeys.includes(key as NavigationKey);
+}
+
 function getSelectionRange(focus?: CellFocus) {
     let res = {
         rowStart: -1,
@@ -45,6 +70,21 @@ function inSelection(col: number, row: number, focus?: CellFocus) {
 export class FocusModel<R> {
     readonly model: AVGridModel<R>;
     focusFromIndex = false;
+
+    private readonly navigationHandlers: Record<
+        NavigationKey,
+        (context: NavigationContext<R>, event: React.KeyboardEvent<HTMLDivElement>) => void
+    > = {
+        ArrowDown: (context, event) => this.navigateArrowDown(context, event),
+        ArrowUp: (context, event) => this.navigateArrowUp(context, event),
+        ArrowLeft: (context, event) => this.navigateArrowLeft(context, event),
+        ArrowRight: (context, event) => this.navigateArrowRight(context, event),
+        Tab: (context, event) => this.navigateTab(context, event),
+        PageDown: (context) => this.navigatePageDown(context),
+        PageUp: (context) => this.navigatePageUp(context),
+        Home: (context, event) => this.navigateHome(context, event),
+        End: (context, event) => this.navigateEnd(context, event),
+    };
 
     constructor(model: AVGridModel<R>) {
         this.model = model;
@@ -520,202 +560,189 @@ export class FocusModel<R> {
         );
     };
 
-    private onContentKeyDown = (e?: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!e) return;
+    private visibleRowCount() {
+        return this.model.renderModel?.visibleRowCount ?? 1;
+    }
 
-        const { getRowKey, focus } = this.model.props;
-        let { rows, columns } = this.model.data;
+    private navigateArrowDown(
+        context: NavigationContext<R>,
+        event: React.KeyboardEvent<HTMLDivElement>
+    ) {
+        if (context.rowIndex < context.rows.length - 1) {
+            context.rowIndex = event.ctrlKey
+                ? Math.min(
+                      context.rows.length - 1,
+                      context.rowIndex + this.visibleRowCount()
+                  )
+                : context.rowIndex + 1;
+        } else if (
+            !event.ctrlKey &&
+            this.model.props.onAddRows &&
+            (!this.model.data.newRowKey ||
+                (this.model.models.editing.isEditing &&
+                    this.model.state.get().cellEdit?.rowKey ===
+                        this.model.data.newRowKey))
+        ) {
+            if (this.model.models.editing.isEditing) {
+                this.model.models.editing.closeEdit(true, true);
+            }
+            context.rows = [
+                ...context.rows,
+                ...this.model.actions.addNewRow(false, true),
+            ];
+            context.rowIndex++;
+        }
+    }
+
+    private navigateArrowUp(
+        context: NavigationContext<R>,
+        event: React.KeyboardEvent<HTMLDivElement>
+    ) {
+        if (context.rowIndex > 0) {
+            context.rowIndex = event.ctrlKey
+                ? Math.max(0, context.rowIndex - this.visibleRowCount())
+                : context.rowIndex - 1;
+        }
+    }
+
+    private navigateArrowLeft(
+        context: NavigationContext<R>,
+        event: React.KeyboardEvent<HTMLDivElement>
+    ) {
+        context.columnIndex = event.ctrlKey
+            ? 0
+            : Math.max(0, context.columnIndex - 1);
+    }
+
+    private navigateArrowRight(
+        context: NavigationContext<R>,
+        event: React.KeyboardEvent<HTMLDivElement>
+    ) {
+        if (event.ctrlKey) {
+            if (context.columnIndex === context.columns.length - 1) {
+                if (this.model.props.onAddColumns) {
+                    context.columns = [
+                        ...context.columns,
+                        ...this.model.actions.addNewColumns(1),
+                    ];
+                    context.columnIndex++;
+                }
+            } else {
+                context.columnIndex = context.columns.length - 1;
+            }
+        } else if (context.columnIndex < context.columns.length - 1) {
+            context.columnIndex++;
+        }
+    }
+
+    private navigateTab(
+        context: NavigationContext<R>,
+        event: React.KeyboardEvent<HTMLDivElement>
+    ) {
+        if (event.shiftKey) {
+            if (context.columnIndex > 0) {
+                context.columnIndex--;
+            } else {
+                context.columnIndex = context.columns.length - 1;
+                context.rowIndex = Math.max(0, context.rowIndex - 1);
+            }
+            return;
+        }
+
+        context.columnIndex =
+            context.columnIndex < context.columns.length - 1
+                ? context.columnIndex + 1
+                : 0;
 
         if (
-            ["ArrowLeft", "ArrowRight"].includes(e.key) &&
+            context.columnIndex === 0 &&
+            context.rowIndex === context.rows.length - 1 &&
+            this.model.props.onAddRows &&
+            !this.model.data.newRowKey
+        ) {
+            context.rows = [
+                ...context.rows,
+                ...this.model.actions.addNewRow(false, true),
+            ];
+            context.rowIndex++;
+        } else if (
+            context.columnIndex === 0 &&
+            context.rowIndex < context.rows.length - 1
+        ) {
+            context.rowIndex++;
+        }
+    }
+
+    private navigatePageDown(context: NavigationContext<R>) {
+        context.rowIndex = Math.min(
+            context.rows.length - 1,
+            context.rowIndex + this.visibleRowCount()
+        );
+    }
+
+    private navigatePageUp(context: NavigationContext<R>) {
+        context.rowIndex = Math.max(0, context.rowIndex - this.visibleRowCount());
+    }
+
+    private navigateHome(
+        context: NavigationContext<R>,
+        event: React.KeyboardEvent<HTMLDivElement>
+    ) {
+        context.rowIndex = 0;
+        if (event.ctrlKey) {
+            context.columnIndex = 0;
+        }
+    }
+
+    private navigateEnd(
+        context: NavigationContext<R>,
+        event: React.KeyboardEvent<HTMLDivElement>
+    ) {
+        context.rowIndex = context.rows.length - 1;
+        if (event.ctrlKey) {
+            context.columnIndex = context.columns.length - 1;
+        }
+    }
+
+    private onContentKeyDown = (event?: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!event) return;
+
+        const { getRowKey, focus } = this.model.props;
+        if (
+            (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
             this.model.models.editing.isEditing
         ) {
             return;
         }
 
-        if (
-            [
-                "ArrowDown",
-                "ArrowUp",
-                "ArrowLeft",
-                "ArrowRight",
-                "Tab",
-                "PageDown",
-                "PageUp",
-                "Home",
-                "End",
-            ].includes(e.key)
-        ) {
-            e.preventDefault();
-            e.stopPropagation();
-            let rowIndex = rows.findIndex(
-                (r) => getRowKey(r) === focus?.rowKey
-            );
-            let columnIndex = columns.findIndex(
-                (c) => c.key === focus?.columnKey
-            );
-            if (rowIndex >= 0 && columnIndex >= 0) {
-                switch (e.key) {
-                    case "ArrowDown":
-                        if (rowIndex < rows.length - 1) {
-                            if (e.ctrlKey) {
-                                rowIndex = Math.min(
-                                    rows.length - 1,
-                                    rowIndex +
-                                        (this.model.renderModel
-                                            ?.visibleRowCount ?? 1)
-                                );
-                            } else {
-                                rowIndex++;
-                            }
-                        } else if (
-                            !e.ctrlKey &&
-                            rowIndex === rows.length - 1 &&
-                            this.model.props.onAddRows &&
-                            (!this.model.data.newRowKey ||
-                                (this.model.models.editing.isEditing &&
-                                    this.model.state.get().cellEdit?.rowKey ===
-                                        this.model.data.newRowKey))
-                        ) {
-                            if (this.model.models.editing.isEditing) {
-                                this.model.models.editing.closeEdit(true, true);
-                            }
-                            rows = [
-                                ...rows,
-                                ...this.model.actions.addNewRow(false, true),
-                            ];
-                            rowIndex++;
-                        }
-                        break;
-                    case "PageDown":
-                        if (rowIndex < rows.length - 1) {
-                            rowIndex = Math.min(
-                                rows.length - 1,
-                                rowIndex +
-                                    (this.model.renderModel?.visibleRowCount ??
-                                        1)
-                            );
-                        }
-                        break;
-                    case "End":
-                        if (rowIndex < rows.length - 1) {
-                            rowIndex = rows.length - 1;
-                        }
-                        if (e.ctrlKey) {
-                            columnIndex = columns.length - 1;
-                        }
-                        break;
-                    case "ArrowUp":
-                        if (rowIndex > 0) {
-                            if (e.ctrlKey) {
-                                rowIndex = Math.max(
-                                    0,
-                                    rowIndex -
-                                        (this.model.renderModel
-                                            ?.visibleRowCount ?? 1)
-                                );
-                            } else {
-                                rowIndex--;
-                            }
-                        }
-                        break;
-                    case "PageUp":
-                        if (rowIndex > 0) {
-                            rowIndex = Math.max(
-                                0,
-                                rowIndex -
-                                    (this.model.renderModel?.visibleRowCount ??
-                                        1)
-                            );
-                        }
-                        break;
-                    case "Home":
-                        if (rowIndex > 0) {
-                            rowIndex = 0;
-                        }
-                        if (e.ctrlKey) {
-                            columnIndex = 0;
-                        }
-                        break;
-                    case "ArrowLeft":
-                        if (e.ctrlKey) {
-                            columnIndex = 0;
-                        } else if (columnIndex > 0) {
-                            columnIndex--;
-                        }
-                        break;
-                    case "ArrowRight":
-                        if (e.ctrlKey) {
-                            if (columnIndex === columns.length - 1) {
-                                if (this.model.props.onAddColumns) {
-                                    columns = [
-                                        ...columns,
-                                        ...this.model.actions.addNewColumns(1),
-                                    ];
-                                    columnIndex++;
-                                }
-                            } else {
-                                columnIndex = columns.length - 1;
-                            }
-                        } else if (columnIndex < columns.length - 1) {
-                            columnIndex++;
-                        }
-                        break;
-                    case "Tab": {
-                        if (e.shiftKey) {
-                            if (columnIndex > 0) {
-                                columnIndex = columnIndex - 1;
-                            } else {
-                                columnIndex = columns.length - 1;
-                                rowIndex = rowIndex > 0 ? rowIndex - 1 : 0;
-                            }
-                        } else {
-                            columnIndex =
-                                columnIndex < columns.length - 1
-                                    ? columnIndex + 1
-                                    : 0;
-
-                            if (
-                                columnIndex === 0 &&
-                                rowIndex === rows.length - 1 &&
-                                this.model.props.onAddRows &&
-                                !this.model.data.newRowKey
-                            ) {
-                                rows = [
-                                    ...rows,
-                                    ...this.model.actions.addNewRow(
-                                        false,
-                                        true
-                                    ),
-                                ];
-                                rowIndex++;
-                            } else {
-                                rowIndex =
-                                    columnIndex === 0 &&
-                                    rowIndex < rows.length - 1
-                                        ? rowIndex + 1
-                                        : rowIndex;
-                            }
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
+        if (isNavigationKey(event.key)) {
+            event.preventDefault();
+            event.stopPropagation();
+            const { rows, columns } = this.model.data;
+            const context: NavigationContext<R> = {
+                rows,
+                columns,
+                rowIndex: rows.findIndex((row) => getRowKey(row) === focus?.rowKey),
+                columnIndex: columns.findIndex(
+                    (column) => column.key === focus?.columnKey
+                ),
+            };
+            if (context.rowIndex >= 0 && context.columnIndex >= 0) {
+                this.navigationHandlers[event.key](context, event);
                 this.updateFocus(
-                    rows[rowIndex],
-                    columns[columnIndex],
-                    rowIndex,
-                    columnIndex,
-                    e.shiftKey && e.key !== "Tab" ? "shiftClick" : "click",
+                    context.rows[context.rowIndex],
+                    context.columns[context.columnIndex],
+                    context.rowIndex,
+                    context.columnIndex,
+                    event.shiftKey && event.key !== "Tab" ? "shiftClick" : "click",
                     true
                 );
             }
         }
 
-        if (e.ctrlKey && focus && e.code === "KeyA") {
-            e.preventDefault();
-            e.stopPropagation();
+        if (event.ctrlKey && focus && event.code === "KeyA") {
+            event.preventDefault();
+            event.stopPropagation();
             const { rows, columns } = this.model.data;
             this.selectRange(0, 0, rows.length - 1, columns.length - 1);
         }

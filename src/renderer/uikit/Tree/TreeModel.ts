@@ -1,12 +1,6 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, Traited, TraitType } from "../../core/traits/traits";
-import {
-    setTraitDragData,
-    hasTraitDragData,
-    isFileDrag,
-    getTraitDragDataFromEvent,
-} from "../../core/traits/dnd";
 import { RenderGridModel } from "../RenderGrid";
 import type { RowAlign } from "../RenderGrid";
 import { ContextMenuEvent } from "../../api/events/events";
@@ -16,6 +10,8 @@ import {
     TreeProps,
     TreeRow,
 } from "./types";
+import { TreeDndModel } from "./TreeDndModel";
+import { TreeKeyboardHandler } from "./TreeKeyboardHandler";
 
 // =============================================================================
 // State
@@ -79,29 +75,10 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         this.gridRef = ref;
     };
 
-    // --- multi-selection transient state (not in TreeState) ---
+    // Composed interaction models retain transient gesture state outside TreeState.
+    readonly keyboard = new TreeKeyboardHandler(this);
 
-    /**
-     * Range anchor for Shift+click / Shift+Arrow, held as a source `value` rather than a row
-     * index: a consumer rebuild (e.g. an FS watcher tick re-listing folders) shifts every index,
-     * which would silently move the anchor. Resolved to an index at gesture time by `anchorIndex`.
-     * Transient on purpose — it must not trigger a render, and the visual anchor is `activeIndex`.
-     */
-    private anchorValue: string | number | null = null;
-
-    // --- drag-and-drop transient state (not in TreeState) ---
-
-    /**
-     * Per-row dragenter/dragleave counter, keyed by source `value`. Native
-     * `dragenter`/`dragleave` fire for child elements too, so a depth counter is
-     * required to avoid the highlight flickering as the cursor moves between the row
-     * and its inner spans. Keying by `value` (not row index) survives row index
-     * changes during a drag — for example when expand-on-hover fires mid-drag.
-     */
-    private dragEnterCounts = new Map<string | number, number>();
-
-    /** Active expand-on-hover timer id (window.setTimeout). */
-    private dragHoverExpandTimer: number | null = null;
+    readonly dnd = new TreeDndModel(this);
 
     // --- ids ---
     private _reactId = "";
@@ -220,7 +197,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         ],
     );
 
-    /** Lookup of source `value` → row index (for imperative expand/scroll/toggle). */
+    /** Lookup of source `value` to row index (for imperative expand/scroll/toggle). */
     indexByValue = this.memo<Map<string | number, number>>(
         () => {
             const map = new Map<string | number, number>();
@@ -257,7 +234,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
     /** Row index of the current selection, or -1. Keyboard fallback origin when no row
      *  is active (e.g. the mouse just left the tree). */
-    private selectedRowIndex = (): number => {
+    selectedRowIndex = (): number => {
         const rows = this.rows.value;
         for (let i = 0; i < rows.length; i++) {
             if (this.isSelectedAt(i)) return i;
@@ -278,18 +255,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     // --- multi-selection ---
 
     /**
-     * The anchor as a row index, or null when it no longer resolves (the row was collapsed away or
-     * deleted). Callers fall back to the row the gesture started on.
-     */
-    private anchorIndex = (): number | null => {
-        if (this.anchorValue == null) return null;
-        const idx = this.indexByValue.value.get(this.anchorValue);
-        return idx == null ? null : idx;
-    };
-
-    /**
      * Indices of the rows currently selected, read through the consumer's selection (predicate or
-     * `value` prop). O(visible rows), called once per gesture — never per render.
+     * `value` prop). O(visible rows), called once per gesture -- never per render.
      */
     private currentSelectionIndices = (): number[] => {
         const out: number[] = [];
@@ -300,7 +267,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     /** De-dupe, drop non-interactive rows, sort into visible order, emit. */
-    private emitSelection = (indices: number[]) => {
+    emitSelection = (indices: number[]) => {
         const handler = this.props.onSelectionChange;
         if (!handler) return;
         const unique = [...new Set(indices)]
@@ -314,7 +281,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     };
 
     /** Inclusive index range between two rows, in either direction. */
-    private rangeIndices = (from: number, to: number): number[] => {
+    rangeIndices = (from: number, to: number): number[] => {
         const [lo, hi] = from <= to ? [from, to] : [to, from];
         const out: number[] = [];
         for (let i = lo; i <= hi; i++) out.push(i);
@@ -336,7 +303,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     /**
      * Row click. In single-select mode (the default) this is unchanged: fire `onChange`.
      *
-     * In `multiSelect` mode the modifier decides. Shift is tested BEFORE Ctrl deliberately — that
+     * In `multiSelect` mode the modifier decides. Shift is tested BEFORE Ctrl deliberately -- that
      * ordering is what makes Ctrl+Shift+click a range extend rather than needing a third rule; a
      * disjoint-range add is not a gesture we support.
      */
@@ -350,19 +317,19 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         }
 
         if (e?.shiftKey) {
-            this.emitSelection(this.rangeIndices(this.anchorIndex() ?? rowIndex, rowIndex));
-            return; // anchor unchanged — successive Shift+clicks pivot on the same row
+            this.emitSelection(this.rangeIndices(this.keyboard.anchorIndex() ?? rowIndex, rowIndex));
+            return; // anchor unchanged -- successive Shift+clicks pivot on the same row
         }
         if (e?.ctrlKey) {
             const current = this.currentSelectionIndices();
             const next = current.includes(rowIndex)
                 ? current.filter((i) => i !== rowIndex)
                 : [...current, rowIndex];
-            this.anchorValue = r.value;
+            this.keyboard.setAnchor(r.value);
             this.emitSelection(next);
             return;
         }
-        this.anchorValue = r.value;
+        this.keyboard.setAnchor(r.value);
         this.emitSelection([rowIndex]);
         this.props.onChange?.(r.source);
     };
@@ -394,10 +361,10 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
         // Right-click moves the selection to this row ONLY when the row is outside the current
         // selection. Right-clicking one of N selected rows must keep all N, so the menu it opens
-        // can act on the whole set (Windows Explorer / VS Code behavior). No `onChange` — a
+        // can act on the whole set (Windows Explorer / VS Code behavior). No `onChange` -- a
         // right-click never navigates.
         if (this.props.multiSelect && this.isInteractive(rowIndex) && !this.isSelectedAt(rowIndex)) {
-            this.anchorValue = r.value;
+            this.keyboard.setAnchor(r.value);
             this.emitSelection([rowIndex]);
         }
 
@@ -409,308 +376,31 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
     /**
      * Container-level context-menu handler. Skipped when a row already populated
-     * `ContextMenuEvent.items` — the row's menu wins.
+     * `ContextMenuEvent.items` -- the row's menu wins.
      */
     onRootContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
         if (e.nativeEvent.contextMenuEvent?.items.length) return;
         this.props.onContextMenu?.(e);
     };
 
-    onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!this.props.keyboardNav) return;
-        const rows = this.rows.value;
-        const n = rows.length;
-        if (n === 0) return;
-        const cur = this.props.activeIndex ?? this.selectedRowIndex();
-        const apply = (target: number) => {
-            if (target < 0) return;
-            this.props.onActiveChange?.(target);
-            this.gridRef?.scrollToRow(target);
-        };
-        /**
-         * Arrow move in `multiSelect` mode. With Shift, extend the selection from the anchor to the
-         * new active row; without it, leave the selection alone but re-anchor, so a later
-         * Shift+Arrow pivots on where the user actually is.
-         */
-        const applyWithSelection = (target: number) => {
-            if (target < 0) return;
-            apply(target);
-            if (!this.props.multiSelect) return;
-            if (e.shiftKey) {
-                this.emitSelection(this.rangeIndices(this.anchorIndex() ?? target, target));
-            } else {
-                this.anchorValue = this.rows.value[target]?.value ?? null;
-            }
-        };
-        // Ctrl+A — select every interactive row. Handled before the switch: `key` is "a", which no
-        // other branch claims. `stopPropagation` because the gesture is consumed here — otherwise it
-        // keeps bubbling to whatever select-all the surrounding chrome binds.
-        if (
-            this.props.multiSelect
-            && e.ctrlKey
-            && !e.altKey
-            && !e.shiftKey
-            && e.key.toLowerCase() === "a"
-        ) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.emitSelection(this.rows.value.map((_, i) => i));
-            return;
-        }
-        switch (e.key) {
-            case "ArrowDown":
-                e.preventDefault();
-                applyWithSelection(this.findNextInteractive(Math.min(n - 1, cur + 1), 1));
-                break;
-            case "ArrowUp":
-                e.preventDefault();
-                applyWithSelection(this.findNextInteractive(Math.max(0, cur - 1), -1));
-                break;
-            // Home / End / PageUp / PageDown route through applyWithSelection too, so Shift+Home,
-            // Shift+End and Shift+PageUp/Down extend the range the same way Shift+Arrow does. In
-            // single-select mode it is identical to `apply`.
-            case "Home":
-                e.preventDefault();
-                applyWithSelection(this.findNextInteractive(0, 1));
-                break;
-            case "End":
-                e.preventDefault();
-                applyWithSelection(this.findNextInteractive(n - 1, -1));
-                break;
-            case "PageDown": {
-                e.preventDefault();
-                const page = Math.max(1, this.gridRef?.visibleRowCount ?? 1);
-                const start = (cur < 0 ? 0 : cur) + page;
-                const target = this.findNextInteractive(Math.min(n - 1, start), 1);
-                applyWithSelection(target >= 0 ? target : this.findNextInteractive(n - 1, -1));
-                break;
-            }
-            case "PageUp": {
-                e.preventDefault();
-                const page = Math.max(1, this.gridRef?.visibleRowCount ?? 1);
-                const start = (cur < 0 ? 0 : cur) - page;
-                const target = this.findNextInteractive(Math.max(0, start), -1);
-                applyWithSelection(target >= 0 ? target : this.findNextInteractive(0, 1));
-                break;
-            }
-            case "ArrowRight": {
-                e.preventDefault();
-                if (cur < 0) break;
-                const r = rows[cur];
-                if (!r) break;
-                const expandable = r.hasChildren || r.lazyChildren;
-                if (expandable && !r.expanded) {
-                    this.toggleAt(cur);
-                } else if (r.hasChildren && r.expanded) {
-                    apply(this.findNextInteractive(cur + 1, 1));
-                }
-                break;
-            }
-            case "ArrowLeft": {
-                e.preventDefault();
-                if (cur < 0) break;
-                const r = rows[cur];
-                if (!r) break;
-                const expandable = r.hasChildren || r.lazyChildren;
-                if (expandable && r.expanded) {
-                    this.toggleAt(cur);
-                } else {
-                    apply(this.findParentIndex(cur));
-                }
-                break;
-            }
-            case "Enter":
-                if (cur >= 0) {
-                    e.preventDefault();
-                    this.onItemClick(cur);
-                }
-                break;
-        }
-    };
+    onKeyDown = this.keyboard.onKeyDown;
 
-    // --- drag-and-drop ---
+    // --- drag-and-drop compatibility delegates ---
 
-    /** Whether DnD is enabled at all (drag source AND/OR drop target). */
     get isDndEnabled(): boolean {
-        return (
-            (!!this.props.traitTypeId && !!this.props.getDragData) ||
-            !!this.props.acceptsDrop
-        );
+        return this.dnd.isEnabled;
     }
 
-    /** Whether row at idx is allowed to start a drag. Enabled by a trait-drag config
-     *  (`traitTypeId` + `getDragData`) OR an `onDragStartOverride` (native OS drag). */
-    canDragRow = (rowIndex: number): boolean => {
-        const hasTraitDrag = !!this.props.traitTypeId && !!this.props.getDragData;
-        if (!hasTraitDrag && !this.props.onDragStartOverride) return false;
-        const r = this.rows.value[rowIndex];
-        return !!r && !r.item.section && !r.item.disabled;
-    };
-
-    /** Whether row at idx is allowed to receive drops. */
-    canDropRow = (rowIndex: number): boolean => {
-        if (!this.props.acceptsDrop) return false;
-        const r = this.rows.value[rowIndex];
-        return !!r && !r.item.section && !r.item.disabled;
-    };
-
-    isDraggingAt = (rowIndex: number): boolean => {
-        const r = this.rows.value[rowIndex];
-        const v = this.state.get().draggingValue;
-        return !!r && v != null && r.value === v;
-    };
-
-    isDropTargetAt = (rowIndex: number): boolean => {
-        const r = this.rows.value[rowIndex];
-        const v = this.state.get().dragOverValue;
-        return !!r && v != null && r.value === v;
-    };
-
-    onDragStart = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
-        const r = this.rows.value[rowIndex];
-        if (!r || r.item.section || r.item.disabled) {
-            e.preventDefault();
-            return;
-        }
-        // First chance: the app may take over the gesture with a native OS drag.
-        if (this.props.onDragStartOverride?.(r.source, r.level, e)) {
-            e.stopPropagation();
-            return;
-        }
-        const { traitTypeId, getDragData } = this.props;
-        if (!traitTypeId || !getDragData) {
-            e.preventDefault();
-            return;
-        }
-        const data = getDragData(r.source, r.level);
-        if (data == null) {
-            e.preventDefault();
-            return;
-        }
-        e.stopPropagation();
-        setTraitDragData(e.dataTransfer, traitTypeId, data);
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                s.draggingValue = r.value;
-            });
-        });
-    };
-
-    onDragEnd = () => {
-        this.dragEnterCounts.clear();
-        this.cancelHoverExpandTimer();
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                s.draggingValue = null;
-                s.dragOverValue = null;
-            });
-        });
-    };
-
-    /** Accept a drag if it carries trait data, OR it's an OS file drag and this Tree
-     *  opted into file drops (`acceptsFileDrop`). Keeps the Tree from reading `files`. */
-    private acceptsDrag(dataTransfer: DataTransfer): boolean {
-        return hasTraitDragData(dataTransfer)
-            || (!!this.props.acceptsFileDrop && isFileDrag(dataTransfer));
-    }
-
-    onDragEnter = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
-        if (!this.canDropRow(rowIndex)) return;
-        if (!this.acceptsDrag(e.dataTransfer)) return;
-        const r = this.rows.value[rowIndex];
-        if (!r) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
-
-        const cur = this.dragEnterCounts.get(r.value) ?? 0;
-        this.dragEnterCounts.set(r.value, cur + 1);
-        if (cur === 0) {
-            queueMicrotask(() => {
-                if (!this.isLive) return;
-                this.state.update((s) => {
-                    s.dragOverValue = r.value;
-                });
-            });
-            this.scheduleHoverExpand(r);
-        }
-    };
-
-    onDragOver = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
-        if (!this.canDropRow(rowIndex)) return;
-        if (!this.acceptsDrag(e.dataTransfer)) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
-    };
-
-    onDragLeave = (_e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
-        const r = this.rows.value[rowIndex];
-        if (!r) return;
-        const cur = this.dragEnterCounts.get(r.value) ?? 0;
-        const next = cur - 1;
-        if (next <= 0) {
-            this.dragEnterCounts.delete(r.value);
-            this.cancelHoverExpandTimer();
-            queueMicrotask(() => {
-                if (!this.isLive) return;
-                this.state.update((s) => {
-                    if (s.dragOverValue === r.value) s.dragOverValue = null;
-                });
-            });
-        } else {
-            this.dragEnterCounts.set(r.value, next);
-        }
-    };
-
-    onDrop = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
-        if (!this.canDropRow(rowIndex)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        this.dragEnterCounts.clear();
-        this.cancelHoverExpandTimer();
-
-        const payload = getTraitDragDataFromEvent(e);
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                s.dragOverValue = null;
-                s.draggingValue = null;
-            });
-        });
-        if (!payload) return;
-
-        const r = this.rows.value[rowIndex];
-        if (!r) return;
-        const allowed = this.props.canTraitDrop?.(r.source, payload, r.level) ?? true;
-        if (allowed) this.props.onTraitDrop?.(r.source, payload, r.level);
-    };
-
-    private scheduleHoverExpand(r: TreeRow<T>) {
-        this.cancelHoverExpandTimer();
-        const delay = this.props.expandOnDragHoverDelay ?? 500;
-        if (delay <= 0) return;
-        if (!r.hasChildren || r.expanded) return;
-        this.dragHoverExpandTimer = window.setTimeout(() => {
-            this.dragHoverExpandTimer = null;
-            if (!this.isLive) return;
-            // Re-check the row is still hovered and still collapsed before expanding —
-            // the user may have moved to a sibling between schedule and fire.
-            if (this.state.get().dragOverValue !== r.value) return;
-            const idx = this.indexByValue.value.get(r.value);
-            if (idx == null) return;
-            const cur = this.rows.value[idx];
-            if (!cur || cur.expanded) return;
-            this.toggleAt(idx);
-        }, delay);
-    }
-
-    private cancelHoverExpandTimer() {
-        if (this.dragHoverExpandTimer != null) {
-            window.clearTimeout(this.dragHoverExpandTimer);
-            this.dragHoverExpandTimer = null;
-        }
-    }
+    canDragRow = this.dnd.canDragRow;
+    canDropRow = this.dnd.canDropRow;
+    isDraggingAt = this.dnd.isDraggingAt;
+    isDropTargetAt = this.dnd.isDropTargetAt;
+    onDragStart = this.dnd.onDragStart;
+    onDragEnd = this.dnd.onDragEnd;
+    onDragEnter = this.dnd.onDragEnter;
+    onDragOver = this.dnd.onDragOver;
+    onDragLeave = this.dnd.onDragLeave;
+    onDrop = this.dnd.onDrop;
 
     // --- lazy children loading ---
 
@@ -787,32 +477,32 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         if (!r) return;
         if (!r.hasChildren && !r.lazyChildren) return;
 
-        // Collapse guard — e.g. a permanent chevron-less root that keyboard ArrowLeft
+        // Collapse guard -- e.g. a permanent chevron-less root that keyboard ArrowLeft
         // could otherwise collapse with no way to re-open it. Expansion never blocks.
         if (r.expanded && this.props.canCollapse && !this.props.canCollapse(r.source, r.level)) {
             return;
         }
 
-        // Already loading? Ignore re-toggles during an inflight load — the user must wait
+        // Already loading? Ignore re-toggles during an inflight load -- the user must wait
         // for resolution before collapsing. Avoids a race where collapse-then-resolve
         // would flip a row open that the user explicitly closed.
         if (this.state.get().loading[r.value]) return;
 
         if (r.lazyChildren && !r.expanded && this.needsLazyLoad(rowIndex)) {
-            // Lazy expand path — runLoadAndExpand sets expanded=true + loading=true atomically.
+            // Lazy expand path -- runLoadAndExpand sets expanded=true + loading=true atomically.
             void this.runLoadAndExpand(r);
             return;
         }
 
         const next = !r.expanded;
         // Collapsing with `collapseDescendants`: close the whole subtree in the same state
-        // write, so re-expanding this row reveals a fully-closed subtree — and, for lazy
+        // write, so re-expanding this row reveals a fully-closed subtree -- and, for lazy
         // trees, so no descendant is left flagged expanded after its children are dropped.
         const descendants =
             !next && this.props.collapseDescendants
                 ? this.collectDescendantValues(r.source)
                 : null;
-        // Defer the state write past the current render — model effects with deps run inside
+        // Defer the state write past the current render -- model effects with deps run inside
         // setPropsInternal during the render phase, and synchronous state.update from here
         // would trigger React's "Cannot update a component while rendering a different
         // component" warning when this method is invoked from a render-time path. Re-check
@@ -833,7 +523,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     /**
      * Every descendant `value` under `source`, excluding `source` itself. Walks the SOURCE
      * tree, so it reaches collapsed-but-loaded descendants; a lazy descendant with no loaded
-     * children contributes only itself. Leaves are included — writing `false` for a leaf is
+     * children contributes only itself. Leaves are included -- writing `false` for a leaf is
      * harmless and clears any stale flag it picked up while it still had children.
      */
     private collectDescendantValues = (source: T): (string | number)[] => {
@@ -864,7 +554,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
 
     /**
      * Expand every node that currently has loaded children. Lazy/unloaded nodes are NOT
-     * traversed — `loadChildren` is fired-and-awaited only via user expansion or via
+     * traversed -- `loadChildren` is fired-and-awaited only via user expansion or via
      * `revealItem`. Consumers that want to fully unfold a lazy tree must walk and
      * `revealItem` each leaf themselves.
      */
@@ -970,14 +660,14 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     /**
      * Expand every ancestor of `value` (awaiting `loadChildren` for any unresolved
      * ancestor), then scroll the row into view. Returns when the row is visible (or
-     * unreachable). Sync callers may ignore the returned promise — this is a drop-in
+     * unreachable). Sync callers may ignore the returned promise -- this is a drop-in
      * for the V1 sync revealItem.
      *
      * Reaches not-yet-loaded values only when `getAncestorValues` is supplied. Without
      * it, no-ops on unknown values (V1-compatible).
      */
     revealItem = async (value: string | number, align?: RowAlign): Promise<void> => {
-        // Fast path 1 — already-visible value with all ancestors expanded: just scroll.
+        // Fast path 1 -- already-visible value with all ancestors expanded: just scroll.
         const expandedNow = this.state.get().expanded;
         const chainNow = this.findAncestorChain(value);
         if (chainNow != null && chainNow.every((a) => expandedNow[a])) {
@@ -986,13 +676,13 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             return;
         }
 
-        // Fast path 2 — value loaded but some ancestors collapsed: sync expand all + scroll.
+        // Fast path 2 -- value loaded but some ancestors collapsed: sync expand all + scroll.
         if (chainNow != null) {
             await this.expandAncestorsThenScroll(chainNow, value, align);
             return;
         }
 
-        // Slow path — value not yet loaded. Defer to consumer-supplied resolver.
+        // Slow path -- value not yet loaded. Defer to consumer-supplied resolver.
         const resolver = this.props.getAncestorValues;
         if (!resolver) return; // legacy not-found semantics: silent no-op.
 
@@ -1004,11 +694,11 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         }
         if (!this.isLive) return;
 
-        // Sequentially expand each ancestor — for any that is unloaded, runLoadAndExpand
+        // Sequentially expand each ancestor -- for any that is unloaded, runLoadAndExpand
         // resolves only after children land. Then walk the next.
         for (const a of ancestors) {
             const idx = this.indexByValue.value.get(a);
-            if (idx == null) return; // chain is broken — bail.
+            if (idx == null) return; // chain is broken -- bail.
             const row = this.rows.value[idx];
             if (!row) return;
             if (row.expanded) continue;
@@ -1087,10 +777,10 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             ],
         );
 
-        // Keep the active row visible whenever activeIndex changes externally — covers
+        // Keep the active row visible whenever activeIndex changes externally -- covers
         // drivers (parent components, keyboard handler, etc.) that update activeIndex.
         //
-        // Timing: on a fresh mount, this effect runs inside the init() useEffect — at that
+        // Timing: on a fresh mount, this effect runs inside the init() useEffect -- at that
         // point the RenderGrid's ResizeObserver has NOT yet fired its first callback, so
         // gridRef.size is { undefined, undefined } and `calcScrollOffsetY` would compute
         // with visibleHeight = 0. Defer to setTimeout(0) when not measured. Once measured,
@@ -1117,7 +807,6 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     }
 
     dispose() {
-        this.cancelHoverExpandTimer();
-        this.dragEnterCounts.clear();
+        this.dnd.dispose();
     }
 }

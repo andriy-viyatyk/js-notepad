@@ -1,14 +1,15 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
 import { CheckedIcon, IndeterminateIcon, UncheckedIcon } from "../../theme/icons";
-import { isTraited, traited, Traited } from "../../core/traits/traits";
+import { Traited } from "../../core/traits/traits";
 import { highlight } from "../shared/highlight";
+import { useComponentModel } from "../../core/state/model";
+import { defaultMultiListBoxState, MultiListBoxModel } from "./MultiListBoxModel";
 import { Input } from "../Input";
 import {
     IListBoxItem,
-    LIST_ITEM_KEY,
     ListBox,
     ListItemRenderContext,
 } from "../ListBox";
@@ -27,17 +28,17 @@ export interface MultiListBoxProps<T = IListBoxItem>
     items: T[] | Traited<unknown[]>;
     /** Currently-selected source items. Empty array when nothing is selected. */
     value: T[];
-    /** Called whenever the selection changes — caller replaces its `value` with the array. */
+    /** Called whenever the selection changes -- caller replaces its `value` with the array. */
     onChange: (value: T[]) => void;
-    /** Disabled state — rows do not respond to clicks and the search input is read-only. */
+    /** Disabled state -- rows do not respond to clicks and the search input is read-only. */
     disabled?: boolean;
-    /** Read-only state — rows do not respond to clicks. The search box stays enabled. */
+    /** Read-only state -- rows do not respond to clicks. The search box stays enabled. */
     readOnly?: boolean;
     /** Show the built-in search input above the list. Default: true. */
     showSearch?: boolean;
     /** Search filter mode. Default: "contains". `"off"` disables filtering entirely. */
     filterMode?: "contains" | "startsWith" | "off";
-    /** Placeholder shown inside the built-in search input. Default: "Search…". */
+    /** Placeholder shown inside the built-in search input. Default: "Search...". */
     searchPlaceholder?: string;
     /** Show a tri-state "Select all" row at the top of the list. Default: false. */
     selectAll?: boolean;
@@ -52,11 +53,11 @@ export interface MultiListBoxProps<T = IListBoxItem>
     maxVisibleItems?: number;
     /** Renders inside the list area when no rows match the filter. Default: "no rows". */
     emptyMessage?: React.ReactNode;
-    /** Fixed width — number → px, string passes through. Default: fills parent (100%). */
+    /** Fixed width — number becomes px; a string passes through. Default: fills parent (100%). */
     width?: number | string;
     /**
-     * Fixed height — number → px, string passes through. When unset, the inner list grows up
-     * to `maxVisibleItems × rowHeight` plus the search row + select-all row chrome.
+     * Fixed height — number becomes px; a string passes through. When unset, the inner list grows up
+     * to `maxVisibleItems x rowHeight` plus the search row and select-all row chrome.
      */
     height?: number | string;
 }
@@ -203,50 +204,6 @@ const ListWrapper = styled.div(
 const defaultRowHeight = 24;
 const defaultMaxVisibleItems = 10;
 
-function defaultMatch(item: IListBoxItem, q: string, mode: "contains" | "startsWith" | "off"): boolean {
-    if (mode === "off" || q === "") return true;
-    const label = typeof item.label === "string" ? item.label.toLowerCase() : "";
-    const query = q.toLowerCase();
-    return mode === "startsWith" ? label.startsWith(query) : label.includes(query);
-}
-
-interface Resolved<T> {
-    resolved: IListBoxItem[];
-    sources: T[];
-    extractValue: (v: T) => string | number;
-}
-
-function resolveItems<T>(items: T[] | Traited<unknown[]>): Resolved<T> {
-    if (isTraited<unknown[]>(items)) {
-        const accessor = items.traits.get(LIST_ITEM_KEY);
-        const sources = items.target as T[];
-        if (accessor) {
-            const resolved: IListBoxItem[] = sources.map((v) => ({
-                value: accessor.value(v) as string | number,
-                label: accessor.label(v),
-                icon: accessor.icon ? accessor.icon(v) : undefined,
-                disabled: accessor.disabled ? Boolean(accessor.disabled(v)) : undefined,
-            }));
-            return {
-                resolved,
-                sources,
-                extractValue: (v: T) => accessor.value(v) as string | number,
-            };
-        }
-        // No accessor — fall through to the plain path treating sources as IListBoxItem.
-        return {
-            resolved: sources as unknown as IListBoxItem[],
-            sources,
-            extractValue: (v: T) => (v as unknown as IListBoxItem).value,
-        };
-    }
-    return {
-        resolved: items as unknown as IListBoxItem[],
-        sources: items,
-        extractValue: (v: T) => (v as unknown as IListBoxItem).value,
-    };
-}
-
 // =============================================================================
 // Component
 // =============================================================================
@@ -254,14 +211,14 @@ function resolveItems<T>(items: T[] | Traited<unknown[]>): Resolved<T> {
 export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
     const {
         name,
-        items,
-        value,
-        onChange,
+        items: _items,
+        value: _value,
+        onChange: _onChange,
+        filterMode: _filterMode,
         disabled,
         readOnly,
         showSearch = true,
-        filterMode = "contains",
-        searchPlaceholder = "Search…",
+        searchPlaceholder = "Search...",
         selectAll = false,
         selectAllLabel = "Select all",
         rowHeight = defaultRowHeight,
@@ -271,132 +228,18 @@ export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
         height: heightProp,
         ...rest
     } = props;
-
-    const [searchText, setSearchText] = useState("");
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-    const { resolved, sources, extractValue } = useMemo(() => resolveItems<T>(items), [items]);
-
-    const selectedKeySet = useMemo(() => {
-        const s = new Set<string | number>();
-        for (const v of value) s.add(extractValue(v));
-        return s;
-    }, [value, extractValue]);
-
-    const { filteredSources, filteredItems } = useMemo(() => {
-        const fs: T[] = [];
-        const fi: IListBoxItem[] = [];
-        for (let i = 0; i < resolved.length; i++) {
-            if (filterMode === "off" || defaultMatch(resolved[i], searchText, filterMode)) {
-                fs.push(sources[i]);
-                fi.push(resolved[i]);
-            }
-        }
-        return { filteredSources: fs, filteredItems: fi };
-    }, [resolved, sources, searchText, filterMode]);
-
-    // Preserve the Traited wrapper so the inner ListBox resolves T → IListBoxItem
-    // through the same accessor the caller supplied. Falls through to a plain array
-    // when the caller passed one.
-    const listBoxItems: T[] | Traited<unknown[]> = useMemo(
-        () => (isTraited<unknown[]>(items) ? traited(filteredSources, items.traits) : filteredSources),
-        [items, filteredSources],
+    const model = useComponentModel(
+        props,
+        MultiListBoxModel as unknown as MultiListBoxModel<T>,
+        defaultMultiListBoxState,
     );
-
-    // Tri-state for select-all: count selected among the currently-visible (filtered) rows.
-    const visibleSelectedCount = useMemo(() => {
-        let n = 0;
-        for (const it of filteredItems) {
-            if (selectedKeySet.has(it.value)) n++;
-        }
-        return n;
-    }, [filteredItems, selectedKeySet]);
-    const allVisibleSelected =
-        filteredItems.length > 0 && visibleSelectedCount === filteredItems.length;
-    const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected;
-
-    const handleToggle = useCallback(
-        (source: T) => {
-            if (disabled || readOnly) return;
-            const key = extractValue(source);
-            if (selectedKeySet.has(key)) {
-                onChange(value.filter((v) => extractValue(v) !== key));
-            } else {
-                onChange([...value, source]);
-            }
-        },
-        [disabled, readOnly, extractValue, selectedKeySet, value, onChange],
-    );
-
-    const handleSelectAllToggle = useCallback(() => {
-        if (disabled || readOnly) return;
-        const visibleKeys = new Set<string | number>();
-        for (const it of filteredItems) visibleKeys.add(it.value);
-        if (allVisibleSelected) {
-            // Deselect every currently-visible item, preserve out-of-filter selections.
-            onChange(value.filter((v) => !visibleKeys.has(extractValue(v))));
-        } else {
-            // Select every currently-visible item not already selected.
-            const next = value.slice();
-            for (let i = 0; i < filteredItems.length; i++) {
-                const it = filteredItems[i];
-                if (!selectedKeySet.has(it.value)) next.push(filteredSources[i]);
-            }
-            onChange(next);
-        }
-    }, [
-        disabled,
-        readOnly,
-        filteredItems,
-        filteredSources,
-        allVisibleSelected,
-        selectedKeySet,
-        value,
-        onChange,
-        extractValue,
-    ]);
-
-    const renderRow = useCallback(
-        (ctx: ListItemRenderContext<T>) => {
-            const checked = selectedKeySet.has(ctx.item.value);
-            const itemDisabled = ctx.item.disabled;
-            const labelNode =
-                typeof ctx.item.label === "string" && searchText
-                    ? highlight(ctx.item.label, searchText)
-                    : ctx.item.label;
-            return (
-                <ItemRow
-                    id={ctx.id}
-                    data-type="multi-list-item"
-                    data-checked={checked || undefined}
-                    data-active={ctx.active || undefined}
-                    data-disabled={itemDisabled || undefined}
-                    role="option"
-                    aria-selected={checked ? "true" : "false"}
-                    aria-disabled={itemDisabled ? "true" : undefined}
-                >
-                    <span data-part="check">
-                        {checked ? <CheckedIcon /> : <UncheckedIcon />}
-                    </span>
-                    {ctx.item.icon}
-                    <span data-part="label">{labelNode}</span>
-                </ItemRow>
-            );
-        },
-        [selectedKeySet, searchText],
-    );
-
-    // ListBox.isSelected drives the `selected` flag in ListItemRenderContext.
-    const isRowSelected = useCallback(
-        (source: T) => selectedKeySet.has(extractValue(source)),
-        [selectedKeySet, extractValue],
-    );
-
-    const rootStyle: React.CSSProperties = {};
-    if (width !== undefined) rootStyle.width = width;
-    if (heightProp !== undefined) rootStyle.height = heightProp;
-
+    const { searchText, activeIndex } = model.state.use((state) => ({
+        searchText: state.searchText,
+        activeIndex: state.activeIndex,
+    }));
     const listGrow = heightProp === undefined ? maxVisibleItems * rowHeight : undefined;
+    const rootStyle: React.CSSProperties | undefined =
+        width === undefined && heightProp === undefined ? undefined : { width, height: heightProp };
 
     return (
         <Root
@@ -404,7 +247,7 @@ export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
             data-name={name}
             data-disabled={disabled || undefined}
             data-readonly={readOnly || undefined}
-            style={Object.keys(rootStyle).length > 0 ? rootStyle : undefined}
+            style={rootStyle}
             {...rest}
         >
             {showSearch && (
@@ -413,7 +256,7 @@ export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
                         name="multilistbox-search"
                         size="sm"
                         value={searchText}
-                        onChange={setSearchText}
+                        onChange={model.setSearchText}
                         placeholder={searchPlaceholder}
                         disabled={disabled}
                         tone={searchText ? "accent" : "default"}
@@ -423,39 +266,46 @@ export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
             {selectAll && (
                 <SelectAllRow
                     data-type="multilistbox-select-all"
-                    data-checked={
-                        allVisibleSelected
-                            ? "true"
-                            : someVisibleSelected
-                            ? "mixed"
-                            : "false"
-                    }
+                    data-checked={model.allVisibleSelected ? "true" : model.someVisibleSelected ? "mixed" : "false"}
                     role="checkbox"
-                    aria-checked={
-                        allVisibleSelected ? "true" : someVisibleSelected ? "mixed" : "false"
-                    }
-                    onClick={handleSelectAllToggle}
+                    aria-checked={model.allVisibleSelected ? "true" : model.someVisibleSelected ? "mixed" : "false"}
+                    onClick={model.toggleSelectAll}
                 >
                     <span data-part="icon">
-                        {allVisibleSelected ? (
-                            <CheckedIcon />
-                        ) : someVisibleSelected ? (
-                            <IndeterminateIcon />
-                        ) : (
-                            <UncheckedIcon />
-                        )}
+                        {model.allVisibleSelected ? <CheckedIcon /> : model.someVisibleSelected ? <IndeterminateIcon /> : <UncheckedIcon />}
                     </span>
                     <span data-part="label">{selectAllLabel}</span>
                 </SelectAllRow>
             )}
             <ListWrapper>
                 <ListBox<T>
-                    items={listBoxItems}
-                    isSelected={isRowSelected}
-                    onChange={handleToggle}
+                    items={model.listBoxItems.value}
+                    isSelected={model.isSelected}
+                    onChange={model.toggle}
                     activeIndex={activeIndex}
-                    onActiveChange={setActiveIndex}
-                    renderItem={renderRow}
+                    onActiveChange={model.setActiveIndex}
+                    renderItem={(context: ListItemRenderContext<T>) => {
+                        const checked = model.isSelected(context.source);
+                        const label = typeof context.item.label === "string" && searchText
+                            ? highlight(context.item.label, searchText)
+                            : context.item.label;
+                        return (
+                            <ItemRow
+                                id={context.id}
+                                data-type="multi-list-item"
+                                data-checked={checked || undefined}
+                                data-active={context.active || undefined}
+                                data-disabled={context.item.disabled || undefined}
+                                role="option"
+                                aria-selected={checked ? "true" : "false"}
+                                aria-disabled={context.item.disabled ? "true" : undefined}
+                            >
+                                <span data-part="check">{checked ? <CheckedIcon /> : <UncheckedIcon />}</span>
+                                {context.item.icon}
+                                <span data-part="label">{label}</span>
+                            </ItemRow>
+                        );
+                    }}
                     rowHeight={rowHeight}
                     growToHeight={listGrow}
                     searchText={searchText}

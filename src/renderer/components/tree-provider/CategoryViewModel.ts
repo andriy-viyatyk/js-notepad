@@ -39,6 +39,7 @@ import {
     type ItemMenuActions,
 } from "./item-menus";
 import { getTraitDropAction } from "./drop-dispatch";
+import { DragEnterCounter } from "../../uikit/shared/drag-enter-counter";
 import { sameHref, sameHrefs } from "./href-utils";
 
 // =============================================================================
@@ -424,7 +425,7 @@ export class CategoryViewModel extends TComponentModel<
     // key perfectly well, which is better than manufacturing an "impossible href" sentinel
     // string — there is no such thing, and the question of whether some path could collide
     // with it simply does not arise this way.
-    private dragEnterCounts = new Map<string | null, number>();
+    private readonly dragEnterCounts = new DragEnterCounter<string | null>();
 
     /** Whether this view takes drops at all. Gated to the local file provider: the drop
      *  actions below are the file-move / file-import pair, and a catalog provider would need
@@ -467,9 +468,7 @@ export class CategoryViewModel extends TComponentModel<
         e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
 
         const key = this.dropKey(item);
-        const cur = this.dragEnterCounts.get(key) ?? 0;
-        this.dragEnterCounts.set(key, cur + 1);
-        if (cur > 0) return;
+        if (!this.dragEnterCounts.enter(key)) return;
         this.setDragState((s) => {
             if (key === null) s.dropOverView = true;
             else s.dropTargetHref = key;
@@ -487,12 +486,7 @@ export class CategoryViewModel extends TComponentModel<
 
     onDragLeave = (item: ITreeProviderItem | null, _e: React.DragEvent) => {
         const key = this.dropKey(item);
-        const next = (this.dragEnterCounts.get(key) ?? 0) - 1;
-        if (next > 0) {
-            this.dragEnterCounts.set(key, next);
-            return;
-        }
-        this.dragEnterCounts.delete(key);
+        if (!this.dragEnterCounts.leave(key)) return;
         this.setDragState((s) => {
             if (key === null) {
                 s.dropOverView = false;

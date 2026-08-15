@@ -109,6 +109,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |
 | Base virtualization      | `/src/renderer/uikit/RenderGrid/RenderGrid.tsx`   |
 | Advanced grid            | `/src/renderer/uikit/AVGrid/AVGrid.tsx`           |
+| Tree keyboard interaction (arrow/Home/End/Page/Enter gestures and the transient multi-selection range anchor; selection itself remains controlled by the consumer) | `/src/renderer/uikit/Tree/TreeKeyboardHandler.ts` |
+| Tree trait/native-file drag-and-drop interaction (drag state, nested enter/leave handling, and delayed hover expansion) | `/src/renderer/uikit/Tree/TreeDndModel.ts` |
+| Multi-list-box selection and filtering model (controlled selected values, local search/active-row state, and trait-aware source mapping) | `/src/renderer/uikit/MultiListBox/MultiListBoxModel.ts` |
+| Nested native drag enter/leave counter (per-target accounting that prevents descendant transitions from flickering a drop target) | `/src/renderer/uikit/shared/drag-enter-counter.ts` |
 | Tree primitive (lazy expansion state lives in `TreeState.expanded`, keyed by source `value`; `getExpandedMap()` is the one truth a consumer should persist — `onExpandChange` is a notification, not a ledger. `collapseDescendants` closes a whole subtree in the same state write as the toggled row, which lazy consumers that drop a collapsed row's children **must** opt into) | `/src/renderer/uikit/Tree/TreeModel.ts` |
 | UIKit library            | `/src/renderer/uikit/`                            |
 | UIKit authoring rules    | `/src/renderer/uikit/CLAUDE.md`                   |

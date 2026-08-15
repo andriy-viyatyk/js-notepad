@@ -401,7 +401,7 @@ re-export shims for running development sessions). Explorer root protections, Ca
 the existing provider contracts are preserved. `npm run typecheck`, `npm run lint`, and
 `git diff --check` pass; a fresh dev build confirmed the Explorer tree renders correctly.
 
-### 2.9 `uikit/Tree/TreeModel.ts` (1,123) and friends
+### 2.9 `uikit/Tree/TreeModel.ts` (1,123) and friends — ✅ DONE (US-959, 2026-08-15)
 
 Four fused models: selection math, a 115-line `onKeyDown`, drag-and-drop with hover-expand
 timer, lazy loading. Extract `TreeDndModel` and `TreeKeyboardHandler` as composed sub-models —
@@ -413,6 +413,15 @@ timer, lazy loading. Extract `TreeDndModel` and `TreeKeyboardHandler` as compose
   `CategoryViewModel.tsx:430-516` — promote to a `uikit/shared/` primitive (textbook
   "new primitive goes to uikit" case).
 - `AVGrid FocusModel.onContentKeyDown` (~180-line switch) → key→handler table.
+
+**✅ Outcome (US-959):** `TreeModel` now coordinates the focused `TreeKeyboardHandler` and
+`TreeDndModel` while retaining its public handler surface, lazy loading, and expansion/reveal
+APIs. `DragEnterCounter` centralizes nested native drag-enter/leave bookkeeping for Tree and
+Category. `MultiListBoxModel` owns controlled filtering, active-row, selection, and select-all
+state; `MultiListBox.tsx` is its view. AVGrid focus navigation is a typed key-to-handler table.
+The host-settings mirror correctly selects its unfiltered state-subscription overload, restoring
+Grid editor opening. Typecheck and lint pass; Tree, Grid, and Explorer behavior were smoke-tested
+in the running development build.
 
 ### 2.10 `board-shim.ts` (1,548) and `ipc/main/controller.ts` (615)
 
@@ -596,7 +605,7 @@ fine), `monaco-languages.ts` (pure data — at most move it out of `utils/`).
 15. ~~`GraphEditor` → delegate along its existing sub-model seams (§2.5).~~ ✅ done (US-955).
 16. ~~`SettingsView` → sections + models (§2.6).~~ ✅ done (US-956).
 17. ~~Browser: `webview-context-menu.ts`, `BrowserTabsModel`, `BrowserTorModel` (§2.7).~~ ✅ done (US-957).
-18. `TreeModel` → `TreeDndModel` + `TreeKeyboardHandler`; `MultiListBoxModel` (§2.9).
+18. ~~`TreeModel` → `TreeDndModel` + `TreeKeyboardHandler`; `MultiListBoxModel` (§2.9).~~ ✅ done (US-959).
 19. board-shim split; `fs.ts` provider polymorphism + codec extraction.
 
 ### Phase 4 — typing
