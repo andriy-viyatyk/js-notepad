@@ -1,15 +1,5 @@
 # Persephone Project Guidelines
 
-## English Correction (MANDATORY)
-
-The user is learning English. For EVERY user message, BEFORE responding to the task:
-1. Check spelling, grammar, tenses (have/had, do/did), and sentence structure ("I can ask?" → "Can I ask?")
-2. Print the corrected sentence with **bold** on every corrected word/part
-3. Do NOT explain corrections — just show the fixed sentence
-4. Do NOT beautify or rephrase — only fix actual errors
-5. If the message has no mistakes — print a 👍 emoji
-6. Then proceed with the task as usual
-
 ## Quick Start for Claude
 
 1. **Read this file completely** - essential context for all tasks
