@@ -313,8 +313,8 @@ async function loadFile(path: string) {
     const content = await fs.readFile(path, 'utf-8');
     return content;
   } catch (error) {
-    // `error` is `unknown` — narrow it before reading `.message`
-    ui.notify(`Failed to load file: ${error instanceof Error ? error.message : String(error)}`, "warning");
+    // `error` is `unknown` — `errMessage` turns it into something printable
+    ui.notify(`Failed to load file: ${errMessage(error)}`, "warning");
     return null;
   }
 }
@@ -337,6 +337,53 @@ that needs a modal confirmation imports `showConfirmationDialog` from
 For toasts, use the `ui` singleton's `ui.notify(message, "error")` (the global alerts bar). The
 `app.ui.confirm` / `app.ui.*` surface is the **script-facing** Object Model API (it routes to the script's
 log/output context) — do not use it for the app's own UI.
+
+### Turning a Caught Value Into a Message
+
+A `catch` binding is `unknown`. Use `errMessage(e, fallback?)` from `shared/utils.ts` — never
+hand-roll the narrowing:
+
+```typescript
+// GOOD
+ui.notify(`Failed to save image: ${errMessage(err)}`, "error");
+ui.notify(errMessage(err, "Failed to save file."), "warning");
+
+// BAD — the three dialects this replaces
+err instanceof Error ? err.message : String(err)   // verbose
+(err as Error).message                             // unsafe: `undefined` for a thrown string
+(err as Error)?.message || String(err)             // defensive but repetitive
+```
+
+`errMessage` lives in `shared/` because main, the renderer, and the board shim all need it.
+It deliberately checks for a string `.message` property **before** falling back to `String(e)`,
+rather than testing `instanceof Error` first: errors that cross the main↔renderer IPC boundary
+(and MCP JSON-RPC replies) arrive as plain objects that fail the prototype check but still carry
+a real message, and `String()` would render them as `"[object Object]"`.
+
+One place it cannot be used: code inside a template literal that is *itself* worker source
+(`main/worker-host.ts`'s `WORKER_CODE`). That string has no access to host imports.
+
+### Reporting a Failure as a Toast
+
+When the whole catch body is "tell the user and carry on", use `guard(label, fn, level?)` from
+`core/utils/guard.ts` instead of the `try`/`catch` around it. The label is the full prefix, so
+the toast text is unchanged:
+
+```typescript
+// GOOD
+await guard("Failed to open file", () => app.events.openRawLink.sendAsync(link));
+
+// BAD - the shape guard exists to remove
+try {
+    await app.events.openRawLink.sendAsync(link);
+} catch (err) {
+    ui.notify(`Failed to open file: ${errMessage(err)}`, "error");
+}
+```
+
+`guard` swallows the error and resolves to `undefined`, so it fits handlers and menu actions.
+Keep an explicit `try`/`catch` whenever the catch does anything else — updates state, logs, sets
+an error field on a model, or re-throws — because the wrapper would hide that logic.
 
 ### Parsing JSON That May Be Malformed
 

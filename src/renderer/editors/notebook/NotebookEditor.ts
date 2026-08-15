@@ -4,7 +4,7 @@ import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import { TextFileModel } from "../text/TextEditorModel";
 import { ui } from "../../api/ui";
-import { debounce } from "../../../shared/utils";
+import { debounce, errMessage } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
 import { tryParseJson } from "../../core/utils/parse-utils";
 import { TraitTypeId, type TraitDragPayload, resolveTraits } from "../../core/traits";
@@ -260,7 +260,7 @@ export class NotebookEditor extends TextHostEditorModel<NotebookEditorState, voi
             this.loadTags();
             this.applyFilters();
         } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : String(e);
+            const message = errMessage(e);
             this.state.update((s) => {
                 s.error = message;
             });

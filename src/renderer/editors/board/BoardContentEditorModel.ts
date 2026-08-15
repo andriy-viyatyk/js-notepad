@@ -9,6 +9,7 @@ import { ui } from "../../api/ui";
 import { TextFileModel, newTextFileModel, isTextFileModel } from "../text/TextEditorModel";
 import { BoardEditorModel, type BoardEditorState } from "./BoardEditorModel";
 import { boardEditorId } from "./custom-editor-registry";
+import { errMessage } from "../../../shared/utils";
 
 /**
  * Content-host board (EPIC-043). A board that edits a file through Persephone's content host —
@@ -149,7 +150,7 @@ export class BoardContentEditorModel extends BoardEditorModel {
             this.adoptHost(this._host);
             this.state.update((s) => { s.contentHostError = undefined; });
         } catch (err) {
-            const message = (err as Error).message || "Failed to restore board content.";
+            const message = errMessage(err, "Failed to restore board content.");
             ui.notify(message, "error");
             // Drives the host-restore-failure empty state in the view (US-846).
             this.state.update((s) => { s.contentHostError = message; });

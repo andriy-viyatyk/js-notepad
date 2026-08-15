@@ -22,6 +22,7 @@ import {
     getImageDimensions,
     extToMime,
 } from "../draw/drawExport";
+import { errMessage } from "../../../shared/utils";
 
 export interface ImageEditorState extends EditorStateBase {
     /** Discriminator — preserved for legacy `newEditorModelFromState`
@@ -261,7 +262,7 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
             }
             await appFs.saveBinaryFile(savePath, buffer);
         } catch (err) {
-            ui.notify(`Failed to save image: ${(err as Error).message}`, "error");
+            ui.notify(`Failed to save image: ${errMessage(err)}`, "error");
         }
     };
 

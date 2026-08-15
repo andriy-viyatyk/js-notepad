@@ -5,6 +5,7 @@ import { isArchivePath, parseArchivePath } from "../core/utils/file-path";
 import { createPipeFromDescriptor } from "./registry";
 import { resolveUrlToPipeDescriptor, isHttpUrl, toFileUrl } from "./link-utils";
 import type { ILinkData } from "../../shared/link-data";
+import { errMessage } from "../../shared/utils";
 
 /**
  * Extract the effective path from a URL for editor resolution.
@@ -369,7 +370,7 @@ export function registerResolvers(): void {
         } catch (err) {
             const { ui } = await import("../api/ui");
             ui.notify(
-                `Failed to open image in Drawing editor: ${err instanceof Error ? err.message : String(err)}`,
+                `Failed to open image in Drawing editor: ${errMessage(err)}`,
                 "error",
             );
         }

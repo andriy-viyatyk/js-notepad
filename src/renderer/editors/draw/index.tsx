@@ -19,6 +19,7 @@ import { pagesModel } from "../../api/pages";
 import { fpBasename } from "../../core/utils/file-path";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
+import { guard } from "../../core/utils/guard";
 
 interface DrawToolbarBitsProps {
     model: DrawEditor;
@@ -93,7 +94,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
             onClick: async () => {
                 const a = editor.excalidrawApi;
                 if (!a || !hasElements()) return;
-                try {
+                await guard("Export failed", async () => {
                     const svgText = await exportAsSvgText(a);
                     const savePath = await fs.showSaveDialog({
                         title: "Save as SVG",
@@ -101,9 +102,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                         filters: [{ name: "SVG", extensions: ["svg"] }],
                     });
                     if (savePath) await fs.write(savePath, svgText);
-                } catch (e) {
-                    ui.notify(`Export failed: ${(e as Error).message}`, "error");
-                }
+                });
             },
         },
         {
@@ -111,7 +110,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
             onClick: async () => {
                 const a = editor.excalidrawApi;
                 if (!a || !hasElements()) return;
-                try {
+                await guard("Export failed", async () => {
                     const blob = await exportAsPngBlob(a);
                     const buffer = Buffer.from(await blob.arrayBuffer());
                     const savePath = await fs.showSaveDialog({
@@ -120,9 +119,7 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
                         filters: [{ name: "PNG", extensions: ["png"] }],
                     });
                     if (savePath) await fs.saveBinaryFile(savePath, buffer);
-                } catch (e) {
-                    ui.notify(`Export failed: ${(e as Error).message}`, "error");
-                }
+                });
             },
         },
     ], [editor, getDefaultName, hasElements]);
@@ -133,12 +130,10 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
             onClick: async () => {
                 const a = editor.excalidrawApi;
                 if (!a || !hasElements()) return;
-                try {
+                await guard("Export failed", async () => {
                     const svgText = await exportAsSvgText(a);
                     pagesModel.addEditorPage("svg-view", "xml", getDefaultName("svg"), svgText);
-                } catch (e) {
-                    ui.notify(`Export failed: ${(e as Error).message}`, "error");
-                }
+                });
             },
         },
         {
@@ -146,13 +141,11 @@ function DrawToolbarBits({ model: editor }: DrawToolbarBitsProps) {
             onClick: async () => {
                 const a = editor.excalidrawApi;
                 if (!a || !hasElements()) return;
-                try {
+                await guard("Export failed", async () => {
                     const blob = await exportAsPngBlob(a);
                     const blobUrl = URL.createObjectURL(blob);
                     pagesModel.openImageInNewTab(blobUrl);
-                } catch (e) {
-                    ui.notify(`Export failed: ${(e as Error).message}`, "error");
-                }
+                });
             },
         },
     ], [editor, getDefaultName, hasElements]);

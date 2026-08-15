@@ -727,6 +727,7 @@ persephone/
 │   ├── utils/              # Utility functions
 │   │   ├── utils.ts        # General helpers
 │   │   ├── parse-utils.ts  # JSON/JSON5 parsing, tryParseJson fallback
+│   │   ├── guard.ts        # guard(label, fn) — run and report failure as a toast
 │   │   ├── csv-utils.ts    # CSV parsing/generation
 │   │   ├── html-resources.ts  # HTML resource extraction (cheerio)
 │   │   ├── file-path.ts    # Archive-aware path utility (wraps ALL path.* usage)

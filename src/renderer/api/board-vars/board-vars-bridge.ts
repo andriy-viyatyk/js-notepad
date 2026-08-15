@@ -1,6 +1,7 @@
 import { showCreateBoardVarsStorageDialog } from "../../ui/dialogs/CreateBoardVarsStorageDialog";
 import { boardVars } from "./BoardEnvStore";
 import { openEnvVarsPage } from "../../editors/env-vars/open-env-vars";
+import { errMessage } from "../../../shared/utils";
 
 // =============================================================================
 // Board vars bridge orchestration (EPIC-046 / US-888).
@@ -79,6 +80,6 @@ async function runVarRequest(
                 return { error: `Unknown var method: ${String(method)}` };
         }
     } catch (e) {
-        return { error: e instanceof Error ? e.message : String(e) };
+        return { error: errMessage(e) };
     }
 }

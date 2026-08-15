@@ -12,6 +12,21 @@
  */
 import { simpleGit } from "simple-git";
 import type { GitAheadBehind, GitCommit, GitFetchOptions, GitFileChange, GitIdentity, GitLogOptions, GitMutationResult, GitProbeResult, GitPullOptions, GitPullResult, GitPushOptions, GitPushResult, GitRef, GitRefs, GitRepoInfo, GitStatusResult, GitSwitchTarget } from "../ipc/git-ipc";
+import { errMessage } from "../shared/utils";
+
+/**
+ * Run a mutating git op under this module's "never throws" contract: success is
+ * `{ ok: true }`, any failure is `{ ok: false, error }` for the renderer to toast.
+ * Used by the mutations whose whole body is "run the commands, report failure".
+ */
+async function mutation(run: () => Promise<void>): Promise<GitMutationResult> {
+    try {
+        await run();
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: errMessage(e) };
+    }
+}
 
 /** `git --version` availability probe for the settings page. Never throws. */
 export async function probeGit(): Promise<GitProbeResult> {
@@ -345,12 +360,9 @@ export async function commitFiles(dir: string, hash: string): Promise<GitFileCha
  */
 export async function stage(dir: string, paths: string[]): Promise<GitMutationResult> {
     if (!paths.length) return { ok: true };
-    try {
+    return mutation(async () => {
         await simpleGit(dir).add(paths);
-        return { ok: true };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
+    });
 }
 
 /**
@@ -368,12 +380,9 @@ export async function unstage(dir: string, paths: string[]): Promise<GitMutation
         return { ok: true };
     } catch {
         // No-HEAD repo (no commits yet): `reset` fails — `rm --cached` unstages.
-        try {
+        return mutation(async () => {
             await git.raw(["rm", "--cached", "--", ...paths]);
-            return { ok: true };
-        } catch (e2) {
-            return { ok: false, error: String(e2) };
-        }
+        });
     }
 }
 
@@ -391,13 +400,10 @@ export async function discard(
 ): Promise<GitMutationResult> {
     if (!trackedPaths.length && !untrackedPaths.length) return { ok: true };
     const git = simpleGit(dir);
-    try {
+    return mutation(async () => {
         if (trackedPaths.length) await git.raw(["checkout", "--", ...trackedPaths]);
         if (untrackedPaths.length) await git.raw(["clean", "-f", "--", ...untrackedPaths]);
-        return { ok: true };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
+    });
 }
 
 /**
@@ -433,7 +439,7 @@ export async function commit(
     identity?: GitIdentity,
 ): Promise<GitMutationResult> {
     if (!message.trim()) return { ok: false, error: "Empty commit message" };
-    try {
+    return mutation(async () => {
         // Only attach the override when at least one field is set, so a blank dialog
         // (git unconfigured + nothing typed) falls through to git's own resolution /
         // error rather than committing as "<empty> <empty@>".
@@ -441,10 +447,7 @@ export async function commit(
             ? { config: [`user.name=${identity.name}`, `user.email=${identity.email}`] }
             : undefined;
         await simpleGit(dir, opts).commit(message);
-        return { ok: true };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
+    });
 }
 
 /**
@@ -459,7 +462,7 @@ export async function commit(
  * is returned as `{ ok:false, error }` for the renderer to toast.
  */
 export async function switchTo(dir: string, target: GitSwitchTarget): Promise<GitMutationResult> {
-    try {
+    return mutation(async () => {
         const git = simpleGit(dir);
         switch (target.type) {
             case "branch":
@@ -483,10 +486,7 @@ export async function switchTo(dir: string, target: GitSwitchTarget): Promise<Gi
                 break;
             }
         }
-        return { ok: true };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
+    });
 }
 
 /**
@@ -505,16 +505,13 @@ export async function createBranch(
     checkout = false,
 ): Promise<GitMutationResult> {
     if (!name.trim()) return { ok: false, error: "Empty branch name" };
-    try {
+    return mutation(async () => {
         const git = simpleGit(dir);
         const args = checkout
             ? ["switch", "-c", name, ...(startPoint ? [startPoint] : [])]
             : ["branch", name, ...(startPoint ? [startPoint] : [])];
         await git.raw(args);
-        return { ok: true };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
+    });
 }
 
 /**
@@ -523,17 +520,14 @@ export async function createBranch(
  * HTTPS without a helper fails fast rather than hanging. Never throws.
  */
 export async function fetch(dir: string, opts: GitFetchOptions = {}): Promise<GitMutationResult> {
-    try {
+    return mutation(async () => {
         const git = simpleGit(dir).env("GIT_TERMINAL_PROMPT", "0");
         if (opts.remote) {
             await git.raw(["fetch", "--prune", opts.remote]);
         } else {
             await git.raw(["fetch", "--all", "--prune"]);
         }
-        return { ok: true };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
+    });
 }
 
 /**
@@ -624,7 +618,7 @@ export async function push(dir: string, opts: GitPushOptions = {}): Promise<GitP
         }
         return { ok: true };
     } catch (e) {
-        const msg = String(e);
+        const msg = errMessage(e);
         // Detect non-fast-forward rejection — git outputs "[rejected]" and
         // "fetch first" / "cannot fast-forward" in the error stream.
         const rejected = /\[rejected\]|fetch first|cannot fast.forward|non-fast-forward/i.test(msg);
@@ -652,7 +646,7 @@ export async function pull(dir: string, opts: GitPullOptions = {}): Promise<GitP
         const out = await git.raw(args);
         return { ok: true, summary: out.trim() || undefined };
     } catch (e) {
-        const msg = String(e);
+        const msg = errMessage(e);
         // Conflicts: git outputs "CONFLICT" lines and exits non-zero.
         const hadConflicts = /CONFLICT|Automatic merge failed/i.test(msg);
         const conflicts: string[] = [];

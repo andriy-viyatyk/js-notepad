@@ -54,6 +54,7 @@ import {
     startJobTo,
     writeJobStdin,
 } from "./command-runner";
+import { errMessage } from "../shared/utils";
 
 interface BoardPortEntry {
     /** Main's end of the per-board channel. */
@@ -345,7 +346,7 @@ function handleBoardMessage(boardId: string, data: BoardToMain): void {
                 entry.port.postMessage({
                     kind: "rpc-result",
                     id,
-                    error: e instanceof Error ? e.message : String(e),
+                    error: errMessage(e),
                 }),
             );
     }

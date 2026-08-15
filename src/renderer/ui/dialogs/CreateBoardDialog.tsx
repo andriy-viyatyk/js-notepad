@@ -10,6 +10,7 @@ import { ui } from "../../api/ui";
 import { fpJoin } from "../../core/utils/file-path";
 import { createBoardFromTemplate } from "../../editors/board/board-scaffold";
 import { showDialog } from "./Dialogs";
+import { errMessage } from "../../../shared/utils";
 
 const createBoardDialogId = Symbol("createBoardDialog");
 
@@ -81,7 +82,7 @@ class CreateBoardDialogModel extends TDialogModel<CreateBoardDialogState, Create
             const root = await createBoardFromTemplate(name, folder, s.template);
             await this.close(root); // success → resolve the new board root
         } catch (err) {
-            ui.notify(err instanceof Error ? err.message : String(err), "error");
+            ui.notify(errMessage(err), "error");
             this.state.update((d) => { d.creating = false; }); // stay open for fix-and-retry
         }
     };

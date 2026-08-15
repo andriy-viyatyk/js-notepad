@@ -20,6 +20,7 @@ import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import { fpDirname } from "../../core/utils/file-path";
 import type { ITreeProvider, ILink } from "../../api/types/io.tree";
+import { errMessage } from "../../../shared/utils";
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -380,7 +381,7 @@ export class VideoEditor extends EditorModel<VideoEditorState> {
 
             await api.openInVlc(vlcUrl, settings.get("vlc-path"));
         } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : String(e);
+            const message = errMessage(e);
             ui.textDialog({ title: "VLC Error", text: message, readOnly: true });
         }
     };

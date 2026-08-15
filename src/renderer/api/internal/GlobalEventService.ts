@@ -19,6 +19,7 @@ import type { ILink } from "../types/io.tree";
 import { fpBasename, fpJoin } from "../../core/utils/file-path";
 import { isFileDrag, setEventTraitDragData } from "../../core/traits/dnd";
 import { makeOsFileDescriptor } from "../../core/traits/fileLinkTraits";
+import { guard } from "../../core/utils/guard";
 
 /**
  * Expand a list of dropped file/folder paths into ILink items.
@@ -171,7 +172,7 @@ export class GlobalEventService {
     };
 
     private openDroppedPaths = async (filePaths: string[]) => {
-        try {
+        await guard("Failed to open dropped files", async () => {
             if (filePaths.length === 1) {
                 const stat = await fs.stat(filePaths[0]);
                 if (!stat.isDirectory) {
@@ -183,9 +184,7 @@ export class GlobalEventService {
             if (links.length > 0) {
                 pagesModel.openLinks(links);
             }
-        } catch (err: unknown) {
-            ui.notify(`Failed to open dropped files: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        });
     };
 
     private handleWheel = (e: WheelEvent) => {

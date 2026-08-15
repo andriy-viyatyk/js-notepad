@@ -16,6 +16,7 @@ import type { EditorView } from "./types/common";
 import { api } from "../../ipc/renderer/api";
 import { fpJoin } from "../core/utils/file-path";
 import type { RegisteredTool } from "./tools/registered-tools";
+import { errMessage } from "../../shared/utils";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -666,7 +667,7 @@ async function createBoard(params: McpParams): Promise<McpResponse> {
             : await app.boards.createBoard(name, dir);
         return { result: { boardRoot } };
     } catch (err) {
-        return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
+        return { error: { code: -32603, message: errMessage(err) } };
     }
 }
 
@@ -690,7 +691,7 @@ async function openBoard(params: McpParams): Promise<McpResponse> {
         });
         return { result: { opened: path, pageId: boardPage?.id, title: boardPage?.title } };
     } catch (err) {
-        return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
+        return { error: { code: -32603, message: errMessage(err) } };
     }
 }
 
@@ -904,7 +905,7 @@ async function createToolsetCmd(params: McpParams): Promise<McpResponse> {
             await createToolset(name, dir);
             created = true;
         } catch (err) {
-            return { error: { code: -32603, message: err instanceof Error ? err.message : String(err) } };
+            return { error: { code: -32603, message: errMessage(err) } };
         }
     }
 
@@ -962,7 +963,7 @@ export function initMcpHandler(): void {
         try {
             response = await handleCommand(method, params);
         } catch (err) {
-            response = { error: { code: -32603, message: (err as Error).message || "Internal error" } };
+            response = { error: { code: -32603, message: errMessage(err, "Internal error") } };
         }
         logIncomingRequest(method, params, response, Date.now() - startTime);
         ipcRenderer.send(MCP_RESULT, requestId, response);

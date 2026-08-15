@@ -12,6 +12,7 @@ import {
     BoardVarsLoadResult,
     DEFAULT_PROFILE,
 } from "./types";
+import { errMessage } from "../../../shared/utils";
 
 // =============================================================================
 // BoardEnvStore (EPIC-046 / US-887).
@@ -101,7 +102,7 @@ class BoardEnvStore {
             const parsed = text.trim() ? (JSON.parse(text) as BoardVarsFile) : {};
             this.parsed = parsed && typeof parsed === "object" ? parsed : {};
         } catch (e) {
-            return { status: "error", message: (e as Error).message };
+            return { status: "error", message: errMessage(e) };
         }
         return { status: "ok" };
     }

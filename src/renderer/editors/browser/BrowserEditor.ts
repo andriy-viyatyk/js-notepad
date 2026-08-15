@@ -33,6 +33,7 @@ import {
     detectSearchEngine,
     getPartitionString,
 } from "./BrowserEditorModel";
+import { errMessage } from "../../../shared/utils";
 
 export type BrowserQueueEvent = { type: "focus" };
 export type BrowserQueueRequest = never;
@@ -316,7 +317,7 @@ export class BrowserEditor extends EditorModel<
                 s.torStatus = "error";
                 s.torOverlayVisible = true;
                 s.torLog += (s.torLog ? "\n" : "")
-                    + `Could not secure the session: ${(err as Error).message}`;
+                    + `Could not secure the session: ${errMessage(err)}`;
             });
             return;
         }
@@ -447,7 +448,7 @@ export class BrowserEditor extends EditorModel<
                     st.torStatus = "error";
                     st.torOverlayVisible = true;
                     st.torLog += (st.torLog ? "\n" : "")
-                        + `Could not secure the session: ${(err as Error).message}`;
+                        + `Could not secure the session: ${errMessage(err)}`;
                 });
             }
         }

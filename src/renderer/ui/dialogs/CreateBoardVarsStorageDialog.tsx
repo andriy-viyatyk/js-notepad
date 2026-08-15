@@ -9,6 +9,7 @@ import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { settings } from "../../api/settings";
 import { showDialog } from "./Dialogs";
+import { errMessage } from "../../../shared/utils";
 
 const createBoardVarsStorageDialogId = Symbol("createBoardVarsStorageDialog");
 
@@ -68,7 +69,7 @@ class CreateBoardVarsStorageDialogModel extends TDialogModel<
             settings.set("board-vars.file", path);
             await this.close(true);
         } catch (err) {
-            ui.notify(err instanceof Error ? err.message : String(err), "error");
+            ui.notify(errMessage(err), "error");
             this.state.update((d) => { d.creating = false; });
         }
     };

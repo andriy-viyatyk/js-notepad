@@ -1,6 +1,7 @@
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
 import { ui } from "./ui";
+import { errMessage } from "../../shared/utils";
 
 /** Open a terminal window rooted at `dirPath`, using the configured
  *  `terminal.command`. On first use (empty setting) the terminal is
@@ -15,6 +16,6 @@ export async function openTerminalAt(dirPath: string): Promise<void> {
         }
         await api.openTerminal(dirPath, command || "powershell");
     } catch (err) {
-        ui.notify((err as Error)?.message || "Failed to open terminal.", "warning");
+        ui.notify(errMessage(err, "Failed to open terminal."), "warning");
     }
 }

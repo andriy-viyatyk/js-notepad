@@ -26,6 +26,7 @@ import rendererEvents from "../../../ipc/renderer/renderer-events";
 import { EventEndpoint } from "../../../ipc/api-types";
 import type { PublishedBoardInfo, PublishedBoardVersion } from "../../../ipc/api-param-types";
 import { BoardColorIcon } from "../../theme/icons";
+import { errMessage } from "../../../shared/utils";
 
 /** Transient per-board download UI (not persisted). Downloaded/registered state is read from
  *  `boardInstallRegistry` + `boardTrust`, which are authoritative; this only tracks the in-flight
@@ -249,7 +250,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
                 this.adoptHost(this._host);
             }
         } catch (err) {
-            ui.notify((err as Error).message || "Failed to restore the file.", "error");
+            ui.notify(errMessage(err, "Failed to restore the file."), "error");
         }
         this._pendingHost = undefined;
 
@@ -481,7 +482,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
                 } catch (err) {
                     this.setInstallUi(entry.id, {
                         phase: "error",
-                        error: (err as Error).message || "Failed to delete the existing folder.",
+                        error: errMessage(err, "Failed to delete the existing folder."),
                     });
                     return;
                 }
@@ -510,7 +511,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
             } else {
                 this.setInstallUi(entry.id, {
                     phase: "error",
-                    error: (err as Error).message || "Download failed.",
+                    error: errMessage(err, "Download failed."),
                 });
             }
         } finally {
@@ -564,7 +565,7 @@ export class BoardInfoEditorModel extends EditorModel<BoardInfoEditorState> {
                 await fs.removeDir(root, true);
             } catch (err) {
                 ui.notify(
-                    (err as Error).message || "Failed to delete the board folder.",
+                    errMessage(err, "Failed to delete the board folder."),
                     "error",
                 );
                 return;

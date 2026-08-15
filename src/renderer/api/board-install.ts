@@ -14,6 +14,7 @@ import { readBoardManifest } from "../editors/board/board-manifest";
 import { PublishedBoardArchive, PublishedBoardInfo } from "../../ipc/api-param-types";
 import { boardInstallRegistry } from "./board-install-registry";
 import { boardTrust } from "./board-trust";
+import { errMessage } from "../../shared/utils";
 
 function newInstallId(): string {
     return crypto.randomUUID();
@@ -142,7 +143,7 @@ export async function uninstallCatalogBoard(args: {
         await fs.removeDir(args.root, true);
     } catch (err) {
         const { ui } = await import("./ui");
-        ui.notify((err as Error).message || "Failed to delete the board folder.", "error");
+        ui.notify(errMessage(err, "Failed to delete the board folder."), "error");
         return false;
     }
     await boardTrust.untrust(args.root);

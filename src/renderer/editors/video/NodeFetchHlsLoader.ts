@@ -7,6 +7,7 @@ import type {
     HlsConfig,
 } from "hls.js";
 import { LoadStats } from "hls.js";
+import { errMessage } from "../../../shared/utils";
 
 /**
  * hls.js Loader implementation backed by nodeFetch (Node.js http/https).
@@ -109,7 +110,7 @@ export function createNodeFetchLoaderClass(
                 callbacks.onError(
                     {
                         code: 0,
-                        text: error instanceof Error ? error.message : String(error),
+                        text: errMessage(error),
                     },
                     context,
                     null,

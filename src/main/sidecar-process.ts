@@ -16,6 +16,7 @@ import {
     SpawnOptionsWithoutStdio,
 } from "child_process";
 import path from "path";
+import { errMessage } from "../shared/utils";
 
 export interface SidecarStartResult {
     success: boolean;
@@ -187,7 +188,7 @@ export class SidecarProcess {
             try {
                 proc = spawn(exe, args, spawnOptions);
             } catch (err) {
-                const msg = `Failed to spawn ${path.basename(exe)}: ${(err as Error).message}`;
+                const msg = `Failed to spawn ${path.basename(exe)}: ${errMessage(err)}`;
                 log(msg);
                 resolve({ success: false, error: msg });
                 return;

@@ -5,7 +5,7 @@ import { ComponentQueue } from "../../core/state/ComponentQueue";
 import type { NavigationState } from "../base/navigation-state";
 import { TextFileModel } from "../text/TextEditorModel";
 import { ui } from "../../api/ui";
-import { debounce } from "../../../shared/utils";
+import { debounce, errMessage } from "../../../shared/utils";
 import { splitWithSeparators } from "../../core/utils/utils";
 import { getHostname } from "../../components/tree-provider/favicon-cache";
 import type { RenderGridModel } from "../../uikit/RenderGrid";
@@ -359,7 +359,7 @@ export class LinkEditor
             this.loadHostnames();
             this.applyFilters();
         } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : String(e);
+            const message = errMessage(e);
             this.state.update((s) => {
                 s.error = message;
             });

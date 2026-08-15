@@ -10,6 +10,7 @@ import { TextFileModel, newTextFileModel } from "../text/TextEditorModel";
 import { editorRegistry } from "./editorRegistry";
 import { fpBasename } from "../../core/utils/file-path";
 import { ui } from "../../api/ui";
+import { errMessage } from "../../../shared/utils";
 
 function isLegacyTextFileHost(host: unknown): host is TextFileModel {
     return (host as { type?: string } | null)?.type === "textFile";
@@ -215,7 +216,7 @@ export abstract class TextHostEditorModel<
             this.onHostAttached(this._host);
         } catch (err) {
             ui.notify(
-                (err as Error).message || `Failed to restore ${this.displayName} editor.`,
+                errMessage(err, `Failed to restore ${this.displayName} editor.`),
                 "error",
             );
             this._host = newTextFileModel("");

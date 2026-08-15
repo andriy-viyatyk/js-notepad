@@ -15,8 +15,9 @@
  *
  * The `window.persephone` surface is byte-for-byte the same as the old preload so
  * board authors see no difference. Build: a standalone browser IIFE (no runtime
- * imports — only type-only + the `RunnerChannel` string enum, which is dependency-
- * free). Built as `format: "iife"` by scripts/build-prod.mjs and scripts/dev.mjs.
+ * imports beyond dependency-free values — the `RunnerChannel` string enum and the
+ * `errMessage` helper). Built as `format: "iife"` by scripts/build-prod.mjs and
+ * scripts/dev.mjs.
  */
 import {
     RunnerChannel,
@@ -39,6 +40,7 @@ import type {
     BoardToMain,
     MainToBoard,
 } from "./ipc/board-bridge-channels";
+import { errMessage } from "./shared/utils";
 
 // ── Boot context (injected synchronously before this script) ─────────────────
 
@@ -502,7 +504,7 @@ async function openImageInNewTab(src: string): Promise<void> {
         }
         fire("openRawLink", [href, "image-view"]);
     } catch (e) {
-        fire("notify", [`Failed to open image: ${e instanceof Error ? e.message : String(e)}`, "error"]);
+        fire("notify", [`Failed to open image: ${errMessage(e)}`, "error"]);
     }
 }
 
@@ -540,7 +542,7 @@ async function copyImage(img: HTMLImageElement): Promise<void> {
         if (!blob) throw new Error("Could not encode the image.");
         await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     } catch (e) {
-        fire("notify", [`Failed to copy image: ${e instanceof Error ? e.message : String(e)}`, "error"]);
+        fire("notify", [`Failed to copy image: ${errMessage(e)}`, "error"]);
     }
 }
 
@@ -615,7 +617,7 @@ async function saveImageAs(img: HTMLImageElement, src: string): Promise<void> {
         await rpc("writeFile", [path, b64, "base64"]);
         fire("notify", ["Image saved.", "success"]);
     } catch (e) {
-        fire("notify", [`Failed to save image: ${e instanceof Error ? e.message : String(e)}`, "error"]);
+        fire("notify", [`Failed to save image: ${errMessage(e)}`, "error"]);
     }
 }
 
@@ -693,7 +695,7 @@ async function pasteEditable(el: HTMLElement): Promise<void> {
         const text = await navigator.clipboard.readText();
         if (text) insertIntoEditable(el, text);
     } catch (e) {
-        fire("notify", [`Paste failed: ${e instanceof Error ? e.message : String(e)}`, "error"]);
+        fire("notify", [`Paste failed: ${errMessage(e)}`, "error"]);
     }
 }
 
@@ -926,7 +928,7 @@ window.addEventListener("error", (e) => {
 });
 window.addEventListener("unhandledrejection", (e) => {
     const r = (e as PromiseRejectionEvent).reason;
-    postHostError(`unhandled rejection: ${r instanceof Error ? r.message : String(r)}`);
+    postHostError(`unhandled rejection: ${errMessage(r)}`);
 });
 // Mode F: console.error/warn — how board code and libraries actually report problems,
 // but invisible to the author/agent (nothing captures a board frame's console). Mirror
@@ -1173,7 +1175,7 @@ function createHandle(
                 return JSON.parse(text) as T;
             } catch (e) {
                 throw makeRunnerError(
-                    `Failed to parse JSON output: ${e instanceof Error ? e.message : String(e)}`,
+                    `Failed to parse JSON output: ${errMessage(e)}`,
                     code,
                     stderrText(),
                 );

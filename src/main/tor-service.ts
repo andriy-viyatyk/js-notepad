@@ -11,6 +11,7 @@ import fs from "fs";
 import { app, BrowserWindow, ipcMain, session } from "electron";
 import { TorChannel, TorIpInfo, TorStatus } from "../ipc/tor-ipc";
 import { SidecarProcess } from "./sidecar-process";
+import { errMessage } from "../shared/utils";
 
 const TOR_BOOTSTRAP_TIMEOUT_MS = 90_000;
 
@@ -133,7 +134,7 @@ class TorService {
                 await this.setProxyForPartition(partition);
             } catch (err) {
                 this.broadcastLog(
-                    `Could not apply the fail-closed proxy to ${partition}: ${(err as Error).message}`,
+                    `Could not apply the fail-closed proxy to ${partition}: ${errMessage(err)}`,
                 );
             }
             return result;
@@ -211,7 +212,7 @@ class TorService {
                 this.ensureTorrc(this.socksPort),
             ]);
         } catch (err) {
-            result = { success: false, error: (err as Error).message };
+            result = { success: false, error: errMessage(err) };
         }
 
         if (result.success) {
@@ -257,7 +258,7 @@ class TorService {
             info.ip = typeof data.IP === "string" ? data.IP : "";
             info.isTor = typeof data.IsTor === "boolean" ? data.IsTor : null;
         } catch (err) {
-            info.error = `Could not reach check.torproject.org: ${(err as Error).message}`;
+            info.error = `Could not reach check.torproject.org: ${errMessage(err)}`;
         }
 
         // Geo is a bonus — a dead or rate-limiting provider must still leave the

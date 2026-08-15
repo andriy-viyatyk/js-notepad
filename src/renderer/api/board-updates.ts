@@ -19,6 +19,7 @@ import { boardInstallRegistry } from "./board-install-registry";
 import { isBoardRootBusy } from "../editors/board/busy-boards";
 import { BoardEditorModel } from "../editors/board/BoardEditorModel";
 import { installVersion } from "./board-install";
+import { errMessage } from "../../shared/utils";
 
 export interface BoardUpdate {
     /** Installed root (the board folder), original case. */
@@ -165,7 +166,7 @@ export async function runBoardVersionInstall(args: {
         void ui.notify(`Installed ${args.name} v${args.version}.`, "success");
         return true;
     } catch (err) {
-        void ui.notify(`Install failed: ${(err as Error).message}`, "error");
+        void ui.notify(`Install failed: ${errMessage(err)}`, "error");
         return false;
     }
 }

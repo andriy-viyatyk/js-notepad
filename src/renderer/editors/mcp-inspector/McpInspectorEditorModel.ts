@@ -16,6 +16,7 @@ import {
 import { mcpConnectionStore, SavedMcpConnection } from "./McpConnectionStore";
 import { pagesModel } from "../../api/pages";
 import type { McpRequestEntry } from "../log-view/logTypes";
+import { errMessage } from "../../../shared/utils";
 
 // ============================================================================
 // Types — Tools
@@ -369,7 +370,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.toolArgs = {};
             });
         } catch (err) {
-            this.logRequest("tools/list", null, null, err?.message || String(err), Date.now() - start);
+            this.logRequest("tools/list", null, null, errMessage(err), Date.now() - start);
         }
     };
 
@@ -433,11 +434,11 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
             });
         } catch (err) {
             const duration = Date.now() - startTime;
-            this.logRequest("tools/call", callParams, null, err?.message || String(err), duration);
+            this.logRequest("tools/call", callParams, null, errMessage(err), duration);
             this.toolsState.update((s) => {
                 s.toolCallLoading = false;
                 s.toolResult = {
-                    content: [{ type: "text", text: err?.message || String(err) }],
+                    content: [{ type: "text", text: errMessage(err) }],
                     isError: true,
                     durationMs: duration,
                 };
@@ -480,7 +481,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.readError = "";
             });
         } catch (err) {
-            this.logRequest("resources/list", null, null, err?.message || String(err), Date.now() - start);
+            this.logRequest("resources/list", null, null, errMessage(err), Date.now() - start);
         }
     };
 
@@ -553,10 +554,10 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 });
             }
         } catch (err) {
-            this.logRequest("resources/read", readParams, null, err?.message || String(err), Date.now() - start);
+            this.logRequest("resources/read", readParams, null, errMessage(err), Date.now() - start);
             this.resourcesState.update((s) => {
                 s.templateReadLoading = false;
-                s.templateReadError = err?.message || String(err);
+                s.templateReadError = errMessage(err);
             });
         }
     };
@@ -592,10 +593,10 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 });
             }
         } catch (err) {
-            this.logRequest("resources/read", readParams, null, err?.message || String(err), Date.now() - start);
+            this.logRequest("resources/read", readParams, null, errMessage(err), Date.now() - start);
             this.resourcesState.update((s) => {
                 s.readLoading = false;
-                s.readError = err?.message || String(err);
+                s.readError = errMessage(err);
             });
         }
     };
@@ -627,7 +628,7 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.promptError = "";
             });
         } catch (err) {
-            this.logRequest("prompts/list", null, null, err?.message || String(err), Date.now() - start);
+            this.logRequest("prompts/list", null, null, errMessage(err), Date.now() - start);
         }
     };
 
@@ -680,10 +681,10 @@ export class McpInspectorEditorModel extends EditorModel<McpInspectorEditorState
                 s.promptMessages = messages;
             });
         } catch (err) {
-            this.logRequest("prompts/get", getParams, null, err?.message || String(err), Date.now() - start);
+            this.logRequest("prompts/get", getParams, null, errMessage(err), Date.now() - start);
             this.promptsState.update((s) => {
                 s.getPromptLoading = false;
-                s.promptError = err?.message || String(err);
+                s.promptError = errMessage(err);
             });
         }
     };

@@ -114,6 +114,8 @@ parentPort.on("message", async (msg) => {
         } catch (e) {
             parentPort.postMessage({
                 type: "error",
+                // NOTE: inside WORKER_CODE — this string is the worker's own source and
+                // has no access to host imports, so it cannot use errMessage.
                 message: e instanceof Error ? e.message : String(e),
                 stack: e instanceof Error ? e.stack : undefined,
             });

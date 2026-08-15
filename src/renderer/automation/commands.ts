@@ -24,6 +24,7 @@ import type { IBrowserTarget } from "./types";
 // Value import is safe: AppTargetModel is a leaf (only types + CdpSession + an
 // api-types constant) and pulls no editor modules into this bundle.
 import { appTarget } from "./AppTargetModel";
+import { errMessage } from "../../shared/utils";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -529,6 +530,6 @@ export async function handleBrowserCommand(
         const result = await dispatch();
         return result;
     } catch (err) {
-        return { error: { code: -32602, message: err instanceof Error ? err.message : String(err) } };
+        return { error: { code: -32602, message: errMessage(err) } };
     }
 }

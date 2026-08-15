@@ -21,6 +21,7 @@ import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
 import { boardSecondaryPanelId } from "./board-secondary";
 import type { BoardEditorModel } from "./BoardEditorModel";
 import type { BoardContentEditorModel } from "./BoardContentEditorModel";
+import { errMessage } from "../../../shared/utils";
 
 /**
  * Locked-down host for a single board (EPIC-034 / US-723; iframe in EPIC-037).
@@ -307,7 +308,7 @@ export function BoardWebview({
                     try {
                         reply = { path: await model.ensureContentPath() };
                     } catch (e) {
-                        reply = { error: e instanceof Error ? e.message : String(e) };
+                        reply = { error: errMessage(e) };
                     }
                     const win = iframeRef.current?.contentWindow;
                     if (!win) return; // frame gone — the board's promise rejects on unmount
@@ -329,7 +330,7 @@ export function BoardWebview({
                         const namespace = await resolveBoardNamespace(boardRoot);
                         reply = await resolveBoardVarRequest(namespace, method, varArgs);
                     } catch (e) {
-                        reply = { error: e instanceof Error ? e.message : String(e) };
+                        reply = { error: errMessage(e) };
                     }
                     const win = iframeRef.current?.contentWindow;
                     if (!win) return; // frame gone (reloaded/closed) — the board's promise rejects on unmount

@@ -22,6 +22,7 @@ import { Pages } from "./Pages";
 import { PageTabs } from "../tabs/PageTabs";
 import { clsx } from "clsx";
 import { MenuBar } from "../sidebar/MenuBar";
+import { errMessage } from "../../../shared/utils";
 
 const AppRoot = styled.div({
     backgroundColor: color.background.default,
@@ -294,7 +295,7 @@ async function runSnip(hideWindows: boolean): Promise<void> {
         const blobUrl = URL.createObjectURL(blob);
         await pagesModel.openImageInNewTab(blobUrl, "Snip");
     } catch (e) {
-        app.ui.notify(`Snip failed: ${(e as Error).message}`, "error");
+        app.ui.notify(`Snip failed: ${errMessage(e)}`, "error");
     }
 }
 

@@ -4,6 +4,7 @@ import { app } from "../app";
 import { createLinkData } from "../../../shared/link-data";
 import { signalReadyToQuit } from "../window";
 import { ui } from "../ui";
+import { guard } from "../../core/utils/guard";
 import { UpdateCheckResult } from "../../../ipc/api-param-types";
 import { EventEndpoint } from "../../../ipc/api-types";
 import type { PageDescriptor } from "../../../shared/types";
@@ -41,74 +42,50 @@ export class RendererEventsService {
 
     private handleBoardOpenRawLink = async (msg: { href: string; editor?: string }) => {
         if (!msg?.href) return;
-        try {
-            await app.events.openRawLink.sendAsync(
+        await guard("Failed to open link", () =>
+            app.events.openRawLink.sendAsync(
                 createLinkData(msg.href, { sourceId: "board", target: msg.editor }),
-            );
-        } catch (err) {
-            ui.notify(`Failed to open link: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+            ),
+        );
     };
 
     private handleOpenFile = async (filePath: string) => {
-        try {
-            await app.events.openRawLink.sendAsync(createLinkData(filePath));
-        } catch (err) {
-            ui.notify(`Failed to open file: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        await guard("Failed to open file", () =>
+            app.events.openRawLink.sendAsync(createLinkData(filePath)),
+        );
     };
 
     private handleOpenDiff = async (params: { firstPath: string; secondPath: string }) => {
-        try {
-            await pagesModel.openDiff(params);
-        } catch (err) {
-            ui.notify(`Failed to open diff: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        await guard("Failed to open diff", () => pagesModel.openDiff(params));
     };
 
-    private handleShowPage = (pageId: string) => {
-        try {
-            pagesModel.showPage(pageId);
-        } catch (err) {
-            ui.notify(`Failed to show page: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+    private handleShowPage = async (pageId: string) => {
+        await guard("Failed to show page", () => pagesModel.showPage(pageId));
     };
 
     private handleMovePageIn = async (data: { page: PageDescriptor; targetPageId: string | undefined } | undefined) => {
-        try {
-            await pagesModel.movePageIn(data);
-        } catch (err) {
-            ui.notify(`Failed to move page: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        await guard("Failed to move page", () => pagesModel.movePageIn(data));
     };
 
     private handleMovePageOut = async (pageId: string) => {
-        try {
-            await pagesModel.movePageOut(pageId);
-        } catch (err) {
-            ui.notify(`Failed to move page: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        await guard("Failed to move page", () => pagesModel.movePageOut(pageId));
     };
 
     private handleOpenUrl = async (url: string) => {
-        try {
-            await app.events.openRawLink.sendAsync(createLinkData(url));
-        } catch (err) {
-            ui.notify(`Failed to open URL: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        await guard("Failed to open URL", () =>
+            app.events.openRawLink.sendAsync(createLinkData(url)),
+        );
     };
 
     private handleExternalUrl = async (url: string) => {
-        try {
-            // Route through pipeline — HTTP resolver decides content vs browser based on extension.
-            // `browserMode: "internal"` prevents shell.openExternal fallback, which would loop
-            // back to us when Persephone is the OS default browser.
-            await app.events.openRawLink.sendAsync(
+        // Route through pipeline — HTTP resolver decides content vs browser based on extension.
+        // `browserMode: "internal"` prevents shell.openExternal fallback, which would loop
+        // back to us when Persephone is the OS default browser.
+        await guard("Failed to open URL", () =>
+            app.events.openRawLink.sendAsync(
                 createLinkData(url, { browserMode: "internal" }),
-            );
-        } catch (err) {
-            ui.notify(`Failed to open URL: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+            ),
+        );
     };
 
     private handleBeforeQuit = async () => {

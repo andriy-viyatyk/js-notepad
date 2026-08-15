@@ -32,6 +32,7 @@ import { ImageEditorFacade } from "./ImageEditorFacade";
 import { BrowserEditorFacade } from "./BrowserEditorFacade";
 import { McpInspectorFacade } from "./McpInspectorFacade";
 import type { ScriptOutputFlags } from "../ScriptContext";
+import { errMessage } from "../../../shared/utils";
 
 export class PageWrapper {
     constructor(
@@ -114,7 +115,7 @@ export class PageWrapper {
                 // path on the wrapped TextFileModel). Once per-editor migrations land, the catch
         // surfaces real `switchFrom` rejections.
         page.switchMainEditor(value).catch((err: unknown) => {
-            const message = err instanceof Error ? err.message : String(err);
+            const message = errMessage(err);
             app.ui?.notify?.(message, "error");
         });
     }

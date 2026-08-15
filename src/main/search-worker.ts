@@ -36,6 +36,7 @@ import {
     searchFlushMaxFiles,
     maxSearchResults,
 } from "../ipc/search-ipc";
+import { errMessage } from "../shared/utils";
 
 /** Worker → Host messages (see protocol above). */
 export type SearchWorkerMessage =
@@ -328,6 +329,6 @@ parentPort?.on("message", (msg: SearchHostMessage) => {
     try {
         executeSearch(msg.request, post);
     } catch (e) {
-        post({ type: "error", message: e instanceof Error ? e.message : String(e) });
+        post({ type: "error", message: errMessage(e) });
     }
 });

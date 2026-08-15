@@ -14,6 +14,10 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **The Folder View gets the same multi-selection and drag-and-drop as the File Explorer panel** — The page that opens when you click a local folder now matches the tree beside it: `Ctrl+click`/`Shift+click` build a selection, `Ctrl+A` selects everything visible, `Delete` removes the whole selection with one confirmation, and `Escape` collapses back to one item. The right-click menu switches to **Copy Paths (N)**, **Cut (N)**, **Copy (N)** and **Delete (N)** once more than one item is selected. You can now also **drag files in** from Windows Explorer — drop onto a folder row to file them into that folder, or onto empty space to file them into the folder you're viewing — and **drag a selection out** to Windows Explorer, Teams, or another Persephone window, or onto a folder row to move it there. Dropping files into a folder page used to do nothing useful (they'd silently open as tabs instead); it now files them in, with the same Move/Copy prompt, overwrite confirmation, and progress as the tree. The listing also now **auto-refreshes** when files change elsewhere — the Explorer tree, another Persephone window, Windows Explorer, or an AI agent — so a folder page never goes stale while you're looking at it. This only applies to local file-system folders; Archive folders stay single-select and don't accept drops (a ZIP's contents don't change while it's open), and Mneme folders stay single-select but do auto-refresh. See [Editors — Folder View](./editors.md#folder-view).
 
+### Bug Fixes
+
+- **Clearer git error messages** — Error toasts from git actions (commit, push, pull, switch, create branch, stage/unstage, discard) no longer carry a redundant "Error: " prefix — a failed commit now reads "nothing to commit" instead of "Error: nothing to commit". A few error messages that previously rendered as the literal word "undefined" (when the underlying failure wasn't a standard `Error` object) now show the actual error text.
+
 ---
 
 ## Version 4.0.21

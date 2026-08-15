@@ -269,6 +269,7 @@ TextFileIOModel uses dual pipes: primary (source file) + cache (auto-save). Pipe
 - **Meaningful names** - descriptive, no abbreviations
 - **No hardcoded colors** - All colors must come from `import color from "../../theme/color"`. Never use hex codes, `rgb()`/`rgba()`, or named colors directly in styled components or inline styles. If a needed color doesn't exist in `color`, add it to `color.ts` and all theme definitions in `/src/renderer/theme/themes/`.
 - **No direct `require("path")`** - Use `file-path` utility (`/src/renderer/core/utils/file-path.ts`) for all path operations. Only `file-path.ts` itself may import `path` directly.
+- **No hand-rolled error stringification** - A caught value is `unknown`; use `errMessage(e, fallback?)` from `/src/shared/utils.ts` instead of `e instanceof Error ? e.message : String(e)` or the unsafe `(e as Error).message`. When the whole catch is "toast it and carry on", use `guard(label, fn)` from `/src/renderer/core/utils/guard.ts`.
 - **No direct `require("fs")`** - Use `app.fs` (`/src/renderer/api/fs.ts`) for file operations. Only `fs.ts` and a few documented exceptions may use `fs` directly (see `coding-style.md`).
 
 See [/doc/standards/coding-style.md](doc/standards/coding-style.md) for complete standards.

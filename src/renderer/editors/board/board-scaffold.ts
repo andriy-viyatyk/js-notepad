@@ -4,6 +4,7 @@ import { ui } from "../../api/ui";
 import { boardTrust } from "../../api/board-trust";
 import { fpJoin } from "../../core/utils/file-path";
 import { ensureBoardManifest } from "./board-manifest";
+import { errMessage } from "../../../shared/utils";
 
 /**
  * Populate a fresh board folder by recursively copying a bundled template into
@@ -57,7 +58,7 @@ export async function createBoardFromTemplate(name: string, dir: string, templat
         await fs.mkdir(boardRoot);
         ui.notify(
             `Board created, but the template could not be copied: ${
-                err instanceof Error ? err.message : String(err)
+                errMessage(err)
             }`,
             "warning",
         );

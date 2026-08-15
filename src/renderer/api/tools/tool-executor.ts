@@ -19,6 +19,7 @@ import { registeredTools, RegisteredTool } from "./registered-tools";
 import { loadDotEnv } from "./dotenv";
 import { toolStats } from "./tool-stats";
 import { appendToolLog, ToolLogEntry } from "./tool-log";
+import { errMessage } from "../../../shared/utils";
 
 /** The stdout result marker (EPIC C2). A tool prints `##PERSEPHONE_RESULT##<json>` on its own
  *  line; the LAST occurrence wins, so third-party library noise on stdout is harmless. */
@@ -136,7 +137,7 @@ function parseToolOutput(stdout: string): ParsedOutput {
         return { result: JSON.parse(payload), logs };
     } catch (e) {
         // Marker present but payload not valid JSON — keep the full stdout for debugging.
-        return { logs: stdout, parseError: e instanceof Error ? e.message : String(e) };
+        return { logs: stdout, parseError: errMessage(e) };
     }
 }
 

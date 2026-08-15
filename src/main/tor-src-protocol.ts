@@ -26,6 +26,7 @@
  */
 import { session } from "electron";
 import { torService } from "./tor-service";
+import { errMessage } from "../shared/utils";
 
 /** Shape produced by `getPartitionString` for a Tor page: `browser-tor-<uuid>`. */
 const TOR_PARTITION_RE = /^browser-tor-[0-9a-f-]+$/;
@@ -69,7 +70,7 @@ async function handleTorSrc(request: Request): Promise<Response> {
         // renderer. No header rewriting: no UA/Referer spoofing (US-896).
         upstream = await session.fromPartition(torPartition).fetch(target);
     } catch (err) {
-        return new Response(`Tor fetch failed: ${(err as Error).message}`, { status: 502 });
+        return new Response(`Tor fetch failed: ${errMessage(err)}`, { status: 502 });
     }
 
     // Forward the body and content type only. Upstream `Set-Cookie` and friends

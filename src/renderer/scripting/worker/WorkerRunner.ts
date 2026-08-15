@@ -7,6 +7,7 @@
  */
 
 import { WorkerChannel } from "../../../ipc/worker-channels";
+import { errMessage } from "../../../shared/utils";
 
 const { ipcRenderer } = window.electron;
 
@@ -105,7 +106,7 @@ export async function runAsync<TData, TProxy, TResult>(
             } catch (e) {
                 ipcRenderer.sendMessage(
                     WorkerChannel.proxyResult as unknown as never,
-                    { id, callId: msg.callId, error: (e as Error)?.message ?? String(e) }
+                    { id, callId: msg.callId, error: errMessage(e) }
                 );
             }
         }));

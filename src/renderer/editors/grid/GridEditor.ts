@@ -26,6 +26,7 @@ import {
     removeIdColumn,
 } from "./utils/grid-utils";
 import { formatFromEditorId, type GridFormat, type GridEditorId } from "./util";
+import { errMessage } from "../../../shared/utils";
 
 export type GridQueueEvent =
     | { type: "focus" }
@@ -592,7 +593,7 @@ function parseJsonl(content: string, onError: (e: Error) => void): any[] {
                     : { value: parsed },
             );
         } catch (e) {
-            onError(new Error(`Line ${i + 1}: ${(e as Error).message}`));
+            onError(new Error(`Line ${i + 1}: ${errMessage(e)}`));
             return result;
         }
     }

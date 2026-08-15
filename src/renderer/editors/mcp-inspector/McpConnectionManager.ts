@@ -6,6 +6,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { errMessage } from "../../../shared/utils";
 
 export type McpTransportType = "http" | "stdio";
 
@@ -234,7 +235,7 @@ export class McpConnectionManager {
             this._reconnectAttempt = 0;
             this.setStatus("connected");
         } catch (err) {
-            this._error = (err as Error)?.message || String(err);
+            this._error = errMessage(err);
             this._serverInfo = null;
             this.client = null;
             this.transport = null;

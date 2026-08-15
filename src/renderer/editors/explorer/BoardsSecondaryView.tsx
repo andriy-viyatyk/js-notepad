@@ -29,6 +29,7 @@ import color from "../../theme/color";
 import { BoardsTree } from "../board/BoardsTree";
 import { ToolsTree } from "../tools/ToolsTree";
 import { useBusyBoardRoots } from "../board/busy-boards";
+import { errMessage } from "../../../shared/utils";
 
 /** "Running" indicator for a busy board (US-799) — its spawned processes are
  *  alive (possibly with the board itself unloaded). */
@@ -191,7 +192,7 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
         try {
             if (onDisk) await fs.removeDir(root, true);
         } catch (err) {
-            ui.notify(err instanceof Error ? err.message : String(err), "error");
+            ui.notify(errMessage(err), "error");
             return;
         }
         await boardTrust.untrust(root);

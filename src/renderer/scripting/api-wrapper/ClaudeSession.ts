@@ -15,6 +15,7 @@ import type {
     Tool,
     ToolChoice,
 } from "@anthropic-ai/sdk/resources/messages/messages";
+import { errMessage } from "../../../shared/utils";
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 let Anthropic: typeof AnthropicClass;
@@ -200,7 +201,7 @@ export class ClaudeSession {
                         isError = true;
                     }
                 } catch (err) {
-                    result = (err as Error)?.message || String(err);
+                    result = errMessage(err);
                     isError = true;
                 }
 

@@ -4,7 +4,7 @@ import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import { TextFileModel } from "../text/TextEditorModel";
 import { tryParseJson } from "../../core/utils/parse-utils";
-import { debounce } from "../../../shared/utils";
+import { debounce, errMessage } from "../../../shared/utils";
 import type { LogEntry, StyledText } from "./logTypes";
 
 export type LogQueueEvent =
@@ -127,7 +127,7 @@ export class LogViewEditor extends TextHostEditorModel<LogViewEditorState, void,
                         break;
                     }
                 } catch (e) {
-                    error = `Line ${i + 1}: ${(e as Error).message}`;
+                    error = `Line ${i + 1}: ${errMessage(e)}`;
                     break;
                 }
             }
@@ -197,7 +197,7 @@ export class LogViewEditor extends TextHostEditorModel<LogViewEditorState, void,
                     break;
                 }
             } catch (e) {
-                error = `Line ${i + 1}: ${(e as Error).message}`;
+                error = `Line ${i + 1}: ${errMessage(e)}`;
                 break;
             }
         }

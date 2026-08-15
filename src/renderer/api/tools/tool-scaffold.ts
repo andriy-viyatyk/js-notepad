@@ -23,6 +23,7 @@ import {
     readToolsManifest,
     writeToolsManifest,
 } from "./tools-manifest";
+import { errMessage } from "../../../shared/utils";
 
 const TOOL_TEMPLATE = "tool-template";
 
@@ -52,7 +53,7 @@ export async function createToolset(name: string, dir: string): Promise<string> 
         await fs.mkdir(toolsetRoot);
         ui.notify(
             `Toolset created, but the template could not be copied: ${
-                err instanceof Error ? err.message : String(err)
+                errMessage(err)
             }`,
             "warning",
         );

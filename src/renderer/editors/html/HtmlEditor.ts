@@ -8,6 +8,7 @@ import { pagesModel } from "../../api/pages";
 import { api } from "../../../ipc/renderer/api";
 import { blobToDataUrl } from "../shared/image-export";
 import type { IImageExport } from "../base/IImageExport";
+import { errMessage } from "../../../shared/utils";
 
 export type HtmlQueueEvent = { type: "focus" };
 
@@ -103,7 +104,7 @@ export class HtmlEditor extends TextHostEditorModel<HtmlEditorState, void, HtmlQ
         try {
             await action(await this.exportPng());
         } catch (err) {
-            ui.notify(`${failMessage}: ${(err as Error).message}`, "error");
+            ui.notify(`${failMessage}: ${errMessage(err)}`, "error");
         } finally {
             this.state.update((s) => {
                 s.capturing = false;

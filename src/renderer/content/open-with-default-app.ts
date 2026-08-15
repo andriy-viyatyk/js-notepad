@@ -1,3 +1,5 @@
+import { errMessage } from "../../shared/utils";
+
 /**
  * Hand a file or folder to the OS shell, the way double-clicking it in Windows
  * Explorer would (`shell.openPath` in main).
@@ -14,7 +16,7 @@ export async function openWithDefaultApp(path: string): Promise<void> {
     try {
         error = await api.openPath(path);
     } catch (err) {
-        error = err instanceof Error ? err.message : String(err);
+        error = errMessage(err);
     }
     if (!error) return;
 

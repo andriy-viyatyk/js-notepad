@@ -2,7 +2,7 @@ import type { EditorStateBase } from "../base/EditorModel";
 import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { TextFileModel } from "../text/TextEditorModel";
 import { ui } from "../../api/ui";
-import { debounce } from "../../../shared/utils";
+import { debounce, errMessage } from "../../../shared/utils";
 // Import directly from types.ts (not the api/board-vars barrel) — the barrel re-exports
 // board-vars-bridge.ts, which imports this folder's open-env-vars.ts, so going through the
 // barrel here would create a circular module dependency.
@@ -129,7 +129,7 @@ export class EnvVarsEditor extends TextHostEditorModel<EnvVarsEditorState> {
             });
             this.lastSerializedData = data;
         } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : String(e);
+            const message = errMessage(e);
             this.state.update((s) => {
                 s.status = "error";
                 s.errorMessage = message;

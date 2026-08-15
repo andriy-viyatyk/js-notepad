@@ -14,6 +14,7 @@ import type {
     OrderedExcalidrawElement,
     ExcalidrawElement,
 } from "@excalidraw/excalidraw/dist/types/excalidraw/element/types";
+import { errMessage } from "../../../shared/utils";
 
 export type DrawQueueEvent = { type: "focus" };
 export type DrawQueueRequest = never;
@@ -124,7 +125,7 @@ export class DrawEditor extends TextHostEditorModel<DrawEditorState, void, DrawQ
             this._lastFingerprint = this.computeFingerprint(this._elements, this._files);
             this.state.update((s) => { s.loading = false; s.error = null; });
         } catch (e) {
-            this.state.update((s) => { s.loading = false; s.error = (e as Error).message; });
+            this.state.update((s) => { s.loading = false; s.error = errMessage(e); });
         }
     }
 

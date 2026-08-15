@@ -5,6 +5,7 @@ import { settings } from "../api/settings";
 import { fpJoin, fpResolve } from "../core/utils/file-path";
 import { fs } from "../api/fs";
 import { TOneState } from "../core/state/state";
+import { errMessage } from "../../shared/utils";
 
 interface AutoloadState {
     /** Whether autoload scripts are currently loaded. */
@@ -119,7 +120,7 @@ class AutoloadRunner {
             this.state.update(s => { s.isLoaded = true; s.needsReload = false; });
         } catch (error) {
             // All-or-nothing: dispose everything on error
-            const message = error instanceof Error ? error.message : String(error);
+            const message = errMessage(error);
             this.dispose();
             // Dynamic import to avoid pulling ui module at load time
             import("../api/ui").then(({ ui }) => {

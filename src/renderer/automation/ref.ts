@@ -9,6 +9,7 @@
  * in the correct iframe context via CDP DOM.resolveNode + Runtime.callFunctionOn.
  */
 import type { CdpSession } from "./CdpSession";
+import { errMessage } from "../../shared/utils";
 
 // ── Frame Session Map ───────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ export async function resolveRef(cdp: CdpSession, ref: string): Promise<string> 
         }
         return object.objectId;
     } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = errMessage(err);
         if (msg.includes("No node with given id")) {
             throw new Error(
                 `Ref "${ref}" is stale — the element is no longer in the DOM. Re-take the snapshot.`,

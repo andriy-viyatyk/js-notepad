@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { secondaryViewRegistry, type SecondaryViewProps } from "./secondary-view-registry";
 import type { EditorOrHost } from "../../editors/base";
 import color from "../../theme/color";
+import { errMessage } from "../../../shared/utils";
 
 interface LazySecondaryViewProps {
     model: EditorOrHost;
@@ -29,7 +30,7 @@ export function LazySecondaryView({ model, panelId, headerRef, icon, expanded }:
         def.loadComponent().then((mod) => {
             if (!cancelled) setComponent(() => mod.default);
         }).catch((err) => {
-            if (!cancelled) setError(String(err));
+            if (!cancelled) setError(errMessage(err, `Failed to load "${panelId}".`));
         });
         return () => { cancelled = true; };
     }, [panelId]);

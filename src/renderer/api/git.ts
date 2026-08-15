@@ -10,6 +10,7 @@
  * Honors the "git.enabled" setting — when off, no git activity happens at all.
  */
 import { fpDirname } from "../core/utils/file-path";
+import { errMessage } from "../../shared/utils";
 import { api } from "../../ipc/renderer/api";
 import { settings } from "./settings";
 import type { GitRepoInfo, GitProbeResult, GitCommit, GitLogOptions, GitStatusResult, GitFileChange, GitMutationResult, GitIdentity, GitRefs, GitSwitchTarget, GitFetchOptions, GitAheadBehind, GitPushOptions, GitPushResult, GitPullOptions, GitPullResult } from "../../ipc/git-ipc";
@@ -112,14 +113,14 @@ export const git = {
      */
     stage(repoRoot: string, paths: string[]): Promise<GitMutationResult> {
         if (!settings.get("git.enabled") || !repoRoot || !paths.length) return Promise.resolve({ ok: true });
-        return api.gitStage(repoRoot, paths).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+        return api.gitStage(repoRoot, paths).catch((e): GitMutationResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /** Unstage paths (move index → working-tree) for the "Changes" panel
      *  (EPIC-031 / US-631). Symmetric to `stage`. Never throws. */
     unstage(repoRoot: string, paths: string[]): Promise<GitMutationResult> {
         if (!settings.get("git.enabled") || !repoRoot || !paths.length) return Promise.resolve({ ok: true });
-        return api.gitUnstage(repoRoot, paths).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+        return api.gitUnstage(repoRoot, paths).catch((e): GitMutationResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**
@@ -132,7 +133,7 @@ export const git = {
         if (!settings.get("git.enabled") || !repoRoot || (!trackedPaths.length && !untrackedPaths.length)) {
             return Promise.resolve({ ok: true });
         }
-        return api.gitDiscard(repoRoot, trackedPaths, untrackedPaths).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+        return api.gitDiscard(repoRoot, trackedPaths, untrackedPaths).catch((e): GitMutationResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**
@@ -153,7 +154,7 @@ export const git = {
      */
     commit(repoRoot: string, message: string, identity?: GitIdentity): Promise<GitMutationResult> {
         if (!settings.get("git.enabled") || !repoRoot || !message.trim()) return Promise.resolve({ ok: true });
-        return api.gitCommit(repoRoot, message, identity).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+        return api.gitCommit(repoRoot, message, identity).catch((e): GitMutationResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**
@@ -173,7 +174,7 @@ export const git = {
      */
     switchTo(repoRoot: string, target: GitSwitchTarget): Promise<GitMutationResult> {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
-        return api.gitSwitch(repoRoot, target).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+        return api.gitSwitch(repoRoot, target).catch((e): GitMutationResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**
@@ -189,7 +190,7 @@ export const git = {
         // mirror git-service's own guard rather than masking it as success.
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
         if (!name.trim()) return Promise.resolve({ ok: false, error: "Empty branch name" });
-        return api.gitCreateBranch(repoRoot, name, startPoint, checkout).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+        return api.gitCreateBranch(repoRoot, name, startPoint, checkout).catch((e): GitMutationResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**
@@ -199,7 +200,7 @@ export const git = {
      */
     fetch(repoRoot: string, opts?: GitFetchOptions): Promise<GitMutationResult> {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve({ ok: true });
-        return api.gitFetch(repoRoot, opts).catch((e): GitMutationResult => ({ ok: false, error: String(e) }));
+        return api.gitFetch(repoRoot, opts).catch((e): GitMutationResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**
@@ -219,7 +220,7 @@ export const git = {
      */
     push(repoRoot: string, opts?: GitPushOptions): Promise<GitPushResult> {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(PUSH_FAIL);
-        return api.gitPush(repoRoot, opts).catch((e): GitPushResult => ({ ok: false, error: String(e) }));
+        return api.gitPush(repoRoot, opts).catch((e): GitPushResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**
@@ -229,7 +230,7 @@ export const git = {
      */
     pull(repoRoot: string, opts?: GitPullOptions): Promise<GitPullResult> {
         if (!settings.get("git.enabled") || !repoRoot) return Promise.resolve(PULL_FAIL);
-        return api.gitPull(repoRoot, opts).catch((e): GitPullResult => ({ ok: false, error: String(e) }));
+        return api.gitPull(repoRoot, opts).catch((e): GitPullResult => ({ ok: false, error: errMessage(e) }));
     },
 
     /**

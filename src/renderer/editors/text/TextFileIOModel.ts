@@ -5,7 +5,7 @@ import { fs as appFs } from "../../api/fs";
 import { recent } from "../../api/recent";
 import { getLanguageByExtension } from "../../core/utils";
 import { shell } from "../../api/shell";
-import { debounce } from "../../../shared/utils";
+import { debounce, errMessage } from "../../../shared/utils";
 import type { TextFileModel } from "./TextEditorModel";
 import type { ISubscriptionObject } from "../../api/types/events";
 import type { IContentPipe } from "../../api/types/io.pipe";
@@ -101,7 +101,7 @@ export class TextFileIOModel {
                 await this.model.pipe.writeText(text);
             } catch (err) {
                 const { ui } = await import("../../api/ui");
-                ui.notify((err as Error).message || "Failed to save file.", "warning");
+                ui.notify(errMessage(err, "Failed to save file."), "warning");
                 return false;
             }
         } else {
@@ -116,7 +116,7 @@ export class TextFileIOModel {
             } catch (err) {
                 newPipe.dispose();
                 const { ui } = await import("../../api/ui");
-                ui.notify((err as Error).message || "Failed to save file.", "warning");
+                ui.notify(errMessage(err, "Failed to save file."), "warning");
                 return false;
             }
 

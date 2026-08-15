@@ -15,6 +15,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 |--------------------------|---------------------------------------------------|
 | Shared types (IEditorState)| `/src/shared/types.ts`                            |
 | ILinkData helpers        | `/src/shared/link-data.ts`                        |
+| Cross-process helpers (`debounce`; `errMessage(e, fallback?)` — the one way to turn a caught `unknown` into a message, in `shared/` because main, renderer and the board shim all need it) | `/src/shared/utils.ts` |
 | App object model         | `/src/renderer/api/app.ts`                        |
 | Page/tab management      | `/src/renderer/api/pages/PagesModel.ts`           |
 | Page container (tab)     | `/src/renderer/api/pages/PageModel.ts`            |
@@ -30,6 +31,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | File / directory watchers (`FileWatcher`, `DirectoryWatcher`) | `/src/renderer/core/utils/file-watcher.ts` |
 | Performance-timeline janitor (caps React dev-build `performance.measure` accumulation; self-gating no-op in release) | `/src/renderer/core/utils/performance-janitor.ts` |
 | JSON parsing helpers (`tryParseJson<T>` parse-or-fall-back; `parseObject` / `parseJSON5`) | `/src/renderer/core/utils/parse-utils.ts` |
+| Toast-on-failure wrapper (`guard(label, fn, level?)` — the "try, notify, carry on" handler shape) | `/src/renderer/core/utils/guard.ts` |
 | App settings             | `/src/renderer/api/settings.ts`                   |
 | Event channel system     | `/src/renderer/api/events/EventChannel.ts`        |
 | App events namespace     | `/src/renderer/api/events/AppEvents.ts`           |

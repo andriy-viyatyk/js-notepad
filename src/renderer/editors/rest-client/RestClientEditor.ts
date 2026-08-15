@@ -3,7 +3,7 @@ import type { EditorStateBase } from "../base/EditorModel";
 import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import { TextFileModel } from "../text/TextEditorModel";
-import { debounce } from "../../../shared/utils";
+import { debounce, errMessage } from "../../../shared/utils";
 import {
     BodyType,
     CachedResponse,
@@ -756,7 +756,7 @@ export class RestClientEditor extends TextHostEditorModel<RestClientEditorState,
                 status: 0,
                 statusText: "Error",
                 headers: [],
-                body: err.message || String(err),
+                body: errMessage(err),
             };
 
             this.responseCache[request.id] = { response, responseTime };

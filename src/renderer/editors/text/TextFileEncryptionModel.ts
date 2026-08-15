@@ -2,6 +2,7 @@ import { ui } from "../../api/ui";
 import { shell } from "../../api/shell";
 import type { TextFileModel } from "./TextEditorModel";
 import { DecryptTransformer } from "../../content/transformers/DecryptTransformer";
+import { errMessage } from "../../../shared/utils";
 
 export class TextFileEncryptionModel {
     constructor(private model: TextFileModel) {}
@@ -50,7 +51,7 @@ export class TextFileEncryptionModel {
             });
             this.model.io.markModificationUnsaved();
         } catch (error) {
-            ui.notify((error as Error).message, "warning");
+            ui.notify(errMessage(error), "warning");
         }
     };
 

@@ -17,6 +17,7 @@ import { pagesModel } from "../../api/pages";
 import { browserUrlChanged } from "../../core/state/events";
 import type { DrawEditor } from "./DrawEditor";
 import { createLibraryAdapter, initDefaultLibraryPath } from "./drawLibrary";
+import { errMessage } from "../../../shared/utils";
 
 const LIBRARY_RETURN_URL = "https://jsnotepad.excalidraw-library/";
 
@@ -100,7 +101,7 @@ export function DrawBody({ model: editor }: DrawBodyProps) {
                     });
                 })
                 .catch((err) => {
-                    ui.notify(`Failed to install library: ${(err as Error).message}`, "error");
+                    ui.notify(`Failed to install library: ${errMessage(err)}`, "error");
                 });
         });
         return () => sub.unsubscribe();

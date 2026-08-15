@@ -40,6 +40,7 @@ import type { IContentPipe } from "../../api/types/io.pipe";
 import { ContentPipe } from "../../content/ContentPipe";
 import { HttpProvider } from "../../content/providers/HttpProvider";
 import { pipeFromSourcePath } from "../../content/rebuild-pipe";
+import { errMessage } from "../../../shared/utils";
 
 function normalizeLinksTitle(title?: string): string {
     if (!title) return "untitled.link.json";
@@ -692,7 +693,7 @@ export class PagesLifecycleModel {
                 );
             } catch (err) {
                 ui.notify(
-                    `Failed to open ${fpBasename(newFilePath)}: ${(err as Error).message}`,
+                    `Failed to open ${fpBasename(newFilePath)}: ${errMessage(err)}`,
                     "error",
                 );
                 legacy = newTextFileModel("");
@@ -1054,7 +1055,7 @@ export class PagesLifecycleModel {
                     // network, which is the exact failure this guards against.
                     ui.notify(
                         `Could not secure the Tor session — the page was not opened: ${
-                            (err as Error).message
+                            errMessage(err)
                         }`,
                         "error",
                     );

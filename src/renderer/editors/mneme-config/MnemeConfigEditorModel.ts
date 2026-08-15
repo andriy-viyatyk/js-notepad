@@ -23,6 +23,7 @@ import {
     isModelReady,
     isStatusBusy,
 } from "./mnemeTypes";
+import { errMessage } from "../../../shared/utils";
 
 export interface MnemeConfigEditorState extends EditorStateBase {
     type: "mnemeConfigPage";
@@ -127,7 +128,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             this.applySidecarStatus(!!s.running, s.url || "");
         } catch (err) {
             this.state.update((st) => {
-                st.errorMessage = (err as Error)?.message || String(err);
+                st.errorMessage = errMessage(err);
             });
         }
     }
@@ -166,7 +167,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
                 ui.notify(`Mneme failed to restart: ${status.error ?? "unknown error"}`, "error");
             }
         } catch (err) {
-            ui.notify(`Restart failed: ${(err as Error)?.message || err}`, "error");
+            ui.notify(`Restart failed: ${errMessage(err)}`, "error");
         }
     };
 
@@ -216,7 +217,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             this.state.update((s) => { s.status = status; });
             this.syncPolling();
         } catch (err) {
-            if (!silent) ui.notify(`Mneme status failed: ${(err as Error)?.message || err}`, "error");
+            if (!silent) ui.notify(`Mneme status failed: ${errMessage(err)}`, "error");
         } finally {
             if (!silent) this.state.update((s) => { s.refreshing = false; });
         }
@@ -298,7 +299,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             this.kickPolling();
             ui.notify("Root added — indexing in background", "success");
         } catch (err) {
-            ui.notify(`Add root failed: ${(err as Error)?.message || err}`, "error");
+            ui.notify(`Add root failed: ${errMessage(err)}`, "error");
         }
     };
 
@@ -316,7 +317,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             await this.refreshStatus();
             ui.notify(`Root "${root}" removed`, "success");
         } catch (err) {
-            ui.notify(`Remove root failed: ${(err as Error)?.message || err}`, "error");
+            ui.notify(`Remove root failed: ${errMessage(err)}`, "error");
         }
     };
 
@@ -355,7 +356,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
                 ui.notify("Reindex cancelled", "info");
                 await this.refreshStatus();
             } else {
-                ui.notify(`Reindex failed: ${(err as Error)?.message || err}`, "error");
+                ui.notify(`Reindex failed: ${errMessage(err)}`, "error");
             }
         } finally {
             delete this._aborts[key];
@@ -395,7 +396,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
                 this.state.update((s) => { s.rootConfigs = { ...s.rootConfigs, [root]: cfg }; });
             }
         } catch (err) {
-            ui.notify(`Read filters failed: ${(err as Error)?.message || err}`, "error");
+            ui.notify(`Read filters failed: ${errMessage(err)}`, "error");
         }
     };
 
@@ -418,7 +419,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             this.kickPolling();
             ui.notify("Filters applied — reindexing in background", "success");
         } catch (err) {
-            ui.notify(`Apply filters failed: ${(err as Error)?.message || err}`, "error");
+            ui.notify(`Apply filters failed: ${errMessage(err)}`, "error");
         }
     };
 
@@ -441,7 +442,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
                 ui.notify("Model is up to date", "success");
             }
         } catch (err) {
-            ui.notify(`Model update failed: ${(err as Error)?.message || err}`, "error");
+            ui.notify(`Model update failed: ${errMessage(err)}`, "error");
         }
     };
 
@@ -507,7 +508,7 @@ export class MnemeConfigEditorModel extends EditorModel<MnemeConfigEditorState> 
             await this.loadIndexInventory();
             ui.notify("Index deleted", "success");
         } catch (err) {
-            ui.notify(`Delete index failed: ${(err as Error)?.message || err}`, "error");
+            ui.notify(`Delete index failed: ${errMessage(err)}`, "error");
         }
     };
 

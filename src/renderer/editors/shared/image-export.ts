@@ -1,6 +1,7 @@
 import { fs as appFs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import type { IImageExport } from "../base/IImageExport";
+import { errMessage } from "../../../shared/utils";
 
 /**
  * Shared, view-independent image-export helpers.
@@ -89,6 +90,6 @@ export async function savePngViaDialog(source: IImageExport): Promise<void> {
     try {
         await appFs.writeBinary(path, await blobToBuffer(await source.exportPng()));
     } catch (err) {
-        ui.notify(`Failed to save image: ${(err as Error).message}`, "error");
+        ui.notify(`Failed to save image: ${errMessage(err)}`, "error");
     }
 }

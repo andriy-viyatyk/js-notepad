@@ -27,6 +27,7 @@ import {
     RunnerStartMsg,
     RunnerStdinMsg,
 } from "../ipc/runner-channels";
+import { errMessage } from "../shared/utils";
 
 /** Coalesce stdout/stderr bursts into one message per ~tick to cut message count. */
 const COALESCE_MS = 16;
@@ -222,7 +223,7 @@ export function startJobTo(sink: JobSink, msg: RunnerStartMsg): void {
         // Synchronous spawn failure (e.g. bad cwd).
         sink.send(RunnerChannel.error, {
             jobId,
-            message: err instanceof Error ? err.message : String(err),
+            message: errMessage(err),
         });
         return;
     }

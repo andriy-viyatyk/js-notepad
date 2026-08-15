@@ -28,6 +28,7 @@ import type {
     IExecuteError as ScriptExecuteError,
     IExecuteHandle as ScriptExecuteHandle,
 } from "./types/proc";
+import { errMessage } from "../../shared/utils";
 
 // ---------------------------------------------------------------------------
 // Compile-time drift guard. The handle contract lives in two places by design:
@@ -312,7 +313,7 @@ class ExecuteHandle implements IExecuteHandle {
             return JSON.parse(text) as T;
         } catch (e) {
             throw new RunnerError(
-                `Failed to parse JSON output: ${e instanceof Error ? e.message : String(e)}`,
+                `Failed to parse JSON output: ${errMessage(e)}`,
                 code,
                 this.stderrText(),
             );
