@@ -106,6 +106,15 @@ export function capDimensions(width: number, height: number, maxDim = MAX_DIMENS
     return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
+/** Build Excalidraw JSON for an image URL: measure it, honor its real MIME
+ *  (SVG/JPEG/… embed correctly, not just PNG — a data URL carries it in the
+ *  `data:<mime>;…` prefix; fall back to png for a raw non-data URL), embed. */
+export async function buildExcalidrawJsonFromDataUrl(dataUrl: string): Promise<string> {
+    const dims = await getImageDimensions(dataUrl);
+    const mime = /^data:([^;,]+)/.exec(dataUrl)?.[1] || "image/png";
+    return buildExcalidrawJsonWithImage(dataUrl, mime, dims.width, dims.height);
+}
+
 /**
  * Build valid Excalidraw JSON containing a single embedded image.
  * Used by SVG and Image editors to open images in the drawing editor.

@@ -145,6 +145,7 @@ persephone/
 │   │   ├── PagesQueryModel.ts      # Queries: getAll, byId, byType, activePage
 │   │   ├── PagesNavigationModel.ts # Navigation: show, focus, next/prev
 │   │   ├── PagesLifecycleModel.ts  # Lifecycle: create, close, empty page
+│   │   ├── PageNavigator.ts        # navigatePageTo — named-steps navigation of an existing page
 │   │   ├── PagesLayoutModel.ts     # Layout: grouping (side-by-side)
 │   │   ├── PagesPersistenceModel.ts # Persistence: save/restore, debounced
 │   │   └── well-known-pages.ts     # Singleton page definitions (MCP Log, etc.)
@@ -364,6 +365,7 @@ persephone/
 │   │   ├── BrowserSecondaryViews.tsx # SecondaryViews mount for browser empty page and BookmarksDrawer
 │   │   ├── browser-search-history.ts # Search history
 │   │   ├── network-log-links.ts      # Network log → ILink[] conversion
+│   │   ├── browser-pages.ts          # showBrowserPage / openUrlInBrowserTab — page opening; keeps the browser chunk out of startup
 │   │   └── index.tsx
 │   ├── notebook/           # Notebook editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── NotebookEditor.ts         # EditorModel — page-level notes, categories, tags
@@ -389,6 +391,7 @@ persephone/
 │   │   ├── LinkBody.tsx              # React component
 │   │   ├── LinkTreeProvider.ts       # ITreeProvider adapter over LinkEditor state; drag-drop import (files→links, links across windows)
 │   │   ├── linkTypes.ts
+│   │   ├── link-open.ts              # buildLinkEditorContent — links → .link.json content; dependency-light for the sync openLinks API
 │   │   ├── linkTraits.ts             # ILink trait definition + registration (LINK + FILE_LINK — local-file links yield bytes)
 │   │   ├── tor-src.ts                # Rewrites remote image src → tor-src:// when the editor is hosted by a Tor browser page (the app renderer is unproxied); local schemes pass through
 │   │   ├── pipe-image-src.ts         # usePipeImageSrc — reads an archive-entry imgSrc through a content pipe into a cached blob URL; every other src shape passes through

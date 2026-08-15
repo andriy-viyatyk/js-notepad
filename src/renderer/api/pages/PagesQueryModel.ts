@@ -19,6 +19,16 @@ export class PagesQueryModel {
         );
     };
 
+    /** Find the page whose MAIN editor carries this filePath (the "is this
+     *  file already open in a tab?" dedupe used by open/diff flows). */
+    findPageByFilePath = (filePath?: string): PageModel | undefined => {
+        if (!filePath) return undefined;
+        return this.model.state.get().pages.find((p) => {
+            const main = p.mainEditor as { filePath?: string } | null;
+            return main?.filePath === filePath;
+        });
+    };
+
     get activePage(): PageModel | undefined {
         const { ordered } = this.model.state.get();
         return ordered.length ? ordered[ordered.length - 1] : undefined;

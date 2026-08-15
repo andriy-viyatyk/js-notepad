@@ -1,7 +1,6 @@
 import type { PagesModel } from "./PagesModel";
 import { IEditorState } from "../../../shared/types";
 import type {
-    EditorDescriptor,
     PageDescriptor,
     WindowState,
 } from "../../../shared/persistence";
@@ -259,15 +258,6 @@ export class PagesPersistenceModel {
         await this.saveState();
         signalReadyToQuit();
     };
-}
-
-/**
- * Build a fresh `EditorDescriptor` with a new instance id. Used by
- * `duplicatePage` (walkthrough 05 / M2's rewrite) — each duplicated editor
- * needs its own cache-file keyspace.
- */
-export function withFreshEditorId(desc: EditorDescriptor): EditorDescriptor {
-    return { ...desc, id: crypto.randomUUID() };
 }
 
 // Re-export IEditorState so existing barrel-importers stay green.

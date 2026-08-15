@@ -6,19 +6,15 @@ import { createLinkData } from "../../../shared/link-data";
 import type { ILinkData } from "../../../shared/link-data";
 import type { ILinkDiffRevision } from "../types/io.link-data";
 import {
-    isTextFileModel,
     newTextFileModel,
     TextFileModel,
 } from "../../editors/text";
 import { MonacoEditor, defaultMonacoEditorState } from "../../editors/monaco/MonacoEditor";
 import { TextHostEditorModel } from "../../editors/base/TextHostEditorModel";
-import { BrowserEditor } from "../../editors/browser";
 import { ExplorerEditor, getDefaultExplorerEditorState } from "../../editors/explorer";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { recent } from "../recent";
-import { ui } from "../ui";
-import { settings } from "../settings";
 import { editorRegistry } from "../../editors/base/editorRegistry";
 import {
     resolveEditorIdForFile,
@@ -27,26 +23,16 @@ import {
 } from "../../editors/board/custom-editor-registry";
 import type { BoardEditorModel } from "../../editors/board";
 import type { HubTab } from "../../editors/tools-hub";
-import { getLanguageByExtension } from "../../core/utils/language-mapping";
-import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { PageModel } from "./PageModel";
+import { navigatePageTo, type NavigatePageToOptions } from "./PageNavigator";
 
 import type { ILink } from "../../api/types/io.tree";
-import type { LinkItem, LinkEditorData } from "../../editors/link-editor/linkTypes";
-import { fpBasename, fpExtname } from "../../core/utils/file-path";
-import { fs as appFs } from "../fs";
+import { buildLinkEditorContent } from "../../editors/link-editor/link-open";
 import { getWellKnownPageDef } from "./well-known-pages";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import { ContentPipe } from "../../content/ContentPipe";
 import { HttpProvider } from "../../content/providers/HttpProvider";
 import { pipeFromSourcePath } from "../../content/rebuild-pipe";
-import { errMessage } from "../../../shared/utils";
-
-function normalizeLinksTitle(title?: string): string {
-    if (!title) return "untitled.link.json";
-    if (/\.link\.json$/i.test(title)) return title;
-    return title + ".link.json";
-}
 
 /** Attach an `EditorModel` or `TextFileModel` host to a `PageModel`.
  *  - `EditorModel` input: returned unchanged.
@@ -329,13 +315,9 @@ export class PagesLifecycleModel {
     };
 
     addDrawPage = async (dataUrl: string, title?: string): Promise<PageModel> => {
-        const { getImageDimensions, buildExcalidrawJsonWithImage } =
+        const { buildExcalidrawJsonFromDataUrl } =
             await import("../../editors/draw/drawExport");
-        const dims = await getImageDimensions(dataUrl);
-        // Honor the image's real MIME (SVG/JPEG/… embed correctly, not just PNG). A data URL
-        // carries it in the `data:<mime>;…` prefix; fall back to png for a raw (non-data) URL.
-        const mime = /^data:([^;,]+)/.exec(dataUrl)?.[1] || "image/png";
-        const json = buildExcalidrawJsonWithImage(dataUrl, mime, dims.width, dims.height);
+        const json = await buildExcalidrawJsonFromDataUrl(dataUrl);
         return this.addEditorPage("draw-view", "json", title ?? "untitled.excalidraw", json);
     };
 
@@ -343,30 +325,7 @@ export class PagesLifecycleModel {
         links: (ILink | string)[],
         title?: string,
     ): PageModel => {
-        const normalizedTitle = normalizeLinksTitle(title);
-
-        const linkItems: LinkItem[] = links.map((item) => {
-            if (typeof item === "string") {
-                return {
-                    id: crypto.randomUUID(),
-                    title: fpBasename(item) || item,
-                    href: item,
-                    category: "",
-                    tags: [],
-                    isDirectory: false,
-                };
-            }
-            return {
-                ...item,
-                id: item.id || crypto.randomUUID(),
-                category: item.category ?? "",
-                tags: item.tags ?? [],
-                isDirectory: item.isDirectory ?? false,
-            };
-        });
-
-        const data: LinkEditorData = { links: linkItems, state: {} };
-        const content = JSON.stringify({ type: "link-editor", ...data }, null, 4);
+        const { title: normalizedTitle, content } = buildLinkEditorContent(links, title);
 
         const editorModel = newTextFileModel("");
         editorModel.state.update((s) => {
@@ -406,12 +365,7 @@ export class PagesLifecycleModel {
         // Existing-page dedupe is deliberately left intact (US-637): an already-
         // open file just activates its page and the diff metadata is dropped.
         // "Open in new Tab" preselection therefore applies only on a fresh open.
-        const existingPage = this.model.state
-            .get()
-            .pages.find((p) => {
-                const main = p.mainEditor as { filePath?: string } | null;
-                return main?.filePath === filePath;
-            });
+        const existingPage = this.model.query.findPageByFilePath(filePath);
         if (existingPage) {
             pipe?.dispose();
             this.model.navigation.showPage(existingPage.id);
@@ -525,8 +479,7 @@ export class PagesLifecycleModel {
         if (!result) return;
 
         if (result.type === "url") {
-            const { app: appInstance } = await import("../app");
-            await appInstance.events.openRawLink.sendAsync(createLinkData(result.value));
+            await this.sendOpenRawLink(result.value);
         } else if (result.type === "file") {
             await this.openFileFromDialog();
         }
@@ -538,8 +491,7 @@ export class PagesLifecycleModel {
             multiSelections: false,
         });
         if (filePaths && filePaths.length > 0) {
-            const { app: appInstance } = await import("../app");
-            await appInstance.events.openRawLink.sendAsync(createLinkData(filePaths[0]));
+            await this.sendOpenRawLink(filePaths[0]);
         }
     };
 
@@ -554,18 +506,8 @@ export class PagesLifecycleModel {
         if (!params) return;
         const { firstPath, secondPath } = params;
         if (!firstPath || !secondPath) return;
-        let existingFirst = this.model.state
-            .get()
-            .pages.find((p) => {
-                const main = p.mainEditor as { filePath?: string } | null;
-                return main?.filePath === firstPath;
-            });
-        let existingSecond = this.model.state
-            .get()
-            .pages.find((p) => {
-                const main = p.mainEditor as { filePath?: string } | null;
-                return main?.filePath === secondPath;
-            });
+        let existingFirst = this.model.query.findPageByFilePath(firstPath);
+        let existingSecond = this.model.query.findPageByFilePath(secondPath);
 
         if (!existingFirst) {
             const pipe = this.createPipeFromPath(firstPath);
@@ -585,197 +527,12 @@ export class PagesLifecycleModel {
 
     // ── Navigation within a page ─────────────────────────────────────
 
-    navigatePageTo = async (
+    /** Delegates to the named-steps implementation in ./PageNavigator.ts. */
+    navigatePageTo = (
         pageId: string,
         newFilePath: string,
-        options?: {
-            revealLine?: number;
-            highlightText?: string;
-            fragment?: string;
-            forceTextEditor?: boolean;
-            sourceLink?: ILinkData;
-            pipe?: IContentPipe;
-            target?: string;
-            title?: string;
-            diffFrom?: ILinkDiffRevision;
-            diffTo?: ILinkDiffRevision;
-        },
-    ): Promise<boolean> => {
-        const page = this.model.query.findPage(pageId);
-        if (!page) return false;
-
-        const oldEditor = page.mainEditor;
-        // Skip the "save changes?" prompt when the current main editor will
-        // survive this navigation (demote to a sidebar panel) rather than be
-        // released — nothing is being discarded. A Link editor navigating to
-        // one of its own links, or any modified Link editor, stays on the page
-        // (US-718). The prompt still fires on a genuine close (separate path).
-        // The survives check reads `mainEditorInstance` (the EditorModel subclass
-        // that carries the override); `confirmRelease` is intentionally called on
-        // `oldEditor` (the unwrapped host) so it routes to the host's save dialog
-        // for text-bearing editors, matching the pre-existing pattern.
-        const survives = page.mainEditorInstance?.survivesNavigation(options?.sourceLink) ?? false;
-        if (oldEditor && !survives) {
-            const released = await oldEditor.confirmRelease();
-            if (!released) return false;
-        }
-
-        // US-617: a Pattern B editor that survives navigation (Git Tree) is a
-        // per-page singleton. If the page already holds an instance representing
-        // this target, promote it back to main and refresh — never build a
-        // duplicate. Duplicates would accumulate as redundant surviving secondary
-        // panels (the panel "x" would then need one click per stale instance).
-        const navTarget = options?.target;
-        if (navTarget) {
-            const existing = page.editors.find(
-                (e) => e.matchesNavigationTarget?.(navTarget, newFilePath),
-            );
-            if (existing) {
-                if (page.mainEditorInstance !== existing) {
-                    await page.setMainEditor(existing);
-                }
-                existing.onNavigationReuse?.();
-                if (options?.fragment) existing.revealFragment?.(options.fragment);
-                this.model.onShow.send(page);
-                // Navigation (not activation): don't pull focus out of a sidebar
-                // panel the user is working in — e.g. the Explorer tree (US-808).
-                if (!isFocusInSidebar()) this.model.onFocus.send(page);
-                this.model.persistence.saveState();
-                return true;
-            }
-        }
-
-        // Reuse an editor already on this page that represents the same file,
-        // rather than building a duplicate. A modified editor that survived an
-        // earlier navigation (e.g. a Link editor with unsaved edits) lingers as
-        // a sidebar panel; re-selecting its file in the Explorer should restore
-        // that very instance — with its edits and panels — instead of spawning a
-        // second one alongside it. An explicit content-host target must still
-        // match the existing editor's type, so "open in a different view" of an
-        // already-open file is never hijacked.
-        const existingForFile = page.findEditorByFilePath(newFilePath);
-        if (
-            existingForFile &&
-            existingForFile !== page.mainEditorInstance &&
-            (!navTarget || existingForFile.editorId === navTarget)
-        ) {
-            options?.pipe?.dispose();
-            await page.setMainEditor(existingForFile);
-            existingForFile.onNavigationReuse?.();
-            if (options?.fragment) existingForFile.revealFragment?.(options.fragment);
-            this.model.onShow.send(page);
-            if (!isFocusInSidebar()) this.model.onFocus.send(page);
-            this.model.persistence.saveState();
-            return true;
-        }
-
-        // Build legacy editor (with adapter wrap deferred until after the
-        // post-restore mutations that need the underlying TextFileModel API).
-        let legacy: EditorOrHost;
-        const isVirtualPath = newFilePath.includes("://") || newFilePath.startsWith("data:");
-        if (!isVirtualPath && !(await appFs.exists(newFilePath))) {
-            ui.notify(
-                `File not found: ${fpBasename(newFilePath)}`,
-                "error",
-            );
-            legacy = newTextFileModel("");
-            legacy.state.update((s) => {
-                s.title = fpBasename(newFilePath);
-            });
-            await legacy.restore();
-        } else {
-            try {
-                legacy = await this.createEditorFromFile(
-                    newFilePath,
-                    options?.pipe,
-                    options?.target,
-                    options?.title,
-                );
-            } catch (err) {
-                ui.notify(
-                    `Failed to open ${fpBasename(newFilePath)}: ${errMessage(err)}`,
-                    "error",
-                );
-                legacy = newTextFileModel("");
-                await legacy.restore();
-            }
-        }
-
-        if (options?.sourceLink || options?.title) {
-            legacy.state.update((s) => {
-                if (options.sourceLink) s.sourceLink = options.sourceLink;
-                if (options.title) s.title = options.title;
-            });
-        }
-
-        const isTextFile = legacy.state.get().type === "textFile";
-        const skipPreview = !!(
-            options?.forceTextEditor ||
-            options?.revealLine ||
-            options?.highlightText
-        );
-        if (isTextFile && !skipPreview) {
-            const ext = fpExtname(newFilePath).toLowerCase();
-            const lang = getLanguageByExtension(ext);
-            const languageId = lang?.id || "plaintext";
-            // An explicit, non-default content-host target (e.g. "file-diff",
-            // which is never the natural default for a file) must win over the
-            // language preview editor. Normal opens carry target === resolveId,
-            // so they fall through to the preview editor exactly as before
-            // (EPIC-031 / US-616).
-            const explicitTarget = options?.target;
-            const isExplicitHostTarget =
-                !!explicitTarget &&
-                explicitTarget !== editorRegistry.resolveId(newFilePath) &&
-                !!editorRegistry.getById(explicitTarget)?.hasContentHost;
-            if (isExplicitHostTarget) {
-                legacy.state.update((s) => {
-                    s.editor = explicitTarget as EditorView;
-                });
-            } else {
-                const previewEditor = editorRegistry.getPreviewEditor(
-                    languageId,
-                    newFilePath,
-                );
-                if (previewEditor) {
-                    legacy.state.update((s) => {
-                        s.editor = previewEditor as EditorView;
-                    });
-                }
-            }
-        }
-
-        const adapter = wrap(legacy);
-        await page.setMainEditor(adapter);
-
-        // Apply caller-chosen diff revisions to the freshly-built File Diff editor
-        // (no-op for any other editor type / when no revisions given). The
-        // matchesNavigationTarget reuse path returned earlier, so this only ever
-        // runs on a fresh build (US-637).
-        (adapter as { applyDiffRevisions?: (f?: ILinkDiffRevision, t?: ILinkDiffRevision) => void })
-            .applyDiffRevisions?.(options?.diffFrom, options?.diffTo);
-
-        // Anchor target from the opening link. Deliberately NOT part of skipPreview
-        // above: revealLine / highlightText force the Monaco text editor, while a
-        // fragment must keep the language preview editor (e.g. md-view) (US-901).
-        if (options?.fragment) adapter.revealFragment?.(options.fragment);
-
-        // revealLine / highlightText apply after the editor has mounted.
-        if (isTextFile && skipPreview) {
-            const tfm = legacy as unknown as TextFileModel;
-            if (options?.revealLine) {
-                tfm.revealLine(options.revealLine);
-            }
-            if (options?.highlightText) {
-                tfm.setHighlightText(options.highlightText);
-            }
-        }
-
-        this.model.onShow.send(page);
-        if (!isFocusInSidebar()) this.model.onFocus.send(page);
-        this.model.persistence.saveState();
-        return true;
-    };
+        options?: NavigatePageToOptions,
+    ): Promise<boolean> => navigatePageTo(this.model, pageId, newFilePath, options);
 
     // ── Closing ──────────────────────────────────────────────────────
 
@@ -924,15 +681,17 @@ export class PagesLifecycleModel {
 
     // ── URL handling ─────────────────────────────────────────────────
 
-    handleOpenUrl = async (url: string) => {
+    /** Dispatch a raw href into the content pipeline (Layer 1 entry point).
+     *  Single implementation behind the distinct main-process subscription
+     *  points and the open dialogs. */
+    private sendOpenRawLink = async (href: string) => {
         const { app: appInstance } = await import("../app");
-        await appInstance.events.openRawLink.sendAsync(createLinkData(url));
+        await appInstance.events.openRawLink.sendAsync(createLinkData(href));
     };
 
-    handleExternalUrl = async (url: string) => {
-        const { app: appInstance } = await import("../app");
-        await appInstance.events.openRawLink.sendAsync(createLinkData(url));
-    };
+    handleOpenUrl = (url: string) => this.sendOpenRawLink(url);
+
+    handleExternalUrl = (url: string) => this.sendOpenRawLink(url);
 
     openPathInNewWindow = (filePath: string) => {
         if (!filePath) return;
@@ -973,107 +732,44 @@ export class PagesLifecycleModel {
 
     // ── Page-actions (from old page-actions.ts) ──────────────────────
 
+    /** Create a no-host editor by registry id on a (possibly fixed-id) page.
+     *  `addPage` dedupes by page id, so a second call with the same fixed id
+     *  focuses the existing singleton instead of duplicating it. */
+    private showEditorPage = async (
+        editorId: string,
+        pageId?: string,
+    ): Promise<PageModel> => {
+        const model = await editorRegistry.createEditor(editorId);
+        return this.addPage(model, pageId ? new PageModel(pageId) : undefined);
+    };
+
     showAboutPage = async (): Promise<void> => {
         const { ABOUT_PAGE_ID } = await import("../../editors/about");
-        const model = await editorRegistry.createEditor("about-view");
-        const page = new PageModel(ABOUT_PAGE_ID);
-        this.addPage(model, page);
+        await this.showEditorPage("about-view", ABOUT_PAGE_ID);
     };
 
     showSettingsPage = async (): Promise<void> => {
         const { SETTINGS_PAGE_ID } = await import("../../editors/settings");
-        const model = await editorRegistry.createEditor("settings-view");
-        const page = new PageModel(SETTINGS_PAGE_ID);
-        this.addPage(model, page);
+        await this.showEditorPage("settings-view", SETTINGS_PAGE_ID);
     };
 
     showMnemeConfigPage = async (): Promise<void> => {
         const { MNEME_CONFIG_PAGE_ID } = await import("../../editors/mneme-config");
-        const model = await editorRegistry.createEditor("mneme-config");
-        const page = new PageModel(MNEME_CONFIG_PAGE_ID);
-        this.addPage(wrap(model), page);
+        await this.showEditorPage("mneme-config", MNEME_CONFIG_PAGE_ID);
     };
 
+    /** Browser opening lives in editors/browser/browser-pages.ts so this
+     *  startup-loaded module carries no static import of the browser chunk. */
     showBrowserPage = async (options?: {
         profileName?: string;
         incognito?: boolean;
         tor?: boolean;
         url?: string;
     }): Promise<PageModel | undefined> => {
-        if (options?.tor) {
-            const torPath = settings.get("tor.exe-path");
-            if (!torPath) {
-                ui.notify(
-                    "Browser (Tor) requires tor.exe path. Configure it in Settings → tor.exe-path",
-                    "error",
-                );
-                return;
-            }
-            if (!(await appFs.exists(torPath))) {
-                ui.notify(`tor.exe not found at: ${torPath}`, "error");
-                return;
-            }
-        }
-
-        const { browserModule } = await import("../../editors/browser");
-        const model = browserModule.createEditor();
-        if (model) {
-            if (options?.profileName || options?.incognito || options?.tor) {
-                model.state.update((s) => {
-                    const ms = s as unknown as { profileName?: string; isIncognito?: boolean; isTor?: boolean };
-                    if (options.profileName) ms.profileName = options.profileName;
-                    if (options.incognito) ms.isIncognito = true;
-                    if (options.tor) ms.isTor = true;
-                });
-            }
-            if (options?.url) {
-                model.state.update((s) => {
-                    const ms = s as unknown as { url?: string; tabs?: { url?: string; homeUrl?: string }[] };
-                    ms.url = options.url;
-                    const tab = ms.tabs?.[0];
-                    if (tab) {
-                        tab.url = options.url;
-                        tab.homeUrl = options.url;
-                    }
-                });
-            }
-            await model.restore();
-
-            // Arm the Tor proxy BEFORE the page is added. `addPage` mounts the
-            // webview, which begins loading `options.url` immediately, whereas the
-            // daemon takes seconds to bootstrap — and an unproxied Electron
-            // session is DIRECT. Arming first makes that window fail closed
-            // instead of leaking the opening navigation onto the normal network.
-            if (options?.tor) {
-                try {
-                    await (model as unknown as {
-                        armTorProxy: () => Promise<void>;
-                    }).armTorProxy();
-                } catch (err) {
-                    // Refuse to open rather than open unproxied: a Tor page whose
-                    // partition could not be armed would browse over the normal
-                    // network, which is the exact failure this guards against.
-                    ui.notify(
-                        `Could not secure the Tor session — the page was not opened: ${
-                            errMessage(err)
-                        }`,
-                        "error",
-                    );
-                    return;
-                }
-            }
-
-            const page = this.addPage(model);
-
-            // Bootstrapping stays un-awaited: it can take tens of seconds, and the
-            // partition is already fail-closed, so the page may mount behind the
-            // Tor overlay while the daemon comes up.
-            if (options?.tor) {
-                (model as unknown as { initTorProxy: () => void }).initTorProxy();
-            }
-            return page;
-        }
-        return undefined;
+        const { showBrowserPage } = await import(
+            "../../editors/browser/browser-pages"
+        );
+        return showBrowserPage(this.model, options);
     };
 
     showMcpInspectorPage = async (
@@ -1097,18 +793,14 @@ export class PagesLifecycleModel {
 
     showStorybookPage = async (): Promise<void> => {
         const { STORYBOOK_PAGE_ID } = await import("../../editors/storybook");
-        const model = await editorRegistry.createEditor("storybook-view");
-        const page = new PageModel(STORYBOOK_PAGE_ID);
-        this.addPage(model, page);
+        await this.showEditorPage("storybook-view", STORYBOOK_PAGE_ID);
     };
 
     showToolsHubPage = async (opts?: { tab?: HubTab }): Promise<void> => {
         const { TOOLS_HUB_PAGE_ID } = await import("../../editors/tools-hub");
-        const model = await editorRegistry.createEditor("tools-hub-view");
-        const page = new PageModel(TOOLS_HUB_PAGE_ID);
-        // addPage dedupes by id → returns the existing hub page if already open; set the tab on
-        // whichever editor actually ends up live (new or existing).
-        const result = this.addPage(wrap(model), page);
+        // showEditorPage dedupes by id → returns the existing hub page if already
+        // open; set the tab on whichever editor actually ends up live (new or existing).
+        const result = await this.showEditorPage("tools-hub-view", TOOLS_HUB_PAGE_ID);
         if (opts?.tab) {
             const editor = result.mainEditorInstance as unknown as { setTab?: (t: HubTab) => void };
             editor.setTab?.(opts.tab);
@@ -1116,8 +808,7 @@ export class PagesLifecycleModel {
     };
 
     showVideoPlayerPage = async (): Promise<void> => {
-        const model = await editorRegistry.createEditor("video-view");
-        this.addPage(model);
+        await this.showEditorPage("video-view");
     };
 
     openImageInNewTab = async (imageUrl: string, title?: string): Promise<void> => {
@@ -1148,86 +839,9 @@ export class PagesLifecycleModel {
             external?: boolean;
         },
     ): Promise<string | undefined> => {
-        const pages = this.model.state.get().pages;
-        const activePage = this.model.query.activePage;
-        const activeIndex = activePage ? pages.indexOf(activePage) : -1;
-
-        const matchesBrowser = (page: PageModel) => {
-            const editor = page.mainEditorInstance;
-            if (!(editor instanceof BrowserEditor)) return false;
-            const pageState = editor.state.get();
-            if (options?.incognito) return !!pageState.isIncognito;
-            if (options?.external) {
-                return !pageState.isIncognito && !pageState.isTor;
-            }
-            const targetProfile =
-                options?.profileName !== undefined
-                    ? options.profileName || ""
-                    : undefined;
-            return (
-                !pageState.isIncognito &&
-                !pageState.isTor &&
-                (targetProfile === undefined ||
-                    (pageState.profileName ?? "") === targetProfile)
-            );
-        };
-
-        const addTabToPage = (index: number): string | undefined => {
-            const page = pages[index];
-            const editor = page.mainEditorInstance;
-            if (!(editor instanceof BrowserEditor)) return undefined;
-            const tabs = editor.state.get().tabs;
-            if (tabs?.length === 1 && tabs[0].url === "about:blank") {
-                editor.navigate(url);
-            } else {
-                editor.addTab(url);
-            }
-            this.model.navigation.showPage(page.id);
-            return page.id;
-        };
-
-        if (options?.external) {
-            if (activeIndex >= 0 && matchesBrowser(pages[activeIndex])) {
-                return addTabToPage(activeIndex);
-            }
-            for (let i = 0; i < pages.length; i++) {
-                if (matchesBrowser(pages[i])) {
-                    return addTabToPage(i);
-                }
-            }
-        } else {
-            if (activeIndex >= 0 && matchesBrowser(pages[activeIndex])) {
-                return addTabToPage(activeIndex);
-            }
-            for (let i = activeIndex + 1; i < pages.length; i++) {
-                if (matchesBrowser(pages[i])) {
-                    return addTabToPage(i);
-                }
-            }
-            for (let i = activeIndex - 1; i >= 0; i--) {
-                if (matchesBrowser(pages[i])) {
-                    return addTabToPage(i);
-                }
-            }
-        }
-
-        const profileName = options?.incognito
-            ? undefined
-            : (options?.profileName ??
-                  settings.get("browser-default-profile")) || undefined;
-        const showOptions = {
-            url,
-            ...(options?.incognito
-                ? { incognito: true }
-                : profileName
-                  ? { profileName }
-                  : {}),
-        };
-        const page = await this.showBrowserPage(showOptions);
-        return page?.id;
+        const { openUrlInBrowserTab } = await import(
+            "../../editors/browser/browser-pages"
+        );
+        return openUrlInBrowserTab(this.model, url, options);
     };
 }
-
-// Avoid unused-import warning when isTextFileModel isn't used directly here
-// after the GK2 migration. Re-export for callers that still import it.
-export { isTextFileModel };

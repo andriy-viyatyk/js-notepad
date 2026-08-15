@@ -562,7 +562,7 @@ setWindowOpenHandler(url)  →  eOpenUrl(url)  →    → "default-browser": she
 
 ### Smart Browser Tab Search (`openUrlInBrowserTab`)
 
-Located in `src/renderer/api/pages/PagesLifecycleModel.ts`. Resolves to the id of the browser page the URL was opened in (`undefined` only when no page could be opened, e.g. Tor misconfiguration) — the `open_url` MCP tool surfaces it as `{ opened, pageId, title }` so agents can target the page explicitly instead of relying on the active-page default. Two search strategies depending on the source:
+Located in `src/renderer/editors/browser/browser-pages.ts` (reached through a thin dynamic-import delegate on `PagesLifecycleModel`, so the browser chunk stays out of startup). Resolves to the id of the browser page the URL was opened in (`undefined` only when no page could be opened, e.g. Tor misconfiguration) — the `open_url` MCP tool surfaces it as `{ opened, pageId, title }` so agents can target the page explicitly instead of relying on the active-page default. Two search strategies depending on the source:
 
 **Internal links** (Monaco, Markdown — `link-open-behavior: "internal-browser"`):
 1. Search pages to the **right** of the active page for a matching browser tab

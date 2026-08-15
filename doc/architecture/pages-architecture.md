@@ -213,7 +213,14 @@ graph TD
 | Navigation | [`PagesNavigationModel.ts`](../../src/renderer/api/pages/PagesNavigationModel.ts) | show, showNext, showPrev |
 | Layout | [`PagesLayoutModel.ts`](../../src/renderer/api/pages/PagesLayoutModel.ts) | moveTab, pin/unpin, group/ungroup |
 | Persistence | [`PagesPersistenceModel.ts`](../../src/renderer/api/pages/PagesPersistenceModel.ts) | save/restore window state to disk |
-| Query | [`PagesQueryModel.ts`](../../src/renderer/api/pages/PagesQueryModel.ts) | find (by any ID: page, mainEditor, or secondary), activePage, getGrouped, isLastPage |
+| Query | [`PagesQueryModel.ts`](../../src/renderer/api/pages/PagesQueryModel.ts) | find (by any ID: page, mainEditor, or secondary), findPageByFilePath, activePage, getGrouped, isLastPage |
+
+Two lifecycle concerns live in their own modules rather than in `PagesLifecycleModel`:
+[`PageNavigator.ts`](../../src/renderer/api/pages/PageNavigator.ts) implements `navigatePageTo`
+as named steps (the lifecycle keeps a one-line delegate), and
+[`browser-pages.ts`](../../src/renderer/editors/browser/browser-pages.ts) implements
+`showBrowserPage` / `openUrlInBrowserTab` beside the browser editor — reached via dynamic
+import so the startup-loaded pages model never statically imports the browser chunk.
 
 `PagesModel` delegates all submodel methods as its own (46 public methods). Exported as a singleton:
 
@@ -366,7 +373,7 @@ This is enforced in `_enforceMandatoryOpen()`, called whenever panel editors att
 
 ### Navigation pattern
 
-In `navigatePageTo()` ([`PagesLifecycleModel.ts`](../../src/renderer/api/pages/PagesLifecycleModel.ts)):
+In `navigatePageTo()` ([`PageNavigator.ts`](../../src/renderer/api/pages/PageNavigator.ts) — each step below is a named function there):
 
 ```
 1. page = findPage(pageId)                    // PageModel stays in arrays

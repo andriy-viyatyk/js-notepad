@@ -7,6 +7,7 @@ import { EditorView, PageDescriptor } from "../../../shared/types";
 import { createLinkData } from "../../../shared/link-data";
 import type { ILink } from "../types/io.tree";
 import { PageModel } from "./PageModel";
+import type { NavigatePageToOptions } from "./PageNavigator";
 
 import { PagesQueryModel } from "./PagesQueryModel";
 import { PagesNavigationModel } from "./PagesNavigationModel";
@@ -214,10 +215,7 @@ export class PagesModel extends TModel<OpenFilesState> {
         if (!filePath) return undefined;
         const { app } = await import("../app");
         await app.events.openRawLink.sendAsync(createLinkData(filePath));
-        return this.state.get().pages.find((p) => {
-            const main = p.mainEditor as { filePath?: string } | null;
-            return main?.filePath === filePath;
-        });
+        return this.query.findPageByFilePath(filePath);
     };
     openFileAsArchive = (filePath: string) =>
         this.lifecycle.openFileAsArchive(filePath);
@@ -230,12 +228,7 @@ export class PagesModel extends TModel<OpenFilesState> {
     navigatePageTo = (
         pageId: string,
         newFilePath: string,
-        options?: {
-            revealLine?: number;
-            highlightText?: string;
-            fragment?: string;
-            forceTextEditor?: boolean;
-        }
+        options?: NavigatePageToOptions,
     ) => this.lifecycle.navigatePageTo(pageId, newFilePath, options);
     closeToTheRight = (pageId: string) =>
         this.lifecycle.closeToTheRight(pageId);
