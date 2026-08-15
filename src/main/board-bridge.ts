@@ -30,7 +30,10 @@ import {
 } from "electron";
 import {
     BoardFileEncoding,
+    BoardFireMethod,
     BoardNotifyType,
+    BoardRunnerOutMsg,
+    BoardRpcMethod,
     BoardThemePalette,
     BoardToMain,
     OpenFileDialogParams,
@@ -197,57 +200,46 @@ function toBytes(data: unknown): Uint8Array {
     throw new Error('writeFile with encoding "binary" needs a Uint8Array or ArrayBuffer.');
 }
 
-async function runRpc(
-    entry: BoardPortEntry,
-    method: string,
-    args: unknown[],
-): Promise<unknown> {
-    const win = ownerWindow(entry.hostWebContents);
-    switch (method) {
-        case "openFileDialog":
-            return showOpenFileDialog(win, (args[0] as OpenFileDialogParams) ?? {});
-        case "saveFileDialog":
-            return showSaveFileDialog(win, (args[0] as SaveFileDialogParams) ?? {});
-        case "openFolderDialog":
-            return showOpenFolderDialog(win, (args[0] as OpenFolderDialogParams) ?? {});
-        case "readFile": {
-            const filePath = resolveBoardFilePath(entry.root, args[0] as string);
-            const encoding = fileEncoding(args[1]);
-            const buf = await fs.promises.readFile(filePath);
-            if (encoding === "binary") {
-                // Structured-cloned over the port as bytes — no base64 string in between.
-                // Copy out of Node's (possibly pooled) buffer so the clone can't see more
-                // than this file, and so nothing downstream holds the pool alive.
-                return new Uint8Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-            }
-            return buf.toString(encoding);
-        }
-        case "writeFile": {
-            const filePath = resolveBoardFilePath(entry.root, args[0] as string);
-            const encoding = fileEncoding(args[2]);
-            const data = args[1];
-            await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-            // "binary" carries the bytes themselves; the string encodings carry text.
-            const body =
-                encoding === "binary"
-                    ? Buffer.from(toBytes(data))
-                    : Buffer.from((data as string) ?? "", encoding);
-            await fs.promises.writeFile(filePath, body);
-            return undefined;
-        }
-        case "getJobs": {
-            // Live jobs across ALL of this owner's sinks — the current mount's plus
-            // any kept from prior mounts while busy (US-799).
-            const owner = ownerSinks.get(entry.ownerId);
-            return owner ? getJobsBySinkIds(owner.sinkIds) : [];
-        }
-        default:
-            throw new Error(`Unknown board RPC method: ${method}`);
-    }
-}
+type BoardRpcHandler = (entry: BoardPortEntry, args: unknown[]) => Promise<unknown> | unknown;
 
+/** Board RPC handlers are exhaustive over the public bridge contract. */
+const boardRpcHandlers: Record<BoardRpcMethod, BoardRpcHandler> = {
+    openFileDialog: (entry, args) => showOpenFileDialog(ownerWindow(entry.hostWebContents), (args[0] as OpenFileDialogParams) ?? {}),
+    saveFileDialog: (entry, args) => showSaveFileDialog(ownerWindow(entry.hostWebContents), (args[0] as SaveFileDialogParams) ?? {}),
+    openFolderDialog: (entry, args) => showOpenFolderDialog(ownerWindow(entry.hostWebContents), (args[0] as OpenFolderDialogParams) ?? {}),
+    async readFile(entry, args) {
+        const filePath = resolveBoardFilePath(entry.root, args[0] as string);
+        const encoding = fileEncoding(args[1]);
+        const buf = await fs.promises.readFile(filePath);
+        if (encoding === "binary") {
+            return new Uint8Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+        }
+        return buf.toString(encoding);
+    },
+    async writeFile(entry, args) {
+        const filePath = resolveBoardFilePath(entry.root, args[0] as string);
+        const encoding = fileEncoding(args[2]);
+        const data = args[1];
+        await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+        const body = encoding === "binary"
+            ? Buffer.from(toBytes(data))
+            : Buffer.from((data as string) ?? "", encoding);
+        await fs.promises.writeFile(filePath, body);
+    },
+    getJobs(entry) {
+        const owner = ownerSinks.get(entry.ownerId);
+        return owner ? getJobsBySinkIds(owner.sinkIds) : [];
+    },
+};
+
+/** Run a request/reply RPC and return its result (thrown errors reject the caller). */
+async function runRpc(entry: BoardPortEntry, method: BoardRpcMethod, args: unknown[]): Promise<unknown> {
+    const handler = boardRpcHandlers[method];
+    if (!handler) throw new Error(`Unknown board RPC method: ${method}`);
+    return handler(entry, args);
+}
 /** Fire-and-forget effects (no reply). */
-function runFire(entry: BoardPortEntry, method: string, args: unknown[]): void {
+function runFire(entry: BoardPortEntry, method: BoardFireMethod, args: unknown[]): void {
     const win = ownerWindow(entry.hostWebContents);
     if (method === "openRawLink") {
         const href = args[0] as string;
@@ -275,6 +267,38 @@ function runFire(entry: BoardPortEntry, method: string, args: unknown[]): void {
     }
 }
 
+type BoardRunnerHandler = (entry: BoardPortEntry, boardId: string, msg: unknown) => void;
+
+/** Outbound runner messages are exhaustive over the board side of RunnerChannel. */
+const boardRunnerHandlers: Record<BoardRunnerOutMsg["channel"], BoardRunnerHandler> = {
+    [RunnerChannel.start](entry, boardId, raw) {
+        let msg = raw as RunnerStartMsg;
+        const opts = { ...(entry.root ? { cwd: entry.root } : {}), ...msg.opts };
+        if (msg.node) {
+            const script = path.isAbsolute(msg.command) ? msg.command : path.resolve(entry.root, msg.command);
+            if (!fs.existsSync(script)) {
+                portSink(entry, boardId).send(RunnerChannel.error, { jobId: msg.jobId, message: `Node script not found: ${script}` });
+                return;
+            }
+            opts.shell = false;
+            opts.env = { ...opts.env, ELECTRON_RUN_AS_NODE: "1", NODE_NO_WARNINGS: "1" };
+            msg = { ...msg, command: process.execPath, args: [script, ...(msg.args ?? [])] };
+        }
+        startJobTo(portSink(entry, boardId), { ...msg, opts });
+    },
+    [RunnerChannel.stdin](_entry, _boardId, raw) {
+        const msg = raw as RunnerStdinMsg;
+        writeJobStdin(msg.jobId, msg.data);
+    },
+    [RunnerChannel.endStdin](_entry, _boardId, raw) {
+        endJobStdin((raw as { jobId: string }).jobId);
+    },
+    [RunnerChannel.kill](_entry, _boardId, raw) {
+        const msg = raw as RunnerKillMsg;
+        killJob(msg.jobId, msg.signal);
+    },
+};
+
 /** Dispatch a board → main port message. */
 function handleBoardMessage(boardId: string, data: BoardToMain): void {
     const entry = boardPorts.get(boardId);
@@ -291,48 +315,11 @@ function handleBoardMessage(boardId: string, data: BoardToMain): void {
     }
 
     if (data.kind === "runner") {
-        switch (data.channel) {
-            case RunnerChannel.start: {
-                let msg = data.msg as RunnerStartMsg;
-                // Default cwd = board folder; an explicit opts.cwd overrides.
-                const opts = { ...(entry.root ? { cwd: entry.root } : {}), ...msg.opts };
-                if (msg.node) {
-                    // executeNode (US-882): run the script on the app's own binary as Node.
-                    const script = path.isAbsolute(msg.command)
-                        ? msg.command
-                        : path.resolve(entry.root, msg.command);
-                    if (!fs.existsSync(script)) {
-                        portSink(entry, boardId).send(RunnerChannel.error, {
-                            jobId: msg.jobId,
-                            message: `Node script not found: ${script}`,
-                        });
-                        return;
-                    }
-                    opts.shell = false; // argv spawn — never through a shell
-                    // Forced AFTER the board's env so it cannot be clobbered.
-                    opts.env = { ...opts.env, ELECTRON_RUN_AS_NODE: "1", NODE_NO_WARNINGS: "1" };
-                    msg = { ...msg, command: process.execPath, args: [script, ...(msg.args ?? [])] };
-                }
-                startJobTo(portSink(entry, boardId), { ...msg, opts });
-                return;
-            }
-            case RunnerChannel.stdin: {
-                const msg = data.msg as RunnerStdinMsg;
-                writeJobStdin(msg.jobId, msg.data);
-                return;
-            }
-            case RunnerChannel.endStdin:
-                endJobStdin((data.msg as { jobId: string }).jobId);
-                return;
-            case RunnerChannel.kill: {
-                const msg = data.msg as RunnerKillMsg;
-                killJob(msg.jobId, msg.signal);
-                return;
-            }
-        }
+        // A malformed port message must be ignored like the former switch default.
+        const handler = boardRunnerHandlers[data.channel];
+        if (handler) handler(entry, boardId, data.msg);
         return;
     }
-
     if (data.kind === "fire") {
         runFire(entry, data.method, data.args);
         return;

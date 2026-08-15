@@ -13,7 +13,9 @@ persephone/
 │   ├── shared/             # Shared types, constants and cross-process helpers (errMessage, the execute() handle state machine)
 │   ├── renderer.tsx        # Bootstrap entry point
 │   ├── preload.ts          # Preload script (main renderer)
-│   └── board-shim.ts       # Board bridge shim — browser IIFE inlined into board HTML; rebuilds window.persephone over a MessagePort
+│   ├── board-shim.ts       # Board bridge shim entry — browser IIFE inlined into board HTML; boot, host trust gate, MessagePort plumbing, window.persephone
+│   ├── board-context-menu.ts # Browser-safe Board context menu, image and editable-field clipboard support
+│   └── board-console-mirror.ts # Browser-safe Board error and console warning/error reporting to the host frame
 ├── launcher/               # Rust launcher (Named Pipe client)
 │   ├── src/main.rs
 │   ├── build.rs
@@ -855,7 +857,11 @@ persephone/
 ├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, inbound/outbound message unions, IExecuteHandle contract — implemented once in shared/execute-handle.ts for proc.ts and board-shim.ts)
 ├── popup-rate-limiter.ts   # Global popup/tab rate limiter (app-wide singleton)
 ├── main/                   # Main process handlers
-│   ├── controller.ts       # IPC handler registration
+│   ├── controller.ts       # Compact IPC composition root — initializes endpoint registrars and renderer events
+│   ├── endpoint-registry.ts # Shared typed Endpoint binder; derives main handler signatures from Api and owns reply/error wiring
+│   ├── core-handlers.ts    # Desktop, app, local-service, and utility Endpoint registrations
+│   ├── git-handlers.ts     # Lazy Git service Endpoint registrations
+│   ├── board-handlers.ts   # Lazy Board lifecycle, bridge, automation, and catalog Endpoint registrations
 │   ├── dialog-handlers.ts  # File dialog handlers — the single place all three native dialogs are opened (renderer app.fs and the board bridge both route here); resolves the starting folder through dialog-folder-memory and records the pick
 │   ├── renderer-events.ts  # Events sent TO renderer
 │   └── window-handlers.ts  # Window management handlers

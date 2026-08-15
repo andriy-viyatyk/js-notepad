@@ -423,7 +423,7 @@ The host-settings mirror correctly selects its unfiltered state-subscription ove
 Grid editor opening. Typecheck and lint pass; Tree, Grid, and Explorer behavior were smoke-tested
 in the running development build.
 
-### 2.10 `board-shim.ts` (1,548) and `ipc/main/controller.ts` (615)
+### 2.10 `board-shim.ts` (1,548) and `ipc/main/controller.ts` (615) — ✅ DONE (US-960, 2026-08-15)
 
 - board-shim: five `message` listeners each repeating the same 2-line trust gate — one
   `onHostMessage(tag, handler)` registrar; extract the ~420-line context-menu/clipboard widget
