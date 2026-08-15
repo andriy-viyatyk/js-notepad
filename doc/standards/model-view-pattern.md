@@ -342,6 +342,7 @@ class MyViewModel extends TComponentModel<State, Props> {
 | `GridEditor` | `GridPageModel` | Complex data grid with filters, sorting |
 | `MarkdownView` | `MarkdownViewModel` | Markdown preview with scroll state |
 | `ImageViewer` | `ImageViewModel` | Image viewer with zoom/pan |
+| Settings sections | `BrowserProfilesSectionModel`, `McpSectionModel`, `DefaultBrowserSectionModel` | Async settings operations and external status subscriptions |
 
 ## Benefits
 

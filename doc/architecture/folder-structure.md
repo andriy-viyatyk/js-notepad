@@ -510,7 +510,17 @@ persephone/
 │   │   └── index.tsx
 │   ├── settings/           # Settings page (non-text, no trait)
 │   │   ├── SettingsEditor.ts         # EditorModel
-│   │   ├── SettingsView.tsx
+│   │   ├── SettingsView.tsx           # Page layout + section composition
+│   │   ├── sections/                  # Focused settings views + component models
+│   │   │   ├── BrowserProfilesSection.tsx
+│   │   │   ├── BrowserProfilesSectionModel.ts # Profile CRUD, bookmarks + partition cleanup
+│   │   │   ├── DefaultBrowserSection.tsx
+│   │   │   ├── DefaultBrowserSectionModel.ts # Registration status + actions
+│   │   │   ├── McpSection.tsx
+│   │   │   ├── McpSectionModel.ts    # MCP/Mneme status, validation + actions
+│   │   │   ├── FileSearchSection.tsx
+│   │   │   ├── ThemeSection.tsx
+│   │   │   └── SettingsSections.tsx  # Simple settings-bound sections
 │   │   └── index.tsx
 │   ├── storybook/          # Storybook editor (non-text, no trait)
 │   │   ├── StorybookEditorModel.ts   # EditorModel — component browser, live preview
