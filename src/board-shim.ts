@@ -15,20 +15,18 @@
  *
  * The `window.persephone` surface is byte-for-byte the same as the old preload so
  * board authors see no difference. Build: a standalone browser IIFE (no runtime
- * imports beyond dependency-free values — the `RunnerChannel` string enum and the
- * `errMessage` helper). Built as `format: "iife"` by scripts/build-prod.mjs and
- * scripts/dev.mjs.
+ * imports beyond dependency-free modules — the `RunnerChannel` string enum, the
+ * `errMessage` helper and the shared `execute()` handle). Built as
+ * `format: "iife"` by scripts/build-prod.mjs and scripts/dev.mjs.
  */
 import {
     RunnerChannel,
-    type IExecuteError,
     type IExecuteHandle,
     type IExecuteOptions,
-    type IExitInfo,
-    type RunnerChunkMsg,
-    type RunnerErrorMsg,
-    type RunnerExitMsg,
+    type RunnerInboundChannel,
+    type RunnerInboundMsg,
 } from "./ipc/runner-channels";
+import { createExecuteHandle } from "./shared/execute-handle";
 import type {
     BoardBootContext,
     BoardFireMethod,
@@ -198,7 +196,10 @@ const sendQueue: BoardToMain[] = [];
 const pendingRpc = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let rpcId = 0;
 /** Per-job runner routers (an execute handle registers/unregisters its jobId). */
-const runnerHandlers = new Map<string, (channel: RunnerChannel, msg: unknown) => void>();
+const runnerHandlers = new Map<
+    string,
+    (channel: RunnerInboundChannel, msg: RunnerInboundMsg) => void
+>();
 
 /** Pending var request/reply promises keyed by reqId (host-frame channel, EPIC-046). */
 const pendingVar = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
@@ -961,244 +962,33 @@ function mirrorConsole(level: "warn" | "error"): void {
 mirrorConsole("warn");
 mirrorConsole("error");
 
-// ── execute() handle (mirrors preload-board.ts, transport = the port) ─────────
+// ── execute() handle (state machine shared with renderer/api/proc.ts) ────────
 
 let idCounter = 0;
 
-function concat(chunks: Uint8Array[]): Uint8Array {
-    let total = 0;
-    for (const c of chunks) total += c.length;
-    const out = new Uint8Array(total);
-    let offset = 0;
-    for (const c of chunks) {
-        out.set(c, offset);
-        offset += c.length;
-    }
-    return out;
-}
-
-/** Return the LAST match of `pattern` in `text` (used by `getJson(pattern)`), or
- *  null if none. Iterates with a forced-global clone so the caller's regex is
- *  untouched. */
-function lastMatch(text: string, pattern: RegExp): RegExpExecArray | null {
-    const re = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g");
-    let match: RegExpExecArray | null = null;
-    for (let m = re.exec(text); m !== null; m = re.exec(text)) {
-        match = m;
-        if (m.index === re.lastIndex) re.lastIndex++; // avoid an infinite loop on a zero-width match
-    }
-    return match;
-}
-
-/** Error for `getJson()` failures (custom props folded into the message too). */
-function makeRunnerError(message: string, exitCode: number | null, stderr: string): Error {
-    const err = new Error(message) as Error & { exitCode: number | null; stderr: string };
-    err.exitCode = exitCode;
-    err.stderr = stderr;
-    return err;
-}
-
-type Mode = "idle" | "buffered" | "streaming";
-
+/** Build an execute handle over the board's port: the runner-message router keyed
+ *  by jobId (registered synchronously, before start is posted, so output is never
+ *  missed) plus the `post` envelope every runner message travels in. */
 function createHandle(
     command: string,
     options?: IExecuteOptions,
     extra?: { node?: boolean; args?: string[] },
 ): IExecuteHandle {
     const jobId = `b_${++idCounter}_${Date.now()}`;
-
-    let mode: Mode = "idle";
-    let finished = false;
-    let exitInfo: IExitInfo | null = null;
-    let errorMessage: string | null = null;
-
-    const stdoutChunks: Uint8Array[] = [];
-    const stderrChunks: Uint8Array[] = [];
-
-    const stdoutCbs: Array<(chunk: Uint8Array) => void> = [];
-    const stderrCbs: Array<(chunk: Uint8Array) => void> = [];
-    const exitCbs: Array<(info: IExitInfo) => void> = [];
-    const errorCbs: Array<(err: IExecuteError) => void> = [];
-
-    const doneResolvers: Array<() => void> = [];
-
-    const stderrText = () => new TextDecoder().decode(concat(stderrChunks));
-
-    const finish = () => {
-        finished = true;
-        for (const r of doneResolvers) r();
-        doneResolvers.length = 0;
-        runnerHandlers.delete(jobId);
-    };
-
-    const waitDone = (): Promise<void> =>
-        finished ? Promise.resolve() : new Promise<void>((resolve) => doneResolvers.push(resolve));
-
-    const ensureBufferable = () => {
-        if (mode === "streaming") {
-            throw new Error(
-                "ExecuteHandle is in streaming mode; getText/getJson/getBytes are unavailable once a stdout/stderr listener is attached",
-            );
-        }
-        mode = "buffered";
-    };
-
-    // Route this job's runner messages (registered synchronously, before start is
-    // posted, so output is never missed).
-    runnerHandlers.set(jobId, (channel, msg) => {
-        if (channel === RunnerChannel.stdout || channel === RunnerChannel.stderr) {
-            const chunk = (msg as RunnerChunkMsg).chunk;
-            const target = channel === RunnerChannel.stdout ? stdoutChunks : stderrChunks;
-            const cbs = channel === RunnerChannel.stdout ? stdoutCbs : stderrCbs;
-            if (mode === "streaming") {
-                for (const cb of cbs) {
-                    try {
-                        cb(chunk);
-                    } catch (e) {
-                        console.error("persephone.execute stream callback error:", e);
-                    }
-                }
-            } else {
-                target.push(chunk);
-            }
-        } else if (channel === RunnerChannel.exit) {
-            if (finished) return;
-            const m = msg as RunnerExitMsg;
-            exitInfo = { code: m.code, signal: m.signal };
-            finish();
-            for (const cb of exitCbs) {
-                try {
-                    cb(exitInfo);
-                } catch (e) {
-                    console.error("persephone.execute exit callback error:", e);
-                }
-            }
-        } else if (channel === RunnerChannel.error) {
-            if (finished) return;
-            errorMessage = (msg as RunnerErrorMsg).message;
-            finish();
-            for (const cb of errorCbs) {
-                try {
-                    cb({ message: errorMessage });
-                } catch (e) {
-                    console.error("persephone.execute error callback error:", e);
-                }
-            }
-        }
-    });
-
-    // Default cwd is filled by main from the board registry; an explicit opts.cwd
-    // (forwarded here) overrides it there.
-    post({ kind: "runner", channel: RunnerChannel.start, msg: { jobId, command, opts: options, ...extra } });
-
-    const handle: IExecuteHandle = {
-        jobId,
-
-        on(event: "stdout" | "stderr" | "exit" | "error", cb: (arg: never) => void): () => void {
-            if (event === "stdout" || event === "stderr") {
-                if (mode === "buffered") {
-                    throw new Error(
-                        "ExecuteHandle is in buffered mode; cannot attach a stdout/stderr listener after getText/getJson/getBytes",
-                    );
-                }
-                mode = "streaming";
-                const cbs = event === "stdout" ? stdoutCbs : stderrCbs;
-                const streamCb = cb as unknown as (chunk: Uint8Array) => void;
-                cbs.push(streamCb);
-                // Replay chunks buffered before this listener attached, then go live.
-                const buffered = event === "stdout" ? stdoutChunks : stderrChunks;
-                for (const chunk of buffered) streamCb(chunk);
-                buffered.length = 0;
-                return () => {
-                    const i = cbs.indexOf(streamCb);
-                    if (i >= 0) cbs.splice(i, 1);
-                };
-            }
-
-            if (event === "exit") {
-                const exitCb = cb as unknown as (info: IExitInfo) => void;
-                if (finished) {
-                    if (exitInfo) exitCb(exitInfo);
-                    return () => {};
-                }
-                exitCbs.push(exitCb);
-                return () => {
-                    const i = exitCbs.indexOf(exitCb);
-                    if (i >= 0) exitCbs.splice(i, 1);
-                };
-            }
-
-            // event === "error"
-            const errorCb = cb as unknown as (err: IExecuteError) => void;
-            if (finished) {
-                if (errorMessage !== null) errorCb({ message: errorMessage });
-                return () => {};
-            }
-            errorCbs.push(errorCb);
-            return () => {
-                const i = errorCbs.indexOf(errorCb);
-                if (i >= 0) errorCbs.splice(i, 1);
-            };
+    return createExecuteHandle(
+        {
+            jobId,
+            label: "persephone.execute",
+            send: (channel, msg) => post({ kind: "runner", channel, msg }),
+            subscribe: (deliver) => {
+                runnerHandlers.set(jobId, deliver);
+                return () => runnerHandlers.delete(jobId);
+            },
         },
-
-        async getBytes(): Promise<Uint8Array> {
-            ensureBufferable();
-            await waitDone();
-            if (errorMessage !== null) throw new Error(errorMessage);
-            return concat(stdoutChunks);
-        },
-
-        async getText(): Promise<string> {
-            const bytes = await handle.getBytes();
-            return new TextDecoder().decode(bytes);
-        },
-
-        async getJson<T = unknown>(pattern?: RegExp): Promise<T> {
-            ensureBufferable();
-            await waitDone();
-            const code = exitInfo?.code ?? null;
-            if (errorMessage !== null) {
-                throw makeRunnerError(errorMessage, code, stderrText());
-            }
-            if (code !== null && code !== 0) {
-                throw makeRunnerError(`Command exited with code ${code}`, code, stderrText());
-            }
-            let text = new TextDecoder().decode(concat(stdoutChunks));
-            if (pattern) {
-                const match = lastMatch(text, pattern);
-                if (!match) {
-                    throw makeRunnerError(`Result pattern ${pattern} not found in output`, code, stderrText());
-                }
-                text = match[1] ?? match[0];
-            }
-            try {
-                return JSON.parse(text) as T;
-            } catch (e) {
-                throw makeRunnerError(
-                    `Failed to parse JSON output: ${errMessage(e)}`,
-                    code,
-                    stderrText(),
-                );
-            }
-        },
-
-        write(data: string | Uint8Array): void {
-            if (finished) return;
-            post({ kind: "runner", channel: RunnerChannel.stdin, msg: { jobId, data } });
-        },
-
-        endStdin(): void {
-            if (finished) return;
-            post({ kind: "runner", channel: RunnerChannel.endStdin, msg: { jobId } });
-        },
-
-        kill(signal?: string): void {
-            if (finished) return;
-            post({ kind: "runner", channel: RunnerChannel.kill, msg: { jobId, signal } });
-        },
-    };
-
-    return handle;
+        // Default cwd is filled by main from the board registry; an explicit opts.cwd
+        // (forwarded here) overrides it there.
+        { command, opts: options, ...extra },
+    );
 }
 
 // ── The `persephone` bridge (same surface as the old preload) ─────────────────

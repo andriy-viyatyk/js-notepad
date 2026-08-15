@@ -19,7 +19,7 @@ import { registeredTools, RegisteredTool } from "./registered-tools";
 import { loadDotEnv } from "./dotenv";
 import { toolStats } from "./tool-stats";
 import { appendToolLog, ToolLogEntry } from "./tool-log";
-import { errMessage } from "../../../shared/utils";
+import { concatChunks, errMessage } from "../../../shared/utils";
 
 /** The stdout result marker (EPIC C2). A tool prints `##PERSEPHONE_RESULT##<json>` on its own
  *  line; the LAST occurrence wins, so third-party library noise on stdout is harmless. */
@@ -141,18 +141,6 @@ function parseToolOutput(stdout: string): ParsedOutput {
     }
 }
 
-function concat(chunks: Uint8Array[]): Uint8Array {
-    let total = 0;
-    for (const c of chunks) total += c.length;
-    const out = new Uint8Array(total);
-    let offset = 0;
-    for (const c of chunks) {
-        out.set(c, offset);
-        offset += c.length;
-    }
-    return out;
-}
-
 /** Run an already-resolved tool. Used by {@link executeToolById} and the US-805 test-run. */
 export async function executeTool(tool: RegisteredTool, args?: unknown): Promise<ToolRunResult> {
     const startedAt = Date.now();
@@ -175,7 +163,7 @@ export async function executeTool(tool: RegisteredTool, args?: unknown): Promise
         });
 
         const decode = (chunks: Uint8Array[]): string =>
-            new TextDecoder().decode(concat(chunks));
+            new TextDecoder().decode(concatChunks(chunks));
 
         const finalize = (
             exitCode: number | null,

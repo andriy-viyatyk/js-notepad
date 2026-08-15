@@ -82,9 +82,30 @@ export interface RunnerErrorMsg {
     message: string;
 }
 
+/** The caller→main half of the protocol (what an execute handle sends). */
+export type RunnerOutboundChannel =
+    | RunnerChannel.start
+    | RunnerChannel.stdin
+    | RunnerChannel.endStdin
+    | RunnerChannel.kill;
+export type RunnerOutboundMsg =
+    | RunnerStartMsg
+    | RunnerStdinMsg
+    | RunnerJobMsg
+    | RunnerKillMsg;
+
+/** The main→caller half of the protocol (what an execute handle receives). */
+export type RunnerInboundChannel =
+    | RunnerChannel.stdout
+    | RunnerChannel.stderr
+    | RunnerChannel.exit
+    | RunnerChannel.error;
+export type RunnerInboundMsg = RunnerChunkMsg | RunnerExitMsg | RunnerErrorMsg;
+
 // ===========================================================================
-// Handle contract — the public `execute()` API shape, shared by BOTH client
-// implementations so they cannot drift (EPIC-034 US-724 / C-E):
+// Handle contract — the public `execute()` API shape. The state machine that
+// implements it lives once in `src/shared/execute-handle.ts`; the two clients
+// supply only a transport, so they cannot drift (EPIC-034 US-724 / C-E):
 //   • the renderer client `src/renderer/api/proc.ts` (over `window.electron`)
 //   • the board bridge shim `src/board-shim.ts` (over its per-board MessagePort)
 // The script-facing Monaco surface `src/renderer/api/types/proc.d.ts` MIRRORS

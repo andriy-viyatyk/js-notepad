@@ -15,7 +15,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 |--------------------------|---------------------------------------------------|
 | Shared types (IEditorState)| `/src/shared/types.ts`                            |
 | ILinkData helpers        | `/src/shared/link-data.ts`                        |
-| Cross-process helpers (`debounce`; `errMessage(e, fallback?)` — the one way to turn a caught `unknown` into a message, in `shared/` because main, renderer and the board shim all need it) | `/src/shared/utils.ts` |
+| Cross-process helpers (`debounce`; `concatChunks`; `errMessage(e, fallback?)` — the one way to turn a caught `unknown` into a message, in `shared/` because main, renderer and the board shim all need it) | `/src/shared/utils.ts` |
 | App object model         | `/src/renderer/api/app.ts`                        |
 | Page/tab management      | `/src/renderer/api/pages/PagesModel.ts`           |
 | Page container (tab)     | `/src/renderer/api/pages/PageModel.ts`            |
@@ -190,9 +190,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Git Diff "File History" panel | `/src/renderer/editors/file-diff/GitDiffRevisionsSecondaryView.tsx` |
 | Flat file list (icons + single-click) | `/src/renderer/components/file-list/FileList.tsx` |
 | AVGrid-based file list (range select + sorting + range-copy) | `/src/renderer/components/file-grid/FileGrid.tsx` |
-| Process execution (`app.proc.execute` — renderer client) | `/src/renderer/api/proc.ts` |
+| Process execution (`app.proc.execute` — renderer client; supplies the `ipcRenderer` transport plus the compile-time drift guard against the script-facing types) | `/src/renderer/api/proc.ts` |
 | Process execution (script-facing types `IProc`/`IExecuteHandle`) | `/src/renderer/api/types/proc.d.ts` |
-| Command runner wire types + IPC channels (shared by proc.ts and board preload) | `/src/ipc/runner-channels.ts` |
+| `execute()` handle state machine (`createExecuteHandle`, `RunnerError`) — one implementation for both clients, which pass only an `ExecuteTransport` (`send` + `subscribe`), so the renderer IPC path and the board `MessagePort` path cannot drift. Lives in `shared/` and stays dependency-free because the board shim bundles it into a browser IIFE | `/src/shared/execute-handle.ts` |
+| Command runner wire types + IPC channels (`RunnerChannel`, the `IExecuteHandle` contract, and the inbound/outbound message unions) | `/src/ipc/runner-channels.ts` |
 | Command runner (main-process spawn service; whole-tree kill; jobId registry; jobs carry an optional caller `name` + `getJobsBySinkIds` query for board job re-association; `startJobTo` spawns `spawn(command, msg.args ?? [], opts)` — an `args` array on the start message enables argv-style/no-shell spawns, empty ≡ the classic single-string shell path) | `/src/main/command-runner.ts` |
 | Windows env backfill (`reconstructWindowsEnv` — restores missing standard folder/system vars at startup so spawned children get a full env even when launched from a degraded shell; win32-only, backfill-only; called first in `setupMainProcess()`) | `/src/main/windows-env.ts` |
 | Per-board trust registry (trusted board roots; `trustedBoards.txt`; boards won't render without trust; also the known-boards registry; **inherited trust** — a board is trusted if it or any ancestor folder is registered, and `trust()` keeps the registry free of nested pairs) | `/src/renderer/api/board-trust.ts` |

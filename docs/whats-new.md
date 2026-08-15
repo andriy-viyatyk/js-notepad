@@ -18,6 +18,8 @@ Release notes and changelog for Persephone (formerly js-notepad).
 
 - **Clearer git error messages** — Error toasts from git actions (commit, push, pull, switch, create branch, stage/unstage, discard) no longer carry a redundant "Error: " prefix — a failed commit now reads "nothing to commit" instead of "Error: nothing to commit". A few error messages that previously rendered as the literal word "undefined" (when the underlying failure wasn't a standard `Error` object) now show the actual error text.
 
+- **`getJson()` rejections are now a named error** — When a board's `persephone.execute(...).getJson()` call rejects (non-zero exit, missing pattern match, or unparsable JSON), the rejection is now a `RunnerError` (`err.name === "RunnerError"`) instead of a plain `Error`. Its `message`, `exitCode`, and `stderr` are unchanged, so existing error handling keeps working — this just lets a `catch` block distinguish a process failure from any other error by name. See [Boards — `persephone.execute()`](./boards.md#persephoneexecutecommandline-options) and [API — `app.proc`](./api/app.md#proc).
+
 ---
 
 ## Version 4.0.21

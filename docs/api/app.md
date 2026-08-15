@@ -191,7 +191,7 @@ const result = await app.proc.execute("node index.js", {
 |--------|-------------|
 | `jobId` | Unique ID for this job. |
 | `getText()` | Buffer stdout to completion and decode as UTF-8 text. Rejects only on a spawn-level error. |
-| `getJson(pattern?)` | Buffer stdout, then `JSON.parse`. Rejects on spawn error, non-zero exit, or parse failure. Pass a `RegExp` to extract JSON from noisy output (the last match is used; capture group 1 if present). |
+| `getJson(pattern?)` | Buffer stdout, then `JSON.parse`. Rejects on spawn error, non-zero exit, or parse failure with a `RunnerError` (`err.name === "RunnerError"`) carrying `exitCode` and `stderr`. Pass a `RegExp` to extract JSON from noisy output (the last match is used; capture group 1 if present). |
 | `getBytes()` | Buffer stdout to completion and return the raw `Uint8Array`. |
 | `on("stdout" \| "stderr", cb)` | Stream binary chunks as they arrive. Attaching a listener switches to streaming mode (one-shot getters then throw). Returns an unsubscribe function. |
 | `on("exit", cb)` | Fires once when the process exits. Callback receives `{ code, signal }`. |

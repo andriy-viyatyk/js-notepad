@@ -10,7 +10,7 @@ persephone/
 │   ├── main/               # Electron main process
 │   ├── renderer/           # React frontend (see below)
 │   ├── ipc/                # IPC communication layer
-│   ├── shared/             # Shared types and constants
+│   ├── shared/             # Shared types, constants and cross-process helpers (errMessage, the execute() handle state machine)
 │   ├── renderer.tsx        # Bootstrap entry point
 │   ├── preload.ts          # Preload script (main renderer)
 │   └── board-shim.ts       # Board bridge shim — browser IIFE inlined into board HTML; rebuilds window.persephone over a MessagePort
@@ -110,7 +110,7 @@ persephone/
 │   ├── mcp-handler.ts      # MCP command handler (receives IPC from main, dispatches commands)
 │   ├── mneme-connection.ts # Shared, persistent Mneme MCP client — one auto-reconnecting connection; refcounted resource subscriptions fanned out to per-document watchers
 │   ├── mneme-status.ts     # Mneme health prober + reactive status (shared MCP connection; drives sidecar launch, indicators, and auto-opens the config editor when no model is provisioned)
-│   ├── proc.ts             # IProc implementation (app.proc.execute) — renderer client over the main-process command runner; compile-time drift guard keeps it in sync with runner-channels.ts
+│   ├── proc.ts             # IProc implementation (app.proc.execute) — the ipcRenderer transport for the shared execute() handle (shared/execute-handle.ts); compile-time drift guard keeps it in sync with runner-channels.ts
 │   ├── terminal.ts         # openTerminalAt(dir) helper — reads terminal.command, auto-detects pwsh→powershell→cmd on first use and saves it, then launches ("Open Terminal here")
 │   ├── board-trust.ts      # Per-board trust registry — persists trusted board roots (trustedBoards.txt); untrusted boards block rendering. This list IS the known-boards registry
 │   ├── boards.ts           # IBoards implementation (app.boards) — board lifecycle (create/open/register/rename) + published-catalog ops (search/download/install/uninstall/updates)
@@ -813,7 +813,7 @@ persephone/
 ├── clipboard-ipc.ts        # File-clipboard DTOs (ClipboardFileList — CF_HDROP paths + drop effect)
 ├── search-ipc.ts           # Search IPC channels + wire types; also the batch-flush bounds, the matched-line result cap, and the default exclude patterns that seed the search-exclude setting
 ├── worker-channels.ts      # Worker thread IPC channels (app.runAsync)
-├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, IExecuteHandle contract shared by proc.ts and board-shim.ts)
+├── runner-channels.ts      # Streaming command-runner IPC channels + wire types (RunnerChannel, inbound/outbound message unions, IExecuteHandle contract — implemented once in shared/execute-handle.ts for proc.ts and board-shim.ts)
 ├── popup-rate-limiter.ts   # Global popup/tab rate limiter (app-wide singleton)
 ├── main/                   # Main process handlers
 │   ├── controller.ts       # IPC handler registration

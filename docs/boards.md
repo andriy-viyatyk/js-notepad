@@ -132,7 +132,7 @@ const text = await handle.getText();           // stdout as string
 const bytes = await handle.getBytes();         // stdout as Uint8Array
 ```
 
-`getJson()` rejects if the process exits with a non-zero code or if the output cannot be parsed. The rejection error includes `exitCode` and `stderr`.
+`getJson()` rejects if the process exits with a non-zero code or if the output cannot be parsed. The rejection error is a `RunnerError` (`err.name === "RunnerError"`) with `exitCode` and `stderr` properties, so you can tell a process failure apart from any other error your own code might throw.
 
 **Pattern extraction** — useful when a script's stdout mixes your result with other output:
 

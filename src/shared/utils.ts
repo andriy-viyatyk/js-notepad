@@ -18,6 +18,19 @@ export function errMessage(e: unknown, fallback = "Unexpected error"): string {
     return text && text !== "[object Object]" ? text : fallback;
 }
 
+/** Join binary chunks (stdout/stderr from a spawned process) into one buffer. */
+export function concatChunks(chunks: Uint8Array[]): Uint8Array {
+    let total = 0;
+    for (const c of chunks) total += c.length;
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) {
+        out.set(c, offset);
+        offset += c.length;
+    }
+    return out;
+}
+
 export function debounce<T extends (...args: unknown[]) => void>(
     func: T,
     delay: number,
