@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Popover, Panel, Text, Button, Spacer, ListBox } from "../../uikit";
-import type { IListBoxItem, ListBoxRef } from "../../uikit";
+import type { IListBoxItem } from "../../uikit";
+import type { ListBoxModel } from "../../uikit/ListBox/ListBoxModel";
 
 export type SuggestionsMode = "search" | "navigation";
 
@@ -27,7 +28,7 @@ export function UrlSuggestionsDropdown({
     onSelect,
     onClearVisible,
 }: UrlSuggestionsDropdownProps) {
-    const listBoxRef = useRef<ListBoxRef | null>(null);
+    const listBoxModel = useRef<ListBoxModel<IListBoxItem> | null>(null);
 
     const listItems = useMemo<IListBoxItem[]>(
         () => items.map((s) => ({ value: s, label: s })),
@@ -36,7 +37,7 @@ export function UrlSuggestionsDropdown({
 
     useEffect(() => {
         if (hoveredIndex < 0) return;
-        listBoxRef.current?.scrollToIndex(hoveredIndex);
+        listBoxModel.current?.scrollToIndex(hoveredIndex);
     }, [hoveredIndex]);
 
     const isOpen = open && anchorEl != null && items.length > 0;
@@ -64,7 +65,7 @@ export function UrlSuggestionsDropdown({
             </Panel>
             <ListBox
                 name="url-suggestions-list"
-                ref={listBoxRef}
+                onModel={(model) => { listBoxModel.current = model; }}
                 items={listItems}
                 activeIndex={hoveredIndex}
                 onActiveChange={onHoveredIndexChange}

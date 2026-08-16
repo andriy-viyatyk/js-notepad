@@ -132,7 +132,7 @@ export function LinkHostnamesNavigationPanel({ editor }: LinkHostnamesNavigation
                         height={bottomHeight ?? 150}
                     >
                         <LinksList
-                            ref={gridRef}
+                            onGridModel={(grid) => { gridRef.current = grid ?? undefined; }}
                             links={hostnameItems}
                             selectedId={selectedLinkId || undefined}
                             onSelect={handleSelect}

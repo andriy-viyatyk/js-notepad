@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { useEffect } from "react";
 // Note: useEffect kept for visibility-check effect (runs every render, no effect() equivalent)
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import color from "../../theme/color";
@@ -323,23 +323,21 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
 // BaseImageView Component - reusable image viewer with zoom/pan
 // ============================================================================
 
-export interface ImageViewportRef {
-    copyToClipboard: () => Promise<void>;
-}
-
 export interface ImageViewportProps {
     src: string;
     alt?: string;
+    onModel?: (model: ImageViewportModel | null) => void;
 }
 
-export const ImageViewport = forwardRef<ImageViewportRef, ImageViewportProps>(function ImageViewport({ src, alt = "Image" }, ref) {
+export const ImageViewport = function ImageViewport({ src, alt = "Image", onModel }: ImageViewportProps) {
     const viewModel = useComponentModel({ src }, ImageViewportModel, defaultImageViewportState);
     // Subscribe to full state - all properties affect rendering
     const state = viewModel.state.use();
 
-    useImperativeHandle(ref, () => ({
-        copyToClipboard: viewModel.copyToClipboard,
-    }), [viewModel]);
+    useEffect(() => {
+        onModel?.(viewModel);
+        return () => onModel?.(null);
+    }, [onModel, viewModel]);
 
     // Recalculate fit scale when tab becomes visible again (after being hidden during resize)
     // Runs every render — no effect() equivalent for "no deps" useEffect
@@ -385,4 +383,4 @@ export const ImageViewport = forwardRef<ImageViewportRef, ImageViewportProps>(fu
             </div>
         </ImageViewportRoot>
     );
-});
+};

@@ -1,4 +1,4 @@
-import React, { useEffect, useImperativeHandle, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import styled from '@emotion/styled';
 
 import RenderGridModel, {
@@ -39,16 +39,14 @@ const RenderGridRoot = styled.div(
     { label: 'RenderGrid' },
 );
 
-const RenderGrid = React.forwardRef<RenderGridModel, RenderGridProps>(function RenderGrid(
-    props: RenderGridProps,
-    ref: React.ForwardedRef<RenderGridModel>,
-) {
+const RenderGrid = React.memo(function RenderGrid(props: RenderGridProps) {
     const model = useComponentModel(
         props,
         RenderGridModel,
         defaultRenderGridState,
     );
     model.state.use();
+    const onModel = props.onModel;
 
     useEffect(() => {
         const objserver = new ResizeObserver(model.onFrameResize);
@@ -61,7 +59,10 @@ const RenderGrid = React.forwardRef<RenderGridModel, RenderGridProps>(function R
         }
     }, [model.onFrameResize, model.gridRef]);
 
-    useImperativeHandle(ref, () => model);
+    useEffect(() => {
+        onModel?.(model);
+        return () => onModel?.(null);
+    }, [model, onModel]);
 
     // Restore scroll position after render when container scrollTop diverges from model offset.
     // This happens when display:none resets scrollTop to 0 but onScroll guard preserves offsetRef.

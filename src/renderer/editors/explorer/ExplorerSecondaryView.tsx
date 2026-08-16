@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { TreeProviderView, TreeProviderViewRef } from "../../components/tree-provider";
+import { TreeProviderView } from "../../components/tree-provider";
+import type { TreeProviderViewModel } from "../../components/tree-provider/TreeProviderViewModel";
 import type { TreeProviderViewSavedState } from "../../components/tree-provider";
 import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider";
 import { ContextMenuEvent } from "../../api/events/events";
@@ -37,7 +38,7 @@ import { fpBasename, fpDirname } from "../../core/utils/file-path";
 export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon }: SecondaryViewProps) {
     const model = rawModel as ExplorerEditor;
     const { rootPath } = model.state.use();
-    const treeProviderRef = useRef<TreeProviderViewRef>(null);
+    const treeProviderModel = useRef<TreeProviderViewModel | null>(null);
 
     // Create/update FileTreeProvider
     const provider = useMemo(() => {
@@ -61,7 +62,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
 
     useEffect(() => {
         if (revealVersion > 0 && selectedHref) {
-            treeProviderRef.current?.revealItem(selectedHref);
+            void treeProviderModel.current?.revealItem(selectedHref);
         }
     }, [revealVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -271,7 +272,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
                 size="sm"
                 title="Collapse All"
                 icon={<CollapseAllIcon />}
-                onClick={(e) => { e.stopPropagation(); treeProviderRef.current?.collapseAll(); }}
+                onClick={(e) => { e.stopPropagation(); treeProviderModel.current?.collapseAll(); }}
             />
             {!model.page?.sidebarMandatory && (
                 <IconButton
@@ -291,7 +292,7 @@ export default function ExplorerSecondaryView({ model: rawModel, headerRef, icon
         <>
             <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Explorer" actions={actions} />
             <TreeProviderView
-                ref={treeProviderRef}
+                onModel={(value) => { treeProviderModel.current = value; }}
                 key={rootPath}
                 provider={provider}
                 multiSelect

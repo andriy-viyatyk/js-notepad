@@ -39,11 +39,11 @@ import { OpenTabsList } from "./OpenTabsList";
 import { RecentFileList } from "./RecentFileList";
 import {
     TreeProviderView,
-    type TreeProviderViewRef,
     type TreeProviderViewSavedState,
 } from "../../components/tree-provider";
 import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider";
-import { FileListRef } from "../../components/file-list";
+import { FileListModel } from "../../components/file-list";
+import type { TreeProviderViewModel } from "../../components/tree-provider/TreeProviderViewModel";
 import { ContextMenuEvent } from "../../api/events/events";
 import { FolderIcon } from "../../components/icons/FileIcon";
 import { FolderItem } from "./FolderItem";
@@ -122,14 +122,14 @@ type MenuBarState = typeof defaultMenuBarState;
 
 class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
     contentRef: HTMLDivElement | null = null;
-    fileListRef: FileListRef | null = null;
-    treeViewRef: TreeProviderViewRef | null = null;
+    fileListModel: FileListModel | null = null;
+    treeViewModel: TreeProviderViewModel | null = null;
     expandStateMap = new Map<string, TreeProviderViewSavedState>();
     providerMap = new Map<string, FileTreeProvider>();
 
     setContentRef = (ref: HTMLDivElement | null) => { this.contentRef = ref; };
-    setFileListRef = (ref: FileListRef | null) => { this.fileListRef = ref; };
-    setTreeViewRef = (ref: TreeProviderViewRef | null) => { this.treeViewRef = ref; };
+    setFileListModel = (model: FileListModel | null) => { this.fileListModel = model; };
+    setTreeViewModel = (model: TreeProviderViewModel | null) => { this.treeViewModel = model; };
 
     getProvider = (folderId: string, folderPath: string): FileTreeProvider => {
         let provider = this.providerMap.get(folderId);
@@ -148,7 +148,7 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
     init() {
         this.effect(() => {
             if (this.props.open) {
-                this.treeViewRef?.refresh();
+                void this.treeViewModel?.buildTree();
                 const timer = setTimeout(() => {
                     this.state.update((s) => { s.isAnimating = true; });
                 }, 10);
@@ -182,8 +182,8 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
         } else if (e.ctrlKey && e.code === "KeyF") {
             if (this.state.get().leftItemId !== openTabsId) {
                 e.preventDefault();
-                this.treeViewRef?.showSearch();
-                this.fileListRef?.showSearch();
+                this.treeViewModel?.showSearch();
+                this.fileListModel?.showSearch();
             }
         }
     };
@@ -428,14 +428,14 @@ export function MenuBar(props: MenuBarProps) {
                     <OpenTabsList onClose={onClose} open={open} />
                 );
             case recentFilesId:
-                return <RecentFileList ref={model.setFileListRef} onClose={onClose} />;
+                return <RecentFileList onModel={model.setFileListModel} onClose={onClose} />;
             case toolsEditorsId:
                 return <ToolsEditorsPanel onClose={onClose} />;
             case scriptLibraryId:
                 return (
                     <ScriptLibraryPanel
                         onClose={onClose}
-                        explorerRef={model.setTreeViewRef}
+                        explorerModel={model.setTreeViewModel}
                         expandState={model.expandStateMap.get(scriptLibraryId)}
                         onExpandStateChange={(s) => model.expandStateMap.set(scriptLibraryId, s)}
                     />
@@ -445,7 +445,7 @@ export function MenuBar(props: MenuBarProps) {
                 if (folder?.path) {
                     return (
                         <TreeProviderView
-                            ref={model.setTreeViewRef}
+                            onModel={model.setTreeViewModel}
                             key={folder.id}
                             provider={model.getProvider(folder.id, folder.path)}
                             initialState={model.expandStateMap.get(folder.id)}

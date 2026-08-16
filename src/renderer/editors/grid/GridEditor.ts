@@ -64,6 +64,7 @@ export interface GridEditorState extends EditorStateBase {
     // View-derived — present on state for reactive reads; stripped from
     // getRestoreData (GR8 / MO5 pattern).
     rows: any[];
+    displayedRowCount: number | undefined;
     error: string | undefined;
 }
 
@@ -80,6 +81,7 @@ export const defaultGridEditorState: GridEditorState = {
     csvDelimiter: ",",
     csvWithColumns: false,
     rows: [],
+    displayedRowCount: undefined,
     error: undefined,
 };
 
@@ -123,6 +125,11 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
     focusCell(row: number, col: number): void {
         this.typedQueue.send({ type: "focusCell", row, col });
     }
+
+    setDisplayedRowCount = (count: number) => {
+        if (this.state.get().displayedRowCount === count) return;
+        this.state.update((s) => { s.displayedRowCount = count; });
+    };
 
     // ── Persistence ─────────────────────────────────────────────────────
 

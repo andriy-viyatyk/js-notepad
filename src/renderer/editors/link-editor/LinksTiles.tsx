@@ -329,12 +329,6 @@ export function LinksTiles({
     const dims = TILE_DIMENSIONS[viewMode];
 
     // Expose grid model to parent
-    const gridModelNotified = useRef(false);
-    if (gridRef.current && !gridModelNotified.current) {
-        gridModelNotified.current = true;
-        onGridModel?.(gridRef.current);
-    }
-
     useEffect(() => {
         gridRef.current?.scrollToRow(0);
         gridRef.current?.update({ all: true });
@@ -408,8 +402,11 @@ export function LinksTiles({
     );
 
     return (
-        <RenderGrid
-            ref={gridRef}
+            <RenderGrid
+                onModel={(grid) => {
+                    gridRef.current = grid;
+                    onGridModel?.(grid);
+                }}
             rowCount={counts.rowCount}
             columnCount={counts.colCount}
             rowHeight={dims.cellHeight}

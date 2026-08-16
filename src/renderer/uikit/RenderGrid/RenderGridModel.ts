@@ -57,6 +57,8 @@ export interface BlockStyles {
 }
 
 export interface RenderGridProps {
+    /** Called with the live model on mount and null on unmount. */
+    onModel?: (model: RenderGridModel | null) => void;
     /** Optional debug label emitted as `data-name` on the root element.
      *  Use to disambiguate multiple `RenderGrid` instances in DOM inspector
      *  output. Never used for styling. */

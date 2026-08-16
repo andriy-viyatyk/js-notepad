@@ -280,7 +280,7 @@ function VariablesGrid({ model, namespace, profile, data }: VariablesGridProps) 
         <Panel direction="column" flex={1} minWidth={0}>
             <Panel direction="column" flex={1} minWidth={0}>
                 <AVGrid
-                    ref={gridRef}
+                    onModel={(grid) => { gridRef.current = grid; }}
                     name="env-vars-grid"
                     columns={columns}
                     setColumns={setColumns}

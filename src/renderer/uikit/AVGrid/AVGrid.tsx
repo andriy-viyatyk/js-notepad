@@ -1,9 +1,8 @@
 import {
-    forwardRef,
     HTMLAttributes,
     ReactNode,
     useCallback,
-    useImperativeHandle,
+    useEffect,
     useMemo,
 } from "react";
 import styled from "@emotion/styled";
@@ -11,7 +10,7 @@ import { clsx } from "clsx";
 
 import { TCellRenderer, TCellRendererProps } from "./avGridTypes";
 import { RenderGrid } from "../RenderGrid";
-import type { RefType, RenderCellFunc } from "../RenderGrid";
+import type { RenderCellFunc } from "../RenderGrid";
 import { AVGridProvider } from "./useAVGridContext";
 import color from "../../theme/color";
 import { Spinner } from "../Spinner";
@@ -234,13 +233,16 @@ function Cell(props: Readonly<TCellRendererProps>) {
 
 function AVGridComponent<R = any>(
     props: AVGridProps<R>,
-    ref?: RefType<AVGridModel<R> | undefined>,
 ) {
     const ModelClass = AVGridModel as unknown as AVGridModel<R>;
     const model = useComponentModel(props, ModelClass, defaultAVGridState);
+    const onModel = props.onModel;
     model.useModel();
 
-    useImperativeHandle(ref, () => model);
+    useEffect(() => {
+        onModel?.(model);
+        return () => onModel?.(null);
+    }, [model, onModel]);
 
     const renderCell: RenderCellFunc = useCallback(
         ({ key, ...cellProps }) => {
@@ -305,7 +307,7 @@ function AVGridComponent<R = any>(
         }>
             <AVGridProvider value={model}>
                 <RenderGridStyled
-                    ref={model.setRenderModel}
+                    onModel={model.setRenderModel}
                     name={model.props.name}
                     columnCount={model.models.columns.columnCount}
                     rowCount={model.models.rows.rowCount}
@@ -327,6 +329,4 @@ function AVGridComponent<R = any>(
     );
 }
 
-export default forwardRef(AVGridComponent) as <R>(
-    props: AVGridProps<R> & { ref?: RefType<AVGridModel<R> | undefined> },
-) => ReturnType<typeof AVGridComponent>;
+export default AVGridComponent;

@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
     AVGrid,
     FiltersProvider,
@@ -17,15 +17,10 @@ import type { TextFileModel } from "../text/TextEditorModel";
 
 interface GridBodyProps {
     model: GridEditor;
-    /** Callback fired after `onVisibleRowsChanged` so the parent can
-     *  re-render the footer's record count. */
-    onVisibleRowsChanged?: () => void;
+    onModel?: (model: AVGridModel<any> | null) => void;
 }
 
-export const GridBody = forwardRef<AVGridModel<any>, GridBodyProps>(function GridBody(
-    { model, onVisibleRowsChanged },
-    forwardedRef,
-) {
+export const GridBody = function GridBody({ model, onModel }: GridBodyProps) {
     const gridRef = useRef<AVGridModel<any> | null>(null);
     const editorConfig = useEditorConfig();
     const host = model.contentHost as TextFileModel | null;
@@ -36,6 +31,7 @@ export const GridBody = forwardRef<AVGridModel<any>, GridBodyProps>(function Gri
         focus: s.focus,
         search: s.search,
         filters: s.filters,
+        displayedRowCount: s.displayedRowCount,
         error: s.error,
     }));
 
@@ -74,22 +70,18 @@ export const GridBody = forwardRef<AVGridModel<any>, GridBodyProps>(function Gri
         return () => sub.unsubscribe();
     }, [model]);
 
-    // Internal trigger to refresh footer's record-count read from gridRef.
-    const [, setTick] = useState(0);
     const handleVisibleRowsChanged = useCallback(() => {
-        Promise.resolve().then(() => {
-            setTick((t) => t + 1);
-            onVisibleRowsChanged?.();
-        });
-    }, [onVisibleRowsChanged]);
+        const grid = gridRef.current;
+        if (grid) model.setDisplayedRowCount(grid.data.rows.length);
+    }, [model]);
 
     // GR5 — two-way sortColumn sync via setGridRef callback.
     const setGridRef = useCallback(
         (ref: AVGridModel<any> | null) => {
             gridRef.current = ref;
-            if (typeof forwardedRef === "function") forwardedRef(ref);
-            else if (forwardedRef) forwardedRef.current = ref;
+            onModel?.(ref);
             if (!ref) return;
+            model.setDisplayedRowCount(ref.data.rows.length);
             // 1. Editor → gridRef: write saved sortColumn on mount.
             const saved = model.state.get().sortColumn;
             if (saved) {
@@ -109,7 +101,7 @@ export const GridBody = forwardRef<AVGridModel<any>, GridBodyProps>(function Gri
                 (s) => s.sortColumn,
             );
         },
-        [model, forwardedRef],
+        [model, onModel],
     );
 
     if (!host) return null;
@@ -130,7 +122,7 @@ export const GridBody = forwardRef<AVGridModel<any>, GridBodyProps>(function Gri
             >
                 <FilterBar gridModel={gridRef.current} />
                 <AVGrid
-                    ref={setGridRef}
+                    onModel={setGridRef}
                     columns={state.columns}
                     rows={state.rows}
                     getRowKey={getRowKey}
@@ -152,15 +144,11 @@ export const GridBody = forwardRef<AVGridModel<any>, GridBodyProps>(function Gri
             </FiltersProvider>
         </Panel>
     );
-});
+};
 
-/** Visible-row label for the footer record-count. Falls back to total row
- *  count when no gridRef is mounted yet. */
-export function getVisibleRowsLabel(
-    model: GridEditor,
-    gridRef: AVGridModel<any> | null,
-): string {
+/** Visible-row label for the footer record-count. */
+export function getVisibleRowsLabel(model: GridEditor): string {
     const rows = model.state.get().rows.length;
-    const visible = gridRef?.data.rows.length ?? rows;
+    const visible = model.state.get().displayedRowCount ?? rows;
     return visible === rows ? `${rows} rows` : `${visible} of ${rows} rows`;
 }

@@ -74,13 +74,6 @@ export interface TextareaProps
     onPaste?: React.ClipboardEventHandler<HTMLDivElement>;
 }
 
-/** Imperative handle exposed via `ref`. */
-export interface TextareaRef {
-    focus: () => void;
-    clear: () => void;
-    getText: () => string;
-}
-
 // --- Helpers ---
 
 function innerTextToString(text: string): string {
@@ -143,8 +136,7 @@ const Root = styled.div(
 
 // --- Component ---
 
-export const Textarea = React.forwardRef<TextareaRef, TextareaProps>(
-    function Textarea(props, ref) {
+export const Textarea = function Textarea(props: TextareaProps) {
         const {
             name,
             value,
@@ -182,17 +174,6 @@ export const Textarea = React.forwardRef<TextareaRef, TextareaProps>(
                 return () => clearTimeout(id);
             }
         }, [autoFocus]);
-
-        React.useImperativeHandle(ref, () => ({
-            focus: () => divRef.current?.focus(),
-            clear: () => {
-                if (divRef.current) {
-                    divRef.current.innerText = "";
-                    onChange?.("");
-                }
-            },
-            getText: () => innerTextToString(divRef.current?.innerText ?? ""),
-        }));
 
         const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
             let text = e.currentTarget.innerText;
@@ -269,5 +250,4 @@ export const Textarea = React.forwardRef<TextareaRef, TextareaProps>(
                 style={style}
             />
         );
-    },
-);
+    };

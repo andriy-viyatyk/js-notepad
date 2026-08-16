@@ -128,7 +128,7 @@ export function LogBody({ model }: { model: LogViewEditor }) {
         <LogViewProvider value={model}>
             <Panel name="log-view-root" direction="column" flex={1} overflow="hidden">
                 <RenderFlexGrid
-                    ref={setGridModel}
+                    onModel={setGridModel}
                     columnCount={2}
                     rowCount={state.entryCount}
                     columnWidth={getColumnWidth}

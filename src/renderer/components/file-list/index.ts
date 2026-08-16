@@ -1,1 +1,1 @@
-export { FileList, type FileListItem, type FileListRef } from "./FileList";
+export { FileList, FileListModel, type FileListItem } from "./FileList";

@@ -16,7 +16,8 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-969: Neutral slots — `ui/` and `components/`](tasks/US-969-neutral-slots-shell/README.md)
   - [ ] [US-970: Lift local `useState` into models](tasks/US-970-lift-state-models/README.md)
   - [ ] [US-976: Below-threshold local state](tasks/US-976-below-threshold-state/README.md)
-  - [ ] US-971: Imperative handles → model methods / `ComponentQueue`
+  - [ ] [US-971: Imperative handles → model methods / `ComponentQueue`](tasks/US-971-imperative-handles/README.md)
+  - [ ] [US-977: `forwardRef` → React 19 ref props](tasks/US-977-react19-ref-props/README.md)
   - [ ] US-972: React context → explicit model references
   - [ ] US-973: Route `document.body` portals through one host
   - [ ] US-974: Move logic from `useEffect` into `TComponentModel.effect()`

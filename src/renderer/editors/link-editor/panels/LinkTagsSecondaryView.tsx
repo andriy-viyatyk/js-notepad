@@ -132,7 +132,7 @@ function LinkTagsNavigationPanel({ editor }: LinkTagsNavigationPanelProps) {
                         height={bottomHeight ?? 150}
                     >
                         <LinksList
-                            ref={gridRef}
+                            onGridModel={(grid) => { gridRef.current = grid ?? undefined; }}
                             links={tagItems}
                             selectedId={selectedLinkId || undefined}
                             onSelect={handleSelect}

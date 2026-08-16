@@ -2,7 +2,6 @@ export { Tree, TREE_ITEM_KEY } from "./Tree";
 export type {
     ITreeItem,
     TreeProps,
-    TreeRef,
     TreeRow,
     TreeItemRenderContext,
 } from "./Tree";

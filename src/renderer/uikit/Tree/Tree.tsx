@@ -1,4 +1,4 @@
-import React, { forwardRef, useId, useImperativeHandle } from "react";
+import React, { useEffect, useId } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, spacing } from "../tokens";
@@ -14,7 +14,7 @@ import { focusSelectionOverride } from "../shared/selection-style";
 import { TreeItem } from "./TreeItem";
 import { SectionItem } from "./SectionItem";
 import { TreeModel, defaultTreeState } from "./TreeModel";
-import { ITreeItem, TreeProps, TreeRef } from "./types";
+import { ITreeItem, TreeProps } from "./types";
 
 // --- Styled ---
 
@@ -66,7 +66,6 @@ const defaultIndentSize = 16;
 
 function TreeView<T = ITreeItem>(
     props: TreeProps<T>,
-    ref: React.ForwardedRef<TreeRef>,
 ) {
     const reactId = useId();
     const model = useComponentModel(
@@ -75,24 +74,18 @@ function TreeView<T = ITreeItem>(
         defaultTreeState,
     );
     model.setReactId(reactId);
+    const onModel = props.onModel;
 
-    useImperativeHandle(
-        ref,
-        () => ({
-            scrollToItem: model.scrollToItem,
-            revealItem: model.revealItem,
-            expandItem: model.expandItem,
-            toggleItem: model.toggleItem,
-            expandAll: model.expandAll,
-            collapseAll: model.collapseAll,
-            getExpandedMap: model.getExpandedMap,
-            focus: model.focusRoot,
-        }),
-        [model],
-    );
+    useEffect(() => {
+        onModel?.(model);
+        return () => onModel?.(null);
+    }, [model, onModel]);
 
     const {
         name,
+        // Captured for model registration; do not forward the callback to the DOM root.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        onModel: _onModel,
         searchText,
         renderItem,
         keyboardNav = false,
@@ -330,7 +323,7 @@ function TreeView<T = ITreeItem>(
             {...rest}
         >
             <RenderGrid
-                ref={model.setGridRef}
+                onModel={model.setGridRef}
                 columnCount={1}
                 rowCount={rows.length}
                 columnWidth={columnWidth}
@@ -345,8 +338,8 @@ function TreeView<T = ITreeItem>(
     );
 }
 
-export const Tree = forwardRef(TreeView) as <T = ITreeItem>(
-    props: TreeProps<T> & { ref?: React.Ref<TreeRef> },
+export const Tree = TreeView as <T = ITreeItem>(
+    props: TreeProps<T>,
 ) => React.ReactElement | null;
 
 // Re-export public types and the trait key from the canonical location.
@@ -354,7 +347,6 @@ export { TREE_ITEM_KEY } from "./types";
 export type {
     ITreeItem,
     TreeProps,
-    TreeRef,
     TreeRow,
     TreeItemRenderContext,
 } from "./types";

@@ -4,16 +4,16 @@ import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import {
     TreeProviderView,
-    type TreeProviderViewRef,
     type TreeProviderViewSavedState,
 } from "../../components/tree-provider";
+import type { TreeProviderViewModel } from "../../components/tree-provider/TreeProviderViewModel";
 import { FileTreeProvider } from "../../content/tree-providers/FileTreeProvider";
 import { FolderOpenIcon } from "../../theme/icons";
 import { Panel, Button, Text } from "../../uikit";
 
 interface ScriptLibraryPanelProps {
     onClose?: () => void;
-    explorerRef?: (ref: TreeProviderViewRef | null) => void;
+    explorerModel?: (model: TreeProviderViewModel | null) => void;
     expandState?: TreeProviderViewSavedState;
     onExpandStateChange?: (state: TreeProviderViewSavedState) => void;
 }
@@ -67,7 +67,7 @@ export function ScriptLibraryPanel(props: ScriptLibraryPanelProps) {
     return (
         <Panel name="sidebar-script-library" direction="column" height="100%" data-type="script-library-panel">
             <TreeProviderView
-                ref={props.explorerRef}
+                onModel={props.explorerModel}
                 key={libraryPath}
                 provider={provider}
                 initialState={props.expandState}

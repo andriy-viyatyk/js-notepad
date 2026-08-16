@@ -1,7 +1,4 @@
-import { useEffect, useRef } from "react";
-
 import { Dialog, DialogContent, Panel, Button, Textarea } from "../../uikit";
-import type { TextareaRef } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { TComponentState } from "../../core/state/state";
@@ -47,14 +44,6 @@ class OpenUrlDialogModel extends TDialogModel<OpenUrlDialogState, OpenUrlDialogR
 
 function OpenUrlDialog({ model }: ViewPropsRO<OpenUrlDialogModel>) {
     const state = model.state.use();
-    const textRef = useRef<TextareaRef>(null);
-
-    useEffect(() => {
-        setTimeout(() => {
-            textRef.current?.focus();
-        }, 0);
-    }, []);
-
     const isEmpty = !state.value?.trim();
 
     return (
@@ -69,7 +58,7 @@ function OpenUrlDialog({ model }: ViewPropsRO<OpenUrlDialogModel>) {
                 <Panel direction="column" paddingX="xxl" paddingTop="xl" paddingBottom="sm">
                     <Textarea
                         name="open-url-input"
-                        ref={textRef}
+                        autoFocus
                         value={state.value}
                         onChange={model.setValue}
                         placeholder="Paste file path, URL, or cURL command"

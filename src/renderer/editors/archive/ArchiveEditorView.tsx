@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
-import { TreeProviderView, TreeProviderViewRef } from "../../components/tree-provider";
+import { TreeProviderView } from "../../components/tree-provider";
+import type { TreeProviderViewModel } from "../../components/tree-provider/TreeProviderViewModel";
 import { PageToolbar } from "../base";
 import { TComponentState } from "../../core/state/state";
 import { Panel } from "../../uikit/Panel";
@@ -21,7 +22,7 @@ import {
 export function ArchiveEditorView({ model }: { model: ArchiveEditor }) {
     const provider = model.treeProvider;
     const pageId = model.page?.id ?? model.id;
-    const treeRef = useRef<TreeProviderViewRef>(null);
+    const treeModel = useRef<TreeProviderViewModel | null>(null);
 
     const handleItemClick = useCallback((item: ITreeProviderItem) => {
         const url = provider?.getNavigationUrl(item) ?? item.href;
@@ -29,11 +30,11 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditor }) {
     }, [provider, pageId, model.id]);
 
     const handleCollapseAll = useCallback(() => {
-        treeRef.current?.collapseAll();
+        treeModel.current?.collapseAll();
     }, []);
 
     const handleRefresh = useCallback(() => {
-        treeRef.current?.refresh();
+        void treeModel.current?.buildTree();
     }, []);
 
     if (!provider) {
@@ -82,7 +83,7 @@ export function ArchiveEditorView({ model }: { model: ArchiveEditor }) {
                 }
             />
             <TreeProviderView
-                ref={treeRef}
+                onModel={(value) => { treeModel.current = value; }}
                 provider={provider}
                 onItemClick={handleItemClick}
                 onItemDoubleClick={handleItemClick}

@@ -491,7 +491,7 @@ export function GitTree(props: GitTreeProps) {
 
     return (
         <AVGrid<GitCommitRow>
-            ref={gridRef}
+            onModel={(grid) => { gridRef.current = grid ?? undefined; }}
             name={name}
             columns={columns}
             setColumns={handleColumnsChange}

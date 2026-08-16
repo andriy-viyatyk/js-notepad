@@ -5,7 +5,7 @@ import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import { useEditorConfig } from "../base";
 import { FindBar } from "../shared/FindBar";
-import { MarkdownBlock, MarkdownBlockHandle } from "./MarkdownBlock";
+import { MarkdownBlock } from "./MarkdownBlock";
 import { isLocalMarkdownHref } from "./markdown-nav";
 import { Minimap, Panel } from "../../uikit";
 
@@ -16,7 +16,7 @@ const noopState = {
 
 export function MarkdownBody({ model }: { model: MarkdownEditor }) {
     const host = model.host;
-    const blockRef = useRef<MarkdownBlockHandle>(null);
+    const commandQueue = model.typedQueue;
     const scrollRef = useRef<HTMLDivElement | null>(null);
     // PV4 — view-local scroll-restore state. Not persisted across restart.
     const scrollTopRef = useRef(0);
@@ -56,23 +56,25 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
         let attempts = 0;
         const attempt = () => {
             anchorRetryRef.current = null;
-            if (blockRef.current?.scrollToAnchor(fragment)) {
+            if (commandQueue.pendingRequestCount > 0) return;
+            void commandQueue.execute({ type: "scrollToAnchor", fragment }).then((found) => {
+                if (found) {
                 // The anchor position IS this view's position now. Without this, the PV4
                 // restore below — which fires on the `onFocus` that every navigation
                 // sends right after `revealFragment` — would snap the reader back to 0.
                 if (scrollRef.current) scrollTopRef.current = scrollRef.current.scrollTop;
-                return;
-            }
-            if (++attempts > 10) return;
-            anchorRetryRef.current = requestAnimationFrame(attempt);
+                    return;
+                }
+                if (++attempts <= 10) anchorRetryRef.current = requestAnimationFrame(attempt);
+            });
         };
         attempt();
-    }, [cancelAnchorRetry]);
+    }, [cancelAnchorRetry, commandQueue]);
     useEffect(() => cancelAnchorRetry, [cancelAnchorRetry]);
 
     // PV8 — focus queue drain. Routes <TextChrome>'s root-focus into the
     // scroll panel so Tab / arrow keys work from the page.
-    model.typedQueue.use((ev) => {
+    commandQueue.use((ev) => {
         if (ev.type === "focus") scrollRef.current?.focus();
         else if (ev.type === "anchor") scrollToAnchor(ev.fragment);
     });
@@ -147,17 +149,17 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
             model.setMatchCount(count);
             if (count > 0) {
                 const newIndex = currentMatchIndex >= count ? 0 : currentMatchIndex;
-                blockRef.current?.scrollToMatch(newIndex);
+                void commandQueue.execute({ type: "scrollToMatch", index: newIndex });
             }
         }
-    }, [model]);
+    }, [model, commandQueue]);
 
     // Navigate to match when currentMatchIndex changes (next/prev).
     useEffect(() => {
         if (pageState.totalMatches > 0) {
-            blockRef.current?.scrollToMatch(pageState.currentMatchIndex);
+            void commandQueue.execute({ type: "scrollToMatch", index: pageState.currentMatchIndex });
         }
-    }, [pageState.currentMatchIndex, pageState.totalMatches]);
+    }, [pageState.currentMatchIndex, pageState.totalMatches, commandQueue]);
 
     // Keyboard handler — same shortcuts as today's MarkdownView.
     const onKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -235,7 +237,7 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
                     onClickCapture={embedded ? undefined : onLinkClickCapture}
                 >
                     <MarkdownBlock
-                        ref={blockRef}
+                        commandQueue={commandQueue}
                         content={content}
                         highlightText={highlightText}
                         compact={compact}

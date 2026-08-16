@@ -12,7 +12,7 @@ import { fs as appFs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { pagesModel } from "../../api/pages";
 import { pipeFromSourcePath } from "../../content/rebuild-pipe";
-import type { ImageViewportRef } from "../../uikit/ImageViewport";
+import type { ImageViewportModel } from "../../uikit/ImageViewport";
 import type { IImageExport } from "../base/IImageExport";
 import type { MenuItem } from "../../uikit";
 import { rasterToPngBlob, savePngViaDialog } from "../shared/image-export";
@@ -63,13 +63,12 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
      *  imports). Gates the dispose() cleanup. */
     private cacheFileCreated = false;
 
-    /** View's imperative handle (set by ImageView via setImageRef). Used
-     *  by copyImageToClipboard to delegate to the shared BaseImageView's
-     *  clipboard API. Mirrors GR3 (Graph) / DR3 (Draw). */
-    imageRef: ImageViewportRef | null = null;
+    /** View model registered by ImageView. Used by copyImageToClipboard to
+     *  delegate to the shared image viewport's clipboard API. */
+    imageModel: ImageViewportModel | null = null;
 
-    setImageRef = (ref: ImageViewportRef | null) => {
-        this.imageRef = ref;
+    setImageModel = (model: ImageViewportModel | null) => {
+        this.imageModel = model;
     };
 
     constructor(state: TComponentState<ImageEditorState>) {
@@ -267,7 +266,7 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
     };
 
     copyImageToClipboard = (): void => {
-        this.imageRef?.copyToClipboard();
+        this.imageModel?.copyToClipboard();
     };
 
     openInDrawingEditor = async (): Promise<void> => {

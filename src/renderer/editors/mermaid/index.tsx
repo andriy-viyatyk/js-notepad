@@ -14,16 +14,16 @@ import {
 } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
 import { ui } from "../../api/ui";
-import type { ImageViewportRef } from "../../uikit/ImageViewport";
+import type { ImageViewportModel } from "../../uikit/ImageViewport";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
 interface MermaidToolbarBitsProps {
     model: MermaidEditor;
-    imageRef: React.MutableRefObject<ImageViewportRef | null>;
+    imageModel: React.MutableRefObject<ImageViewportModel | null>;
 }
 
-function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
+function MermaidToolbarBits({ model, imageModel }: MermaidToolbarBitsProps) {
     const { svgUrl, lightMode } = model.state.use((s) => ({
         svgUrl: s.svgUrl,
         lightMode: s.lightMode,
@@ -103,7 +103,7 @@ function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
                 name="mermaid-copy"
                 size="sm"
                 title="Copy Image to Clipboard (Ctrl+C)"
-                onClick={() => imageRef.current?.copyToClipboard()}
+                onClick={() => imageModel.current?.copyToClipboard()}
                 disabled={!svgUrl}
                 icon={<CopyIcon />}
             />
@@ -113,19 +113,18 @@ function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
 
 function MermaidEditorView({ model }: { model: EditorModel }) {
     const mermaid = model as MermaidEditor;
-    // MR2 — view-local imageRef bridges the BaseImageView imperative handle
-    // to the toolbar's copy button (mirrors SV2 from Svg). Held by the view
-    // (NOT the editor) because it's a purely view-side imperative concern.
-    const imageRef = useRef<ImageViewportRef | null>(null);
+    // MR2 — keep the image viewport model in the view so the toolbar can invoke
+    // its copy command without exposing a React component ref.
+    const imageModel = useRef<ImageViewportModel | null>(null);
     return (
         <TextChrome
             model={model}
-            rightToolbarContributions={<MermaidToolbarBits model={mermaid} imageRef={imageRef} />}
+            rightToolbarContributions={<MermaidToolbarBits model={mermaid} imageModel={imageModel} />}
         >
             <MermaidBody
                 model={mermaid}
-                imageRefSetter={(r) => {
-                    imageRef.current = r;
+                imageModelSetter={(r) => {
+                    imageModel.current = r;
                 }}
             />
         </TextChrome>
@@ -133,7 +132,7 @@ function MermaidEditorView({ model }: { model: EditorModel }) {
 }
 
 function MermaidEmbeddedBody({ model }: { model: EditorModel }) {
-    return <MermaidBody model={model as MermaidEditor} imageRefSetter={() => {}} />;
+    return <MermaidBody model={model as MermaidEditor} imageModelSetter={() => {}} />;
 }
 
 export const mermaidModule: EditorModule = {

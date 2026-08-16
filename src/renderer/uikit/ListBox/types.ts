@@ -4,7 +4,6 @@ import {
     Traited,
     TraitType,
 } from "../../core/traits/traits";
-import type { RowAlign } from "../RenderGrid";
 import type { MenuItem } from "../Menu";
 import type { IconRef, SlotText } from "../shared/slots";
 
@@ -54,10 +53,6 @@ export interface ListItemRenderContext<T> {
 // Imperative ref
 // =============================================================================
 
-export interface ListBoxRef {
-    scrollToIndex: (index: number, align?: RowAlign) => void;
-}
-
 // =============================================================================
 // Props
 // =============================================================================
@@ -67,6 +62,8 @@ export interface ListBoxProps<T = IListBoxItem>
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
+    /** Called with the live model on mount and null on unmount. */
+    onModel?: (model: import("./ListBoxModel").ListBoxModel<T> | null) => void;
     items: T[] | Traited<unknown[]>;
     /**
      * Currently-selected item. `null` when nothing is selected. May reference an

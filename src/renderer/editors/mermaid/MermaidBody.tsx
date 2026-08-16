@@ -1,5 +1,5 @@
 import type { MermaidEditor } from "./MermaidEditor";
-import type { ImageViewportRef } from "../../uikit/ImageViewport";
+import type { ImageViewportModel } from "../../uikit/ImageViewport";
 import { ImageViewport } from "../../uikit/ImageViewport";
 import { useEditorConfig } from "../base";
 import { Panel, Text, Spinner } from "../../uikit";
@@ -8,10 +8,10 @@ interface MermaidBodyProps {
     model: MermaidEditor;
     /** Callback receiving the BaseImageView ref. The view shell holds the
      *  ref and shares it with `<MermaidToolbarBits>` (copy button). */
-    imageRefSetter?: (ref: ImageViewportRef | null) => void;
+    imageModelSetter?: (model: ImageViewportModel | null) => void;
 }
 
-export function MermaidBody({ model, imageRefSetter }: MermaidBodyProps) {
+export function MermaidBody({ model, imageModelSetter }: MermaidBodyProps) {
     // Read render output reactively. svgUrl recomputes inside the editor's
     // 400 ms debounced renderDebounced on host content / lightMode change.
     const { svgUrl, error, loading } = model.state.use((s) => ({
@@ -65,7 +65,7 @@ export function MermaidBody({ model, imageRefSetter }: MermaidBodyProps) {
                 </Panel>
             ) : svgUrl ? (
                 <ImageViewport
-                    ref={imageRefSetter}
+                    onModel={imageModelSetter}
                     src={svgUrl}
                     alt="Mermaid Diagram"
                 />

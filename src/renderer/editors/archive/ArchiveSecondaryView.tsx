@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { TreeProviderView } from "../../components/tree-provider";
-import type { TreeProviderViewRef } from "../../components/tree-provider";
+import type { TreeProviderViewModel } from "../../components/tree-provider/TreeProviderViewModel";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
 import type { ITreeProviderItem } from "../../api/types/io.tree";
@@ -13,7 +13,7 @@ import { CloseIcon } from "../../theme/icons";
 export default function ArchiveSecondaryView({ model, headerRef, icon }: SecondaryViewProps) {
     const archiveModel = model as ArchiveEditor;
     const provider = archiveModel.treeProvider;
-    const treeProviderRef = useRef<TreeProviderViewRef>(null);
+    const treeProviderModel = useRef<TreeProviderViewModel | null>(null);
 
     const { selectedHref } = archiveModel.selectionState.use();
     const { version: revealVersion } = archiveModel.revealVersion.use();
@@ -21,7 +21,7 @@ export default function ArchiveSecondaryView({ model, headerRef, icon }: Seconda
     useEffect(() => {
         if (revealVersion > 0 && selectedHref) {
             requestAnimationFrame(() => {
-                treeProviderRef.current?.revealItem(selectedHref);
+                void treeProviderModel.current?.revealItem(selectedHref);
             });
         }
     }, [revealVersion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -54,7 +54,7 @@ export default function ArchiveSecondaryView({ model, headerRef, icon }: Seconda
         <>
             <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Archive" actions={actions} />
             <TreeProviderView
-                ref={treeProviderRef}
+                onModel={(value) => { treeProviderModel.current = value; }}
                 provider={provider}
                 selectedHref={selectedHref ?? undefined}
                 onItemClick={handleItemClick}

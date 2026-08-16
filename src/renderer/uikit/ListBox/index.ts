@@ -1,7 +1,6 @@
 export { ListBox, LIST_ITEM_KEY } from "./ListBox";
 export type {
     ListBoxProps,
-    ListBoxRef,
     IListBoxItem,
     ListItemRenderContext,
 } from "./ListBox";

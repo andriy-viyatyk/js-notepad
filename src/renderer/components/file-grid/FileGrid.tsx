@@ -173,7 +173,7 @@ export function FileGrid(props: FileGridProps) {
     return (
         <Root data-type="file-grid" data-name={name} data-compact={compact ? "true" : undefined}>
             <AVGrid<FileGridItem>
-                ref={gridRef}
+                onModel={(grid) => { gridRef.current = grid ?? undefined; }}
                 name={name}
                 columns={columns}
                 setColumns={model.setColumns}

@@ -1,10 +1,10 @@
 import { fpBasename } from "../../core/utils/file-path";
-import { forwardRef, useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { pagesModel } from "../../api/pages";
 import { recent } from "../../api/recent";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
-import { FileListItem, FileList, FileListRef } from "../../components/file-list";
+import { FileListItem, FileList, FileListModel } from "../../components/file-list";
 import type { MenuItem } from "../../uikit/Menu";
 import { api } from "../../../ipc/renderer/api";
 import {
@@ -16,10 +16,10 @@ import {
 
 interface RecentFileListProps {
     onClose?: () => void;
+    onModel?: (model: FileListModel | null) => void;
 }
 
-export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
-    function RecentFileList({ onClose }, ref) {
+export const RecentFileList = function RecentFileList({ onClose, onModel }: RecentFileListProps) {
         useEffect(() => {
             recent.load();
         }, []);
@@ -76,11 +76,10 @@ export const RecentFileList = forwardRef<FileListRef, RecentFileListProps>(
 
         return (
             <FileList
-                ref={ref}
+                onModel={onModel}
                 items={items}
                 onClick={onItemClick}
                 getContextMenu={getItemContextMenu}
             />
         );
-    }
-);
+};

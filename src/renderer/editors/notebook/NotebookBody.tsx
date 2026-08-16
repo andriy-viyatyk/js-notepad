@@ -155,7 +155,7 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
                             </Panel>
                         ) : (
                             <RenderFlexGrid
-                                ref={setGridModel}
+                                onModel={setGridModel}
                                 columnCount={1}
                                 rowCount={notes.length}
                                 columnWidth={getColumnWidth}

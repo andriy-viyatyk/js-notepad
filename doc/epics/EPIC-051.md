@@ -118,7 +118,8 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | [US-969](../tasks/US-969-neutral-slots-shell/README.md) | Neutral slots: `ui/` and `components/` | Implemented — pending review |
 | [US-970](../tasks/US-970-lift-state-models/README.md) | Lift local `useState` into models | Implemented — pending review |
 | [US-976](../tasks/US-976-below-threshold-state/README.md) | Below-threshold local state | Implemented — pending review |
-| US-971 | Imperative handles → model methods / `ComponentQueue` | Planned |
+| [US-971](../tasks/US-971-imperative-handles/README.md) | Imperative handles → model methods / `ComponentQueue` | Planned |
+| [US-977](../tasks/US-977-react19-ref-props/README.md) | `forwardRef` → React 19 ref props | Planned |
 | US-972 | React context → explicit model references | Planned |
 | US-973 | Route `document.body` portals through one host | Planned |
 | US-974 | Move logic from `useEffect` into `TComponentModel.effect()` | Planned |
@@ -178,15 +179,25 @@ The detailed [US-970 task document](../tasks/US-970-lift-state-models/README.md)
 current branch at 174 declarations across 84 non-story `.tsx` files, limits the task to the seven
 `>=4` files, and hands the below-threshold tail to [US-976](../tasks/US-976-below-threshold-state/README.md).
 
-**US-971 — Imperative handles.** 9 `useImperativeHandle` files (`AVGrid`, `Tree`, `ListBox`,
-`RenderGrid`, `Textarea`, `ImageViewport`, `FileList`, `LinksList`, `MarkdownBlock`) plus the 33
-`forwardRef` files. An imperative handle is a model method written in the wrong place: the caller
-wants to command the view. Moved onto the model, or onto `ComponentQueue` when it is a one-shot
-command like scroll-to-row or focus, it survives the migration untouched. `forwardRef` used purely
-to pass a DOM ref through a wrapper is not a handle and only needs the React 19 ref-as-prop form.
+**US-971 — Imperative handles.** The nine `useImperativeHandle` files (`AVGrid`, `Tree`, `ListBox`,
+`RenderGrid`, `Textarea`, `ImageViewport`, `FileList`, `LinksList`, `MarkdownBlock`) plus the
+manually-built `TreeProviderViewRef`. An imperative handle is a model method written in the wrong
+place: the caller wants to command the view. Move it onto the model, or onto `ComponentQueue` when
+it is a one-shot DOM command like scroll-to-row or focus. Textarea's dead `clear`/`getText` handle
+surface is deleted rather than replaced with a model. The two grid repaint counters are replaced
+by an observable displayed-row count on the grid editor model.
 US-976 hands it the repaint counters at `editors/grid/GridBody.tsx:78` and
 `editors/grid/index.tsx:23`: publish visible-row count on the grid editor model as an observable
 instead of retaining local revision state.
+
+The detailed [US-971 task document](../tasks/US-971-imperative-handles/README.md) also records
+the manually-built `TreeProviderViewRef` found during investigation. It is included because the
+epic goal is about command-shaped React refs, not only the `useImperativeHandle` count.
+
+**US-977 — React 19 ref props.** Convert the 24 remaining ordinary DOM-forwarding wrappers after
+US-971 removes the nine command-surface wrappers. Preserve DOM ref behavior and generic JSX
+inference; do not turn DOM refs into model commands. The exact file list and the final
+`forwardRef` = 0 scan are in the [US-977 task document](../tasks/US-977-react19-ref-props/README.md).
 
 **US-972 — Context.** `EditorConfigContext`, `LogViewContext`, `AVGrid/filters/useFilters`,
 `AVGrid/useAVGridContext`, `uikit/shared/highlight`. Each becomes a model passed down explicitly or

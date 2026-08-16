@@ -1,7 +1,7 @@
 import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckedIcon, CopyIcon, OpenFileIcon, UncheckedIcon } from "../../theme/icons";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
@@ -14,6 +14,7 @@ import { settings } from "../../api/settings";
 import { resolveRelatedLink } from "../../core/utils/path-utils";
 import { detectGitRoot } from "./detect-git-root";
 import "./MarkdownBlock.css";
+import type { MarkdownEditor, MarkdownQueueRequest } from "./MarkdownEditor";
 
 // =============================================================================
 // Types
@@ -34,19 +35,14 @@ export interface MarkdownBlockProps {
     style?: React.CSSProperties;
     /** Called when the number of search highlight matches changes. */
     onMatchCountChange?: (count: number) => void;
+    commandQueue?: MarkdownEditor["typedQueue"];
 }
 
-export interface MarkdownBlockHandle {
-    /** The root DOM element. */
-    readonly container: HTMLDivElement | null;
-    /** Number of search highlight matches. */
-    readonly totalMatches: number;
-    /** Scroll to and highlight the Nth match (0-based). */
-    scrollToMatch(index: number): void;
-    /** Scroll to a `#fragment` anchor (without the "#"). Returns false when no
-     *  matching element exists yet — the caller may retry after a render. */
-    scrollToAnchor(fragment: string): boolean;
-}
+const noCommandQueue: Pick<MarkdownEditor["typedQueue"], "useRequest"> = {
+    useRequest: (_handler: (request: MarkdownQueueRequest) => unknown) => {
+        useEffect(() => undefined, []);
+    },
+};
 
 // =============================================================================
 // Styled root — all markdown content CSS
@@ -163,9 +159,8 @@ const getComponents = (filePath: string, mermaidLightMode: boolean, wikiRoot?: s
 // MarkdownBlock component
 // =============================================================================
 
-export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>(
-    function MarkdownBlock(props, ref) {
-        const { content, highlightText, compact, filePath, className, style, onMatchCountChange } = props;
+export const MarkdownBlock = function MarkdownBlock(props: MarkdownBlockProps) {
+        const { content, highlightText, compact, filePath, className, style, onMatchCountChange, commandQueue } = props;
         const rootRef = useRef<HTMLDivElement>(null);
         const totalMatchesRef = useRef(0);
 
@@ -281,39 +276,28 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
             }
         });
 
-        // Expose imperative handle
-        useImperativeHandle(ref, () => ({
-            get container() { return rootRef.current; },
-            get totalMatches() { return totalMatchesRef.current; },
-            scrollToMatch(index: number) {
+        (commandQueue ?? noCommandQueue).useRequest((request) => {
+            if (request.type === "scrollToMatch") {
                 const el = rootRef.current;
-                if (!el) return;
-                // Remove old active class
+                if (!el) return false;
                 const oldActive = el.querySelector(".highlighted-text-active");
                 if (oldActive) oldActive.classList.remove("highlighted-text-active");
-                // Apply to target
                 const spans = el.querySelectorAll(".highlighted-text");
-                if (spans.length > 0 && index < spans.length) {
-                    spans[index].classList.add("highlighted-text-active");
-                    // Use microtask so the DOM class is applied first
+                if (spans.length > 0 && request.index < spans.length) {
+                    spans[request.index].classList.add("highlighted-text-active");
                     Promise.resolve().then(() => {
-                        spans[index]?.scrollIntoView({ block: "center", behavior: "smooth" });
+                        spans[request.index]?.scrollIntoView({ block: "center", behavior: "smooth" });
                     });
                 }
-            },
-            scrollToAnchor(fragment: string) {
-                const el = rootRef.current;
-                if (!el || !fragment) return false;
-                const target = findAnchorTarget(el, fragment);
-                if (!target) return false;
-                // Synchronous and instant, unlike scrollToMatch: an anchor jump is the
-                // reader's starting position for a document, not a movement within one.
-                // The caller relies on the scroll being complete when this returns so it
-                // can record the position (see MarkdownBody's PV4 handling).
-                target.scrollIntoView({ block: "start", behavior: "auto" });
                 return true;
-            },
-        }), []);
+            }
+            const el = rootRef.current;
+            if (!el || !request.fragment) return false;
+            const target = findAnchorTarget(el, request.fragment);
+            if (!target) return false;
+            target.scrollIntoView({ block: "start", behavior: "auto" });
+            return true;
+        });
 
         const rootClassName = compact
             ? className ? `markdown-block compact ${className}` : "markdown-block compact"
@@ -338,5 +322,4 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
                 </ReactMarkdown>
             </div>
         );
-    },
-);
+    };

@@ -316,7 +316,7 @@ export function ColumnsOptions({ model }: ViewPropsRO<ColumnsOptionsModel>) {
                     <Text size="sm" color="light">Edit Columns</Text>
                 </Panel>
                 <AVGrid
-                    ref={gridRef}
+                    onModel={(grid) => { gridRef.current = grid ?? undefined; }}
                     columns={columns}
                     rows={state.rows}
                     getRowKey={getRowKey}

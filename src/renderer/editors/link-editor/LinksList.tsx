@@ -1,4 +1,4 @@
-import React, { useCallback, useImperativeHandle, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { RenderGrid, RenderGridModel } from "../../uikit/RenderGrid";
 import type { RenderCellParams, RenderSizeOptional } from "../../uikit/RenderGrid";
 import { IconButton, ListItem, Panel } from "../../uikit";
@@ -212,25 +212,16 @@ export interface LinksListProps {
     dropTargetId?: string | null;
 }
 
-export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(function LinksList({
+export const LinksList = function LinksList({
     links, selectedId, selectedIds, getId = defaultGetId, searchText = "",
     onSelect, onEdit, onDelete, onDoubleClick, onContextMenu,
     getAdditionalIcon, dragSourceId, onDragStartOverride,
     allTags, imageProxy, onToggleTag, onGridModel,
     onItemDragEnter, onItemDragOver, onItemDragLeave, onItemDrop, dropTargetId,
-}: LinksListProps, ref: React.ForwardedRef<RenderGridModel>) {
+}: LinksListProps) {
     const gridRef = useRef<RenderGridModel>(null);
     const [gridWidth, setGridWidth] = useState<number | undefined>(undefined);
     const faviconVersion = useFavicons(links);
-
-    useImperativeHandle(ref, () => gridRef.current, []);
-
-    // Expose grid model to parent
-    const gridModelNotified = useRef(false);
-    if (gridRef.current && !gridModelNotified.current) {
-        gridModelNotified.current = true;
-        onGridModel?.(gridRef.current);
-    }
 
     const handleResize = useCallback((size: RenderSizeOptional) => {
         setGridWidth(size.width);
@@ -299,7 +290,10 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
             data-focus-selection=""
         >
             <RenderGrid
-                ref={gridRef}
+                onModel={(grid) => {
+                    gridRef.current = grid;
+                    onGridModel?.(grid);
+                }}
                 rowCount={links.length}
                 columnCount={1}
                 rowHeight={ROW_HEIGHT}
@@ -310,4 +304,4 @@ export const LinksList = React.forwardRef<RenderGridModel, LinksListProps>(funct
             />
         </Panel>
     );
-});
+};

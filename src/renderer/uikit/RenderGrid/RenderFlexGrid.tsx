@@ -1,4 +1,4 @@
-import { forwardRef, ReactNode, useCallback, useEffect, useRef } from "react";
+import { ReactNode, useCallback, useEffect, useRef } from "react";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import RenderGridModel, {
     defaultRowHeight,
@@ -203,15 +203,14 @@ class RenderFlexGridModel extends TComponentModel<
     };
 }
 
-export const RenderFlexGrid = forwardRef<RenderGridModel, RenderFlexGridProps>(
-    function RenderFlexGrid(props, ref) {
+export const RenderFlexGrid = function RenderFlexGrid(props: RenderFlexGridProps) {
         const model = useComponentModel(
             props,
             RenderFlexGridModel,
             defaultRenderFlexGridState
         );
         const state = model.state.use();
-        const { renderCell, maxRowHeight, ...restProps } = props;
+        const { renderCell, maxRowHeight, onModel, ...restProps } = props;
 
 
         const renderFlexCell = useCallback(
@@ -230,18 +229,13 @@ export const RenderFlexGrid = forwardRef<RenderGridModel, RenderFlexGridProps>(
 
         return (
             <RenderGrid
-                ref={(instance) => {
-                    model.setGridModel(instance);
-                    if (typeof ref === "function") {
-                        ref(instance);
-                    } else if (ref) {
-                        (ref as React.MutableRefObject<unknown>).current = instance;
-                    }
-                }}
                 {...restProps}
                 rowHeight={state.rowHeight}
                 renderCell={renderFlexCell}
+                onModel={(instance) => {
+                    model.setGridModel(instance);
+                    onModel?.(instance);
+                }}
             />
         );
-    }
-);
+    };

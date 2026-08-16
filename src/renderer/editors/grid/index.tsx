@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useRef } from "react";
 import { TComponentState } from "../../core/state/state";
 import { TextChrome } from "../base/TextChrome";
 import { Input } from "../../uikit/Input";
@@ -20,10 +20,6 @@ function GridEditorView({ model }: { model: EditorModel }) {
     // here so GridToolbarBits / GridFooterBits can read it for the columns
     // popover and the visible-row count label.
     const gridRefHolder = useRef<AVGridModel<any> | null>(null);
-    const [, setTick] = useState(0);
-    const bumpFooter = useCallback(() => {
-        setTick((t) => t + 1);
-    }, []);
     return (
         <TextChrome
             model={model}
@@ -32,13 +28,12 @@ function GridEditorView({ model }: { model: EditorModel }) {
             }
             rightToolbarContributions={<GridSearchInput editor={editor} />}
             footerContributions={
-                <GridFooterBits editor={editor} gridRefHolder={gridRefHolder} />
+                <GridFooterBits editor={editor} />
             }
         >
             <GridBody
                 model={editor}
-                ref={gridRefHolder}
-                onVisibleRowsChanged={bumpFooter}
+                onModel={(grid) => { gridRefHolder.current = grid; }}
             />
         </TextChrome>
     );
@@ -112,16 +107,18 @@ function GridSearchInput({ editor }: { editor: GridEditor }) {
 
 function GridFooterBits({
     editor,
-    gridRefHolder,
 }: {
     editor: GridEditor;
-    gridRefHolder: React.MutableRefObject<AVGridModel<any> | null>;
 }) {
     // Re-render when totals or filter set change.
-    editor.state.use((s) => ({ r: s.rows.length, f: s.filters.length }));
+    editor.state.use((s) => ({
+        r: s.rows.length,
+        f: s.filters.length,
+        v: s.displayedRowCount,
+    }));
     return (
         <span className="records-count">
-            {getVisibleRowsLabel(editor, gridRefHolder.current)}
+            {getVisibleRowsLabel(editor)}
         </span>
     );
 }

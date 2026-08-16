@@ -8,7 +8,9 @@ export type MarkdownQueueEvent =
     | { type: "focus" }
     | { type: "anchor"; fragment: string };
 
-export type MarkdownQueueRequest = never;
+export type MarkdownQueueRequest =
+    | { type: "scrollToMatch"; index: number }
+    | { type: "scrollToAnchor"; fragment: string };
 
 /**
  * HS1 host-slot shape — `compactMode` rides `host.editorSettings["md-view"]`

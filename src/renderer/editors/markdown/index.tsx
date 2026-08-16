@@ -71,4 +71,4 @@ export type { MarkdownEditorState, MarkdownQueueEvent } from "./MarkdownEditor";
 // (mcp-inspector/McpInspectorView, mcp-inspector/ResourceContentView,
 // log-view/items/MarkdownOutputView).
 export { MarkdownBlock } from "./MarkdownBlock";
-export type { MarkdownBlockProps, MarkdownBlockHandle } from "./MarkdownBlock";
+export type { MarkdownBlockProps } from "./MarkdownBlock";

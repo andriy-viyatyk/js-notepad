@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "@emotion/styled";
-import { Tree, ITreeItem, TreeRef, TreeItemRenderContext } from "./Tree";
+import { Tree, ITreeItem, TreeItemRenderContext } from "./Tree";
+import type { TreeModel } from "./TreeModel";
 import { Panel } from "../Panel/Panel";
 import { Button } from "../Button/Button";
 import {
@@ -216,7 +217,7 @@ function TreeDemo({
     dnd = false,
     lazy = false,
 }: DemoProps) {
-    const treeRef = useRef<TreeRef>(null);
+    const treeRef = useRef<TreeModel<ITreeItem> | null>(null);
     const [value, setValue] = useState<ITreeItem | null>(null);
     // Multi-selection lives here, in the consumer — the Tree stores none of it. Held as a Set of
     // `value`s and painted back through `isSelected`, which is also how the Tree reads the current
@@ -389,7 +390,7 @@ function TreeDemo({
                 </Panel>
             )}
             <Tree
-                ref={treeRef}
+                onModel={(model) => { treeRef.current = model; }}
                 items={items}
                 value={predicateSelection || multiSelect ? null : value}
                 onChange={(item) => setValue(item)}

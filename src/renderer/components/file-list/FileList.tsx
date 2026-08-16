@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ListBox, LIST_ITEM_KEY, Input, IconButton, Panel } from "../../uikit";
 import { fontSize } from "../../uikit/tokens";
 import type { MenuItem } from "../../uikit/Menu";
@@ -15,11 +15,6 @@ export interface FileListItem {
     /** Optional explicit icon override. When set, it is used instead of the
      *  folder / file-type default (e.g. a board's custom icon). */
     icon?: IconRef;
-}
-
-export interface FileListRef {
-    showSearch: () => void;
-    hideSearch: () => void;
 }
 
 interface FileListProps {
@@ -39,6 +34,7 @@ interface FileListProps {
      *  item's details are shown elsewhere (e.g. the commit Diff panel's file
      *  list, whose selection drives the diff to its right). */
     selectedPath?: string;
+    onModel?: (model: FileListModel | null) => void;
 }
 
 const FileListWrapper = styled.div({
@@ -65,7 +61,9 @@ const defaultFileListState: FileListState = {
     activeIndex: null,
 };
 
-class FileListModel extends TComponentModel<FileListState, FileListProps> {
+export class FileListModel extends TComponentModel<FileListState, FileListProps> {
+    private focusSearchInput?: () => void;
+    private focusRoot?: () => void;
     setSearchText = (searchText: string) => {
         this.state.update((s) => { s.searchText = searchText; });
     };
@@ -77,38 +75,57 @@ class FileListModel extends TComponentModel<FileListState, FileListProps> {
     setActiveIndex = (activeIndex: number | null) => {
         this.state.update((s) => { s.activeIndex = activeIndex; });
     };
+
+    showSearch = () => {
+        this.setSearchVisible(true);
+        setTimeout(() => this.focusSearchInput?.(), 0);
+    };
+
+    hideSearch = () => {
+        this.setSearchVisible(false);
+        this.setSearchText("");
+    };
+
+    hideSearchAndFocus = () => {
+        this.hideSearch();
+        this.focusRoot?.();
+    };
+
+    setViewFocusHandlers = (focusSearchInput: () => void, focusRoot: () => void) => {
+        this.focusSearchInput = focusSearchInput;
+        this.focusRoot = focusRoot;
+    };
+
+    clearViewFocusHandlers = () => {
+        this.focusSearchInput = undefined;
+        this.focusRoot = undefined;
+    };
 }
 
-export const FileList = forwardRef<FileListRef, FileListProps>(
-    function FileList(props, ref) {
+export const FileList = function FileList(props: FileListProps) {
         const model = useComponentModel(props, FileListModel, defaultFileListState);
+        const onModel = props.onModel;
         const { searchText, searchVisible, activeIndex } = model.state.use();
         const rootRef = useRef<HTMLDivElement>(null);
         const searchInputRef = useRef<HTMLInputElement>(null);
 
-        const hideSearch = useCallback(() => {
-            model.setSearchVisible(false);
-            model.setSearchText("");
-        }, [model]);
-
-        const hideSearchAndFocus = useCallback(() => {
-            hideSearch();
-            rootRef.current?.focus();
-        }, [hideSearch]);
+        useEffect(() => {
+            model.setViewFocusHandlers(
+                () => searchInputRef.current?.focus(),
+                () => rootRef.current?.focus(),
+            );
+            onModel?.(model);
+            return () => {
+                model.clearViewFocusHandlers();
+                onModel?.(null);
+            };
+        }, [model, onModel]);
 
         const onSearchBlur = () => {
             if (!searchText) {
-                hideSearch();
+                model.hideSearch();
             }
         };
-
-        useImperativeHandle(ref, () => ({
-            showSearch: () => {
-                model.setSearchVisible(true);
-                setTimeout(() => searchInputRef.current?.focus(), 0);
-            },
-            hideSearch,
-        }), [model, hideSearch]);
 
         const { getTrailing, selectedPath } = props;
         const isSelected = useMemo(
@@ -160,7 +177,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
             if (e.key === "Escape" && searchVisible) {
                 e.preventDefault();
                 e.stopPropagation();
-                hideSearchAndFocus();
+                model.hideSearchAndFocus();
             }
         };
 
@@ -168,7 +185,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
             if (e.key === "Escape") {
                 e.preventDefault();
                 e.stopPropagation();
-                hideSearchAndFocus();
+                model.hideSearchAndFocus();
             }
         };
 
@@ -196,7 +213,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                                         icon="close"
                                         title="Clear Search"
                                         size="sm"
-                                        onClick={hideSearchAndFocus}
+                                        onClick={model.hideSearchAndFocus}
                                     />
                                 ) : null
                             }
@@ -221,5 +238,4 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                 />
             </FileListWrapper>
         );
-    }
-);
+    };

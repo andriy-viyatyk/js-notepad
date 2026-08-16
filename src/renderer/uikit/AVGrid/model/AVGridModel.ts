@@ -25,6 +25,8 @@ import { EffectsModel } from "./EffectsModel";
 import { AVGridActions } from "./AVGridActions";
 
 export interface AVGridProps<R> {
+    /** Called with the live model on mount and null on unmount. */
+    onModel?: (model: AVGridModel<R> | null) => void;
     /** Optional debug label emitted as `data-name` on the rendered RenderGrid root.
      *  Use to disambiguate multiple AVGrid instances in DOM inspector output. */
     name?: string;
@@ -164,7 +166,7 @@ export class AVGridModel<R> extends TComponentModel<
         this.renderModel?.update(rerender);
     };
 
-    setRenderModel = (renderModel: RenderGridModel) => {
+    setRenderModel = (renderModel: RenderGridModel | null) => {
         this.renderModel = renderModel;
     };
 

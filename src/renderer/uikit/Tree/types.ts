@@ -6,7 +6,6 @@ import {
 } from "../../core/traits/traits";
 import type { TraitDragPayload } from "../../core/traits/dnd";
 import type { TraitTypeId } from "../../core/traits/TraitRegistry";
-import type { RowAlign } from "../RenderGrid";
 import type { MenuItem } from "../Menu";
 import type { IconRef, SlotText } from "../shared/slots";
 
@@ -76,42 +75,6 @@ export interface TreeItemRenderContext<T> {
 // Imperative ref
 // =============================================================================
 
-export interface TreeRef {
-    /**
-     * Scroll to make a row visible by its source `value`. The row must already be in the
-     * visible (currently-expanded) set — use `revealItem` to expand ancestors first.
-     */
-    scrollToItem: (value: string | number, align?: RowAlign) => void;
-    /**
-     * Expand every ancestor of `value` (awaiting `loadChildren` for any unresolved
-     * ancestor when supplied), then scroll the row into view. Returns when the row is
-     * visible (or the value is unreachable).
-     *
-     * Sync callers may ignore the returned promise. The implementation collapses to a
-     * fully-sync path when no `loadChildren` / `getAncestorValues` is supplied, so V1
-     * call sites are unaffected.
-     *
-     * Reaches not-yet-loaded values only when `getAncestorValues` is provided. Without
-     * it, behaves like V1 for already-loaded values and no-ops for unknown values.
-     */
-    revealItem: (value: string | number, align?: RowAlign) => Promise<void>;
-    /** Expand a single node. No-op when already expanded or not found. */
-    expandItem: (value: string | number) => void;
-    /** Toggle a single node by value. */
-    toggleItem: (value: string | number) => void;
-    /** Expand every node. */
-    expandAll: () => void;
-    /** Collapse every node. */
-    collapseAll: () => void;
-    /**
-     * Snapshot of the current expansion state, keyed by the source `value`. Use to persist
-     * across mounts. Pair with `defaultExpandedValues` to restore.
-     */
-    getExpandedMap: () => Record<string | number, boolean>;
-    /** Focus the tree's root element (the keyboard-nav tab stop). */
-    focus: () => void;
-}
-
 // =============================================================================
 // Props
 // =============================================================================
@@ -121,6 +84,8 @@ export interface TreeProps<T = ITreeItem>
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
+    /** Called with the live model on mount and null on unmount. */
+    onModel?: (model: import("./TreeModel").TreeModel<T> | null) => void;
     /** Root items. When `T = ITreeItem`, children are read from `item.items`. */
     items: T[] | Traited<unknown[]>;
     /**

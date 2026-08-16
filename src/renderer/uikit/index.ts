@@ -11,7 +11,7 @@ export type {
 export { Minimap } from "./Minimap";
 export type { MinimapProps } from "./Minimap";
 export { ImageViewport } from "./ImageViewport";
-export type { ImageViewportProps, ImageViewportRef } from "./ImageViewport";
+export type { ImageViewportProps, ImageViewportModel } from "./ImageViewport";
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
 export { Spacer } from "./Spacer";
@@ -61,7 +61,7 @@ export type { ProgressBarProps } from "./ProgressBar";
 export { Spinner } from "./Spinner";
 export type { SpinnerProps } from "./Spinner";
 export { Textarea } from "./Textarea";
-export type { TextareaProps, TextareaRef } from "./Textarea";
+export type { TextareaProps } from "./Textarea";
 export { PathInput } from "./PathInput";
 export type { PathInputProps } from "./PathInput";
 export { Tag } from "./Tag";
@@ -92,7 +92,7 @@ export type { CategoryListProps } from "./CategoryList";
 export { SelectableRow } from "./SelectableRow";
 export type { SelectableRowProps } from "./SelectableRow";
 export { ListBox, LIST_ITEM_KEY } from "./ListBox";
-export type { ListBoxProps, ListBoxRef, IListBoxItem, ListItemRenderContext } from "./ListBox";
+export type { ListBoxProps, IListBoxItem, ListItemRenderContext } from "./ListBox";
 export { ListItem, SectionItem } from "./ListBox";
 export type { ListItemProps, SectionItemProps } from "./ListBox";
 export { MultiListBox } from "./MultiListBox";
@@ -104,7 +104,6 @@ export type { SelectProps, ItemsSource, SelectItemsResult } from "./Select";
 export { Tree, TREE_ITEM_KEY } from "./Tree";
 export type {
     TreeProps,
-    TreeRef,
     ITreeItem,
     TreeItemRenderContext,
     TreeRow,

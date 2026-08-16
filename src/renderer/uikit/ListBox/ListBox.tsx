@@ -1,4 +1,4 @@
-import React, { forwardRef, useId, useImperativeHandle } from "react";
+import React, { useEffect, useId } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { spacing } from "../tokens";
@@ -13,7 +13,7 @@ import { Spinner } from "../Spinner/Spinner";
 import { ListItem } from "./ListItem";
 import { SectionItem } from "./SectionItem";
 import { ListBoxModel, defaultListBoxState } from "./ListBoxModel";
-import { IListBoxItem, ListBoxProps, ListBoxRef } from "./types";
+import { IListBoxItem, ListBoxProps } from "./types";
 
 // --- Styled ---
 
@@ -52,7 +52,6 @@ const defaultRowHeight = 24;
 
 function ListBoxView<T = IListBoxItem>(
     props: ListBoxProps<T>,
-    ref: React.ForwardedRef<ListBoxRef>,
 ) {
     const reactId = useId();
     const model = useComponentModel(
@@ -61,15 +60,18 @@ function ListBoxView<T = IListBoxItem>(
         defaultListBoxState,
     );
     model.setReactId(reactId);
+    const onModel = props.onModel;
 
-    useImperativeHandle(
-        ref,
-        () => ({ scrollToIndex: model.scrollToIndex }),
-        [model],
-    );
+    useEffect(() => {
+        onModel?.(model);
+        return () => onModel?.(null);
+    }, [model, onModel]);
 
     const {
         name,
+        // Captured for model registration; do not forward the callback to the DOM root.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        onModel: _onModel,
         loading,
         emptyMessage,
         searchText,
@@ -206,7 +208,7 @@ function ListBoxView<T = IListBoxItem>(
             {...rest}
         >
             <RenderGrid
-                ref={model.setGridRef}
+                onModel={model.setGridRef}
                 columnCount={1}
                 rowCount={resolved.length}
                 columnWidth={columnWidth}
@@ -221,8 +223,8 @@ function ListBoxView<T = IListBoxItem>(
     );
 }
 
-export const ListBox = forwardRef(ListBoxView) as <T = IListBoxItem>(
-    props: ListBoxProps<T> & { ref?: React.Ref<ListBoxRef> },
+export const ListBox = ListBoxView as <T = IListBoxItem>(
+    props: ListBoxProps<T>,
 ) => React.ReactElement | null;
 
 // Re-export public types and the trait key from the canonical location, so consumers
@@ -233,6 +235,5 @@ export {
 export type {
     IListBoxItem,
     ListBoxProps,
-    ListBoxRef,
     ListItemRenderContext,
 } from "./types";

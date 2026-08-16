@@ -1,2 +1,2 @@
 export { ImageViewport } from "./ImageViewport";
-export type { ImageViewportProps, ImageViewportRef } from "./ImageViewport";
+export type { ImageViewportProps, ImageViewportModel } from "./ImageViewport";

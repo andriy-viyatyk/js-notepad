@@ -63,7 +63,7 @@ export function ImageView({ model }: ImageViewProps) {
                 borderBottom
                 rightContributions={rightActions}
             />
-            <ImageViewport ref={model.setImageRef} src={src} alt={alt} />
+            <ImageViewport onModel={model.setImageModel} src={src} alt={alt} />
         </>
     );
 }

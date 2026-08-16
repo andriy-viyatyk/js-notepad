@@ -11,7 +11,8 @@ import {
     Panel,
     Text,
 } from "../../uikit";
-import type { TreeRef, TreeItemRenderContext } from "../../uikit";
+import type { TreeItemRenderContext } from "../../uikit";
+import type { TreeModel } from "../../uikit/Tree/TreeModel";
 import { CloseIcon } from "../../theme/icons";
 import { TraitTypeId } from "../../core/traits";
 import type { TraitDragPayload } from "../../core/traits";
@@ -58,90 +59,37 @@ const Root = styled.div({
     outline: "none",
 }, { label: "TreeProviderViewRoot" });
 
-export interface TreeProviderViewRef {
-    refresh(): Promise<void>;
-    showSearch(): void;
-    hideSearch(): void;
-    collapseAll(): void;
-    getState(): TreeProviderViewSavedState;
-    /** Expand ancestors, load children if needed, and scroll to show item. */
-    revealItem(href: string): void;
-}
-
 export function TreeProviderView(
-    props: TreeProviderViewProps & { ref?: React.Ref<TreeProviderViewRef> },
+    props: TreeProviderViewProps & {
+        onModel?: (model: TreeProviderViewModel | null) => void;
+    },
 ) {
-    const { ref, ...viewProps } = props;
+    const { onModel, ...viewProps } = props;
     // Destructure named props referenced inside hook bodies so exhaustive-deps
     // can statically verify them (avoids the "missing dependency: 'props'" hint).
-    const { provider, getLabel, renderTrailing, onStateChange } = viewProps;
+    const { getLabel, renderTrailing } = viewProps;
     const model = useComponentModel(
         viewProps,
         TreeProviderViewModel,
         defaultTreeProviderViewState,
     );
     const state = model.state.use();
-    const treeRef = useRef<TreeRef>(null);
+    const treeModel = useRef<TreeModel<TreeProviderNode> | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Transient hover highlight — Tree routes onItemMouseEnter → onActiveChange,
     // and styles the [data-active] row. Visual-only, so view-local state (same
     // pattern as the Git "Branches & Tags" tree).
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
+    const setTreeModel = useCallback((tree: TreeModel<TreeProviderNode> | null) => {
+        treeModel.current = tree;
+        model.setTreeModel(tree);
+    }, [model]);
 
     useEffect(() => {
-        model.setTreeRef(treeRef.current);
-    });
-
-    // Expose ref methods
-    useEffect(() => {
-        if (!ref) return;
-        const refValue: TreeProviderViewRef = {
-            refresh: model.buildTree,
-            showSearch: () => {
-                model.showSearch();
-                setTimeout(() => searchInputRef.current?.focus(), 0);
-            },
-            hideSearch: () => {
-                model.hideSearch();
-                treeRef.current?.focus();
-            },
-            collapseAll: () => {
-                const rootPath = provider.rootPath;
-                treeRef.current?.collapseAll();
-                // Tree.collapseAll queues a microtask that walks every node including the
-                // root — re-expand root after that microtask settles, otherwise the root
-                // collapses and the user can't open it again (no chevron). setTimeout(0)
-                // sequences after the microtask queue.
-                setTimeout(() => {
-                    treeRef.current?.expandItem(rootPath);
-                    // collapseAll fires no per-node onExpandChange, so the selection prune
-                    // (epic D10) happens here, once the expansion map has settled.
-                    model.pruneSelectionToVisible();
-                }, 0);
-                // expandedPaths is hardcoded (expandItem above is queued, so getState can't
-                // see the re-expanded root yet); the selection rides along from the model and
-                // the prune inside the timeout re-persists it if it shrank.
-                onStateChange?.({ ...model.getState(), expandedPaths: [rootPath] });
-            },
-            getState: model.getState,
-            revealItem: model.revealItem,
-        };
-        if (typeof ref === "function") {
-            ref(refValue);
-        } else {
-            (ref as React.MutableRefObject<TreeProviderViewRef | null>).current = refValue;
-        }
-        return () => {
-            if (typeof ref === "function") {
-                ref(null);
-            } else {
-                (ref as React.MutableRefObject<TreeProviderViewRef | null>).current = null;
-            }
-        };
-    }, [ref, model, provider, onStateChange]);
-    // `model` is stable for the component's lifetime, so the ref object is not rebuilt
-    // by the added model.getState / pruneSelectionToVisible reads.
+        onModel?.(model);
+        return () => onModel?.(null);
+    }, [model, onModel]);
 
     const isDeepSearch = state.searchText.length >= 3;
     const showLinks = props.showLinks !== false;
@@ -268,7 +216,7 @@ export function TreeProviderView(
             e.preventDefault();
             e.stopPropagation();
             model.hideSearch();
-            treeRef.current?.focus();
+            treeModel.current?.focusRoot();
         }
     }, [state.searchVisible, model]);
 
@@ -277,7 +225,7 @@ export function TreeProviderView(
             e.preventDefault();
             e.stopPropagation();
             model.hideSearch();
-            treeRef.current?.focus();
+            treeModel.current?.focusRoot();
         }
     }, [model]);
 
@@ -289,7 +237,7 @@ export function TreeProviderView(
 
     const handleSearchClose = useCallback(() => {
         model.hideSearch();
-        treeRef.current?.focus();
+            treeModel.current?.focusRoot();
     }, [model]);
 
     const renderItem = useCallback((ctx: TreeItemRenderContext<TreeProviderNode>) => {
@@ -359,7 +307,7 @@ export function TreeProviderView(
             <Tree<TreeProviderNode>
                 name="tree-provider"
                 key={state.searchKey}
-                ref={treeRef}
+                onModel={setTreeModel}
                 items={tNodes}
                 getChildren={getNodeChildren}
                 isSelected={isSelected}

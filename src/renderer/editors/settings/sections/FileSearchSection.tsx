@@ -1,23 +1,29 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { settings } from "../../../api/settings";
 import { Panel } from "../../../uikit/Panel";
 import { Text } from "../../../uikit/Text";
 import { Textarea } from "../../../uikit/Textarea";
-import type { TextareaRef } from "../../../uikit/Textarea";
 
 export function FileSearchSection() {
     const searchExtensions = settings.use("search-extensions");
     const searchExclude = settings.use("search-exclude");
-    const extensionsRef = useRef<TextareaRef>(null);
-    const excludeRef = useRef<TextareaRef>(null);
+    const extensionsValue = useRef(searchExtensions.join(", "));
+    const excludeValue = useRef(searchExclude.join(", "));
+
+    useEffect(() => {
+        extensionsValue.current = searchExtensions.join(", ");
+    }, [searchExtensions]);
+    useEffect(() => {
+        excludeValue.current = searchExclude.join(", ");
+    }, [searchExclude]);
 
     const handleExtensionsBlur = useCallback(() => {
-        const value = extensionsRef.current?.getText() ?? "";
+        const value = extensionsValue.current;
         settings.set("search-extensions", value.split(",").map((item) => item.trim()).filter(Boolean));
     }, []);
 
     const handleExcludeBlur = useCallback(() => {
-        const value = excludeRef.current?.getText() ?? "";
+        const value = excludeValue.current;
         settings.set("search-exclude", value.split(",").map((item) => item.trim()).filter(Boolean));
     }, []);
 
@@ -28,7 +34,7 @@ export function FileSearchSection() {
                 <Text color="light" size="xs">File extensions included in content search (comma-separated)</Text>
             </Panel>
             <Textarea
-                ref={extensionsRef}
+                onChange={(value) => { extensionsValue.current = value; }}
                 singleLine
                 value={searchExtensions.join(", ")}
                 onBlur={handleExtensionsBlur}
@@ -42,7 +48,7 @@ export function FileSearchSection() {
                 </Text>
             </Panel>
             <Textarea
-                ref={excludeRef}
+                onChange={(value) => { excludeValue.current = value; }}
                 singleLine
                 value={searchExclude.join(", ")}
                 onBlur={handleExcludeBlur}

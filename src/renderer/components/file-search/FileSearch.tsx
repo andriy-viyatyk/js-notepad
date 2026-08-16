@@ -304,7 +304,7 @@ export function FileSearch({ folder, state: savedState, onStateChange, onResultC
             <div className="fs-results">
                 {filteredResults.length > 0 ? (
                     <RenderGrid
-                        ref={gridRef}
+                        onModel={(grid) => { gridRef.current = grid; }}
                         rowCount={filteredResults.length}
                         columnCount={1}
                         rowHeight={ROW_HEIGHT}
