@@ -350,7 +350,8 @@ persephone/
 │   ├── markdown/           # Markdown preview (text-bearing, IContentHost + TRAIT)
 │   │   ├── MarkdownEditor.ts         # EditorModel — search state, scroll, compact
 │   │   ├── MarkdownBody.tsx          # React component
-│   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (CSS, ReactMarkdown, search + anchor handle)
+│   │   ├── MarkdownBlock.tsx         # Reusable markdown rendering (ReactMarkdown, search + anchor handle)
+│   │   ├── MarkdownBlock.css         # Scoped stylesheet for generated Markdown DOM
 │   │   ├── CodeBlock.tsx             # Code block + inline Mermaid (+ copyImageToClipboard helper)
 │   │   ├── MarkdownImage.tsx         # Rendered image + hover toolbar (Copy / Open in new tab)
 │   │   ├── rehypeHighlight.ts        # Search text highlighting
@@ -369,6 +370,8 @@ persephone/
 │   │   ├── BrowserUrlBarModel.ts     # URL bar state
 │   │   ├── BrowserTargetModel.ts     # Automation adapter (implements IBrowserTarget)
 │   │   ├── BrowserTabsPanel.tsx      # Browser tab bar
+│   │   ├── BrowserTabsPanel.css      # Scoped browser-tab presentation
+│   │   ├── BrowserView.css           # Scoped browser/webview presentation
 │   │   ├── BookmarksDrawer.tsx       # Bookmarks panel
 │   │   ├── DownloadButton.tsx        # Download indicator
 │   │   ├── BrowserDownloadsPopup.tsx # Download list popup
@@ -452,6 +455,7 @@ persephone/
 │   │   ├── ForceGraphRenderer.ts     # D3 force simulation + canvas rendering
 │   │   ├── GraphVisibilityModel.ts   # BFS-based visibility filtering
 │   │   ├── GraphDetailPanel.tsx      # Collapsible detail panel overlay
+│   │   ├── GraphDetailPanel.css      # Scoped graph-detail presentation
 │   │   ├── GraphTuningSliders.tsx
 │   │   ├── GraphExpansionSettings.tsx
 │   │   ├── GraphLegendPanel.tsx
@@ -706,6 +710,7 @@ persephone/
 │   ├── TruncatedText/      # Overflow-ellipsis with hover title (replaces OverflowTooltipText)
 │   ├── Breadcrumb/         # Breadcrumb path navigation
 │   ├── Panel/              # Flex container (props-driven layout)
+│   ├── ImageViewport/      # Reusable zoom/pan image preview with clipboard copy
 │   ├── Spacer/             # Flex spacer (replaces FlexSpace)
 │   ├── Divider/            # Horizontal or vertical divider
 │   ├── Dot/                # Status dot indicator

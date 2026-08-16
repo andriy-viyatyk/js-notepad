@@ -477,7 +477,7 @@ back from tree-provider. **Fix in one move:** relocate `favicon-cache.ts` +
 Also: 12 deep imports from `editors/` bypass `components/tree-provider/index.ts` —
 `plural-actions` and `favicon-cache` are de-facto public API; export them from the barrel.
 
-### 3.3 Emotion in `editors/` (9 files) and hardcoded colors (8 sites)
+### 3.3 Emotion in `editors/` (9 files) and hardcoded colors (8 sites) — ✅ DONE (US-963, 2026-08-16)
 
 Emotion (rule: uikit + ui chrome only): `browser/BookmarksDrawer.tsx`,
 `browser/BrowserTabsPanel.tsx`, `browser/BrowserView.tsx`, `explorer/BoardsSecondaryView.tsx`,
@@ -490,6 +490,13 @@ argument).
 Hardcoded colors: `BrowserView.tsx:272` (`#ffffff`), `BookmarksDrawer.tsx:21`,
 `BrowserTabsPanel.tsx:82,141-144` (`GROUP_COLORS` raw rgba array duplicating
 `theme/palette-colors`), `mermaid/render-mermaid.ts:67,88`, `video/effects/CircularEffect.ts:94`.
+
+**✅ Outcome (US-963):** Emotion was removed from all surveyed editor files. The reusable image
+viewport moved to `uikit/ImageViewport/`; Browser, Graph, and Markdown presentation now use
+editor-local CSS; Monaco and Boards use existing UIKit primitives; and native/third-party adapters
+retain only narrowly scoped DOM styles. Browser webview background now uses a semantic theme token.
+Mermaid SVG contrast values and CircularEffect canvas colours remain explicit output-generation
+exceptions. `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
 
 ### 3.4 Main-loop blocking work (violates the project's own documented rule)
 

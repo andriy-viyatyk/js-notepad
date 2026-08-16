@@ -12,7 +12,7 @@ import { fs as appFs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { pagesModel } from "../../api/pages";
 import { pipeFromSourcePath } from "../../content/rebuild-pipe";
-import type { BaseImageViewRef } from "../shared/BaseImageView";
+import type { ImageViewportRef } from "../../uikit/ImageViewport";
 import type { IImageExport } from "../base/IImageExport";
 import type { MenuItem } from "../../uikit";
 import { rasterToPngBlob, savePngViaDialog } from "../shared/image-export";
@@ -66,9 +66,9 @@ export class ImageEditor extends EditorModel<ImageEditorState> implements IImage
     /** View's imperative handle (set by ImageView via setImageRef). Used
      *  by copyImageToClipboard to delegate to the shared BaseImageView's
      *  clipboard API. Mirrors GR3 (Graph) / DR3 (Draw). */
-    imageRef: BaseImageViewRef | null = null;
+    imageRef: ImageViewportRef | null = null;
 
-    setImageRef = (ref: BaseImageViewRef | null) => {
+    setImageRef = (ref: ImageViewportRef | null) => {
         this.imageRef = ref;
     };
 

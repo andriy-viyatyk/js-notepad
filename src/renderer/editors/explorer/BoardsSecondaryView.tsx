@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import styled from "@emotion/styled";
 
 import { app } from "../../api/app";
 import { fs } from "../../api/fs";
@@ -15,7 +14,7 @@ import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import { fpBasename, fpNormalizeForCompare } from "../../core/utils/file-path";
 import { removePin } from "../../ui/sidebar/pinned-items";
 import type { MenuItem } from "../../uikit";
-import { SegmentedControl } from "../../uikit";
+import { Dot, SegmentedControl } from "../../uikit";
 import type { SecondaryViewProps } from "../../ui/secondary-views/secondary-view-registry";
 import { SideBarPanelHeader } from "../../ui/secondary-views/SideBarPanelHeader";
 import type { ExplorerEditor } from "./ExplorerEditorModel";
@@ -25,37 +24,11 @@ import { Button } from "../../uikit/Button";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { CloseIcon, PlusIcon, BoardIcon, DeleteIcon, OpenLinkIcon, RemoveIcon, CopyIcon } from "../../theme/icons";
-import color from "../../theme/color";
 import { BoardsTree } from "../board/BoardsTree";
 import { ToolsTree } from "../tools/ToolsTree";
 import { useBusyBoardRoots } from "../board/busy-boards";
 import { errMessage } from "../../../shared/utils";
 
-/** "Running" indicator for a busy board (US-799) — its spawned processes are
- *  alive (possibly with the board itself unloaded). */
-const RunningDot = styled.span(
-    {
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        backgroundColor: color.misc.green,
-        flexShrink: 0,
-    },
-    { label: "RunningDot" },
-);
-
-/** Inner Boards/Tools switch row (US-805) — hosts the SegmentedControl and, in Boards mode,
- *  the "+ New board" button (moved here from the panel header). */
-const SwitchBar = styled.div(
-    {
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "8px 12px",
-        flexShrink: 0,
-    },
-    { label: "BoardsToolsSwitchBar" },
-);
 
 // The Boards sibling panel (EPIC-036 / US-761). Backed by ExplorerEditor (like Search), so it
 // inherits the Explorer `rootPath` as its scope and `page.id` for navigation. Lists the trusted
@@ -204,7 +177,7 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
     const busyRoots = useBusyBoardRoots();
     const renderTrailing = useCallback((root: string) => {
         if (!busyRoots.includes(fpNormalizeForCompare(root))) return undefined;
-        return <RunningDot title="Board processes are running" />;
+        return <Dot color="success" title="Board processes are running" />;
     }, [busyRoots]);
 
     const getBoardContextMenu = useCallback((root: string): MenuItem[] => [
@@ -294,7 +267,7 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
         <>
             <SideBarPanelHeader headerRef={headerRef} icon={icon} title="Boards" actions={actions} />
             {expanded && (
-                <SwitchBar>
+                <Panel name="boards-tools-switch-bar" align="center" gap="md" paddingX="lg" paddingY="md" shrink={false}>
                     <SegmentedControl
                         name="boards-tools-switch"
                         size="sm"
@@ -323,7 +296,7 @@ export default function BoardsSecondaryView({ model: rawModel, headerRef, icon, 
                             New board
                         </SplitButton>
                     )}
-                </SwitchBar>
+                </Panel>
             )}
             {tab === "boards" ? boardsBody : toolsBody}
         </>

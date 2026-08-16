@@ -26,6 +26,8 @@ export const solarizedLight: ThemeDefinition = {
         "--color-bg-message": "#DDD6C1",
         "--color-bg-overlay": "rgba(253, 246, 227, 0.8)",
         "--color-bg-overlay-hover": "rgba(253, 246, 227, 0.9)",
+        "--color-bg-webview": "#ffffff",
+        "--color-bg-backdrop": "rgba(0, 0, 0, 0.3)",
 
         // text
         "--color-text-default": "#657B83",

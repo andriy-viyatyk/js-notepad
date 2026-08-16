@@ -3,14 +3,14 @@ import { forwardRef, useEffect, useImperativeHandle } from "react";
 // Note: useEffect kept for visibility-check effect (runs every render, no effect() equivalent)
 import { TComponentModel, useComponentModel } from "../../core/state/model";
 import color from "../../theme/color";
-import { spacing, radius, fontSize } from "../../uikit/tokens";
-import { imageElementToPngBlob } from "./image-export";
+import { spacing, radius, fontSize } from "../tokens";
+import { imageElementToPngBlob } from "./image-raster";
 
 // ============================================================================
 // Styled Components
 // ============================================================================
 
-export const BaseImageViewRoot = styled.div(
+export const ImageViewportRoot = styled.div(
     {
         flex: "1 1 auto",
         display: "flex",
@@ -47,7 +47,7 @@ export const BaseImageViewRoot = styled.div(
             cursor: "grabbing",
         },
     },
-    { label: "BaseImageViewRoot" },
+    { label: "ImageViewportRoot" },
 );
 
 // ============================================================================
@@ -62,7 +62,7 @@ const ZOOM_STEP = 0.1;
 // ImageViewModel - manages zoom/pan state (decoupled from page model)
 // ============================================================================
 
-export const defaultImageViewState = {
+export const defaultImageViewportState = {
     scale: 1,
     translateX: 0,
     translateY: 0,
@@ -74,13 +74,13 @@ export const defaultImageViewState = {
     fitScale: 1,
 };
 
-export type ImageViewState = typeof defaultImageViewState;
+export type ImageViewportState = typeof defaultImageViewportState;
 
-interface ImageViewModelProps {
+interface ImageViewportModelProps {
     src: string;
 }
 
-export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewModelProps> {
+export class ImageViewportModel extends TComponentModel<ImageViewportState, ImageViewportModelProps> {
     containerRef: HTMLDivElement | null = null;
     imageRef: HTMLImageElement | null = null;
 
@@ -323,17 +323,17 @@ export class ImageViewModel extends TComponentModel<ImageViewState, ImageViewMod
 // BaseImageView Component - reusable image viewer with zoom/pan
 // ============================================================================
 
-export interface BaseImageViewRef {
+export interface ImageViewportRef {
     copyToClipboard: () => Promise<void>;
 }
 
-export interface BaseImageViewProps {
+export interface ImageViewportProps {
     src: string;
     alt?: string;
 }
 
-export const BaseImageView = forwardRef<BaseImageViewRef, BaseImageViewProps>(function BaseImageView({ src, alt = "Image" }, ref) {
-    const viewModel = useComponentModel({ src }, ImageViewModel, defaultImageViewState);
+export const ImageViewport = forwardRef<ImageViewportRef, ImageViewportProps>(function ImageViewport({ src, alt = "Image" }, ref) {
+    const viewModel = useComponentModel({ src }, ImageViewportModel, defaultImageViewportState);
     // Subscribe to full state - all properties affect rendering
     const state = viewModel.state.use();
 
@@ -356,7 +356,7 @@ export const BaseImageView = forwardRef<BaseImageViewRef, BaseImageViewProps>(fu
     const zoomPercent = viewModel.zoomPercent;
 
     return (
-        <BaseImageViewRoot
+        <ImageViewportRoot
             ref={viewModel.setContainerRef}
             data-type="image-view"
             data-dragging={state.isDragging || undefined}
@@ -383,6 +383,6 @@ export const BaseImageView = forwardRef<BaseImageViewRef, BaseImageViewProps>(fu
             >
                 {zoomPercent}%
             </div>
-        </BaseImageViewRoot>
+        </ImageViewportRoot>
     );
 });

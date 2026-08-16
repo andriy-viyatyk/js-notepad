@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import styled from "@emotion/styled";
 import { Panel, Splitter } from "../../uikit";
+import color from "../../theme/color";
 import { LinkBody } from "../link-editor/LinkBody";
 import {
     LinkActionBits,
@@ -15,19 +15,13 @@ import { BrowserSecondaryViews } from "./BrowserSecondaryViews";
 // (Rule 7 exception)
 // =============================================================================
 
-const BookmarksDrawerRoot = styled(Panel)({
-    "[data-bookmarks-backdrop]": {
-        flex: "1 1 auto",
-        backgroundColor: "rgba(0, 0, 0, 0.3)",
-    },
-    "[data-bookmarks-panel-wrap]": {
-        height: "100%",
-        transform: "translateX(100%)",
-        transition: "transform 80ms ease-in-out",
-    },
-    "&[data-open] [data-bookmarks-panel-wrap]": {
-        transform: "translateX(0)",
-    },
+const backdropStyle: React.CSSProperties = { flex: "1 1 auto", backgroundColor: color.background.backdrop };
+const panelWrapStyle = (width: number, open: boolean): React.CSSProperties => ({
+    width,
+    maxWidth: "90%",
+    height: "100%",
+    transform: open ? "translateX(0)" : "translateX(100%)",
+    transition: "transform 80ms ease-in-out",
 });
 
 // =============================================================================
@@ -82,16 +76,15 @@ export function BookmarksDrawer({
     if (!open) return null;
 
     return (
-        <BookmarksDrawerRoot
+        <Panel
             name="bookmarks-drawer-root"
             ref={rootRef}
             position="absolute" top={0} right={0} bottom={0} left={0} zIndex={6}
             direction="row"
-            data-open={isAnimating || undefined}
             onKeyDown={handleKeyDown}
             tabIndex={-1}
         >
-            <div data-bookmarks-backdrop onClick={onClose} />
+            <div data-bookmarks-backdrop onClick={onClose} style={backdropStyle} />
             <Splitter
                 name="bookmarks-splitter"
                 orientation="vertical"
@@ -102,7 +95,7 @@ export function BookmarksDrawer({
                 hoverBackground="light"
                 border="none"
             />
-            <div data-bookmarks-panel-wrap style={{ width, maxWidth: "90%" }}>
+            <div data-bookmarks-panel-wrap style={panelWrapStyle(width, isAnimating)}>
                 <Panel
                     name="bookmarks-panel"
                     ref={panelRef}
@@ -137,6 +130,6 @@ export function BookmarksDrawer({
                     </Panel>
                 </Panel>
             </div>
-        </BookmarksDrawerRoot>
+        </Panel>
     );
 }

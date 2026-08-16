@@ -108,9 +108,11 @@ return <Button onClick={() => doSomething()} />;
 
 > **Where Emotion is allowed:** Emotion is the styling tool for `src/renderer/uikit/` (the standalone component library) and for the chrome surfaces inside `src/renderer/ui/` (page tab strip, sidebar, navigation bar — one-of-a-kind app chrome). Application code outside those scopes — including `editors/`, `components/` (KEEP folders), and feature code — **must not** use `styled.*`, `import { css }`, or pass `style=` / `className=` to UIKit components. Compose UIKit primitives by props instead. For the full set of UIKit authoring rules (data-attribute state model, controlled-component contract, trait-based data binding, naming, etc.), see [`src/renderer/uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md) — that file is the canonical authoring reference; this section is the project-wide rule.
 
-### Single Styled Root with Nested Class-Based Styles
+When an editor owns presentation for generated content or a third-party/native host, keep that CSS in a stylesheet beside the editor and scope it below a semantic editor root (for example, `MarkdownBlock.css` or `BrowserView.css`). Such styles are an editor boundary, not a new UIKit primitive or a generic styling escape hatch. Prefer existing UIKit layout and control props for the surrounding chrome; reserve native `style` values for runtime geometry or integration details that cannot be expressed semantically.
 
-For components with multiple child elements, create **one styled component** for the root element and style all children using nested class selectors. This keeps styles organized and easier to read.
+### Single Styled Root with Nested Class-Based Styles (UIKit and App Chrome)
+
+For UIKit and one-of-a-kind app-chrome components with multiple child elements, create **one styled component** for the root element and style all children using nested class selectors. Editor components use the scoped stylesheet convention above instead. This keeps styles organized and easier to read.
 
 ```typescript
 // GOOD - single styled root with nested classes

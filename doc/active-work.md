@@ -8,8 +8,7 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- *(no epic)*
-  - *(no active tasks)*
+*(nothing active)*
 
 ## Planned
 *(nothing planned — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*

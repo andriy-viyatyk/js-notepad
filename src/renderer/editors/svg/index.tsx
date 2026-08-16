@@ -9,13 +9,13 @@ import { DrawIcon } from "../../theme/language-icons";
 import { pagesModel } from "../../api/pages";
 import { buildExcalidrawJsonWithImage, getImageDimensions } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
-import type { BaseImageViewRef } from "../shared/BaseImageView";
+import type { ImageViewportRef } from "../../uikit/ImageViewport";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
 interface SvgToolbarBitsProps {
     model: SvgEditor;
-    imageRef: React.MutableRefObject<BaseImageViewRef | null>;
+    imageRef: React.MutableRefObject<ImageViewportRef | null>;
 }
 
 function SvgToolbarBits({ model, imageRef }: SvgToolbarBitsProps) {
@@ -63,7 +63,7 @@ function SvgEditorView({ model }: { model: EditorModel }) {
     // SV2 — view-local imageRef bridges the BaseImageView imperative handle
     // to the toolbar's copy button. Held by the view (NOT the editor) because
     // it's a purely view-side imperative concern with no model/facade consumer.
-    const imageRef = useRef<BaseImageViewRef | null>(null);
+    const imageRef = useRef<ImageViewportRef | null>(null);
     return (
         <TextChrome
             model={model}

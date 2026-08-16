@@ -1,13 +1,12 @@
-import styled from "@emotion/styled";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useFloating, offset as floatingOffset, autoUpdate } from "@floating-ui/react";
-import color from "../../theme/color";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
 import { CloseIcon, GlobeIcon, PlusIcon, VolumeIcon, VolumeMutedIcon } from "../../theme/icons";
 import { BrowserEditorModel, BrowserTabData } from "./BrowserEditorModel";
 import { Panel, IconButton } from "../../uikit";
 import type { MenuItem } from "../../uikit";
 import { ContextMenuEvent } from "../../api/events/events";
+import "./BrowserTabsPanel.css";
 
 /** Below this width, hide tab titles and show icon-only compact mode. */
 const COMPACT_THRESHOLD = 70;
@@ -18,105 +17,6 @@ const CLOSE_BUTTON_THRESHOLD = 100;
 // ============================================================================
 // Styled — single styled(Panel) wrapper holding tabs strip chrome (Rule 7 exception)
 // ============================================================================
-
-const BrowserTabsRoot = styled(Panel)({
-    "[data-tab-item]": {
-        display: "flex",
-        alignItems: "center",
-        height: 28,
-        boxSizing: "border-box",
-        padding: "0 4px 0 6px",
-        margin: "0 4px 0 8px",
-        gap: 6,
-        cursor: "pointer",
-        borderRadius: 4,
-        border: "1px solid transparent",
-        position: "relative",
-        "&::before": {
-            content: '""',
-            position: "absolute",
-            left: -5,
-            top: 2,
-            bottom: 2,
-            width: 2,
-            borderRadius: 1,
-            backgroundColor: "var(--group-color)",
-        },
-        "&:hover": { backgroundColor: color.background.light },
-        "&[data-active]": {
-            backgroundColor: color.background.dark,
-            borderColor: color.border.active,
-        },
-        "&[data-compact]": {
-            justifyContent: "center",
-            padding: "0 4px",
-            margin: "0 4px",
-        },
-        "&[data-hover-extended]": { borderRadius: "4px 0 0 4px" },
-        "&[data-dragging]": { opacity: 0.4 },
-        "&[data-drop-target]": { borderColor: color.border.active },
-
-        "& [data-tab-close]": {
-            opacity: 0,
-            transition: "opacity 80ms",
-        },
-        "&:hover [data-tab-close], &[data-active] [data-tab-close]": {
-            opacity: 1,
-        },
-    },
-    "[data-tab-favicon]": {
-        width: 14,
-        height: 14,
-        flexShrink: 0,
-        "& svg": {
-            width: 14,
-            height: 14,
-            color: color.icon.default,
-            "&[data-hidden]": { display: "none" },
-        },
-        "& img": {
-            width: 14,
-            height: 14,
-            display: "block",
-            objectFit: "contain",
-            filter: "drop-shadow(0 0 1.5px rgba(255,255,255,0.9))",
-        },
-    },
-    "[data-tab-title]": {
-        flex: "1 1 auto",
-        fontSize: 12,
-        color: color.text.default,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-    },
-    "[data-tab-extension]": {
-        display: "flex",
-        alignItems: "center",
-        width: 140,
-        height: 28,
-        boxSizing: "border-box",
-        padding: "0 4px 0 6px",
-        gap: 6,
-        borderRadius: "0 4px 4px 0",
-        border: `1px solid ${color.border.default}`,
-        borderLeft: "none",
-        backgroundColor: color.background.light,
-        "& [data-part='title']": {
-            flex: "1 1 auto",
-            fontSize: 12,
-            color: color.text.default,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-        },
-        "&[data-active]": {
-            backgroundColor: color.background.dark,
-            borderColor: color.border.active,
-            borderLeft: "none",
-        },
-    },
-});
 
 // =============================================================================
 // Tab Item
@@ -137,11 +37,6 @@ interface TabItemProps {
     onMouseEnter?: (e: React.MouseEvent<HTMLDivElement>, tabId: string) => void;
     onMouseLeave?: () => void;
 }
-
-const GROUP_COLORS = [
-    "rgba(255,255,255,0.25)",
-    "rgba(255,255,255,0.55)",
-];
 
 function TabItem({
     tab, model, isActive, compact, showClose, isHovered, groupColorIndex,
@@ -195,8 +90,6 @@ function TabItem({
         model.moveTab(data.tabId, tab.id);
     }, [model, tab.id]);
 
-    const groupBorderColor = GROUP_COLORS[groupColorIndex % GROUP_COLORS.length];
-
     return (
         <div
             draggable
@@ -212,7 +105,7 @@ function TabItem({
             data-dragging={isDragging || undefined}
             data-drop-target={isOver || undefined}
             data-hover-extended={isHovered || undefined}
-            style={{ "--group-color": groupBorderColor } as React.CSSProperties}
+            data-group-color={groupColorIndex % 2}
             onClick={() => onSwitch(tab.id)}
             onContextMenu={(e) => onContextMenu(e, tab.id)}
             onMouseEnter={onMouseEnter ? (e) => onMouseEnter(e, tab.id) : undefined}
@@ -400,7 +293,8 @@ export function BrowserTabsPanel({
     );
 
     return (
-        <BrowserTabsRoot
+        <div className="browser-tabs-root">
+            <Panel
             name="browser-tabs-root"
             direction="column" overflow="hidden" background="default"
             width="100%" height="100%"
@@ -473,6 +367,7 @@ export function BrowserTabsPanel({
                     />
                 </div>
             )}
-        </BrowserTabsRoot>
+            </Panel>
+        </div>
     );
 }

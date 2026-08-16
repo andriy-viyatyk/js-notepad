@@ -1,10 +1,10 @@
-import styled from "@emotion/styled";
 import { SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AVGrid, Button, Input, Panel, detectColumnWidth, type CellFocus, type Column } from "../../uikit";
 import { GraphNode, NodeShape, nodeLabel, isReservedPropertyKey } from "./types";
 import color from "../../theme/color";
 import { ChevronDownIcon, ChevronUpIcon } from "../../theme/icons";
 import { ShapeIcon, LevelIcon } from "./GraphIcons";
+import "./GraphDetailPanel.css";
 
 // =============================================================================
 // Constants
@@ -205,17 +205,6 @@ const resizerStyle: React.CSSProperties = {
     cursor: "sw-resize",
     opacity: 0.4,
 };
-
-const DetailPanelRoot = styled(Panel)({
-    position: "absolute",
-    top: 8,
-    right: 8,
-    zIndex: 1,
-    fontSize: 12,
-    userSelect: "none",
-    "& .data-cell.cell-error": { color: color.error.text },
-    "& .data-cell.cell-mixed": { color: color.warning.text },
-});
 
 // =============================================================================
 // Props
@@ -451,7 +440,7 @@ function GraphDetailPanel({
     };
 
     return (
-        <DetailPanelRoot name="graph-detail-panel" direction="column">
+        <div className="graph-detail-panel">
             <div style={headerStyle} onClick={toggleExpanded}>
                 <span style={panelTitleStyle} title={headerText}>{headerText}</span>
                 {hasSelection && (
@@ -536,7 +525,7 @@ function GraphDetailPanel({
                     </div>
                 </div>
             )}
-        </DetailPanelRoot>
+        </div>
     );
 }
 

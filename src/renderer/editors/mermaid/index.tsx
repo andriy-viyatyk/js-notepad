@@ -14,13 +14,13 @@ import {
 } from "../draw/drawExport";
 import { savePngViaDialog } from "../shared/image-export";
 import { ui } from "../../api/ui";
-import type { BaseImageViewRef } from "../shared/BaseImageView";
+import type { ImageViewportRef } from "../../uikit/ImageViewport";
 import type { EditorModule } from "../base/editorRegistry";
 import type { EditorModel } from "../base/EditorModel";
 
 interface MermaidToolbarBitsProps {
     model: MermaidEditor;
-    imageRef: React.MutableRefObject<BaseImageViewRef | null>;
+    imageRef: React.MutableRefObject<ImageViewportRef | null>;
 }
 
 function MermaidToolbarBits({ model, imageRef }: MermaidToolbarBitsProps) {
@@ -116,7 +116,7 @@ function MermaidEditorView({ model }: { model: EditorModel }) {
     // MR2 — view-local imageRef bridges the BaseImageView imperative handle
     // to the toolbar's copy button (mirrors SV2 from Svg). Held by the view
     // (NOT the editor) because it's a purely view-side imperative concern.
-    const imageRef = useRef<BaseImageViewRef | null>(null);
+    const imageRef = useRef<ImageViewportRef | null>(null);
     return (
         <TextChrome
             model={model}

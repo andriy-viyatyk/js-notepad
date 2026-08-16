@@ -3,7 +3,7 @@ import { IconButton } from "../../uikit";
 import { WithMenu } from "../../uikit/Menu";
 import { CopyIcon, SaveIcon } from "../../theme/icons";
 import { DrawIcon } from "../../theme/language-icons";
-import { BaseImageView } from "../shared/BaseImageView";
+import { ImageViewport } from "../../uikit/ImageViewport";
 import { fpBasename } from "../../core/utils/file-path";
 import { ImageEditor, type ImageEditorState } from "./ImageEditor";
 
@@ -63,7 +63,7 @@ export function ImageView({ model }: ImageViewProps) {
                 borderBottom
                 rightContributions={rightActions}
             />
-            <BaseImageView ref={model.setImageRef} src={src} alt={alt} />
+            <ImageViewport ref={model.setImageRef} src={src} alt={alt} />
         </>
     );
 }

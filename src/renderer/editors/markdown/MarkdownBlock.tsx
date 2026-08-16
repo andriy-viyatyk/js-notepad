@@ -1,9 +1,7 @@
 import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import styled from "@emotion/styled";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import color from "../../theme/color";
 import { CheckedIcon, CopyIcon, OpenFileIcon, UncheckedIcon } from "../../theme/icons";
 import { appendLinkOpenMenuItems } from "../shared/link-open-menu";
 import { ContextMenuEvent } from "../../api/events/events";
@@ -15,6 +13,7 @@ import { isCurrentThemeDark } from "../../theme/themes";
 import { settings } from "../../api/settings";
 import { resolveRelatedLink } from "../../core/utils/path-utils";
 import { detectGitRoot } from "./detect-git-root";
+import "./MarkdownBlock.css";
 
 // =============================================================================
 // Types
@@ -53,332 +52,8 @@ export interface MarkdownBlockHandle {
 // Styled root — all markdown content CSS
 // =============================================================================
 
-const MarkdownBlockRoot = styled.div({
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif',
-    fontSize: 16,
-    lineHeight: 1.5,
-    wordWrap: "break-word",
-    "& > *": {
-        maxWidth: "100%",
-        wordWrap: "break-word",
-        overflowWrap: "break-word",
-    },
 
-    // Code block wrapper (from PreBlock component)
-    "& .code-block-wrapper": {
-        position: "relative",
-        width: "fit-content",
-        maxWidth: "100%",
-        "& .copy-btn": {
-            position: "absolute",
-            top: 6,
-            right: 6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 4,
-            color: color.text.light,
-            backgroundColor: color.background.light,
-            border: `1px solid ${color.border.default}`,
-            borderRadius: 4,
-            cursor: "pointer",
-            opacity: 0,
-            transition: "opacity 0.2s ease",
-            "& svg": {
-                transition: "transform 0.15s ease-out",
-            },
-            "&:hover": {
-                opacity: 1,
-            },
-            "&.copied svg": {
-                transform: "scale(0.65)",
-                transition: "transform 0.1s ease-in",
-            },
-            "&.copied": {
-                opacity: 1,
-            },
-        },
-        "&:hover .copy-btn": {
-            opacity: 0.5,
-        },
-        "&:hover .copy-btn:hover": {
-            opacity: 1,
-        },
-        "&:hover .copy-btn.copied": {
-            opacity: 1,
-        },
-    },
 
-    // Mermaid diagrams rendered from ```mermaid code blocks
-    "& .mermaid-diagram": {
-        position: "relative",
-        margin: "1em 0",
-        textAlign: "center",
-        "& img": {
-            maxWidth: "100%",
-            height: "auto",
-        },
-        // Toolbar floats just above the diagram (it has vertical margin around it)
-        "& .diagram-toolbar": {
-            top: -10,
-            right: 0,
-        },
-    },
-    // Rendered images get the same hover toolbar (Copy / Open in new tab).
-    // Inline-level, so the wrapper hugs the image and the toolbar overlays its
-    // top-right corner.
-    "& .md-image": {
-        position: "relative",
-        display: "inline-block",
-        width: "fit-content",
-        maxWidth: "100%",
-        "& .diagram-toolbar": {
-            top: 6,
-            right: 6,
-        },
-    },
-    // Shared hover toolbar — mermaid diagrams + rendered images
-    "& .mermaid-diagram .diagram-toolbar, & .md-image .diagram-toolbar": {
-        position: "absolute",
-        display: "flex",
-        gap: 4,
-        opacity: 0,
-        transition: "opacity 0.2s ease",
-    },
-    "& .mermaid-diagram .toolbar-btn, & .md-image .toolbar-btn": {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 4,
-        color: color.text.light,
-        backgroundColor: color.background.light,
-        border: `1px solid ${color.border.default}`,
-        borderRadius: 4,
-        cursor: "pointer",
-        "& svg": {
-            transition: "transform 0.15s ease-out",
-        },
-        "&:hover": {
-            color: color.text.default,
-        },
-        "&.copied svg": {
-            transform: "scale(0.65)",
-            transition: "transform 0.1s ease-in",
-        },
-    },
-    "& .mermaid-diagram:hover .diagram-toolbar, & .md-image:hover .diagram-toolbar": {
-        opacity: 0.5,
-    },
-    "& .mermaid-diagram:hover .diagram-toolbar:hover, & .md-image:hover .diagram-toolbar:hover": {
-        opacity: 1,
-    },
-    "& .mermaid-diagram.mermaid-loading": {
-        padding: "2em",
-        color: color.text.light,
-        fontSize: 13,
-    },
-    "& .mermaid-error": {
-        margin: "1em 0",
-        padding: "1em",
-        backgroundColor: color.background.dark,
-        borderRadius: 6,
-        color: color.misc.red,
-        fontSize: 13,
-    },
-
-    // Code blocks
-    "& pre": {
-        maxWidth: "100%",
-        whiteSpace: "pre-wrap",
-        wordWrap: "break-word",
-        padding: 16,
-        backgroundColor: color.background.dark,
-        borderRadius: 6,
-        fontSize: "85%",
-        lineHeight: 1.45,
-        width: "fit-content",
-    },
-    // Code inside pre — reset inline code styles
-    "& pre code": {
-        display: "inline",
-        padding: 0,
-        backgroundColor: "transparent",
-        borderRadius: 0,
-        fontSize: "inherit",
-    },
-    // Inline code
-    "& code": {
-        display: "inline-block",
-        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-        backgroundColor: color.background.light,
-        padding: ".2em .4em",
-        borderRadius: 6,
-        fontSize: "85%",
-    },
-    "& img": {
-        maxWidth: "100%",
-        height: "auto",
-        boxSizing: "content-box",
-    },
-    "& a": {
-        color: color.misc.link,
-        textDecoration: "none",
-        "&:hover": {
-            textDecoration: "underline",
-        },
-        "& strong": {
-            color: color.misc.link,
-        },
-    },
-
-    // Headings
-    "& h1, & h2, & h3, & h4, & h5, & h6": {
-        marginTop: "1.5rem",
-        marginBottom: "1rem",
-        fontWeight: 600,
-        lineHeight: 1.25,
-    },
-    "& h1": {
-        paddingBottom: ".3em",
-        fontSize: "2em",
-        borderBottom: `1px solid ${color.border.default}`,
-    },
-    "& h2": {
-        paddingBottom: ".3em",
-        fontSize: "1.5em",
-        borderBottom: `1px solid ${color.border.default}`,
-    },
-    "& h3": {
-        fontSize: "1.25em",
-    },
-    "& h4": {
-        fontSize: "1em",
-    },
-    "& h5": {
-        fontSize: ".875em",
-    },
-    "& h6": {
-        fontSize: ".85em",
-        color: color.text.light,
-    },
-
-    // Lists
-    "& ul, & ol": {
-        paddingLeft: "2em",
-    },
-    "& li + li": {
-        marginTop: ".25em",
-    },
-    "& li": {
-        lineHeight: 1.5,
-    },
-    // Nested list styles
-    "& ol ol, & ul ol": {
-        listStyleType: "lower-roman",
-    },
-    "& ul ul ol, & ul ol ol, & ol ul ol, & ol ol ol": {
-        listStyleType: "lower-alpha",
-    },
-
-    // Tables
-    "& table": {
-        borderSpacing: 0,
-        borderCollapse: "collapse",
-        width: "max-content",
-        maxWidth: "100%",
-        overflow: "auto",
-        marginTop: "1em",
-        marginBottom: "1em",
-    },
-    "& th, & td": {
-        border: `1px solid ${color.border.default}`,
-        padding: "6px 13px",
-        textAlign: "left",
-    },
-    "& th": {
-        fontWeight: 600,
-    },
-    "& tr": {
-        borderTop: `1px solid ${color.border.default}`,
-    },
-    "& tr:nth-of-type(2n)": {
-        backgroundColor: color.background.dark,
-    },
-
-    "& blockquote": {
-        margin: 0,
-        borderLeft: `.25em solid ${color.border.default}`,
-        color: color.text.light,
-        padding: "0 1em",
-    },
-    "& b, & strong": {
-        color: color.text.strong,
-    },
-    "& .task-list-item": {
-        display: "flex",
-        alignItems: "center",
-        "& svg": {
-            flexShrink: 0,
-            marginRight: 6,
-        },
-    },
-    "& hr": {
-        height: ".25em",
-        padding: 0,
-        margin: "1.5rem 0",
-        backgroundColor: color.border.default,
-        border: 0,
-    },
-    "& sup": {
-        marginLeft: 3,
-    },
-    "& p": {
-        marginTop: 0,
-        marginBottom: 10,
-        lineHeight: 1.5,
-    },
-
-    // Compact mode — reduced font size and spacing
-    "&.compact": {
-        fontSize: 14,
-        lineHeight: 1.2,
-    },
-    "&.compact h1, &.compact h2, &.compact h3, &.compact h4, &.compact h5, &.compact h6": {
-        marginTop: ".4rem",
-        marginBottom: ".25rem",
-        lineHeight: 1.1,
-    },
-    "&.compact h1": { fontSize: "1.4em" },
-    "&.compact h2": { fontSize: "1.2em" },
-    "&.compact h3": { fontSize: "1.05em" },
-    "&.compact pre": {
-        padding: "6px 10px",
-        lineHeight: 1.3,
-    },
-    "&.compact th, &.compact td": {
-        padding: "3px 6px",
-    },
-    "&.compact hr": {
-        margin: ".4rem 0",
-    },
-    "&.compact p": {
-        marginBottom: 3,
-        lineHeight: 1.25,
-    },
-    "&.compact li": {
-        lineHeight: 1.25,
-    },
-    "&.compact li + li": {
-        marginTop: ".1em",
-    },
-    "&.compact ul, &.compact ol": {
-        marginTop: 2,
-        marginBottom: 2,
-    },
-    "&.compact blockquote": {
-        padding: "0 .75em",
-    },
-});
 
 // =============================================================================
 // Azure DevOps wiki container syntax → standard fenced code block
@@ -641,11 +316,11 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
         }), []);
 
         const rootClassName = compact
-            ? className ? `compact ${className}` : "compact"
-            : className || undefined;
+            ? className ? `markdown-block compact ${className}` : "markdown-block compact"
+            : className ? `markdown-block ${className}` : "markdown-block";
 
         return (
-            <MarkdownBlockRoot
+            <div
                 ref={rootRef}
                 className={rootClassName}
                 style={style}
@@ -661,7 +336,7 @@ export const MarkdownBlock = forwardRef<MarkdownBlockHandle, MarkdownBlockProps>
                 >
                     {processedContent}
                 </ReactMarkdown>
-            </MarkdownBlockRoot>
+            </div>
         );
     },
 );

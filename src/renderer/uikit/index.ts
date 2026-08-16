@@ -10,6 +10,8 @@ export type {
 } from "./CollapsiblePanelStack";
 export { Minimap } from "./Minimap";
 export type { MinimapProps } from "./Minimap";
+export { ImageViewport } from "./ImageViewport";
+export type { ImageViewportProps, ImageViewportRef } from "./ImageViewport";
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
 export { Spacer } from "./Spacer";

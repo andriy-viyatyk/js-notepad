@@ -80,6 +80,8 @@ export const defaultDark: ThemeDefinition = {
         "--color-bg-message": "#313131",
         "--color-bg-overlay": "rgba(0, 0, 0, 0.6)",
         "--color-bg-overlay-hover": "rgba(0, 0, 0, 0.8)",
+        "--color-bg-webview": "#ffffff",
+        "--color-bg-backdrop": "rgba(0, 0, 0, 0.3)",
 
         // text
         "--color-text-default": "#cccccc",

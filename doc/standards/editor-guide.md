@@ -151,16 +151,9 @@ The lifecycle hook order during a switch is:
 
 ```typescript
 // MyEditorBody.tsx (or MyEditorView.tsx for non-text editors)
-import styled from "@emotion/styled";
 import { MyEditor } from "./MyEditor";
+import { Panel } from "../../uikit/Panel/Panel";
 import { Spinner } from "../../uikit/Spinner/Spinner";
-
-const Root = styled.div({
-    flex: "1 1 auto",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-});
 
 interface Props {
     model: MyEditor;
@@ -174,15 +167,19 @@ export function MyEditorBody({ model }: Props) {
 
     if (isLoading) {
         return (
-            <Root style={{ alignItems: "center", justifyContent: "center" }}>
+            <Panel flex direction="column" overflow="hidden" align="center" justify="center">
                 <Spinner size={24} />
-            </Root>
+            </Panel>
         );
     }
 
-    return <Root>Your editor content: {customData}</Root>;
+    return <Panel flex direction="column" overflow="hidden">Your editor content: {customData}</Panel>;
 }
 ```
+
+For generated-content renderers or third-party/native hosts, import a stylesheet beside the
+editor and scope its selectors below a semantic editor root. Do not add a general-purpose
+`className` or `style` escape hatch to UIKit to carry those rules.
 
 For text-bearing editors, compose the shared chrome:
 

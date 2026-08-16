@@ -85,6 +85,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Shared text-host footer (`script` toggle · `footerContributions` slot · provider icon · encoding label; extracted from `TextChrome` so it's shared by built-in text editors and content-host boards via `BoardEditorView` — boards fill the contributions slot with a footer status label via `persephone.setStatusText`) | `/src/renderer/editors/base/ContentHostFooter.tsx` |
 | Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image/HTML) | `/src/renderer/editors/base/IImageExport.ts` |
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
+| Reusable image viewport (zoom/pan model, fit/reset behavior, and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
 | Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.tsx` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |

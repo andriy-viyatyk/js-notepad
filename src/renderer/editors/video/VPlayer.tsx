@@ -6,7 +6,6 @@ import "video.js/dist/video-js.css";
 import type { HlsConfig } from "hls.js";
 import { useEffect, useRef } from "react";
 import type Player from "video.js/dist/types/player";
-import styled from "@emotion/styled";
 import { Panel } from "../../uikit";
 import type { VideoFormat, PlayerState } from "./video-types";
 import type { ParsedHttpRequest } from "../../core/utils/curl-parser";
@@ -40,22 +39,8 @@ export interface VPlayerProps {
 
 // ── Styled root ──────────────────────────────────────────────────────────────
 
-// styled(Panel) wrapper — Rule 7 exception for video.js library descendant CSS
-// (.video-js, .vjs-*, [data-vjs-player]). Removable when video.js is replaced.
-const VideoRoot = styled(Panel)({
-    "[data-vjs-player], .video-js": {
-        width: "100%",
-        height: "100%",
-    },
-    "&[data-empty] .vjs-modal-dialog-content": {
-        display: "none",
-    },
-    "& video.native": {
-        width: "100%",
-        height: "100%",
-        outline: "none",
-    },
-});
+const playerStyle: React.CSSProperties = { width: "100%", height: "100%" };
+const nativePlayerStyle: React.CSSProperties = { ...playerStyle, outline: "none" };
 
 // ── HLS sub-component (video.js + hls.js) ────────────────────────────────────
 
@@ -134,7 +119,7 @@ function HlsPlayer({
         }
     }, [muted]);
 
-    return <video ref={videoRef} className="video-js" />;
+    return <video ref={videoRef} className="video-js" style={playerStyle} />;
 }
 
 // ── Native sub-component (plain <video> for MP4/WebM/etc.) ───────────────────
@@ -201,6 +186,7 @@ function NativePlayer({
         <video
             ref={videoRef}
             className="native"
+            style={nativePlayerStyle}
             src={src}
             controls
             autoPlay
@@ -236,7 +222,7 @@ export function VPlayer({
     const isAudio = format === "audio";
 
     return (
-        <VideoRoot name="vplayer-root" position="absolute" top={0} right={0} bottom={0} left={0} data-empty={src ? undefined : ""}>
+        <Panel name="vplayer-root" position="absolute" top={0} right={0} bottom={0} left={0}>
             {src && isHls && (
                 <HlsPlayer
                     src={src}
@@ -268,6 +254,6 @@ export function VPlayer({
                     onToggleShuffle={onToggleShuffle}
                 />
             )}
-        </VideoRoot>
+        </Panel>
     );
 }

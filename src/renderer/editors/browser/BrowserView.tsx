@@ -1,6 +1,5 @@
 import { memo, useEffect, useRef } from "react";
 const { ipcRenderer } = require("electron");
-import styled from "@emotion/styled";
 import { EditorToolbar } from "../base/EditorToolbar";
 import color from "../../theme/color";
 import { Panel, Input, Button, IconButton, Spinner, Text, Dot, Splitter, WithMenu } from "../../uikit";
@@ -38,70 +37,10 @@ import { BrowserBookmarks } from "./BrowserBookmarks";
 import { DownloadButton } from "./DownloadButton";
 import { FindBar } from "../shared/FindBar";
 import { PageManager } from "../../components/page-manager/PageManager";
+import "./BrowserView.css";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WEBVIEW_PRELOAD_URL = (window as any).webviewPreloadUrl as string;
-
-// ============================================================================
-// Styled — single styled(Panel) wrapper holding chrome quirks (Rule 7 exception)
-// ============================================================================
-
-const BrowserRoot = styled(Panel)({
-    "@keyframes browser-loading-pulse": {
-        "0%":   { opacity: 0.3 },
-        "50%":  { opacity: 1 },
-        "100%": { opacity: 0.3 },
-    },
-    "[data-browser-loading-bar]": {
-        height: 2,
-        backgroundColor: color.border.active,
-        animation: "browser-loading-pulse 1.5s ease-in-out infinite",
-    },
-    "[data-search-engine-chip]": {
-        cursor: "pointer",
-        fontSize: 11,
-        color: color.text.light,
-        padding: "0 4px",
-        borderRadius: 3,
-        whiteSpace: "nowrap",
-        userSelect: "none",
-        lineHeight: "20px",
-        background: "transparent",
-        border: "none",
-        "&:hover": {
-            color: color.text.default,
-            backgroundColor: color.background.light,
-        },
-    },
-    "[data-tor-indicator]": {
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "0 2px",
-        position: "relative",
-        "& svg": { width: 14, height: 14 },
-    },
-    "[data-tor-status-dot]": {
-        position: "absolute",
-        bottom: 0,
-        right: 0,
-    },
-    "[data-webview-wrapper]": {
-        position: "absolute",
-        top: 0, right: 0, bottom: 0, left: 0,
-        display: "flex",
-        "& webview": {
-            flex: "1 1 auto",
-            border: "none",
-        },
-    },
-    "[data-webview-click-overlay]": {
-        position: "absolute",
-        top: 0, right: 0, bottom: 0, left: 0,
-        zIndex: 1,
-    },
-});
 
 // ============================================================================
 // BrowserWebviewItem — manages a single webview and its IPC registration
@@ -263,7 +202,7 @@ function BrowserWebviewItemImpl({
                 style={{
                     backgroundColor: isBlankUrl(tab.url)
                         ? color.background.default
-                        : "#ffffff",
+                        : color.background.webview,
                 }}
                 partition={partition}
                 preload={WEBVIEW_PRELOAD_URL}
@@ -491,12 +430,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
     const suggestionsItems = urlBar.suggestionsItems;
 
     return (
-        <BrowserRoot
-            name="browser-root"
-            direction="column" flex={1} overflow="hidden"
-            onKeyDown={webview.handleKeyDown}
-            tabIndex={-1}
-        >
+        <div className="browser-root" onKeyDown={webview.handleKeyDown} tabIndex={-1}>
             <EditorToolbar borderBottom>
                 <Panel name="browser-toolbar-content" direction="row" align="center" flex={1} gap="xs">
                     <IconButton
@@ -734,7 +668,7 @@ function BrowserEditorView({ model }: BrowserEditorViewProps) {
                 onSelect={urlBar.handleSuggestionSelect}
                 onClearVisible={suggestionsMode === "search" ? urlBar.handleClearVisible : undefined}
             />
-        </BrowserRoot>
+        </div>
     );
 }
 

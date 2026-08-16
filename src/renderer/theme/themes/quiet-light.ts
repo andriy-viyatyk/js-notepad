@@ -25,6 +25,8 @@ export const quietLight: ThemeDefinition = {
         "--color-bg-message": "#EBEBEB",
         "--color-bg-overlay": "rgba(245, 245, 245, 0.85)",
         "--color-bg-overlay-hover": "rgba(245, 245, 245, 0.95)",
+        "--color-bg-webview": "#ffffff",
+        "--color-bg-backdrop": "rgba(0, 0, 0, 0.3)",
 
         // text
         "--color-text-default": "#333333",

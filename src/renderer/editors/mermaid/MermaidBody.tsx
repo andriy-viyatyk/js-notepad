@@ -1,6 +1,6 @@
 import type { MermaidEditor } from "./MermaidEditor";
-import type { BaseImageViewRef } from "../shared/BaseImageView";
-import { BaseImageView } from "../shared/BaseImageView";
+import type { ImageViewportRef } from "../../uikit/ImageViewport";
+import { ImageViewport } from "../../uikit/ImageViewport";
 import { useEditorConfig } from "../base";
 import { Panel, Text, Spinner } from "../../uikit";
 
@@ -8,7 +8,7 @@ interface MermaidBodyProps {
     model: MermaidEditor;
     /** Callback receiving the BaseImageView ref. The view shell holds the
      *  ref and shares it with `<MermaidToolbarBits>` (copy button). */
-    imageRefSetter?: (ref: BaseImageViewRef | null) => void;
+    imageRefSetter?: (ref: ImageViewportRef | null) => void;
 }
 
 export function MermaidBody({ model, imageRefSetter }: MermaidBodyProps) {
@@ -64,7 +64,7 @@ export function MermaidBody({ model, imageRefSetter }: MermaidBodyProps) {
                     <Spinner />
                 </Panel>
             ) : svgUrl ? (
-                <BaseImageView
+                <ImageViewport
                     ref={imageRefSetter}
                     src={svgUrl}
                     alt="Mermaid Diagram"

@@ -1,13 +1,13 @@
 import type { SvgEditor } from "./SvgEditor";
-import type { BaseImageViewRef } from "../shared/BaseImageView";
-import { BaseImageView } from "../shared/BaseImageView";
+import type { ImageViewportRef } from "../../uikit/ImageViewport";
+import { ImageViewport } from "../../uikit/ImageViewport";
 import { useEditorConfig } from "../base";
 
 interface SvgBodyProps {
     model: SvgEditor;
     /** Callback receiving the BaseImageView ref. The view shell holds the
      *  ref and shares it with `<SvgToolbarBits>` (copy button). */
-    imageRefSetter?: (ref: BaseImageViewRef | null) => void;
+    imageRefSetter?: (ref: ImageViewportRef | null) => void;
 }
 
 export function SvgBody({ model, imageRefSetter }: SvgBodyProps) {
@@ -30,7 +30,7 @@ export function SvgBody({ model, imageRefSetter }: SvgBodyProps) {
     // Build data URL from SVG content (matches today's SvgView.tsx behavior).
     const src = `data:image/svg+xml,${encodeURIComponent(content)}`;
 
-    const image = <BaseImageView ref={imageRefSetter} src={src} alt="SVG Preview" />;
+    const image = <ImageViewport ref={imageRefSetter} src={src} alt="SVG Preview" />;
 
     const maxH = useEditorConfig().maxEditorHeight;
     if (maxH !== undefined) {

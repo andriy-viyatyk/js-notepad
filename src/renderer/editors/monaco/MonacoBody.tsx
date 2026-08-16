@@ -2,21 +2,13 @@ import { Editor } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
-import styled from "@emotion/styled";
 
 import type { MonacoEditor, MonacoQueueRequest } from "./MonacoEditor";
 import type { TextFileModel } from "../text/TextEditorModel";
 import { api } from "../../../ipc/renderer/api";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import { convertHtmlToMarkdown, readClipboardHtml } from "../text/paste-rich-text";
-
-const MonacoBodyRoot = styled.div({
-    flex: "1 1 auto",
-    position: "relative",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-});
+import { Panel } from "../../uikit/Panel";
 
 interface MonacoBodyProps {
     model: MonacoEditor;
@@ -139,7 +131,7 @@ export function MonacoBody({ model }: MonacoBodyProps) {
     if (!host) return null;
 
     return (
-        <MonacoBodyRoot>
+        <Panel name="monaco-body" direction="column" flex position="relative" overflow="hidden">
             <Editor
                 value={sliced.content}
                 language={sliced.language}
@@ -154,7 +146,7 @@ export function MonacoBody({ model }: MonacoBodyProps) {
                     dropIntoEditor: { enabled: false },
                 }}
             />
-        </MonacoBodyRoot>
+        </Panel>
     );
 }
 

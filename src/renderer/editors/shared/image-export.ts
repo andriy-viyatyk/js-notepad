@@ -2,6 +2,7 @@ import { fs as appFs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import type { IImageExport } from "../base/IImageExport";
 import { errMessage } from "../../../shared/utils";
+import { imageElementToPngBlob } from "../../uikit/ImageViewport/image-raster";
 
 /**
  * Shared, view-independent image-export helpers.
@@ -26,19 +27,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /** Rasterise an already-loaded `<img>` element to a PNG blob (natural size). */
-export async function imageElementToPngBlob(image: HTMLImageElement): Promise<Blob> {
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Failed to obtain a 2D canvas context");
-    ctx.drawImage(image, 0, 0);
-    const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/png"),
-    );
-    if (!blob) throw new Error("Failed to encode PNG");
-    return blob;
-}
+export { imageElementToPngBlob };
 
 /** Load `src` and rasterise it to a PNG blob (natural size, 1× scale). */
 export async function rasterToPngBlob(src: string): Promise<Blob> {

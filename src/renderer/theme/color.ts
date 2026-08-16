@@ -12,6 +12,8 @@ const color = {
         message: "var(--color-bg-message)",
         overlay: "var(--color-bg-overlay)",
         overlayHover: "var(--color-bg-overlay-hover)",
+        backdrop: "var(--color-bg-backdrop)",
+        webview: "var(--color-bg-webview)",
     },
     text: {
         default: "var(--color-text-default)",

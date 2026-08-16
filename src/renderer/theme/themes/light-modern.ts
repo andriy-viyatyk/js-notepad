@@ -25,6 +25,8 @@ export const lightModern: ThemeDefinition = {
         "--color-bg-message": "#F3F3F3",
         "--color-bg-overlay": "rgba(255, 255, 255, 0.8)",
         "--color-bg-overlay-hover": "rgba(255, 255, 255, 0.9)",
+        "--color-bg-webview": "#ffffff",
+        "--color-bg-backdrop": "rgba(0, 0, 0, 0.3)",
 
         // text
         "--color-text-default": "#3B3B3B",
