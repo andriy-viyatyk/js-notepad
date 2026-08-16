@@ -11,7 +11,11 @@ Overview of all active and planned epics and tasks.
 *(nothing active)*
 
 ## Planned
-*(nothing planned — recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
+
+- [De-React roadmap](de-react.md) — multi-epic programme to replace React with direct DOM
+  manipulation. Not scheduled; epics are created from it one at a time.
+
+*(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 
 ---
 
