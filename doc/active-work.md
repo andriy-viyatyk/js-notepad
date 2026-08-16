@@ -10,7 +10,7 @@ Overview of all active and planned epics and tasks.
 
 - **EPIC-051** — [De-React Epic P — Preparation (React-side)](epics/EPIC-051.md)
   - [ ] [US-965: Icon name registry + neutral slot types (foundation)](tasks/US-965-icon-registry-slots/README.md)
-  - [ ] US-966: Neutral slots — UIKit primitives and inputs
+  - [ ] [US-966: Neutral slots — UIKit primitives and inputs](tasks/US-966-neutral-slots-primitives/README.md)
   - [ ] US-967: Neutral slots — UIKit list and data components
   - [ ] US-968: Neutral slots — UIKit containers and floating layer
   - [ ] US-969: Neutral slots — `ui/` and `components/`

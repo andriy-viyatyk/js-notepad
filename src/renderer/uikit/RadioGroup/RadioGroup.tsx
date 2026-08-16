@@ -2,7 +2,8 @@ import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { fontSize, gap as gapTokens, height, spacing } from "../tokens";
-import { RadioCheckedIcon, RadioUncheckedIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
+import type { IconRef } from "../shared/slots";
 import {
     isTraited,
     resolveTraited,
@@ -17,9 +18,9 @@ export interface IRadio {
     /** Stable identifier — what `value` / `onChange` refer to. */
     value: string;
     /** Display label. Falls back to `value` when omitted. */
-    label?: React.ReactNode;
+    label?: string;
     /** Icon rendered between the radio circle and the label. */
-    icon?: React.ReactNode;
+    icon?: IconRef;
     /** Disables this option without affecting siblings. */
     disabled?: boolean;
 }
@@ -243,10 +244,8 @@ export function RadioGroup({
                         onClick={() => onChange(radio.value)}
                         onKeyDown={(e) => handleKey(e, i)}
                     >
-                        {selected
-                            ? <RadioCheckedIcon className="radio-icon" />
-                            : <RadioUncheckedIcon className="radio-icon" />}
-                        {radio.icon && <span className="item-icon">{radio.icon}</span>}
+                        {renderIcon(selected ? "radio-checked" : "radio-unchecked", { className: "radio-icon" })}
+                        {radio.icon != null && <span className="item-icon">{renderIcon(radio.icon)}</span>}
                         {radio.label ?? radio.value}
                     </Item>
                 );

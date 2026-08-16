@@ -20,7 +20,7 @@ export interface ISegment {
     /** Icon rendered before the label. */
     icon?: React.ReactNode;
     /** Tooltip shown on hover/focus. Rendered via the underlying `Button`'s UIKit `Tooltip`. */
-    title?: React.ReactNode;
+    title?: string;
     /** Disables this segment without affecting siblings. */
     disabled?: boolean;
 }

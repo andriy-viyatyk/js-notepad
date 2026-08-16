@@ -155,7 +155,8 @@ export function ToolsPanel({ model }: ToolsPanelProps) {
                                     {selectedTool.annotations.destructiveHint && (
                                         <Tag
                                             size="sm"
-                                            label={<Text size="xs" color="error">destructive</Text>}
+                                            label="destructive"
+                                            tone="error"
                                         />
                                     )}
                                 </Panel>

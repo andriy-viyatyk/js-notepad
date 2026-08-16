@@ -1,8 +1,9 @@
 import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
+import type { IconName } from "../../theme/icon-registry";
+import { renderIcon } from "../shared/slots";
 import { spacing, gap, radius, height } from "../tokens";
-import { CloseIcon, ErrorIcon, InfoIcon, SuccessIcon, WarningIcon } from "../../theme/icons";
 import { IconButton } from "../IconButton/IconButton";
 import { Text } from "../Text/Text";
 
@@ -88,11 +89,11 @@ const SLIDE_IN_KEYFRAMES = `@keyframes notification-slide-in {
     to   { transform: translateX(0); }
 }`;
 
-const SEVERITY_ICON: Record<NotificationSeverity, React.ReactNode> = {
-    info:    <InfoIcon />,
-    success: <SuccessIcon />,
-    warning: <WarningIcon />,
-    error:   <ErrorIcon />,
+const SEVERITY_ICON: Record<NotificationSeverity, IconName> = {
+    info:    "info",
+    success: "success",
+    warning: "warning",
+    error:   "error",
 };
 
 const ARIA_ROLE: Record<NotificationSeverity, "alert" | "status"> = {
@@ -132,13 +133,13 @@ export const Notification = React.forwardRef<HTMLDivElement, NotificationProps>(
                     onClick={onClick}
                     {...rest}
                 >
-                    <span data-part="icon">{SEVERITY_ICON[type]}</span>
+                    <span data-part="icon">{renderIcon(SEVERITY_ICON[type])}</span>
                     <Text size="base" color="inherit" preWrap>{message}</Text>
                     {onClose && (
                         <span data-part="close">
                             <IconButton
                                 size="sm"
-                                icon={<CloseIcon />}
+                                icon="close"
                                 title="Close"
                                 onClick={handleClose}
                             />

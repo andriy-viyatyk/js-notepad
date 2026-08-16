@@ -2,7 +2,7 @@ import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, height } from "../tokens";
-import { CheckedIcon, UncheckedIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
 
 // --- Types ---
 
@@ -73,7 +73,7 @@ export function Checkbox({ name, checked, onChange, disabled, children, ...rest 
             {...rest}
         >
             <span data-part="icon">
-                {checked ? <CheckedIcon /> : <UncheckedIcon />}
+                {renderIcon(checked ? "checked" : "unchecked")}
             </span>
             {children}
         </Root>

@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import { Button } from "../Button/Button";
 import { IconButton } from "../IconButton/IconButton";
 import { WithMenu } from "../Menu/WithMenu";
-import { ChevronDownIcon } from "../../theme/icons";
+import type { IconRef } from "../shared/slots";
 import type { MenuItem } from "../Menu/types";
 import color from "../../theme/color";
 import { radius } from "../tokens";
@@ -16,9 +16,9 @@ export interface SplitButtonProps
      *  multiple instances in DOM inspector output. Never used for styling. */
     name?: string;
     /** Primary-region icon. */
-    icon: React.ReactNode;
+    icon: IconRef;
     /** Primary-region tooltip (the default action). */
-    title?: React.ReactNode;
+    title?: string;
     /** Primary-region click — the default action, mirrored by the matching dropdown item. */
     onClick: () => void;
     /** Dropdown items revealed by the caret region. */
@@ -30,7 +30,7 @@ export interface SplitButtonProps
     /** Control size — matches IconButton. Default "md". */
     size?: "sm" | "md";
     /** Caret tooltip. Default "More actions". */
-    menuTitle?: React.ReactNode;
+    menuTitle?: string;
     /** Optional primary-region label. When provided, the primary renders as a text
      *  `Button` (icon + label); when omitted, it's an icon-only `IconButton`. */
     children?: React.ReactNode;
@@ -149,7 +149,7 @@ export function SplitButton({
                             name="split-caret"
                             size={size}
                             title={menuTitle}
-                            icon={<ChevronDownIcon />}
+                            icon="chevron-down"
                             disabled={menuDisabled}
                             onClick={(e) => setOpen(e.currentTarget)}
                         />

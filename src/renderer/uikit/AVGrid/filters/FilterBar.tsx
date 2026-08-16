@@ -185,13 +185,15 @@ export function FilterChip(props: FilterChipProps) {
     return (
         <Tag
             name="avgrid-filter-chip"
-            label={label}
+            label=""
             size="sm"
             onRemove={handleDelete}
             disabled={disabled}
             selected={open}
             removeAriaLabel="Remove filter"
-        />
+        >
+            {label}
+        </Tag>
     );
 }
 

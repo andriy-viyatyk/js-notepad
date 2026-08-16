@@ -1,6 +1,8 @@
 import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
+import { renderIcon } from "../shared/slots";
+import type { IconRef } from "../shared/slots";
 import { fontSize, height, spacing, gap, radius } from "../tokens";
 import { Tooltip } from "../Tooltip/Tooltip";
 
@@ -12,16 +14,15 @@ export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonE
     name?: string;
     /**
      * When set, the button is wrapped in a UIKit `<Tooltip>` displaying this content on
-     * hover/focus. Accepts a plain string or rich `ReactNode`. When unset, no tooltip is
-     * rendered and no event handlers are attached.
+     * hover/focus. When unset, no tooltip is rendered and no event handlers are attached.
      */
-    title?: React.ReactNode;
+    title?: string;
     /** Visual style. Default: "default". */
     variant?: "default" | "primary" | "ghost" | "danger" | "link";
     /** Control height. Default: "md". */
     size?: "sm" | "md";
     /** Icon rendered before children. */
-    icon?: React.ReactNode;
+    icon?: IconRef;
     /**
      * Parent container background — adjusts hover/active colors so they stay
      * visible against the parent. Affects "default", "ghost", and "link"
@@ -174,7 +175,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 type="button"
                 {...rest}
             >
-                {icon}
+                {renderIcon(icon)}
                 {children}
             </Root>
         );

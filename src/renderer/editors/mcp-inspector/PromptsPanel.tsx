@@ -168,16 +168,8 @@ function MessageView({ message }: { message: McpPromptMessage }) {
             <Panel direction="row">
                 <Tag
                     size="sm"
-                    label={
-                        <Text
-                            size="xs"
-                            variant="uppercased"
-                            color={message.role === "assistant" ? "success" : "primary"}
-                            bold
-                        >
-                            {message.role}
-                        </Text>
-                    }
+                    label={message.role.toUpperCase()}
+                    tone={message.role === "assistant" ? "success" : "default"}
                 />
             </Panel>
             {message.content.map((block, i) => (

@@ -1,7 +1,8 @@
 import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
-import { CloseIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
+import type { IconRef } from "../shared/slots";
 import { fontSize, radius, spacing } from "../tokens";
 
 // --- Types ---
@@ -15,9 +16,9 @@ export interface TagProps
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
     /** Tag label — rendered as the primary content. */
-    label: React.ReactNode;
+    label: string;
     /** Optional leading element (e.g. a colored dot). */
-    icon?: React.ReactNode;
+    icon?: IconRef;
     /** When provided, renders an X button after the label that calls this on click. */
     onRemove?: () => void;
     /** When provided, the tag becomes clickable; fires on body click. */
@@ -28,6 +29,8 @@ export interface TagProps
     disabled?: boolean;
     /** Visual variant. Default: "filled". */
     variant?: "filled" | "outlined";
+    /** Semantic color tone. Default: "default". */
+    tone?: "default" | "error" | "warning" | "success";
     /** Size variant. Default: "md". */
     size?: "sm" | "md";
     /** Ellipsize the label when the tag is constrained by a flex parent. Sets
@@ -62,6 +65,10 @@ const Root = styled.span(
             backgroundColor: "transparent",
             borderColor: color.border.default,
         },
+
+        '&[data-tone="error"]': { color: color.error.text },
+        '&[data-tone="warning"]': { color: color.warning.text },
+        '&[data-tone="success"]': { color: color.success.text },
 
         '&[data-size="sm"]': {
             fontSize: fontSize.xs,
@@ -145,10 +152,12 @@ export function Tag({
     selected,
     disabled,
     variant = "filled",
+    tone = "default",
     size = "md",
     truncate,
     removeAffordance = "always",
     removeAriaLabel = "Remove tag",
+    children,
     ...rest
 }: TagProps) {
     const handleRemoveClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -165,6 +174,7 @@ export function Tag({
             data-type="tag"
             data-name={name}
             data-variant={variant}
+            data-tone={tone}
             data-size={size}
             data-truncate={truncate || undefined}
             data-disabled={disabled || undefined}
@@ -175,8 +185,9 @@ export function Tag({
             onClick={onClick ? handleRootClick : undefined}
             {...rest}
         >
-            {icon}
-            <span>{label}</span>
+            {renderIcon(icon)}
+            {label && <span>{label}</span>}
+            {children}
             {onRemove && (
                 <RemoveButton
                     type="button"
@@ -184,7 +195,7 @@ export function Tag({
                     onClick={handleRemoveClick}
                     disabled={disabled}
                 >
-                    <CloseIcon />
+                    {renderIcon("close")}
                 </RemoveButton>
             )}
         </Root>

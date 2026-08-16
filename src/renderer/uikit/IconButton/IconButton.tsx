@@ -4,7 +4,7 @@ import color from "../../theme/color";
 import { height, radius, spacing } from "../tokens";
 import { Tooltip } from "../Tooltip/Tooltip";
 import { renderIcon } from "../shared/slots";
-import type { IconRef, SlotText } from "../shared/slots";
+import type { IconRef } from "../shared/slots";
 
 // --- Types ---
 
@@ -18,7 +18,7 @@ export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBut
      * hover/focus. Especially valuable for IconButtons since they have no visible label to
      * clarify their purpose. When unset, no tooltip is rendered.
      */
-    title?: SlotText;
+    title?: string;
     /** The icon to render. */
     icon: IconRef;
     /** Control size. Default: "md". */
