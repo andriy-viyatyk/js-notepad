@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, Panel, Text, Button, Input, Textarea } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { GitIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { showDialog } from "./Dialogs";
 
@@ -147,7 +146,7 @@ function CommitDialog({ model }: ViewPropsRO<CommitDialogModel>) {
         <Dialog name="commit-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title={state.title ?? "Commit"}
-                icon={<GitIcon />}
+                icon="git"
                 onClose={() => model.close(undefined)}
                 width={520}
             >

@@ -4,7 +4,6 @@ import { Dialog, DialogContent, Panel, Text, Button, Input } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { TComponentState } from "../../core/state/state";
-import { BoardIcon, FolderOpenIcon } from "../../theme/icons";
 import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { fpJoin } from "../../core/utils/file-path";
@@ -110,7 +109,7 @@ function CreateBoardDialog({ model }: ViewPropsRO<CreateBoardDialogModel>) {
         <Dialog name="create-board-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title={state.title}
-                icon={<BoardIcon />}
+                icon="board"
                 onClose={() => model.close(undefined)}
                 width={520}
             >
@@ -129,7 +128,7 @@ function CreateBoardDialog({ model }: ViewPropsRO<CreateBoardDialogModel>) {
                         </Panel>
                         <Button
                             name="create-board-browse"
-                            icon={<FolderOpenIcon />}
+                            icon="folder-open"
                             onClick={() => void model.browse()}
                         >
                             Browse…

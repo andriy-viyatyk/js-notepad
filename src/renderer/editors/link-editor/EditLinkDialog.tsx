@@ -15,7 +15,6 @@ import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { TComponentState } from "../../core/state/state";
 import { showDialog } from "../../ui/dialogs/Dialogs";
-import { CloseIcon, RenameIcon } from "../../theme/icons";
 import { LinkItem } from "./linkTypes";
 import { resolveTorSrc, type TorProxyInfo } from "./tor-src";
 
@@ -163,7 +162,7 @@ function EditLinkDialog({ model }: ViewPropsRO<EditLinkDialogModel>) {
         <Dialog name="edit-link-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title={state.dialogTitle}
-                icon={<RenameIcon />}
+                icon="rename"
                 onClose={() => model.close(undefined)}
                 minWidth={500}
                 maxWidth={700}
@@ -233,7 +232,7 @@ function EditLinkDialog({ model }: ViewPropsRO<EditLinkDialogModel>) {
                                 <IconButton
                                     name="edit-link-img-clear"
                                     size="sm"
-                                    icon={<CloseIcon />}
+                                    icon="close"
                                     title="Clear Image URL"
                                     onClick={() => model.setImgSrc("")}
                                 />

@@ -2,7 +2,6 @@ import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { WarningIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 
 /**
@@ -38,7 +37,7 @@ function RegisterToolsetDialog({ model }: ViewPropsRO<RegisterToolsetDialogModel
         <Dialog name="register-toolset-dialog" onKeyDown={model.handleKeyDown}>
             <DialogContent
                 title="Register this toolset?"
-                icon={<WarningIcon />}
+                icon="warning"
                 onClose={() => model.close(false)}
                 minWidth={440}
                 maxWidth={680}

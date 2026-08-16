@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, Panel, Text, Button, Input, RadioGroup } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { ConfirmIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { showDialog } from "./Dialogs";
 import { useEffect, useRef } from "react";
@@ -86,7 +85,7 @@ function InputDialog({ model }: ViewPropsRO<InputDialogModel>) {
         <Dialog name="input-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title={state.title}
-                icon={<ConfirmIcon />}
+                icon="confirm"
                 onClose={() => model.close(undefined)}
                 minWidth={340}
                 maxWidth={800}

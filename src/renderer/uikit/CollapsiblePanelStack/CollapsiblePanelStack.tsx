@@ -9,7 +9,8 @@ import React, {
 } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
-import { ChevronDownIcon, ChevronRightIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
+import type { IconName } from "../../theme/icon-registry";
 
 // =============================================================================
 // CollapsiblePanel — marker component (renders nothing on its own)
@@ -23,11 +24,11 @@ export interface CollapsiblePanelProps
     /** Unique panel identifier (used by `activePanel`). */
     id: string;
     /** Header title. Omit when the child portals its own header via headerRef. */
-    title?: ReactNode;
+    title?: string;
     /** Panel content. */
     children: ReactNode;
     /** Optional leading icon in the header. */
-    icon?: ReactNode;
+    icon?: IconName;
     /** Optional trailing action buttons in the header. When present, the
      *  expand/collapse chevron is hidden — buttons imply state visibility. */
     buttons?: ReactNode;
@@ -217,9 +218,9 @@ export function CollapsiblePanelStack({
                             onClick={() => handleToggle(panel.id)}
                         >
                             {!panel.headerRef && !panel.buttons && (
-                                isOpen ? <ChevronDownIcon /> : <ChevronRightIcon />
+                                renderIcon(isOpen ? "chevron-down" : "chevron-right")
                             )}
-                            {panel.icon}
+                            {renderIcon(panel.icon)}
                             {panel.title}
                             {panel.buttons && (
                                 <>

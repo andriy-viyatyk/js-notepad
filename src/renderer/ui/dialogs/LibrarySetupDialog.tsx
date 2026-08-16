@@ -4,7 +4,6 @@ import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button, Input, Checkbox, Label } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { FolderOpenIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { api } from "../../../ipc/renderer/api";
 import { settings } from "../../api/settings";
@@ -80,7 +79,7 @@ function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
         <Dialog name="library-setup-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title={state.title}
-                icon={<FolderOpenIcon />}
+                icon="folder-open"
                 onClose={() => model.close(undefined)}
                 minWidth={400}
                 maxWidth={600}

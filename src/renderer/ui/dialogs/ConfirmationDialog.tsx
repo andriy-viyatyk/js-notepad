@@ -2,7 +2,6 @@ import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { ConfirmIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 
 const confirmationDialogId = Symbol("confirmationDialog");
@@ -38,7 +37,7 @@ function ConfirmationDialog({ model }: ViewPropsRO<ConfirmationDialogModel>) {
         <Dialog name="confirmation-dialog" onKeyDown={model.handleKeyDown}>
             <DialogContent
                 title={state.title}
-                icon={<ConfirmIcon />}
+                icon="confirm"
                 onClose={() => model.close(undefined)}
                 minWidth={300}
                 maxWidth={800}

@@ -2,7 +2,6 @@ import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { WarningIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 
 const trustBoardDialogId = Symbol("trustBoardDialog");
@@ -27,7 +26,7 @@ function TrustBoardDialog({ model }: ViewPropsRO<TrustBoardDialogModel>) {
         <Dialog name="trust-board-dialog" onKeyDown={model.handleKeyDown}>
             <DialogContent
                 title="Trust this board?"
-                icon={<WarningIcon />}
+                icon="warning"
                 onClose={() => model.close(false)}
                 minWidth={420}
                 maxWidth={640}

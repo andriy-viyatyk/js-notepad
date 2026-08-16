@@ -26,7 +26,7 @@ export interface TreeItemProps
     hasChildren: boolean;
     /** Leading icon (rendered after the chevron). */
     icon?: IconRef;
-    /** Label content. Rich editor-owned rows remain supported; string labels are highlighted. */
+    /** Label content. Rich tree rows remain supported; string labels are highlighted. */
     label: React.ReactNode;
     /** Highlight matches in string labels. */
     searchText?: string;

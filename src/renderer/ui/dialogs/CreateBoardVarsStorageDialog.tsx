@@ -4,7 +4,6 @@ import { Dialog, DialogContent, Panel, Text, Button, Input } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
 import { TComponentState } from "../../core/state/state";
-import { LockIcon, FolderOpenIcon } from "../../theme/icons";
 import { fs } from "../../api/fs";
 import { ui } from "../../api/ui";
 import { settings } from "../../api/settings";
@@ -90,7 +89,7 @@ function CreateBoardVarsStorageDialog({ model }: ViewPropsRO<CreateBoardVarsStor
         <Dialog name="create-board-vars-storage-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title="Create environment variables storage"
-                icon={<LockIcon />}
+                icon="lock"
                 onClose={() => model.close(undefined)}
                 width={520}
             >
@@ -113,7 +112,7 @@ function CreateBoardVarsStorageDialog({ model }: ViewPropsRO<CreateBoardVarsStor
                         </Panel>
                         <Button
                             name="create-board-vars-storage-browse"
-                            icon={<FolderOpenIcon />}
+                            icon="folder-open"
                             onClick={() => void model.browse()}
                         >
                             Browse…

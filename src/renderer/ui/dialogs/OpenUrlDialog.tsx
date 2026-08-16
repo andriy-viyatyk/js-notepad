@@ -4,7 +4,6 @@ import { Dialog, DialogContent, Panel, Button, Textarea } from "../../uikit";
 import type { TextareaRef } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { OpenFileIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { showDialog } from "./Dialogs";
 
@@ -62,7 +61,7 @@ function OpenUrlDialog({ model }: ViewPropsRO<OpenUrlDialogModel>) {
         <Dialog name="open-url-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title="Open"
-                icon={<OpenFileIcon />}
+                icon="open-file"
                 onClose={() => model.close(undefined)}
                 minWidth={500}
                 maxWidth={800}
@@ -80,7 +79,7 @@ function OpenUrlDialog({ model }: ViewPropsRO<OpenUrlDialogModel>) {
                     />
                 </Panel>
                 <Panel direction="row" align="center" justify="between" padding="md">
-                    <Button name="open-url-file" icon={<OpenFileIcon />} onClick={model.openFile}>
+                    <Button name="open-url-file" icon="open-file" onClick={model.openFile}>
                         Open File
                     </Button>
                     <Panel direction="row" gap="sm">

@@ -45,12 +45,10 @@ surfaces. The rich `tooltip` callers are link previews in `LinksList` and `Pinne
 remain valid React subtrees behind `SlotText`.
 
 Labels on the default list rows and tree trait data were re-checked across the renderer and resolve
-to strings. Typecheck also found four editor-owned rich row renderers that are intentionally outside
-this UIKit conversion: the link-folder `ListItem`, tree-provider custom labels, Rest client custom
-`TreeItem` rows, and notebook category rows. Their row styling remains React composition, so the
-low-level `ListItem`/`TreeItem` label props and `ITreeItem` source shape retain the React arm for
-those named callers; all default list/tree data labels are strings. `trailing`, `renderItem`,
-`header`, `headerAction`, `startSlot`,
+to strings. A follow-up measurement found no rich item-label callers, so the four remaining
+row-primitive React arms (`ListItem.label`, `ITreeItem.label`, `TreeItem.label`, and Tree
+`SectionItem.label`) are tracked as a small US-968 carry-over rather than retained for named
+editor callers. `trailing`, `renderItem`, `header`, `headerAction`, `startSlot`,
 `endSlot`, and `SelectableRow.children` are arbitrary subtrees and remain React props under D4/D5.
 
 ### Component inventory
@@ -164,28 +162,27 @@ chevrons (`chevron-up`, `chevron-down`). Existing caller-provided React icons re
 
 ## Concerns / Open questions
 
-### Label narrowing is verified by the renderer inventory and compiler
+### Label narrowing review addendum
 
 The renderer inventory found no rich item-data labels and the five trait label accessors return
-strings. The compiler identified these existing rich editor-owned row callers, which are retained
-under the D1 boundary rather than restyled in this task:
-
-- `src/renderer/editors/link-editor/LinksList.tsx` — directory label styling.
-- `src/renderer/components/tree-provider/TreeProviderView.tsx` — `getLabel` override.
-- `src/renderer/editors/rest-client/RestClientShared.tsx` — root/action and method-badge rows.
-- `src/renderer/editors/notebook/category-tree.tsx` — category size label composition.
-
-Consequently `IListBoxItem.label` and the ListBox `SectionItem.label` prop are `string`; the Tree
-`ITreeItem`, `TreeItem`, and Tree `SectionItem` label boundaries retain `ReactNode` for these named
-editor callers. String labels still take the search-highlighting path; rich labels retain the
-existing guard.
+strings for default data, but the public row primitives still have named rich callers. The US-968
+typecheck experiment found `LinksList.tsx:84` passing a styled folder label to `ListItem`,
+`TreeProviderView.tsx:297-299` allowing its public rich `getLabel` override,
+`editors/notebook/category-tree.tsx:18-42` building styled category labels, and
+`editors/rest-client/RestClientShared.tsx:498-574` composing root/request labels with controls and
+method badges. Therefore `ListItem.label`, `ITreeItem.label`, and `TreeItem.label` retain their
+React arm with these callers recorded. `Tree/SectionItem.label` also retains the arm because the
+generic `Tree.tsx:193-197` section branch forwards the shared `ITreeItem.label` shape without a
+separate string-only section-data type. The existing ListBox item-data and ListBox section labels
+are already `string`.
 
 ### `SlotText` still contains ReactNode
 
 This is intentional for the two measured rich surfaces: `emptyMessage` and `tooltip`. The
-plain-string props (`rootLabel`, `separatorContent`, `selectAllLabel`, and all list/tree labels)
-are narrowed directly so their public contracts actually shrink. The rich props can be narrowed
-further only after their subtree boundary is designed.
+plain-string props (`rootLabel`, `separatorContent`, `selectAllLabel`, and the ListBox labels) are
+narrowed directly so their public contracts actually shrink. The four Tree/List row primitive
+label props can be narrowed only after their named styling/control subtrees and shared section-data
+boundary receive neutral contracts.
 
 ### Render callbacks remain React callbacks
 
@@ -207,9 +204,9 @@ approved D2-D5 decisions and the measured caller inventory.
 
 - [x] `rootLabel`, `separatorContent`, and `selectAllLabel` are typed `string`; their existing
       callers and rendered text are unchanged.
-- [ ] `IListBoxItem.label` and the ListBox `SectionItem.label` prop are typed `string`; the Tree
-      item/section label props retain a React arm only for the four named editor callers documented
-      above, and `ListItem.label` does the same for the link-folder caller.
+- [x] `IListBoxItem.label` and `ListBox/SectionItem.label` are typed `string`; the concrete rich
+      callers blocking `ListItem.label`, `ITreeItem.label`, `TreeItem.label`, and
+      `Tree/SectionItem.label` are recorded in this document and remain compatible.
 - [x] `SlotText` remains only on `emptyMessage` and `tooltip` in this task, and the three rich
       empty states and two rich link tooltips still render.
 - [x] List and tree item icons use `IconRef`/`renderIcon`; existing React icon and resolver callers
@@ -221,8 +218,8 @@ approved D2-D5 decisions and the measured caller inventory.
       uses `renderIcon("chevron-right")`; both glyphs are visually verified.
 - [x] `MultiListBox` maps its checkbox states to `"checked"`, `"unchecked"`, and
       `"indeterminate"`; mixed-state styling and `data-part` hooks are unchanged.
-- [ ] List/tree default data labels are plain strings and search highlighting remains active for
-      them; documented editor-owned rich labels retain the prior guard; `trailing` remains a React
+- [x] List/tree default data labels are plain strings and search highlighting remains active for
+      them; the three named rich row-label callers remain supported and `trailing` remains a React
       subtree.
 - [x] `renderItem`, `getTooltip`, autocomplete headers/actions, input slots, and
       `SelectableRow.children` retain their documented callback/subtree boundaries; no generic
@@ -240,7 +237,7 @@ The implementation uses the existing `IconRef`, `SlotText`, and `renderIcon` fou
 icons preserve the existing list/tree wrappers and MultiListBox `data-part` hooks. `npm run
 typecheck`, `npm run lint`, and `git diff --check` pass. Manual visual smoke checks remain for the
 ListItem check/accent glyphs, MultiListBox mixed state, tree/category navigation states, and the
-rich editor-owned label/tooltip surfaces.
+rich tooltip/empty-message surfaces; the remaining row-label narrowing is tracked in US-968.
 
 ## Files to create or modify
 

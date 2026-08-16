@@ -14,7 +14,7 @@ export interface SectionItemProps
     id?: string;
     /** Depth — used to align the section header with sibling tree-items. */
     level: number;
-    /** Section label. Tree source items may carry editor-owned rich labels. */
+    /** Section label content. The generic Tree item shape may carry a rich label. */
     label: React.ReactNode;
     /** Indentation step in pixels per level. Default: 16. */
     indentSize?: number;

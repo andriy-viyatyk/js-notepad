@@ -2,7 +2,6 @@ import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { WarningIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 
 const namespaceCollisionDialogId = Symbol("namespaceCollisionDialog");
@@ -28,7 +27,7 @@ function NamespaceCollisionDialog({ model }: ViewPropsRO<NamespaceCollisionDialo
         <Dialog name="namespace-collision-dialog" onKeyDown={model.handleKeyDown}>
             <DialogContent
                 title="Environment variables namespace already registered"
-                icon={<WarningIcon />}
+                icon="warning"
                 onClose={() => model.close(false)}
                 minWidth={420}
                 maxWidth={640}

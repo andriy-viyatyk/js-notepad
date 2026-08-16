@@ -4,7 +4,6 @@ import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button, Input, Label } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { LockIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 
 // =============================================================================
@@ -71,7 +70,7 @@ function PasswordDialog({ model }: ViewPropsRO<PasswordDialogModel>) {
         <Dialog name="password-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title={isDecrypt ? "Decrypt File" : "Encrypt File"}
-                icon={<LockIcon />}
+                icon="lock"
                 onClose={() => model.close(undefined)}
                 minWidth={340}
                 maxWidth={500}

@@ -17,7 +17,7 @@ import type { IconRef, SlotText } from "../shared/slots";
 export interface ITreeItem {
     /** Stable identifier — what `value` / `onChange` refer to. Unique within the whole tree. */
     value: string | number;
-    /** Display label. String labels are eligible for `searchText` highlighting. */
+    /** Display label. Tree providers and category trees may supply rich labels. */
     label: React.ReactNode;
     /** Leading icon (rendered between the chevron and the label). */
     icon?: IconRef;

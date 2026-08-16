@@ -3,7 +3,6 @@ import { Editor, OnMount } from "@monaco-editor/react";
 import { Dialog, DialogContent, Panel, Button } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
 import { DefaultView, ViewPropsRO, Views } from "../../core/state/view";
-import { ConfirmIcon } from "../../theme/icons";
 import { TComponentState } from "../../core/state/state";
 import { showDialog } from "./Dialogs";
 
@@ -73,7 +72,7 @@ function TextDialog({ model }: ViewPropsRO<TextDialogModel>) {
         <Dialog name="text-dialog" onKeyDown={model.handleKeyDown} autoFocus={false}>
             <DialogContent
                 title={title}
-                icon={<ConfirmIcon />}
+                icon="confirm"
                 onClose={() => model.close(undefined)}
                 width={state.width || 600}
                 height={state.height || 400}

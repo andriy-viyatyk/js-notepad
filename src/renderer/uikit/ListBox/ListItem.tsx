@@ -19,7 +19,7 @@ export interface ListItemProps
     id?: string;
     /** Leading icon. */
     icon?: IconRef;
-    /** Label content. Rich editor-owned rows remain supported; string labels are highlighted. */
+    /** Label content. Rich link-folder labels remain supported; string labels are highlighted. */
     label: React.ReactNode;
     /** Highlight matches in string labels. */
     searchText?: string;
