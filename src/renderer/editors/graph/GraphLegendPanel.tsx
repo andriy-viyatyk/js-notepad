@@ -4,6 +4,7 @@ import color from "../../theme/color";
 import type { GraphEditor } from "./GraphEditor";
 import { NodeShape } from "./types";
 import { ShapeIcon, LevelIcon } from "./GraphIcons";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // =============================================================================
 // Constants
@@ -140,15 +141,69 @@ interface GraphLegendPanelProps {
     editor: GraphLegendHost;
 }
 
+interface GraphLegendState {
+    expanded: boolean;
+    activeTab: LegendTab;
+    checkedLevels: string[];
+    checkedShapes: string[];
+    selectionFilter: SelectionFilter;
+    descriptions: Record<string, Record<string, string>>;
+}
+
+const defaultGraphLegendState: GraphLegendState = {
+    expanded: false,
+    activeTab: "selection",
+    checkedLevels: [],
+    checkedShapes: [],
+    selectionFilter: "selected-with-children",
+    descriptions: { levels: {}, shapes: {} },
+};
+
+class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPanelProps> {
+    checkedLevelsSet = this.memo(
+        () => new Set(this.state.get().checkedLevels),
+        () => [this.state.get().checkedLevels],
+    );
+    checkedShapesSet = this.memo(
+        () => new Set(this.state.get().checkedShapes),
+        () => [this.state.get().checkedShapes],
+    );
+    setExpanded = (expanded: boolean) => this.state.update((s) => { s.expanded = expanded; });
+    setActiveTab = (activeTab: LegendTab) => this.state.update((s) => { s.activeTab = activeTab; });
+    setSelectionFilter = (selectionFilter: SelectionFilter) => this.state.update((s) => { s.selectionFilter = selectionFilter; });
+    toggleCheck = (tab: LegendTab, key: string) => this.state.update((s) => {
+        if (tab !== "level" && tab !== "shape") return;
+        const values = tab === "level" ? s.checkedLevels : s.checkedShapes;
+        const next = values.includes(key) ? values.filter((value) => value !== key) : [...values, key];
+        if (tab === "level") s.checkedLevels = next;
+        else s.checkedShapes = next;
+    });
+    setDescriptions = (descriptions: Record<string, Record<string, string>>) => this.state.update((s) => { s.descriptions = descriptions; });
+    updateDescription = (tab: "levels" | "shapes", key: string, value: string) => this.state.update((s) => {
+        const other = tab === "levels" ? "shapes" : "levels";
+        s.descriptions = {
+            ...s.descriptions,
+            [tab]: { ...s.descriptions[tab], [key]: value },
+            ...(key === "root" ? { [other]: { ...s.descriptions[other], root: value } } : {}),
+        };
+    });
+}
+
 export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
-    const [expanded, setExpanded] = useState(false);
     const [hovered, setHovered] = useState(false);
     const [focusWithin, setFocusWithin] = useState(false);
-    const [activeTab, setActiveTab] = useState<LegendTab>("selection");
-    const [checkedLevels, setCheckedLevels] = useState<Set<string>>(new Set());
-    const [checkedShapes, setCheckedShapes] = useState<Set<string>>(new Set());
-    const [selectionFilter, setSelectionFilter] = useState<SelectionFilter>("selected-with-children");
-    const [descriptions, setDescriptions] = useState<Record<string, Record<string, string>>>({ levels: {}, shapes: {} });
+    const model = useComponentModel({ editor }, GraphLegendModel, defaultGraphLegendState);
+    const expanded = model.state.use((s) => s.expanded);
+    const activeTab = model.state.use((s) => s.activeTab);
+    model.state.use((s) => s.checkedLevels);
+    model.state.use((s) => s.checkedShapes);
+    const selectionFilter = model.state.use((s) => s.selectionFilter);
+    const descriptions = model.state.use((s) => s.descriptions);
+    const checkedLevels = model.checkedLevelsSet.value;
+    const checkedShapes = model.checkedShapesSet.value;
+    const setExpanded = model.setExpanded;
+    const setActiveTab = model.setActiveTab;
+    const setSelectionFilter = model.setSelectionFilter;
 
     const selectedKey = useSyncExternalStore(
         (cb) => editor.state.subscribe(cb),
@@ -167,15 +222,15 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
             setSelectionFilter("selected");
         };
         return () => { editor.onHighlightSelection = null; };
-    }, [editor]);
+    }, [editor, setActiveTab, setExpanded, setSelectionFilter]);
 
     useEffect(() => {
         const legend = editor.getLegendDescriptions();
-        setDescriptions({
-            levels: { ...legend.levels },
-            shapes: { ...legend.shapes },
-        });
-    }, [editor]);
+        model.setDescriptions({
+                levels: { ...legend.levels },
+                shapes: { ...legend.shapes },
+            });
+    }, [editor, model]);
 
     const { hasRoot, hasGroup } = useMemo(() => {
         const info = editor.getPresentLevelsAndShapes();
@@ -248,21 +303,11 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
     }, [editor, expanded, activeTab, checkedLevels, checkedShapes, selectionFilter, selectedKey]);
 
     const toggleCheck = useCallback((tab: LegendTab, key: string) => {
-        const setter = tab === "level" ? setCheckedLevels : setCheckedShapes;
-        setter((prev) => {
-            const next = new Set(prev);
-            if (next.has(key)) next.delete(key);
-            else next.add(key);
-            return next;
-        });
-    }, []);
+        model.toggleCheck(tab, key);
+    }, [model]);
 
     const handleDescriptionChange = useCallback((tab: "levels" | "shapes", key: string, value: string) => {
-        setDescriptions((prev) => ({
-            ...prev,
-            [tab]: { ...prev[tab], [key]: value },
-            ...(key === "root" ? { [tab === "levels" ? "shapes" : "levels"]: { ...prev[tab === "levels" ? "shapes" : "levels"], root: value } } : {}),
-        }));
+        model.updateDescription(tab, key, value);
 
         const timerKey = `${tab}:${key}`;
         const existing = debounceTimers.current.get(timerKey);
@@ -271,15 +316,15 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
             editor.setLegendDescription(tab, key, value);
             debounceTimers.current.delete(timerKey);
         }, 300));
-    }, [editor]);
+    }, [editor, model]);
 
     useEffect(() => () => {
         for (const timer of debounceTimers.current.values()) clearTimeout(timer);
     }, []);
 
     const toggleExpanded = useCallback(() => {
-        setExpanded((prev) => !prev);
-    }, []);
+        model.setExpanded(!model.state.get().expanded);
+    }, [model]);
 
     const rootStyle: React.CSSProperties = {
         ...rootStyleBase,
@@ -407,17 +452,17 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                                         <SelectionRadioRow
                                             label="Selected"
                                             checked={selectionFilter === "selected"}
-                                            onToggle={() => setSelectionFilter((prev) => prev === "selected" ? "" : "selected")}
+                                            onToggle={() => setSelectionFilter(selectionFilter === "selected" ? "" : "selected")}
                                         />
                                         <SelectionRadioRow
                                             label="Selected with children"
                                             checked={selectionFilter === "selected-with-children"}
-                                            onToggle={() => setSelectionFilter((prev) => prev === "selected-with-children" ? "" : "selected-with-children")}
+                                            onToggle={() => setSelectionFilter(selectionFilter === "selected-with-children" ? "" : "selected-with-children")}
                                         />
                                         <SelectionRadioRow
                                             label="Not selected"
                                             checked={selectionFilter === "not-selected"}
-                                            onToggle={() => setSelectionFilter((prev) => prev === "not-selected" ? "" : "not-selected")}
+                                            onToggle={() => setSelectionFilter(selectionFilter === "not-selected" ? "" : "not-selected")}
                                         />
                                     </>
                                 )}

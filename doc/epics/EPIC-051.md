@@ -116,7 +116,8 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | [US-967](../tasks/US-967-neutral-slots-list-data/README.md) | Neutral slots: UIKit list and data components | Active |
 | [US-968](../tasks/US-968-neutral-slots-containers-floating/README.md) | Neutral slots: UIKit containers and floating layer | Planned |
 | [US-969](../tasks/US-969-neutral-slots-shell/README.md) | Neutral slots: `ui/` and `components/` | Implemented — pending review |
-| US-970 | Lift local `useState` into models | Planned |
+| [US-970](../tasks/US-970-lift-state-models/README.md) | Lift local `useState` into models | Implemented — pending review |
+| [US-976](../tasks/US-976-below-threshold-state/README.md) | Below-threshold local state | Planned |
 | US-971 | Imperative handles → model methods / `ComponentQueue` | Planned |
 | US-972 | React context → explicit model references | Planned |
 | US-973 | Route `document.body` portals through one host | Planned |
@@ -167,11 +168,15 @@ left as they are.
 Note that three of those are `Model`/registry files holding React types in *data* — the highest-value
 ones to neutralize.
 
-**US-970 — Lift `useState` into models.** 83 non-story files, worst first:
-`graph/GraphDetailPanel.tsx` (18), `graph/GraphLegendPanel.tsx` (9), `notebook/ExpandedNoteView.tsx`
-(7), `graph/GraphBody.tsx` (7), `env-vars/EnvVarsBody.tsx` (7), `mneme-config/RootsPanel.tsx` (6),
-`markdown/CodeBlock.tsx` (5), then a long tail of 2–4. Several of the leaders are over UIKit Rule 8's
-model-view threshold anyway. D7 governs what stays.
+**US-970 — Lift `useState` into models.** The task is now bounded to the seven files with
+`>=4` declarations (52 declarations): `graph/GraphDetailPanel.tsx` (17),
+`graph/GraphLegendPanel.tsx` (8), `notebook/ExpandedNoteView.tsx` (6), `graph/GraphBody.tsx`
+(6), `env-vars/EnvVarsBody.tsx` (6), `mneme-config/RootsPanel.tsx` (5), and
+`markdown/CodeBlock.tsx` (4). D7/D8 govern what stays; the below-threshold tail is US-976.
+
+The detailed [US-970 task document](../tasks/US-970-lift-state-models/README.md) remeasures the
+current branch at 174 declarations across 84 non-story `.tsx` files, limits the task to the seven
+`>=4` files, and hands the below-threshold tail to [US-976](../tasks/US-976-below-threshold-state/README.md).
 
 **US-971 — Imperative handles.** 9 `useImperativeHandle` files (`AVGrid`, `Tree`, `ListBox`,
 `RenderGrid`, `Textarea`, `ImageViewport`, `FileList`, `LinksList`, `MarkdownBlock`) plus the 33

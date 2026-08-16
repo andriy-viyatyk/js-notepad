@@ -1,4 +1,4 @@
-import { SetStateAction, useEffect, useRef, useState } from "react";
+import { SetStateAction, useEffect, useRef } from "react";
 import {
     Panel,
     Text,
@@ -18,6 +18,11 @@ import { isFocusInSidebar } from "../../core/utils/focus-utils";
 // Direct import (not the api/board-vars barrel) — see the note in EnvVarsEditor.ts.
 import { DEFAULT_PROFILE } from "../../api/board-vars/types";
 import type { EnvVarsEditor } from "./EnvVarsEditor";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
+
+class NamespaceListModel extends TComponentModel<{ newName: string }, { model: EnvVarsEditor; namespaces: string[]; selected: string }> {
+    setNewName = (newName: string) => this.state.update((s) => { s.newName = newName; });
+}
 
 function LockedState({ model }: { model: EnvVarsEditor }) {
     return (
@@ -60,7 +65,9 @@ function NamespaceList({
     namespaces: string[];
     selected: string;
 }) {
-    const [newName, setNewName] = useState("");
+    const namespaceModel = useComponentModel({ model, namespaces, selected }, NamespaceListModel, { newName: "" });
+    const newName = namespaceModel.state.use((s) => s.newName);
+    const setNewName = namespaceModel.setNewName;
 
     const commitAdd = () => {
         if (model.addNamespace(newName)) setNewName("");
@@ -158,17 +165,32 @@ function rowsToRecord(rows: VarRow[]): Record<string, string> {
     return record;
 }
 
-function VariablesGrid({
-    model,
-    namespace,
-    profile,
-    data,
-}: {
+interface VariablesGridState {
+    rows: VarRow[];
+    columns: Column<VarRow>[];
+    focus: CellFocus<VarRow> | undefined;
+    warning: string | undefined;
+}
+
+const defaultVariablesGridState: VariablesGridState = {
+    rows: [], columns: VAR_COLUMNS, focus: undefined, warning: undefined,
+};
+
+interface VariablesGridProps {
     model: EnvVarsEditor;
     namespace: string;
     profile: string;
     data: Record<string, string>;
-}) {
+}
+
+class VariablesGridModel extends TComponentModel<VariablesGridState, VariablesGridProps> {
+    setRows = (value: SetStateAction<VarRow[]>) => this.state.set((state) => ({ ...state, rows: typeof value === "function" ? value(state.rows) : value }));
+    setColumns = (value: SetStateAction<Column<VarRow>[]>) => this.state.set((state) => ({ ...state, columns: typeof value === "function" ? value(state.columns) : value }));
+    setFocus = (value: SetStateAction<CellFocus<VarRow> | undefined>) => this.state.set((state) => ({ ...state, focus: typeof value === "function" ? value(state.focus) : value }));
+    setWarning = (warning: string | undefined) => this.state.update((s) => { s.warning = warning; });
+}
+
+function VariablesGrid({ model, namespace, profile, data }: VariablesGridProps) {
     const rowCounterRef = useRef(0);
     // Reference to the last record object this component itself pushed via
     // setProfileData — lets the reseed effect ignore its own echo while still
@@ -176,10 +198,15 @@ function VariablesGrid({
     const appliedRef = useRef<Record<string, string> | null>(null);
     const gridRef = useRef<AVGridModel<VarRow> | null>(null);
     const editorConfig = useEditorConfig();
-    const [rows, setRows] = useState<VarRow[]>([]);
-    const [columns, setColumns] = useState<Column<VarRow>[]>(VAR_COLUMNS);
-    const [focus, setFocus] = useState<CellFocus<VarRow> | undefined>();
-    const [warning, setWarning] = useState<string | undefined>();
+    const gridModel = useComponentModel({ model, namespace, profile, data }, VariablesGridModel, defaultVariablesGridState);
+    const rows = gridModel.state.use((s) => s.rows);
+    const columns = gridModel.state.use((s) => s.columns);
+    const focus = gridModel.state.use((s) => s.focus);
+    const warning = gridModel.state.use((s) => s.warning);
+    const setRows = gridModel.setRows;
+    const setColumns = gridModel.setColumns;
+    const setFocus = gridModel.setFocus;
+    const setWarning = gridModel.setWarning;
 
     // Mount-time autofocus so keyboard editing (Enter/F2/Delete) works immediately —
     // AVGrid's focus-trap div only receives real DOM focus via an explicit focusGrid()
@@ -280,20 +307,28 @@ function VariablesGrid({
     );
 }
 
+interface ProfilePaneProps {
+    model: EnvVarsEditor;
+    namespace: string;
+    profile: string;
+    profiles: string[];
+    data: Record<string, string>;
+}
+
+class ProfilePaneModel extends TComponentModel<{ newProfile: string }, ProfilePaneProps> {
+    setNewProfile = (newProfile: string) => this.state.update((s) => { s.newProfile = newProfile; });
+}
+
 function ProfilePane({
     model,
     namespace,
     profile,
     profiles,
     data,
-}: {
-    model: EnvVarsEditor;
-    namespace: string;
-    profile: string;
-    profiles: string[];
-    data: Record<string, string>;
-}) {
-    const [newProfile, setNewProfile] = useState("");
+}: ProfilePaneProps) {
+    const profileModel = useComponentModel({ model, namespace, profile, profiles, data }, ProfilePaneModel, { newProfile: "" });
+    const newProfile = profileModel.state.use((s) => s.newProfile);
+    const setNewProfile = profileModel.setNewProfile;
 
     const commitAddProfile = () => {
         if (model.addProfile(namespace, newProfile)) setNewProfile("");

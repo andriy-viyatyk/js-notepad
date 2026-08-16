@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Panel } from "../../uikit/Panel";
 import { Spacer } from "../../uikit/Spacer";
 import { Text } from "../../uikit/Text";
@@ -10,9 +9,45 @@ import { ProgressBar } from "../../uikit/ProgressBar";
 import { Divider } from "../../uikit/Divider";
 import { MnemeConfigEditorModel } from "./MnemeConfigEditorModel";
 import { WikiRootStatus, formatBytes, isReindexActive } from "./mnemeTypes";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 interface RootsPanelProps {
     model: MnemeConfigEditorModel;
+}
+
+interface RootRowProps {
+    model: MnemeConfigEditorModel;
+    root: WikiRootStatus;
+}
+
+class RootRowModel extends TComponentModel<{ expanded: boolean }, RootRowProps> {
+    setExpanded = (expanded: boolean) => this.state.update((s) => { s.expanded = expanded; });
+}
+
+interface FiltersEditorProps {
+    model: MnemeConfigEditorModel;
+    root: string;
+}
+
+interface FiltersEditorState {
+    include: string[] | null;
+    ignore: string[] | null;
+    includeDraft: string;
+    ignoreDraft: string;
+}
+
+const defaultFiltersEditorState: FiltersEditorState = {
+    include: null,
+    ignore: null,
+    includeDraft: "",
+    ignoreDraft: "",
+};
+
+class FiltersEditorModel extends TComponentModel<FiltersEditorState, FiltersEditorProps> {
+    setInclude = (include: string[] | null) => this.state.update((s) => { s.include = include; });
+    setIgnore = (ignore: string[] | null) => this.state.update((s) => { s.ignore = ignore; });
+    setIncludeDraft = (value: string) => this.state.update((s) => { s.includeDraft = value; });
+    setIgnoreDraft = (value: string) => this.state.update((s) => { s.ignoreDraft = value; });
 }
 
 export function RootsPanel({ model }: RootsPanelProps) {
@@ -60,14 +95,10 @@ export function RootsPanel({ model }: RootsPanelProps) {
     );
 }
 
-interface RootRowProps {
-    model: MnemeConfigEditorModel;
-    root: WikiRootStatus;
-}
-
 function RootRow({ model, root }: RootRowProps) {
     const s = model.state.use();
-    const [expanded, setExpanded] = useState(false);
+    const rowModel = useComponentModel({ model, root }, RootRowModel, { expanded: false });
+    const expanded = rowModel.state.use((state) => state.expanded);
     // Two progress sources: a user-triggered reindex (cancellable, via the
     // reindexProgress map) and a background pass surfaced on status
     // (add-root / watcher, US-669). Manual takes precedence when both exist.
@@ -84,7 +115,7 @@ function RootRow({ model, root }: RootRowProps) {
 
     const toggleFilters = () => {
         const next = !expanded;
-        setExpanded(next);
+        rowModel.setExpanded(next);
         if (next && !s.rootConfigs[root.name]) void model.getRootConfig(root.name);
     };
 
@@ -196,18 +227,18 @@ function RootRow({ model, root }: RootRowProps) {
     );
 }
 
-interface FiltersEditorProps {
-    model: MnemeConfigEditorModel;
-    root: string;
-}
-
 function FiltersEditor({ model, root }: FiltersEditorProps) {
     const s = model.state.use();
     const cfg = s.rootConfigs[root];
-    const [include, setInclude] = useState<string[] | null>(null);
-    const [ignore, setIgnore] = useState<string[] | null>(null);
-    const [includeDraft, setIncludeDraft] = useState("");
-    const [ignoreDraft, setIgnoreDraft] = useState("");
+    const filterModel = useComponentModel({ model, root }, FiltersEditorModel, defaultFiltersEditorState);
+    const include = filterModel.state.use((state) => state.include);
+    const ignore = filterModel.state.use((state) => state.ignore);
+    const includeDraft = filterModel.state.use((state) => state.includeDraft);
+    const ignoreDraft = filterModel.state.use((state) => state.ignoreDraft);
+    const setInclude = filterModel.setInclude;
+    const setIgnore = filterModel.setIgnore;
+    const setIncludeDraft = filterModel.setIncludeDraft;
+    const setIgnoreDraft = filterModel.setIgnoreDraft;
 
     // Seed local edit state from the loaded config (first time it arrives).
     const effInclude = include ?? cfg?.include ?? [];

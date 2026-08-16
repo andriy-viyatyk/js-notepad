@@ -14,6 +14,7 @@ import { GraphLegendPanel } from "./GraphLegendPanel";
 import { CloseIcon, SettingsIcon, RefreshIcon, ExpandAllIcon, GraphGroupIcon } from "../../theme/icons";
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import color from "../../theme/color";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // ============================================================================
 // Constants
@@ -225,15 +226,43 @@ interface GraphBodyProps {
     canvasRefSetter?: (canvas: HTMLCanvasElement | null) => void;
 }
 
+interface GraphBodyState {
+    toolbarPanel: ToolbarPanel;
+    expandRequest: number;
+    collapseRequest: number;
+    selectedResultIndex: number;
+}
+
+const defaultGraphBodyState: GraphBodyState = {
+    toolbarPanel: "closed",
+    expandRequest: 0,
+    collapseRequest: 0,
+    selectedResultIndex: -1,
+};
+
+class GraphBodyModel extends TComponentModel<GraphBodyState, GraphBodyProps> {
+    setToolbarPanel = (toolbarPanel: ToolbarPanel) => this.state.update((s) => { s.toolbarPanel = toolbarPanel; });
+    toggleSettings = () => this.state.update((s) => {
+        s.toolbarPanel = s.toolbarPanel === "settings" ? "closed" : "settings";
+    });
+    incrementExpandRequest = () => this.state.update((s) => { s.expandRequest += 1; });
+    incrementCollapseRequest = () => this.state.update((s) => { s.collapseRequest += 1; });
+    setSelectedResultIndex = (selectedResultIndex: number) => this.state.update((s) => { s.selectedResultIndex = selectedResultIndex; });
+}
+
 export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [toolbarPanel, setToolbarPanel] = useState<ToolbarPanel>("closed");
     const [toolbarHovered, setToolbarHovered] = useState(false);
     const [toolbarFocusWithin, setToolbarFocusWithin] = useState(false);
-    const [expandRequest, setExpandRequest] = useState(0);
-    const [collapseRequest, setCollapseRequest] = useState(0);
-    const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
+    const bodyProps: GraphBodyProps = { model: editor, canvasRefSetter };
+    const viewModel = useComponentModel(bodyProps, GraphBodyModel, defaultGraphBodyState);
+    const toolbarPanel = viewModel.state.use((s) => s.toolbarPanel);
+    const expandRequest = viewModel.state.use((s) => s.expandRequest);
+    const collapseRequest = viewModel.state.use((s) => s.collapseRequest);
+    const selectedResultIndex = viewModel.state.use((s) => s.selectedResultIndex);
+    const setToolbarPanel = viewModel.setToolbarPanel;
+    const setSelectedResultIndex = viewModel.setSelectedResultIndex;
     const panelDirtyRef = useRef(false);
     const panelExpandedRef = useRef(false);
     const popupClosedAtRef = useRef(0);
@@ -245,14 +274,14 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
     });
 
     const toggleSettings = useCallback(() => {
-        setToolbarPanel((prev) => prev === "settings" ? "closed" : "settings");
-    }, []);
+        viewModel.toggleSettings();
+    }, [viewModel]);
 
     // GR3 — wire onDoubleClickNode for GraphDetailPanel expand integration.
     useEffect(() => {
-        editor.onDoubleClickNode = () => setExpandRequest((n) => n + 1);
+        editor.onDoubleClickNode = () => viewModel.incrementExpandRequest();
         return () => { editor.onDoubleClickNode = null; };
-    }, [editor]);
+    }, [editor, viewModel]);
 
     // Reactive read of all view-derived state.
     const pageState = editor.state.use((s) => s);
@@ -268,9 +297,9 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
             setToolbarPanel("results");
             setSelectedResultIndex(-1);
         } else if (!searchQuery) {
-            setToolbarPanel((prev) => prev === "results" ? "closed" : prev);
+            if (viewModel.state.get().toolbarPanel === "results") setToolbarPanel("closed");
         }
-    }, [searchResults, searchQuery]);
+    }, [searchResults, searchQuery, setToolbarPanel, setSelectedResultIndex, viewModel.state]);
 
     const onSearchChange = useCallback((value: string) => {
         editor.setSearchQuery(value);
@@ -286,11 +315,11 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
 
         if (e.key === "ArrowDown" && count > 0) {
             e.preventDefault();
-            setSelectedResultIndex((prev) => (prev + 1) % Math.min(count, MAX_DISPLAYED_RESULTS));
+            setSelectedResultIndex((selectedResultIndex + 1) % Math.min(count, MAX_DISPLAYED_RESULTS));
         } else if (e.key === "ArrowUp" && count > 0) {
             e.preventDefault();
             const max = Math.min(count, MAX_DISPLAYED_RESULTS);
-            setSelectedResultIndex((prev) => (prev - 1 + max) % max);
+            setSelectedResultIndex((selectedResultIndex - 1 + max) % max);
         } else if (e.key === "Enter" && results && count > 0) {
             e.preventDefault();
             const idx = selectedResultIndex >= 0 ? selectedResultIndex : 0;
@@ -306,7 +335,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                 inputRef.current?.blur();
             }
         }
-    }, [editor, selectedResultIndex, toolbarPanel, onSelectResult]);
+    }, [editor, selectedResultIndex, toolbarPanel, onSelectResult, setSelectedResultIndex, setToolbarPanel]);
 
     const onSearchClear = useCallback(() => {
         editor.setSearchQuery("");
@@ -319,7 +348,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
         if (results && results.length > 0) {
             setToolbarPanel("results");
         }
-    }, [editor]);
+    }, [editor, setToolbarPanel]);
 
     const onRevealHidden = useCallback(() => {
         editor.revealHiddenMatches();
@@ -479,7 +508,7 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
                                     return;
                                 }
                                 setToolbarPanel("closed");
-                                setCollapseRequest((n) => n + 1);
+                                viewModel.incrementCollapseRequest();
                                 return;
                             }
                             editor.renderer.onClick(e);

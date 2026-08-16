@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { EditorConfigProvider } from "../base";
 import { IconButton } from "../../uikit/IconButton";
 import { Input } from "../../uikit/Input";
@@ -13,6 +13,7 @@ import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import { NoteItemEditModel } from "./note-editor/NoteItemEditModel";
 import { NoteItem, NotebookSource } from "./notebookTypes";
 import { formatDate } from "../../core/utils/utils";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // =============================================================================
 // Inline-style constants
@@ -80,6 +81,33 @@ interface ExpandedNoteViewProps {
     onCollapse: () => void;
 }
 
+interface ExpandedNoteState {
+    editingCategory: boolean;
+    categoryValue: string;
+    addingTag: boolean;
+    newTagValue: string;
+    editingTagIndex: number | null;
+    editingTagValue: string;
+}
+
+const defaultExpandedNoteState: ExpandedNoteState = {
+    editingCategory: false,
+    categoryValue: "",
+    addingTag: false,
+    newTagValue: "",
+    editingTagIndex: null,
+    editingTagValue: "",
+};
+
+class ExpandedNoteModel extends TComponentModel<ExpandedNoteState, ExpandedNoteViewProps> {
+    setEditingCategory = (value: boolean) => this.state.update((s) => { s.editingCategory = value; });
+    setCategoryValue = (value: string) => this.state.update((s) => { s.categoryValue = value; });
+    setAddingTag = (value: boolean) => this.state.update((s) => { s.addingTag = value; });
+    setNewTagValue = (value: string) => this.state.update((s) => { s.newTagValue = value; });
+    setEditingTagIndex = (value: number | null) => this.state.update((s) => { s.editingTagIndex = value; });
+    setEditingTagValue = (value: string) => this.state.update((s) => { s.editingTagValue = value; });
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -111,22 +139,30 @@ export function ExpandedNoteView({
         return () => editModel.dispose();
     }, [editModel]);
 
-    // Category editing state
-    const [editingCategory, setEditingCategory] = useState(false);
-    const [categoryValue, setCategoryValue] = useState(note.category);
-
-    // Tag editing state
-    const [addingTag, setAddingTag] = useState(false);
-    const [newTagValue, setNewTagValue] = useState("");
-    const [editingTagIndex, setEditingTagIndex] = useState<number | null>(null);
-    const [editingTagValue, setEditingTagValue] = useState("");
+    const editState = useComponentModel(
+        { note, notebookModel, categories, tags, onCollapse },
+        ExpandedNoteModel,
+        defaultExpandedNoteState,
+    );
+    const editingCategory = editState.state.use((s) => s.editingCategory);
+    const categoryValue = editState.state.use((s) => s.categoryValue);
+    const addingTag = editState.state.use((s) => s.addingTag);
+    const newTagValue = editState.state.use((s) => s.newTagValue);
+    const editingTagIndex = editState.state.use((s) => s.editingTagIndex);
+    const editingTagValue = editState.state.use((s) => s.editingTagValue);
+    const setEditingCategory = editState.setEditingCategory;
+    const setCategoryValue = editState.setCategoryValue;
+    const setAddingTag = editState.setAddingTag;
+    const setNewTagValue = editState.setNewTagValue;
+    const setEditingTagIndex = editState.setEditingTagIndex;
+    const setEditingTagValue = editState.setEditingTagValue;
 
     // Sync category value when note changes
     useEffect(() => {
         if (!editingCategory) {
-            setCategoryValue(note.category);
+            editState.setCategoryValue(note.category);
         }
-    }, [note.category, editingCategory]);
+    }, [note.category, editingCategory, editState]);
 
     // Handle Escape key to collapse
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
