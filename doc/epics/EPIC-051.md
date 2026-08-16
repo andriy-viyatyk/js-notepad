@@ -115,7 +115,7 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | [US-966](../tasks/US-966-neutral-slots-primitives/README.md) | Neutral slots: UIKit primitives and inputs | Implemented - pending review |
 | [US-967](../tasks/US-967-neutral-slots-list-data/README.md) | Neutral slots: UIKit list and data components | Active |
 | [US-968](../tasks/US-968-neutral-slots-containers-floating/README.md) | Neutral slots: UIKit containers and floating layer | Planned |
-| US-969 | Neutral slots: `ui/` and `components/` | Planned |
+| [US-969](../tasks/US-969-neutral-slots-shell/README.md) | Neutral slots: `ui/` and `components/` | Implemented — pending review |
 | US-970 | Lift local `useState` into models | Planned |
 | US-971 | Imperative handles → model methods / `ComponentQueue` | Planned |
 | US-972 | React context → explicit model references | Planned |

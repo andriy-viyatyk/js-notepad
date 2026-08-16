@@ -1,8 +1,9 @@
-import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { secondaryViewRegistry, type SecondaryViewProps } from "./secondary-view-registry";
 import type { EditorOrHost } from "../../editors/base";
 import color from "../../theme/color";
 import { errMessage } from "../../../shared/utils";
+import type { IconRef } from "../../uikit";
 
 interface LazySecondaryViewProps {
     model: EditorOrHost;
@@ -10,7 +11,7 @@ interface LazySecondaryViewProps {
     panelId: string;
     headerRef: HTMLDivElement | null;
     /** Resolved leading header icon, forwarded to the panel component. */
-    icon?: ReactNode;
+    icon?: IconRef;
     /** Whether this panel is the expanded one — forwarded to the panel component. */
     expanded?: boolean;
 }

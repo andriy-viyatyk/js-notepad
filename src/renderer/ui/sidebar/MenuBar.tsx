@@ -221,11 +221,11 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
     getFolderIcon = (folder: MenuFolder) => {
         switch (folder.id) {
             case openTabsId:
-                return "🗔";
+                return "tabs";
             case recentFilesId:
-                return "🕘";
+                return "history";
             case toolsEditorsId:
-                return "⊞";
+                return "tools";
             case scriptLibraryId:
                 return <ScriptLibraryIcon />;
             default:

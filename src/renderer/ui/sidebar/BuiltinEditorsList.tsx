@@ -4,7 +4,7 @@ import { CreatableItem, getCreatableItems } from "./tools-editors-registry";
 import { usePinnedRefs, addPin } from "./pinned-items";
 import { settings } from "../../api/settings";
 import { PinIcon } from "../../theme/icons";
-import { ListBox, LIST_ITEM_KEY, IconButton } from "../../uikit";
+import { ListBox, LIST_ITEM_KEY, IconButton, renderIcon } from "../../uikit";
 import type { ListItemRenderContext } from "../../uikit";
 import { RowStyled } from "./PinnedRail";
 
@@ -42,7 +42,7 @@ function UnpinnedRow({ item, onPin }: { item: CreatableItem; onPin: (id: string)
 
     return (
         <RowStyled data-type="tools-editor-row">
-            <span className="item-icon">{item.icon}</span>
+            <span className="item-icon">{renderIcon(item.icon)}</span>
             <span className="item-label">{item.label}</span>
             <span className="pin-button-wrapper">
                 <IconButton size="sm" icon={<PinIcon />} title="Pin to menu" onClick={handlePin} />

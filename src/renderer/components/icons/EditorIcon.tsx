@@ -1,5 +1,7 @@
 import React from "react";
 import { LanguageIcon } from "./LanguageIcon";
+import { renderIcon } from "../../uikit";
+import type { IconRef } from "../../uikit";
 
 /** Minimal structural shape an editor exposes for icon resolution. Kept separate
  *  from `EditorModel` so `components/icons` stays decoupled from the editor layer —
@@ -9,7 +11,7 @@ export interface EditorIconSource {
     /** When true, the editor supplies its own icon via `getIcon` (no file-type icon). */
     noLanguage?: boolean;
     /** Self-supplied icon for `noLanguage` editors (may be undefined → no icon). */
-    getIcon?: () => React.ReactNode;
+    getIcon?: () => IconRef;
     /** Monaco language id — drives the file-type icon for language editors. */
     language?: string;
     /** File name / page title — refines the file-type icon (compound extensions). */
@@ -35,7 +37,8 @@ export interface EditorIconSource {
  */
 export function EditorIcon({ editor }: { editor: EditorIconSource }) {
     if (editor.noLanguage) {
-        return <>{editor.getIcon?.() ?? null}</>;
+        const icon = editor.getIcon?.();
+        return <>{icon ? renderIcon(icon) : null}</>;
     }
     return <LanguageIcon language={editor.language ?? ""} fileName={editor.title} />;
 }

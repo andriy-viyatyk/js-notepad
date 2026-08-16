@@ -12,10 +12,10 @@
  * expandable nodes (not section headers) so the user can collapse/expand them.
  * Side-effect-free: the builder emits plain-string labels and no icons — the view
  * (`decorateNodes`) attaches icons and may replace a label with a styled node. The
- * only React touch is the `ReactNode` *type* on `GitRefNode.label`/`icon` (a
- * type-only import); the builder itself creates no React elements.
+ * only React-backed values are the explicit `SlotText`/`IconRef` arms on
+ * `GitRefNode.label`/`icon`; the builder itself creates no React elements.
  */
-import type { ReactNode } from "react";
+import type { IconRef, SlotText } from "../../uikit";
 import type { GitRefs } from "../../../ipc/git-ipc";
 
 /** Selectable ref-leaf kind (set on leaves only; folders/roots carry none). */
@@ -27,13 +27,13 @@ export interface GitRefNode {
     /** Display label — the path segment / leaf name / root title. The builder
      *  always emits a plain string; the view may replace it with a styled node
      *  (e.g. the head-green current-branch label). */
-    label: ReactNode;
+    label: SlotText;
     /** Leaf kind (branch / remote-branch / tag). Absent on roots + folders. */
     kind?: GitRefNodeKind;
     /** Full ref name for leaves (e.g. "feature/x", "origin/feature/x", "v1.0.0"). */
     refName?: string;
     /** Leading icon — attached by the view (kept undefined by the builder). */
-    icon?: ReactNode;
+    icon?: IconRef;
     /** Child nodes. Absent/empty → leaf (no chevron). */
     items?: GitRefNode[];
 }

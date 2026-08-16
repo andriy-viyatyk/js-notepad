@@ -10,7 +10,7 @@ import { fpBasename } from "../../core/utils/file-path";
 import { CreatableItem, getCreatableItems } from "./tools-editors-registry";
 import { usePinnedRefs, removePin, movePin, type PinnedRef } from "./pinned-items";
 import { PinFilledIcon } from "../../theme/icons";
-import { IconButton } from "../../uikit";
+import { IconButton, renderIcon } from "../../uikit";
 import { BoardGlyph } from "../../editors/board/BoardGlyph";
 
 // =============================================================================
@@ -160,7 +160,7 @@ function PinnedEditorRow({ item, index, onMove, onUnpin, onActivate }: {
             onClick={onActivate}
             {...handlers}
         >
-            <span className="item-icon">{item.icon}</span>
+            <span className="item-icon">{renderIcon(item.icon)}</span>
             <span className="item-label">{item.label}</span>
             <span className="pin-button-wrapper">
                 <IconButton size="sm" icon={<PinFilledIcon />} title="Unpin" onClick={handleUnpin} />

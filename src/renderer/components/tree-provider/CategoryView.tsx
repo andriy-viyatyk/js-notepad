@@ -5,16 +5,13 @@ import { useComponentModel } from "../../core/state/model";
 import { RenderGridModel } from "../../uikit/RenderGrid";
 import { Input } from "../../uikit/Input";
 import { IconButton } from "../../uikit/IconButton";
-import {
-    CloseIcon,
-    ViewListIcon, ViewLandscapeIcon, ViewLandscapeBigIcon,
-    ViewPortraitIcon, ViewPortraitBigIcon,
-} from "../../theme/icons";
 import { showAppPopupMenu } from "../../ui/dialogs";
 import color from "../../theme/color";
 import { Panel } from "../../uikit/Panel/Panel";
 import { Spacer } from "../../uikit/Spacer/Spacer";
 import type { ILink } from "../../api/types/io.tree";
+import { renderIcon } from "../../uikit";
+import type { IconName } from "../../uikit";
 import {
     CategoryViewModel,
     CategoryViewProps,
@@ -39,12 +36,12 @@ const VIEW_MODE_LABELS: Record<CategoryViewMode, string> = {
     "tiles-portrait-big": "Portrait (Large)",
 };
 
-const VIEW_MODE_ICONS: Record<CategoryViewMode, React.ReactNode> = {
-    "list": <ViewListIcon />,
-    "tiles-landscape": <ViewLandscapeIcon />,
-    "tiles-landscape-big": <ViewLandscapeBigIcon />,
-    "tiles-portrait": <ViewPortraitIcon />,
-    "tiles-portrait-big": <ViewPortraitBigIcon />,
+const VIEW_MODE_ICONS: Record<CategoryViewMode, IconName> = {
+    "list": "view-list",
+    "tiles-landscape": "view-landscape",
+    "tiles-landscape-big": "view-landscape-big",
+    "tiles-portrait": "view-portrait",
+    "tiles-portrait-big": "view-portrait-big",
 };
 
 const VIEW_MODE_ORDER: CategoryViewMode[] = [
@@ -200,7 +197,7 @@ export function CategoryView(props: CategoryViewProps) {
         const rect = e.currentTarget.getBoundingClientRect();
         showAppPopupMenu(rect.left, rect.bottom + 2, VIEW_MODE_ORDER.map((mode) => ({
             label: VIEW_MODE_LABELS[mode],
-            icon: VIEW_MODE_ICONS[mode],
+            icon: renderIcon(VIEW_MODE_ICONS[mode]),
             selected: mode === viewMode,
             onClick: () => onViewModeChange(mode),
         })));
@@ -273,7 +270,7 @@ export function CategoryView(props: CategoryViewProps) {
                           size="sm"
                           title="Clear"
                           onClick={handleSearchClose}
-                          icon={<CloseIcon />}
+                          icon="close"
                       />
                     : undefined}
             />

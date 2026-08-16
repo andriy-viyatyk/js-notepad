@@ -88,7 +88,7 @@ export function SecondaryViews({ views, state, setState }: SecondaryViewsProps) 
                 >
                     {rendered.map(({ model, panelId, key, refKey }) => {
                         // Panel header icon: a registry per-panel override (e.g. the
-                        // Explorer "search" panel's SearchIcon) wins; otherwise the
+                        // Explorer "search" panel's registry override wins; otherwise the
                         // owning editor's icon — the same glyph that editor shows on
                         // its page tab — so panels from different editors are
                         // distinguishable at a glance.

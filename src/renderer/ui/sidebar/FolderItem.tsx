@@ -3,7 +3,8 @@ import { useCallback, useRef, useState } from "react";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
 import color from "../../theme/color";
 import { rowSelectionBase, rowFocusSelectionOverride } from "../../uikit/shared/selection-style";
-import { Tooltip } from "../../uikit";
+import { renderIcon, Tooltip } from "../../uikit";
+import type { IconRef } from "../../uikit";
 import { ArrowRightIcon } from "../../theme/icons";
 
 import { menuFolders } from "../../api/menu-folders";
@@ -75,9 +76,9 @@ const Root = styled.div(
 export interface FolderItemProps {
     folder: MenuFolder;
     selected: boolean;
-    icon: React.ReactNode;
-    label: React.ReactNode;
-    tooltip?: React.ReactNode;
+    icon: IconRef;
+    label: string;
+    tooltip?: string;
     onDoubleClick?: (folder: MenuFolder) => void;
     onSelectedIconClick?: (folder: MenuFolder, e: React.MouseEvent) => void;
     canDrag?: boolean;
@@ -187,7 +188,7 @@ export function FolderItem(props: FolderItemProps) {
             onDrop={handleFolderDrop}
             onDoubleClick={handleDoubleClick}
         >
-            {Boolean(icon) && icon}
+            {renderIcon(icon)}
             <span className="item-text">{label}</span>
             {selected && (
                 onSelectedIconClick ? (

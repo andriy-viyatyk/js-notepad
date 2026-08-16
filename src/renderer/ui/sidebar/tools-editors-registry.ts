@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React from "react";
 import { pagesModel } from "../../api/pages";
 import { fs } from "../../api/fs";
 import { BrowserProfile } from "../../api/settings";
@@ -9,6 +9,7 @@ import {
 import { GlobeIcon, McpIcon, MemoryIcon, OpenFileIcon, PlayerIcon, StorybookIcon } from "../../theme/icons";
 import { FolderIcon } from "../../components/icons/FileIcon";
 import { DEFAULT_BROWSER_COLOR, MEMORY_ICON_COLOR } from "../../theme/palette-colors";
+import type { IconRef } from "../../uikit";
 
 // =============================================================================
 // Types
@@ -20,7 +21,7 @@ export interface CreatableItem {
     /** Display label in menus and sidebar. */
     label: string;
     /** Icon element for menus and sidebar. */
-    icon?: ReactNode;
+    icon?: IconRef;
     /** Create the page/tab. */
     create: () => void;
     /** Category for grouping in the sidebar list. */

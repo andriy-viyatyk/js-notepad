@@ -1,9 +1,10 @@
 import { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styled from "@emotion/styled";
-import { Panel, Text, Tooltip } from "../../uikit";
+import { Panel, renderIcon, Text, Tooltip } from "../../uikit";
 import { ChevronRightIcon } from "../../theme/icons";
 import color from "../../theme/color";
+import type { IconRef, SlotText } from "../../uikit";
 
 // =============================================================================
 // SideBarPanelHeader
@@ -55,13 +56,13 @@ export interface SideBarPanelHeaderProps {
      *  `SecondaryViews.tsx` as registry-override ?? `EditorIcon`). Rendered as a
      *  DIRECT child of the header div so the stack's
      *  `[data-part="header"] > svg { width:14; height:14 }` sizing rule applies. */
-    icon?: ReactNode;
+    icon?: IconRef;
     /** Optional leading badge (e.g. a repo-name `<Tag truncate>`), rendered before
      *  the title inside the shrinkable title group. */
     badge?: ReactNode;
     /** Panel title. A string is wrapped in a truncating `<Text>`; a node is rendered
      *  as-is inside the truncating, flex-growing title region. */
-    title: ReactNode;
+    title: SlotText;
     /** Trailing action buttons. Rendered in a region that never shrinks, so the
      *  buttons stay fully visible while the title group truncates. */
     actions?: ReactNode;
@@ -104,7 +105,7 @@ export function SideBarPanelHeader({
     if (!headerRef) return null;
     return createPortal(
         <>
-            {icon}
+            {renderIcon(icon)}
             <Panel
                 name={name ?? "sidebar-panel-title"}
                 direction="row"

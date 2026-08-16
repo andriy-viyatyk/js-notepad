@@ -1,5 +1,6 @@
 import type React from "react";
 import type { EditorOrHost } from "../../editors/base";
+import type { IconRef } from "../../uikit";
 
 /** Props passed to secondary view sidebar components. */
 export interface SecondaryViewProps {
@@ -12,7 +13,7 @@ export interface SecondaryViewProps {
     headerRef: HTMLDivElement | null;
     /** Resolved leading header icon (registry per-panel override ?? the owning editor's
      *  `EditorIcon`), supplied by the host. Forward to `SideBarPanelHeader`'s `icon` prop. */
-    icon?: React.ReactNode;
+    icon?: IconRef;
     /** `true` when this panel is the currently-expanded one in the stack; `false`
      *  when collapsed to a header strip. Panels stay mounted while collapsed
      *  (`alwaysRenderContent`), so use this to drop header actions that only make
@@ -28,9 +29,9 @@ interface SecondaryViewDefinition {
     label: string;
     /** Optional per-panel header icon. When set, it overrides the owning editor's
      *  icon for this panel — used by sidebar-only sub-panels that want their own
-     *  glyph (e.g. the Explorer "search" panel → SearchIcon). Most panels omit this
+     *  glyph (e.g. the Explorer "search" panel → the "search" registry name). Most panels omit this
      *  and fall back to the editor icon. */
-    icon?: React.ReactNode;
+    icon?: IconRef;
     /** Dynamic import of the sidebar component. */
     loadComponent: () => Promise<{ default: React.ComponentType<SecondaryViewProps> }>;
 }

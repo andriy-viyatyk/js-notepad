@@ -133,6 +133,28 @@ export const WindowMinimizeIcon = createIcon(36)(
     </>,
 );
 
+// Sidebar "Open Tabs" folder — a tab strip above a content panel. Two tabs, left-aligned,
+// so the empty right third of the strip reads as "more tabs" at 14px.
+export const TabsIcon = createIcon(24)(
+    <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M3 5.5C3 4.67157 3.67157 4 4.5 4H8.5C9.32843 4 10 4.67157 10 5.5V8H3V5.5ZM11 5.5C11 4.67157 11.6716 4 12.5 4H16.5C17.3284 4 18 4.67157 18 5.5V8H11V5.5ZM2 9H22V18.5C22 19.3284 21.3284 20 20.5 20H3.5C2.67157 20 2 19.3284 2 18.5V9ZM4 11V18H20V11H4Z"
+        fill="currentColor"
+    />,
+);
+
+// Sidebar "Recent Files" folder — clock ring with hands at 3 o'clock. The ring, the dial hole
+// and the hands are one evenodd path: ring fills at depth 1, dial clears at 2, hands fill at 3.
+export const HistoryIcon = createIcon(24)(
+    <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M21 12A9 9 0 1 1 3 12A9 9 0 1 1 21 12ZM19 12A7 7 0 1 0 5 12A7 7 0 1 0 19 12ZM11.1 6.4H12.9V11.1H16.2V12.9H11.1V6.4Z"
+        fill="currentColor"
+    />,
+);
+
 // Code-branch glyph (svgrepo "code-branch-solid", CC0). Used for the repo's
 // `.git` entry in the Explorer (EPIC-030 / US-612). currentColor = theme-safe.
 export const GitIcon = createIcon(32)(

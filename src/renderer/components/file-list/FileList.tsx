@@ -5,7 +5,7 @@ import { fontSize } from "../../uikit/tokens";
 import type { MenuItem } from "../../uikit/Menu";
 import { TraitSet, traited } from "../../core/traits/traits";
 import { FileIcon, FolderIcon } from "../icons/FileIcon";
-import { CloseIcon } from "../../theme/icons";
+import type { IconRef } from "../../uikit";
 
 export interface FileListItem {
     filePath: string;
@@ -13,7 +13,7 @@ export interface FileListItem {
     isFolder?: boolean;
     /** Optional explicit icon override. When set, it is used instead of the
      *  folder / file-type default (e.g. a board's custom icon). */
-    icon?: ReactNode;
+    icon?: IconRef;
 }
 
 export interface FileListRef {
@@ -167,7 +167,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                                 searchText ? (
                                     <IconButton
                                         name="file-list-search-clear"
-                                        icon={<CloseIcon />}
+                                        icon="close"
                                         title="Clear Search"
                                         size="sm"
                                         onClick={hideSearchAndFocus}
