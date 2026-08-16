@@ -106,6 +106,7 @@ mneme/target/
 # Claude environment temporary files
 tmpclaude-*
 .claude/settings.local.json
+/.codex/config.toml
 
 # Scratch files
 scratches/

@@ -192,10 +192,12 @@ These hold for every epic below.
 
 ## 7. The epics
 
-Seven epics, roughly in dependency order. IDs are assigned when each epic doc is created; the next
-free number today is **EPIC-051**.
+Seven epics, roughly in dependency order. IDs are assigned when each epic doc is created.
 
 ### Epic P — Preparation (React-side)
+
+**Scheduled as [EPIC-051](epics/EPIC-051.md) on 2026-08-16.** The next free epic number is now
+**EPIC-052**.
 
 The only epic that writes **no vanilla code at all**. Every task in it is a normal React refactor
 that leaves the app on React, is verifiable the same day, and shrinks the surface every later epic
