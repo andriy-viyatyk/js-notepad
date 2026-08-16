@@ -83,6 +83,11 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
      *  close. Survives editor switches because the host outlives the editor. */
     pipe: IContentPipe | null = null;
 
+    /** Replace the source pipe through the paired source/cache owner. */
+    setPipe(pipe: IContentPipe | null): void {
+        this.io.setPrimary(pipe);
+    }
+
     setPage(page: IPageHost | null): void {
         this.page = page;
     }
@@ -283,12 +288,12 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
     }
 
     applyRestoreData = (data: Partial<TextFileEditorModelState>): void => {
-        // Reconstruct pipe from descriptor if present
+        let restoredPipe: IContentPipe | null | undefined;
         if (data.pipe) {
             try {
-                this.pipe = createPipeFromDescriptor(data.pipe as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+                restoredPipe = createPipeFromDescriptor(data.pipe as any); // eslint-disable-line @typescript-eslint/no-explicit-any
             } catch {
-                this.pipe = null;
+                restoredPipe = null;
             }
         }
         this.state.update((s) => {
@@ -304,6 +309,9 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
                 !s.filePath && (data.temp !== undefined ? data.temp : s.temp);
             if (data.editorSettings !== undefined) s.editorSettings = data.editorSettings;
         });
+        // State (especially the persistent page id) must be restored before the
+        // paired cache pipe is created for this source pipe.
+        if (restoredPipe !== undefined) this.setPipe(restoredPipe);
     };
 
 
@@ -385,8 +393,6 @@ export class TextFileModel extends TDialogModel<TextFileEditorModelState, void> 
         this.cancelDetection();
         this.io.dispose();
         this.script.dispose();
-        this.pipe?.dispose();
-        this.pipe = null;
         await appFs.deleteCacheFiles(this.state.get().id);
     }
 

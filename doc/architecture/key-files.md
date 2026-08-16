@@ -45,13 +45,14 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Drag-and-drop utilities  | `/src/renderer/core/traits/dnd.ts`                |
 | ILink trait definition   | `/src/renderer/core/traits/linkTraits.ts` |
 | Content pipe             | `/src/renderer/content/ContentPipe.ts`            |
+| Text source/cache pipe ownership | `/src/renderer/content/PipePair.ts`       |
 | Content pipe registry    | `/src/renderer/content/registry.ts`               |
 | File provider            | `/src/renderer/content/providers/FileProvider.ts` |
 | Cache file provider      | `/src/renderer/content/providers/CacheFileProvider.ts` |
 | Encoding detection       | `/src/renderer/content/encoding.ts`               |
 | Link parsers (Layer 1)   | `/src/renderer/content/parsers.ts`                |
 | Pipe rebuild from a persisted source path (`pipeFromSourcePath` — plain / `archive.zip!entry` / `http(s)`; shared by the Image editor, board file materialization and page restore) | `/src/renderer/content/rebuild-pipe.ts` |
-| Pipe resolvers (Layer 2; the http resolver's extension table decides browser-vs-content AND names the built-in editor, so an entry may carry `browserFallback: true` with no `editor` — the type has no built-in editor, opens as content only if a trusted board claims it, else falls through to the browser tab) | `/src/renderer/content/resolvers.ts` |
+| Pipe resolvers (Layer 2; the HTTP resolver's content-extension set decides browser-vs-content, then normal registry matching and eligible board resolution choose the editor; `.pdf` retains its browser fallback) | `/src/renderer/content/resolvers.ts` |
 | Link resolution utils    | `/src/renderer/content/link-utils.ts`             |
 | Open handler (Layer 3)   | `/src/renderer/content/open-handler.ts`           |
 | HTTP provider            | `/src/renderer/content/providers/HttpProvider.ts`  |

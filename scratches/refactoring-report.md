@@ -534,7 +534,7 @@ Also worth noting from automation: `browserHover` reuses a JS snippet via
 "this"; and `browserNavigate`/`browserNavigateBack` carry two character-identical 30-line
 embedded polling scripts (extract `awaitNavigation(target, trigger)`).
 
-### 3.6 Content pipeline — contained drift, three fixes
+### 3.6 Content pipeline — contained drift, three fixes — ✅ DONE (US-964, 2026-08-16)
 
 - **`resolvers.ts:213-269`**: 56-line hardcoded HTTP extension table where ~45 entries are
   `{ editor: "monaco" }`, running parallel to `editorRegistry`'s extension resolution (the

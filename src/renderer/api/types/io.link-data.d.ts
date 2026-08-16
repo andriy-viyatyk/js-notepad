@@ -1,4 +1,5 @@
 import type { IContentPipe, IPipeDescriptor } from "./io.pipe";
+import type { ILink } from "./io.tree";
 
 /**
  * A single revision selector for the File Diff editor (target === "file-diff").
@@ -16,130 +17,86 @@ export type ILinkDiffRevision =
     | { kind: "commit"; hash: string; shortHash: string };
 
 /**
- * Unified link data descriptor.
- *
- * Flows through the entire `openRawLink → openLink → openContent` pipeline.
- * Created by the caller, enriched by each layer (parsers, resolvers, open handler),
- * and stored on the page as the source link.
- *
- * When subscribing to link pipeline events, the event IS an ILinkData:
- * @example
- * app.events.openRawLink.subscribe((data) => {
- *     console.log(data.href);    // raw input
- *     data.target = "browser";   // override target editor
- * });
- *
- * @example
- * // Open a link with full context
- * await app.events.openRawLink.sendAsync(io.createLinkData("https://example.com", {
- *     target: "browser",
- *     browserMode: "incognito",
- * }));
+ * Persistable link identity, link-item metadata, and HTTP request information.
+ * This shape is independent of a single open attempt, so it can be stored on a
+ * page as that page's source link.
  */
-export interface ILinkData {
-    // ── Pipeline control ──────────────────────────────────────────
-    /** Set to `true` to short-circuit the current channel's pipeline.
-     *  Undefined is treated as `false`. */
-    handled?: boolean;
-
-    // ── Core identity ────────────────────────────────────────────
-    /** Raw link string — file path, URL, cURL command, etc. Always set by callers via createLinkData(). */
+export interface ILinkCore extends Partial<ILink> {
+    /** Raw link string — file path, URL, cURL command, etc. */
     href?: string;
-    /** Resolved URL after Layer 1 parsing (normalized path, extracted URL from cURL, etc.).
-     *  If not set by a parser, open-handler uses `href` as fallback. */
+    /** Resolved URL after Layer 1 parsing (normalized path, extracted cURL URL, etc.). */
     url?: string;
-
-    // ── ILink-compatible fields (present when opened from an ILink) ──
-    /** Unique identifier of the originating link item. */
-    id?: string;
-    /** Display title. */
-    title?: string;
-    /** Category path (using "/" separators). */
-    category?: string;
-    /** Metadata tags. */
-    tags?: string[];
-    /** Whether the originating item is a directory. */
-    isDirectory?: boolean;
-    /** Preview image URL. */
-    imgSrc?: string;
-    /** File size in bytes. */
-    size?: number;
-    /** Last modified time (ISO string). */
-    mtime?: string;
-
-    // ── Pipeline resolution (set by layers) ───────────────────────
-    /** Target editor ID. Can be set by caller (from ILink.target), overridden by pipeline. */
-    target?: string;
-    /** Resolved pipe descriptor (set by Layer 2 resolvers). Persisted in page state. */
-    pipeDescriptor?: IPipeDescriptor;
-    /** Temporal pipe instance (set by Layer 2, consumed by Layer 3).
-     *  NOT persisted — stripped before storage. */
-    pipe?: IContentPipe;
-
-    // ── Navigation hints (ephemeral — not persisted) ──────────────
-    /** Open in this specific page instead of a new tab. */
-    pageId?: string;
-    /** Scroll to this line after opening. */
-    revealLine?: number;
-    /** Highlight occurrences of this text after opening. */
-    highlightText?: string;
-    /** Scroll to this document fragment (anchor / heading slug) after opening.
-     *  Set by Layer 1 parsers from a `file://` / `mneme://` href's `#…`; consumed
-     *  once by the target editor via `revealFragment`. Never includes the "#". */
-    fragment?: string;
-    /** Preselect the File Diff "from" (left) revision. Consumed once, only when
-     *  a fresh File Diff editor is constructed on open (target === "file-diff"). */
-    diffFrom?: ILinkDiffRevision;
-    /** Preselect the File Diff "to" (right) revision. Consumed once, only when
-     *  a fresh File Diff editor is constructed on open (target === "file-diff"). */
-    diffTo?: ILinkDiffRevision;
-    /** Preselect the Environment Variables editor's namespace section
-     *  (target === "env-vars-view"). Consumed once, only when a fresh env-vars-view editor is
-     *  constructed on open (see EnvVarsEditor.adoptHost). */
-    envNamespace?: string;
-
-    // ── HTTP metadata (from cURL parser or callers) ───────────────
     /** HTTP headers. */
     headers?: Record<string, string>;
     /** HTTP method. */
     method?: string;
     /** HTTP body. */
     body?: string;
+}
 
-    // ── Browser routing (ephemeral — not persisted) ───────────────
+/**
+ * Persistable routing and source-provenance metadata. These fields describe
+ * where a link should open and why, rather than transient pipeline work.
+ */
+export interface ILinkNav {
+    /** Target editor ID. Can be set by caller (from ILink.target), overridden by pipeline. */
+    target?: string;
+    /** Resolved pipe descriptor (set by Layer 2 resolvers). Persisted in page state. */
+    pipeDescriptor?: IPipeDescriptor;
+    /** ID of the source editor/model that initiated this link opening. */
+    sourceId?: string;
+    /** The selected tag when opened from a Tags panel (`sourceId === "link-tag"`). */
+    selectedTag?: string;
+    /** Explorer root that scopes a board's in-board boards switcher. */
+    explorerRoot?: string;
+    /** File a custom-editor board edits; rides its `persephone-board://` source link. */
+    filePath?: string;
+}
+
+/**
+ * One-open control state. These fields are consumed during the event pipeline
+ * and must never be persisted as a page source link.
+ */
+export interface ILinkPipeline {
+    /** Set to `true` to short-circuit the current channel's pipeline. */
+    handled?: boolean;
+    /** Temporal pipe instance (set by Layer 2, consumed by Layer 3). */
+    pipe?: IContentPipe;
+    /** Open in this specific page instead of a new tab. */
+    pageId?: string;
+    /** Scroll to this line after opening. */
+    revealLine?: number;
+    /** Highlight occurrences of this text after opening. */
+    highlightText?: string;
+    /** Scroll to this document fragment (anchor / heading slug) after opening. */
+    fragment?: string;
+    /** Preselect the File Diff "from" (left) revision for a fresh editor. */
+    diffFrom?: ILinkDiffRevision;
+    /** Preselect the File Diff "to" (right) revision for a fresh editor. */
+    diffTo?: ILinkDiffRevision;
+    /** Preselect the Environment Variables editor's namespace section. */
+    envNamespace?: string;
     /** Browser routing mode ("os-default" | "internal" | "incognito" | "profile:<name>"). */
     browserMode?: string;
     /** Route URL to a specific browser page (add/navigate tab). */
     browserPageId?: string;
     /** How to open in the target browser page ("navigate" | "addTab"). */
     browserTabMode?: "navigate" | "addTab";
-
-    // ── Content hints (ephemeral — not persisted) ─────────────────
     /** Fallback editor target when URL has no recognized extension. */
     fallbackTarget?: string;
-
-    // ── Source tracking ───────────────────────────────────────────
-    /** ID of the source editor/model that initiated this link opening.
-     *  Used by ArchiveEditorModel to track provenance. */
-    sourceId?: string;
-    /** The selected tag when opened from a Tags panel (sourceId === "link-tag").
-     *  Used by the player to find sibling tracks within the same tag.
-     *  Named "selectedTag" (not "tag") because a link can have multiple tags —
-     *  this is the tag the user selected, not a property of the link itself. */
-    selectedTag?: string;
-    /** The Explorer root a board was opened from. Scopes the in-board boards
-     *  switcher: the board reads it back from `state.sourceLink` and lists the
-     *  trusted boards under it. Set by the opener (Boards panel / in-board
-     *  switcher / Explorer manifest row); absent for a board opened standalone
-     *  (MCP / a bare `persephone-board://`), which then shows a plain path label.
-     *  Persisted (NOT in EPHEMERAL_FIELDS) so a restored board keeps its switcher
-     *  scope; never copied into a stored Link `ILink` (`linkDataToLink` ignores it). */
-    explorerRoot?: string;
-    /** The file a custom-editor board edits (EPIC-042). Rides the `persephone-board://`
-     *  openRawLink as metadata (the URL stays a pure board id); lands on the board editor's
-     *  `state.sourceLink` and is served to the board via `persephone.getFilePath()`. Persisted
-     *  (NOT ephemeral) so a restored / cross-window-moved custom-editor board re-opens the same
-     *  file; never copied into a stored Link `ILink` (`linkDataToLink` builds an explicit object
-     *  and ignores it). */
-    filePath?: string;
 }
+
+/**
+ * Unified link descriptor. It flows through `openRawLink → openLink → openContent`,
+ * where callers and each pipeline layer enrich the same object.
+ *
+ * @example
+ * await app.events.openRawLink.sendAsync(io.createLinkData("https://example.com", {
+ *     target: "browser",
+ *     browserMode: "incognito",
+ * }));
+ */
+export type ILinkData = ILinkCore & Partial<ILinkNav> & Partial<ILinkPipeline>;
+
+/** The persistence-safe subset stored on a page as its source link. */
+export type StoredLinkData = ILinkCore & Partial<ILinkNav>;

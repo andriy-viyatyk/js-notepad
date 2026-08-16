@@ -27,8 +27,9 @@ export interface ITransformer {
     /** Transform bytes on read (source → editor). */
     read(data: Buffer): Promise<Buffer>;
     /** Reverse-transform bytes on write (editor → source).
-     *  Receives new content and original source bytes (needed by ZIP to rebuild archive). */
-    write(data: Buffer, original: Buffer): Promise<Buffer>;
+     *  `readOriginal` lazily returns the bytes that entered this transformer on read.
+     *  Most transforms do not need it; ArchiveTransformer uses it to rebuild a ZIP. */
+    write(data: Buffer, readOriginal: () => Promise<Buffer>): Promise<Buffer>;
     /** Create a deep copy of this transformer (avoids descriptor round-trip). */
     clone(): ITransformer;
     /** Serialize to descriptor for persistence. */

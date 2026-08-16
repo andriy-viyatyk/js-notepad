@@ -201,7 +201,7 @@ Unified content I/O layer in `/src/renderer/content/` that decouples editors fro
 2. **Resolvers** (`resolvers.ts`): build pipe + resolve target editor (`openLink` → `openContent`)
 3. **Open Handler** (`open-handler.ts`): consume pipe, create page
 
-**Dual pipe pattern:** TextFileIOModel maintains two pipes — primary (source file/URL) and cache (auto-save). Both share the same transformer chain, ensuring cached content has the same format as the source (e.g., encrypted files stay encrypted in cache).
+**Dual pipe pattern:** TextFileIOModel maintains two pipes — primary (source file/URL) and cache (auto-save) — through `PipePair`. Both share the same transformer chain, ensuring cached content has the same format as the source (e.g., encrypted files stay encrypted in cache); replacing the primary atomically refreshes and disposes the pair.
 
 **Script access:** The `io` global namespace exposes providers, transformers, `createPipe()`, `createLinkData()`, and `linkToLinkData()` to scripts.
 

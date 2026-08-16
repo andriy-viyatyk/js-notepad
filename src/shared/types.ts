@@ -7,7 +7,7 @@ export type EditorType = "textFile" | "imageFile" | "aboutPage" | "settingsPage"
 import type { EditorView } from "../renderer/api/types/common";
 export type { EditorView };
 
-import type { ILinkData } from "../renderer/api/types/io.link-data";
+import type { StoredLinkData } from "../renderer/api/types/io.link-data";
 
 export interface IEditorState {
     id: string,
@@ -19,8 +19,8 @@ export interface IEditorState {
     /** Serialized content pipe descriptor (provider + persistent transformers). */
     pipe?: { provider: { type: string; config: Record<string, unknown> }; transformers: { type: string; config: Record<string, unknown> }[]; encoding?: string },
     editor?: EditorView,
-    /** The link that opened this page — cleaned ILinkData (ephemeral fields stripped). Persisted across restarts. */
-    sourceLink?: ILinkData,
+    /** The link that opened this page — persistence-safe link data. Stored across restarts. */
+    sourceLink?: StoredLinkData,
     /** Active secondary view panel IDs (e.g., ["archive-tree"]). Array supports multi-panel models. */
     secondaryView?: string[],
 }

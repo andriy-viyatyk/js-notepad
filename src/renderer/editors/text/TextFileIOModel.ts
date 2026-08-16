@@ -11,17 +11,23 @@ import type { ISubscriptionObject } from "../../api/types/events";
 import type { IContentPipe } from "../../api/types/io.pipe";
 import { ContentPipe } from "../../content/ContentPipe";
 import { FileProvider } from "../../content/providers/FileProvider";
-import { CacheFileProvider } from "../../content/providers/CacheFileProvider";
 import { ArchiveTransformer } from "../../content/transformers/ArchiveTransformer";
+import { PipePair } from "../../content/PipePair";
 
 export class TextFileIOModel {
     /** Cache pipe — same transformers as primary pipe, CacheFileProvider as source. */
-    cachePipe: IContentPipe | null = null;
+    private readonly pipes: PipePair;
     private watchSubscription: ISubscriptionObject | null = null;
     private modificationSaved = true;
     private isSavingModifications = false;
 
-    constructor(private model: TextFileModel) {}
+    constructor(private model: TextFileModel) {
+        this.pipes = new PipePair(() => this.model.state.get().id);
+    }
+
+    get cachePipe(): IContentPipe | null {
+        return this.pipes.cache;
+    }
 
     // ── Pipe helpers ─────────────────────────────────────────────────
 
@@ -37,26 +43,23 @@ export class TextFileIOModel {
         if (bangIndex >= 0) {
             const archivePath = filePath.slice(0, bangIndex);
             const entryPath = filePath.slice(bangIndex + 1);
-            this.model.pipe = new ContentPipe(
+            this.setPrimary(new ContentPipe(
                 new FileProvider(archivePath),
                 [new ArchiveTransformer(archivePath, entryPath)],
-            );
+            ));
         } else {
-            this.model.pipe = new ContentPipe(new FileProvider(filePath));
+            this.setPrimary(new ContentPipe(new FileProvider(filePath)));
         }
         return this.model.pipe;
     }
 
-    /** Recreate cache pipe from primary pipe. Call after primary pipe changes. */
-    recreateCachePipe(): void {
-        this.cachePipe?.dispose();
-        const pipe = this.model.pipe;
-        if (pipe) {
-            const { id } = this.model.state.get();
-            this.cachePipe = pipe.cloneWithProvider(new CacheFileProvider(id));
-        } else {
-            this.cachePipe = null;
-        }
+    /** Replace source and cache pipes together, then watch the new source. */
+    setPrimary(pipe: IContentPipe | null): void {
+        this.watchSubscription?.unsubscribe();
+        this.watchSubscription = null;
+        this.pipes.setPrimary(pipe);
+        this.model.pipe = this.pipes.primary;
+        this.setupWatch();
     }
 
     /** Set up file watch via pipe.watch(). */
@@ -120,11 +123,7 @@ export class TextFileIOModel {
                 return false;
             }
 
-            // Swap to new pipe
-            this.model.pipe?.dispose();
-            this.model.pipe = newPipe;
-            this.setupWatch();
-            this.recreateCachePipe();
+            this.setPrimary(newPipe);
 
             if (savePath !== filePath) {
                 recent.add(savePath);
@@ -189,10 +188,7 @@ export class TextFileIOModel {
         const newPipe = this.model.pipe
             ? this.model.pipe.cloneWithProvider(newProvider)
             : new ContentPipe(newProvider);
-        this.model.pipe?.dispose();
-        this.model.pipe = newPipe;
-        this.setupWatch();
-        this.recreateCachePipe();
+        this.setPrimary(newPipe);
 
         this.model.state.update((s) => {
             s.filePath = newPath;
@@ -208,15 +204,14 @@ export class TextFileIOModel {
     };
 
     async restore() {
-        const { id, modified, filePath } = this.model.state.get();
+        const { modified, filePath } = this.model.state.get();
         const pipe = this.ensurePipe();
 
         if (pipe) {
             this.setupWatch();
-            this.recreateCachePipe();
         } else if (modified) {
             // Untitled modified page — no primary pipe, but cache file may exist
-            this.cachePipe = new ContentPipe(new CacheFileProvider(id));
+            this.pipes.ensureCache();
         }
 
         if (modified && this.cachePipe) {
@@ -373,7 +368,7 @@ export class TextFileIOModel {
     dispose() {
         this.watchSubscription?.unsubscribe();
         this.watchSubscription = null;
-        this.cachePipe?.dispose();
-        this.cachePipe = null;
+        this.pipes.dispose();
+        this.model.pipe = null;
     }
 }

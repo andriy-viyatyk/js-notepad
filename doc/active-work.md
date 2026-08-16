@@ -8,7 +8,8 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-*(nothing active)*
+- *(no epic)*
+  - *(no active tasks)*
 
 ## Planned
 

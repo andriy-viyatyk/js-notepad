@@ -199,75 +199,34 @@ export function registerResolvers(): void {
     // URLs with recognized text extensions → open as content via HttpProvider.
     // Everything else → open in browser tab.
     //
-    // Extension map is self-contained — does not rely on editor registry.
-    // Extension map determines which editor handles each URL.
+    // This set answers only the content-vs-browser question. Once an extension
+    // is content, the normal editor registry decides its editor just like a file.
 
     /**
-     * Maps file extensions to { editor, language? } for HTTP content opening.
-     *
-     * `editor` is optional: an entry with only `browserFallback` means the extension has NO
-     * built-in editor, so the URL becomes content only if a trusted board claims the type —
-     * otherwise it opens in a browser tab. The entry must still exist, because this table also
-     * decides browser-vs-content and the board lookup below is skipped entirely when there is
-     * no mapping.
+     * Known HTTP content extensions. Everything else opens in a browser unless
+     * a caller explicitly requests a content editor.
      */
-    const httpContentExtensions: Record<
-        string,
-        { editor?: string; browserFallback?: boolean }
-    > = {
+    const httpContentExtensions = new Set([
         // Programming languages → Monaco
-        ".js": { editor: "monaco" }, ".mjs": { editor: "monaco" }, ".cjs": { editor: "monaco" },
-        ".ts": { editor: "monaco" }, ".mts": { editor: "monaco" }, ".cts": { editor: "monaco" },
-        ".jsx": { editor: "monaco" }, ".tsx": { editor: "monaco" },
-        ".json": { editor: "monaco" }, ".jsonc": { editor: "monaco" }, ".jsonl": { editor: "monaco" },
-        ".css": { editor: "monaco" }, ".scss": { editor: "monaco" }, ".less": { editor: "monaco" },
-        ".xml": { editor: "monaco" }, ".xsl": { editor: "monaco" }, ".xslt": { editor: "monaco" }, ".xsd": { editor: "monaco" },
-        ".yaml": { editor: "monaco" }, ".yml": { editor: "monaco" },
-        ".toml": { editor: "monaco" },
-        ".ini": { editor: "monaco" }, ".cfg": { editor: "monaco" }, ".conf": { editor: "monaco" },
-        ".sh": { editor: "monaco" }, ".bash": { editor: "monaco" }, ".zsh": { editor: "monaco" },
-        ".bat": { editor: "monaco" }, ".cmd": { editor: "monaco" },
-        ".ps1": { editor: "monaco" },
-        ".py": { editor: "monaco" },
-        ".rb": { editor: "monaco" },
-        ".go": { editor: "monaco" },
-        ".rs": { editor: "monaco" },
-        ".java": { editor: "monaco" },
-        ".kt": { editor: "monaco" },
-        ".swift": { editor: "monaco" },
-        ".c": { editor: "monaco" }, ".h": { editor: "monaco" },
-        ".cpp": { editor: "monaco" }, ".cc": { editor: "monaco" }, ".cxx": { editor: "monaco" }, ".hpp": { editor: "monaco" },
-        ".cs": { editor: "monaco" },
-        ".php": { editor: "monaco" },
-        ".r": { editor: "monaco" },
-        ".lua": { editor: "monaco" },
-        ".sql": { editor: "monaco" },
-        ".graphql": { editor: "monaco" }, ".gql": { editor: "monaco" },
-        ".proto": { editor: "monaco" },
+        ".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".jsx", ".tsx",
+        ".json", ".jsonc", ".jsonl", ".css", ".scss", ".less",
+        ".xml", ".xsl", ".xslt", ".xsd", ".yaml", ".yml", ".toml",
+        ".ini", ".cfg", ".conf", ".sh", ".bash", ".zsh", ".bat", ".cmd",
+        ".ps1", ".py", ".rb", ".go", ".rs", ".java", ".kt", ".swift",
+        ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp", ".cs", ".php", ".r",
+        ".lua", ".sql", ".graphql", ".gql", ".proto",
         // Markup / data → Monaco
-        ".md": { editor: "monaco" }, ".markdown": { editor: "monaco" },
-        ".csv": { editor: "monaco" },
-        ".svg": { editor: "monaco" },
-        ".txt": { editor: "monaco" },
-        ".log": { editor: "monaco" },
-        ".env": { editor: "monaco" },
-        ".dockerfile": { editor: "monaco" },
+        ".md", ".markdown", ".csv", ".svg", ".txt", ".log", ".env", ".dockerfile",
         // Images → Image viewer
-        ".png": { editor: "image-view" },
-        ".jpg": { editor: "image-view" }, ".jpeg": { editor: "image-view" },
-        ".gif": { editor: "image-view" },
-        ".webp": { editor: "image-view" },
-        ".bmp": { editor: "image-view" },
-        ".ico": { editor: "image-view" },
+        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico",
         // PDF → the pdf-viewer board if installed, else a browser tab (Chromium renders it)
-        ".pdf": { browserFallback: true },
+        ".pdf",
         // Video → Video Player
-        ".mp4": { editor: "video-view" },
-        ".webm": { editor: "video-view" },
-        ".ogg": { editor: "video-view" },
-        ".m3u8": { editor: "video-view" },
-        ".m3u": { editor: "video-view" },
-    };
+        ".mp4", ".webm", ".ogg", ".m3u8", ".m3u",
+        // Keep HTTP media routing aligned with video-view's registry matcher.
+        ".mp3", ".wav", ".aac", ".flac", ".m4a", ".wma", ".opus", ".avi", ".mkv", ".mov",
+    ]);
+    const httpBrowserFallbackExtensions = new Set([".pdf"]);
 
     app.events.openLink.subscribe(async (data) => {
         if (!isHttpUrl(data.url)) return;
@@ -285,36 +244,32 @@ export function registerResolvers(): void {
         const ext = effectivePath.includes(".")
             ? effectivePath.slice(effectivePath.lastIndexOf(".")).toLowerCase()
             : "";
-        let mapping = ext ? httpContentExtensions[ext] : undefined;
+        const hasContentExtension = httpContentExtensions.has(ext);
+        let headerTarget: string | undefined;
+        let headerBrowserFallback = false;
 
         // For cURL/fetch requests without file extension: use Accept header to pick editor
-        if (!mapping && data.headers) {
+        if (!hasContentExtension && data.headers) {
             const accept = data.headers["accept"] || data.headers["Accept"] || "";
-            if (accept.includes("json")) mapping = { editor: "monaco" };
-            else if (accept.includes("xml")) mapping = { editor: "monaco" };
-            else if (accept.includes("css")) mapping = { editor: "monaco" };
-            else if (accept.includes("javascript")) mapping = { editor: "monaco" };
-            else if (accept.includes("image/")) mapping = { editor: "image-view" };
-            else if (accept.includes("pdf")) mapping = { browserFallback: true };
-            else if (accept.includes("text/") || accept.includes("*/*")) mapping = { editor: "monaco" };
-        }
-
-        // If headers present (cURL/fetch) but still no mapping — default to Monaco plaintext
-        if (!mapping && data.headers) {
-            mapping = { editor: "monaco" };
-        }
-
-        // Fallback target from metadata (e.g., "Links" panel sets "monaco" to avoid browser)
-        if (!mapping && data.fallbackTarget) {
-            mapping = { editor: data.fallbackTarget };
+            if (accept.includes("image/")) headerTarget = "image-view";
+            else if (accept.includes("pdf")) headerBrowserFallback = true;
+            else if (
+                accept.includes("json")
+                || accept.includes("xml")
+                || accept.includes("css")
+                || accept.includes("javascript")
+                || accept.includes("text/")
+                || accept.includes("*/*")
+            ) headerTarget = "monaco";
         }
 
         // If an explicit non-browser editor target is set (e.g., "image-view", "monaco"),
         // skip the browser branch and use it as the content target directly.
         const hasExplicitEditorTarget = data.target && data.target !== "browser";
 
+        const hasContentIntent = hasContentExtension || !!data.headers || !!data.fallbackTarget;
         const browserMode = data.browserMode;
-        if (browserMode || openInBrowser || (!mapping && !hasExplicitEditorTarget)) {
+        if (browserMode || openInBrowser || (!hasContentIntent && !hasExplicitEditorTarget)) {
             // Explicit browser mode, explicit "browser" target, or no recognized extension
             await openLinkInBrowser(data);
             data.handled = true;
@@ -325,26 +280,31 @@ export function registerResolvers(): void {
         // A trusted board may claim this file type (EPIC-042): ask the merged resolver, which
         // applies the same priority ladder and the same source-capability gate as a local open, so
         // only a content-host board or one declaring `editorSources: "any"` can win a remote source.
-        // Deliberately narrow — ONLY a board id is taken from it. The hardcoded table above still
-        // decides browser-vs-content AND remains the built-in editor choice, so no existing URL
-        // routing changes.
-        const boardTarget = mapping
+        // The extension set decides browser-vs-content; this merged lookup owns
+        // built-in editor matching plus eligible trusted-board precedence.
+        const resolvedTarget = hasContentIntent
             ? resolveEditorIdForFile(data.url, effectivePath)
             : undefined;
-        const boardWins = !!boardTarget && isBoardEditorId(boardTarget);
+        const boardWins = !!resolvedTarget && isBoardEditorId(resolvedTarget);
 
         // The extension has no built-in editor (`.pdf`) and no board claimed it — hand it to the
         // browser tab, which renders PDFs natively. Deliberately after the board lookup: an
-        // installed board must still win, which is the whole reason the mapping exists.
-        if (mapping?.browserFallback && !boardWins && !hasExplicitEditorTarget) {
+        // installed board must still win, which is the whole reason the extension is content.
+        if (
+            (httpBrowserFallbackExtensions.has(ext) || headerBrowserFallback)
+            && !boardWins
+            && !hasExplicitEditorTarget
+        ) {
             await openLinkInBrowser(data);
             data.handled = true;
             return;
         }
 
         data.target = data.target
-            || (boardWins ? boardTarget : undefined)
-            || mapping?.editor;
+            || (boardWins ? resolvedTarget : undefined)
+            || data.fallbackTarget
+            || headerTarget
+            || resolvedTarget;
 
         const pipeDescriptor = resolveUrlToPipeDescriptor(data.url, data);
         if (!pipeDescriptor) return;

@@ -223,11 +223,12 @@ persephone/
 │       ├── io.provider.d.ts  # IProvider, IProviderStat, IProviderDescriptor
 │       ├── io.transformer.d.ts # ITransformer, ITransformerDescriptor
 │       ├── io.pipe.d.ts      # IContentPipe, IPipeDescriptor
-│       ├── io.link-data.d.ts # ILinkData — unified link descriptor for the pipeline (EPIC-023)
+│       ├── io.link-data.d.ts # ILinkData plus StoredLinkData — composable pipeline and persistence shapes
 │       └── io.tree.d.ts     # ITreeProvider, ILink (was ITreeProviderItem), ITreeStat, ITreeSearch*
 │
 ├── content/                # Content delivery layer — providers, transformers, pipes (EPIC-012)
 │   ├── ContentPipe.ts      # IContentPipe implementation, createPipe() factory
+│   ├── PipePair.ts         # Paired TextFile source/cache pipe ownership and disposal
 │   ├── registry.ts         # Provider/transformer registries, createPipeFromDescriptor()
 │   ├── encoding.ts         # Text encoding detection (BOM, jschardet) and conversion (iconv-lite)
 │   ├── parsers.ts          # Layer 1: raw link parsers (file, HTTP/cURL, archive, data:) on openRawLink

@@ -82,10 +82,7 @@ export class TextFileEncryptionModel {
             const encryptedContent = await candidate.readText();
 
             // Swap pipes
-            pipe.dispose();
-            this.model.pipe = candidate;
-            this.model.io.setupWatch();
-            this.model.io.recreateCachePipe();
+            this.model.io.setPrimary(candidate);
 
             this.model.state.update((s) => {
                 s.content = encryptedContent;
@@ -134,10 +131,7 @@ export class TextFileEncryptionModel {
             const plaintext = await candidate.readText();
 
             // Success — swap pipes
-            pipe.dispose();
-            this.model.pipe = candidate;
-            this.model.io.setupWatch();
-            this.model.io.recreateCachePipe();
+            this.model.io.setPrimary(candidate);
 
             this.model.state.update((s) => {
                 s.content = plaintext;
@@ -187,10 +181,7 @@ export class TextFileEncryptionModel {
                 // Write failed — still update state (will save on next Ctrl+S)
             }
 
-            pipe.dispose();
-            this.model.pipe = candidate;
-            this.model.io.setupWatch();
-            this.model.io.recreateCachePipe();
+            this.model.io.setPrimary(candidate);
         }
 
         this.model.state.update((s) => {

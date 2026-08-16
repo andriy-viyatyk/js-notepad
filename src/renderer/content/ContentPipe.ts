@@ -9,7 +9,7 @@ import { decodeBuffer, encodeString } from "./encoding";
  * ContentPipe — chains a provider with an ordered list of transformers.
  *
  * Read flow:  provider.readBinary() → transformer[0].read() → transformer[1].read() → ... → result
- * Write flow: result → ... → transformer[1].write(data, orig) → transformer[0].write(data, orig) → provider.writeBinary()
+ * Write flow: result → ... → transformer[1].write(data, readOriginal) → transformer[0].write(data, readOriginal) → provider.writeBinary()
  */
 export class ContentPipe implements IContentPipe {
     readonly provider: IProvider;
@@ -100,31 +100,39 @@ export class ContentPipe implements IContentPipe {
             return;
         }
 
-        // Read original bytes at each transformer stage (needed by ArchiveTransformer.write
-        // to rebuild the archive). If provider has no content yet (e.g., new cache file),
-        // pass empty buffers — transformers that don't need originals (like DecryptTransformer)
-        // will ignore them.
-        let originals: Buffer[] | null = null;
-        try {
-            const stat = await this.provider.stat?.();
-            if (stat?.exists) {
-                originals = [];
-                let current = await this.provider.readBinary();
-                for (const transformer of this._transformers) {
-                    originals.push(current);
-                    current = await transformer.read(current);
+        // Archive writes need the original ZIP bytes, but common transforms such as
+        // DecryptTransformer do not. Build each pre-transform stage only on demand and
+        // memoize it so a transformer that asks twice never re-reads the provider.
+        let providerOriginal: Promise<Buffer> | undefined;
+        const stageOriginals: Array<Promise<Buffer> | undefined> = [];
+        const readProviderOriginal = (): Promise<Buffer> => {
+            providerOriginal ??= (async () => {
+                try {
+                    const stat = await this.provider.stat?.();
+                    return stat?.exists ? await this.provider.readBinary() : Buffer.alloc(0);
+                } catch {
+                    // Provider read failed — preserve the former empty-original fallback.
+                    return Buffer.alloc(0);
                 }
-            }
-        } catch {
-            // Provider read failed — proceed without originals
-        }
+            })();
+            return providerOriginal;
+        };
+        const readStageOriginal = (index: number): Promise<Buffer> => {
+            stageOriginals[index] ??= (async () => {
+                let current = await readProviderOriginal();
+                for (let sourceIndex = 0; sourceIndex < index; sourceIndex++) {
+                    current = await this._transformers[sourceIndex].read(current);
+                }
+                return current;
+            })();
+            return stageOriginals[index];
+        };
 
         // Walk transformers in reverse, applying write().
         let result = data;
         for (let i = this._transformers.length - 1; i >= 0; i--) {
             const transformer = this._transformers[i];
-            const original = originals ? originals[i] : Buffer.alloc(0);
-            result = await transformer.write(result, original);
+            result = await transformer.write(result, () => readStageOriginal(i));
         }
 
         await this.provider.writeBinary(result);

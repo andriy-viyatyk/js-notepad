@@ -209,7 +209,7 @@ interface IPipeDescriptor {
 }
 ```
 
-**Dual pipe pattern:** `TextFileIOModel` maintains two pipes — `primaryPipe` (source file/URL) and `cachePipe` (auto-save). Both share the same transformer chain. The primary pipe's descriptor is stored in `IEditorState.pipe` for restore. The cache pipe is reconstructed on restore from the primary descriptor + `CacheFileProvider`.
+**Dual pipe pattern:** `TextFileIOModel` maintains two pipes — `primaryPipe` (source file/URL) and `cachePipe` (auto-save) — through the `PipePair` owner. Both share the same transformer chain. The primary pipe's descriptor is stored in `IEditorState.pipe` for restore. The cache pipe is reconstructed on restore from the primary descriptor + `CacheFileProvider`, and primary replacement atomically refreshes the pair.
 
 **Non-persistent transformers:** `DecryptTransformer` is marked `persistent: false` — it is excluded from serialized descriptors. After restart, encrypted files show as encrypted (user must re-enter password).
 

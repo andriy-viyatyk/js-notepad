@@ -181,7 +181,7 @@ export class PagesLifecycleModel {
         const host = (editor as EditorModel).contentHost;
         if (pipe) {
             if (host) {
-                (host as unknown as TextFileModel).pipe = pipe;
+                (host as unknown as TextFileModel).setPipe(pipe);
             } else {
                 editor.pipe = pipe;
             }

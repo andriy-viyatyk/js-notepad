@@ -33,10 +33,11 @@ export class ArchiveTransformer implements ITransformer {
         return archiveService.readFile(this.archivePath, this.entryPath);
     }
 
-    async write(data: Buffer, original: Buffer): Promise<Buffer> {
+    async write(data: Buffer, readOriginal: () => Promise<Buffer>): Promise<Buffer> {
         if (!this.writable) {
             throw new Error(`Write not supported for this archive format: ${this.archivePath}`);
         }
+        const original = await readOriginal();
         const JSZip = (await import("jszip")).default;
         const zip = await JSZip.loadAsync(original);
         zip.file(this.entryPath, data);

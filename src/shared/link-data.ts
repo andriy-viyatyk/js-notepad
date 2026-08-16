@@ -1,24 +1,7 @@
-import type { ILinkData } from "../renderer/api/types/io.link-data";
+import type { ILinkData, StoredLinkData } from "../renderer/api/types/io.link-data";
 import type { ILink } from "../renderer/api/types/io.tree";
 
-export type { ILinkData };
-
-/** Fields that are NOT persisted when storing ILinkData as sourceLink on a page. */
-const EPHEMERAL_FIELDS: ReadonlySet<string> = new Set([
-    "handled",
-    "pipe",
-    "pageId",
-    "revealLine",
-    "highlightText",
-    "fragment",
-    "diffFrom",
-    "diffTo",
-    "envNamespace",
-    "browserMode",
-    "browserPageId",
-    "browserTabMode",
-    "fallbackTarget",
-]);
+export type { ILinkData, StoredLinkData };
 
 /**
  * Create an ILinkData from a raw link string.
@@ -69,11 +52,24 @@ export function linkDataToLink(data: ILinkData): ILink {
  * Strip ephemeral fields for persistence as sourceLink on pages.
  * Returns a new object — does not mutate the input.
  */
-export function cleanForStorage(data: ILinkData): ILinkData {
-    const cleaned: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-        if (EPHEMERAL_FIELDS.has(key)) continue;
-        if (value !== undefined) cleaned[key] = value;
-    }
-    return cleaned as ILinkData;
+export function cleanForStorage(data: ILinkData): StoredLinkData {
+    const {
+        handled,
+        pipe,
+        pageId,
+        revealLine,
+        highlightText,
+        fragment,
+        diffFrom,
+        diffTo,
+        envNamespace,
+        browserMode,
+        browserPageId,
+        browserTabMode,
+        fallbackTarget,
+        ...stored
+    } = data;
+    return Object.fromEntries(
+        Object.entries(stored).filter(([, value]) => value !== undefined),
+    ) as StoredLinkData;
 }

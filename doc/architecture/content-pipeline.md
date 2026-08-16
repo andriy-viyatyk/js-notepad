@@ -52,9 +52,9 @@ Registered in `parsers.ts` via `registerRawLinkParsers()`. Each parser receives 
 Registered in `resolvers.ts` via `registerResolvers()`. Each resolver uses `resolveUrlToPipeDescriptor()` (from `link-utils.ts`) to create a pipe descriptor, then `createPipeFromDescriptor()` (from `registry.ts`) to instantiate the pipe. Enriches the `ILinkData` object (sets `data.pipe`, `data.pipeDescriptor`, `data.target`) and forwards the same object on `app.events.openContent`.
 
 - **File resolver** (fallback) -- resolves file paths and archive paths (with "!") to pipe descriptors. Resolves target editor via `editorRegistry.resolveId()`. Two short-circuits run before pipe resolution: (1) explicit **browser intent** (`data.target === "browser"` or a `browserMode` is set) normalizes the path to a `file://` URL via `toFileUrl()` and opens it in a browser through the shared `openLinkInBrowser()` helper, bypassing Layer 3; (2) a plain (non-virtual, non-archive) path is `stat`-ed via `app.fs.stat()` and, if it is a **directory**, opens an empty page (no main editor) with the Explorer panel rooted at the folder via `pagesModel.addEmptyPageWithNavPanel()` and marks `data.handled`. Directories never produce a content pipe.
-- **HTTP resolver** -- resolves HTTP/HTTPS URLs to pipe descriptors. Maps file extensions to editors via a built-in extension table. URLs without recognized extensions (or explicit browser intent) open in the browser via `openLinkInBrowser()`, short-circuiting Layer 3 the same way. cURL/fetch requests with `Accept` headers use header-based editor resolution.
+- **HTTP resolver** -- resolves HTTP/HTTPS URLs to pipe descriptors. A content-extension set decides whether a URL is content or should open in the browser; once it is content, the normal editor registry resolves the built-in editor and the merged resolver may select an eligible board. URLs without recognized extensions (or explicit browser intent) open in the browser via `openLinkInBrowser()`, short-circuiting Layer 3 the same way. cURL/fetch requests with `Accept` headers use header-based editor resolution.
 
-  That extension table does two jobs at once, which is why entries are not simply removed when an editor goes away: it decides **browser-vs-content**, and it names the built-in editor. An entry may therefore carry `browserFallback: true` with **no** `editor` — meaning the extension has no built-in editor, so the URL opens as content only if a trusted board claims the type (via the merged `resolveEditorIdForFile`, consulted only when a mapping exists) and otherwise falls through to `openLinkInBrowser()`. `.pdf` is such an entry: a claiming board wins, and without one the browser tab renders it natively.
+  The set is intentionally separate from editor matching. `.pdf` remains in it with a browser-fallback override: a qualifying board wins, and without one the browser tab renders it natively. Registered built-in editors and eligible boards otherwise follow the same resolution path as local files.
 - **Drawing-image resolver** -- when `data.target === "draw-view"` and `data.url` is a `data:image/*` URL, imports the image as a **new untitled Excalidraw drawing** via `pagesModel.addDrawPage()` (which embeds it in a fresh scene) and marks `data.handled`, short-circuiting Layer 3. Registered last so it runs first (LIFO), intercepting before the file resolver would build a pipe. Import-only: the drawing is a new page, never bound to (so never overwriting) the image source. Accepts only data URLs -- a caller with an http/file image converts it to a data URL first.
 
 `openLinkInBrowser()` is the single browser-routing path shared by both resolvers, so `target: "browser"` / `browserMode` works identically for local files and remote URLs. It honors `browserPageId` (route to a specific browser page), `browserMode` (`os-default` → `shell.openExternal`; `internal` / `profile:<name>` / `incognito` → `pagesModel.lifecycle.openUrlInBrowserTab()`), and otherwise the `link-open-behavior` setting.
@@ -63,7 +63,7 @@ The `resolveUrlToPipeDescriptor()` utility is also used by tree providers to cre
 
 ### Layer 3 — Open Handler
 
-Registered in `open-handler.ts` via `registerOpenHandler()`. Reconstructs the full file path from the pipe (combining provider `sourceUrl` + ArchiveTransformer `entryPath` for archive files). Cleans the `ILinkData` via `cleanForStorage()` (strips ephemeral fields like `handled`, `pipe`, `pageId`, `revealLine`, `highlightText`, `fragment`, `diffFrom`, `diffTo`) and stores the result as `IEditorState.sourceLink`. Then either:
+Registered in `open-handler.ts` via `registerOpenHandler()`. Reconstructs the full file path from the pipe (combining provider `sourceUrl` + ArchiveTransformer `entryPath` for archive files). Cleans the `ILinkData` via `cleanForStorage()` (removes pipeline-only and one-shot navigation fields) and stores the resulting `StoredLinkData` as `IEditorState.sourceLink`. Then either:
 - Opens a new page via `pagesModel.lifecycle.openFile(filePath, pipe, { sourceLink })` -- the page owns the pipe.
 - Navigates an existing page via `pagesModel.lifecycle.navigatePageTo()` (when `data.pageId` is set) -- disposes the pipe since navigation creates its own.
 
@@ -71,9 +71,11 @@ Both paths forward the ephemeral **navigation hints** to the editor: `revealLine
 
 Most hints are consumed only on a **fresh editor build**, never on a reuse/activate path, so they cannot perturb an already-open page. `fragment` is the deliberate exception: an anchor link into a document that happens to be open already is still a jump request, so it is applied on every exit of both open paths — including the editor-reuse early returns and `openFile`'s existing-page dedupe — through the optional `EditorModel.revealFragment?(fragment)` hook (same opt-in shape as `onNavigationReuse?()`; editors without in-document anchors simply don't implement it). A fragment also does **not** join `revealLine`/`highlightText` in forcing the Monaco text editor: those hints address lines and therefore need Monaco, whereas an anchor must keep the language preview editor (e.g. the Markdown view) that renders the headings it points at.
 
-The `sourceLink` (`ILinkData` with ephemeral fields removed) is stored in `IEditorState.sourceLink` and persisted across app restarts. It records the page's origin (URL, target editor, title, ILink metadata, HTTP fields, etc.) but is informational only — it does not affect page content or I/O.
+The `sourceLink` (`StoredLinkData`, the persistence-safe subset of `ILinkData`) is stored in `IEditorState.sourceLink` and persisted across app restarts. It records the page's origin (URL, target editor, title, ILink metadata, HTTP fields, etc.) but is informational only — it does not affect page content or I/O.
 
 ## Content Pipe
+
+The content pipe implementation uses lazy original reads for write transforms and a paired source/cache owner for text pages.
 
 `IContentPipe` is the central abstraction. It composes one `IProvider` with zero or more `ITransformer` instances.
 
@@ -88,10 +90,10 @@ provider.readBinary() → transformer[0].read() → transformer[1].read() → ..
 ### Write flow
 
 ```
-result → ... → transformer[1].write(data, orig) → transformer[0].write(data, orig) → provider.writeBinary()
+result → ... → transformer[1].write(data, readOriginal) → transformer[0].write(data, readOriginal) → provider.writeBinary()
 ```
 
-Transformers are walked in reverse order. Each receives the new data and the original data at that stage (needed by `ZipTransformer` to rebuild the archive around the modified entry). If the provider has no existing content, empty buffers are passed as originals.
+Transformers are walked in reverse order. Each receives the new data and a lazy `readOriginal()` callback for the original data at that stage. `ArchiveTransformer` invokes it to rebuild the archive around the modified entry; transforms that do not need the original avoid reading the provider. The callback memoizes each stage and returns an empty buffer when the provider has no existing content.
 
 `writeText()` encodes the string first: `encodeString() → writeBinary()`.
 
@@ -131,9 +133,9 @@ Cache pipe:    CacheFileProvider(pageId) → [ZipTransformer, DecryptTransformer
                ↕ auto-save unsaved changes
 ```
 
-The cache pipe is created via `primaryPipe.cloneWithProvider(new CacheFileProvider(id))`. This ensures the cache pipe shares the same transformer chain -- encrypted files stay encrypted in cache, archive entries stay in ZIP format.
+The `PipePair` owner creates the cache via `primaryPipe.cloneWithProvider(new CacheFileProvider(id))`. This ensures the cache pipe shares the same transformer chain -- encrypted files stay encrypted in cache, archive entries stay in ZIP format. It replaces the primary and cache atomically and owns disposal of both.
 
-When the primary pipe changes (e.g., after decryption adds a `DecryptTransformer`), `recreateCachePipe()` rebuilds the cache pipe to stay in sync.
+When the primary pipe changes (e.g., after decryption adds a `DecryptTransformer`), `PipePair.setPrimary()` rebuilds the cache pipe before releasing the old pair. `TextFileIOModel` owns watcher setup around that operation.
 
 ## Encoding Detection
 
@@ -155,7 +157,7 @@ Pipes are immutable-by-convention. When a transformation needs to be tested befo
 1. `clone()` the active pipe (deep copies provider and all transformers via descriptors)
 2. `addTransformer()` or `removeTransformer()` on the clone
 3. Attempt `readText()` on the clone
-4. **Success** -- dispose the original pipe, swap in the clone, recreate cache pipe
+4. **Success** -- pass the clone to `TextFileIOModel.setPrimary()`; `PipePair` swaps the pair and disposes the old pipes
 5. **Failure** -- dispose the clone, keep the original pipe unchanged
 
 Example from `TextFileEncryptionModel.decript()`:
@@ -165,9 +167,7 @@ const candidate = pipe.clone();
 candidate.addTransformer(new DecryptTransformer(password));
 try {
     const plaintext = await candidate.readText();
-    pipe.dispose();
-    this.model.pipe = candidate;       // swap
-    this.model.io.recreateCachePipe(); // sync cache
+    this.model.io.setPrimary(candidate); // swap source and matching cache
 } catch {
     candidate.dispose();               // discard on failure
 }
@@ -197,6 +197,7 @@ Key rules:
 | File | Purpose |
 |------|---------|
 | `/src/renderer/content/ContentPipe.ts` | `ContentPipe` class -- pipe implementation |
+| `/src/renderer/content/PipePair.ts` | Paired TextFile source/cache pipe lifetime owner |
 | `/src/renderer/content/registry.ts` | Provider/transformer factory registry, `createPipeFromDescriptor()` |
 | `/src/renderer/content/parsers.ts` | Layer 1 -- raw link parsers |
 | `/src/renderer/content/resolvers.ts` | Layer 2 -- link resolvers, editor mapping |
