@@ -8,6 +8,18 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
+- **EPIC-051** — [De-React Epic P — Preparation (React-side)](epics/EPIC-051.md)
+  - [ ] [US-965: Icon name registry + neutral slot types (foundation)](tasks/US-965-icon-registry-slots/README.md)
+  - [ ] US-966: Neutral slots — UIKit primitives and inputs
+  - [ ] US-967: Neutral slots — UIKit list and data components
+  - [ ] US-968: Neutral slots — UIKit containers and floating layer
+  - [ ] US-969: Neutral slots — `ui/` and `components/`
+  - [ ] US-970: Lift local `useState` into models
+  - [ ] US-971: Imperative handles → model methods / `ComponentQueue`
+  - [ ] US-972: React context → explicit model references
+  - [ ] US-973: Route `document.body` portals through one host
+  - [ ] US-974: Move logic from `useEffect` into `TComponentModel.effect()`
+  - [ ] US-975: Emotion usage inventory
 - *(no epic)*
   - *(no active tasks)*
 

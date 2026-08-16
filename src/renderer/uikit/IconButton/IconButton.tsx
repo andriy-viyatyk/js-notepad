@@ -3,6 +3,8 @@ import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { height, radius, spacing } from "../tokens";
 import { Tooltip } from "../Tooltip/Tooltip";
+import { renderIcon } from "../shared/slots";
+import type { IconRef, SlotText } from "../shared/slots";
 
 // --- Types ---
 
@@ -16,9 +18,9 @@ export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBut
      * hover/focus. Especially valuable for IconButtons since they have no visible label to
      * clarify their purpose. When unset, no tooltip is rendered.
      */
-    title?: React.ReactNode;
+    title?: SlotText;
     /** The icon to render. */
-    icon: React.ReactNode;
+    icon: IconRef;
     /** Control size. Default: "md". */
     size?: "sm" | "md";
     /**
@@ -169,7 +171,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
                 type="button"
                 {...rest}
             >
-                <span data-part="icon">{icon}</span>
+                <span data-part="icon">{renderIcon(icon)}</span>
             </Root>
         );
         return title ? <Tooltip content={title}>{button}</Tooltip> : button;
