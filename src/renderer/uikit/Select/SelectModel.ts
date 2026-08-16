@@ -3,6 +3,7 @@ import { TComponentModel } from "../../core/state/model";
 import { isTraited, resolveTraited, Traited, TraitType } from "../../core/traits/traits";
 import { IListBoxItem, LIST_ITEM_KEY } from "../ListBox";
 import type { InputProps } from "../Input";
+import type { SlotText } from "../shared/slots";
 
 // =============================================================================
 // Public types
@@ -63,7 +64,7 @@ export interface SelectProps<T = IListBoxItem>
     /** Custom filter — overrides `filterMode` when set. */
     filter?: (item: IListBoxItem, query: string) => boolean;
     /** Renders inside the popover when filtered list is empty. Default: "no results". */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText;
     /**
      * Fires when the user presses Escape while the popover is open. Select also
      * closes the popover (without firing `onChange`) — the callback exists for

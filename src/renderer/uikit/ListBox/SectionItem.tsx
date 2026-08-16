@@ -13,7 +13,7 @@ export interface SectionItemProps
     /** Stable id (forwarded so callers using aria can wire labelling). */
     id?: string;
     /** Section label. */
-    label: React.ReactNode;
+    label: string;
 }
 
 // --- Styled ---

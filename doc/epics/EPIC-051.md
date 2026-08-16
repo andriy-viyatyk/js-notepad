@@ -112,8 +112,8 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | Task | Title | Status |
 |------|-------|--------|
 | [US-965](../tasks/US-965-icon-registry-slots/README.md) | Icon name registry + neutral slot types (foundation) | Implemented — pending review |
-| [US-966](../tasks/US-966-neutral-slots-primitives/README.md) | Neutral slots: UIKit primitives and inputs | Planned |
-| US-967 | Neutral slots: UIKit list and data components | Planned |
+| [US-966](../tasks/US-966-neutral-slots-primitives/README.md) | Neutral slots: UIKit primitives and inputs | Implemented - pending review |
+| [US-967](../tasks/US-967-neutral-slots-list-data/README.md) | Neutral slots: UIKit list and data components | Active |
 | US-968 | Neutral slots: UIKit containers and floating layer | Planned |
 | US-969 | Neutral slots: `ui/` and `components/` | Planned |
 | US-970 | Lift local `useState` into models | Planned |

@@ -2,9 +2,10 @@ import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
-import { CheckedIcon, IndeterminateIcon, UncheckedIcon } from "../../theme/icons";
 import { Traited } from "../../core/traits/traits";
 import { highlight } from "../shared/highlight";
+import { renderIcon } from "../shared/slots";
+import type { SlotText } from "../shared/slots";
 import { useComponentModel } from "../../core/state/model";
 import { defaultMultiListBoxState, MultiListBoxModel } from "./MultiListBoxModel";
 import { Input } from "../Input";
@@ -43,7 +44,7 @@ export interface MultiListBoxProps<T = IListBoxItem>
     /** Show a tri-state "Select all" row at the top of the list. Default: false. */
     selectAll?: boolean;
     /** Label rendered next to the select-all checkbox. Default: "Select all". */
-    selectAllLabel?: React.ReactNode;
+    selectAllLabel?: string;
     /** Pixel height of each list row. Forwarded to the inner ListBox. Default: 24. */
     rowHeight?: number;
     /**
@@ -52,7 +53,7 @@ export interface MultiListBoxProps<T = IListBoxItem>
      */
     maxVisibleItems?: number;
     /** Renders inside the list area when no rows match the filter. Default: "no rows". */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText;
     /** Fixed width — number becomes px; a string passes through. Default: fills parent (100%). */
     width?: number | string;
     /**
@@ -272,7 +273,7 @@ export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
                     onClick={model.toggleSelectAll}
                 >
                     <span data-part="icon">
-                        {model.allVisibleSelected ? <CheckedIcon /> : model.someVisibleSelected ? <IndeterminateIcon /> : <UncheckedIcon />}
+                        {renderIcon(model.allVisibleSelected ? "checked" : model.someVisibleSelected ? "indeterminate" : "unchecked")}
                     </span>
                     <span data-part="label">{selectAllLabel}</span>
                 </SelectAllRow>
@@ -286,7 +287,7 @@ export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
                     onActiveChange={model.setActiveIndex}
                     renderItem={(context: ListItemRenderContext<T>) => {
                         const checked = model.isSelected(context.source);
-                        const label = typeof context.item.label === "string" && searchText
+                        const label = searchText
                             ? highlight(context.item.label, searchText)
                             : context.item.label;
                         return (
@@ -300,8 +301,8 @@ export function MultiListBox<T = IListBoxItem>(props: MultiListBoxProps<T>) {
                                 aria-selected={checked ? "true" : "false"}
                                 aria-disabled={context.item.disabled ? "true" : undefined}
                             >
-                                <span data-part="check">{checked ? <CheckedIcon /> : <UncheckedIcon />}</span>
-                                {context.item.icon}
+                                <span data-part="check">{renderIcon(checked ? "checked" : "unchecked")}</span>
+                                {renderIcon(context.item.icon)}
                                 <span data-part="label">{label}</span>
                             </ItemRow>
                         );

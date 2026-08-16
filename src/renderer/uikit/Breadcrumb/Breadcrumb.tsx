@@ -14,12 +14,12 @@ export interface BreadcrumbProps
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
-    rootLabel: React.ReactNode;
+    rootLabel: string;
     value: string;
     onChange: (value: string) => void;
     separators?: string;
     trailingParentSeparator?: boolean;
-    separatorContent?: React.ReactNode;
+    separatorContent?: string;
     size?: "sm" | "md";
     /** When true, the breadcrumb shrinks to fit its container and clips the START (root side)
      *  on overflow, keeping the trailing (current) segment visible. Default: false. */

@@ -6,6 +6,7 @@ import {
 } from "../../core/traits/traits";
 import type { RowAlign } from "../RenderGrid";
 import type { MenuItem } from "../Menu";
+import type { IconRef, SlotText } from "../shared/slots";
 
 // =============================================================================
 // Item shape
@@ -15,9 +16,9 @@ export interface IListBoxItem {
     /** Stable identifier — what `value` / `onChange` refer to. */
     value: string | number;
     /** Display label. Strings are eligible for `searchText` highlighting. */
-    label: React.ReactNode;
+    label: string;
     /** Leading icon. */
-    icon?: React.ReactNode;
+    icon?: IconRef;
     /** Right-aligned trailing content (e.g. a status badge). Overrides the
      *  default selection check/chevron for this row when set. */
     trailing?: React.ReactNode;
@@ -97,7 +98,7 @@ export interface ListBoxProps<T = IListBoxItem>
      * When a custom `renderItem` is supplied, the caller is responsible for wiring the
      * tooltip themselves — `getTooltip` is not invoked by `ListBox` in that path.
      */
-    getTooltip?: (item: T, index: number) => React.ReactNode;
+    getTooltip?: (item: T, index: number) => SlotText;
     /**
      * Per-row context menu items. Returning `undefined` or an empty array suppresses the
      * menu for that row. Items are dispatched via `ContextMenuEvent.fromNativeEvent(e,
@@ -117,7 +118,7 @@ export interface ListBoxProps<T = IListBoxItem>
     /** Spinner state — replaces item rendering with a loading row. */
     loading?: boolean;
     /** Renders when `items` is empty and not `loading`. */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText;
     /** Pixel height of each row. Default: 24. */
     rowHeight?: number;
     /** When set, the list grows to fit content up to this max height. */

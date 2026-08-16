@@ -8,6 +8,7 @@ import type { TraitDragPayload } from "../../core/traits/dnd";
 import type { TraitTypeId } from "../../core/traits/TraitRegistry";
 import type { RowAlign } from "../RenderGrid";
 import type { MenuItem } from "../Menu";
+import type { IconRef, SlotText } from "../shared/slots";
 
 // =============================================================================
 // Item shape
@@ -16,10 +17,10 @@ import type { MenuItem } from "../Menu";
 export interface ITreeItem {
     /** Stable identifier — what `value` / `onChange` refer to. Unique within the whole tree. */
     value: string | number;
-    /** Display label. Strings are eligible for `searchText` highlighting. */
+    /** Display label. String labels are eligible for `searchText` highlighting. */
     label: React.ReactNode;
     /** Leading icon (rendered between the chevron and the label). */
-    icon?: React.ReactNode;
+    icon?: IconRef;
     /** Disables this item — no click, no selection styling, but children still render. */
     disabled?: boolean;
     /**
@@ -194,7 +195,7 @@ export interface TreeProps<T = ITreeItem>
      * When a custom `renderItem` is supplied, the caller is responsible for wiring the
      * tooltip themselves — `getTooltip` is not invoked by `Tree` in that path.
      */
-    getTooltip?: (item: T, level: number) => React.ReactNode;
+    getTooltip?: (item: T, level: number) => SlotText;
     /**
      * Per-row context menu items. Returning `undefined` or an empty array suppresses the menu
      * on that row. Items dispatch via `ContextMenuEvent.fromNativeEvent(e, "generic")` — they
@@ -235,7 +236,7 @@ export interface TreeProps<T = ITreeItem>
     /** Replaces row rendering with a centered spinner. */
     loading?: boolean;
     /** Renders when the tree resolves to zero rows and not `loading`. */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText;
     /** When true, the Tree handles ArrowUp/Down/Left/Right/Home/End/Enter on its root. Default: false. */
     keyboardNav?: boolean;
     /**

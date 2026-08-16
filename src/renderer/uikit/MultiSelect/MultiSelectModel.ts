@@ -2,6 +2,7 @@ import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { Traited } from "../../core/traits/traits";
 import { IListBoxItem } from "../ListBox";
+import type { SlotText } from "../shared/slots";
 
 // =============================================================================
 // Public types
@@ -39,9 +40,9 @@ export interface MultiSelectProps<T = IListBoxItem>
     /** Show a tri-state "Select all" row at the top of the dropdown. Default: false. */
     selectAll?: boolean;
     /** Label rendered next to the select-all checkbox. Default: "Select all". */
-    selectAllLabel?: React.ReactNode;
+    selectAllLabel?: string;
     /** Empty-state body shown when no rows match the dropdown filter. Default: "no rows". */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText;
 
     // ── Dropdown chrome ────────────────────────────────────────────────────────
 

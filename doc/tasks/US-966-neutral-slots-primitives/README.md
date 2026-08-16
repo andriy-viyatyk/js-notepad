@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Implemented - pending EPIC-051 review
 **Priority:** High
 **Epic:** [EPIC-051: De-React Epic P — Preparation (React-side)](../../epics/EPIC-051.md)
 **Depends on:** [US-965: Icon name registry + neutral slot types (foundation)](../US-965-icon-registry-slots/README.md)

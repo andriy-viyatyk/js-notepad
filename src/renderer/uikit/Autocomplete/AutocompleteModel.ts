@@ -1,6 +1,7 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { IListBoxItem } from "../ListBox";
+import type { SlotText } from "../shared/slots";
 
 // =============================================================================
 // Public types
@@ -46,7 +47,7 @@ export interface AutocompleteProps
     headerAction?: React.ReactNode;
     /** Empty-state node when there are zero matching suggestions. When omitted, the
      *  popover closes instead of rendering an empty list. */
-    emptyMessage?: React.ReactNode;
+    emptyMessage?: SlotText;
 
     // Inner Input passthroughs
     placeholder?: string;

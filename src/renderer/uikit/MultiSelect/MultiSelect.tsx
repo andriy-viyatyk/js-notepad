@@ -6,7 +6,7 @@ import { IconButton } from "../IconButton";
 import { Popover } from "../Popover";
 import { MultiListBox } from "../MultiListBox";
 import { IListBoxItem } from "../ListBox";
-import { ChevronDownIcon, ChevronUpIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
 import {
     MultiSelectModel,
     MultiSelectProps,
@@ -117,7 +117,7 @@ function MultiSelectInner<T = IListBoxItem>(
                 aria-labelledby={ariaLabelledBy}
                 endSlot={
                     <IconButton
-                        icon={open ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                        icon={renderIcon(open ? "chevron-up" : "chevron-down")}
                         size="sm"
                         tabIndex={-1}
                         disabled={disabled}

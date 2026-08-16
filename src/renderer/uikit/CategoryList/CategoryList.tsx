@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { fontSize, spacing } from "../tokens";
 import { focusSelectionOverride } from "../shared/selection-style";
-import { ChevronLeftIcon, ChevronRightIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
 
 // --- Types ---
 
@@ -29,7 +29,7 @@ export interface CategoryListProps
      */
     separator?: string;
     /** Label for the root pseudo-item. Default: `"All"`. */
-    rootLabel?: React.ReactNode;
+    rootLabel?: string;
 }
 
 interface CategoryGroup {
@@ -240,7 +240,7 @@ export function CategoryList({
                     onClick={() => handleRowClick(parentValue)}
                 >
                     <span data-part="expand" onClick={handleBackClick}>
-                        <ChevronLeftIcon />
+                        {renderIcon("chevron-left")}
                     </span>
                     <span data-part="name">{expandedCategory}</span>
                     {parentCount !== undefined && (
@@ -307,7 +307,7 @@ export function CategoryList({
                                 data-part="expand"
                                 onClick={(e) => handleExpandClick(e, group.name)}
                             >
-                                <ChevronRightIcon />
+                                {renderIcon("chevron-right")}
                             </span>
                         ) : (
                             <span data-part="expand" />

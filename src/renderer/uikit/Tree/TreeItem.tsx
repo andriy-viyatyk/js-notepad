@@ -2,7 +2,8 @@ import React, { forwardRef } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
-import { ChevronDownIcon, ChevronRightIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
+import type { IconRef, SlotText } from "../shared/slots";
 import { highlight } from "../shared/highlight";
 import { rowSelectionBase } from "../shared/selection-style";
 import { Tooltip } from "../Tooltip";
@@ -24,10 +25,10 @@ export interface TreeItemProps
     /** True when the row has children — drives chevron visibility. */
     hasChildren: boolean;
     /** Leading icon (rendered after the chevron). */
-    icon?: React.ReactNode;
-    /** Label content. When `searchText` is provided, plain-string labels are highlighted. */
+    icon?: IconRef;
+    /** Label content. Rich editor-owned rows remain supported; string labels are highlighted. */
     label: React.ReactNode;
-    /** Highlight matches in the label. Only applied when `label` is a string. */
+    /** Highlight matches in string labels. */
     searchText?: string;
     /** True when this item is the current selection of its Tree. */
     selected?: boolean;
@@ -45,7 +46,7 @@ export interface TreeItemProps
      * Tooltip body shown after the standard hover delay. When `null`, `undefined`, `false`,
      * or empty string, no tooltip is rendered.
      */
-    tooltip?: React.ReactNode;
+    tooltip?: SlotText;
     /** Indentation step in pixels per level. Default: 16. */
     indentSize?: number;
     /**
@@ -278,12 +279,12 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
                     aria-label={expanded ? "Collapse" : "Expand"}
                     onClick={onChevronClick}
                 >
-                    {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+                    {renderIcon(expanded ? "chevron-down" : "chevron-right")}
                 </Chevron>
             ) : (
                 <ChevronStub size={chevronColumnSize} />
             )}
-            {icon && <span className="tree-icon">{icon}</span>}
+            {icon && <span className="tree-icon">{renderIcon(icon)}</span>}
             <span className="label">{labelNode}</span>
             {trailing != null && <span className="tree-trailing">{trailing}</span>}
         </Root>

@@ -2,7 +2,8 @@ import React, { forwardRef } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
-import { CheckIcon, ChevronRightIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
+import type { IconRef, SlotText } from "../shared/slots";
 import { highlight } from "../shared/highlight";
 import { rowSelectionBase, rowFocusSelectionOverride } from "../shared/selection-style";
 import { Tooltip } from "../Tooltip";
@@ -17,10 +18,10 @@ export interface ListItemProps
     /** Stable id used for `aria-activedescendant` wiring. */
     id?: string;
     /** Leading icon. */
-    icon?: React.ReactNode;
-    /** Label content. When `searchText` is provided, plain-string labels are highlighted. */
+    icon?: IconRef;
+    /** Label content. Rich editor-owned rows remain supported; string labels are highlighted. */
     label: React.ReactNode;
-    /** Highlight matches in the label. Only applied when `label` is a string. */
+    /** Highlight matches in string labels. */
     searchText?: string;
     /** True when this item is the current `value` of its ListBox. */
     selected?: boolean;
@@ -32,7 +33,7 @@ export interface ListItemProps
      * Tooltip body shown after the standard hover delay. When `null`, `undefined`, `false`,
      * or empty string, no tooltip is rendered.
      */
-    tooltip?: React.ReactNode;
+    tooltip?: SlotText;
     /**
      * Override the Tooltip's `delayShow` (ms) for this row. Only meaningful when `tooltip`
      * is set. Leave undefined to use the global Tooltip default.
@@ -169,8 +170,8 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
         typeof label === "string" && searchText ? highlight(label, searchText) : label;
     const defaultTrailing = selected && showSelectionIcon && selectionStyle !== "focus"
         ? selectionStyle === "accent"
-            ? <ChevronRightIcon />
-            : <CheckIcon />
+            ? renderIcon("chevron-right")
+            : renderIcon("check")
         : null;
     const row = (
         <Root
@@ -189,7 +190,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
             aria-disabled={disabled ? "true" : undefined}
             {...rest}
         >
-            {icon}
+            {renderIcon(icon)}
             <span className="label">{labelNode}</span>
             {trailing ?? defaultTrailing}
         </Root>

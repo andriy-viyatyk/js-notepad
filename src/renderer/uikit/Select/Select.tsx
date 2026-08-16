@@ -5,7 +5,7 @@ import { Input } from "../Input";
 import { IconButton } from "../IconButton";
 import { Popover } from "../Popover";
 import { ListBox, IListBoxItem } from "../ListBox";
-import { ChevronDownIcon, ChevronUpIcon } from "../../theme/icons";
+import { renderIcon } from "../shared/slots";
 import {
     SelectModel,
     SelectProps,
@@ -131,7 +131,7 @@ function SelectInner<T = IListBoxItem>(
                 aria-labelledby={ariaLabelledBy}
                 endSlot={
                     <IconButton
-                        icon={open ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                        icon={renderIcon(open ? "chevron-up" : "chevron-down")}
                         size="sm"
                         tabIndex={-1}
                         disabled={disabled || readOnly}
