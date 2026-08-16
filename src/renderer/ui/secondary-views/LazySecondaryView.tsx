@@ -1,9 +1,10 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, type ComponentType } from "react";
 import { secondaryViewRegistry, type SecondaryViewProps } from "./secondary-view-registry";
 import type { EditorOrHost } from "../../editors/base";
 import color from "../../theme/color";
 import { errMessage } from "../../../shared/utils";
 import type { IconRef } from "../../uikit";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 interface LazySecondaryViewProps {
     model: EditorOrHost;
@@ -16,27 +17,43 @@ interface LazySecondaryViewProps {
     expanded?: boolean;
 }
 
+interface LazySecondaryViewState {
+    Component: ComponentType<SecondaryViewProps> | null;
+    error: string | null;
+}
+
+class LazySecondaryViewModel extends TComponentModel<LazySecondaryViewState, LazySecondaryViewProps> {
+    setComponent = (Component: ComponentType<SecondaryViewProps>) => {
+        this.state.update((s) => { s.Component = Component; });
+    };
+
+    setError = (error: string | null) => {
+        this.state.update((s) => { s.error = error; });
+    };
+}
+
 /** Loads a secondary view component from the registry and renders it. */
-export function LazySecondaryView({ model, panelId, headerRef, icon, expanded }: LazySecondaryViewProps) {
-    const [Component, setComponent] = useState<ComponentType<SecondaryViewProps> | null>(null);
-    const [error, setError] = useState<string | null>(null);
+export function LazySecondaryView(props: LazySecondaryViewProps) {
+    const { model: editorModel, panelId, headerRef, icon, expanded } = props;
+    const viewModel = useComponentModel(props, LazySecondaryViewModel, { Component: null, error: null });
+    const { Component, error } = viewModel.state.use();
 
     useEffect(() => {
         const def = secondaryViewRegistry.get(panelId);
         if (!def) {
-            setError(`Unknown secondary view: "${panelId}"`);
+            viewModel.setError(`Unknown secondary view: "${panelId}"`);
             return;
         }
         let cancelled = false;
         def.loadComponent().then((mod) => {
-            if (!cancelled) setComponent(() => mod.default);
+            if (!cancelled) viewModel.setComponent(mod.default);
         }).catch((err) => {
-            if (!cancelled) setError(errMessage(err, `Failed to load "${panelId}".`));
+            if (!cancelled) viewModel.setError(errMessage(err, `Failed to load "${panelId}".`));
         });
         return () => { cancelled = true; };
-    }, [panelId]);
+    }, [panelId, viewModel]);
 
     if (error) return <div style={{ padding: 8, color: color.text.light }}>{error}</div>;
     if (!Component) return null;
-    return <Component model={model} panelId={panelId} headerRef={headerRef} icon={icon} expanded={expanded} />;
+    return <Component model={editorModel} panelId={panelId} headerRef={headerRef} icon={icon} expanded={expanded} />;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AboutEditor } from "./AboutEditor";
 import { PersephoneIcon } from "../../theme/icons";
 import { Panel, Text, Button, Divider } from "../../uikit";
@@ -9,6 +9,7 @@ import type { IRuntimeVersions, IUpdateInfo } from "../../api/types/shell";
 import rendererEvents from "../../../ipc/renderer/renderer-events";
 import { EventEndpoint } from "../../../ipc/api-types";
 import type { UpdateCheckResult } from "../../../ipc/api-param-types";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // ============================================================================
 // AboutView Component
@@ -16,6 +17,32 @@ import type { UpdateCheckResult } from "../../../ipc/api-param-types";
 
 interface AboutEditorProps {
     model: AboutEditor;
+}
+
+interface AboutViewState {
+    runtimeVersions: IRuntimeVersions | null;
+    updateResult: IUpdateInfo | null;
+    checking: boolean;
+}
+
+const defaultAboutViewState: AboutViewState = {
+    runtimeVersions: null,
+    updateResult: null,
+    checking: false,
+};
+
+class AboutViewModel extends TComponentModel<AboutViewState, AboutEditorProps> {
+    setRuntimeVersions = (runtimeVersions: IRuntimeVersions) => {
+        this.state.update((s) => { s.runtimeVersions = runtimeVersions; });
+    };
+
+    setUpdateResult = (updateResult: IUpdateInfo) => {
+        this.state.update((s) => { s.updateResult = updateResult; });
+    };
+
+    setChecking = (checking: boolean) => {
+        this.state.update((s) => { s.checking = checking; });
+    };
 }
 
 function mapUpdateResult(result: UpdateCheckResult): IUpdateInfo {
@@ -32,32 +59,33 @@ function mapUpdateResult(result: UpdateCheckResult): IUpdateInfo {
     };
 }
 
-function AboutView(_props: AboutEditorProps) {
-    const [runtimeVersions, setRuntimeVersions] = useState<IRuntimeVersions | null>(null);
-    const [updateResult, setUpdateResult] = useState<IUpdateInfo | null>(null);
-    const [checking, setChecking] = useState(false);
+function AboutView(props: AboutEditorProps) {
+    const viewModel = useComponentModel(props, AboutViewModel, defaultAboutViewState);
+    const runtimeVersions = viewModel.state.use((s) => s.runtimeVersions);
+    const updateResult = viewModel.state.use((s) => s.updateResult);
+    const checking = viewModel.state.use((s) => s.checking);
     // Reactive count of published-catalog boards — updates live when the catalog is refreshed
     // (including by "Check for Updates" below).
     const availableBoards = publishedBoards.useCatalog().length;
 
     useEffect(() => {
-        shell.version.runtimeVersions().then(setRuntimeVersions);
+        shell.version.runtimeVersions().then(viewModel.setRuntimeVersions);
         // Pull the cached catalog so the count shows on open (idempotent; no network unless due).
         void publishedBoards.load();
 
         const subscription = rendererEvents[EventEndpoint.eUpdateAvailable].subscribe(
             (result: UpdateCheckResult) => {
-                setUpdateResult(mapUpdateResult(result));
+                viewModel.setUpdateResult(mapUpdateResult(result));
             }
         );
 
         return () => {
             subscription.unsubscribe();
         };
-    }, []);
+    }, [viewModel]);
 
     const handleCheckForUpdates = async () => {
-        setChecking(true);
+        viewModel.setChecking(true);
         try {
             // "Check for Updates" force-refreshes BOTH update sources on one click: the app
             // version (GitHub releases) and the published-boards catalog (a separate service
@@ -68,9 +96,9 @@ function AboutView(_props: AboutEditorProps) {
                 shell.version.checkForUpdates(true),
                 publishedBoards.refresh().catch(() => {}),
             ]);
-            setUpdateResult(result);
+            viewModel.setUpdateResult(result);
         } finally {
-            setChecking(false);
+            viewModel.setChecking(false);
         }
     };
 

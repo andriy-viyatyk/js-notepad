@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { Editor } from "@monaco-editor/react";
 import {
     Button,
@@ -20,6 +20,7 @@ import { BodyType, RAW_LANGUAGES, RestRequest } from "./restClientTypes";
 import type { RestClientSource, RestClientViewState } from "./restClientTypes";
 import { HTTP_METHODS, COMMON_HEADERS, METHOD_COLORS } from "./httpConstants";
 import { KeyValueEditor } from "./KeyValueEditor";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 const BODY_TYPES: { type: BodyType; label: string }[] = [
     { type: "none", label: "none" },
@@ -48,31 +49,57 @@ interface RequestBuilderProps {
     state: RestClientViewState;
 }
 
-export function RequestBuilder({ vm, request, state }: RequestBuilderProps) {
+interface RequestBuilderState {
+    bodyHeight: number | null;
+    headersView: "table" | "json";
+    headersJson: string;
+}
+
+const defaultRequestBuilderState: RequestBuilderState = {
+    bodyHeight: null,
+    headersView: "table",
+    headersJson: "",
+};
+
+class RequestBuilderModel extends TComponentModel<RequestBuilderState, RequestBuilderProps> {
+    setBodyHeight = (bodyHeight: number | null) => {
+        this.state.update((s) => { s.bodyHeight = bodyHeight; });
+    };
+
+    setHeadersView = (headersView: "table" | "json") => {
+        this.state.update((s) => { s.headersView = headersView; });
+    };
+
+    setHeadersJson = (headersJson: string) => {
+        this.state.update((s) => { s.headersJson = headersJson; });
+    };
+}
+
+export function RequestBuilder(props: RequestBuilderProps) {
+    const { vm, request, state } = props;
+    const model = useComponentModel(props, RequestBuilderModel, defaultRequestBuilderState);
+    const { bodyHeight, headersView, headersJson } = model.state.use();
     const splitRef = useRef<HTMLDivElement>(null);
     const bodyPanelRef = useRef<HTMLDivElement>(null);
-    const [bodyHeight, setBodyHeight] = useState<number | null>(null);
-    const [headersView, setHeadersView] = useState<"table" | "json">("table");
-    const [headersJson, setHeadersJson] = useState("");
 
     // Pin bodyHeight to the actually-rendered pixel size after first layout. Until this
     // runs, the splitter would capture a stale fallback (150) as its startValue and the
     // body would jump on first drag.
     useLayoutEffect(() => {
         if (bodyHeight === null && bodyPanelRef.current) {
-            setBodyHeight(bodyPanelRef.current.offsetHeight);
+            model.setBodyHeight(bodyPanelRef.current.offsetHeight);
         }
-    }, [bodyHeight]);
+    }, [bodyHeight, model]);
 
     const switchToJsonView = useCallback(() => {
         const obj: Record<string, string> = {};
         for (const h of request.headers) {
             if (h.enabled && h.key.trim()) obj[h.key.trim()] = h.value;
         }
-        setHeadersJson(JSON.stringify(obj, null, 2));
+        model.setHeadersJson(JSON.stringify(obj, null, 2));
         vm.setHeadersJsonInvalid(false);
-        setHeadersView("json");
-    }, [request.headers, vm]);
+        model.setHeadersView("json");
+    }, [request.headers, vm, model]);
 
     const switchToTableView = useCallback(() => {
         try {
@@ -83,15 +110,15 @@ export function RequestBuilder({ vm, request, state }: RequestBuilderProps) {
             }));
             vm.updateRequest(request.id, { headers });
             vm.setHeadersJsonInvalid(false);
-            setHeadersView("table");
+            model.setHeadersView("table");
         } catch {
             app.ui.notify("Invalid JSON — fix errors before switching to Table view", "warning");
         }
-    }, [headersJson, vm, request.id]);
+    }, [headersJson, vm, request.id, model]);
 
     const handleHeadersJsonChange = useCallback((value: string | undefined) => {
         const json = value ?? "";
-        setHeadersJson(json);
+        model.setHeadersJson(json);
         try {
             const obj = JSON.parse(json);
             if (typeof obj !== "object" || Array.isArray(obj)) throw new Error("not an object");
@@ -103,7 +130,7 @@ export function RequestBuilder({ vm, request, state }: RequestBuilderProps) {
         } catch {
             vm.setHeadersJsonInvalid(true);
         }
-    }, [vm, request.id]);
+    }, [vm, request.id, model]);
 
     const handleUrlChange = useCallback(
         (value: string) => {
@@ -152,8 +179,8 @@ export function RequestBuilder({ vm, request, state }: RequestBuilderProps) {
     }, []);
 
     const handleBodyHeightChange = useCallback((h: number) => {
-        setBodyHeight(getClampedBodyHeight(h));
-    }, [getClampedBodyHeight]);
+        model.setBodyHeight(getClampedBodyHeight(h));
+    }, [getClampedBodyHeight, model]);
 
     const toggleBodyHeight = useCallback((expandedRatio: number) => {
         const container = splitRef.current;
@@ -163,8 +190,8 @@ export function RequestBuilder({ vm, request, state }: RequestBuilderProps) {
         const collapsed = total * (1 - expandedRatio);
         const current = bodyHeight ?? total * 0.4;
         const isExpanded = Math.abs(current - expanded) < total * 0.05;
-        setBodyHeight(isExpanded ? collapsed : expanded);
-    }, [bodyHeight]);
+        model.setBodyHeight(isExpanded ? collapsed : expanded);
+    }, [bodyHeight, model]);
 
     const handleHeadersDblClick = useCallback(() => {
         toggleBodyHeight(0.3);

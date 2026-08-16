@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Panel, Text, Button, Tag, Input, IconButton } from "../../uikit";
 import { publishedBoards } from "../../api/published-boards";
 import { boardInstallRegistry } from "../../api/board-install-registry";
@@ -10,6 +10,7 @@ import { fpNormalizeForCompare } from "../../core/utils/file-path";
 import { formatBytes } from "../../core/utils/format-bytes";
 import { RefreshIcon } from "../../theme/icons";
 import type { PublishedBoardInfo } from "../../../ipc/api-param-types";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // =============================================================================
 // Search boards tab (EPIC-045 / US-870) — the sole catalog-browsing surface.
@@ -30,6 +31,21 @@ function usageGroupOf(b: PublishedBoardInfo): BoardUsageGroup {
     return boardUsageGroup({ fileMasks: b.fileMasks, standalone: b.standalone } as BoardManifest);
 }
 
+interface SearchBoardsState {
+    query: string;
+    refreshing: boolean;
+}
+
+class SearchBoardsModel extends TComponentModel<SearchBoardsState, Record<string, never>> {
+    setQuery = (query: string) => {
+        this.state.update((s) => { s.query = query; });
+    };
+
+    setRefreshing = (refreshing: boolean) => {
+        this.state.update((s) => { s.refreshing = refreshing; });
+    };
+}
+
 export function SearchBoardsTab() {
     useEffect(() => {
         void publishedBoards.load();
@@ -39,13 +55,13 @@ export function SearchBoardsTab() {
     const catalog = publishedBoards.useCatalog();
     const installed = boardInstallRegistry.useInstalled();
     const updates = useBoardUpdates();
-    const [query, setQuery] = useState("");
-    const [refreshing, setRefreshing] = useState(false);
+    const model = useComponentModel({}, SearchBoardsModel, { query: "", refreshing: false });
+    const { query, refreshing } = model.state.use();
 
     const refresh = useCallback(async () => {
-        setRefreshing(true);
-        try { await publishedBoards.refresh(); } finally { setRefreshing(false); }
-    }, []);
+        model.setRefreshing(true);
+        try { await publishedBoards.refresh(); } finally { model.setRefreshing(false); }
+    }, [model]);
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -72,7 +88,7 @@ export function SearchBoardsTab() {
                     name="search-boards-filter"
                     size="sm"
                     value={query}
-                    onChange={setQuery}
+                    onChange={model.setQuery}
                     placeholder="Search boards…"
                     tone={query ? "accent" : "default"}
                     maxWidth={360}

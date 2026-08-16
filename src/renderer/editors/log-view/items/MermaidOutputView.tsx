@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { MermaidOutputEntry } from "../logTypes";
 import { DialogHeader } from "./DialogHeader";
 import { IconButton, Panel, Text } from "../../../uikit";
@@ -7,6 +7,7 @@ import { pagesModel } from "../../../api/pages";
 import { renderMermaidSvg, svgToDataUrl } from "../../mermaid/render-mermaid";
 import { settings } from "../../../api/settings";
 import { isCurrentThemeDark } from "../../../theme/themes";
+import { TComponentModel, useComponentModel } from "../../../core/state/model";
 
 // =============================================================================
 // Helpers
@@ -36,35 +37,51 @@ interface MermaidOutputViewProps {
     entry: MermaidOutputEntry;
 }
 
-export function MermaidOutputView({ entry }: MermaidOutputViewProps) {
+interface MermaidOutputState {
+    svgUrl: string | null;
+    error: string;
+}
+
+class MermaidOutputModel extends TComponentModel<MermaidOutputState, MermaidOutputViewProps> {
+    setSvgUrl = (svgUrl: string | null) => {
+        this.state.update((s) => { s.svgUrl = svgUrl; });
+    };
+
+    setError = (error: string) => {
+        this.state.update((s) => { s.error = error; });
+    };
+}
+
+export function MermaidOutputView(props: MermaidOutputViewProps) {
+    const { entry } = props;
+    const model = useComponentModel(props, MermaidOutputModel, { svgUrl: null, error: "" });
+    const { svgUrl, error } = model.state.use();
     const imgRef = useRef<HTMLImageElement>(null);
-    const [svgUrl, setSvgUrl] = useState<string | null>(null);
-    const [error, setError] = useState("");
 
     settings.use("theme");
     const lightMode = !isCurrentThemeDark();
 
     useEffect(() => {
         let cancelled = false;
-        setSvgUrl(null);
-        setError("");
+        model.setSvgUrl(null);
+        model.setError("");
 
         renderMermaidSvg(entry.text, lightMode)
             .then((svg) => {
                 if (!cancelled) {
-                    setSvgUrl(svgToDataUrl(svg, undefined, !lightMode));
-                    setError("");
+                    model.setSvgUrl(svgToDataUrl(svg, undefined, !lightMode));
+                    model.setError("");
                 }
             })
             .catch((e) => {
                 if (!cancelled) {
-                    setError(e.message || "Failed to render diagram");
-                    setSvgUrl(null);
+                    model.setError(e.message || "Failed to render diagram");
+                    model.setSvgUrl(null);
                 }
             });
 
         return () => { cancelled = true; };
-    }, [entry.text, lightMode]);
+    }, [entry.text, lightMode, model]);
 
     const handleCopy = useCallback(() => {
         if (!imgRef.current) return;

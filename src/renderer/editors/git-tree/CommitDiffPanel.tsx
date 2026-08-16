@@ -1,6 +1,6 @@
 import { DiffEditor } from "@monaco-editor/react";
 import type * as monaco from "monaco-editor";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
@@ -16,6 +16,7 @@ import { getLanguageByExtension } from "../../core/utils/language-mapping";
 import { CompareIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
 import type { ILinkDiffRevision } from "../../api/types/io.link-data";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // =============================================================================
 // Git Tree "Diff" tab (EPIC-031 / US-630).
@@ -27,25 +28,52 @@ import type { ILinkDiffRevision } from "../../api/types/io.link-data";
 // additions. Read-only; renames diff the correct old/new blobs.
 // =============================================================================
 
-export function CommitDiffPanel({
-    repoRoot,
-    gitTree,
-    selectedHash,
-    listWidth,
-    onListWidthChange,
-}: {
+interface CommitDiffPanelProps {
     repoRoot: string;
     gitTree: GitTreeModel;
     selectedHash?: string;
     listWidth: number;
     onListWidthChange: (w: number) => void;
-}) {
+}
+
+interface CommitDiffPanelState {
+    changes: GitFileChange[];
+    selectedFile: string | undefined;
+    diff: { before: string; after: string };
+}
+
+const defaultCommitDiffPanelState: CommitDiffPanelState = {
+    changes: [],
+    selectedFile: undefined,
+    diff: { before: "", after: "" },
+};
+
+class CommitDiffPanelModel extends TComponentModel<CommitDiffPanelState, CommitDiffPanelProps> {
+    setChanges = (changes: GitFileChange[]) => {
+        this.state.update((s) => { s.changes = changes; });
+    };
+
+    setSelectedFile = (selectedFile: string | undefined) => {
+        this.state.update((s) => { s.selectedFile = selectedFile; });
+    };
+
+    setDiff = (diff: { before: string; after: string }) => {
+        this.state.update((s) => { s.diff = diff; });
+    };
+}
+
+export function CommitDiffPanel(props: CommitDiffPanelProps) {
+    const {
+    repoRoot,
+    gitTree,
+    selectedHash,
+    listWidth,
+    onListWidthChange,
+    } = props;
+    const model = useComponentModel(props, CommitDiffPanelModel, defaultCommitDiffPanelState);
+    const { changes, selectedFile, diff } = model.state.use();
     const commits = gitTree.state.use((s) => s.commits);
     const commit = commits.find((c) => c.hash === selectedHash);
-
-    const [changes, setChanges] = useState<GitFileChange[]>([]);
-    const [selectedFile, setSelectedFile] = useState<string | undefined>(undefined);
-    const [diff, setDiff] = useState<{ before: string; after: string }>({ before: "", after: "" });
     const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
 
     // Fetch the changed-file list when the selected commit changes. Reset the
@@ -53,20 +81,20 @@ export function CommitDiffPanel({
     useEffect(() => {
         let live = true;
         if (!commit) {
-            setChanges([]);
-            setSelectedFile(undefined);
+            model.setChanges([]);
+            model.setSelectedFile(undefined);
             return;
         }
         void git.commitFiles(repoRoot, commit.hash).then((files) => {
             if (!live) return;
-            setChanges(files);
-            setSelectedFile(files[0]?.path);
+            model.setChanges(files);
+            model.setSelectedFile(files[0]?.path);
         });
         return () => { live = false; };
         // Keyed on the commit's hash, not the `commit` object — its identity
         // changes on every `commits` rebuild (refresh). Same as CommitInfoPanel.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [repoRoot, commit?.hash]);
+    }, [repoRoot, commit?.hash, model]);
 
     // Resolve before/after blobs when the selected file (or commit) changes.
     // before = parent[0]:oldPath (rename-aware), after = commit:path. `git.show`
@@ -76,7 +104,7 @@ export function CommitDiffPanel({
         let live = true;
         const change = changes.find((c) => c.path === selectedFile);
         if (!commit || !selectedFile || !change) {
-            setDiff({ before: "", after: "" });
+            model.setDiff({ before: "", after: "" });
             return;
         }
         const parent = commit.parents[0] ?? "";
@@ -85,11 +113,11 @@ export function CommitDiffPanel({
             parent ? git.show(repoRoot, parent, beforePath) : Promise.resolve(""),
             git.show(repoRoot, commit.hash, selectedFile),
         ]).then(([before, after]) => {
-            if (live) setDiff({ before, after });
+            if (live) model.setDiff({ before, after });
         });
         return () => { live = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [repoRoot, commit?.hash, selectedFile, changes]);
+    }, [repoRoot, commit?.hash, selectedFile, changes, model]);
 
     // Reset the diff scroll to the top whenever a new file's diff loads. Monaco
     // reuses the editor instance across files (setValue), which preserves the
@@ -120,7 +148,7 @@ export function CommitDiffPanel({
         },
         [changeMap],
     );
-    const onClick = useCallback((item: FileListItem) => setSelectedFile(item.filePath), []);
+    const onClick = useCallback((item: FileListItem) => model.setSelectedFile(item.filePath), [model]);
 
     // Right-click → open this file's change in a NEW Persephone tab as a File Diff
     // preselected to "previous commit ↔ this commit" (US-637). Rides the link
@@ -155,14 +183,14 @@ export function CommitDiffPanel({
             if (!change || !commit) return [];
             // Right-click selects the file too (so its diff shows on the right and
             // the row highlights), matching a left click.
-            setSelectedFile(item.filePath);
+            model.setSelectedFile(item.filePath);
             return [{
                 label: "Open in new Tab",
                 icon: <CompareIcon />,
                 onClick: () => openInNewTab(change),
             }];
         },
-        [changeMap, commit, openInNewTab],
+        [changeMap, commit, openInNewTab, model],
     );
 
     const language = useMemo(() => {

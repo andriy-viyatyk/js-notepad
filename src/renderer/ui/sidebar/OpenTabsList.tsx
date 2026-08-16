@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { ListBox, LIST_ITEM_KEY } from "../../uikit";
 import { TraitSet, traited } from "../../core/traits/traits";
 import { api } from "../../../ipc/renderer/api";
@@ -6,6 +6,7 @@ import { pagesModel } from "../../api/pages";
 import { appWindow } from "../../api/window";
 import { IEditorState, WindowPages } from "../../../shared/types";
 import { LanguageIcon } from "../../components/icons/LanguageIcon";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 interface ListItem {
     windowIndex: number;
@@ -33,17 +34,32 @@ interface OpenTabsListProps {
     open?: boolean;
 }
 
+interface OpenTabsListState {
+    allWindowsPages: WindowPages[];
+    activeIndex: number | null;
+}
+
+class OpenTabsListModel extends TComponentModel<OpenTabsListState, OpenTabsListProps> {
+    setAllWindowsPages = (allWindowsPages: WindowPages[]) => {
+        this.state.update((s) => { s.allWindowsPages = allWindowsPages; });
+    };
+
+    setActiveIndex = (activeIndex: number | null) => {
+        this.state.update((s) => { s.activeIndex = activeIndex; });
+    };
+}
+
 export function OpenTabsList(props: OpenTabsListProps) {
     const { onClose, open } = props;
-    const [allWindowsPages, setAllWindowsPages] = useState<WindowPages[]>([]);
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
+    const model = useComponentModel(props, OpenTabsListModel, { allWindowsPages: [], activeIndex: null });
+    const { allWindowsPages, activeIndex } = model.state.use();
     const state = pagesModel.state.use();
     const currentWindowIndex = appWindow.windowIndex;
 
     const loadWindowPages = useCallback(async () => {
         const windowsPages = await api.getWindowPages();
-        setAllWindowsPages(windowsPages);
-    }, []);
+        model.setAllWindowsPages(windowsPages);
+    }, [model]);
 
     useEffect(() => {
         loadWindowPages();
@@ -131,7 +147,7 @@ export function OpenTabsList(props: OpenTabsListProps) {
             items={tItems}
             rowHeight={22}
             activeIndex={activeIndex}
-            onActiveChange={setActiveIndex}
+            onActiveChange={model.setActiveIndex}
             onChange={onClick}
             isSelected={isSelected}
             getTooltip={(item) => item.page?.filePath}

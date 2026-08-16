@@ -117,7 +117,7 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | [US-968](../tasks/US-968-neutral-slots-containers-floating/README.md) | Neutral slots: UIKit containers and floating layer | Planned |
 | [US-969](../tasks/US-969-neutral-slots-shell/README.md) | Neutral slots: `ui/` and `components/` | Implemented — pending review |
 | [US-970](../tasks/US-970-lift-state-models/README.md) | Lift local `useState` into models | Implemented — pending review |
-| [US-976](../tasks/US-976-below-threshold-state/README.md) | Below-threshold local state | Planned |
+| [US-976](../tasks/US-976-below-threshold-state/README.md) | Below-threshold local state | Implemented — pending review |
 | US-971 | Imperative handles → model methods / `ComponentQueue` | Planned |
 | US-972 | React context → explicit model references | Planned |
 | US-973 | Route `document.body` portals through one host | Planned |
@@ -184,6 +184,9 @@ current branch at 174 declarations across 84 non-story `.tsx` files, limits the 
 wants to command the view. Moved onto the model, or onto `ComponentQueue` when it is a one-shot
 command like scroll-to-row or focus, it survives the migration untouched. `forwardRef` used purely
 to pass a DOM ref through a wrapper is not a handle and only needs the React 19 ref-as-prop form.
+US-976 hands it the repaint counters at `editors/grid/GridBody.tsx:78` and
+`editors/grid/index.tsx:23`: publish visible-row count on the grid editor model as an observable
+instead of retaining local revision state.
 
 **US-972 — Context.** `EditorConfigContext`, `LogViewContext`, `AVGrid/filters/useFilters`,
 `AVGrid/useAVGridContext`, `uikit/shared/highlight`. Each becomes a model passed down explicitly or

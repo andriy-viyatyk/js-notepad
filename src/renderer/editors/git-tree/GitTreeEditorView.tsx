@@ -16,6 +16,7 @@ import { GitTree, type GitCommitRow } from "../../components/git-tree";
 import { CommitInfoPanel } from "./CommitInfoPanel";
 import { CommitDiffPanel } from "./CommitDiffPanel";
 import { GitTreeEditorModel } from "./GitTreeEditorModel";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // =============================================================================
 // Component — thin render over the editor-owned GitTreeModel (model-view).
@@ -27,7 +28,19 @@ const DEFAULT_PANEL_H = 240;
 /** Default width (px) of the "Diff" tab's left file-list column (US-630). */
 const DEFAULT_DIFF_LIST_W = 240;
 
+interface GitTreeEditorViewState {
+    selectedHash: string | undefined;
+}
+
+class GitTreeEditorViewModel extends TComponentModel<GitTreeEditorViewState, { model: GitTreeEditorModel }> {
+    setSelectedHash = (selectedHash: string | undefined) => {
+        this.state.update((s) => { s.selectedHash = selectedHash; });
+    };
+}
+
 export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
+    const viewModel = useComponentModel({ model }, GitTreeEditorViewModel, { selectedHash: undefined });
+    const { selectedHash } = viewModel.state.use();
     const { loading, gitOk, hasCommits } = model.gitTree.state.use((s) => ({
         loading: s.loading,
         gitOk: s.gitOk,
@@ -39,7 +52,6 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
         fetching: s.fetching,
         pulling: s.pulling,
     }));
-    const [selectedHash, setSelectedHash] = useState<string | undefined>(undefined);
 
     // Bottom panel (US-629): resizable, persisted height + active tab. Capped at
     // 80% of the editor-root height so it can never crowd out the commit grid on
@@ -145,7 +157,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
                 <GitTree
                     model={model.gitTree}
                     selectedHash={selectedHash}
-                    onSelectCommit={setSelectedHash}
+                    onSelectCommit={viewModel.setSelectedHash}
                     initialColumnLayout={model.state.get().columnLayout}
                     onColumnLayoutChange={model.setColumnLayout}
                     getContextMenuItems={commitContextMenu}

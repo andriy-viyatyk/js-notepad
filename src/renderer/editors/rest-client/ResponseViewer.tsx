@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Editor } from "@monaco-editor/react";
 import { LanguageIcon } from "../../components/icons/LanguageIcon";
 import {
@@ -15,6 +15,7 @@ import { CopyIcon, NewWindowIcon, SaveIcon } from "../../theme/icons";
 import { app } from "../../api/app";
 import { pagesModel } from "../../api/pages";
 import { RestResponse } from "./restClientTypes";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 const RESPONSE_LANGUAGES = [
     "json",
@@ -92,10 +93,36 @@ interface ResponseViewerProps {
     executing: boolean;
 }
 
-export function ResponseViewer({ response, responseTime, executing }: ResponseViewerProps) {
-    const [activeTab, setActiveTab] = useState<ResponseTab>("body");
-    const [languageOverride, setLanguageOverride] = useState<string | null>(null);
-    const [headersView, setHeadersView] = useState<"table" | "json">("table");
+interface ResponseViewerState {
+    activeTab: ResponseTab;
+    languageOverride: string | null;
+    headersView: "table" | "json";
+}
+
+const defaultResponseViewerState: ResponseViewerState = {
+    activeTab: "body",
+    languageOverride: null,
+    headersView: "table",
+};
+
+class ResponseViewerModel extends TComponentModel<ResponseViewerState, ResponseViewerProps> {
+    setActiveTab = (activeTab: ResponseTab) => {
+        this.state.update((s) => { s.activeTab = activeTab; });
+    };
+
+    setLanguageOverride = (languageOverride: string | null) => {
+        this.state.update((s) => { s.languageOverride = languageOverride; });
+    };
+
+    setHeadersView = (headersView: "table" | "json") => {
+        this.state.update((s) => { s.headersView = headersView; });
+    };
+}
+
+export function ResponseViewer(props: ResponseViewerProps) {
+    const { response, responseTime, executing } = props;
+    const model = useComponentModel(props, ResponseViewerModel, defaultResponseViewerState);
+    const { activeTab, languageOverride, headersView } = model.state.use();
 
     const headersAsJson = useMemo(() => {
         if (!response) return "";
@@ -105,9 +132,12 @@ export function ResponseViewer({ response, responseTime, executing }: ResponseVi
     }, [response]);
 
     const detectedLanguage = useMemo(() => {
-        setLanguageOverride(null);
         return response ? detectLanguageFromHeaders(response.headers) : "plaintext";
     }, [response]);
+
+    useEffect(() => {
+        model.setLanguageOverride(null);
+    }, [response, model]);
 
     const language = languageOverride ?? detectedLanguage;
 
@@ -158,9 +188,9 @@ export function ResponseViewer({ response, responseTime, executing }: ResponseVi
             label: l,
             icon: <LanguageIcon language={l} width={16} height={16} />,
             selected: l === language,
-            onClick: () => setLanguageOverride(l),
+            onClick: () => model.setLanguageOverride(l),
         })),
-        [language],
+        [language, model],
     );
 
     const handleOpenInTab = useCallback(() => {
@@ -224,7 +254,7 @@ export function ResponseViewer({ response, responseTime, executing }: ResponseVi
                     name="response-tab-select"
                     size="sm"
                     value={activeTab}
-                    onChange={(v) => setActiveTab(v as ResponseTab)}
+                    onChange={(v) => model.setActiveTab(v as ResponseTab)}
                     items={tabItems}
                 />
                 <Spacer />
@@ -259,7 +289,7 @@ export function ResponseViewer({ response, responseTime, executing }: ResponseVi
                             name="response-headers-view"
                             size="sm"
                             value={headersView}
-                            onChange={(v) => setHeadersView(v as "table" | "json")}
+                            onChange={(v) => model.setHeadersView(v as "table" | "json")}
                             items={headersViewItems}
                         />
                         <IconButton

@@ -23,6 +23,7 @@ import { ArchiveEditor } from "../archive";
 import { folderViewModeService } from "./FolderViewModeService";
 import { LinksList } from "../link-editor/LinksList";
 import { LinksTiles } from "../link-editor/LinksTiles";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 
 interface ITreeProviderHost {
@@ -57,6 +58,16 @@ function findTreeProviderHost(
 // Component
 // =============================================================================
 
+interface CategoryEditorViewState {
+    viewMode: CategoryViewMode;
+}
+
+class CategoryEditorViewModel extends TComponentModel<CategoryEditorViewState, { categoryPath: string }> {
+    setViewMode = (viewMode: CategoryViewMode) => {
+        this.state.update((s) => { s.viewMode = viewMode; });
+    };
+}
+
 export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
     const page = model.page;
     const link = model.decodedLink;
@@ -84,17 +95,18 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
     const selectedHref = useOptionalState(host?.selectionState, (s) => s.selectedHref, null);
 
     const [searchPortal, setSearchPortal] = useState<HTMLDivElement | null>(null);
-    const [viewMode, setViewMode] = useState<CategoryViewMode>("list");
+    const viewModel = useComponentModel({ categoryPath }, CategoryEditorViewModel, { viewMode: "list" });
+    const { viewMode } = viewModel.state.use();
 
     // Load persisted view mode for this folder (with inheritance)
     useEffect(() => {
-        folderViewModeService.getViewMode(categoryPath).then(setViewMode);
-    }, [categoryPath]);
+        folderViewModeService.getViewMode(categoryPath).then(viewModel.setViewMode);
+    }, [categoryPath, viewModel]);
 
     const handleViewModeChange = useCallback((mode: CategoryViewMode) => {
-        setViewMode(mode);
+        viewModel.setViewMode(mode);
         folderViewModeService.setViewMode(categoryPath, mode);
-    }, [categoryPath]);
+    }, [categoryPath, viewModel]);
 
     const renderItems = useCallback((itemProps: CategoryItemsRendererProps) => {
         const commonProps = {

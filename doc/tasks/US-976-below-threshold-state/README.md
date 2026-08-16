@@ -2,98 +2,166 @@
 
 ## Status
 
-**Status:** Planned
+**Status:** Implemented — smoke-tested, pending epic review
 **Priority:** Medium
 **Epic:** [EPIC-051: De-React Epic P - Preparation (React-side)](../../epics/EPIC-051.md)
-**Depends on:** [US-970: Lift local `useState` into models](../US-970-lift-state-models/README.md), where the high-density model conversions establish the patterns
+**Depends on:** [US-970: Lift local `useState` into models](../US-970-lift-state-models/README.md)
 **Created:** 2026-08-16
 
 ## Goal
 
-Handle the remaining below-threshold local state after US-970: existing model-backed surfaces,
-small reusable UI components, shell data state, and the editor long tail. This task owns the
-smaller groups without making US-970 an unbounded 84-file sweep.
+Move the explicitly selected below-threshold local state that represents durable data, forms,
+selections, async results, or durable interaction modes into existing or co-located models. State
+below the model threshold is otherwise retained by policy, so this task is a finite conversion list
+rather than a sweep of every residual hook.
 
 ## Background
 
-The pinned US-970 scan is:
+The pinned scan is:
 
 ```text
 rg -n --glob '*.tsx' --glob '!*.story.tsx' 'useState<|useState\(' src/renderer
 ```
 
-It reports 174 non-story declarations across 84 files. US-970 owns the seven files with `>=4`
-declarations (52 declarations). US-976 owns the remaining below-threshold `.tsx` surface: 122
-declarations across 77 files before D7/D8 exclusions and explicit handoffs.
+After US-970, the residual is **126 declarations across 79 files**. The four declarations retained
+by US-970 are already ledgered there and are not US-976 candidates:
 
-| Threshold | Files | Declarations | Treatment |
-|---|---:|---:|---|
-| `>=3` | 20 | 91 | Convert model-owned state after US-970 patterns are proven |
-| `>=2` | 39 | 129 | Group by existing model/component owner |
-| `<2` / single-state tail | remaining files | included in 122 | Convert only when state is model-owned; retain named D7/D8 cases |
+| File | Retained declarations | Reason |
+|---|---|---|
+| `editors/graph/GraphLegendPanel.tsx` | `hovered`, `focusWithin` | D7 visual state |
+| `editors/graph/GraphBody.tsx` | `toolbarHovered`, `toolbarFocusWithin` | D7 visual state |
 
-The task must not convert state mechanically. D7 allows visual hover/focus, uncontrolled open,
-and gesture anchors. D8 leaves DOM measurement, DOM lifecycle, and DOM mutation in views. The
-`useOptionalState` adapter, `TruncatedText` overflow state, the non-TSX cache hooks, and the grid
-visible-row repaint counters have explicit owners or exclusions in US-970.
+The exclusive residual bands are:
+
+| Declarations per file | Files | Declarations | Share of task |
+|---:|---:|---:|---:|
+| `3` | 13 | 39 | 31% |
+| `2` | 21 | 42 | 33% |
+| `1` | 45 | 45 | 36% |
+| **Total** | **79** | **126** | |
+
+The 45 single-state files are retained by policy unless explicitly listed below. Most contain
+hover, open, copied-flag, measurement, or lifecycle state and are not an implicit work list.
+
+D7 allows visual hover/focus, uncontrolled open, and gesture anchors. D8 leaves DOM measurement,
+DOM lifecycle, and DOM mutation in views. `useOptionalState` in
+`src/renderer/core/state/state.ts`, `TruncatedText` overflow state, non-TSX cache hooks,
+`SecondaryViews.setHeaderRefsVersion`, and the four US-970 declarations are explicit exclusions.
+The grid visible-row repaint counters are handed to US-971.
 
 ## Implementation plan
 
-### 1. Reconcile the handoff inventory
+### 1. Convert the named model-owned files
 
-- Start from the US-970 completion scan and subtract the seven `>=4` files.
-- Group candidates by behavioral owner, not by a blanket directory rewrite.
-- Reuse existing models (`TreeProviderView`, `PageTab`, `NoteItemView`, grid/tree models) before
-  creating a co-located `TComponentModel`.
-- Keep a residual ledger for D7/D8 state and record the reason beside every retained declaration.
+Convert these nine three-state files:
 
-### 2. Convert existing model-backed and reusable surfaces
+- `src/renderer/editors/about/AboutView.tsx`: `runtimeVersions`, `updateResult`, `checking`
+  (async result and in-flight state).
+- `src/renderer/editors/git-tree/CommitDiffPanel.tsx`: `changes`, `selectedFile`, `diff`
+  (loaded data, selection, and derived content).
+- `src/renderer/editors/rest-client/ResponseViewer.tsx`: `activeTab`, `languageOverride`,
+  `headersView` (durable response view mode).
+- `src/renderer/editors/rest-client/RequestBuilder.tsx`: `bodyHeight`, `headersView`,
+  `headersJson` (persisted layout choice, view mode, and JSON draft; retain only genuine DOM
+  measurement if implementation proves one exists).
+- `src/renderer/ui/dialogs/PasswordDialog.tsx`: `password`, `confirm`, `error` (form and
+  validation state).
+- `src/renderer/ui/dialogs/LibrarySetupDialog.tsx`: `folderPath`, `copyExamples`, `linking`
+  (form and async state).
+- `src/renderer/editors/graph/GraphExpansionSettings.tsx`: `rootNode`, `expandDepthStr`,
+  `maxVisibleStr` (props-seeded form state; guard identity because props are synced during render).
+- `src/renderer/editors/git-tree/GitChangesView.tsx`: `selUnstaged`, `selStaged` (selection);
+  retain `bottomHeight` as splitter/measurement state.
+- `src/renderer/components/file-list/FileList.tsx`: `searchText`, `searchVisible`, `activeIndex`
+  (durable search interaction protocol).
 
-- Move model-owned data/selection/focus state in `FileList`, `FileGrid`, `GitTree`, `OpenTabsList`,
-  `AsyncEditor`, and secondary-view loading into their existing or co-located models.
-- Handle UIKit surfaces such as `CategoryList`, AVGrid filters, `OptionsFilterContent`, and
-  `useFilters` according to Rule 8; retain `WithMenu` anchors, tooltip open state, overflow
-  measurement, and drag/hover feedback when D7/D8 applies.
-- Convert dialog form state, sidebar tabs/data, and other shell state only where it represents a
-  durable interaction or async result rather than a DOM gesture.
-- Preserve AVGrid's setter-shaped columns/focus contracts with small adapters. `CellFocus` is
-  plain data; no DOM handle belongs in model state.
+Convert these two-state candidates where the listed fields are model-owned:
 
-### 3. Convert the editor long tail by family
+- `src/renderer/components/file-grid/FileGrid.tsx`: `columns`, `focus`.
+- `src/renderer/components/git-tree/GitTree.tsx`: `columns`, `focus`.
+- `src/renderer/editors/category/CategoryEditor.tsx`: `viewMode`; retain `searchPortal` as a DOM
+  lifecycle/portal target.
+- `src/renderer/editors/git-tree/GitTreeEditorView.tsx`: `selectedHash`; retain `containerH` as
+  DOM measurement.
+- `src/renderer/editors/log-view/items/MermaidOutputView.tsx`: `svgUrl`, `error` (async render
+  result and error).
+- `src/renderer/editors/settings/sections/SettingsSections.tsx`: `probe`, `portValue` (async
+  probe result and controlled settings draft).
+- `src/renderer/editors/tools-hub/SearchBoardsTab.tsx`: `query`, `refreshing` (durable search
+  input and async state).
+- `src/renderer/ui/secondary-views/LazySecondaryView.tsx`: `Component`, `error` (async module
+  loading result).
+- `src/renderer/ui/sidebar/OpenTabsList.tsx`: `allWindowsPages`, `activeIndex` (async shell data
+  and list interaction state).
 
-Work through browser/board, git/grid, link editor, REST client, MCP inspector, settings, tools,
-mneme, markdown/video/notebook, and shared async/rendering surfaces. For each candidate:
+Use existing owners before introducing a model. For a new model, keep it inline in the `.tsx` when
+it is under roughly 60 lines and used by one component in that file; use a separate `*Model.ts`
+when it is larger or shared. Preserve AVGrid `columns`/`focus` setter-shaped contracts with
+adapters; `CellFocus` is plain serializable data, while column definitions must not be mutated in
+place after model state becomes frozen.
+
+### 2. Retain named D7/D8 and handle-mirror state
+
+Retain these complete files without individual conversion entries:
+
+- `editors/notebook/NoteItemView.tsx`: focus, hover, and drag gesture state.
+- `editors/browser/BrowserTabsPanel.tsx`: drag gesture state.
+- `editors/link-editor/LinksTiles.tsx`: drag state, image-load failure, and measured grid size.
+
+Retain these two-state candidates for the named reason:
+
+- `GraphTooltip.tsx`: position measurement and copied feedback.
+- `LinksList.tsx`: drag feedback and grid-width measurement.
+- `PinnedLinksPanel.tsx`: drag feedback.
+- `AudioVisualizer.tsx`: media-element metadata mirror and page-visibility lifecycle.
+- `FolderItem.tsx`, `PinnedRail.tsx`, `HeaderCell.tsx`: drag feedback.
+- `Tooltip.tsx`: uncontrolled tooltip lifecycle and stable registry id.
+- `FilterBar.tsx`: popover lifecycle plus AVGrid rows-frozen repaint mirror; any shared grid
+  observable belongs with US-971.
+
+The `GraphBody.tsx` and `GraphLegendPanel.tsx` two-state entries are the four D7 declarations
+already ledgered by US-970, not this task's work. `AudioControls.tsx` is retained as a
+media-element imperative-state mirror (`currentTime`, `duration`, `muted`); the durable value
+lives on the `<audio>` handle.
+
+### 3. Apply ownership rules during conversion
+
+For every named candidate:
 
 - put drafts, data, selections, async results, and durable interaction state in the owning model;
 - keep measured geometry, DOM refs, third-party handles, hover/focus, uncontrolled open, and gesture
   lifecycle local under D7/D8;
-- preserve prop identity guards because `useComponentModel.setPropsInternal` runs during render;
-- use field selectors and model `memo()` values rather than whole-state subscriptions or fresh
-  derived arrays in selectors.
+- use identity guards for prop-to-state seeding because `useComponentModel.setPropsInternal` runs
+  during render;
+- use field selectors and `model.memo()` for derived values. Selectors return stored values rather
+  than fresh derived arrays;
+- use plain arrays/records or immutable replacement for model state. Do not mutate `Set` drafts
+  without an approved `enableMapSet()` decision.
 
 ### 4. Coordinate cross-task boundaries
 
-- The two grid repaint counters belong with US-971's AVGrid visible-row observable/imperative
-  handle work; do not replace them with generic revision state here.
+- The two grid repaint counters belong with US-971's AVGrid visible-row observable/imperative-handle
+  work; do not replace them with generic revision state here.
 - Context/state ownership discovered in this sweep belongs to US-972, and effect relocation belongs
-  to US-974. Keep this task's changes focused on state ownership and model methods.
+  to US-974. Keep this task focused on state ownership and model methods.
 - Do not convert editor React props, subtree slots, portals, or add a generic callback protocol.
 
-### 5. Verify the handoff is closed
+### 5. Verify the bounded handoff
 
-- Run the pinned scan, confirm the remaining declarations are either converted, named D7/D8
-  exceptions, or explicitly owned by US-971/972/974/B/D.
+- Run the pinned scan and reconcile it to 126 declarations / 79 files. Confirm the four US-970 D7
+  declarations are excluded from this task.
+- Confirm every named conversion entry is converted or has a specific recorded exception. Files
+  below the model threshold and not on the list are retained by policy.
 - Run `npm run typecheck`, `npm run lint`, and `git diff --check`.
 - Smoke-check representative list/grid/sidebar/dialog/editor interactions and async cleanup.
 - Do not add unit tests; the project has no unit-test harness.
 
 ## Concerns / Open questions
 
-### Small components do not automatically need models
+### Retention is the default below the threshold
 
-One local state hook in a short presentational component may be clearer as a view concern. The
-completion ledger must distinguish that deliberate choice from forgotten business state; a model
-should be introduced when the state is durable, shared, async, or coupled to handlers/effects.
+The named conversion list is the burden of proof. A short presentational component with one local
+hook is not opened merely to produce a ledger entry; D7/D8 and the policy above explain retention.
 
 ### Cross-task overlap needs explicit ownership
 
@@ -101,25 +169,30 @@ US-971 owns imperative handles and the grid visible-row binding; US-972 owns con
 general effect relocation. If a state move exposes one of those boundaries, record the handoff and
 avoid duplicating infrastructure.
 
+### Model placement
+
+Follow the inline-vs-separate convention in step 1 so small one-component models do not create
+unnecessary files while shared or larger models remain independently reusable.
+
 ### State containers must remain Immer-safe
 
-Use plain arrays/records or immutable replacement for model state. Do not introduce mutable `Set`
-drafts without a separately approved `enableMapSet()` decision, and verify column/row helpers do
-not mutate auto-frozen values in place.
-
-There are no unresolved decisions blocking this planned follow-up; the threshold and handoffs are
-defined by the reviewed US-970 boundary.
+Use plain arrays/records or immutable replacement for model state. Verify column/row helpers do not
+mutate auto-frozen values in place, especially for the FileGrid and GitTree AVGrid adapters.
 
 ## Acceptance criteria
 
-- [ ] The pinned scan and US-970 exclusions produce a complete US-976 candidate ledger.
-- [ ] Model-owned below-threshold state is moved into existing/co-located models without changing
+- [x] The pinned scan reconciles to 126 declarations / 79 files; the four D7 declarations retained
+      by US-970 in `GraphLegendPanel.tsx` and `GraphBody.tsx` are excluded as US-970 ledger entries.
+- [x] Every file on the named conversion list is converted or has a recorded reason it was not;
+      files below the model threshold and not on that list are retained by policy and need no
+      individual ledger entry.
+- [x] Model-owned below-threshold state is moved into existing/co-located models without changing
       public behavior or controlled component contracts.
-- [ ] D7/D8 state is retained only with a named reason; no DOM refs or third-party handles are put
-      into serializable business state.
-- [ ] Grid counters, context, and effect work are handed to US-971/972/974 rather than duplicated.
-- [ ] Field-level selectors, model memos, prop identity guards, and Immer-safe updates are used.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; smoke checks show no
+- [x] D7/D8 state is retained by policy; no DOM refs or third-party handles are put into
+      serializable business state.
+- [x] Grid counters, context, and effect work are handed to US-971/972/974 rather than duplicated.
+- [x] Field-level selectors, model memos, prop identity guards, and Immer-safe updates are used.
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; smoke checks show no
       regression and no tests are added.
 
 ## Related

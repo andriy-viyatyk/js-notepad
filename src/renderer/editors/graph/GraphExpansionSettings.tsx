@@ -1,8 +1,9 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Input, Panel, Select } from "../../uikit";
 import type { IListBoxItem } from "../../uikit";
 import { GraphNode, GraphOptions, nodeLabel } from "./types";
 import color from "../../theme/color";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 /** Narrow structural interface — satisfied by both `GraphEditor` 
  *  and legacy `GraphViewModel` (preserved per GR1). Only the surface this
@@ -21,6 +22,26 @@ interface GraphExpansionSettingsProps {
 /** Sentinel value representing "auto" root selection (no explicit rootNode). */
 const AUTO_ROOT = "__auto__";
 
+interface GraphExpansionState {
+    rootNode: string;
+    expandDepthStr: string;
+    maxVisibleStr: string;
+}
+
+class GraphExpansionModel extends TComponentModel<GraphExpansionState, GraphExpansionSettingsProps> {
+    setRootNode = (rootNode: string) => {
+        this.state.update((s) => { s.rootNode = rootNode; });
+    };
+
+    setExpandDepthStr = (expandDepthStr: string) => {
+        this.state.update((s) => { s.expandDepthStr = expandDepthStr; });
+    };
+
+    setMaxVisibleStr = (maxVisibleStr: string) => {
+        this.state.update((s) => { s.maxVisibleStr = maxVisibleStr; });
+    };
+}
+
 const labelStyle: React.CSSProperties = {
     width: 72,
     flexShrink: 0,
@@ -38,10 +59,12 @@ const noteStyle: React.CSSProperties = {
 
 function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
     const opts = editor.getExpansionOptions();
-
-    const [rootNode, setRootNode] = useState(opts.rootNode ?? "");
-    const [expandDepthStr, setExpandDepthStr] = useState(opts.expandDepth !== undefined ? String(opts.expandDepth) : "");
-    const [maxVisibleStr, setMaxVisibleStr] = useState(opts.maxVisible !== undefined ? String(opts.maxVisible) : "");
+    const model = useComponentModel({ editor }, GraphExpansionModel, {
+        rootNode: opts.rootNode ?? "",
+        expandDepthStr: opts.expandDepth !== undefined ? String(opts.expandDepth) : "",
+        maxVisibleStr: opts.maxVisible !== undefined ? String(opts.maxVisible) : "",
+    });
+    const { rootNode, expandDepthStr, maxVisibleStr } = model.state.use();
 
     const items = useMemo<IListBoxItem[]>(() => {
         const nodes = editor.getAllNodes();
@@ -58,9 +81,9 @@ function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
     const onRootChange = useCallback((item: IListBoxItem) => {
         const value = String(item.value);
         const nodeId = value === AUTO_ROOT ? undefined : value;
-        setRootNode(nodeId ?? "");
+        model.setRootNode(nodeId ?? "");
         editor.setRootNode(nodeId);
-    }, [editor]);
+    }, [editor, model]);
 
     const commitExpandDepth = useCallback(() => {
         const trimmed = expandDepthStr.trim();
@@ -69,13 +92,13 @@ function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
         } else {
             const num = parseInt(trimmed, 10);
             if (!isNaN(num) && num >= 1) {
-                setExpandDepthStr(String(num));
+                model.setExpandDepthStr(String(num));
                 editor.updateExpansionOptions({ expandDepth: num });
             } else {
-                setExpandDepthStr(opts.expandDepth !== undefined ? String(opts.expandDepth) : "");
+                model.setExpandDepthStr(opts.expandDepth !== undefined ? String(opts.expandDepth) : "");
             }
         }
-    }, [editor, expandDepthStr, opts.expandDepth]);
+    }, [editor, expandDepthStr, opts.expandDepth, model]);
 
     const commitMaxVisible = useCallback(() => {
         const trimmed = maxVisibleStr.trim();
@@ -84,13 +107,13 @@ function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
         } else {
             const num = parseInt(trimmed, 10);
             if (!isNaN(num) && num >= 10) {
-                setMaxVisibleStr(String(num));
+                model.setMaxVisibleStr(String(num));
                 editor.updateExpansionOptions({ maxVisible: num });
             } else {
-                setMaxVisibleStr(opts.maxVisible !== undefined ? String(opts.maxVisible) : "");
+                model.setMaxVisibleStr(opts.maxVisible !== undefined ? String(opts.maxVisible) : "");
             }
         }
-    }, [editor, maxVisibleStr, opts.maxVisible]);
+    }, [editor, maxVisibleStr, opts.maxVisible, model]);
 
     const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, commit: () => void) => {
         if (e.key === "Enter") {
@@ -119,7 +142,7 @@ function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
                     size="sm"
                     placeholder="∞ (unlimited)"
                     value={expandDepthStr}
-                    onChange={setExpandDepthStr}
+                    onChange={model.setExpandDepthStr}
                     onBlur={commitExpandDepth}
                     onKeyDown={(e) => onKeyDown(e, commitExpandDepth)}
                 />
@@ -131,7 +154,7 @@ function GraphExpansionSettings({ editor }: GraphExpansionSettingsProps) {
                     size="sm"
                     placeholder="500 (default)"
                     value={maxVisibleStr}
-                    onChange={setMaxVisibleStr}
+                    onChange={model.setMaxVisibleStr}
                     onBlur={commitMaxVisible}
                     onKeyDown={(e) => onKeyDown(e, commitMaxVisible)}
                 />

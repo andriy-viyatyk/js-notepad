@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import React, { useEffect, useRef, useState, type ReactNode } from "react";
+import React, { useEffect, useRef, type ReactNode, type SetStateAction } from "react";
 
 import { AVGrid, AVGridModel } from "../../uikit/AVGrid";
 import type { CellFocus, Column, TCellFormater, TCellRendererProps } from "../../uikit/AVGrid";
@@ -8,6 +8,7 @@ import { TruncatedText } from "../../uikit/TruncatedText";
 import { fontSize } from "../../uikit/tokens";
 import { FileIcon, FolderIcon } from "../icons/FileIcon";
 import { fpExtname } from "../../core/utils/file-path";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 // =============================================================================
 // FileGrid — an AVGrid-based flat file list (EPIC-031 / US-631).
@@ -65,6 +66,25 @@ const Root = styled.div({
 const ROW_HEIGHT_COMPACT = 20;
 const ROW_HEIGHT = 24;
 
+interface FileGridState {
+    columns: Column<FileGridItem>[];
+    focus: CellFocus<FileGridItem> | undefined;
+}
+
+class FileGridModel extends TComponentModel<FileGridState, FileGridProps> {
+    setColumns = (value: SetStateAction<Column<FileGridItem>[]>) => {
+        this.state.update((s) => {
+            s.columns = typeof value === "function" ? value(s.columns) : value;
+        });
+    };
+
+    setFocus = (value: SetStateAction<CellFocus<FileGridItem> | undefined>) => {
+        this.state.update((s) => {
+            s.focus = typeof value === "function" ? value(s.focus) : value;
+        });
+    };
+}
+
 function rowOf(props: TCellRendererProps): FileGridItem | undefined {
     return props.model.data.rows[props.row] as FileGridItem | undefined;
 }
@@ -115,17 +135,18 @@ function buildColumns(
     ];
 }
 
-export function FileGrid({
-    name,
-    items,
-    label,
-    onClick,
-    onDoubleClick,
-    onSelectionChange,
-    getTrailing,
-    getContextMenuItems,
-    compact,
-}: FileGridProps) {
+export function FileGrid(props: FileGridProps) {
+    const {
+        name,
+        items,
+        label,
+        onClick,
+        onDoubleClick,
+        onSelectionChange,
+        getTrailing,
+        getContextMenuItems,
+        compact,
+    } = props;
     // Behind refs so the columns (and the selection effect) stay stable across
     // re-renders without rebuilding — the cell reads the current callback.
     const getTrailingRef = useRef(getTrailing);
@@ -133,11 +154,13 @@ export function FileGrid({
     const onSelectionChangeRef = useRef(onSelectionChange);
     onSelectionChangeRef.current = onSelectionChange;
 
+    const model = useComponentModel(props, FileGridModel, {
+        columns: buildColumns(label, getTrailingRef),
+        focus: undefined,
+    });
+    const { columns, focus } = model.state.use();
+
     const gridRef = useRef<AVGridModel<FileGridItem>>(undefined);
-    const [columns, setColumns] = useState<Column<FileGridItem>[]>(
-        () => buildColumns(label, getTrailingRef),
-    );
-    const [focus, setFocus] = useState<CellFocus<FileGridItem> | undefined>(undefined);
 
     // Derive the selection from the focus range. With sorting on, focus indices
     // refer to AVGrid's displayed (sorted) rows — read them via the focus model,
@@ -153,12 +176,12 @@ export function FileGrid({
                 ref={gridRef}
                 name={name}
                 columns={columns}
-                setColumns={setColumns}
+                setColumns={model.setColumns}
                 rows={items}
                 getRowKey={(r) => r.filePath}
                 rowHeight={compact ? ROW_HEIGHT_COMPACT : ROW_HEIGHT}
                 focus={focus}
-                setFocus={setFocus}
+                setFocus={model.setFocus}
                 onClick={(r) => onClick?.(r)}
                 onDoubleClick={(r) => onDoubleClick?.(r)}
                 getContextMenuItems={getContextMenuItems}

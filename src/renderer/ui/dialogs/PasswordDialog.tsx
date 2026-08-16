@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button, Input, Label } from "../../uikit";
@@ -18,11 +18,32 @@ export interface PasswordDialogProps {
     message?: string;
 }
 
-const defaultPasswordDialogProps: PasswordDialogProps = {
+interface PasswordDialogState extends PasswordDialogProps {
+    password: string;
+    confirm: string;
+    error: string;
+}
+
+const defaultPasswordDialogProps: PasswordDialogState = {
     mode: "decrypt",
+    password: "",
+    confirm: "",
+    error: "",
 };
 
-class PasswordDialogModel extends TDialogModel<PasswordDialogProps, string> {
+class PasswordDialogModel extends TDialogModel<PasswordDialogState, string> {
+    setPassword = (password: string) => {
+        this.state.update((s) => { s.password = password; s.error = ""; });
+    };
+
+    setConfirm = (confirm: string) => {
+        this.state.update((s) => { s.confirm = confirm; s.error = ""; });
+    };
+
+    setError = (error: string) => {
+        this.state.update((s) => { s.error = error; });
+    };
+
     handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Escape") {
             e.preventDefault();
@@ -39,21 +60,18 @@ function PasswordDialog({ model }: ViewPropsRO<PasswordDialogModel>) {
     const state = model.state.use();
     const isDecrypt = state.mode === "decrypt";
 
-    const [password, setPassword] = useState("");
-    const [confirm, setConfirm] = useState("");
-    const [error, setError] = useState("");
-
     const doSubmit = useCallback(() => {
+        const { password, confirm } = model.state.get();
         if (!password) {
-            setError("Password cannot be empty");
+            model.setError("Password cannot be empty");
             return;
         }
         if (!isDecrypt && password !== confirm) {
-            setError("Passwords do not match");
+            model.setError("Passwords do not match");
             return;
         }
         model.close(password);
-    }, [password, confirm, isDecrypt, model]);
+    }, [isDecrypt, model]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
@@ -84,8 +102,8 @@ function PasswordDialog({ model }: ViewPropsRO<PasswordDialogModel>) {
                         <Input
                             name="password-dialog-password"
                             type="password"
-                            value={password}
-                            onChange={setPassword}
+                            value={state.password}
+                            onChange={model.setPassword}
                             autoFocus
                             onKeyDown={handleKeyDown}
                         />
@@ -96,14 +114,14 @@ function PasswordDialog({ model }: ViewPropsRO<PasswordDialogModel>) {
                             <Input
                                 name="password-dialog-confirm"
                                 type="password"
-                                value={confirm}
-                                onChange={setConfirm}
+                                value={state.confirm}
+                                onChange={model.setConfirm}
                                 onKeyDown={handleKeyDown}
                             />
                         </Panel>
                     )}
-                    {error && (
-                        <Text color="error" size="sm">{error}</Text>
+                    {state.error && (
+                        <Text color="error" size="sm">{state.error}</Text>
                     )}
                 </Panel>
                 <Panel direction="row" justify="end" gap="sm" padding="md">

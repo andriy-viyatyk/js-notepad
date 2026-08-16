@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { settings } from "../../../api/settings";
 import { app } from "../../../api/app";
 import { api } from "../../../../ipc/renderer/api";
@@ -14,6 +14,7 @@ import { Checkbox } from "../../../uikit/Checkbox";
 import { Text } from "../../../uikit/Text";
 import { Dot } from "../../../uikit/Dot";
 import type { IListBoxItem } from "../../../uikit/ListBox";
+import { TComponentModel, useComponentModel } from "../../../core/state/model";
 
 const labelTextStyle: React.CSSProperties = { fontSize: 11, color: color.text.light };
 const fieldLabelStyle: React.CSSProperties = {
@@ -27,6 +28,26 @@ const pathDisplayStyle: React.CSSProperties = {
     fontSize: 12, fontFamily: "monospace", color: color.text.default,
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
 };
+
+interface GitIntegrationState {
+    probe: { installed: boolean; version?: string } | null;
+}
+
+class GitIntegrationModel extends TComponentModel<GitIntegrationState, Record<string, never>> {
+    setProbe = (probe: { installed: boolean; version?: string } | null) => {
+        this.state.update((s) => { s.probe = probe; });
+    };
+}
+
+interface VideoPlayerState {
+    portValue: string;
+}
+
+class VideoPlayerModel extends TComponentModel<VideoPlayerState, { videoStreamPort: number }> {
+    setPortValue = (portValue: string) => {
+        this.state.update((s) => { s.portValue = portValue; });
+    };
+}
 
 const browseVlcExe = async (): Promise<string | undefined> => {
     const result = await api.showOpenFileDialog({
@@ -82,16 +103,17 @@ export function WindowBehaviorSection() {
 
 export function GitIntegrationSection() {
     const gitEnabled = settings.use("git.enabled");
-    const [probe, setProbe] = useState<{ installed: boolean; version?: string } | null>(null);
+    const model = useComponentModel({}, GitIntegrationModel, { probe: null });
+    const { probe } = model.state.use();
     useEffect(() => {
-        if (!gitEnabled) { setProbe(null); return; }
+        if (!gitEnabled) { model.setProbe(null); return; }
         let alive = true;
         import("../../../api/git")
             .then(({ git }) => git.probe())
-            .then((result) => { if (alive) setProbe(result); })
-            .catch(() => { if (alive) setProbe({ installed: false }); });
+            .then((result) => { if (alive) model.setProbe(result); })
+            .catch(() => { if (alive) model.setProbe({ installed: false }); });
         return () => { alive = false; };
-    }, [gitEnabled]);
+    }, [gitEnabled, model]);
 
     return (
         <>
@@ -197,8 +219,9 @@ export function DrawingLibrarySection() {
 export function VideoPlayerSection() {
     const vlcPath = settings.use("vlc-path");
     const videoStreamPort = settings.use("video-stream.port");
-    const [portValue, setPortValue] = useState(String(videoStreamPort));
-    useEffect(() => { setPortValue(String(videoStreamPort)); }, [videoStreamPort]);
+    const model = useComponentModel({ videoStreamPort }, VideoPlayerModel, { portValue: String(videoStreamPort) });
+    const { portValue } = model.state.use();
+    useEffect(() => { model.setPortValue(String(videoStreamPort)); }, [videoStreamPort, model]);
     const handleBrowseVlc = async () => {
         const filePath = await browseVlcExe();
         if (filePath) settings.set("vlc-path", filePath);
@@ -206,7 +229,7 @@ export function VideoPlayerSection() {
     const handlePortBlur = () => {
         const num = parseInt(portValue, 10);
         if (num >= 1024 && num <= 65535) settings.set("video-stream.port", num);
-        else setPortValue(String(videoStreamPort));
+        else model.setPortValue(String(videoStreamPort));
     };
     const vlcFilename = vlcPath ? fpBasename(vlcPath) : "";
     return (
@@ -224,7 +247,7 @@ export function VideoPlayerSection() {
                 <Panel direction="row" align="center" gap="md" paddingTop="xs" paddingRight="md" paddingBottom="sm" paddingLeft="xxl">
                     <span style={fieldLabelStyle}>Stream port:</span>
                     <Input
-                        size="sm" width={56} type="text" value={portValue} onChange={setPortValue}
+                        size="sm" width={56} type="text" value={portValue} onChange={model.setPortValue}
                         onBlur={handlePortBlur}
                         onKeyDown={(event) => { if (event.key === "Enter") (event.target as HTMLInputElement).blur(); }}
                     />

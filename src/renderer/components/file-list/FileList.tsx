@@ -1,11 +1,12 @@
 import styled from "@emotion/styled";
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, type ReactNode } from "react";
 import { ListBox, LIST_ITEM_KEY, Input, IconButton, Panel } from "../../uikit";
 import { fontSize } from "../../uikit/tokens";
 import type { MenuItem } from "../../uikit/Menu";
 import { TraitSet, traited } from "../../core/traits/traits";
 import { FileIcon, FolderIcon } from "../icons/FileIcon";
 import type { IconRef } from "../../uikit";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 export interface FileListItem {
     filePath: string;
@@ -52,23 +53,48 @@ const FileListWrapper = styled.div({
     },
 });
 
+interface FileListState {
+    searchText: string;
+    searchVisible: boolean;
+    activeIndex: number | null;
+}
+
+const defaultFileListState: FileListState = {
+    searchText: "",
+    searchVisible: false,
+    activeIndex: null,
+};
+
+class FileListModel extends TComponentModel<FileListState, FileListProps> {
+    setSearchText = (searchText: string) => {
+        this.state.update((s) => { s.searchText = searchText; });
+    };
+
+    setSearchVisible = (searchVisible: boolean) => {
+        this.state.update((s) => { s.searchVisible = searchVisible; });
+    };
+
+    setActiveIndex = (activeIndex: number | null) => {
+        this.state.update((s) => { s.activeIndex = activeIndex; });
+    };
+}
+
 export const FileList = forwardRef<FileListRef, FileListProps>(
     function FileList(props, ref) {
-        const [searchText, setSearchText] = useState("");
-        const [searchVisible, setSearchVisible] = useState(false);
-        const [activeIndex, setActiveIndex] = useState<number | null>(null);
+        const model = useComponentModel(props, FileListModel, defaultFileListState);
+        const { searchText, searchVisible, activeIndex } = model.state.use();
         const rootRef = useRef<HTMLDivElement>(null);
         const searchInputRef = useRef<HTMLInputElement>(null);
 
-        const hideSearch = () => {
-            setSearchVisible(false);
-            setSearchText("");
-        };
+        const hideSearch = useCallback(() => {
+            model.setSearchVisible(false);
+            model.setSearchText("");
+        }, [model]);
 
-        const hideSearchAndFocus = () => {
+        const hideSearchAndFocus = useCallback(() => {
             hideSearch();
             rootRef.current?.focus();
-        };
+        }, [hideSearch]);
 
         const onSearchBlur = () => {
             if (!searchText) {
@@ -78,11 +104,11 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
 
         useImperativeHandle(ref, () => ({
             showSearch: () => {
-                setSearchVisible(true);
+                model.setSearchVisible(true);
                 setTimeout(() => searchInputRef.current?.focus(), 0);
             },
             hideSearch,
-        }));
+        }), [model, hideSearch]);
 
         const { getTrailing, selectedPath } = props;
         const isSelected = useMemo(
@@ -159,7 +185,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                             name="file-list-search-input"
                             ref={searchInputRef}
                             value={searchText}
-                            onChange={setSearchText}
+                            onChange={model.setSearchText}
                             placeholder="Search..."
                             onKeyDown={onSearchKeyDown}
                             onBlur={onSearchBlur}
@@ -183,7 +209,7 @@ export const FileList = forwardRef<FileListRef, FileListProps>(
                     searchText={searchText || undefined}
                     rowHeight={props.compact ? 20 : 22}
                     activeIndex={activeIndex}
-                    onActiveChange={setActiveIndex}
+                    onActiveChange={model.setActiveIndex}
                     onChange={props.onClick}
                     isSelected={isSelected}
                     selectionStyle={selectedPath != null ? "accent" : undefined}

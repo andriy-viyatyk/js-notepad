@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import { showDialog } from "./Dialogs";
 import { Dialog, DialogContent, Panel, Text, Button, Input, Checkbox, Label } from "../../uikit";
 import { TDialogModel } from "../../core/state/model";
@@ -17,11 +15,32 @@ interface LibrarySetupDialogProps {
     title?: string;
 }
 
-const defaultProps: LibrarySetupDialogProps = {
+interface LibrarySetupDialogState extends LibrarySetupDialogProps {
+    folderPath: string;
+    copyExamples: boolean;
+    linking: boolean;
+}
+
+const defaultProps: LibrarySetupDialogState = {
     title: "Link Script Library",
+    folderPath: "",
+    copyExamples: true,
+    linking: false,
 };
 
-class LibrarySetupDialogModel extends TDialogModel<LibrarySetupDialogProps, string | undefined> {
+class LibrarySetupDialogModel extends TDialogModel<LibrarySetupDialogState, string | undefined> {
+    setFolderPath = (folderPath: string) => {
+        this.state.update((s) => { s.folderPath = folderPath; });
+    };
+
+    setCopyExamples = (copyExamples: boolean) => {
+        this.state.update((s) => { s.copyExamples = copyExamples; });
+    };
+
+    setLinking = (linking: boolean) => {
+        this.state.update((s) => { s.linking = linking; });
+    };
+
     handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Escape") {
             e.preventDefault();
@@ -32,16 +51,14 @@ class LibrarySetupDialogModel extends TDialogModel<LibrarySetupDialogProps, stri
 
 function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
     const state = model.state.use();
-    const [folderPath, setFolderPath] = useState("");
-    const [copyExamples, setCopyExamples] = useState(true);
-    const [linking, setLinking] = useState(false);
+    const { folderPath, copyExamples, linking } = state;
 
     const handleBrowse = async () => {
         const result = await api.showOpenFolderDialog({
             title: "Select Script Library Folder",
         });
         if (result && result.length > 0) {
-            setFolderPath(result[0]);
+            model.setFolderPath(result[0]);
         }
     };
 
@@ -49,7 +66,7 @@ function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
         const trimmed = folderPath.trim();
         if (!trimmed) return;
 
-        setLinking(true);
+        model.setLinking(true);
         try {
             if (!nodefs.existsSync(trimmed)) {
                 nodefs.mkdirSync(trimmed, { recursive: true });
@@ -64,7 +81,7 @@ function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
         } catch (err) {
             const { ui } = await import("../../api/ui");
             ui.notify(`Failed to link library: ${err.message}`, "error");
-            setLinking(false);
+            model.setLinking(false);
         }
     };
 
@@ -98,7 +115,7 @@ function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
                                 <Input
                                     name="library-setup-folder"
                                     value={folderPath}
-                                    onChange={setFolderPath}
+                                    onChange={model.setFolderPath}
                                     placeholder="Select or type a folder path..."
                                     autoFocus
                                 />
@@ -107,7 +124,7 @@ function LibrarySetupDialog({ model }: ViewPropsRO<LibrarySetupDialogModel>) {
                         </Panel>
                     </Panel>
                     <Panel direction="column" gap="xs">
-                        <Checkbox name="library-setup-copy-examples" checked={copyExamples} onChange={setCopyExamples}>
+                        <Checkbox name="library-setup-copy-examples" checked={copyExamples} onChange={model.setCopyExamples}>
                             Copy example scripts
                         </Checkbox>
                         <Panel paddingLeft="xxl">

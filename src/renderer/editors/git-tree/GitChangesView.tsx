@@ -14,11 +14,27 @@ import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import { showCommitDialog } from "../../ui/dialogs/CommitDialog";
 import { FilterArrowUpIcon, FilterArrowDownIcon, DeleteIcon } from "../../theme/icons";
 import type { GitFileChange } from "../../../ipc/git-ipc";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 /** Expand a selection to git path args — renames need both new + old path so
  *  `git add` / `git reset` follow the rename (US-631). */
 function expandPaths(changes: GitFileChange[]): string[] {
     return changes.flatMap((c) => (c.oldPath ? [c.path, c.oldPath] : [c.path]));
+}
+
+interface GitChangesState {
+    selUnstaged: GitFileChange[];
+    selStaged: GitFileChange[];
+}
+
+class GitChangesModel extends TComponentModel<GitChangesState, { model: GitTreeEditorModel }> {
+    setSelUnstaged = (changes: GitFileChange[]) => {
+        this.state.update((s) => { s.selUnstaged = changes; });
+    };
+
+    setSelStaged = (changes: GitFileChange[]) => {
+        this.state.update((s) => { s.selStaged = changes; });
+    };
 }
 
 // =============================================================================
@@ -33,6 +49,11 @@ function expandPaths(changes: GitFileChange[]): string[] {
 // =============================================================================
 
 export function GitChangesView({ model }: { model: GitTreeEditorModel }) {
+    const viewModel = useComponentModel({ model }, GitChangesModel, {
+        selUnstaged: [],
+        selStaged: [],
+    });
+    const { selUnstaged, selStaged } = viewModel.state.use();
     const { unstaged, staged, gitOk, branch } = model.changes.state.use((s) => ({
         unstaged: s.unstaged,
         staged: s.staged,
@@ -46,8 +67,6 @@ export function GitChangesView({ model }: { model: GitTreeEditorModel }) {
     // Range selection per list (transient — not persisted, US-631 Concern #7).
     // Both arrow buttons live on the Staged header: ↓ stages the Unstaged
     // selection, ↑ unstages the Staged selection (US-631 Concern #4).
-    const [selUnstaged, setSelUnstaged] = useState<GitFileChange[]>([]);
-    const [selStaged, setSelStaged] = useState<GitFileChange[]>([]);
 
     const stage = useCallback(
         (changes: GitFileChange[]) => {
@@ -199,7 +218,7 @@ export function GitChangesView({ model }: { model: GitTreeEditorModel }) {
                     moveIcon={<FilterArrowDownIcon />}
                     onMove={stage}
                     onReset={reset}
-                    onSelectionChange={setSelUnstaged}
+                    onSelectionChange={viewModel.setSelUnstaged}
                 />
             </Panel>
             <Splitter
@@ -226,7 +245,7 @@ export function GitChangesView({ model }: { model: GitTreeEditorModel }) {
                     moveLabel="Unstage"
                     moveIcon={<FilterArrowUpIcon />}
                     onMove={unstage}
-                    onSelectionChange={setSelStaged}
+                    onSelectionChange={viewModel.setSelStaged}
                     toolbarRight={stagedButtons}
                     toolbarLeft={commitButton}
                 />

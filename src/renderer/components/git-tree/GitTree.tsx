@@ -10,7 +10,7 @@
  * `components/` is app code (not uikit/), so Emotion is allowed for this
  * component's own elements — but only props are passed to AVGrid (Rule 7).
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState, type RefObject, type SetStateAction } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, type RefObject, type SetStateAction } from "react";
 import styled from "@emotion/styled";
 import { clsx } from "clsx";
 
@@ -35,6 +35,7 @@ import {
     toCommitRows,
     type GitCommitRow,
 } from "./swimlane-layout";
+import { TComponentModel, useComponentModel } from "../../core/state/model";
 
 const LANE_COLORS = TAG_COLORS.map((c) => c.hex);
 
@@ -105,6 +106,25 @@ export interface GitTreeProps {
      *  whole-repo editor passes this — the file-scoped popovers / History panel
      *  omit it (no switch from a filtered single-file view). */
     getContextMenuItems?: (rows: GitCommitRow[]) => MenuItem[];
+}
+
+interface GitTreeState {
+    columns: Column<GitCommitRow>[];
+    focus: CellFocus<GitCommitRow> | undefined;
+}
+
+class GitTreeViewModel extends TComponentModel<GitTreeState, GitTreeProps> {
+    setColumns = (value: SetStateAction<Column<GitCommitRow>[]>) => {
+        this.state.update((s) => {
+            s.columns = typeof value === "function" ? value(s.columns) : value;
+        });
+    };
+
+    setFocus = (value: SetStateAction<CellFocus<GitCommitRow> | undefined>) => {
+        this.state.update((s) => {
+            s.focus = typeof value === "function" ? value(s.focus) : value;
+        });
+    };
 }
 
 // Pinned to the bottom of the (relative, content-height) render area — the same
@@ -349,18 +369,20 @@ function refitGraphColumn(
     return next;
 }
 
-export function GitTree({
-    name,
-    model,
-    selectedHash,
-    onSelectCommit,
-    compact = false,
-    sideSelect,
-    leadingRows,
-    initialColumnLayout,
-    onColumnLayoutChange,
-    getContextMenuItems,
-}: GitTreeProps) {
+export function GitTree(props: GitTreeProps) {
+    const {
+        name,
+        model: gitTreeModel,
+        selectedHash,
+        onSelectCommit,
+        compact = false,
+        sideSelect,
+        leadingRows,
+        initialColumnLayout,
+        onColumnLayoutChange,
+        getContextMenuItems,
+    } = props;
+    const model = gitTreeModel;
     const { commits, loadingMore, hasMore } = model.state.use((s) => ({
         commits: s.commits,
         loadingMore: s.loadingMore,
@@ -413,9 +435,11 @@ export function GitTree({
     const prevMaxColumnsRef = useRef(maxColumns);
     // Apply the owner-persisted layout (width + order) once, at mount — read-once
     // from the initial prop value (US-623).
-    const [columns, setColumns] = useState<Column<GitCommitRow>[]>(() =>
-        applyLayout(buildColumns(maxColumns, compact, sideSelectCell), initialColumnLayout),
-    );
+    const viewModel = useComponentModel(props, GitTreeViewModel, {
+        columns: applyLayout(buildColumns(maxColumns, compact, sideSelectCell), initialColumnLayout),
+        focus: undefined,
+    });
+    const { columns, focus } = viewModel.state.use();
 
     // AVGrid drives resize/reorder through `setColumns(updater)`. Wrap it so user
     // changes are reported up to the owner for persistence — while the component's
@@ -423,13 +447,13 @@ export function GitTree({
     // raw `setColumns` and therefore do NOT emit (US-623).
     const handleColumnsChange = useCallback(
         (action: SetStateAction<Column<GitCommitRow>[]>) => {
-            setColumns((prev) => {
+            viewModel.setColumns((prev) => {
                 const next = typeof action === "function" ? action(prev) : action;
                 onColumnLayoutChange?.(next.map((c) => ({ key: String(c.key), width: c.width })));
                 return next;
             });
         },
-        [onColumnLayoutChange],
+        [onColumnLayoutChange, viewModel],
     );
 
     useEffect(() => {
@@ -438,11 +462,11 @@ export function GitTree({
         builtStructureRef.current = structureKey;
         prevMaxColumnsRef.current = maxColumns;
         if (structureChanged) {
-            setColumns(buildColumns(maxColumns, compact, sideSelectCell));
+            viewModel.setColumns(buildColumns(maxColumns, compact, sideSelectCell));
         } else if (maxColumnsChanged && !compact) {
-            setColumns((cols) => refitGraphColumn(cols, maxColumns));
+            viewModel.setColumns((cols) => refitGraphColumn(cols, maxColumns));
         }
-    }, [maxColumns, compact, sideSelectCell, structureKey]);
+    }, [maxColumns, compact, sideSelectCell, structureKey, viewModel]);
 
     const selected = useMemo(
         () => new Set<string>(selectedHash ? [selectedHash] : []),
@@ -451,8 +475,6 @@ export function GitTree({
 
     // Cell focus + range selection (enables AVGrid's range-copy). Held here, in
     // the AVGrid's parent, per the controlled focus/setFocus contract.
-    const [focus, setFocus] = useState<CellFocus<GitCommitRow> | undefined>(undefined);
-
     const loadMore = hasMore ? (
         <LoadMoreRow data-type="git-tree-load-more">
             {loadingMore ? (
@@ -479,7 +501,7 @@ export function GitTree({
             selected={selected}
             onClick={(r) => onSelectCommit?.(r.hash)}
             focus={focus}
-            setFocus={setFocus}
+            setFocus={viewModel.setFocus}
             disableFiltering
             disableSorting
             extraElement={loadMore}
