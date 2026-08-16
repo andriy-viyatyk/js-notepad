@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect } from "react";
+import React, { useEffect } from "react";
 import ReactDOM from "react-dom";
 import { useFloating, useMergeRefs, autoUpdate } from "@floating-ui/react";
 import styled from "@emotion/styled";
@@ -65,10 +65,7 @@ const ResizeHandle = styled.div(
 
 // --- Component ---
 
-export const Popover = forwardRef<HTMLDivElement, PopoverProps>(function Popover(
-    props,
-    ref,
-) {
+export function Popover({ ref, ...props }: PopoverProps & { ref?: React.Ref<HTMLDivElement> }) {
     const model = useComponentModel(props, PopoverModel, defaultPopoverState);
 
     // useFloating must run unconditionally on every render — it owns React refs
@@ -166,7 +163,7 @@ export const Popover = forwardRef<HTMLDivElement, PopoverProps>(function Popover
         </Root>,
         document.body,
     );
-});
+}
 
 // Re-export public types from canonical location.
 export type { PopoverProps, PopoverPosition } from "./PopoverModel";

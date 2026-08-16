@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useId } from "react";
+import React, { useCallback, useId } from "react";
 import styled from "@emotion/styled";
 import { useComponentModel } from "../../core/state/model";
 import { Input } from "../Input";
@@ -26,9 +26,8 @@ const Root = styled.div(
 
 // --- Component ---
 
-function MultiSelectInner<T = IListBoxItem>(
-    props: MultiSelectProps<T>,
-    ref: React.ForwardedRef<HTMLInputElement>,
+export function MultiSelect<T = IListBoxItem>(
+    { ref, ...props }: MultiSelectProps<T> & { ref?: React.Ref<HTMLInputElement> },
 ) {
     const reactId = useId();
     const model = useComponentModel(
@@ -157,10 +156,6 @@ function MultiSelectInner<T = IListBoxItem>(
         </Root>
     );
 }
-
-export const MultiSelect = forwardRef(MultiSelectInner) as <T = IListBoxItem>(
-    props: MultiSelectProps<T> & { ref?: React.Ref<HTMLInputElement> },
-) => React.ReactElement | null;
 
 // Re-export public types from canonical location.
 export type { MultiSelectProps } from "./MultiSelectModel";

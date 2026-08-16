@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { spacing } from "../tokens";
@@ -7,6 +7,7 @@ import { spacing } from "../tokens";
 
 export interface SectionItemProps
     extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -39,10 +40,7 @@ const Root = styled.div(
 
 // --- Component ---
 
-export const SectionItem = forwardRef<HTMLDivElement, SectionItemProps>(function SectionItem(
-    { name, id, label, ...rest },
-    ref,
-) {
+export function SectionItem({ name, id, label, ref, ...rest }: SectionItemProps) {
     return (
         <Root
             ref={ref}
@@ -55,4 +53,4 @@ export const SectionItem = forwardRef<HTMLDivElement, SectionItemProps>(function
             {label}
         </Root>
     );
-});
+}

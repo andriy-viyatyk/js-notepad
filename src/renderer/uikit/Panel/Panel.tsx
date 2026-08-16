@@ -18,6 +18,7 @@ type WordBreak = "normal" | "break-all" | "keep-all" | "break-word";
 
 export interface PanelProps
     extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -309,10 +310,7 @@ function compactStyle(style: React.CSSProperties): React.CSSProperties {
 
 // --- Component ---
 
-export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(function Panel(
-    props,
-    ref,
-) {
+export function Panel({ ref, ...props }: PanelProps) {
     const {
         name,
         direction = "row",
@@ -447,4 +445,4 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(function Panel
             {children}
         </Root>
     );
-});
+}

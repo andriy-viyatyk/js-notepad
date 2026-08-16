@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useId } from "react";
+import React, { useCallback, useId } from "react";
 import styled from "@emotion/styled";
 import { useComponentModel } from "../../core/state/model";
 import { Input } from "../Input";
@@ -25,8 +25,7 @@ const Root = styled.div(
 
 // --- Component ---
 
-export const Autocomplete = forwardRef<HTMLInputElement, AutocompleteProps>(
-    function Autocomplete(props, ref) {
+export function Autocomplete({ ref, ...props }: AutocompleteProps & { ref?: React.Ref<HTMLInputElement> }) {
         const reactId = useId();
         const model = useComponentModel(props, AutocompleteModel, defaultAutocompleteState);
         model.setReactId(reactId);
@@ -157,8 +156,7 @@ export const Autocomplete = forwardRef<HTMLInputElement, AutocompleteProps>(
                 </Popover>
             </Root>
         );
-    },
-);
+}
 
 // Re-export public types from canonical location.
 export type { AutocompleteProps } from "./AutocompleteModel";

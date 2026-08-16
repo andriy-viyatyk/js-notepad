@@ -13,6 +13,7 @@ export type NotificationSeverity = "info" | "success" | "warning" | "error";
 
 export interface NotificationProps
     extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -112,8 +113,7 @@ const ARIA_LIVE: Record<NotificationSeverity, "assertive" | "polite"> = {
 
 // --- Component ---
 
-export const Notification = React.forwardRef<HTMLDivElement, NotificationProps>(
-    function Notification({ name, type, message, onClick, onClose, ...rest }, ref) {
+export function Notification({ name, type, message, onClick, onClose, ref, ...rest }: NotificationProps) {
         const handleClose = (e: React.MouseEvent) => {
             e.stopPropagation();
             onClose?.();
@@ -148,5 +148,4 @@ export const Notification = React.forwardRef<HTMLDivElement, NotificationProps>(
                 </Root>
             </>
         );
-    },
-);
+}

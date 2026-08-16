@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useId } from "react";
+import React, { useCallback, useId } from "react";
 import styled from "@emotion/styled";
 import { useComponentModel } from "../../core/state/model";
 import { Input } from "../Input";
@@ -25,9 +25,8 @@ const Root = styled.div(
 
 // --- Component ---
 
-function SelectInner<T = IListBoxItem>(
-    props: SelectProps<T>,
-    ref: React.ForwardedRef<HTMLInputElement>,
+export function Select<T = IListBoxItem>(
+    { ref, ...props }: SelectProps<T> & { ref?: React.Ref<HTMLInputElement> },
 ) {
     const reactId = useId();
     const model = useComponentModel(
@@ -168,10 +167,6 @@ function SelectInner<T = IListBoxItem>(
         </Root>
     );
 }
-
-export const Select = forwardRef(SelectInner) as <T = IListBoxItem>(
-    props: SelectProps<T> & { ref?: React.Ref<HTMLInputElement> },
-) => React.ReactElement | null;
 
 // Re-export public types from canonical location.
 export type { SelectProps, ItemsSource, SelectItemsResult } from "./SelectModel";

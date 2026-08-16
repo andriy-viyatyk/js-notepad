@@ -5,6 +5,7 @@ import { Input, type InputProps } from "../Input";
 
 export interface DateInputProps
     extends Omit<InputProps, "type" | "value" | "onChange" | "startSlot" | "endSlot" | "tone"> {
+    ref?: React.Ref<HTMLInputElement>;
     /** Current value as an ISO `YYYY-MM-DD` string, or "" when unset. */
     value: string;
     /** Change handler — receives the ISO date string (empty string when cleared). */
@@ -22,8 +23,6 @@ export interface DateInputProps
  * single-file change with no call-site churn — consumers depend on `DateInput`,
  * not on the native control.
  */
-export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
-    function DateInput({ value, onChange, ...rest }, ref) {
-        return <Input ref={ref} {...rest} type="date" value={value} onChange={onChange} />;
-    },
-);
+export function DateInput({ value, onChange, ref, ...rest }: DateInputProps) {
+    return <Input ref={ref} {...rest} type="date" value={value} onChange={onChange} />;
+}

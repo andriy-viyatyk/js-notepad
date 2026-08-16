@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import type { Ref } from "react";
 import styled from "@emotion/styled";
 import { Input, InputProps } from "../Input";
 
@@ -19,6 +20,7 @@ import { Input, InputProps } from "../Input";
  * commit / cancel lifecycle stays at one source of truth.
  */
 export interface CellInputProps extends Pick<InputProps, "value" | "onChange" | "name" | "placeholder"> {
+    ref?: Ref<HTMLInputElement>;
     /** When true, autofocus does not select-all. Set by AVGrid when edit is initiated
      *  via a character keystroke (the typed char becomes the value, cursor at end). */
     dontSelect?: boolean;
@@ -48,10 +50,7 @@ const Root = styled.div({
     },
 });
 
-export const CellInput = forwardRef<HTMLInputElement, CellInputProps>(function CellInput(
-    { value, onChange, name, placeholder, dontSelect },
-    ref,
-) {
+export function CellInput({ value, onChange, name, placeholder, dontSelect, ref }: CellInputProps) {
     const innerRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
@@ -77,4 +76,4 @@ export const CellInput = forwardRef<HTMLInputElement, CellInputProps>(function C
             />
         </Root>
     );
-});
+}

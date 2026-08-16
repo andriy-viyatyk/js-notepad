@@ -144,9 +144,7 @@ const SelectedCheck = styled.span(
 
 // --- Component ---
 
-export const Menu: React.ForwardRefExoticComponent<
-    MenuProps & React.RefAttributes<HTMLDivElement>
-> = React.forwardRef<HTMLDivElement, MenuProps>(function MenuComponent(props, ref) {
+export function Menu({ ref, ...props }: MenuProps & { ref?: React.Ref<HTMLDivElement> }) {
     const model = useComponentModel(props, MenuModel, defaultMenuState);
     const { search, hoveredId, subMenuItem, subMenuAnchor } = model.state.use((s) => ({
         search: s.search,
@@ -235,7 +233,7 @@ export const Menu: React.ForwardRefExoticComponent<
             )}
         </>
     );
-});
+}
 
 // Re-export public types from canonical locations.
 export type { MenuProps } from "./MenuModel";

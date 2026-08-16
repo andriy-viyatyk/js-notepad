@@ -1,4 +1,5 @@
-import { forwardRef, useEffect } from "react";
+import { useEffect } from "react";
+import type { Ref } from "react";
 import { TMessageType } from "../../core/utils/types";
 import { Panel } from "../Panel";
 import { Notification } from "./Notification";
@@ -11,6 +12,7 @@ export interface AlertData {
 }
 
 interface AlertItemProps {
+    ref?: Ref<HTMLDivElement>;
     /** Optional debug label forwarded to the inner Notification's `data-name`. */
     name?: string;
     data: AlertData;
@@ -25,8 +27,7 @@ const AUTOCLOSE_SECONDS: Record<TMessageType, number> = {
     error:   0,
 };
 
-export const AlertItem = forwardRef<HTMLDivElement, AlertItemProps>(
-    function AlertItem({ name, data, top, right }, ref) {
+export function AlertItem({ name, data, top, right, ref }: AlertItemProps) {
         const { onClose } = data;
         const autoClose = AUTOCLOSE_SECONDS[data.type];
 
@@ -59,5 +60,4 @@ export const AlertItem = forwardRef<HTMLDivElement, AlertItemProps>(
                 />
             </Panel>
         );
-    },
-);
+}

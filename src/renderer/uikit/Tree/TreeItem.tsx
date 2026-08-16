@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
@@ -13,6 +13,7 @@ import { Spinner } from "../Spinner";
 
 export interface TreeItemProps
     extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -213,8 +214,7 @@ const defaultIndentSize = 16;
 // steps for clean hierarchy while making the row's leading whitespace tight.
 const chevronColumnSize = 14;
 
-export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeItem(
-    {
+export function TreeItem({
         name,
         id,
         level,
@@ -235,10 +235,9 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
         onChevronClick,
         trailing,
         trailingVisibility = "always",
+        ref,
         ...rest
-    },
-    ref,
-) {
+    }: TreeItemProps) {
     const labelNode =
         typeof label === "string" && searchText ? highlight(label, searchText) : label;
 
@@ -292,4 +291,4 @@ export const TreeItem = forwardRef<HTMLDivElement, TreeItemProps>(function TreeI
 
     if (tooltip == null || tooltip === false || tooltip === "") return row;
     return <Tooltip content={tooltip}>{row}</Tooltip>;
-});
+}

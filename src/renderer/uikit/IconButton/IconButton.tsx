@@ -9,6 +9,7 @@ import type { IconRef } from "../shared/slots";
 // --- Types ---
 
 export interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title"> {
+    ref?: React.Ref<HTMLButtonElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling.
      *  Recommended on every IconButton — the `<svg>` child gives no clue about the action. */
@@ -153,8 +154,7 @@ const Root = styled.button(
 
 // --- Component ---
 
-export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-    function IconButton({ name, icon, size = "md", variant = "default", active, warning, disabled, title, hideUntilParentHover, strikethrough, ...rest }, ref) {
+export function IconButton({ name, icon, size = "md", variant = "default", active, warning, disabled, title, hideUntilParentHover, strikethrough, ref, ...rest }: IconButtonProps) {
         const button = (
             <Root
                 ref={ref}
@@ -175,5 +175,4 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
             </Root>
         );
         return title ? <Tooltip content={title}>{button}</Tooltip> : button;
-    },
-);
+}

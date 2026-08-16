@@ -9,6 +9,7 @@ import { Tooltip } from "../Tooltip/Tooltip";
 // --- Types ---
 
 export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "title"> {
+    ref?: React.Ref<HTMLButtonElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -155,11 +156,7 @@ const Root = styled.button(
 
 // --- Component ---
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    function Button(
-        { name, variant = "default", size = "md", background = "default", block, icon, disabled, title, hideUntilParentHover, children, ...rest },
-        ref,
-    ) {
+export function Button({ name, variant = "default", size = "md", background = "default", block, icon, disabled, title, hideUntilParentHover, children, ref, ...rest }: ButtonProps) {
         const button = (
             <Root
                 ref={ref}
@@ -180,5 +177,4 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             </Root>
         );
         return title ? <Tooltip content={title}>{button}</Tooltip> : button;
-    },
-);
+}

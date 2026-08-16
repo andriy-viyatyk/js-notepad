@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { rowSelectionBase, rowFocusSelectionOverride } from "../shared/selection-style";
@@ -7,6 +7,7 @@ import { rowSelectionBase, rowFocusSelectionOverride } from "../shared/selection
 
 export interface SelectableRowProps
     extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Never used for styling. */
     name?: string;
     /** True when this row is the current selection. */
@@ -44,8 +45,7 @@ const Root = styled.div(
 
 // --- Component ---
 
-export const SelectableRow = forwardRef<HTMLDivElement, SelectableRowProps>(
-    function SelectableRow({ name, selected, active, children, ...rest }, ref) {
+export function SelectableRow({ name, selected, active, children, ref, ...rest }: SelectableRowProps) {
         return (
             <Root
                 ref={ref}
@@ -58,5 +58,4 @@ export const SelectableRow = forwardRef<HTMLDivElement, SelectableRowProps>(
                 {children}
             </Root>
         );
-    },
-);
+}

@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback } from "react";
+import React, { useCallback } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { spacing } from "../tokens";
@@ -52,10 +52,7 @@ const SuggestionRow = styled.div(
 
 // --- Component ---
 
-export const PathInput = forwardRef<HTMLInputElement, PathInputProps>(function PathInput(
-    props,
-    ref,
-) {
+export function PathInput({ ref, ...props }: PathInputProps & { ref?: React.Ref<HTMLInputElement> }) {
     const model = useComponentModel(props, PathInputModel, defaultPathInputState);
     const { open, activeIndex } = model.state.use((s) => ({
         open: s.open,
@@ -156,7 +153,7 @@ export const PathInput = forwardRef<HTMLInputElement, PathInputProps>(function P
             </Popover>
         </Root>
     );
-});
+}
 
 // Re-export the public type from its canonical location (the model file).
 export type { PathInputProps } from "./PathInputModel";

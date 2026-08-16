@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { gap, height, spacing } from "../tokens";
@@ -12,6 +12,7 @@ import { Tooltip } from "../Tooltip";
 
 export interface ListItemProps
     extends Omit<React.HTMLAttributes<HTMLDivElement>, "style" | "className"> {
+    ref?: React.Ref<HTMLDivElement>;
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
      *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
     name?: string;
@@ -145,8 +146,7 @@ const Root = styled.div(
 
 // --- Component ---
 
-export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListItem(
-    {
+export function ListItem({
         name,
         id,
         icon,
@@ -162,10 +162,9 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
         selectionStyle = "check",
         showSelectionIcon = true,
         dropActive,
+        ref,
         ...rest
-    },
-    ref,
-) {
+    }: ListItemProps) {
     const labelNode =
         typeof label === "string" && searchText ? highlight(label, searchText) : label;
     const defaultTrailing = selected && showSelectionIcon && selectionStyle !== "focus"
@@ -197,4 +196,4 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
     );
     if (tooltip == null || tooltip === false || tooltip === "") return row;
     return <Tooltip content={tooltip} delayShow={tooltipDelayShow}>{row}</Tooltip>;
-});
+}

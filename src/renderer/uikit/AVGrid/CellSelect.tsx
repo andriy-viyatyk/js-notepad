@@ -1,4 +1,5 @@
-import { forwardRef, useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { Ref } from "react";
 import styled from "@emotion/styled";
 import { Select } from "../Select";
 import type { IListBoxItem } from "../ListBox";
@@ -18,6 +19,7 @@ import type { IListBoxItem } from "../ListBox";
  *   • Fit the wrapped Select flush inside the cell via descendant selectors.
  */
 export interface CellSelectProps<T = unknown> {
+    ref?: Ref<HTMLInputElement>;
     name?: string;
     /** Current value (free-form — Select renders by matching against `options`). */
     value: T | null | undefined;
@@ -57,10 +59,7 @@ const Root = styled.div({
     },
 });
 
-export const CellSelect = forwardRef(function CellSelect<T = unknown>(
-    { name, value, options, onChange, onCancel }: CellSelectProps<T>,
-    ref: React.ForwardedRef<HTMLInputElement>,
-) {
+export function CellSelect<T = unknown>({ name, value, options, onChange, onCancel, ref }: CellSelectProps<T>) {
     const innerRef = useRef<HTMLInputElement | null>(null);
 
     // Bridge AVGrid `Column.options` (T[] | () => T[] | Promise<T[]>) to UIKit
@@ -114,4 +113,4 @@ export const CellSelect = forwardRef(function CellSelect<T = unknown>(
             />
         </Root>
     );
-});
+}

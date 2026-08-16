@@ -1,4 +1,4 @@
-import { forwardRef, ReactElement, ReactNode, SVGProps } from "react";
+import { ReactElement, ReactNode, SVGProps } from "react";
 import { isCurrentThemeDark } from "./themes";
 import { settings } from "../api/settings";
 import color from "./color";
@@ -11,8 +11,7 @@ export interface SvgIconProps extends SVGProps<SVGSVGElement> {
 
 export type SvgIconComponent = (props: SvgIconProps) => ReactElement;
 
-const SvgIcon = forwardRef<SVGSVGElement, SvgIconProps>(
-    function SvgIcon(props, ref) {
+const SvgIcon = function SvgIcon(props: SvgIconProps) {
         const {
             children,
             viewBox = "0 0 24 24",
@@ -20,6 +19,7 @@ const SvgIcon = forwardRef<SVGSVGElement, SvgIconProps>(
             height = 24,
             title,
             color,
+            ref,
             ...otherProps
         } = props;
 
@@ -37,20 +37,16 @@ const SvgIcon = forwardRef<SVGSVGElement, SvgIconProps>(
                 {children}
             </svg>
         );
-    },
-);
+    };
 
 export const createIconWithViewBox = (viewBox: string) => (icon: ReactNode) =>
-    forwardRef<SVGSVGElement>(function IconWithViewBox(
-        props: SvgIconProps,
-        ref,
-    ) {
+    function IconWithViewBox(props: SvgIconProps) {
         return (
-            <SvgIcon {...props} viewBox={viewBox} ref={ref}>
+            <SvgIcon {...props} viewBox={viewBox}>
                 {icon}
             </SvgIcon>
         );
-    }) as (props: SvgIconProps) => ReactElement;
+    };
 
 export const createIcon = (size: number | string) =>
     createIconWithViewBox(`0 0 ${size} ${size}`);
