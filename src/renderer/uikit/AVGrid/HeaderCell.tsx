@@ -12,7 +12,7 @@ import {
     QuestionIcon,
 } from "../../theme/icons";
 import { IconButton } from "../IconButton";
-import { useFilters } from "./filters/useFilters";
+import { resolveFiltersModel } from "./filters/FiltersModel";
 
 const HeaderCellRoot = styled.div(
     {
@@ -101,8 +101,9 @@ export function HeaderCell({ key, col, style, model }: TCellRendererProps) {
     const headerRef = useRef<HTMLElement>(undefined);
     const resizingRef = useRef(false);
     const hasResized = useRef(false);
-    const { showFilterPoper } = useFilters();
-    const filter = useFilters();
+    const filtersModel = resolveFiltersModel(model.props.filtersModel);
+    const { showFilterPoper } = filtersModel;
+    const filter = filtersModel.props;
     const columnFiltered = filter.filters.find(
         (f) => f.columnKey === column.key
     );

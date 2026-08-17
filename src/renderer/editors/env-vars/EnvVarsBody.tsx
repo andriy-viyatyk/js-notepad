@@ -13,7 +13,7 @@ import {
     type CellFocus,
 } from "../../uikit";
 import { DeleteIcon, UnlockIcon } from "../../theme/icons";
-import { useEditorConfig } from "../base";
+import type { EditorConfig } from "../base/EditorConfig";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 // Direct import (not the api/board-vars barrel) — see the note in EnvVarsEditor.ts.
 import { DEFAULT_PROFILE } from "../../api/board-vars/types";
@@ -190,14 +190,13 @@ class VariablesGridModel extends TComponentModel<VariablesGridState, VariablesGr
     setWarning = (warning: string | undefined) => this.state.update((s) => { s.warning = warning; });
 }
 
-function VariablesGrid({ model, namespace, profile, data }: VariablesGridProps) {
+function VariablesGrid({ model, namespace, profile, data, editorConfig = {} }: VariablesGridProps & { editorConfig?: EditorConfig }) {
     const rowCounterRef = useRef(0);
     // Reference to the last record object this component itself pushed via
     // setProfileData — lets the reseed effect ignore its own echo while still
     // reacting to a genuinely external change (e.g. a board's var.set()).
     const appliedRef = useRef<Record<string, string> | null>(null);
     const gridRef = useRef<AVGridModel<VarRow> | null>(null);
-    const editorConfig = useEditorConfig();
     const gridModel = useComponentModel({ model, namespace, profile, data }, VariablesGridModel, defaultVariablesGridState);
     const rows = gridModel.state.use((s) => s.rows);
     const columns = gridModel.state.use((s) => s.columns);
@@ -313,6 +312,7 @@ interface ProfilePaneProps {
     profile: string;
     profiles: string[];
     data: Record<string, string>;
+    editorConfig?: EditorConfig;
 }
 
 class ProfilePaneModel extends TComponentModel<{ newProfile: string }, ProfilePaneProps> {
@@ -325,6 +325,7 @@ function ProfilePane({
     profile,
     profiles,
     data,
+    editorConfig,
 }: ProfilePaneProps) {
     const profileModel = useComponentModel({ model, namespace, profile, profiles, data }, ProfilePaneModel, { newProfile: "" });
     const newProfile = profileModel.state.use((s) => s.newProfile);
@@ -367,7 +368,7 @@ function ProfilePane({
             </Panel>
 
             {profile ? (
-                <VariablesGrid model={model} namespace={namespace} profile={profile} data={data} />
+                <VariablesGrid model={model} namespace={namespace} profile={profile} data={data} editorConfig={editorConfig} />
             ) : (
                 <Panel flex direction="column" justify="center" align="center" padding="xxl">
                     <Text color="light" size="xs">Add or select a profile to edit variables.</Text>
@@ -377,7 +378,7 @@ function ProfilePane({
     );
 }
 
-export function EnvVarsBody({ model }: { model: EnvVarsEditor }) {
+export function EnvVarsBody({ model, editorConfig = {} }: { model: EnvVarsEditor; editorConfig?: EditorConfig }) {
     const { data, status, errorMessage, selectedNamespace, selectedProfile } = model.state.use(
         (s) => ({
             data: s.data,
@@ -405,6 +406,7 @@ export function EnvVarsBody({ model }: { model: EnvVarsEditor }) {
                     profile={selectedProfile}
                     profiles={profiles}
                     data={profileData}
+                    editorConfig={editorConfig}
                 />
             ) : (
                 <Panel flex direction="column" justify="center" align="center" padding="xxl">

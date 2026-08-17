@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "@emotion/styled";
 
-import { TOnGetFilterOptions, useFilters } from "./useFilters";
+import { FiltersModel, NO_FILTERS, TOnGetFilterOptions } from "./FiltersModel";
 import { TFilter, TOptionsFilter } from "../avGridTypes";
-import { useAVGridContext } from "../useAVGridContext";
+import type { AVGridModel } from "../model/AVGridModel";
 import { OptionsFilterContent } from "./OptionsFilterContent";
 import { Popover } from "../../Popover";
 
@@ -17,6 +17,8 @@ const ContentRoot = styled.div({
 const minWidth = 184;
 
 interface FilterContentProps {
+    model: AVGridModel<any>;
+    filtersModel: FiltersModel;
     filter: TFilter;
     onApplyFilter: (filter: TFilter) => void;
     onGetOptions: TOnGetFilterOptions;
@@ -25,8 +27,7 @@ interface FilterContentProps {
 }
 
 function FilterContent(props: FilterContentProps) {
-    const { filter, onApplyFilter, onGetOptions, width, resized } = props;
-    const model = useAVGridContext();
+    const { model, filtersModel, filter, onApplyFilter, onGetOptions, width, resized } = props;
     const filterType =
         model.data.columns.find((c) => c.key === filter.columnKey)?.filterType ??
         filter.type;
@@ -38,6 +39,8 @@ function FilterContent(props: FilterContentProps) {
                     filter={filter as TOptionsFilter}
                     onApplyFilter={onApplyFilter}
                     onGetOptions={onGetOptions}
+                    filtersModel={filtersModel}
+                    model={model}
                     width={width}
                     columnFilterType={filterType}
                     resized={resized}
@@ -48,8 +51,10 @@ function FilterContent(props: FilterContentProps) {
     }
 }
 
-export function FilterPopover() {
-    const { poperData, onGetOptions } = useFilters();
+export function FilterPopover({ model, filtersModel }: { model: AVGridModel<any>; filtersModel?: FiltersModel }) {
+    const activeFiltersModel = filtersModel ?? NO_FILTERS;
+    const poperData = activeFiltersModel.state.use((s) => s.poperData);
+    const { onGetOptions } = activeFiltersModel.props;
     const [resized, setResized] = useState(false);
 
     useEffect(() => {
@@ -92,6 +97,8 @@ export function FilterPopover() {
             <ContentRoot>
                 <FilterContent
                     filter={filter}
+                    model={model}
+                    filtersModel={activeFiltersModel}
                     onApplyFilter={onApplyFilter}
                     onGetOptions={onGetOptions}
                     width={Math.max(minWidth, anchorEl?.clientWidth ?? 0)}

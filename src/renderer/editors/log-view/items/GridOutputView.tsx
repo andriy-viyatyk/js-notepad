@@ -1,6 +1,6 @@
 import { useMemo, useCallback, SetStateAction } from "react";
 import { GridOutputEntry } from "../logTypes";
-import { useLogViewModel } from "../LogViewContext";
+import type { LogViewEditor } from "../LogViewEditor";
 import { DialogHeader } from "./DialogHeader";
 import { getGridDataWithColumns, getRowKey } from "../../grid/utils/grid-utils";
 import type { GridColumn } from "../../grid/utils/grid-utils";
@@ -55,10 +55,10 @@ function mergeColumnsWithSaved(detected: Column[], saved?: SavedColumn[]): Colum
 
 interface GridOutputViewProps {
     entry: GridOutputEntry;
+    model: LogViewEditor;
 }
 
-export function GridOutputView({ entry }: GridOutputViewProps) {
-    const vm = useLogViewModel();
+export function GridOutputView({ entry, model: vm }: GridOutputViewProps) {
     const itemState = vm.state.use(s => s.itemsState[entry.id] ?? {});
 
     const baseGridData = useMemo(

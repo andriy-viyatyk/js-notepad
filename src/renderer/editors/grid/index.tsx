@@ -123,8 +123,8 @@ function GridFooterBits({
     );
 }
 
-function GridEmbeddedBody({ model }: { model: EditorModel }) {
-    return <GridBody model={model as GridEditor} />;
+function GridEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
+    return <GridBody model={model as GridEditor} editorConfig={editorConfig} />;
 }
 
 function makeModule(id: GridEditorId): EditorModule {

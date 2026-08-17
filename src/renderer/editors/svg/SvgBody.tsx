@@ -1,16 +1,17 @@
 import type { SvgEditor } from "./SvgEditor";
 import type { ImageViewportModel } from "../../uikit/ImageViewport";
 import { ImageViewport } from "../../uikit/ImageViewport";
-import { useEditorConfig } from "../base";
+import type { EditorConfig } from "../base/EditorConfig";
 
 interface SvgBodyProps {
     model: SvgEditor;
+    editorConfig?: EditorConfig;
     /** Callback receiving the BaseImageView ref. The view shell holds the
      *  ref and shares it with `<SvgToolbarBits>` (copy button). */
     imageModelSetter?: (model: ImageViewportModel | null) => void;
 }
 
-export function SvgBody({ model, imageModelSetter }: SvgBodyProps) {
+export function SvgBody({ model, imageModelSetter, editorConfig = {} }: SvgBodyProps) {
     const host = model.host;
 
     // Read content directly off the host. BaseImageView re-renders on src
@@ -32,7 +33,7 @@ export function SvgBody({ model, imageModelSetter }: SvgBodyProps) {
 
     const image = <ImageViewport onModel={imageModelSetter} src={src} alt="SVG Preview" />;
 
-    const maxH = useEditorConfig().maxEditorHeight;
+    const maxH = editorConfig.maxEditorHeight;
     if (maxH !== undefined) {
         return <div style={{ height: maxH }}>{image}</div>;
     }

@@ -19,6 +19,7 @@ export interface NoteItemViewProps {
     onExpand?: (id: string) => void;
     onAddComment?: (id: string) => void;
     onCommentChange?: (id: string, comment: string) => void;
+    searchText?: string;
     onTitleChange?: (id: string, title: string) => void;
     onCategoryChange?: (id: string, category: string) => void;
     onTagAdd?: (id: string, tag: string) => void;

@@ -5,10 +5,12 @@ import { editorRegistry } from "../../base/editorRegistry";
 import { CONTENT_HOST_TRAIT } from "../../base/editor-traits";
 import type { EditorModel } from "../../base/EditorModel";
 import { EditorView } from "../../../../shared/types";
+import type { EditorConfig } from "../../base/EditorConfig";
 
 
 interface NoteItemActiveEditorProps {
     model: NoteItemEditModel;
+    editorConfig?: EditorConfig;
 }
 
 /**
@@ -23,16 +25,16 @@ interface NoteItemActiveEditorProps {
  * Notebook) never reach here — the toolbar's `getSwitchOptions(language,
  * undefined)` only offers language-gated editors.
  */
-export function NoteItemActiveEditor({ model }: NoteItemActiveEditorProps) {
+export function NoteItemActiveEditor({ model, editorConfig = {} }: NoteItemActiveEditorProps) {
     const { editor } = model.state.use((s) => ({ editor: s.editor }));
 
     if (!editor || editor === "monaco") {
-        return <MiniTextEditor model={model} />;
+        return <MiniTextEditor model={model} editorConfig={editorConfig} />;
     }
 
     // `key={editor}` remounts on view switch — old editor disposes (host
     // detached) in cleanup, new editor adopts the same host fresh.
-    return <EmbeddedNoteEditor host={model} editorId={editor} key={editor} />;
+    return <EmbeddedNoteEditor host={model} editorId={editor} editorConfig={editorConfig} key={editor} />;
 }
 
 // Minimal structural type for the host-adopting editors. Each subclass
@@ -54,12 +56,13 @@ function detachAndDispose(editor: EditorModel): void {
 interface EmbeddedNoteEditorProps {
     host: NoteItemEditModel;
     editorId: EditorView;
+    editorConfig: EditorConfig;
 }
 
-function EmbeddedNoteEditor({ host, editorId }: EmbeddedNoteEditorProps) {
+function EmbeddedNoteEditor({ host, editorId, editorConfig }: EmbeddedNoteEditorProps) {
     const [entry, setEntry] = useState<{
         editor: EditorModel;
-        Body: ComponentType<{ model: EditorModel }>;
+        Body: ComponentType<{ model: EditorModel; editorConfig?: EditorConfig }>;
     } | null>(null);
 
     useEffect(() => {
@@ -93,5 +96,5 @@ function EmbeddedNoteEditor({ host, editorId }: EmbeddedNoteEditorProps) {
 
     if (!entry) return null;
     const { editor, Body } = entry;
-    return <Body model={editor} />;
+    return <Body model={editor} editorConfig={editorConfig} />;
 }

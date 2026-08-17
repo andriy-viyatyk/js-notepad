@@ -1,7 +1,7 @@
 import { Editor } from "@monaco-editor/react";
 import React, { useEffect } from "react";
 import { NoteItemEditModel } from "./NoteItemEditModel";
-import { useEditorConfig } from "../../base";
+import type { EditorConfig } from "../../base/EditorConfig";
 
 // =============================================================================
 // Component
@@ -9,6 +9,7 @@ import { useEditorConfig } from "../../base";
 
 interface MiniTextEditorProps {
     model: NoteItemEditModel;
+    editorConfig?: EditorConfig;
 }
 
 /**
@@ -18,9 +19,8 @@ interface MiniTextEditorProps {
  * - Minimal chrome
  * - Auto-resizes based on content
  */
-export function MiniTextEditor({ model }: MiniTextEditorProps) {
+export function MiniTextEditor({ model, editorConfig = {} }: MiniTextEditorProps) {
     const editorModel = model.editor;
-    const editorConfig = useEditorConfig();
     const { content, language } = model.state.use((s) => ({
         content: s.content,
         language: s.language,

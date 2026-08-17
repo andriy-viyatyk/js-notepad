@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { RadioboxesEntry } from "../logTypes";
-import { useLogViewModel } from "../LogViewContext";
+import type { LogViewEditor } from "../LogViewEditor";
 import { DialogContainer } from "./DialogContainer";
 import { DialogHeader } from "./DialogHeader";
 import { ButtonsPanel } from "./ButtonsPanel";
@@ -14,12 +14,12 @@ import { DIALOG_CONTENT_MAX_HEIGHT } from "../logConstants";
 interface RadioboxesDialogViewProps {
     entry: RadioboxesEntry;
     updateEntry: (updater: (draft: RadioboxesEntry) => void) => void;
+    model: LogViewEditor;
 }
 
 const DEFAULT_BUTTONS = ["OK"];
 
-export function RadioboxesDialogView({ entry, updateEntry }: RadioboxesDialogViewProps) {
-    const vm = useLogViewModel();
+export function RadioboxesDialogView({ entry, updateEntry, model: vm }: RadioboxesDialogViewProps) {
     const resolved = entry.button !== undefined;
     const buttons = entry.buttons ?? DEFAULT_BUTTONS;
     const layout = entry.layout ?? "vertical";

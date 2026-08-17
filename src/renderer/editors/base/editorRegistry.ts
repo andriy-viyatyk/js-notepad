@@ -1,6 +1,7 @@
 import type React from "react";
 import type { EditorModel } from "./EditorModel";
 import type { IContentHost } from "./IContentHost";
+import type { EditorConfig } from "./EditorConfig";
 
 export interface AcceptanceInput {
     fileName?: string;
@@ -29,7 +30,7 @@ export interface EditorModule {
      *  by editors that can be embedded inside another editor (*  — notebook per-note dispatch renders `module.Body` so each note's editor
      *  has no page chrome). Only the language-gated embeddable editors (Grid,
      *  Markdown, Svg, Html, Mermaid) provide it. */
-    Body?: React.ComponentType<{ model: EditorModel }>;
+    Body?: React.ComponentType<{ model: EditorModel; editorConfig?: EditorConfig }>;
 }
 
 export interface EditorMatcher {

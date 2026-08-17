@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { TextInputEntry } from "../logTypes";
-import { useLogViewModel } from "../LogViewContext";
+import type { LogViewEditor } from "../LogViewEditor";
 import { DialogContainer } from "./DialogContainer";
 import { DialogHeader } from "./DialogHeader";
 import { ButtonsPanel } from "./ButtonsPanel";
@@ -13,12 +13,12 @@ import { Input, Panel } from "../../../uikit";
 interface TextInputDialogViewProps {
     entry: TextInputEntry;
     updateEntry: (updater: (draft: TextInputEntry) => void) => void;
+    model: LogViewEditor;
 }
 
 const DEFAULT_BUTTONS = ["OK"];
 
-export function TextInputDialogView({ entry, updateEntry }: TextInputDialogViewProps) {
-    const vm = useLogViewModel();
+export function TextInputDialogView({ entry, updateEntry, model: vm }: TextInputDialogViewProps) {
     const resolved = entry.button !== undefined;
     const buttons = entry.buttons ?? DEFAULT_BUTTONS;
     const currentValue = entry.text ?? entry.defaultValue ?? "";

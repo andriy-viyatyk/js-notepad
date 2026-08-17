@@ -8,8 +8,7 @@ import { Input } from "../../uikit/Input";
 import { Panel } from "../../uikit/Panel";
 import { PathInput } from "../../uikit/PathInput";
 import { Textarea } from "../../uikit/Textarea";
-import { highlight, useHighlightedText } from "../../uikit/shared/highlight";
-import { EditorConfigProvider } from "../base";
+import { highlight } from "../../uikit/shared/highlight";
 import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
 import { NoteItemActiveEditor } from "./note-editor/NoteItemActiveEditor";
 import { NoteItemViewProps, NoteItemViewModel, defaultNoteItemViewState } from "./NoteItemViewModel";
@@ -108,8 +107,8 @@ export function NoteItemView(props: NoteItemViewProps) {
         editingTagValue,
     } = model.state.use();
 
-    // Read search text from UIKit HighlightedTextProvider (set in NotebookEditor)
-    const searchText = useHighlightedText();
+    // Search text is passed explicitly by NotebookBody.
+    const searchText = props.searchText;
     model.searchText = searchText;
     const isSearching = Boolean(searchText);
 
@@ -342,17 +341,16 @@ export function NoteItemView(props: NoteItemViewProps) {
                         transition: "opacity 0.5s ease",
                     }}
                 />
-                <EditorConfigProvider
-                    config={{
+                <NoteItemActiveEditor
+                    model={model.editModel}
+                    editorConfig={{
                         maxEditorHeight: NOTE_EDITOR_MAX_HEIGHT,
                         hideMinimap: true,
                         disableAutoFocus: true,
                         highlightText: searchText,
                         compact: true,
                     }}
-                >
-                    <NoteItemActiveEditor model={model.editModel} />
-                </EditorConfigProvider>
+                />
             </div>
 
             {/* Comment section — always show if has comment, show add button on hover */}

@@ -1,17 +1,18 @@
 import type { MermaidEditor } from "./MermaidEditor";
 import type { ImageViewportModel } from "../../uikit/ImageViewport";
 import { ImageViewport } from "../../uikit/ImageViewport";
-import { useEditorConfig } from "../base";
+import type { EditorConfig } from "../base/EditorConfig";
 import { Panel, Text, Spinner } from "../../uikit";
 
 interface MermaidBodyProps {
     model: MermaidEditor;
+    editorConfig?: EditorConfig;
     /** Callback receiving the BaseImageView ref. The view shell holds the
      *  ref and shares it with `<MermaidToolbarBits>` (copy button). */
     imageModelSetter?: (model: ImageViewportModel | null) => void;
 }
 
-export function MermaidBody({ model, imageModelSetter }: MermaidBodyProps) {
+export function MermaidBody({ model, imageModelSetter, editorConfig = {} }: MermaidBodyProps) {
     // Read render output reactively. svgUrl recomputes inside the editor's
     // 400 ms debounced renderDebounced on host content / lightMode change.
     const { svgUrl, error, loading } = model.state.use((s) => ({
@@ -28,7 +29,7 @@ export function MermaidBody({ model, imageModelSetter }: MermaidBodyProps) {
         // no-op
     });
 
-    const maxH = useEditorConfig().maxEditorHeight;
+    const maxH = editorConfig.maxEditorHeight;
     const embedded = maxH !== undefined;
 
     return (

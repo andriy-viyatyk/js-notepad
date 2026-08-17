@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { ButtonsEntry } from "../logTypes";
-import { useLogViewModel } from "../LogViewContext";
+import type { LogViewEditor } from "../LogViewEditor";
 import { DialogContainer } from "./DialogContainer";
 import { DialogHeader } from "./DialogHeader";
 import { ButtonsPanel } from "./ButtonsPanel";
@@ -11,10 +11,10 @@ import { ButtonsPanel } from "./ButtonsPanel";
 
 interface ButtonsDialogViewProps {
     entry: ButtonsEntry;
+    model: LogViewEditor;
 }
 
-export function ButtonsDialogView({ entry }: ButtonsDialogViewProps) {
-    const vm = useLogViewModel();
+export function ButtonsDialogView({ entry, model: vm }: ButtonsDialogViewProps) {
     const resolved = entry.button !== undefined;
 
     const handleClick = useCallback(

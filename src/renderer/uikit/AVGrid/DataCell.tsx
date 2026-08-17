@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import { clsx } from "clsx";
 
 import { TCellRendererProps } from "./avGridTypes";
-import { highlight, useHighlightedText } from "../shared/highlight";
+import { highlight } from "../shared/highlight";
 import { CheckedIcon, CheckIcon, UncheckedIcon } from "../../theme/icons";
 import { columnDisplayValue, gridBoolean } from "./avGridUtils";
 import { TruncatedText } from "../TruncatedText";
@@ -70,7 +70,9 @@ export function DefaultCellFormater(props: TCellRendererProps) {
     const { col, row: rowIndex, model } = props;
     const column = model.data.columns[col];
     const row = model.data.rows[rowIndex];
-    const highlightedText = useHighlightedText();
+    const highlightedText = [model.props.searchString, model.props.highlightString]
+        .filter(Boolean)
+        .join(" ") || undefined;
     let isHighlighted = false;
     const isHovered =
         model.data.hovered.row === rowIndex && model.data.hovered.col === col;

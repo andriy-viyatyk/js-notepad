@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { CheckboxesEntry } from "../logTypes";
-import { useLogViewModel } from "../LogViewContext";
+import type { LogViewEditor } from "../LogViewEditor";
 import { DialogContainer } from "./DialogContainer";
 import { DialogHeader } from "./DialogHeader";
 import { ButtonsPanel } from "./ButtonsPanel";
@@ -14,12 +14,12 @@ import { DIALOG_CONTENT_MAX_HEIGHT } from "../logConstants";
 interface CheckboxesDialogViewProps {
     entry: CheckboxesEntry;
     updateEntry: (updater: (draft: CheckboxesEntry) => void) => void;
+    model: LogViewEditor;
 }
 
 const DEFAULT_BUTTONS = ["OK"];
 
-export function CheckboxesDialogView({ entry, updateEntry }: CheckboxesDialogViewProps) {
-    const vm = useLogViewModel();
+export function CheckboxesDialogView({ entry, updateEntry, model: vm }: CheckboxesDialogViewProps) {
     const resolved = entry.button !== undefined;
     const buttons = entry.buttons ?? DEFAULT_BUTTONS;
     const layout = entry.layout ?? "vertical";

@@ -131,8 +131,8 @@ function MermaidEditorView({ model }: { model: EditorModel }) {
     );
 }
 
-function MermaidEmbeddedBody({ model }: { model: EditorModel }) {
-    return <MermaidBody model={model as MermaidEditor} imageModelSetter={() => {}} />;
+function MermaidEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
+    return <MermaidBody model={model as MermaidEditor} editorConfig={editorConfig} imageModelSetter={() => {}} />;
 }
 
 export const mermaidModule: EditorModule = {

@@ -23,6 +23,7 @@ import { CopyPasteModel } from "./CopyPasteModel";
 import { ContextMenuModel } from "./ContextMenuModel";
 import { EffectsModel } from "./EffectsModel";
 import { AVGridActions } from "./AVGridActions";
+import type { FiltersModel } from "../filters/FiltersModel";
 
 export interface AVGridProps<R> {
     /** Called with the live model on mount and null on unmount. */
@@ -38,6 +39,7 @@ export interface AVGridProps<R> {
     /** External highlight text (highlight-only, no row filtering) */
     highlightString?: string;
     filters?: TFilter[];
+    filtersModel?: FiltersModel;
     readonly?: boolean;
     disableFiltering?: boolean;
     disableSorting?: boolean;

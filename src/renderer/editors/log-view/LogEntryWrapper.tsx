@@ -73,7 +73,7 @@ export function LogEntryWrapper({ vm, index, cellRef, showTimestamp }: LogEntryW
                 </Text>
             )}
             <Panel name="entry-content" flex={1} minWidth={0} direction="column">
-                <LogEntryContent entry={entry} updateEntry={updateEntry} />
+                <LogEntryContent model={vm} entry={entry} updateEntry={updateEntry} />
             </Panel>
         </Panel>
     );

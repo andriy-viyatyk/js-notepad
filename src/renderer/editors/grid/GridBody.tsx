@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import {
     AVGrid,
-    FiltersProvider,
+    FiltersModel,
     FilterBar,
     type AVGridModel,
     type TSortColumn,
@@ -9,20 +9,21 @@ import {
 import { Panel } from "../../uikit/Panel";
 import { pagesModel } from "../../api/pages";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
-import { useEditorConfig } from "../base";
+import type { EditorConfig } from "../base/EditorConfig";
 import { EditorError } from "../base/EditorError";
 import { getRowKey } from "./utils/grid-utils";
 import type { GridEditor } from "./GridEditor";
 import type { TextFileModel } from "../text/TextEditorModel";
+import { useComponentModel } from "../../core/state/model";
 
 interface GridBodyProps {
     model: GridEditor;
     onModel?: (model: AVGridModel<any> | null) => void;
+    editorConfig?: EditorConfig;
 }
 
-export const GridBody = function GridBody({ model, onModel }: GridBodyProps) {
+export const GridBody = function GridBody({ model, onModel, editorConfig = {} }: GridBodyProps) {
     const gridRef = useRef<AVGridModel<any> | null>(null);
-    const editorConfig = useEditorConfig();
     const host = model.contentHost as TextFileModel | null;
 
     const state = model.state.use((s) => ({
@@ -34,6 +35,16 @@ export const GridBody = function GridBody({ model, onModel }: GridBodyProps) {
         displayedRowCount: s.displayedRowCount,
         error: s.error,
     }));
+
+    const filtersModel = useComponentModel(
+        {
+            filters: state.filters,
+            setFilters: model.setFilters,
+            onGetOptions: model.onGetOptions,
+        },
+        FiltersModel,
+        {},
+    );
 
     // Drain fire-and-forget events.
     model.typedQueue.use((ev) => {
@@ -115,12 +126,8 @@ export const GridBody = function GridBody({ model, onModel }: GridBodyProps) {
             position="relative"
             height={editorConfig.maxEditorHeight !== undefined ? "fit-content" : 200}
         >
-            <FiltersProvider
-                filters={state.filters}
-                setFilters={model.setFilters}
-                onGetOptions={model.onGetOptions}
-            >
-                <FilterBar gridModel={gridRef.current} />
+            <>
+                <FilterBar gridModel={gridRef.current} filtersModel={filtersModel} />
                 <AVGrid
                     onModel={setGridRef}
                     columns={state.columns}
@@ -131,6 +138,7 @@ export const GridBody = function GridBody({ model, onModel }: GridBodyProps) {
                     searchString={state.search}
                     highlightString={editorConfig.highlightText}
                     filters={state.filters}
+                    filtersModel={filtersModel}
                     onVisibleRowsChanged={handleVisibleRowsChanged}
                     editRow={model.editRow}
                     onAddRows={model.onAddRows}
@@ -141,7 +149,7 @@ export const GridBody = function GridBody({ model, onModel }: GridBodyProps) {
                     onDataChanged={model.onDataChanged}
                     growToHeight={editorConfig.maxEditorHeight}
                 />
-            </FiltersProvider>
+            </>
         </Panel>
     );
 };

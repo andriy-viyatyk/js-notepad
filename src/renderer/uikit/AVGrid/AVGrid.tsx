@@ -11,12 +11,10 @@ import { clsx } from "clsx";
 import { TCellRenderer, TCellRendererProps } from "./avGridTypes";
 import { RenderGrid } from "../RenderGrid";
 import type { RenderCellFunc } from "../RenderGrid";
-import { AVGridProvider } from "./useAVGridContext";
 import color from "../../theme/color";
 import { Spinner } from "../Spinner";
 import { HeaderCell } from "./HeaderCell";
 import { DataCell } from "./DataCell";
-import { HighlightedTextProvider } from "../shared/highlight";
 import { FilterPopover } from "./filters/FilterPopover";
 import {
     AVGridModel,
@@ -302,30 +300,26 @@ function AVGridComponent<R = any>(
     }
 
     return (
-        <HighlightedTextProvider value={
-            [model.props.searchString, model.props.highlightString].filter(Boolean).join(" ") || undefined
-        }>
-            <AVGridProvider value={model}>
-                <RenderGridStyled
-                    onModel={model.setRenderModel}
-                    name={model.props.name}
-                    columnCount={model.models.columns.columnCount}
-                    rowCount={model.models.rows.rowCount}
-                    columnWidth={model.models.columns.getColumnWidth}
-                    renderCell={renderCell}
-                    stickyTop={1}
-                    stickyLeft={model.data.lastIsStatusIndex + 1}
-                    rowHeight={model.props.rowHeight}
-                    contentProps={contentProps}
-                    fitToWidth={model.props.fitToWidth}
-                    extraElement={extraElement}
-                    extraElementTop={extraElementTop}
-                    growToHeight={model.props.growToHeight}
-                    growToWidth={model.props.growToWidth}
-                />
-                <FilterPopover />
-            </AVGridProvider>
-        </HighlightedTextProvider>
+        <>
+            <RenderGridStyled
+                onModel={model.setRenderModel}
+                name={model.props.name}
+                columnCount={model.models.columns.columnCount}
+                rowCount={model.models.rows.rowCount}
+                columnWidth={model.models.columns.getColumnWidth}
+                renderCell={renderCell}
+                stickyTop={1}
+                stickyLeft={model.data.lastIsStatusIndex + 1}
+                rowHeight={model.props.rowHeight}
+                contentProps={contentProps}
+                fitToWidth={model.props.fitToWidth}
+                extraElement={extraElement}
+                extraElementTop={extraElementTop}
+                growToHeight={model.props.growToHeight}
+                growToWidth={model.props.growToWidth}
+            />
+            <FilterPopover model={model} filtersModel={model.props.filtersModel} />
+        </>
     );
 }
 

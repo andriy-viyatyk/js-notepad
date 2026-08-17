@@ -3,7 +3,7 @@ import type { MarkdownEditor } from "./MarkdownEditor";
 import { pagesModel } from "../../api/pages";
 import { app } from "../../api/app";
 import { createLinkData } from "../../../shared/link-data";
-import { useEditorConfig } from "../base";
+import type { EditorConfig } from "../base/EditorConfig";
 import { FindBar } from "../shared/FindBar";
 import { MarkdownBlock } from "./MarkdownBlock";
 import { isLocalMarkdownHref } from "./markdown-nav";
@@ -14,7 +14,7 @@ const noopState = {
     filePath: undefined as string | undefined,
 };
 
-export function MarkdownBody({ model }: { model: MarkdownEditor }) {
+export function MarkdownBody({ model, editorConfig = {} }: { model: MarkdownEditor; editorConfig?: EditorConfig }) {
     const host = model.host;
     const commandQueue = model.typedQueue;
     const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -25,7 +25,6 @@ export function MarkdownBody({ model }: { model: MarkdownEditor }) {
     // ref so Minimap re-renders when the element attaches.
     const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
 
-    const editorConfig = useEditorConfig();
     const pageState = model.state.use((s) => ({
         compactMode: s.compactMode,
         searchVisible: s.searchVisible,

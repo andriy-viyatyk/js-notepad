@@ -14,6 +14,7 @@ import { MarkdownOutputView } from "./items/MarkdownOutputView";
 import { MermaidOutputView } from "./items/MermaidOutputView";
 import { McpRequestView } from "./items/McpRequestView";
 import { Panel, Text } from "../../uikit";
+import type { LogViewEditor } from "./LogViewEditor";
 
 // =============================================================================
 // Entry Error Boundary
@@ -93,22 +94,24 @@ function UnknownEntryView({ entry }: { entry: LogEntry }) {
  */
 type EntryUpdater<T extends LogEntry> = (updater: (draft: T) => void) => void;
 
-function dispatchedView(entry: LogEntry, updateEntry: EntryUpdater<LogEntry>) {
+function dispatchedView(entry: LogEntry, updateEntry: EntryUpdater<LogEntry>, model: LogViewEditor) {
     switch (entry.type) {
         case "input.confirm":
-            return <ConfirmDialogView entry={entry as ConfirmEntry} />;
+            return <ConfirmDialogView model={model} entry={entry as ConfirmEntry} />;
         case "input.text":
             return (
                 <TextInputDialogView
+                    model={model}
                     entry={entry as TextInputEntry}
                     updateEntry={updateEntry as EntryUpdater<TextInputEntry>}
                 />
             );
         case "input.buttons":
-            return <ButtonsDialogView entry={entry as ButtonsEntry} />;
+            return <ButtonsDialogView model={model} entry={entry as ButtonsEntry} />;
         case "input.checkboxes":
             return (
                 <CheckboxesDialogView
+                    model={model}
                     entry={entry as CheckboxesEntry}
                     updateEntry={updateEntry as EntryUpdater<CheckboxesEntry>}
                 />
@@ -116,6 +119,7 @@ function dispatchedView(entry: LogEntry, updateEntry: EntryUpdater<LogEntry>) {
         case "input.radioboxes":
             return (
                 <RadioboxesDialogView
+                    model={model}
                     entry={entry as RadioboxesEntry}
                     updateEntry={updateEntry as EntryUpdater<RadioboxesEntry>}
                 />
@@ -123,6 +127,7 @@ function dispatchedView(entry: LogEntry, updateEntry: EntryUpdater<LogEntry>) {
         case "input.select":
             return (
                 <SelectDialogView
+                    model={model}
                     entry={entry as SelectEntry}
                     updateEntry={updateEntry as EntryUpdater<SelectEntry>}
                 />
@@ -130,7 +135,7 @@ function dispatchedView(entry: LogEntry, updateEntry: EntryUpdater<LogEntry>) {
         case "output.progress":
             return <ProgressOutputView entry={entry as ProgressOutputEntry} />;
         case "output.grid":
-            return <GridOutputView entry={entry as GridOutputEntry} />;
+            return <GridOutputView model={model} entry={entry as GridOutputEntry} />;
         case "output.text":
             return <TextOutputView entry={entry as TextOutputEntry} />;
         case "output.markdown":
@@ -155,23 +160,24 @@ function dispatchedView(entry: LogEntry, updateEntry: EntryUpdater<LogEntry>) {
 // =============================================================================
 
 interface LogEntryContentProps {
+    model: LogViewEditor;
     entry: LogEntry;
     updateEntry: (updater: (draft: LogEntry) => void) => void;
 }
 
-export function LogEntryContent({ entry, updateEntry }: LogEntryContentProps) {
+export function LogEntryContent({ model, entry, updateEntry }: LogEntryContentProps) {
     return (
         <EntryErrorBoundary entry={entry}>
-            <LogEntryContentInner entry={entry} updateEntry={updateEntry} />
+            <LogEntryContentInner model={model} entry={entry} updateEntry={updateEntry} />
         </EntryErrorBoundary>
     );
 }
 
-function LogEntryContentInner({ entry, updateEntry }: LogEntryContentProps) {
+function LogEntryContentInner({ model, entry, updateEntry }: LogEntryContentProps) {
     if (isLogEntry(entry)) {
         return <LogMessageView entry={entry} />;
     }
-    const view = dispatchedView(entry, updateEntry);
+    const view = dispatchedView(entry, updateEntry, model);
     if (isDialogEntry(entry) || isOutputEntry(entry)) {
         return <Panel name="log-item-wrapper" paddingY="xs">{view}</Panel>;
     }

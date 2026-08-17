@@ -9,8 +9,8 @@ import styled from "@emotion/styled";
 import { MultiListBox } from "../../MultiListBox";
 import { Button } from "../../Button";
 import { TDisplayOption, TFilterType, TOptionsFilter } from "../avGridTypes";
-import { TOnGetFilterOptions, useFilters } from "./useFilters";
-import { useAVGridContext } from "../useAVGridContext";
+import { FiltersModel, TOnGetFilterOptions } from "./FiltersModel";
+import type { AVGridModel } from "../model/AVGridModel";
 import { useResolveOptions } from "../useResolveOptions";
 
 const Root = styled.div<{ width: CSSProperties["width"] }>(
@@ -44,6 +44,8 @@ const minWidth = 260;
 const emptyLabel = "(empty)";
 
 interface OptionsFilterContentProps {
+    model: AVGridModel<any>;
+    filtersModel: FiltersModel;
     filter: TOptionsFilter;
     onApplyFilter: (filter: TOptionsFilter) => void;
     width?: number;
@@ -55,7 +57,7 @@ interface OptionsFilterContentProps {
 export function OptionsFilterContent(
     props: Readonly<OptionsFilterContentProps>,
 ) {
-    const { filter, onApplyFilter, width = minWidth, onGetOptions } = props;
+    const { filter, onApplyFilter, width = minWidth, onGetOptions, model, filtersModel } = props;
 
     const [selected, setSelected] = useState<TDisplayOption[]>(
         filter.type === "options" && Array.isArray(filter.value)
@@ -63,8 +65,7 @@ export function OptionsFilterContent(
             : [],
     );
 
-    const { filters } = useFilters();
-    const model = useAVGridContext();
+    const { filters } = filtersModel.props;
 
     const optionsOrPromise = useMemo(() => {
         return onGetOptions(model.data.columns, filters, filter.columnKey, undefined);

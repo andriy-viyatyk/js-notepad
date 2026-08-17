@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, Splitter, Text } from "../../uikit";
-import { HighlightedTextProvider } from "../../uikit/shared/highlight";
 import { hasTraitDragData, getTraitDragData, LINK, resolveTraits } from "../../core/traits";
 import { LinkItemList } from "./LinkItemList";
 import { LinkItemTiles } from "./LinkItemTiles";
@@ -108,8 +107,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
             overflow="hidden"
             flex={1}
         >
-            <HighlightedTextProvider value={pageState.searchText}>
-                <Panel
+            <Panel
                     name="link-editor-center"
                     direction="column"
                     flex={1}
@@ -155,6 +153,7 @@ export function LinkBody({ model }: { model: LinkEditor }) {
                             model={model}
                             selectedLinkId={pageState.selectedLinkId}
                             pinnedLinkIds={pinnedLinkIds}
+                            searchText={pageState.searchText}
                         />
                     ) : (
                         <LinkItemTiles
@@ -166,7 +165,6 @@ export function LinkBody({ model }: { model: LinkEditor }) {
                         />
                     )}
                 </Panel>
-            </HighlightedTextProvider>
             {pinnedLinks.length > 0 && (
                 <>
                     <Splitter

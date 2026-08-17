@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { HtmlEditor } from "./HtmlEditor";
-import { useEditorConfig } from "../base";
+import type { EditorConfig } from "../base/EditorConfig";
 
 // Injected into the previewed HTML. Two capture-phase listeners:
 //  1. Block <a> navigation inside the preview.
@@ -13,9 +13,10 @@ const injectedScript = `<script>document.addEventListener("click",function(e){va
 
 interface HtmlBodyProps {
     model: HtmlEditor;
+    editorConfig?: EditorConfig;
 }
 
-export function HtmlBody({ model }: HtmlBodyProps) {
+export function HtmlBody({ model, editorConfig = {} }: HtmlBodyProps) {
     const host = model.host;
 
     const content = host ? host.state.use((s) => s.content) : "";
@@ -33,7 +34,7 @@ export function HtmlBody({ model }: HtmlBodyProps) {
         [content],
     );
 
-    const maxH = useEditorConfig().maxEditorHeight;
+    const maxH = editorConfig.maxEditorHeight;
 
     // Report the live iframe to the model so its image-export actions can capture
     // the on-screen region (HC1). Cleared on unmount to avoid a stale ref.

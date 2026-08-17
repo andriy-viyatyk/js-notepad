@@ -120,7 +120,7 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | [US-976](../tasks/US-976-below-threshold-state/README.md) | Below-threshold local state | Implemented — pending review |
 | [US-971](../tasks/US-971-imperative-handles/README.md) | Imperative handles → model methods / `ComponentQueue` | Planned |
 | [US-977](../tasks/US-977-react19-ref-props/README.md) | `forwardRef` → React 19 ref props | Planned |
-| US-972 | React context → explicit model references | Planned |
+| [US-972](../tasks/US-972-explicit-model-references/README.md) | React context → explicit model references | Planned |
 | US-973 | Route `document.body` portals through one host | Planned |
 | US-974 | Move logic from `useEffect` into `TComponentModel.effect()` | Planned |
 | US-975 | Emotion usage inventory | Planned |
@@ -199,9 +199,12 @@ US-971 removes the nine command-surface wrappers. Preserve DOM ref behavior and 
 inference; do not turn DOM refs into model commands. The exact file list and the final
 `forwardRef` = 0 scan are in the [US-977 task document](../tasks/US-977-react19-ref-props/README.md).
 
-**US-972 — Context.** `EditorConfigContext`, `LogViewContext`, `AVGrid/filters/useFilters`,
-`AVGrid/useAVGridContext`, `uikit/shared/highlight`. Each becomes a model passed down explicitly or
-resolved from the editor. Small, but each one blocks whichever component depends on it.
+**US-972 — Context.** The five context declarations are `EditorConfigContext`, `LogViewContext`,
+`AVGrid/filters/useFilters`, `AVGrid/useAVGridContext`, and `uikit/shared/highlight`. The task
+document records the explicit replacement paths: editor configuration and highlight text become
+props, LogView and AVGrid model access become direct model props, and filter workflow state becomes
+a GridBody-owned `FiltersModel`. No generic context replacement or cloned-children bridge is
+introduced.
 
 **US-973 — Portal host.** Introduce the shared overlay-layer helper and adopt it in the five body
 portals (D6). It should sit beside `uikit/shared/overlayRegistry.ts`, which already tracks overlay

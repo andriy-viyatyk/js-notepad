@@ -2,7 +2,7 @@ import { clsx } from "clsx";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 
-import { TShowFilterPoper, useFilters } from "./useFilters";
+import { FiltersModel, NO_FILTERS, TShowFilterPoper } from "./FiltersModel";
 import { TFilter, TOptionsFilter } from "../avGridTypes";
 import { formatDispayValue } from "../avGridUtils";
 import {
@@ -202,12 +202,17 @@ export interface FilterBarProps {
     name?: string;
     disabled?: boolean;
     gridModel?: AVGridModel<any>;
+    filtersModel?: FiltersModel;
 }
 
 export function FilterBar(props: FilterBarProps) {
-    const { name, disabled, gridModel } = props;
-    const { filters, setFilters } = useFilters();
-    const { showFilterPoper } = useFilters();
+    const { name, disabled, gridModel, filtersModel } = props;
+    const activeFiltersModel = filtersModel ?? NO_FILTERS;
+    const { filters, setFilters, showFilterPoper } = {
+        filters: activeFiltersModel.props.filters,
+        setFilters: activeFiltersModel.props.setFilters,
+        showFilterPoper: activeFiltersModel.showFilterPoper,
+    };
     const [frozen, setFrozen] = useState(false);
 
     useEffect(() => {

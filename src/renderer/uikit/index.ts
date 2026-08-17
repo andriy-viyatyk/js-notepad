@@ -128,7 +128,7 @@ export { TruncatedText } from "./TruncatedText";
 export type { TruncatedTextProps } from "./TruncatedText";
 
 // Data grid (composite primitive — AVGrid + filters + 13-file model namespace)
-export { AVGrid, AVGridModel, FilterBar, FiltersProvider, useFilters,
+export { AVGrid, AVGridModel, FilterBar, FiltersModel,
     detectColumnWidth, useResolveOptions,
     defaultCompare, formatDispayValue, filterRows, defaultValidate,
     columnDisplayValue, gridBoolean,

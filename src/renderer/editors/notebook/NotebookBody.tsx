@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
-import { HighlightedTextProvider } from "../../uikit/shared/highlight";
 import { RenderFlexGrid, RenderGridModel } from "../../uikit/RenderGrid";
 import type { RenderFlexCellParams, Percent } from "../../uikit/RenderGrid";
 import { panelExpanded } from "../../core/state/events";
@@ -78,6 +77,7 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
                     notebookModel={editor}
                     categories={state.categories}
                     tags={state.tags}
+                    searchText={state.searchText}
                     onDelete={editor.deleteNote}
                     onExpand={editor.expandNote}
                     onAddComment={editor.addComment}
@@ -91,7 +91,7 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
                 />
             );
         },
-        [notes, editor, state.categories, state.tags],
+        [notes, editor, state.categories, state.tags, state.searchText],
     );
 
     const getInitialRowHeight = useCallback(
@@ -120,14 +120,13 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
     return (
         <>
             <Panel name="notebook-body" direction="column" flex={1} overflow="hidden">
-                <HighlightedTextProvider value={state.searchText}>
-                    <Panel
-                        name="notebook-notes-list"
-                        direction="column"
-                        flex={1}
-                        overflow="hidden"
-                        position="relative"
-                    >
+                <Panel
+                    name="notebook-notes-list"
+                    direction="column"
+                    flex={1}
+                    overflow="hidden"
+                    position="relative"
+                >
                         {allNotes.length === 0 ? (
                             <Panel
                                 direction="column"
@@ -167,7 +166,6 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
                             />
                         )}
                     </Panel>
-                </HighlightedTextProvider>
             </Panel>
             {Boolean(overlayRef) && expandedNote && createPortal(
                 <ExpandedNoteView
@@ -175,6 +173,7 @@ export function NotebookBody({ model: editor }: NotebookBodyProps) {
                     notebookModel={editor}
                     categories={state.categories}
                     tags={state.tags}
+                    searchText={state.searchText}
                     onCollapse={editor.collapseNote}
                 />,
                 overlayRef,

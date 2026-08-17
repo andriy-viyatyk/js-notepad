@@ -3,7 +3,7 @@ export { AVGridModel } from './model/AVGridModel';
 export type { AVGridProps } from './model/AVGridModel';
 export * from './avGridTypes';
 export * from './avGridUtils';
-export { FiltersProvider, useFilters, type TOnGetFilterOptions } from './filters/useFilters';
+export { FiltersModel, type TOnGetFilterOptions } from './filters/FiltersModel';
 export { FilterBar } from './filters/FilterBar';
 export { useResolveOptions } from './useResolveOptions';
 export { detectColumnWidth, type ColumnWidthOptions } from './column-width';

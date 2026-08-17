@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { SelectEntry } from "../logTypes";
-import { useLogViewModel } from "../LogViewContext";
+import type { LogViewEditor } from "../LogViewEditor";
 import { DialogContainer } from "./DialogContainer";
 import { DialogHeader } from "./DialogHeader";
 import { ButtonsPanel } from "./ButtonsPanel";
@@ -13,12 +13,12 @@ import { Panel, Select, IListBoxItem } from "../../../uikit";
 interface SelectDialogViewProps {
     entry: SelectEntry;
     updateEntry: (updater: (draft: SelectEntry) => void) => void;
+    model: LogViewEditor;
 }
 
 const DEFAULT_BUTTONS = ["OK"];
 
-export function SelectDialogView({ entry, updateEntry }: SelectDialogViewProps) {
-    const vm = useLogViewModel();
+export function SelectDialogView({ entry, updateEntry, model: vm }: SelectDialogViewProps) {
     const resolved = entry.button !== undefined;
     const buttons = entry.buttons ?? DEFAULT_BUTTONS;
 

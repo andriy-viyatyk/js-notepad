@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { ChevronDownIcon, ChevronRightIcon, FilterArrowDownIcon, FilterArrowUpIcon } from "../../theme/icons";
-// Note: match highlighting uses global "highlighted-text" class (from useHighlightedText)
+// Note: match highlighting uses the global "highlighted-text" class.
 import { Input } from "../../uikit/Input";
 import { IconButton } from "../../uikit/IconButton";
 import { FileIcon } from "../icons/FileIcon";

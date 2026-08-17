@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { RenderGridModel } from "../../uikit/RenderGrid";
-import { useHighlightedText } from "../../uikit/shared/highlight";
 import { CopyIcon, DeleteIcon, OpenFileIcon, PinFilledIcon, PinIcon, RenameIcon } from "../../theme/icons";
 import { ContextMenuEvent } from "../../api/events/events";
 import { app } from "../../api/app";
@@ -20,11 +19,11 @@ interface LinkItemListProps {
     model: LinkSource;
     selectedLinkId: string;
     pinnedLinkIds: Set<string>;
+    searchText?: string;
 }
 
-export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds }: LinkItemListProps) {
+export function LinkItemList({ links, model, selectedLinkId, pinnedLinkIds, searchText }: LinkItemListProps) {
     const gridModelRef = useRef<RenderGridModel | null>(null);
-    const searchText = useHighlightedText();
 
     const allTags = useSyncExternalStore(
         (cb) => model.state.subscribe(cb),

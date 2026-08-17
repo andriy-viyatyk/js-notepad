@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { LogViewEditor } from "./LogViewEditor";
-import { LogViewProvider } from "./LogViewContext";
 import { LogEntryWrapper } from "./LogEntryWrapper";
 import { RenderFlexGrid, RenderGridModel } from "../../uikit/RenderGrid";
 import type { RenderFlexCellParams, Percent } from "../../uikit/RenderGrid";
@@ -125,8 +124,7 @@ export function LogBody({ model }: { model: LogViewEditor }) {
     }
 
     return (
-        <LogViewProvider value={model}>
-            <Panel name="log-view-root" direction="column" flex={1} overflow="hidden">
+        <Panel name="log-view-root" direction="column" flex={1} overflow="hidden">
                 <RenderFlexGrid
                     onModel={setGridModel}
                     columnCount={2}
@@ -138,7 +136,6 @@ export function LogBody({ model }: { model: LogViewEditor }) {
                     getInitialRowHeight={getInitialRowHeight}
                     preferMinHeightForNewRows
                 />
-            </Panel>
-        </LogViewProvider>
+        </Panel>
     );
 }

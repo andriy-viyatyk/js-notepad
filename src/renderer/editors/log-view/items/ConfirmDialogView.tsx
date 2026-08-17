@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { ConfirmEntry } from "../logTypes";
-import { useLogViewModel } from "../LogViewContext";
+import type { LogViewEditor } from "../LogViewEditor";
 import { StyledTextView } from "../StyledTextView";
 import { DialogContainer } from "./DialogContainer";
 import { ButtonsPanel } from "./ButtonsPanel";
@@ -12,12 +12,12 @@ import { Panel, Text } from "../../../uikit";
 
 interface ConfirmDialogViewProps {
     entry: ConfirmEntry;
+    model: LogViewEditor;
 }
 
 const DEFAULT_BUTTONS = ["No", "Yes"];
 
-export function ConfirmDialogView({ entry }: ConfirmDialogViewProps) {
-    const vm = useLogViewModel();
+export function ConfirmDialogView({ entry, model: vm }: ConfirmDialogViewProps) {
     const resolved = entry.button !== undefined;
     const buttons = entry.buttons ?? DEFAULT_BUTTONS;
 

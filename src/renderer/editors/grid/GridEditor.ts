@@ -504,7 +504,7 @@ export class GridEditor extends TextHostEditorModel<GridEditorState, void, GridQ
         });
     };
 
-    // ── Filter options (consumed by FiltersProvider) ────────────────────
+    // ── Filter options (consumed by the GridBody-owned FiltersModel) ────
 
     onGetOptions: TOnGetFilterOptions = (columns, filters, columnKey, search) => {
         const uniqueValues = new Set<any>();

@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo } from "react";
-import { EditorConfigProvider } from "../base";
 import { IconButton } from "../../uikit/IconButton";
 import { Input } from "../../uikit/Input";
 import { Panel } from "../../uikit/Panel";
 import { PathInput } from "../../uikit/PathInput";
 import { Textarea } from "../../uikit/Textarea";
-import { highlight, useHighlightedText } from "../../uikit/shared/highlight";
+import { highlight } from "../../uikit/shared/highlight";
 import color from "../../theme/color";
 import { CircleIcon, CloseIcon, PlusIcon, WindowRestoreIcon } from "../../theme/icons";
 import { NoteItemToolbar } from "./note-editor/NoteItemToolbar";
@@ -79,6 +78,7 @@ interface ExpandedNoteViewProps {
     categories: string[];
     tags: string[];
     onCollapse: () => void;
+    searchText?: string;
 }
 
 interface ExpandedNoteState {
@@ -118,8 +118,8 @@ export function ExpandedNoteView({
     categories,
     tags,
     onCollapse,
+    searchText,
 }: ExpandedNoteViewProps) {
-    const searchText = useHighlightedText();
 
     // Create edit model for expanded view
     const editModel = useMemo(
@@ -369,16 +369,15 @@ export function ExpandedNoteView({
                 overflow="hidden"
                 position="relative"
             >
-                <EditorConfigProvider
-                    config={{
+                <NoteItemActiveEditor
+                    model={editModel}
+                    editorConfig={{
                         hideMinimap: false,
                         disableAutoFocus: false,
                         fillContainer: true,
                         highlightText: searchText,
                     }}
-                >
-                    <NoteItemActiveEditor model={editModel} />
-                </EditorConfigProvider>
+                />
             </Panel>
 
             {/* Comment section */}

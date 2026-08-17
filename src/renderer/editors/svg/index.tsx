@@ -78,8 +78,8 @@ function SvgEditorView({ model }: { model: EditorModel }) {
     );
 }
 
-function SvgEmbeddedBody({ model }: { model: EditorModel }) {
-    return <SvgBody model={model as SvgEditor} imageModelSetter={() => {}} />;
+function SvgEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
+    return <SvgBody model={model as SvgEditor} editorConfig={editorConfig} imageModelSetter={() => {}} />;
 }
 
 export const svgModule: EditorModule = {

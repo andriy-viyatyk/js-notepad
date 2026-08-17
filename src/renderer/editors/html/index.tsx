@@ -63,8 +63,8 @@ function HtmlEditorView({ model }: { model: EditorModel }) {
     );
 }
 
-function HtmlEmbeddedBody({ model }: { model: EditorModel }) {
-    return <HtmlBody model={model as HtmlEditor} />;
+function HtmlEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
+    return <HtmlBody model={model as HtmlEditor} editorConfig={editorConfig} />;
 }
 
 export const htmlModule: EditorModule = {

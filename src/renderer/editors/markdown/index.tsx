@@ -54,8 +54,8 @@ function MarkdownEditorView({ model }: { model: EditorModel }) {
     );
 }
 
-function MarkdownEmbeddedBody({ model }: { model: EditorModel }) {
-    return <MarkdownBody model={model as MarkdownEditor} />;
+function MarkdownEmbeddedBody({ model, editorConfig }: { model: EditorModel; editorConfig?: import("../base/EditorConfig").EditorConfig }) {
+    return <MarkdownBody model={model as MarkdownEditor} editorConfig={editorConfig} />;
 }
 
 export const markdownModule: EditorModule = {
