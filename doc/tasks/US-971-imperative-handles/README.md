@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implemented — smoke-tested; pending epic review.**
+**Status:** Implemented — reviewed as part of EPIC-051 close-out
 
 ## Goal
 

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { AboutEditor } from "./AboutEditor";
 import { PersephoneIcon } from "../../theme/icons";
 import { Panel, Text, Button, Divider } from "../../uikit";
@@ -43,6 +42,28 @@ class AboutViewModel extends TComponentModel<AboutViewState, AboutEditorProps> {
     setChecking = (checking: boolean) => {
         this.state.update((s) => { s.checking = checking; });
     };
+
+    init() {
+        this.effect(() => {
+            let alive = true;
+            void shell.version.runtimeVersions().then((versions) => {
+                if (alive) this.setRuntimeVersions(versions);
+            });
+            // Pull the cached catalog so the count shows on open (idempotent; no network unless due).
+            void publishedBoards.load();
+
+            const subscription = rendererEvents[EventEndpoint.eUpdateAvailable].subscribe(
+                (result: UpdateCheckResult) => {
+                    if (alive) this.setUpdateResult(mapUpdateResult(result));
+                },
+            );
+
+            return () => {
+                alive = false;
+                subscription.unsubscribe();
+            };
+        });
+    }
 }
 
 function mapUpdateResult(result: UpdateCheckResult): IUpdateInfo {
@@ -67,22 +88,6 @@ function AboutView(props: AboutEditorProps) {
     // Reactive count of published-catalog boards — updates live when the catalog is refreshed
     // (including by "Check for Updates" below).
     const availableBoards = publishedBoards.useCatalog().length;
-
-    useEffect(() => {
-        shell.version.runtimeVersions().then(viewModel.setRuntimeVersions);
-        // Pull the cached catalog so the count shows on open (idempotent; no network unless due).
-        void publishedBoards.load();
-
-        const subscription = rendererEvents[EventEndpoint.eUpdateAvailable].subscribe(
-            (result: UpdateCheckResult) => {
-                viewModel.setUpdateResult(mapUpdateResult(result));
-            }
-        );
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, [viewModel]);
 
     const handleCheckForUpdates = async () => {
         viewModel.setChecking(true);

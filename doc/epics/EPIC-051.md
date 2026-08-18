@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-08-16
 
 ## Overview
@@ -111,19 +111,21 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 
 | Task | Title | Status |
 |------|-------|--------|
-| [US-965](../tasks/US-965-icon-registry-slots/README.md) | Icon name registry + neutral slot types (foundation) | Implemented — pending review |
-| [US-966](../tasks/US-966-neutral-slots-primitives/README.md) | Neutral slots: UIKit primitives and inputs | Implemented - pending review |
-| [US-967](../tasks/US-967-neutral-slots-list-data/README.md) | Neutral slots: UIKit list and data components | Active |
-| [US-968](../tasks/US-968-neutral-slots-containers-floating/README.md) | Neutral slots: UIKit containers and floating layer | Planned |
-| [US-969](../tasks/US-969-neutral-slots-shell/README.md) | Neutral slots: `ui/` and `components/` | Implemented — pending review |
-| [US-970](../tasks/US-970-lift-state-models/README.md) | Lift local `useState` into models | Implemented — pending review |
-| [US-976](../tasks/US-976-below-threshold-state/README.md) | Below-threshold local state | Implemented — pending review |
-| [US-971](../tasks/US-971-imperative-handles/README.md) | Imperative handles → model methods / `ComponentQueue` | Planned |
-| [US-977](../tasks/US-977-react19-ref-props/README.md) | `forwardRef` → React 19 ref props | Planned |
-| [US-972](../tasks/US-972-explicit-model-references/README.md) | React context → explicit model references | Planned |
-| [US-973](../tasks/US-973-portal-host/README.md) | Route `document.body` portals through one host | Planned |
-| US-974 | Move logic from `useEffect` into `TComponentModel.effect()` | Planned |
-| US-975 | Emotion usage inventory | Planned |
+| [US-965](../tasks/US-965-icon-registry-slots/README.md) | Icon name registry + neutral slot types (foundation) | Implemented |
+| [US-966](../tasks/US-966-neutral-slots-primitives/README.md) | Neutral slots: UIKit primitives and inputs | Implemented |
+| [US-967](../tasks/US-967-neutral-slots-list-data/README.md) | Neutral slots: UIKit list and data components | Implemented |
+| [US-968](../tasks/US-968-neutral-slots-containers-floating/README.md) | Neutral slots: UIKit containers and floating layer | Implemented |
+| [US-969](../tasks/US-969-neutral-slots-shell/README.md) | Neutral slots: `ui/` and `components/` | Implemented |
+| [US-970](../tasks/US-970-lift-state-models/README.md) | Lift local `useState` into models | Implemented |
+| [US-976](../tasks/US-976-below-threshold-state/README.md) | Below-threshold local state | Implemented |
+| [US-971](../tasks/US-971-imperative-handles/README.md) | Imperative handles → model methods / `ComponentQueue` | Implemented |
+| [US-977](../tasks/US-977-react19-ref-props/README.md) | `forwardRef` → React 19 ref props | Implemented |
+| [US-972](../tasks/US-972-explicit-model-references/README.md) | React context → explicit model references | Implemented |
+| [US-973](../tasks/US-973-portal-host/README.md) | Route `document.body` portals through one host | Implemented |
+| [US-974](../tasks/US-974-effects-into-model/README.md) | Move model-owned effects into `TComponentModel.effect()` | Implemented |
+| [US-978](../tasks/US-978-graph-effects/README.md) | Move graph effects into existing models | Implemented |
+| [US-975](../tasks/US-975-emotion-inventory/README.md) | Emotion usage inventory | Implemented |
+| [US-979](../tasks/US-979-inline-style-inventory/README.md) | Inline style inventory | Implemented |
 
 ### Ordering
 
@@ -213,18 +215,30 @@ tracks actual overlay roots for tooltip suppression; the five caller-owned porta
 explicit targets. See the [US-973 task document](../tasks/US-973-portal-host/README.md) for the
 measured inventory, stacking constraints, before/after snippets, and smoke checks.
 
-**US-974 — Effects into the model.** 175 call sites. `effect(callback, depsFactory)` already exists
-and is React-free, so each move is same-day and behaviour-neutral. D8 governs what stays.
+**US-974 — Effects into the model.** The current branch measures 176 executable
+`useEffect` call sites in 92 non-story `.tsx` files. The task document bounds the conversion to
+model-owned effects in the 33 files that already use `TComponentModel`, while recording the
+remaining view/third-party effects under D8 and explicit exclusions.
 
-**US-975 — Emotion inventory.** Split the 79 Emotion files into "static style object" (mechanical
-to convert) and "dynamic, prop-driven" (needs roadmap open decision #4). Output is a table in
-`doc/`, not code.
+**US-978 — Graph effects.** The graph family is split from US-974: 19 audit items across
+`GraphBody`, `GraphDetailPanel`, and `GraphLegendPanel` (18 model moves plus the explicit
+every-commit `GraphBody` retention). The three existing inline models are reused.
+
+**US-975 — Emotion inventory.** Split the 79 Emotion files into 65 eligible static/non-prop files,
+5 dynamic files, and 9 superseded AVGrid files. The four production dynamic files and three
+keyframe definitions are recorded for Epic A; `Tree.story.tsx` remains a visual harness. Output is
+a table in `doc/`, not a style conversion.
+
+**US-979 — Inline style inventory.** Measure the separate literal inline-style surface: 133
+`style={{...}}` sites across 51 non-story files (35 editors, 6 UIKit, 3 UI, 6 components, 1
+theme). Record the non-literal style paths separately so Epic A's dynamic-style estimate does not
+stop at the Emotion count.
 
 ## Notes
 
 ### 2026-08-16
 
-- Epic opened from the roadmap. IDs assigned: EPIC-051, tasks US-965 … US-975.
+- Epic opened from the roadmap. IDs assigned: EPIC-051, tasks US-965 … US-979.
 - Roadmap Rule 5 ("no new React") does **not** apply yet — it starts with Epic A. New UIKit
   components written during this epic are ordinary React components that follow D2–D5.
 - None of the roadmap's six open decisions block any task here. That is deliberate: Epic P was

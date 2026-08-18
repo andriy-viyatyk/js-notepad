@@ -1,4 +1,4 @@
-import { useEffect, type ComponentType } from "react";
+import { type ComponentType } from "react";
 import { secondaryViewRegistry, type SecondaryViewProps } from "./secondary-view-registry";
 import type { EditorOrHost } from "../../editors/base";
 import color from "../../theme/color";
@@ -30,6 +30,25 @@ class LazySecondaryViewModel extends TComponentModel<LazySecondaryViewState, Laz
     setError = (error: string | null) => {
         this.state.update((s) => { s.error = error; });
     };
+
+    init() {
+        this.effect(() => {
+            const def = secondaryViewRegistry.get(this.props.panelId);
+            if (!def) {
+                queueMicrotask(() => {
+                    if (this.isLive) this.setError(`Unknown secondary view: "${this.props.panelId}"`);
+                });
+                return;
+            }
+            let cancelled = false;
+            void def.loadComponent().then((mod) => {
+                if (!cancelled) this.setComponent(mod.default);
+            }).catch((err) => {
+                if (!cancelled) this.setError(errMessage(err, `Failed to load "${this.props.panelId}".`));
+            });
+            return () => { cancelled = true; };
+        }, () => [this.props.panelId]);
+    }
 }
 
 /** Loads a secondary view component from the registry and renders it. */
@@ -37,21 +56,6 @@ export function LazySecondaryView(props: LazySecondaryViewProps) {
     const { model: editorModel, panelId, headerRef, icon, expanded } = props;
     const viewModel = useComponentModel(props, LazySecondaryViewModel, { Component: null, error: null });
     const { Component, error } = viewModel.state.use();
-
-    useEffect(() => {
-        const def = secondaryViewRegistry.get(panelId);
-        if (!def) {
-            viewModel.setError(`Unknown secondary view: "${panelId}"`);
-            return;
-        }
-        let cancelled = false;
-        def.loadComponent().then((mod) => {
-            if (!cancelled) viewModel.setComponent(mod.default);
-        }).catch((err) => {
-            if (!cancelled) viewModel.setError(errMessage(err, `Failed to load "${panelId}".`));
-        });
-        return () => { cancelled = true; };
-    }, [panelId, viewModel]);
 
     if (error) return <div style={{ padding: 8, color: color.text.light }}>{error}</div>;
     if (!Component) return null;

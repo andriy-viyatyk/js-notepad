@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ListBox, LIST_ITEM_KEY } from "../../uikit";
 import { TraitSet, traited } from "../../core/traits/traits";
 import { api } from "../../../ipc/renderer/api";
@@ -47,29 +47,32 @@ class OpenTabsListModel extends TComponentModel<OpenTabsListState, OpenTabsListP
     setActiveIndex = (activeIndex: number | null) => {
         this.state.update((s) => { s.activeIndex = activeIndex; });
     };
+
+    private loadId = 0;
+
+    loadWindowPages = async () => {
+        const loadId = ++this.loadId;
+        const windowsPages = await api.getWindowPages();
+        if (this.isLive && loadId === this.loadId) {
+            this.setAllWindowsPages(windowsPages);
+        }
+    };
+
+    init() {
+        // One dependency-tracked effect covers initial loading and later opens;
+        // unlike the two view effects, it does not load twice when initially open.
+        this.effect(() => {
+            void this.loadWindowPages();
+        }, () => [this.props.open]);
+    }
 }
 
 export function OpenTabsList(props: OpenTabsListProps) {
-    const { onClose, open } = props;
+    const { onClose } = props;
     const model = useComponentModel(props, OpenTabsListModel, { allWindowsPages: [], activeIndex: null });
     const { allWindowsPages, activeIndex } = model.state.use();
     const state = pagesModel.state.use();
     const currentWindowIndex = appWindow.windowIndex;
-
-    const loadWindowPages = useCallback(async () => {
-        const windowsPages = await api.getWindowPages();
-        model.setAllWindowsPages(windowsPages);
-    }, [model]);
-
-    useEffect(() => {
-        loadWindowPages();
-    }, [loadWindowPages]);
-
-    useEffect(() => {
-        if (open) {
-            loadWindowPages();
-        }
-    }, [open, loadWindowPages]);
 
     // activePage is a getter derived from `state`; re-evaluates on every render of this component (which is itself driven by state.use() above).
     const activePageId = pagesModel.activePage?.id;
@@ -115,10 +118,10 @@ export function OpenTabsList(props: OpenTabsListProps) {
         if (hasDuplicateId) {
             // happens when moving a tab in the current window
             // it displays then in this window and in the window it was moved from
-            setTimeout(loadWindowPages, 50);
+            setTimeout(model.loadWindowPages, 50);
         }
         return allItems;
-    }, [state.pages, allWindowsPages, currentWindowIndex, loadWindowPages]);
+    }, [state.pages, allWindowsPages, currentWindowIndex, model]);
 
     const tItems = useMemo(
         () => traited(items, openTabsListTraits),

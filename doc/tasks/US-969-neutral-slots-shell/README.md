@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Implemented — pending epic review
+**Status:** Implemented — reviewed as part of EPIC-051 close-out
 **Priority:** High
 **Epic:** [EPIC-051: De-React Epic P - Preparation (React-side)](../../epics/EPIC-051.md)
 **Depends on:** [US-965: Icon name registry + neutral slot types (foundation)](../US-965-icon-registry-slots/README.md), [US-966: Neutral slots - UIKit primitives and inputs](../US-966-neutral-slots-primitives/README.md), [US-967: Neutral slots - UIKit list and data components](../US-967-neutral-slots-list-data/README.md), [US-968: Neutral slots - UIKit containers and floating layer](../US-968-neutral-slots-containers-floating/README.md)

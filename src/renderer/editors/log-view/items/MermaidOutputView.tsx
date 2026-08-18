@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { MermaidOutputEntry } from "../logTypes";
 import { DialogHeader } from "./DialogHeader";
 import { IconButton, Panel, Text } from "../../../uikit";
@@ -50,6 +50,32 @@ class MermaidOutputModel extends TComponentModel<MermaidOutputState, MermaidOutp
     setError = (error: string) => {
         this.state.update((s) => { s.error = error; });
     };
+
+    init() {
+        this.effect(() => {
+            let cancelled = false;
+            const lightMode = !isCurrentThemeDark();
+            queueMicrotask(() => {
+                if (!this.isLive || cancelled) return;
+                this.setSvgUrl(null);
+                this.setError("");
+                void renderMermaidSvg(this.props.entry.text, lightMode)
+                    .then((svg) => {
+                        if (!cancelled) {
+                            this.setSvgUrl(svgToDataUrl(svg, undefined, !lightMode));
+                            this.setError("");
+                        }
+                    })
+                    .catch((e) => {
+                        if (!cancelled) {
+                            this.setError(e.message || "Failed to render diagram");
+                            this.setSvgUrl(null);
+                        }
+                    });
+            });
+            return () => { cancelled = true; };
+        }, () => [this.props.entry.text, isCurrentThemeDark()]);
+    }
 }
 
 export function MermaidOutputView(props: MermaidOutputViewProps) {
@@ -59,30 +85,6 @@ export function MermaidOutputView(props: MermaidOutputViewProps) {
     const imgRef = useRef<HTMLImageElement>(null);
 
     settings.use("theme");
-    const lightMode = !isCurrentThemeDark();
-
-    useEffect(() => {
-        let cancelled = false;
-        model.setSvgUrl(null);
-        model.setError("");
-
-        renderMermaidSvg(entry.text, lightMode)
-            .then((svg) => {
-                if (!cancelled) {
-                    model.setSvgUrl(svgToDataUrl(svg, undefined, !lightMode));
-                    model.setError("");
-                }
-            })
-            .catch((e) => {
-                if (!cancelled) {
-                    model.setError(e.message || "Failed to render diagram");
-                    model.setSvgUrl(null);
-                }
-            });
-
-        return () => { cancelled = true; };
-    }, [entry.text, lightMode, model]);
-
     const handleCopy = useCallback(() => {
         if (!imgRef.current) return;
         copyImageToClipboard(imgRef.current);

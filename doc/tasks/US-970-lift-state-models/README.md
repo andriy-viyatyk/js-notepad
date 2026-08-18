@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Implemented — smoke-tested, pending epic review
+**Status:** Implemented — reviewed as part of EPIC-051 close-out
 **Priority:** High
 **Epic:** [EPIC-051: De-React Epic P - Preparation (React-side)](../../epics/EPIC-051.md)
 **Depends on:** None; the state layer and `TComponentModel` are already available

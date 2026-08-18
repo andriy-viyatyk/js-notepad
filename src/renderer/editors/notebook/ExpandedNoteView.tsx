@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { IconButton } from "../../uikit/IconButton";
 import { Input } from "../../uikit/Input";
 import { Panel } from "../../uikit/Panel";
@@ -90,6 +90,11 @@ interface ExpandedNoteState {
     editingTagValue: string;
 }
 
+interface ExpandedNoteModelProps extends Omit<ExpandedNoteViewProps, "note"> {
+    note: NoteItem;
+    editModel: NoteItemEditModel;
+}
+
 const defaultExpandedNoteState: ExpandedNoteState = {
     editingCategory: false,
     categoryValue: "",
@@ -99,13 +104,43 @@ const defaultExpandedNoteState: ExpandedNoteState = {
     editingTagValue: "",
 };
 
-class ExpandedNoteModel extends TComponentModel<ExpandedNoteState, ExpandedNoteViewProps> {
+class ExpandedNoteModel extends TComponentModel<ExpandedNoteState, ExpandedNoteModelProps> {
     setEditingCategory = (value: boolean) => this.state.update((s) => { s.editingCategory = value; });
     setCategoryValue = (value: string) => this.state.update((s) => { s.categoryValue = value; });
     setAddingTag = (value: boolean) => this.state.update((s) => { s.addingTag = value; });
     setNewTagValue = (value: string) => this.state.update((s) => { s.newTagValue = value; });
     setEditingTagIndex = (value: number | null) => this.state.update((s) => { s.editingTagIndex = value; });
     setEditingTagValue = (value: string) => this.state.update((s) => { s.editingTagValue = value; });
+
+    init() {
+        this.effect(() => {
+            const editModel = this.props.editModel;
+            let cancelled = false;
+            queueMicrotask(() => {
+                if (!cancelled && this.isLive) editModel.syncFromNote(this.props.note);
+            });
+            return () => { cancelled = true; };
+        }, () => [
+            this.props.editModel,
+            this.props.note.content.content,
+            this.props.note.content.language,
+            this.props.note.content.editor,
+        ]);
+
+        this.effect(() => {
+            const editModel = this.props.editModel;
+            return () => editModel.dispose();
+        }, () => [this.props.editModel]);
+
+        this.effect(() => {
+            if (this.state.get().editingCategory) return;
+            const category = this.props.note.category;
+            queueMicrotask(() => {
+                if (!this.isLive || this.state.get().editingCategory) return;
+                this.setCategoryValue(category);
+            });
+        }, () => [this.props.note.category, this.state.get().editingCategory]);
+    }
 }
 
 // =============================================================================
@@ -128,19 +163,8 @@ export function ExpandedNoteView({
         [note.id]
     );
 
-    // Sync edit model when note data changes
-    useEffect(() => {
-        editModel.syncFromNote(note);
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow: sync only when the external content slices change, not on every `note` object identity change — otherwise a parent re-render would overwrite the user's in-flight local edits inside editModel
-    }, [note.content.content, note.content.language, note.content.editor]);
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => editModel.dispose();
-    }, [editModel]);
-
     const editState = useComponentModel(
-        { note, notebookModel, categories, tags, onCollapse },
+        { note, notebookModel, categories, tags, onCollapse, editModel },
         ExpandedNoteModel,
         defaultExpandedNoteState,
     );
@@ -156,13 +180,6 @@ export function ExpandedNoteView({
     const setNewTagValue = editState.setNewTagValue;
     const setEditingTagIndex = editState.setEditingTagIndex;
     const setEditingTagValue = editState.setEditingTagValue;
-
-    // Sync category value when note changes
-    useEffect(() => {
-        if (!editingCategory) {
-            editState.setCategoryValue(note.category);
-        }
-    }, [note.category, editingCategory, editState]);
 
     // Handle Escape key to collapse
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {

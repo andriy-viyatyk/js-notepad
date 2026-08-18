@@ -1,4 +1,4 @@
-import React, { useEffect, useId } from "react";
+import React, { useId } from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { spacing } from "../tokens";
@@ -60,13 +60,6 @@ function ListBoxView<T = IListBoxItem>(
         defaultListBoxState,
     );
     model.setReactId(reactId);
-    const onModel = props.onModel;
-
-    useEffect(() => {
-        onModel?.(model);
-        return () => onModel?.(null);
-    }, [model, onModel]);
-
     const {
         name,
         // Captured for model registration; do not forward the callback to the DOM root.

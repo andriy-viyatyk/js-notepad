@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Implemented — smoke-tested, pending epic review
+**Status:** Implemented — reviewed as part of EPIC-051 close-out
 **Priority:** Medium
 **Epic:** [EPIC-051: De-React Epic P - Preparation (React-side)](../../epics/EPIC-051.md)
 **Depends on:** [US-970: Lift local `useState` into models](../US-970-lift-state-models/README.md)

@@ -33,11 +33,10 @@ export class ComponentQueue<
     /** Programmatic subscribe. Drains queued events to the handler FIFO,
      *  then routes future sends. Replaces any existing handler. */
     subscribe(handler: (event: E) => void): () => void {
+        this._handler = handler;
         const drained = this._queue;
         this._queue = [];
         for (const ev of drained) handler(ev);
-
-        this._handler = handler;
         return () => {
             if (this._handler === handler) {
                 this._handler = null;
@@ -86,13 +85,12 @@ export class ComponentQueue<
      *  requests by invoking `handler` and resolving each Promise; thrown
      *  errors become Promise rejections. Replaces any existing handler. */
     register(handler: (req: Req) => unknown): () => void {
+        this._requestHandler = handler;
         const pending = this._pendingRequests;
         this._pendingRequests = [];
         for (const { req, resolve, reject } of pending) {
             try { resolve(handler(req)); } catch (error) { reject(error); }
         }
-
-        this._requestHandler = handler;
         return () => {
             if (this._requestHandler === handler) {
                 this._requestHandler = null;

@@ -325,7 +325,7 @@ persephone/
 │   │   ├── PageToolbar.tsx           # Shared toolbar shell — NavPanel + switch widget auto-slots
 │   │   ├── TextChrome.tsx            # Host-aware chrome wrapper (toolbar, script panel, footer)
 │   │   ├── EditorToolbar.tsx         # Toolbar root component used by individual editors
-│   │   ├── EditorConfigContext.tsx   # Editor configuration provider
+│   │   ├── EditorConfig.ts            # Editor configuration value and empty default
 │   │   ├── EditorError.tsx           # Error boundary
 │   │   └── index.ts
 │   │
@@ -475,7 +475,6 @@ persephone/
 │   ├── log-view/           # Log viewer (text-bearing, IContentHost + TRAIT)
 │   │   ├── LogViewEditor.ts          # EditorModel — JSONL parsing, entry management
 │   │   ├── LogBody.tsx               # Log viewer component (RenderFlexGrid + auto-scroll)
-│   │   ├── LogViewContext.ts         # React Context for dialog views
 │   │   ├── LogEntryWrapper.tsx       # Cell root — subscribes to entries[index]
 │   │   ├── LogEntryContent.tsx       # Type router — dispatches to entry renderers
 │   │   ├── LogMessageView.tsx        # Log message renderer
@@ -731,7 +730,7 @@ persephone/
 │   ├── Progress/           # Progress overlay + screen lock
 │   ├── RenderGrid/         # Foundational virtualization (sticky regions, RenderFlexGrid)
 │   ├── AVGrid/             # Composite data grid (uses RenderGrid; filters, sorting, edit)
-│   └── shared/             # Internal helpers (overlayRegistry, etc.)
+│   └── shared/             # Internal helpers (overlay layer, overlayRegistry, slots, etc.)
 │
 ├── components/             # Persephone-Coupled Components (KEEP-only)
 │   │                       # Each remaining folder uses app.* APIs, page model, file
@@ -760,6 +759,7 @@ persephone/
 │   ├── state/              # State management primitives
 │   │   ├── state.ts        # TOneState, TComponentState, TGlobalState
 │   │   ├── model.ts        # TModel, TDialogModel, TComponentModel
+│   │   ├── ComponentQueue.ts # Model-to-view event and request/reply mailbox
 │   │   ├── events.ts       # Subscription event system
 │   │   ├── view.tsx        # View registry (dialogs/poppers)
 │   │   └── index.ts
@@ -793,6 +793,7 @@ persephone/
 │   ├── color.ts            # Color tokens (CSS custom properties)
 │   ├── GlobalStyles.tsx    # Global CSS reset
 │   ├── icons.tsx           # SVG icon components
+│   ├── icon-registry.ts    # Single-source-of-truth names for registered SVG icons
 │   ├── language-icons.tsx  # Language-specific icons
 │   ├── palette-colors.ts   # Color palette definitions
 │   └── themes/             # Theme definitions (9 themes)

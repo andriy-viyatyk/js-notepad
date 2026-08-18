@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { settings } from "../../../api/settings";
 import { app } from "../../../api/app";
 import { api } from "../../../../ipc/renderer/api";
@@ -33,10 +32,27 @@ interface GitIntegrationState {
     probe: { installed: boolean; version?: string } | null;
 }
 
-class GitIntegrationModel extends TComponentModel<GitIntegrationState, Record<string, never>> {
+class GitIntegrationModel extends TComponentModel<GitIntegrationState, { gitEnabled: boolean }> {
     setProbe = (probe: { installed: boolean; version?: string } | null) => {
         this.state.update((s) => { s.probe = probe; });
     };
+
+    init() {
+        this.effect(() => {
+            if (!this.props.gitEnabled) {
+                queueMicrotask(() => {
+                    if (this.isLive) this.setProbe(null);
+                });
+                return;
+            }
+            let alive = true;
+            void import("../../../api/git")
+                .then(({ git }) => git.probe())
+                .then((result) => { if (alive) this.setProbe(result); })
+                .catch(() => { if (alive) this.setProbe({ installed: false }); });
+            return () => { alive = false; };
+        }, () => [this.props.gitEnabled]);
+    }
 }
 
 interface VideoPlayerState {
@@ -47,6 +63,17 @@ class VideoPlayerModel extends TComponentModel<VideoPlayerState, { videoStreamPo
     setPortValue = (portValue: string) => {
         this.state.update((s) => { s.portValue = portValue; });
     };
+
+    init() {
+        this.effect(() => {
+            const portValue = String(this.props.videoStreamPort);
+            queueMicrotask(() => {
+                if (this.isLive && this.state.get().portValue !== portValue) {
+                    this.setPortValue(portValue);
+                }
+            });
+        }, () => [this.props.videoStreamPort]);
+    }
 }
 
 const browseVlcExe = async (): Promise<string | undefined> => {
@@ -103,17 +130,8 @@ export function WindowBehaviorSection() {
 
 export function GitIntegrationSection() {
     const gitEnabled = settings.use("git.enabled");
-    const model = useComponentModel({}, GitIntegrationModel, { probe: null });
+    const model = useComponentModel({ gitEnabled }, GitIntegrationModel, { probe: null });
     const { probe } = model.state.use();
-    useEffect(() => {
-        if (!gitEnabled) { model.setProbe(null); return; }
-        let alive = true;
-        import("../../../api/git")
-            .then(({ git }) => git.probe())
-            .then((result) => { if (alive) model.setProbe(result); })
-            .catch(() => { if (alive) model.setProbe({ installed: false }); });
-        return () => { alive = false; };
-    }, [gitEnabled, model]);
 
     return (
         <>
@@ -221,7 +239,6 @@ export function VideoPlayerSection() {
     const videoStreamPort = settings.use("video-stream.port");
     const model = useComponentModel({ videoStreamPort }, VideoPlayerModel, { portValue: String(videoStreamPort) });
     const { portValue } = model.state.use();
-    useEffect(() => { model.setPortValue(String(videoStreamPort)); }, [videoStreamPort, model]);
     const handleBrowseVlc = async () => {
         const filePath = await browseVlcExe();
         if (filePath) settings.set("vlc-path", filePath);

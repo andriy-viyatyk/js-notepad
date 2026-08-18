@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Editor } from "@monaco-editor/react";
 import { LanguageIcon } from "../../components/icons/LanguageIcon";
 import {
@@ -117,6 +117,14 @@ class ResponseViewerModel extends TComponentModel<ResponseViewerState, ResponseV
     setHeadersView = (headersView: "table" | "json") => {
         this.state.update((s) => { s.headersView = headersView; });
     };
+
+    init() {
+        this.effect(() => {
+            queueMicrotask(() => {
+                if (this.isLive) this.setLanguageOverride(null);
+            });
+        }, () => [this.props.response]);
+    }
 }
 
 export function ResponseViewer(props: ResponseViewerProps) {
@@ -134,10 +142,6 @@ export function ResponseViewer(props: ResponseViewerProps) {
     const detectedLanguage = useMemo(() => {
         return response ? detectLanguageFromHeaders(response.headers) : "plaintext";
     }, [response]);
-
-    useEffect(() => {
-        model.setLanguageOverride(null);
-    }, [response, model]);
 
     const language = languageOverride ?? detectedLanguage;
 

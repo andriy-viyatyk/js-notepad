@@ -159,17 +159,17 @@ class MenuBarModel extends TComponentModel<MenuBarState, MenuBarProps> {
             }
         }, () => [this.props.open]);
 
-        // React to openMenuBar(panelId) calls
+        // If a dynamic folder disappears, keep the selected folder valid.
+        // Defer the state write because model effects may be evaluated from render.
         this.effect(() => {
-            const panelId = app.window.state.get().menuBarPanelId;
-            if (panelId) {
-                const folder = this.allFolders.value.find((f) => f.id === panelId);
-                if (folder) {
-                    this.setLeftItem(folder);
+            if (this.allFolders.value.some((folder) => folder.id === this.state.get().leftItemId)) return;
+            queueMicrotask(() => {
+                if (!this.isLive) return;
+                if (!this.allFolders.value.some((folder) => folder.id === this.state.get().leftItemId)) {
+                    this.setLeftItem(staticFolders[0]);
                 }
-                app.window.consumeMenuBarPanelId();
-            }
-        }, () => [app.window.state.get().menuBarPanelId]);
+            });
+        }, () => [menuFolders.state.get().folders]);
     }
 
     contentClick = (e: React.MouseEvent) => {
@@ -390,14 +390,18 @@ export function MenuBar(props: MenuBarProps) {
     const state = model.state.use();
     const { folders } = menuFolders.state.use();
     const allFolders = useMemo(() => [...staticFolders, ...folders], [folders]);
+    const { menuBarPanelId } = app.window.state.use();
 
-    // If the selected folder was removed, fall back to the first static folder
+    // This bridge writes React-backed state and must run after commit, not from
+    // a model effect that can be evaluated during render.
     useEffect(() => {
-        if (!allFolders.find((f) => f.id === state.leftItemId)) {
-            model.setLeftItem(staticFolders[0]);
+        if (!menuBarPanelId) return;
+        const folder = allFolders.find((candidate) => candidate.id === menuBarPanelId);
+        if (folder) {
+            model.setLeftItem(folder);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-validate only when the folder list changes; leftItemId is set via the validated setLeftItem path, so transient leftItemId changes don't need re-validation. `allFolders` is derived from `folders` (already in deps); `model` is stable.
-    }, [folders]);
+        app.window.consumeMenuBarPanelId();
+    }, [allFolders, menuBarPanelId, model]);
 
     const tFolders = useMemo(
         () => traited(allFolders, folderItemTraits),

@@ -113,7 +113,16 @@ interface GitTreeState {
     focus: CellFocus<GitCommitRow> | undefined;
 }
 
-class GitTreeViewModel extends TComponentModel<GitTreeState, GitTreeProps> {
+interface GitTreeViewModelProps extends GitTreeProps {
+    structureKey: string;
+    maxColumns: number;
+    sideSelectCell: TCellRenderer | undefined;
+}
+
+class GitTreeViewModel extends TComponentModel<GitTreeState, GitTreeViewModelProps> {
+    private builtStructureKey = "";
+    private previousMaxColumns = 0;
+
     setColumns = (value: SetStateAction<Column<GitCommitRow>[]>) => {
         this.state.update((s) => {
             s.columns = typeof value === "function" ? value(s.columns) : value;
@@ -125,6 +134,34 @@ class GitTreeViewModel extends TComponentModel<GitTreeState, GitTreeProps> {
             s.focus = typeof value === "function" ? value(s.focus) : value;
         });
     };
+
+    init() {
+        this.builtStructureKey = this.props.structureKey;
+        this.previousMaxColumns = this.props.maxColumns;
+        this.effect(() => {
+            const structureChanged = this.builtStructureKey !== this.props.structureKey;
+            const maxColumnsChanged = this.previousMaxColumns !== this.props.maxColumns;
+            this.builtStructureKey = this.props.structureKey;
+            this.previousMaxColumns = this.props.maxColumns;
+            if (!structureChanged && !(maxColumnsChanged && !this.props.compact)) return;
+
+            const props = this.props;
+            queueMicrotask(() => {
+                if (!this.isLive) return;
+                if (this.props.structureKey !== props.structureKey || this.props.maxColumns !== props.maxColumns) return;
+                if (structureChanged) {
+                    this.setColumns(buildColumns(props.maxColumns, props.compact ?? false, props.sideSelectCell));
+                } else if (maxColumnsChanged && !props.compact) {
+                    this.setColumns((columns) => refitGraphColumn(columns, props.maxColumns));
+                }
+            });
+        }, () => [
+            this.props.maxColumns,
+            this.props.compact,
+            this.props.sideSelectCell,
+            this.props.structureKey,
+        ]);
+    }
 }
 
 // Pinned to the bottom of the (relative, content-height) render area — the same
@@ -431,11 +468,9 @@ export function GitTree(props: GitTreeProps) {
     //     the user's column order untouched. Compact views (no graph) are fully
     //     preserved.
     const structureKey = `${compact}|${hasSideSelect}`;
-    const builtStructureRef = useRef(structureKey);
-    const prevMaxColumnsRef = useRef(maxColumns);
     // Apply the owner-persisted layout (width + order) once, at mount — read-once
     // from the initial prop value (US-623).
-    const viewModel = useComponentModel(props, GitTreeViewModel, {
+    const viewModel = useComponentModel({ ...props, structureKey, maxColumns, sideSelectCell }, GitTreeViewModel, {
         columns: applyLayout(buildColumns(maxColumns, compact, sideSelectCell), initialColumnLayout),
         focus: undefined,
     });
@@ -455,18 +490,6 @@ export function GitTree(props: GitTreeProps) {
         },
         [onColumnLayoutChange, viewModel],
     );
-
-    useEffect(() => {
-        const structureChanged = builtStructureRef.current !== structureKey;
-        const maxColumnsChanged = prevMaxColumnsRef.current !== maxColumns;
-        builtStructureRef.current = structureKey;
-        prevMaxColumnsRef.current = maxColumns;
-        if (structureChanged) {
-            viewModel.setColumns(buildColumns(maxColumns, compact, sideSelectCell));
-        } else if (maxColumnsChanged && !compact) {
-            viewModel.setColumns((cols) => refitGraphColumn(cols, maxColumns));
-        }
-    }, [maxColumns, compact, sideSelectCell, structureKey, viewModel]);
 
     const selected = useMemo(
         () => new Set<string>(selectedHash ? [selectedHash] : []),

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Implemented — pending EPIC-051 review
+**Status:** Implemented — reviewed as part of EPIC-051 close-out
 **Priority:** High
 **Epic:** [EPIC-051: De-React Epic P — Preparation (React-side)](../../epics/EPIC-051.md)
 **Created:** 2026-08-16

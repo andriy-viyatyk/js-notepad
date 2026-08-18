@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import {
     CategoryView,
     supportsMultiSelect,
@@ -66,6 +66,16 @@ class CategoryEditorViewModel extends TComponentModel<CategoryEditorViewState, {
     setViewMode = (viewMode: CategoryViewMode) => {
         this.state.update((s) => { s.viewMode = viewMode; });
     };
+
+    init() {
+        this.effect(() => {
+            let cancelled = false;
+            void folderViewModeService.getViewMode(this.props.categoryPath).then((viewMode) => {
+                if (!cancelled) this.setViewMode(viewMode);
+            });
+            return () => { cancelled = true; };
+        }, () => [this.props.categoryPath]);
+    }
 }
 
 export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
@@ -97,11 +107,6 @@ export function CategoryEditor({ model }: { model: CategoryEditorModel }) {
     const [searchPortal, setSearchPortal] = useState<HTMLDivElement | null>(null);
     const viewModel = useComponentModel({ categoryPath }, CategoryEditorViewModel, { viewMode: "list" });
     const { viewMode } = viewModel.state.use();
-
-    // Load persisted view mode for this folder (with inheritance)
-    useEffect(() => {
-        folderViewModeService.getViewMode(categoryPath).then(viewModel.setViewMode);
-    }, [categoryPath, viewModel]);
 
     const handleViewModeChange = useCallback((mode: CategoryViewMode) => {
         viewModel.setViewMode(mode);

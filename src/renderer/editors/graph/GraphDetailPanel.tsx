@@ -1,4 +1,4 @@
-import { SetStateAction, useCallback, useEffect, useMemo, useRef } from "react";
+import { SetStateAction, useCallback, useMemo, useRef } from "react";
 import { AVGrid, Button, Input, Panel, detectColumnWidth, type CellFocus, type Column } from "../../uikit";
 import { GraphNode, NodeShape, nodeLabel, isReservedPropertyKey } from "./types";
 import color from "../../theme/color";
@@ -253,6 +253,9 @@ const defaultGraphDetailState: GraphDetailState = {
 };
 
 class GraphDetailModel extends TComponentModel<GraphDetailState, GraphDetailPanelProps> {
+    private hadSelection = false;
+    private wasExpanded = true;
+
     setExpanded = (expanded: boolean) => this.state.update((s) => { s.expanded = expanded; });
     setActiveTab = (activeTab: string) => this.state.update((s) => { s.activeTab = activeTab; });
     setLinksDirty = (linksDirty: boolean) => this.state.update((s) => { s.linksDirty = linksDirty; });
@@ -261,6 +264,132 @@ class GraphDetailModel extends TComponentModel<GraphDetailState, GraphDetailPane
     setEditId = (editId: string) => this.state.update((s) => { s.editId = editId; });
     setEditTitle = (editTitle: string) => this.state.update((s) => { s.editTitle = editTitle; });
     setIdError = (idError: string) => this.state.update((s) => { s.idError = idError; });
+
+    toggleExpanded = (hasSelection: boolean, anyDirty: boolean) => {
+        if (!hasSelection || anyDirty) return;
+        const next = !this.state.get().expanded;
+        this.wasExpanded = next;
+        this.setExpanded(next);
+    };
+
+    init() {
+        this.effect(() => {
+            const node = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
+            if (!node) return;
+            const id = node.id;
+            const title = node.title || "";
+            queueMicrotask(() => {
+                if (!this.isLive) return;
+                const current = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
+                if (current?.id !== id || (current?.title || "") !== title) return;
+                this.setEditId(id);
+                this.setEditTitle(title);
+                this.setIdError("");
+            });
+        }, () => {
+            const node = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
+            return [node?.id, node?.title];
+        });
+
+        this.effect(() => {
+            const isMulti = this.props.nodes.length > 1;
+            if (!isMulti || this.state.get().activeTab !== "links") return;
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.nodes.length <= 1 || this.state.get().activeTab !== "links") return;
+                this.setActiveTab("info");
+            });
+        }, () => [this.props.nodes.length > 1, this.state.get().activeTab]);
+
+        this.effect(() => {
+            const hasSelection = this.props.nodes.length > 0;
+            const selectionKey = this.props.nodes.map((node) => node.id).sort().join(",");
+            if (hasSelection) {
+                const restore = !this.hadSelection ? this.wasExpanded : undefined;
+                this.hadSelection = true;
+                if (restore !== undefined) {
+                    queueMicrotask(() => {
+                        if (!this.isLive) return;
+                        const currentKey = this.props.nodes.map((node) => node.id).sort().join(",");
+                        if (currentKey === selectionKey) this.setExpanded(restore);
+                    });
+                }
+            } else {
+                this.wasExpanded = false;
+                this.hadSelection = false;
+                queueMicrotask(() => {
+                    if (!this.isLive || this.props.nodes.length > 0) return;
+                    this.setExpanded(false);
+                });
+            }
+        }, () => {
+            const nodes = this.props.nodes;
+            return [nodes.map((node) => node.id).sort().join(","), nodes.length > 0];
+        });
+
+        this.effect(() => {
+            const request = this.props.expandRequest;
+            if (!request || this.props.nodes.length === 0) return;
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.expandRequest !== request || this.props.nodes.length === 0) return;
+                this.setExpanded(true);
+                this.wasExpanded = true;
+            });
+        }, () => [this.props.expandRequest]);
+
+        this.effect(() => {
+            const request = this.props.collapseRequest;
+            if (!request) return;
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.collapseRequest !== request) return;
+                if (this.state.get().expanded && !this.state.get().linksDirty && !this.state.get().propertiesDirty) {
+                    this.setExpanded(false);
+                    this.wasExpanded = false;
+                }
+            });
+        }, () => [this.props.collapseRequest]);
+
+        this.effect(() => {
+            const expanded = this.state.get().expanded;
+            queueMicrotask(() => {
+                if (!this.isLive || this.state.get().expanded !== expanded) return;
+                this.props.onPanelExpandedChange?.(expanded);
+            });
+        }, () => [this.state.get().expanded, this.props.onPanelExpandedChange]);
+
+        this.effect(() => {
+            const expanded = this.state.get().expanded;
+            const activeTab = this.state.get().activeTab;
+            const node = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
+            const linksTabActive = expanded && activeTab === "links" && !!node;
+            const nodeId = node?.id;
+            const linkedNodes = this.props.linkedNodes;
+            queueMicrotask(() => {
+                if (!this.isLive) return;
+                const currentNode = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
+                const currentActive = this.state.get().expanded && this.state.get().activeTab === "links" && !!currentNode;
+                if (currentActive !== linksTabActive || currentNode?.id !== nodeId || this.props.linkedNodes !== linkedNodes) return;
+                if (linksTabActive && node) {
+                    this.props.onExpandNode?.(node.id);
+                    this.props.onHighlightSet?.(new Set([node.id, ...linkedNodes.map((linked) => linked.id)]));
+                } else {
+                    this.props.onHighlightSet?.(null);
+                    this.props.onExternalHover?.("");
+                }
+            });
+        }, () => {
+            const node = this.props.nodes.length === 1 ? this.props.nodes[0] : undefined;
+            return [
+                this.state.get().expanded && this.state.get().activeTab === "links" && !!node,
+                node?.id,
+                this.props.linkedNodes,
+            ];
+        });
+    }
+
+    onUnmount = () => {
+        this.props.onHighlightSet?.(null);
+        this.props.onExternalHover?.("");
+    };
 }
 
 // =============================================================================
@@ -291,7 +420,6 @@ function GraphDetailPanel({
     const editId = viewModel.state.use((s) => s.editId);
     const editTitle = viewModel.state.use((s) => s.editTitle);
     const idError = viewModel.state.use((s) => s.idError);
-    const setExpanded = viewModel.setExpanded;
     const setActiveTab = viewModel.setActiveTab;
     const setLinksDirty = viewModel.setLinksDirty;
     const setPropertiesDirty = viewModel.setPropertiesDirty;
@@ -299,8 +427,6 @@ function GraphDetailPanel({
     const setEditId = viewModel.setEditId;
     const setEditTitle = viewModel.setEditTitle;
     const setIdError = viewModel.setIdError;
-    const wasExpandedRef = useRef(true);
-    const hadSelectionRef = useRef(false);
     const anyDirty = linksDirty || propertiesDirty;
 
     const resizingRef = useRef(false);
@@ -317,78 +443,9 @@ function GraphDetailPanel({
         onPanelDirtyChange?.(dirty || linksDirty);
     }, [onPanelDirtyChange, linksDirty, setPropertiesDirty]);
 
-    const selectionKey = useMemo(() => nodes.map((n) => n.id).sort().join(","), [nodes]);
-
-    useEffect(() => {
-        if (singleNode) {
-            setEditId(singleNode.id);
-            setEditTitle(singleNode.title || "");
-            setIdError("");
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrow: only re-init edit fields when the id/title slice changes, not on every singleNode object identity change
-    }, [singleNode?.id, singleNode?.title, setEditId, setEditTitle, setIdError]);
-
-    useEffect(() => {
-        if (isMulti && activeTab === "links") {
-            setActiveTab("info");
-        }
-    }, [isMulti, activeTab, setActiveTab]);
-
-    useEffect(() => {
-        if (hasSelection) {
-            if (!hadSelectionRef.current) {
-                setExpanded(wasExpandedRef.current);
-            }
-            hadSelectionRef.current = true;
-        } else {
-            wasExpandedRef.current = false;
-            setExpanded(false);
-            hadSelectionRef.current = false;
-        }
-    }, [selectionKey, hasSelection, setExpanded]);
-
-    useEffect(() => {
-        if (expandRequest && hasSelection) {
-            setExpanded(true);
-            wasExpandedRef.current = true;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- expandRequest is a one-shot bump signal from parent; hasSelection is a runtime gate checked at fire time, not a re-fire trigger
-    }, [expandRequest, setExpanded]);
-
-    useEffect(() => {
-        if (collapseRequest && expanded && !anyDirty) {
-            setExpanded(false);
-            wasExpandedRef.current = false;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- collapseRequest is a one-shot bump signal from parent; expanded / anyDirty are runtime gates checked at fire time, not re-fire triggers
-    }, [collapseRequest]);
-
-    useEffect(() => {
-        onPanelExpandedChange?.(expanded);
-    }, [expanded, onPanelExpandedChange]);
-
     const toggleExpanded = useCallback(() => {
-        if (!hasSelection || anyDirty) return;
-        const next = !viewModel.state.get().expanded;
-        wasExpandedRef.current = next;
-        setExpanded(next);
-    }, [hasSelection, anyDirty, viewModel, setExpanded]);
-
-    const linksTabActive = expanded && activeTab === "links" && !!singleNode;
-    useEffect(() => {
-        if (linksTabActive) {
-            onExpandNode?.(singleNode.id);
-            const ids = new Set([singleNode.id, ...linkedNodes.map((n) => n.id)]);
-            onHighlightSet?.(ids);
-        } else {
-            onHighlightSet?.(null);
-            onExternalHover?.("");
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- deps intentionally narrowed: only re-emit when singleNode id / linkedNodes / linksTabActive change. Parent callbacks are not wrapped in useCallback and would cause redundant re-fires on every parent render.
-    }, [linksTabActive, singleNode?.id, linkedNodes]);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only cleanup: clear external hover/highlight when this panel unmounts (parent callbacks captured at mount)
-    useEffect(() => () => { onHighlightSet?.(null); onExternalHover?.(""); }, []);
+        viewModel.toggleExpanded(hasSelection, anyDirty);
+    }, [hasSelection, anyDirty, viewModel]);
 
     const commitId = useCallback(() => {
         if (!singleNode) return;
@@ -600,10 +657,44 @@ interface LinksTabState {
 const defaultLinksTabState: LinksTabState = { rows: [], columns: [], dirty: false, focus: undefined };
 
 class LinksTabModel extends TComponentModel<LinksTabState, LinksTabProps> {
+    private rowCounter = 0;
+    readonly originalIds = new Set<string>();
+
     setRows = (value: SetStateAction<LinkRow[]>) => this.state.set((state) => ({ ...state, rows: typeof value === "function" ? value(state.rows) : value }));
     setColumns = (value: SetStateAction<Column<LinkRow>[]>) => this.state.set((state) => ({ ...state, columns: typeof value === "function" ? value(state.columns) : value }));
     setDirty = (dirty: boolean) => this.state.update((s) => { s.dirty = dirty; });
     setFocus = (value: SetStateAction<CellFocus<LinkRow> | undefined>) => this.state.set((state) => ({ ...state, focus: typeof value === "function" ? value(state.focus) : value }));
+    nextRowKey = () => `link-${++this.rowCounter}`;
+    resetRowCounter = () => { this.rowCounter = 0; };
+
+    init() {
+        this.effect(() => {
+            const linkedNodes = this.props.linkedNodes;
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.linkedNodes !== linkedNodes) return;
+                const mapped = linkedNodes.map((node) => ({ ...node, _rowKey: this.nextRowKey() }));
+                this.setRows(mapped);
+                this.setColumns(makeColumns(mapped));
+                this.setDirty(false);
+                this.props.onDirtyChange(false);
+                this.originalIds.clear();
+                for (const node of linkedNodes) this.originalIds.add(node.id);
+            });
+        }, () => [this.props.linkedNodes]);
+
+        this.effect(() => {
+            const rowKey = this.state.get().focus?.rowKey;
+            queueMicrotask(() => {
+                if (!this.isLive || this.state.get().focus?.rowKey !== rowKey) return;
+                if (rowKey) {
+                    const row = this.state.get().rows.find((item) => item._rowKey === rowKey);
+                    this.props.onExternalHover?.(row?.id || "");
+                } else {
+                    this.props.onExternalHover?.("");
+                }
+            });
+        }, () => [this.state.get().focus?.rowKey]);
+    }
 }
 
 const KNOWN_KEYS = new Set(["id", "title", "level", "shape"]);
@@ -651,32 +742,6 @@ function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExter
     const setColumns = model.setColumns;
     const setDirty = model.setDirty;
     const setFocus = model.setFocus;
-    const originalIdsRef = useRef<Set<string>>(new Set());
-    const rowCounterRef = useRef(0);
-
-    useEffect(() => {
-        const mapped = linkedNodes.map((n) => ({
-            ...n,
-            _rowKey: `link-${++rowCounterRef.current}`,
-        }));
-        setRows(mapped);
-        setColumns(makeColumns(mapped));
-        setDirty(false);
-        onDirtyChange(false);
-        originalIdsRef.current = new Set(linkedNodes.map((n) => n.id));
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally re-init only when source data (linkedNodes) changes; callback identity changes from parent should not reset row state
-    }, [linkedNodes]);
-
-    useEffect(() => {
-        if (focus?.rowKey) {
-            const row = rows.find((r) => r._rowKey === focus.rowKey);
-            onExternalHover?.(row?.id || "");
-        } else {
-            onExternalHover?.("");
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- hover is keyed on focus changes only; rows mutations are expected to come paired with focus resets by the parent. TODO: consider extracting focusedRowId = rows.find(...)?.id outside the effect for a more defensive structure.
-    }, [focus?.rowKey]);
-
     const markDirty = useCallback(() => {
         setDirty(true);
         onDirtyChange(true);
@@ -701,7 +766,7 @@ function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExter
     const onAddRows = useCallback((count: number, insertIndex?: number) => {
         const newRows: LinkRow[] = Array.from({ length: count }, () => ({
             id: "",
-            _rowKey: `link-${++rowCounterRef.current}`,
+            _rowKey: model.nextRowKey(),
         }));
         setRows((prev) => {
             if (insertIndex !== undefined) {
@@ -713,7 +778,7 @@ function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExter
         });
         markDirty();
         return newRows;
-    }, [markDirty, setRows]);
+    }, [markDirty, model, setRows]);
 
     const onDeleteRows = useCallback((rowKeys: string[]) => {
         const keySet = new Set(rowKeys);
@@ -728,19 +793,17 @@ function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExter
             const { _rowKey, ...rest } = r;
             return rest;
         });
-        onApply(selectedNodeId, cleanRows, originalIdsRef.current);
-    }, [rows, selectedNodeId, onApply]);
+        onApply(selectedNodeId, cleanRows, model.originalIds);
+    }, [model, rows, selectedNodeId, onApply]);
 
     const handleCancel = useCallback(() => {
-        const mapped = linkedNodes.map((n) => ({
-            ...n,
-            _rowKey: `link-${++rowCounterRef.current}`,
-        }));
+        model.resetRowCounter();
+        const mapped = linkedNodes.map((n) => ({ ...n, _rowKey: model.nextRowKey() }));
         setRows(mapped);
         setDirty(false);
         onDirtyChange(false);
         setColumns(makeColumns(mapped));
-    }, [linkedNodes, onDirtyChange, setColumns, setDirty, setRows]);
+    }, [linkedNodes, model, onDirtyChange, setColumns, setDirty, setRows]);
 
     return (
         <Panel direction="column" flex={1} overflow="hidden">
@@ -844,18 +907,84 @@ const defaultPropertiesTabState: PropertiesTabState = {
 };
 
 class PropertiesTabModel extends TComponentModel<PropertiesTabState, PropertiesTabProps> {
+    private rowCounter = 0;
+    readonly originalKeys = new Set<string>();
+    readonly multiInfo = new Map<string, { allSame: boolean; uniqueValues: string[] }>();
+
     setRows = (value: SetStateAction<PropertyRow[]>) => this.state.set((state) => ({ ...state, rows: typeof value === "function" ? value(state.rows) : value }));
     setColumns = (value: SetStateAction<Column<PropertyRow>[]>) => this.state.set((state) => ({ ...state, columns: typeof value === "function" ? value(state.columns) : value }));
     setDirty = (dirty: boolean) => this.state.update((s) => { s.dirty = dirty; });
     setFocus = (value: SetStateAction<CellFocus<PropertyRow> | undefined>) => this.state.set((state) => ({ ...state, focus: typeof value === "function" ? value(state.focus) : value }));
     setStatusMessage = (statusMessage: string) => this.state.update((s) => { s.statusMessage = statusMessage; });
+    nextRowKey = () => `prop-${++this.rowCounter}`;
+    resetRowCounter = () => { this.rowCounter = 0; };
+
+    init() {
+        this.effect(() => {
+            const nodes = this.props.nodes;
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.nodes !== nodes) return;
+                this.resetRowCounter();
+                const isMulti = nodes.length > 1;
+                const singleNode = nodes.length === 1 ? nodes[0] : undefined;
+                let mapped: PropertyRow[] = [];
+                this.originalKeys.clear();
+                this.multiInfo.clear();
+                if (isMulti) {
+                    const merged = extractMultiProperties(nodes);
+                    for (const row of merged) this.multiInfo.set(row.key, { allSame: row.allSame, uniqueValues: row.uniqueValues });
+                    mapped = merged.map((row) => ({
+                        _rowKey: this.nextRowKey(), key: row.key, value: row.value, _isChanged: false,
+                    }));
+                    for (const row of merged) this.originalKeys.add(row.key);
+                } else if (singleNode) {
+                    const extracted = extractCustomProperties(singleNode);
+                    mapped = extracted.map((row) => ({
+                        _rowKey: this.nextRowKey(), key: row.key, value: row.value, _isChanged: false,
+                    }));
+                    for (const row of extracted) this.originalKeys.add(row.key);
+                }
+                this.setRows(mapped);
+                this.setDirty(false);
+                this.props.onDirtyChange(false);
+                this.setStatusMessage("");
+            });
+        }, () => {
+            const nodes = this.props.nodes;
+            return [nodes.map((node) => node.id).sort().join(","), nodes];
+        });
+
+        this.effect(() => {
+            const focusKey = this.state.get().focus?.rowKey;
+            const isMulti = this.props.nodes.length > 1;
+            const rows = this.state.get().rows;
+            queueMicrotask(() => {
+                if (!this.isLive || this.state.get().focus?.rowKey !== focusKey || (this.props.nodes.length > 1) !== isMulti || this.state.get().rows !== rows) return;
+                if (!isMulti || !focusKey) {
+                    this.setStatusMessage("");
+                    return;
+                }
+                const row = rows.find((item) => item._rowKey === focusKey);
+                const info = row?.key ? this.multiInfo.get(row.key) : undefined;
+                if (!info) {
+                    this.setStatusMessage("");
+                } else if (info.allSame) {
+                    this.setStatusMessage("All nodes have the same value");
+                } else if (info.uniqueValues.length === 0) {
+                    this.setStatusMessage("No nodes have this property");
+                } else {
+                    const shown = info.uniqueValues.slice(0, 2).map((value) => `"${value}"`).join(", ");
+                    const suffix = info.uniqueValues.length > 2 ? ", ..." : "";
+                    this.setStatusMessage(`Values: ${shown}${suffix}`);
+                }
+            });
+        }, () => [this.state.get().focus?.rowKey, this.props.nodes.length > 1, this.state.get().rows]);
+    }
 }
 
 function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: PropertiesTabProps) {
     const isMulti = nodes.length > 1;
     const singleNode = nodes.length === 1 ? nodes[0] : null;
-    const selectionKey = useMemo(() => nodes.map((n) => n.id).sort().join(","), [nodes]);
-
     const tabProps: PropertiesTabProps = { nodes, onApply, onBatchApply, onDirtyChange };
     const model = useComponentModel(tabProps, PropertiesTabModel, defaultPropertiesTabState);
     const rows = model.state.use((s) => s.rows);
@@ -868,65 +997,6 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
     const setDirty = model.setDirty;
     const setFocus = model.setFocus;
     const setStatusMessage = model.setStatusMessage;
-    const originalKeysRef = useRef<Set<string>>(new Set());
-    const rowCounterRef = useRef(0);
-    const multiInfoRef = useRef<Map<string, { allSame: boolean; uniqueValues: string[] }>>(new Map());
-
-    useEffect(() => {
-        rowCounterRef.current = 0;
-        if (isMulti) {
-            const merged = extractMultiProperties(nodes);
-            multiInfoRef.current = new Map(merged.map((r) => [r.key, { allSame: r.allSame, uniqueValues: r.uniqueValues }]));
-            const mapped: PropertyRow[] = merged.map((r) => ({
-                _rowKey: `prop-${++rowCounterRef.current}`,
-                key: r.key,
-                value: r.value,
-                _isChanged: false,
-            }));
-            setRows(mapped);
-            originalKeysRef.current = new Set(merged.map((r) => r.key));
-        } else if (singleNode) {
-            const extracted = extractCustomProperties(singleNode);
-            multiInfoRef.current = new Map();
-            const mapped: PropertyRow[] = extracted.map((r) => ({
-                _rowKey: `prop-${++rowCounterRef.current}`,
-                key: r.key,
-                value: r.value,
-                _isChanged: false,
-            }));
-            setRows(mapped);
-            originalKeysRef.current = new Set(extracted.map((r) => r.key));
-        }
-        setDirty(false);
-        onDirtyChange(false);
-        setStatusMessage("");
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- isMulti / singleNode are derived from `nodes` (in deps); onDirtyChange identity changes from parent should not reset row state
-    }, [selectionKey, nodes]);
-
-    useEffect(() => {
-        if (!isMulti || !focus?.rowKey) {
-            setStatusMessage("");
-            return;
-        }
-        const row = rows.find((r) => r._rowKey === focus.rowKey);
-        if (!row || !row.key) {
-            setStatusMessage("");
-            return;
-        }
-        const info = multiInfoRef.current.get(row.key);
-        if (!info) {
-            setStatusMessage("");
-        } else if (info.allSame) {
-            setStatusMessage("All nodes have the same value");
-        } else if (info.uniqueValues.length === 0) {
-            setStatusMessage("No nodes have this property");
-        } else {
-            const shown = info.uniqueValues.slice(0, 2).map((v) => `"${v}"`).join(", ");
-            const suffix = info.uniqueValues.length > 2 ? ", ..." : "";
-            setStatusMessage(`Values: ${shown}${suffix}`);
-        }
-    }, [focus?.rowKey, isMulti, rows, setStatusMessage]);
-
     const hasInvalidKeys = useMemo(() =>
         rows.some((r) => r.key && isReservedPropertyKey(r.key)),
     [rows]);
@@ -945,7 +1015,7 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
 
     const onAddRows = useCallback((count: number, insertIndex?: number) => {
         const newRows: PropertyRow[] = Array.from({ length: count }, () => ({
-            _rowKey: `prop-${++rowCounterRef.current}`,
+            _rowKey: model.nextRowKey(),
             key: "",
             value: "",
             _isChanged: true,
@@ -960,7 +1030,7 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
         });
         markDirty();
         return newRows;
-    }, [markDirty, setRows]);
+    }, [markDirty, model, setRows]);
 
     const onDeleteRows = useCallback((rowKeys: string[]) => {
         const keySet = new Set(rowKeys);
@@ -980,7 +1050,7 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
                 propsToSet[k] = row.value;
             }
             const currentKeys = new Set(rows.map((r) => r.key.trim()).filter(Boolean));
-            const keysToRemove = [...originalKeysRef.current].filter((k) => !currentKeys.has(k));
+            const keysToRemove = [...model.originalKeys].filter((k) => !currentKeys.has(k));
 
             const nodeIds = nodes.map((n) => n.id);
             onBatchApply(nodeIds, propsToSet, keysToRemove);
@@ -993,51 +1063,55 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
                 propsToSet[k] = row.value;
             }
             const currentKeys = new Set(rows.map((r) => r.key.trim()).filter(Boolean));
-            const keysToRemove = [...originalKeysRef.current].filter((k) => !currentKeys.has(k));
+            const keysToRemove = [...model.originalKeys].filter((k) => !currentKeys.has(k));
 
             onApply(singleNode.id, propsToSet, keysToRemove);
         }
-    }, [rows, nodes, singleNode, isMulti, onApply, onBatchApply]);
+    }, [model, rows, nodes, singleNode, isMulti, onApply, onBatchApply]);
 
     const handleCancel = useCallback(() => {
-        rowCounterRef.current = 0;
+        model.resetRowCounter();
+        model.originalKeys.clear();
+        model.multiInfo.clear();
         if (isMulti) {
             const merged = extractMultiProperties(nodes);
-            multiInfoRef.current = new Map(merged.map((r) => [r.key, { allSame: r.allSame, uniqueValues: r.uniqueValues }]));
+            for (const row of merged) model.multiInfo.set(row.key, { allSame: row.allSame, uniqueValues: row.uniqueValues });
             const mapped: PropertyRow[] = merged.map((r) => ({
-                _rowKey: `prop-${++rowCounterRef.current}`,
+                _rowKey: model.nextRowKey(),
                 key: r.key,
                 value: r.value,
                 _isChanged: false,
             }));
+            for (const row of merged) model.originalKeys.add(row.key);
             setRows(mapped);
         } else if (singleNode) {
             const extracted = extractCustomProperties(singleNode);
             const mapped: PropertyRow[] = extracted.map((r) => ({
-                _rowKey: `prop-${++rowCounterRef.current}`,
+                _rowKey: model.nextRowKey(),
                 key: r.key,
                 value: r.value,
                 _isChanged: false,
             }));
+            for (const row of extracted) model.originalKeys.add(row.key);
             setRows(mapped);
         }
         setDirty(false);
         onDirtyChange(false);
         setStatusMessage("");
-    }, [nodes, singleNode, isMulti, onDirtyChange, setDirty, setRows, setStatusMessage]);
+    }, [model, nodes, singleNode, isMulti, onDirtyChange, setDirty, setRows, setStatusMessage]);
 
     const cellClass = useCallback((row: PropertyRow, col: Column<PropertyRow>) => {
         if (col.key === "key" && row.key && isReservedPropertyKey(row.key)) {
             return "cell-error";
         }
         if (col.key === "key" && isMulti && row.key) {
-            const info = multiInfoRef.current.get(row.key);
+            const info = model.multiInfo.get(row.key);
             if (info && !info.allSame && !row._isChanged) {
                 return "cell-mixed";
             }
         }
         return "";
-    }, [isMulti]);
+    }, [isMulti, model]);
 
     return (
         <Panel direction="column" flex={1} overflow="hidden">

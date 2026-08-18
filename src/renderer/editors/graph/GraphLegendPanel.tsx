@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Button, Input, Panel } from "../../uikit";
 import color from "../../theme/color";
 import type { GraphEditor } from "./GraphEditor";
@@ -160,6 +160,8 @@ const defaultGraphLegendState: GraphLegendState = {
 };
 
 class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPanelProps> {
+    private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
     checkedLevelsSet = this.memo(
         () => new Set(this.state.get().checkedLevels),
         () => [this.state.get().checkedLevels],
@@ -187,57 +189,78 @@ class GraphLegendModel extends TComponentModel<GraphLegendState, GraphLegendPane
             ...(key === "root" ? { [other]: { ...s.descriptions[other], root: value } } : {}),
         };
     });
-}
 
-export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
-    const [hovered, setHovered] = useState(false);
-    const [focusWithin, setFocusWithin] = useState(false);
-    const model = useComponentModel({ editor }, GraphLegendModel, defaultGraphLegendState);
-    const expanded = model.state.use((s) => s.expanded);
-    const activeTab = model.state.use((s) => s.activeTab);
-    model.state.use((s) => s.checkedLevels);
-    model.state.use((s) => s.checkedShapes);
-    const selectionFilter = model.state.use((s) => s.selectionFilter);
-    const descriptions = model.state.use((s) => s.descriptions);
-    const checkedLevels = model.checkedLevelsSet.value;
-    const checkedShapes = model.checkedShapesSet.value;
-    const setExpanded = model.setExpanded;
-    const setActiveTab = model.setActiveTab;
-    const setSelectionFilter = model.setSelectionFilter;
+    scheduleDescription = (tab: "levels" | "shapes", key: string, value: string) => {
+        this.updateDescription(tab, key, value);
+        const timerKey = `${tab}:${key}`;
+        const existing = this.debounceTimers.get(timerKey);
+        if (existing) clearTimeout(existing);
+        this.debounceTimers.set(timerKey, setTimeout(() => {
+            if (this.isLive) this.props.editor.setLegendDescription(tab, key, value);
+            this.debounceTimers.delete(timerKey);
+        }, 300));
+    };
 
-    const selectedKey = useSyncExternalStore(
-        (cb) => editor.state.subscribe(cb),
-        () => editor.state.get().selectedNodes.map((n) => n.id).join(","),
-    );
-    const searchQuery = useSyncExternalStore(
-        (cb) => editor.state.subscribe(cb),
-        () => editor.state.get().searchQuery,
-    );
-    const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+    init() {
+        this.effect(() => {
+            const editor = this.props.editor;
+            const onHighlightSelection = () => {
+                this.setExpanded(true);
+                this.setActiveTab("selection");
+                this.setSelectionFilter("selected");
+            };
+            editor.onHighlightSelection = onHighlightSelection;
+            return () => {
+                if (editor.onHighlightSelection === onHighlightSelection) editor.onHighlightSelection = null;
+                this.clearTimers();
+            };
+        }, () => [this.props.editor]);
 
-    useEffect(() => {
-        editor.onHighlightSelection = () => {
-            setExpanded(true);
-            setActiveTab("selection");
-            setSelectionFilter("selected");
-        };
-        return () => { editor.onHighlightSelection = null; };
-    }, [editor, setActiveTab, setExpanded, setSelectionFilter]);
-
-    useEffect(() => {
-        const legend = editor.getLegendDescriptions();
-        model.setDescriptions({
-                levels: { ...legend.levels },
-                shapes: { ...legend.shapes },
+        this.effect(() => {
+            const editor = this.props.editor;
+            const legend = editor.getLegendDescriptions();
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.editor !== editor) return;
+                this.setDescriptions({ levels: { ...legend.levels }, shapes: { ...legend.shapes } });
             });
-    }, [editor, model]);
+        }, () => [this.props.editor]);
 
-    const { hasRoot, hasGroup } = useMemo(() => {
-        const info = editor.getPresentLevelsAndShapes();
-        return { hasRoot: info.hasRoot, hasGroup: info.hasGroup };
-    }, [editor]);
+        this.effect(() => {
+            const editor = this.props.editor;
+            const expanded = this.state.get().expanded;
+            const activeTab = this.state.get().activeTab;
+            const selectionFilter = this.state.get().selectionFilter;
+            const checkedLevels = this.state.get().checkedLevels;
+            const checkedShapes = this.state.get().checkedShapes;
+            const selectedKey = editor.state.get().selectedNodes.map((node) => node.id).join(",");
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.editor !== editor) return;
+                const currentSelectedKey = editor.state.get().selectedNodes.map((node) => node.id).join(",");
+                if (currentSelectedKey !== selectedKey || this.state.get().expanded !== expanded || this.state.get().activeTab !== activeTab || this.state.get().selectionFilter !== selectionFilter || this.state.get().checkedLevels !== checkedLevels || this.state.get().checkedShapes !== checkedShapes) return;
+                this.applyLegendHighlight(editor, expanded, activeTab, selectionFilter, checkedLevels, checkedShapes);
+            });
+        }, () => {
+            const editor = this.props.editor;
+            return [
+                editor,
+                this.state.get().expanded,
+                this.state.get().activeTab,
+                this.state.get().selectionFilter,
+                this.state.get().checkedLevels,
+                this.state.get().checkedShapes,
+                editor.state.get().selectedNodes.map((node) => node.id).join(","),
+            ];
+        });
+    }
 
-    useEffect(() => {
+    private applyLegendHighlight(
+        editor: GraphEditor,
+        expanded: boolean,
+        activeTab: LegendTab,
+        selectionFilter: SelectionFilter,
+        checkedLevels: string[],
+        checkedShapes: string[],
+    ) {
         if (!expanded) {
             editor.setLegendHighlight(null);
             return;
@@ -264,7 +287,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
                 }
                 editor.setLegendHighlight(ids);
             } else {
-                const allIds = new Set(editor.renderer.getNodes().map((n) => n.id));
+                const allIds = new Set(editor.renderer.getNodes().map((node) => node.id));
                 for (const id of selectedIds) allIds.delete(id);
                 editor.setLegendHighlight(allIds.size > 0 ? allIds : new Set());
             }
@@ -272,7 +295,7 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
         }
 
         const checked = activeTab === "level" ? checkedLevels : checkedShapes;
-        if (checked.size === 0) {
+        if (checked.length === 0) {
             editor.setLegendHighlight(null);
             return;
         }
@@ -300,27 +323,54 @@ export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
             const ids = editor.getNodeIdsByLegendFilter({ shapes: shapeNames.size > 0 ? shapeNames : undefined, includeRoot, includeGroup });
             editor.setLegendHighlight(ids.size > 0 ? ids : new Set());
         }
-    }, [editor, expanded, activeTab, checkedLevels, checkedShapes, selectionFilter, selectedKey]);
+    }
+
+    private clearTimers() {
+        for (const timer of this.debounceTimers.values()) clearTimeout(timer);
+        this.debounceTimers.clear();
+    }
+
+    dispose() {
+        this.clearTimers();
+    }
+}
+
+export function GraphLegendPanel({ editor }: GraphLegendPanelProps) {
+    const [hovered, setHovered] = useState(false);
+    const [focusWithin, setFocusWithin] = useState(false);
+    const model = useComponentModel({ editor }, GraphLegendModel, defaultGraphLegendState);
+    const expanded = model.state.use((s) => s.expanded);
+    const activeTab = model.state.use((s) => s.activeTab);
+    model.state.use((s) => s.checkedLevels);
+    model.state.use((s) => s.checkedShapes);
+    const selectionFilter = model.state.use((s) => s.selectionFilter);
+    const descriptions = model.state.use((s) => s.descriptions);
+    const checkedLevels = model.checkedLevelsSet.value;
+    const checkedShapes = model.checkedShapesSet.value;
+    const setActiveTab = model.setActiveTab;
+    const setSelectionFilter = model.setSelectionFilter;
+
+    const selectedKey = useSyncExternalStore(
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().selectedNodes.map((n) => n.id).join(","),
+    );
+    void selectedKey;
+    const searchQuery = useSyncExternalStore(
+        (cb) => editor.state.subscribe(cb),
+        () => editor.state.get().searchQuery,
+    );
+    const { hasRoot, hasGroup } = useMemo(() => {
+        const info = editor.getPresentLevelsAndShapes();
+        return { hasRoot: info.hasRoot, hasGroup: info.hasGroup };
+    }, [editor]);
 
     const toggleCheck = useCallback((tab: LegendTab, key: string) => {
         model.toggleCheck(tab, key);
     }, [model]);
 
     const handleDescriptionChange = useCallback((tab: "levels" | "shapes", key: string, value: string) => {
-        model.updateDescription(tab, key, value);
-
-        const timerKey = `${tab}:${key}`;
-        const existing = debounceTimers.current.get(timerKey);
-        if (existing) clearTimeout(existing);
-        debounceTimers.current.set(timerKey, setTimeout(() => {
-            editor.setLegendDescription(tab, key, value);
-            debounceTimers.current.delete(timerKey);
-        }, 300));
-    }, [editor, model]);
-
-    useEffect(() => () => {
-        for (const timer of debounceTimers.current.values()) clearTimeout(timer);
-    }, []);
+        model.scheduleDescription(tab, key, value);
+    }, [model]);
 
     const toggleExpanded = useCallback(() => {
         model.setExpanded(!model.state.get().expanded);

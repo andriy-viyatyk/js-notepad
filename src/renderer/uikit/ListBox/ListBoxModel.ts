@@ -216,6 +216,8 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     // --- lifecycle ---
 
     init() {
+        this.props.onModel?.(this);
+
         // Force RenderGrid to re-render cells whenever any of the display inputs change.
         // RenderGrid does not re-render its cells when its renderCell identity changes
         // unless told.
@@ -269,4 +271,8 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
             () => [this.props.activeIndex],
         );
     }
+
+    onUnmount = () => {
+        this.props.onModel?.(null);
+    };
 }

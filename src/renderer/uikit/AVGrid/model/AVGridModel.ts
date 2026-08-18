@@ -187,4 +187,12 @@ export class AVGridModel<R> extends TComponentModel<
             s.rerender = new Date().getTime();
         });
     };
+
+    init() {
+        this.props.onModel?.(this);
+    }
+
+    onUnmount = () => {
+        this.props.onModel?.(null);
+    };
 }

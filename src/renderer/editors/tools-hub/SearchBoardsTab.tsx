@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Panel, Text, Button, Tag, Input, IconButton } from "../../uikit";
 import { publishedBoards } from "../../api/published-boards";
 import { boardInstallRegistry } from "../../api/board-install-registry";
@@ -44,14 +44,16 @@ class SearchBoardsModel extends TComponentModel<SearchBoardsState, Record<string
     setRefreshing = (refreshing: boolean) => {
         this.state.update((s) => { s.refreshing = refreshing; });
     };
+
+    init() {
+        this.effect(() => {
+            void publishedBoards.load();
+            void boardInstallRegistry.load();
+        });
+    }
 }
 
 export function SearchBoardsTab() {
-    useEffect(() => {
-        void publishedBoards.load();
-        void boardInstallRegistry.load();
-    }, []);
-
     const catalog = publishedBoards.useCatalog();
     const installed = boardInstallRegistry.useInstalled();
     const updates = useBoardUpdates();

@@ -8,20 +8,6 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-051** — [De-React Epic P — Preparation (React-side)](epics/EPIC-051.md)
-  - [ ] [US-965: Icon name registry + neutral slot types (foundation)](tasks/US-965-icon-registry-slots/README.md)
-  - [ ] [US-966: Neutral slots — UIKit primitives and inputs](tasks/US-966-neutral-slots-primitives/README.md)
-  - [ ] [US-967: Neutral slots — UIKit list and data components](tasks/US-967-neutral-slots-list-data/README.md)
-  - [ ] [US-968: Neutral slots — UIKit containers and floating layer](tasks/US-968-neutral-slots-containers-floating/README.md)
-  - [ ] [US-969: Neutral slots — `ui/` and `components/`](tasks/US-969-neutral-slots-shell/README.md)
-  - [ ] [US-970: Lift local `useState` into models](tasks/US-970-lift-state-models/README.md)
-  - [ ] [US-976: Below-threshold local state](tasks/US-976-below-threshold-state/README.md)
-  - [ ] [US-971: Imperative handles → model methods / `ComponentQueue`](tasks/US-971-imperative-handles/README.md)
-  - [ ] [US-977: `forwardRef` → React 19 ref props](tasks/US-977-react19-ref-props/README.md)
-  - [ ] [US-972: React context → explicit model references](tasks/US-972-explicit-model-references/README.md)
-  - [ ] [US-973: Route `document.body` portals through one host](tasks/US-973-portal-host/README.md)
-  - [ ] US-974: Move logic from `useEffect` into `TComponentModel.effect()`
-  - [ ] US-975: Emotion usage inventory
 - *(no epic)*
   - *(no active tasks)*
 

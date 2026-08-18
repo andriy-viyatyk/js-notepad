@@ -248,6 +248,38 @@ class GraphBodyModel extends TComponentModel<GraphBodyState, GraphBodyProps> {
     incrementExpandRequest = () => this.state.update((s) => { s.expandRequest += 1; });
     incrementCollapseRequest = () => this.state.update((s) => { s.collapseRequest += 1; });
     setSelectedResultIndex = (selectedResultIndex: number) => this.state.update((s) => { s.selectedResultIndex = selectedResultIndex; });
+
+    init() {
+        this.effect(() => {
+            const editor = this.props.model;
+            const onDoubleClickNode = () => this.incrementExpandRequest();
+            editor.onDoubleClickNode = onDoubleClickNode;
+            return () => {
+                if (editor.onDoubleClickNode === onDoubleClickNode) editor.onDoubleClickNode = null;
+            };
+        }, () => [this.props.model]);
+
+        this.effect(() => {
+            const editor = this.props.model;
+            const state = editor.state.get();
+            const searchResults = state.searchResults;
+            const searchQuery = state.searchQuery;
+            queueMicrotask(() => {
+                if (!this.isLive || this.props.model !== editor) return;
+                const currentState = editor.state.get();
+                if (currentState.searchResults !== searchResults || currentState.searchQuery !== searchQuery) return;
+                if (searchResults && searchResults.length > 0) {
+                    this.setToolbarPanel("results");
+                    this.setSelectedResultIndex(-1);
+                } else if (!searchQuery && this.state.get().toolbarPanel === "results") {
+                    this.setToolbarPanel("closed");
+                }
+            });
+        }, () => {
+            const state = this.props.model.state.get();
+            return [this.props.model, state.searchResults, state.searchQuery];
+        });
+    }
 }
 
 export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
@@ -278,11 +310,6 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
     }, [viewModel]);
 
     // GR3 — wire onDoubleClickNode for GraphDetailPanel expand integration.
-    useEffect(() => {
-        editor.onDoubleClickNode = () => viewModel.incrementExpandRequest();
-        return () => { editor.onDoubleClickNode = null; };
-    }, [editor, viewModel]);
-
     // Reactive read of all view-derived state.
     const pageState = editor.state.use((s) => s);
 
@@ -291,15 +318,6 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
     });
 
     const { searchQuery, searchInfo, searchResults, tooltip, selectedNodes, linkedNodes, groupingEnabled } = pageState;
-
-    useEffect(() => {
-        if (searchResults && searchResults.length > 0) {
-            setToolbarPanel("results");
-            setSelectedResultIndex(-1);
-        } else if (!searchQuery) {
-            if (viewModel.state.get().toolbarPanel === "results") setToolbarPanel("closed");
-        }
-    }, [searchResults, searchQuery, setToolbarPanel, setSelectedResultIndex, viewModel.state]);
 
     const onSearchChange = useCallback((value: string) => {
         editor.setSearchQuery(value);

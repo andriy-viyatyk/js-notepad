@@ -184,18 +184,42 @@ interface VariablesGridProps {
 }
 
 class VariablesGridModel extends TComponentModel<VariablesGridState, VariablesGridProps> {
+    private rowCounter = 0;
+    private appliedData: Record<string, string> | null = null;
+
     setRows = (value: SetStateAction<VarRow[]>) => this.state.set((state) => ({ ...state, rows: typeof value === "function" ? value(state.rows) : value }));
     setColumns = (value: SetStateAction<Column<VarRow>[]>) => this.state.set((state) => ({ ...state, columns: typeof value === "function" ? value(state.columns) : value }));
     setFocus = (value: SetStateAction<CellFocus<VarRow> | undefined>) => this.state.set((state) => ({ ...state, focus: typeof value === "function" ? value(state.focus) : value }));
     setWarning = (warning: string | undefined) => this.state.update((s) => { s.warning = warning; });
+
+    nextRowKey = () => `var-${++this.rowCounter}`;
+
+    markDataApplied = (data: Record<string, string>) => {
+        this.appliedData = data;
+    };
+
+    init() {
+        this.effect(() => {
+            const data = this.props.data;
+            if (data === this.appliedData) return;
+            this.appliedData = data;
+            const seeded = Object.keys(data).sort().map((name) => ({
+                _rowKey: this.nextRowKey(),
+                name,
+                value: data[name],
+            }));
+            let cancelled = false;
+            queueMicrotask(() => {
+                if (cancelled || !this.isLive) return;
+                this.setRows(seeded);
+                this.setWarning(undefined);
+            });
+            return () => { cancelled = true; };
+        }, () => [this.props.namespace, this.props.profile, this.props.data]);
+    }
 }
 
 function VariablesGrid({ model, namespace, profile, data, editorConfig = {} }: VariablesGridProps & { editorConfig?: EditorConfig }) {
-    const rowCounterRef = useRef(0);
-    // Reference to the last record object this component itself pushed via
-    // setProfileData — lets the reseed effect ignore its own echo while still
-    // reacting to a genuinely external change (e.g. a board's var.set()).
-    const appliedRef = useRef<Record<string, string> | null>(null);
     const gridRef = useRef<AVGridModel<VarRow> | null>(null);
     const gridModel = useComponentModel({ model, namespace, profile, data }, VariablesGridModel, defaultVariablesGridState);
     const rows = gridModel.state.use((s) => s.rows);
@@ -217,25 +241,12 @@ function VariablesGrid({ model, namespace, profile, data, editorConfig = {} }: V
         // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only autofocus
     }, []);
 
-    useEffect(() => {
-        if (data === appliedRef.current) return;
-        const seeded = Object.keys(data).sort().map((name) => ({
-            _rowKey: `var-${++rowCounterRef.current}`,
-            name,
-            value: data[name],
-        }));
-        setRows(seeded);
-        setWarning(undefined);
-        appliedRef.current = data;
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- reseed only on namespace/profile/data identity change; the row-key counter ref must not retrigger this
-    }, [namespace, profile, data]);
-
     const applyIfValid = (nextRows: VarRow[]) => {
         const reason = validateRows(nextRows);
         setWarning(reason);
         if (reason) return;
         const record = rowsToRecord(nextRows);
-        appliedRef.current = record;
+        gridModel.markDataApplied(record);
         model.setProfileData(namespace, profile, record);
     };
 
@@ -251,7 +262,7 @@ function VariablesGrid({ model, namespace, profile, data, editorConfig = {} }: V
 
     const onAddRows = (count: number, insertIndex?: number): VarRow[] => {
         const newRows: VarRow[] = Array.from({ length: count }, () => ({
-            _rowKey: `var-${++rowCounterRef.current}`,
+            _rowKey: gridModel.nextRowKey(),
             name: "",
             value: "",
         }));

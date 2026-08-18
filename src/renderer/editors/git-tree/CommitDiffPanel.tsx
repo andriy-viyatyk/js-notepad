@@ -60,6 +60,67 @@ class CommitDiffPanelModel extends TComponentModel<CommitDiffPanelState, CommitD
     setDiff = (diff: { before: string; after: string }) => {
         this.state.update((s) => { s.diff = diff; });
     };
+
+    init() {
+        this.effect(() => {
+            let live = true;
+            const commit = this.props.gitTree.state.get().commits.find(
+                (item) => item.hash === this.props.selectedHash,
+            );
+            if (!commit) {
+                queueMicrotask(() => {
+                    if (!live || !this.isLive) return;
+                    this.setChanges([]);
+                    this.setSelectedFile(undefined);
+                });
+                return () => { live = false; };
+            }
+            void git.commitFiles(this.props.repoRoot, commit.hash).then((files) => {
+                if (!live) return;
+                this.setChanges(files);
+                this.setSelectedFile(files[0]?.path);
+            });
+            return () => { live = false; };
+        }, () => [
+            this.props.repoRoot,
+            this.props.selectedHash,
+            this.props.gitTree.state.get().commits.find(
+                (item) => item.hash === this.props.selectedHash,
+            )?.hash,
+        ]);
+
+        this.effect(() => {
+            let live = true;
+            const commit = this.props.gitTree.state.get().commits.find(
+                (item) => item.hash === this.props.selectedHash,
+            );
+            const { changes, selectedFile } = this.state.get();
+            const change = changes.find((item) => item.path === selectedFile);
+            if (!commit || !selectedFile || !change) {
+                queueMicrotask(() => {
+                    if (live && this.isLive) this.setDiff({ before: "", after: "" });
+                });
+                return () => { live = false; };
+            }
+            const parent = commit.parents[0] ?? "";
+            const beforePath = change.oldPath ?? selectedFile;
+            void Promise.all([
+                parent ? git.show(this.props.repoRoot, parent, beforePath) : Promise.resolve(""),
+                git.show(this.props.repoRoot, commit.hash, selectedFile),
+            ]).then(([before, after]) => {
+                if (live) this.setDiff({ before, after });
+            });
+            return () => { live = false; };
+        }, () => [
+            this.props.repoRoot,
+            this.props.selectedHash,
+            this.props.gitTree.state.get().commits.find(
+                (item) => item.hash === this.props.selectedHash,
+            )?.hash,
+            this.state.get().changes,
+            this.state.get().selectedFile,
+        ]);
+    }
 }
 
 export function CommitDiffPanel(props: CommitDiffPanelProps) {
@@ -75,49 +136,6 @@ export function CommitDiffPanel(props: CommitDiffPanelProps) {
     const commits = gitTree.state.use((s) => s.commits);
     const commit = commits.find((c) => c.hash === selectedHash);
     const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
-
-    // Fetch the changed-file list when the selected commit changes. Reset the
-    // file selection to the first file (or none).
-    useEffect(() => {
-        let live = true;
-        if (!commit) {
-            model.setChanges([]);
-            model.setSelectedFile(undefined);
-            return;
-        }
-        void git.commitFiles(repoRoot, commit.hash).then((files) => {
-            if (!live) return;
-            model.setChanges(files);
-            model.setSelectedFile(files[0]?.path);
-        });
-        return () => { live = false; };
-        // Keyed on the commit's hash, not the `commit` object — its identity
-        // changes on every `commits` rebuild (refresh). Same as CommitInfoPanel.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [repoRoot, commit?.hash, model]);
-
-    // Resolve before/after blobs when the selected file (or commit) changes.
-    // before = parent[0]:oldPath (rename-aware), after = commit:path. `git.show`
-    // returns "" when a path is absent at a revision (added → empty before,
-    // deleted → empty after, root commit → empty before).
-    useEffect(() => {
-        let live = true;
-        const change = changes.find((c) => c.path === selectedFile);
-        if (!commit || !selectedFile || !change) {
-            model.setDiff({ before: "", after: "" });
-            return;
-        }
-        const parent = commit.parents[0] ?? "";
-        const beforePath = change.oldPath ?? selectedFile;
-        void Promise.all([
-            parent ? git.show(repoRoot, parent, beforePath) : Promise.resolve(""),
-            git.show(repoRoot, commit.hash, selectedFile),
-        ]).then(([before, after]) => {
-            if (live) model.setDiff({ before, after });
-        });
-        return () => { live = false; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [repoRoot, commit?.hash, selectedFile, changes, model]);
 
     // Reset the diff scroll to the top whenever a new file's diff loads. Monaco
     // reuses the editor instance across files (setValue), which preserves the

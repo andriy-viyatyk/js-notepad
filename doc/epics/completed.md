@@ -4,6 +4,36 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-051 — [De-React Epic P — Preparation (React-side)](EPIC-051.md)
+
+Completed the React-side preparation work for the de-React roadmap. UIKit, shell, and coupled
+component slots now use neutral icon names and text types; local model-owned state, imperative
+handles, contexts, and effects were moved to explicit model boundaries; ordinary DOM refs use
+React 19 ref props; body overlays share one host; and the Emotion and inline-style surfaces were
+inventoried for Epic A. The epic remains React-only and introduces no user-facing workflow change.
+
+Verification: `npm run typecheck`, `npm run lint`, and `git diff --check` passed. Epic-level review,
+developer documentation, and user-documentation checks completed; no user-facing documentation
+change was warranted.
+
+- [x] [US-965: Icon name registry + neutral slot types (foundation)](../tasks/US-965-icon-registry-slots/README.md)
+- [x] [US-966: Neutral slots — UIKit primitives and inputs](../tasks/US-966-neutral-slots-primitives/README.md)
+- [x] [US-967: Neutral slots — UIKit list and data components](../tasks/US-967-neutral-slots-list-data/README.md)
+- [x] [US-968: Neutral slots — UIKit containers and floating layer](../tasks/US-968-neutral-slots-containers-floating/README.md)
+- [x] [US-969: Neutral slots — `ui/` and `components/`](../tasks/US-969-neutral-slots-shell/README.md)
+- [x] [US-970: Lift local `useState` into models](../tasks/US-970-lift-state-models/README.md)
+- [x] [US-976: Below-threshold local state](../tasks/US-976-below-threshold-state/README.md)
+- [x] [US-971: Imperative handles → model methods / `ComponentQueue`](../tasks/US-971-imperative-handles/README.md)
+- [x] [US-977: `forwardRef` → React 19 ref props](../tasks/US-977-react19-ref-props/README.md)
+- [x] [US-972: React context → explicit model references](../tasks/US-972-explicit-model-references/README.md)
+- [x] [US-973: Route `document.body` portals through one host](../tasks/US-973-portal-host/README.md)
+- [x] [US-974: Move model-owned effects into `TComponentModel.effect()`](../tasks/US-974-effects-into-model/README.md)
+- [x] [US-978: Move graph effects into existing models](../tasks/US-978-graph-effects/README.md)
+- [x] [US-975: Emotion usage inventory](../tasks/US-975-emotion-inventory/README.md)
+- [x] [US-979: Inline style inventory](../tasks/US-979-inline-style-inventory/README.md)
+
+---
+
 ## EPIC-050 — [Folder-content view — multiselect and drag-and-drop](EPIC-050.md)
 
 Brought the folder page — the `CategoryEditor` / `CategoryView` pair that opens when a folder is clicked in the Explorer panel — up to the parity EPIC-049 gave the tree beside it. It is the Explorer's "list pane", and it was the poor relation: one row selectable, every action singular, and nothing draggable in or out. Dropping files from Windows Explorer onto it did not file them into the open folder at all; the window-level fallback in `GlobalEventService` opened them as tabs. The feasibility work found the same shape EPIC-049 found: the set-shaped operations all existed, but they were keyed on tree nodes. Crucially the four drop actions read only **two** things from a node — a target directory path and a display title — so they were *target-shaped, not tree-shaped*, and could be lifted into a shared module behind a `DropTarget` of `{ path, title }` with the tree keeping a thin node→target adapter. That observation is what made the extraction a standalone task rather than a copy.

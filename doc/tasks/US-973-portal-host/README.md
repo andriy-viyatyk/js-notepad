@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Implemented — pending EPIC-051 review
+**Status:** Implemented — reviewed as part of EPIC-051 close-out
 
 **Priority:** Medium
 

@@ -10,11 +10,6 @@ import {
 import { BrowserBookmarks } from "./BrowserBookmarks";
 import { BrowserSecondaryViews } from "./BrowserSecondaryViews";
 
-// =============================================================================
-// Styled — single styled(Panel) wrapper for drawer backdrop + slide-in animation
-// (Rule 7 exception)
-// =============================================================================
-
 const backdropStyle: React.CSSProperties = { flex: "1 1 auto", backgroundColor: color.background.backdrop };
 const panelWrapStyle = (width: number, open: boolean): React.CSSProperties => ({
     width,

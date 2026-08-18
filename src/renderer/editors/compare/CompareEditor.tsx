@@ -1,5 +1,4 @@
 import * as monaco from "monaco-editor";
-import { useEffect } from "react";
 import { DiffEditor } from "@monaco-editor/react";
 import { TextFileModel } from "../text";
 import { Panel, Toolbar, Text, IconButton } from "../../uikit";
@@ -52,12 +51,6 @@ export function CompareEditor(props: CompareEditorProps) {
             groupedFilePath: s.filePath,
             groupedTitle: s.title,
         }));
-
-    useEffect(() => {
-        return () => {
-            editorModel.dispose();
-        };
-    }, [editorModel]);
 
     const leftLabel = filePath || title;
     const rightLabel = groupedFilePath || groupedTitle;

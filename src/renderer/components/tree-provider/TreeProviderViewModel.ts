@@ -91,6 +91,10 @@ export interface TreeProviderViewProps {
     multiSelect?: boolean;
 }
 
+export interface TreeProviderViewModelProps extends TreeProviderViewProps {
+    onModel: ((model: TreeProviderViewModel | null) => void) | undefined;
+}
+
 export interface TreeProviderViewState {
     tree: TreeProviderNode | null;
     displayTree: TreeProviderNode | null;
@@ -134,12 +138,20 @@ interface TreeController {
 
 export class TreeProviderViewModel extends TComponentModel<
     TreeProviderViewState,
-    TreeProviderViewProps
+    TreeProviderViewModelProps
 > {
     treeModel: TreeController | null = null;
     savedExpandMap: Record<string, boolean> | null = null;
     initialExpandMap: Record<string, boolean> | undefined = undefined;
     private watchSubscription?: { unsubscribe: () => void };
+
+    init() {
+        this.props.onModel?.(this);
+    }
+
+    onUnmount = () => {
+        this.props.onModel?.(null);
+    };
 
     setProps = () => {
         if (this.isFirstUse) {

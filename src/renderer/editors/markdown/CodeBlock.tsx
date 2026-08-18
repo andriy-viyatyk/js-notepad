@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { monacoLanguages } from "../../core/utils/monaco-languages";
 import { pagesModel } from "../../api/pages";
 import { CopyIcon, OpenLinkIcon } from "../../theme/icons";
@@ -109,6 +109,29 @@ class MermaidModel extends TComponentModel<MermaidState, MermaidBlockProps> {
     setSvgUrl = (svgUrl: string | null) => this.state.update((s) => { s.svgUrl = svgUrl; });
     setError = (error: string) => this.state.update((s) => { s.error = error; });
     setCopied = (copied: boolean) => this.state.update((s) => { s.copied = copied; });
+
+    init() {
+        this.effect(() => {
+            let cancelled = false;
+            queueMicrotask(() => {
+                if (!this.isLive || cancelled) return;
+                void renderMermaidSvg(this.props.code, this.props.lightMode)
+                    .then((svg) => {
+                        if (!cancelled) {
+                            this.setSvgUrl(svgToDataUrl(svg, undefined, true));
+                            this.setError("");
+                        }
+                    })
+                    .catch((e) => {
+                        if (!cancelled) {
+                            this.setError(e.message || "Failed to render diagram");
+                            this.setSvgUrl(null);
+                        }
+                    });
+            });
+            return () => { cancelled = true; };
+        }, () => [this.props.code, this.props.lightMode]);
+    }
 }
 
 function MermaidBlock({ code, lightMode }: MermaidBlockProps) {
@@ -117,24 +140,6 @@ function MermaidBlock({ code, lightMode }: MermaidBlockProps) {
     const svgUrl = model.state.use((s) => s.svgUrl);
     const error = model.state.use((s) => s.error);
     const copied = model.state.use((s) => s.copied);
-
-    useEffect(() => {
-        let cancelled = false;
-        renderMermaidSvg(code, lightMode)
-            .then((svg) => {
-                if (!cancelled) {
-                    model.setSvgUrl(svgToDataUrl(svg, undefined, true));
-                    model.setError("");
-                }
-            })
-            .catch((e) => {
-                if (!cancelled) {
-                    model.setError(e.message || "Failed to render diagram");
-                    model.setSvgUrl(null);
-                }
-            });
-        return () => { cancelled = true; };
-    }, [code, lightMode, model]);
 
     const handleCopy = useCallback(() => {
         if (!imgRef.current) return;

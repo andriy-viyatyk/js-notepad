@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import { useComponentModel } from "../../core/state/model";
 import { TraitSet, traited } from "../../core/traits/traits";
@@ -69,7 +69,7 @@ export function TreeProviderView(
     // can statically verify them (avoids the "missing dependency: 'props'" hint).
     const { getLabel, renderTrailing } = viewProps;
     const model = useComponentModel(
-        viewProps,
+        { ...viewProps, onModel },
         TreeProviderViewModel,
         defaultTreeProviderViewState,
     );
@@ -85,11 +85,6 @@ export function TreeProviderView(
         treeModel.current = tree;
         model.setTreeModel(tree);
     }, [model]);
-
-    useEffect(() => {
-        onModel?.(model);
-        return () => onModel?.(null);
-    }, [model, onModel]);
 
     const isDeepSearch = state.searchText.length >= 3;
     const showLinks = props.showLinks !== false;

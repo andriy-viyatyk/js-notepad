@@ -191,6 +191,14 @@ export class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
 
     init = () => {
         window.addEventListener("resize", this.syncEverything);
+        this.effect(() => {
+            const scrollContainer = this.props.scrollContainer;
+            queueMicrotask(() => {
+                if (this.isLive && this.props.scrollContainer === scrollContainer) {
+                    this.setScrollContainer(scrollContainer);
+                }
+            });
+        }, () => [this.props.scrollContainer]);
     };
 
     dispose = () => {

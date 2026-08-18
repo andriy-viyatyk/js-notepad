@@ -27,6 +27,19 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 - **Rule 6** — `ComponentSet` descriptor pattern for runtime-built UIs.
 - **Rule 7** — no Emotion outside `uikit/` in app code, and no `style=` / `className=` **on a UIKit component** (exception: `src/renderer/ui/` chrome). The `style`/`className` half of the rule scopes to UIKit components, not to raw HTML elements — an inline style object on a plain `<img>` or `<div>` in app code is fine, and is the intended escape hatch when a one-off element needs sizing that no UIKit primitive covers.
 - **Rule 8** — model-view pattern (`TComponentModel`) once a component exceeds the small-and-readable threshold.
+- **Rule 9** — icon slots use `IconRef` and render through `renderIcon`; a string is always a registry name, never literal fallback text. Use plain `string` for text-bearing props, and reserve `SlotText` for the small set of props that genuinely accept rich React content.
+
+The icon registry is the neutral boundary for reusable components. `IconName` is derived from the
+single registry record in `src/renderer/theme/icon-registry.ts`; `renderIcon(name, props?)`
+resolves a name and preserves SVG props when a caller needs them. A missing name renders nothing
+and warns in development, so misspellings cannot silently become toolbar text. Resolver components
+such as `LanguageIcon` and `FileIcon`, and language-specific glyphs, remain React-node inputs rather
+than duplicate registry entries when their output is selected from data.
+
+For text slots, prefer `string` whenever callers supply data text. `SlotText` documents an
+intentional rich-content exception; it is not a way to make every public prop React-shaped. An
+arbitrary subtree belongs in `children` or a named child slot and should cross a future view
+boundary as a mounted subtree, not as a framework-specific callback.
 
 **Persephone-coupled components** (the KEEP folders inside `components/`) may import `api/`, `core/`, and `theme/` directly — that's the criterion for living in `components/` at all. They should still use UIKit primitives (`Button`, `Tooltip`, `IconButton`, `Panel`, …) for primitive rendering rather than re-implementing them.
 

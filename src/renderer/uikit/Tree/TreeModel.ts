@@ -755,6 +755,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     // --- lifecycle ---
 
     init() {
+        this.props.onModel?.(this);
+
         // Force RenderGrid to re-render cells whenever any of the display inputs change.
         this.effect(
             () => {
@@ -807,6 +809,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     }
 
     dispose() {
+        this.props.onModel?.(null);
         this.dnd.dispose();
     }
 }

@@ -2,7 +2,6 @@ import {
     HTMLAttributes,
     ReactNode,
     useCallback,
-    useEffect,
     useMemo,
 } from "react";
 import styled from "@emotion/styled";
@@ -234,13 +233,7 @@ function AVGridComponent<R = any>(
 ) {
     const ModelClass = AVGridModel as unknown as AVGridModel<R>;
     const model = useComponentModel(props, ModelClass, defaultAVGridState);
-    const onModel = props.onModel;
     model.useModel();
-
-    useEffect(() => {
-        onModel?.(model);
-        return () => onModel?.(null);
-    }, [model, onModel]);
 
     const renderCell: RenderCellFunc = useCallback(
         ({ key, ...cellProps }) => {

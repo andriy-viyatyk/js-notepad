@@ -245,6 +245,28 @@ class MyViewModel extends TComponentModel<MyState, MyProps> {
 | `init()` | `useEffect(() => init(), [])` | Class | Once, after first render |
 | `dispose()` | `useEffect(() => () => dispose(), [])` | Class | Once, on unmount |
 
+### Render-phase effect constraint
+
+`useComponentModel` calls `setPropsInternal(props)` while rendering. After `init()` has
+registered an effect, a dependency-based `this.effect()` may therefore run during a later render
+when its dependencies change; the first evaluation still occurs after mount. Treat model effects
+as render-phase-capable code:
+
+- Do not synchronously update another React-backed model or component from a dependency-based
+  effect. Such a write can produce a render-phase update warning or a render loop.
+- Keep prop-to-state seeding behind an identity guard in `setProps()`, because `setPropsInternal()`
+  runs on every parent render.
+- Keep DOM measurement, layout reads, and other work that must be commit-timed in the View's
+  `useEffect`. Model effects are appropriate for subscriptions, timers, and asynchronous results
+  when their cleanup and cancellation are explicit.
+- Do not enable Strict Mode without auditing these effects for double invocation; model effects
+  are not a substitute for React's commit-timed effect contract.
+
+When a model state has many fields, subscribe to the stored fields the View actually renders with
+`state.use(selector)`. Return stored values from selectors; put derived arrays or objects in a
+model `memo()` rather than allocating them inside the selector, or structural/reference comparison
+will cause unnecessary renders.
+
 ---
 
 ## Migration Guide
@@ -360,3 +382,5 @@ class MyViewModel extends TComponentModel<State, Props> {
 3. **Don't access DOM directly in model** - Use refs and methods
 4. **Don't use useEffect/useMemo in View for logic** - Use `this.effect()` and `this.memo()` in the Model instead
 5. **Don't register effects outside init()** - Effects should be registered in `init()`, not in `setProps()` or event handlers (would create duplicates on each call)
+6. **Don't use model effects for commit-timed DOM work** - Keep layout reads and measurement in the View's `useEffect`
+7. **Don't synchronously write across model boundaries from an effect** - Use an event/command boundary or defer the bridge until after commit

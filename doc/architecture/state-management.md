@@ -4,7 +4,7 @@
 
 persephone uses a custom reactive state system built on Zustand + Immer:
 - Immutable updates via Immer's `produce()`
-- React hooks for subscriptions with shallow comparison
+- React hooks for subscriptions with structural comparison for plain objects and reference comparison for other values
 - Type-safe state access via `TOneState<T>`
 
 All state primitives live in `/src/renderer/core/state/`.
@@ -148,6 +148,13 @@ const model = useComponentModel(props, MyComponentModel, defaultState);
 
 See [Model-View Pattern](/doc/standards/model-view-pattern.md) for full documentation.
 
+Dependency-based model effects are evaluated by `setPropsInternal()` during render after the
+model has been initialized. Keep those effects free of synchronous writes to other React-backed
+models or components; such writes can trigger a render-phase update warning or loop. DOM reads,
+subscriptions, and other post-mount work that must remain commit-timed belong in the View's
+`useEffect` instead. Effects are also not safe to assume under Strict Mode unless their callback
+is explicitly idempotent.
+
 ### TDialogModel\<T, R\>
 
 For dialog/modal patterns with async result.
@@ -158,6 +165,18 @@ class MyDialog extends TDialogModel<State, Result> {
     // canClose(result) — optional guard before closing
 }
 ```
+
+### ComponentQueue
+
+`ComponentQueue` is the model-to-view mailbox for imperative commands that do not belong in
+serializable component state. It has a fire-and-forget event channel (`send`/`subscribe`) and a
+request/reply channel (`execute`/`register`). Use the queue owned by the enclosing `EditorModel`
+for editor view commands so it has a clear lifecycle; `EditorModel.dispose()` disposes that queue
+and rejects requests that are still pending when the editor closes.
+
+The queue may receive commands before its view mounts, so registration drains them in FIFO order.
+Keep command payloads typed at the editor boundary and use model methods/state for durable values;
+the queue is for transient DOM or view operations, not a second state store.
 
 ## EditorModel Pattern
 

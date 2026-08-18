@@ -14,10 +14,6 @@ const COMPACT_THRESHOLD = 70;
 /** Below this width, hide the close button even in normal mode. */
 const CLOSE_BUTTON_THRESHOLD = 100;
 
-// ============================================================================
-// Styled — single styled(Panel) wrapper holding tabs strip chrome (Rule 7 exception)
-// ============================================================================
-
 // =============================================================================
 // Tab Item
 // =============================================================================

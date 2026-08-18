@@ -78,6 +78,7 @@ export type ImageViewportState = typeof defaultImageViewportState;
 
 interface ImageViewportModelProps {
     src: string;
+    onModel: ((model: ImageViewportModel | null) => void) | undefined;
 }
 
 export class ImageViewportModel extends TComponentModel<ImageViewportState, ImageViewportModelProps> {
@@ -311,11 +312,14 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
             }, 50);
             return () => clearTimeout(timeoutId);
         }, () => [this.props.src]);
+
+        this.props.onModel?.(this);
     }
 
     dispose() {
         window.removeEventListener("resize", this.handleResize);
         this.containerRef?.removeEventListener("wheel", this.handleWheel);
+        this.props.onModel?.(null);
     }
 }
 
@@ -330,14 +334,9 @@ export interface ImageViewportProps {
 }
 
 export const ImageViewport = function ImageViewport({ src, alt = "Image", onModel }: ImageViewportProps) {
-    const viewModel = useComponentModel({ src }, ImageViewportModel, defaultImageViewportState);
+    const viewModel = useComponentModel({ src, onModel }, ImageViewportModel, defaultImageViewportState);
     // Subscribe to full state - all properties affect rendering
     const state = viewModel.state.use();
-
-    useEffect(() => {
-        onModel?.(viewModel);
-        return () => onModel?.(null);
-    }, [onModel, viewModel]);
 
     // Recalculate fit scale when tab becomes visible again (after being hidden during resize)
     // Runs every render — no effect() equivalent for "no deps" useEffect

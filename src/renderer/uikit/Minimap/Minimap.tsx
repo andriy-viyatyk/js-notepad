@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { useComponentModel } from "../../core/state/model";
@@ -78,17 +78,6 @@ export function Minimap(props: MinimapProps) {
         defaultMinimapState,
     );
     const state: MinimapState = model.state.use();
-
-    useEffect(() => {
-        model.setScrollContainer(scrollContainer);
-    }, [scrollContainer, model]);
-
-    useEffect(() => {
-        model.init();
-        return () => {
-            model.dispose();
-        };
-    }, [model]);
 
     return (
         <Root
