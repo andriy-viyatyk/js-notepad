@@ -1,10 +1,11 @@
 import { css, Global } from "@emotion/react";
 import color from "./color";
-import { getResolvedColor } from "./themes";
+import { resolveColor } from "./themes";
+import { themeState } from "./theme-state";
 
 function buildGlobalStyles() {
     const arrowColor = encodeURIComponent(
-        getResolvedColor("--color-text-light")
+        resolveColor("--color-text-light")
     );
 
     return css`
@@ -167,5 +168,6 @@ function buildGlobalStyles() {
 }
 
 export function GlobalStyles() {
+    themeState.use((s) => s.id);
     return <Global styles={buildGlobalStyles()} />;
 }

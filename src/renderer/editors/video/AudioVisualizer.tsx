@@ -5,7 +5,7 @@ import { BarsEffect } from "./effects/BarsEffect";
 import { CircularEffect } from "./effects/CircularEffect";
 import color from "../../theme/color";
 import { settings } from "../../api/settings";
-import { isCurrentThemeDark } from "../../theme/themes";
+import { themeState } from "../../theme/theme-state";
 
 const FFT_SIZE = 256; // 128 freq bins, 256 time-domain samples
 
@@ -240,7 +240,7 @@ export function AudioVisualizer({ mediaRef, playing, sourceUrl }: AudioVisualize
             const H = canvas.offsetHeight;
             if (canvas.width !== W) canvas.width = W;
             if (canvas.height !== H) canvas.height = H;
-            effectRef.current?.draw(ctx2d, analyser, W, H, isCurrentThemeDark());
+            effectRef.current?.draw(ctx2d, analyser, W, H, themeState.get().isDark);
         };
 
         rafRef.current = requestAnimationFrame(draw);

@@ -1,6 +1,5 @@
 import { ReactElement, ReactNode, SVGProps } from "react";
-import { isCurrentThemeDark } from "./themes";
-import { settings } from "../api/settings";
+import { themeState } from "./theme-state";
 import color from "./color";
 
 export interface SvgIconProps extends SVGProps<SVGSVGElement> {
@@ -243,8 +242,7 @@ export const ProgressIcon = createIcon(32)(
 
 /** Full-color Persephone lily icon with theme-aware background. */
 export function PersephoneIcon(props: SvgIconProps) {
-    settings.use("theme");
-    const isDark = isCurrentThemeDark();
+    const isDark = themeState.use((s) => s.isDark);
     const { width = 24, height = 24, ...rest } = props;
     return (
         <svg width={width} height={height} viewBox="0 0 128 128" {...rest}>

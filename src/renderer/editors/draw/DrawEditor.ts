@@ -3,7 +3,7 @@ import { type EditorStateBase } from "../base/EditorModel";
 import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import { TextFileModel } from "../text/TextEditorModel";
-import { isCurrentThemeDark } from "../../theme/themes";
+import { themeState } from "../../theme/theme-state";
 import { serializeAsJSON, FONT_FAMILY } from "@excalidraw/excalidraw";
 import type {
     ExcalidrawImperativeAPI,
@@ -25,7 +25,7 @@ interface DrawViewSettings {
 
 export interface DrawEditorState extends EditorStateBase {
     // HS1 — rides host.editorSettings["draw-view"]. Bounded boolean.
-    // Default seeded from isCurrentThemeDark() in the constructor.
+    // Default seeded from the active theme in the constructor.
     darkMode: boolean;
     // View-derived — present on state for in-session reactivity, stripped
     // from getRestoreData per PV7 / MO5. Recomputed on every parse.
@@ -55,6 +55,7 @@ export class DrawEditor extends TextHostEditorModel<DrawEditorState, void, DrawQ
     private _lastFingerprint = "";
     /** DR3 — live Excalidraw API ref; set by DrawBody on mount, cleared on unmount. */
     private _excalidrawApi: ExcalidrawImperativeAPI | null = null;
+    private _syncingTheme = false;
 
     readonly typedQueue: ComponentQueue<DrawQueueEvent, DrawQueueRequest>;
 
@@ -68,7 +69,7 @@ export class DrawEditor extends TextHostEditorModel<DrawEditorState, void, DrawQ
         // DR4 — seed darkMode from theme on first construct. HS1 slot read
         // in adoptHost overrides this if the user previously toggled.
         this.state.update((s) => {
-            s.darkMode = isCurrentThemeDark();
+            s.darkMode = themeState.get().isDark;
         });
     }
 
@@ -85,6 +86,10 @@ export class DrawEditor extends TextHostEditorModel<DrawEditorState, void, DrawQ
         // theme-derived default set in constructor. Mirror changes back to
         // the host slot. Slice-subscribe keeps the mirror from firing on
         // loading/error mutations.
+        const saved = host.getEditorState<DrawViewSettings>(this.editorId);
+        if (saved?.darkMode === undefined) {
+            this.state.update((s) => { s.darkMode = themeState.get().isDark; });
+        }
         this.mirrorHostSettings<DrawViewSettings>(
             (saved) => {
                 if (saved.darkMode !== undefined) {
@@ -95,6 +100,26 @@ export class DrawEditor extends TextHostEditorModel<DrawEditorState, void, DrawQ
             },
             (s) => ({ darkMode: s.darkMode }),
             (s) => s.darkMode,
+            () => !this._syncingTheme,
+        );
+
+        // A fresh host follows later app-theme changes until the first
+        // explicit editor toggle writes the HS1 slot.
+        this.registerHostSubscription(
+            themeState.subscribe(() => {
+                    const isDark = themeState.get().isDark;
+                    if (this._host?.getEditorState<DrawViewSettings>(this.editorId)?.darkMode !== undefined) {
+                        return;
+                    }
+                    if (this.state.get().darkMode !== isDark) {
+                        this._syncingTheme = true;
+                        try {
+                            this.state.update((s) => { s.darkMode = isDark; });
+                        } finally {
+                            this._syncingTheme = false;
+                        }
+                    }
+                }),
         );
 
         // Content changes retrigger parse (own updateFromExcalidraw writes

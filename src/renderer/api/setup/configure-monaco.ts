@@ -1,7 +1,8 @@
 import * as monaco from "monaco-editor";
 import { loader } from "@monaco-editor/react";
 
-import { getCurrentThemeId, getThemeById, onMonacoThemeChange } from "../../theme/themes";
+import { getThemeById } from "../../theme/themes";
+import { themeState } from "../../theme/theme-state";
 import { ThemeDefinition } from "../../theme/themes/types";
 import { defineRegLanguage } from "./monaco-languages/reg";
 import { defineCSVLanguage } from "./monaco-languages/csv";
@@ -217,7 +218,7 @@ async function loadEditorTypes(monaco: Monaco) {
 export async function initMonaco() {
     if (monacoInstance) return monacoInstance;
 
-    const currentTheme = getThemeById(getCurrentThemeId());
+    const currentTheme = getThemeById(themeState.get().id);
     if (currentTheme) {
         defineMonacoTheme(monaco, currentTheme);
     }
@@ -236,12 +237,16 @@ export async function initMonaco() {
 
     monacoInstance = monaco;
 
-    // Register callback for future theme changes
-    onMonacoThemeChange(applyMonacoTheme);
+    // Register once after the instance exists. TOneState subscriptions are
+    // change-only, so apply the current snapshot explicitly as well.
+    themeState.subscribe(() => {
+        const theme = getThemeById(themeState.get().id);
+        if (theme) applyMonacoTheme(theme);
+    });
 
-    // Apply current theme now — settings may have loaded during async init above,
-    // changing currentThemeId while monacoThemeCallback was not yet registered.
-    const activeTheme = getThemeById(getCurrentThemeId());
+    // Settings may have loaded during async init above, changing the active
+    // theme while the subscription was not yet registered.
+    const activeTheme = getThemeById(themeState.get().id);
     if (activeTheme) {
         applyMonacoTheme(activeTheme);
     }

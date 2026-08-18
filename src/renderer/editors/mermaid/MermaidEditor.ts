@@ -3,7 +3,7 @@ import type { EditorStateBase } from "../base/EditorModel";
 import { TextHostEditorModel } from "../base/TextHostEditorModel";
 import { ComponentQueue } from "../../core/state/ComponentQueue";
 import { TextFileModel } from "../text/TextEditorModel";
-import { isCurrentThemeDark } from "../../theme/themes";
+import { themeState } from "../../theme/theme-state";
 import { renderMermaid } from "./render-mermaid";
 import type { IImageExport } from "../base/IImageExport";
 import { rasterToPngBlob } from "../shared/image-export";
@@ -23,7 +23,7 @@ interface MermaidViewSettings {
 
 export interface MermaidEditorState extends EditorStateBase {
     // HS1 — rides host.editorSettings["mermaid-view"]. Bounded boolean.
-    // Default seeded from !isCurrentThemeDark() in the constructor.
+    // Default seeded from the active theme in the constructor.
     lightMode: boolean;
     // View-derived — present on state for in-session reactivity, stripped
     // from getRestoreData per PV5 / MO5 pattern. Recomputed on every render.
@@ -50,6 +50,7 @@ export class MermaidEditor
     protected readonly displayName = "Mermaid";
 
     private _renderTimer: ReturnType<typeof setTimeout> | undefined;
+    private _syncingTheme = false;
 
     readonly typedQueue: ComponentQueue<MermaidQueueEvent, MermaidQueueRequest>;
 
@@ -63,7 +64,7 @@ export class MermaidEditor
         // MR5 — seed lightMode from theme on first construct. HS1 slot read
         // in adoptHost overrides this if the user previously toggled.
         this.state.update((s) => {
-            s.lightMode = !isCurrentThemeDark();
+            s.lightMode = !themeState.get().isDark;
         });
     }
 
@@ -78,6 +79,10 @@ export class MermaidEditor
         // theme-derived constructor default when the slot is absent) and mirror
         // changes back. Slice-bound so svgUrl/error/loading mutations (the
         // dominant write source) never trigger a host-slot write.
+        const saved = host.getEditorState<MermaidViewSettings>(this.editorId);
+        if (saved?.lightMode === undefined) {
+            this.state.update((s) => { s.lightMode = !themeState.get().isDark; });
+        }
         this.mirrorHostSettings<MermaidViewSettings>(
             (saved) => {
                 if (saved.lightMode !== undefined) {
@@ -88,6 +93,27 @@ export class MermaidEditor
             },
             (s) => ({ lightMode: s.lightMode }),
             (s) => s.lightMode,
+            () => !this._syncingTheme,
+        );
+
+        // A fresh host follows later app-theme changes until the first
+        // explicit editor toggle writes the HS1 slot.
+        this.registerHostSubscription(
+            themeState.subscribe(() => {
+                    const isDark = themeState.get().isDark;
+                    if (this._host?.getEditorState<MermaidViewSettings>(this.editorId)?.lightMode !== undefined) {
+                        return;
+                    }
+                    const lightMode = !isDark;
+                    if (this.state.get().lightMode !== lightMode) {
+                        this._syncingTheme = true;
+                        try {
+                            this.state.update((s) => { s.lightMode = lightMode; });
+                        } finally {
+                            this._syncingTheme = false;
+                        }
+                    }
+                }),
         );
 
         // Content changes retrigger the debounced render.

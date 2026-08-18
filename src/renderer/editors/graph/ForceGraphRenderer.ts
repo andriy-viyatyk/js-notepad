@@ -7,29 +7,24 @@ import { forceProperties } from "./constants";
 import { GraphHighlightModel, ResolvedColors } from "./GraphHighlightModel";
 import type { GraphConnectivityModel } from "./GraphConnectivityModel";
 import color from "../../theme/color";
+import { resolveColor } from "../../theme/themes";
 import { closeAppPopupMenu } from "../../ui/dialogs/poppers/showPopupMenu";
-
-function resolveVar(cssVar: string): string {
-    if (!cssVar.startsWith("var(")) return cssVar;
-    const varName = cssVar.slice(4, -1);
-    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || cssVar;
-}
 
 function resolveColors(): ResolvedColors {
     return {
-        nodeDefault: resolveVar(color.graph.nodeDefault),
-        nodeHighlight: resolveVar(color.graph.nodeHighlight),
-        nodeSelected: resolveVar(color.graph.nodeSelected),
-        borderDefault: resolveVar(color.graph.nodeBorderDefault),
-        borderHighlight: resolveVar(color.graph.nodeBorderHighlight),
-        borderSelected: resolveVar(color.graph.nodeBorderSelected),
-        linkDefault: resolveVar(color.graph.linkDefault),
-        linkSelected: resolveVar(color.graph.linkSelected),
-        labelBg: resolveVar(color.graph.labelBackground),
-        labelText: resolveVar(color.graph.labelText),
-        groupBorder: resolveVar(color.graph.groupBorder),
-        nodeSpecial: resolveVar(color.graph.nodeSpecial),
-        borderSpecial: resolveVar(color.graph.borderSpecial),
+        nodeDefault: resolveColor(color.graph.nodeDefault),
+        nodeHighlight: resolveColor(color.graph.nodeHighlight),
+        nodeSelected: resolveColor(color.graph.nodeSelected),
+        borderDefault: resolveColor(color.graph.nodeBorderDefault),
+        borderHighlight: resolveColor(color.graph.nodeBorderHighlight),
+        borderSelected: resolveColor(color.graph.nodeBorderSelected),
+        linkDefault: resolveColor(color.graph.linkDefault),
+        linkSelected: resolveColor(color.graph.linkSelected),
+        labelBg: resolveColor(color.graph.labelBackground),
+        labelText: resolveColor(color.graph.labelText),
+        groupBorder: resolveColor(color.graph.groupBorder),
+        nodeSpecial: resolveColor(color.graph.nodeSpecial),
+        borderSpecial: resolveColor(color.graph.borderSpecial),
     };
 }
 
@@ -170,7 +165,8 @@ export class ForceGraphRenderer {
     /** Re-resolve CSS variable colors (call on theme change). */
     refreshColors(): void {
         const next = resolveColors();
-        if (next.nodeDefault === this.colors.nodeDefault && next.labelBg === this.colors.labelBg) return;
+        const keys = Object.keys(next) as Array<keyof ResolvedColors>;
+        if (keys.every((key) => next[key] === this.colors[key])) return;
         this.colors = next;
         this.renderData();
     }

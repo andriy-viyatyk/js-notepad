@@ -9,8 +9,7 @@ import { createRehypeHighlight } from "./rehypeHighlight";
 import { rehypeHeadingIds, slugifyHeading } from "./rehypeHeadingIds";
 import { CodeBlock, createPreBlock } from "./CodeBlock";
 import { MarkdownImage } from "./MarkdownImage";
-import { isCurrentThemeDark } from "../../theme/themes";
-import { settings } from "../../api/settings";
+import { themeState } from "../../theme/theme-state";
 import { resolveRelatedLink } from "../../core/utils/path-utils";
 import { detectGitRoot } from "./detect-git-root";
 import "./MarkdownBlock.css";
@@ -165,8 +164,7 @@ export const MarkdownBlock = function MarkdownBlock(props: MarkdownBlockProps) {
         const totalMatchesRef = useRef(0);
 
         // Subscribe to theme changes — only affects mermaid diagram rendering
-        settings.use("theme");
-        const mermaidLightMode = !isCurrentThemeDark();
+        const mermaidLightMode = !themeState.use((s) => s.isDark);
 
         // Detect the enclosing git repo root once per file path. Leading-slash
         // links (Azure DevOps wiki: attachments + root-relative page links)

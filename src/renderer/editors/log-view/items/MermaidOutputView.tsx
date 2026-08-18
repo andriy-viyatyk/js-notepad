@@ -5,8 +5,7 @@ import { IconButton, Panel, Text } from "../../../uikit";
 import { CopyIcon, OpenLinkIcon } from "../../../theme/icons";
 import { pagesModel } from "../../../api/pages";
 import { renderMermaidSvg, svgToDataUrl } from "../../mermaid/render-mermaid";
-import { settings } from "../../../api/settings";
-import { isCurrentThemeDark } from "../../../theme/themes";
+import { themeState } from "../../../theme/theme-state";
 import { TComponentModel, useComponentModel } from "../../../core/state/model";
 
 // =============================================================================
@@ -54,7 +53,7 @@ class MermaidOutputModel extends TComponentModel<MermaidOutputState, MermaidOutp
     init() {
         this.effect(() => {
             let cancelled = false;
-            const lightMode = !isCurrentThemeDark();
+            const lightMode = !themeState.get().isDark;
             queueMicrotask(() => {
                 if (!this.isLive || cancelled) return;
                 this.setSvgUrl(null);
@@ -74,7 +73,7 @@ class MermaidOutputModel extends TComponentModel<MermaidOutputState, MermaidOutp
                     });
             });
             return () => { cancelled = true; };
-        }, () => [this.props.entry.text, isCurrentThemeDark()]);
+        }, () => [this.props.entry.text, themeState.get().isDark]);
     }
 }
 
@@ -84,7 +83,7 @@ export function MermaidOutputView(props: MermaidOutputViewProps) {
     const { svgUrl, error } = model.state.use();
     const imgRef = useRef<HTMLImageElement>(null);
 
-    settings.use("theme");
+    themeState.use((s) => s.isDark);
     const handleCopy = useCallback(() => {
         if (!imgRef.current) return;
         copyImageToClipboard(imgRef.current);

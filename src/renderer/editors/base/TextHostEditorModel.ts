@@ -305,12 +305,14 @@ export abstract class TextHostEditorModel<
         apply: (saved: S) => void,
         snapshot: (state: T) => S,
         selector?: (state: T) => unknown,
+        shouldMirror?: () => boolean,
     ): void {
         const host = this._host;
         if (!host) return;
         const saved = host.getEditorState<S>(this.editorId);
         if (saved !== undefined) apply(saved);
         const mirror = () => {
+            if (shouldMirror && !shouldMirror()) return;
             this._host?.setEditorState<S>(this.editorId, snapshot(this.state.get()));
         };
         this.registerHostSubscription(

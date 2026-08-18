@@ -15,6 +15,7 @@ import { CloseIcon, SettingsIcon, RefreshIcon, ExpandAllIcon, GraphGroupIcon } f
 import { showConfirmationDialog } from "../../ui/dialogs/ConfirmationDialog";
 import color from "../../theme/color";
 import { TComponentModel, useComponentModel } from "../../core/state/model";
+import { themeState } from "../../theme/theme-state";
 
 // ============================================================================
 // Constants
@@ -313,9 +314,10 @@ export function GraphBody({ model: editor, canvasRefSetter }: GraphBodyProps) {
     // Reactive read of all view-derived state.
     const pageState = editor.state.use((s) => s);
 
+    const themeId = themeState.use((s) => s.id);
     useEffect(() => {
         editor.refreshColors();
-    });
+    }, [editor, themeId]);
 
     const { searchQuery, searchInfo, searchResults, tooltip, selectedNodes, linkedNodes, groupingEnabled } = pageState;
 

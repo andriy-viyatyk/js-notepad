@@ -4,7 +4,6 @@ import color from "../../theme/color";
 import { api } from "../../../ipc/renderer/api";
 import { fs } from "../../api/fs";
 import { fpJoin, isPlainLocalPath } from "../../core/utils/file-path";
-import { settings } from "../../api/settings";
 import { pagesModel } from "../../api/pages";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
 import type {
@@ -17,7 +16,7 @@ import type {
 import { resolveBoardNamespace, resolveBoardVarRequest } from "../../api/board-vars";
 import { cycleAppTheme } from "../../api/cycle-app-theme";
 import { BOARD_CDP_TAB } from "../../../ipc/api-types";
-import { BOARD_TOKEN_VARS, computeBoardThemePalette } from "./board-theme";
+import { BOARD_TOKEN_VARS, computeBoardThemePalette, ensureBoardThemeSubscription } from "./board-theme";
 import { boardSecondaryPanelId } from "./board-secondary";
 import type { BoardEditorModel } from "./BoardEditorModel";
 import type { BoardContentEditorModel } from "./BoardContentEditorModel";
@@ -93,6 +92,7 @@ export function BoardWebview({
     const lastBoardContentRef = useRef<string | undefined>(undefined);
 
     useEffect(() => {
+        ensureBoardThemeSubscription();
         let live = true;
         let registeredHost: string | null = null;
         void api
@@ -352,17 +352,6 @@ export function BoardWebview({
             void api.unregisterBoardFrame(model.id, tabId);
         };
     }, [host, model, appendLog, tabId, boardRoot, isMain]);
-
-    // Refresh the palette stored in main on theme switch. Main fans the new palette out
-    // to every live board port (live retint, US-771) and refreshes the stored design so
-    // a board that reloads after the switch is served the new theme by the handler.
-    useEffect(() => {
-        const sub = settings.onChanged.subscribe(({ key }) => {
-            if (key !== "theme") return;
-            void api.updateBoardTheme(computeBoardThemePalette());
-        });
-        return () => sub.dispose();
-    }, []);
 
     // Focus the board frame when THIS page becomes active (tab / editor switch), mirroring the
     // text editors' focus-on-activation (TextChrome). The 200ms delay matches TextChrome — it lets

@@ -14,7 +14,9 @@
  * shim's theme sync) only *applies* the maps produced here — it never imports this
  * module, keeping the contract defined in exactly one place.
  */
-import { getCurrentThemeId, getResolvedColor, isCurrentThemeDark } from "../../theme/themes";
+import { api } from "../../../ipc/renderer/api";
+import { resolveColor } from "../../theme/themes";
+import { themeState } from "../../theme/theme-state";
 import { fontSize, gap, height, radius, spacing } from "../../uikit/tokens";
 import { mapScale } from "../../theme/token-vars";
 import type { BoardThemePalette } from "../../../ipc/board-bridge-channels";
@@ -54,9 +56,20 @@ const P_VAR_SOURCES: Record<string, string> = {
 export function computeBoardThemePalette(): BoardThemePalette {
     const vars: Record<string, string> = {};
     for (const [pVar, src] of Object.entries(P_VAR_SOURCES)) {
-        vars[pVar] = getResolvedColor(src);
+        vars[pVar] = resolveColor(src);
     }
-    return { id: getCurrentThemeId(), isDark: isCurrentThemeDark(), vars };
+    const { id, isDark } = themeState.get();
+    return { id, isDark, vars };
+}
+
+let themeSubscription: (() => void) | null = null;
+
+/** Start the single renderer-to-board theme notification path once. */
+export function ensureBoardThemeSubscription(): void {
+    if (themeSubscription) return;
+    themeSubscription = themeState.subscribe(() => {
+        void api.updateBoardTheme(computeBoardThemePalette());
+    });
 }
 
 // --- Metric tokens (static, theme-independent) ---
