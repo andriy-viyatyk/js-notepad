@@ -29,8 +29,8 @@ change was warranted.
 - [x] [US-973: Route `document.body` portals through one host](../tasks/US-973-portal-host/README.md)
 - [x] [US-974: Move model-owned effects into `TComponentModel.effect()`](../tasks/US-974-effects-into-model/README.md)
 - [x] [US-978: Move graph effects into existing models](../tasks/US-978-graph-effects/README.md)
-- [x] [US-975: Emotion usage inventory](../tasks/US-975-emotion-inventory/README.md)
-- [x] [US-979: Inline style inventory](../tasks/US-979-inline-style-inventory/README.md)
+- [x] [US-975: Emotion usage inventory](../architecture/styling-inventory.md)
+- [x] [US-979: Inline style inventory](../architecture/styling-inventory.md)
 
 ---
 

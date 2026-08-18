@@ -220,11 +220,11 @@ that touches a component's styling and is the natural place to close the epic.
 
 ### Task notes
 
-**US-980 — Relocate the inventories.** Move the two inventory tables out of the task folders into
-durable developer docs — the natural home is `doc/standards/` alongside the styling rules, or a new
-`doc/architecture/styling-inventory.md`. Both documents keep their pinned scan commands so the
-numbers can be re-verified rather than trusted. Nothing is re-measured in this task; it is a move
-plus the scan commands. This is the task that makes deleting the Epic P task folders safe.
+**US-980 — Relocate the inventories.** The frozen Emotion and inline-style baseline, exact lists,
+rationale, and pinned reverification commands live in
+[`styling-inventory.md`](../architecture/styling-inventory.md). The document is the single durable
+source; nothing is re-measured or converted in this task. This is the task that makes deleting the
+Epic P task folders safe.
 
 **US-981 — Token CSS variables.** Emit the 32 token values as `--space-*`, `--gap-*`, `--radius-*`,
 `--size-*`, `--font-*` on `:root`, alongside the existing numeric exports, which do not change

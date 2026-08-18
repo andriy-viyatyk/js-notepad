@@ -121,6 +121,7 @@ The user may say "review done tasks" or "run review for completed tasks" at any 
 | Add sidebar panels            | [/doc/architecture/secondary-views.md](doc/architecture/secondary-views.md) |
 | Work with scripting system    | [/doc/architecture/scripting.md](doc/architecture/scripting.md) |
 | Check coding style            | [/doc/standards/coding-style.md](doc/standards/coding-style.md) |
+| Check the frozen Emotion and inline-style baseline | [/doc/architecture/styling-inventory.md](doc/architecture/styling-inventory.md) |
 | See active/planned work       | [/doc/active-work.md](doc/active-work.md) |
 | Find the file that owns a behavior | [/doc/architecture/key-files.md](doc/architecture/key-files.md) |
 | See future ideas              | [/doc/tasks/backlog.md](doc/tasks/backlog.md) |

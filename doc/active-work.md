@@ -9,7 +9,7 @@ Overview of all active and planned epics and tasks.
 ## Active
 
 - **EPIC-052** — [De-React Epic A — Style and token foundation](epics/EPIC-052.md)
-  - [ ] US-980: Relocate the Emotion and inline-style inventories into `doc/`
+  - [ ] [US-980: Relocate the Emotion and inline-style inventories](tasks/US-980-styling-inventory-relocation/README.md)
   - [ ] US-981: Emit `uikit/tokens.ts` as CSS custom properties
   - [ ] US-982: One theme state and one color resolver
   - [ ] US-983: Emotion-to-CSS conventions; settle open decision #4

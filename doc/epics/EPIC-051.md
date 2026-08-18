@@ -124,8 +124,8 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | [US-973](../tasks/US-973-portal-host/README.md) | Route `document.body` portals through one host | Implemented |
 | [US-974](../tasks/US-974-effects-into-model/README.md) | Move model-owned effects into `TComponentModel.effect()` | Implemented |
 | [US-978](../tasks/US-978-graph-effects/README.md) | Move graph effects into existing models | Implemented |
-| [US-975](../tasks/US-975-emotion-inventory/README.md) | Emotion usage inventory | Implemented |
-| [US-979](../tasks/US-979-inline-style-inventory/README.md) | Inline style inventory | Implemented |
+| [US-975](../architecture/styling-inventory.md) | Emotion usage inventory | Implemented |
+| [US-979](../architecture/styling-inventory.md) | Inline style inventory | Implemented |
 
 ### Ordering
 
@@ -224,12 +224,14 @@ remaining view/third-party effects under D8 and explicit exclusions.
 `GraphBody`, `GraphDetailPanel`, and `GraphLegendPanel` (18 model moves plus the explicit
 every-commit `GraphBody` retention). The three existing inline models are reused.
 
-**US-975 — Emotion inventory.** Split the 79 Emotion files into 65 eligible static/non-prop files,
+**US-975 — Emotion inventory.** The durable baseline is recorded in
+[`styling-inventory.md`](../architecture/styling-inventory.md). Split the 79 Emotion files into 65 eligible static/non-prop files,
 5 dynamic files, and 9 superseded AVGrid files. The four production dynamic files and three
 keyframe definitions are recorded for Epic A; `Tree.story.tsx` remains a visual harness. Output is
 a table in `doc/`, not a style conversion.
 
-**US-979 — Inline style inventory.** Measure the separate literal inline-style surface: 133
+**US-979 — Inline style inventory.** The durable baseline is recorded in
+[`styling-inventory.md`](../architecture/styling-inventory.md). Measure the separate literal inline-style surface: 133
 `style={{...}}` sites across 51 non-story files (35 editors, 6 UIKit, 3 UI, 6 components, 1
 theme). Record the non-literal style paths separately so Epic A's dynamic-style estimate does not
 stop at the Emotion count.
