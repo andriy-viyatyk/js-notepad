@@ -126,6 +126,10 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Selectable-row primitive (Rule-7-clean bespoke-row host for the focus-aware selection; `selected`/`active` props) | `/src/renderer/uikit/SelectableRow/SelectableRow.tsx` |
 | Tree multi-selection gestures (opt-in `multiSelect`: Ctrl/Shift+click, Ctrl+A, Shift+Arrow/Home/End/PageUp/Down; the Tree stores NO selection — it derives the current set via `isSelected` per visible row, holds only a transient `anchorValue`, and emits the result through `onSelectionChange` for the consumer to store. Row visuals need nothing extra: N rows carry `[data-selected]`, one carries `[data-active]`) | `/src/renderer/uikit/Tree/TreeModel.ts` |
 | Color tokens             | `/src/renderer/theme/color.ts`                    |
+| Active theme state shared by React and non-React consumers (`themeState`; `{ id, isDark }`, synchronous `get`/`subscribe` path) | `/src/renderer/theme/theme-state.ts` |
+| Theme color resolution and startup application (`resolveColor`, theme cycling, synchronous initial theme and token installation) | `/src/renderer/theme/themes/index.ts` |
+| App design-token CSS variables (`APP_TOKEN_VARS`, numeric scale mapper, idempotent `:root` installation) | `/src/renderer/theme/token-vars.ts` |
+| Static CSS cascade-layer order | `/src/renderer/theme/style-layers.css` |
 | SVG icon registry and neutral resolver | `/src/renderer/theme/icon-registry.ts`, `/src/renderer/uikit/shared/slots.ts` |
 | App theme cycling (`cycleAppTheme(direction)` — cycle + persist to settings; shared by the host `KeyboardService` shortcut and the `board:cycleTheme` message forwarded out of a board frame, so both paths behave identically) | `/src/renderer/api/cycle-app-theme.ts` |
 | Theme definitions        | `/src/renderer/theme/themes/`                     |

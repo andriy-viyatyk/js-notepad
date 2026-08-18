@@ -4,6 +4,25 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-052 — [De-React Epic A — Style and token foundation](EPIC-052.md)
+
+Established the styling and token foundation for the de-React roadmap: durable Emotion and
+inline-style inventories, CSS custom properties for UIKit tokens, shared theme state and color
+resolution, Emotion-to-CSS conventions, and a completed Spinner CSS pilot. The public board theme
+contract and existing user workflows remain unchanged.
+
+Verification: `npm run typecheck`, `npm run lint`, and `git diff --check` passed. Epic-level review,
+developer documentation, and user-documentation checks completed; no user-facing documentation
+change was warranted.
+
+- [x] [US-980: Relocate the Emotion and inline-style inventories](../tasks/US-980-styling-inventory-relocation/README.md)
+- [x] [US-981: Emit `uikit/tokens.ts` as CSS custom properties](../tasks/US-981-token-css-vars/README.md)
+- [x] [US-982: One theme state and one color resolver](../tasks/US-982-theme-state-resolver/README.md)
+- [x] [US-983: Emotion-to-CSS conventions](../tasks/US-983-emotion-to-css-conventions/README.md)
+- [x] [US-984: Pilot — convert Spinner to co-located CSS](../tasks/US-984-spinner-css-pilot/README.md)
+
+---
+
 ## EPIC-051 — [De-React Epic P — Preparation (React-side)](EPIC-051.md)
 
 Completed the React-side preparation work for the de-React roadmap. UIKit, shell, and coupled

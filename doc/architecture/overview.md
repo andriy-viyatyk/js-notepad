@@ -217,10 +217,11 @@ See [trait-system.md](./trait-system.md).
 
 ### 7. Theming System
 
-- CSS Custom Properties — `color.ts` returns `var()` references, theme definitions set actual values on `:root`
-- 55+ component files import `color` unchanged — zero migration when adding themes
+- CSS Custom Properties — `color.ts` returns `var()` references, and theme definitions set actual values on `:root`
+- Theme-independent design tokens are emitted as `--space-*`, `--gap-*`, `--radius-*`, `--size-*`, and `--font-*` variables on `:root`; numeric exports remain available for JavaScript calculations
 - Theme definitions in `src/renderer/theme/themes/` (one file per theme, 9 themes)
-- Monaco editor has separate theme integration via `onMonacoThemeChange` callback
+- `themeState` in `src/renderer/theme/theme-state.ts` is the shared `{ id, isDark }` snapshot: React consumers use the hook, while Monaco, canvas, webview, and other non-React consumers use `get()` and `subscribe()`
+- `resolveColor()` in `src/renderer/theme/themes/index.ts` is the single JavaScript path for resolving a theme color to a concrete value; CSS continues to use `var(--color-...)`
 - Startup: synchronous `fs.readFileSync` + inline `<script>` in `index.html` for flash-free startup
 
 ### 8. Mneme Knowledge-Base Service

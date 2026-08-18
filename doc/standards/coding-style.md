@@ -150,13 +150,13 @@ Static CSS consumes theme and design-token variables directly:
 ```css
 [data-type="panel"] {
     color: var(--color-text-default, currentColor);
-    padding: calc(var(--space-md) * 2);
+    padding: calc(var(--space-md, 0px) * 2);
     border-radius: var(--radius-md, 0px);
 }
 ```
 
 Use `var(--color-...)` names from `theme/color.ts` and the theme definitions. Use the app token
-families `--space-*`, `--gap-*`, `--radius-*`, `--size-*`, and `--font-*` from US-981. Do not copy
+families `--space-*`, `--gap-*`, `--radius-*`, `--size-*`, and `--font-*`. Do not copy
 theme color literals into CSS or make CSS import `color.ts`, `themeState`, or `resolveColor()`;
 those JavaScript APIs are for canvas, Monaco, webviews, data URIs, and other non-CSS consumers.
 

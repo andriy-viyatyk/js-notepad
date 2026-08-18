@@ -796,7 +796,10 @@ persephone/
 │   ├── icon-registry.ts    # Single-source-of-truth names for registered SVG icons
 │   ├── language-icons.tsx  # Language-specific icons
 │   ├── palette-colors.ts   # Color palette definitions
-│   └── themes/             # Theme definitions (9 themes)
+│   ├── style-layers.css    # Shared cascade-layer order for static CSS
+│   ├── theme-state.ts      # Shared active-theme snapshot and subscriptions
+│   ├── token-vars.ts       # App token CSS-variable generation and installation
+│   └── themes/             # Theme definitions and color resolution (9 themes)
 │
 ├── types/                  # Global Type Declarations
 │   ├── window.d.ts         # Window interface extension

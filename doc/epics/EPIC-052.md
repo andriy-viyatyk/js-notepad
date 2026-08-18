@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Planned
+**Status:** Implemented
 **Created:** 2026-08-18
 
 ## Overview
@@ -232,29 +232,27 @@ Epic P task folders safe.
 `mapScale()` in `editors/board/board-theme.ts`; hoist it into the theme layer and have
 `board-theme.ts` import it rather than duplicating it (A2). Per A7 the task first deletes
 `radius.full` — replacing `Dot.tsx:89` and `Slider.tsx:68` / `:84` with a literal `50%` — leaving
-31 tokens, all numeric, so the mapping is uniformly `number → Npx`. One thing left to decide during
-the task: whether the variables are written at startup beside `applyTheme()` or emitted as a static
-stylesheet. Static is preferred — they are theme-independent constants and never change after load.
+31 tokens, all numeric, so the mapping is uniformly `number → Npx`. The app variables are installed
+once at startup by `installAppTokenVars()`; they are theme-independent constants and do not need to
+be regenerated when the active theme changes.
 Note that `Slider.tsx:58` already reads a scalar through `var(--slider-track-bg, …)` with a
 fallback, which is the existing in-repo precedent for the A6 answer and worth citing in US-983.
 Arithmetic uses
-(`spacing.md * 2`) become `calc(var(--space-md) * 2)` on the CSS side; the numeric exports remain
+(`spacing.md * 2`) become `calc(var(--space-md, 0px) * 2)` on the CSS side; the numeric exports remain
 available for JS-side arithmetic and nothing is forced to migrate.
 
-**US-982 — Theme state and resolver.** The substantive task. Introduce the theme `TOneState` (A3),
-convert `onMonacoThemeChange` into an ordinary subscription and delete the single-slot field,
-collapse the two resolution paths into one helper (A4), and then subscribe the nine consumers listed
-in "The theme-change gap" instead of snapshotting. `GlobalStyles`' baked arrow data URIs are the
-acceptance check: switch theme, arrows follow, no restart. `MermaidOutputView.tsx:77`'s deps-array
-poll is replaced with a real subscription. Boards already re-push their palette on theme change
-(`BoardWebview.tsx:362`) and are the pattern the other consumers should match, not an exception.
+**US-982 — Theme state and resolver.** Introduced `themeState` (A3), converted Monaco and the other
+non-React consumers to ordinary subscriptions, and collapsed the JavaScript color paths into
+`resolveColor()` (A4). `GlobalStyles`' baked arrow data URIs now follow a theme switch without a
+restart. Boards use the same state notification path to re-push their live palette.
 
 **US-983 — Conventions and open decision #4.** Write the rules into
 [`coding-style.md`](../standards/coding-style.md) §"Styling with Emotion" and
 [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md): where a converted component's stylesheet
 lives and how it is named, how theme colors and token variables are referenced, how discrete state
-and scalar values are expressed (A6), how `keyframes` become stably-named `@keyframes` (US-975 found
-three: `Dialog`, `ProgressBar`, `Spinner`), and how specificity and insertion order are preserved —
+and scalar values are expressed (A6), how `keyframes` become stably-named `@keyframes` (the four
+current migration targets are `Dialog`, `ProgressBar`, `Spinner`, and `Notification`), and how
+specificity and insertion order are preserved —
 the hazard both inventories flagged as the one that silently changes the UI. The existing
 editor-local CSS convention (4 stylesheets, scoped under a semantic editor root) is the precedent to
 extend rather than replace. Decision #4 is already settled (A6) — this task writes it down as a
@@ -263,13 +261,10 @@ must state that A6 does not: how a custom property is **scoped** (declared on th
 it cannot leak into or be captured from an unrelated subtree), and that a variable always has a
 usable fallback in the stylesheet, so a component whose script has not run yet still renders.
 
-**US-984 — Pilot.** One small UIKit component converted end to end, to prove the conventions are
-writable before Epics C and D rely on them. `Spinner` is the suggested subject because it is tiny
-and exercises all three mechanisms at once: static rules, a `keyframes` animation needing a stable
-name, and two genuinely dynamic props (`$size`, `$color`) that test the CSS-custom-property answer
-to decision #4. If the conventions cannot express Spinner cleanly, they are wrong and it is far
-cheaper to learn that here than in Epic C. See Concern 2 — whether this task belongs in Epic A at
-all is a scope question for the user.
+**US-984 — Pilot.** Converted `Spinner` end to end. Its co-located stylesheet exercises static
+rules, a stable keyframe name, and two genuinely dynamic props (`$size`, `$color`) expressed as
+component-owned custom properties. The pilot also establishes the startup ordering for the shared
+CSS cascade layers.
 
 ## Concerns / Open questions
 
@@ -291,10 +286,11 @@ task list above.
    question and answerable earlier.
 
 3. **Do token CSS variables actually get used before Epic C?** *(Acknowledged risk, accepted.)*
-   Nothing consumes them until a vanilla view exists, so US-981 ships a foundation whose names are
-   unproven and could turn out wrong once the first real view is written. The mitigation is US-984:
-   the pilot is the first consumer, and it is inside this epic, so a naming mistake surfaces here
-   rather than in Epic C.
+   The Spinner pilot validates the stylesheet, custom-property, keyframe, and cascade conventions
+   but does not consume the app metric families themselves. The `--space-*`, `--gap-*`,
+   `--radius-*`, `--size-*`, and `--font-*` names therefore remain a foundation for the first
+   vanilla view; later epics must verify the names against real consumers before claiming the token
+   surface is settled.
 
 4. **`radius.full` and the non-numeric tokens.** *(Resolved — deleted. See A7.)* All three call
    sites draw a circle on a square element, which is a local decision, not a shared scale value.
@@ -331,3 +327,6 @@ task list above.
 - Roadmap open decision #4 settled the same day: **CSS custom properties, not generated class
   hooks** (A6). Recorded in the roadmap's §8 table as well. It is the only one of the roadmap's six
   open decisions this epic touches.
+- The implementation and documentation review completed without architecture concerns. The durable
+  styling inventory, token variables, shared theme state/resolver, CSS conventions, cascade-layer
+  bootstrap, and Spinner pilot are now in place for the later styling and vanilla-view epics.

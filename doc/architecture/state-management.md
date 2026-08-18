@@ -38,6 +38,12 @@ count.subscribe(() => {}); // Non-React listener
 count.clear();            // Reset to default
 ```
 
+`TOneState` is also the bridge for values shared by React and non-React consumers. The active
+renderer theme is held in `theme/theme-state.ts`: React views select it with `use()`, while
+Monaco, canvas, webview, and board integration code use `get()` and `subscribe()`. A theme
+mutation updates the CSS variables first and publishes the state last, so subscribers observe
+the already-applied theme.
+
 ### TGlobalState\<T\>
 
 Extends `TOneState` — identical API, but auto-clears on logout. Used for application-wide state in Object Model implementations.
