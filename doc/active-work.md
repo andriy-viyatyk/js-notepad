@@ -19,7 +19,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-971: Imperative handles → model methods / `ComponentQueue`](tasks/US-971-imperative-handles/README.md)
   - [ ] [US-977: `forwardRef` → React 19 ref props](tasks/US-977-react19-ref-props/README.md)
   - [ ] [US-972: React context → explicit model references](tasks/US-972-explicit-model-references/README.md)
-  - [ ] US-973: Route `document.body` portals through one host
+  - [ ] [US-973: Route `document.body` portals through one host](tasks/US-973-portal-host/README.md)
   - [ ] US-974: Move logic from `useEffect` into `TComponentModel.effect()`
   - [ ] US-975: Emotion usage inventory
 - *(no epic)*

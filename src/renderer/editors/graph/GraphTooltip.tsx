@@ -4,6 +4,7 @@ import { IconButton } from "../../uikit";
 import { GraphNode, getCustomProperties, toNavigableHref } from "./types";
 import { pagesModel } from "../../api/pages";
 import color from "../../theme/color";
+import { getOverlayLayer } from "../../uikit/shared/overlayLayer";
 
 // =============================================================================
 // Inline-style constants
@@ -267,7 +268,7 @@ function GraphTooltip({ node, x, y, isRoot, onMouseEnter, onMouseLeave }: GraphT
                 </div>
             )}
         </div>,
-        document.body,
+        getOverlayLayer(),
     );
 }
 

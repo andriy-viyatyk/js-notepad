@@ -121,7 +121,7 @@ harness for a component, not a component. 118 of the 201 `useState` declarations
 | [US-971](../tasks/US-971-imperative-handles/README.md) | Imperative handles → model methods / `ComponentQueue` | Planned |
 | [US-977](../tasks/US-977-react19-ref-props/README.md) | `forwardRef` → React 19 ref props | Planned |
 | [US-972](../tasks/US-972-explicit-model-references/README.md) | React context → explicit model references | Planned |
-| US-973 | Route `document.body` portals through one host | Planned |
+| [US-973](../tasks/US-973-portal-host/README.md) | Route `document.body` portals through one host | Planned |
 | US-974 | Move logic from `useEffect` into `TComponentModel.effect()` | Planned |
 | US-975 | Emotion usage inventory | Planned |
 
@@ -206,9 +206,12 @@ props, LogView and AVGrid model access become direct model props, and filter wor
 a GridBody-owned `FiltersModel`. No generic context replacement or cloned-children bridge is
 introduced.
 
-**US-973 — Portal host.** Introduce the shared overlay-layer helper and adopt it in the five body
-portals (D6). It should sit beside `uikit/shared/overlayRegistry.ts`, which already tracks overlay
-roots for tooltip suppression and is the natural owner of the layer element.
+**US-973 — Portal host.** Introduce the React-free shared overlay-layer helper for the three real
+body portal roots (`Popover`, `Tooltip`, `GraphTooltip`) and delete the two inert outer portals in
+the grid option views. The helper sits beside `uikit/shared/overlayRegistry.ts`, which already
+tracks actual overlay roots for tooltip suppression; the five caller-owned portals remain on their
+explicit targets. See the [US-973 task document](../tasks/US-973-portal-host/README.md) for the
+measured inventory, stacking constraints, before/after snippets, and smoke checks.
 
 **US-974 — Effects into the model.** 175 call sites. `effect(callback, depsFactory)` already exists
 and is React-free, so each move is same-day and behaviour-neutral. D8 governs what stays.

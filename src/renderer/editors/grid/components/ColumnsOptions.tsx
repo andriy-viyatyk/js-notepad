@@ -1,4 +1,3 @@
-import ReactDOM from "react-dom";
 import { SetStateAction, useMemo, useRef } from "react";
 
 import { DefaultView, ViewPropsRO, Views } from "../../../core/state/view";
@@ -284,7 +283,7 @@ export function ColumnsOptions({ model }: ViewPropsRO<ColumnsOptionsModel>) {
 
     const columns = useMemo(() => getColumns(model.isCsv), [model.isCsv]);
 
-    return ReactDOM.createPortal(
+    return (
         <Popover
             key="avgrid-columns-options"
             elementRef={model.el}
@@ -350,8 +349,7 @@ export function ColumnsOptions({ model }: ViewPropsRO<ColumnsOptionsModel>) {
                     </Panel>
                 )}
             </Panel>
-        </Popover>,
-        document.body
+        </Popover>
     );
 }
 

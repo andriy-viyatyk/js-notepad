@@ -1,5 +1,4 @@
 import { Popover } from "../../../uikit/Popover";
-import ReactDOM from "react-dom";
 import { DefaultView, ViewPropsRO, Views } from "../../../core/state/view";
 import { useCallback, useEffect, useState } from "react";
 import { TComponentState } from "../../../core/state/state";
@@ -52,7 +51,7 @@ export function CsvOptions({ model }: ViewPropsRO<CsvOptionsModel>) {
         });
     }, [gridViewState.csvDelimiter]);
 
-    return ReactDOM.createPortal(
+    return (
         <Popover
             elementRef={model.el}
             offset={defaultOffset}
@@ -91,8 +90,7 @@ export function CsvOptions({ model }: ViewPropsRO<CsvOptionsModel>) {
                     />
                 </Panel>
             </Panel>
-        </Popover>,
-        document.body
+        </Popover>
     );
 }
 

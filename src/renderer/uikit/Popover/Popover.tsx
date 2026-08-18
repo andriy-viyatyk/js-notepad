@@ -6,6 +6,7 @@ import color from "../../theme/color";
 import { radius } from "../tokens";
 import { ResizeHandleIcon } from "../../theme/icons";
 import { useComponentModel } from "../../core/state/model";
+import { getOverlayLayer } from "../shared/overlayLayer";
 import {
     PopoverModel,
     PopoverProps,
@@ -161,7 +162,7 @@ export function Popover({ ref, ...props }: PopoverProps & { ref?: React.Ref<HTML
                 </ResizeHandle>
             )}
         </Root>,
-        document.body,
+        getOverlayLayer(),
     );
 }
 

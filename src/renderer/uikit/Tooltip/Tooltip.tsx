@@ -12,6 +12,7 @@ import styled from "@emotion/styled";
 import color from "../../theme/color";
 import { fontSize, radius, spacing } from "../tokens";
 import { overlayRegistry } from "../shared/overlayRegistry";
+import { getOverlayLayer } from "../shared/overlayLayer";
 import { tooltipRegistry } from "../shared/tooltipRegistry";
 
 // --- Types ---
@@ -230,7 +231,7 @@ export function Tooltip({
                 >
                     {content}
                 </Root>,
-                document.body,
+                getOverlayLayer(),
             )}
         </>
     );
