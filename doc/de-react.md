@@ -56,11 +56,13 @@ hiding in a render function that has to be excavated first.
 | `react-tooltip` | our own `uikit/Tooltip` | Small |
 | `zustand` (1 file) | A value plus the listener array `TOneState` already keeps | Small — the dependency is deleted, not replaced (§3.3) |
 | Emotion (85 files) | CSS custom properties + static CSS | Medium, mechanical |
-| `react-markdown` | `markdown-it` + our own block renderers | **The one real port** |
+| `react-markdown` | Its own `remark`/`rehype` stack, minus the React step | Small — see §3.6 |
 
-`react-markdown` is the only entry with no cheap swap. It backs the markdown preview, the notebook
-note editor and the MCP inspector, all through custom component overrides. Its replacement must be
-decided before Phase 3 starts, not discovered during it.
+`react-markdown` looked like the only entry with no cheap swap: it backs the markdown preview, the
+notebook note editor and the MCP inspector, all through custom component overrides. Investigation
+(open decision #1, settled 2026-08-18) found it is a thin React binding over a parsing stack that is
+already framework-free, so the parser is kept and only its final `hast → React` step is replaced.
+The remaining work is the five node overrides. See §3.6.
 
 ## 3. What we keep
 
@@ -149,6 +151,158 @@ So the store becomes a plain field and **`zustand` is deleted**, rather than swa
 This is worth doing early: it is small, it is testable in isolation, and it removes the last
 React-coupled import from the state layer before any view work begins.
 
+### 3.4 Templating — how a view builds its DOM
+
+*Open decision #2, settled 2026-08-18.*
+
+**Structure is built with `document.createElement`. `innerHTML` is used only for static markup the
+code owns — inline SVG icons, fixed skeletons — and never with interpolated runtime data.**
+
+This is not a preference; it is what both reference implementations already do.
+
+**av-grid.** `view/HeaderCell.ts` is the pattern: a `build(el)` function creates each child with
+`createElement`, assigns `className` / `type` / `tabIndex` / `data-*` directly, appends them in one
+`el.append(...)`, and stores the four elements in a `HeaderParts` record. Later paints reach those
+elements by name and never re-query the DOM. `innerHTML` appears only as `filter.innerHTML =
+filterIcon` — a module-level SVG constant. Text goes through `cellDom.ts`'s `setText`, which writes
+`nodeValue` on the existing text node rather than `textContent`, because `textContent` discards the
+node and allocates a fresh one on every paint. Even style writes are read-before-write guarded.
+
+The one place av-grid puts content into `innerHTML` is `DataCell.ts`, for markdown already rendered
+by `marked`, and it is guarded by `if (el.innerHTML !== rendered)` so the parser does not re-run when
+nothing changed. That is a deliberate rich-content renderer, not the general case.
+
+**VSCode.** `vs/base/browser/dom.ts` provides `$('div.some-class', attrs, ...children)`, which is a
+thin builder over `createElement`. Its list rows use `renderTemplate(container)` to build the DOM
+once and return a template object holding element references, then `renderElement(item, index,
+template)` to update them — the same "build once, keep named references, update in place" shape.
+VSCode additionally enforces Trusted Types, so an `innerHTML` assignment must pass through an
+explicit policy; the default is that runtime data cannot reach the HTML parser at all.
+
+**Why this matters more here than in a browser app.** Persephone's renderer runs with
+`nodeIntegration: true` and `contextIsolation: false`, and there is no CSP, no Trusted Types policy
+and no sanitizer dependency in the renderer today (the only CSP in the codebase is the one served to
+board frames). The app displays untrusted text constantly — file names, HTTP response bodies,
+archive entry names, git refs, page titles, markdown. Interpolating any of it into `innerHTML` is not
+a defacement risk in this process model; it is arbitrary code execution. `createElement` plus
+`textContent` / `nodeValue` is immune by construction, which settles the question independently of
+ergonomics or speed.
+
+**The verbosity objection has a bounded answer.** VSCode's whole solution is one `$()` helper;
+av-grid does not even have that and writes the calls out. Epic B may add a small `el(tag, props,
+...children)` helper if the call sites justify it — but it stays a helper over `createElement`, and
+it does not accept a markup string. Roadmap §3's 200-line guard rail applies to it like everything
+else.
+
+**Available but not the default:** a `<template>` element parsed once and `cloneNode(true)` per
+instance is legitimate for a large repeated structure, since it parses static markup once and clones
+cheaply. It costs the named-reference clarity — the clone has to be walked or queried to find its
+parts — so reach for it only where a measurement says the structure is worth it. av-grid needed it
+nowhere.
+
+### 3.5 Keeping UIKit extraction-ready
+
+*Open decision #5, settled 2026-08-18: UIKit stays in-tree, but the folder boundary is treated as a
+future package boundary.*
+
+The intent is that one source tree eventually produces two products — Persephone, and one or more
+libraries that boards can vendor the way they already vendor av-grid. That extraction is **not**
+scheduled and is not part of this migration; the only commitment here is to stop it becoming
+impossible.
+
+**The distance is already short.** Measured across the 157 non-story files in `uikit/`, everything
+it reaches for outside itself is:
+
+| Target | Imports | Files | Extractable? |
+|---|---:|---:|---|
+| `theme/color` | 41 | 41 | Yes — after Epic A this file is only `var(--color-*)` strings with no imports of its own |
+| `core/state` | 30 | 28 | Yes — the state primitives are already framework-free (§3.1) |
+| `core/traits` | 14 | 12 | Yes |
+| `core/utils` | 12 | 9 | Yes |
+| `theme/icons` + `theme/icon-registry` | 15 | 13 | Yes — Epic P's registry (D2) is a name→renderer map |
+| `api/*`, `ui/*`, `shared/*` | **5** | **5** | **No — these are the real leaks** |
+
+So the natural package split is the one already implied by the imports: a **core** package (state,
+traits, utils, the color-variable references) and a **uikit** package on top of it, beside the
+existing av-grid. Nothing needs to be invented to get there.
+
+**The five leaks, in full:**
+
+| File | Imports | Note |
+|---|---|---|
+| `uikit/AVGrid/model/ContextMenuModel.tsx` | `ui/dialogs/poppers/showPopupMenu` | Dies with AVGrid — av-grid replaces it |
+| `uikit/ListBox/ListBoxModel.ts` | `api/events/events` (`ContextMenuEvent`) | Real |
+| `uikit/Tree/TreeModel.ts` | `api/events/events` (`ContextMenuEvent`) | Real |
+| `uikit/Menu/types.ts` | `api/types/events` (`MenuItem`) | Real — a re-export of an app type |
+| `uikit/RenderGrid/RenderFlexGrid.tsx` | `shared/utils` | Real |
+
+Four files, once AVGrid is gone. Closing them is cheap and belongs in Epic C.
+
+**The standing rule that keeps it that way** is Rule 6 in §6.
+
+**Theming is the other half of extraction, and Epic A already delivers it.** av-grid is themable
+inside a board with no JavaScript at all: every `--avg-*` token falls back to its `--p-*`
+counterpart, so a theme switch re-tints it with zero repaints and nothing to re-apply. A UIKit
+library has to work the same way, which means its styling must be CSS custom properties end to end —
+exactly what open decision #4 settled. Epic A is therefore not only the token foundation for vanilla
+views; it is the precondition for UIKit ever leaving the tree.
+
+### 3.6 Markdown — the port that mostly isn't one
+
+*Open decision #1, settled 2026-08-18.*
+
+§2 called `react-markdown` "the one real port". On inspection that is wrong, and in a useful
+direction: **`react-markdown` is a thin React binding over a parsing stack that is already
+framework-free.** It is `remark-parse` → `remark-gfm` → `mdast-util-to-hast` → `hast-util-raw` →
+**`hast-util-to-jsx-runtime`**. Only the last step is React. Every one of those packages is already
+in `node_modules` as a transitive dependency.
+
+**The decision: keep the whole stack and replace only the final step with a `hast → DOM` renderer**
+(`hast-util-to-dom` is the ecosystem's own version of it, same authors, same tree shape). Everything
+upstream is untouched.
+
+What that buys, concretely:
+
+- **Both custom plugins keep working, unmodified.** `rehypeHeadingIds.ts` (slugged heading ids, so
+  `#fragment` links resolve) and `rehypeHighlight.ts` (wraps search matches in `.highlighted-text`)
+  are plain unified plugins operating on hast, and neither imports React. Verified.
+- **`remark-gfm` and `rehype-raw` keep working, unmodified.** Tables, task lists, strikethrough, and
+  raw embedded HTML all behave exactly as today — no re-testing of markdown semantics.
+- **The output tree is identical**, so `MarkdownBlock.css` and the `.markdown-block` scoping survive
+  as they are.
+
+The work is then the five node overrides in `getComponents()` — `code` (Monaco-colorized
+`CodeBlock`), `pre` (mermaid SVG), `input` (checkbox → icon), `a` (link resolution), `img`
+(`MarkdownImage`) — which become "when the walker reaches this hast node, build this DOM instead".
+Two of them (`code`, `pre`) are substantial because they mount real interactive views, but they are
+being rewritten in Epic E anyway; the other three are near-trivial. Six call sites consume
+`MarkdownBlock` (`MarkdownBody`, `MarkdownOutputView`, `McpInspectorView`, `ResourceContentView`,
+`MnemeRootEditorView`, plus the re-export), and its props stay as they are.
+
+**Why not `marked`, which the boards catalog recommends?** Because boards and the renderer have
+opposite constraints, and the same choice is right in one and wrong in the other:
+
+| | Boards | Persephone renderer |
+|---|---|---|
+| Delivery | Vendored UMD from a CDN, CSP-sandboxed frame | Bundled, `nodeIntegration: true`, no CSP, no sanitizer |
+| Content | Authored by the board's own agent | Arbitrary untrusted files, HTTP bodies, wiki pages |
+| Output needed | An HTML string into `innerHTML` | A DOM tree with mounted interactive views |
+
+`marked` (and `markdown-it` in its default mode) emits an HTML **string**. Putting that string into
+`innerHTML` is exactly what open decision #2 forbids, and markdown here is untrusted input, so it
+would be an XSS→RCE path in this process model rather than a defacement risk — `marked` dropped its
+own sanitizer in v5 and points users at DOMPurify, which would be a new dependency purchased to
+re-solve a problem the current stack does not have. Node-level overrides that mount a Monaco block
+or a mermaid SVG also do not survive string rendering; they would need placeholder elements and a
+DOM post-pass. `marked` remains the right recommendation for boards and nothing about that changes.
+
+**The one thing to confirm when the task is written:** the exact per-node override seam in the
+`hast → DOM` walker (a hook, or a hand-written walk of ~100 lines). Either is acceptable; the
+overrides are the task's real content and the walker is not where the risk lives.
+
+**Sequencing.** This lands before the markdown, notebook and mcp-inspector editors in Epic E, and it
+is the one Epic E item worth doing early, since three editors block on it.
+
 ## 4. What we give up
 
 Stated plainly, so the decision is made with eyes open:
@@ -189,6 +343,11 @@ These hold for every epic below.
    bought, it does not close.
 5. **No new React.** From the day Epic A opens, new UIKit components are written vanilla-first with
    a React wrapper — not the reverse.
+6. **`uikit/` imports nothing above itself.** It may import `core/` and `theme/color`; it may not
+   import `api/`, `ui/`, `components/` or `shared/`. A component that needs an app concept takes it
+   as a prop or a callback. This costs nothing to hold — there are five violations today (§3.5) and
+   one of them dies with AVGrid — and it is the whole of what "extraction-ready" means in practice
+   (open decision #5). Stories are exempt: they are a harness, not the library.
 
 ## 7. The epics
 
@@ -196,8 +355,7 @@ Seven epics, roughly in dependency order. IDs are assigned when each epic doc is
 
 ### Epic P — Preparation (React-side)
 
-**Scheduled as [EPIC-051](epics/EPIC-051.md) on 2026-08-16.** The next free epic number is now
-**EPIC-052**.
+**Scheduled as [EPIC-051](epics/EPIC-051.md) on 2026-08-16. Completed.**
 
 The only epic that writes **no vanilla code at all**. Every task in it is a normal React refactor
 that leaves the app on React, is verifiable the same day, and shrinks the surface every later epic
@@ -255,6 +413,12 @@ ready-made way to assert that a converted view produces an equivalent DOM, driva
 
 ### Epic A — Style and token foundation
 
+**Scheduled as [EPIC-052](epics/EPIC-052.md) on 2026-08-18.** The next free epic number is now
+**EPIC-053**. Investigation at epic open found the color half of the description below **already
+done** — `color.ts` emits 77 `var(--color-*)` strings and all nine themes (not ten) define exactly
+those 77 with no drift — and found the real gap elsewhere: nothing outside CSS is ever told that the
+theme changed. See the epic doc for the re-scoped task list.
+
 Emit `theme/color.ts` and `uikit/tokens.ts` as CSS custom properties on `:root`, per theme,
 alongside the existing object exports. Vanilla views style with plain CSS; React keeps importing
 `color.*` unchanged. Nothing in the app changes behaviour.
@@ -285,6 +449,18 @@ Candidate tasks:
   `setPropsInternal` / `_initInternal` / `onUnmountInternal`; `ComponentQueue` gains a plain
   `subscribe` path in place of its hook.
 - **`mountVanilla` / `mountReact`** — the two-way adapter pair.
+- **Storybook harness** — teach `editors/storybook/` to host a vanilla view alongside the React
+  one (open decision #6). The `Story` record is already mostly neutral *data*: `id`, `name`,
+  `section`, `defaultProps` and the serializable `PropDef` union carry no React types, so the
+  component browser and the property editor need no change at all. Only two fields are
+  React-typed — `component: React.ComponentType<P>` and `previewChildren?: () => ReactNode` — and
+  only one render call, `LivePreview.tsx:64`. Widen `component` to a union and branch there:
+  React renders as today, vanilla mounts through `mountVanilla`. Two of the 38 stories
+  (`Checkbox.story.ts`, `Label.story.ts`) are already plain `.ts` with no JSX, which is the
+  existence proof that the format is nearly framework-free. Doing this here makes the harness
+  `mountVanilla`'s first consumer, so the adapter is exercised before any production call site
+  depends on it. `previewChildren` stays React-only until Epic C answers the subtree-slot question
+  (Epic P D4) — which is fine, because the leaf components converted first do not use it.
 - **Pilot** — one real component converted end to end to validate the contract before Epic C
   scales it to 44.
 - **Authoring rules** — update `uikit/CLAUDE.md` and `model-view-pattern.md` for vanilla views.
@@ -304,6 +480,19 @@ Autocomplete, DateInput, PathInput, TagsInput, Slider) · floating layer (Popove
 Dialog, Notification) · containers (Panel, Toolbar, Splitter, CollapsiblePanelStack,
 SegmentedControl, Breadcrumb) · data views (ListBox, MultiListBox, Tree, RenderGrid,
 SelectableRow, CategoryList, Minimap, ImageViewport) · **AVGrid → av-grid**.
+
+**One extra task, cheap and unrelated to rendering:** close the four remaining `uikit/` → app-layer
+imports listed in §3.5 (`ListBoxModel`, `TreeModel`, `Menu/types`, `RenderFlexGrid`; the fifth dies
+with AVGrid), and adopt Rule 6. That is the entire cost of keeping open decision #5 open.
+
+**Verification runs through the Storybook harness** built in Epic B (open decision #6): each
+component is rendered React-and-vanilla side by side with identical props, and the `data-name`
+contract makes the two DOM trees comparable — drivable from the `browser_*` tools. It is a visual
+harness, not an assertion suite; it shows a difference, it does not fail a build. Coverage is 38 of
+the 44 uikit components. The six without a story are `AVGrid` (superseded by av-grid anyway),
+`RenderGrid`, `Minimap`, `ImageViewport`, `Progress` and `SelectableRow` — which, apart from AVGrid,
+are precisely the measurement-heavy components whose conversion is hardest. Writing those six
+stories is cheap and should happen before those components are converted, not after.
 
 **This is the epic that pays.** 14,671 lines, and nearly all the perceived speed lives here.
 If the migration stops after Epic C, it was still worth doing.
@@ -326,8 +515,9 @@ design: this epic may stay active for a long time and that is acceptable.
 
 Suggested order: a small one first to establish the pattern (mermaid, image, video), then a large
 one to prove it scales (graph — 3,001 lines, or notebook — 1,949), then by whatever is being
-touched anyway. The `react-markdown` replacement must land before markdown, notebook and
-mcp-inspector.
+touched anyway. The `hast → DOM` renderer that replaces react-markdown's React step
+(open decision #1, §3.6) must land before markdown, notebook and mcp-inspector — it is the one
+Epic E item worth pulling early, since three editors block on it.
 
 Largest first: graph 3,001 · link-editor 2,860 · notebook 1,949 · rest-client 1,917 · browser
 1,700 · log-view 1,693 · mcp-inspector 1,637 · git-tree 1,425.
@@ -338,6 +528,26 @@ Delete `react-dom`, then `react`, `@types/react*`, `@emotion/*`, `@monaco-editor
 `react-markdown`, `react-tooltip`, `eslint-plugin-react-hooks`. Strip the adapters. Update
 `CLAUDE.md`, `component-guide.md`, `model-view-pattern.md`, `uikit-vs-components-split.md`.
 
+**Per open decision #3, this epic also strips the React wrapper off every converted UIKit
+component** — they were scaffolding, not a published API. Two consequences that reach backwards:
+
+- The API can finally be cleaned up, because the React-facing signature stops being a contract the
+  moment the last React caller is gone. Concretely, the `| ReactNode` arm of Epic P's
+  `IconRef = IconName | ReactNode` (D3) is deleted here, and the subtree slots Epic P deferred (D4)
+  never need a permanently React-compatible design — only one good enough to carry the migration.
+- Epic C should therefore keep each wrapper thin and mechanical. Effort spent making the React
+  surface pleasant — memoization, ref ergonomics, prop polish — is effort spent on code with a
+  scheduled deletion date.
+
+This does not constrain open decision #5: a vanilla-only UIKit is still publishable as a vanilla
+library, exactly like av-grid. Dropping React support removes a consumer, not the option to ship.
+
+**Not in this epic, but reachable from it:** with React gone and Rule 6 held, `uikit/` and `core/`
+are package-shaped, and the "one source tree, two products" idea behind open decision #5 becomes a
+build-configuration question rather than a refactor. Deciding it is post-migration work and should
+be scheduled on its own merits — the payoff is that boards could vendor UIKit the way they already
+vendor av-grid, which is a Boards feature, not a de-React one.
+
 Only reachable if Epic E finishes. Not a goal in itself.
 
 ## 8. Open decisions
@@ -346,13 +556,13 @@ Each of these changes the shape of an epic and should be settled before that epi
 
 | # | Question | Blocks |
 |---|---|---|
-| 1 | What replaces `react-markdown`? `markdown-it` with custom renderers is the default assumption. | Epic E |
-| 2 | Templating: `innerHTML` from template strings, or explicit `document.createElement`? av-grid's answer should carry. | Epic B |
+| 1 | *Settled (2026-08-18):* **Nothing replaces the parser — only the last step.** Keep `remark`/`rehype`; swap `hast-util-to-jsx-runtime` (react-markdown's React step) for a `hast → DOM` renderer. Neither `markdown-it` nor `marked` is adopted. See §3.6. | Epic E |
+| 2 | *Settled (2026-08-18):* **`document.createElement` for structure; `innerHTML` only for static, code-owned markup, never with interpolated runtime data.** This is what av-grid already does and what VSCode does. See §3.4. | Epic B |
 | 2a | *Settled:* model/view split and state-driven binding are preserved, built on the existing `TComponentModel` and `IState.subscribe`. See §3. | — |
-| 3 | Do converted UIKit components keep a React wrapper permanently (making UIKit publishable to React consumers, like av-grid), or is the wrapper scaffolding to be deleted in Epic F? | Epic C, Epic F |
-| 4 | Emotion's dynamic prop-driven styling — CSS variables set via `style`, or generated class hooks? | Epic A |
-| 5 | Does UIKit become a separate package alongside av-grid, or stay in-tree? | Epic C |
-| 6 | Storybook editor (`editors/storybook/`) — does it become the conversion harness? | Epic B |
+| 3 | *Settled (2026-08-18, user decision):* **Scaffolding — deleted in Epic F.** There is no plan to consume UIKit from a React app, so once React leaves Persephone every UIKit component is vanilla-only with no React support. Rule 2 still governs the *migration* (a swap must not break call sites), but the React-facing signature is not a permanent contract, so Epic F is free to clean up the API. Keep the wrappers thin and mechanical in Epic C — do not invest in React ergonomics for something scheduled for deletion. | Epic C, Epic F |
+| 4 | *Settled (2026-08-18, user decision):* **CSS custom properties**, not generated class hooks. Scalar values (size, offset, width, color) are written to `element.style` as `--*` variables and consumed by a static rule; discrete boolean state uses a `data-*` attribute and a static rule, which is already the UIKit state model. Generated class hooks are rejected — they reintroduce a runtime style engine. This is the mechanism boards already use (`--p-*`), where a theme switch is a variable re-push and nothing walks the component tree. See [EPIC-052](epics/EPIC-052.md) A6. | Epic A |
+| 5 | *Settled (2026-08-18, user decision):* **Stays in-tree; designed for extraction, not extracted.** Packaging UIKit during the migration would compound two risky changes, so no package is built here. But the folder boundary is treated as a future package boundary from Epic C onward, so extraction stays a later decision rather than a rewrite. The eventual target shape — one source tree producing two products (Persephone + one or more libraries, so boards can consume UIKit the way they already consume av-grid) — is recorded in §7 "Epic F" as post-migration work. See §3.5 for the measured distance to that boundary. | Epic C |
+| 6 | *Settled (2026-08-18, user decision):* **Yes.** `editors/storybook/` gains a second render path so a story can host a vanilla view, and Epic C uses it to compare React and vanilla versions side by side. The work lands in Epic B as `mountVanilla`'s first consumer. Note this is Persephone's own in-app gallery, not the Storybook.js product — there is no such dependency. | Epic B |
 
 ## 9. Abort criteria
 
