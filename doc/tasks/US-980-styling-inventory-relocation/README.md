@@ -1,6 +1,6 @@
 # US-980: Relocate the Emotion and inline-style inventories
 
-**Status:** Planned
+**Status:** Implemented
 **Priority:** High
 **Epic:** [EPIC-052 — De-React Epic A: Style and token foundation](../../epics/EPIC-052.md)
 **Created:** 2026-08-18

@@ -16,6 +16,7 @@
  */
 import { getCurrentThemeId, getResolvedColor, isCurrentThemeDark } from "../../theme/themes";
 import { fontSize, gap, height, radius, spacing } from "../../uikit/tokens";
+import { mapScale } from "../../theme/token-vars";
 import type { BoardThemePalette } from "../../../ipc/board-bridge-channels";
 
 /** Color `--p-*` var → source `color.ts` (`--color-*`) var. `--p-accent*` is a
@@ -60,23 +61,13 @@ export function computeBoardThemePalette(): BoardThemePalette {
 
 // --- Metric tokens (static, theme-independent) ---
 
-function camelToKebab(s: string): string {
-    return s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
-}
-
-function mapScale(prefix: string, scale: Record<string, number | string>): Record<string, string> {
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(scale)) {
-        out[`${prefix}-${camelToKebab(k)}`] = typeof v === "number" ? `${v}px` : String(v);
-    }
-    return out;
-}
-
 /** The frozen metric `--p-*` contract, generated from `uikit/tokens.ts`. Built once. */
 export const BOARD_TOKEN_VARS: Record<string, string> = {
     ...mapScale("--p-space", spacing),
     ...mapScale("--p-gap", gap),
     ...mapScale("--p-radius", radius),
+    // Frozen board contract (EPIC-034); the app token was removed by EPIC-052 A7.
+    "--p-radius-full": "50%",
     ...mapScale("--p-size", height),
     ...mapScale("--p-font", fontSize),
 };

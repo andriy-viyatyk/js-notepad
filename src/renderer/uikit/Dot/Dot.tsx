@@ -1,7 +1,6 @@
 import React from "react";
 import styled from "@emotion/styled";
 import color from "../../theme/color";
-import { radius } from "../tokens";
 
 // --- Types ---
 
@@ -86,7 +85,7 @@ const Root = styled.span(
     {
         display: "inline-block",
         flexShrink: 0,
-        borderRadius: radius.full,
+        borderRadius: "50%",
         boxSizing: "border-box",
         transition: "box-shadow 0.15s",
 

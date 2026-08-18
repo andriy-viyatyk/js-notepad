@@ -10,6 +10,7 @@ import { lightModern } from "./light-modern";
 import { solarizedLight } from "./solarized-light";
 import { quietLight } from "./quiet-light";
 import { fpJoin } from "../../core/utils/file-path";
+import { installAppTokenVars } from "../token-vars";
 
 const themes: ThemeDefinition[] = [
     defaultDark,
@@ -103,4 +104,5 @@ export function onMonacoThemeChange(callback: MonacoThemeCallback): void {
 }
 
 // Apply saved theme immediately on module load (synchronous read avoids flash)
+installAppTokenVars();
 applyTheme(readStartupThemeId());
