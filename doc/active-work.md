@@ -8,6 +8,15 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
+- **EPIC-053** — [De-React Epic B: The reactive foundation and the boundary](epics/EPIC-053.md)
+  - [ ] US-985: Drop zustand from the state layer
+  - [ ] US-986: Vanilla view lifecycle and `bind()`
+  - [ ] US-987: Keyed-list and subtree-swap helpers
+  - [ ] US-988: Model driver — the non-React `useComponentModel`
+  - [ ] US-989: `mountVanilla` / `mountReact`
+  - [ ] US-990: Storybook vanilla render path
+  - [ ] US-991: Pilot — one component converted end to end
+  - [ ] US-992: Authoring rules for vanilla views
 - *(no epic)*
   - *(no active tasks)*
 

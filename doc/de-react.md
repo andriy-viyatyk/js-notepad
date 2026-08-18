@@ -134,8 +134,10 @@ methods.
 | Derived state | Already solved — `TComponentModel.memo()` is framework-agnostic; keep as is. |
 | Imperative view commands | Already solved — `ComponentQueue` is the model→view command channel for things that are not state (scroll-to-row, focus). Only its React hook goes. |
 
-Together that is on the order of 200 lines. **If it grows much past that, stop** — the failure mode
-of this phase is accidentally writing a worse React.
+Together that was estimated at on the order of 200 lines. **The estimate was retired when Epic B
+opened** (EPIC-053 B14); what stands is the concern behind it — the failure mode of this phase is
+accidentally writing a worse React, and the check is whether a primitive is demanded by a real
+conversion, not what it costs in lines.
 
 ### 3.3 The state layer sheds a dependency
 
@@ -191,8 +193,8 @@ ergonomics or speed.
 **The verbosity objection has a bounded answer.** VSCode's whole solution is one `$()` helper;
 av-grid does not even have that and writes the calls out. Epic B may add a small `el(tag, props,
 ...children)` helper if the call sites justify it — but it stays a helper over `createElement`, and
-it does not accept a markup string. Roadmap §3's 200-line guard rail applies to it like everything
-else.
+it does not accept a markup string. Like every other primitive, it is added only if the call sites
+demand it (EPIC-053 B14).
 
 **Available but not the default:** a `<template>` element parsed once and `cloneNode(true)` per
 instance is legitimate for a large repeated structure, since it parses static markup once and clones
@@ -307,8 +309,12 @@ is the one Epic E item worth doing early, since three editors block on it.
 
 Stated plainly, so the decision is made with eyes open:
 
-- **React DevTools and fast-refresh** for converted code. VSCode lives without them; it is still a
-  real loss of iteration speed.
+- ~~**React DevTools and fast-refresh** for converted code.~~ *Assessed at Epic B open (EPIC-053,
+  Concern 6) and found **not to apply to this project**. React DevTools are not used. React Fast
+  Refresh is not enabled and never has been — `vite.renderer.config.ts` registers no
+  `@vitejs/plugin-react`, and neither that plugin nor `react-refresh` is a dependency, so a renderer
+  edit already triggers a full reload (and `scripts/dev.mjs` restarts Electron for main/preload
+  changes). Converting a component to vanilla costs nothing in either respect.*
 - **The correctness safety net.** React's "recompute everything, diff it" becomes "know exactly
   what changed and touch only that". Every converted component is a new opportunity for stale DOM,
   a forgotten unsubscribe or a leaked listener. This — not the translation — is the actual work.
@@ -413,8 +419,8 @@ ready-made way to assert that a converted view produces an equivalent DOM, driva
 
 ### Epic A — Style and token foundation
 
-**Scheduled as [EPIC-052](epics/EPIC-052.md) on 2026-08-18.** The next free epic number is now
-**EPIC-053**. Investigation at epic open found the color half of the description below **already
+**Scheduled as [EPIC-052](epics/EPIC-052.md) on 2026-08-18. Completed.**
+Investigation at epic open found the color half of the description below **already
 done** — `color.ts` emits 77 `var(--color-*)` strings and all nine themes (not ten) define exactly
 those 77 with no drift — and found the real gap elsewhere: nothing outside CSS is ever told that the
 theme changed. See the epic doc for the re-scoped task list.
@@ -429,6 +435,30 @@ theme-switch path without a React re-render · Emotion-to-CSS conventions in `co
 **Blocks everything else.** Small, low-risk, no user-visible change.
 
 ### Epic B — The reactive foundation and the boundary
+
+**Scheduled as [EPIC-053](epics/EPIC-053.md) on 2026-08-18.** The next free epic number is now
+**EPIC-054**. Investigation at epic open found three of the candidate tasks below smaller than
+described: `ComponentQueue`'s plain `subscribe` path **already exists**, `immer` is a one-file
+dependency rather than five, and the 16 `useSyncExternalStore` call sites in §2 are **not** the
+state layer's React bridge — `TOneState.use()` reaches React through zustand, and rebuilding that
+is what the drop-zustand task actually is. Two decisions taken at epic open change the candidate
+list below: **update batching is not done** — av-grid's microtask coalescing is an optimization for
+a virtualized surface, and imposing it on 153 existing `subscribe()` sites buys nothing (EPIC-053
+B8) — and the components that genuinely need it (`LogView`, `Tree`, `ListBox`, and the rest of the
+`RenderGrid` consumers) **adopt av-grid's render engine** instead, which is itself a vanilla port of
+Persephone's own `uikit/RenderGrid/` (B9). av-grid's **source is copied into the tree rather than
+consumed as a dependency**, so Persephone controls it outright — while the av-grid repository
+continues separately as the deliberately light library boards vendor, since building it out of a
+growing UIKit would push weight into every board's bundle. Two copies of the same grid is the
+accepted outcome, and open decision #5 is unaffected: av-grid is explicitly not an instance of "one
+source tree, two products". The per-consumer conversion work lands in Epics C and E; Epic B's
+obligation is only to not build a competing virtualization primitive. A third decision reaches
+forward into every later epic: **`TComponentModel.effect()` does not survive React** (B13). Neither
+av-grid nor VSCode has a dependency-array concept, and all 65 call sites map onto `init()`,
+`setProps` + `oldProps`, or the method that makes the change — all of which already work under
+React. Models therefore shed their effects *before* being converted, the vanilla driver evaluates
+none, and `effect(` call sites 65 → 0 is a measured number carried through to Epic F. All the
+epic's shaping questions are settled; see the epic doc for the task list and the decisions.
 
 The largest design epic and the one that decides whether the rest is pleasant or miserable. It
 delivers the vanilla half of §3: the view base class, the binding primitive, and the adapters that
@@ -454,8 +484,10 @@ Candidate tasks:
   `section`, `defaultProps` and the serializable `PropDef` union carry no React types, so the
   component browser and the property editor need no change at all. Only two fields are
   React-typed — `component: React.ComponentType<P>` and `previewChildren?: () => ReactNode` — and
-  only one render call, `LivePreview.tsx:64`. Widen `component` to a union and branch there:
-  React renders as today, vanilla mounts through `mountVanilla`. Two of the 38 stories
+  only one render call, `LivePreview.tsx:61`. Add an optional `vanillaComponent` field beside
+  `component` and branch there: React renders as today, and when the vanilla field is present it
+  mounts through `mountVanilla` in a second pane, so the two are compared side by side
+  (EPIC-053 B5). Two of the 38 stories
   (`Checkbox.story.ts`, `Label.story.ts`) are already plain `.ts` with no JSX, which is the
   existence proof that the format is nearly framework-free. Doing this here makes the harness
   `mountVanilla`'s first consumer, so the adapter is exercised before any production call site
@@ -465,8 +497,11 @@ Candidate tasks:
   scales it to 44.
 - **Authoring rules** — update `uikit/CLAUDE.md` and `model-view-pattern.md` for vanilla views.
 
-Guard rail: the primitives above should land in roughly 200 lines. Substantially more means the
-epic is drifting into building a framework instead of a binding layer.
+Guard rail: the primitives above were estimated at roughly 200 lines. **That number was retired at
+epic open** (EPIC-053 B14) — it was an assumption made before anything was measured, and av-grid's
+`Observable` alone is 170 lines. The concern behind it stands: the failure mode of this phase is
+accidentally writing a worse React. It is checked by requiring that each primitive be demanded by a
+real conversion rather than added in advance, not by counting lines.
 
 ### Epic C — UIKit conversion
 
