@@ -12,7 +12,7 @@ Overview of all active and planned epics and tasks.
   - [x] [US-980: Relocate the Emotion and inline-style inventories](tasks/US-980-styling-inventory-relocation/README.md)
   - [x] [US-981: Emit `uikit/tokens.ts` as CSS custom properties](tasks/US-981-token-css-vars/README.md)
   - [x] [US-982: One theme state and one color resolver](tasks/US-982-theme-state-resolver/README.md)
-  - [ ] US-983: Emotion-to-CSS conventions; settle open decision #4
+  - [x] [US-983: Emotion-to-CSS conventions](tasks/US-983-emotion-to-css-conventions/README.md) — Implemented
   - [ ] US-984: Pilot — convert one UIKit component to the new conventions
 - *(no epic)*
   - *(no active tasks)*

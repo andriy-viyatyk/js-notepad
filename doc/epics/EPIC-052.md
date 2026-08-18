@@ -205,7 +205,7 @@ input and must live somewhere durable first.
 | US-980 | Relocate the Emotion and inline-style inventories into `doc/` | Implemented |
 | US-981 | [Emit `uikit/tokens.ts` as CSS custom properties](../tasks/US-981-token-css-vars/README.md) | Implemented |
 | US-982 | [One theme state and one color resolver](../tasks/US-982-theme-state-resolver/README.md) | Implemented |
-| US-983 | Emotion-to-CSS conventions; settle open decision #4 | Planned |
+| US-983 | [Emotion-to-CSS conventions](../tasks/US-983-emotion-to-css-conventions/README.md) | Implemented |
 | US-984 | Pilot: convert one UIKit component to the new conventions | Planned |
 
 ### Ordering

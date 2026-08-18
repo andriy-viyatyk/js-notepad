@@ -104,15 +104,111 @@ return <Button onClick={handleClick} />;
 return <Button onClick={() => doSomething()} />;
 ```
 
-## Styling with Emotion
+## Styling with Emotion and co-located CSS
 
 > **Where Emotion is allowed:** Emotion is the styling tool for `src/renderer/uikit/` (the standalone component library) and for the chrome surfaces inside `src/renderer/ui/` (page tab strip, sidebar, navigation bar — one-of-a-kind app chrome). Application code outside those scopes — including `editors/`, `components/` (KEEP folders), and feature code — **must not** use `styled.*`, `import { css }`, or pass `style=` / `className=` to UIKit components. Compose UIKit primitives by props instead. For the full set of UIKit authoring rules (data-attribute state model, controlled-component contract, trait-based data binding, naming, etc.), see [`src/renderer/uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md) — that file is the canonical authoring reference; this section is the project-wide rule.
 
 When an editor owns presentation for generated content or a third-party/native host, keep that CSS in a stylesheet beside the editor and scope it below a semantic editor root (for example, `MarkdownBlock.css` or `BrowserView.css`). Such styles are an editor boundary, not a new UIKit primitive or a generic styling escape hatch. Prefer existing UIKit layout and control props for the surrounding chrome; reserve native `style` values for runtime geometry or integration details that cannot be expressed semantically.
 
-### Single Styled Root with Nested Class-Based Styles (UIKit and App Chrome)
+### Co-located CSS for converted components
 
-For UIKit and one-of-a-kind app-chrome components with multiple child elements, create **one styled component** for the root element and style all children using nested class selectors. Editor components use the scoped stylesheet convention above instead. This keeps styles organized and easier to read.
+Emotion remains valid for existing UIKit and one-of-a-kind `ui/` chrome until an explicit
+conversion task migrates that surface. A converted component has one styling system for its DOM
+subtree: plain CSS, not a mixture of Emotion and static CSS. The stylesheet is co-located and
+imported by its owner (`Component/Component.tsx` imports `Component/Component.css`); it is plain
+Vite CSS, not a CSS module, runtime class-name generator, or second global style registry.
+
+The existing editor-local CSS files are the precedent for co-location and loading only. Their
+class-root selectors and pre-existing literal values are not the model for UIKit scoping or token
+usage. New component styles must begin at the required root selector:
+
+```css
+@layer uikit {
+    [data-type="button"] {
+        /* base rules, variants, then interaction states */
+    }
+
+    [data-type="button"] [data-part="label"] {
+        /* stable internal structure */
+    }
+}
+```
+
+Use the established `data-part` vocabulary for stable internal regions; do not rename existing
+part names, use generated Emotion classes, or rely on generic global selectors. Direct-child
+selectors are appropriate when the old Emotion rule depended on DOM shape. An owning parent may
+target a descendant's `[data-type]` or `[data-part]` from its own stylesheet, as existing
+`AudioPlayer`, `FileSearch`, `GlobalStyles`, `CollapsiblePanelStack`, and AVGrid patterns do.
+That is an owner relationship, not a public styling escape hatch. Converted UIKit components still
+omit public `style` and `className` props, although their implementation may set a narrowly typed
+custom property on its own raw root element.
+
+### Tokens, colors, and runtime values
+
+Static CSS consumes theme and design-token variables directly:
+
+```css
+[data-type="panel"] {
+    color: var(--color-text-default, currentColor);
+    padding: calc(var(--space-md) * 2);
+    border-radius: var(--radius-md, 0px);
+}
+```
+
+Use `var(--color-...)` names from `theme/color.ts` and the theme definitions. Use the app token
+families `--space-*`, `--gap-*`, `--radius-*`, `--size-*`, and `--font-*` from US-981. Do not copy
+theme color literals into CSS or make CSS import `color.ts`, `themeState`, or `resolveColor()`;
+those JavaScript APIs are for canvas, Monaco, webviews, data URIs, and other non-CSS consumers.
+
+Scalar runtime geometry or appearance belongs in a component-prefixed custom property on the
+consuming element, such as `--spinner-size`, `--progress-pill-top`, or `--tree-indent-size`.
+Every `var()` use needs a usable fallback. Boolean or finite state belongs in `data-*` attributes,
+with inactive booleans omitted, rather than a class per state. Component-owned custom properties
+are implementation details, never a hidden public styling API, and must not be written to `:root`
+or a shared ancestor. Measurements, third-party/native-host values, and one-off placement may
+remain inline when the owning task records why no static CSS consumer exists.
+
+### Keyframes and cascade layers
+
+Keyframes belong in the owning component stylesheet and use the stable global form
+`persephone-<component-kebab-name>-<animation-kebab-name>`. Do not render a `<style>` element from
+a component or use generic names such as `spin`, `pulse`, or `loading`. Preserve the original
+duration, timing, iteration, fill behavior, and motion. The four current migration targets are:
+
+| Source | Stable name |
+| --- | --- |
+| Dialog `pulse` | `persephone-dialog-pulse` |
+| ProgressBar `indeterminateSlide` | `persephone-progress-bar-indeterminate-slide` |
+| Spinner `spin` | `persephone-spinner-spin` |
+| Notification `notification-slide-in` | `persephone-notification-slide-in` |
+
+`notification-slide-in` in `Notification.tsx` and `browser-loading-pulse` in
+`editors/browser/BrowserView.css` are grandfathered legacy names until their owning migrations;
+they are not names for new stylesheets.
+
+The layer order is declared once at startup in `src/renderer/theme/style-layers.css`:
+
+```css
+@layer base, uikit, app, editor;
+```
+
+New styles use `uikit` for UIKit, `app` for shell/coupled chrome, and `editor` for converted
+editor-local CSS; `base` is reserved for reset and token infrastructure. Layer order is stable
+even when lazy chunks load later. Existing Emotion and grandfathered styles remain unlayered
+legacy CSS until their owner migrates; related owner/descendant rules must migrate together or
+retain an explicitly reviewed specificity relationship. Within a layer preserve the old order:
+base layout/paint, variants and sizes, hover/focus, then selected/active/disabled overrides.
+
+Before completing a conversion, compare default, hover, focus, selected, disabled, loading, and
+variant states, including direct-child SVG sizing and equal-specificity rules. Typecheck cannot
+detect a cascade or insertion-order regression.
+
+### Legacy Emotion shape for unconverted components
+
+For unconverted UIKit and one-of-a-kind app-chrome components with multiple child elements, create
+**one styled component** for the root element and style all children using nested class selectors.
+This is the legacy shape retained until that component has a conversion task. Converted components
+use the co-located CSS convention above. Editor components use their scoped stylesheet convention.
 
 ```typescript
 // GOOD - single styled root with nested classes

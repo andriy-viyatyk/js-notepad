@@ -22,7 +22,10 @@ uikit/
   ...
 ```
 
-No separate `.css` or `.scss` files — all styles use Emotion.
+Converted components use a co-located `Component.css` stylesheet imported by `Component.tsx`.
+Plain CSS is scoped from the required `[data-type="component-name"]` root and uses the existing
+`data-part` vocabulary for stable internal regions. Existing components remain on Emotion until
+an explicit conversion task; do not mix Emotion and static CSS for the same converted subtree.
 
 ---
 
@@ -107,6 +110,56 @@ const Root = styled.button({
     },
 }, { label: "Button" });
 ```
+
+---
+
+Static CSS is the target form for new or converted components; the Emotion example above is the
+legacy form for components that have not been migrated.
+
+```tsx
+import "./Button.css";
+
+export function Button({ size = "md", disabled, name, label }: ButtonProps) {
+    return (
+        <button
+            data-type="button"
+            data-name={name}
+            data-size={size}
+            data-disabled={disabled || undefined}
+        >
+            <span data-part="label">{label}</span>
+        </button>
+    );
+}
+```
+
+```css
+@layer uikit {
+    [data-type="button"] {
+        color: var(--color-text-default, currentColor);
+        border-radius: var(--radius-md, 0px);
+        font-size: var(--font-base, 13px);
+    }
+
+    [data-type="button"][data-size="sm"] {
+        height: var(--size-control-sm, 24px);
+    }
+
+    [data-type="button"][data-disabled] {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+}
+```
+
+Static selectors begin at the component's `[data-type]` root. Use established `data-part` names
+for structure and preserve direct-child relationships where DOM shape matters. Use
+`var(--color-...)` and the app token families (`--space-*`, `--gap-*`, `--radius-*`, `--size-*`,
+`--font-*`) rather than literals. Scalar runtime inputs use component-prefixed custom properties
+on the consuming element with a fallback; finite state uses `data-*` attributes. The public
+component still omits `style` and `className`, even though its implementation may set an internal
+custom property on its own raw root. Do not render `<style>` from a component for keyframes: use a
+stable `persephone-<component>-<animation>` name in the co-located stylesheet.
 
 ---
 
@@ -529,6 +582,15 @@ Use predictable, self-documenting names. An AI agent reading the prop should und
 ---
 
 ## Styling rules
+
+These rules describe the target for converted components. Existing Emotion implementations may
+keep the legacy form until their conversion task, but a converted subtree must not mix Emotion and
+plain CSS. Import `Component.css` from the owning component, wrap rules in `@layer uikit`, and
+scope every selector from the component's `[data-type]` root. The startup layer order is
+`@layer base, uikit, app, editor;`. Use established `data-part` names for internal structure;
+do not rename them or replace state attributes with classes. Parent-owned descendant selectors are
+allowed when they target a child's `[data-type]` or `[data-part]` and preserve the documented
+owner relationship.
 
 ### Colors
 

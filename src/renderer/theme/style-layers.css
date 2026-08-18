@@ -1,0 +1,6 @@
+/*
+ * Declare the application-wide layer order before any lazy stylesheet can load.
+ * Converted styles opt into one of these layers; existing unlayered Emotion CSS
+ * remains legacy until its owning component is migrated.
+ */
+@layer base, uikit, app, editor;
