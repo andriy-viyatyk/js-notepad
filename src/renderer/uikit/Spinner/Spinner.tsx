@@ -1,6 +1,5 @@
 import React from "react";
-import styled from "@emotion/styled";
-import { keyframes } from "@emotion/react";
+import "./Spinner.css";
 import { ProgressIcon } from "../../theme/icons";
 
 // --- Types ---
@@ -16,46 +15,25 @@ export interface SpinnerProps
     color?: string;
 }
 
-// --- Styled ---
-
-const spin = keyframes({
-    from: { transform: "rotate(0deg)" },
-    to:   { transform: "rotate(360deg)" },
-});
-
-const Root = styled.span<{ $size: number; $color?: string }>(
-    ({ $size, $color }) => ({
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: $size,
-        height: $size,
-        flexShrink: 0,
-        color: $color,
-        "& svg": {
-            width: $size,
-            height: $size,
-            animation: `${spin} 1.5s steps(10) infinite`,
-        },
-    }),
-    { label: "Spinner" },
-);
-
 // --- Component ---
 
 export function Spinner({ name, size = 32, color, ...rest }: SpinnerProps) {
+    const style = {
+        "--spinner-size": `${size}px`,
+        ...(color ? { "--spinner-color": color } : {}),
+    } as React.CSSProperties;
+
     return (
-        <Root
+        <span
+            {...rest}
             data-type="spinner"
             data-name={name}
             role="status"
             aria-live="polite"
             aria-label="Loading"
-            $size={size}
-            $color={color}
-            {...rest}
+            style={style}
         >
             <ProgressIcon />
-        </Root>
+        </span>
     );
 }

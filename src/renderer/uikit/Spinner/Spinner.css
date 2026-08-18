@@ -1,0 +1,22 @@
+@layer uikit {
+    [data-type="spinner"] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--spinner-size, 32px);
+        height: var(--spinner-size, 32px);
+        flex-shrink: 0;
+        color: var(--spinner-color, currentColor);
+    }
+
+    [data-type="spinner"] svg {
+        width: var(--spinner-size, 32px);
+        height: var(--spinner-size, 32px);
+        animation: persephone-spinner-spin 1.5s steps(10) infinite;
+    }
+
+    @keyframes persephone-spinner-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+}

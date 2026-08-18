@@ -1,9 +1,10 @@
+// Keep this first so the shared cascade layer order is established before any component stylesheet.
+import "./renderer/theme/style-layers.css";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { app } from "./renderer/api/app";
 import { api } from "./ipc/renderer/api";
 import { startPerformanceJanitor } from "./renderer/core/utils/performance-janitor";
-import "./renderer/theme/style-layers.css";
 
 startPerformanceJanitor();
 
