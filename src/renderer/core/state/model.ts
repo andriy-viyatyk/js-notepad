@@ -94,6 +94,11 @@ export class TComponentModel<T, P> extends TModel<T> {
     private _effects: EffectRegistration[] = [];
     private _initCalled = false;
 
+    /** Whether init() registered effects that require the React adapter. */
+    get hasRegisteredEffects(): boolean {
+        return this._effects.length > 0;
+    }
+
     /**
      * Register a side effect with dependency tracking.
      * Call in init() to set up effects that react to prop/state changes.
@@ -198,13 +203,20 @@ export class TComponentModel<T, P> extends TModel<T> {
     };
 }
 
+type ComponentModelConstructor<T, P, M extends TComponentModel<T, P>> = new (
+    modelState: IState<T> | (new (defaultState: T) => IState<T>),
+    defaultState?: T
+) => M;
+
+type ModelConstructor<T, M extends TModel<T>> = new (
+    modelState: IState<T> | (new (defaultState: T) => IState<T>),
+    defaultState?: T
+) => M;
+
 function createModel<T, M extends TModel<T>>(
     model:
         | M
-        | (new (
-              modelState: IState<T> | (new (defaultState: T) => IState<T>),
-              defaultState?: T
-          ) => M),
+        | ModelConstructor<T, M>,
     modelState: IState<T> | (new (defaultState: T) => IState<T>),
     defaultState?: T
 ): M {
@@ -218,10 +230,7 @@ function createModel<T, M extends TModel<T>>(
 export function useModel<T, M extends TModel<T>>(
     model:
         | M
-        | (new (
-              modelState: IState<T> | (new (defaultState: T) => IState<T>),
-              defaultState?: T
-          ) => M),
+        | ModelConstructor<T, M>,
     modelState:
         | IState<T>
         | (new (defaultState: T) => IState<T>) = TComponentState,
@@ -239,10 +248,7 @@ export function useComponentModel<T, P, M extends TComponentModel<T, P>>(
     props: P,
     model:
         | M
-        | (new (
-              modelState: IState<T> | (new (defaultState: T) => IState<T>),
-              defaultState?: T
-          ) => M),
+        | ComponentModelConstructor<T, P, M>,
     defaultState?: T
 ): M {
     const controlModel = useModel(model, TComponentState, defaultState);
@@ -255,4 +261,55 @@ export function useComponentModel<T, P, M extends TComponentModel<T, P>>(
     }, [controlModel]);
 
     return controlModel;
+}
+
+export interface ComponentModelDriver<T, P, M extends TComponentModel<T, P>> {
+    readonly model: M;
+    update(props: P): void | Promise<void>;
+    mount(): void;
+    dispose(): void;
+}
+
+export function createComponentModelDriver<
+    T,
+    P,
+    M extends TComponentModel<T, P>,
+>(
+    props: P,
+    model: M | ComponentModelConstructor<T, P, M>,
+    defaultState?: T,
+): ComponentModelDriver<T, P, M> {
+    // The initial prop pump happens at construction, matching useComponentModel. The explicit
+    // driver owns the model from this point onward and does not share it with a React adapter.
+    const controlModel = createModel(model, TComponentState, defaultState);
+    controlModel.setPropsInternal(props);
+    controlModel.isFirstUse = false;
+
+    let mounted = false;
+    let disposed = false;
+
+    return {
+        model: controlModel,
+        update(nextProps) {
+            if (disposed) return;
+            return controlModel.setPropsInternal(nextProps);
+        },
+        mount() {
+            if (disposed || mounted) return;
+            mounted = true;
+            controlModel._initInternal();
+            if (controlModel.hasRegisteredEffects) {
+                throw new Error(
+                    `${controlModel.constructor.name} registered effects and cannot be driven by a vanilla lifecycle.`
+                );
+            }
+        },
+        dispose() {
+            if (disposed) return;
+            disposed = true;
+            // Unlike an uncommitted React render, an explicit owner must clean up even when
+            // mount() was never called. The model's init() may therefore not have run yet.
+            controlModel.onUnmountInternal();
+        },
+    };
 }

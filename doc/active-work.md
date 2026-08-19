@@ -12,7 +12,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-985: Drop zustand from the state layer](tasks/US-985-drop-zustand/README.md)
   - [ ] [US-986: Vanilla view lifecycle and `bind()`](tasks/US-986-vanilla-view-lifecycle/README.md)
   - [ ] [US-987: Keyed-list and subtree-swap helpers](tasks/US-987-structural-helpers/README.md)
-  - [ ] US-988: Model driver — the non-React `useComponentModel`
+  - [ ] [US-988: Model driver — the non-React `useComponentModel`](tasks/US-988-model-driver/README.md)
   - [ ] US-989: `mountVanilla` / `mountReact`
   - [ ] US-990: Storybook vanilla render path
   - [ ] US-991: Pilot — one component converted end to end

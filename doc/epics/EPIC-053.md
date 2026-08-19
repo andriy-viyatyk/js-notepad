@@ -554,7 +554,7 @@ closed rather than merely relocated.
 | [US-985](../tasks/US-985-drop-zustand/README.md) | Drop zustand from the state layer | Implemented |
 | [US-986](../tasks/US-986-vanilla-view-lifecycle/README.md) | Vanilla view lifecycle and `bind()` | Implemented |
 | [US-987](../tasks/US-987-structural-helpers/README.md) | Keyed-list and subtree-swap helpers | Implemented |
-| US-988 | Model driver — the non-React `useComponentModel` | Planned |
+| [US-988](../tasks/US-988-model-driver/README.md) | Model driver — the non-React `useComponentModel` | Implemented |
 | US-989 | `mountVanilla` / `mountReact` | Planned |
 | US-990 | Storybook vanilla render path | Planned |
 | US-991 | Pilot — one component converted end to end | Planned |
