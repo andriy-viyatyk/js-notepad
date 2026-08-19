@@ -17,6 +17,15 @@ type Cleanup = () => void;
 // owned before its root is mounted, and an owned root may be moved by an adapter.
 const ownedViews = new WeakSet<object>();
 
+/** Claim a view for exactly one parent owner for the rest of its lifetime. */
+export function claimViewOwnership(view: IOwnedView): void {
+    if (ownedViews.has(view)) {
+        throw new Error("A VanillaView can have only one owner.");
+    }
+
+    ownedViews.add(view);
+}
+
 /**
  * Framework-free lifecycle base for views that own a stable DOM root.
  *
@@ -73,6 +82,9 @@ export abstract class VanillaView<P> implements IOwnedView {
      * Dispose children first, then this view's resources, and finally its hook.
      * Every cleanup is attempted. If more than one cleanup throws, the first
      * error is rethrown after the complete snapshot has run.
+     *
+     * The view releases behavior but deliberately does not detach root. Its
+     * adapter or structural helper owns that DOM ordering operation.
      */
     dispose(): void {
         if (this.disposed) {
@@ -144,11 +156,7 @@ export abstract class VanillaView<P> implements IOwnedView {
     /** Register one explicitly-owned child and return it for fluent setup. */
     protected child<T extends IOwnedView>(view: T): T {
         this.assertActive();
-        if (ownedViews.has(view)) {
-            throw new Error("A VanillaView child can have only one owner.");
-        }
-
-        ownedViews.add(view);
+        claimViewOwnership(view);
         this.children.push(view);
         return view;
     }
