@@ -1,5 +1,4 @@
 import React from "react";
-import type { VanillaViewCtor } from "../../uikit/shared/mount";
 
 /**
  * Prop names the Storybook manages automatically. If a story declares any of
@@ -26,8 +25,6 @@ export interface Story<P = Record<string, unknown>> {
     section: string;
     /** The component to render. */
     component: React.ComponentType<P>;
-    /** Optional framework-neutral view to render beside the React component. */
-    vanillaComponent?: VanillaViewCtor<P>;
     /** Editable props. */
     props: PropDef[];
     /** Initial prop values; merged on top of PropDef defaults. */

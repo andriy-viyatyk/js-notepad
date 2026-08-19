@@ -15,7 +15,8 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-988: Model driver — the non-React `useComponentModel`](tasks/US-988-model-driver/README.md)
   - [ ] [US-989: `mountVanilla` / `mountReact`](tasks/US-989-boundary-adapters/README.md)
   - [ ] [US-990: Storybook vanilla render path](tasks/US-990-storybook-vanilla-render/README.md)
-  - [ ] US-991: Pilot — one component converted end to end
+  - [ ] [US-994: Retire the Storybook side-by-side preview](tasks/US-994-retire-side-by-side-preview/README.md)
+  - [ ] [US-991: Pilot — one component converted end to end](tasks/US-991-pathinput-pilot/README.md)
   - [ ] US-992: Authoring rules for vanilla views
 - *(no epic)*
   - *(no active tasks)*

@@ -66,9 +66,9 @@ line" figure is close enough to stand, but it is not exact).
 | Vanilla-ready hosts already in place | 1 — `getOverlayLayer()` ([`overlayLayer.ts`](../../src/renderer/uikit/shared/overlayLayer.ts), Epic P US-973), explicitly documented as available to non-React views |
 
 **The epic's measured number** (roadmap Rule 4): `zustand` importers → 0; and the pilot component
-rendered React-and-vanilla side by side
-in the Storybook harness producing an equivalent `data-name` DOM tree; and a counted reduction in
-DOM writes per state update for one named interaction, measured and recorded by US-991. Running across the epics that follow: `this.effect(` call sites
+rendered through its vanilla-backed React-facing entry point in the Storybook harness, producing an
+equivalent `data-name` DOM tree; and a counted reduction in DOM writes per state update for one named
+interaction, measured and recorded by US-991. Running across the epics that follow: `this.effect(` call sites
 **65 → 0** by Epic F (B13).
 
 ## What av-grid already settles
@@ -163,29 +163,41 @@ React root) are what make roadmap §5 true. Everything else in this epic is repl
 these two, no later epic can proceed incrementally. `getOverlayLayer()` is the precedent for the
 host-element discipline and the adapters follow it.
 
-**B5 — The Storybook harness is `mountVanilla`'s first consumer, and it is a widening, not a
-rewrite.** `Story` is already almost framework-neutral data: `id`, `name`, `section`, `props`
+**B5 — The Storybook harness's temporary widening is superseded by US-994.** `Story` remains
+almost framework-neutral data: `id`, `name`, `section`, `props`
 (the `PropDef` union) and `defaultProps` carry no React types. Exactly two fields do — `component:
 React.ComponentType<P>` and `previewChildren?: () => ReactNode` — and there is exactly one render
 call, `LivePreview.tsx:61`. `previewChildren` stays React-only until Epic C answers the subtree-slot
 question (Epic P D4).
 
-**The harness renders both versions at once, so `component` is not widened to a union.** A union
-field holds one implementation or the other and can only ever render one pane; the epic's
-verification method — and Epic C's, for all 44 components — is *side by side with identical props*.
-So `Story` gains a **second, optional field** beside the existing one:
+US-990 temporarily rendered both versions at once, so `component` was not widened to a union. A
+separate vanilla field and split pane were later removed by US-994: after conversion, both paths
+would render the same vanilla implementation and provide no comparison.
+US-994 returned `LivePreview.tsx:61` to one pane, keeping the unchanged `propValues` path and
+`EditorErrorBoundary`. `ComponentBrowser` and `PropertyEditor` remain untouched. US-991 verifies
+the vanilla-backed production path at the appropriate point in the conversion, rather than beside
+an identical direct vanilla render.
 
-```ts
-/** Vanilla view constructor for the same component. When present, LivePreview
- *  renders it beside the React version, driven from the same propValues. */
-vanillaComponent?: VanillaViewCtor<P>;
-```
-
-`LivePreview.tsx:61` then renders one pane when it is absent and a split pane when it is present,
-mounting the vanilla side through `mountVanilla`. Both panes read the same `propValues` from
-`StorybookEditorModel`, so `ComponentBrowser` and `PropertyEditor` genuinely are untouched — one
-prop set, two consumers. During Epic C a component carries both fields while it is being verified,
-and the React field is dropped when its wrapper is (Epic F).
+> **Reversed 2026-08-19, in part — US-994 removes `vanillaComponent` and the split pane.** *(User
+> decision.)* The paired pane assumed the two panes render different implementations. They do not.
+> Rule 2 requires a converted component to keep its React-facing signature, so `PathInput.tsx`
+> becomes a thin `mountVanilla(PathInputView, props)` delegate — at which point `component` renders
+> the React face, which renders the vanilla view, and `vanillaComponent` renders the same vanilla
+> view directly. **Both panes produce identical DOM from identical code**, differing only in whether
+> the adapter or a vanilla parent constructed the view. There is no delta to compare, and the Rule 4
+> mutation counts would count the same DOM writes twice.
+>
+> This applies to every Epic C conversion for the same reason: a converted component *replaces* its
+> React implementation, so no later component has a React version left to occupy the second pane
+> either. Verification is the ordinary single-pane story, which after conversion renders exactly
+> what a production caller gets. The measured number moves from two panes at once to two points in
+> time — see the US-991 note.
+>
+> The rest of B5 stands: `Story` is framework-neutral data apart from `component` and
+> `previewChildren`, `previewChildren` stays React-only pending Epic C's subtree-slot question, and
+> `LivePreview` remains the single render call. US-990 was not wasted — it proved `mountVanilla`
+> renders and disposes correctly from a React parent before any production caller depended on it,
+> and its preview-level `EditorErrorBoundary` is kept.
 
 **B6 — Nothing in this epic changes a React call site.** Every task before the pilot adds code
 beside the existing path; the pilot converts one component behind an unchanged signature (Rule 2).
@@ -539,8 +551,8 @@ closed rather than merely relocated.
   by construction rather than by discipline.
 - A React parent can host a vanilla child, and a vanilla parent can host a React child, so any single
   component can be converted or reverted in isolation.
-- The Storybook harness can show the React and vanilla versions of the same component side by side
-  with identical props, which is how Epic C will verify 44 conversions.
+- The Storybook harness can exercise the vanilla-backed production entry point, which is how Epic C
+  will verify converted components.
 - The React-only lifecycle machinery has a written, framework-neutral replacement for every one of
   its uses, so a model can be made convertible without waiting for the view work.
 - One real component is converted end to end, so the roadmap's abort criteria are evaluated against
@@ -557,7 +569,8 @@ closed rather than merely relocated.
 | [US-988](../tasks/US-988-model-driver/README.md) | Model driver — the non-React `useComponentModel` | Implemented |
 | [US-989](../tasks/US-989-boundary-adapters/README.md) | `mountVanilla` / `mountReact` | Implemented |
 | [US-990](../tasks/US-990-storybook-vanilla-render/README.md) | Storybook vanilla render path | Implemented |
-| US-991 | Pilot — one component converted end to end | Planned |
+| [US-994](../tasks/US-994-retire-side-by-side-preview/README.md) | Retire the Storybook side-by-side preview | Implemented |
+| [US-991](../tasks/US-991-pathinput-pilot/README.md) | Pilot — one component converted end to end | Planned |
 | US-992 | Authoring rules for vanilla views | Planned |
 
 There is deliberately **no update-batching task** — see B8.
@@ -568,9 +581,10 @@ There is deliberately **no update-batching task** — see B8.
 ship the day it is written, and it is independent of everything else in the epic.
 
 **US-986 → US-987 → US-988 → US-989** is the primitive chain, in dependency order. US-990 depends on
-US-989 (the harness consumes `mountVanilla`). **US-991 depends on everything** and is what validates
-it. **US-992 is written last**, from what the pilot actually taught rather than from what the
-primitives were intended to teach.
+US-989 (the harness consumes `mountVanilla`). **US-994 lands after US-990 and before US-991**: it
+retires the paired preview, so the pilot is never written against a harness surface that is about to
+be deleted. **US-991 depends on everything** and is what validates it. **US-992 is written last**,
+from what the pilot actually taught rather than from what the primitives were intended to teach.
 
 ### Task notes
 
@@ -653,18 +667,28 @@ wrap the Storybook preview in `StrictMode` for the duration of this task, or dro
 say so — do not leave it as an unverifiable acceptance item. This is where boundary bugs live, and roadmap §9 names them as an abort
 criterion, so this task carries the epic's risk.
 
-**US-990 — Storybook vanilla render path.** Widen `Story.component` to a union of a React component
-and a vanilla view constructor, and branch at `LivePreview.tsx:61`. Nothing else in `storybook/`
-changes (B5). This is `mountVanilla`'s first consumer and exercises it before any production call
-site depends on it.
+**US-990 — Storybook vanilla render path.** Historical prerequisite for the boundary: it added the
+optional `Story.vanillaComponent` field and split `LivePreview` so `mountVanilla` could be exercised
+before any production call site depended on it. **US-994 supersedes that preview surface** while
+keeping the adapter and the preview-level error boundary.
+
+**US-994 — Retire the Storybook side-by-side preview.** Remove `vanillaComponent` and the split pane
+and return `LivePreview` to a single preview, keeping the `EditorErrorBoundary` US-990 added — it
+matters more once a thrown error comes from a vanilla view's `mount()` rather than from React. See
+B5's reversal note for why the paired pane cannot show a difference. Neither adapter changes;
+`mountVanilla` simply waits for its real caller in US-991.
 
 **US-991 — Pilot: `PathInput`** (B12). **This task also produces the epic's measured number**
 (roadmap Rule 4, "if a phase cannot show what it bought, it does not close"): DOM writes per state
 update, counted for one named interaction — a single ArrowDown through the suggestion list with the
 popover open — for the React version and the vanilla version. A `MutationObserver` on the preview
 pane in the Storybook harness is sufficient to count them; no production instrumentation is added.
-Record both numbers in the epic's Notes. Converted end to end behind an unchanged React-facing
-signature, verified side by side in the harness. It begins with the B13 decomposition — the model's
+**The two counts are taken at two points in time, not in two panes** (B5's reversal): the React
+number on today's implementation *before* the view is converted, the vanilla number *after*, with
+identical observer options, reset point, and interaction. Take the React measurement first — it
+cannot be recovered once the React implementation is gone. Record both numbers in the epic's Notes.
+Converted end to end behind an unchanged React-facing signature, verified in the harness through
+the unchanged story. It begins with the B13 decomposition — the model's
 four `effect()` calls retire into a new `applySuggestions()`, a new `setActiveIndex()` (with
 `onRowMouseEnter` and both keydown branches rerouted through it) and `init()`. Neither method exists
 today, and `suggestions` must stop being a `memo` for the first to be possible — see B13's fourth
@@ -734,7 +758,7 @@ and scoping notes carried for the record.
    project.**
 
    **§4's second bullet — the correctness safety net — is untouched by this**; it was always the
-   real cost, and it is answered by B10's cascading disposal, the US-990 side-by-side harness, and
+   real cost, and it is answered by B10's cascading disposal, the US-990 boundary verification, and
    roadmap §9's abort criteria rather than by tooling.
 
 7. **Absorbing av-grid is decided (B9); the landing details are Epic C's.** None of the following
@@ -816,7 +840,8 @@ and scoping notes carried for the record.
   C and Epic E work. Epic B's obligation is only to *not* build a competing virtualization
   primitive.
 - Reading av-grid also surfaced a live Persephone bug in `uikit/RenderGrid/AsyncRef.ts` (Concern 8),
-  raised as standalone task **US-993**. The next free task number is now US-994.
+  raised as standalone task **US-993**; the side-by-side reversal became **US-994**. The next free
+task number is now US-995.
 - **B9 revised the same day, on user direction:** av-grid's source is **copied into Persephone**
   rather than consumed as a dependency, so Persephone has full control over it. The av-grid
   repository is **not** frozen and is **not** regenerated from Persephone's code — it continues as a
@@ -894,8 +919,10 @@ and found real defects. Corrected here:
   precedent (`useOptionalState`) does not demonstrate the cached-snapshot form `useSyncExternalStore`
   requires, and copying it would infinite-loop — now stated explicitly, along with the no-selector
   overload.
-- **The side-by-side harness was unachievable as specified.** Widening `component` to a union yields
-  one pane, not two. B5 now specifies a second optional `vanillaComponent` field and a split pane.
+- **The side-by-side harness was unnecessary as specified.** Widening `component` to a union yields
+  one pane, not two, and a separate `vanillaComponent` would render the same converted view. US-990
+  briefly supplied that field and split pane; US-994 removed it after the user chose the single
+  production-facing preview.
 - **The epic's second measured number had no owner.** Assigned to US-991, with the interaction and
   counting method named.
 - **"Ported nearly line-for-line" was over-scoped.** It applies to `renderInfo`/`rerender-check`
