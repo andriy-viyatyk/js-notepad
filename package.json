@@ -84,8 +84,6 @@
     "simple-git": "^3.36.0",
     "sucrase": "^3.35.1",
     "turndown": "^7.2.4",
-    "use-sync-external-store": "^1.6.0",
-    "video.js": "^8.23.9",
-    "zustand": "^5.0.14"
+    "video.js": "^8.23.9"
   }
 }

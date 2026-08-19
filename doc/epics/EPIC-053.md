@@ -116,14 +116,17 @@ Dropping zustand removes `useStoreWithEqualityFn`, which is what makes `use(sele
 only on a real change. React 19 exports `useSyncExternalStore` directly; only the *with-selector*
 variant is a shim, and it is a `useRef`-cached snapshot around the `compareSelection` function
 `state.ts` already owns — roughly fifteen lines.
+The selector form uses that cached comparison; the no-selector overload must instead pass the
+current state object directly to `useSyncExternalStore`, preserving zustand's Object.is behavior
+for replaced-but-deep-equal state objects.
 
 **`use-sync-external-store` is already a direct dependency and is removed, not adopted.**
-`package.json:87` declares it in `dependencies`, but **nothing under `src/` imports it** — it is
-dead weight that arrived alongside zustand. The choice is therefore between deleting an unused
-dependency and starting to use it. The hand-rolled shim wins on its own merits: it is ~15 lines
-against `compareSelection`, which we own and must call anyway, versus a package we would then carry
-and update forever for one function. **US-985 removes `use-sync-external-store` from `package.json`
-along with `zustand`.**
+`package.json:87` declares it directly because the current `zustand/traditional` import consumes
+zustand's optional peer at runtime; it is not independent unused cleanup. The hand-rolled shim
+wins on its own merits: it is ~15 lines against `compareSelection`, which we own and must call
+anyway, versus a package we would then carry and update forever for one function. **US-985 removes
+the direct `use-sync-external-store` declaration after removing `zustand/traditional` along with
+`zustand`; the transitive copy required by Excalidraw's nested zustand remains.**
 
 **Two details the rebuild must get right, neither of which `useOptionalState` demonstrates.**
 `useOptionalState` (`state.ts:127-155`) hand-rolls a subscription with `useState`/`useEffect` over
@@ -548,7 +551,7 @@ closed rather than merely relocated.
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-985 | Drop zustand from the state layer | Planned |
+| [US-985](../tasks/US-985-drop-zustand/README.md) | Drop zustand from the state layer | Implemented |
 | US-986 | Vanilla view lifecycle and `bind()` | Planned |
 | US-987 | Keyed-list and subtree-swap helpers | Planned |
 | US-988 | Model driver — the non-React `useComponentModel` | Planned |
@@ -885,7 +888,9 @@ and found real defects. Corrected here:
 - **B13's worked example named methods that do not exist** (`setSuggestions`, `setActiveIndex`) and
   skipped the fact that `suggestions` is a `memo` with no setter. Rewritten against real code.
 - **B1's premise was false**: `use-sync-external-store` is already a *direct* dependency
-  (`package.json:87`) and is unused. B1 restated on its merits; US-985 now removes it. The cited
+  (`package.json:87`) because `zustand/traditional` consumes zustand's optional peer at runtime;
+  it is not independent unused cleanup. B1 restated on its merits; US-985 removes it together
+  with zustand, while Excalidraw's nested zustand retains its transitive copy. The cited
   precedent (`useOptionalState`) does not demonstrate the cached-snapshot form `useSyncExternalStore`
   requires, and copying it would infinite-loop — now stated explicitly, along with the no-selector
   overload.

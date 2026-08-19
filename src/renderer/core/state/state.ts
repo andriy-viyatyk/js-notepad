@@ -1,6 +1,4 @@
-import React, { SetStateAction, useEffect, useRef, useState } from 'react';
-import { create } from 'zustand';
-import { useStoreWithEqualityFn } from "zustand/traditional";
+import React, { SetStateAction, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { produce } from 'immer';
 
 
@@ -56,35 +54,75 @@ function compareSelection(a: unknown, b: unknown): boolean {
 }
 
 export class TOneState<T> implements IState<T> {
-    private readonly store;
+    private currentState: T;
     private listeners: (() => void)[] = [];
     defaultState;
 
     constructor(defaultState: T) {
         this.defaultState = defaultState;
-        this.store = create<T>(() => defaultState);
+        this.currentState = defaultState;
     }
 
     private readonly stateChanged = () => {
         this.listeners.forEach((listener) => listener());
     }
 
-    get = () => this.store.getState();
+    get = () => this.currentState;
     set = (setter: SetStateAction<T>) => {
-        const newState = resolveState(setter, () => this.store.getState());
-        this.store.setState(newState, true);
+        const newState = resolveState(setter, () => this.currentState);
+        this.currentState = newState;
         this.stateChanged();
     };
 
     use: IUse<T> = (<R>(selector?: (state: T) => R) => {
-        return selector
-            ? useStoreWithEqualityFn(this.store, state => selector(state), compareSelection as (a: R, b: R) => boolean)
-            : this.store(state => state)
+        const selectorRef = useRef<((state: T) => R) | undefined>(undefined);
+        selectorRef.current = selector;
+        const snapshotRef = useRef<{
+            selector: (state: T) => R;
+            state: T;
+            value: unknown;
+        } | undefined>(undefined);
+        const getSnapshot = () => {
+            const currentSelector = selectorRef.current;
+            if (!currentSelector) {
+                return this.currentState;
+            }
+
+            const state = this.currentState;
+            const cache = snapshotRef.current;
+
+            // Same selector and same state object: nothing can have changed. This branch is
+            // load-bearing, not an optimization — compareSelection compares arrays, Maps and
+            // Sets by reference, so a selector that allocates (s => s.items.filter(...)) would
+            // otherwise return a fresh value on every read, React would see the snapshot change
+            // after every render, and it would re-render forever.
+            if (cache && cache.selector === currentSelector && cache.state === state) {
+                return cache.value as R;
+            }
+
+            // The selector identity is part of the cache key: an inline selector that closes
+            // over a prop must re-run when that prop changes, even while the state object is
+            // untouched. Reuse the previous reference when the new selection compares equal,
+            // including across a selector change, so downstream memo deps do not churn.
+            const next = currentSelector(state);
+            if (cache && compareSelection(cache.value, next)) {
+                cache.selector = currentSelector;
+                cache.state = state;
+                return cache.value as R;
+            }
+            snapshotRef.current = { selector: currentSelector, state, value: next };
+            return next;
+        };
+
+        return useSyncExternalStore(
+            this.subscribe,
+            selector ? getSnapshot : this.get,
+        );
     }) as IUse<T>;
 
     update = (updateDraft: (state: T) => void) => {
         this.set(
-            produce(this.store.getState(), (draft) => {
+            produce(this.currentState, (draft) => {
                 updateDraft(draft as T);
             }),
         );
@@ -98,9 +136,9 @@ export class TOneState<T> implements IState<T> {
         if (args.length >= 2) {
             const listener = args[0] as (value: unknown) => void;
             const selector = args[1] as (state: T) => unknown;
-            let last = selector(this.store.getState());
+            let last = selector(this.currentState);
             const wrapped = () => {
-                const next = selector(this.store.getState());
+                const next = selector(this.currentState);
                 if (!compareSelection(last, next)) {
                     last = next;
                     listener(next);
