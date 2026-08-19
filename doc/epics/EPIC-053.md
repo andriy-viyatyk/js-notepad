@@ -552,7 +552,7 @@ closed rather than merely relocated.
 | Task | Title | Status |
 |------|-------|--------|
 | [US-985](../tasks/US-985-drop-zustand/README.md) | Drop zustand from the state layer | Implemented |
-| US-986 | Vanilla view lifecycle and `bind()` | Planned |
+| [US-986](../tasks/US-986-vanilla-view-lifecycle/README.md) | Vanilla view lifecycle and `bind()` | Implemented |
 | US-987 | Keyed-list and subtree-swap helpers | Planned |
 | US-988 | Model driver — the non-React `useComponentModel` | Planned |
 | US-989 | `mountVanilla` / `mountReact` | Planned |
