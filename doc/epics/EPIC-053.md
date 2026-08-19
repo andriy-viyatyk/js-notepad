@@ -556,7 +556,7 @@ closed rather than merely relocated.
 | [US-987](../tasks/US-987-structural-helpers/README.md) | Keyed-list and subtree-swap helpers | Implemented |
 | [US-988](../tasks/US-988-model-driver/README.md) | Model driver — the non-React `useComponentModel` | Implemented |
 | [US-989](../tasks/US-989-boundary-adapters/README.md) | `mountVanilla` / `mountReact` | Implemented |
-| US-990 | Storybook vanilla render path | Planned |
+| [US-990](../tasks/US-990-storybook-vanilla-render/README.md) | Storybook vanilla render path | Implemented |
 | US-991 | Pilot — one component converted end to end | Planned |
 | US-992 | Authoring rules for vanilla views | Planned |
 
