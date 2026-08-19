@@ -31,6 +31,11 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Node.js HTTP client      | `/src/renderer/api/node-fetch.ts`                 |
 | Path utilities           | `/src/renderer/core/utils/file-path.ts`           |
 | State primitives         | `/src/renderer/core/state/`                        |
+| Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
+| Keyed DOM reconciliation (duplicate-safe keyed records, cursor-based minimal moves, reusable `clear`, and inert `dispose`) | `/src/renderer/uikit/shared/keyed-list.ts` |
+| Conditional subtree ownership (stable `PropertyKey` keys, replacement-before-disposal, and root detachment) | `/src/renderer/uikit/shared/subtree-swap.ts` |
+| React/vanilla boundary adapters (`mountVanilla` stable host and `mountReact` owned root disposer) | `/src/renderer/uikit/shared/mount.tsx` |
+| Non-React component model driver (initial prop pump, explicit mount/update/dispose, and zero-effect guard) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
 | Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |
 | Git-root detection for Markdown wiki links (walk up to nearest `.git`, cached) | `/src/renderer/editors/markdown/detect-git-root.ts` |

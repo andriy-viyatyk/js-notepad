@@ -122,7 +122,8 @@ class MyModel extends TModel<MyState> {
 
 ### TComponentModel\<T, P\>
 
-React component model with props tracking, effects, and memos. Used with the `useComponentModel` hook.
+Component model with props tracking, effects, and memos. React views use the `useComponentModel`
+hook; framework-free views use `createComponentModelDriver` from `core/state/model.ts`.
 
 ```typescript
 class MyComponentModel extends TComponentModel<State, Props> {
@@ -147,6 +148,12 @@ const model = useComponentModel(props, MyComponentModel, defaultState);
 2. Each render: `setPropsInternal(props)` — updates props, evaluates effects
 3. After first render: `init()` called via `useEffect` — registers effects
 4. Unmount: `dispose()` called, all effects cleaned up
+
+The React lifecycle above is only the hook adapter. The non-React driver performs the initial prop
+pump, exposes explicit `mount()` / `update()` / `dispose()` operations, and rejects models that
+register `effect()` callbacks because those callbacks depend on React render timing. A model shared
+with a vanilla view must put DOM work in the view lifecycle or in explicit model methods, and must
+keep asynchronous work cancellable after disposal.
 
 **Primitives:**
 - `this.effect(callback, depsFactory?)` — side effect with dependency tracking (like `useEffect`)

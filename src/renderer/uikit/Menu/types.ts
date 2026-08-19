@@ -1,1 +1,1 @@
-export type { MenuItem } from "../../api/types/events";
+export type { MenuItem } from "../../core/events/context-menu";

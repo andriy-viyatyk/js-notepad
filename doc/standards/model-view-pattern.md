@@ -1,12 +1,15 @@
 # Model-View Pattern
 
-This document describes the model-view pattern used for complex React components in persephone.
+This document describes the model-view pattern used for complex components in Persephone. React
+remains the current view runtime for most components, while converted components may use the same
+model from a framework-free `VanillaView`.
 
 ## Overview
 
 The model-view pattern separates UI rendering (View) from business logic and state management (Model):
 
-- **View**: React component function responsible for rendering UI and binding event handlers
+- **View**: a React component function or a `VanillaView` class responsible for rendering UI and
+  binding event handlers
 - **Model**: Class containing all logic, state, and event handlers
 
 This separation provides:
@@ -33,7 +36,7 @@ This separation provides:
 
 ### TComponentState (state.ts)
 
-Zustand-based state that works both inside and outside React:
+State that works both inside and outside React:
 
 ```typescript
 import { TComponentState } from "../../core/state/state";
@@ -175,6 +178,138 @@ function MyComponent(props: MyViewProps) {
 ```
 
 **Note:** `useComponentModel` automatically calls `init()` after the first render and `dispose()` on unmount. No `useEffect` boilerplate is needed in the View.
+
+## Runtime-neutral model, two view adapters
+
+`TComponentModel` owns props, state, handlers, and computed behavior. A React View uses
+`useComponentModel`; a vanilla View uses `createComponentModelDriver`. Both adapters pump props
+before initialization and dispose the model owner, but only the React adapter evaluates registered
+model effects. A vanilla-driven model must have zero `TComponentModel.effect()` registrations; the
+driver rejects such a model at mount because those effects depend on React's render timing.
+
+The model remains independent of the DOM. A React View renders JSX and uses React event handlers;
+a vanilla View owns a stable DOM root and uses native events. Adapters belong at the boundary, not
+inside model methods or ordinary component props.
+
+## Vanilla lifecycle
+
+`VanillaView<P>` is the framework-free lifecycle base at
+[`src/renderer/uikit/shared/vanilla-view.ts`](../../src/renderer/uikit/shared/vanilla-view.ts).
+Every class passed to `mountVanilla` declares a public constructor because the base constructor is
+protected:
+
+```typescript
+class ExampleView extends VanillaView<ExampleProps> {
+    public constructor(props: ExampleProps) {
+        super(props);
+    }
+}
+```
+
+The constructor creates the stable root and may construct the model driver and view-owned state,
+but it does not create child DOM, listeners, subscriptions, timers, or measurements. Constructor-
+created resources register `own()` cleanup immediately. `mount()` builds children and installs
+bindings; the owner attaches the root before calling it when layout measurement matters. An
+`update(props)` before mount stores props without calling `onUpdate`; `onMount()` renders from the
+stored props. Later updates modify existing DOM without replacing the root.
+
+Disposal is idempotent and depth-first: owned children are disposed first, then registered
+resources in FIFO registration order, then `onDispose()`. Every cleanup is attempted and the first
+error is rethrown after the full cleanup snapshot. The base makes the view inert but does not
+detach its root; the adapter or structural helper that attached the root owns detachment.
+
+## Binding and direct DOM work
+
+Use `bind(state, selector, apply)` for a state-to-DOM projection that must remain synchronized. The
+initial application is immediate and the callback is guarded after disposal. Do not use `bind` as
+a replacement for all DOM work: structure, input/event feedback, root attributes, focus, and
+layout-sensitive reads remain explicit view code. View fields hold DOM references; models receive
+view-owned refs through explicit commands or setters and never query the document.
+
+```typescript
+protected onMount(): void {
+    this.title = document.createElement("span");
+    this.root.append(this.title);
+    this.driver.mount();
+    this.bind(this.driver.model.state, (state) => state.title, (title) => {
+        this.title.textContent = title;
+    });
+}
+```
+
+DOM structure should use `document.createElement`, explicit properties, and `append`. Static,
+code-owned `innerHTML` is acceptable when clearer, but runtime data must never be interpolated
+into markup. `replaceChildren` is allowed for a region the view owns outright, never for a
+[`KeyedList`](../../src/renderer/uikit/shared/keyed-list.ts)-managed container. For conditional
+owned roots, use [`SubtreeSwap`](../../src/renderer/uikit/shared/subtree-swap.ts); both helpers
+are direct imports from `uikit/shared/`, not public `uikit/index.ts` exports.
+
+## Effects and the vanilla driver
+
+Model effects are a React compatibility mechanism. `useComponentModel` can evaluate a dependency-
+based effect during a later render after the first mount, so effects must not synchronously write
+to another React-backed model or perform work that must be commit-timed. Keep DOM measurement and
+layout reads in the View's commit-timed React effect or vanilla mount/update hook. Async model work
+must be cancellable and must not publish after disposal.
+
+For a vanilla view, use `createComponentModelDriver` from
+[`src/renderer/core/state/model.ts`](../../src/renderer/core/state/model.ts), pump updates through
+`driver.update(props)`, call `driver.mount()` from the view's mount hook, and register
+`driver.dispose()` with `own()` when the driver is constructed. The driver performs the initial
+prop pump and rejects registered effects. It also disposes an explicitly-owned model even when the
+view is disposed before mount; this differs from an uncommitted React render, which never runs its
+unmount effect.
+
+## Choosing a boundary adapter
+
+Use [`mountVanilla`](../../src/renderer/uikit/shared/mount.tsx) when a React tree needs to host a
+converted vanilla component. Its host component is module-level and stable, attaches the view root
+before `mount()`, skips the redundant first update, and replaces the instance only when the
+constructor identity changes. Use [`mountReact`](../../src/renderer/uikit/shared/mount.tsx) only
+when a vanilla view temporarily owns a React subtree for which no vanilla equivalent exists. The
+vanilla view owns that host element; the returned disposer owns the React root. Neither adapter
+should be used for ordinary DOM nodes, whole-application mounting, or to avoid converting a parent
+or child that is already in scope.
+
+The concrete end-to-end reference is
+[`PathInputView`](../../src/renderer/uikit/PathInput/PathInputView.tsx), which combines the
+driver, `bind`, `KeyedList`, native events, static CSS, and a deliberately local `mountReact`
+bridge.
+
+## Before and after: the same model, two view runtimes
+
+```typescript
+// React view
+function PathInput(props: PathInputProps) {
+    const model = useComponentModel(props, PathInputModel, defaultPathInputState);
+    const { open } = model.state.use((state) => ({ open: state.open }));
+    return <input data-type="path-input" data-state={open ? "open" : "closed"} />;
+}
+
+// Vanilla view
+class PathInputView extends VanillaView<PathInputViewProps> {
+    public constructor(props: PathInputViewProps) {
+        super(props);
+        this.driver = createComponentModelDriver(
+            props, PathInputModel, defaultPathInputState,
+        );
+        this.own(() => this.driver.dispose());
+    }
+
+    protected onMount(): void {
+        this.driver.mount();
+        this.bind(this.driver.model.state, (state) => state.open, (open) => {
+            this.root.dataset.state = open ? "open" : "closed";
+        });
+    }
+
+    protected onUpdate(props: PathInputViewProps): void {
+        this.driver.update(props);
+    }
+}
+```
+
+The two views share the model and state contract; they do not share a React callback-slot API.
 
 ## Effect and Memo Primitives
 

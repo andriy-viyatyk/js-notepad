@@ -6,7 +6,7 @@ import RenderGridModel, {
 } from "./RenderGridModel";
 import { RenderCellParams } from "./types";
 import RenderGrid from "./RenderGrid";
-import { debounce } from "../../../shared/utils";
+import { debounce } from "../../core/utils/debounce";
 import { memorize } from "../../core/utils/memorize";
 
 export interface RenderFlexCellParams extends RenderCellParams {

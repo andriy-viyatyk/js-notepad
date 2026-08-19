@@ -1,4 +1,4 @@
-import { ContextMenuEvent } from '../api/events/events';
+import { ContextMenuEvent } from '../core/events/context-menu';
 
 declare global {
   interface MouseEvent {

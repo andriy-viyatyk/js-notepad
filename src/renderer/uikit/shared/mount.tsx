@@ -112,16 +112,38 @@ export function mountReact(
     host: HTMLElement,
     element: React.ReactElement,
 ): () => void {
+    return mountReactHandle(host, element).dispose;
+}
+
+export interface MountedReactRoot {
+    render(element: React.ReactElement): void;
+    dispose(): void;
+}
+
+/**
+ * Mount a React subtree and retain the root so later values can be rendered
+ * without replacing the nested React tree.
+ */
+export function mountReactHandle(
+    host: HTMLElement,
+    element: React.ReactElement,
+): MountedReactRoot {
     const root = createRoot(host);
     root.render(element);
 
     let disposed = false;
-    return () => {
-        if (disposed) {
-            return;
-        }
+    return {
+        render(nextElement: React.ReactElement): void {
+            if (disposed) return;
+            root.render(nextElement);
+        },
+        dispose(): void {
+            if (disposed) {
+                return;
+            }
 
-        disposed = true;
-        root.unmount();
+            disposed = true;
+            root.unmount();
+        },
     };
 }

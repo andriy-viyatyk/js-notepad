@@ -730,7 +730,11 @@ persephone/
 │   ├── Progress/           # Progress overlay + screen lock
 │   ├── RenderGrid/         # Foundational virtualization (sticky regions, RenderFlexGrid)
 │   ├── AVGrid/             # Composite data grid (uses RenderGrid; filters, sorting, edit)
-│   └── shared/             # Internal helpers (overlay layer, overlayRegistry, slots, etc.)
+│   └── shared/             # Internal helpers (overlay layer, slots, and React/vanilla seams)
+│       ├── vanilla-view.ts # Framework-free view lifecycle, ownership, binding, and cleanup
+│       ├── keyed-list.ts   # Keyed DOM reconciliation with minimal cursor moves
+│       ├── subtree-swap.ts # Owned conditional subtree replacement
+│       └── mount.tsx       # React host and nested React-root boundary adapters
 │
 ├── components/             # Persephone-Coupled Components (KEEP-only)
 │   │                       # Each remaining folder uses app.* APIs, page model, file
@@ -758,7 +762,7 @@ persephone/
 ├── core/                   # Core Infrastructure
 │   ├── state/              # State management primitives
 │   │   ├── state.ts        # TOneState, TComponentState, TGlobalState
-│   │   ├── model.ts        # TModel, TDialogModel, TComponentModel
+│   │   ├── model.ts        # TModel, TDialogModel, TComponentModel, createComponentModelDriver
 │   │   ├── ComponentQueue.ts # Model-to-view event and request/reply mailbox
 │   │   ├── events.ts       # Subscription event system
 │   │   ├── view.tsx        # View registry (dialogs/poppers)

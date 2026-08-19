@@ -1,29 +1,5 @@
-import React from "react";
 import { BaseEvent } from "./BaseEvent";
-import type { MenuItem } from "../types/events";
-
-/**
- * Identifies the source/kind of context menu.
- * Used to filter events in a global `onContextMenu` channel.
- */
-export type ContextMenuTargetKind =
-    | "page-tab"
-    | "file-explorer-item"
-    | "file-explorer-background"
-    | "sidebar-folder"
-    | "sidebar-background"
-    | "markdown-link"
-    | "browser-webview"
-    | "browser-url-bar"
-    | "browser-tab"
-    | "grid-cell"
-    | "graph-node"
-    | "graph-area"
-    | "link-item"
-    | "link-pinned"
-    | "tree-provider-item"
-    | "tree-provider-background"
-    | "generic";
+export { ContextMenuEvent, type ContextMenuTargetKind } from "../../core/events/context-menu";
 
 /** Bookmark event — fired before the Add/Edit Bookmark dialog opens. */
 export class BookmarkEvent extends BaseEvent {
@@ -37,27 +13,5 @@ export class BookmarkEvent extends BaseEvent {
         public readonly isEdit: boolean,
     ) {
         super();
-    }
-}
-
-/** Generic context menu event. T defines the target that was right-clicked. */
-export class ContextMenuEvent<T> extends BaseEvent {
-    readonly targetKind: ContextMenuTargetKind;
-    target: T;
-    items: MenuItem[];
-
-    constructor(targetKind: ContextMenuTargetKind, target: T, items: MenuItem[] = []) {
-        super();
-        this.targetKind = targetKind;
-        this.target = target;
-        this.items = items;
-    }
-
-    /** Get or create a ContextMenuEvent on the native mouse event. */
-    static fromNativeEvent(e: React.MouseEvent, targetKind: ContextMenuTargetKind): ContextMenuEvent<unknown> {
-        if (!e.nativeEvent.contextMenuEvent) {
-            e.nativeEvent.contextMenuEvent = new ContextMenuEvent(targetKind, null);
-        }
-        return e.nativeEvent.contextMenuEvent;
     }
 }

@@ -1,0 +1,46 @@
+@layer uikit {
+    [data-type="path-input"] {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+
+    [data-type="path-input"][data-disabled] {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    [data-type="path-input"][data-part="suggestion-host"] {
+        flex-direction: column;
+    }
+
+    [data-type="path-input"] [data-part="suggestion-row"] {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        height: var(--size-control-sm, 24px);
+        flex-shrink: 0;
+        padding-left: var(--space-md, 8px);
+        padding-right: var(--space-md, 8px);
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--color-text-default, currentColor);
+    }
+
+    [data-type="path-input"] [data-part="suggestion-row"] [data-part="prefix"],
+    [data-type="path-input"] [data-part="suggestion-row"] [data-part="separator"] {
+        color: var(--color-text-light, currentColor);
+    }
+
+    [data-type="path-input"] [data-part="suggestion-row"][data-active] {
+        background-color: var(--color-bg-selection, transparent);
+        color: var(--color-text-selection, currentColor);
+    }
+
+    [data-type="path-input"] [data-part="suggestion-row"][data-active] [data-part="prefix"],
+    [data-type="path-input"] [data-part="suggestion-row"][data-active] [data-part="separator"] {
+        color: var(--color-text-strong, currentColor);
+    }
+}

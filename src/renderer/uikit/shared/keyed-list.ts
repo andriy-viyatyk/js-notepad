@@ -93,7 +93,7 @@ export class KeyedList<T, K extends PropertyKey, E extends Node = HTMLElement> {
         // and IME composition even though the resulting order is unchanged.
         let cursor = this.parent.firstChild;
         for (const { key } of keyedItems) {
-            const record = nextRecords.get(key)!;
+            const record = this.getRecord(nextRecords, key);
             if (cursor !== (record.element as Node)) {
                 this.parent.insertBefore(record.element, cursor);
             }
@@ -102,7 +102,7 @@ export class KeyedList<T, K extends PropertyKey, E extends Node = HTMLElement> {
 
         // Update after ordering so callbacks observe the final index and DOM.
         keyedItems.forEach(({ key, item, index }) => {
-            const record = nextRecords.get(key)!;
+            const record = this.getRecord(nextRecords, key);
             this.options.update(record.element, item, index);
             record.item = item;
         });
@@ -163,5 +163,16 @@ export class KeyedList<T, K extends PropertyKey, E extends Node = HTMLElement> {
     /** KeyedList owns its managed nodes, so it also owns detaching them. */
     private detach(element: E): void {
         element.parentNode?.removeChild(element);
+    }
+
+    private getRecord(
+        records: Map<K, KeyedRecord<T, K, E>>,
+        key: K,
+    ): KeyedRecord<T, K, E> {
+        const record = records.get(key);
+        if (!record) {
+            throw new Error(`KeyedList lost record for key: ${String(key)}`);
+        }
+        return record;
     }
 }

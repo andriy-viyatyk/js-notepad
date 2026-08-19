@@ -8,23 +8,25 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-053** — [De-React Epic B: The reactive foundation and the boundary](epics/EPIC-053.md)
-  - [ ] [US-985: Drop zustand from the state layer](tasks/US-985-drop-zustand/README.md)
-  - [ ] [US-986: Vanilla view lifecycle and `bind()`](tasks/US-986-vanilla-view-lifecycle/README.md)
-  - [ ] [US-987: Keyed-list and subtree-swap helpers](tasks/US-987-structural-helpers/README.md)
-  - [ ] [US-988: Model driver — the non-React `useComponentModel`](tasks/US-988-model-driver/README.md)
-  - [ ] [US-989: `mountVanilla` / `mountReact`](tasks/US-989-boundary-adapters/README.md)
-  - [ ] [US-990: Storybook vanilla render path](tasks/US-990-storybook-vanilla-render/README.md)
-  - [ ] [US-994: Retire the Storybook side-by-side preview](tasks/US-994-retire-side-by-side-preview/README.md)
-  - [ ] [US-991: Pilot — one component converted end to end](tasks/US-991-pathinput-pilot/README.md)
-  - [ ] US-992: Authoring rules for vanilla views
+- **EPIC-054** — [De-React Epic C1 — Foundation and primitives](epics/EPIC-054.md)
+  - [ ] [US-995: Rule 6 — close the `uikit/` → app-layer imports and lint the boundary](tasks/US-995-uikit-boundary-lint/README.md)
+  - [ ] [US-996: The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](tasks/US-996-vanilla-uikit-contracts/README.md)
+  - [ ] US-997: DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories
+  - [ ] US-998: `Tooltip` — attachment-based, on `@floating-ui/dom`
+  - [ ] US-999: `Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + Rule 4 after-number
+  - [ ] US-1000: `Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`
+  - [ ] US-1001: `Checkbox`, `Slider`, `RadioGroup`
+  - [ ] US-1002: `Input` and `Textarea`
+  - [ ] US-1003: `Panel` — Emotion to CSS, no vanilla face
 - *(no epic)*
   - *(no active tasks)*
 
 ## Planned
 
 - [De-React roadmap](de-react.md) — multi-epic programme to replace React with direct DOM
-  manipulation. Not scheduled; epics are created from it one at a time.
+  manipulation. Epics are created from it one at a time. Epic C is split four ways: **C1 is
+  active as EPIC-054**; C2 (floating layer and composites), C3 (virtualized data views) and C4
+  (AVGrid → av-grid) get their docs when each is next up.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

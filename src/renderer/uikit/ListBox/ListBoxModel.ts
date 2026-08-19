@@ -3,7 +3,7 @@ import { TComponentModel } from "../../core/state/model";
 import { isTraited, resolveTraited, Traited, TraitType } from "../../core/traits/traits";
 import { RenderGridModel } from "../RenderGrid";
 import type { RowAlign } from "../RenderGrid";
-import { ContextMenuEvent } from "../../api/events/events";
+import { ContextMenuEvent } from "../../core/events/context-menu";
 import {
     IListBoxItem,
     LIST_ITEM_KEY,

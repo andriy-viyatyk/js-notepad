@@ -151,4 +151,25 @@ export default tseslint.config(
             "react-hooks/rules-of-hooks": "off",
         },
     },
+
+    // Rule 6: UIKit must not reach into application-layer modules. Stories are harnesses and
+    // are intentionally excluded; resolved paths distinguish uikit/shared from src/shared.
+    {
+        files: ["src/renderer/uikit/**/*.ts", "src/renderer/uikit/**/*.tsx"],
+        ignores: ["src/renderer/uikit/**/*.story.ts", "src/renderer/uikit/**/*.story.tsx"],
+        rules: {
+            "import/no-restricted-paths": ["error", {
+                zones: [{
+                    target: "./src/renderer/uikit",
+                    from: [
+                        "./src/renderer/api",
+                        "./src/renderer/ui",
+                        "./src/renderer/components",
+                        "./src/shared",
+                    ],
+                    message: "Rule 6: uikit/ imports only core/ and theme/. Take app concepts through props/callbacks, or move the contract to core/.",
+                }],
+            }],
+        },
+    },
 );

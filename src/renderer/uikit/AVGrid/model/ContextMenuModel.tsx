@@ -1,3 +1,5 @@
+// AVGrid is replaced by EPIC-054 C4; retain this app popup-menu bridge until that replacement.
+// eslint-disable-next-line import/no-restricted-paths
 import { showAppPopupMenu } from "../../../ui/dialogs/poppers/showPopupMenu";
 import { CopyIcon, DeleteIcon, PasteIcon, PlusIcon } from "../../../theme/icons";
 import { MenuItem } from "../../Menu";

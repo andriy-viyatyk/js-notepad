@@ -2,8 +2,9 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-08-18
+**Completed:** 2026-08-19
 
 ## Overview
 
@@ -570,8 +571,8 @@ closed rather than merely relocated.
 | [US-989](../tasks/US-989-boundary-adapters/README.md) | `mountVanilla` / `mountReact` | Implemented |
 | [US-990](../tasks/US-990-storybook-vanilla-render/README.md) | Storybook vanilla render path | Implemented |
 | [US-994](../tasks/US-994-retire-side-by-side-preview/README.md) | Retire the Storybook side-by-side preview | Implemented |
-| [US-991](../tasks/US-991-pathinput-pilot/README.md) | Pilot — one component converted end to end | Planned |
-| US-992 | Authoring rules for vanilla views | Planned |
+| [US-991](../tasks/US-991-pathinput-pilot/README.md) | Pilot — one component converted end to end | Implemented |
+| [US-992](../tasks/US-992-vanilla-view-authoring/README.md) | Authoring rules for vanilla views | Implemented |
 
 There is deliberately **no update-batching task** — see B8.
 
@@ -681,12 +682,12 @@ B5's reversal note for why the paired pane cannot show a difference. Neither ada
 **US-991 — Pilot: `PathInput`** (B12). **This task also produces the epic's measured number**
 (roadmap Rule 4, "if a phase cannot show what it bought, it does not close"): DOM writes per state
 update, counted for one named interaction — a single ArrowDown through the suggestion list with the
-popover open — for the React version and the vanilla version. A `MutationObserver` on the preview
-pane in the Storybook harness is sufficient to count them; no production instrumentation is added.
-**The two counts are taken at two points in time, not in two panes** (B5's reversal): the React
-number on today's implementation *before* the view is converted, the vanilla number *after*, with
-identical observer options, reset point, and interaction. Take the React measurement first — it
-cannot be recovered once the React implementation is gone. Record both numbers in the epic's Notes.
+popover open — on the converted vanilla implementation. A `MutationObserver` on the preview pane
+in the Storybook harness is sufficient to count them; no production instrumentation is added.
+The user explicitly chose to validate the converted implementation only: the obsolete React
+implementation is not a supported Storybook path, and switching this live checkout back is not a
+reliable verification method after the state-layer removal. Record the vanilla count and the exact
+procedure in the epic's Notes.
 Converted end to end behind an unchanged React-facing signature, verified in the harness through
 the unchanged story. It begins with the B13 decomposition — the model's
 four `effect()` calls retire into a new `applySuggestions()`, a new `setActiveIndex()` (with
@@ -949,3 +950,22 @@ and found real defects. Corrected here:
 Epic C.
 
 The epic is ready for task documents to be written.
+
+### 2026-08-19 — closeout verification
+
+- `npm run typecheck`, `npm run lint`, and `git diff --cached --check` pass after the final review
+  fixes. The PathInput bridge now disposes its nested React root before the model driver, keyed-list
+  reconciliation has no new non-null assertions, and the pilot stylesheet supplies fallbacks for
+  every token variable.
+- The PathInput Storybook smoke pass confirmed the vertical suggestion list, controlled value
+  updates, keyboard and mouse selection, focus/blur behavior, nested Popover disposal, and no
+  synchronous nested-root warning. Native root event listeners adapt events to the unchanged
+  React-facing prop contract.
+- The user decided that a pre-conversion comparison is not required: the converted component is the
+  supported Storybook implementation and there is no separate React implementation to compare.
+  With the popover open and the observer reset immediately before one `ArrowDown`, the active
+  Storybook PathInput produced **3 mutation records**. Observer options were
+  `{ subtree: true, childList: true, attributes: true, characterData: true }`, observing the
+  `[data-type="live-preview"]` pane; initial popover-opening mutations were excluded by resetting
+  the counter after the popover opened. The records were the root `data-state` update and two
+  input `name` attribute updates. No production instrumentation was added.

@@ -71,15 +71,18 @@ export const defaultPathInputState: PathInputState = {
 export class PathInputModel extends TComponentModel<PathInputState, PathInputProps> {
     // --- refs (DOM) ---
     inputRef: HTMLInputElement | null = null;
-    rowRefs: Array<HTMLDivElement | null> = [];
+    private readonly rowRefs = new Map<string, HTMLDivElement>();
 
     setInputRef = (el: HTMLInputElement | null) => {
         this.inputRef = el;
     };
 
-    setRowRef = (idx: number, el: HTMLDivElement | null) => {
-        this.rowRefs[idx] = el;
+    setRowRef = (path: string, el: HTMLDivElement | null) => {
+        if (el) this.rowRefs.set(path, el);
+        else this.rowRefs.delete(path);
     };
+
+    getRowRef = (path: string): HTMLDivElement | undefined => this.rowRefs.get(path);
 
     // --- internal flags (not state — flipping them must not re-render) ---
     private selectionMade = false;
@@ -87,19 +90,43 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
 
     // --- derived ---
 
-    suggestions = this.memo<PathSuggestion[]>(
-        () => {
-            const { value, paths, separator = "/", maxDepth } = this.props;
-            if (exceedsMaxDepth(value, separator, maxDepth)) return [];
-            return getPathSuggestions(value, paths, separator);
-        },
-        () => [
-            this.props.value,
-            this.props.paths,
-            this.props.separator,
-            this.props.maxDepth,
-        ],
-    );
+    suggestions: PathSuggestion[] = [];
+    private suggestionsDeps: [string, string[], string | undefined, number | undefined] | undefined;
+    private blurTimer: ReturnType<typeof setTimeout> | undefined;
+
+    private suggestionsChanged = (props: PathInputProps): boolean => {
+        const nextDeps: [string, string[], string | undefined, number | undefined] = [
+            props.value,
+            props.paths,
+            props.separator,
+            props.maxDepth,
+        ];
+        const previous = this.suggestionsDeps;
+        this.suggestionsDeps = nextDeps;
+        return !previous || nextDeps.some((value, index) => !Object.is(value, previous[index]));
+    };
+
+    private applySuggestions = (next: PathSuggestion[]): void => {
+        this.suggestions = next;
+        const validPaths = new Set(next.map((suggestion) => suggestion.path));
+        for (const path of this.rowRefs.keys()) {
+            if (!validPaths.has(path)) this.rowRefs.delete(path);
+        }
+        this.state.update((state) => {
+            state.activeIndex = null;
+        });
+    };
+
+    setProps = (props: PathInputProps): void => {
+        if (!this.suggestionsChanged(props)) return;
+
+        const { value, paths, separator = "/", maxDepth } = props;
+        this.applySuggestions(
+            exceedsMaxDepth(value, separator, maxDepth)
+                ? []
+                : getPathSuggestions(value, paths, separator),
+        );
+    };
 
     // --- handlers ---
 
@@ -138,7 +165,9 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
     onInputBlur = () => {
         // 150ms grace so suggestion-row mouse clicks (and the Tab fall-through)
         // get a chance to set selectionMade before the commit fires.
-        setTimeout(() => {
+        if (this.blurTimer !== undefined) clearTimeout(this.blurTimer);
+        this.blurTimer = setTimeout(() => {
+            this.blurTimer = undefined;
             if (this.selectionMade || this.escapeCancelled) {
                 this.selectionMade = false;
                 this.escapeCancelled = false;
@@ -153,7 +182,7 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
         }, 150);
     };
 
-    onRowMouseDown = (e: React.MouseEvent) => {
+    onRowMouseDown = (e: MouseEvent) => {
         // Prevent the input from losing focus when a row is clicked.
         e.preventDefault();
     };
@@ -162,13 +191,17 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
         this.selectSuggestion(s);
     };
 
-    onRowMouseEnter = (i: number) => {
+    setActiveIndex = (i: number | null): void => {
         this.state.update((s) => {
             s.activeIndex = i;
         });
     };
 
-    onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    onRowMouseEnter = (i: number) => {
+        this.setActiveIndex(i);
+    };
+
+    onInputKeyDown = (e: KeyboardEvent) => {
         const { open, activeIndex } = this.state.get();
         const { disabled, readOnly, value } = this.props;
         const sep = this.props.separator ?? "/";
@@ -190,25 +223,25 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
             return;
         }
 
-        const suggestions = this.suggestions.value;
+        const suggestions = this.suggestions;
         const n = suggestions.length;
         switch (e.key) {
             case "ArrowDown": {
                 e.preventDefault();
                 if (n === 0) break;
-                this.state.update((s) => {
-                    if (s.activeIndex == null || s.activeIndex < 0) s.activeIndex = 0;
-                    else s.activeIndex = s.activeIndex < n - 1 ? s.activeIndex + 1 : 0;
-                });
+                const next = activeIndex == null || activeIndex < 0
+                    ? 0
+                    : activeIndex < n - 1 ? activeIndex + 1 : 0;
+                this.setActiveIndex(next);
                 break;
             }
             case "ArrowUp": {
                 e.preventDefault();
                 if (n === 0) break;
-                this.state.update((s) => {
-                    if (s.activeIndex == null || s.activeIndex <= 0) s.activeIndex = n - 1;
-                    else s.activeIndex -= 1;
-                });
+                const next = activeIndex == null || activeIndex <= 0
+                    ? n - 1
+                    : activeIndex - 1;
+                this.setActiveIndex(next);
                 break;
             }
             case "Enter": {
@@ -250,43 +283,16 @@ export class PathInputModel extends TComponentModel<PathInputState, PathInputPro
     // --- lifecycle ---
 
     init() {
-        // Keep the row-ref array sized to the current suggestion list so stale entries
-        // don't pin removed nodes.
-        this.effect(
-            () => {
-                this.rowRefs.length = this.suggestions.value.length;
-            },
-            () => [this.suggestions.value],
-        );
+        // The vanilla view performs the input-ref completion after the nested React
+        // bridge commits, so there are no lifecycle effects for the model driver to run.
+    }
 
-        // Reset highlight whenever the suggestion list changes — same behavior as the
-        // original `useEffect(() => setActiveIndex(null), [suggestions])`.
-        this.effect(
-            () => {
-                this.state.update((s) => {
-                    s.activeIndex = null;
-                });
-            },
-            () => [this.suggestions.value],
-        );
-
-        // Scroll the active row into view when it changes.
-        this.effect(
-            () => {
-                const idx = this.state.get().activeIndex;
-                if (idx != null && idx >= 0) {
-                    this.rowRefs[idx]?.scrollIntoView({ block: "nearest" });
-                }
-            },
-            () => [this.state.get().activeIndex],
-        );
-
-        // autoFocus: place caret at end of value after the native focus fires on mount.
-        this.effect(() => {
-            if (this.props.autoFocus && this.inputRef) {
-                const len = this.inputRef.value.length;
-                this.inputRef.setSelectionRange(len, len);
-            }
-        });
+    dispose = (): void => {
+        if (this.blurTimer !== undefined) {
+            clearTimeout(this.blurTimer);
+            this.blurTimer = undefined;
+        }
+        this.rowRefs.clear();
+        this.inputRef = null;
     }
 }

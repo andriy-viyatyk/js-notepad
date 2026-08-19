@@ -4,6 +4,32 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-053 — [De-React Epic B — The reactive foundation and the boundary](EPIC-053.md)
+
+Established the framework-neutral reactive foundation and the React/vanilla boundary: zustand was
+removed from the state layer; vanilla view ownership, binding, keyed DOM reconciliation, subtree
+swapping, model drivers, and two-way mount adapters were added; and the Storybook PathInput pilot
+converted one UIKit component end to end behind its unchanged React-facing API. The pilot also
+validated nested React ownership, portal disposal, controlled updates, keyboard and mouse behavior,
+and the co-located CSS path. No user-facing documentation change was warranted.
+
+Verification: `npm run typecheck`, `npm run lint`, and `git diff --cached --check` passed. The
+converted Storybook PathInput produced 3 MutationObserver records for one ArrowDown with its
+popover open under the documented observer options and reset point. Epic-level review,
+developer-documentation, and user-documentation checks completed.
+
+- [x] [US-985: Drop zustand from the state layer](../tasks/US-985-drop-zustand/README.md)
+- [x] [US-986: Vanilla view lifecycle and `bind()`](../tasks/US-986-vanilla-view-lifecycle/README.md)
+- [x] [US-987: Keyed-list and subtree-swap helpers](../tasks/US-987-structural-helpers/README.md)
+- [x] [US-988: Model driver — the non-React `useComponentModel`](../tasks/US-988-model-driver/README.md)
+- [x] [US-989: `mountVanilla` / `mountReact`](../tasks/US-989-boundary-adapters/README.md)
+- [x] [US-990: Storybook vanilla render path](../tasks/US-990-storybook-vanilla-render/README.md)
+- [x] [US-994: Retire the Storybook side-by-side preview](../tasks/US-994-retire-side-by-side-preview/README.md)
+- [x] [US-991: Pilot — one component converted end to end](../tasks/US-991-pathinput-pilot/README.md)
+- [x] [US-992: Authoring rules for vanilla views](../tasks/US-992-vanilla-view-authoring/README.md)
+
+---
+
 ## EPIC-052 — [De-React Epic A — Style and token foundation](EPIC-052.md)
 
 Established the styling and token foundation for the de-React roadmap: durable Emotion and

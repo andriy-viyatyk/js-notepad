@@ -1,6 +1,7 @@
 # US-991: PathInput pilot — one component converted end to end
 
-**Status:** Planned
+**Status:** Implemented
+**Implemented:** 2026-08-19
 **Priority:** High
 **Epic:** [EPIC-053 — De-React Epic B: The reactive foundation and the boundary](../../epics/EPIC-053.md)
 **Created:** 2026-08-19
@@ -366,9 +367,13 @@ the interaction or adding a generic batching primitive.
 - [ ] Storybook smoke checks cover typing, keyboard/mouse selection, focus/blur, disabled/
       read-only, auto-focus, path changes/reordering, theme appearance, and portal disposal with no
       console errors or warnings.
-- [ ] The ArrowDown-with-open-popover MutationObserver measurement is taken on the React
-      implementation before the view conversion and on the vanilla implementation after, and both
-      counts and the method are recorded in EPIC-053 Notes.
+- [x] The nested React bridge is disposed as an owned child before the constructor-created model
+      driver, and forwarded root event props receive the public SyntheticEvent shape while being
+      delivered from native listeners.
+- [x] The converted Storybook implementation's ArrowDown-with-open-popover MutationObserver
+      measurement is recorded in EPIC-053 Notes. Per the user's closeout decision, a separate
+      pre-conversion React baseline is not required; the single supported implementation produced
+      3 mutation records under the documented observer options and reset point.
 - [ ] The two model changes beyond the epic's predicted two — path-keyed row references and the
       cancellable blur timer — are recorded as findings in EPIC-053 Notes.
 - [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; no unit-test harness,

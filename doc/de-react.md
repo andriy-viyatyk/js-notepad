@@ -436,8 +436,8 @@ theme-switch path without a React re-render · Emotion-to-CSS conventions in `co
 
 ### Epic B — The reactive foundation and the boundary
 
-**Scheduled as [EPIC-053](epics/EPIC-053.md) on 2026-08-18.** The next free epic number is now
-**EPIC-054**. Investigation at epic open found three of the candidate tasks below smaller than
+**Scheduled as [EPIC-053](epics/EPIC-053.md) on 2026-08-18. Completed 2026-08-19.**
+Investigation at epic open found three of the candidate tasks below smaller than
 described: `ComponentQueue`'s plain `subscribe` path **already exists**, `immer` is a one-file
 dependency rather than five, and the 16 `useSyncExternalStore` call sites in §2 are **not** the
 state layer's React bridge — `TOneState.use()` reaches React through zustand, and rebuilding that
@@ -509,28 +509,87 @@ The 44 components in `uikit/`, converted leaf-first behind identical React-facin
 Drop in av-grid for AVGrid. Move Popover / Menu / Tooltip to `@floating-ui/dom` and delete
 `react-tooltip`.
 
-Candidate tasks, roughly in order: primitives (Button, IconButton, Label, Text, Icon, Divider,
-Spacer, Dot, Tag) · inputs (Input, Textarea, Checkbox, RadioGroup, Select, MultiSelect,
-Autocomplete, DateInput, PathInput, TagsInput, Slider) · floating layer (Popover, Menu, Tooltip,
-Dialog, Notification) · containers (Panel, Toolbar, Splitter, CollapsiblePanelStack,
-SegmentedControl, Breadcrumb) · data views (ListBox, MultiListBox, Tree, RenderGrid,
-SelectableRow, CategoryList, Minimap, ImageViewport) · **AVGrid → av-grid**.
+**This is the epic that pays.** 14,671 lines, and nearly all the perceived speed lives here.
+If the migration stops after Epic C, it was still worth doing.
+
+#### Split into four epics (user decision, 2026-08-19)
+
+*C1 is scheduled as [EPIC-054](epics/EPIC-054.md). The next free epic number is **EPIC-055**;
+C2, C3 and C4 get their doc and their ID when each is genuinely next up, the way this programme has
+scheduled every epic so far.*
+
+At scheduling time this was measured against the tree and **split into four independently
+schedulable epics** rather than run as one. Whole, it would have been 44 components and 14,671
+lines — by a wide margin the largest epic in the project, with no clean internal boundary to pause
+at. The split lines are not arbitrary: they follow the `uikit/` internal import graph, which is a
+chain with a single cycle.
+
+| | Epic | Components | Lines | Blocked on |
+|---|---|---:|---:|---|
+| **C1** | Foundation and primitives | 20 | 3,209 | Epic B |
+| **C2** | Floating layer and composites | 18 | ~5,270 | C1 |
+| **C3** | Virtualized data views | 4 | ~5,938 | C1, C2 |
+| **C4** | AVGrid → av-grid | 1 (+15 consumers) | ~4,914 | C2, C3 |
+
+**C1 — Foundation and primitives.** The twenty components at the bottom of `uikit/`'s own
+dependency graph: `Tooltip`, `Button`, `IconButton`, `TruncatedText`, `SegmentedControl`,
+`Input`, `Textarea`, `Checkbox`, `Slider`, `RadioGroup`, `Tag`, `Label`, `Divider`, `Dot`,
+`Spacer`, `Spinner`, `ProgressBar`, `SelectableRow`, plus `Panel` and `Text`. Fifteen of them
+import no other `uikit/` component, so the epic is almost entirely parallel; the only chain is
+`Tooltip → {Button, IconButton, TruncatedText} → SegmentedControl`.
+
+It carries the epic-wide groundwork: roadmap Rule 6's leak closure, the Emotion-to-CSS contract,
+the DOM icon path (moved here from Epic D — `renderIcon` returns a `ReactNode`, so without it
+every icon in the app would sit inside a React root), and the subtree-slot answer deferred from
+Epic P (D4).
+
+**It also settles the container idiom for the whole programme.** `Panel` looked like the
+foundation and is not: of its 716 production JSX tags, 636 are in `editors/` and 74 in `ui/` and
+`components/`, against **6 inside `uikit/`**. It is app-facing styling sugar, so it gets no
+vanilla equivalent — vanilla views write plain elements with semantic classes in their own
+stylesheets, which is VSCode's pattern. `Panel` stays React-only and drains away as Epics D and E
+convert its call sites. Scheduled as [EPIC-054](epics/EPIC-054.md).
+
+**C2 — Floating layer and composites.** `Popover`, `Menu`, `Dialog`, `Notification`, `Select`,
+`MultiSelect`, `Autocomplete`, `DateInput`, `TagsInput`, `Toolbar`, `Splitter`, `Breadcrumb`,
+`CollapsiblePanelStack`, `SplitButton`, `CategoryList`, `Minimap`, `ImageViewport`, `Progress`.
+Carries the bulk of the `@floating-ui/react` → `@floating-ui/dom` move; C1 does `Tooltip` first
+because it is the simplest floating consumer and therefore the right place to establish the
+pattern. Note the dependency is **not** fully retired here — `editors/browser/BrowserTabsPanel.tsx`
+and `ui/dialogs/poppers/showPopupMenu.tsx` also import it and convert in Epics E and D.
+
+**C3 — Virtualized data views.** `ListBox`, `MultiListBox`, `Tree`, and the absorption of
+av-grid's `render/` folder as `uikit/RenderGrid/`. EPIC-053 B15 treats `RenderGrid` and `AVGrid`
+as one absorption; the import graph says otherwise. av-grid's `render/` is standalone — today's
+`uikit/RenderGrid/` imports nothing from `uikit/` — so the engine can land as soon as C1 is done,
+while the grid on top of it cannot land until C2 has produced a vanilla `Popover`, `Menu` and
+`Select`. This epic also resolves B15's one explicitly undecided item, `RenderFlexGrid.tsx`.
+
+**C4 — AVGrid → av-grid.** The grid itself, plus the ~15 consumer files in `editors/` and
+`components/` that need host-wiring changes because `RenderGridModel`'s public API differs from the
+React version's (B15). The only part of Epic C that reaches outside `uikit/`, the only part that is
+an adoption rather than a conversion, and therefore the one that is cleanly abortable on its own.
+
+**Verification runs through the Storybook harness** built in Epic B. Each converted component is
+exercised through its existing story, and the `data-name` contract
+([ui-element-contract.md](architecture/ui-element-contract.md)) makes the DOM before and after
+comparable — drivable from the `browser_*` tools. It is a visual harness, not an assertion suite;
+it shows a difference, it does not fail a build. Note that open decision #6's *side-by-side* form
+did not survive contact: EPIC-053 B5 was partially reversed by US-994, because a converted
+component's React face renders the vanilla view, so both panes would have shown the same DOM. Rule
+4's number is therefore taken at two points in time — **on the React implementation before the
+conversion, which is the one measurement that cannot be recovered afterwards** — not in two panes.
+
+Story coverage is 38 of the 44 components. The six without a story are `AVGrid` (superseded by
+av-grid anyway), `RenderGrid`, `Minimap`, `ImageViewport`, `Progress` and `SelectableRow` — which,
+apart from AVGrid, are precisely the measurement-heavy components whose conversion is hardest.
+Writing those six stories is cheap and belongs to whichever epic owns the component, before the
+component is converted rather than after.
 
 **One extra task, cheap and unrelated to rendering:** close the four remaining `uikit/` → app-layer
 imports listed in §3.5 (`ListBoxModel`, `TreeModel`, `Menu/types`, `RenderFlexGrid`; the fifth dies
-with AVGrid), and adopt Rule 6. That is the entire cost of keeping open decision #5 open.
-
-**Verification runs through the Storybook harness** built in Epic B (open decision #6): each
-component is rendered React-and-vanilla side by side with identical props, and the `data-name`
-contract makes the two DOM trees comparable — drivable from the `browser_*` tools. It is a visual
-harness, not an assertion suite; it shows a difference, it does not fail a build. Coverage is 38 of
-the 44 uikit components. The six without a story are `AVGrid` (superseded by av-grid anyway),
-`RenderGrid`, `Minimap`, `ImageViewport`, `Progress` and `SelectableRow` — which, apart from AVGrid,
-are precisely the measurement-heavy components whose conversion is hardest. Writing those six
-stories is cheap and should happen before those components are converted, not after.
-
-**This is the epic that pays.** 14,671 lines, and nearly all the perceived speed lives here.
-If the migration stops after Epic C, it was still worth doing.
+with AVGrid), and adopt Rule 6. That is the entire cost of keeping open decision #5 open. It is
+independent of every conversion and lands in **C1**.
 
 ### Epic D — Shell and shared components
 

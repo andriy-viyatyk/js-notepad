@@ -471,6 +471,75 @@ ListBox skin) without touching the logic.
 
 ---
 
+## Rule 9 — Vanilla view authoring
+
+Components converted from React may expose a framework-free `VanillaView` alongside the
+existing React view. The detailed model contract is in
+[`/doc/standards/model-view-pattern.md`](../../../doc/standards/model-view-pattern.md); this
+section is the mandatory checklist for a class extending `VanillaView`.
+
+Import `VanillaView`, `KeyedList`, and `SubtreeSwap` directly from their files under
+`uikit/shared/`; Epic B intentionally does not add these primitives to `uikit/index.ts`.
+
+### Lifecycle and ownership
+
+- The constructor creates the stable root and may construct the model driver and view-owned
+  state needed for the initial prop pump. It must not create child DOM, install listeners or
+  subscriptions, measure layout, or start timers. A resource created in the constructor registers
+  its cleanup with `own()` immediately; `onMount()` registers cleanup for resources it creates.
+- Every view used by `mountVanilla` or a constructor slot declares a **public** constructor. The
+  base constructor is protected, so inheriting it is not a valid public constructor contract.
+- `mount()` is where child DOM and bindings are built. The owner attaches `root` before calling
+  `mount()` when the view may measure itself. `update(props)` always stores the latest props;
+  before mount it does not call `onUpdate`, and `onMount()` renders from the stored props.
+- `dispose()` is idempotent and disposes owned children first, then registered resources in FIFO
+  order, then `onDispose()`. It attempts the complete cleanup snapshot and rethrows the first
+  error afterward. Registration order is load-bearing. It makes the view inert but does not remove
+  `root`; the adapter or structural helper that attached the root owns detachment.
+- `bind()` is legal from `onMount()` onward. It applies once immediately, then subscribes. Its
+  apply callback must tolerate the disposed view because a state notification may still visit a
+  listener removed during that same notification pass.
+
+### DOM, events, and state
+
+- Build structure with `document.createElement`, `append`, and explicit properties/attributes.
+  Static, code-owned `innerHTML` is allowed when genuinely clearer, but never interpolate runtime
+  data into markup. `replaceChildren` is limited to a region owned outright by the view, never a
+  `KeyedList` or other structural-helper container.
+- Use semantic elements, `data-type` on the root, `data-name` for public debug names, and the
+  established `data-part` vocabulary for stable internal regions. Keep interaction state in
+  `data-*` attributes and co-located static CSS; do not reintroduce `className` as state.
+- Use native DOM event types (`Event`, `MouseEvent`, `KeyboardEvent`, and so on), not React
+  synthetic event types. The model remains reusable by both views and must not query the DOM.
+- Store DOM references on the view and clear them during disposal. `bind` is for synchronized
+  state-to-DOM projections; direct DOM work remains appropriate for structure, input feedback,
+  attributes, focus, measurement, and other imperative operations.
+- A vanilla-driven model uses `createComponentModelDriver` and registers no
+  `TComponentModel.effect()` entries. Move behavior to explicit model methods, `setProps`, view
+  lifecycle hooks, or cancellable async work. Keep prop-to-state seeding behind an identity guard
+  in `setProps`, because prop pumping runs on every update.
+
+### Structural helpers and React boundaries
+
+- Claim a child with `this.child(view)` exactly once. Ownership is enforced by the shared marker;
+  an already-owned view throws. Use `this.listen` and `this.own` for cleanup, and register
+  constructor-created resources before mount-created resources because disposal is FIFO.
+- `KeyedList` validates all keys before mutation, removes and detaches deleted nodes, creates
+  missing nodes, reconciles order with its cursor without re-inserting an already-correct node,
+  then updates every record. `SubtreeSwap` owns one conditional root and inserts a replacement
+  before disposing and detaching the old branch. Both helpers detach their managed nodes; this is
+  deliberately different from `VanillaView.dispose()`.
+- `mountVanilla` is a React boundary with a module-level stable host component. It appends the
+  root before `mount()`, skips the redundant first `update`, and replaces the view only when the
+  constructor identity changes. Do not define the host inside `mountVanilla` or use a changing key.
+- `mountReact` is only a temporary seam when a vanilla view owns a React subtree with no vanilla
+  equivalent yet. The view owns the host element and the returned disposer owns the React root;
+  neither adapter is a substitute for converting an ordinary parent or child.
+
+See the PathInput pilot at `uikit/PathInput/PathInputView.tsx` for the complete working shape.
+
+---
+
 ## Focus-aware list selection (shared contract)
 
 Selectable lists share one focus-aware selection look (the Explorer file-tree behavior): a

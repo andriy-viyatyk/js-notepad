@@ -239,6 +239,10 @@ currently renders `<RootComponent />` without `React.StrictMode`; this task does
 StrictMode coverage. If StrictMode is enabled later, adapter cleanup must be re-verified before
 relying on it as a boundary guarantee.
 
+The nested-root commit check was exercised during the US-991 Storybook smoke pass: unmounting the
+React parent containing the vanilla PathInput, its nested React bridge, and the Popover portal did
+not emit a synchronous-root warning, and the local and portal DOM were removed.
+
 ## Concerns / Decisions
 
 1. **Outer host versus vanilla root.** The adapter intentionally has two elements: React owns the
