@@ -10,7 +10,7 @@ import {
 import { VanillaView } from "../shared/vanilla-view";
 import type { InputProps } from "./Input";
 
-function cssLength(value: number | string): string {
+export function cssLength(value: number | string): string {
     return typeof value === "number" ? `${value}px` : value;
 }
 

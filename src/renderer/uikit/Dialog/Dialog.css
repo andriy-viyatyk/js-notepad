@@ -1,0 +1,72 @@
+@layer uikit {
+    @keyframes persephone-dialog-pulse {
+        0% { transform: scale(0.9); }
+        100% { transform: scale(1); }
+    }
+
+    .dialog-shell {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+        background: transparent;
+        animation: persephone-dialog-pulse 0.1s ease-out;
+        outline: none;
+    }
+
+    .dialog-shell[data-position="center"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dialog-shell[data-position="center"] .dialog-content-shell {
+        border: 1px solid var(--color-border-default, var(--color-border-light, transparent));
+        border-radius: var(--radius-lg, 6px);
+        box-shadow: var(--color-shadow-default, none);
+    }
+
+    .dialog-shell[data-position="right"] .dialog-content-shell {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        min-width: 200px;
+        border-left: 1px solid var(--color-border-default, var(--color-border-light, transparent));
+    }
+
+    .dialog-content-shell {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        background-color: var(--color-bg-default, transparent);
+        overflow: hidden;
+    }
+
+    .dialog-content-shell [data-part="header"] {
+        display: flex;
+        align-items: center;
+        column-gap: var(--space-md, 8px);
+        padding-left: var(--space-sm, 4px);
+        padding-right: var(--space-sm, 4px);
+        padding-top: var(--space-xs, 2px);
+        padding-bottom: var(--space-xs, 2px);
+        border-bottom: 1px solid var(--color-border-default, var(--color-border-light, transparent));
+        background-color: var(--color-bg-light, transparent);
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .dialog-content-shell [data-part="title"] {
+        display: flex;
+        align-items: center;
+        column-gap: var(--space-md, 8px);
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}

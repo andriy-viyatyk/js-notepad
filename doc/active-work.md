@@ -11,7 +11,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-055** — [De-React Epic C2 — Floating layer and composites](epics/EPIC-055.md)
   - [x] [US-1005: `Popover` — vanilla floating root on `@floating-ui/dom`, and the Rule 4 React baseline](tasks/US-1005-popover-vanilla-floating-root/README.md)
   - [ ] [US-1006: `Menu` and `WithMenu` — `openMenu` attachment, recursive submenus, and the Rule 4 after-number](tasks/US-1006-menu-vanilla-recursive/README.md)
-  - [ ] US-1007: `Dialog` and `DialogContent` — focus trap and backdrop
+  - [x] [US-1007: `Dialog` and `DialogContent` — focus trap and backdrop](tasks/US-1007-dialog-vanilla-focus-trap/README.md)
   - [ ] US-1008: `Notification` — `Notification`, `AlertItem`, `AlertsBar`
   - [ ] US-1009: `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction
   - [ ] US-1010: `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack`

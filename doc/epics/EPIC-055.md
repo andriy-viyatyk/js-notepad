@@ -305,7 +305,7 @@ Four secondary counts close alongside it:
 |------|-------|--------|
 | US-1005 | [`Popover` — vanilla floating root on `@floating-ui/dom`, and the Rule 4 React baseline](../tasks/US-1005-popover-vanilla-floating-root/README.md) | Implemented |
 | US-1006 | [`Menu` and `WithMenu` — `openMenu` attachment, recursive submenus, and the Rule 4 after-number](../tasks/US-1006-menu-vanilla-recursive/README.md) | Implemented |
-| US-1007 | `Dialog` and `DialogContent` — focus trap and backdrop | Planned |
+| US-1007 | [`Dialog` and `DialogContent` — focus trap and backdrop](../tasks/US-1007-dialog-vanilla-focus-trap/README.md) | Implemented |
 | US-1008 | `Notification` — `Notification`, `AlertItem`, `AlertsBar` | Planned |
 | US-1009 | `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction | Planned |
 | US-1010 | `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` | Planned |
@@ -505,3 +505,12 @@ converting — neither has one, and without them there is no before / after DOM 
 - **US-1005's Popover shell hook was corrected before US-1006.** Residual `data-type="menu"` can
   override the Popover addressing marker, so the shell now uses the non-overridable `popover-shell`
   class while `data-type` remains the submenu outside-click and automation contract.
+
+### 2026-08-21
+
+- **Selector-depth guard for remaining C2 conversions.** Converting a React subtree can add
+  layout-transparent DOM hosts while preserving visual boxes. Before translating each component's
+  Emotion rules, scan for `>`, `:empty`, `:nth-child`, `+`, and `~` selectors and state what each
+  selector matches after the new host depth is present. C2 has already encountered this class in
+  Panel's `:empty` rule, Popover's overridable marker (fixed in `4afe8bac`), and Dialog's direct
+  child selectors; `CollapsiblePanelStack.tsx:79,85,88,115` is the next named case for US-1010.
