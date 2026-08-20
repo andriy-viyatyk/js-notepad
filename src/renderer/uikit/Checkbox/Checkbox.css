@@ -1,0 +1,25 @@
+@layer uikit {
+    [data-type="checkbox"] {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--gap-sm, 4px);
+        cursor: pointer;
+        user-select: none;
+        color: var(--color-text-default, currentColor);
+    }
+    [data-type="checkbox"] [data-part="icon"] {
+        flex-shrink: 0;
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+        color: var(--color-text-light, currentColor);
+    }
+    [data-type="checkbox"] [data-part="icon"] svg {
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+    }
+    [data-type="checkbox"]:hover [data-part="icon"] { color: var(--color-text-default, currentColor); }
+    [data-type="checkbox"][data-disabled] { cursor: default; opacity: 0.5; }
+    [data-type="checkbox"][data-disabled]:hover [data-part="icon"] {
+        color: var(--color-text-light, currentColor);
+    }
+}

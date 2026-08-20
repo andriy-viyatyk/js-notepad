@@ -1,0 +1,43 @@
+@layer uikit {
+    [data-type="radio-group"] {
+        display: inline-flex;
+        gap: var(--radio-group-gap, var(--gap-sm, 4px));
+    }
+    [data-type="radio-group"][data-orientation="horizontal"] { flex-direction: row; }
+    [data-type="radio-group"][data-orientation="vertical"] { flex-direction: column; }
+    [data-type="radio-group"][data-disabled] { opacity: 0.6; }
+
+    [data-type="radio"] {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--gap-sm, 4px);
+        padding: var(--space-xs, 2px) var(--space-sm, 4px);
+        margin: 0;
+        border: none;
+        background: transparent;
+        outline: none;
+        cursor: pointer;
+        color: var(--color-text-default, currentColor);
+        font-size: var(--font-base, 14px);
+        font-family: inherit;
+        text-align: left;
+    }
+    [data-type="radio"] .radio-icon {
+        flex-shrink: 0;
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+        color: var(--color-text-light, currentColor);
+    }
+    [data-type="radio"] .item-icon {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-type="radio"] .item-icon > svg { width: var(--size-icon-md, 16px); height: var(--size-icon-md, 16px); }
+    [data-type="radio"]:hover .radio-icon,
+    [data-type="radio"]:focus-visible .radio-icon { color: var(--color-text-default, currentColor); }
+    [data-type="radio"][data-checked="true"] .radio-icon { color: var(--color-text-default, currentColor); }
+    [data-type="radio"][data-disabled] { cursor: default; opacity: 0.5; }
+    [data-type="radio"][data-disabled]:hover .radio-icon { color: var(--color-text-light, currentColor); }
+}

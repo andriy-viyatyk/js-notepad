@@ -373,7 +373,7 @@ Epic B primitives are not re-exported from the barrel.
 | US-998 | [`Tooltip` — attachment-based, on `@floating-ui/dom`](../tasks/US-998-tooltip-attachment/README.md) | Planned |
 | US-999 | [`Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number](../tasks/US-999-button-cluster/README.md) | Planned |
 | US-1000 | [`Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](../tasks/US-1000-text-stateless-leaves/README.md) | Planned |
-| US-1001 | `Checkbox`, `Slider`, `RadioGroup` | Planned |
+| US-1001 | [`Checkbox`, `Slider`, `RadioGroup`](../tasks/US-1001-checkbox-slider-radio-group/README.md) | Planned |
 | US-1002 | `Input` and `Textarea` | Planned |
 | US-1003 | `Panel` — Emotion to CSS, no vanilla face | Planned |
 
