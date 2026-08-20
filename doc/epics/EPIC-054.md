@@ -369,7 +369,7 @@ Epic B primitives are not re-exported from the barrel.
 |------|-------|--------|
 | US-995 | [Rule 6 — close the `uikit/` → app-layer imports and lint the boundary](../tasks/US-995-uikit-boundary-lint/README.md) | Planned |
 | US-996 | [The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](../tasks/US-996-vanilla-uikit-contracts/README.md) | Planned |
-| US-997 | DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories | Planned |
+| US-997 | [DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](../tasks/US-997-dom-icon-path/README.md) | Planned |
 | US-998 | `Tooltip` — attachment-based, on `@floating-ui/dom` | Planned |
 | US-999 | `Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number | Planned |
 | US-1000 | `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar` | Planned |
