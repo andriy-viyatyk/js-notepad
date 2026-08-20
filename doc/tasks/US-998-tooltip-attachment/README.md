@@ -337,31 +337,31 @@ new Rule 4 after-number.
 
 ## Acceptance criteria
 
-- [ ] `attachTooltip(trigger, options)` and `TooltipOptions` exist, are exported, and own native
+- [x] `attachTooltip(trigger, options)` and `TooltipOptions` exist, are exported, and own native
       listeners, timers, singleton/overlay subscriptions, the floating root, content slot,
       `autoUpdate`, and all cleanup through an idempotent `dispose()`.
-- [ ] The attachment uses `@floating-ui/dom` with fixed strategy, offset/flip/shift behavior,
+- [x] The attachment uses `@floating-ui/dom` with fixed strategy, offset/flip/shift behavior,
       guarded async positioning, and an auto-update cleanup active only while open.
-- [ ] A delayed show reads the latest `options.content` at timer fire time, so a caller can update
+- [x] A delayed show reads the latest `options.content` at timer fire time, so a caller can update
       content after scheduling and before the delay expires.
-- [ ] Tooltip preserves hover/focusin/focusout/Escape behavior, tooltip-root hover persistence, singleton
+- [x] Tooltip preserves hover/focusin/focusout/Escape behavior, tooltip-root hover persistence, singleton
       and innermost-wins rules, overlay/drag suppression, content semantics, name/placement/role
       attributes, z-index, and overlay-layer placement.
-- [ ] The React `<Tooltip>` face keeps its public props and child DOM shape, clones only to merge
+- [x] The React `<Tooltip>` face keeps its public props and child DOM shape, clones only to merge
       the ref, preserves existing child handlers/refs, and delegates floating behavior to one
       attachment without a React portal or `@floating-ui/react` import. The intentional native-before-
       React handler ordering is documented and Escape remains effective through child
       `stopPropagation()`.
-- [ ] Tooltip styling is moved to `Tooltip.css` under `@layer uikit` with token variables and
+- [x] Tooltip styling is moved to `Tooltip.css` under `@layer uikit` with token variables and
       fallbacks; no conflicting unlayered selector or global element rule changes the floating root.
-- [ ] React-to-React content updates reuse one slot root; arm changes and disposal clean the old
+- [x] React-to-React content updates reuse one slot root; arm changes and disposal clean the old
       content and never allow a stale disposer or async positioning callback to affect a newer root.
-- [ ] `@floating-ui/dom@^1.8.0` is a direct dependency, `react-tooltip` is removed from package manifests
+- [x] `@floating-ui/dom@^1.8.0` is a direct dependency, `react-tooltip` is removed from package manifests
       and the lockfile, and `@floating-ui/react` remains for its live consumers.
-- [ ] The Tooltip story and production smoke checks cover text/rich content, all placements,
+- [x] The Tooltip story and production smoke checks cover text/rich content, all placements,
       delays, focus/Escape, viewport flipping, scroll/resize repositioning, singleton behavior,
       suppression, and cleanup; `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
-- [ ] No Button, IconButton, TruncatedText, TreeItem, ListItem, FolderItem, PageTab, or other
+- [x] No Button, IconButton, TruncatedText, TreeItem, ListItem, FolderItem, PageTab, or other
       external Tooltip call site is migrated in this task, and no unit-test harness is added.
 
 ## Files changed

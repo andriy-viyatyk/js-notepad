@@ -260,31 +260,31 @@ or React-node arm.
 
 ## Acceptance criteria
 
-- [ ] All 116 existing registry names remain present, with `IconName` still derived from the one
+- [x] All 116 existing registry names remain present, with `IconName` still derived from the one
       `ICONS` record and no second manual name union.
-- [ ] The 115 factory-produced main icon bodies are static, code-owned SVG markup; JSX SVG
+- [x] The 115 factory-produced main icon bodies are static, code-owned SVG markup; JSX SVG
       attribute names are serialized correctly and all existing geometry, fixed colors, CSS
       variable colors, currentColor behavior, viewBoxes, and empty-icon behavior are preserved.
-- [ ] Both faces put each static body under the same unconditional single `<g>` wrapper, so title
+- [x] Both faces put each static body under the same unconditional single `<g>` wrapper, so title
       presence does not change the icon's child structure and React/DOM geometry comparisons are
       structurally meaningful.
-- [ ] `createIcon` and `createIconWithViewBox` produce the existing React face and a DOM builder
+- [x] `createIcon` and `createIconWithViewBox` produce the existing React face and a DOM builder
       from one body, while the React-node compatibility branch keeps `language-icons.tsx`
       unchanged and React-only.
-- [ ] `SvgIconProps` and direct icon component callers remain source-compatible; width, height,
+- [x] `SvgIconProps` and direct icon component callers remain source-compatible; width, height,
       color, style, className, title, ref, `aria-*`, and `data-*` behavior is preserved on the
       React face and defined equivalently on the DOM face.
-- [ ] All 116 registry entries, including `PersephoneIcon`, have a DOM builder; Persephone reads
+- [x] All 116 registry entries, including `PersephoneIcon`, have a DOM builder; Persephone reads
       the current theme at creation time and does not ship a stale fixed snapshot.
-- [ ] `isIconName` narrows runtime strings against the registry and `createIconElement(name, props?)`
+- [x] `isIconName` narrows runtime strings against the registry and `createIconElement(name, props?)`
       is typed with `IconName`, returns an SVG DOM element
       without mounting React, and is exported from the UIKit entry point; `renderIcon`'s signature,
       warning behavior, and React-node arm are unchanged.
-- [ ] The registry exposes both faces through the factory-attached builder property without a
+- [x] The registry exposes both faces through the factory-attached builder property without a
       duplicate icon-name list; missing/unknown DOM builders warn and return an empty correctly-sized
       SVG, while unknown `renderIcon` names retain their existing development warning and null
       result.
-- [ ] Existing React icon consumers and the Storybook icon stories render unchanged; representative
+- [x] Existing React icon consumers and the Storybook icon stories render unchanged; representative
       React/DOM face comparisons pass for root attributes, title, and SVG child geometry.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass. No unit-test harness,
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass. No unit-test harness,
       language-icon migration, component conversion, or unrelated consumer rewrite is introduced.

@@ -2,9 +2,9 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-08-19
-**Completed:** —
+**Completed:** 2026-08-20
 
 ## Overview
 
@@ -367,13 +367,13 @@ Epic B primitives are not re-exported from the barrel.
 
 | Task | Title | Status |
 |------|-------|--------|
-| US-995 | [Rule 6 — close the `uikit/` → app-layer imports and lint the boundary](../tasks/US-995-uikit-boundary-lint/README.md) | Planned |
-| US-996 | [The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](../tasks/US-996-vanilla-uikit-contracts/README.md) | Planned |
-| US-997 | [DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](../tasks/US-997-dom-icon-path/README.md) | Planned |
-| US-998 | [`Tooltip` — attachment-based, on `@floating-ui/dom`](../tasks/US-998-tooltip-attachment/README.md) | Planned |
-| US-999 | [`Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number](../tasks/US-999-button-cluster/README.md) | Planned |
-| US-1000 | [`Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](../tasks/US-1000-text-stateless-leaves/README.md) | Planned |
-| US-1001 | [`Checkbox`, `Slider`, `RadioGroup`](../tasks/US-1001-checkbox-slider-radio-group/README.md) | Planned |
+| US-995 | [Rule 6 — close the `uikit/` → app-layer imports and lint the boundary](../tasks/US-995-uikit-boundary-lint/README.md) | Implemented |
+| US-996 | [The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](../tasks/US-996-vanilla-uikit-contracts/README.md) | Implemented |
+| US-997 | [DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](../tasks/US-997-dom-icon-path/README.md) | Implemented |
+| US-998 | [`Tooltip` — attachment-based, on `@floating-ui/dom`](../tasks/US-998-tooltip-attachment/README.md) | Implemented |
+| US-999 | [`Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number](../tasks/US-999-button-cluster/README.md) | Implemented |
+| US-1000 | [`Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](../tasks/US-1000-text-stateless-leaves/README.md) | Implemented |
+| US-1001 | [`Checkbox`, `Slider`, `RadioGroup`](../tasks/US-1001-checkbox-slider-radio-group/README.md) | Implemented |
 | US-1002 | [`Input` and `Textarea`](../tasks/US-1002-input-textarea/README.md) | Implemented |
 | US-1003 | [`Panel` — Emotion to CSS, no vanilla face](../tasks/US-1003-panel-css/README.md) | Implemented |
 
@@ -566,6 +566,13 @@ container with a semantic class.
   reset immediately before hovering the live-preview button, the tooltip show delay was allowed
   to elapse (1.2 seconds), and the React implementation produced **3 mutation records**. The
   overlay layer and tooltip were both present. US-999 owns the matching after-number.
+- **Epic completion review:** `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
+  The epic review found and the completion pass fixed two defensive `optionsRef.current!`
+  assertions in the React Tooltip adapter; no other implementation blockers remained. Manual
+  Storybook and running-app smoke checks reported during implementation covered the converted
+  tooltip, button cluster, text/stateless leaves, checkbox/slider/radio, input/textarea, and
+  Panel paths, including representative editor and shell callers. All task acceptance records
+  are now checked and the epic is archived in `doc/epics/completed.md`.
 
 ### 2026-08-19
 

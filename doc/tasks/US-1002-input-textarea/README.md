@@ -296,32 +296,32 @@ native event. No new test harness is introduced.
 
 ## Acceptance criteria
 
-- [ ] `Input` and `Textarea` React faces are thin `mountVanilla` adapters; their public props,
+- [x] `Input` and `Textarea` React faces are thin `mountVanilla` adapters; their public props,
       barrels, stories, and production call sites remain compatible.
-- [ ] `InputView` preserves the wrapper → optional start slot → direct input → optional end slot
+- [x] `InputView` preserves the wrapper → optional start slot → direct input → optional end slot
       DOM shape using `div[data-part="start-slot|end-slot"]` hosts, with no empty slot host and
       the existing ref still targeting the inner input.
-- [ ] Input string/DOM/React slot transitions preserve ordering, flex layout, cleanup, and React
+- [x] Input string/DOM/React slot transitions preserve ordering, flex layout, cleanup, and React
       root reuse through `fillSlot`.
-- [ ] Input controlled value, native input-frequency callback, property-valued fields, residual
+- [x] Input controlled value, native input-frequency callback, property-valued fields, residual
       handlers/ARIA/data attributes, disabled/read-only/invalid/tone/variant/size state, and
       auto-focus behavior remain intact.
-- [ ] `TextareaView` preserves the contenteditable root, value equality guard, normalized input,
+- [x] `TextareaView` preserves the contenteditable root, value equality guard, normalized input,
       previous-value gating, caller-first paste/key handling, default-prevention semantics, exact
       `plaintext-only`/`false` contenteditable values, editable listener gating, caret restoration,
       and deferred auto-focus behavior.
-- [ ] `toPublicEvent` exposes native WebIDL properties without illegal-invocation errors and
+- [x] `toPublicEvent` exposes native WebIDL properties without illegal-invocation errors and
       preserves the connection between the public facade and the native event.
-- [ ] `Input.css` and `Textarea.css` are layered under `@layer uikit`, preserve the Emotion
+- [x] `Input.css` and `Textarea.css` are layered under `@layer uikit`, preserve the Emotion
       selectors and token values, and do not introduce Emotion or component inline styles.
-- [ ] Numeric width/height/flex values become valid px/normalized CSS custom-property values;
+- [x] Numeric width/height/flex values become valid px/normalized CSS custom-property values;
       string values pass through and removed values clear stale custom properties.
-- [ ] FileSearch and AVGrid `[data-type="input"]` selectors continue to match the same wrapper
+- [x] FileSearch and AVGrid `[data-type="input"]` selectors continue to match the same wrapper
       and direct field nodes; no textarea selector is regressed.
-- [ ] Storybook and representative real callers work in light and dark themes, including slot
+- [x] Storybook and representative real callers work in light and dark themes, including slot
       toggling, focus/ref paths, search/browser fields, dialogs, and single-line/multiline text
       editing.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
 
 ## Files changed
 

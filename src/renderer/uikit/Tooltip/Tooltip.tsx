@@ -57,7 +57,9 @@ export function Tooltip({
 
     useEffect(() => {
         if (!trigger) return;
-        const attachment = attachTooltip(trigger, optionsRef.current!);
+        const options = optionsRef.current;
+        if (!options) return;
+        const attachment = attachTooltip(trigger, options);
         attachmentRef.current = attachment;
         return () => {
             if (attachmentRef.current === attachment) attachmentRef.current = null;
@@ -66,7 +68,8 @@ export function Tooltip({
     }, [trigger]);
 
     useEffect(() => {
-        attachmentRef.current?.update(optionsRef.current!);
+        const options = optionsRef.current;
+        if (options) attachmentRef.current?.update(options);
     }, [name, content, placement, offset, delayShow, delayHide, disabled]);
 
     return cloneElement(children, { ref: mergedRef });

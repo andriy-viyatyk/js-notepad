@@ -325,39 +325,39 @@ face to `mountVanilla`.
 
 ## Acceptance criteria
 
-- [ ] `Text.css` is layered and preserves the existing Text selectors; `Text` remains a React-only
+- [x] `Text.css` is layered and preserves the existing Text selectors; `Text` remains a React-only
       face with no `TextView` or `createText` export.
-- [ ] Before the remaining seven conversions proceed, real-app verification in both themes covers
+- [x] Before the remaining seven conversions proceed, real-app verification in both themes covers
       a dense grid/tree/notebook editor, sidebar, tabs, and dialogs, with no unreviewed unlayered
       descendant rule overriding Text.css; the Text stylesheet can be reverted independently.
-- [ ] The shared Text attribute helper is used by `Text` and `LabelView`, and free-form Text color
+- [x] The shared Text attribute helper is used by `Text` and `LabelView`, and free-form Text color
       still wins through the same internal color style path.
-- [ ] `LabelView` sends exactly `variant`, `color`, `size`, `italic`, `bold`, and `nowrap` to its
+- [x] `LabelView` sends exactly `variant`, `color`, `size`, `italic`, `bold`, and `nowrap` to its
       nested Text-compatible spans; `preWrap`, `truncate`, `align`, and `hoverUnderline` remain
       inert forwarded attributes as in the current Label implementation.
-- [ ] `Label` renders the exact current label → one/two `data-type="text"` span shape, including
+- [x] `Label` renders the exact current label → one/two `data-type="text"` span shape, including
       required-star, disabled state, attributes, and child content behavior.
-- [ ] `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, and `ProgressBar`
+- [x] `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, and `ProgressBar`
       each have a `VanillaView` face mounted through `mountVanilla`; no public view class is added
       to a barrel export.
-- [ ] `Tag` preserves icon/label/children ordering, remove-button behavior, event propagation,
+- [x] `Tag` preserves icon/label/children ordering, remove-button behavior, event propagation,
       selected/disabled/tone/variant styling, and all public attributes.
-- [ ] `SelectableRow.css` exists in `@layer uikit`, preserves blurred, hover, selected, active,
+- [x] `SelectableRow.css` exists in `@layer uikit`, preserves blurred, hover, selected, active,
       and focused row behavior, and leaves the existing `selection-style.ts` consumers untouched.
-- [ ] A SelectableRow story exists and exercises its focused-container contract without changing
+- [x] A SelectableRow story exists and exercises its focused-container contract without changing
       production call sites.
-- [ ] `Dot`, `Spacer`, `Spinner`, and `ProgressBar` use component-scoped runtime properties or
+- [x] `Dot`, `Spacer`, `Spinner`, and `ProgressBar` use component-scoped runtime properties or
       data attributes with valid CSS fallbacks; numeric values become px before entering custom
       properties; removed props do not leave stale styles/attributes.
-- [ ] Each view preserves its current rest-prop precedence: caller-last for Text/Label/Tag/
+- [x] Each view preserves its current rest-prop precedence: caller-last for Text/Label/Tag/
       SelectableRow/Divider/ProgressBar, component-owned writes after rest for Dot/Spinner.
-- [ ] ProgressBar preserves determinate/completed/indeterminate ARIA, fill geometry, variant
+- [x] ProgressBar preserves determinate/completed/indeterminate ARIA, fill geometry, variant
       colors, clamping, and `persephone-progress-bar-indeterminate-slide` timing.
-- [ ] Spinner keeps the US-984 CSS/layer/keyframe contract and all 14 production usages compile
+- [x] Spinner keeps the US-984 CSS/layer/keyframe contract and all 14 production usages compile
       unchanged.
-- [ ] All public component exports and story property definitions remain compatible; no production
+- [x] All public component exports and story property definitions remain compatible; no production
       call site, package dependency, or build-config change is made.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, and Storybook/browser
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, and Storybook/browser
       verification covers the listed state matrix in light and dark themes.
 
 ## Files changed

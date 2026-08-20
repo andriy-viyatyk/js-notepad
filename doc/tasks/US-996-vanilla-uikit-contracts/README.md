@@ -268,28 +268,28 @@ Before US-999 or any other C1 conversion changes `Button`/`Tooltip`:
 
 ## Acceptance criteria
 
-- [ ] `SlotContent` and `fillSlot` exist in `uikit/shared/fill-slot.ts`; strings use `textContent`, DOM
+- [x] `SlotContent` and `fillSlot` exist in `uikit/shared/fill-slot.ts`; strings use `textContent`, DOM
       nodes are adopted, React nodes (including fragments/arrays) use `mountReact`, and every disposer is idempotent and cleans
       the prior slot value without a callback or icon-descriptor protocol.
-- [ ] React-to-React slot updates reuse one mounted root; arm changes and disposal defer unmount
+- [x] React-to-React slot updates reuse one mounted root; arm changes and disposal defer unmount
       safely off the parent commit, and stale disposers cannot clear a newer slot value.
-- [ ] `toPublicEvent`, `applyRestProps`, and `bindRef` are extracted into
+- [x] `toPublicEvent`, `applyRestProps`, and `bindRef` are extracted into
       `uikit/shared/react-compat.ts`; PathInput uses them, and its public props, DOM contract,
       synthetic event behavior, listener replacement/removal, and object/callback ref behavior are
       unchanged except for the documented hardening that component-owned attributes are written
       after residual props.
-- [ ] Removed residual props clear old attributes/listeners, component-owned `data-type` and state
+- [x] Removed residual props clear old attributes/listeners, component-owned `data-type` and state
       attributes remain authoritative, and no compatibility helper leaves a subscription, listener,
       ref, or nested React root alive after disposal.
-- [ ] `uikit/CLAUDE.md` documents the layered CSS transition, shared stylesheet ownership,
+- [x] `uikit/CLAUDE.md` documents the layered CSS transition, shared stylesheet ownership,
       `fillSlot`, the React-compatibility helpers, and the rule that `onUpdate` clears removed props.
-- [ ] The React roadmap Rule 4 baseline is recorded in EPIC-054's Notes for one Button-tooltip hover,
+- [x] The React roadmap Rule 4 baseline is recorded in EPIC-054's Notes for one Button-tooltip hover,
       including the exact count, story values, observer options, reset point, and coverage of both
       `[data-type="live-preview"]` and `#persephone-overlay-layer`.
-- [ ] The PathInput Storybook smoke check covers forwarding, refs, keyboard/mouse behavior, stale
+- [x] The PathInput Storybook smoke check covers forwarding, refs, keyboard/mouse behavior, stale
       prop removal, and nested Popover disposal; `npm run typecheck`, `npm run lint`, and
       `git diff --check` pass.
-- [ ] No additional UIKit component is converted, no story API is widened, no unit-test harness is
+- [x] No additional UIKit component is converted, no story API is widened, no unit-test harness is
       added, and `Story.previewChildren` remains served by the transitional React arm of
       `fillSlot`.
 
@@ -317,4 +317,4 @@ from the UIKit barrel.
 - [Model/view pattern](../../standards/model-view-pattern.md)
 - [PathInput pilot](../US-991-pathinput-pilot/README.md)
 - [US-995 — UIKit import boundary](../US-995-uikit-boundary-lint/README.md)
-- US-997 — planned DOM icon path and dual-face icon factories
+- [US-997 — DOM icon path and dual-face icon factories](../US-997-dom-icon-path/README.md)

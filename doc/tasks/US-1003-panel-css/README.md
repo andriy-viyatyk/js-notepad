@@ -278,7 +278,7 @@ selectors to `Panel.css`; those are caller identifiers, not the Panel styling co
 - [x] No `VanillaView`, `mountVanilla`, `fillSlot`, new Panel factory, public style prop, or caller
       migration is introduced.
 - [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
-- [ ] A smoke pass covers the Panel story controls plus representative editor, sidebar, dialog,
+- [x] A smoke pass covers the Panel story controls plus representative editor, sidebar, dialog,
       board, and Storybook surfaces; both normal and custom-`data-type` Panel roots are inspected
       for computed styles and preserved data attributes.
 

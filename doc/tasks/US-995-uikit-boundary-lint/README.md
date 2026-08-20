@@ -219,26 +219,26 @@ task.
 
 ## Acceptance criteria
 
-- [ ] The production inventory has zero unapproved `uikit/` imports from `api/`, `ui/`,
+- [x] The production inventory has zero unapproved `uikit/` imports from `api/`, `ui/`,
       `components/`, or `src/shared/`; the sole remaining match is the explicitly annotated AVGrid
       `ContextMenuModel` exemption for C4.
-- [ ] `BaseEvent`, `ContextMenuEvent`, `ContextMenuTargetKind`, and `MenuItem` have a
+- [x] `BaseEvent`, `ContextMenuEvent`, `ContextMenuTargetKind`, and `MenuItem` have a
       framework-neutral core owner; existing runtime API and UIKit import paths remain
       source-compatible, the shipped `api/types/events.d.ts` and `assets/editor-types/events.d.ts`
       remain unchanged, and native-event expando/global context-menu dispatch behavior is
       unchanged.
-- [ ] `src/renderer/core/utils/debounce.ts` is the one-line bridge to `src/shared/utils`; only
+- [x] `src/renderer/core/utils/debounce.ts` is the one-line bridge to `src/shared/utils`; only
       RenderFlexGrid changes its import, and the shared export plus all 20 consumers remain intact.
-- [ ] `eslint.config.mjs` enforces Rule 6 with `import/no-restricted-paths` for production `.ts`/
+- [x] `eslint.config.mjs` enforces Rule 6 with `import/no-restricted-paths` for production `.ts`/
       `.tsx` files under `uikit/`, rejects type-only/re-exported app imports, excludes only story
       files, and reports the reasoned AVGrid exemption rather than masking it.
-- [ ] `MenuItem` remains available from `uikit/Menu`, `uikit`, and the public API declarations;
+- [x] `MenuItem` remains available from `uikit/Menu`, `uikit`, and the public API declarations;
       no menu caller changes its runtime data shape.
-- [ ] ListBox and Tree context menus, RenderGrid resizing, and file watching retain their existing
+- [x] ListBox and Tree context menus, RenderGrid resizing, and file watching retain their existing
       behavior after the relocations.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, and a deliberate temporary
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, and a deliberate temporary
       forbidden-import probe confirms the new lint rule actually fails the boundary.
-- [ ] No UIKit component, consumer call site, visual styling, story behavior, or unit-test
+- [x] No UIKit component, consumer call site, visual styling, story behavior, or unit-test
       harness is changed as part of this task.
 
 ## Files changed
@@ -267,5 +267,5 @@ task.
 - [Rule 6 in the de-React roadmap](../../de-react.md)
 - [UIKit authoring rules](../../../src/renderer/uikit/CLAUDE.md)
 - [State and framework boundaries](../../architecture/state-management.md)
-- US-996 — vanilla UIKit contracts *(planned; its task document will be linked when created)*
+- [US-996 — vanilla UIKit contracts](../US-996-vanilla-uikit-contracts/README.md)
 - [EPIC-053 — reactive foundation and boundary](../../epics/EPIC-053.md)

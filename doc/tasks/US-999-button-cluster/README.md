@@ -1,6 +1,6 @@
 # US-999: Button cluster and the Rule 4 after-number
 
-**Status:** Planned  
+**Status:** Implemented
 **Priority:** High  
 **Epic:** [EPIC-054 — De-React Epic C1](../../epics/EPIC-054.md)  
 **Created:** 2026-08-20
@@ -356,31 +356,31 @@ accessibility output with the pre-conversion contract. Do not add a unit-test ha
 
 ## Acceptance criteria
 
-- [ ] `VanillaView` replaces its root field initializer with constructor assignment for the
+- [x] `VanillaView` replaces its root field initializer with constructor assignment for the
       optional semantic root, without changing its explicit mount/update/dispose, ownership, FIFO
       cleanup, or root-detachment contracts.
-- [ ] Button, IconButton, TruncatedText, and SegmentedControl have vanilla views and thin
+- [x] Button, IconButton, TruncatedText, and SegmentedControl have vanilla views and thin
       `mountVanilla` React faces with unchanged public component names and caller signatures.
-- [ ] Button and IconButton retain semantic button roots, direct icon/content structure, refs,
+- [x] Button and IconButton retain semantic button roots, direct icon/content structure, refs,
       residual attributes/listeners, all state attributes, and tooltip behavior without a wrapper.
-- [ ] TruncatedText retains one direct span root, overflow measurement, recursive text extraction,
+- [x] TruncatedText retains one direct span root, overflow measurement, recursive text extraction,
       hover remeasurement, tooltip suppression/update semantics, and cleanup without React state.
-- [ ] SegmentedControl retains direct vanilla Button children, trait resolution, keyed updates,
+- [x] SegmentedControl retains direct vanilla Button children, trait resolution, keyed updates,
       duplicate-key validation, roving tabindex, focus movement, keyboard cancellation, and
       `onChange` behavior.
-- [ ] Rich children and segment slots use the existing transitional `fillSlot`/React arm only
+- [x] Rich children and segment slots use the existing transitional `fillSlot`/React arm only
       where necessary; no callback-slot protocol, descriptor API, or avoidable wrapper is added.
-- [ ] Four co-located `@layer uikit` stylesheets preserve all current visual states, token values,
+- [x] Four co-located `@layer uikit` stylesheets preserve all current visual states, token values,
       data-type/data-part selectors, specificity, and SegmentedControl geometry. No Emotion import
       remains in the four converted component implementations.
-- [ ] `style` is documented as absent from all four production surfaces and is not implemented
+- [x] `style` is documented as absent from all four production surfaces and is not implemented
       speculatively; `className` maps to `class` (and `htmlFor` to `for`) in the shared
       compatibility helper, preserving the two IconButton caller-owned styles.
-- [ ] No external production call site, story definition, Storybook API, or unrelated UIKit
+- [x] No external production call site, story definition, Storybook API, or unrelated UIKit
       component is migrated, and no unit-test harness is added.
-- [ ] The exact Rule 4 procedure is repeated over both observation roots and the resulting after
+- [x] The exact Rule 4 procedure is repeated over both observation roots and the resulting after
       count is recorded in EPIC-054 Notes alongside the React baseline of 3.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, and Storybook smoke checks
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, and Storybook smoke checks
       cover all four components and the named accessibility/DOM contracts.
 
 ## Files changed

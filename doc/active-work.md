@@ -8,16 +8,6 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
-- **EPIC-054** — [De-React Epic C1 — Foundation and primitives](epics/EPIC-054.md)
-  - [ ] [US-995: Rule 6 — close the `uikit/` → app-layer imports and lint the boundary](tasks/US-995-uikit-boundary-lint/README.md)
-  - [ ] [US-996: The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](tasks/US-996-vanilla-uikit-contracts/README.md)
-  - [ ] [US-997: DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](tasks/US-997-dom-icon-path/README.md)
-  - [ ] [US-998: `Tooltip` — attachment-based, on `@floating-ui/dom`](tasks/US-998-tooltip-attachment/README.md)
-  - [ ] [US-999: `Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + Rule 4 after-number](tasks/US-999-button-cluster/README.md)
-  - [ ] [US-1000: `Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](tasks/US-1000-text-stateless-leaves/README.md)
-  - [ ] [US-1001: `Checkbox`, `Slider`, `RadioGroup`](tasks/US-1001-checkbox-slider-radio-group/README.md)
-  - [ ] [US-1002: `Input` and `Textarea`](tasks/US-1002-input-textarea/README.md)
-  - [ ] [US-1003: `Panel` — Emotion to CSS, no vanilla face](tasks/US-1003-panel-css/README.md)
 - *(no epic)*
   - *(no active tasks)*
 
@@ -25,7 +15,7 @@ Overview of all active and planned epics and tasks.
 
 - [De-React roadmap](de-react.md) — multi-epic programme to replace React with direct DOM
   manipulation. Epics are created from it one at a time. Epic C is split four ways: **C1 is
-  active as EPIC-054**; C2 (floating layer and composites), C3 (virtualized data views) and C4
+  complete as EPIC-054**; C2 (floating layer and composites), C3 (virtualized data views) and C4
   (AVGrid → av-grid) get their docs when each is next up.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*

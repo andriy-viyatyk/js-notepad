@@ -298,29 +298,29 @@ No unit-test harness is introduced.
 
 ## Acceptance criteria
 
-- [ ] `Checkbox`, `Slider`, and `RadioGroup` export the same public props and remain available
+- [x] `Checkbox`, `Slider`, and `RadioGroup` export the same public props and remain available
       through the same React-facing barrels; no production caller or story prop definition changes.
-- [ ] Each component has a `VanillaView` implementation and a co-located `@layer uikit` stylesheet;
+- [x] Each component has a `VanillaView` implementation and a co-located `@layer uikit` stylesheet;
       the component files no longer import Emotion or use React hooks for component behavior.
-- [ ] Checkbox preserves `label[data-type="checkbox"]`, its `data-name`, `data-checked`,
+- [x] Checkbox preserves `label[data-type="checkbox"]`, its `data-name`, `data-checked`,
       `data-disabled`, icon part and child order; checked/unchecked icons, disabled click guard,
       `preventDefault`, callback value, the caller-`onClick` override, residual props, and child
       slots work. The icon host remains a laid-out box and only the children host uses
       `display: contents`.
-- [ ] Slider remains a native `input[type="range"]` with equivalent value/min/max/step/disabled
+- [x] Slider remains a native `input[type="range"]` with equivalent value/min/max/step/disabled
       behavior; bounds are written min → max → step → value, redundant value writes are skipped,
       numeric width is px, string width is unchanged, progress gradient and all stale custom
       properties update/clear correctly, and native input changes call `onChange(number)`.
-- [ ] RadioGroup preserves root/item roles, `data-*` and ARIA attributes, item order, trait
+- [x] RadioGroup preserves root/item roles, `data-*` and ARIA attributes, item order, trait
       resolution, keyed node identity, all four `IRadio` fields (`value`, `label ?? value`,
       `icon`, `disabled`), RadioGroup icon names, `class="radio-icon"`, always-present
       `aria-checked="true|false"`, and `.item-icon` behavior for both registry and React-node
       icons. `.item-icon` is inserted between the state icon and label and is scoped under the
       radio item root.
-- [ ] RadioGroup preserves roving tabindex, click selection, Arrow/Home/End/Space/Enter behavior,
+- [x] RadioGroup preserves roving tabindex, click selection, Arrow/Home/End/Space/Enter behavior,
       focus movement, disabled-item skipping, group disabling, and fallback focus selection.
-- [ ] AudioPlayer's unlayered `[data-audio-overlay] [data-type="slider"]` opacity/transition
+- [x] AudioPlayer's unlayered `[data-audio-overlay] [data-type="slider"]` opacity/transition
       behavior remains intact, and no external selector loses its target.
-- [ ] Storybook checks cover all three stories and both themes; representative grid/dialog/settings/
+- [x] Storybook checks cover all three stories and both themes; representative grid/dialog/settings/
       graph/audio callers are smoke-tested and root `data-*` output is inspected.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; no unit-test harness is added.
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; no unit-test harness is added.

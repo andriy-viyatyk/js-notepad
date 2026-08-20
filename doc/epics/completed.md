@@ -4,6 +4,33 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-054 — [De-React Epic C1 — Foundation and primitives](EPIC-054.md)
+
+Established the foundation for converting UIKit components from React to direct DOM ownership
+behind unchanged React-facing APIs. The epic closed the `uikit/` import boundary, added vanilla
+view lifecycle and React-compatibility contracts, introduced layered component CSS and the DOM
+icon path, moved Tooltip to a framework-neutral attachment, and converted the C1 component set:
+Button, IconButton, TruncatedText, SegmentedControl, the stateless leaves, Checkbox, Slider,
+RadioGroup, Input, Textarea, and Panel's styling surface. Storybook and running-app smoke checks
+covered the converted component paths and representative editor/shell callers; no intended
+user-facing workflow change was introduced.
+
+Verification: `npm run typecheck`, `npm run lint`, and `git diff --check` passed. Epic-level review,
+developer-documentation, and user-documentation checks completed. The review's two Tooltip
+non-null assertions were fixed before closure; no other implementation blockers remained.
+
+- [x] [US-995: Rule 6 — close the `uikit/` → app-layer imports and lint the boundary](../tasks/US-995-uikit-boundary-lint/README.md)
+- [x] [US-996: The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](../tasks/US-996-vanilla-uikit-contracts/README.md)
+- [x] [US-997: DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](../tasks/US-997-dom-icon-path/README.md)
+- [x] [US-998: `Tooltip` — attachment-based, on `@floating-ui/dom`](../tasks/US-998-tooltip-attachment/README.md)
+- [x] [US-999: `Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number](../tasks/US-999-button-cluster/README.md)
+- [x] [US-1000: `Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](../tasks/US-1000-text-stateless-leaves/README.md)
+- [x] [US-1001: `Checkbox`, `Slider`, `RadioGroup`](../tasks/US-1001-checkbox-slider-radio-group/README.md)
+- [x] [US-1002: `Input` and `Textarea`](../tasks/US-1002-input-textarea/README.md)
+- [x] [US-1003: `Panel` — Emotion to CSS, no vanilla face](../tasks/US-1003-panel-css/README.md)
+
+---
+
 ## EPIC-053 — [De-React Epic B — The reactive foundation and the boundary](EPIC-053.md)
 
 Established the framework-neutral reactive foundation and the React/vanilla boundary: zustand was
