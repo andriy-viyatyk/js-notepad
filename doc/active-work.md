@@ -12,7 +12,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-995: Rule 6 — close the `uikit/` → app-layer imports and lint the boundary](tasks/US-995-uikit-boundary-lint/README.md)
   - [ ] [US-996: The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](tasks/US-996-vanilla-uikit-contracts/README.md)
   - [ ] [US-997: DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](tasks/US-997-dom-icon-path/README.md)
-  - [ ] US-998: `Tooltip` — attachment-based, on `@floating-ui/dom`
+  - [ ] [US-998: `Tooltip` — attachment-based, on `@floating-ui/dom`](tasks/US-998-tooltip-attachment/README.md)
   - [ ] US-999: `Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + Rule 4 after-number
   - [ ] US-1000: `Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`
   - [ ] US-1001: `Checkbox`, `Slider`, `RadioGroup`

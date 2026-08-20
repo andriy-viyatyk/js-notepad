@@ -1,0 +1,19 @@
+@layer uikit {
+    [data-type="tooltip"] {
+        background: var(--color-bg-default, #ffffff);
+        color: var(--color-text-default, currentColor);
+        border: 1px solid var(--color-border-default, currentColor);
+        border-radius: var(--radius-md, 4px);
+        box-shadow: 0 2px 8px var(--color-shadow-default, rgb(0 0 0 / 20%));
+        font-size: var(--font-sm, 12px);
+        padding: var(--space-md, 8px);
+        max-width: 360px;
+        pointer-events: auto;
+        user-select: text;
+        -webkit-app-region: no-drag;
+    }
+
+    [data-type="tooltip"] [data-part="content"] {
+        display: block;
+    }
+}
