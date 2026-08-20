@@ -1,0 +1,28 @@
+@layer uikit {
+    [data-type="selectable-row"] {
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+        cursor: pointer;
+        color: var(--color-text-default, currentColor);
+    }
+    [data-type="selectable-row"][data-active]:not([data-selected]) {
+        background-color: var(--color-bg-message, transparent);
+    }
+    [data-type="selectable-row"][data-selected] {
+        background-color: var(--color-bg-light, transparent);
+    }
+    [data-type="selectable-row"]:hover:not([data-selected]):not([data-active]) {
+        background-color: var(--color-bg-message, transparent);
+    }
+    [data-focus-selection]:focus-within [data-type="selectable-row"][data-selected] {
+        background-color: var(--color-bg-tree-selection, transparent);
+        color: var(--color-text-selection, currentColor);
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+    [data-focus-selection]:focus-within [data-type="selectable-row"][data-active] {
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+}

@@ -14,7 +14,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-997: DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](tasks/US-997-dom-icon-path/README.md)
   - [ ] [US-998: `Tooltip` — attachment-based, on `@floating-ui/dom`](tasks/US-998-tooltip-attachment/README.md)
   - [ ] [US-999: `Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + Rule 4 after-number](tasks/US-999-button-cluster/README.md)
-  - [ ] US-1000: `Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`
+  - [ ] [US-1000: `Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](tasks/US-1000-text-stateless-leaves/README.md)
   - [ ] US-1001: `Checkbox`, `Slider`, `RadioGroup`
   - [ ] US-1002: `Input` and `Textarea`
   - [ ] US-1003: `Panel` — Emotion to CSS, no vanilla face

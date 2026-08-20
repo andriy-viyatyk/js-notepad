@@ -1,0 +1,36 @@
+@layer uikit {
+    [data-type="progress-bar"] {
+        position: relative;
+        width: var(--progress-bar-width, 100%);
+        height: var(--progress-bar-height, 6px);
+        background-color: var(--color-bg-dark, transparent);
+        border-radius: var(--radius-xs, 2px);
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+    [data-type="progress-bar"] > [data-part="fill"] {
+        height: 100%;
+        border-radius: var(--radius-xs, 2px);
+        transition: width 0.2s ease;
+        width: var(--progress-bar-fill-width, 0%);
+    }
+    [data-type="progress-bar"][data-state="indeterminate"] > [data-part="fill"] {
+        width: 30%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        transition: none;
+        animation: persephone-progress-bar-indeterminate-slide 1.4s linear infinite;
+    }
+    [data-type="progress-bar"][data-variant="default"] > [data-part="fill"] { background-color: var(--color-misc-blue, currentColor); }
+    [data-type="progress-bar"][data-variant="success"] > [data-part="fill"] { background-color: var(--color-misc-green, currentColor); }
+    [data-type="progress-bar"][data-variant="warning"] > [data-part="fill"] { background-color: var(--color-misc-yellow, currentColor); }
+    [data-type="progress-bar"][data-variant="danger"] > [data-part="fill"] { background-color: var(--color-misc-red, currentColor); }
+    /* Equal specificity: completed must remain after variant rules. */
+    [data-type="progress-bar"][data-state="completed"] > [data-part="fill"] { background-color: var(--color-misc-green, currentColor); }
+    @keyframes persephone-progress-bar-indeterminate-slide {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(330%); }
+    }
+}

@@ -1,0 +1,49 @@
+@layer uikit {
+    [data-type="text"][data-size="xs"] { font-size: var(--font-xs, 12px); }
+    [data-type="text"][data-size="sm"] { font-size: var(--font-sm, 12px); }
+    [data-type="text"][data-size="md"] { font-size: var(--font-md, 13px); }
+    [data-type="text"][data-size="base"] { font-size: var(--font-base, 14px); }
+    [data-type="text"][data-size="lg"] { font-size: var(--font-lg, 16px); }
+    [data-type="text"][data-size="xl"] { font-size: var(--font-xl, 20px); }
+    [data-type="text"][data-size="xxl"] { font-size: var(--font-xxl, 24px); }
+
+    [data-type="text"][data-color="inherit"] { color: inherit; }
+    [data-type="text"][data-color="default"] { color: var(--color-text-default, currentColor); }
+    [data-type="text"][data-color="light"] { color: var(--color-text-light, currentColor); }
+    [data-type="text"][data-color="dark"] { color: var(--color-text-dark, currentColor); }
+    [data-type="text"][data-color="error"] { color: var(--color-error-text, currentColor); }
+    [data-type="text"][data-color="warning"] { color: var(--color-warning-text, currentColor); }
+    [data-type="text"][data-color="success"] { color: var(--color-success-text, currentColor); }
+    [data-type="text"][data-color="primary"] { color: var(--color-primary-text, currentColor); }
+
+    [data-type="text"][data-variant="uppercased"] {
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    [data-type="text"][data-variant="link"] {
+        color: var(--color-primary-text, currentColor);
+        cursor: pointer;
+        text-decoration: none;
+    }
+    [data-type="text"][data-variant="link"]:hover,
+    [data-type="text"][data-hover-underline]:hover { text-decoration: underline; }
+    [data-type="text"][data-hover-underline] {
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    [data-type="text"][data-bold] { font-weight: 600; }
+    [data-type="text"][data-italic] { font-style: italic; }
+    [data-type="text"][data-nowrap] { white-space: nowrap; }
+    [data-type="text"][data-pre-wrap] { white-space: pre-wrap; }
+    [data-type="text"][data-truncate] {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+    }
+    [data-type="text"][data-align="left"] { text-align: left; display: block; }
+    [data-type="text"][data-align="center"] { text-align: center; display: block; }
+    [data-type="text"][data-align="right"] { text-align: right; display: block; }
+}

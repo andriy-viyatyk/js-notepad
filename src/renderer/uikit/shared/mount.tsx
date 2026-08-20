@@ -83,7 +83,11 @@ function VanillaHost<P>({ ctor, props }: VanillaHostProps<P>): React.ReactElemen
         viewRef.current?.update(props);
     }, [ctor, props]);
 
-    return <div ref={hostRef} />;
+    // The adapter host owns the lifecycle but must not become an extra layout
+    // item. `display: contents` lets the semantic view root participate in its
+    // parent's flex/grid layout (notably Spacer's flex growth) exactly as the
+    // pre-adapter React element did.
+    return <div ref={hostRef} style={{ display: "contents" }} />;
 }
 
 /**

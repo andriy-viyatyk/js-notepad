@@ -1,0 +1,13 @@
+@layer uikit {
+    [data-type="divider"] {
+        flex-shrink: 0;
+        background-color: var(--color-border-default, currentColor);
+        height: 1px;
+        width: 100%;
+    }
+    [data-type="divider"][data-orientation="vertical"] {
+        width: 1px;
+        height: auto;
+        align-self: stretch;
+    }
+}

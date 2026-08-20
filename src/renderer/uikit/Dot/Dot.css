@@ -1,0 +1,18 @@
+@layer uikit {
+    [data-type="dot"] {
+        display: inline-block;
+        flex-shrink: 0;
+        width: var(--dot-size, 8px);
+        height: var(--dot-size, 8px);
+        background-color: var(--dot-color, currentColor);
+        border-radius: 50%;
+        box-sizing: border-box;
+        transition: box-shadow 0.15s;
+    }
+    [data-type="dot"][data-clickable] { cursor: pointer; }
+    [data-type="dot"][data-clickable]:not([data-selected]):hover {
+        box-shadow: 0 0 0 2px var(--color-text-light, currentColor);
+    }
+    [data-type="dot"][data-bordered] { border: 1px solid var(--color-border-default, currentColor); }
+    [data-type="dot"][data-selected] { box-shadow: 0 0 0 2px var(--color-text-default, currentColor); }
+}

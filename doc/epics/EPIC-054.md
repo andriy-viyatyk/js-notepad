@@ -372,7 +372,7 @@ Epic B primitives are not re-exported from the barrel.
 | US-997 | [DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](../tasks/US-997-dom-icon-path/README.md) | Planned |
 | US-998 | [`Tooltip` — attachment-based, on `@floating-ui/dom`](../tasks/US-998-tooltip-attachment/README.md) | Planned |
 | US-999 | [`Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number](../tasks/US-999-button-cluster/README.md) | Planned |
-| US-1000 | `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar` | Planned |
+| US-1000 | [`Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](../tasks/US-1000-text-stateless-leaves/README.md) | Planned |
 | US-1001 | `Checkbox`, `Slider`, `RadioGroup` | Planned |
 | US-1002 | `Input` and `Textarea` | Planned |
 | US-1003 | `Panel` — Emotion to CSS, no vanilla face | Planned |

@@ -1,8 +1,6 @@
 import React from "react";
-import styled from "@emotion/styled";
-import color from "../../theme/color";
-
-// --- Types ---
+import { mountVanilla } from "../shared/mount";
+import { DividerView } from "./DividerView";
 
 export interface DividerProps extends React.HTMLAttributes<HTMLDivElement> {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
@@ -12,37 +10,6 @@ export interface DividerProps extends React.HTMLAttributes<HTMLDivElement> {
     orientation?: "horizontal" | "vertical";
 }
 
-// --- Styled ---
-
-const Root = styled.div(
-    {
-        flexShrink: 0,
-        backgroundColor: color.border.default,
-
-        // Default: horizontal
-        height: 1,
-        width: "100%",
-
-        '&[data-orientation="vertical"]': {
-            width: 1,
-            height: "auto",
-            alignSelf: "stretch",
-        },
-    },
-    { label: "Divider" },
-);
-
-// --- Component ---
-
-export function Divider({ name, orientation = "horizontal", ...rest }: DividerProps) {
-    return (
-        <Root
-            data-type="divider"
-            data-name={name}
-            data-orientation={orientation}
-            role="separator"
-            aria-orientation={orientation}
-            {...rest}
-        />
-    );
+export function Divider(props: DividerProps): React.ReactElement {
+    return mountVanilla(DividerView, props);
 }

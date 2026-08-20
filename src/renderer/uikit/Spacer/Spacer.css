@@ -1,0 +1,8 @@
+@layer uikit {
+    [data-type="spacer"] { flex: 1 1 auto; }
+    [data-type="spacer"][data-sized] {
+        flex-basis: var(--spacer-size);
+        flex-grow: 0;
+        flex-shrink: 0;
+    }
+}

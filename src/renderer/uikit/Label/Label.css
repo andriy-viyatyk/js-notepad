@@ -1,0 +1,9 @@
+@layer uikit {
+    [data-type="label"] {
+        user-select: none;
+        display: inline-flex;
+        gap: var(--space-xs, 2px);
+    }
+
+    [data-type="label"][data-disabled] { opacity: 0.5; }
+}
