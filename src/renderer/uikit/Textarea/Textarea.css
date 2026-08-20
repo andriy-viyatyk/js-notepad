@@ -1,0 +1,43 @@
+@layer uikit {
+    [data-type="textarea"] {
+        padding: var(--space-sm, 4px) var(--space-md, 8px);
+        background-color: var(--color-bg-dark, currentColor);
+        color: var(--color-text-dark, currentColor);
+        border: 1px solid var(--color-border-light, currentColor);
+        border-radius: var(--radius-md, 4px);
+        outline: none;
+        box-sizing: border-box;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        overflow-y: auto;
+        min-height: var(--textarea-min-height, auto);
+        max-height: var(--textarea-max-height, none);
+        width: var(--textarea-width, auto);
+        min-width: var(--textarea-min-width, auto);
+        max-width: var(--textarea-max-width, none);
+        flex: var(--textarea-flex, initial);
+    }
+
+    [data-type="textarea"][data-size="sm"] { font-size: var(--font-sm, 12px); }
+    [data-type="textarea"][data-size="md"] { font-size: var(--font-base, 14px); }
+    [data-type="textarea"]:focus,
+    [data-type="textarea"]:active { border-color: var(--color-border-active, currentColor); }
+    [data-type="textarea"][data-readonly]:focus,
+    [data-type="textarea"][data-readonly]:active { border-color: var(--color-border-light, currentColor); }
+    [data-type="textarea"]:empty::before {
+        content: attr(data-placeholder);
+        color: var(--color-text-light, currentColor);
+        pointer-events: none;
+    }
+    [data-type="textarea"][data-disabled] { opacity: 0.5; pointer-events: none; }
+
+    [data-type="textarea"][data-variant="ghost"] {
+        background-color: transparent;
+        border-color: transparent;
+    }
+    [data-type="textarea"][data-variant="ghost"]:hover { border-color: var(--color-border-default, currentColor); }
+    [data-type="textarea"][data-variant="ghost"]:focus,
+    [data-type="textarea"][data-variant="ghost"]:active { border-color: var(--color-border-active, currentColor); }
+    [data-type="textarea"][data-variant="ghost"][data-readonly]:focus,
+    [data-type="textarea"][data-variant="ghost"][data-readonly]:active { border-color: transparent; }
+}

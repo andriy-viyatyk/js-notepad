@@ -20,8 +20,12 @@ export function createRestPropsState(): RestPropsState {
 /** Preserve the React-facing event shape while using a native listener. */
 export function toPublicEvent(event: Event): React.SyntheticEvent<HTMLElement> {
     let propagationStopped = false;
-    const publicEvent = Object.create(event) as React.SyntheticEvent<HTMLElement>;
-    Object.defineProperties(publicEvent, {
+    // Keep the facade's own React-compatible methods on the target, but resolve
+    // every other property through the native event as its receiver. WebIDL
+    // accessors such as KeyboardEvent.key and ClipboardEvent.clipboardData
+    // brand-check their receiver and throw when read from Object.create(event).
+    const publicEventTarget = Object.create(null) as React.SyntheticEvent<HTMLElement>;
+    Object.defineProperties(publicEventTarget, {
         nativeEvent: { value: event },
         target: { get: () => event.target },
         currentTarget: { get: () => event.currentTarget },
@@ -43,7 +47,15 @@ export function toPublicEvent(event: Event): React.SyntheticEvent<HTMLElement> {
         persist: { value: (): void => undefined },
         isPersistent: { value: (): boolean => true },
     });
-    return publicEvent;
+    return new Proxy(publicEventTarget, {
+        get(target, property, receiver) {
+            if (Reflect.has(target, property)) {
+                return Reflect.get(target, property, receiver);
+            }
+            const value = Reflect.get(event, property, event);
+            return typeof value === "function" ? value.bind(event) : value;
+        },
+    });
 }
 
 /** Apply React-style residual attributes/listeners and remove stale values. */

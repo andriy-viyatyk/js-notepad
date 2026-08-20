@@ -374,7 +374,7 @@ Epic B primitives are not re-exported from the barrel.
 | US-999 | [`Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number](../tasks/US-999-button-cluster/README.md) | Planned |
 | US-1000 | [`Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](../tasks/US-1000-text-stateless-leaves/README.md) | Planned |
 | US-1001 | [`Checkbox`, `Slider`, `RadioGroup`](../tasks/US-1001-checkbox-slider-radio-group/README.md) | Planned |
-| US-1002 | `Input` and `Textarea` | Planned |
+| US-1002 | [`Input` and `Textarea`](../tasks/US-1002-input-textarea/README.md) | Implemented |
 | US-1003 | `Panel` — Emotion to CSS, no vanilla face | Planned |
 
 Task documents are written before implementation, per
@@ -497,8 +497,9 @@ path. `Checkbox` renders `{children}` and `Checkbox`/`RadioGroup` call `renderIc
 **US-1002 — `Input` and `Textarea`.** The first named-slot consumers: `startSlot` and `endSlot`
 render through `fillSlot` with the disposer owned by the view. Both import no other `uikit/`
 component, so the task is independent — the `IconButton`/`Panel`/`Text` dependencies an earlier
-draft attributed to `Input` were story-file artefacts. Both declare a `ref` that must survive
-(C1-10).
+draft attributed to `Input` were story-file artefacts. `Input` declares a field `ref` that must
+survive (C1-10); the checked-in `TextareaProps` currently has no ref field or callers, so the task
+document records that discrepancy instead of silently expanding the textarea API.
 
 **US-1003 — `Panel`.** Emotion to `Panel.css` in `@layer uikit`; the React face otherwise untouched;
 **no vanilla API** (C1-1). Two details that are easy to get wrong:
