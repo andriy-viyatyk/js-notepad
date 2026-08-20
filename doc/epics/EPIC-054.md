@@ -371,7 +371,7 @@ Epic B primitives are not re-exported from the barrel.
 | US-996 | [The vanilla UIKit contracts — CSS, slots, React-compat helpers, Rule 4 baseline](../tasks/US-996-vanilla-uikit-contracts/README.md) | Planned |
 | US-997 | [DOM icon path — rewrite the 116 icon bodies as markup; dual-face factories](../tasks/US-997-dom-icon-path/README.md) | Planned |
 | US-998 | [`Tooltip` — attachment-based, on `@floating-ui/dom`](../tasks/US-998-tooltip-attachment/README.md) | Planned |
-| US-999 | `Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number | Planned |
+| US-999 | [`Button`, `IconButton`, `TruncatedText`, `SegmentedControl` + the Rule 4 after-number](../tasks/US-999-button-cluster/README.md) | Planned |
 | US-1000 | `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar` | Planned |
 | US-1001 | `Checkbox`, `Slider`, `RadioGroup` | Planned |
 | US-1002 | `Input` and `Textarea` | Planned |
@@ -566,7 +566,7 @@ container with a semantic class.
 
 - Epic opened. Roadmap Epic C measured at **44 components** and **split into four epics** by user
   decision; C1 is this doc, C2–C4 are described in the roadmap and get their IDs when each is next
-  up. The next free epic number is **EPIC-055**; the next free task number is **US-1004**.
+  up. The next free epic number is **EPIC-055**; the next free task number is **US-1005**.
 - **EPIC-053 B15's ordering is refined by C3/C4's separation.** B15 treats `RenderGrid` and `AVGrid`
   as one absorption; they sit at opposite ends of the chain. av-grid's `render/` is standalone and
   can land right after C1, while the grid on top of it is blocked on C2's `Popover`, `Menu` and

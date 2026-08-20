@@ -21,6 +21,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Page container (tab)     | `/src/renderer/api/pages/PageModel.ts`            |
 | Editor↔owner contract    | `/src/renderer/api/pages/IPageHost.ts`            |
 | Well-known pages         | `/src/renderer/api/pages/well-known-pages.ts`     |
+| Window session save/restore (`openFiles{windowIndex}.json`; saves gated off while a restore is in flight, released in a `finally` so a rejected descriptor never disables persistence) | `/src/renderer/api/pages/PagesPersistenceModel.ts` |
 | Page navigation (`navigatePageTo` as named steps: confirm-release-unless-survives, singleton-target reuse, same-file reuse, build with missing-file/error fallbacks, preview-vs-explicit-target selection, shared show/focus-unless-sidebar/save exit) | `/src/renderer/api/pages/PageNavigator.ts` |
 | Browser page opening (`showBrowserPage` — Tor gate + arm-before-mount fail-closed sequence; `openUrlInBrowserTab` — profile matching + nearest-tab reuse. Lives beside the browser editor so the startup-loaded pages model has no static import of the browser chunk; the lifecycle reaches it via dynamic import) | `/src/renderer/editors/browser/browser-pages.ts` |
 | Editor switch (`switchMainEditor` — host transfer via `switchFrom` when both sides are host-capable; dispose-and-rebuild over the file for board boundaries and host-less sources, with a shared `rebuildEditorOverFile` helper; reached via dynamic import from `PageModel`) | `/src/renderer/editors/base/editor-switch.ts` |

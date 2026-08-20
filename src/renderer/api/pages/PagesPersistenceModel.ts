@@ -34,7 +34,23 @@ const NO_HOST_EDITOR_IDS = new Set([
 export class PagesPersistenceModel {
     constructor(private model: PagesModel) {}
 
+    /**
+     * False until `restoreState()` has finished. Restore attaches pages one at a
+     * time — and `attachPage` subscribes each one to `saveStateDebounced` — so
+     * until the final `state.update` commits, a save would serialise an empty or
+     * partial page list over the real session.
+     *
+     * The flag tracks *restore in progress* and nothing else. A descriptor that
+     * fails to restore is an expected outcome (a `schemaVersion` bump discards
+     * every page by design), and persistence must keep working afterwards, so
+     * nothing in `restorePage`/`applyState` may clear it and `init()` sets it in
+     * a `finally`.
+     */
+    private restored = false;
+
     saveState = async (): Promise<void> => {
+        if (!this.restored) return;
+
         const { pages, leftRight } = this.model.state.get();
         const pageDescriptors: PageDescriptor[] = pages.map((p) => p.getDescriptor());
         const storedState: WindowState = {
@@ -50,7 +66,9 @@ export class PagesPersistenceModel {
         );
     };
 
-    saveStateDebounced = debounce(this.saveState, 500);
+    // The `canRun` gate re-schedules rather than drops, so a save suppressed
+    // during restore still runs once restore completes.
+    saveStateDebounced = debounce(this.saveState, 500, () => this.restored);
 
     restoreState = async () => {
         const data = parseObject(
@@ -236,7 +254,11 @@ export class PagesPersistenceModel {
      * Called from app.initPages() during bootstrap.
      */
     init = async () => {
-        await this.restoreState();
+        try {
+            await this.restoreState();
+        } finally {
+            this.restored = true;
+        }
 
         const fileToOpen = await api.getFileToOpen();
         if (fileToOpen) {
