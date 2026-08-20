@@ -375,7 +375,7 @@ Epic B primitives are not re-exported from the barrel.
 | US-1000 | [`Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](../tasks/US-1000-text-stateless-leaves/README.md) | Planned |
 | US-1001 | [`Checkbox`, `Slider`, `RadioGroup`](../tasks/US-1001-checkbox-slider-radio-group/README.md) | Planned |
 | US-1002 | [`Input` and `Textarea`](../tasks/US-1002-input-textarea/README.md) | Implemented |
-| US-1003 | `Panel` — Emotion to CSS, no vanilla face | Planned |
+| US-1003 | [`Panel` — Emotion to CSS, no vanilla face](../tasks/US-1003-panel-css/README.md) | Implemented |
 
 Task documents are written before implementation, per
 [CLAUDE.md](../../CLAUDE.md)'s task-creation workflow — this epic doc is the design, not the spec.
@@ -507,6 +507,10 @@ document records that discrepancy instead of silently expanding the textarea API
 - **`.scroll-container` is a real class consumed by `theme/GlobalStyles.tsx:121,126`**, not an
   Emotion artefact. It must keep being applied under the same condition (`overflow` is
   `auto`/`scroll` and `scrollbar` is not `"hidden"`).
+- `Panel.css` uses a private `panel-root` class rather than `[data-type="panel"]`: eight existing
+  callers override `data-type` through residual props, and `data-direction` is overrideable too.
+  The class is safe because `PanelProps` omits `className`; the pre-existing inspection/addressing
+  gap is recorded in the backlog rather than repaired under C1-2.
 - **`compactStyle` stays exactly as it is.** Its comment explains React-specific behaviour — React
   clears a style property written as `undefined`, which would destroy the `flex` and `overflow`
   shorthands. `Panel` remains React-only, so that reasoning still holds and the function must not be

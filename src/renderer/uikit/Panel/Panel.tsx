@@ -1,7 +1,6 @@
 import React from "react";
-import styled from "@emotion/styled";
-import color from "../../theme/color";
 import { spacing, gap as gapTokens, radius } from "../tokens";
+import "./Panel.css";
 
 // --- Types ---
 
@@ -161,79 +160,6 @@ export interface PanelProps
     children?: React.ReactNode;
 }
 
-// --- Styled ---
-
-const Root = styled.div(
-    {
-        display: "flex",
-        boxSizing: "border-box",
-        // flex-direction: row is the CSS default — no rule needed.
-
-        '&[data-direction="column"]':         { flexDirection: "column" },
-        '&[data-direction="row-reverse"]':    { flexDirection: "row-reverse" },
-        '&[data-direction="column-reverse"]': { flexDirection: "column-reverse" },
-
-        '&[data-bg="default"]': { backgroundColor: color.background.default },
-        '&[data-bg="light"]':   { backgroundColor: color.background.light },
-        '&[data-bg="dark"]':    { backgroundColor: color.background.dark },
-        '&[data-bg="overlay"]': { backgroundColor: color.background.overlay },
-
-        // --- Borders (subtle = color.border.light, default = color.border.default) ---
-        "&[data-border]":        { border:       `1px solid ${color.border.light}` },
-        "&[data-border-top]":    { borderTop:    `1px solid ${color.border.light}` },
-        "&[data-border-bottom]": { borderBottom: `1px solid ${color.border.light}` },
-        "&[data-border-left]":   { borderLeft:   `1px solid ${color.border.light}` },
-        "&[data-border-right]":  { borderRight:  `1px solid ${color.border.light}` },
-
-        '&[data-border-color="default"]':                          { borderColor: color.border.default },
-        '&[data-border-color="default"][data-border-top]':         { borderTopColor: color.border.default },
-        '&[data-border-color="default"][data-border-bottom]':      { borderBottomColor: color.border.default },
-        '&[data-border-color="default"][data-border-left]':        { borderLeftColor: color.border.default },
-        '&[data-border-color="default"][data-border-right]':       { borderRightColor: color.border.default },
-
-        '&[data-border-color="active"]':                          { borderColor: color.border.active },
-        '&[data-border-color="active"][data-border-top]':         { borderTopColor: color.border.active },
-        '&[data-border-color="active"][data-border-bottom]':      { borderBottomColor: color.border.active },
-        '&[data-border-color="active"][data-border-left]':        { borderLeftColor: color.border.active },
-        '&[data-border-color="active"][data-border-right]':       { borderRightColor: color.border.active },
-
-        "&[data-shadow]": { boxShadow: `0 2px 8px ${color.shadow.default}` },
-
-        // --- Accent stripe (3 px left border) ---
-        '&[data-accent="info"]':    { borderLeft: `3px solid ${color.misc.blue}` },
-        '&[data-accent="warn"]':    { borderLeft: `3px solid ${color.misc.yellow}` },
-        '&[data-accent="error"]':   { borderLeft: `3px solid ${color.misc.red}` },
-        '&[data-accent="success"]': { borderLeft: `3px solid ${color.misc.green}` },
-
-        "&[data-disabled]": {
-            opacity: 0.6,
-            pointerEvents: "none",
-        },
-
-        "&[data-dimmed]": {
-            opacity: 0.5,
-        },
-
-        "&[data-clickable]": { cursor: "pointer" },
-        "&[data-clickable]:hover": { backgroundColor: color.background.light },
-
-        "&[data-hide-when-empty]:empty": { display: "none" },
-
-        // Hover-reveal pattern: descendants tagged with data-visibility="parent-hover"
-        // are hidden by default and fade in when this Panel is hovered or contains focus.
-        '&[data-reveal-on-hover] [data-visibility="parent-hover"]': {
-            opacity: 0,
-            pointerEvents: "none",
-            transition: "opacity 0.15s",
-        },
-        '&[data-reveal-on-hover]:hover [data-visibility="parent-hover"], &[data-reveal-on-hover]:focus-within [data-visibility="parent-hover"]': {
-            opacity: 1,
-            pointerEvents: "auto",
-        },
-    },
-    { label: "Panel" },
-);
-
 // --- Token resolvers ---
 
 const ALIGN_MAP: Record<Align, string> = {
@@ -310,6 +236,10 @@ function compactStyle(style: React.CSSProperties): React.CSSProperties {
 
 // --- Component ---
 
+/**
+ * Legacy, app-facing React layout shim. New vanilla views should use their own semantic
+ * container and stylesheet rather than introducing a vanilla Panel abstraction.
+ */
 export function Panel({ ref, ...props }: PanelProps) {
     const {
         name,
@@ -416,9 +346,13 @@ export function Panel({ ref, ...props }: PanelProps) {
     const scrollable =
         isScrollable(overflow) || isScrollable(overflowX) || isScrollable(overflowY);
     const hideScrollbar = scrollbar === "hidden";
+    // Panel is a legacy C1-1 shim: callers can override data-* values through residual props,
+    // while className is intentionally omitted from PanelProps. Keep this private marker as the
+    // stylesheet scope without changing the existing data-type precedence.
+    const rootClassName = `panel-root${scrollable && !hideScrollbar ? " scroll-container" : ""}`;
 
     return (
-        <Root
+        <div
             ref={ref}
             data-type="panel"
             data-name={name}
@@ -438,11 +372,11 @@ export function Panel({ ref, ...props }: PanelProps) {
             data-reveal-on-hover={revealChildrenOnHover || undefined}
             data-accent={accent || undefined}
             data-scrollbar={hideScrollbar ? "hidden" : undefined}
-            className={scrollable && !hideScrollbar ? "scroll-container" : undefined}
+            className={rootClassName}
             {...rest}
             style={inlineStyle}
         >
             {children}
-        </Root>
+        </div>
     );
 }

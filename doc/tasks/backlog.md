@@ -587,6 +587,16 @@ Either resolve through the same board-aware path, or document the limitation on 
 
 ## Technical Debt
 
+### Panel roots with caller-overridden `data-type`
+
+- [ ] **Restore a stable Panel inspection contract.** Eight existing `<Panel>` call sites pass a
+  custom `data-type` through residual props, so their roots are not addressable as
+  `[data-type="panel"]`; six also omit `name`. They are preserved for compatibility by US-1003's
+  private `panel-root` stylesheet class, but a follow-up should give these app-specific roots a
+  stable `data-type`/`data-name` contract without changing their visual behavior. Audit
+  `browser_snapshot`, `app.ui.highlightElement`, and any DOM selectors before choosing whether to
+  add a separate component marker or repair the callers.
+
 | Issue | Description | Complexity |
 |-------|-------------|------------|
 | US-195: Simplify `addEditorPage` + content | `addEditorPage` now accepts optional `content` param (added in PagesLifecycleModel). ~6 callsites still use `isTextFileModel(page)` + `page.changeContent()` pattern instead: mcp-handler `set_page_content`/`ui_push`, ScriptContext log pages, Grid/Markdown/Mermaid/Text `openInEditor()`. Migrate them to use the new parameter. | Low |

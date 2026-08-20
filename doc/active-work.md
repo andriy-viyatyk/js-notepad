@@ -17,7 +17,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1000: `Text` and the stateless leaves — `Label`, `Tag`, `SelectableRow`, `Divider`, `Dot`, `Spacer`, `Spinner`, `ProgressBar`](tasks/US-1000-text-stateless-leaves/README.md)
   - [ ] [US-1001: `Checkbox`, `Slider`, `RadioGroup`](tasks/US-1001-checkbox-slider-radio-group/README.md)
   - [ ] [US-1002: `Input` and `Textarea`](tasks/US-1002-input-textarea/README.md)
-  - [ ] US-1003: `Panel` — Emotion to CSS, no vanilla face
+  - [ ] [US-1003: `Panel` — Emotion to CSS, no vanilla face](tasks/US-1003-panel-css/README.md)
 - *(no epic)*
   - *(no active tasks)*
 

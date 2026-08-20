@@ -1,0 +1,81 @@
+@layer uikit {
+    .panel-root {
+        display: flex;
+        box-sizing: border-box;
+        /* flex-direction: row is the CSS default. */
+    }
+
+    .panel-root[data-direction="column"] { flex-direction: column; }
+    .panel-root[data-direction="row-reverse"] { flex-direction: row-reverse; }
+    .panel-root[data-direction="column-reverse"] { flex-direction: column-reverse; }
+
+    .panel-root[data-bg="default"] { background-color: var(--color-bg-default); }
+    .panel-root[data-bg="light"] { background-color: var(--color-bg-light); }
+    .panel-root[data-bg="dark"] { background-color: var(--color-bg-dark); }
+    .panel-root[data-bg="overlay"] { background-color: var(--color-bg-overlay); }
+
+    /* Borders (subtle = color.border.light, default = color.border.default). */
+    .panel-root[data-border] { border: 1px solid var(--color-border-light); }
+    .panel-root[data-border-top] { border-top: 1px solid var(--color-border-light); }
+    .panel-root[data-border-bottom] { border-bottom: 1px solid var(--color-border-light); }
+    .panel-root[data-border-left] { border-left: 1px solid var(--color-border-light); }
+    .panel-root[data-border-right] { border-right: 1px solid var(--color-border-light); }
+
+    .panel-root[data-border-color="default"] { border-color: var(--color-border-default); }
+    .panel-root[data-border-color="default"][data-border-top] {
+        border-top-color: var(--color-border-default);
+    }
+    .panel-root[data-border-color="default"][data-border-bottom] {
+        border-bottom-color: var(--color-border-default);
+    }
+    .panel-root[data-border-color="default"][data-border-left] {
+        border-left-color: var(--color-border-default);
+    }
+    .panel-root[data-border-color="default"][data-border-right] {
+        border-right-color: var(--color-border-default);
+    }
+
+    .panel-root[data-border-color="active"] { border-color: var(--color-border-active); }
+    .panel-root[data-border-color="active"][data-border-top] {
+        border-top-color: var(--color-border-active);
+    }
+    .panel-root[data-border-color="active"][data-border-bottom] {
+        border-bottom-color: var(--color-border-active);
+    }
+    .panel-root[data-border-color="active"][data-border-left] {
+        border-left-color: var(--color-border-active);
+    }
+    .panel-root[data-border-color="active"][data-border-right] {
+        border-right-color: var(--color-border-active);
+    }
+
+    .panel-root[data-shadow] { box-shadow: 0 2px 8px var(--color-shadow-default); }
+
+    /* Accent stripe (3 px left border). Keep this order relative to border-color overrides. */
+    .panel-root[data-accent="info"] { border-left: 3px solid var(--color-misc-blue); }
+    .panel-root[data-accent="warn"] { border-left: 3px solid var(--color-misc-yellow); }
+    .panel-root[data-accent="error"] { border-left: 3px solid var(--color-misc-red); }
+    .panel-root[data-accent="success"] { border-left: 3px solid var(--color-misc-green); }
+
+    .panel-root[data-disabled] {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    .panel-root[data-dimmed] { opacity: 0.5; }
+    .panel-root[data-clickable] { cursor: pointer; }
+    .panel-root[data-clickable]:hover { background-color: var(--color-bg-light); }
+    .panel-root[data-hide-when-empty]:empty { display: none; }
+
+    /* Descendants tagged with data-visibility="parent-hover" are hidden until the panel is
+       hovered or contains keyboard focus. This also intentionally reaches into child widgets. */
+    .panel-root[data-reveal-on-hover] [data-visibility="parent-hover"] {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+    }
+    .panel-root[data-reveal-on-hover]:hover [data-visibility="parent-hover"],
+    .panel-root[data-reveal-on-hover]:focus-within [data-visibility="parent-hover"] {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
