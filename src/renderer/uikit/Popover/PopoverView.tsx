@@ -50,6 +50,9 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         super(props, document.createElement("div"));
         this.model = model;
         this.model.actualPlacement = props.placement ?? "bottom-start";
+        // `data-type` is a caller-visible addressing hook and residual props may override it.
+        // The Popover shell therefore uses a class omitted from PopoverProps as its stable style hook.
+        this.root.classList.add("popover-shell");
         this.root.style.position = "fixed";
         this.root.style.zIndex = "1000";
     }

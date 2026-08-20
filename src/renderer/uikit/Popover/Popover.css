@@ -1,5 +1,5 @@
 @layer uikit {
-    [data-type="popover"] {
+    .popover-shell {
         position: relative;
         display: flex;
         flex-direction: column;
@@ -11,7 +11,7 @@
         -webkit-app-region: no-drag;
     }
 
-    [data-type="popover"][data-scroll] {
+    .popover-shell[data-scroll] {
         overflow: auto;
     }
 
