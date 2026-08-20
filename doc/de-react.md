@@ -52,10 +52,10 @@ hiding in a render function that has to be excavated first.
 | Dependency | Replacement | Cost |
 |---|---|---|
 | `@monaco-editor/react` | `monaco.editor.create` directly | Trivial — the wrapper is lifecycle only |
-| `@floating-ui/react` | `@floating-ui/dom` | Same library, vanilla core |
-| `react-tooltip` | our own `uikit/Tooltip` | Small |
+| `@floating-ui/react` | `@floating-ui/dom` | Same library, vanilla core. **Not retired inside Epic C** — C1 moved `Tooltip`, C2 empties `uikit/`, and two app-layer importers (`editors/browser/BrowserTabsPanel.tsx`, `ui/dialogs/poppers/showPopupMenu.tsx`) survive into Epics E and D |
+| `react-tooltip` | our own `uikit/Tooltip` | **Done — uninstalled in C1.** It had zero importers; it was an uninstall, not a migration |
 | `zustand` (1 file) | A value plus the listener array `TOneState` already keeps | Small — the dependency is deleted, not replaced (§3.3) |
-| Emotion (85 files) | CSS custom properties + static CSS | Medium, mechanical |
+| Emotion (85 files) | CSS custom properties + static CSS | Medium, mechanical. **58 production importers as of C2 open** — `uikit` 35, `components` 11, `ui` 10, `theme` 1, `editors` 0 |
 | `react-markdown` | Its own `remark`/`rehype` stack, minus the React step | Small — see §3.6 |
 
 `react-markdown` looked like the only entry with no cheap swap: it backs the markdown preview, the
@@ -514,9 +514,10 @@ If the migration stops after Epic C, it was still worth doing.
 
 #### Split into four epics (user decision, 2026-08-19)
 
-*C1 is scheduled as [EPIC-054](epics/EPIC-054.md). The next free epic number is **EPIC-055**;
-C2, C3 and C4 get their doc and their ID when each is genuinely next up, the way this programme has
-scheduled every epic so far.*
+*C1 shipped as [EPIC-054](epics/completed.md). C2 is scheduled as
+[EPIC-055](epics/EPIC-055.md). The next free epic number is **EPIC-056**; C3 and C4 get their doc
+and their ID when each is genuinely next up, the way this programme has scheduled every epic so
+far.*
 
 At scheduling time this was measured against the tree and **split into four independently
 schedulable epics** rather than run as one. Whole, it would have been 44 components and 14,671
@@ -527,9 +528,14 @@ chain with a single cycle.
 | | Epic | Components | Lines | Blocked on |
 |---|---|---:|---:|---|
 | **C1** | Foundation and primitives | 20 | 3,209 | Epic B |
-| **C2** | Floating layer and composites | 18 | ~5,270 | C1 |
-| **C3** | Virtualized data views | 4 | ~5,938 | C1, C2 |
+| **C2** | Floating layer and composites | 15 | 4,104 | C1 |
+| **C3** | Virtualized data views and dropdowns | 7 | ~7,600 | C1, C2 |
 | **C4** | AVGrid → av-grid | 1 (+15 consumers) | ~4,914 | C2, C3 |
+
+C2's and C3's component counts and line figures were **re-measured when C2 opened**
+(EPIC-055, 2026-08-20) and are not the numbers this table carried at the split: `Select`,
+`MultiSelect` and `Autocomplete` moved from C2 to C3 because all three render a C3 component. C4's
+figure still inherits the §2 denominator and should be re-measured when C4 opens.
 
 **C1 — Foundation and primitives.** The twenty components at the bottom of `uikit/`'s own
 dependency graph: `Tooltip`, `Button`, `IconButton`, `TruncatedText`, `SegmentedControl`,
@@ -550,20 +556,32 @@ vanilla equivalent — vanilla views write plain elements with semantic classes 
 stylesheets, which is VSCode's pattern. `Panel` stays React-only and drains away as Epics D and E
 convert its call sites. Scheduled as [EPIC-054](epics/EPIC-054.md).
 
-**C2 — Floating layer and composites.** `Popover`, `Menu`, `Dialog`, `Notification`, `Select`,
-`MultiSelect`, `Autocomplete`, `DateInput`, `TagsInput`, `Toolbar`, `Splitter`, `Breadcrumb`,
-`CollapsiblePanelStack`, `SplitButton`, `CategoryList`, `Minimap`, `ImageViewport`, `Progress`.
-Carries the bulk of the `@floating-ui/react` → `@floating-ui/dom` move; C1 does `Tooltip` first
-because it is the simplest floating consumer and therefore the right place to establish the
-pattern. Note the dependency is **not** fully retired here — `editors/browser/BrowserTabsPanel.tsx`
-and `ui/dialogs/poppers/showPopupMenu.tsx` also import it and convert in Epics E and D.
+**C2 — Floating layer and composites.** `Popover`, `Menu`, `Dialog`, `Notification`, `Progress`,
+`DateInput`, `TagsInput`, `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack`,
+`SplitButton`, `CategoryList`, `Minimap`, `ImageViewport`. Carries the bulk of the
+`@floating-ui/react` → `@floating-ui/dom` move and empties it out of `uikit/` entirely; C1 does
+`Tooltip` first because it is the simplest floating consumer and therefore the right place to
+establish the pattern. Note the dependency is **not** fully retired here —
+`editors/browser/BrowserTabsPanel.tsx` and `ui/dialogs/poppers/showPopupMenu.tsx` also import it
+and convert in Epics E and D. C2 is also the first epic that converts `TComponentModel` models
+(four of them, seven `effect()` calls), so B13's effect-shedding is first paid for here.
+Scheduled as [EPIC-055](epics/EPIC-055.md).
 
-**C3 — Virtualized data views.** `ListBox`, `MultiListBox`, `Tree`, and the absorption of
-av-grid's `render/` folder as `uikit/RenderGrid/`. EPIC-053 B15 treats `RenderGrid` and `AVGrid`
-as one absorption; the import graph says otherwise. av-grid's `render/` is standalone — today's
-`uikit/RenderGrid/` imports nothing from `uikit/` — so the engine can land as soon as C1 is done,
-while the grid on top of it cannot land until C2 has produced a vanilla `Popover`, `Menu` and
-`Select`. This epic also resolves B15's one explicitly undecided item, `RenderFlexGrid.tsx`.
+**`Select`, `MultiSelect` and `Autocomplete` are C3, not C2** *(user decision, 2026-08-20,
+EPIC-055 C2-1)*. All three render `<ListBox>` / `<MultiListBox>` in their dropdown, and `ListBox`
+needs a vanilla `RenderGrid`. The real chain is `Popover → Menu → ListBox → Select`, which crosses
+the C2/C3 line twice; putting the three above `ListBox` makes the order match the graph.
+
+**C3 — Virtualized data views and dropdowns.** `ListBox`, `MultiListBox`, `Tree`, the absorption of
+av-grid's `render/` folder as `uikit/RenderGrid/`, and — per C2-1 — `Select`, `MultiSelect` and
+`Autocomplete`. EPIC-053 B15 treats `RenderGrid` and `AVGrid` as one absorption; the import graph
+says otherwise. av-grid's `render/` is standalone — today's `uikit/RenderGrid/` imports nothing from
+`uikit/` — so the engine can land as soon as C1 is done, while `ListBox` and `Tree` on top of it
+cannot land until C2 has produced a vanilla `Popover` and `Menu`, and the three dropdown composites
+cannot land until `ListBox` has. This epic also resolves B15's one explicitly undecided item,
+`RenderFlexGrid.tsx`. **Its scope must be re-measured when it opens**, not inherited: it is now
+seven components, and whether the dropdown family deserves its own epic is a question for that
+point (EPIC-055 Concern 6).
 
 **C4 — AVGrid → av-grid.** The grid itself, plus the ~15 consumer files in `editors/` and
 `components/` that need host-wiring changes because `RenderGridModel`'s public API differs from the

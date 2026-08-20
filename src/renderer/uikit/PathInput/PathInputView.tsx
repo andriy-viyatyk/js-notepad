@@ -2,7 +2,7 @@ import React from "react";
 import { TComponentState } from "../../core/state/state";
 import { createComponentModelDriver } from "../../core/state/model";
 import { Input } from "../Input";
-import { Popover } from "../Popover";
+import { PopoverView, type PopoverViewProps } from "../Popover/PopoverView";
 import { KeyedList } from "../shared/keyed-list";
 import { mountReact } from "../shared/mount";
 import {
@@ -43,7 +43,6 @@ function PathInputBridge({ view, model, propsState }: PathInputBridgeProps) {
     }));
     const props = propsState.use((state) => state);
     const {
-        name,
         value,
         placeholder,
         autoFocus,
@@ -53,18 +52,12 @@ function PathInputBridge({ view, model, propsState }: PathInputBridgeProps) {
         "aria-label": ariaLabel,
         "aria-labelledby": ariaLabelledBy,
     } = props;
-    const suggestions = model.suggestions;
-    const showSuggestions = open && suggestions.length > 0;
+    const showSuggestions = open && model.suggestions.length > 0;
 
     const setInputRef = React.useCallback(
         (element: HTMLInputElement | null) => view.setInputRef(element, props.ref),
         [props.ref, view],
     );
-    const setSuggestionHost = React.useCallback(
-        (element: HTMLDivElement | null) => view.setSuggestionHost(element),
-        [view],
-    );
-
     // Read activeIndex so the bridge follows model state. The suggestion rows
     // themselves remain owned by the vanilla KeyedList.
     void activeIndex;
@@ -89,24 +82,6 @@ function PathInputBridge({ view, model, propsState }: PathInputBridgeProps) {
                 aria-haspopup="listbox"
                 aria-expanded={showSuggestions}
             />
-            <Popover
-                name={name}
-                open={showSuggestions}
-                onClose={model.onPopoverClose}
-                elementRef={model.inputRef}
-                placement="bottom-start"
-                offset={[0, 2]}
-                matchAnchorWidth
-                maxHeight={240}
-                outsideClickIgnoreSelector='[data-type="path-input"]'
-                role="listbox"
-            >
-                <div
-                    ref={setSuggestionHost}
-                    data-type="path-input"
-                    data-part="suggestion-host"
-                />
-            </Popover>
         </>
     );
 }
@@ -114,6 +89,8 @@ function PathInputBridge({ view, model, propsState }: PathInputBridgeProps) {
 export class PathInputView extends VanillaView<PathInputViewProps> {
     private readonly propsState: TComponentState<PathInputViewProps>;
     private readonly driver;
+    private readonly popoverView: PopoverView;
+    private readonly suggestionContent: React.ReactElement;
     private suggestionHost: HTMLDivElement | null = null;
     private suggestionList: KeyedList<PathSuggestion, string, HTMLDivElement> | null = null;
     private readonly rowMeta = new WeakMap<HTMLDivElement, RowMeta>();
@@ -132,11 +109,27 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
             defaultPathInputState,
         );
         this.own(() => this.driver.dispose());
+
+        this.suggestionContent = (
+            <div
+                ref={(element: HTMLDivElement | null) => this.setSuggestionHost(element)}
+                data-type="path-input"
+                data-part="suggestion-host"
+            />
+        );
+        this.popoverView = this.child(new PopoverView(this.popoverProps(props)));
     }
 
     protected onMount(): void {
         this.applyRootProps(this.props);
         this.driver.mount();
+
+        // The parent bridge owns the input. The PopoverView owns its own
+        // floating React content bridge and keeps this logical root visible in
+        // the PathInput ownership tree.
+        this.mountBridge();
+        this.root.append(this.popoverView.root);
+        this.popoverView.mount();
 
         this.bind(
             this.driver.model.state,
@@ -144,23 +137,9 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
             ({ open, activeIndex }) => {
                 this.root.dataset.state = open ? "open" : "closed";
                 this.updateActiveRows(activeIndex);
+                this.popoverView.update(this.popoverProps(this.props));
             },
         );
-
-        // Treat the nested React root as an owned child. VanillaView disposes
-        // children before FIFO disposers, so the bridge unmounts before the
-        // constructor-created model driver is torn down.
-        this.child({
-            root: this.root,
-            dispose: mountReact(
-                this.root,
-                <PathInputBridge
-                    view={this}
-                    model={this.driver.model}
-                    propsState={this.propsState}
-                />,
-            ),
-        });
         this.own(() => this.disposeSuggestionList());
     }
 
@@ -168,6 +147,7 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
         this.driver.update(this.modelProps(props));
         this.propsState.set(props);
         this.applyRootProps(props);
+        this.popoverView.update(this.popoverProps(props));
         this.suggestionList?.update(this.driver.model.suggestions);
     }
 
@@ -184,6 +164,7 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
         this.inputElement = element;
         this.externalRef = ref;
         this.driver.model.setInputRef(element);
+        this.popoverView.update(this.popoverProps(this.props));
 
         if (element && this.props.autoFocus) {
             const length = element.value.length;
@@ -212,6 +193,41 @@ export class PathInputView extends VanillaView<PathInputViewProps> {
     private modelProps(props: PathInputViewProps): PathInputProps {
         const { ref: _ref, ...modelProps } = props;
         return modelProps;
+    }
+
+    private popoverProps(props: PathInputViewProps): PopoverViewProps {
+        const { name } = props;
+        const state = this.driver.model.state.get();
+        return {
+            name,
+            open: state.open && this.driver.model.suggestions.length > 0,
+            onClose: this.driver.model.onPopoverClose,
+            elementRef: this.driver.model.inputRef,
+            placement: "bottom-start",
+            offset: [0, 2],
+            matchAnchorWidth: true,
+            maxHeight: 240,
+            outsideClickIgnoreSelector: '[data-type="path-input"]',
+            role: "listbox",
+            children: this.suggestionContent,
+        };
+    }
+
+    private mountBridge(): void {
+        // Register the parent bridge after the Popover child. VanillaView
+        // disposes children in registration order, so the Popover branch is
+        // detached before this parent-owned React root is unmounted.
+        this.child({
+            root: this.root,
+            dispose: mountReact(
+                this.root,
+                <PathInputBridge
+                    view={this}
+                    model={this.driver.model}
+                    propsState={this.propsState}
+                />,
+            ),
+        });
     }
 
     private applyRootProps(props: PathInputViewProps): void {

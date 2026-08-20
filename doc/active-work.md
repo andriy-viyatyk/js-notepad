@@ -8,6 +8,15 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
+- **EPIC-055** — [De-React Epic C2 — Floating layer and composites](epics/EPIC-055.md)
+  - [x] [US-1005: `Popover` — vanilla floating root on `@floating-ui/dom`, and the Rule 4 React baseline](tasks/US-1005-popover-vanilla-floating-root/README.md)
+  - [ ] US-1006: `Menu` and `WithMenu` — `openMenu` attachment, recursive submenus, and the Rule 4 after-number
+  - [ ] US-1007: `Dialog` and `DialogContent` — focus trap and backdrop
+  - [ ] US-1008: `Notification` — `Notification`, `AlertItem`, `AlertsBar`
+  - [ ] US-1009: `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction
+  - [ ] US-1010: `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack`
+  - [ ] US-1011: `SplitButton`, `TagsInput`, `DateInput`, `CategoryList`
+  - [ ] US-1012: `Minimap` and `ImageViewport` — canvas views and their first stories
 - *(no epic)*
   - *(no active tasks)*
 
@@ -15,8 +24,8 @@ Overview of all active and planned epics and tasks.
 
 - [De-React roadmap](de-react.md) — multi-epic programme to replace React with direct DOM
   manipulation. Epics are created from it one at a time. Epic C is split four ways: **C1 is
-  complete as EPIC-054**; C2 (floating layer and composites), C3 (virtualized data views) and C4
-  (AVGrid → av-grid) get their docs when each is next up.
+  complete as EPIC-054**, **C2 is active as [EPIC-055](epics/EPIC-055.md)**; C3 (virtualized data
+  views and dropdowns) and C4 (AVGrid → av-grid) get their docs when each is next up.
 
 *(other recorded epic ideas live in [`tasks/backlog.md`](tasks/backlog.md))*
 

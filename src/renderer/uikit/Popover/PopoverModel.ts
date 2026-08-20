@@ -1,13 +1,13 @@
 import React from "react";
 import {
-    Placement,
-    VirtualElement,
-    Middleware,
-    ExtendedRefs,
-    offset as floatingOffset,
     flip,
+    offset as floatingOffset,
     size,
-} from "@floating-ui/react";
+    type Middleware,
+    type MiddlewareState,
+    type Placement,
+    type VirtualElement,
+} from "@floating-ui/dom";
 import { TComponentModel } from "../../core/state/model";
 
 // =============================================================================
@@ -105,20 +105,7 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
     // --- internal drag baseline (not state — flipping it must not re-render) ---
     private initialSize: ManualSize | null = null;
 
-    // --- floating-ui handles, pushed in from the View on each render ---
-    private floatingRefs: ExtendedRefs<Element> | null = null;
     actualPlacement: Placement = "bottom-start";
-
-    setFloating = (
-        refs: ExtendedRefs<Element>,
-        actualPlacement: Placement,
-    ) => {
-        this.floatingRefs = refs;
-        this.actualPlacement = actualPlacement;
-        // NOTE: setPositionReference is NOT called here. Calling it during render
-        // triggers floating-ui's internal setState in the same component → infinite
-        // re-render loop. The View runs setPositionReference in a useEffect (post-commit).
-    };
 
     // --- derived ---
 
@@ -138,42 +125,38 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
         () => [this.props.elementRef, this.props.x, this.props.y],
     );
 
-    middleware = this.memo<Middleware[]>(
-        () => {
-            const m: Middleware[] = [
-                flip(),
-                size({
-                    // Arrow form so `this` inherits lexically from the enclosing
-                    // memo compute (also an arrow), giving us the model instance.
-                    // floating-ui invokes `apply` outside any render — without an
-                    // arrow we'd lose the `this` binding entirely.
-                    apply: ({
-                        availableHeight,
-                        rects,
-                        elements,
-                    }: {
-                        availableHeight: number;
-                        rects: { reference: { width: number } };
-                        elements: { floating: HTMLElement };
-                    }) => {
-                        const styles: Record<string, string> = {
-                            maxHeight: `${Math.max(100, availableHeight - 20)}px`,
-                        };
-                        if (this.props.matchAnchorWidth && !this.state.get().manualSize) {
-                            styles.width = `${rects.reference.width}px`;
-                        }
-                        Object.assign(elements.floating.style, styles);
-                    },
-                }),
-            ];
-            const offsetProp = this.props.offset;
-            if (offsetProp) {
-                m.unshift(floatingOffset({ mainAxis: offsetProp[1], crossAxis: offsetProp[0] }));
-            }
-            return m;
-        },
-        () => [this.props.offset, this.props.matchAnchorWidth],
-    );
+    createMiddleware = (isCurrent: () => boolean): Middleware[] => {
+        const m: Middleware[] = [
+            flip(),
+            size({
+                apply: ({
+                    availableHeight,
+                    rects,
+                    elements,
+                }: MiddlewareState & {
+                    availableHeight: number;
+                    availableWidth: number;
+                }) => {
+                    if (!isCurrent()) return;
+                    // This intentionally overwrites a manual maxHeight prop,
+                    // matching the legacy size middleware's last-writer order.
+                    // Taking the minimum is a separate behavior decision.
+                    const styles: Record<string, string> = {
+                        maxHeight: `${Math.max(100, availableHeight - 20)}px`,
+                    };
+                    if (this.props.matchAnchorWidth && !this.state.get().manualSize) {
+                        styles.width = `${rects.reference.width}px`;
+                    }
+                    Object.assign(elements.floating.style, styles);
+                },
+            }),
+        ];
+        const offsetProp = this.props.offset;
+        if (offsetProp) {
+            m.unshift(floatingOffset({ mainAxis: offsetProp[1], crossAxis: offsetProp[0] }));
+        }
+        return m;
+    };
 
     get isTopPlacement(): boolean {
         return this.actualPlacement.startsWith("top");
@@ -181,16 +164,7 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
 
     // --- handlers ---
 
-    /**
-     * Wired to `useFloating`'s `onOpenChange`. Mirrors the original Popover's logic.
-     * Without explicit interaction hooks (useClick / useDismiss), floating-ui rarely
-     * fires this — the document-level listeners below handle dismissal.
-     */
-    onOpenChange = (value: boolean) => {
-        if (value) this.props.onClose?.();
-    };
-
-    onHandlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    onHandlePointerDown = (event: PointerEvent) => {
         if (event.pointerType === "mouse" && event.buttons !== 1) return;
         const root = this.internalRef;
         if (!root) return;
@@ -222,53 +196,41 @@ export class PopoverModel extends TComponentModel<PopoverState, PopoverProps> {
             root.removeEventListener("pointermove", onPointerMove);
             root.removeEventListener("lostpointercapture", onLost);
             root.removeEventListener("pointerup", onLost);
+            if (this.resizeCleanup === onLost) this.resizeCleanup = undefined;
         };
 
+        this.cancelResize();
+        this.resizePointerId = event.pointerId;
         root.setPointerCapture(event.pointerId);
         root.addEventListener("pointermove", onPointerMove);
         root.addEventListener("lostpointercapture", onLost);
         root.addEventListener("pointerup", onLost);
+        this.resizeCleanup = onLost;
+    };
+
+    private resizeCleanup: (() => void) | undefined;
+
+    cancelResize = (): void => {
+        const cleanup = this.resizeCleanup;
+        this.resizeCleanup = undefined;
+        cleanup?.();
+        const root = this.internalRef;
+        if (root && this.resizePointerId !== undefined && root.hasPointerCapture(this.resizePointerId)) {
+            root.releasePointerCapture(this.resizePointerId);
+        }
+        this.resizePointerId = undefined;
+    };
+
+    private resizePointerId: number | undefined;
+
+    resetManualSize = (): void => {
+        this.state.update((state) => {
+            state.manualSize = null;
+        });
+        this.initialSize = null;
     };
 
     // --- lifecycle ---
 
-    init() {
-        // Reset manual size baseline when the popover closes.
-        this.effect(
-            () => {
-                if (!this.props.open) {
-                    this.state.update((s) => {
-                        s.manualSize = null;
-                    });
-                    this.initialSize = null;
-                }
-            },
-            () => [this.props.open],
-        );
-
-        // Document-level click-outside + Escape listeners. Active only while open.
-        this.effect(
-            () => {
-                if (!this.props.open) return;
-                const handleClickOutside = (event: MouseEvent) => {
-                    if (!this.internalRef || this.internalRef.contains(event.target as Node)) return;
-                    const target = event.target as Element | null;
-                    if (target?.closest('[data-type="tooltip"]')) return;
-                    const ignoreSelector = this.props.outsideClickIgnoreSelector;
-                    if (ignoreSelector && target?.closest(ignoreSelector)) return;
-                    this.props.onClose?.();
-                };
-                const handleKeyDown = (event: KeyboardEvent) => {
-                    if (event.key === "Escape") this.props.onClose?.();
-                };
-                document.addEventListener("mousedown", handleClickOutside);
-                document.addEventListener("keydown", handleKeyDown);
-                return () => {
-                    document.removeEventListener("mousedown", handleClickOutside);
-                    document.removeEventListener("keydown", handleKeyDown);
-                };
-            },
-            () => [this.props.open, this.props.outsideClickIgnoreSelector],
-        );
-    }
+    init() {}
 }
