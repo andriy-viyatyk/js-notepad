@@ -535,6 +535,26 @@ Import `VanillaView`, `KeyedList`, and `SubtreeSwap` directly from their files u
 - `mountReact` is only a temporary seam when a vanilla view owns a React subtree with no vanilla
   equivalent yet. The view owns the host element and the returned disposer owns the React root;
   neither adapter is a substitute for converting an ordinary parent or child.
+- `fillSlot` **owns the host element it is given.** Call it again to change the content; never run
+  the previous cleanup first, and never write to that host directly (`replaceChildren`, `append`,
+  `textContent`) behind its back. It caches per-host state so a React→React change re-renders the
+  existing root instead of building a new one — pre-clearing throws that away and remounts the
+  root on every update, which resets any state inside the slot. A superseded cleanup is a no-op on
+  its own, so there is nothing to clean up manually. When a view needs several nodes in one slot
+  (an icon plus a label), pass a `DocumentFragment`, so the children still land as direct children
+  of the host and the host's own `gap` still applies.
+
+### Converting an existing React component
+
+- **Account for every field, not every prop.** The prop *interface* is usually carried over intact,
+  so a diff of the type looks complete while a field the old JSX read is silently never forwarded
+  to the vanilla view. Check the fields of item/data types too (`ISegment.label`, option shapes,
+  row descriptors) — those are read inside the old render body, not named in the component's props,
+  and are the ones that go missing. The symptom is not an error: the element renders with correct
+  size, styling and handlers, and is simply empty.
+- **A converted primitive that renders blank is a content bug, not a CSS bug.** Backgrounds are
+  transparent on several variants, so an empty element is invisible while still being hoverable
+  and clickable. Check the DOM for the missing child before reading the stylesheet.
 
 See the PathInput pilot at `uikit/PathInput/PathInputView.tsx` for the complete working shape.
 
