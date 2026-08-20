@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useState } from "react";
-import { Placement } from "@floating-ui/react";
-import { Menu } from "./Menu";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import type { Placement } from "@floating-ui/dom";
+import { openMenu, type MenuHandle } from "./attach-menu";
 import type { MenuItem } from "./types";
 
 export interface WithMenuProps {
@@ -22,6 +22,7 @@ const DEFAULT_OFFSET: [number, number] = [-4, 4];
 export function WithMenu({ name, items, placement = "bottom-start", offset = DEFAULT_OFFSET, children }: WithMenuProps) {
     const [anchor, setAnchor] = useState<Element | null>(null);
     const previousFocusRef = useRef<Element | null>(null);
+    const menuHandleRef = useRef<MenuHandle | null>(null);
 
     const setOpen = useCallback((target: Element | null) => {
         if (target) {
@@ -38,18 +39,35 @@ export function WithMenu({ name, items, placement = "bottom-start", offset = DEF
         previousFocusRef.current = null;
     }, []);
 
+    useEffect(() => {
+        if (!anchor) {
+            menuHandleRef.current?.dispose();
+            menuHandleRef.current = null;
+            return;
+        }
+
+        const options = {
+            name,
+            items,
+            placement,
+            offset,
+            onClose: handleClose,
+        };
+        if (!menuHandleRef.current) {
+            menuHandleRef.current = openMenu(anchor, options);
+        } else {
+            menuHandleRef.current.update(options);
+        }
+    }, [anchor, handleClose, items, name, offset, placement]);
+
+    useEffect(() => () => {
+        menuHandleRef.current?.dispose();
+        menuHandleRef.current = null;
+    }, []);
+
     return (
         <>
             {children(setOpen)}
-            <Menu
-                name={name}
-                items={items}
-                open={Boolean(anchor)}
-                elementRef={anchor}
-                placement={placement}
-                offset={offset}
-                onClose={handleClose}
-            />
         </>
     );
 }

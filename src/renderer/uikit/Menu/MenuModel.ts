@@ -1,6 +1,5 @@
-import React from "react";
 import { TComponentModel } from "../../core/state/model";
-import { PopoverPosition } from "../Popover/Popover";
+import type { PopoverPosition } from "../Popover/PopoverModel";
 import type { MenuItem } from "./types";
 
 // =============================================================================
@@ -37,7 +36,7 @@ export interface PreparedItem {
     startGroup: boolean;
 }
 
-function idOf(item: MenuItem, index: number): string {
+export function idOf(item: MenuItem, index: number): string {
     return item.id ?? `${index}:${item.label}`;
 }
 
@@ -77,6 +76,35 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
 
     // --- internal timer (not state — flipping it must not re-render) ---
     private subTimerId: number | null = null;
+
+    /** Prop-driven state transitions replace the former React-timed effects. */
+    setProps = (): void => {
+        const previous = this.oldProps;
+        const props = this.props;
+        const opening = props.open && previous?.open !== true;
+        const closing = !props.open && previous?.open === true;
+        const itemsChanged = previous?.items !== props.items;
+
+        if (closing || (!props.open && (previous === undefined || itemsChanged))) {
+            this.state.set({ ...defaultMenuState });
+            this.clearSubTimer();
+            return;
+        }
+
+        if (props.open && (opening || itemsChanged)) {
+            const initial = props.items.find((item) => item.selected && !item.invisible);
+            this.state.update((state) => {
+                if (opening) {
+                    state.search = "";
+                    state.subMenuItem = null;
+                    state.subMenuAnchor = null;
+                }
+                if (initial) {
+                    state.hoveredId = idOf(initial, props.items.indexOf(initial));
+                }
+            });
+        }
+    };
 
     // --- computed ---
 
@@ -178,9 +206,8 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
         this.props.onClose(false);
     };
 
-    onRowMouseEnter = (e: React.MouseEvent<HTMLDivElement>, id: string, item: MenuItem) => {
+    onRowMouseEnter = (anchor: Element, id: string, item: MenuItem): void => {
         if (item.disabled) return;
-        const anchor = e.currentTarget;
         this.state.update((s) => {
             s.hoveredId = id;
             if (s.subMenuItem !== item) {
@@ -195,11 +222,11 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
         this.clearSubTimer();
     };
 
-    onRowClick = (e: React.MouseEvent<HTMLDivElement>, item: MenuItem) => {
-        this.activate(item, e.currentTarget);
+    onRowClick = (anchor: Element, item: MenuItem): void => {
+        this.activate(item, anchor);
     };
 
-    onKeyDown = (e: React.KeyboardEvent) => {
+    onKeyDown = (e: KeyboardEvent): void => {
         const prepared = this.prepared.value;
         const hoveredId = this.state.get().hoveredId;
         const idx = prepared.findIndex((p) => p.id === hoveredId);
@@ -243,68 +270,6 @@ export class MenuModel extends TComponentModel<MenuState, MenuProps> {
             this.props.onClose(false);
         }
     };
-
-    // --- lifecycle ---
-
-    init() {
-        // Reset state on open transition + initialize hovered to selected item.
-        this.effect(
-            () => {
-                if (!this.props.open) {
-                    this.state.update((s) => {
-                        s.search = "";
-                        s.hoveredId = null;
-                        s.subMenuItem = null;
-                        s.subMenuAnchor = null;
-                    });
-                    this.clearSubTimer();
-                    return;
-                }
-                const items = this.props.items;
-                const initial = items.find((i) => i.selected && !i.invisible);
-                if (initial) {
-                    this.state.update((s) => {
-                        s.hoveredId = idOf(initial, items.indexOf(initial));
-                    });
-                }
-            },
-            () => [this.props.open, this.props.items],
-        );
-
-        // Auto-focus the appropriate element on open so keyboard nav / typing work.
-        // Deferred via queueMicrotask: model effects run inside setPropsInternal during
-        // the render phase — at that point the conditionally-mounted search input ref
-        // is still null. The microtask runs after React commits and ref callbacks fire.
-        this.effect(
-            () => {
-                if (!this.props.open) return;
-                queueMicrotask(() => {
-                    if (!this.isLive || !this.props.open) return;
-                    if (this.showSearch) this.searchInputRef?.focus();
-                    else this.listRef?.focus();
-                });
-            },
-            () => [this.props.open, this.showSearch],
-        );
-
-        // Scroll the hovered row into view when hoveredId changes (via keyboard or
-        // initial selection on open). Deferred via queueMicrotask so the listRef is
-        // attached after first-open commit before we query DOM.
-        this.effect(
-            () => {
-                const hoveredId = this.state.get().hoveredId;
-                if (!hoveredId) return;
-                queueMicrotask(() => {
-                    if (!this.isLive || !this.listRef) return;
-                    const el = this.listRef.querySelector(
-                        `[data-type="menu-row"][data-id="${CSS.escape(hoveredId)}"]`,
-                    ) as HTMLElement | null;
-                    el?.scrollIntoView({ block: "nearest" });
-                });
-            },
-            () => [this.state.get().hoveredId],
-        );
-    }
 
     dispose() {
         this.clearSubTimer();

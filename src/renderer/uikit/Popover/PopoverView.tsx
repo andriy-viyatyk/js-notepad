@@ -16,7 +16,7 @@ import {
 } from "../shared/react-compat";
 import { mountReactHandle, type MountedReactRoot } from "../shared/mount";
 import { SubtreeSwap } from "../shared/subtree-swap";
-import { VanillaView } from "../shared/vanilla-view";
+import { VanillaView, type IOwnedView } from "../shared/vanilla-view";
 import {
     defaultPopoverState,
     PopoverModel,
@@ -26,6 +26,9 @@ import "./Popover.css";
 
 export type PopoverViewProps = PopoverProps & {
     ref?: React.Ref<HTMLDivElement>;
+    "data-type"?: string;
+    /** Internal UIKit seam for a direct vanilla content view. */
+    contentView?: (host: HTMLElement) => IOwnedView;
 };
 
 function isElementOrVirtualElement(
@@ -45,6 +48,8 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
     private positionGeneration = 0;
     private active = true;
     private renderedEdge: "top" | "bottom" | undefined;
+    private contentView: IOwnedView | undefined;
+    private nativeResizeHandle: HTMLDivElement | undefined;
 
     public constructor(props: PopoverViewProps, model: PopoverModel) {
         super(props, document.createElement("div"));
@@ -65,16 +70,26 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         this.listen(document, "mousedown", this.onDocumentMouseDown);
         this.listen(document, "keydown", this.onDocumentKeyDown);
 
-        // React owns the floating root's child list. Keep one nested root and
-        // render the children and resize handle as direct fragment children.
-        this.reactRoot = mountReactHandle(this.root, this.renderChildren());
+        if (this.props.contentView) {
+            // Menu uses this internal branch so the floating root's direct
+            // children remain native DOM. The returned view owns all content
+            // below this root; this branch owns the resize handle itself.
+            this.contentView = this.child(this.props.contentView(this.root));
+            (this.contentView as IOwnedView & { mount(): unknown }).mount();
+            this.updateNativeResizeHandle();
+        } else {
+            // Ordinary Popover callers keep one nested React root and render
+            // children and the resize handle as direct fragment children.
+            this.reactRoot = mountReactHandle(this.root, this.renderChildren());
+        }
         this.restartPositioning(this.model.placeRef.value);
     }
 
     protected onUpdate(props: PopoverViewProps): void {
         const previousPlaceRef = this.placeRef;
         this.applyProps(props);
-        this.reactRoot?.render(this.renderChildren());
+        if (this.contentView) this.updateNativeResizeHandle();
+        else this.reactRoot?.render(this.renderChildren());
 
         const nextPlaceRef = this.model.placeRef.value;
         if (nextPlaceRef !== previousPlaceRef) {
@@ -91,6 +106,9 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         this.autoUpdateCleanup = undefined;
         this.model.cancelResize();
         clearRestListeners(this.root, this.restPropsState);
+        this.nativeResizeHandle?.remove();
+        this.nativeResizeHandle?.removeEventListener("pointerdown", this.onNativeResizePointerDown);
+        this.nativeResizeHandle = undefined;
 
         this.refCleanup?.();
         this.refCleanup = undefined;
@@ -133,6 +151,7 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
             outsideClickIgnoreSelector: _outsideClickIgnoreSelector,
             matchAnchorWidth: _matchAnchorWidth,
             onResize: _onResize,
+            contentView: _contentView,
             ...rest
         } = props;
 
@@ -198,6 +217,32 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
         return <>{this.props.children}{resizeHandle}</>;
     }
 
+    private updateNativeResizeHandle(): void {
+        const shouldRender = Boolean(this.props.resizable);
+        if (!shouldRender) {
+            this.nativeResizeHandle?.remove();
+            this.nativeResizeHandle = undefined;
+            return;
+        }
+
+        const handle = this.nativeResizeHandle ?? document.createElement("div");
+        if (!this.nativeResizeHandle) {
+            handle.dataset.type = "popover-resize-handle";
+            handle.addEventListener("pointerdown", this.onNativeResizePointerDown);
+            handle.append(ResizeHandleIcon.createElement?.() ?? document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "svg",
+            ));
+            this.root.append(handle);
+            this.nativeResizeHandle = handle;
+        }
+        handle.dataset.edge = this.model.isTopPlacement ? "top" : "bottom";
+    }
+
+    private readonly onNativeResizePointerDown = (event: PointerEvent): void => {
+        this.model.onHandlePointerDown(event);
+    };
+
     private restartPositioning(
         nextPlaceRef: Element | VirtualElement | null,
     ): void {
@@ -244,7 +289,8 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
             const nextEdge = actualPlacement.startsWith("top") ? "top" : "bottom";
             if (nextEdge !== this.renderedEdge) {
                 this.renderedEdge = nextEdge;
-                this.reactRoot?.render(this.renderChildren());
+                if (this.contentView) this.updateNativeResizeHandle();
+                else this.reactRoot?.render(this.renderChildren());
             }
         });
     }
@@ -339,7 +385,7 @@ export class PopoverView extends VanillaView<PopoverViewProps> {
     }
 
     private modelProps(props: PopoverViewProps): PopoverProps {
-        const { ref: _ref, ...modelProps } = props;
+        const { ref: _ref, contentView: _contentView, ...modelProps } = props;
         return modelProps;
     }
 }

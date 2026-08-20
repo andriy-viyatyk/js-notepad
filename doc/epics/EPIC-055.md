@@ -222,7 +222,7 @@ A vanilla caller calls `openMenu` from its own click handler — which is what
 `ui/dialogs/poppers/showPopupMenu.tsx` already does at the app layer, imperatively, and is the
 existence proof that the imperative shape is the natural one here. `WithMenu`'s React face keeps its
 render prop, its `useState` anchor and its focus restore, and drives `openMenu` from an effect; its
-14 call sites do not move. Epic F deletes the render-prop face (roadmap open decision #3).
+15 call sites do not move. Epic F deletes the render-prop face (roadmap open decision #3).
 
 `WithMenu`'s type-only `Placement` import moves from `@floating-ui/react` to `@floating-ui/dom` in
 the same task, which is what leaves `uikit/` free of the React binding.
@@ -304,7 +304,7 @@ Four secondary counts close alongside it:
 | Task | Title | Status |
 |------|-------|--------|
 | US-1005 | [`Popover` — vanilla floating root on `@floating-ui/dom`, and the Rule 4 React baseline](../tasks/US-1005-popover-vanilla-floating-root/README.md) | Implemented |
-| US-1006 | `Menu` and `WithMenu` — `openMenu` attachment, recursive submenus, and the Rule 4 after-number | Planned |
+| US-1006 | [`Menu` and `WithMenu` — `openMenu` attachment, recursive submenus, and the Rule 4 after-number](../tasks/US-1006-menu-vanilla-recursive/README.md) | Implemented |
 | US-1007 | `Dialog` and `DialogContent` — focus trap and backdrop | Planned |
 | US-1008 | `Notification` — `Notification`, `AlertItem`, `AlertsBar` | Planned |
 | US-1009 | `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction | Planned |
@@ -352,7 +352,7 @@ explicitly:
 
 Four exceptions, all because the story is not the real exposure:
 
-- **`Menu` needs an app-level pass.** Its story is one menu; its production surface is 14 `WithMenu`
+- **`Menu` needs an app-level pass.** Its story is one menu; its production surface is 15 `WithMenu`
   triggers plus every context menu in the app (`components/file-grid`, `file-list`, `git-tree`,
   `tree-provider`, `editors/browser`, `draw`, `image`, `notebook`, `rest-client`, `settings`,
   `ui/sidebar/MenuBar`, `ui/tabs/PageTab`). US-1006 smoke-tests submenus, the search header,
@@ -502,3 +502,6 @@ converting — neither has one, and without them there is no before / after DOM 
   reported `Minimap` with zero consumers; it has one, imported through `uikit/index.ts`. Every count
   in this document is identifier-based with the component's own folder and stories excluded
   explicitly. This is the same class of measurement error EPIC-054's audit found, in a new place.
+- **US-1005's Popover shell hook was corrected before US-1006.** Residual `data-type="menu"` can
+  override the Popover addressing marker, so the shell now uses the non-overridable `popover-shell`
+  class while `data-type` remains the submenu outside-click and automation contract.

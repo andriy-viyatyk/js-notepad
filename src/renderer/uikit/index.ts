@@ -84,8 +84,8 @@ export { ProgressOverlay, createProgress, showProgress, notifyProgress, addScree
 export type { ProgressHandle } from "./Progress";
 
 // Menus
-export { Menu, WithMenu } from "./Menu";
-export type { MenuProps, WithMenuProps, MenuItem } from "./Menu";
+export { Menu, WithMenu, openMenu } from "./Menu";
+export type { MenuProps, WithMenuProps, MenuItem, MenuAttachOptions, MenuHandle } from "./Menu";
 
 // Lists
 export { CategoryList } from "./CategoryList";
