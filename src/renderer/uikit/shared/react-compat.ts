@@ -52,9 +52,12 @@ export function applyRestProps(
     rest: Record<string, unknown>,
     previous: RestPropsState,
 ): RestPropsState {
+    const attributeName = (key: string): string =>
+        key === "className" ? "class" : key === "htmlFor" ? "for" : key;
+
     for (const key of Array.from(previous.attributes)) {
         if (!(key in rest)) {
-            root.removeAttribute(key);
+            root.removeAttribute(attributeName(key));
             previous.attributes.delete(key);
         }
     }
@@ -84,11 +87,11 @@ export function applyRestProps(
         }
 
         if (value == null || value === false) {
-            root.removeAttribute(key);
+            root.removeAttribute(attributeName(key));
             previous.attributes.delete(key);
             continue;
         }
-        root.setAttribute(key, value === true ? "" : String(value));
+        root.setAttribute(attributeName(key), value === true ? "" : String(value));
         previous.attributes.add(key);
     }
 

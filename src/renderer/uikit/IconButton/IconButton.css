@@ -1,0 +1,69 @@
+@layer uikit {
+    [data-type="icon-button"] {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        border-radius: var(--radius-sm, 3px);
+        outline: none;
+        padding: var(--space-xs, 2px);
+        color: var(--color-icon-light);
+        flex-shrink: 0;
+    }
+    [data-type="icon-button"][data-strikethrough]::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: var(--space-xs, 2px);
+        right: var(--space-xs, 2px);
+        height: 1px;
+        background: currentColor;
+        transform: rotate(-45deg);
+        pointer-events: none;
+    }
+    [data-type="icon-button"] [data-part="icon"] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-type="icon-button"]:hover { color: var(--color-icon-default); }
+    [data-type="icon-button"]:active { color: var(--color-icon-dark); }
+    [data-type="icon-button"][data-size="sm"] {
+        width: var(--size-control-sm, 24px);
+        height: var(--size-control-sm, 24px);
+    }
+    [data-type="icon-button"][data-size="sm"] svg {
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+    }
+    [data-type="icon-button"][data-size="md"] {
+        width: var(--size-control-md, 26px);
+        height: var(--size-control-md, 26px);
+    }
+    [data-type="icon-button"][data-size="md"] svg {
+        width: var(--size-icon-lg, 20px);
+        height: var(--size-icon-lg, 20px);
+    }
+    [data-type="icon-button"][data-active] { color: var(--color-icon-active); }
+    [data-type="icon-button"][data-warning] { color: var(--color-warning-text); }
+    [data-type="icon-button"][data-variant="chip"] {
+        border: 1px solid var(--color-border-default);
+        background-color: var(--color-bg-dark);
+    }
+    [data-type="icon-button"][data-variant="chip"]:hover {
+        border-color: var(--color-border-active);
+        color: var(--color-misc-yellow);
+    }
+    [data-type="icon-button"][data-variant="chip"][data-active] {
+        border-color: var(--color-border-active);
+        background-color: var(--color-bg-light);
+        color: var(--color-misc-yellow);
+    }
+    [data-type="icon-button"][data-disabled] {
+        color: var(--color-icon-disabled);
+        pointer-events: none;
+    }
+}

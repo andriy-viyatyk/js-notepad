@@ -37,7 +37,7 @@ export function claimViewOwnership(view: IOwnedView): void {
  * base intentionally does not batch, schedule, render, or create a React root.
  */
 export abstract class VanillaView<P> implements IOwnedView {
-    readonly root: HTMLElement = document.createElement("div");
+    readonly root: HTMLElement;
 
     protected props: P;
 
@@ -46,8 +46,9 @@ export abstract class VanillaView<P> implements IOwnedView {
     private readonly disposers: Cleanup[] = [];
     private readonly children: IOwnedView[] = [];
 
-    protected constructor(props: P) {
+    protected constructor(props: P, root: HTMLElement = document.createElement("div")) {
         this.props = props;
+        this.root = root;
     }
 
     /** Build the view once and return its stable root. */

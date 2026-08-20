@@ -206,6 +206,8 @@ export function attachTooltip(
             }
 
             if (open && contentHost && floatingRoot) {
+                // fillSlot owns the host across arms; the superseded cleanup is
+                // a no-op, but the reference must not be kept.
                 contentDisposer = fillSlot(contentHost, options.content);
                 applyName(floatingRoot, options.name);
                 const nextOffset = options.offset ?? DEFAULT_OFFSET;

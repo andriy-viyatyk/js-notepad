@@ -150,8 +150,11 @@ and `focusout` are the bubbling equivalents of React's `onFocus` and `onBlur`; p
 the current behavior:
 
 - show is scheduled on enter/focus after `delayShow` unless disabled, content is nullish/false,
-  an overlay suppresses the trigger, or a native drag is active. Check suppression both when the
-  timer is scheduled and again when it fires: an overlay may open during the 800ms/1500ms delay;
+  an overlay suppresses the trigger, or a native drag is active. The timer callback must read the
+  current options, especially `options.content`, at fire time rather than capture a content value
+  when scheduling begins. Check suppression both when the timer is scheduled and again when it
+  fires: an overlay may open during the 800ms/1500ms delay, and a synchronous hover remeasure may
+  update content during that window;
 - hide is scheduled after `delayHide` on leave/focusout;
 - Escape closes an open tooltip and clears timers;
 - entering the floating root clears its hide timer, and leaving it schedules the same hide delay,
@@ -339,6 +342,8 @@ new Rule 4 after-number.
       `autoUpdate`, and all cleanup through an idempotent `dispose()`.
 - [ ] The attachment uses `@floating-ui/dom` with fixed strategy, offset/flip/shift behavior,
       guarded async positioning, and an auto-update cleanup active only while open.
+- [ ] A delayed show reads the latest `options.content` at timer fire time, so a caller can update
+      content after scheduling and before the delay expires.
 - [ ] Tooltip preserves hover/focusin/focusout/Escape behavior, tooltip-root hover persistence, singleton
       and innermost-wins rules, overlay/drag suppression, content semantics, name/placement/role
       attributes, z-index, and overlay-layer placement.

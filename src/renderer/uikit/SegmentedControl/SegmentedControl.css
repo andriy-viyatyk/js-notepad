@@ -1,0 +1,22 @@
+@layer uikit {
+    [data-type="segmented-control"] {
+        display: inline-flex;
+    }
+    [data-type="segmented-control"] > [data-type="button"] {
+        border-radius: 0;
+    }
+    [data-type="segmented-control"] > [data-type="button"]:first-of-type {
+        border-top-left-radius: var(--radius-md, 4px);
+        border-bottom-left-radius: var(--radius-md, 4px);
+    }
+    [data-type="segmented-control"] > [data-type="button"]:last-of-type {
+        border-top-right-radius: var(--radius-md, 4px);
+        border-bottom-right-radius: var(--radius-md, 4px);
+    }
+    [data-type="segmented-control"] > [data-type="button"]:not(:first-of-type) { margin-left: -1px; }
+    [data-type="segmented-control"] > [data-variant="primary"] {
+        position: relative;
+        z-index: 1;
+    }
+    [data-type="segmented-control"][data-disabled] { opacity: 0.6; }
+}

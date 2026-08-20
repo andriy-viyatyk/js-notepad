@@ -1,0 +1,76 @@
+@layer uikit {
+    [data-type="button"] {
+        --btn-rest-bg: var(--color-bg-default);
+        --btn-hover-bg: var(--color-bg-light);
+        --btn-active-bg: var(--color-bg-dark);
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--gap-md, 6px);
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-radius: var(--radius-md, 4px);
+        outline: none;
+        user-select: none;
+        text-wrap: nowrap;
+        font-size: var(--font-base, 14px);
+        color: var(--color-text-default);
+        background-color: var(--btn-rest-bg);
+    }
+
+    [data-type="button"][data-bg="light"] {
+        --btn-rest-bg: var(--color-bg-light);
+        --btn-hover-bg: var(--color-bg-default);
+        --btn-active-bg: var(--color-bg-dark);
+    }
+
+    [data-type="button"][data-bg="dark"] {
+        --btn-rest-bg: var(--color-bg-dark);
+        --btn-hover-bg: var(--color-bg-default);
+        --btn-active-bg: var(--color-bg-light);
+    }
+
+    [data-type="button"]:hover { background-color: var(--btn-hover-bg); }
+    [data-type="button"]:active { background-color: var(--btn-active-bg); }
+
+    [data-type="button"][data-variant="primary"] {
+        background-color: var(--color-bg-selection);
+        color: var(--color-text-selection);
+    }
+    [data-type="button"][data-variant="primary"]:hover {
+        filter: brightness(1.1);
+        background-color: var(--color-bg-selection);
+    }
+    [data-type="button"][data-variant="primary"]:active {
+        filter: brightness(0.9);
+        background-color: var(--color-bg-selection);
+    }
+    [data-type="button"][data-variant="ghost"] { background-color: transparent; }
+    [data-type="button"][data-variant="ghost"]:hover { background-color: var(--btn-hover-bg); }
+    [data-type="button"][data-variant="ghost"]:active { background-color: var(--btn-active-bg); }
+    [data-type="button"][data-variant="danger"] { background-color: transparent; color: var(--color-error-text); }
+    [data-type="button"][data-variant="danger"]:hover,
+    [data-type="button"][data-variant="danger"]:active { background-color: var(--color-error-bg); }
+    [data-type="button"][data-variant="link"] {
+        background-color: transparent;
+        color: var(--color-misc-blue);
+        border-color: var(--color-border-default);
+    }
+    [data-type="button"][data-variant="link"]:hover { background-color: var(--btn-hover-bg); }
+    [data-type="button"][data-variant="link"]:active { background-color: var(--btn-active-bg); }
+
+    [data-type="button"][data-size="sm"] {
+        height: var(--size-control-sm, 24px);
+        padding: 0 var(--space-sm, 4px);
+        font-size: var(--font-sm, 12px);
+    }
+    [data-type="button"][data-size="md"] {
+        height: var(--size-control-md, 26px);
+        padding: 0 var(--space-md, 8px);
+        font-size: var(--font-base, 14px);
+    }
+    [data-type="button"][data-disabled] { opacity: 0.4; pointer-events: none; }
+    [data-type="button"][data-block] { display: flex; width: 100%; }
+    [data-type="button"] svg { width: var(--size-icon-md, 16px); height: var(--size-icon-md, 16px); }
+}

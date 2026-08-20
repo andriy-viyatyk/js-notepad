@@ -1,0 +1,8 @@
+@layer uikit {
+    [data-type="truncated-text"] {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        white-space: nowrap;
+    }
+}
