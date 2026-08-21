@@ -42,7 +42,7 @@ function projectState(state: {
 }
 
 class NotificationBranchView extends VanillaView<{ label: string }> {
-    private readonly message = document.createElement("span");
+    private message: HTMLSpanElement | undefined;
 
     public constructor(props: { label: string }) {
         super(props, document.createElement("div"));
@@ -50,6 +50,7 @@ class NotificationBranchView extends VanillaView<{ label: string }> {
     }
 
     protected onMount(): void {
+        this.message = document.createElement("span");
         this.root.append(this.message);
         this.updateMessage(this.props.label);
     }
@@ -59,6 +60,7 @@ class NotificationBranchView extends VanillaView<{ label: string }> {
     }
 
     private updateMessage(label: string): void {
+        if (!this.message) return;
         applyTextAttributes(
             this.message,
             resolveTextAttributes({ size: "base" }),
@@ -68,8 +70,8 @@ class NotificationBranchView extends VanillaView<{ label: string }> {
 }
 
 class ProgressPillView extends VanillaView<{ label: string }> {
-    private readonly spinner: SpinnerView;
-    private readonly message = document.createElement("span");
+    private spinner: SpinnerView | undefined;
+    private message: HTMLSpanElement | undefined;
 
     public constructor(props: { label: string }) {
         super(props, document.createElement("div"));
@@ -78,6 +80,8 @@ class ProgressPillView extends VanillaView<{ label: string }> {
     }
 
     protected onMount(): void {
+        this.spinner = this.child(new SpinnerView({ size: 18 }));
+        this.message = document.createElement("span");
         this.root.append(this.spinner.root, this.message);
         this.spinner.mount();
         this.updateMessage(this.props.label);
@@ -88,6 +92,7 @@ class ProgressPillView extends VanillaView<{ label: string }> {
     }
 
     private updateMessage(label: string): void {
+        if (!this.message) return;
         applyTextAttributes(
             this.message,
             resolveTextAttributes({ size: "base" }),
@@ -97,9 +102,9 @@ class ProgressPillView extends VanillaView<{ label: string }> {
 }
 
 class BlockingBranchView extends VanillaView<BlockingState> {
-    private readonly header = document.createElement("div");
-    private readonly content = document.createElement("div");
-    private readonly progressSwap = new SubtreeSwap<"progress">(this.root);
+    private header: HTMLDivElement | undefined;
+    private content: HTMLDivElement | undefined;
+    private progressSwap: SubtreeSwap<"progress"> | undefined;
     private progressView: ProgressPillView | undefined;
 
     public constructor(props: BlockingState) {
@@ -110,8 +115,13 @@ class BlockingBranchView extends VanillaView<BlockingState> {
     }
 
     protected onMount(): void {
+        this.header = document.createElement("div");
+        this.header.dataset.part = "header";
+        this.content = document.createElement("div");
+        this.content.dataset.part = "content";
+        this.progressSwap = new SubtreeSwap<"progress">(this.content);
         this.root.append(this.header, this.content);
-        this.own(() => this.progressSwap.dispose());
+        this.own(() => this.progressSwap?.dispose());
         this.updateBlocking(this.props);
     }
 
@@ -120,6 +130,7 @@ class BlockingBranchView extends VanillaView<BlockingState> {
     }
 
     private updateBlocking(props: BlockingState): void {
+        if (!this.progressSwap) return;
         let created: ProgressPillView | undefined;
         this.progressSwap.set(
             props.mode === "progress" ? "progress" : null,
@@ -151,21 +162,23 @@ class BlockingBranchView extends VanillaView<BlockingState> {
 }
 
 export class ProgressOverlayView extends VanillaView<ProgressOverlayProps> {
-    private readonly modeHost = document.createElement("div");
-    private readonly branchSwap = new SubtreeSwap<BranchKey>(this.modeHost);
+    private modeHost: HTMLDivElement | undefined;
+    private branchSwap: SubtreeSwap<BranchKey> | undefined;
     private notificationView: NotificationBranchView | undefined;
     private blockingView: BlockingBranchView | undefined;
 
     public constructor(props: ProgressOverlayProps) {
         super(props, document.createElement("div"));
-        this.modeHost.dataset.part = "mode";
     }
 
     protected onMount(): void {
+        this.modeHost = document.createElement("div");
+        this.modeHost.dataset.part = "mode";
+        this.branchSwap = new SubtreeSwap<BranchKey>(this.modeHost);
         this.root.append(this.modeHost);
         this.root.style.setProperty("--progress-header-height", `${HEADER_HEIGHT}px`);
         this.root.style.setProperty("--progress-system-buttons-width", `${SYSTEM_BUTTONS_WIDTH}px`);
-        this.own(() => this.branchSwap.dispose());
+        this.own(() => this.branchSwap?.dispose());
         this.applyName(this.props.name);
         this.bind(progressState, projectState, (projection) => this.applyProjection(projection));
     }
@@ -175,6 +188,7 @@ export class ProgressOverlayView extends VanillaView<ProgressOverlayProps> {
     }
 
     private applyProjection(projection: OverlayProjection): void {
+        if (!this.branchSwap) return;
         if (projection.mode === "empty") {
             delete this.root.dataset.mode;
             this.branchSwap.clear();

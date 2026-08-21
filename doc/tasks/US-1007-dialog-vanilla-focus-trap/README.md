@@ -311,33 +311,33 @@ Finally run `npm run typecheck`, `npm run lint`, and `git diff --check`.
 
 ## Acceptance criteria
 
-- [ ] `Dialog` and `DialogContent` are thin `mountVanilla` faces with unchanged public prop types,
+- [x] `Dialog` and `DialogContent` are thin `mountVanilla` faces with unchanged public prop types,
       refs, React-node children, icon arms, header buttons, and event callbacks.
-- [ ] `DialogView` and `DialogContentView` have public constructors, no `TComponentModel`, and
+- [x] `DialogView` and `DialogContentView` have public constructors, no `TComponentModel`, and
       follow the established constructor/mount/update/dispose ownership rules.
-- [ ] The dialog remains in its caller-owned React tree; no portal, overlay-layer registration,
+- [x] The dialog remains in its caller-owned React tree; no portal, overlay-layer registration,
       caller migration, or `showDialog`/`Dialogs.tsx` change is introduced.
-- [ ] The root/backdrop contract, center/right geometry, `data-*` attributes, rest-prop behavior,
+- [x] The root/backdrop contract, center/right geometry, `data-*` attributes, rest-prop behavior,
       focus capture/restore, autofocus, Tab/Shift+Tab trap, caller-first key/click behavior, and
       backdrop-only close behavior match the React implementation.
-- [ ] Both center and right positions retain their border/radius/shadow or right-edge geometry in
+- [x] Both center and right positions retain their border/radius/shadow or right-edge geometry in
       light and dark themes; the converted CSS uses descendant selectors that still match through
       the DialogView bridge host and VanillaHost.
-- [ ] DialogContent preserves header presence, title fallback/ellipsis, icon and header-button
+- [x] DialogContent preserves header presence, title fallback/ellipsis, icon and header-button
       ordering, converted close-button behavior, arbitrary children, and all six sizing properties;
       removed sizing props clear their old inline values.
-- [ ] Registry icons use `createIconElement`; React-node icon/header/children arms use the existing
+- [x] Registry icons use `createIconElement`; React-node icon/header/children arms use the existing
       narrow bridge without a new slot descriptor or public API.
-- [ ] `Dialog.css` is in `@layer uikit`, uses stable `persephone-dialog-pulse`, preserves Emotion
+- [x] `Dialog.css` is in `@layer uikit`, uses stable `persephone-dialog-pulse`, preserves Emotion
       selector order/specificity and token fallbacks, and leaves no Emotion import in the converted
       Dialog implementation.
-- [ ] Autofocus is driven by the module-scope React commit signal after children exist, while
+- [x] Autofocus is driven by the module-scope React commit signal after children exist, while
       `autoFocus={false}` dialogs still allow their inner Input/Textarea autofocus path to run.
-- [ ] Storybook and representative application dialogs work in light and dark themes, with
+- [x] Storybook and representative application dialogs work in light and dark themes, with
       content interactive and focus restored after close; snapshots show the expected
   `data-type`/`data-name` contract (plus the existing converted IconButton data-parts) and no
   overlay-layer portal.
-- [ ] The 14 production caller files and story compile without JSX changes, and
+- [x] The 14 production caller files and story compile without JSX changes, and
       `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
 
 ## Files changed

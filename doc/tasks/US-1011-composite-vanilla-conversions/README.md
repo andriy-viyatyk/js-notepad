@@ -266,26 +266,26 @@ by US-1011 itself beyond the existing PathInput bridge.
 
 ## Acceptance criteria
 
-- [ ] `SplitButton`, `TagsInput`, `DateInput`, and `CategoryList` are thin `mountVanilla` adapters
+- [x] `SplitButton`, `TagsInput`, `DateInput`, and `CategoryList` are thin `mountVanilla` adapters
       with public constructors and unchanged public prop/barrel APIs.
-- [ ] SplitButton uses direct `ButtonView`/`IconButtonView` children and `openMenu`; it preserves
+- [x] SplitButton uses direct `ButtonView`/`IconButtonView` children and `openMenu`; it preserves
       primary/caret actions, menu updates, submenu behavior, tooltip titles, and focus restoration.
-- [ ] TagsInput uses direct `TagView`/`PathInputView` ownership and a keyed stable list; add/remove,
+- [x] TagsInput uses direct `TagView`/`PathInputView` ownership and a keyed stable list; add/remove,
       blur/Enter, separator trimming, duplicate rejection, disabled, read-only, variant, size, and
       duplicate caller values behave correctly.
-- [ ] DateInput directly mounts `InputView` with forced `type="date"` and imports `Input.css`;
+- [x] DateInput directly mounts `InputView` with forced `type="date"` and imports `Input.css`;
       controlled ISO values, refs, native attributes, sizing, disabled/read-only, and focus behavior
       match Input.
-- [ ] CategoryList preserves grouping/sorting, root and expanded row modes, counts, selection,
+- [x] CategoryList preserves grouping/sorting, root and expanded row modes, counts, selection,
       drill-in/back, controlled updates, flat separator mode, direct row DOM shape, and focus styling.
-- [ ] The four composite stylesheets are static `@layer uikit` CSS with stable private root hooks;
+- [x] The four composite stylesheets are static `@layer uikit` CSS with stable private root hooks;
       no converted component imports `@emotion/styled`, and CategoryList does not introduce a
       premature generic shared selection stylesheet.
-- [ ] Existing child styles are imported through runtime view dependencies; no styling depends on
+- [x] Existing child styles are imported through runtime view dependencies; no styling depends on
       another component or Storybook importing CSS incidentally.
-- [ ] All four stories and the named production consumers work in light and dark themes, with no
+- [x] All four stories and the named production consumers work in light and dark themes, with no
       regression in keyboard, pointer, focus, menu, date-picker, or list interactions.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; callers, stories, and public
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; callers, stories, and public
       barrel exports require no changes.
 
 ## Files expected to change

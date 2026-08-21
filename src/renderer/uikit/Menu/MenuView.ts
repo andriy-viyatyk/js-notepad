@@ -114,6 +114,7 @@ class MenuContentView extends VanillaView<MenuModel> {
         } else {
             this.inputView.update(this.inputProps(this.model.state.get().search));
             this.inputView.root.remove();
+            this.inputMounted = false;
         }
 
         const prepared = this.model.prepared.value;
@@ -236,7 +237,8 @@ class MenuContentView extends VanillaView<MenuModel> {
             parts[kind]?.remove();
             parts[kind] = undefined;
         } else {
-            parts[kind]!.textContent = value;
+            const element = parts[kind];
+            if (element) element.textContent = value;
         }
     }
 

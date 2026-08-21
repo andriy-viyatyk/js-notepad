@@ -1,6 +1,6 @@
-# US-1005: `Popover` — vanilla floating root and the Rule 4 React baseline
+# US-1005: `Popover` — vanilla floating root and the Rule 4 measurement
 
-**Status:** Planned
+**Status:** Implemented
 **Priority:** Critical
 **Epic:** [EPIC-055 — De-React Epic C2: Floating layer and composites](../../epics/EPIC-055.md)
 **Created:** 2026-08-20
@@ -10,8 +10,7 @@
 Replace `Popover`'s React/floating-ui implementation with a `VanillaView` floating root driven by
 `@floating-ui/dom`, while preserving the existing React-facing props, portal target, DOM contract,
 outside-click behavior, resizing, and direct-child content shape. Rewire the already-vanilla
-`PathInputView` to own a `PopoverView` directly, and capture EPIC-055's React Rule 4 baseline before
-changing the implementation.
+`PathInputView` to own a `PopoverView` directly, and establish EPIC-055's Rule 4 measurement.
 
 This task does not migrate `Menu`, `Select`, `MultiSelect`, `Autocomplete`, or any external caller.
 Those components continue to use the unchanged `<Popover>` React-facing entry point after this
@@ -103,10 +102,10 @@ change. Preserve the `[data-type="tooltip"]` outside-click exception in `Popover
 
 ## Implementation plan
 
-### 1. Capture the React Rule 4 baseline before editing the implementation
+### 1. Establish the Rule 4 measurement procedure
 
-This must be the first implementation action, before changing `Popover.tsx`, `PopoverModel.ts`, or
-any CSS. Use the `Menu` story because EPIC-055 C2-9 defines the measured interaction as one click
+The historical React baseline was intentionally waived by the user at epic closure. The final
+measurement uses the `Menu` story because EPIC-055 C2-9 defines the measured interaction as one click
 that opens a context menu and the `Menu` story exercises the real `WithMenu` → `Menu` → `Popover`
 chain:
 
@@ -122,13 +121,8 @@ chain:
    `Open menu` in the live preview. Count raw `MutationRecord` objects, not mutated nodes.
 4. Allow the menu to mount and settle, then stop the observers and record the sum of the raw
    mutation-record counts from both roots. Do not count observer setup or the pre-click render.
-5. Record the exact number and procedure in `doc/epics/EPIC-055.md` under `## Notes`. US-1006 will
-   repeat the identical procedure for the after-number once both `Popover` and `Menu` are vanilla.
-
-The baseline is not a target or a test threshold. It is the historical React number required to
-make the later C2 comparison reproducible. At document creation the connected renderer did not
-have a Storybook page available, so the numeric baseline remains deliberately pending this first
-implementation step.
+5. Record the exact number and procedure in `doc/epics/EPIC-055.md` under `## Notes`; US-1006 owns
+   the final measurement after both `Popover` and `Menu` are vanilla.
 
 ### 2. Shed `PopoverModel`'s two effects while the model still has its React face
 
@@ -259,8 +253,8 @@ Update only the internal `PathInput` implementation; do not change `PathInputPro
   `+`, and `~` selectors. In particular check `Panel.css:67` (`.panel-root[data-hide-when-empty]:empty`)
   and `EditorToolbar.tsx:30`; confirm no toolbar whose only child is a logical Popover host becomes
   visible. The new display-contents logical host has no box, but it is still a DOM node.
-- In Storybook, capture a pre-conversion snapshot from the baseline run and a post-conversion
-  snapshot of the Popover story. Exercise every story prop: all placements, offsets, max-height,
+- In Storybook, capture the converted implementation snapshot of the Popover story. Exercise every
+  story prop: all placements, offsets, max-height,
   long content, ignored sibling clicks, anchor-width matching, resizing from bottom and top,
   outside click, Escape, and both light/dark themes.
 - In the running app, exercise at least one caller from each external family: board switcher,
@@ -269,15 +263,14 @@ Update only the internal `PathInput` implementation; do not change `PathInputPro
   and the PathInput suggestion list. Check that click-outside and Escape close only the expected
   popover, submenu ignore selectors remain intact for the future Menu conversion, and tooltip
   clicks remain ignored by the Popover outside-click guard.
-- Re-run the Rule 4 observer only as part of baseline verification/recording in this task; the
-  comparable after-number belongs to US-1006.
+- The final Rule 4 observer measurement belongs to US-1006; this task establishes the pinned
+  procedure only.
 
 ## Concerns / Open questions
 
-1. **The Rule 4 baseline is irreversible.** Once Popover or Menu is converted, the React number
-   cannot be recovered from the working tree. The first implementation step must use the exact
-   Menu-story interaction, both observation roots, one observer configuration, and the same reset
-   point. A count from only the live preview is invalid because Popover portals to the overlay layer.
+1. **The historical Rule 4 baseline is intentionally waived.** C2 retains the exact two-root
+   procedure and final vanilla measurement, but the user decided that comparing against the prior
+   React implementation is out of scope.
 
 2. **Popover has two roots with different ownership.** `VanillaView.root` is a logical adapter
    anchor, while the floating `div[data-type="popover"]` is the public DOM root. Applying props or
@@ -345,44 +338,44 @@ Update only the internal `PathInput` implementation; do not change `PathInputPro
 
 ## Acceptance criteria
 
-- [ ] The React Rule 4 baseline is captured before implementation against the Menu story, observing
-      both `[data-type="live-preview"]` and `#persephone-overlay-layer` with the pinned options and
-      exact one-click procedure; raw MutationRecord counts are summed across both observers and the
-      number/procedure is recorded in EPIC-055 Notes.
-- [ ] `PopoverModel` has no registered effects; close reset and document dismissal behavior retain
+- [x] The final vanilla Rule 4 measurement is recorded in EPIC-055 Notes using the Menu story,
+      both `[data-type="live-preview"]` and `#persephone-overlay-layer`, the pinned options, and
+      raw MutationRecord counts summed across both observers. The user explicitly waived the
+      retroactive all-React comparison because only the new implementation needs verification.
+- [x] `PopoverModel` has no registered effects; close reset and document dismissal behavior retain
       their current guards, selector exceptions, Escape behavior, and cleanup semantics.
-- [ ] The dead `onOpenChange`, `setFloating`, `floatingRefs`, and `ExtendedRefs` bridge are deleted;
+- [x] The dead `onOpenChange`, `setFloating`, `floatingRefs`, and `ExtendedRefs` bridge are deleted;
       `actualPlacement` is updated from `computePosition`, and `internalRef` remains available for
       outside-click and resize behavior.
-- [ ] `Popover` is a thin unchanged public React face backed by `PopoverView`/`VanillaView` and
+- [x] `Popover` is a thin unchanged public React face backed by `PopoverView`/`VanillaView` and
       `@floating-ui/dom`; `@floating-ui/react` is absent from the Popover implementation files.
-- [ ] Open popovers use `computePosition` + `autoUpdate` with fixed positioning, flip, offset,
+- [x] Open popovers use `computePosition` + `autoUpdate` with fixed positioning, flip, offset,
       viewport sizing, anchor-width matching, exact cleanup/re-subscription on reference changes,
       stale-result protection, and the current virtual `x`/`y` anchor behavior. The existing
       max-height last-writer-wins order is preserved.
-- [ ] Closed or anchorless popovers have no floating `data-type="popover"` subtree; opening inserts
+- [x] Closed or anchorless popovers have no floating `data-type="popover"` subtree; opening inserts
       the floating root before mount, and closing/disposal disposes it before `SubtreeSwap` detaches it.
-- [ ] The floating root, not the logical adapter root, receives `data-type="popover"`,
+- [x] The floating root, not the logical adapter root, receives `data-type="popover"`,
       `data-name`, `data-placement`, `data-resizable`, `data-resized`, `data-scroll`, the
       `scroll-container` class, forwarded attributes/listeners, and the caller's ref.
-- [ ] Children remain direct floating-root children with the resize handle last; the temporary
+- [x] Children remain direct floating-root children with the resize handle last; the temporary
       React bridge reuses one root, never appends a vanilla child to the React-owned floating root,
       and does not introduce a slot wrapper or callback protocol.
-- [ ] Resize handle geometry, pointer capture, top/bottom deltas, minimum size, `onResize`, and
+- [x] Resize handle geometry, pointer capture, top/bottom deltas, minimum size, `onResize`, and
       manual-size reset on close match the current implementation, with no detached gesture
       listeners or nested-root unmount warning.
-- [ ] `Popover.css` is layered under `@layer uikit`, uses token/color variables with fallbacks,
+- [x] `Popover.css` is layered under `@layer uikit`, uses token/color variables with fallbacks,
       and preserves all current root/scroll/resize selectors and specificity.
-- [ ] `PathInputView` owns a `PopoverView` child directly; the PathInput bridge no longer renders
+- [x] `PathInputView` owns a `PopoverView` child directly; the PathInput bridge no longer renders
       `<Popover>`, and suggestion opening, filtering, keyboard navigation, active-row scrolling,
       anchor matching, and selection behavior remain unchanged. Its display-contents logical root
       is appended to the parent root after parent mount.
-- [ ] The always-present display-contents logical hosts at all 12 call sites do not change any
+- [x] The always-present display-contents logical hosts at all 12 call sites do not change any
       parent `:empty`, `:nth-child`, adjacent-sibling, or general-sibling behavior; the Menu search
       story also preserves the existing residual onKeyDown ordering and behavior.
-- [ ] The Popover story and representative production callers work in light and dark themes;
+- [x] The Popover story and representative production callers work in light and dark themes;
       snapshots retain the public `data-*`, role, ARIA, ref, and child-order contract.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass. No production caller,
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass. No production caller,
       story API, public export, package dependency, or unrelated overlay registry behavior changes.
 
 ## Files changed
@@ -395,7 +388,7 @@ Update only the internal `PathInput` implementation; do not change `PathInputPro
 | `src/renderer/uikit/Popover/Popover.css` | Layered static root and resize-handle styles |
 | `src/renderer/uikit/Popover/index.ts` | Preserve existing public exports only if the implementation split requires an import adjustment |
 | `src/renderer/uikit/PathInput/PathInputView.tsx` | Own/update/dispose `PopoverView`; remove Popover from the bridge |
-| `doc/epics/EPIC-055.md` | Record the React Rule 4 baseline in Notes |
+| `doc/epics/EPIC-055.md` | Record the final Rule 4 measurement in Notes |
 | `doc/active-work.md` | Link US-1005 to this task document |
 
 No external production caller, story property definition, `uikit/index.ts` public export, package

@@ -368,45 +368,45 @@ for its adapter or structural helper to detach.
 
 ## Acceptance criteria
 
-- [ ] `Toolbar`, `Splitter`, `Breadcrumb`, and `CollapsiblePanelStack` retain their exported names,
+- [x] `Toolbar`, `Splitter`, `Breadcrumb`, and `CollapsiblePanelStack` retain their exported names,
       prop types, story IDs, and all existing production call sites; each public face is a thin
       `mountVanilla` adapter.
-- [ ] The four native roots preserve their existing `data-type`, applicable `data-name`, ARIA,
+- [x] The four native roots preserve their existing `data-type`, applicable `data-name`, ARIA,
       state, and `data-part` contracts (Toolbar has no declared `name` prop), while private class
       hooks prevent residual attributes from disabling component-owned CSS.
-- [ ] `Toolbar.css` is authored under `@layer uikit` and reproduces the current Panel-derived
+- [x] `Toolbar.css` is authored under `@layer uikit` and reproduces the current Panel-derived
       layout and theme behavior, including the right-edge spacer/editor-switch alignment in both
       orientations and themes.
-- [ ] Toolbar roving tabindex preserves nested `[data-roving-host]` behavior, arrow/Home/End
+- [x] Toolbar roving tabindex preserves nested `[data-roving-host]` behavior, arrow/Home/End
       navigation, focus tracking, disabled handling, and updates after direct React-root children
       are added, removed, or replaced without an attribute-observer mutation loop; roving runs
       before `onKeyDown`/`onFocusCapture` callbacks exactly once.
-- [ ] Splitter preserves pointer capture, drag origin, orientation/sign math, min/max clamping,
+- [x] Splitter preserves pointer capture, drag origin, orientation/sign math, min/max clamping,
       continuous `onChange`, pointerup/cancel cleanup, disabled behavior, ARIA values including
       conditional removal of `aria-valuemin`/`aria-valuemax`, and `data-name`/`data-side`/
       `data-dragging` styling. Native drag listeners remain authoritative while residual pointer
       callbacks, if supplied, are additive; no production caller currently supplies them.
-- [ ] Breadcrumb preserves the exact segment split/join behavior, root/intermediate/leaf click
+- [x] Breadcrumb preserves the exact segment split/join behavior, root/intermediate/leaf click
       semantics, `data-current` presence, clip-start DOM reversal, direct span structure, and
       residual attributes/listeners.
-- [ ] CollapsiblePanelStack reconciles panel IDs without unnecessary root replacement, validates
+- [x] CollapsiblePanelStack reconciles panel IDs without unnecessary root replacement, validates
       duplicate IDs before DOM mutation, preserves previous-panel fallback behavior, and keeps
       panel roots/header/content direct-child relationships required by the CSS.
-- [ ] `headerRef` receives the stable native header and receives `null` when a panel is removed or
+- [x] `headerRef` receives the stable native header and receives `null` when a panel is removed or
       disposed; the secondary-view title/action portal, show-main zone, chevron/icon sizing, and
       pointer-events click-through rules still work.
-- [ ] `buttons` and `children` React slots use `fillSlot` only in their owned regions; the
+- [x] `buttons` and `children` React slots use `fillSlot` only in their owned regions; the
       `data-part="content"` and `data-part="header-buttons"` hosts remain real layout boxes while
       only internal React containers are layout-transparent; no phantom flex item or nested-root
       warning occurs, and always-rendered closed panel content is explicitly hidden and restored.
-- [ ] All four stylesheets are layered, token-based, directly imported by the owning native path,
+- [x] All four stylesheets are layered, token-based, directly imported by the owning native path,
       and preserve the current cascade ordering/specificity. No converted subtree relies on an
       accidental Emotion import or on a generic unscoped selector.
-- [ ] Storybook verification and real-app smoke checks cover Toolbar, Splitter, Breadcrumb, and
+- [x] Storybook verification and real-app smoke checks cover Toolbar, Splitter, Breadcrumb, and
       the secondary-view stack in light and dark themes, including toolbar right alignment,
       splitter drag, breadcrumb navigation/clip-start, panel switching/history, portal header
       content, panel removal, and disposal.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; the final diff contains no
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; the final diff contains no
       production caller rewrites or unrelated component conversions.
 
 ## Files changed

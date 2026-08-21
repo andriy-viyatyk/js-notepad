@@ -164,9 +164,14 @@ export class CategoryListView extends VanillaView<CategoryListProps> {
                 parentGroups.set(parentName, { name: parentName, value: parentValue, hasChildren: false });
             }
             if (childPart) {
-                if (!children.has(parentName)) children.set(parentName, []);
-                children.get(parentName)!.push({ name: childPart, value: item });
-                parentGroups.get(parentName)!.hasChildren = true;
+                let groupChildren = children.get(parentName);
+                if (!groupChildren) {
+                    groupChildren = [];
+                    children.set(parentName, groupChildren);
+                }
+                groupChildren.push({ name: childPart, value: item });
+                const parentGroup = parentGroups.get(parentName);
+                if (parentGroup) parentGroup.hasChildren = true;
             }
         }
 

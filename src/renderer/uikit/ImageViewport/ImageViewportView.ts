@@ -10,8 +10,8 @@ import "./ImageViewport.css";
 
 export class ImageViewportView extends VanillaView<ImageViewportProps> {
     private readonly driver;
-    private image!: HTMLImageElement;
-    private zoomIndicator!: HTMLDivElement;
+    private image: HTMLImageElement | undefined;
+    private zoomIndicator: HTMLDivElement | undefined;
     private sourceTimer: ReturnType<typeof setTimeout> | undefined;
     private currentSrc: string;
     private live = true;
@@ -32,6 +32,7 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
         this.image = document.createElement("img");
         this.zoomIndicator = document.createElement("div");
         this.zoomIndicator.dataset.part = "zoom-indicator";
+        this.zoomIndicator.title = "Reset Zoom";
         this.root.dataset.type = "image-view";
         this.root.tabIndex = 0;
         this.image.draggable = false;
@@ -64,11 +65,11 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
     protected onUpdate(props: ImageViewportProps): void {
         const previousSrc = this.currentSrc;
         this.driver.update({ src: props.src, onModel: props.onModel });
-        this.image.alt = props.alt ?? "Image";
+        this.image?.setAttribute("alt", props.alt ?? "Image");
 
         if (previousSrc !== props.src) {
             this.currentSrc = props.src;
-            this.image.src = props.src;
+            if (this.image) this.image.src = props.src;
             this.scheduleSourceCheck(props.src);
         }
     }
@@ -87,7 +88,7 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
         }
         this.sourceTimer = setTimeout(() => {
             this.sourceTimer = undefined;
-            if (this.live && this.props.src === src && this.image.complete) {
+            if (this.live && this.props.src === src && this.image?.complete) {
                 this.driver.model.handleImageLoad();
             }
         }, 50);
@@ -100,9 +101,13 @@ export class ImageViewportView extends VanillaView<ImageViewportProps> {
             delete this.root.dataset.dragging;
         }
         const imageStyle = this.driver.model.getImageStyle();
-        this.image.style.transform = imageStyle.transform;
-        this.image.style.transition = imageStyle.transition;
-        this.zoomIndicator.textContent = `${this.driver.model.zoomPercent}%`;
+        if (this.image) {
+            this.image.style.transform = imageStyle.transform;
+            this.image.style.transition = imageStyle.transition;
+        }
+        if (this.zoomIndicator) {
+            this.zoomIndicator.textContent = `${this.driver.model.zoomPercent}%`;
+        }
     }
 
     private queueVisibilityReconcile(): void {

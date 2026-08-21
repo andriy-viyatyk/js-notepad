@@ -53,6 +53,9 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
 
     public constructor(props: PopoverViewProps, model: PopoverModel) {
         super(props, document.createElement("div"));
+        if (props.contentView && props.children != null) {
+            throw new Error("PopoverView cannot receive both contentView and children.");
+        }
         this.model = model;
         this.model.actualPlacement = props.placement ?? "bottom-start";
         // `data-type` is a caller-visible addressing hook and residual props may override it.
@@ -86,6 +89,9 @@ class PopoverFloatingView extends VanillaView<PopoverViewProps> {
     }
 
     protected onUpdate(props: PopoverViewProps): void {
+        if (Boolean(props.contentView) !== Boolean(this.props.contentView)) {
+            throw new Error("PopoverView content mode cannot change while mounted.");
+        }
         const previousPlaceRef = this.placeRef;
         this.applyProps(props);
         if (this.contentView) this.updateNativeResizeHandle();

@@ -4,6 +4,32 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-055 — [De-React Epic C2 — Floating layer and composites](EPIC-055.md)
+
+Converted the floating layer and composite UIKit surfaces to vanilla views behind their existing
+React-facing APIs: Popover, Menu, Dialog, root-mounted notifications and progress, chrome widgets,
+composites, Minimap, and ImageViewport. The epic also completed the UIKit `@floating-ui/dom` move,
+exercised the model driver across four models, established native submenu/attachment ownership, and
+recorded the final Rule 4 mutation measurement. Menu behavior was smoke-tested in Storybook; the
+historical all-React comparison was explicitly waived because closure only required verification of
+the new implementation.
+
+Verification: `npm run typecheck`, `npm run lint`, and `git diff --check` passed. Epic-level review,
+developer-documentation, and user-documentation checks completed; review findings were fixed before
+closure. The final Rule 4 Menu-story measurement was 125 raw MutationRecords across the live-preview
+and overlay roots (6 + 119) using the pinned observer options.
+
+- [x] [US-1005: `Popover` — vanilla floating root on `@floating-ui/dom`](../tasks/US-1005-popover-vanilla-floating-root/README.md)
+- [x] [US-1006: `Menu` and `WithMenu` — `openMenu` attachment and recursive submenus](../tasks/US-1006-menu-vanilla-recursive/README.md)
+- [x] [US-1007: `Dialog` and `DialogContent` — focus trap and backdrop](../tasks/US-1007-dialog-vanilla-focus-trap/README.md)
+- [x] [US-1008: `Notification`, `AlertItem`, and `AlertsBar` — vanilla root-mounted alerts](../tasks/US-1008-notification-vanilla-alerts/README.md)
+- [x] [US-1009: `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction](../tasks/US-1009-progress-vanilla-overlay/README.md)
+- [x] [US-1010: `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` — vanilla chrome](../tasks/US-1010-chrome-vanilla-conversions/README.md)
+- [x] [US-1011: `SplitButton`, `TagsInput`, `DateInput`, `CategoryList`](../tasks/US-1011-composite-vanilla-conversions/README.md)
+- [x] [US-1012: `Minimap` and `ImageViewport` — canvas views and their first stories](../tasks/US-1012-canvas-vanilla-conversions/README.md)
+
+---
+
 ## EPIC-054 — [De-React Epic C1 — Foundation and primitives](EPIC-054.md)
 
 Established the foundation for converting UIKit components from React to direct DOM ownership

@@ -19,7 +19,7 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 
 **UIKit primitives** follow the rules in [`src/renderer/uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md). Briefly:
 
-- **Rule 1** — `data-type` (required) + `data-*` state attributes on the root element; style state via Emotion attribute selectors, never via class names.
+- **Rule 1** — `data-type` (required) + `data-*` state attributes on the root element; style state via scoped attribute selectors, never via state classes. Converted components use co-located static CSS; unconverted components retain the legacy Emotion form until migration.
 - **Rule 2** — controlled components only; never `useState` for the component's primary value.
 - **Rule 3** — list/collection props accept `T[] | Traited<T[]>`; resolve with `resolveTraited(items, KEY)` at the top.
 - **Rule 4** — roving tabindex inside keyboard-navigable widgets (Toolbar, Tree, ListBox, SegmentedControl, Tab bar).
@@ -27,12 +27,15 @@ See [/doc/standards/uikit-vs-components-split.md](./uikit-vs-components-split.md
 - **Rule 6** — `ComponentSet` descriptor pattern for runtime-built UIs.
 - **Rule 7** — no Emotion outside `uikit/` in app code, and no `style=` / `className=` **on a UIKit component** (exception: `src/renderer/ui/` chrome). The `style`/`className` half of the rule scopes to UIKit components, not to raw HTML elements — an inline style object on a plain `<img>` or `<div>` in app code is fine, and is the intended escape hatch when a one-off element needs sizing that no UIKit primitive covers.
 - **Rule 8** — model-view pattern (`TComponentModel`) once a component exceeds the small-and-readable threshold.
-- **Rule 9** — icon slots use `IconRef` and render through `renderIcon`; a string is always a registry name, never literal fallback text. Use plain `string` for text-bearing props, and reserve `SlotText` for the small set of props that genuinely accept rich React content.
+- **Rule 9** — converted components may expose a framework-free `VanillaView`; follow the lifecycle, ownership, model-driver, and structural-helper contract in [`model-view-pattern.md`](./model-view-pattern.md).
+- **Icon slots** — use `IconRef` for icon-bearing props. React faces resolve registry names with `renderIcon`; vanilla views narrow string values with `isIconName` and build SVG with `createIconElement`. A string is always a registry name, never literal fallback text. Use plain `string` for text-bearing props, and reserve `SlotText` for the small set of props that genuinely accept rich React content.
 
 The icon registry is the neutral boundary for reusable components. `IconName` is derived from the
 single registry record in `src/renderer/theme/icon-registry.ts`; `renderIcon(name, props?)`
 resolves a name and preserves SVG props when a caller needs them. A missing name renders nothing
-and warns in development, so misspellings cannot silently become toolbar text. Resolver components
+and warns in development, so misspellings cannot silently become toolbar text. Vanilla views use
+`createIconElement(name, props?)`, which returns a correctly sized empty SVG and warns when a
+builder is missing, keeping layout stable while making the failure visible. Resolver components
 such as `LanguageIcon` and `FileIcon`, and language-specific glyphs, remain React-node inputs rather
 than duplicate registry entries when their output is selected from data.
 
@@ -48,7 +51,7 @@ boundary as a mounted subtree, not as a framework-specific callback.
 - Component name — PascalCase (`Button`, `MultiSelect`).
 - File name — `<ComponentName>.tsx` inside the component's own subfolder.
 - `data-type` attribute — kebab-case matching the component name (`data-type="multi-select"`).
-- `name?: string` debug prop — every UIKit primitive accepts it and emits it as `data-name="…"` on the same root element that carries `data-type` (see [US-521](../tasks/US-521-uikit-name-debug-attribute/README.md) and [US-522](../tasks/US-522-uikit-debug-naming-rollout/README.md) for the rationale and rollout).
+- `name?: string` debug prop — every UIKit primitive accepts it and emits it as `data-name="…"` on the same root element that carries `data-type`; see `uikit/CLAUDE.md` for the naming contract.
 - For the canonical naming table (old name → new name) and prop-naming guidelines, see the **Naming conventions** section in [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md).
 
 ## Component file template
@@ -57,4 +60,4 @@ Use the template at the bottom of [`uikit/CLAUDE.md`](../../src/renderer/uikit/C
 
 ## Migration history
 
-The legacy `src/renderer/components/{basic,form,layout,overlay,TreeView,virtualization,data-grid}/` split was retired in [EPIC-025](../epics/EPIC-025.md). Reusable primitives now live in `src/renderer/uikit/`; the folders that remain in `components/` (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/`) are persephone-coupled and do not receive new pure primitives. The canonical rename table (e.g. `Chip → Tag`, `PopupMenu → Menu`, `TreeView → Tree`, `ComboSelect → Select`) lives in [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md).
+The legacy `src/renderer/components/{basic,form,layout,overlay,TreeView,virtualization,data-grid}/` split is retired. Reusable primitives now live in `src/renderer/uikit/`; the folders that remain in `components/` (`icons/`, `page-manager/`, `file-search/`, `tree-provider/`, `file-list/`, `file-grid/`, `git-tree/`) are Persephone-coupled and do not receive new pure primitives. The canonical rename table (e.g. `Chip → Tag`, `PopupMenu → Menu`, `TreeView → Tree`, `ComboSelect → Select`) lives in [`uikit/CLAUDE.md`](../../src/renderer/uikit/CLAUDE.md).

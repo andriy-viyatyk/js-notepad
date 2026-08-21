@@ -14,7 +14,7 @@ interface TagRecord {
 }
 
 export class TagsInputView extends VanillaView<TagsInputProps> {
-    private readonly inputSlot = document.createElement("div");
+    private inputSlot: HTMLDivElement | undefined;
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private readonly tagViews = new Map<HTMLSpanElement, TagView>();
     private tagsList: KeyedList<TagRecord, string, HTMLSpanElement> | undefined;
@@ -27,6 +27,7 @@ export class TagsInputView extends VanillaView<TagsInputProps> {
     }
 
     protected onMount(): void {
+        this.inputSlot = document.createElement("div");
         this.applyRootProps(this.props);
         this.syncInput(this.props);
 
@@ -96,11 +97,12 @@ export class TagsInputView extends VanillaView<TagsInputProps> {
                 this.inputView.root.remove();
                 this.inputView = undefined;
             }
-            this.inputSlot.remove();
+            this.inputSlot?.remove();
             return;
         }
 
         if (!this.inputView) {
+            if (!this.inputSlot) return;
             this.inputView = this.child(new PathInputView(this.inputProps(props)));
             this.root.append(this.inputSlot);
             this.inputSlot.append(this.inputView.root);

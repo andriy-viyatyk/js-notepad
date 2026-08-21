@@ -15,9 +15,9 @@ props, floating placement, keyboard navigation, search header, row DOM contract,
 behavior, and submenu behavior. Add the imperative `openMenu()` attachment for future vanilla
 callers, keep `WithMenu`'s render-prop API working, and remove `@floating-ui/react` from `uikit/`.
 
-This task also owns EPIC-055's Rule 4 after-number: the first measurement after both `Popover` and
-`Menu` are vanilla. The procedure must match the React-baseline procedure exactly and records the
-result in `doc/epics/EPIC-055.md`.
+This task also owns EPIC-055's final Rule 4 measurement after both `Popover` and `Menu` are vanilla.
+The pinned two-root procedure records the result in `doc/epics/EPIC-055.md`; the user explicitly
+waived the retroactive all-React comparison because only the new implementation needs verification.
 
 ## Background
 
@@ -137,7 +137,7 @@ by `Popover.css`; Menu CSS must not copy the shell.
 
 ## Implementation plan
 
-### 1. Capture the Rule 4 after-number before changing Menu
+### 1. Capture the final Rule 4 number before closing the epic
 
 Use the exact procedure pinned by EPIC-055 C2-9 and US-1005:
 
@@ -154,12 +154,9 @@ Use the exact procedure pinned by EPIC-055 C2-9 and US-1005:
 4. Record the sum, the story values, the observer options, and the reset point in
    `doc/epics/EPIC-055.md` under `## Notes`.
 
-The React baseline is recoverable from the parent of US-1005 (`cdc12530`), the last all-React
-commit. Before editing this branch, create a throwaway sibling worktree at that commit, install
-its dependencies, run Storybook, and take the baseline with the exact procedure above. Record it
-in EPIC-055 Notes as a retroactive baseline. Remove the worktree after measurement. Then return to
-the current branch and take the after-number with the identical procedure after both Popover and
-Menu are converted; never call the current Popover-vanilla/Menu-React run the baseline.
+The retroactive all-React comparison at `cdc12530` is intentionally out of scope by user decision.
+Take the final number on the branch after both Popover and Menu are converted and record the exact
+procedure in EPIC-055 Notes.
 
 ### 2. Shed all three `MenuModel` effects while the React face still exists
 
@@ -360,19 +357,9 @@ Finally run `npm run typecheck`, `npm run lint`, and `git diff --check`.
 
 ## Concerns / Open questions
 
-1. **The retroactive React baseline must be measured before implementation.** The last all-React
-   commit is `cdc12530`, the parent of US-1005 (`087dddf4`). Use a throwaway sibling worktree:
-
-   ```text
-   git worktree add ../persephone-baseline cdc12530
-   npm install
-   npm start
-   ```
-
-   Run the pinned Menu-story observer procedure there, record the raw two-root sum in EPIC-055
-   Notes as a retroactive baseline, then remove the worktree. Never substitute the current
-   Popover-vanilla/Menu-React run. If the renderer cannot be connected even from the throwaway
-   worktree, stop and report that external blocker rather than inventing a number.
+1. **The historical React baseline is intentionally waived.** The user decided that C2 only needs
+   verification of the new implementation; the final vanilla count remains recorded with the
+   pinned two-root procedure, but no before/after comparison is required.
 
 2. **The internal Popover content seam is deliberate and narrow.** `PopoverViewProps.contentView`
    is an internal view-only extension. `Popover.tsx` never passes it, public `PopoverProps` does
@@ -424,43 +411,42 @@ Finally run `npm run typecheck`, `npm run lint`, and `git diff --check`.
 
 ## Acceptance criteria
 
-- [ ] The retroactive React baseline is measured at `cdc12530` in a throwaway worktree, and the
-      Rule 4 after-number is measured on the final branch with the pinned two-root observers, one
-      reset immediately before the Menu story click, raw records summed across both roots. Both
-      procedures/results are recorded in EPIC-055 Notes; no Popover-vanilla run is mislabeled as
-      the React baseline.
-- [ ] `MenuModel` has no `effect()` registrations. Close reset, selected initialization, focus,
+- [x] The final Rule 4 number is measured on the final branch with the pinned two-root observers,
+      one reset immediately before the Menu story click, and raw records summed across both roots;
+      the procedure and result are recorded in EPIC-055 Notes. The user explicitly waived the
+      retroactive React baseline.
+- [x] `MenuModel` has no `effect()` registrations. Close reset, selected initialization, focus,
       hover scrolling, delayed submenu opening, filtering, keyboard navigation, and timer cleanup
       retain their existing guards and behavior.
-- [ ] `Menu` is a thin `mountVanilla(MenuView, ...)` face with unchanged public props and ref
+- [x] `Menu` is a thin `mountVanilla(MenuView, ...)` face with unchanged public props and ref
       behavior; `MenuView` has a public constructor and uses the model driver.
-- [ ] The search header composes `InputView` through `this.child(...)`; the internal Popover
+- [x] The search header composes `InputView` through `this.child(...)`; the internal Popover
       `contentView` mode owns direct native Menu children; no React `<Input>` subtree, wrapper host,
       or per-row React root is introduced in the Menu path.
-- [ ] Menu rows are native/keyed DOM with the existing `data-type`, `data-id`, `data-part`, order,
+- [x] Menu rows are native/keyed DOM with the existing `data-type`, `data-id`, `data-part`, order,
       attributes, icon arm, label/hotkey, selected-check, submenu-chevron, listener and cleanup
       behavior.
-- [ ] Recursive submenus use `SubtreeSwap` with stable PropertyKey row ids, mount after attachment,
+- [x] Recursive submenus use `SubtreeSwap` with stable PropertyKey row ids, mount after attachment,
       replace siblings before disposing the old branch, and dispose child resources before parent
       resources. Parent clicks inside `[data-type="menu"]` remain ignored.
-- [ ] `openMenu(anchor, options)` exists with a caller-owned, idempotent `MenuHandle`; updates reuse
+- [x] `openMenu(anchor, options)` exists with a caller-owned, idempotent `MenuHandle`; updates reuse
       the existing view, disposal removes all roots/listeners/timers, and the attachment does not
       become a global singleton.
-- [ ] `WithMenu` preserves its render-prop and focus-restore API while driving `openMenu`; its
+- [x] `WithMenu` preserves its render-prop and focus-restore API while driving `openMenu`; its
       existing 15 production callers and story compile unchanged, and inline item arrays do not
       reopen the menu on every render.
-- [ ] `WithMenu` imports `Placement` from `@floating-ui/dom`, and no `@floating-ui/react` import
+- [x] `WithMenu` imports `Placement` from `@floating-ui/dom`, and no `@floating-ui/react` import
       remains under `src/renderer/uikit/`; the two app-layer importers remain expected survivors.
-- [ ] `Menu.css` is in `@layer uikit` and preserves all Menu Emotion declarations/order/specificity;
+- [x] `Menu.css` is in `@layer uikit` and preserves all Menu Emotion declarations/order/specificity;
       `Popover.css` remains the single shell owner through the non-overridable `popover-shell`
       class on the final `data-type="menu"` floating root in both themes.
-- [ ] No residual prop can silently disable a component-owned static style hook: the Popover shell
+- [x] No residual prop can silently disable a component-owned static style hook: the Popover shell
       remains present even though the residual `data-type="menu"` overrides the addressing marker.
-- [ ] The Menu story and representative application menus preserve placement, search, keyboard
+- [x] The Menu story and representative application menus preserve placement, search, keyboard
       navigation, submenus, outside click, Escape, selection, focus restoration, icon rendering,
       and disabled/group/minor styling. Equal-key fresh `items` arrays retain row elements. The app
       popup menu remains behaviorally unchanged.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; no public barrel or package
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass; no public barrel or package
       dependency is removed and no overlay-registry behavior is expanded.
 
 ## Files changed
@@ -475,7 +461,7 @@ Finally run `npm run typecheck`, `npm run lint`, and `git diff --check`.
 | `src/renderer/uikit/Menu/WithMenu.tsx` | Drive `openMenu`; preserve render-prop and focus restoration; move Placement type import |
 | `src/renderer/uikit/Menu/index.ts` | Preserve existing exports and expose the imperative attachment types/function |
 | `src/renderer/uikit/Popover/PopoverView.tsx` | Only if needed for the explicitly chosen internal content-host seam; no public Popover prop change |
-| `doc/epics/EPIC-055.md` | Record Rule 4 after-number and reconcile the current `WithMenu` measurement |
+| `doc/epics/EPIC-055.md` | Record the final Rule 4 measurement and reconcile the current `WithMenu` measurement |
 | `doc/active-work.md` | Link US-1006 to this task document |
 
 No external `WithMenu` caller, `showAppPopupMenu`, `Poppers`, `overlayRegistry`, MenuItem public

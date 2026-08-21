@@ -62,9 +62,9 @@ class CloseButtonView extends VanillaView<CloseButtonProps> {
 
 export class NotificationView extends VanillaView<NotificationProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
-    private readonly iconHost = document.createElement("span");
-    private readonly messageElement = document.createElement("span");
-    private readonly closeSwap = new SubtreeSwap<string>(this.root);
+    private iconHost: HTMLSpanElement | undefined;
+    private messageElement: HTMLSpanElement | undefined;
+    private closeSwap: SubtreeSwap<string> | undefined;
     private refCleanup: () => void = () => undefined;
     private boundRef: React.Ref<HTMLDivElement> | undefined;
 
@@ -75,6 +75,10 @@ export class NotificationView extends VanillaView<NotificationProps> {
     }
 
     protected onMount(): void {
+        this.iconHost = document.createElement("span");
+        this.iconHost.dataset.part = "icon";
+        this.messageElement = document.createElement("span");
+        this.closeSwap = new SubtreeSwap<string>(this.root);
         this.root.append(this.iconHost, this.messageElement);
         this.applyProps(this.props);
         this.updateIcon(this.props.type);
@@ -85,7 +89,7 @@ export class NotificationView extends VanillaView<NotificationProps> {
                 toPublicEvent(event) as React.MouseEvent<HTMLDivElement>,
             );
         });
-        this.own(() => this.closeSwap.dispose());
+        this.own(() => this.closeSwap?.dispose());
         this.own(() => this.clearRef());
         this.own(() => clearRestListeners(this.root, this.restPropsState));
         this.updateClose(this.props.onClose);
@@ -128,10 +132,11 @@ export class NotificationView extends VanillaView<NotificationProps> {
     }
 
     private updateIcon(type: NotificationSeverity): void {
-        this.iconHost.replaceChildren(createIconElement(SEVERITY_ICON[type]));
+        this.iconHost?.replaceChildren(createIconElement(SEVERITY_ICON[type]));
     }
 
     private updateMessage(message: string): void {
+        if (!this.messageElement) return;
         applyTextAttributes(
             this.messageElement,
             resolveTextAttributes({ size: "base", color: "inherit", preWrap: true }),
@@ -140,6 +145,7 @@ export class NotificationView extends VanillaView<NotificationProps> {
     }
 
     private updateClose(onClose: NotificationProps["onClose"]): void {
+        if (!this.closeSwap) return;
         let mountedView: CloseButtonView | undefined;
         this.closeSwap.set(onClose ? "close" : null, () => {
             mountedView = new CloseButtonView({

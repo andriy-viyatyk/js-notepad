@@ -2,9 +2,9 @@
 
 ## Status
 
-**Status:** Active
+**Status:** Completed
 **Created:** 2026-08-20
-**Completed:**
+**Completed:** 2026-08-21
 
 ## Overview
 
@@ -271,10 +271,10 @@ it the honest subject. DOM writes are counted with EPIC-053's `MutationObserver`
 point and interaction on both runs, because `Popover` portals out of the preview pane exactly as
 `Tooltip` did (C1-8's trap).
 
-**US-1005 takes the React baseline** — before any conversion lands, because it cannot be recovered
-afterwards. **US-1006 takes the after-number**, the first point at which both `Popover` and `Menu`
-are vanilla, and records both figures in this epic's Notes. Per Rule 4 the epic cannot close without
-both.
+**US-1005 establishes the Rule 4 procedure** before conversion. **US-1006 takes the final number**,
+the first point at which both `Popover` and `Menu` are vanilla, and records it in this epic's Notes.
+The user decided on 2026-08-21 that the historical all-React comparison is out of scope because C2
+only needs verification of the new implementation.
 
 Four secondary counts close alongside it:
 
@@ -298,7 +298,8 @@ Four secondary counts close alongside it:
   and E.
 - Convert the chrome and composite widgets, and finish `Panel`'s eviction from `uikit/`.
 - Give `Minimap`, `ImageViewport` and `Progress` their first stories, before converting them.
-- Produce Rule 4's measured number with a genuine React baseline.
+- Produce Rule 4's final measured number for the vanilla implementation. The historical React
+  comparison is optional and was explicitly waived by the user at closure.
 
 ## Linked Tasks
 
@@ -516,3 +517,20 @@ converting — neither has one, and without them there is no before / after DOM 
   selector matches after the new host depth is present. C2 has already encountered this class in
   Panel's `:empty` rule, Popover's overridable marker (fixed in `4afe8bac`), and Dialog's direct
   child selectors; `CollapsiblePanelStack.tsx:79,85,88,115` is the next named case for US-1010.
+
+### 2026-08-21 — completion review
+
+- Epic-level architecture review completed for US-1005 through US-1012. It found and the completion
+  pass fixed the Menu search threshold remount, ImageViewport's `Reset Zoom` title, constructor-time
+  child-DOM allocation in the affected views, defensive non-null assertions, and the Popover content
+  mode invariant. `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
+- Developer documentation was reconciled in the architecture, component, model/view, key-files, and
+  UIKit authoring guides. User-facing documentation was checked and needs no changes.
+- **Rule 4 closure measurement.** On 2026-08-21, the Storybook `Menu` story was left at its default
+  `small` variant. Immediately before clicking `Open menu`, identical observers were attached to
+  `[data-type="live-preview"]` and `#persephone-overlay-layer` with
+  `{ subtree: true, childList: true, attributes: true, characterData: true }`. The raw callback
+  record counts were **6** in the live preview and **119** in the overlay layer, for a final total
+  of **125** records. The observers were stopped after the menu mounted and settled. The user also
+  confirmed the Menu behavior is working and explicitly waived the retroactive all-React baseline
+  at `cdc12530`; no before/after comparison is part of C2 closure.

@@ -334,32 +334,32 @@ US-1005, as documented during the US-1006 review.
 
 ## Acceptance criteria
 
-- [ ] Both new stories render the current React faces before conversion, with settled snapshots and
+- [x] Both new stories render the current React faces before conversion, with settled snapshots and
   computed geometry captured in light and dark themes.
-- [ ] `Minimap.story.tsx` uses a real scroll fixture and `ImageViewport.story.tsx` uses a
+- [x] `Minimap.story.tsx` uses a real scroll fixture and `ImageViewport.story.tsx` uses a
   deterministic local image; both are registered in `storyRegistry.ts` and exercise the behavior
   listed in the plan.
-- [ ] `Minimap` and `ImageViewport` expose the same public props, exports, model types, and
+- [x] `Minimap` and `ImageViewport` expose the same public props, exports, model types, and
   production call-site behavior through thin `mountVanilla` adapters.
-- [ ] Each view assigns all DOM references required by its model before `driver.mount()`:
+- [x] Each view assigns all DOM references required by its model before `driver.mount()`:
   Minimap's wrapper/content-container/content-mirror and ImageViewport's container/image. Wheel
   zoom, minimap measurement, and initial synchronization work on first mount.
-- [ ] Their models have no registered `TComponentModel.effect()` entries and no React-only event or
+- [x] Their models have no registered `TComponentModel.effect()` entries and no React-only event or
   style types; the vanilla driver mounts without throwing and owns all cleanup.
-- [ ] The Minimap DOM structure, `data-type`, optional `data-name`, `data-part` names, mirror
+- [x] The Minimap DOM structure, `data-type`, optional `data-name`, `data-part` names, mirror
   synchronization, indicator geometry, click seek, pointer drag, resize, and observer replacement
   behavior match the React baseline.
-- [ ] The ImageViewport DOM structure, `data-type="image-view"`, `tabindex`, image attributes,
+- [x] The ImageViewport DOM structure, `data-type="image-view"`, `tabindex`, image attributes,
   zoom-indicator text/title/click reset behavior, image-load fit behavior, wheel/mouse/mouseleave/
   keyboard controls, source replacement, visibility reconciliation, clipboard command, and
   `onModel` lifecycle match the React baseline.
-- [ ] Static rules live in `Minimap.css` and `ImageViewport.css` under `@layer uikit`, are imported
+- [x] Static rules live in `Minimap.css` and `ImageViewport.css` under `@layer uikit`, are imported
   directly by the vanilla views, and preserve both themes and all dynamic-token fallbacks.
-- [ ] Runtime geometry is written only through the established direct DOM/style path: valid pixel
+- [x] Runtime geometry is written only through the established direct DOM/style path: valid pixel
   values for minimap measurements and the existing transform/transition semantics for the image.
-- [ ] Markdown, Image, SVG, and Mermaid consumers work without call-site changes; no model callback,
+- [x] Markdown, Image, SVG, and Mermaid consumers work without call-site changes; no model callback,
   timer, observer, wheel listener, pointer listener, or state subscription survives disposal.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
 
 ## Files expected to change
 

@@ -14,8 +14,8 @@ import "../IconButton/IconButton.css";
 type PrimaryView = ButtonView | IconButtonView;
 
 export class SplitButtonView extends VanillaView<SplitButtonProps> {
-    private readonly separator = document.createElement("span");
-    private readonly caretSlot = document.createElement("div");
+    private separator: HTMLSpanElement | undefined;
+    private caretSlot: HTMLDivElement | undefined;
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private primaryView: PrimaryView | undefined;
     private primaryIsButton = false;
@@ -26,20 +26,25 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
     public constructor(props: SplitButtonProps) {
         super(props, document.createElement("div"));
         this.root.classList.add("split-button-root");
-        this.separator.dataset.part = "separator";
-        this.caretSlot.classList.add("split-caret-slot");
     }
 
     protected onMount(): void {
+        this.separator = document.createElement("span");
+        this.separator.dataset.part = "separator";
+        this.caretSlot = document.createElement("div");
+        this.caretSlot.classList.add("split-caret-slot");
         this.applyRootProps(this.props);
         this.createPrimary(this.props);
         this.caretView = this.child(new IconButtonView(this.caretProps(this.props)));
 
-        this.root.append(this.primaryView!.root, this.separator, this.caretSlot);
-        this.caretSlot.append(this.caretView.root);
+        const primaryView = this.primaryView;
+        const caretView = this.caretView;
+        if (!primaryView || !caretView) throw new Error("SplitButton failed to create its child views.");
+        this.root.append(primaryView.root, this.separator, this.caretSlot);
+        this.caretSlot.append(caretView.root);
 
-        this.primaryView!.mount();
-        this.caretView.mount();
+        primaryView.mount();
+        caretView.mount();
     }
 
     protected onUpdate(props: SplitButtonProps): void {
@@ -79,7 +84,8 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
             previous.root.remove();
         }
         this.createPrimary(props);
-        const primary = this.primaryView!;
+        const primary = this.primaryView;
+        if (!primary || !this.separator) return;
         this.root.insertBefore(primary.root, this.separator);
         primary.mount();
     }
@@ -132,7 +138,8 @@ export class SplitButtonView extends VanillaView<SplitButtonProps> {
         this.focusedBeforeMenu = document.activeElement instanceof HTMLElement
             ? document.activeElement
             : null;
-        this.menuHandle = openMenu(this.caretView!.root, this.menuOptions(this.props));
+        if (!this.caretView) return;
+        this.menuHandle = openMenu(this.caretView.root, this.menuOptions(this.props));
     };
 
     private readonly onMenuClose = (): void => {

@@ -11,7 +11,7 @@ Each component lives in its own subfolder:
 
 ```
 uikit/
-  tokens.ts              ← design token constants (US-426)
+  tokens.ts              ← design token constants
   index.ts               ← public exports
   Button/
     Button.tsx
@@ -366,8 +366,8 @@ prop surface, do not work around the rule. The right answer is "Panel needs a ne
   alone without consulting separate `styled.*` blocks.
 
 **When this rule may be relaxed:** when scripts need to ship custom styles into UIs, a curated
-escape hatch (e.g. `style?: Pick<CSSProperties, "color" | …>`) may be added — see EPIC-025
-Phase 6 (Script UI API). Until then, no escape hatch.
+escape hatch (e.g. `style?: Pick<CSSProperties, "color" | …>`) may be added for a future script UI
+API. Until then, no escape hatch.
 
 **Application chrome exception (`src/renderer/ui/`)**
 
@@ -479,7 +479,8 @@ existing React view. The detailed model contract is in
 section is the mandatory checklist for a class extending `VanillaView`.
 
 Import `VanillaView`, `KeyedList`, and `SubtreeSwap` directly from their files under
-`uikit/shared/`; Epic B intentionally does not add these primitives to `uikit/index.ts`.
+`uikit/shared/`; these lifecycle and structural helpers are internal and are not public barrel
+exports from `uikit/index.ts`.
 
 ### Lifecycle and ownership
 
@@ -628,7 +629,8 @@ rules are visible together.
 
 ### Component names
 
-Use the names from the US-438 naming table. Never use old names from `src/renderer/components/`.
+Use the canonical naming table in this guide. Never use old names from
+`src/renderer/components/`.
 
 | Old name | New name |
 |----------|----------|

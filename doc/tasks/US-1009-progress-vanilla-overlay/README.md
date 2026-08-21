@@ -1,6 +1,6 @@
 # US-1009: `Progress` — vanilla overlay, first story, and `Panel` eviction
 
-**Status:** Planned
+**Status:** Implemented
 
 **Priority:** High
 
@@ -316,37 +316,37 @@ may retain more than three model items, while the overlay still shows only the f
 
 ## Acceptance criteria
 
-- [ ] `ProgressOverlay` is a thin `mountVanilla` face over a stable native view; its public props,
+- [x] `ProgressOverlay` is a thin `mountVanilla` face over a stable native view; its public props,
       `Progress` exports, `progressModel`, `app.ui` APIs, and the single root mount remain intact.
-- [ ] The native view binds directly to `progressState` and preserves the exact priority
+- [x] The native view binds directly to `progressState` and preserves the exact priority
       notification → progress → locked → empty, first-item selection, label updates, and model-
       owned timer/promise semantics.
-- [ ] One `SubtreeSwap` owns the mutually exclusive branch; branch roots are detached before mount,
+- [x] One `SubtreeSwap` owns the mutually exclusive branch; branch roots are detached before mount,
       layout-transparent, disposed before helper detachment, and no nested React root is created;
       its keys are only `notification` and `blocking`, so progress ↔ locked retains the blockers.
-- [ ] `Progress.css` is layered under `@layer uikit`, uses the existing data-part vocabulary and
+- [x] `Progress.css` is layered under `@layer uikit`, uses the existing data-part vocabulary and
       token variables, preserves the root/header/content/pill geometry, writes numeric top values
       as valid pixel lengths, and uses `display: none` for empty versus `display: block` for the
       active positioned root. The mode anchor alone uses `display: contents`.
-- [ ] Empty state has an always-present but boxless/pointer-inert root; active notification,
+- [x] Empty state has an always-present but boxless/pointer-inert root; active notification,
       progress, and locked states retain the current overlay z-index, pointer behavior, drag
       region, and full-window geometry.
-- [ ] The notification and progress pills preserve the exact Panel-derived alignment, padding,
+- [x] The notification and progress pills preserve the exact Panel-derived alignment, padding,
       gap, dark background, radius, shadow, labels, and size-18 spinner; the progress pill alone
       is interactive.
-- [ ] The first Progress Storybook story drives the real global progress APIs and exercises
+- [x] The first Progress Storybook story drives the real global progress APIs and exercises
       notification, delayed progress, label updates, lock/release, precedence, cleanup, and both
       themes without mounting a duplicate overlay; every action self-terminates and cannot strand
       the blocking overlay over its own controls.
-- [ ] `ProgressOverlayView.ts` explicitly imports `Progress.css`, `Spinner.css`, and `Text.css`;
+- [x] `ProgressOverlayView.ts` explicitly imports `Progress.css`, `Spinner.css`, and `Text.css`;
       the same direct-view stylesheet rule is recorded in the UIKit authoring guide, and the
       US-1008 `NotificationView` follow-up imports `Text.css` and `IconButton.css` directly.
-- [ ] Storybook and running-app verification cover resolve/reject, fast/slow promises, repeated
+- [x] Storybook and running-app verification cover resolve/reject, fast/slow promises, repeated
       mode transitions, empty state, pointer/drag behavior, exact data attributes, and no stale
       DOM/timers/listeners.
-- [ ] `ProgressOverlay` no longer imports or renders `Panel`; `Autocomplete` remains the known
+- [x] `ProgressOverlay` no longer imports or renders `Panel`; `Autocomplete` remains the known
       C3 consumer and `Toolbar` remains for its own C2 task, with no unrelated import graph changed.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
 
 ## Files changed
 

@@ -276,6 +276,13 @@ The concrete end-to-end reference is
 driver, `bind`, `KeyedList`, native events, static CSS, and a deliberately local `mountReact`
 bridge.
 
+For a React-valued slot inside a vanilla view, use `fillSlot` from
+[`uikit/shared/fill-slot.ts`](../../src/renderer/uikit/shared/fill-slot.ts). It owns the supplied
+host, reuses the nested React root when the slot remains React-backed, and defers disposal when a
+React root must be released during another React commit. Do not mutate a fill-slot host directly;
+the host's direct-child shape is part of the component contract. Use `mountReactHandle` directly
+only when the view owns a deliberate multi-node React bridge or needs to retain a render handle.
+
 ## Before and after: the same model, two view runtimes
 
 ```typescript

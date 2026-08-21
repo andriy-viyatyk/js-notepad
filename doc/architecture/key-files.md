@@ -35,7 +35,9 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Vanilla view lifecycle and ownership (`VanillaView`, `IOwnedView`, guarded `bind`/`listen`, FIFO cleanup, and single-owner claims) | `/src/renderer/uikit/shared/vanilla-view.ts` |
 | Keyed DOM reconciliation (duplicate-safe keyed records, cursor-based minimal moves, reusable `clear`, and inert `dispose`) | `/src/renderer/uikit/shared/keyed-list.ts` |
 | Conditional subtree ownership (stable `PropertyKey` keys, replacement-before-disposal, and root detachment) | `/src/renderer/uikit/shared/subtree-swap.ts` |
-| React/vanilla boundary adapters (`mountVanilla` stable host and `mountReact` owned root disposer) | `/src/renderer/uikit/shared/mount.tsx` |
+| React/vanilla boundary adapters (`mountVanilla` stable host, `mountReact`/`mountReactHandle` owned roots, and commit-safe host replacement) | `/src/renderer/uikit/shared/mount.tsx` |
+| React-valued slot bridge (host ownership, React-root reuse, and deferred disposal across React commits) | `/src/renderer/uikit/shared/fill-slot.ts` |
+| Native bridge for residual React props/events (`applyRestProps`, branded-event facade, and ref cleanup) | `/src/renderer/uikit/shared/react-compat.ts` |
 | Non-React component model driver (initial prop pump, explicit mount/update/dispose, and zero-effect guard) | `/src/renderer/core/state/model.ts` |
 | Component command mailbox | `/src/renderer/core/state/ComponentQueue.ts`      |
 | Markdown link resolution (relative → `file://`; Azure DevOps wiki root-relative pages + `.attachments`) | `/src/renderer/core/utils/path-utils.ts` |
@@ -96,6 +98,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Image-export capability (`exportPng`/`suggestedImageName`; Mermaid/SVG/Image/HTML) | `/src/renderer/editors/base/IImageExport.ts` |
 | Image-export helpers (canvas→PNG, save-to-file/dialog) | `/src/renderer/editors/shared/image-export.ts` |
 | Reusable image viewport (zoom/pan model, fit/reset behavior, and clipboard copy for Image/SVG/Mermaid previews) | `/src/renderer/uikit/ImageViewport/` |
+| Reusable minimap (scroll mirroring, drag navigation, and viewport indicator) | `/src/renderer/uikit/Minimap/` |
 | Page-tab context-menu builders (`textFileMenuItems` / `filePathMenuItems` / `openInBrowserMenuItems` — "Open in Browser" for HTML files via `target: "browser"`; consumed via `EditorModel.onGetMenuItems()`) | `/src/renderer/editors/shared/editor-menu-items.tsx` |
 | Text editor model        | `/src/renderer/editors/text/TextEditorModel.ts`   |
 | Monaco editor            | `/src/renderer/editors/monaco/MonacoEditor.ts`    |
@@ -136,7 +139,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | Theme color resolution and startup application (`resolveColor`, theme cycling, synchronous initial theme and token installation) | `/src/renderer/theme/themes/index.ts` |
 | App design-token CSS variables (`APP_TOKEN_VARS`, numeric scale mapper, idempotent `:root` installation) | `/src/renderer/theme/token-vars.ts` |
 | Static CSS cascade-layer order | `/src/renderer/theme/style-layers.css` |
-| SVG icon registry and neutral resolver | `/src/renderer/theme/icon-registry.ts`, `/src/renderer/uikit/shared/slots.ts` |
+| SVG icon registry and dual React/DOM resolver (`renderIcon` / `createIconElement`, including icon-name narrowing) | `/src/renderer/theme/icon-registry.ts`, `/src/renderer/uikit/shared/slots.ts`, `/src/renderer/theme/icons.tsx` |
 | App theme cycling (`cycleAppTheme(direction)` — cycle + persist to settings; shared by the host `KeyboardService` shortcut and the `board:cycleTheme` message forwarded out of a board frame, so both paths behave identically) | `/src/renderer/api/cycle-app-theme.ts` |
 | Theme definitions        | `/src/renderer/theme/themes/`                     |
 | Sidecar process lifecycle (main; shared spawn → stdout-readiness → stop machinery for helper exes — tor.exe, mneme.exe. Owns the parts that are easy to get subtly wrong: in-flight start dedupe (`pending` registered synchronously, so concurrent restarts join one attempt instead of racing two daemons onto the same on-disk state), readiness timeout, the stale-child guard on `close` (a replaced process's late close must not null out its healthy successor), `onUnexpectedExit` for post-readiness deaths only, and stop-and-wait before respawn. Services keep every domain concern and feed `log`/`isReady`/status callbacks) | `/src/main/sidecar-process.ts` |

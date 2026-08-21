@@ -14,9 +14,9 @@ import "./Minimap.css";
 export class MinimapView extends VanillaView<MinimapProps> {
     private readonly driver;
     private readonly restState = createRestPropsState();
-    private contentContainer!: HTMLDivElement;
-    private contentMirror!: HTMLDivElement;
-    private indicator!: HTMLDivElement;
+    private contentContainer: HTMLDivElement | undefined;
+    private contentMirror: HTMLDivElement | undefined;
+    private indicator: HTMLDivElement | undefined;
 
     constructor(props: MinimapProps) {
         super(props);
@@ -108,12 +108,14 @@ export class MinimapView extends VanillaView<MinimapProps> {
     }
 
     private applyState(state: MinimapState): void {
+        const indicator = this.indicator;
+        if (!indicator) return;
         if (state.isDragging) {
-            this.indicator.dataset.dragging = "";
+            indicator.dataset.dragging = "";
         } else {
-            delete this.indicator.dataset.dragging;
+            delete indicator.dataset.dragging;
         }
-        this.indicator.style.top = `${state.indicatorTop}px`;
-        this.indicator.style.height = `${state.indicatorHeight}px`;
+        indicator.style.top = `${state.indicatorTop}px`;
+        indicator.style.height = `${state.indicatorHeight}px`;
     }
 }

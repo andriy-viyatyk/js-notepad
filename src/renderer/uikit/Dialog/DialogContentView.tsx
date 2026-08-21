@@ -137,16 +137,18 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         }
         this.ensureCloseSwap();
 
-        const header = this.header!;
-        const titleBox = this.titleBox!;
+        const header = this.header;
+        const titleBox = this.titleBox;
+        const bodyHost = this.bodyHost;
+        if (!header || !titleBox || !bodyHost) return;
         titleBox.textContent = props.title ?? "";
 
         this.syncIcon(props.icon);
         this.syncHeaderButtons(props.headerButtons);
         this.syncClose(props.onClose);
         // Keep the body after the header if the header was added during an update.
-        if (this.bodyHost.previousSibling !== header) {
-            this.root.insertBefore(header, this.bodyHost);
+        if (bodyHost.previousSibling !== header) {
+            this.root.insertBefore(header, bodyHost);
         }
     }
 
@@ -180,10 +182,13 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         }
 
         if (!this.iconHost) {
+            const header = this.header;
+            const titleBox = this.titleBox;
+            if (!header || !titleBox) return;
             this.iconHost = document.createElement("span");
             this.iconHost.dataset.part = "icon";
             this.iconHost.style.display = "contents";
-            this.header!.insertBefore(this.iconHost, this.titleBox!);
+            header.insertBefore(this.iconHost, titleBox);
         }
 
         const content = typeof icon === "string"
@@ -202,11 +207,13 @@ export class DialogContentView extends VanillaView<DialogContentProps> {
         }
 
         if (!this.headerButtonsHost) {
+            const header = this.header;
+            if (!header) return;
             this.headerButtonsHost = document.createElement("span");
             this.headerButtonsHost.dataset.part = "header-buttons";
             this.headerButtonsHost.style.display = "contents";
             const before = this.closeView?.root ?? null;
-            this.header!.insertBefore(this.headerButtonsHost, before);
+            header.insertBefore(this.headerButtonsHost, before);
         }
         this.headerButtonsCleanup = fillSlot(this.headerButtonsHost, buttons);
     }

@@ -277,32 +277,32 @@ disabling its static style hook.
 
 ## Acceptance criteria
 
-- [ ] `Notification`, `AlertItem`, and `AlertsBar` preserve their public exports and props, while
+- [x] `Notification`, `AlertItem`, and `AlertsBar` preserve their public exports and props, while
       their implementation faces are thin `mountVanilla` adapters; `src/renderer/index.tsx` and
       `api.ui.notify()` remain unchanged.
-- [ ] `NotificationView` preserves severity icon names, message text, `data-part` order, ARIA
+- [x] `NotificationView` preserves severity icon names, message text, `data-part` order, ARIA
       role/live values, body click and close propagation semantics, ref behavior, and the optional
       close button without a nested React root.
-- [ ] The native message span is produced from `resolveTextAttributes({ size: "base", color:
+- [x] The native message span is produced from `resolveTextAttributes({ size: "base", color:
       "inherit", preWrap: true })`, including `data-variant="default"`; no hand-maintained Text
       attribute subset is used.
-- [ ] `Notification.css` is the sole notification style owner, is wrapped in `@layer uikit`,
+- [x] `Notification.css` is the sole notification style owner, is wrapped in `@layer uikit`,
       preserves the four severity rules and the exact `notification-slide-in` animation, and
       uses token variables with fallbacks; all eight severity-prefixed close-button selectors keep
       their specificity.
-- [ ] `AlertItemView` has no `Panel` import or rendered Panel; its native positioned root keeps
+- [x] `AlertItemView` has no `Panel` import or rendered Panel; its native positioned root keeps
       display/flex, top/right/z-index behavior, ref measurement target, alert order, and one
       mount-to-dispose auto-close timer.
-- [ ] `AlertsBarView` binds directly to `alertsBarModel.state`, uses `KeyedList` over the visible
+- [x] `AlertsBarView` binds directly to `alertsBarModel.state`, uses `KeyedList` over the visible
       alert slice, retains keyed roots across state updates, synchronously reconciles then performs
       one guarded microtask measurement pass, and reflows lower alerts when a measured height
       changes.
-- [ ] Empty state is inert: the stable `data-type="alerts-bar"` host generates no layout box,
+- [x] Empty state is inert: the stable `data-type="alerts-bar"` host generates no layout box,
       no interaction, and no stale alert/timer; three-alert capacity and all-error retention match
       the existing model behavior.
-- [ ] Storybook and the running app verify all severities, both themes, multiline text, animation,
+- [x] Storybook and the running app verify all severities, both themes, multiline text, animation,
       body click, close click, promise results, auto-dismiss, stacking/reflow, and disposal.
-- [ ] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, with no unrelated source,
+- [x] `npm run typecheck`, `npm run lint`, and `git diff --check` pass, with no unrelated source,
       package, root-entry, or public API changes.
 
 ## Files changed
