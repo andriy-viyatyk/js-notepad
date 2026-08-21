@@ -1,9 +1,12 @@
-import { useEffect } from 'react';
-
-import { TModel } from '../../core/state/model';
-import { TMessageType } from '../../core/utils/types';
-import { TGlobalState } from '../../core/state/state';
-import { AlertData, AlertItem } from './AlertItem';
+import React from "react";
+import { TModel } from "../../core/state/model";
+import { TMessageType } from "../../core/utils/types";
+import { TGlobalState } from "../../core/state/state";
+import { KeyedList } from "../shared/keyed-list";
+import { mountVanilla } from "../shared/mount";
+import { VanillaView } from "../shared/vanilla-view";
+import { AlertItemView, type AlertItemViewProps } from "./AlertItemView";
+import type { AlertData } from "./AlertItem";
 
 const maxAlerts = 3;
 let alertId = 0;
@@ -104,33 +107,94 @@ export const alertsBarModel = new AlertsBarModel(
     new TGlobalState(defaultAlertsBarState),
 );
 
-export function AlertsBar() {
-    const model = alertsBarModel;
-    const state = model.state.use();
+type AlertsBarViewProps = Record<string, never>;
 
-    useEffect(() => {
-        model.updateHeights(state.alerts);
-    }, [model, state.alerts]);
+class AlertsBarView extends VanillaView<AlertsBarViewProps> {
+    private readonly itemViews = new Map<number, AlertItemView>();
+    private readonly alertList: KeyedList<AlertData, number, HTMLDivElement>;
+    private visibleAlerts: AlertData[] = [];
+    private live = true;
+    private measurementQueued = false;
 
-    if (!state.alerts.length) {
-        return null;
+    public constructor(props: AlertsBarViewProps) {
+        super(props, document.createElement("div"));
+        this.root.dataset.type = "alerts-bar";
+        this.root.style.display = "contents";
+        this.alertList = new KeyedList<AlertData, number, HTMLDivElement>(this.root, {
+            keyOf: (alert) => alert.key,
+            create: (alert): HTMLDivElement => {
+                const view = new AlertItemView(this.getItemProps(alert));
+                this.itemViews.set(alert.key, view);
+                view.mount();
+                return view.root as HTMLDivElement;
+            },
+            update: (_element, alert) => {
+                this.itemViews.get(alert.key)?.update(this.getItemProps(alert));
+            },
+            remove: (_element, alert) => {
+                const view = this.itemViews.get(alert.key);
+                this.itemViews.delete(alert.key);
+                view?.dispose();
+            },
+        });
     }
 
-    return (
-        <>
-            {state.alerts.slice(0, maxAlerts).map((a) => {
-                return (
-                    <AlertItem
-                        key={a.key}
-                        data={a}
-                        top={model.alertTop(a)}
-                        right={16}
-                        ref={(ref: HTMLDivElement) =>
-                            ref && model.updateHeight(a, ref.scrollHeight)
-                        }
-                    />
-                );
-            })}
-        </>
-    );
+    protected onMount(): void {
+        this.own(() => {
+            this.live = false;
+        });
+        this.own(() => this.alertList.dispose());
+        this.bind(
+            alertsBarModel.state,
+            (state) => state.alerts,
+            (alerts) => this.updateAlerts(alerts),
+        );
+        this.bind(
+            alertsBarModel.state,
+            (state) => state.height,
+            () => this.updatePositions(),
+        );
+    }
+
+    private updateAlerts(alerts: AlertData[]): void {
+        this.visibleAlerts = alerts.slice(0, maxAlerts);
+        this.alertList.update(this.visibleAlerts);
+        this.queueMeasurement();
+    }
+
+    private updatePositions(): void {
+        this.visibleAlerts.forEach((alert) => {
+            this.itemViews.get(alert.key)?.update(this.getItemProps(alert));
+        });
+    }
+
+    private getItemProps(alert: AlertData): AlertItemViewProps {
+        return {
+            data: alert,
+            top: alertsBarModel.alertTop(alert),
+            right: 16,
+        };
+    }
+
+    private queueMeasurement(): void {
+        if (this.measurementQueued) return;
+        this.measurementQueued = true;
+        queueMicrotask(() => {
+            this.measurementQueued = false;
+            if (!this.live) return;
+
+            alertsBarModel.updateHeights(this.visibleAlerts);
+            if (!this.live) return;
+
+            this.visibleAlerts.forEach((alert) => {
+                const view = this.itemViews.get(alert.key);
+                if (view) alertsBarModel.updateHeight(alert, view.root.scrollHeight);
+            });
+            this.updatePositions();
+        });
+    }
+}
+
+export function AlertsBar(): React.ReactElement {
+    return mountVanilla(AlertsBarView, {});
 }
