@@ -27,6 +27,15 @@ Plain CSS is scoped from the required `[data-type="component-name"]` root and us
 `data-part` vocabulary for stable internal regions. Existing components remain on Emotion until
 an explicit conversion task; do not mix Emotion and static CSS for the same converted subtree.
 
+### Which virtualization engine to use
+
+Two exist while the migration runs. **New code uses `VirtualGrid`** (`uikit/VirtualGrid/`,
+`VirtualGridView` + `VirtualGridModel`) — the vanilla engine, cell renderers return an
+`HTMLElement`. `RenderGrid` and `RenderFlexGrid` (`uikit/RenderGrid/`) are React-only, kept alive
+only for the app-layer consumers that still pass `ReactNode` cell renderers; they are converted
+away in Epics D/E and C4 and then deleted (EPIC-056 C3-1, C3-4, and Epic F's removal ledger in
+[/doc/de-react.md](../../../doc/de-react.md)). Do not add a consumer to either of them.
+
 ---
 
 ## Rule 1 — Data attributes for state (mandatory on every component)
@@ -520,6 +529,64 @@ exports from `uikit/index.ts`.
   lifecycle hooks, or cancellable async work. Keep prop-to-state seeding behind an identity guard
   in `setProps`, because prop pumping runs on every update.
 
+#### The one exemption from the state primitives
+
+`uikit/VirtualGrid/VirtualGridModel.ts` uses **no state primitive at all** — plain fields, and one
+`onRepaintNeeded` callback the view supplies, which paints on `requestAnimationFrame`. This is a
+named, bounded exemption (EPIC-056 C3-2), not an oversight, and it applies to that file only.
+
+The reason is that its single consumer is a paint loop that already carries a precise dirty set
+(`RerenderInfo`), so a subscription buys nothing, while `TOneState` would add immer `produce` on
+every update and synchronous listener dispatch from inside a scroll handler. There is exactly one
+subscriber and it is known statically — that is a callback, not a subject.
+
+Two rules come with it. The callback may only ever **schedule** a paint, never paint
+synchronously, because it is invoked from a `ResizeObserver` callback. And if a *host* ever needs
+to observe the engine rather than command it, the answer is another registered callback in the
+options — as `onResize` and `onInnerSizeChange` already are — never a store bolted onto the model.
+Every other component in this folder uses the state primitives; do not generalise from this one.
+
+#### Replacing `effect()` in a vanilla-driven model
+
+`createComponentModelDriver` refuses to mount a model that registered any `effect()`, but the
+question an effect answered — "did any of these inputs move?" — does not go away. The answer is
+`uikit/shared/deps-gate.ts`: the **model** publishes a fixed-length signature of everything its
+rendered output reads, and the **host view** holds a `DepsGate` and calls it once, at the end of
+`onUpdate`, after the driver has pumped props. `ListBoxModel.repaintSignature()` is the reference
+shape.
+
+Four rules, each of which has already bitten:
+
+- **Fixed length.** `depsChanged` treats a length change as "changed", so a conditionally-pushed
+  slot silently degenerates into "always repaint".
+- **Gate after the pump, prime at the end of `onMount`.** Gating first compares a stale signature;
+  never priming makes the first update repaint everything for nothing.
+- **Compare a `memo`'s output only when the memo genuinely derives something.** When its only
+  dependency is a prop, the prop *is* the signal — compare that instead and skip evaluating the
+  memo inside change detection. When its output is a normalised primitive, comparing the output is
+  better than comparing the prop. `ListBoxModel.resolved` is the first case, `selectedKey` the
+  second, `TreeModel.rows` the third.
+- **Do not put reactive state in the signature.** A state change does not pump props in a vanilla
+  driver, so a state slot is dead code. State-driven arms belong in `bind()`, and consequences of
+  the model's own mutations belong at the mutation site.
+
+#### React-valued slots inside a virtualized row
+
+`ListBox` keeps a `renderItem` prop returning `ReactNode`, and `ListItem`'s `icon`, `label`,
+`trailing` and `tooltip` all accept React values — which the majority of real call sites use for the
+icon. That is allowed, and it is not a reopening of C3-1's rejected "React root per cell": the
+engine's cell contract is still `HTMLElement` and `VirtualGrid` never sees React. Four guard rails
+keep it from creeping:
+
+- Decide **per slot**, not per row: an `IconName` becomes a DOM `svg` with no root; only a genuine
+  React value goes through `fillSlot`. Never route strings through `fillSlot` for uniformity.
+- Roots are retained **per pooled element**, never per row. The pool's refusal to reset a released
+  element is exactly what makes that work; a settled scroll must create zero roots.
+- Never run a slot cleanup on eviction — only at view disposal. Track created elements in a real
+  `Set`, because an unmounted-but-undisposed root keeps its subscriptions alive on a detached tree.
+- Key the caller's subtree by the cell key, so a recycled element remounts it rather than letting
+  one row's state bleed into another's.
+
 ### Structural helpers and React boundaries
 
 - Claim a child with `this.child(view)` exactly once. Ownership is enforced by the shared marker;
@@ -574,6 +641,14 @@ attribute:
 | `rowSelectionBase` | the **row**'s styled block (self-selector spread) | blurred base — `[data-selected]` → `background.light`, `[data-active]:not([data-selected])` → `background.message` |
 | `focusSelectionOverride(rowSelector)` | the focusable **container**'s styled block | focused override for rows that are *descendants* of the container (e.g. `Tree` → `TreeItem`, `CategoryList` → its rows) |
 | `rowFocusSelectionOverride(rowMatch)` | the **row**'s own styled block | focused override for a row primitive used *without* its own styled container (e.g. `ListItem` outside `ListBox`, `SelectableRow`) — matches whenever the row sits inside any focused-within `[data-focus-selection]` ancestor |
+
+**Converted components no longer import the module.** `ListItem` now carries its own
+hand-translated copy of `rowSelectionBase` and `rowFocusSelectionOverride` in `ListItem.css`, scoped
+to `[data-type="list-item"]` (EPIC-056 C3-7). `shared/selection-style.ts` stays for its three
+remaining Emotion consumers — `Tree`, `TreeItem` and `ui/sidebar/FolderItem` — and is deleted with
+the last of them. Each copy is scoped to its own component root, so the copies cannot collide; when
+a second *converted* consumer appears, revisit whether a shared stylesheet is worth the cross-file
+source-order dependency, because the rule order inside these blocks is load-bearing.
 
 **How a container opts in:** set `data-focus-selection` **and** `tabIndex={0}` on the scroll
 container so `:focus-within` can trigger on click. `ListBox` does this for you via

@@ -14,9 +14,10 @@
  * awaiting the original waited forever. Assigning inside the constructor, after the reset, is the
  * fix. Do not move `async` back to a field initializer.
  *
- * Kept in sync with av-grid's `core/AsyncRef.ts`, which carries the same fix.
+ * Shared by both virtualization engines: `uikit/VirtualGrid/VirtualGridModel.ts` (live) and
+ * `uikit/RenderGrid/RenderGridModel.ts` (React-only, pending removal).
  */
-export default class AsyncRef<T> {
+export class AsyncRef<T> {
     current: T;
     /** Resolves the initial `async` promise; cleared once used. */
     private resolveAsync: ((v: T) => void) | undefined;

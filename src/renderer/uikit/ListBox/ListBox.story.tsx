@@ -13,7 +13,10 @@ import { ContextMenuEvent } from "../../api/events/events";
 import type { MenuItem } from "../Menu";
 import { Story } from "../../editors/storybook/storyTypes";
 
-const REGULAR_ITEMS: IListBoxItem[] = Array.from({ length: 60 }, (_, i) => ({
+// Built once at the largest size the story offers and sliced per render, so changing `rowCount`
+// does not re-allocate 10,000 objects and the `items` identity stays stable for the repaint gate.
+const MAX_REGULAR_ITEMS = 10000;
+const REGULAR_ITEMS: IListBoxItem[] = Array.from({ length: MAX_REGULAR_ITEMS }, (_, i) => ({
     value: i,
     label: `Suggestion ${i} — apple banana cherry`,
     icon: <GlobeIcon />,
@@ -39,6 +42,7 @@ const SECTIONED_ITEMS: IListBoxItem[] = (() => {
 })();
 
 interface DemoProps {
+    rowCount?: number;
     searchText?: string;
     keyboardNav?: boolean;
     loading?: boolean;
@@ -53,6 +57,7 @@ interface DemoProps {
 }
 
 function ListBoxDemo({
+    rowCount = 60,
     searchText = "apple",
     keyboardNav = true,
     loading = false,
@@ -70,11 +75,11 @@ function ListBoxDemo({
     const [removed, setRemoved] = useState<Set<IListBoxItem["value"]>>(new Set());
 
     const items = useMemo(() => {
-        const base = sections
-            ? SECTIONED_ITEMS
-            : REGULAR_ITEMS.filter((it) => !removed.has(it.value));
-        return base;
-    }, [sections, removed]);
+        if (sections) return SECTIONED_ITEMS;
+        const count = Math.max(0, Math.min(rowCount, MAX_REGULAR_ITEMS));
+        const base = REGULAR_ITEMS.slice(0, count);
+        return removed.size === 0 ? base : base.filter((it) => !removed.has(it.value));
+    }, [sections, removed, rowCount]);
 
     const renderItem = customRow
         ? (ctx: ListItemRenderContext<IListBoxItem>) => (
@@ -171,6 +176,8 @@ export const listBoxStory: Story = {
     section: "Lists",
     component: ListBoxDemo as React.ComponentType<Record<string, unknown>>,
     props: [
+        // 60 rows never exercise the cell pool; raise this to see virtualization work.
+        { name: "rowCount",           type: "number",  default: 60, min: 0, max: 10000, step: 100 },
         { name: "searchText",         type: "string",  default: "apple" },
         { name: "keyboardNav",        type: "boolean", default: true },
         { name: "loading",            type: "boolean", default: false },

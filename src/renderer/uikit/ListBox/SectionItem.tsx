@@ -1,7 +1,6 @@
 import React from "react";
-import styled from "@emotion/styled";
-import color from "../../theme/color";
-import { spacing } from "../tokens";
+import { mountVanilla } from "../shared/mount";
+import { SectionItemView } from "./SectionItemView";
 
 // --- Types ---
 
@@ -17,40 +16,8 @@ export interface SectionItemProps
     label: string;
 }
 
-// --- Styled ---
-
-const Root = styled.div(
-    {
-        display: "flex",
-        width: "100%",
-        boxSizing: "border-box",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingLeft: spacing.sm,
-        paddingRight: spacing.sm,
-        color: color.text.light,
-        cursor: "default",
-        userSelect: "none",
-        overflow: "hidden",
-        whiteSpace: "nowrap",
-        textOverflow: "ellipsis",
-    },
-    { label: "ListBoxSection" },
-);
-
 // --- Component ---
 
-export function SectionItem({ name, id, label, ref, ...rest }: SectionItemProps) {
-    return (
-        <Root
-            ref={ref}
-            id={id}
-            data-type="list-section"
-            data-name={name}
-            role="presentation"
-            {...rest}
-        >
-            {label}
-        </Root>
-    );
+export function SectionItem(props: SectionItemProps): React.ReactElement {
+    return mountVanilla(SectionItemView, props);
 }

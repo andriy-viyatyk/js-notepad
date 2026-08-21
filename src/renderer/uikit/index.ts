@@ -112,7 +112,19 @@ export type {
 export { TreeItem, TreeSectionItem } from "./Tree";
 export type { TreeItemProps, TreeSectionItemProps } from "./Tree";
 
-// Virtualization (foundational primitive — consumed by ListBox, Tree, AVGrid, editor lists)
+// Virtualization, vanilla — what new code uses (EPIC-056 C3-1/C3-4).
+export { VirtualGridView, VirtualGridModel } from "./VirtualGrid";
+export type { VirtualGridProps, VirtualGridOptions, VirtualGridStats } from "./VirtualGrid";
+// Aliased on the way out: `./RenderGrid` already exports these names, and the geometry types are
+// structurally the same on both engines. Every existing consumer imports them from the folder.
+export type {
+    RenderCellFunc as VirtualCellFunc,
+    RenderCellParams as VirtualCellParams,
+    RenderedCell,
+} from "./VirtualGrid";
+
+// Virtualization, React — legacy. Still consumed by 12 app-layer files and `AVGrid`; converted
+// away in Epics D/E and C4, then deleted (Epic F removal ledger). Do not add a consumer.
 export { RenderGrid, RenderGridModel, RenderFlexGrid } from "./RenderGrid";
 export type {
     RenderGridProps,

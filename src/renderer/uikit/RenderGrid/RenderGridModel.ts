@@ -1,5 +1,5 @@
 import React, { CSSProperties, HTMLAttributes } from 'react';
-import AsyncRef from './AsyncRef';
+import { AsyncRef } from '../shared/async-ref';
 import {
     AdjustRenderRangeFunc,
     ElementLength,

@@ -1,0 +1,31 @@
+/*
+ * The root is stable across all three arms (loading / empty / list); the arm shows in the
+ * `data-loading` / `data-empty` attributes, and in whether the message host or the virtualization
+ * engine is attached.
+ *
+ * The blue focused override for `selectionStyle="focus"` rows is hosted on the row itself
+ * (`ListItem.css`). This root only opts in via `data-focus-selection` + `tabindex`, so
+ * `:focus-within` can match.
+ */
+@layer uikit {
+    [data-type="list-box"] {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        outline: none;
+    }
+
+    [data-type="list-box"][data-disabled] {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    [data-type="list-box"] > [data-part="message"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm, 4px);
+        flex: 1 1 auto;
+        color: var(--color-text-light, currentColor);
+    }
+}

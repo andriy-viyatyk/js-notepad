@@ -1,0 +1,118 @@
+/*
+ * Rule order is load-bearing and mirrors the Emotion block this replaces:
+ *   - the hover / accent-selection rules come before [data-drop-active], which must outrank them at
+ *     equal specificity because a drop target is momentary and selection is persistent;
+ *   - the focus-within override carries :not([data-drop-active]) because it is one attribute *more*
+ *     specific and would otherwise swallow the drop feedback.
+ * Keeping every row rule in this one file is what makes that order a local, checkable fact instead
+ * of a dependency on stylesheet import order.
+ *
+ * The blurred/focused selection rules are a hand-translated copy of `shared/selection-style.ts`'s
+ * `rowSelectionBase` and `rowFocusSelectionOverride`, scoped to this component's own root
+ * (EPIC-056 C3-7). That module still serves Tree, TreeItem and the sidebar FolderItem and is deleted
+ * by the task that converts the last of them.
+ *
+ * The row itself is NOT the absolutely positioned element — the virtualization engine positions the
+ * cell wrapper and this row is an ordinary in-flow child of it. That is why `width: 100%` works and
+ * why no rule here needs to avoid document order.
+ */
+@layer uikit {
+    [data-type="list-item"] {
+        display: inline-flex;
+        width: 100%;
+        box-sizing: border-box;
+        align-items: center;
+        gap: var(--gap-md, 6px);
+        padding-left: var(--space-sm, 4px);
+        padding-right: var(--space-sm, 4px);
+        cursor: pointer;
+        color: var(--color-text-default, currentColor);
+        overflow: hidden;
+    }
+
+    [data-type="list-item"][data-disabled] {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    [data-type="list-item"][data-variant="select"][data-active],
+    [data-type="list-item"][data-variant="select"]:hover {
+        background-color: var(--color-bg-selection, transparent);
+        color: var(--color-text-selection, currentColor);
+    }
+
+    [data-type="list-item"][data-variant="browse"][data-active],
+    [data-type="list-item"][data-variant="browse"]:hover {
+        background-color: var(--color-bg-message, transparent);
+    }
+
+    [data-type="list-item"][data-selection-style="accent"][data-selected] {
+        background-color: var(--color-bg-selection, transparent);
+        color: var(--color-text-selection, currentColor);
+    }
+
+    /* Focus-aware selection, blurred state (rowSelectionBase). */
+    [data-type="list-item"][data-selection-style="focus"][data-active]:not([data-selected]) {
+        background-color: var(--color-bg-message, transparent);
+    }
+
+    [data-type="list-item"][data-selection-style="focus"][data-selected] {
+        background-color: var(--color-bg-light, transparent);
+    }
+
+    /*
+     * Focus-aware selection, focused state (rowFocusSelectionOverride). The ancestor is the ListBox
+     * root — or any container that opts in with data-focus-selection + tabindex — which sits outside
+     * the engine's scroll container, so :focus-within still reaches the row through the engine's own
+     * wrapper divs.
+     */
+    [data-focus-selection]:focus-within
+        [data-type="list-item"][data-selection-style="focus"]:not([data-drop-active])[data-selected] {
+        background-color: var(--color-bg-tree-selection, transparent);
+        color: var(--color-text-selection, currentColor);
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+
+    [data-focus-selection]:focus-within
+        [data-type="list-item"][data-selection-style="focus"]:not([data-drop-active])[data-active] {
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+
+    /* Last, so it outranks the hover and accent-selection rules above at equal specificity. */
+    [data-type="list-item"][data-drop-active]:not([data-disabled]) {
+        background-color: var(--color-bg-selection, transparent);
+        color: var(--color-text-dark, currentColor);
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+
+    /*
+     * Slot icons. Emotion could write `& > svg` because React put every slot's svg directly under
+     * the row — which covered the leading icon *and* the default trailing check/chevron. The vanilla
+     * view routes each slot through a `display: contents` host, and a React-valued slot adds one
+     * more `display: contents` wrapper from fillSlot, so both levels of both slots are named here.
+     *
+     * They are named explicitly rather than reached with a descendant selector on purpose: a custom
+     * `trailing` node such as an `IconButton` renders its svg deeper than one level, and the Emotion
+     * rule did not size that either. Widening this to a descendant selector would start resizing
+     * icons inside caller-supplied controls.
+     */
+    [data-type="list-item"] > [data-part="icon"] > svg,
+    [data-type="list-item"] > [data-part="icon"] > [data-part="react-slot"] > svg,
+    [data-type="list-item"] > [data-part="trailing"] > svg,
+    [data-type="list-item"] > [data-part="trailing"] > [data-part="react-slot"] > svg {
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+        flex-shrink: 0;
+    }
+
+    [data-type="list-item"] > .label {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}

@@ -1,8 +1,9 @@
-import React from "react";
+import type React from "react";
 import { TComponentModel } from "../../core/state/model";
+import { toPublicEvent } from "../shared/react-compat";
 import { isTraited, resolveTraited, Traited, TraitType } from "../../core/traits/traits";
-import { RenderGridModel } from "../RenderGrid";
-import type { RowAlign } from "../RenderGrid";
+import { VirtualGridModel } from "../VirtualGrid";
+import type { RowAlign } from "../VirtualGrid";
 import { ContextMenuEvent } from "../../core/events/context-menu";
 import {
     IListBoxItem,
@@ -39,18 +40,19 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
     ListBoxProps<T>
 > {
     // --- refs ---
-    gridRef: RenderGridModel | null = null;
-    setGridRef = (ref: RenderGridModel | null) => {
+    gridRef: VirtualGridModel | null = null;
+    setGridRef = (ref: VirtualGridModel | null) => {
         this.gridRef = ref;
     };
 
     // --- ids ---
-    private _reactId = "";
-    setReactId = (reactId: string) => {
-        this._reactId = reactId;
+    private _elementId = "";
+    /** Fed by the view from `nextElementId("lb")` — replaces React's `useId` (EPIC-056 C3-5). */
+    setElementId = (elementId: string) => {
+        this._elementId = elementId;
     };
     get rootId(): string {
-        return this.props.id ?? `lb-${this._reactId}`;
+        return this.props.id ?? this._elementId;
     }
     itemId = (idx: number): string => {
         const { resolved } = this.resolved.value;
@@ -135,7 +137,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
         if (idx !== this.props.activeIndex) this.props.onActiveChange?.(idx);
     };
 
-    onItemContextMenu = (e: React.MouseEvent<HTMLDivElement>, idx: number) => {
+    onItemContextMenu = (e: MouseEvent, idx: number) => {
         const { resolved, sources } = this.resolved.value;
         const item = resolved[idx];
         if (!item || item.section) return;
@@ -149,12 +151,17 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      * Container-level context-menu handler. Skipped when a row already populated
      * `ContextMenuEvent.items` — the row's menu wins.
      */
-    onRootContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (e.nativeEvent.contextMenuEvent?.items.length) return;
-        this.props.onContextMenu?.(e);
+    onRootContextMenu = (e: MouseEvent) => {
+        if (e.contextMenuEvent?.items.length) return;
+        // `onContextMenu` is public and typed as a React handler (C3-5 freezes the prop), so the
+        // native event is wrapped in the same facade the rest-prop bridge uses. Callers keep
+        // reading `e.nativeEvent`, `preventDefault()` and the rest exactly as before.
+        this.props.onContextMenu?.(
+            toPublicEvent(e) as unknown as React.MouseEvent<HTMLDivElement>,
+        );
     };
 
-    onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown = (e: KeyboardEvent) => {
         if (!this.props.keyboardNav) return;
         const { resolved } = this.resolved.value;
         const n = resolved.length;
@@ -213,63 +220,61 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
         this.gridRef?.scrollToRow(i, align);
     };
 
+    // --- repaint signature ---
+
+    /**
+     * Everything a rendered cell reads that the virtualization engine cannot detect for itself.
+     *
+     * This replaces the `effect()` that used to call `gridRef.update({ all: true })`: a
+     * vanilla-driven model registers no effects, so the host view compares this array on every prop
+     * pump (see `uikit/shared/deps-gate.ts`) and repaints only when a slot moved.
+     *
+     * Three rules the list encodes, in case a future input is added:
+     *
+     * - **Fixed length.** A conditionally-pushed slot makes the comparison always report a change.
+     * - **`props.items`, not `resolved.value.resolved`.** The `resolved` memo's only dependency *is*
+     *   `props.items`, so its output identity changes exactly when `props.items` does — the two are
+     *   the same signal, and using the prop avoids evaluating a memo inside change detection.
+     *   `selectedKey` is the opposite case: its output is a normalised primitive key, so comparing
+     *   the *output* is strictly better than comparing `props.value` (a new object resolving to the
+     *   same key collapses to no-change). That is the general rule for memos in a signature —
+     *   compare the output when the memo genuinely derives something, compare the upstream prop when
+     *   it is a pass-through.
+     * - **Only inputs that change cell DOM.** `rowHeight` is deliberately absent because
+     *   `VirtualGridModel.inputChanged()` already compares it and repaints on its own;
+     *   `getContextMenu` is absent because it is read live inside the context-menu handler and
+     *   affects nothing rendered — keeping it would repaint the whole window on every update for
+     *   callers that pass an inline arrow. `variant` and `selectionStyle` are present even though
+     *   the old effect omitted them: the old `renderCell` was a fresh closure per render, which made
+     *   the engine repaint unconditionally and hid their absence.
+     */
+    repaintSignature(): readonly unknown[] {
+        return [
+            this.props.items,
+            this.selectedKey.value,
+            this.props.activeIndex,
+            this.props.searchText,
+            this.props.renderItem,
+            this.props.isSelected,
+            this.props.getTooltip,
+            this.props.variant,
+            this.props.selectionStyle,
+        ];
+    }
+
     // --- lifecycle ---
 
+    /**
+     * Registers no `effect()`, so `createComponentModelDriver` can own this model.
+     *
+     * The two effects this used to carry became the host view's responsibility: the display-input
+     * repaint is `repaintSignature()` plus the view's gate, and the scroll-into-view on
+     * `activeIndex` is one unconditional `scrollToRow` from the view's update path — the engine now
+     * queues that request itself when it has no usable size yet, which is what the old
+     * `setTimeout(0)` was approximating. See EPIC-056 C3-6 rows 1 and 2.
+     */
     init() {
         this.props.onModel?.(this);
-
-        // Force RenderGrid to re-render cells whenever any of the display inputs change.
-        // RenderGrid does not re-render its cells when its renderCell identity changes
-        // unless told.
-        this.effect(
-            () => {
-                this.gridRef?.update({ all: true });
-            },
-            () => [
-                this.resolved.value.resolved,
-                this.selectedKey.value,
-                this.props.activeIndex,
-                this.props.searchText,
-                this.props.renderItem,
-                this.props.rowHeight,
-                this.props.isSelected,
-                this.props.getTooltip,
-                this.props.getContextMenu,
-            ],
-        );
-
-        // Keep the active row visible whenever activeIndex changes — covers external
-        // drivers (Select keyboard handler, etc.) that update activeIndex without
-        // going through the keyboardNav path.
-        //
-        // Timing: on a fresh mount (e.g. Select popover just opened), this effect
-        // runs inside the init() useEffect — at that point the RenderGrid's
-        // ResizeObserver has NOT yet fired its first callback, so `gridRef.size`
-        // is still { undefined, undefined } and `calcScrollOffsetY` would compute
-        // with visibleHeight = 0 and produce a junk offset (the browser then clamps
-        // it, leaving the row near the top of the viewport instead of in view).
-        // When the grid hasn't measured yet, defer to setTimeout(0) so layout +
-        // ResizeObserver run first — same workaround the legacy ComboSelect /
-        // PopupMenu use. Once measured, subsequent scrolls run immediately so
-        // keyboard nav stays responsive.
-        this.effect(
-            () => {
-                const ai = this.props.activeIndex;
-                if (ai == null || ai < 0) return;
-                const grid = this.gridRef;
-                if (!grid) return;
-                const measured = !!(grid.size.width && grid.size.height);
-                if (measured) {
-                    grid.scrollToRow(ai);
-                } else {
-                    setTimeout(() => {
-                        if (!this.isLive) return;
-                        this.gridRef?.scrollToRow(ai);
-                    }, 0);
-                }
-            },
-            () => [this.props.activeIndex],
-        );
     }
 
     onUnmount = () => {

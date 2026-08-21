@@ -1,12 +1,7 @@
 import React from "react";
-import styled from "@emotion/styled";
-import color from "../../theme/color";
-import { gap, height, spacing } from "../tokens";
-import { renderIcon } from "../shared/slots";
+import { mountVanilla } from "../shared/mount";
 import type { IconRef, SlotText } from "../shared/slots";
-import { highlight } from "../shared/highlight";
-import { rowSelectionBase, rowFocusSelectionOverride } from "../shared/selection-style";
-import { Tooltip } from "../Tooltip";
+import { ListItemView } from "./ListItemView";
 
 // --- Types ---
 
@@ -79,121 +74,8 @@ export interface ListItemProps
     dropActive?: boolean;
 }
 
-// --- Styled ---
-
-const Root = styled.div(
-    {
-        display: "inline-flex",
-        width: "100%",
-        boxSizing: "border-box",
-        alignItems: "center",
-        gap: gap.md,
-        paddingLeft: spacing.sm,
-        paddingRight: spacing.sm,
-        cursor: "pointer",
-        color: color.text.default,
-        overflow: "hidden",
-
-        "&[data-disabled]": { opacity: 0.4, pointerEvents: "none" },
-        '&[data-variant="select"][data-active], &[data-variant="select"]:hover': {
-            backgroundColor: color.background.selection,
-            color: color.text.selection,
-        },
-        '&[data-variant="browse"][data-active], &[data-variant="browse"]:hover': {
-            backgroundColor: color.background.message,
-        },
-        '&[data-selection-style="accent"][data-selected]': {
-            backgroundColor: color.background.selection,
-            color: color.text.selection,
-        },
-        // Focus-aware selection (Explorer look): blurred-state gray base here...
-        '&[data-selection-style="focus"]': {
-            ...rowSelectionBase,
-        },
-        // ...and the blue focused override hosted on the row itself, so a standalone
-        // ListItem (outside ListBox) lights up whenever it sits inside any focused-within
-        // [data-focus-selection] container. The container needs only data-focus-selection +
-        // tabIndex=0 (no Emotion). Also covers ListItem inside ListBox.
-        // `:not([data-drop-active])` keeps the focused-list selection paint off a row that is
-        // showing drop feedback. Without it that override — one attribute more specific than
-        // any rule below — would win on a row that is both selected and the drop target.
-        ...rowFocusSelectionOverride('[data-selection-style="focus"]:not([data-drop-active])'),
-
-        // Last, so it outranks the hover and accent-selection rules above at equal specificity.
-        "&[data-drop-active]:not([data-disabled])": {
-            backgroundColor: color.background.selection,
-            color: color.text.dark,
-            outline: `1px solid ${color.border.active}`,
-            outlineOffset: -1,
-        },
-
-        "& > svg": {
-            width: height.iconMd,
-            height: height.iconMd,
-            flexShrink: 0,
-        },
-
-        "& > .label": {
-            flex: "1 1 auto",
-            minWidth: 0,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-        },
-    },
-    { label: "ListItem" },
-);
-
 // --- Component ---
 
-export function ListItem({
-        name,
-        id,
-        icon,
-        label,
-        searchText,
-        selected,
-        active,
-        disabled,
-        tooltip,
-        tooltipDelayShow,
-        trailing,
-        variant = "select",
-        selectionStyle = "check",
-        showSelectionIcon = true,
-        dropActive,
-        ref,
-        ...rest
-    }: ListItemProps) {
-    const labelNode =
-        typeof label === "string" && searchText ? highlight(label, searchText) : label;
-    const defaultTrailing = selected && showSelectionIcon && selectionStyle !== "focus"
-        ? selectionStyle === "accent"
-            ? renderIcon("chevron-right")
-            : renderIcon("check")
-        : null;
-    const row = (
-        <Root
-            ref={ref}
-            id={id}
-            data-type="list-item"
-            data-name={name}
-            data-variant={variant}
-            data-selection-style={selectionStyle}
-            data-selected={selected || undefined}
-            data-active={active || undefined}
-            data-disabled={disabled || undefined}
-            data-drop-active={dropActive || undefined}
-            role="option"
-            aria-selected={selected ? "true" : "false"}
-            aria-disabled={disabled ? "true" : undefined}
-            {...rest}
-        >
-            {renderIcon(icon)}
-            <span className="label">{labelNode}</span>
-            {trailing ?? defaultTrailing}
-        </Root>
-    );
-    if (tooltip == null || tooltip === false || tooltip === "") return row;
-    return <Tooltip content={tooltip} delayShow={tooltipDelayShow}>{row}</Tooltip>;
+export function ListItem(props: ListItemProps): React.ReactElement {
+    return mountVanilla(ListItemView, props);
 }

@@ -58,6 +58,17 @@ export function toPublicEvent(event: Event): React.SyntheticEvent<HTMLElement> {
     });
 }
 
+/**
+ * Attributes that look boolean in JSX but are *enumerated* in HTML: their keywords are the strings
+ * "true" and "false", and any other value — including the empty string a boolean attribute would
+ * use — is invalid and falls back to the attribute's own default.
+ *
+ * `draggable=""` therefore means `auto`, i.e. a `div` that is not draggable, which is why this list
+ * exists: `ListItem`'s two link-editor call sites pass `draggable={true}` through rest props, and
+ * writing `""` would lose drag silently. React writes `"true"`.
+ */
+const ENUMERATED_ATTRIBUTES = new Set(["draggable", "spellcheck", "contenteditable"]);
+
 /** Apply React-style residual attributes/listeners and remove stale values. */
 export function applyRestProps(
     root: HTMLElement,
@@ -98,9 +109,14 @@ export function applyRestProps(
             continue;
         }
 
-        if (value == null || value === false) {
+        if (value == null || (value === false && !ENUMERATED_ATTRIBUTES.has(key))) {
             root.removeAttribute(attributeName(key));
             previous.attributes.delete(key);
+            continue;
+        }
+        if (ENUMERATED_ATTRIBUTES.has(key)) {
+            root.setAttribute(attributeName(key), value === true ? "true" : String(value));
+            previous.attributes.add(key);
             continue;
         }
         root.setAttribute(attributeName(key), value === true ? "" : String(value));

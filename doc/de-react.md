@@ -240,6 +240,12 @@ existing av-grid. Nothing needs to be invented to get there.
 
 Four files, once AVGrid is gone. Closing them is cheap and belongs in Epic C.
 
+**Status at C3 open (2026-08-21): closed, except AVGrid's.** `ListBoxModel` and `TreeModel` now read
+`core/events/context-menu`, `Menu/types` no longer re-exports an app type, and `RenderFlexGrid`
+imports `core/utils/*` rather than `shared/utils`. The only remaining violation is
+`uikit/AVGrid/model/ContextMenuModel.tsx`, which dies with AVGrid in C4 — so it stays as the single
+documented exemption in the lint zone (`eslint.config.mjs`).
+
 **The standing rule that keeps it that way** is Rule 6 in §6.
 
 **Theming is the other half of extraction, and Epic A already delivers it.** av-grid is themable
@@ -514,9 +520,9 @@ If the migration stops after Epic C, it was still worth doing.
 
 #### Split into four epics (user decision, 2026-08-19)
 
-*C1 shipped as [EPIC-054](epics/completed.md). C2 is scheduled as
-[EPIC-055](epics/EPIC-055.md). The next free epic number is **EPIC-056**; C3 and C4 get their doc
-and their ID when each is genuinely next up, the way this programme has scheduled every epic so
+*C1 shipped as [EPIC-054](epics/completed.md). C2 shipped as [EPIC-055](epics/EPIC-055.md). C3 is
+scheduled as [EPIC-056](epics/EPIC-056.md). The next free epic number is **EPIC-057**; C4 gets its
+doc and its ID when it is genuinely next up, the way this programme has scheduled every epic so
 far.*
 
 At scheduling time this was measured against the tree and **split into four independently
@@ -529,13 +535,15 @@ chain with a single cycle.
 |---|---|---:|---:|---|
 | **C1** | Foundation and primitives | 20 | 3,209 | Epic B |
 | **C2** | Floating layer and composites | 15 | 4,104 | C1 |
-| **C3** | Virtualized data views and dropdowns | 7 | ~7,600 | C1, C2 |
+| **C3** | Virtualization engine, data views and dropdowns | 7 | 7,578 | C1, C2 |
 | **C4** | AVGrid → av-grid | 1 (+15 consumers) | ~4,914 | C2, C3 |
 
 C2's and C3's component counts and line figures were **re-measured when C2 opened**
 (EPIC-055, 2026-08-20) and are not the numbers this table carried at the split: `Select`,
-`MultiSelect` and `Autocomplete` moved from C2 to C3 because all three render a C3 component. C4's
-figure still inherits the §2 denominator and should be re-measured when C4 opens.
+`MultiSelect` and `Autocomplete` moved from C2 to C3 because all three render a C3 component. C3's
+figure was then **re-measured when C3 opened** (EPIC-056, 2026-08-21) and came in at 7,578 — the one
+estimate in this programme that held. C4's figure still inherits the §2 denominator and should be
+re-measured when C4 opens.
 
 **C1 — Foundation and primitives.** The twenty components at the bottom of `uikit/`'s own
 dependency graph: `Tooltip`, `Button`, `IconButton`, `TruncatedText`, `SegmentedControl`,
@@ -581,7 +589,18 @@ cannot land until C2 has produced a vanilla `Popover` and `Menu`, and the three 
 cannot land until `ListBox` has. This epic also resolves B15's one explicitly undecided item,
 `RenderFlexGrid.tsx`. **Its scope must be re-measured when it opens**, not inherited: it is now
 seven components, and whether the dropdown family deserves its own epic is a question for that
-point (EPIC-055 Concern 6).
+point (EPIC-055 Concern 6). Scheduled as [EPIC-056](epics/EPIC-056.md).
+
+**What the C3 measurement changed** *(EPIC-056, 2026-08-21)*. The scope re-measure held the line
+estimate (7,578) but overturned two assumptions in this section. First, the absorption is **not a
+swap**: `RenderCellFunc` returns a `ReactNode` and av-grid's returns an `HTMLElement`, and
+`RenderGrid`/`RenderGridModel` have **12 app-layer importer files**, so the React engine survives C3
+and drains through Epics D and E the way `Panel` does (EPIC-056 C3-1). Which means, second, that
+**C4 is no longer "the only part of Epic C that reaches outside `uikit/`"** — nothing in C3 reaches
+outside either, but only because those twelve call sites are deliberately left for D and E rather
+than converted here. B15's undecided `RenderFlexGrid` row is resolved the same way: it stays
+React-only for its two `editors/` consumers (C3-3). The dropdown family stays inside C3, with
+`MultiSelect` and `Autocomplete` as the designated slip items (C3-10).
 
 **C4 — AVGrid → av-grid.** The grid itself, plus the ~15 consumer files in `editors/` and
 `components/` that need host-wiring changes because `RenderGridModel`'s public API differs from the
@@ -598,11 +617,14 @@ component's React face renders the vanilla view, so both panes would have shown 
 4's number is therefore taken at two points in time — **on the React implementation before the
 conversion, which is the one measurement that cannot be recovered afterwards** — not in two panes.
 
-Story coverage is 38 of the 44 components. The six without a story are `AVGrid` (superseded by
-av-grid anyway), `RenderGrid`, `Minimap`, `ImageViewport`, `Progress` and `SelectableRow` — which,
-apart from AVGrid, are precisely the measurement-heavy components whose conversion is hardest.
-Writing those six stories is cheap and belongs to whichever epic owns the component, before the
-component is converted rather than after.
+Story coverage was 38 of the 44 components at the split. The six without a story were `AVGrid`
+(superseded by av-grid anyway), `RenderGrid`, `Minimap`, `ImageViewport`, `Progress` and
+`SelectableRow` — which, apart from AVGrid, are precisely the measurement-heavy components whose
+conversion is hardest. Writing those stories is cheap and belongs to whichever epic owns the
+component, before the component is converted rather than after. **C1 and C2 closed four of the six**
+(`SelectableRow`, then `Minimap`, `ImageViewport` and `Progress`), so coverage measured 42 of 44 when
+C3 opened: `RenderGrid` is C3's to write, `AVGrid` is C4's. Note two of C1's stories are vanilla-only
+`.story.ts` files (`Checkbox`, `Label`) — a `.tsx` glob misses them.
 
 **One extra task, cheap and unrelated to rendering:** close the four remaining `uikit/` → app-layer
 imports listed in §3.5 (`ListBoxModel`, `TreeModel`, `Menu/types`, `RenderFlexGrid`; the fifth dies
@@ -653,6 +675,32 @@ component** — they were scaffolding, not a published API. Two consequences tha
 
 This does not constrain open decision #5: a vanilla-only UIKit is still publishable as a vanilla
 library, exactly like av-grid. Dropping React support removes a consumer, not the option to ship.
+
+#### The removal ledger
+
+*Added 2026-08-21 (user decision at EPIC-056 open). Temporary duplication during the migration is
+accepted — it is often the only way to keep Rule 2 — **on the condition that every duplicate is
+written down here when it is created, and that this epic cannot close while any entry is still in the
+tree**. Draining is not a guarantee: a component whose last consumer is gone still compiles, and
+nothing but this list notices.*
+
+Each entry names what was kept, why, and what makes it collectable. Add a row in the epic that
+creates the duplicate, not in the epic that hopes to remove it.
+
+| Survivor | Kept because | Collectable once | Created by |
+|---|---|---|---|
+| `uikit/Panel/` | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`; a vanilla twin was deliberately not written (C1) | Epics D and E convert its call sites; C3 removes the last `uikit/` one | C1 / EPIC-054 |
+| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`; 12 app-layer importers cannot be swapped without breaking Rule 2 (EPIC-056 C3-1) | C4 replaces `uikit/AVGrid/`, and Epics D and E convert the 12 app-layer importers | C3 / EPIC-056 |
+| `uikit/RenderGrid/RenderFlexGrid.tsx` | Variable-height virtualization with no av-grid counterpart and two `editors/` consumers (EPIC-056 C3-3) | Epic E converts `LogBody.tsx` and `NotebookBody.tsx` — either onto a vanilla variant or off flex rows entirely | C3 / EPIC-056 |
+| React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | Epic E finishes; covered by this epic's main body above | C1 onward |
+| `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
+| `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
+| `uikit/shared/highlight.ts` React form | `AVGrid/DataCell.tsx` still consumes it after C3 adds the DOM form (EPIC-056 C3-7) | C4 replaces `uikit/AVGrid/` | C3 / EPIC-056 |
+
+**Two entries are already collectable at the point C4 closes** (`RenderGrid`'s `AVGrid` importers,
+`highlight`'s React form), which is worth checking there rather than deferring to F on principle:
+collecting a duplicate in the epic that frees it is cheaper than collecting it in a cleanup epic that
+has to re-establish why it existed.
 
 **Not in this epic, but reachable from it:** with React gone and Rule 6 held, `uikit/` and `core/`
 are package-shaped, and the "one source tree, two products" idea behind open decision #5 becomes a

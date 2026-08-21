@@ -1,9 +1,14 @@
 import { useEffect, useRef } from "react";
 import { IState, TComponentState } from "./state";
 
-function depsChanged(
-    prev: unknown[] | undefined,
-    next: unknown[]
+/**
+ * Slot-by-slot dependency comparison, shared with `uikit/shared/deps-gate.ts` so a vanilla view's
+ * change detection is behaviour-identical to `effect()`'s by construction rather than by imitation.
+ * A length mismatch counts as changed.
+ */
+export function depsChanged(
+    prev: readonly unknown[] | undefined,
+    next: readonly unknown[]
 ): boolean {
     if (!prev || prev.length !== next.length) return true;
     return prev.some((v, i) => !Object.is(v, next[i]));
