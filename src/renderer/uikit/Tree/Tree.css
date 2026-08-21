@@ -1,0 +1,59 @@
+/*
+ * The root is stable across all three arms (loading / empty / rows); the arm shows in the
+ * `data-loading` / `data-empty` attributes, and in whether the message host or the virtualization
+ * engine is attached.
+ */
+@layer uikit {
+    [data-type="tree"] {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        /*
+         * Without `min-width: 0` the flex item defaults to `min-width: auto` (= min-content), so a
+         * Tree with wide TreeItem labels pushes its own box wider than the parent — bleeding past
+         * sidebar panels and covering adjacent splitters. Setting it to 0 lets the Tree shrink to
+         * the parent's available width; per-row overflow is handled by each TreeItem's own truncate
+         * rules.
+         */
+        min-width: 0;
+        outline: none;
+    }
+
+    [data-type="tree"][data-disabled] {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    [data-type="tree"] > [data-part="message"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--gap-md, 6px);
+        flex: 1 1 auto;
+        padding: var(--space-md, 8px);
+        color: var(--color-text-light, currentColor);
+    }
+
+    /*
+     * Focused-list selection visuals (grey when blurred -> blue + outline when the tree is focused).
+     * Gated on `data-focus-selection`, set for keyboardNav or focusSelection trees; opt-out trees
+     * are unaffected. Descendant selectors, because rows may be consumer-rendered via `renderItem`
+     * (they still render a TreeItem carrying `data-type="tree-item"`).
+     *
+     * THE `[data-type="tree"]` ANCHOR IS LOAD-BEARING. The Emotion original was scoped to this
+     * component's own generated class. Dropping the anchor turns this into a global rule that paints
+     * any TreeItem under any container that opted in with `data-focus-selection` — including a
+     * TreeItem rendered inside a ListBox's `renderItem`, which this codebase does. EPIC-056 C3-8.
+     */
+    [data-type="tree"][data-focus-selection]:focus-within [data-type="tree-item"][data-selected] {
+        background-color: var(--color-bg-tree-selection, transparent);
+        color: var(--color-text-selection, currentColor);
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+
+    [data-type="tree"][data-focus-selection]:focus-within [data-type="tree-item"][data-active] {
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+}

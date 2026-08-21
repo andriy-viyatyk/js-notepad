@@ -1,0 +1,31 @@
+/*
+ * Level guides, shared by the tree row and the tree section row. Imported by `tree-indents.ts`
+ * itself, so a view cannot get the helper without its stylesheet.
+ *
+ * Two properties of the Emotion original are reproduced deliberately and must NOT be "tidied":
+ *
+ * 1. NO `box-sizing`. The original set none and there is no global border-box reset in the
+ *    renderer, so a non-first indent is 16px of content plus a 1px border = 17px, and the leading
+ *    gutter for level N is 16 + 17 x (N - 1), not 16 x N. Adding `border-box` shifts every nested
+ *    label one pixel per level to the left.
+ * 2. `height: 100%` resolves to 0. Nothing gives the row a definite height — it is an auto-height
+ *    child of the engine's absolutely positioned cell wrapper — and `align-items: center` does not
+ *    stretch it, so the used height is 0px (measured) and the border below draws nothing. Giving
+ *    the row a definite height would switch guide lines on in six editors, which is a design
+ *    change, not a conversion. See EPIC-056's follow-up list.
+ *
+ * `:not([data-first])` rather than `:not(:first-of-type)`: `:first-of-type` filters by element name
+ * among siblings and ignores the attribute filter attached to it, and the chevron stub is also a
+ * `div` — so at level 0 `div:first-of-type` would match the stub. The marker is order-free, which
+ * matters because nothing enforces that indents stay at the head of the row.
+ */
+@layer uikit {
+    [data-part="tree-indent"] {
+        height: 100%;
+        flex-shrink: 0;
+    }
+
+    [data-part="tree-indent"]:not([data-first]) {
+        border-left: 1px solid var(--color-border-light, transparent);
+    }
+}

@@ -11,7 +11,8 @@ Overview of all active and planned epics and tasks.
 - **EPIC-056** — [De-React Epic C3 — Virtualization engine, data views and dropdowns](epics/EPIC-056.md)
   - [ ] [US-1013: The vanilla virtualization engine — `VirtualGrid`](tasks/US-1013-virtual-grid-engine/README.md)
   - [ ] [US-1014: `ListBox`, `ListItem`, `SectionItem` — the first data view on the vanilla engine](tasks/US-1014-listbox-vanilla/README.md)
-  - *(US-1015 … US-1018 are planned in the epic; each gets its document immediately before its
+  - [ ] [US-1015: `Tree` — rows, DnD, keyboard, and the largest model in `uikit/`](tasks/US-1015-tree-vanilla/README.md)
+  - *(US-1016 … US-1018 are planned in the epic; each gets its document immediately before its
     implementation)*
 - *(no epic)*
   - *(no active tasks)*

@@ -142,18 +142,19 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
         // `model.scrollToIndex()` synchronously from that callback.
         this.driver.mount();
 
-        this.syncActiveScroll(this.props.activeIndex);
+        this.syncActiveScroll(this.props.activeIndex, false);
         this.repaintGate.prime(this.model.repaintSignature());
     }
 
     protected onUpdate(props: ListBoxProps<T>): void {
         this.driver.update(props);
         this.applyArm(props);
-        if (this.repaintGate.changed(this.model.repaintSignature())) {
+        const contentChanged = this.repaintGate.changed(this.model.repaintSignature());
+        if (contentChanged) {
             this.grid?.model.update({ all: true });
         }
         if (props.activeIndex !== this.lastActiveIndex) {
-            this.syncActiveScroll(props.activeIndex);
+            this.syncActiveScroll(props.activeIndex, contentChanged);
         }
     }
 
@@ -420,11 +421,19 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
      * One unconditional call. The engine queues the request itself when it has no usable size yet
      * and flushes it on its first real measurement, which is what the React version's
      * `setTimeout(0)` was approximating without being able to test the actual condition.
+     *
+     * `afterPaint` is set when the item set changed in the same update. `scrollTop` clamps to the
+     * scrollable extent, and the extent is written inside the *next* paint — so a list that grew
+     * and moved `activeIndex` past the old extent in one update would otherwise scroll short, with
+     * nothing re-issuing it. Mount is already safe (the grid is unmeasured, so the engine's pending
+     * slot catches it); a live update was not. When the rows did not change, scroll immediately —
+     * one frame is visible in keyboard navigation.
      */
-    private syncActiveScroll(activeIndex: number | null | undefined): void {
+    private syncActiveScroll(activeIndex: number | null | undefined, afterPaint: boolean): void {
         this.lastActiveIndex = activeIndex;
         if (activeIndex == null || activeIndex < 0) return;
-        void this.grid?.model.scrollToRow(activeIndex);
+        if (afterPaint) this.grid?.model.scrollToRowAfterPaint(activeIndex);
+        else void this.grid?.model.scrollToRow(activeIndex);
     }
 
     // -----------------------------------------------------------------------

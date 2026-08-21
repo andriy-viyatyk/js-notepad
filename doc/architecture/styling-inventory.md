@@ -83,7 +83,6 @@ inline values already present in the rendering code.
 - `src/renderer/uikit/SegmentedControl/SegmentedControl.tsx`
 - `src/renderer/uikit/Select/Select.tsx`
 - `src/renderer/uikit/SelectableRow/SelectableRow.tsx`
-- `src/renderer/uikit/shared/selection-style.ts`
 - `src/renderer/uikit/Slider/Slider.tsx`
 - `src/renderer/uikit/SplitButton/SplitButton.tsx`
 - `src/renderer/uikit/Splitter/Splitter.tsx`
@@ -177,10 +176,11 @@ must be globally unique and declarations must remain available to every consumer
 | `src/renderer/uikit/Spinner/Spinner.tsx:3,21` | `spin` | Spinner rotation; also has dynamic size/color inputs |
 
 Four files import `@emotion/react` at runtime: `GlobalStyles.tsx` (the `css` and `Global`
-runtime) and the three keyframe files. `shared/selection-style.ts` has a fifth, type-only import
-that compiles away. Its exported selector objects are shared infrastructure, so it must be
-converted in lockstep with Tree, ListBox, CategoryList, and SelectableRow rather than sized as a
-one-line type-only change.
+runtime) and the three keyframe files. `shared/selection-style.ts` held a fifth, type-only import;
+**the file no longer exists** — EPIC-056 US-1014 and US-1015 converted its `uikit` consumers and
+US-1015 relocated the two surviving fragments into `ui/sidebar/FolderItem.tsx`, its last (app-layer)
+consumer. The focus-aware selection contract is now four independent per-component copies; see
+`uikit/CLAUDE.md`.
 
 ## Inline-style inventory
 
@@ -288,9 +288,9 @@ discrete state, scalar runtime geometry, third-party handle state, or measured D
 The 56 UIKit Emotion files are the shared-style surface, but the 9 AVGrid files are explicitly
 superseded. The 10 UI and 11 components files are shell/coupled styles. `src/renderer/editors/`
 contains zero Emotion imports; its 35 inline-style files and 103 sites remain editor-owned and
-convert with their respective editor work in Epic E. `GlobalStyles.tsx`, `selection-style.ts`, and
-`core/state/view.tsx` are infrastructure and must not be silently treated as ordinary component
-rewrites.
+convert with their respective editor work in Epic E. `GlobalStyles.tsx` and `core/state/view.tsx`
+are infrastructure and must not be silently treated as ordinary component rewrites.
+(`selection-style.ts` was the third; it is gone.)
 
 Inline styles are measured separately because the Emotion scan cannot see them. The 133 literal
 sites do not include `style={p.style}`, spread/model-provided style objects such as RenderGrid's

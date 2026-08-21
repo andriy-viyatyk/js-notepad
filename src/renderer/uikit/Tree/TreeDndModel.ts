@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { getTraitDragDataFromEvent, hasTraitDragData, isFileDrag, setTraitDragData } from "../../core/traits/dnd";
 import { DragEnterCounter } from "../shared/drag-enter-counter";
 import type { ITreeItem, TreeRow } from "./types";
@@ -39,13 +39,21 @@ export class TreeDndModel<T = ITreeItem> {
         return !!row && this.tree.state.get().dragOverValue === row.value;
     };
 
-    onDragStart = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
+    onDragStart = (e: DragEvent, rowIndex: number) => {
         const row = this.tree.rows.value[rowIndex];
         if (!row || row.item.section || row.item.disabled) {
             e.preventDefault();
             return;
         }
-        if (this.tree.props.onDragStartOverride?.(row.source, row.level, e)) {
+        // The public prop keeps its `React.DragEvent` signature — Epic F owns API cleanup — and its
+        // one consumer only calls `dataTransfer`/`preventDefault`, which exist on the native event.
+        if (
+            this.tree.props.onDragStartOverride?.(
+                row.source,
+                row.level,
+                e as unknown as React.DragEvent,
+            )
+        ) {
             e.stopPropagation();
             return;
         }
@@ -73,7 +81,7 @@ export class TreeDndModel<T = ITreeItem> {
         });
     };
 
-    onDragEnter = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
+    onDragEnter = (e: DragEvent, rowIndex: number) => {
         if (!this.canDropRow(rowIndex) || !this.acceptsDrag(e.dataTransfer)) return;
         const row = this.tree.rows.value[rowIndex];
         if (!row) return;
@@ -85,13 +93,13 @@ export class TreeDndModel<T = ITreeItem> {
         }
     };
 
-    onDragOver = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
+    onDragOver = (e: DragEvent, rowIndex: number) => {
         if (!this.canDropRow(rowIndex) || !this.acceptsDrag(e.dataTransfer)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = isFileDrag(e.dataTransfer) ? "copy" : "move";
     };
 
-    onDragLeave = (_e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
+    onDragLeave = (_e: DragEvent, rowIndex: number) => {
         const row = this.tree.rows.value[rowIndex];
         if (!row) return;
         if (!this.dragEnterCounts.leave(row.value)) return;
@@ -101,7 +109,7 @@ export class TreeDndModel<T = ITreeItem> {
         });
     };
 
-    onDrop = (e: React.DragEvent<HTMLDivElement>, rowIndex: number) => {
+    onDrop = (e: DragEvent, rowIndex: number) => {
         if (!this.canDropRow(rowIndex)) return;
         e.preventDefault();
         e.stopPropagation();
@@ -130,11 +138,22 @@ export class TreeDndModel<T = ITreeItem> {
             || (!!this.tree.props.acceptsFileDrop && isFileDrag(dataTransfer));
     }
 
+    /**
+     * Every drag state write goes through the model's funnel, which is also what repaints.
+     *
+     * This is the one site that had no repaint of its own — it relied entirely on the repaint
+     * `effect()` that the vanilla conversion deleted, so without the funnel a drag produces no
+     * `data-dragging` / `data-drop-active` at all, with no error anywhere.
+     *
+     * The `queueMicrotask` this replaces was a React workaround (a synchronous `state.update` from
+     * a render-phase path tripped React's "cannot update while rendering" warning). Every caller
+     * here is a native drag event, and the schedule change is unobservable: the browser fires
+     * `dragenter` on the new row before `dragleave` on the old, so the order of writes — and hence
+     * `onDragLeave`'s guard — is the same either way.
+     */
     private update(update: (state: TreeState) => void) {
-        queueMicrotask(() => {
-            if (!this.tree.isLive) return;
-            this.tree.state.update(update);
-        });
+        if (!this.tree.isLive) return;
+        this.tree.mutateState(update);
     }
 
     private scheduleHoverExpand(row: TreeRow<T>) {

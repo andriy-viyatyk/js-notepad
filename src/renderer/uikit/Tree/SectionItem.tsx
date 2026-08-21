@@ -1,7 +1,6 @@
 import React from "react";
-import styled from "@emotion/styled";
-import color from "../../theme/color";
-import { spacing } from "../tokens";
+import { mountVanilla } from "../shared/mount";
+import { SectionItemView } from "./SectionItemView";
 
 // --- Types ---
 
@@ -21,55 +20,8 @@ export interface SectionItemProps
     indentSize?: number;
 }
 
-// --- Styled ---
-
-const Root = styled.div(
-    {
-        display: "flex",
-        width: "100%",
-        boxSizing: "border-box",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingLeft: spacing.sm,
-        paddingRight: spacing.sm,
-        color: color.text.light,
-        cursor: "default",
-        userSelect: "none",
-        overflow: "hidden",
-        whiteSpace: "nowrap",
-        textOverflow: "ellipsis",
-    },
-    { label: "TreeSection" },
-);
-
-const Indent = styled.div<{ size: number; first: boolean }>(
-    ({ size, first }) => ({
-        width: size,
-        height: "100%",
-        flexShrink: 0,
-        borderLeft: first ? "none" : `1px solid ${color.border.light}`,
-    }),
-    { label: "TreeSectionIndent" },
-);
-
 // --- Component ---
 
-const defaultIndentSize = 16;
-
-export function SectionItem({ name, id, level, label, indentSize = defaultIndentSize, ref, ...rest }: SectionItemProps) {
-    return (
-        <Root
-            ref={ref}
-            id={id}
-            data-type="tree-section"
-            data-name={name}
-            role="presentation"
-            {...rest}
-        >
-            {Array.from({ length: level }).map((_, i) => (
-                <Indent key={i} size={indentSize} first={i === 0} />
-            ))}
-            {label}
-        </Root>
-    );
+export function SectionItem(props: SectionItemProps): React.ReactElement {
+    return mountVanilla(SectionItemView, props);
 }

@@ -186,6 +186,32 @@ const SECTIONED_TREE: ITreeItem[] = [
     },
 ];
 
+/**
+ * A generated tree deep and long enough to exercise the cell pool: 60 roots whose nesting depth
+ * cycles 0..7, so a hard scroll recycles rows between very different levels. The hand-written
+ * samples above are only three levels deep and a few dozen rows, which is not enough to surface a
+ * stale level guide left behind on a recycled row.
+ */
+function makeDeepTree(): ITreeItem[] {
+    const chain = (depth: number, prefix: string): ITreeItem[] | undefined =>
+        depth === 0
+            ? undefined
+            : [{
+                value: `${prefix}/d${depth}`,
+                label: `deep-${depth}`,
+                icon: <FolderIcon />,
+                items: chain(depth - 1, prefix),
+            }];
+    return Array.from({ length: 60 }, (_, i) => ({
+        value: `synthetic/root-${i}`,
+        label: `root-${i}`,
+        icon: <FolderIcon />,
+        items: chain(i % 8, `synthetic/root-${i}`),
+    }));
+}
+
+const DEEP_TREE = makeDeepTree();
+
 // --- Demo ---------------------------------------------------------------------
 
 interface DemoProps {
@@ -201,6 +227,7 @@ interface DemoProps {
     defaultExpandAll?: boolean;
     dnd?: boolean;
     lazy?: boolean;
+    deep?: boolean;
 }
 
 function TreeDemo({
@@ -216,6 +243,7 @@ function TreeDemo({
     defaultExpandAll = false,
     dnd = false,
     lazy = false,
+    deep = false,
 }: DemoProps) {
     const treeRef = useRef<TreeModel<ITreeItem> | null>(null);
     const [value, setValue] = useState<ITreeItem | null>(null);
@@ -235,6 +263,7 @@ function TreeDemo({
 
     const items = useMemo(() => {
         if (lazy) return lazyTree ?? [];
+        if (deep) return DEEP_TREE;
         const base = sections ? SECTIONED_TREE : REGULAR_TREE;
         if (removed.size === 0) return base;
         // Recursively filter — only used in the customRow demo.
@@ -243,7 +272,7 @@ function TreeDemo({
                 .filter((n) => !removed.has(n.value))
                 .map((n) => (n.items ? { ...n, items: filterTree(n.items) } : n));
         return filterTree(base);
-    }, [lazy, lazyTree, sections, removed]);
+    }, [lazy, lazyTree, deep, sections, removed]);
 
     const renderItem = customRow
         ? (ctx: TreeItemRenderContext<ITreeItem>) => (
@@ -439,5 +468,6 @@ export const treeStory: Story = {
         { name: "defaultExpandAll",   type: "boolean", default: false },
         { name: "dnd",                type: "boolean", default: false },
         { name: "lazy",               type: "boolean", default: false },
+        { name: "deep",               type: "boolean", default: false },
     ],
 };

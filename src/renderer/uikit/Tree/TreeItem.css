@@ -1,0 +1,164 @@
+/*
+ * Rule order mirrors the Emotion block this replaces. Two things differ from `ListBox/ListItem.css`
+ * and must not be "made consistent" with it:
+ *
+ * 1. The focused-selection override carries NO `:not([data-drop-active])`. `ListItem` needed that
+ *    because both rules lived in the same Emotion block, where source order decided the winner.
+ *    Tree's focused override lives on the *container* block (`Tree.css`) at specificity (0,5,0)
+ *    against this file's drop rule at (0,2,0), so it already outranks the drop feedback today.
+ *    Adding the `:not()` would change behaviour: it would let the drop highlight paint a selected
+ *    row in a focused tree, which it does not do now.
+ * 2. There is no `[data-loading]` rule. The original was an empty block with a comment reserving it
+ *    for a future dim-while-loading style; the comment now lives next to where the attribute is
+ *    written in `TreeItemView`, and an empty rule is not worth a stylesheet entry.
+ *
+ * The level guides live in `tree-indents.css`, shared with the section row. This file owns only the
+ * selected-state override of their border colour, which is far more specific than the base rule, so
+ * there is no source-order dependency between the two files.
+ *
+ * The row is NOT the absolutely positioned element — the virtualization engine positions the cell
+ * wrapper and this row is an ordinary in-flow child of it. That is why `width: 100%` works.
+ */
+@layer uikit {
+    [data-type="tree-item"] {
+        display: inline-flex;
+        width: 100%;
+        box-sizing: border-box;
+        align-items: center;
+        gap: var(--gap-xs, 2px);
+        padding-right: var(--space-sm, 4px);
+        cursor: pointer;
+        color: var(--color-text-default, currentColor);
+        user-select: none;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    [data-type="tree-item"][data-disabled] {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    /* Blurred-state selected/active backgrounds (`rowSelectionBase`, relocated by EPIC-056 C3-7). */
+    [data-type="tree-item"][data-active]:not([data-selected]) {
+        background-color: var(--color-bg-message, transparent);
+    }
+
+    [data-type="tree-item"][data-selected] {
+        background-color: var(--color-bg-light, transparent);
+    }
+
+    /*
+     * The focused-list selected row is painted with the dark treeSelection background by the
+     * container's override in `Tree.css`, and its label follows via the row's `color`. The chevron
+     * and the level guides set colours of their own, so they do not inherit it — left alone, a dark
+     * chevron and light-grey guides sit on top of the highlight. The chevron takes the selected icon
+     * colour; the guides simply disappear into the highlight.
+     *
+     * Row-hosted form, deliberately unanchored: the Emotion `&` was already the row, so this is not
+     * the selector that needed the `[data-type="tree"]` anchor.
+     */
+    [data-focus-selection]:focus-within
+        [data-type="tree-item"][data-selected] > [data-part="chevron"] > .tree-chevron,
+    [data-focus-selection]:focus-within
+        [data-type="tree-item"][data-selected] > [data-part="chevron"] > .tree-chevron:hover {
+        color: var(--color-icon-selection, currentColor);
+    }
+
+    [data-focus-selection]:focus-within [data-type="tree-item"][data-selected] > .tree-indent {
+        border-left-color: transparent;
+    }
+
+    [data-type="tree-item"][data-dragging] {
+        opacity: 0.5;
+    }
+
+    [data-type="tree-item"][data-drop-active] {
+        background-color: var(--color-bg-selection, transparent);
+        color: var(--color-text-dark, currentColor);
+    }
+
+    /*
+     * The chevron column is deliberately narrower than the 16px indents: it keeps the level guides
+     * at clean 16px steps while making the row's leading whitespace tight. A literal, not a token.
+     *
+     * The chevron and the stub sit inside the `[data-part="chevron"]` host, so BOTH levels are
+     * named. `display: contents` removes the host's box but not its place in the DOM tree, so a
+     * `[data-type="tree-item"] > .tree-chevron` child combinator never matches — and an unmatched
+     * chevron rule is not a subtle defect: the `<button>` falls back to the UA appearance, i.e. a
+     * 40x34 grey rounded box with a 24px icon, and the stub collapses to zero width so leaf rows
+     * lose their alignment with folder rows.
+     */
+    [data-type="tree-item"] > [data-part="chevron"] > .tree-chevron,
+    [data-type="tree-item"] > [data-part="chevron"] > [data-part="chevron-stub"] {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    [data-type="tree-item"] > [data-part="chevron"] > .tree-chevron {
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: var(--color-icon-default, currentColor);
+    }
+
+    [data-type="tree-item"] > [data-part="chevron"] > .tree-chevron:hover {
+        color: var(--color-icon-active, currentColor);
+    }
+
+    [data-type="tree-item"] > [data-part="chevron"] > .tree-chevron > svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    [data-type="tree-item"] > .tree-icon {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    /*
+     * Both levels are named because a React-valued icon adds one `display: contents` wrapper from
+     * `fillSlot`. Named explicitly rather than reached with a descendant selector: the Emotion rule
+     * was `& svg` scoped to `.tree-icon`, and widening it would start resizing icons inside
+     * caller-supplied trailing controls.
+     */
+    [data-type="tree-item"] > .tree-icon > svg,
+    [data-type="tree-item"] > .tree-icon > [data-part="react-slot"] > svg {
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+    }
+
+    [data-type="tree-item"] > .label {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    [data-type="tree-item"] > .tree-trailing {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        transition: opacity 80ms ease;
+    }
+
+    /*
+     * Hover-reveal: hide the trailing at rest, show it on row hover or keyboard focus-within. Rows
+     * that opt out (e.g. a pinned row) pass trailingVisibility="always".
+     */
+    [data-type="tree-item"][data-trailing-visibility="hover"] > .tree-trailing {
+        opacity: 0;
+    }
+
+    [data-type="tree-item"][data-trailing-visibility="hover"]:hover > .tree-trailing,
+    [data-type="tree-item"][data-trailing-visibility="hover"]:focus-within > .tree-trailing {
+        opacity: 1;
+    }
+}

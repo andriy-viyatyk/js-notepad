@@ -570,6 +570,52 @@ Four rules, each of which has already bitten:
   driver, so a state slot is dead code. State-driven arms belong in `bind()`, and consequences of
   the model's own mutations belong at the mutation site.
 
+#### A state-driven model in a vanilla view
+
+`ListBox`'s inputs are all props, so its `DepsGate` in the host's `onUpdate` is the whole story.
+`Tree` is the first converted component whose rendered output also depends on **reactive state**
+(expansion, lazy-load flags, drag state), and props are the only thing a vanilla driver pumps. The
+answer is **not** a state subscription:
+
+- Every state write goes through one funnel on the model — `TreeModel.mutate()` — which writes the
+  state and then calls a single host-registered callback (`onStateApplied`). `grep "state.update"`
+  inside the component folder must return exactly one hit; that is what makes the convention
+  checkable. A submodel gets a narrow entry point (`mutateState`) rather than touching `state`.
+- **The consequence of a state write is to re-run the render pass, not to repaint the cells.** Root
+  attributes can be state-derived, and `aria-activedescendant` is the worked example: its bounds
+  check reads `rows.length` *and* its value reads `rows.value[i].value`, so a `collapseAll()` with a
+  high `activeIndex` must *remove* the attribute and an in-range collapse must *rewrite* it. A
+  grid-only repaint leaves the root pointing at an id that is no longer in the DOM.
+- Keep `applyRestProps` off the state path. It removes and re-adds every `on*` listener on every
+  call, rest props cannot have changed on a state write, and reinstalling the root's listeners
+  during a drag is a hazard rather than churn.
+- Re-prime the `DepsGate` from the state path. Immer gives the mutated slice a new identity, so a
+  derived memo's output is a new object and the next props pump would otherwise repaint a second
+  time. Priming is safe there precisely because that path just painted everything.
+
+Why not a subscription, concretely: `TOneState.update` dispatches **synchronously** (it is not a
+mirror of `state.use()`, which batches through `useSyncExternalStore`), unsubscribe replaces the
+listener array so an in-flight dispatch can still call a listener removed during that pass, and a
+state-driven blanket repaint is the masked-defect machine described in
+[/doc/de-react.md](../../../doc/de-react.md) §6.1 — a prop missing from the signature would appear
+broken only until the user expanded a node, then fix itself.
+
+#### Scrolling after a change that resizes the content
+
+`VirtualGridModel` has two scroll entry points and they are not interchangeable. `scrollTop` is
+clamped to the scrollable extent, and the extent (`area.style.height`) is written by `applyLayout`
+**inside** the next paint, on `requestAnimationFrame`.
+
+- `scrollToRow(row)` — the row set has not changed. One frame faster, which keyboard navigation
+  can feel.
+- `scrollToRowAfterPaint(row)` — the caller has just changed the row set. Measured: expanding a
+  folder and scrolling immediately lands at 600px where the target needs 1020px, silently, with
+  nothing re-issuing the request. A `setTimeout(0)` does not help: it runs after the microtask that
+  recomputes the geometry but before the frame that applies it.
+
+The symptom of getting this wrong is not an error or a blank row — the list renders perfectly and is
+simply scrolled to the wrong place.
+
 #### React-valued slots inside a virtualized row
 
 `ListBox` keeps a `renderItem` prop returning `ReactNode`, and `ListItem`'s `icon`, `label`,
@@ -633,8 +679,9 @@ See the PathInput pilot at `uikit/PathInput/PathInputView.tsx` for the complete 
 Selectable lists share one focus-aware selection look (the Explorer file-tree behavior): a
 selected/active row shows a subtle **gray** background when its list is **not** focused, and a
 **blue** background + blue outline when the list **is** focused. This is pure CSS — no JS focus
-state — built from three fragments in `shared/selection-style.ts` and gated by a container
-attribute:
+state. It was built from three fragments in `shared/selection-style.ts`, which **no longer exists**
+(EPIC-056 C3-7, deleted in US-1015); the table below records the shape each surviving copy took and
+which fragment it descends from. It is gated by a container attribute:
 
 | Fragment | Applied on | Purpose |
 |----------|-----------|---------|
@@ -642,13 +689,26 @@ attribute:
 | `focusSelectionOverride(rowSelector)` | the focusable **container**'s styled block | focused override for rows that are *descendants* of the container (e.g. `Tree` → `TreeItem`, `CategoryList` → its rows) |
 | `rowFocusSelectionOverride(rowMatch)` | the **row**'s own styled block | focused override for a row primitive used *without* its own styled container (e.g. `ListItem` outside `ListBox`, `SelectableRow`) — matches whenever the row sits inside any focused-within `[data-focus-selection]` ancestor |
 
-**Converted components no longer import the module.** `ListItem` now carries its own
-hand-translated copy of `rowSelectionBase` and `rowFocusSelectionOverride` in `ListItem.css`, scoped
-to `[data-type="list-item"]` (EPIC-056 C3-7). `shared/selection-style.ts` stays for its three
-remaining Emotion consumers — `Tree`, `TreeItem` and `ui/sidebar/FolderItem` — and is deleted with
-the last of them. Each copy is scoped to its own component root, so the copies cannot collide; when
-a second *converted* consumer appears, revisit whether a shared stylesheet is worth the cross-file
-source-order dependency, because the rule order inside these blocks is load-bearing.
+**The module is gone; there are now four independent per-component copies.** `ListItem.css` holds a
+hand-translated `rowSelectionBase` + `rowFocusSelectionOverride` scoped to `[data-type="list-item"]`;
+`TreeItem.css` holds the blurred base and `Tree.css` the focused override; `SelectableRow.css` and
+`CategoryList` hold their own; and `ui/sidebar/FolderItem.tsx` has the two fragments inlined into its
+own Emotion block, which is where the module finally died (its last consumer was app-layer, two
+epics away from conversion). Each copy is scoped to its own component root, so they cannot collide.
+The rule order *inside* each block is load-bearing, which is why a shared stylesheet was not worth
+the cross-file source-order dependency.
+
+**Two traps this split leaves behind.** First, `Tree`'s focused override lives on the *container*,
+so its CSS selector must keep a `[data-type="tree"]` anchor — the Emotion original was scoped to the
+component's generated class, and an unanchored translation becomes a global rule that paints any
+`TreeItem` under any opted-in container, including one rendered through a `ListBox`'s `renderItem`.
+Second, `TreeItem.css` deliberately does **not** carry `ListItem`'s `:not([data-drop-active])`
+carve-out: Tree's override outranks its drop rule on specificity (0,5,0 against 0,2,0) rather than
+on source order, so adding the exclusion would change behaviour rather than preserve it.
+
+**For whoever converts `FolderItem`:** its stylesheet must land in `@layer app`, never `@layer
+uikit`. Unlayered Emotion currently outranks every layered rule regardless of specificity, so the
+row wins today by origin; in `uikit` it would fight `ListItem.css` on source order instead.
 
 **How a container opts in:** set `data-focus-selection` **and** `tabIndex={0}` on the scroll
 container so `:focus-within` can trigger on click. `ListBox` does this for you via

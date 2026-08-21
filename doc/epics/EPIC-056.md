@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active — US-1013 and US-1014 implemented, awaiting user testing
+**Status:** Active — US-1013, US-1014 and US-1015 implemented, awaiting user testing
 **Created:** 2026-08-21
 
 ## Overview
@@ -213,8 +213,8 @@ exist only to work around React.
 |---|---|---|---|---|
 | 1 | `ListBoxModel.ts:224` | 2 memos + 7 props | `gridRef.update({ all: true })` | **B13's memo-deps row, answered in US-1014.** `model.repaintSignature()` + a `DepsGate` in the host view's `onUpdate`. See the memo rule below |
 | 2 | `ListBoxModel.ts:255` | `[props.activeIndex]` | scroll-into-view, with a `setTimeout(0)` fallback when the grid is unmeasured | **Amended by US-1014.** Host-view `onUpdate` guard, paired with row 1's trigger; the `setTimeout(0)` is deleted and the engine grows a one-slot pending scroll flushed from its **paint** path. `attach()`'s measured pass alone does not cover a root that has no layout at mount |
-| 3 | `TreeModel.ts:761` | 1 memo + 7 props + 3 state | `gridRef.update({ all: true })` | as #1, plus state-driven arms (`draggingValue`, `dragOverValue`, `loading`) that become consequences of the methods that set them |
-| 4 | `TreeModel.ts:791` | `[props.activeIndex]` | as #2 | as #2 — and it inherits the engine-side pending scroll for free, so `Tree` deletes its own deferral without adding anything |
+| 3 | `TreeModel.ts:761` | 1 memo + 7 props + 3 state | `gridRef.update({ all: true })` | **Done in US-1015, and it needed more than #1.** `repaintSignature()` + the host gate covers the props; the three state slices go through a single `mutate()` funnel on the model that calls one host callback. The consequence is **re-running the render pass**, not repainting cells — `aria-activedescendant` is derived from `rows` twice over, so a collapse must remove or rewrite it |
+| 4 | `TreeModel.ts:791` | `[props.activeIndex]` | as #2 | **Done in US-1015.** It inherited the engine-side pending scroll as predicted, but the *reveal* path did not: see the US-1015 notes on `scrollToRowAfterPaint` |
 | 5 | `SelectModel.ts:520` | `[props.items]` | invalidate in-flight load, reset loaded state | `setProps` comparing `oldProps.items` |
 | 6 | `SelectModel.ts:535` | props + 2 state | start the load when sync, or on open when async | explicit call from the open path and the prop pump; **the one with real ordering risk** |
 | 7 | `SelectModel.ts:556` | `[state.open]` | close reset, wrapped in `queueMicrotask` | **deleted** — close consequence, run inline where `open` is set |
@@ -257,11 +257,16 @@ that converts `ListBox` decides it, once, and `Tree` follows.
   consumers — `ListItem`, `MultiListBox`, `TreeItem` (all C3) and `AVGrid/DataCell` (C4). B15
   already decided av-grid's own `highlight.ts` is dropped in favour of this one, so the DOM form
   lands here and C4 inherits it. The React form stays until `AVGrid` goes.
-- **`uikit/shared/selection-style.ts` becomes CSS and is deleted.** It is the last Emotion file in
-  `uikit/shared/`, and all three of its consumers (`ListItem`, `Tree`, `TreeItem`) are in this epic.
-  US-996 deliberately deferred a *generic* shared selection stylesheet, and C2 then had
-  `CategoryList` move its own rules into its own CSS. C3 finishes the job the same way, with the
-  shared rules living in whichever stylesheet owns the row.
+- **`uikit/shared/selection-style.ts` becomes CSS and is deleted.** ~~all three of its consumers
+  (`ListItem`, `Tree`, `TreeItem`) are in this epic~~ — **the premise was wrong and the row is
+  amended.** There was a **fourth** consumer this decision did not count: `ui/sidebar/FolderItem.tsx`,
+  which is app-layer and belongs to Epic D. US-1014 converted `ListItem`; US-1015 converted `Tree`
+  and `TreeItem` and then **deleted the module by relocating** its two surviving fragments verbatim
+  into `FolderItem`'s own Emotion block, rather than converting an app-layer component from a
+  `uikit` task or leaving an Emotion file in `uikit/shared/` for two more epics. The emitted CSS is
+  byte-identical — the same `CSSObject` literals at the same position in the same styled block — and
+  the third export, `focusSelectionOverride`, was dead by then and went with it. US-996's deferral of
+  a *generic* shared stylesheet stands: the end state is four independent per-component copies.
 - **One id generator replaces five `useId` calls** (C3-5), in `uikit/shared/`, following
   `tooltipRegistry.nextId()`'s existing shape.
 
@@ -335,7 +340,7 @@ before its implementation, and this table's rows become links as that happens.
 |------|-------|--------|
 | [US-1013](../tasks/US-1013-virtual-grid-engine/README.md) | The vanilla virtualization engine — `VirtualGrid`, plus the story `RenderGrid` never had | Implemented |
 | [US-1014](../tasks/US-1014-listbox-vanilla/README.md) | `ListBox`, `ListItem`, `SectionItem` — the first data view on the vanilla engine | Implemented |
-| US-1015 | `Tree` — rows, DnD, keyboard, and the largest model in `uikit/` | Planned |
+| [US-1015](../tasks/US-1015-tree-vanilla/README.md) | `Tree` — rows, DnD, keyboard, and the largest model in `uikit/` | Implemented |
 | US-1016 | `MultiListBox` — checkbox rows and the select-all header | Planned |
 | US-1017 | `Select` — four effects, async item loading, and the Rule 4 number | Planned |
 | US-1018 | `MultiSelect` and `Autocomplete` — the last two dropdowns and `Panel`'s eviction | Planned |
@@ -649,3 +654,100 @@ whether its slot props can narrow now that its only view is vanilla.
   US-1013 engine bug that US-1014's testing exposed**, and it would have hit `Tree` and `Select`
   equally — the accidental recompute-on-every-render that the React `RenderGrid` got for free was
   masking it, which is the same mechanism that hid the `variant`/`selectionStyle` dep gap.
+
+### 2026-08-22 — US-1015 (`Tree`) implemented
+
+The largest conversion in the programme. Four design questions went to independent agents with no
+conversation context; each answer was then checked against the code before being adopted, and two
+were overridden in part. The task document records all four in full.
+
+- **The state-driven repaint (C3-6 #3) is a funnel, not a subscription.** Every state write in
+  `TreeModel` goes through one private `mutate()` that writes state and calls one host-registered
+  callback. `grep "state.update" src/renderer/uikit/Tree/` returns exactly one hit, which is what
+  makes the convention checkable; `TreeDndModel` gets a narrow `mutateState` entry rather than
+  touching `tree.state`. The seven scattered `gridRef.update({ all: true })` calls are gone, and
+  `TreeDndModel` — the one site that had **no** repaint of its own and relied entirely on the deleted
+  effect — is fixed by construction.
+- **The consequence of a state write is to re-run the render pass, not to repaint cells.** This was
+  the correction to the agent's plain "explicit consequence" answer, and it is the finding worth
+  carrying into US-1016 through US-1018: `aria-activedescendant` is derived from `rows` **twice** —
+  the bounds check *and* the id — so a `collapseAll()` with a high `activeIndex` must remove the
+  attribute and an in-range collapse must rewrite it. Verified at runtime: 28 rows → 4 removes it;
+  expanding a folder with `activeIndex = 2` rewrites `…-item-f2` to `…-item-f0c1`.
+- **The repaint signature is 13 fixed slots and is not the historical dep list.** `rowHeight` and
+  `getContextMenu` are dropped (the engine compares the first; the second is read at event time and
+  changes no cell DOM), and five inputs the effect never listed are **added** — `props.id`, which
+  feeds `itemId()`, and the four DnD-gating props that decide the wrapper's `draggable` attribute.
+  This is the second application of US-1014's correction, and it keeps finding real gaps: the React
+  path repainted unconditionally on every parent render, so no gap could ever show.
+  **`ListBox` has the same `props.id` gap.** It is pathological only — a component changing its own
+  DOM id mid-life — so it was left alone rather than widening this diff.
+- **Nine of ten deferrals deleted; the tenth was not a React workaround.**
+  `expandAncestorsThenScroll`'s `setTimeout(resolve, 0)` was waiting for the **scroll extent**, not
+  for data — and the extent moved when the engine did: `applyLayout` writes `area.style.height`
+  inside `paint()`, on `requestAnimationFrame`, so a macrotask now lands too early and `scrollTop`
+  clamps silently. Measured: expanding the last folder of a 40×20 tree and scrolling immediately
+  lands the offset at **600px** where the target needs **1020px**; nothing re-issues it. The fix is
+  three engine lines — `VirtualGridModel.scrollToRowAfterPaint()`, exposing the one-slot pending
+  register that `flushPendingScroll()` already drains *after* `applyLayout`. Measured after: 1040px,
+  target row inside the viewport. **This is the third bug in this epic caused by guessing when the
+  paint had happened** (see the two US-1013 entries above); the engine now has an entry point so the
+  fourth does not have to be guessed either.
+- **`ListBox` carried the same latent bug and was fixed in the same shape.** `ListBoxView.onUpdate`
+  requested a repaint and then scrolled in the same turn, so a list that grew *and* moved
+  `activeIndex` past the old extent clamped. Mount was already safe (the grid is unmeasured, so the
+  pending slot caught it); a live update was not. It now threads the gate result into
+  `syncActiveScroll` and uses the after-paint form only when the content changed, so keyboard
+  navigation keeps its immediate scroll.
+- **`selection-style.ts` is deleted** — see the amended C3-7 row. `uikit/shared/` is now
+  Emotion-free.
+- **The translated container rule keeps a `[data-type="tree"]` anchor.** Without it the rule stops
+  being scoped to a Tree and starts painting any `TreeItem` under any `[data-focus-selection]`
+  container, including one rendered through a `ListBox`'s `renderItem` — which `MenuBar` does with
+  `FolderItem`. `TreeItem.css` conversely must **not** copy `ListItem`'s `:not([data-drop-active])`
+  carve-out: Tree's override wins on specificity (0,5,0 vs 0,2,0), not source order, so adding it
+  would change behaviour rather than preserve it.
+
+#### Defect found in user testing: the chevron rules never matched
+
+The expand/collapse chevrons rendered as 40x34 grey rounded UA buttons with 24px icons, and leaf
+rows lost their alignment because the chevron stub collapsed to zero width. Cause: the chevron and
+the stub live inside the `[data-part="chevron"]` host, and **`display: contents` removes the host's
+box but not its place in the DOM tree** — so `[data-type="tree-item"] > .tree-chevron` could never
+match. Fixed by naming both levels, as the icon slot already did. Measured after the fix: 14x14
+button, transparent background, no border, 12x12 svg, 14x14 stub.
+
+**This is the third selector-mismatch defect in this epic, and they share one root cause**: a
+translated Emotion selector is written against React's DOM, but the vanilla view inserts hosts React
+did not have. US-1014's oversized trailing check came from `& > svg` having silently covered *two*
+slots; the same task's slot-icon rules then needed both levels named; and this one crosses a
+`display: contents` host. **US-1016 through US-1018 must check every child combinator in translated
+CSS against the converted DOM, not against the Emotion source.** The tell is cheap to get: a
+computed-style read on the element the rule was written for. An unmatched rule on a `<button>` is
+loud (UA appearance), but an unmatched rule on a `<div>` or `<span>` is nearly invisible.
+
+#### Two pre-existing defects deliberately preserved, and why they are follow-ups
+
+Both were measured in the running renderer, not inferred, and both look like conversion mistakes to
+anyone reading the new CSS — which is why `tree-indents.css` documents them at the point of the
+declaration.
+
+1. **The level guides paint nothing.** `Indent`'s `height: 100%` resolves against the row's
+   indefinite height (the row is an auto-height child of the engine's positioned cell wrapper, and
+   `align-items: center` does not stretch it), so the used height is **0px** and the `border-left`
+   draws no line. The documented `border-left-color: transparent` override for a selected row in a
+   focused tree is therefore also a no-op. Adding `height: 100%` to the row makes the guide 22px —
+   i.e. switches hierarchy lines **on** in all six Tree consumers. That is a design change with its
+   own before/after screenshots, not part of a conversion.
+2. **Non-first indents are 17px, not 16.** No `box-sizing` on the indent and no global border-box
+   reset in the renderer, so the leading gutter for level *N* is `16 + 17 × (N − 1)`. Fixing it
+   shifts every nested label one pixel per level.
+
+#### Rule 4 measurement note for `Tree`
+
+**Four of six `<Tree>` call sites pass `renderItem`** (`TreeProviderView`, `BoardsTree`,
+`RestClientShared`, `ToolsTree`), so most Tree rows in the app remain one retained React root per
+visible row, with a `mountVanilla` `TreeItem` inside it. Those four files are Epic D/E territory and
+drain the same way `RenderGrid` does. **Do not take the `Tree` number through `TreeProviderView`** —
+measure `GitRefsView` or `NotebookCategoriesSecondaryView`, the two consumers on the default row
+path. Same caveat US-1014 recorded for `MultiListBox`.

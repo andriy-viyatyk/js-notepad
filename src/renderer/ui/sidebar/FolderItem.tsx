@@ -2,7 +2,6 @@ import styled from "@emotion/styled";
 import { useCallback, useRef, useState } from "react";
 import { TraitTypeId, setTraitDragData, getTraitDragData, hasTraitDragData } from "../../core/traits";
 import color from "../../theme/color";
-import { rowSelectionBase, rowFocusSelectionOverride } from "../../uikit/shared/selection-style";
 import { renderIcon, Tooltip } from "../../uikit";
 import type { IconRef } from "../../uikit";
 import { ArrowRightIcon } from "../../theme/icons";
@@ -23,11 +22,33 @@ const Root = styled.div(
         height: "100%",
         boxSizing: "border-box",
 
-        ...rowSelectionBase,
+        // Relocated verbatim from uikit/shared/selection-style.ts (EPIC-056 C3-7) when its last
+        // uikit consumer converted to CSS: the blurred-state row backgrounds, then the focused
+        // (:focus-within) override. The opted-in ancestor is a ListBox — MenuBar renders these rows
+        // through its `renderItem` — so this is the row-hosted, ancestor-agnostic form.
+        //
+        // When Epic D converts this component, its stylesheet must land in `@layer app`, NOT
+        // `@layer uikit`: unlayered Emotion currently outranks every layered rule regardless of
+        // specificity, and in `uikit` these rules would fight ListItem.css on source order.
+        "&[data-active]:not([data-selected])": {
+            backgroundColor: color.background.message,
+        },
+        "&[data-selected]": {
+            backgroundColor: color.background.light,
+        },
         "&:hover:not([data-selected])": {
             backgroundColor: color.background.message,
         },
-        ...rowFocusSelectionOverride('[data-type="folder-item"]'),
+        '[data-focus-selection]:focus-within &[data-type="folder-item"][data-selected]': {
+            backgroundColor: color.background.treeSelection,
+            color: color.text.selection,
+            outline: `1px solid ${color.border.active}`,
+            outlineOffset: -1,
+        },
+        '[data-focus-selection]:focus-within &[data-type="folder-item"][data-active]': {
+            outline: `1px solid ${color.border.active}`,
+            outlineOffset: -1,
+        },
         "&[data-dragging]": {
             opacity: 0.5,
         },

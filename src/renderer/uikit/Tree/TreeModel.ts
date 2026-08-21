@@ -1,8 +1,9 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { isTraited, Traited, TraitType } from "../../core/traits/traits";
-import { RenderGridModel } from "../RenderGrid";
-import type { RowAlign } from "../RenderGrid";
+import { toPublicEvent } from "../shared/react-compat";
+import { VirtualGridModel } from "../VirtualGrid";
+import type { RowAlign } from "../VirtualGrid";
 import { ContextMenuEvent } from "../../core/events/context-menu";
 import {
     ITreeItem,
@@ -70,9 +71,41 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     TreeProps<T>
 > {
     // --- refs ---
-    gridRef: RenderGridModel | null = null;
-    setGridRef = (ref: RenderGridModel | null) => {
+
+    /**
+     * The engine, used only for scrolling. Repaints are requested by `mutate()` and by the host
+     * view's props-change gate, never from a state-write site directly.
+     */
+    gridRef: VirtualGridModel | null = null;
+    setGridRef = (ref: VirtualGridModel | null) => {
         this.gridRef = ref;
+    };
+
+    /**
+     * Registered by the host view. Called after every state write, and the only thing that carries
+     * a state change into the DOM — see `mutate`.
+     */
+    onStateApplied: (() => void) | null = null;
+
+    /**
+     * The only place in `uikit/Tree/` that writes state.
+     *
+     * A vanilla driver pumps props through the view's `update()`, so a state write reaches nothing
+     * on its own: there is no re-render to re-evaluate anything, and this model registers no
+     * effects (`createComponentModelDriver.mount()` throws if it does). Every write therefore
+     * carries its own consequence, and this is where it is carried.
+     *
+     * Do not call `this.state.update` anywhere else in this folder — `grep "state.update"
+     * uikit/Tree/` must return exactly one hit, which is what makes the convention checkable.
+     */
+    private mutate(updater: (state: TreeState) => void): void {
+        this.state.update(updater);
+        this.onStateApplied?.();
+    }
+
+    /** `TreeDndModel`'s narrow entry to the funnel, so it never touches `tree.state` directly. */
+    mutateState = (updater: (state: TreeState) => void): void => {
+        this.mutate(updater);
     };
 
     // Composed interaction models retain transient gesture state outside TreeState.
@@ -81,12 +114,13 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
     readonly dnd = new TreeDndModel(this);
 
     // --- ids ---
-    private _reactId = "";
-    setReactId = (reactId: string) => {
-        this._reactId = reactId;
+    private _elementId = "";
+    /** Fed by the view from `nextElementId("tree")` — replaces React's `useId` (EPIC-056 C3-5). */
+    setElementId = (elementId: string) => {
+        this._elementId = elementId;
     };
     get rootId(): string {
-        return this.props.id ?? `tree-${this._reactId}`;
+        return this.props.id ?? this._elementId;
     }
     itemId = (rowIndex: number): string => {
         const row = this.rows.value[rowIndex];
@@ -307,7 +341,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * ordering is what makes Ctrl+Shift+click a range extend rather than needing a third rule; a
      * disjoint-range add is not a gesture we support.
      */
-    onItemClick = (rowIndex: number, e?: React.MouseEvent) => {
+    onItemClick = (rowIndex: number, e?: MouseEvent) => {
         const r = this.rows.value[rowIndex];
         if (!r || r.item.disabled || r.item.section) return;
 
@@ -340,7 +374,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         this.props.onItemDoubleClick?.(r.source, r.level);
     };
 
-    onChevronClick = (e: React.MouseEvent, rowIndex: number) => {
+    onChevronClick = (e: MouseEvent, rowIndex: number) => {
         e.stopPropagation();
         this.toggleAt(rowIndex);
     };
@@ -355,7 +389,7 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         if (this.props.activeIndex != null) this.props.onActiveChange?.(null);
     };
 
-    onItemContextMenu = (e: React.MouseEvent<HTMLDivElement>, rowIndex: number) => {
+    onItemContextMenu = (e: MouseEvent, rowIndex: number) => {
         const r = this.rows.value[rowIndex];
         if (!r || r.item.section) return;
 
@@ -378,9 +412,12 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
      * Container-level context-menu handler. Skipped when a row already populated
      * `ContextMenuEvent.items` -- the row's menu wins.
      */
-    onRootContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (e.nativeEvent.contextMenuEvent?.items.length) return;
-        this.props.onContextMenu?.(e);
+    onRootContextMenu = (e: MouseEvent) => {
+        if (e.contextMenuEvent?.items.length) return;
+        // The public prop keeps its React signature — Epic F owns API cleanup — so bridge here.
+        this.props.onContextMenu?.(
+            toPublicEvent(e) as unknown as React.MouseEvent<HTMLDivElement>,
+        );
     };
 
     onKeyDown = this.keyboard.onKeyDown;
@@ -433,40 +470,31 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         if (!loader) return;
         const v = r.value;
 
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                s.expanded[v] = true;
-                s.loading[v] = true;
-            });
-            this.props.onExpandChange?.(v, true);
-            this.gridRef?.update({ all: true });
+        this.mutate((s) => {
+            s.expanded[v] = true;
+            s.loading[v] = true;
         });
+        this.props.onExpandChange?.(v, true);
 
         try {
             await loader(r.source);
         } catch (err) {
             if (!this.isLive) return;
-            queueMicrotask(() => {
-                if (!this.isLive) return;
-                this.state.update((s) => {
-                    s.loading[v] = false;
-                    s.expanded[v] = false;
-                });
-                this.props.onExpandChange?.(v, false);
-                this.gridRef?.update({ all: true });
-            });
+            // `onLoadError` is raised BEFORE the state write, because the write it used to follow
+            // was deferred: with the microtask gone, keeping the statement order would flip the
+            // observable order of `onLoadError` and `onExpandChange(v, false)`.
             this.props.onLoadError?.(v, err);
+            this.mutate((s) => {
+                s.loading[v] = false;
+                s.expanded[v] = false;
+            });
+            this.props.onExpandChange?.(v, false);
             return;
         }
         if (!this.isLive) return;
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                s.loading[v] = false;
-                s.revision += 1;
-            });
-            this.gridRef?.update({ all: true });
+        this.mutate((s) => {
+            s.loading[v] = false;
+            s.revision += 1;
         });
     };
 
@@ -502,22 +530,18 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             !next && this.props.collapseDescendants
                 ? this.collectDescendantValues(r.source)
                 : null;
-        // Defer the state write past the current render -- model effects with deps run inside
-        // setPropsInternal during the render phase, and synchronous state.update from here
-        // would trigger React's "Cannot update a component while rendering a different
-        // component" warning when this method is invoked from a render-time path. Re-check
-        // liveness inside the microtask in case the user unmounted before it ran.
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                s.expanded[r.value] = next;
-                if (descendants) {
-                    for (const v of descendants) s.expanded[v] = false;
-                }
-            });
-            this.props.onExpandChange?.(r.value, next);
-            this.gridRef?.update({ all: true });
+        // Written inline. The deferral this replaced existed only because model effects with deps
+        // ran inside `setPropsInternal` during React's render phase; a vanilla-driven model
+        // registers no effects, and every caller of this method is a DOM event, a timer or an
+        // explicit imperative call. The write still precedes `onExpandChange`, so a consumer that
+        // reads `getExpandedMap()` from that callback still sees the new map.
+        this.mutate((s) => {
+            s.expanded[r.value] = next;
+            if (descendants) {
+                for (const v of descendants) s.expanded[v] = false;
+            }
         });
+        this.props.onExpandChange?.(r.value, next);
     };
 
     /**
@@ -575,12 +599,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         };
         for (const src of sources) walk(src);
 
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                Object.assign(s.expanded, map);
-            });
-            this.gridRef?.update({ all: true });
+        this.mutate((s) => {
+            Object.assign(s.expanded, map);
         });
     };
 
@@ -600,12 +620,8 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         };
         for (const src of sources) walk(src);
 
-        queueMicrotask(() => {
-            if (!this.isLive) return;
-            this.state.update((s) => {
-                Object.assign(s.expanded, map);
-            });
-            this.gridRef?.update({ all: true });
+        this.mutate((s) => {
+            Object.assign(s.expanded, map);
         });
     };
 
@@ -706,8 +722,10 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
             if (this.needsLazyLoad(idx)) {
                 await this.runLoadAndExpand(row);
             } else if (row.hasChildren) {
+                // No wait after the toggle: the state write is synchronous and `memo()` is lazy, so
+                // `indexByValue.value` on the next iteration already reflects the new rows. The
+                // `setTimeout(0)` this replaces existed only to outlive `toggleAt`'s microtask.
                 this.toggleAt(idx);
-                await new Promise<void>((resolve) => setTimeout(resolve, 0));
             }
             if (!this.isLive) return;
         }
@@ -728,84 +746,79 @@ export class TreeModel<T = ITreeItem> extends TComponentModel<
         value: string | number,
         align?: RowAlign,
     ): Promise<void> => {
+        let expandedRows = false;
         if (chain.length > 0) {
             const expanded = this.state.get().expanded;
-            const needsExpand = chain.some((a) => !expanded[a]);
-            if (needsExpand) {
-                await new Promise<void>((resolve) => {
-                    queueMicrotask(() => {
-                        if (!this.isLive) {
-                            resolve();
-                            return;
-                        }
-                        this.state.update((s) => {
-                            for (const a of chain) s.expanded[a] = true;
-                        });
-                        this.gridRef?.update({ all: true });
-                        setTimeout(resolve, 0);
-                    });
+            if (chain.some((a) => !expanded[a])) {
+                this.mutate((s) => {
+                    for (const a of chain) s.expanded[a] = true;
                 });
+                expandedRows = true;
             }
         }
         if (!this.isLive) return;
         const idx = this.indexByValue.value.get(value);
-        if (idx != null) this.gridRef?.scrollToRow(idx, align ?? "nearest");
+        if (idx == null) return;
+        if (expandedRows) {
+            // The row set just grew, so the scrollable extent is stale until the paint that
+            // `mutate` scheduled writes it. `scrollTop` clamps to the current extent, so scrolling
+            // now would land short with nothing re-issuing the request — the one deferral on this
+            // path that was NOT a React workaround. See `scrollToRowAfterPaint`.
+            this.gridRef?.scrollToRowAfterPaint(idx, align ?? "nearest");
+            return;
+        }
+        void this.gridRef?.scrollToRow(idx, align ?? "nearest");
     };
+
+    // --- change detection ---
+
+    /**
+     * Everything a rendered cell reads, for the host view's `DepsGate` (EPIC-056 C3-6).
+     *
+     * Fixed length — `depsChanged` reads a length change as "changed". **No reactive state**: a
+     * state change does not pump props in a vanilla driver, so a state slot would be dead code.
+     * `draggingValue`, `dragOverValue` and `loading` reach the DOM through `mutate()` instead.
+     *
+     * Memo outputs are compared, not their upstream props: `rows` is not derivable from props at
+     * all (its identity is the only signal carrying expand/collapse), and `selectedKey` normalises
+     * to a primitive.
+     *
+     * Three departures from the effect this replaces, all because the React path repainted
+     * unconditionally on every parent render and so could not expose a gap: `rowHeight` is dropped
+     * (the engine compares it in `inputChanged()`), `getContextMenu` is dropped (read at event
+     * time, changes no cell DOM), and `id` plus the four DnD-gating props are **added** — they are
+     * read on the cell path, for `itemId()` and for the wrapper's `draggable` attribute.
+     */
+    repaintSignature(): readonly unknown[] {
+        return [
+            this.rows.value,
+            this.selectedKey.value,
+            this.props.activeIndex,
+            this.props.searchText,
+            this.props.renderItem,
+            this.props.indentSize,
+            this.props.isSelected,
+            this.props.getTooltip,
+            this.props.id,
+            this.props.traitTypeId,
+            this.props.getDragData,
+            this.props.acceptsDrop,
+            this.props.onDragStartOverride,
+        ];
+    }
 
     // --- lifecycle ---
 
+    /**
+     * No `effect()` calls: `createComponentModelDriver` refuses to mount a model that registers
+     * any, and both of the two this model used to have have been re-homed. The repaint effect
+     * became `repaintSignature()` plus the host view's gate for props, and `mutate()` for state;
+     * the scroll-on-`activeIndex` effect became the host view's `syncActiveScroll`, with the
+     * unmeasured case now handled by the engine's own pending-scroll register rather than a
+     * `setTimeout(0)` that could not test the actual condition.
+     */
     init() {
         this.props.onModel?.(this);
-
-        // Force RenderGrid to re-render cells whenever any of the display inputs change.
-        this.effect(
-            () => {
-                this.gridRef?.update({ all: true });
-            },
-            () => [
-                this.rows.value,
-                this.selectedKey.value,
-                this.props.activeIndex,
-                this.props.searchText,
-                this.props.renderItem,
-                this.props.rowHeight,
-                this.props.indentSize,
-                this.props.isSelected,
-                this.props.getTooltip,
-                this.props.getContextMenu,
-                this.state.get().draggingValue,
-                this.state.get().dragOverValue,
-                this.state.get().loading,
-            ],
-        );
-
-        // Keep the active row visible whenever activeIndex changes externally -- covers
-        // drivers (parent components, keyboard handler, etc.) that update activeIndex.
-        //
-        // Timing: on a fresh mount, this effect runs inside the init() useEffect -- at that
-        // point the RenderGrid's ResizeObserver has NOT yet fired its first callback, so
-        // gridRef.size is { undefined, undefined } and `calcScrollOffsetY` would compute
-        // with visibleHeight = 0. Defer to setTimeout(0) when not measured. Once measured,
-        // subsequent scrolls run immediately so keyboard nav stays responsive. Same pattern
-        // as ListBoxModel.
-        this.effect(
-            () => {
-                const ai = this.props.activeIndex;
-                if (ai == null || ai < 0) return;
-                const grid = this.gridRef;
-                if (!grid) return;
-                const measured = !!(grid.size.width && grid.size.height);
-                if (measured) {
-                    grid.scrollToRow(ai);
-                } else {
-                    setTimeout(() => {
-                        if (!this.isLive) return;
-                        this.gridRef?.scrollToRow(ai);
-                    }, 0);
-                }
-            },
-            () => [this.props.activeIndex],
-        );
     }
 
     dispose() {

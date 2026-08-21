@@ -667,6 +667,25 @@ export class VirtualGridModel {
         }
     }
 
+    /**
+     * Queue a scroll for the end of the next paint.
+     *
+     * Use this — not `scrollToRow` — when the caller has just changed the row set. `scrollTop` is
+     * clamped to the scrollable extent, and the extent is `area.style.height`, which `applyLayout`
+     * writes **inside** the next paint. Scrolling before that frame silently clamps to the old
+     * extent: the list renders correctly and is simply scrolled to the wrong place, with nothing
+     * re-issuing the request. A `setTimeout(0)` is not enough — it lands after the microtask that
+     * recomputes `renderInfo` but before the animation frame that applies it.
+     *
+     * The caller must have scheduled a paint; `update()` always does. Shares the one-slot,
+     * last-wins pending-scroll register with `scrollToRow`'s unmeasured fallback, and is drained by
+     * the same `flushPendingScroll()` at the end of `paint()`.
+     */
+    scrollToRowAfterPaint(row: number, rowAlign: RowAlign = "nearest"): void {
+        if (this._disposed) return;
+        this.pendingScrollRow = { row, align: rowAlign };
+    }
+
     async scrollToCol(col: number): Promise<void> {
         const container = await this.containerRef.async;
         const info = await this.renderInfo.async;

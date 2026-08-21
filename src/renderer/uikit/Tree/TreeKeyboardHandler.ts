@@ -1,4 +1,3 @@
-import React from "react";
 import type { ITreeItem } from "./types";
 import type { TreeModel } from "./TreeModel";
 
@@ -19,7 +18,7 @@ export class TreeKeyboardHandler<T = ITreeItem> {
         return this.tree.indexByValue.value.get(this.anchorValue) ?? null;
     }
 
-    onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown = (e: KeyboardEvent) => {
         const { tree } = this;
         if (!tree.props.keyboardNav) return;
         const rows = tree.rows.value;
