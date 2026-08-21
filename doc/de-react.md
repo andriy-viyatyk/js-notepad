@@ -361,6 +361,58 @@ These hold for every epic below.
    one of them dies with AVGrid — and it is the whole of what "extraction-ready" means in practice
    (open decision #5). Stories are exempt: they are a harness, not the library.
 
+### 6.1 The masked-defect class — "it fixes itself when I interact with it"
+
+Recorded during EPIC-056 after this shape produced two separate bugs in one week. It will recur in
+Epics D and E, so the symptom is worth recognising on sight.
+
+**Symptom.** Something is visibly wrong on first render — a clipped icon, a stale highlight, a row
+that shows the previous selection — and it corrects itself the moment you interact with the
+component in *any* way, including ways unrelated to the defect (moving the mouse over a row, typing
+a character, resizing). It never reproduces once you have touched the component, which makes it read
+as a rendering race or a CSS problem and gets it misfiled as either.
+
+**Cause.** It is neither. React re-rendered on every parent render and, in doing so, silently did
+work that nothing had *asked* it to do. Converted code does only what it declares, so anything that
+was riding on the incidental re-render stops happening — and the interaction that "fixes" it is
+simply the first thing that triggers an explicit update.
+
+The concrete mechanism in `uikit/`: `RenderGrid`'s host built its `renderCell` closure fresh on every
+render, and the engine compares `renderCell` by identity, so **every parent re-render recomputed and
+repainted every visible cell.** Two latent defects hid behind that, both surfacing the week
+`ListBox` stopped doing it (US-1014 made `renderCell` a stable field, which is required for its
+repaint gate to mean anything):
+
+- `variant` and `selectionStyle` were missing from the repaint dependencies, and had been for as
+  long as the effect existed. Nothing noticed, because the blanket repaint covered them.
+- `VirtualGrid` computed its cell geometry with `scrollBarWidth: 0` on first paint — the geometry has
+  to be computed *before* a paint, but the scrollbar only exists *after* it — and never recomputed.
+  Cells were laid out at the container's full width, putting each row's trailing slot under the
+  scrollbar. The blanket repaint had been re-settling it on the next render.
+
+**How to diagnose.** Do not start from the CSS. Snapshot the two states and diff the *geometry
+inputs*, not the appearance: for a virtualized host, compare what the render info was computed with
+(`info.input.*`) against what is measured now (`model.scrollBarWidth`, `model.size`). A mismatch is
+the whole bug. For a content defect, compare the declared dependency list against every value the
+render path actually reads — the missing one is usually a prop the old effect never listed, because
+it never had to.
+
+**How to fix.** Make the work explicit at the point that owns it, and do not restore a blanket
+repaint to paper over it:
+
+- a value the output depends on → add it to the model's repaint signature (fixed length, see
+  `uikit/shared/deps-gate.ts`);
+- a measurement that is only valid *after* a paint → settle it after that paint, with a bounded
+  retry, never on a microtask scheduled before it — and make it a **recompute** rather than a
+  repaint when per-cell geometry is involved, because a repaint cannot change what
+  `calcRenderInfo` already decided;
+- work React did per render that has no owner yet → give it one, rather than reintroducing an
+  unconditional update.
+
+**Where to look first when it recurs.** Any `VirtualGrid` host on first open, before interaction:
+dropdowns (`Select`, `Autocomplete`, `MultiSelect`), the sidebar lists, `FileList`, and `Tree`. Check
+first paint specifically — a story that you have already clicked in will not show it.
+
 ## 7. The epics
 
 Seven epics, roughly in dependency order. IDs are assigned when each epic doc is created.
