@@ -1,0 +1,42 @@
+@layer uikit {
+    [data-type="image-view"] {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+        background-color: var(--color-bg-default);
+        outline: none;
+        cursor: grab;
+    }
+
+    [data-type="image-view"] img {
+        transform-origin: center center;
+        user-select: none;
+        max-width: none;
+        max-height: none;
+    }
+
+    [data-type="image-view"] [data-part="zoom-indicator"] {
+        position: absolute;
+        bottom: var(--space-lg, 12px);
+        right: var(--space-lg, 12px);
+        padding: var(--space-sm, 4px) var(--space-md, 8px);
+        background-color: var(--color-bg-overlay);
+        color: var(--color-text-default);
+        border-radius: var(--radius-md, 4px);
+        font-size: var(--font-sm, 12px);
+        font-family: monospace;
+        cursor: pointer;
+    }
+
+    [data-type="image-view"] [data-part="zoom-indicator"]:hover {
+        background-color: var(--color-bg-overlay-hover);
+    }
+
+    [data-type="image-view"][data-dragging] {
+        cursor: grabbing;
+    }
+}

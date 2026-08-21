@@ -38,6 +38,10 @@ import { notificationStory }     from "../../uikit/Notification/Notification.sto
 import { menuStory }             from "../../uikit/Menu/Menu.story";
 import { progressStory }         from "../../uikit/Progress/Progress.story";
 
+// Media
+import { minimapStory }           from "../../uikit/Minimap/Minimap.story";
+import { imageViewportStory }     from "../../uikit/ImageViewport/ImageViewport.story";
+
 // Lists
 import { autocompleteStory }     from "../../uikit/Autocomplete/Autocomplete.story";
 import { categoryListStory }     from "../../uikit/CategoryList/CategoryList.story";
@@ -58,6 +62,7 @@ export const ALL_STORIES: Story[] = [
     truncatedTextStory,
     tagStory, tagsInputStory,
     popoverStory, tooltipStory, dialogStory, notificationStory, menuStory, progressStory,
+    minimapStory, imageViewportStory,
     autocompleteStory, categoryListStory, listBoxStory, multiListBoxStory, multiSelectStory, selectStory, treeStory,
     gitTreeStory,
 ];

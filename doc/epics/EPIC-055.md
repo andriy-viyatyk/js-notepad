@@ -311,7 +311,7 @@ Four secondary counts close alongside it:
 | US-1009 | [`Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction](../tasks/US-1009-progress-vanilla-overlay/README.md) | Implemented |
 | US-1010 | [`Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` — vanilla chrome](../tasks/US-1010-chrome-vanilla-conversions/README.md) | Implemented |
 | US-1011 | [`SplitButton`, `TagsInput`, `DateInput`, `CategoryList`](../tasks/US-1011-composite-vanilla-conversions/README.md) | Implemented |
-| US-1012 | `Minimap` and `ImageViewport` — canvas views and their first stories | Planned |
+| US-1012 | [`Minimap` and `ImageViewport` — canvas views and their first stories](../tasks/US-1012-canvas-vanilla-conversions/README.md) | Implemented |
 
 Task documents are written before implementation, per
 [CLAUDE.md](../../CLAUDE.md)'s task-creation workflow — this epic doc is the design, not the spec.

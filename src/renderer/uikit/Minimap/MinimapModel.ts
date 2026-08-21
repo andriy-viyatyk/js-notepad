@@ -1,6 +1,4 @@
-import React from "react";
 import { TComponentModel } from "../../core/state/model";
-import type { MinimapProps } from "./Minimap";
 
 export const defaultMinimapState = {
     indicatorTop: 0,
@@ -10,12 +8,16 @@ export const defaultMinimapState = {
 
 export type MinimapState = typeof defaultMinimapState;
 
-export class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
+export interface MinimapModelProps {
+    scrollContainer: HTMLElement | null;
+}
+
+export class MinimapModel extends TComponentModel<MinimapState, MinimapModelProps> {
     BASE_SCALE = 0.15;
     scrollContainer: HTMLElement | null = null;
     contentMirror: HTMLDivElement | null = null;
     contentContainer: HTMLDivElement | null = null;
-    wrapper: HTMLDivElement | null = null;
+    wrapper: HTMLElement | null = null;
     observer: MutationObserver | null = null;
     // indicator drag
     startY = 0;
@@ -69,7 +71,7 @@ export class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
         this.contentContainer = el;
     };
 
-    setWrapper = (el: HTMLDivElement | null) => {
+    setWrapper = (el: HTMLElement | null) => {
         this.wrapper = el;
     };
 
@@ -129,11 +131,12 @@ export class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
         }
     };
 
-    handlePointerDown = (e: React.PointerEvent) => {
+    handlePointerDown = (e: PointerEvent) => {
         e.preventDefault();
 
         // Capture the pointer - all pointer events now go to this element
-        e.currentTarget.setPointerCapture(e.pointerId);
+        const target = e.currentTarget as HTMLElement;
+        target.setPointerCapture(e.pointerId);
 
         this.startY = e.clientY;
         this.startContainerTop = this.scrollContainer
@@ -144,16 +147,20 @@ export class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
         });
     };
 
-    handlePointerUp = (e: React.PointerEvent) => {
-        e.currentTarget.releasePointerCapture(e.pointerId);
+    handlePointerUp = (e: PointerEvent) => {
+        const target = e.currentTarget as HTMLElement;
+        if (target.hasPointerCapture(e.pointerId)) {
+            target.releasePointerCapture(e.pointerId);
+        }
         this.state.update((s) => {
             s.isDragging = false;
         });
     };
 
-    handlePointerMove = (e: React.PointerEvent) => {
+    handlePointerMove = (e: PointerEvent) => {
+        const target = e.currentTarget as HTMLElement;
         // Only process if pointer is captured (dragging)
-        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        if (!target.hasPointerCapture(e.pointerId)) return;
 
         const dy = e.clientY - this.startY;
         const effectiveScale = this.getScale();
@@ -168,7 +175,7 @@ export class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
         }
     };
 
-    handleBackgroundClick = (e: React.MouseEvent) => {
+    handleBackgroundClick = (e: MouseEvent) => {
         if (!this.scrollContainer || !this.wrapper) return;
 
         // Ignore clicks on the viewport indicator (it has its own drag logic)
@@ -191,14 +198,6 @@ export class MinimapModel extends TComponentModel<MinimapState, MinimapProps> {
 
     init = () => {
         window.addEventListener("resize", this.syncEverything);
-        this.effect(() => {
-            const scrollContainer = this.props.scrollContainer;
-            queueMicrotask(() => {
-                if (this.isLive && this.props.scrollContainer === scrollContainer) {
-                    this.setScrollContainer(scrollContainer);
-                }
-            });
-        }, () => [this.props.scrollContainer]);
     };
 
     dispose = () => {

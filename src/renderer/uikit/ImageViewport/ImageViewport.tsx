@@ -1,54 +1,8 @@
-import styled from "@emotion/styled";
-import { useEffect } from "react";
-// Note: useEffect kept for visibility-check effect (runs every render, no effect() equivalent)
-import { TComponentModel, useComponentModel } from "../../core/state/model";
-import color from "../../theme/color";
-import { spacing, radius, fontSize } from "../tokens";
+import type React from "react";
+import { TComponentModel } from "../../core/state/model";
 import { imageElementToPngBlob } from "./image-raster";
-
-// ============================================================================
-// Styled Components
-// ============================================================================
-
-export const ImageViewportRoot = styled.div(
-    {
-        flex: "1 1 auto",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-        overflow: "hidden",
-        position: "relative",
-        backgroundColor: color.background.default,
-        outline: "none",
-        cursor: "grab",
-        "& img": {
-            transformOrigin: "center center",
-            userSelect: "none",
-            maxWidth: "none", // Allow scaling beyond container
-            maxHeight: "none",
-        },
-        "& [data-part='zoom-indicator']": {
-            position: "absolute",
-            bottom: spacing.lg,
-            right: spacing.lg,
-            padding: `${spacing.sm}px ${spacing.md}px`,
-            backgroundColor: color.background.overlay,
-            color: color.text.default,
-            borderRadius: radius.md,
-            fontSize: fontSize.sm,
-            fontFamily: "monospace",
-            cursor: "pointer",
-            "&:hover": {
-                backgroundColor: color.background.overlayHover,
-            },
-        },
-        "&[data-dragging]": {
-            cursor: "grabbing",
-        },
-    },
-    { label: "ImageViewportRoot" },
-);
+import { mountVanilla } from "../shared/mount";
+import { ImageViewportView } from "./ImageViewportView";
 
 // ============================================================================
 // Constants
@@ -76,7 +30,7 @@ export const defaultImageViewportState = {
 
 export type ImageViewportState = typeof defaultImageViewportState;
 
-interface ImageViewportModelProps {
+export interface ImageViewportModelProps {
     src: string;
     onModel: ((model: ImageViewportModel | null) => void) | undefined;
 }
@@ -97,7 +51,7 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
         return Math.round(this.state.get().scale * 100);
     }
 
-    getImageStyle(): React.CSSProperties {
+    getImageStyle(): { transform: string; transition: string } {
         const { scale, translateX, translateY, isDragging } = this.state.get();
 
         // Always allow translation - helps when fit calculation isn't accurate (e.g., SVGs with viewBox)
@@ -205,7 +159,7 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
     };
 
     // Mouse drag for panning
-    handleMouseDown = (e: React.MouseEvent) => {
+    handleMouseDown = (e: MouseEvent) => {
         if (e.button !== 0) return; // Only left click
 
         const { translateX, translateY } = this.state.get();
@@ -216,7 +170,7 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
         });
     };
 
-    handleMouseMove = (e: React.MouseEvent) => {
+    handleMouseMove = (e: MouseEvent) => {
         const { isDragging, dragStartX, dragStartY } = this.state.get();
         if (!isDragging) return;
 
@@ -248,7 +202,7 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
     };
 
     // Keyboard shortcuts
-    handleKeyDown = (e: React.KeyboardEvent) => {
+    handleKeyDown = (e: KeyboardEvent) => {
         if (!this.containerRef) return;
 
         const { scale } = this.state.get();
@@ -303,16 +257,6 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
         // Add wheel listener with passive: false to allow preventDefault
         this.containerRef?.addEventListener("wheel", this.handleWheel, { passive: false });
 
-        // Reset view when src changes (e.g., SVG content updated)
-        this.effect(() => {
-            const timeoutId = setTimeout(() => {
-                if (this.imageRef?.complete) {
-                    this.handleImageLoad();
-                }
-            }, 50);
-            return () => clearTimeout(timeoutId);
-        }, () => [this.props.src]);
-
         this.props.onModel?.(this);
     }
 
@@ -323,63 +267,13 @@ export class ImageViewportModel extends TComponentModel<ImageViewportState, Imag
     }
 }
 
-// ============================================================================
-// BaseImageView Component - reusable image viewer with zoom/pan
-// ============================================================================
-
 export interface ImageViewportProps {
     src: string;
     alt?: string;
     onModel?: (model: ImageViewportModel | null) => void;
 }
 
-export const ImageViewport = function ImageViewport({ src, alt = "Image", onModel }: ImageViewportProps) {
-    const viewModel = useComponentModel({ src, onModel }, ImageViewportModel, defaultImageViewportState);
-    // Subscribe to full state - all properties affect rendering
-    const state = viewModel.state.use();
-
-    // Recalculate fit scale when tab becomes visible again (after being hidden during resize)
-    // Runs every render — no effect() equivalent for "no deps" useEffect
-    useEffect(() => {
-        if (state.scale === state.fitScale && viewModel.isContainerVisible()) {
-            const currentFitScale = viewModel.calculateFitScale();
-            if (Math.abs(currentFitScale - state.fitScale) > 0.001) {
-                viewModel.resetView();
-            }
-        }
-    });
-
-    const imageStyle = viewModel.getImageStyle();
-    const zoomPercent = viewModel.zoomPercent;
-
-    return (
-        <ImageViewportRoot
-            ref={viewModel.setContainerRef}
-            data-type="image-view"
-            data-dragging={state.isDragging || undefined}
-            onMouseDown={viewModel.handleMouseDown}
-            onMouseMove={viewModel.handleMouseMove}
-            onMouseUp={viewModel.handleMouseUp}
-            onMouseLeave={viewModel.handleMouseUp}
-            onDoubleClick={viewModel.handleDoubleClick}
-            onKeyDown={viewModel.handleKeyDown}
-            tabIndex={0}
-        >
-            <img
-                ref={viewModel.setImageRef}
-                src={src}
-                alt={alt}
-                draggable={false}
-                onLoad={viewModel.handleImageLoad}
-                style={imageStyle}
-            />
-            <div
-                data-part="zoom-indicator"
-                onClick={viewModel.resetView}
-                title="Reset Zoom"
-            >
-                {zoomPercent}%
-            </div>
-        </ImageViewportRoot>
-    );
-};
+/** React compatibility face for the framework-free image viewport view. */
+export function ImageViewport(props: ImageViewportProps): React.ReactElement {
+    return mountVanilla(ImageViewportView, props);
+}
