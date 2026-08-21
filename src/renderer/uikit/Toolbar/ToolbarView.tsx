@@ -1,0 +1,200 @@
+import React from "react";
+import { mountReactHandle, type MountedReactRoot } from "../shared/mount";
+import {
+    applyRestProps,
+    clearRestListeners,
+    createRestPropsState,
+    toPublicEvent,
+    type RestPropsState,
+} from "../shared/react-compat";
+import { VanillaView } from "../shared/vanilla-view";
+import type { ToolbarProps } from "./Toolbar";
+import "./Toolbar.css";
+
+function findFocusable(element: Element): HTMLElement | null {
+    const candidates = element.querySelectorAll<HTMLElement>(
+        'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex]',
+    );
+    const all = element.matches("button,input,select,textarea,a[href],[tabindex]")
+        ? [element as HTMLElement, ...Array.from(candidates)]
+        : Array.from(candidates);
+    for (const candidate of all) {
+        if (candidate.hasAttribute("disabled")) continue;
+        if (candidate.getAttribute("tabindex") === "-1" && !candidate.hasAttribute("data-roving-host")) {
+            continue;
+        }
+        return candidate;
+    }
+    return null;
+}
+
+export class ToolbarView extends VanillaView<ToolbarProps> {
+    private readonly restPropsState: RestPropsState = createRestPropsState();
+    private reactHandle: MountedReactRoot | undefined;
+    private activeIndex = 0;
+    private observer: MutationObserver | undefined;
+
+    public constructor(props: ToolbarProps) {
+        super(props, document.createElement("div"));
+        this.root.classList.add("toolbar-root");
+    }
+
+    protected onMount(): void {
+        this.applyProps(this.props);
+        this.reactHandle = mountReactHandle(
+            this.root,
+            React.createElement(React.Fragment, null, this.props.children),
+        );
+        this.listen(this.root, "keydown", this.onKeyDown);
+        this.listen(this.root, "focusin", this.onFocusIn, { capture: true });
+        this.observer = new MutationObserver(() => this.applyRovingTabIndex());
+        this.observer.observe(this.root, { childList: true, subtree: true });
+        this.own(() => this.observer?.disconnect());
+        this.own(() => this.reactHandle?.dispose());
+        this.own(() => clearRestListeners(this.root, this.restPropsState));
+        queueMicrotask(() => this.applyRovingTabIndex());
+    }
+
+    protected onUpdate(props: ToolbarProps): void {
+        this.applyProps(props);
+        this.reactHandle?.render(React.createElement(React.Fragment, null, props.children));
+        this.applyRovingTabIndex();
+    }
+
+    protected onDispose(): void {
+        this.observer?.disconnect();
+        this.observer = undefined;
+        clearRestListeners(this.root, this.restPropsState);
+    }
+
+    private applyProps(props: ToolbarProps): void {
+        const {
+            orientation = "horizontal",
+            background = "dark",
+            borderTop,
+            borderBottom,
+            disabled,
+            children: _children,
+            onKeyDown: _onKeyDown,
+            onFocusCapture: _onFocusCapture,
+            ...rest
+        } = props;
+
+        this.root.setAttribute("role", "toolbar");
+        this.root.setAttribute("aria-orientation", orientation);
+        this.root.dataset.type = "toolbar";
+        this.root.dataset.rovingHost = "";
+        this.root.dataset.orientation = orientation;
+        this.root.dataset.direction = orientation === "horizontal" ? "row" : "column";
+        this.setPresence(this.root.dataset, "bg", background);
+        this.setPresence(this.root.dataset, "borderTop", borderTop);
+        this.setPresence(this.root.dataset, "borderBottom", borderBottom);
+        this.setPresence(this.root.dataset, "disabled", disabled);
+        if (disabled) this.root.setAttribute("aria-disabled", "true");
+        else this.root.removeAttribute("aria-disabled");
+
+        // Toolbar's two callbacks are intentionally not residual listeners:
+        // roving logic runs first, then each caller callback runs once.
+        applyRestProps(this.root, rest as Record<string, unknown>, this.restPropsState);
+    }
+
+    private setPresence(dataset: DOMStringMap, key: string, value: unknown): void {
+        if (value === undefined || value === false) delete dataset[key];
+        else dataset[key] = String(value);
+    }
+
+    private collectStops(): HTMLElement[] {
+        const stops: HTMLElement[] = [];
+        for (const child of Array.from(this.root.children)) {
+            const host = child.hasAttribute("data-roving-host")
+                ? child as HTMLElement
+                : child.querySelector<HTMLElement>("[data-roving-host]");
+            if (host) {
+                const inner = host.querySelector<HTMLElement>('[tabindex="0"]') ?? findFocusable(host);
+                if (inner) stops.push(inner);
+                continue;
+            }
+            const focusable = findFocusable(child);
+            if (focusable) stops.push(focusable);
+        }
+        return stops;
+    }
+
+    private applyRovingTabIndex(): void {
+        const stops = this.collectStops();
+        if (this.props.disabled) {
+            stops.forEach((stop) => { stop.tabIndex = -1; });
+            return;
+        }
+        if (stops.length === 0) return;
+        const index = Math.min(this.activeIndex, stops.length - 1);
+        stops.forEach((stop, i) => { stop.tabIndex = i === index ? 0 : -1; });
+    }
+
+    private move(direction: 1 | -1): void {
+        const stops = this.collectStops();
+        if (stops.length === 0) return;
+        let next = this.activeIndex;
+        for (let step = 0; step < stops.length; step++) {
+            next = (next + direction + stops.length) % stops.length;
+            if (!stops[next].hasAttribute("disabled")) {
+                stops[next].focus();
+                this.activeIndex = next;
+                this.applyRovingTabIndex();
+                return;
+            }
+        }
+    }
+
+    private jump(target: "first" | "last"): void {
+        const stops = this.collectStops();
+        const indices = target === "first"
+            ? stops.map((_stop, index) => index)
+            : stops.map((_stop, index) => stops.length - index - 1);
+        for (const index of indices) {
+            if (!stops[index].hasAttribute("disabled")) {
+                stops[index].focus();
+                this.activeIndex = index;
+                this.applyRovingTabIndex();
+                return;
+            }
+        }
+    }
+
+    private readonly onKeyDown = (event: KeyboardEvent): void => {
+        const target = event.target as HTMLElement | null;
+        const nestedHost = target?.closest("[data-roving-host]");
+        if (nestedHost && nestedHost !== this.root && this.root.contains(nestedHost)) return;
+
+        const orientation = this.props.orientation ?? "horizontal";
+        const forward = orientation === "horizontal" ? "ArrowRight" : "ArrowDown";
+        const backward = orientation === "horizontal" ? "ArrowLeft" : "ArrowUp";
+        if (event.key === forward) {
+            event.preventDefault();
+            this.move(1);
+        } else if (event.key === backward) {
+            event.preventDefault();
+            this.move(-1);
+        } else if (event.key === "Home") {
+            event.preventDefault();
+            this.jump("first");
+        } else if (event.key === "End") {
+            event.preventDefault();
+            this.jump("last");
+        }
+
+        const callback = this.props.onKeyDown;
+        callback?.(toPublicEvent(event) as React.KeyboardEvent<HTMLDivElement>);
+    };
+
+    private readonly onFocusIn = (event: FocusEvent): void => {
+        const stops = this.collectStops();
+        const target = event.target as Node | null;
+        const index = stops.findIndex((stop) => stop === target || stop.contains(target));
+        if (index >= 0) {
+            this.activeIndex = index;
+            this.applyRovingTabIndex();
+        }
+        this.props.onFocusCapture?.(toPublicEvent(event) as React.FocusEvent<HTMLDivElement>);
+    };
+}

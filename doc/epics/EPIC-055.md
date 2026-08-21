@@ -309,7 +309,7 @@ Four secondary counts close alongside it:
 | US-1007 | [`Dialog` and `DialogContent` — focus trap and backdrop](../tasks/US-1007-dialog-vanilla-focus-trap/README.md) | Implemented |
 | US-1008 | [`Notification`, `AlertItem`, and `AlertsBar` — vanilla root-mounted alerts](../tasks/US-1008-notification-vanilla-alerts/README.md) | Implemented |
 | US-1009 | [`Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction](../tasks/US-1009-progress-vanilla-overlay/README.md) | Implemented |
-| US-1010 | `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` | Planned |
+| US-1010 | [`Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` — vanilla chrome](../tasks/US-1010-chrome-vanilla-conversions/README.md) | Implemented |
 | US-1011 | `SplitButton`, `TagsInput`, `DateInput`, `CategoryList` | Planned |
 | US-1012 | `Minimap` and `ImageViewport` — canvas views and their first stories | Planned |
 

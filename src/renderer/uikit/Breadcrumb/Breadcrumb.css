@@ -1,0 +1,42 @@
+@layer uikit {
+    .breadcrumb-root {
+        display: flex;
+        align-items: center;
+        color: var(--color-text-light);
+    }
+
+    .breadcrumb-root[data-size="sm"] { font-size: var(--font-sm, 12px); }
+    .breadcrumb-root[data-size="md"] { font-size: var(--font-base, 14px); }
+
+    .breadcrumb-root [data-part="separator"] {
+        color: var(--color-text-light);
+        user-select: none;
+        margin: 0 var(--space-sm, 4px);
+    }
+
+    .breadcrumb-root [data-part="root"],
+    .breadcrumb-root [data-part="segment"] {
+        cursor: pointer;
+    }
+
+    .breadcrumb-root [data-part="root"]:hover,
+    .breadcrumb-root [data-part="segment"]:hover { color: var(--color-text-default); }
+
+    .breadcrumb-root [data-current] {
+        color: var(--color-misc-blue);
+        cursor: default;
+    }
+
+    .breadcrumb-root [data-current]:hover { color: var(--color-misc-blue); }
+
+    .breadcrumb-root[data-clip-start] {
+        overflow: hidden;
+        min-width: 0;
+        flex-direction: row-reverse;
+        justify-content: flex-start;
+        white-space: nowrap;
+    }
+
+    /* Keep direct spans: clip-start relies on every segment being a direct flex item. */
+    .breadcrumb-root[data-clip-start] > span { flex-shrink: 0; }
+}

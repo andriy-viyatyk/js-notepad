@@ -1,0 +1,71 @@
+@layer uikit {
+    .collapsible-panel-stack-root {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .collapsible-panel-stack-root > .collapsible-panel-root {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: flex 0.15s ease;
+    }
+
+    .collapsible-panel-stack-root > .collapsible-panel-root[data-state="closed"] { flex: 0 0 auto; }
+    .collapsible-panel-stack-root > .collapsible-panel-root[data-state="open"] { flex: 1 1 auto; }
+
+    .collapsible-panel-stack-root [data-part="header"] {
+        display: flex;
+        align-items: center;
+        gap: var(--gap-sm, 4px);
+        padding: 2px var(--space-sm, 4px) 2px var(--space-md, 8px);
+        min-height: 27px;
+        font-size: var(--font-sm, 12px);
+        font-weight: 500;
+        color: var(--color-text-light);
+        background-color: var(--color-bg-dark);
+        cursor: pointer;
+        user-select: none;
+        border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .collapsible-panel-stack-root [data-part="header"]:hover:not(:has([data-type="sidebar-show-main"]:hover)) {
+        background-color: var(--color-bg-light);
+    }
+
+    .collapsible-panel-stack-root [data-part="header"] > svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    .collapsible-panel-stack-root > .collapsible-panel-root[data-state="open"] > [data-part="header"] {
+        box-shadow: inset 3px 0 0 var(--color-misc-blue);
+        color: var(--color-misc-blue);
+    }
+
+    .collapsible-panel-stack-root [data-part="header-spacer"] { flex: 1 1 auto; }
+
+    .collapsible-panel-stack-root [data-part="header"] [data-type="text"],
+    .collapsible-panel-stack-root [data-part="header"] [data-type="tag"],
+    .collapsible-panel-stack-root [data-part="header"] [data-type="panel"] {
+        pointer-events: none;
+    }
+
+    .collapsible-panel-stack-root [data-part="header"] [data-type="button"],
+    .collapsible-panel-stack-root [data-part="header"] [data-type="icon-button"],
+    .collapsible-panel-stack-root [data-part="header"] [data-type="tag"][data-clickable],
+    .collapsible-panel-stack-root [data-part="header"] [data-type="sidebar-show-main"] {
+        pointer-events: auto;
+    }
+
+    .collapsible-panel-stack-root [data-part="content"] {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background-color: var(--color-bg-default);
+    }
+}
