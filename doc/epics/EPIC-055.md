@@ -260,9 +260,9 @@ C1's conversions were attribute-selector Emotion that converted character-for-ch
   diff the rendered result against the Panel-produced one rather than against a stylesheet.
 
 `Panel` leaves `Toolbar`, `Notification` and `Progress` in this epic — the consequence EPIC-054 C1-1
-recorded in advance. After the C2 in-scope conversions, those three C2 consumers are gone;
-`Autocomplete` remains a C3 consumer and is outside this epic. The remaining Panel work therefore
-drains through C3, D, and E.
+recorded in advance. After the C2 in-scope conversions, those three consumers are gone;
+`Autocomplete` remains the one UIKit consumer and is a C3 consumer outside this epic. The
+remaining Panel work therefore drains through C3, D, and E.
 
 **C2-9 — The measured number (roadmap Rule 4): one click that opens a context menu.** `Menu` is the
 highest-traffic overlay in the product — every context menu in the app goes through it — which makes
@@ -283,7 +283,7 @@ Four secondary counts close alongside it:
 | `@emotion` importers in `uikit/` | 35 | 21 |
 | `@floating-ui/react` importers in `uikit/` | 3 | 0 |
 | `@floating-ui/react` importers, renderer-wide | 5 | 2 (both app-layer, Epics D and E) |
-| `Panel` consumers inside `uikit/` | 3 | 0 |
+| `Panel` consumers inside `uikit/` | 3 | 1 after C2 (`Autocomplete` remains in C3) |
 
 ## Goals
 
@@ -308,7 +308,7 @@ Four secondary counts close alongside it:
 | US-1006 | [`Menu` and `WithMenu` — `openMenu` attachment, recursive submenus, and the Rule 4 after-number](../tasks/US-1006-menu-vanilla-recursive/README.md) | Implemented |
 | US-1007 | [`Dialog` and `DialogContent` — focus trap and backdrop](../tasks/US-1007-dialog-vanilla-focus-trap/README.md) | Implemented |
 | US-1008 | [`Notification`, `AlertItem`, and `AlertsBar` — vanilla root-mounted alerts](../tasks/US-1008-notification-vanilla-alerts/README.md) | Implemented |
-| US-1009 | `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction | Planned |
+| US-1009 | [`Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction](../tasks/US-1009-progress-vanilla-overlay/README.md) | Implemented |
 | US-1010 | `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` | Planned |
 | US-1011 | `SplitButton`, `TagsInput`, `DateInput`, `CategoryList` | Planned |
 | US-1012 | `Minimap` and `ImageViewport` — canvas views and their first stories | Planned |

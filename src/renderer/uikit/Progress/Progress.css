@@ -1,0 +1,76 @@
+@layer uikit {
+    /* Windows title-bar geometry: the draggable header is 32px high and leaves
+       130px for the system buttons on the right. Keep these values in sync with
+       HEADER_HEIGHT and SYSTEM_BUTTONS_WIDTH in ProgressOverlayView.ts. */
+    [data-type="progress-overlay"] {
+        display: none;
+    }
+
+    [data-type="progress-overlay"][data-mode] {
+        display: block;
+        position: absolute;
+        inset: 0;
+        z-index: 200;
+        pointer-events: none;
+    }
+
+    [data-type="progress-overlay"] [data-part="mode"] {
+        display: contents;
+    }
+
+    [data-type="progress-overlay"] [data-part="blocking"] {
+        display: contents;
+    }
+
+    [data-type="progress-overlay"] [data-part="header"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: var(--progress-system-buttons-width, 130px);
+        height: var(--progress-header-height, 32px);
+        background-color: var(--color-bg-overlay, transparent);
+        pointer-events: auto;
+        -webkit-app-region: drag;
+    }
+
+    [data-type="progress-overlay"] [data-part="content"] {
+        position: absolute;
+        top: var(--progress-header-height, 32px);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--color-bg-overlay, transparent);
+        pointer-events: auto;
+    }
+
+    [data-type="progress-overlay"] [data-part="notification"],
+    [data-type="progress-overlay"] [data-part="progress-pill"] {
+        display: flex;
+        box-sizing: border-box;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: var(--color-bg-dark, transparent);
+        border-radius: var(--radius-lg, 6px);
+        box-shadow: 0 2px 8px var(--color-shadow-default, currentColor);
+        color: var(--color-text-default, currentColor);
+    }
+
+    [data-type="progress-overlay"] [data-part="notification"] {
+        top: 52px;
+        align-items: center;
+        padding: var(--space-md, 8px) var(--space-xl, 16px);
+    }
+
+    [data-type="progress-overlay"] [data-part="progress-pill"] {
+        top: 72px;
+        align-items: center;
+        gap: var(--gap-lg, 8px);
+        padding: var(--space-lg, 12px) var(--space-xl, 16px);
+        pointer-events: auto;
+    }
+
+    [data-type="progress-overlay"] [data-part="progress-pill"] > [data-type="spinner"] {
+        flex-shrink: 0;
+    }
+}

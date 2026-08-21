@@ -13,7 +13,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1006: `Menu` and `WithMenu` — `openMenu` attachment, recursive submenus, and the Rule 4 after-number](tasks/US-1006-menu-vanilla-recursive/README.md)
   - [x] [US-1007: `Dialog` and `DialogContent` — focus trap and backdrop](tasks/US-1007-dialog-vanilla-focus-trap/README.md)
   - [ ] [US-1008: `Notification`, `AlertItem`, and `AlertsBar` — vanilla root-mounted alerts](tasks/US-1008-notification-vanilla-alerts/README.md)
-  - [ ] US-1009: `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction
+  - [ ] [US-1009: `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction](tasks/US-1009-progress-vanilla-overlay/README.md)
   - [ ] US-1010: `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack`
   - [ ] US-1011: `SplitButton`, `TagsInput`, `DateInput`, `CategoryList`
   - [ ] US-1012: `Minimap` and `ImageViewport` — canvas views and their first stories

@@ -681,6 +681,13 @@ do not rename them or replace state attributes with classes. Parent-owned descen
 allowed when they target a child's `[data-type]` or `[data-part]` and preserve the documented
 owner relationship.
 
+**Direct vanilla views must import borrowed styles explicitly.** A view that constructs another
+converted component's DOM directly, or calls a shared attribute helper such as
+`applyTextAttributes()`, cannot rely on the React face's stylesheet import or on a type-only
+component import to load CSS. Import the borrowed component stylesheet alongside the view's own
+stylesheet. This keeps direct-view bundles correct when the React face is not present in the
+module graph.
+
 ### Colors
 
 Never use hex codes, `rgb()`, or named colors. Always import from `color.ts`:

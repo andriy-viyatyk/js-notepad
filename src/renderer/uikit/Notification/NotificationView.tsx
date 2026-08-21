@@ -8,6 +8,8 @@ import { VanillaView } from "../shared/vanilla-view";
 import { IconButtonView } from "../IconButton/IconButtonView";
 import type { IconButtonProps } from "../IconButton/IconButton";
 import "./Notification.css";
+import "../Text/Text.css";
+import "../IconButton/IconButton.css";
 
 const SEVERITY_ICON: Record<NotificationSeverity, "info" | "success" | "warning" | "error"> = {
     info: "info",
