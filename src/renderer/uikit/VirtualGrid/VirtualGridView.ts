@@ -125,6 +125,8 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
     private lastInfo?: RenderInputPrepared;
     private lastScrollBarWidth = -1;
     private lastScrollBarHeight = -1;
+    /** Consecutive scrollbar-settle recomputes requested — see `settleScrollBar`. */
+    private scrollBarSettleAttempts = 0;
 
     private _stats = {
         paints: 0,
@@ -390,8 +392,46 @@ export class VirtualGridView extends VanillaView<VirtualGridProps> {
         // is known to be live — see VirtualGridModel.flushPendingScroll.
         this.model.flushPendingScroll();
 
+        this.settleScrollBar(info);
+
         this._stats.lastPaintMs = performance.now() - startedAt;
         this._stats.totalPaintMs += this._stats.lastPaintMs;
+    }
+
+    /**
+     * Recompute once when this paint changed whether the container has a scrollbar.
+     *
+     * The geometry has to be computed *before* the paint, but the scrollbar only exists *after* it:
+     * the first paint is what makes the area taller than the container. So the first computation
+     * necessarily runs with `scrollBarWidth: 0`, lays every cell out at the container's full width,
+     * and leaves the last few pixels of each row — the trailing slot — underneath the scrollbar that
+     * then appears. The visible symptom is a selected row whose check icon is clipped on the right,
+     * which "fixes itself" the moment any unrelated prop change forces a recompute.
+     *
+     * This cannot be a repaint: `applyLayout` would pick up the new thickness, but the per-cell
+     * widths live in `info.cells`, which was computed with the old one. It has to be a recompute,
+     * and it has to happen here rather than in `VirtualGridModel.renderInfoChanged` — that runs on a
+     * microtask, i.e. before the paint that creates the scrollbar, so it compares two values that
+     * are still equal and does nothing.
+     *
+     * `update()` coalesces onto a microtask, so the settle costs one extra recompute and one extra
+     * paint on first open and nothing thereafter. The attempt counter is a backstop against a
+     * pathological layout that oscillates between needing and not needing a scrollbar; fixed-height
+     * rows cannot, but a future variable-height host could.
+     */
+    private settleScrollBar(info: RenderInputPrepared): void {
+        const settled =
+            info.input.scrollBarWidth === this.model.scrollBarWidth &&
+            info.input.scrollBarHeight === this.model.scrollBarHeight;
+
+        if (settled) {
+            this.scrollBarSettleAttempts = 0;
+            return;
+        }
+        if (this.scrollBarSettleAttempts >= 2) return;
+
+        this.scrollBarSettleAttempts++;
+        this.model.update({ all: true });
     }
 
     /** Zero the counters, so a measurement can cover one phase in isolation. */

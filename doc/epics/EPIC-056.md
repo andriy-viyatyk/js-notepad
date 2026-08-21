@@ -637,3 +637,15 @@ whether its slot props can narrow now that its only view is vanilla.
   documentation of its author's intent.** Enumerate what a rule actually matches in the *old* DOM
   before writing its replacement, and check every slot that puts a node at the same depth — not just
   the one the rule appears to be named after.
+- **A third defect, in the engine, found while the user tested `Select` in Storybook.** On first open
+  the selected row's check icon was shifted right and clipped; hovering any row fixed it. Cause: the
+  geometry must be computed *before* a paint, but the scrollbar only exists *after* it — the first
+  paint is what makes the area taller than the container — so the first computation ran with
+  `scrollBarWidth: 0` and laid every cell out at the container's full width (measured: 400px cells in
+  a 390px client area, check 6px past the visible edge). `renderInfoChanged`'s existing settle guard
+  could not catch it: it runs on a microtask, before the paint it just requested, and it asks for a
+  *repaint*, which cannot change per-cell widths. Fixed with `VirtualGridView.settleScrollBar`, a
+  post-paint comparison that requests one `update({ all: true })`, attempt-bounded. **This is a
+  US-1013 engine bug that US-1014's testing exposed**, and it would have hit `Tree` and `Select`
+  equally — the accidental recompute-on-every-render that the React `RenderGrid` got for free was
+  masking it, which is the same mechanism that hid the `variant`/`selectionStyle` dep gap.

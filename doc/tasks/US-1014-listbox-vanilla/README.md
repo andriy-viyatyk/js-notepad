@@ -919,6 +919,32 @@ oversized.
 The second was surfaced only because the first probe used `icon: "folder"` — which is not a
 registered icon name — so a check written to verify one bug exposed another.
 
+**A third, in the engine rather than in `ListBox`.** Testing `Select` in Storybook showed the selected
+row's check icon shifted right and clipped on *first open*, snapping into place as soon as the mouse
+moved over any row. Measured at first paint: `info.input.scrollBarWidth` **0** against a measured
+thickness of **10**, cells laid out **400px** wide in a **390px** client area, and the check's right
+edge **6px past** the visible edge. The hover fixed it because it pumped props, which ran the repaint
+gate, which recomputed the geometry — by then the scrollbar existed.
+
+The cause is an ordering one that predates this task and affects every `VirtualGrid` host: the
+geometry must be computed *before* a paint, but the scrollbar only exists *after* it, because the
+first paint is what makes the area taller than the container. `VirtualGridModel.renderInfoChanged`
+already had a settle guard for this, but it runs on a microtask — before the paint it just requested —
+so the two thicknesses were still equal and it did nothing; and it requested a *repaint*, which
+cannot help, because per-cell widths live in `info.cells` and only a recompute rebuilds those.
+
+Fixed with `VirtualGridView.settleScrollBar(info)`, called at the end of `paint()`: it compares the
+thickness the info was computed with against the thickness now measured, and asks for one
+`update({ all: true })` when they differ. Bounded by an attempt counter as a backstop against a
+layout that oscillates between needing and not needing a scrollbar — fixed-height rows cannot, but a
+variable-height host could. Verified: first paint now `infoBar 10`, wrapper `390px`, check **4px
+inside** the client edge; a short list that needs no scrollbar keeps `infoBar 0` and a full-width
+`400px` row, and is unchanged after four idle frames (no settle loop); growing a mounted list until a
+scrollbar appears re-settles to `390px`.
+
+This one would have hit `Tree`, `Select` and every other host, so it is an engine fix that US-1015
+onward inherit.
+
 ### Virtualization and pooling
 
 10,000 rows, a 360x300 host, 24px rows:
@@ -980,7 +1006,7 @@ tears the React roots down and rebuilds the default rows rather than leaving a h
 | `src/renderer/uikit/shared/highlight.ts` | adds `highlightInto` (the DOM form, C3-7); the React `highlight` is untouched |
 | `src/renderer/uikit/shared/react-compat.ts` | `applyRestProps` writes `"true"` for the enumerated attributes `draggable` / `spellcheck` / `contenteditable` |
 | `src/renderer/uikit/VirtualGrid/VirtualGridModel.ts` | `pendingScrollRow`, the `measured` getter, `flushPendingScroll()`, the queue-when-unmeasured guard and post-await disposal guard in `scrollToRow`, and the clear in `dispose()` |
-| `src/renderer/uikit/VirtualGrid/VirtualGridView.ts` | `paint()` calls `model.flushPendingScroll()` on both the normal and the early-return path |
+| `src/renderer/uikit/VirtualGrid/VirtualGridView.ts` | `paint()` calls `model.flushPendingScroll()` on both the normal and the early-return path, and `settleScrollBar(info)` at the end — the post-paint scrollbar recompute |
 | `src/renderer/uikit/ListBox/ListBoxView.ts` | **new** — the list shell (arms, gate, cells, active-row scroll) |
 | `src/renderer/uikit/ListBox/ListItemView.ts` | **new** — the row, and the single source of truth for its DOM |
 | `src/renderer/uikit/ListBox/SectionItemView.ts` | **new** — the section header row |

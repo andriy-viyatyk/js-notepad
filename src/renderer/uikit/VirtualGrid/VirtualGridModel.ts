@@ -543,6 +543,12 @@ export class VirtualGridModel {
 
         // Painting may have introduced or removed a scrollbar, which changes the usable
         // viewport — repaint once more so the geometry settles.
+        //
+        // This runs on a microtask, i.e. *before* the paint it just requested, so on first open the
+        // two thicknesses are still equal and this does nothing. The authoritative settle is
+        // `VirtualGridView.settleScrollBar`, which compares after the paint and recomputes rather
+        // than merely repainting — a repaint cannot fix per-cell widths. Kept because it still
+        // catches a thickness change that happened between the recompute and this microtask.
         if (
             !this._disposed &&
             container &&
