@@ -1,5 +1,8 @@
 import React from "react";
-import { Input, type InputProps } from "../Input";
+import { mountVanilla } from "../shared/mount";
+import { InputView } from "../Input/InputView";
+import type { InputProps } from "../Input/Input";
+import "../Input/Input.css";
 
 // --- Types ---
 
@@ -23,6 +26,6 @@ export interface DateInputProps
  * single-file change with no call-site churn — consumers depend on `DateInput`,
  * not on the native control.
  */
-export function DateInput({ value, onChange, ref, ...rest }: DateInputProps) {
-    return <Input ref={ref} {...rest} type="date" value={value} onChange={onChange} />;
+export function DateInput({ value, onChange, ref, ...rest }: DateInputProps): React.ReactElement {
+    return mountVanilla(InputView, { ...rest, ref, type: "date", value, onChange });
 }

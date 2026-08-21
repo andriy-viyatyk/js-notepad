@@ -1,8 +1,6 @@
-import React, { useCallback, useState } from "react";
-import styled from "@emotion/styled";
-import { spacing } from "../tokens";
-import { Tag } from "../Tag";
-import { PathInput } from "../PathInput";
+import React from "react";
+import { mountVanilla } from "../shared/mount";
+import { TagsInputView } from "./TagsInputView";
 
 // --- Types ---
 
@@ -12,7 +10,7 @@ export interface TagsInputProps
         "style" | "className" | "onChange"
     > {
     /** Optional debug label emitted as `data-name` on the root element. Use to disambiguate
-     *  multiple instances of this primitive in DOM inspector output. Never used for styling. */
+     *  multiple instances in DOM inspector output. Never used for styling. */
     name?: string;
     /** Current tags (the primary value). */
     value: string[];
@@ -37,100 +35,6 @@ export interface TagsInputProps
     "aria-label"?: string;
 }
 
-// --- Styled ---
-
-const Root = styled.div(
-    {
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: spacing.sm,
-        minHeight: 28,
-        minWidth: 0,
-        "&[data-disabled]": { opacity: 0.5, pointerEvents: "none" },
-    },
-    { label: "TagsInput" },
-);
-
-const InputSlot = styled.div({
-    flex: "1 1 100px",
-    minWidth: 100,
-});
-
-// --- Component ---
-
-export function TagsInput({
-    name,
-    value,
-    onChange,
-    items,
-    separator = ":",
-    maxDepth = 1,
-    placeholder = "Type + Enter to add",
-    tagVariant = "filled",
-    size = "md",
-    disabled = false,
-    readOnly = false,
-    "aria-label": ariaLabel,
-    ...rest
-}: TagsInputProps) {
-    const [newTag, setNewTag] = useState("");
-
-    const handleRemove = useCallback(
-        (tag: string) => onChange(value.filter((t) => t !== tag)),
-        [value, onChange],
-    );
-
-    const handleAddBlur = useCallback(
-        (finalValue?: string) => {
-            if (finalValue === undefined) {
-                setNewTag("");
-                return;
-            }
-            const trimmed = finalValue.trim();
-            const cleaned = trimmed.endsWith(separator) ? trimmed.slice(0, -1) : trimmed;
-            if (cleaned && !value.includes(cleaned)) {
-                onChange([...value, cleaned]);
-            }
-            setNewTag("");
-        },
-        [value, onChange, separator],
-    );
-
-    return (
-        <Root
-            data-type="tags-input"
-            data-name={name}
-            data-disabled={disabled || undefined}
-            data-readonly={readOnly || undefined}
-            aria-label={ariaLabel}
-            {...rest}
-        >
-            {value.map((tag) => (
-                <Tag
-                    key={tag}
-                    label={tag}
-                    variant={tagVariant}
-                    size={size}
-                    disabled={disabled}
-                    onRemove={readOnly ? undefined : () => handleRemove(tag)}
-                />
-            ))}
-            {!readOnly && (
-                <InputSlot>
-                    <PathInput
-                        value={newTag}
-                        onChange={setNewTag}
-                        onBlur={handleAddBlur}
-                        paths={items ?? []}
-                        separator={separator}
-                        maxDepth={maxDepth}
-                        placeholder={placeholder}
-                        disabled={disabled}
-                        size={size}
-                    />
-                </InputSlot>
-            )}
-        </Root>
-    );
+export function TagsInput(props: TagsInputProps): React.ReactElement {
+    return mountVanilla(TagsInputView, props);
 }

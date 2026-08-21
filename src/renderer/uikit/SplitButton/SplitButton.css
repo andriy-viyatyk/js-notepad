@@ -1,0 +1,49 @@
+@layer uikit {
+    .split-button-root {
+        display: inline-flex;
+        align-items: center;
+        border-radius: var(--radius-sm, 3px);
+        flex-shrink: 0;
+    }
+
+    .split-button-root:hover [data-part="separator"] {
+        background: var(--color-icon-light, currentColor);
+    }
+
+    .split-button-root [data-part="separator"] {
+        width: 1px;
+        height: 14px;
+        flex-shrink: 0;
+        background: transparent;
+    }
+
+    .split-button-root .split-caret-slot {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* These rules intentionally out-specify IconButton's data-size rules. @layer changes
+       inter-layer precedence, not the intra-layer specificity arithmetic. */
+    .split-button-root .split-caret-slot [data-type="icon-button"][data-name="split-caret"] {
+        min-width: 0;
+        padding: 0;
+    }
+
+    .split-button-root .split-caret-slot [data-type="icon-button"][data-name="split-caret"][data-size="sm"] {
+        width: 14px;
+    }
+
+    .split-button-root .split-caret-slot [data-type="icon-button"][data-name="split-caret"][data-size="md"] {
+        width: 16px;
+    }
+
+    /* IconButton sizes its glyph via [data-size] svg. Keep the extra data-part selector so
+       the split caret remains smaller than the primary icon. */
+    .split-button-root .split-caret-slot [data-type="icon-button"] [data-part="icon"] svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    .split-button-root .split-caret-slot svg { opacity: 0.6; }
+    .split-button-root .split-caret-slot:hover svg { opacity: 1; }
+}

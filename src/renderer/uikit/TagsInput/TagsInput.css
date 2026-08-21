@@ -1,0 +1,20 @@
+@layer uikit {
+    .tags-input-root {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--gap-sm, 4px);
+        min-height: 28px;
+        min-width: 0;
+    }
+
+    .tags-input-root[data-disabled] {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .tags-input-root > div {
+        flex: 1 1 100px;
+        min-width: 100px;
+    }
+}

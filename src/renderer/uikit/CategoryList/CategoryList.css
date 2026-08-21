@@ -1,0 +1,72 @@
+@layer uikit {
+    .category-list-root {
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+        font-size: var(--font-md, 13px);
+        width: 100%;
+    }
+
+    .category-list-root [data-part="row"] {
+        display: flex;
+        align-items: center;
+        padding: var(--space-sm, 4px) var(--space-md, 8px);
+        cursor: pointer;
+        color: var(--color-text-light, currentColor);
+    }
+
+    .category-list-root [data-part="row"]:hover:not([data-selected]) {
+        background-color: var(--color-bg-message, transparent);
+    }
+
+    .category-list-root [data-part="row"][data-selected] {
+        background-color: var(--color-bg-light, transparent);
+    }
+
+    .category-list-root [data-part="name"] {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .category-list-root [data-part="count"] {
+        margin-left: var(--space-md, 8px);
+        font-size: var(--font-sm, 12px);
+        color: var(--color-text-light, currentColor);
+    }
+
+    .category-list-root [data-part="expand"] {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: var(--space-sm, 4px);
+        flex-shrink: 0;
+        color: var(--color-text-light, currentColor);
+    }
+
+    .category-list-root [data-part="expand"]:hover { color: var(--color-text-default, currentColor); }
+    .category-list-root [data-part="expand"] svg { width: 12px; height: 12px; }
+
+    .category-list-root [data-part="row"][data-state="open"] {
+        position: sticky;
+        top: 0;
+        background-color: var(--color-bg-default, transparent);
+        border-bottom: 1px solid var(--color-border-light, currentColor);
+        z-index: 1;
+    }
+
+    .category-list-root[data-focus-selection]:focus-within [data-part="row"][data-selected] {
+        background-color: var(--color-bg-tree-selection, transparent);
+        color: var(--color-text-selection, currentColor);
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+
+    .category-list-root[data-focus-selection]:focus-within [data-part="row"][data-active] {
+        outline: 1px solid var(--color-border-active, currentColor);
+        outline-offset: -1px;
+    }
+}

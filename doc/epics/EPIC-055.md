@@ -310,7 +310,7 @@ Four secondary counts close alongside it:
 | US-1008 | [`Notification`, `AlertItem`, and `AlertsBar` — vanilla root-mounted alerts](../tasks/US-1008-notification-vanilla-alerts/README.md) | Implemented |
 | US-1009 | [`Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction](../tasks/US-1009-progress-vanilla-overlay/README.md) | Implemented |
 | US-1010 | [`Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` — vanilla chrome](../tasks/US-1010-chrome-vanilla-conversions/README.md) | Implemented |
-| US-1011 | `SplitButton`, `TagsInput`, `DateInput`, `CategoryList` | Planned |
+| US-1011 | [`SplitButton`, `TagsInput`, `DateInput`, `CategoryList`](../tasks/US-1011-composite-vanilla-conversions/README.md) | Implemented |
 | US-1012 | `Minimap` and `ImageViewport` — canvas views and their first stories | Planned |
 
 Task documents are written before implementation, per
@@ -426,9 +426,10 @@ models, no floating, four independent conversions. Three specifics:
 converted parts. `DateInput` is 28 lines of pure composition over `Input` and should be the cheapest
 conversion in the programme. `TagsInput` composes `PathInput` (Epic B) and `Tag` (C1).
 `SplitButton` composes `Button`, `IconButton` and `Menu/WithMenu` — so it lands after US-1006 and
-should use `openMenu` rather than the render-prop face. `CategoryList` consumes
-`shared/selection-style` and moves to the shared `selection-style.css` from US-996, and calls
-`renderIcon` twice.
+should use `openMenu` rather than the render-prop face. `CategoryList` currently consumes the
+Emotion `selection-style.ts` fragment and will move its consumer-specific focus rules into its
+own `CategoryList.css`; US-996 deliberately deferred a generic shared selection stylesheet. It
+also replaces its two `renderIcon` calls with DOM icon builders.
 
 **US-1012 — `Minimap` and `ImageViewport`.** The two canvas / measurement views, and the epic's slip
 item. Both are `TComponentModel`s with one prop-deps effect each (C2-4 #6, #7); `ImageViewport`'s

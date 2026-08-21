@@ -15,7 +15,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1008: `Notification`, `AlertItem`, and `AlertsBar` — vanilla root-mounted alerts](tasks/US-1008-notification-vanilla-alerts/README.md)
   - [ ] [US-1009: `Progress` — `ProgressOverlay`, its first story, and `Panel`'s eviction](tasks/US-1009-progress-vanilla-overlay/README.md)
   - [ ] [US-1010: `Toolbar`, `Splitter`, `Breadcrumb`, `CollapsiblePanelStack` — vanilla chrome](tasks/US-1010-chrome-vanilla-conversions/README.md)
-  - [ ] US-1011: `SplitButton`, `TagsInput`, `DateInput`, `CategoryList`
+  - [ ] [US-1011: `SplitButton`, `TagsInput`, `DateInput`, `CategoryList`](tasks/US-1011-composite-vanilla-conversions/README.md)
   - [ ] US-1012: `Minimap` and `ImageViewport` — canvas views and their first stories
 - *(no epic)*
   - *(no active tasks)*
