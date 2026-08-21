@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active — US-1013, US-1014 and US-1015 implemented, awaiting user testing
+**Status:** Active — US-1013 through US-1016 implemented, awaiting user testing
 **Created:** 2026-08-21
 
 ## Overview
@@ -341,7 +341,7 @@ before its implementation, and this table's rows become links as that happens.
 | [US-1013](../tasks/US-1013-virtual-grid-engine/README.md) | The vanilla virtualization engine — `VirtualGrid`, plus the story `RenderGrid` never had | Implemented |
 | [US-1014](../tasks/US-1014-listbox-vanilla/README.md) | `ListBox`, `ListItem`, `SectionItem` — the first data view on the vanilla engine | Implemented |
 | [US-1015](../tasks/US-1015-tree-vanilla/README.md) | `Tree` — rows, DnD, keyboard, and the largest model in `uikit/` | Implemented |
-| US-1016 | `MultiListBox` — checkbox rows and the select-all header | Planned |
+| [US-1016](../tasks/US-1016-multilistbox-vanilla/README.md) | `MultiListBox` — checkbox rows and the select-all header | Implemented |
 | US-1017 | `Select` — four effects, async item loading, and the Rule 4 number | Planned |
 | US-1018 | `MultiSelect` and `Autocomplete` — the last two dropdowns and `Panel`'s eviction | Planned |
 
@@ -751,3 +751,111 @@ visible row, with a `mountVanilla` `TreeItem` inside it. Those four files are Ep
 drain the same way `RenderGrid` does. **Do not take the `Tree` number through `TreeProviderView`** —
 measure `GitRefsView` or `NotebookCategoriesSecondaryView`, the two consumers on the default row
 path. Same caveat US-1014 recorded for `MultiListBox`.
+
+### 2026-08-22 — US-1016 (`MultiListBox`) implemented
+
+**The `renderItem` obligation from US-1014 is discharged.** `MultiListBox` no longer passes a row
+renderer at all: `ListItem` gained a `checkbox?: boolean` prop, `ListBox` forwards it, and the rows
+are ordinary `[data-type="list-item"][data-checkbox]` elements. No **component** in `uikit/` consumes
+`renderItem` any more — the only remaining uses inside the folder are the `ListBox` and `Tree`
+stories, which exist to demonstrate the public prop. Every production consumer is app-layer and
+scheduled for Epics D/E, so the seam now drains the same way `RenderGrid` does.
+
+Measured after the conversion: a `MultiSelect` dropdown with 40 items renders **11 checkbox rows and
+zero React roots** (`[data-part="react-slot"]` count inside the list is 0). Before, every visible row
+carried one retained root.
+
+**Correction to a number used while planning.** Removing the custom renderer removes **one** React
+root per visible row, not two. The `highlight()` nodes that draw the label rendered *inside* the same
+root as the row, so they were never a second one.
+
+**Extending `ListItemView` beat adding a second row implementation.** The alternatives were a
+vanilla row-view hook on `ListBoxView` (a second row class to keep in sync with six state attributes,
+three slots, three variants x three selection styles and a drop state — the exact drift
+`ListItemView`'s doc comment exists to prevent) and driving `VirtualGridView` from
+`MultiListBoxView` (the three arms, the engine create/dispose, the pool's kind branching,
+`aria-activedescendant` and the two scroll entry points, re-implemented to change one glyph). The
+row's own CSS made the choice cheap: `ItemRow` and `[data-type="list-item"]` already matched token
+for token on the base, the disabled arm, the active background, icon sizing and the label.
+
+**US-1014's rejection of `renderItemDom` does not transfer.** That was new public API with no
+consumer; `checkbox` has a consumer on day one and *retires* a renderer contract instead of adding a
+second one.
+
+**The `browse` hover arm is gated with `:not([data-checkbox])`.** `variant="browse"` was the right
+variant, but it also paints `:hover` and `MultiListBox`'s row had no hover rule at all. For the mouse
+the two are indistinguishable — the list sets `activeIndex` on mouseenter, so a hovered row already
+paints through `[data-active]`, and a disabled row's `pointer-events: none` matches neither. They
+diverge in one state: keyboard navigation moving the active row away from the pointer, or rows
+scrolling under a stationary pointer (no mouseenter fires), would light **two** rows where one lit
+before. Faithfulness first; turning hover on for checkbox rows is a visible change and belongs in its
+own task. Verified through the selector rather than a synthetic pointer (`:hover` cannot be
+dispatched): the carve-out rule is present in the shipped stylesheets, a checkbox row does not match
+the hover arm, a plain browse row does, and the checkbox row still matches the active arm.
+
+**A caller-owned selection reaches the repaint gate only through `isSelected`'s identity.** This is
+the epic's third instance of the masked-defect class, and the most easily missed. `MultiListBox`
+never passes `value` to `ListBox`, so when the user checks a row **no slot of `repaintSignature()`
+moves**: `items` comes from a memo that selection does not touch, `activeIndex` and `searchText` are
+unchanged, `renderItem` is gone, `selectedKey` is null, and `isSelected` *was* a stable bound method.
+The gate would report no change and the box would keep its old glyph until an unrelated input moved —
+self-healing on the next mouse move, which is what makes it hard to catch. React hid it because the
+inline `renderItem` arrow was a fresh closure on every render, forcing an unconditional repaint.
+
+`MultiListBoxModel.isSelected` is therefore a `memo` keyed on
+`[selectedKeys.value, resolvedItems.value]`. The cost is bounded: `props.isSelected` is read in
+exactly two places — live inside `isSelectedAt`, which is not memoized on it, and the signature slot
+— so a moved identity buys one repaint and nothing else. Rejected: a `revision`/`renderKey` prop
+(whose failure mode is a forgotten bump with no compiler or runtime signal) and a public
+`ListBoxView.repaint()` (which moves the repaint decision outside the one place that owns it and
+becomes the escape hatch used instead of adding a missing slot). The rule is now written on the
+`isSelected` prop itself, not only in the model, and `ListBoxState.revision` — dead since US-1014 —
+carries a comment saying not to wire it.
+
+`props.checkbox` is the tenth signature slot: it adds and removes a child of every row.
+
+**Two state mechanisms now exist, and the choice between them is not stylistic.** `Tree` routes every
+state write through `mutate()`/`onStateApplied`; `MultiListBox` uses one compound `bind()` on
+`{ searchText, activeIndex }` feeding a single `syncChildren()`. The discriminator is what the state
+*feeds*: Tree's is internal (expansion, lazy-load flags, drag state) with ~8 write sites across three
+files and a consequence — root attributes included — that no child can express; `MultiListBox` has two
+setters in one file and both fields are literally child props, which is the case Rule 9 sends to
+`bind()`. `bind` additionally filters through `compareSelection`, so a no-op write costs nothing,
+where `mutate()` runs the full consequence regardless.
+
+Three rules came with that choice and are recorded in `uikit/CLAUDE.md`: both paths call the *same*
+`syncChildren()` (the tri-state header derives from `searchText` **and** `props.value`, so narrowing
+the filter must be able to flip it with no prop change — a bind that refreshed only the input and the
+list would have reproduced the very defect this task removes); no per-field guards in the parent, because
+a guard maintained on one of two paths either re-pushes forever or skips a needed push, and the
+children's own gates absorb the duplicate; and `applyRestProps` stays off the state path.
+
+Verified at runtime: selecting one row → header `mixed`; a **state-only** write filtering down to just
+that row → `true`; clearing the filter → `mixed`; narrowing to 11 rows with none selected → `false`;
+`toggleSelectAll` with a filter active adds exactly the 11 visible and removes exactly those 11 again,
+leaving the off-filter selection untouched.
+
+**The select-all row is inline DOM, not a view class.** Every `*View` in `uikit/` has a matching
+public `.tsx` face — `VirtualGrid/VirtualGridView.ts` is the single documented exemption — and a
+faceless view class for a single, never-recycled instance would have been the second exception without
+earning it. It follows `ListBoxView`'s message host: view-owned element, `data-part`, attached and
+detached on a prop. Its tri-state value is computed once into `"true" | "mixed" | "false"` (the React
+version derived it three times, each walking the filtered list) and its glyph is swapped only when
+that value changes.
+
+**Two small things found on the way.** `InputView` did not import its own stylesheet — `Input.tsx`
+did — so the first vanilla parent to compose the class directly would have got an unstyled input; the
+import now lives with the DOM that needs it, matching `ListItemView`. And `ListItemView.setCheck`
+gates on the applied value rather than rebuilding the `svg` like `CheckboxView.updateIcon` does,
+because a pooled cell is re-pointed at a new row far more often than a row's checked state changes;
+verified that an untouched row keeps the *same* `svg` element object across a full repaint.
+
+**DOM contract:** `data-type="multi-list-item"` is retired (it had no references anywhere in the
+repo). Rows are addressed as `[data-type="multilistbox"] [data-type="list-item"][data-checkbox]`;
+`data-type="multilistbox-select-all"` is unchanged and gained `data-part="select-all"`.
+
+**Both consumers verified end-to-end** through their real React parents, not just offscreen: the
+`MultiSelect` dropdown (open → 11 checkbox rows, click → glyph flips, trigger reads "(1) selected",
+header `mixed`, no trailing icon) and the AVGrid options filter (open on a `grid-json` page → four
+distinct options with 16px boxes, select-all indeterminate, click → checked, zero React slots in
+rows).

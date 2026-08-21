@@ -1,0 +1,88 @@
+/*
+ * Translated from the five Emotion blocks in `MultiListBox.tsx` (EPIC-056 US-1016). The row styles
+ * are gone entirely — the rows are now ordinary `[data-type="list-item"][data-checkbox]` elements
+ * owned by `ListItem.css`, including the leading `[data-part="check"]` box that used to live here.
+ *
+ * The select-all row's `height: 24px` stays a literal, as it was: it is not `height.controlSm`
+ * semantically, it matches the default `rowHeight` so the header lines up with the rows below it.
+ *
+ * Every selector is anchored on `[data-type="multilistbox"]` and uses the child combinator, so the
+ * header rules cannot reach a nested list's rows. `[data-part="icon"]` and `[data-part="label"]` are
+ * a shared vocabulary — an unanchored rule for them would repaint parts of any component rendered
+ * inside this one.
+ */
+@layer uikit {
+    [data-type="multilistbox"] {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+        width: 100%;
+        background-color: var(--color-bg-default, transparent);
+    }
+
+    [data-type="multilistbox"][data-disabled] {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    [data-type="multilistbox"] > [data-part="search"] {
+        flex-shrink: 0;
+        padding: var(--space-xs, 2px);
+    }
+
+    [data-type="multilistbox"] > [data-type="multilistbox-select-all"] {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--gap-md, 6px);
+        flex-shrink: 0;
+        height: 24px;
+        box-sizing: border-box;
+        padding-left: var(--space-sm, 4px);
+        padding-right: var(--space-sm, 4px);
+        cursor: pointer;
+        color: var(--color-text-default, currentColor);
+        border-bottom: 1px solid var(--color-border-light, transparent);
+        user-select: none;
+    }
+
+    [data-type="multilistbox"] > [data-type="multilistbox-select-all"]:hover {
+        background-color: var(--color-bg-message, transparent);
+    }
+
+    /*
+     * The glyph sets its own colour rather than inheriting the row's, exactly as before, and
+     * brightens with the row on hover.
+     */
+    [data-type="multilistbox"] > [data-type="multilistbox-select-all"] > [data-part="icon"] {
+        display: inline-flex;
+        flex-shrink: 0;
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+        color: var(--color-text-light, currentColor);
+    }
+
+    [data-type="multilistbox"] > [data-type="multilistbox-select-all"]:hover > [data-part="icon"] {
+        color: var(--color-text-default, currentColor);
+    }
+
+    [data-type="multilistbox"] > [data-type="multilistbox-select-all"] > [data-part="icon"] > svg {
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+    }
+
+    [data-type="multilistbox"] > [data-type="multilistbox-select-all"] > [data-part="label"] {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    [data-type="multilistbox"] > [data-part="list"] {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+}

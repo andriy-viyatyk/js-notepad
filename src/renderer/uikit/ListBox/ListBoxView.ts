@@ -375,6 +375,7 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             tooltip: this.props.getTooltip?.(sources[index], index),
             variant: this.props.variant,
             selectionStyle: this.props.selectionStyle,
+            checkbox: this.props.checkbox,
         };
     }
 
@@ -454,6 +455,8 @@ export class ListBoxView<T = IListBoxItem> extends VanillaView<ListBoxProps<T>> 
             isSelected: _isSelected, onActiveChange: _onActiveChange,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onContextMenu: _onContextMenu, getContextMenu: _getContextMenu, id: _id,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            checkbox: _checkbox,
             ...rest
         } = props;
         return rest as Record<string, unknown>;

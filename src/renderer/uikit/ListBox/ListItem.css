@@ -41,8 +41,16 @@
         color: var(--color-text-selection, currentColor);
     }
 
+    /*
+     * The `:hover` arm deliberately skips checkbox rows. `MultiListBox` sets `activeIndex` on
+     * mouseenter, so a hovered row already paints through `[data-active]` — and the row this
+     * replaced (MultiListBox's own `ItemRow`) had no hover rule at all. Keeping both would highlight
+     * two rows at once whenever the keyboard moved the active row away from the pointer, or rows
+     * scrolled under a stationary pointer (which fires no mouseenter). Faithful conversion first;
+     * turning hover on for checkbox rows is a visible change and belongs in its own task.
+     */
     [data-type="list-item"][data-variant="browse"][data-active],
-    [data-type="list-item"][data-variant="browse"]:hover {
+    [data-type="list-item"][data-variant="browse"]:not([data-checkbox]):hover {
         background-color: var(--color-bg-message, transparent);
     }
 
@@ -106,6 +114,34 @@
         width: var(--size-icon-md, 16px);
         height: var(--size-icon-md, 16px);
         flex-shrink: 0;
+    }
+
+    /*
+     * The leading checkbox of a `checkbox` row — translated from MultiListBox's `ItemRow`
+     * `[data-part='check']` block, and shaped like `Checkbox.css`, which expresses the same look.
+     *
+     * The colour is set explicitly rather than inherited, exactly as before: the row's own `color`
+     * changes on a `variant="select"` hover, and the box must not follow it. The third brightening
+     * arm was `&[data-checked]` on the old row; under `ListItem`'s vocabulary that is
+     * `[data-selected]`, which is the same fact.
+     */
+    [data-type="list-item"] > [data-part="check"] {
+        display: inline-flex;
+        flex-shrink: 0;
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
+        color: var(--color-text-light, currentColor);
+    }
+
+    [data-type="list-item"]:hover > [data-part="check"],
+    [data-type="list-item"][data-active] > [data-part="check"],
+    [data-type="list-item"][data-selected] > [data-part="check"] {
+        color: var(--color-text-default, currentColor);
+    }
+
+    [data-type="list-item"] > [data-part="check"] > svg {
+        width: var(--size-icon-md, 16px);
+        height: var(--size-icon-md, 16px);
     }
 
     [data-type="list-item"] > .label {

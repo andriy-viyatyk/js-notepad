@@ -9,6 +9,9 @@ import {
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import type { InputProps } from "./Input";
+// Owned by the view, not the shim: a vanilla parent may compose `InputView` directly (MultiListBox
+// does), and the stylesheet has to travel with the DOM rather than with the React face.
+import "./Input.css";
 
 export function cssLength(value: number | string): string {
     return typeof value === "number" ? `${value}px` : value;

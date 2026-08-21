@@ -363,8 +363,8 @@ These hold for every epic below.
 
 ### 6.1 The masked-defect class — "it fixes itself when I interact with it"
 
-Recorded during EPIC-056 after this shape produced two separate bugs in one week. It will recur in
-Epics D and E, so the symptom is worth recognising on sight.
+Recorded during EPIC-056 after this shape produced three separate bugs inside one epic. It will
+recur in Epics D and E, so the symptom is worth recognising on sight.
 
 **Symptom.** Something is visibly wrong on first render — a clipped icon, a stale highlight, a row
 that shows the previous selection — and it corrects itself the moment you interact with the
@@ -390,6 +390,20 @@ repaint gate to mean anything):
   Cells were laid out at the container's full width, putting each row's trailing slot under the
   scrollbar. The blanket repaint had been re-settling it on the next render.
 
+The third instance (US-1016) is the same class with a different mechanism, and the one most likely to
+recur: **the missing input was not a prop but a callback's identity.** `MultiListBox` owns its
+selection as an array and hands `ListBox` a membership predicate, never a `value`. That predicate was
+a stable bound method, so checking a row moved no slot of the repaint signature at all — the
+checkbox kept its old glyph until the pointer moved over a row and changed `activeIndex`. React hid it
+because the inline row renderer was a fresh closure per render. The fix is to memoize the predicate on
+the selection, so its identity is a truthful signal; a `revision` counter would have been a proxy for a
+channel that already existed, with a forgotten bump as its silent failure mode.
+
+**The generalisation worth carrying into Epics D and E:** when a parent owns state that a converted
+child renders but is never *given* (a predicate instead of a value, a formatter instead of a string),
+the callback's identity is the only channel that state has. Freezing that identity for tidiness
+silently freezes the child's output with it.
+
 **How to diagnose.** Do not start from the CSS. Snapshot the two states and diff the *geometry
 inputs*, not the appearance: for a virtualized host, compare what the render info was computed with
 (`info.input.*`) against what is measured now (`model.scrollBarWidth`, `model.size`). A mismatch is
@@ -402,6 +416,8 @@ repaint to paper over it:
 
 - a value the output depends on → add it to the model's repaint signature (fixed length, see
   `uikit/shared/deps-gate.ts`);
+- state the child renders but is never handed → carry it in the identity of the callback that
+  exposes it, and memoize that callback on the state;
 - a measurement that is only valid *after* a paint → settle it after that paint, with a bounded
   retry, never on a microtask scheduled before it — and make it a **recompute** rather than a
   repaint when per-cell geometry is involved, because a repaint cannot change what

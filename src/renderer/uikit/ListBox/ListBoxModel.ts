@@ -16,6 +16,14 @@ import {
 // =============================================================================
 
 export interface ListBoxState {
+    /**
+     * Unused. Kept only so the model has a state object to own.
+     *
+     * Do **not** wire it into `repaintSignature()`. A state change does not pump props in a vanilla
+     * driver, so a state slot in the signature is dead code, and a revision counter is not an input
+     * a cell reads (uikit/CLAUDE.md, Rule 9). If a repaint is missing, the honest fix is a slot for
+     * the input that actually moved.
+     */
     revision: number;
 }
 
@@ -246,7 +254,14 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
      *   affects nothing rendered — keeping it would repaint the whole window on every update for
      *   callers that pass an inline arrow. `variant` and `selectionStyle` are present even though
      *   the old effect omitted them: the old `renderCell` was a fresh closure per render, which made
-     *   the engine repaint unconditionally and hid their absence.
+     *   the engine repaint unconditionally and hid their absence. `checkbox` is present for the same
+     *   reason as those two — it adds and removes a child of every row.
+     *
+     * One consequence worth stating, because it is invisible from here: a caller-owned selection
+     * reaches this signature **only** through `props.isSelected`'s identity. `MultiListBox` passes a
+     * membership predicate and never passes `value`, so if that predicate were a stable bound method
+     * no slot would move when the user checked a row, and the box would not redraw until an
+     * unrelated input changed. That is why `MultiListBoxModel.isSelected` is a `memo`.
      */
     repaintSignature(): readonly unknown[] {
         return [
@@ -259,6 +274,7 @@ export class ListBoxModel<T = IListBoxItem> extends TComponentModel<
             this.props.getTooltip,
             this.props.variant,
             this.props.selectionStyle,
+            this.props.checkbox,
         ];
     }
 

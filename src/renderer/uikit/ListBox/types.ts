@@ -79,8 +79,17 @@ export interface ListBoxProps<T = IListBoxItem>
     /**
      * Predicate that overrides the default `value`-based selection check. When supplied,
      * `value` is ignored — each row's selected flag comes from `isSelected(source, index)`.
-     * Used when selection state is derived externally. Does NOT introduce multi-select
-     * semantics — only one row should typically return `true`.
+     * Used when selection state is derived externally.
+     *
+     * It does not change how the list reports interaction: `ListBox` emits one `onChange(source)`
+     * per click and never mutates a set. A multi-select caller keeps its own array, returns
+     * membership from here, and pairs it with `checkbox` for the visual — `MultiListBox` is that
+     * caller.
+     *
+     * **The predicate's identity is a repaint input** (see `ListBoxModel.repaintSignature`). A
+     * caller whose selection changed must hand over a *new* function, or the rows will not redraw:
+     * nothing else in the signature can see a selection the list was never given. A stable bound
+     * method is therefore a bug in a multi-select parent — memoize it on the selection instead.
      */
     isSelected?: (item: T, index: number) => boolean;
     /** Index of the currently-highlighted (active) row. Controlled. */
@@ -146,4 +155,12 @@ export interface ListBoxProps<T = IListBoxItem>
      * Ignored when a custom `renderItem` is supplied.
      */
     selectionStyle?: "check" | "accent" | "focus";
+    /**
+     * Renders every default row with a leading checkbox reflecting its selected state, and
+     * suppresses the default trailing selection icon. Presentational only — pair it with
+     * `isSelected` (which owns the actual multi-select set) and read that prop's note on identity.
+     *
+     * Ignored when a custom `renderItem` is supplied. Default: `false`.
+     */
+    checkbox?: boolean;
 }

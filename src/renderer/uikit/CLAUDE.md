@@ -555,7 +555,7 @@ rendered output reads, and the **host view** holds a `DepsGate` and calls it onc
 `onUpdate`, after the driver has pumped props. `ListBoxModel.repaintSignature()` is the reference
 shape.
 
-Four rules, each of which has already bitten:
+Five rules, each of which has already bitten:
 
 - **Fixed length.** `depsChanged` treats a length change as "changed", so a conditionally-pushed
   slot silently degenerates into "always repaint".
@@ -569,13 +569,43 @@ Four rules, each of which has already bitten:
 - **Do not put reactive state in the signature.** A state change does not pump props in a vanilla
   driver, so a state slot is dead code. State-driven arms belong in `bind()`, and consequences of
   the model's own mutations belong at the mutation site.
+- **A caller-owned selection travels through a callback's *identity*.** When a parent owns the
+  selection and passes a predicate rather than a value — `MultiListBox` passes `isSelected` and never
+  passes `value` — that predicate is the only slot that can carry the change. A stable bound method
+  means checking a row moves no slot at all: the gate reports no change and the row keeps its old
+  DOM until an unrelated input moves, so it self-heals on the next mouse move and reads as a
+  rendering glitch rather than a missing repaint. Memoize the predicate on the selection
+  (`MultiListBoxModel.isSelected`). A `revision` counter is not the fix — it is a proxy for a signal
+  that already has a channel, and a forgotten bump has no compiler or runtime signal at all.
 
 #### A state-driven model in a vanilla view
 
 `ListBox`'s inputs are all props, so its `DepsGate` in the host's `onUpdate` is the whole story.
 `Tree` is the first converted component whose rendered output also depends on **reactive state**
-(expansion, lazy-load flags, drag state), and props are the only thing a vanilla driver pumps. The
-answer is **not** a state subscription:
+(expansion, lazy-load flags, drag state), and props are the only thing a vanilla driver pumps.
+
+**Two mechanisms exist, and the choice between them is not stylistic.** Ask what the state *feeds*:
+
+| The state is… | Use | Example |
+|---|---|---|
+| a **child's prop** — the view's job is to push it down | one compound `bind()` on the fields, applying through a single `syncChildren()` | `MultiListBox` (`searchText`, `activeIndex`); `MenuView` |
+| **internal** — the consequence is a render pass the children cannot express (root attributes included) | a `mutate()` funnel on the model calling one host-registered callback | `Tree` (expansion, lazy-load flags, drag state) |
+
+Two secondary signals point the same way. Write-site count: `Tree` has ~8 across three files, so a
+funnel that makes `grep "state.update"` return exactly one hit buys a checkable convention;
+`MultiListBox` has two two-line setters in one file and the convention would be pure ceremony (its
+acceptance criteria assert **2**, not 0, so a later reader does not "fix" it into a funnel). And
+`bind` filters through `compareSelection`, so a no-op write costs nothing, where `mutate()` runs the
+full consequence regardless.
+
+Whichever you pick, **every path must call the same consequence.** `MultiListBox`'s select-all header
+derives from `searchText` *and* from `props.value`, so narrowing the filter has to be able to flip it
+with no prop change at all; a `bind` that refreshed only the input and the list would have rebuilt the
+masked defect inside the task that removed one. And do **not** keep per-field guards
+(`lastSearchText`, `lastActiveIndex`) in the parent: a guard maintained on one of two paths either
+re-pushes forever or skips a needed push. Let the children's own gates absorb the duplicate.
+
+For the internal case, the answer is **not** a state subscription:
 
 - Every state write goes through one funnel on the model — `TreeModel.mutate()` — which writes the
   state and then calls a single host-registered callback (`onStateApplied`). `grep "state.update"`
@@ -593,7 +623,9 @@ answer is **not** a state subscription:
   derived memo's output is a new object and the next props pump would otherwise repaint a second
   time. Priming is safe there precisely because that path just painted everything.
 
-Why not a subscription, concretely: `TOneState.update` dispatches **synchronously** (it is not a
+Why not a subscription **in that case**, concretely (all three points are about a state-driven
+*render pass*; none of them argues against `bind()` for a field that is simply a child's prop):
+`TOneState.update` dispatches **synchronously** (it is not a
 mirror of `state.use()`, which batches through `useSyncExternalStore`), unsubscribe replaces the
 listener array so an in-flight dispatch can still call a listener removed during that pass, and a
 state-driven blanket repaint is the masked-defect machine described in

@@ -120,7 +120,23 @@ export class MultiListBoxModel<T = IListBoxItem> extends TComponentModel<
         this.state.update((state) => { state.activeIndex = activeIndex; });
     };
 
-    isSelected = (source: T): boolean => this.selectedKeys.value.has(this.resolvedItems.value.extractValue(source));
+    /**
+     * The row-selected predicate handed to `ListBox`.
+     *
+     * A `memo`, not a stable bound method. `ListBox` repaints its cells only when a slot of
+     * `ListBoxModel.repaintSignature()` moves, and this predicate is the only slot that can carry a
+     * parent-owned selection — `value` is never forwarded to the inner list. With a stable identity,
+     * checking a row would move no slot at all and the box would keep its old glyph until some
+     * unrelated input changed (the self-healing form of the masked defect in `doc/de-react.md` §6.1).
+     */
+    isSelected = this.memo<(source: T) => boolean>(
+        () => {
+            const keys = this.selectedKeys.value;
+            const { extractValue } = this.resolvedItems.value;
+            return (source: T) => keys.has(extractValue(source));
+        },
+        () => [this.selectedKeys.value, this.resolvedItems.value],
+    );
 
     toggle = (source: T) => {
         if (this.props.disabled || this.props.readOnly) return;

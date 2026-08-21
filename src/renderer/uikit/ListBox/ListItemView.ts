@@ -38,9 +38,14 @@ import "./ListItem.css";
 export class ListItemView extends VanillaView<ListItemProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
 
+    private checkHost!: HTMLSpanElement;
     private iconHost!: HTMLSpanElement;
     private labelHost!: HTMLSpanElement;
     private trailingHost!: HTMLSpanElement;
+
+    private checkGlyph: SVGElement | undefined;
+    /** Last value written to the check glyph, so a re-render does not rebuild the `svg`. */
+    private appliedChecked: boolean | undefined;
 
     private iconCleanup: (() => void) | undefined;
     private labelCleanup: (() => void) | undefined;
@@ -57,6 +62,12 @@ export class ListItemView extends VanillaView<ListItemProps> {
     }
 
     protected onMount(): void {
+        // Created but not attached: a row has no checkbox unless `checkbox` says so. Unlike the icon
+        // and trailing hosts this is a real box (`inline-flex`, 16x16, `flex-shrink: 0`), because the
+        // Emotion block it replaces sized `[data-part='check']` itself.
+        this.checkHost = document.createElement("span");
+        this.checkHost.dataset.part = "check";
+
         this.iconHost = document.createElement("span");
         this.iconHost.dataset.part = "icon";
         this.iconHost.style.display = "contents";
@@ -108,6 +119,7 @@ export class ListItemView extends VanillaView<ListItemProps> {
             variant = "select",
             selectionStyle = "check",
             showSelectionIcon = true,
+            checkbox,
             dropActive,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             ref: _ref,
@@ -124,16 +136,51 @@ export class ListItemView extends VanillaView<ListItemProps> {
         toggleAttr(root, "data-active", !!active);
         toggleAttr(root, "data-disabled", !!disabled);
         toggleAttr(root, "data-drop-active", !!dropActive);
+        // Read by `ListItem.css` to drop the `browse` hover background: a checkbox row's hover
+        // feedback already arrives through `[data-active]`, because its list sets `activeIndex` on
+        // mouseenter. See the rule for why keeping both would highlight two rows.
+        toggleAttr(root, "data-checkbox", !!checkbox);
         root.setAttribute("role", "option");
         root.setAttribute("aria-selected", selected ? "true" : "false");
         setAttr(root, "aria-disabled", disabled ? "true" : undefined);
 
+        this.setCheck(!!checkbox, !!selected);
         this.setIcon(icon);
         this.setLabel(label, searchText);
-        this.setTrailing(trailing, selected, showSelectionIcon, selectionStyle);
+        this.setTrailing(trailing, selected, showSelectionIcon, selectionStyle, !!checkbox);
 
         // Residual props come last, matching the JSX order: a caller-supplied role or aria-* wins.
         applyRestProps(root, rest as Record<string, unknown>, this.restPropsState);
+    }
+
+    /**
+     * The leading checkbox glyph of a `checkbox` row.
+     *
+     * `createIconElement` is called directly rather than through `fillSlot` because an `IconName`
+     * never needs a React root, and the host is owned outright by this view. The gate on
+     * `appliedChecked` is what keeps a scroll from rebuilding an `svg` for every pooled cell on every
+     * repaint — the pool re-points a cell at a new row far more often than a row's checked state
+     * actually changes.
+     */
+    private setCheck(enabled: boolean, checked: boolean): void {
+        if (!enabled) {
+            if (this.checkGlyph) {
+                this.checkHost.remove();
+                this.checkHost.replaceChildren();
+                this.checkGlyph = undefined;
+                this.appliedChecked = undefined;
+            }
+            return;
+        }
+        if (!this.checkHost.isConnected) {
+            this.root.insertBefore(this.checkHost, this.iconHost);
+        }
+        if (this.checkGlyph && this.appliedChecked === checked) return;
+        const next = createIconElement(checked ? "checked" : "unchecked");
+        if (this.checkGlyph) this.checkHost.replaceChild(next, this.checkGlyph);
+        else this.checkHost.append(next);
+        this.checkGlyph = next;
+        this.appliedChecked = checked;
     }
 
     /**
@@ -173,13 +220,15 @@ export class ListItemView extends VanillaView<ListItemProps> {
         selected: boolean | undefined,
         showSelectionIcon: boolean,
         selectionStyle: "check" | "accent" | "focus",
+        checkbox: boolean,
     ): void {
         if (trailing !== undefined && trailing !== null) {
             this.trailingCleanup = fillSlot(this.trailingHost, trailing);
             return;
         }
-        // Transcribed from the React default-trailing expression, unchanged.
-        if (selected && showSelectionIcon && selectionStyle !== "focus") {
+        // Transcribed from the React default-trailing expression, plus the `checkbox` arm: a leading
+        // box already reports the selected state, and the row it replaces had no trailing check.
+        if (selected && showSelectionIcon && selectionStyle !== "focus" && !checkbox) {
             const name = selectionStyle === "accent" ? "chevron-right" : "check";
             this.trailingCleanup = fillSlot(this.trailingHost, createIconElement(name));
             return;
@@ -215,6 +264,11 @@ export class ListItemView extends VanillaView<ListItemProps> {
     }
 
     private clearSlots(): void {
+        // The check glyph has no `fillSlot` cleanup of its own — it is plain DOM this view owns — but
+        // it is reset here so a disposed view holds no element references.
+        this.checkHost.replaceChildren();
+        this.checkGlyph = undefined;
+        this.appliedChecked = undefined;
         this.iconCleanup?.();
         this.labelCleanup?.();
         this.trailingCleanup?.();

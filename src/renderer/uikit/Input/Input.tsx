@@ -1,7 +1,6 @@
 import React from "react";
 import { mountVanilla } from "../shared/mount";
 import { InputView } from "./InputView";
-import "./Input.css";
 
 // --- Types ---
 

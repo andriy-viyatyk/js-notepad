@@ -66,6 +66,16 @@ export interface ListItemProps
      */
     showSelectionIcon?: boolean;
     /**
+     * Renders a leading checkbox glyph reflecting `selected`, and suppresses the default trailing
+     * selection icon — the leading box already carries that information. A caller-supplied
+     * `trailing` still wins.
+     *
+     * Presentational only: it does not change how the row reports clicks. The owner of a
+     * multi-select set drives it through `ListBox`'s `isSelected` predicate (`MultiListBox` is that
+     * caller). Default: `false`.
+     */
+    checkbox?: boolean;
+    /**
      * True while a drag is hovering this row and it is the active drop target. Paints the
      * drop feedback, which deliberately outranks the selection and hover states — a row can
      * be selected *and* be the drop target, and the drop is the transient thing the user
