@@ -1,0 +1,116 @@
+@layer app {
+    [data-type="file-search"] {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    [data-type="file-search"] .fs-input-area {
+        padding: var(--space-sm, 4px);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm, 4px);
+        flex-shrink: 0;
+    }
+
+    [data-type="file-search"] .fs-query-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs, 2px);
+    }
+
+    [data-type="file-search"] .fs-query-row [data-type="input"] {
+        flex: 1 1 auto;
+    }
+
+    [data-type="file-search"] .fs-status {
+        padding: var(--space-xs, 2px) var(--space-md, 8px);
+        font-size: 11px;
+        color: var(--color-text-light, currentColor);
+        flex-shrink: 0;
+    }
+
+    [data-type="file-search"] .fs-status[data-empty],
+    [data-type="file-search"] .fs-empty[data-hidden],
+    [data-type="file-search"] .fs-filter-input[data-hidden] {
+        display: none;
+    }
+
+    [data-type="file-search"] .fs-results {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    [data-type="file-search"] .fs-row {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        font-size: var(--font-md, 13px);
+        cursor: pointer;
+        user-select: none;
+    }
+
+    [data-type="file-search"] .fs-row:hover {
+        background-color: var(--color-bg-light, transparent);
+    }
+
+    [data-type="file-search"] .fs-file-row {
+        gap: var(--space-xs, 2px);
+        padding: 0 var(--space-sm, 4px);
+    }
+
+    [data-type="file-search"] .fs-file-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        color: var(--color-icon-dark, currentColor);
+    }
+
+    [data-type="file-search"] .fs-file-name {
+        font-weight: 600;
+        color: var(--color-text-default, currentColor);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    [data-type="file-search"] .fs-match-count {
+        flex-shrink: 0;
+        margin-left: auto;
+        color: var(--color-text-dark, currentColor);
+        font-size: 11px;
+        padding: 0 var(--space-sm, 4px);
+    }
+
+    [data-type="file-search"] .fs-line-row {
+        padding: 0 var(--space-md, 8px);
+        gap: var(--gap-md, 6px);
+        line-height: 22px;
+    }
+
+    [data-type="file-search"] .fs-line-number {
+        flex-shrink: 0;
+        width: 36px;
+        text-align: right;
+        color: var(--color-text-dark, currentColor);
+        font-size: 11px;
+    }
+
+    [data-type="file-search"] .fs-line-text {
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--color-text-default, currentColor);
+    }
+
+    [data-type="file-search"] .fs-empty {
+        padding: var(--space-md, 8px);
+        font-size: var(--font-sm, 12px);
+        color: var(--color-text-light, currentColor);
+    }
+}

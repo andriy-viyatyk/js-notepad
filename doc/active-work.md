@@ -13,7 +13,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1025: Icon DOM builders](tasks/US-1025-icon-dom-builders/README.md) — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out
   - [ ] [US-1026: `components/icons/` vanilla DOM views](tasks/US-1026-components-icons-vanilla-views/README.md)
   - [ ] [US-1027: `components/file-list/` + `components/file-grid/`](tasks/US-1027-file-list-grid/README.md)
-  - [ ] US-1028: `components/file-search/` (first `RenderGrid` collection)
+  - [ ] [US-1028: `components/file-search/` (first `RenderGrid` collection)](tasks/US-1028-file-search/README.md)
   - [ ] US-1029: `components/tree-provider/`
   - [ ] US-1030: `components/git-tree/` React remnants
   - [ ] US-1031: `components/page-manager/` (portal hosts → `appendChild`)

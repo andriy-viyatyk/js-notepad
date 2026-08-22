@@ -11,9 +11,8 @@ import {
 } from "../shared/react-compat";
 import { VanillaView } from "../shared/vanilla-view";
 import { SpinnerView } from "../Spinner/SpinnerView";
-import { VirtualGridView } from "../VirtualGrid";
+import { applyCellStyle, VirtualGridView } from "../VirtualGrid";
 import type {
-    CellStyle,
     ElementLength,
     Percent,
     RenderCellFunc,
@@ -610,16 +609,6 @@ export class TreeView<T = ITreeItem> extends VanillaView<TreeProps<T>> {
 function cssLength(value: React.CSSProperties["height"]): string | undefined {
     if (value === undefined || value === null) return undefined;
     return typeof value === "number" ? `${value}px` : String(value);
-}
-
-function applyCellStyle(element: HTMLElement, style: CellStyle): void {
-    const s = element.style;
-    s.display = style.display;
-    s.position = style.position;
-    s.left = `${style.left}px`;
-    s.top = `${style.top}px`;
-    s.width = `${style.width}px`;
-    s.height = `${style.height}px`;
 }
 
 function setOrRemove(root: HTMLElement, attribute: string, value: string | undefined): void {

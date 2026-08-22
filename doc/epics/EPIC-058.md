@@ -229,7 +229,7 @@ condition.
 | [US-1025](../tasks/US-1025-icon-dom-builders/README.md) | Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out | Planned |
 | [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Implemented |
 | [US-1027](../tasks/US-1027-file-list-grid/README.md) | `components/file-list/` + `components/file-grid/` | Implemented |
-| US-1028 | `components/file-search/` (first `RenderGrid` collection) | Planned |
+| [US-1028](../tasks/US-1028-file-search/README.md) | `components/file-search/` (first `RenderGrid` collection) | Implemented |
 | US-1029 | `components/tree-provider/` | Planned |
 | US-1030 | `components/git-tree/` React remnants | Planned |
 | US-1031 | `components/page-manager/` (portal hosts → `appendChild`) | Planned |
@@ -304,6 +304,14 @@ At epic close:
    US-1030 need it, not after.
 
 ## Notes
+
+### 2026-08-23 — US-1028 implementation note
+
+US-1028 now has a native `FileSearchView` and `VirtualGrid` cell renderer, with progress-only
+state bindings separated from `resultsVersion` repainting. The Rule 4 React-before/vanilla-after
+measurement remains pending: the Persephone MCP was unavailable while the conversion was made,
+so no interaction count is recorded here until the same settled FileSearch action can be measured
+live on both sides.
 
 ### 2026-08-22 — epic drafted
 

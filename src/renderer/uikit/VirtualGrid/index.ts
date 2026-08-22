@@ -8,6 +8,7 @@ export {
 export type { VirtualGridOptions, VirtualGridElements } from "./VirtualGridModel";
 export { CellPool } from "./CellPool";
 export type { CellPoolStats } from "./CellPool";
+export { applyCellStyle } from "./cell-style";
 export {
     calcRenderInfo,
     calcScrollOffset,

@@ -102,6 +102,7 @@ export class FileSearchModel {
     private allResults: SearchResultRow[] = [];
 
     private currentSearchId: string | null = null;
+    private disposed = false;
     private ipcListeners: Array<{ channel: string; handler: (...args: any[]) => void }> = []; // eslint-disable-line @typescript-eslint/no-explicit-any
     private rootPath: string;
     private onStateChange?: (state: FileSearchState) => void;
@@ -129,7 +130,9 @@ export class FileSearchModel {
     // ── IPC ───────────────────────────────────────────────────────────
 
     private onIpc<T>(channel: string, callback: (data: T) => void) {
-        const handler = (_event: unknown, data: T) => callback(data);
+        const handler = (_event: unknown, data: T) => {
+            if (!this.disposed) callback(data);
+        };
         ipcRenderer.on(channel, handler);
         this.ipcListeners.push({ channel, handler });
     }
@@ -205,6 +208,7 @@ export class FileSearchModel {
     // ── Search ────────────────────────────────────────────────────────
 
     private sendSearch = () => {
+        if (this.disposed) return;
         const { query, includePattern, excludePattern, searchFolder } = this.state.get();
         if (!query.trim()) {
             this.cancelSearch();
@@ -242,6 +246,7 @@ export class FileSearchModel {
     private sendSearchDebounced = debounce(this.sendSearch, 500);
 
     private cancelSearch = () => {
+        if (this.disposed) return;
         if (this.currentSearchId) {
             ipcRenderer.send(SearchChannel.cancel);
             this.currentSearchId = null;
@@ -365,6 +370,12 @@ export class FileSearchModel {
     };
 
     dispose = () => {
+        if (this.disposed) return;
+        // Mark the model inert before the debounce or a stale input callback can call either
+        // path. SearchChannel.cancel has no search id and must never cancel another live view's
+        // search after this model has gone away.
+        this.disposed = true;
+        this.currentSearchId = null;
         this.cancelSearch();
         this.ipcListeners.forEach(({ channel, handler }) => {
             ipcRenderer.removeListener(channel, handler);
