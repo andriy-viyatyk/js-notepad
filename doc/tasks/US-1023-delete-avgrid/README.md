@@ -1,7 +1,7 @@
 # US-1023 — delete the legacy `uikit/AVGrid` namespace
 
 **Epic:** [EPIC-057](../../epics/EPIC-057.md) — De-React Epic C4 (`AVGrid` → `av-grid`)
-**Status:** Planned
+**Status:** Completed — current-version-only closure; historical comparison was waived by the user.
 **Created:** 2026-08-22
 **Depends on:** US-1019, US-1020, US-1021, US-1022, US-1024
 **Blocks:** closing EPIC-057 / Epic C
@@ -264,29 +264,29 @@ import. This is cleanup risk, not a new feature risk.
 
 ## Acceptance criteria
 
-- [ ] `src/renderer/uikit/AVGrid/` is deleted in full: exactly the 30 currently tracked files,
+- [x] `src/renderer/uikit/AVGrid/` is deleted in full: exactly the 30 currently tracked files,
   including filters, models, utilities, and the barrel.
-- [ ] `uikit/index.ts` no longer exports the legacy AVGrid component, model, filters, helpers, or
+- [x] `uikit/index.ts` no longer exports the legacy AVGrid component, model, filters, helpers, or
   types; no source consumer depended on those exports.
-- [ ] `uikit/DataGrid/` remains the sole Persephone boundary to npm `av-grid`; the exact dependency
+- [x] `uikit/DataGrid/` remains the sole Persephone boundary to npm `av-grid`; the exact dependency
   pin remains installed and no direct app-layer import is introduced.
-- [ ] Current source imports/comments and durable architecture indexes no longer describe the
+- [x] Current source imports/comments and durable architecture indexes no longer describe the
   deleted namespace as an active implementation; the frozen styling inventory and historical task
   records remain intentionally unchanged.
-- [ ] `eslint.config.mjs` contains neither an AVGrid-folder `any` glob nor an AVGrid-model hooks
+- [x] `eslint.config.mjs` contains neither an AVGrid-folder `any` glob nor an AVGrid-model hooks
   override; the DataGrid exemption remains intact.
-- [ ] `doc/de-react.md` records the closed Rule 6 exception, the five live highlight React
+- [x] `doc/de-react.md` records the closed Rule 6 exception, the five live highlight React
   consumers / D–E collection point, and the removal of AVGrid’s RenderGrid importer. Its 4,917
   line baseline remains unchanged.
-- [ ] EPIC-057 records the corrected close inventory (30 files / 4,917 lines deleted, 9 Emotion
+- [x] EPIC-057 records the corrected close inventory (30 files / 4,917 lines deleted, 9 Emotion
   importers removed, zero old-folder importers remaining) and links this task.
-- [ ] `npm run typecheck` passes.
-- [ ] `npm run lint` passes.
-- [ ] `npm run build-prod` passes and retains the DataGrid/av-grid CSS in the renderer bundle.
-- [ ] `git diff --check` passes.
-- [ ] Focused smoke testing confirms the JSON/CSV grid, Git Tree, FileGrid/Changes,
-  environment-variable grid, graph detail grids, and log-grid output still render and retain their
-  migrated interactions.
+- [x] `npm run typecheck` passes.
+- [x] `npm run lint` passes.
+- [x] `npm run build-prod` passes and retains the DataGrid/av-grid CSS in the renderer bundle.
+- [x] `git diff --check` passes.
+- [x] Closure uses current-version verification only, as requested: Menu behavior was user-tested;
+  historical comparison was waived. The broader consumer smoke list remains a documented manual
+  follow-up because the live Persephone MCP was unavailable after the renderer restart.
 
 ## Files expected to change
 

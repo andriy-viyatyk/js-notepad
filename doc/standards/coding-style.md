@@ -138,7 +138,7 @@ Use the established `data-part` vocabulary for stable internal regions; do not r
 part names, use generated Emotion classes, or rely on generic global selectors. Direct-child
 selectors are appropriate when the old Emotion rule depended on DOM shape. An owning parent may
 target a descendant's `[data-type]` or `[data-part]` from its own stylesheet, as existing
-`AudioPlayer`, `FileSearch`, `GlobalStyles`, `CollapsiblePanelStack`, and AVGrid patterns do.
+`AudioPlayer`, `FileSearch`, `GlobalStyles`, `CollapsiblePanelStack`, and DataGrid patterns do.
 That is an owner relationship, not a public styling escape hatch. Converted UIKit components still
 omit public `style` and `className` props, although their implementation may set a narrowly typed
 custom property on its own raw root element.

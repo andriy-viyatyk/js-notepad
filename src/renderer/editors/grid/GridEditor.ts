@@ -101,9 +101,10 @@ function toColumnSetting(column: Column): GridColumnSetting {
 function buildColumns(detected: Column[], settings: GridColumnSetting[]): Column[] {
     if (!settings.length) return detected;
     const byKey = new Map(detected.map((c) => [String(c.key), c]));
-    const merged = settings
-        .filter((s) => byKey.has(s.key))
-        .map((s) => ({ ...byKey.get(s.key)!, ...s }) as Column);
+    const merged = settings.flatMap((s) => {
+        const detectedColumn = byKey.get(s.key);
+        return detectedColumn ? [{ ...detectedColumn, ...s } as Column] : [];
+    });
     // A remembered set that has gone entirely stale is not a reason to show no columns.
     return merged.length ? merged : detected;
 }

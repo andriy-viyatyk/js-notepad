@@ -4,6 +4,31 @@ Last 10 completed epics, newest first. Older epics are pruned.
 
 ---
 
+## EPIC-057 — [De-React Epic C4 — AVGrid → av-grid](EPIC-057.md)
+
+Replaced the final React grid consumers with the pinned `av-grid@2.2.3` engine through the
+`uikit/DataGrid/` boundary, then removed the legacy `uikit/AVGrid/` namespace: 30 files and
+4,917 lines, including nine Emotion importers and the final Rule 6 exemption. The dependency,
+layered CSS bridge, persisted grid state, context-menu handoff, cell tooltip/ellipsis, Git Tree
+renderer, remaining app consumers, and architecture indexes are all aligned to the replacement.
+
+Verification: `npm run typecheck`, `npm run lint`, `npm run build-prod`, and `git diff --check`
+passed. Epic-level review, developer-documentation, and user-documentation checks completed; the
+new `GridEditor.ts` non-null assertion found in review was replaced with an explicit lookup guard.
+Closure uses current-version verification only: historical comparison and the pre-migration Rule 4
+measurement were waived by the user, and Menu behavior was user-tested. The broader consumer smoke
+list remains a documented manual follow-up because the live Persephone MCP was unavailable after
+the renderer restart.
+
+- [x] [US-1019: Adopt av-grid — dependency, `--p-*` bridge, layered CSS, mounting shim, story, and the Rule 4 “before” numbers](../tasks/US-1019-adopt-av-grid/README.md)
+- [x] [US-1020: `editors/grid/` — the JSON/CSV grid editor](../tasks/US-1020-grid-editor-av-grid/README.md)
+- [x] [US-1021: `components/git-tree/` — the commit history grid on av-grid](../tasks/US-1021-git-tree-av-grid/README.md)
+- [x] [US-1024: the cell-overflow tooltip, restored once in `DataGridView`](../tasks/US-1024-cell-overflow-tooltip/README.md)
+- [x] [US-1022: the four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView`](../tasks/US-1022-remaining-grid-consumers/README.md)
+- [x] [US-1023: Delete `uikit/AVGrid/` and close Epic C](../tasks/US-1023-delete-avgrid/README.md)
+
+---
+
 ## EPIC-056 — [De-React Epic C3 — Virtualization engine, data views and dropdowns](EPIC-056.md)
 
 Converted the vanilla virtualization engine, data views, and dropdown composites while preserving

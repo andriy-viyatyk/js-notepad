@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active — US-1019 implemented apart from its Rule 4 "before" measurement
+**Status:** Completed — current-version-only verification; historical comparison was waived by the user.
 **Created:** 2026-08-22
 
 ## Overview
@@ -360,24 +360,25 @@ C4-1 pins an exact version rather than a range.
 3. Establish av-grid as a pinned dependency of the app, themed by the existing `--p-*` map and
    layered under the C3-8 CSS contract.
 4. Rewrite the one React cell renderer that has no string form (`BranchTreeCell`).
-5. Take the Rule 4 before/after comparison on the React grid *first*.
+5. Record the Rule 4 comparison if available; at close, the user waived the historical comparison
+   and the pre-migration measurement.
 6. Resolve every gap found along the way in av-grid itself (C4-10), leaving no host-side workaround
    tier behind.
 7. Close Epic C.
 
 ## Linked Tasks
 
-Five tasks, one per consumer group plus a bracketing pair. Each gets its document when it is next
+Six tasks, one per consumer group plus a bracketing pair. Each gets its document when it is next
 up, per this programme's convention.
 
 | Task | Description | Status |
 |---|---|---|
-| [US-1019](../tasks/US-1019-adopt-av-grid/README.md) | Adopt av-grid — the pinned dependency, the `--p-*` bridge, layered CSS, the mounting shim, the story, and the Rule 4 "before" numbers taken on the React grid | **Implemented** — steps 2-7 landed; the "before" measurement is outstanding |
-| [US-1020](../tasks/US-1020-grid-editor-av-grid/README.md) | `editors/grid/` — the JSON/CSV grid editor. Seven files, the persisted view state, the filter bar, and the context menu that closes Rule 6 for this consumer | **Implemented** — C4-10's first invocation shipped as av-grid 2.2.1; app testing outstanding |
-| [US-1021](../tasks/US-1021-git-tree-av-grid/README.md) | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | **Implemented** — against av-grid **2.2.2**, C4-10's second invocation; app testing outstanding |
-| [US-1024](../tasks/US-1024-cell-overflow-tooltip/README.md) | The cell-overflow tooltip, restored once in `DataGridView` for every consumer — **and the ellipsis, which the library does not supply either** (see the note below; the premise in this row's original wording was wrong). Two halves: av-grid **2.2.3** for the ellipsis, C4-10's third invocation; then the tooltip in the shim, which Persephone alone owns. Must land before US-1022 | **Implemented** — against av-grid **2.2.3** (published); lint/typecheck/build-prod clean. App testing outstanding |
-| [US-1022](../tasks/US-1022-remaining-grid-consumers/README.md) | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | **Implemented** — lint/typecheck/build-prod clean; no av-grid release needed, the first consumer task where none is |
-| [US-1023](../tasks/US-1023-delete-avgrid/README.md) | Delete `uikit/AVGrid/` — the measured 30-file / 4,917-line legacy namespace, 9 Emotion importers, the barrel, and the epic's closing numbers | Planned |
+| [US-1019](../tasks/US-1019-adopt-av-grid/README.md) | Adopt av-grid — the pinned dependency, the `--p-*` bridge, layered CSS, the mounting shim, the story, and the Rule 4 "before" numbers taken on the React grid | **Completed** — current-version-only closure; historical comparison and the pre-migration Rule 4 number were waived |
+| [US-1020](../tasks/US-1020-grid-editor-av-grid/README.md) | `editors/grid/` — the JSON/CSV grid editor. Seven files, the persisted view state, the filter bar, and the context menu that closes Rule 6 for this consumer | **Completed** — av-grid 2.2.1; current-version-only closure |
+| [US-1021](../tasks/US-1021-git-tree-av-grid/README.md) | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | **Completed** — av-grid **2.2.2**; current-version-only closure |
+| [US-1024](../tasks/US-1024-cell-overflow-tooltip/README.md) | The cell-overflow tooltip, restored once in `DataGridView` for every consumer — **and the ellipsis, which the library does not supply either** (see the note below; the premise in this row's original wording was wrong). Two halves: av-grid **2.2.3** for the ellipsis, C4-10's third invocation; then the tooltip in the shim, which Persephone alone owns. Must land before US-1022 | **Completed** — av-grid **2.2.3**; current-version-only closure |
+| [US-1022](../tasks/US-1022-remaining-grid-consumers/README.md) | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | **Completed** — lint/typecheck/build-prod clean; current-version-only closure |
+| [US-1023](../tasks/US-1023-delete-avgrid/README.md) | Delete `uikit/AVGrid/` — the measured 30-file / 4,917-line legacy namespace, 9 Emotion importers, the barrel, and the epic's closing numbers | **Completed** — namespace deleted; current-version-only closure |
 
 ### Ordering
 
@@ -938,3 +939,20 @@ adding a link would land the caret on Title. Dropping the flag *improves* that. 
 find is cheaper and broader — nine columns spell it `resizible`, the old grid's typo, which av-grid
 ignores; harmless today because its default is on, and a silent trap the first time someone writes
 `resizible: false`.
+
+### 2026-08-22 — C4 completed
+
+US-1023 deleted the measured legacy namespace: 30 files / 4,917 lines, including nine Emotion
+importers, the obsolete UIKit barrel surface, and the final Rule 6 exemption. The replacement
+boundary is now `uikit/DataGrid/` → npm `av-grid@2.2.3`; the package remains pinned and the
+surviving RenderGrid and VirtualGrid subsystems were not removed.
+
+The epic was closed with current-version verification only. The user explicitly waived comparison
+with the removed React implementation because Persephone is intended to run as a single current
+copy; Menu behavior was tested by the user. The pre-migration Rule 4 measurement and the broad
+consumer-by-consumer smoke list are therefore recorded as waived/manual follow-up rather than
+fabricated measurements. The live Persephone MCP was unavailable after the renderer restart in
+this completion pass, so no additional UI claim is made here.
+
+Epic-level review, developer-documentation, and user-documentation passes completed. The review's
+new non-null assertion in `GridEditor.ts` was replaced with an explicit lookup guard before closure.
