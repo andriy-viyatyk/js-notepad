@@ -697,13 +697,10 @@ The upstream fix is **av-grid 2.2.1**, committed as `fac663c` and tagged `v2.2.1
 - The `sort` and `filters` unknown-column checks are untouched, as specified.
 - Four tests added. **811 pass**, including the pre-existing `"nmae"` expectations.
 
-**The release is local.** `npm version patch` bumped, synced the two version constants and tagged;
-publishing is `git push --follow-tags`, which is what triggers the Actions workflow that publishes
-to npm. That push has not been made. Meanwhile Persephone's `package.json` pins `2.2.1` and
-`node_modules/av-grid` holds the packed 2.2.1 build, so the tree builds and runs — but
-`package-lock.json` still records 2.2.0 and `npm ci` cannot resolve 2.2.1 until it is published.
-**Sequence to finish:** push the tag from `C:\projects\av-grid`, watch the workflow, then
-`npm install` here to regenerate the lock.
+**Published 2026-08-22.** Tag `v2.2.1` pushed, and the release workflow passed every step (tag/version
+check, tests, build, publish, GitHub release). Persephone's `package.json` and `package-lock.json`
+now both record 2.2.1 from the registry. The pin is exact, per C4-1 — `npm install av-grid@2.2.1`
+writes a caret range and had to be corrected.
 
 ### F7 — the context menu would not close on a cell click, and the cause was in `Popover`
 

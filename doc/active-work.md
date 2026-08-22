@@ -18,8 +18,9 @@ Overview of all active and planned epics and tasks.
     check of the layered `@import`
   - [ ] [US-1020: `editors/grid/` — the JSON/CSV grid
     editor](tasks/US-1020-grid-editor-av-grid/README.md) — **implemented**; lint/typecheck/
-    build-prod clean, not yet tested in the app. F1 shipped as av-grid **2.2.1** (811 tests pass),
-    tagged locally but **not published** — push the tag, then `npm install` to fix the lock
+    build-prod clean. F1 shipped as av-grid **2.2.1**, published. Context menu tested and one
+    defect fixed (F7 — `Popover` dismissed on `mousedown`, which av-grid legitimately suppresses);
+    the rest of the acceptance list is untested
   - [ ] US-1021: `components/git-tree/` — including the `BranchTreeCell` swimlane rewrite
   - [ ] US-1022: `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView`
   - [ ] US-1023: Delete `uikit/AVGrid/` and close Epic C
