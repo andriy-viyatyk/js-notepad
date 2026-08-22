@@ -360,6 +360,20 @@ These hold for every epic below.
    as a prop or a callback. This costs nothing to hold — there are five violations today (§3.5) and
    one of them dies with AVGrid — and it is the whole of what "extraction-ready" means in practice
    (open decision #5). Stories are exempt: they are a harness, not the library.
+7. **When a first-party library falls short, enhance the library.** *(User decision, 2026-08-22,
+   EPIC-057 C4-10.)* Where this programme adopts code Persephone does not own the source of —
+   av-grid is the one case — a missing option, an unfit behaviour or an inexpressible hook is fixed
+   **upstream**, not worked around in the host. No prop faked in a shim, no reach past a public
+   façade into internals, no CSS compensating for markup the library should have produced. Persephone
+   and av-grid have the same owner, so the upstream fix costs a change and a version bump and every
+   consumer gets it, boards included. A workaround is only ever cheaper in the hour it is written,
+   and it is what turns one library into two diverging ones.
+8. **Epic and task documents are kept for the whole programme.** *(User decision, 2026-08-22.)* The
+   `doc/tasks/US-XXX-*` folders are **not** deleted at each epic's close — they are swept once, when
+   De-React is finished. This programme's epics re-measure each other's assumptions: EPIC-056
+   overturned four of C3's inherited figures and EPIC-057 four of C4's, and in both cases the
+   evidence lived in an earlier epic's task documents. The project's normal delete-on-close rule
+   resumes for work outside De-React.
 
 ### 6.1 The masked-defect class — "it fixes itself when I interact with it"
 
@@ -582,8 +596,9 @@ If the migration stops after Epic C, it was still worth doing.
 #### Split into four epics (user decision, 2026-08-19)
 
 *C1 shipped as [EPIC-054](epics/completed.md). C2 shipped as [EPIC-055](epics/EPIC-055.md). C3
-is implemented as [EPIC-056](epics/EPIC-056.md). The next free epic number is **EPIC-057**; C4 gets its doc
-and its ID when it is genuinely next up, the way this programme has scheduled every epic so far.*
+is implemented as [EPIC-056](epics/EPIC-056.md), and C4 is scoped as
+[EPIC-057](epics/EPIC-057.md) — the last epic in Epic C. The next free epic number is
+**EPIC-058**.*
 
 At scheduling time this was measured against the tree and **split into four independently
 schedulable epics** rather than run as one. Whole, it would have been 44 components and 14,671
@@ -596,14 +611,16 @@ chain with a single cycle.
 | **C1** | Foundation and primitives | 20 | 3,209 | Epic B |
 | **C2** | Floating layer and composites | 15 | 4,104 | C1 |
 | **C3** | Virtualization engine, data views and dropdowns | 7 | 7,578 | C1, C2 |
-| **C4** | AVGrid → av-grid | 1 (+15 consumers) | ~4,914 | C2, C3 |
+| **C4** | AVGrid → av-grid | 1 (+**12** consumers) | **4,917** | C2, C3 |
 
 C2's and C3's component counts and line figures were **re-measured when C2 opened**
 (EPIC-055, 2026-08-20) and are not the numbers this table carried at the split: `Select`,
 `MultiSelect` and `Autocomplete` moved from C2 to C3 because all three render a C3 component. C3's
 figure was then **re-measured when C3 opened** (EPIC-056, 2026-08-21) and came in at 7,578 — the one
-estimate in this programme that held. C4's figure still inherits the §2 denominator and should be
-re-measured when C4 opens.
+estimate in this programme that held. C4's figure was **re-measured when C4 opened**
+(EPIC-057, 2026-08-22) and came in at **4,917** against the inherited ~4,914 — the second inherited
+figure to survive. Its *consumer* count did not: "~15" measured **12 files that reference AVGrid in
+code**, with seven more mentioning it only in comments.
 
 **C1 — Foundation and primitives.** The twenty components at the bottom of `uikit/`'s own
 dependency graph: `Tooltip`, `Button`, `IconButton`, `TruncatedText`, `SegmentedControl`,
@@ -662,10 +679,29 @@ than converted here. B15's undecided `RenderFlexGrid` row is resolved the same w
 React-only for its two `editors/` consumers (C3-3). The dropdown family stays inside C3, with
 `MultiSelect` and `Autocomplete` as the designated slip items (C3-10).
 
-**C4 — AVGrid → av-grid.** The grid itself, plus the ~15 consumer files in `editors/` and
+**C4 — AVGrid → av-grid.** The grid itself, plus the consumer files in `editors/` and
 `components/` that need host-wiring changes because `RenderGridModel`'s public API differs from the
 React version's (B15). The only part of Epic C that reaches outside `uikit/`, the only part that is
 an adoption rather than a conversion, and therefore the one that is cleanly abortable on its own.
+Scoped as [EPIC-057](epics/EPIC-057.md).
+
+**What the C4 measurement changed** *(EPIC-057, 2026-08-22)*. Three things, beyond the counts above.
+First, **B15's "copy the source into the tree" was written before av-grid was a library** — it is now
+published at 2.1.0 with generated types and 11,360 lines of tests in its own repository, and
+Persephone's own boards already vendor it from npm (`boards-assets/manifest.json` names it the
+default board grid). EPIC-057 C4-1 settles it as **the dependency** (user decision, 2026-08-22) —
+with vendoring kept explicitly available if the dependency ever gets in the way, which is what makes
+the reversal safe: the mounting shim is the only file that names the package, so a later copy-in is
+one import path and a folder. Second, **B15's "host-wiring changes" is control inversion, not an API rename**: `uikit/AVGrid`
+is a fully controlled React component and av-grid is uncontrolled-plus-callbacks, so nine of the
+props the call sites pass sit on that boundary. A controlled-prop compatibility shim is therefore
+ruled out — it would be a reconciliation layer added at the end of the programme that exists to
+remove them — which makes C4 the programme's **second and last documented Rule 2 exception**, after
+C3-1. The epic is scoped one task per consumer group for that reason. Third, **theming is nearly
+free**: av-grid reads the `--p-*` contract directly and Persephone already owns the 24-pair
+`--p-*` → `--color-*` map for boards, so the whole bridge is that map declared once at the renderer
+root — with `injectStyles: false`, or a runtime-injected sheet would out-order the whole
+`@layer uikit` contract C3-8 established.
 
 **Verification runs through the Storybook harness** built in Epic B. Each converted component is
 exercised through its existing story; the public React shim mounts the vanilla implementation, and
