@@ -130,6 +130,10 @@ export default tseslint.config(
         files: [
             "src/renderer/uikit/AVGrid/**/*.ts",
             "src/renderer/uikit/AVGrid/**/*.tsx",
+            // av-grid's own generics default the row type to `any` (`AVGrid<R = any>`), so the
+            // shim's props, instance type and prop-forwarding maps carry it through.
+            "src/renderer/uikit/DataGrid/**/*.ts",
+            "src/renderer/uikit/DataGrid/**/*.tsx",
             "src/renderer/editors/grid/**/*.ts",
             "src/renderer/editors/grid/**/*.tsx",
             "**/*.story.ts",
@@ -169,6 +173,22 @@ export default tseslint.config(
                     ],
                     message: "Rule 6: uikit/ imports only core/ and theme/. Take app concepts through props/callbacks, or move the contract to core/.",
                 }],
+            }],
+        },
+    },
+
+    // C4-1: av-grid is reached only through uikit/DataGrid, so a later decision to vendor the
+    // library's source changes one folder instead of every consumer.
+    {
+        files: ["src/**/*.ts", "src/**/*.tsx"],
+        ignores: ["src/renderer/uikit/DataGrid/**"],
+        rules: {
+            "no-restricted-imports": ["error", {
+                paths: [{
+                    name: "av-grid",
+                    message: "EPIC-057 C4-1: import from uikit/DataGrid, not from av-grid directly.",
+                }],
+                patterns: ["av-grid/*"],
             }],
         },
     },

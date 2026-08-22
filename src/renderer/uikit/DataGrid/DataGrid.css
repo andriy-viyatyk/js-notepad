@@ -1,0 +1,29 @@
+@import url("av-grid/av-grid.css") layer(uikit);
+
+/*
+ * av-grid's stylesheet, pulled into `@layer uikit`, plus the one thing the library cannot know:
+ * how tall its host is.
+ *
+ * The `@import` above must stay the first statement in this file. It is how the library's 35 KB
+ * of rules enter the cascade at the right rank: av-grid would otherwise inject them itself, with
+ * no layer at all, and unlayered CSS beats *every* layered rule — including the app-layer rules
+ * that are supposed to override grid chrome. `DataGridView` therefore passes `injectStyles: false`
+ * and this import is the only delivery path. Vite's bundled `postcss-import` rebuilds the
+ * `@layer` at-rule around the inlined nodes in dev and in prod alike; the bare specifier resolves
+ * through av-grid's `exports` map, so do not write `~av-grid/…` or a `node_modules/` path.
+ */
+@layer uikit {
+    /* The grid measures its own root to decide what is visible, so that height has to be
+       *definite*. `mountVanilla`'s host is `display: contents`, which is what lets this root
+       participate in the parent's flex layout directly — a blank grid means
+       `grid.getState().viewport.width === 0`, which is a host-height problem and never a data
+       problem. `position: relative` is the containing block for av-grid's own absolutely
+       positioned cells, overlays and add-row strip. */
+    [data-type="data-grid"] {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+        min-width: 0;
+        position: relative;
+    }
+}

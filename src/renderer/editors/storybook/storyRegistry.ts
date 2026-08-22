@@ -51,6 +51,7 @@ import { multiSelectStory }      from "../../uikit/MultiSelect/MultiSelect.story
 import { selectStory }           from "../../uikit/Select/Select.story";
 import { treeStory }             from "../../uikit/Tree/Tree.story";
 import { virtualGridStory }      from "../../uikit/VirtualGrid/VirtualGrid.story";
+import { dataGridStory }         from "../../uikit/DataGrid/DataGrid.story";
 
 // Git
 import { gitTreeStory }          from "../../components/git-tree/GitTree.story";
@@ -65,7 +66,7 @@ export const ALL_STORIES: Story[] = [
     popoverStory, tooltipStory, dialogStory, notificationStory, menuStory, progressStory,
     minimapStory, imageViewportStory,
     autocompleteStory, categoryListStory, listBoxStory, multiListBoxStory, multiSelectStory, selectStory, treeStory,
-    virtualGridStory,
+    virtualGridStory, dataGridStory,
     gitTreeStory,
 ];
 

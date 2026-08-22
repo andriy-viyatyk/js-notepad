@@ -19,38 +19,9 @@ import { resolveColor } from "../../theme/themes";
 import { themeState } from "../../theme/theme-state";
 import { fontSize, gap, height, radius, spacing } from "../../uikit/tokens";
 import { mapScale } from "../../theme/token-vars";
+import { P_VAR_SOURCES } from "../../theme/p-vars";
 import type { BoardThemePalette } from "../../../ipc/board-bridge-channels";
 
-/** Color `--p-*` var → source `color.ts` (`--color-*`) var. `--p-accent*` is a
- *  deliberate mapping (no 1:1 `accent` token — epic C5): it mirrors the filled
- *  primary Button (`uikit/Button`, the `selection` pair), NOT the `primary.*`
- *  group — which is a *text-color* semantic (`primary.background` is `#000`), so
- *  using it as a fill produced a black button with invisible-on-hover text. */
-const P_VAR_SOURCES: Record<string, string> = {
-    "--p-bg": "--color-bg-default",
-    "--p-panel": "--color-bg-light",
-    "--p-bg-dark": "--color-bg-dark",
-    "--p-overlay": "--color-bg-overlay",
-    "--p-hover": "--color-bg-overlay-hover",
-    "--p-tree-selection": "--color-bg-tree-selection",
-    "--p-border": "--color-border-default",
-    "--p-border-light": "--color-border-light",
-    "--p-text": "--color-text-default",
-    "--p-text-muted": "--color-text-light",
-    "--p-text-strong": "--color-text-strong",
-    "--p-accent": "--color-bg-selection",
-    "--p-accent-text": "--color-text-selection",
-    "--p-accent-hover": "--color-border-active",
-    "--p-selection-bg": "--color-bg-selection",
-    "--p-selection-text": "--color-text-selection",
-    "--p-link": "--color-misc-link",
-    "--p-error": "--color-error-text",
-    "--p-success": "--color-success-text",
-    "--p-warning": "--color-warning-text",
-    "--p-scrollbar": "--color-bg-scrollbar",
-    "--p-scrollbar-thumb": "--color-bg-scrollbar-thumb",
-    "--p-shadow": "--color-shadow-default",
-};
 
 /** Resolve the current host theme into the board color palette. */
 export function computeBoardThemePalette(): BoardThemePalette {

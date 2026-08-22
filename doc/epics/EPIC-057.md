@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Planned — scope measured, decisions settled, ready to start at US-1019
+**Status:** Active — US-1019 implemented apart from its Rule 4 "before" measurement
 **Created:** 2026-08-22
 
 ## Overview
@@ -361,7 +361,7 @@ up, per this programme's convention.
 
 | Task | Description | Status |
 |---|---|---|
-| US-1019 | Adopt av-grid — the pinned dependency, the `--p-*` bridge, layered CSS, the mounting shim, the story, and the Rule 4 "before" numbers taken on the React grid | Planned |
+| [US-1019](../tasks/US-1019-adopt-av-grid/README.md) | Adopt av-grid — the pinned dependency, the `--p-*` bridge, layered CSS, the mounting shim, the story, and the Rule 4 "before" numbers taken on the React grid | **Implemented** — steps 2-7 landed; the "before" measurement is outstanding |
 | US-1020 | `editors/grid/` — the JSON/CSV grid editor. Five files, the persisted view state, the filter bar, and the context menu that closes Rule 6 | Planned |
 | US-1021 | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | Planned |
 | US-1022 | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | Planned |
@@ -464,3 +464,120 @@ stops, lands the library change, bumps the pin, and continues.
 length of the De-React programme and swept once at the end, so the nine `US-1010`–`US-1018` folders
 are correctly still on disk and C4's will be too. Recorded in [the roadmap](../de-react.md) rather
 than only here, since every remaining epic is affected.
+
+### 2026-08-22 — US-1019 planned: four things the epic did not know
+
+The task document is [US-1019](../tasks/US-1019-adopt-av-grid/README.md), with the Rule 4 procedure
+split into its own [measurement.md](../tasks/US-1019-adopt-av-grid/measurement.md). Planning it
+turned up four corrections to decisions above. None changes the epic's shape; two narrow a decision
+and two widen a task.
+
+**C4-1's "one file" becomes "one folder", and the shim is not called `AVGrid`.** The shim lands in a
+new `uikit/DataGrid/`, permanently named, and is deliberately **not** exported from `uikit/index.ts`.
+Three reasons, in order of weight. `AVGrid` is the library's own exported class, so a Persephone
+component of the same name means one identifier resolves to two different things depending on the
+import path — a wrapper named after the thing it wraps is ambiguous forever, not just during the
+migration. `uikit/index.ts:143-174` already re-exports `Column` and `CellFocus` from `./AVGrid`, and
+av-grid exports both names too; the repo has run this experiment once already, and the result is
+`uikit/index.ts:118-124`, where the **survivor** (`VirtualGrid`) was aliased to `VirtualCellFunc`
+because the **corpse** (`RenderGrid`) held the good name. Skipping the barrel avoids the collision
+entirely and matches what every `RenderGrid` consumer already does. And "one file names the package"
+was never achievable — the view and the type re-exports both need it — whereas "only
+`uikit/DataGrid/**` may import `av-grid`" is checkable by ESLint, which makes the weaker-sounding
+claim the stronger guarantee. C4-1's wording should be amended at epic close.
+
+**C4-7's gap list is five items, not two; one of them overrides C4-7 itself; and the library work
+now lives in av-grid's own repository.** The two it
+predicted (`extraElement`, `highlightString`) are confirmed at one call site each. Two more appear
+only when the context menu is read against Persephone's icon contract: uikit's `MenuItem` and
+av-grid's are **field-for-field identical**, so C4-5's anticipated shape adapter does not exist — but
+Persephone renders `icon` as an icon *component* whose `createElement()` is called and which
+**throws** when absent, while av-grid's built-in items carry SVG source *strings*. So av-grid's
+built-in items need stable `id`s for a host to re-icon them, which is upstream addition 3. And once
+ids exist, the `entity` prop is the fourth: C4-7 filed it as host-side, which is right about where it
+lands and wrong about the cost — under `onGridContextMenu` the host receives labels av-grid has
+already composed *and pluralised*, so "host-side" means re-deriving `Insert 3 rows` in Persephone. A
+`rowNoun` option lets the library compose it. **C4-10 governs C4-7 here**, which is the first time
+the "enhance the library" rule has actually decided something rather than described a preference.
+The fifth is `whiteSpaceY`, an engine option that has always existed
+(`av-grid/src/render/RenderGridModel.ts:90`) and was never exposed: it is how a footer taller than
+the 20 px trailing slack reserves its own room, instead of `extraElement` silently changing the
+grid's geometry.
+
+All five are additive, so they shipped as one release: **av-grid 2.2.0, published 2026-08-22**. They
+were specified, built and released **in av-grid's own repository** — phase 7, recorded in
+`C:\projects\av-grid\tasks\plan-done-03.md` — rather than inside US-1019. *(User decision,
+2026-08-22: the library work is done and published from its own repo, then Persephone reviews
+US-1019 against the released version.)* That kept a library release off Persephone's critical path,
+which is what C4-7 wanted in the first place, and put US-1019's scope back to what the epic
+intended.
+
+**Reviewing US-1019 against the released version found nothing wrong with it and three things it
+could now say precisely** — which is the argument for the review step rather than for assuming the
+plan was followed. `extraElement` turned out to be positioned by av-grid's own stylesheet with
+exactly the four declarations `GitTree.tsx:171-176` writes by hand, so **US-1021 deletes them**; the
+git-tree footer is 24 px against a 20 px default slack, so **US-1021 must pass `whiteSpaceY`** rather
+than relying on the opaque background that hides the overlap today; and `addRowLabel`'s default
+became `` `add ${rowNoun}` ``, so **`rowNoun` alone reproduces `entity` in full**, button included.
+One pre-existing behaviour is now written down where the consumer will meet it: overlapping highlight
+words resolve longest-match-wins, and `editors/grid/GridBody.tsx` is the single site that passes a
+search string and a highlight string at once.
+
+One design note worth keeping, because it is a small lesson about this whole arrangement: the first
+draft had `extraElement` share a flex strip with the add-row button, which meant de-positioning
+`.avg-add-row` — a published selector, in a release whose entire point is that it is additive.
+Reading the actual consumer killed that design. `GitTree.tsx:171-183` is a **full-width footer band**
+on an opaque background, not a chip beside a button, and it already carries a comment explaining that
+it copies the add-row button's absolute-positioning trick because a normal-flow element collapses
+behind the absolutely-positioned cells. The shipped design touches `.avg-add-row` not at all. Upstream
+is the right place for a fix, and the consumer is still the specification.
+
+**C4-8's three interactions are not peers.** The required number is the *drag at row 99,000*, and it
+is a **count** — DOM mutations per cell-boundary crossing — not a time. That is where the two
+implementations genuinely diverge, because the React grid's `updateFocus` recomputes a selection
+rectangle spanning every row from the anchor while av-grid marks two cells; and a `MutationObserver`
+counts it exactly where a millisecond cannot. The scroll-frame comparison is the weak one and must
+not be reported as a frame time: it costs ~1 ms against a 16.7 ms budget in *either* implementation,
+and the deterministic counters are expected to come back nearly identical, because
+`uikit/VirtualGrid/renderInfo.ts` is a near-verbatim port of the React engine's. Only React
+reconciliation CPU differs, so it goes in as a ratio with an error bar.
+
+**The `@layer` question is settled empirically rather than by reading.**
+`@import url("av-grid/av-grid.css") layer(uikit);` as the first statement of a first-party stylesheet
+does produce a real `@layer uikit { … }` wrapper, in both the dev server and the production bundle,
+on this exact Vite install — verified by building a throwaway entry in this tree against a package
+with an `exports` CSS subpath. The alternatives (`?raw` plus a runtime `CSSLayerBlockRule`, or a
+build-time copy-and-wrap) each cost CSS HMR, `url()` rewriting and a flash of unstyled content, and
+none is needed. Worth recording because C4-4 asserted the requirement without naming a mechanism,
+and the mechanism was the part that could have failed.
+
+### 2026-08-22 — US-1019 implemented: five things the plan had wrong, and one number
+
+Steps 2-7 landed; `npm run lint`, `npm run typecheck` and `npm run build-prod` are clean. The
+detail is in the task's own "What implementation changed about the plan"; three items belong in the
+epic because they outlive the task.
+
+1. **Option *presence* is semantics in av-grid, not just a value.** The plan's two-prop-tier design
+   said callbacks are bound once at `create()` and never re-pushed. That is right about identity
+   and wrong about presence: an `onGridContextMenu` that merely *exists* replaces the built-in
+   menu, a `getRowKey` that exists suppresses key inference, and a `newRow` that exists overrides
+   the default blank row. The shim therefore installs a trampoline only for props the host actually
+   passes, and pushes only when presence flips. **Every consumer task inherits this**: passing an
+   always-defined handler — the natural thing a React model does — silently turns off a library
+   default. It is the first place C4-2's "the inversion is absorbed by the consumer" has a concrete
+   edge.
+2. **The failure mode for an unadapted context menu is silent, not loud.** C4-5's premise was that
+   uikit's menu *throws* on av-grid's SVG-string icons. It does not — an item's icon goes through
+   `fillSlot`, which writes a string as `textContent`, so the built-in items render their own
+   `<svg …>` markup as visible text. The adapter is no less necessary; the point is that forgetting
+   it produces a cosmetic defect a screenshot review can miss, not a crash.
+3. **The CSS cost is ~18 KB, not 35 KB**, and the layering is confirmed rather than predicted: in
+   the production bundle, 470 `avg-` selector occurrences, **all** inside the `@layer uikit` block
+   and **none** outside it. The `@import … layer()` mechanism is now proved on this repo's real
+   dependency, not on a throwaway probe. The dev-server side is still un-eyeballed.
+
+**The Rule 4 "before" numbers were not taken**, because they need the production installer and a
+hand-performed drag. This is the one place the task ran out of order, and the consequence is
+recorded where US-1023 will look for it: **the BEFORE build is commit `44739cb0`**, buildable in a
+worktree, and `measurement.md` now says so and says why the current tree must not be used instead.
+Nothing is lost; the reading is deferred, not forfeited.

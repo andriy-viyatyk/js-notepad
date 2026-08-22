@@ -8,20 +8,23 @@ Overview of all active and planned epics and tasks.
 
 ## Active
 
+- **EPIC-057** — [De-React Epic C4 — AVGrid → av-grid](epics/EPIC-057.md) — scope measured,
+  decisions settled. C4-1 is decided: **av-grid is an npm dependency**, with vendoring kept as an
+  available fallback.
+  - [ ] [US-1019: Adopt av-grid — dependency, `--p-*` bridge, layered CSS, mounting shim, story,
+    and the Rule 4 "before" numbers](tasks/US-1019-adopt-av-grid/README.md) — **implemented**
+    against av-grid 2.2.0; lint/typecheck/build-prod clean. Outstanding: the Rule 4 "before"
+    measurement (needs `npm run dist` from commit `44739cb0` and a hand drag) and the dev-server
+    check of the layered `@import`
+  - [ ] US-1020: `editors/grid/` — the JSON/CSV grid editor
+  - [ ] US-1021: `components/git-tree/` — including the `BranchTreeCell` swimlane rewrite
+  - [ ] US-1022: `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView`
+  - [ ] US-1023: Delete `uikit/AVGrid/` and close Epic C
 - *(no epic)*
   - *(no active tasks)*
 
 ## Planned
 
-- **EPIC-057** — [De-React Epic C4 — AVGrid → av-grid](epics/EPIC-057.md) — scope measured,
-  decisions settled. C4-1 is decided: **av-grid is an npm dependency**, with vendoring kept as an
-  available fallback. Ready to start at US-1019.
-  - [ ] US-1019: Adopt av-grid — dependency, `--p-*` bridge, layered CSS, mounting shim, story,
-    and the Rule 4 "before" numbers
-  - [ ] US-1020: `editors/grid/` — the JSON/CSV grid editor
-  - [ ] US-1021: `components/git-tree/` — including the `BranchTreeCell` swimlane rewrite
-  - [ ] US-1022: `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView`
-  - [ ] US-1023: Delete `uikit/AVGrid/` and close Epic C
 - [De-React roadmap](de-react.md) — multi-epic programme to replace React with direct DOM
   manipulation. Epics are created from it one at a time. Epic C is split four ways: **C1 is
   complete as EPIC-054**, **C2 is complete as [EPIC-055](epics/EPIC-055.md)**, **C3 is complete as

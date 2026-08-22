@@ -12,7 +12,7 @@ function buildGlobalStyles() {
         body {
             background-color: ${color.background.default};
             color: ${color.text.default};
-            font-family: Consolas, monospace, "Courier New";
+            font-family: var(--p-font-family);
             font-size: 14px;
             font-weight: normal;
             overflow: hidden;
