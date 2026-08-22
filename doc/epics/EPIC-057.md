@@ -377,7 +377,7 @@ up, per this programme's convention.
 | [US-1020](../tasks/US-1020-grid-editor-av-grid/README.md) | `editors/grid/` — the JSON/CSV grid editor. Seven files, the persisted view state, the filter bar, and the context menu that closes Rule 6 for this consumer | **Implemented** — C4-10's first invocation shipped as av-grid 2.2.1; app testing outstanding |
 | [US-1021](../tasks/US-1021-git-tree-av-grid/README.md) | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | **Implemented** — against av-grid **2.2.2**, C4-10's second invocation; app testing outstanding |
 | [US-1024](../tasks/US-1024-cell-overflow-tooltip/README.md) | The cell-overflow tooltip, restored once in `DataGridView` for every consumer — **and the ellipsis, which the library does not supply either** (see the note below; the premise in this row's original wording was wrong). Two halves: av-grid **2.2.3** for the ellipsis, C4-10's third invocation; then the tooltip in the shim, which Persephone alone owns. Must land before US-1022 | **Implemented** — against av-grid **2.2.3** (published); lint/typecheck/build-prod clean. App testing outstanding |
-| US-1022 | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | Planned |
+| [US-1022](../tasks/US-1022-remaining-grid-consumers/README.md) | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | **Implemented** — lint/typecheck/build-prod clean; no av-grid release needed, the first consumer task where none is |
 | US-1023 | Delete `uikit/AVGrid/` — 29 files, 9 Emotion importers, the barrel, and the epic's closing numbers | Planned |
 
 ### Ordering
@@ -880,3 +880,62 @@ tooltipping.
 and left the struck rule in two other places in the same file, one of them the on-screen `<Text>`
 telling whoever runs the story to check for it. Both fixed here. The pattern is worth keeping: a
 correction that changes a *rule* has to be grepped for, not edited where it was noticed.
+
+### 2026-08-22 — US-1022 implemented: the last four consumers, and the one place av-grid genuinely cannot go
+
+The task document is [US-1022](../tasks/US-1022-remaining-grid-consumers/README.md). Four questions
+were delegated to context-free agents and every load-bearing claim was then verified at source.
+**No av-grid release is needed** — this is the first consumer task that invokes nothing like C4-10,
+which is itself the useful signal: three releases in, the library's gaps are closed.
+
+**One consumer needs something the library cannot supply, and the answer is not a library change.**
+`FileGrid`'s icon column renders `FileTypeIcon` — React for real reasons: an async IPC fetch for the
+Windows shell icon, a live board-registry subscription, an async board-icon probe. av-grid's `render`
+returns a string or an element, and a React root per cell is not merely costly but **wrong**:
+`DataCell`'s string branch compares against the `written` WeakMap and skips an unchanged write,
+while the **element** branch has no guard at all and re-appends on every paint that touches the cell
+— and `CellContext` never hands a renderer its cell element, so a renderer physically cannot key a
+cache on the pooled element it was given. The resolution is that the *rules* in `FileTypeIcon` are
+React only incidentally: every input is already reachable synchronously, so a pure `resolveFileIcon`
+is extracted, both paths consume it, and `renderToStaticMarkup` runs **once per distinct icon** —
+about fifty, ever — behind a memo. The string is then stable per file, so `written` skips the write
+and a hover move over a 3,000-row grid mutates zero nodes in that column. Cheaper than the React
+grid was. The trap worth recording for Epic D/E: `createIconElement` looks like the answer and is
+not — `createIconWithViewBox` attaches `createElement` only for a **string** icon body, and all
+fifty language icons have JSX bodies, so that route renders blank icons with a dev-only warning.
+
+**The immer freeze is a wider hazard than US-1020 made it look.** US-1020 recorded that rows in
+reactive state are deep-frozen and av-grid's in-place write throws. What that task did not surface is
+that the freeze is triggered by *any* `state.update` on the state object holding the rows —
+including one that touches an unrelated field, because immer freezes everything reachable from the
+produced state. So `EnvVarsBody` would work until the first validation warning and then throw on the
+next keystroke, and `GraphDetailPanel` until the first dirty flag. Both are `state.update` on a
+sibling field. Today's code survives only because its `setRows` happens to use `state.set`. Rows must
+leave component state in all three editable consumers, not merely be handled carefully in it.
+
+**Deferring beats projecting, and it also coalesces.** All three mutation callbacks fire *before*
+the change lands, so validating a whole-set rule (no duplicate names) inside one of them would mean
+three hand-written projections of av-grid's own insert and delete semantics. A microtask that reads
+`grid.getRows()` afterwards needs one path, stays correct if the ordering ever changes, and turns a
+twenty-cell paste into one validation and one write instead of twenty. Worth noting because
+av-grid's own `editable` doc-comment states the ordering **backwards** — it claims the write happens
+first — which is a docs-only upstream fix in the plan, and a reminder that a comment is not a
+source.
+
+**Two silent regressions the migration would otherwise have shipped, both found by asking.** A
+script naming a grid-output column that is not in its data used to render an empty column; av-grid's
+validator now **throws inside `create()`**, i.e. inside a React commit, taking the log page with it —
+so an unmatched column gets an explicit `formatValue`, which is the projection av-grid would have
+used anyway and marks the column computed. And `FileGrid`'s `compact` font stopped working the
+moment the grid changed: av-grid sets `font-size` on its own root, so no ancestor's `font-size`
+reaches a cell. The seam is already there — the root resolves `var(--p-font-base)`, the app's own
+bridge variable, inherited — so the wrapper sets that instead. No layer override, no `!important`.
+
+**And `isStatusColumn` claimed its predicted victim.** The epic warned that the flag also blocks
+editing in av-grid; the Links tab's `ID` column had it, and `ID` is the field that tab exists to
+type into. Four of the nine behaviours av-grid attaches to the flag are load-bearing failures there,
+including one nobody would have predicted: the new-row focus fallback skips status columns, so
+adding a link would land the caret on Title. Dropping the flag *improves* that. The neighbouring
+find is cheaper and broader — nine columns spell it `resizible`, the old grid's typo, which av-grid
+ignores; harmless today because its default is on, and a silent trap the first time someone writes
+`resizible: false`.

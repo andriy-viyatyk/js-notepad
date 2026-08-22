@@ -31,7 +31,9 @@ Overview of all active and planned epics and tasks.
     av-grid did not ellipsize *either* (F1), and a right-aligned numeric column silently dropped its
     **leading** digits — both fixed upstream, C4-10's third invocation. The app-level acceptance list
     is untested. Landed **before** US-1022, as required
-  - [ ] US-1022: `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView`
+  - [ ] [US-1022: the four remaining consumers — `FileGrid`, `EnvVarsBody`,
+    `GraphDetailPanel`, `GridOutputView`](tasks/US-1022-remaining-grid-consumers/README.md) —
+    **implemented**; lint/typecheck/build-prod clean. No av-grid release needed
   - [ ] US-1023: Delete `uikit/AVGrid/` and close Epic C
 - *(no epic)*
   - *(no active tasks)*

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import { GitTreeEditorModel } from "./GitTreeEditorModel";
 import { FileGrid, type FileGridItem } from "../../components/file-grid";
-import { GitStatusBadge } from "../../components/git-tree";
+import { gitStatusMarkup } from "../../components/git-tree/git-status-meta";
 import { Panel } from "../../uikit/Panel";
 import { Text } from "../../uikit/Text";
 import { Spacer } from "../../uikit/Spacer";
@@ -361,9 +361,9 @@ function ChangesList({
     );
 
     const getTrailing = useCallback(
-        (item: FileGridItem): ReactNode => {
-            const change = changeMap.get(item.filePath);
-            return change ? <GitStatusBadge status={change.status} /> : null;
+        (cell: import("../../uikit/DataGrid").CellContext<FileGridItem>): string => {
+            const change = changeMap.get(cell.row.filePath);
+            return change ? gitStatusMarkup(change.status) : "";
         },
         [changeMap],
     );

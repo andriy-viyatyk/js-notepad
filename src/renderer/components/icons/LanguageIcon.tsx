@@ -177,6 +177,33 @@ class SystemIconModel extends TModel<SystemIconState> {
 
 const systemIconModel = new SystemIconModel();
 
+export type ResolvedFileIcon =
+    | { kind: "component"; Icon: SvgIconComponent }
+    | { kind: "board"; boardRoot: string }
+    | { kind: "system"; url: string }
+    | { kind: "default" };
+
+export function resolveFileIcon(fileName: string, language?: string): ResolvedFileIcon {
+    const ext = fpExtname(fileName).toLowerCase();
+    const lang = getLanguageById(language || "") || (ext ? getLanguageByExtension(ext) : undefined);
+    const staticIcon = getFilePatternIcon(fileName) || (lang ? languageIconMap[lang.id] : undefined);
+    const boardMatches = customEditorRegistry.getBoardsForFile(fileName);
+    const boardRoot = boardMatches.length
+        ? parseBoardEditorId(resolveEditorIdForFile(fileName) ?? "")
+        : null;
+    if (boardRoot) return { kind: "board", boardRoot };
+    if (staticIcon) return { kind: "component", Icon: staticIcon };
+    const url = ext ? systemIconModel.state.get().iconCache.get(ext) : undefined;
+    if (url) return { kind: "system", url };
+    return { kind: "default" };
+}
+
+export function prepareFileIcon(fileName: string): void { void systemIconModel.prepareIcon(fileName); }
+
+export function useSystemFileIcons(): ReadonlyMap<string, string> {
+    return systemIconModel.state.use((s) => s.iconCache);
+}
+
 // =============================================================================
 // FileTypeIcon — unified icon component
 // =============================================================================
@@ -238,7 +265,7 @@ export function FileTypeIcon({ language, fileName, ...props }: FileTypeIconProps
     // nor a winning board applies.
     useEffect(() => {
         if (!resolvedIcon && !boardRoot && fileName && ext) {
-            systemIconModel.prepareIcon(fileName);
+            prepareFileIcon(fileName);
         }
     }, [resolvedIcon, boardRoot, fileName, ext]);
 

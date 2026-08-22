@@ -1,13 +1,15 @@
-.graph-detail-panel {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    font-size: 12px;
-    user-select: none;
-}
+@layer editor {
+    .graph-detail-panel {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        font-size: 12px;
+        user-select: none;
+    }
 
-.graph-detail-panel .data-cell.cell-error { color: var(--color-error-text); }
-.graph-detail-panel .data-cell.cell-mixed { color: var(--color-warning-text); }
+    .graph-detail-panel .avg-data-cell.cell-error { color: var(--color-error-text); }
+    .graph-detail-panel .avg-data-cell.cell-mixed { color: var(--color-warning-text); }
+}

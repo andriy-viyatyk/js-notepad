@@ -166,6 +166,12 @@ export function getGridDataWithColumns(
                 dataType: column.dataType ?? existing?.dataType,
                 resizable: true,
             };
+            if (!existing) {
+                c.formatValue = (_column, row) => {
+                    const value = row[column.key];
+                    return value == null ? "" : String(value);
+                };
+            }
             return c;
         });
         data = {

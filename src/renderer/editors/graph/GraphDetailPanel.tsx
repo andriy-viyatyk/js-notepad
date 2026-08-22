@@ -1,5 +1,6 @@
-import { SetStateAction, useCallback, useMemo, useRef } from "react";
-import { AVGrid, Button, Input, Panel, detectColumnWidth, type CellFocus, type Column } from "../../uikit";
+import { useCallback, useMemo, useRef } from "react";
+import { Button, Input, Panel } from "../../uikit";
+import { DataGrid, detectColumnWidth, type CellContext, type Column, type DataGridInstance, type CellEditEvent, type AddRowsEvent, type DeleteRowsEvent } from "../../uikit/DataGrid";
 import { GraphNode, NodeShape, nodeLabel, isReservedPropertyKey } from "./types";
 import color from "../../theme/color";
 import { ChevronDownIcon, ChevronUpIcon } from "../../theme/icons";
@@ -648,22 +649,21 @@ interface LinksTabProps {
 }
 
 interface LinksTabState {
-    rows: LinkRow[];
-    columns: Column<LinkRow>[];
     dirty: boolean;
-    focus: CellFocus<LinkRow> | undefined;
 }
 
-const defaultLinksTabState: LinksTabState = { rows: [], columns: [], dirty: false, focus: undefined };
+const defaultLinksTabState: LinksTabState = { dirty: false };
 
 class LinksTabModel extends TComponentModel<LinksTabState, LinksTabProps> {
     private rowCounter = 0;
+    seedRows: LinkRow[] = [];
+    columns: Column<LinkRow>[] = [];
+    grid: DataGridInstance<LinkRow> | undefined;
     readonly originalIds = new Set<string>();
 
-    setRows = (value: SetStateAction<LinkRow[]>) => this.state.set((state) => ({ ...state, rows: typeof value === "function" ? value(state.rows) : value }));
-    setColumns = (value: SetStateAction<Column<LinkRow>[]>) => this.state.set((state) => ({ ...state, columns: typeof value === "function" ? value(state.columns) : value }));
     setDirty = (dirty: boolean) => this.state.update((s) => { s.dirty = dirty; });
-    setFocus = (value: SetStateAction<CellFocus<LinkRow> | undefined>) => this.state.set((state) => ({ ...state, focus: typeof value === "function" ? value(state.focus) : value }));
+    setGrid = (grid: DataGridInstance<LinkRow> | null): void => { this.grid = grid ?? undefined; };
+    rowsForGrid = (): readonly LinkRow[] => this.grid?.getRows() ?? this.seedRows;
     nextRowKey = () => `link-${++this.rowCounter}`;
     resetRowCounter = () => { this.rowCounter = 0; };
 
@@ -673,8 +673,8 @@ class LinksTabModel extends TComponentModel<LinksTabState, LinksTabProps> {
             queueMicrotask(() => {
                 if (!this.isLive || this.props.linkedNodes !== linkedNodes) return;
                 const mapped = linkedNodes.map((node) => ({ ...node, _rowKey: this.nextRowKey() }));
-                this.setRows(mapped);
-                this.setColumns(makeColumns(mapped));
+                this.seedRows = mapped;
+                this.columns = makeColumns(mapped);
                 this.setDirty(false);
                 this.props.onDirtyChange(false);
                 this.originalIds.clear();
@@ -682,18 +682,6 @@ class LinksTabModel extends TComponentModel<LinksTabState, LinksTabProps> {
             });
         }, () => [this.props.linkedNodes]);
 
-        this.effect(() => {
-            const rowKey = this.state.get().focus?.rowKey;
-            queueMicrotask(() => {
-                if (!this.isLive || this.state.get().focus?.rowKey !== rowKey) return;
-                if (rowKey) {
-                    const row = this.state.get().rows.find((item) => item._rowKey === rowKey);
-                    this.props.onExternalHover?.(row?.id || "");
-                } else {
-                    this.props.onExternalHover?.("");
-                }
-            });
-        }, () => [this.state.get().focus?.rowKey]);
     }
 }
 
@@ -703,11 +691,11 @@ const LINKS_COL_OPTS = { charWidth: LINKS_CHAR_WIDTH, padding: 16, minWidth: 50,
 
 function makeColumns(rows: LinkRow[]): Column<LinkRow>[] {
     const cols: Column<LinkRow>[] = [
-        { key: "id", name: "ID", width: detectColumnWidth(rows, "id", "ID", LINKS_COL_OPTS), resizible: true, isStatusColumn: true },
-        { key: "title", name: "Title", width: detectColumnWidth(rows, "title", "Title", LINKS_COL_OPTS), resizible: true },
-        { key: "level", name: "Level", width: 60, resizible: true,
+        { key: "id", name: "ID", width: detectColumnWidth(rows, "id", "ID", LINKS_COL_OPTS), resizable: true },
+        { key: "title", name: "Title", width: detectColumnWidth(rows, "title", "Title", LINKS_COL_OPTS), resizable: true },
+        { key: "level", name: "Level", width: 60, resizable: true,
           options: [1, 2, 3, 4, 5] },
-        { key: "shape", name: "Shape", width: 70, resizible: true,
+        { key: "shape", name: "Shape", width: 70, resizable: true,
           options: ["circle", "square", "diamond", "triangle", "star", "hexagon"] },
     ];
 
@@ -724,7 +712,7 @@ function makeColumns(rows: LinkRow[]): Column<LinkRow>[] {
             key,
             name: key,
             width: detectColumnWidth(rows, key, key, LINKS_COL_OPTS),
-            resizible: true,
+            resizable: true,
         });
     }
 
@@ -734,91 +722,60 @@ function makeColumns(rows: LinkRow[]): Column<LinkRow>[] {
 function LinksTab({ linkedNodes, selectedNodeId, onApply, onDirtyChange, onExternalHover }: LinksTabProps) {
     const tabProps: LinksTabProps = { linkedNodes, selectedNodeId, onApply, onDirtyChange, onExternalHover };
     const model = useComponentModel(tabProps, LinksTabModel, defaultLinksTabState);
-    const rows = model.state.use((s) => s.rows);
-    const columns = model.state.use((s) => s.columns);
     const dirty = model.state.use((s) => s.dirty);
-    const focus = model.state.use((s) => s.focus);
-    const setRows = model.setRows;
-    const setColumns = model.setColumns;
     const setDirty = model.setDirty;
-    const setFocus = model.setFocus;
     const markDirty = useCallback(() => {
         setDirty(true);
         onDirtyChange(true);
     }, [onDirtyChange, setDirty]);
 
-    const editRow = useCallback((columnKey: string, rowKey: string, value: unknown) => {
-        if (columnKey === "level") {
-            const num = Number(value);
-            value = (num >= 1 && num <= 5) ? num : 5;
-        }
-        if (columnKey === "shape") {
-            const shapes = ["circle", "square", "diamond", "triangle", "star", "hexagon"];
-            if (!shapes.includes(value as string)) value = "circle";
-        }
-
-        setRows((prev) => prev.map((r) =>
-            r._rowKey === rowKey ? { ...r, [columnKey]: value } : r
-        ));
+    const onEdit = useCallback((_event: CellEditEvent<LinkRow>) => markDirty(), [markDirty]);
+    const onAddRows = useCallback((event: AddRowsEvent<LinkRow>) => {
+        event.rows.forEach((row) => { row._rowKey = model.nextRowKey(); });
         markDirty();
-    }, [markDirty, setRows]);
-
-    const onAddRows = useCallback((count: number, insertIndex?: number) => {
-        const newRows: LinkRow[] = Array.from({ length: count }, () => ({
-            id: "",
-            _rowKey: model.nextRowKey(),
-        }));
-        setRows((prev) => {
-            if (insertIndex !== undefined) {
-                const copy = [...prev];
-                copy.splice(insertIndex, 0, ...newRows);
-                return copy;
-            }
-            return [...prev, ...newRows];
-        });
-        markDirty();
-        return newRows;
-    }, [markDirty, model, setRows]);
-
-    const onDeleteRows = useCallback((rowKeys: string[]) => {
-        const keySet = new Set(rowKeys);
-        setRows((prev) => prev.filter((r) => !keySet.has(r._rowKey)));
-        markDirty();
-    }, [markDirty, setRows]);
-
-    const getRowKey = useCallback((r: LinkRow) => r._rowKey, []);
+    }, [markDirty, model]);
+    const onDeleteRows = useCallback((_event: DeleteRowsEvent<LinkRow>) => markDirty(), [markDirty]);
+    const onFocusChange = useCallback((focus: import("../../uikit/DataGrid").CellFocus<LinkRow> | undefined) => {
+        const row = focus?.rowKey ? (model.rowsForGrid().find((item) => item._rowKey === focus.rowKey)) : undefined;
+        onExternalHover?.(row?.id || "");
+    }, [model, onExternalHover]);
 
     const handleApply = useCallback(() => {
-        const cleanRows = rows.map((r) => {
+        const cleanRows = model.rowsForGrid().map((r) => {
             const { _rowKey, ...rest } = r;
             return rest;
         });
         onApply(selectedNodeId, cleanRows, model.originalIds);
-    }, [model, rows, selectedNodeId, onApply]);
+    }, [model, selectedNodeId, onApply]);
 
     const handleCancel = useCallback(() => {
         model.resetRowCounter();
         const mapped = linkedNodes.map((n) => ({ ...n, _rowKey: model.nextRowKey() }));
-        setRows(mapped);
+        model.grid?.setRows(mapped);
+        model.seedRows = mapped;
         setDirty(false);
         onDirtyChange(false);
-        setColumns(makeColumns(mapped));
-    }, [linkedNodes, model, onDirtyChange, setColumns, setDirty, setRows]);
+        model.grid?.setColumns(makeColumns(mapped));
+        model.columns = makeColumns(mapped);
+    }, [linkedNodes, model, onDirtyChange, setDirty]);
 
     return (
         <Panel direction="column" flex={1} overflow="hidden">
             <Panel direction="column" flex={1} overflow="hidden">
-                <AVGrid
-                    columns={columns}
-                    rows={rows}
-                    getRowKey={getRowKey}
-                    setColumns={setColumns}
-                    focus={focus}
-                    setFocus={setFocus as (value: SetStateAction<CellFocus<LinkRow> | undefined>) => void}
-                    editRow={editRow}
+                <DataGrid
+                    columns={model.columns}
+                    rows={model.rowsForGrid()}
+                    getRowKey={(row) => row._rowKey}
+                    onGrid={(grid) => model.setGrid(grid)}
+                    editable
+                    canAddRows
+                    canDeleteRows
+                    newRow={() => ({ id: "", _rowKey: model.nextRowKey() })}
+                    onEdit={onEdit}
                     onAddRows={onAddRows}
                     onDeleteRows={onDeleteRows}
-                    entity="link"
+                    rowNoun="link"
+                    onFocusChange={onFocusChange}
                     disableFiltering
                     disableSorting
                     rowHeight={24}
@@ -852,10 +809,7 @@ interface PropertiesTabProps {
 }
 
 interface PropertiesTabState {
-    rows: PropertyRow[];
-    columns: Column<PropertyRow>[];
     dirty: boolean;
-    focus: CellFocus<PropertyRow> | undefined;
     statusMessage: string;
 }
 
@@ -898,23 +852,25 @@ function extractMultiProperties(nodes: GraphNode[]): { key: string; value: strin
 }
 
 const PROPERTY_COLUMNS: Column<PropertyRow>[] = [
-    { key: "key", name: "Name", width: 120, resizible: true },
-    { key: "value", name: "Value", width: 200, resizible: true },
+    { key: "key", name: "Name", width: 120, resizable: true },
+    { key: "value", name: "Value", width: 200, resizable: true },
 ];
 
 const defaultPropertiesTabState: PropertiesTabState = {
-    rows: [], columns: PROPERTY_COLUMNS, dirty: false, focus: undefined, statusMessage: "",
+    dirty: false, statusMessage: "",
 };
 
 class PropertiesTabModel extends TComponentModel<PropertiesTabState, PropertiesTabProps> {
     private rowCounter = 0;
+    seedRows: PropertyRow[] = [];
+    columns: Column<PropertyRow>[] = PROPERTY_COLUMNS;
+    grid: DataGridInstance<PropertyRow> | undefined;
     readonly originalKeys = new Set<string>();
     readonly multiInfo = new Map<string, { allSame: boolean; uniqueValues: string[] }>();
 
-    setRows = (value: SetStateAction<PropertyRow[]>) => this.state.set((state) => ({ ...state, rows: typeof value === "function" ? value(state.rows) : value }));
-    setColumns = (value: SetStateAction<Column<PropertyRow>[]>) => this.state.set((state) => ({ ...state, columns: typeof value === "function" ? value(state.columns) : value }));
     setDirty = (dirty: boolean) => this.state.update((s) => { s.dirty = dirty; });
-    setFocus = (value: SetStateAction<CellFocus<PropertyRow> | undefined>) => this.state.set((state) => ({ ...state, focus: typeof value === "function" ? value(state.focus) : value }));
+    setGrid = (grid: DataGridInstance<PropertyRow> | null): void => { this.grid = grid ?? undefined; };
+    rowsForGrid = (): readonly PropertyRow[] => this.grid?.getRows() ?? this.seedRows;
     setStatusMessage = (statusMessage: string) => this.state.update((s) => { s.statusMessage = statusMessage; });
     nextRowKey = () => `prop-${++this.rowCounter}`;
     resetRowCounter = () => { this.rowCounter = 0; };
@@ -944,7 +900,7 @@ class PropertiesTabModel extends TComponentModel<PropertiesTabState, PropertiesT
                     }));
                     for (const row of extracted) this.originalKeys.add(row.key);
                 }
-                this.setRows(mapped);
+                this.seedRows = mapped;
                 this.setDirty(false);
                 this.props.onDirtyChange(false);
                 this.setStatusMessage("");
@@ -954,31 +910,6 @@ class PropertiesTabModel extends TComponentModel<PropertiesTabState, PropertiesT
             return [nodes.map((node) => node.id).sort().join(","), nodes];
         });
 
-        this.effect(() => {
-            const focusKey = this.state.get().focus?.rowKey;
-            const isMulti = this.props.nodes.length > 1;
-            const rows = this.state.get().rows;
-            queueMicrotask(() => {
-                if (!this.isLive || this.state.get().focus?.rowKey !== focusKey || (this.props.nodes.length > 1) !== isMulti || this.state.get().rows !== rows) return;
-                if (!isMulti || !focusKey) {
-                    this.setStatusMessage("");
-                    return;
-                }
-                const row = rows.find((item) => item._rowKey === focusKey);
-                const info = row?.key ? this.multiInfo.get(row.key) : undefined;
-                if (!info) {
-                    this.setStatusMessage("");
-                } else if (info.allSame) {
-                    this.setStatusMessage("All nodes have the same value");
-                } else if (info.uniqueValues.length === 0) {
-                    this.setStatusMessage("No nodes have this property");
-                } else {
-                    const shown = info.uniqueValues.slice(0, 2).map((value) => `"${value}"`).join(", ");
-                    const suffix = info.uniqueValues.length > 2 ? ", ..." : "";
-                    this.setStatusMessage(`Values: ${shown}${suffix}`);
-                }
-            });
-        }, () => [this.state.get().focus?.rowKey, this.props.nodes.length > 1, this.state.get().rows]);
     }
 }
 
@@ -987,16 +918,11 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
     const singleNode = nodes.length === 1 ? nodes[0] : null;
     const tabProps: PropertiesTabProps = { nodes, onApply, onBatchApply, onDirtyChange };
     const model = useComponentModel(tabProps, PropertiesTabModel, defaultPropertiesTabState);
-    const rows = model.state.use((s) => s.rows);
-    const columns = model.state.use((s) => s.columns);
     const dirty = model.state.use((s) => s.dirty);
-    const focus = model.state.use((s) => s.focus);
     const statusMessage = model.state.use((s) => s.statusMessage);
-    const setRows = model.setRows;
-    const setColumns = model.setColumns;
     const setDirty = model.setDirty;
-    const setFocus = model.setFocus;
     const setStatusMessage = model.setStatusMessage;
+    const rows = model.rowsForGrid() as PropertyRow[];
     const hasInvalidKeys = useMemo(() =>
         rows.some((r) => r.key && isReservedPropertyKey(r.key)),
     [rows]);
@@ -1006,39 +932,26 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
         onDirtyChange(true);
     }, [onDirtyChange, setDirty]);
 
-    const editRow = useCallback((columnKey: string, rowKey: string, value: unknown) => {
-        setRows((prev) => prev.map((r) =>
-            r._rowKey === rowKey ? { ...r, [columnKey]: String(value ?? ""), _isChanged: true } : r
-        ));
+    const onEdit = useCallback((_event: CellEditEvent<PropertyRow>) => {
         markDirty();
-    }, [markDirty, setRows]);
-
-    const onAddRows = useCallback((count: number, insertIndex?: number) => {
-        const newRows: PropertyRow[] = Array.from({ length: count }, () => ({
-            _rowKey: model.nextRowKey(),
-            key: "",
-            value: "",
-            _isChanged: true,
-        }));
-        setRows((prev) => {
-            if (insertIndex !== undefined) {
-                const copy = [...prev];
-                copy.splice(insertIndex, 0, ...newRows);
-                return copy;
-            }
-            return [...prev, ...newRows];
-        });
+    }, [markDirty]);
+    const onAddRows = useCallback((event: AddRowsEvent<PropertyRow>) => {
+        event.rows.forEach((row) => { row._rowKey = model.nextRowKey(); row._isChanged = true; });
         markDirty();
-        return newRows;
-    }, [markDirty, model, setRows]);
-
-    const onDeleteRows = useCallback((rowKeys: string[]) => {
-        const keySet = new Set(rowKeys);
-        setRows((prev) => prev.filter((r) => !keySet.has(r._rowKey)));
-        markDirty();
-    }, [markDirty, setRows]);
-
-    const getRowKey = useCallback((r: PropertyRow) => r._rowKey, []);
+    }, [markDirty, model]);
+    const onDeleteRows = useCallback((_event: DeleteRowsEvent<PropertyRow>) => markDirty(), [markDirty]);
+    const onFocusChange = useCallback((focus: import("../../uikit/DataGrid").CellFocus<PropertyRow> | undefined) => {
+        if (!isMulti || !focus?.rowKey) { setStatusMessage(""); return; }
+        const row = model.rowsForGrid().find((item) => item._rowKey === focus.rowKey);
+        const info = row?.key ? model.multiInfo.get(row.key) : undefined;
+        if (!info) setStatusMessage("");
+        else if (info.allSame) setStatusMessage("All nodes have the same value");
+        else if (!info.uniqueValues.length) setStatusMessage("No nodes have this property");
+        else {
+            const shown = info.uniqueValues.slice(0, 2).map((value) => `"${value}"`).join(", ");
+            setStatusMessage(`Values: ${shown}${info.uniqueValues.length > 2 ? ", ..." : ""}`);
+        }
+    }, [isMulti, model, setStatusMessage]);
 
     const handleApply = useCallback(() => {
         if (isMulti) {
@@ -1083,7 +996,8 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
                 _isChanged: false,
             }));
             for (const row of merged) model.originalKeys.add(row.key);
-            setRows(mapped);
+            model.grid?.setRows(mapped);
+            model.seedRows = mapped;
         } else if (singleNode) {
             const extracted = extractCustomProperties(singleNode);
             const mapped: PropertyRow[] = extracted.map((r) => ({
@@ -1093,14 +1007,17 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
                 _isChanged: false,
             }));
             for (const row of extracted) model.originalKeys.add(row.key);
-            setRows(mapped);
+            model.grid?.setRows(mapped);
+            model.seedRows = mapped;
         }
         setDirty(false);
         onDirtyChange(false);
         setStatusMessage("");
-    }, [model, nodes, singleNode, isMulti, onDirtyChange, setDirty, setRows, setStatusMessage]);
+    }, [model, nodes, singleNode, isMulti, onDirtyChange, setDirty, setStatusMessage]);
 
-    const cellClass = useCallback((row: PropertyRow, col: Column<PropertyRow>) => {
+    const cellClass = useCallback((cell: CellContext<PropertyRow>) => {
+        const row = cell.row;
+        const col = cell.column;
         if (col.key === "key" && row.key && isReservedPropertyKey(row.key)) {
             return "cell-error";
         }
@@ -1116,18 +1033,21 @@ function PropertiesTab({ nodes, onApply, onBatchApply, onDirtyChange }: Properti
     return (
         <Panel direction="column" flex={1} overflow="hidden">
             <Panel direction="column" flex={1} overflow="hidden">
-                <AVGrid
-                    columns={columns}
-                    rows={rows}
-                    getRowKey={getRowKey}
-                    setColumns={setColumns}
-                    focus={focus}
-                    setFocus={setFocus as (value: SetStateAction<CellFocus<PropertyRow> | undefined>) => void}
-                    editRow={editRow}
+                <DataGrid
+                    columns={model.columns}
+                    rows={model.rowsForGrid()}
+                    getRowKey={(row) => row._rowKey}
+                    onGrid={(grid) => model.setGrid(grid)}
+                    editable
+                    canAddRows
+                    canDeleteRows
+                    newRow={() => ({ _rowKey: model.nextRowKey(), key: "", value: "", _isChanged: true })}
+                    onEdit={onEdit}
                     onAddRows={onAddRows}
                     onDeleteRows={onDeleteRows}
                     onCellClass={cellClass}
-                    entity="property"
+                    rowNoun="property"
+                    onFocusChange={onFocusChange}
                     disableFiltering
                     disableSorting
                     rowHeight={24}

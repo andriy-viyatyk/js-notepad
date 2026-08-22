@@ -1,33 +1,19 @@
 import styled from "@emotion/styled";
-import React, { useEffect, useRef, type ReactNode, type SetStateAction } from "react";
+import React, { useEffect, useRef } from "react";
 
-import { AVGrid, AVGridModel } from "../../uikit/AVGrid";
-import type { CellFocus, Column, TCellFormater, TCellRendererProps } from "../../uikit/AVGrid";
+import { DataGrid, type CellRenderer, type Column, type DataGridInstance } from "../../uikit/DataGrid";
 import type { MenuItem } from "../../uikit/Menu";
-import { TruncatedText } from "../../uikit/TruncatedText";
-import { fontSize } from "../../uikit/tokens";
-import { FileIcon, FolderIcon } from "../icons/FileIcon";
 import { fpExtname } from "../../core/utils/file-path";
-import { TComponentModel, useComponentModel } from "../../core/state/model";
-
-// =============================================================================
-// FileGrid — an AVGrid-based flat file list (EPIC-031 / US-631).
-//
-// A FileList replacement that adds RANGE selection + range-copy (AVGrid's
-// focus model) and column sorting, while keeping the lightweight look: three
-// columns — file icon (fixed) / path (percent, fills via fitToWidth) / status
-// badge (fixed). The header row doubles as a section label (the path column's
-// `name`). Single + double click are forwarded; the focus range drives
-// `onSelectionChange`. Lives in components/ (coupled to FileIcon), so Emotion
-// is allowed here.
-// =============================================================================
+import { fileIconMarkup } from "../icons/file-icon-markup";
+import { prepareFileIcon, useSystemFileIcons } from "../icons/LanguageIcon";
+import { useBoardIcon } from "../../editors/board/board-icon-cache";
+import { customEditorRegistry } from "../../editors/board/custom-editor-registry";
+import { showGridContextMenu } from "../../ui/dialogs/poppers/grid-context-menu";
+import "./FileGrid.css";
 
 export interface FileGridItem {
-    /** Unique row key + FileIcon source + tooltip. */
     filePath: string;
-    /** Display text (e.g. the repo-relative path). */
     title: string;
-    /** Optional status letter (M/A/D/R/?) — rendered via `getTrailing`. */
     status?: string;
     isFolder?: boolean;
 }
@@ -35,156 +21,88 @@ export interface FileGridItem {
 export interface FileGridProps {
     name?: string;
     items: FileGridItem[];
-    /** Text for the path column's header (the section label, e.g. "Unstaged").
-     *  The icon + status column headers stay empty. */
     label?: string;
-    /** Single click — e.g. open the file's diff. */
     onClick?: (item: FileGridItem) => void;
-    /** Double click — e.g. stage / unstage one file. */
     onDoubleClick?: (item: FileGridItem) => void;
-    /** Fires with the current range selection (derived from AVGrid's sorted
-     *  rows, so it stays correct under sorting). */
     onSelectionChange?: (items: FileGridItem[]) => void;
-    /** Right-aligned trailing content per row (e.g. a git status badge). */
-    getTrailing?: (item: FileGridItem) => ReactNode;
-    /** Context-menu items for a right-clicked row, given the current selection
-     *  (e.g. git Stage/Unstage). Prepended above AVGrid's built-in Copy items. */
+    getTrailing?: CellRenderer<FileGridItem>;
     getContextMenuItems?: (items: FileGridItem[]) => MenuItem[];
-    /** Compact: 20px rows + small font, matching the legacy FileList look. */
     compact?: boolean;
 }
 
-// Only sets the list font size; AVGrid paints the rest.
 const Root = styled.div({
     flex: "1 1 auto",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    '&[data-compact="true"]': { fontSize: fontSize.sm },
+    '&[data-compact="true"]': { "--p-font-base": "12px" },
 }, { label: "FileGrid" });
 
 const ROW_HEIGHT_COMPACT = 20;
 const ROW_HEIGHT = 24;
 
-interface FileGridState {
-    columns: Column<FileGridItem>[];
-    focus: CellFocus<FileGridItem> | undefined;
-}
-
-class FileGridModel extends TComponentModel<FileGridState, FileGridProps> {
-    setColumns = (value: SetStateAction<Column<FileGridItem>[]>) => {
-        this.state.update((s) => {
-            s.columns = typeof value === "function" ? value(s.columns) : value;
-        });
-    };
-
-    setFocus = (value: SetStateAction<CellFocus<FileGridItem> | undefined>) => {
-        this.state.update((s) => {
-            s.focus = typeof value === "function" ? value(s.focus) : value;
-        });
-    };
-}
-
-function rowOf(props: TCellRendererProps): FileGridItem | undefined {
-    return props.model.data.rows[props.row] as FileGridItem | undefined;
-}
-
-const iconFormatter: TCellFormater = (props) => {
-    const r = rowOf(props);
-    if (!r) return null;
-    return r.isFolder ? <FolderIcon /> : <FileIcon path={r.filePath} />;
-};
-
-const titleFormatter: TCellFormater = (props) => {
-    const r = rowOf(props);
-    return r ? <TruncatedText>{r.title}</TruncatedText> : null;
-};
-
-function buildColumns(
-    label: string | undefined,
-    getTrailingRef: React.RefObject<FileGridProps["getTrailing"]>,
-): Column<FileGridItem>[] {
+function buildColumns(label: string | undefined, trailing: React.RefObject<FileGridProps["getTrailing"]>): Column<FileGridItem>[] {
     return [
         {
-            key: "icon",
-            name: "",
-            width: 28,
-            cellFormater: iconFormatter,
-            // Sort by file extension (the icon reflects the file type).
+            key: "icon", name: "", width: 28,
+            render: (cell) => cell.row.isFolder
+                ? `<span class="file-grid-folder">📁</span>`
+                : fileIconMarkup(cell.row.filePath, 16),
             rowCompare: (a, b) => fpExtname(a.filePath).localeCompare(fpExtname(b.filePath)),
             formatValue: () => "",
         },
+        { key: "title", name: label ?? "", width: "10%", dataType: "string" },
         {
-            key: "title",
-            name: label ?? "",
-            width: "10%", // percent → absorbs remaining width under fitToWidth
-            dataType: "string",
-            cellFormater: titleFormatter,
-        },
-        {
-            key: "status",
-            name: "",
-            width: 24, // just fits the single-letter badge
-            dataType: "string", // sorts by the status letter
-            cellFormater: (props) => {
-                const r = rowOf(props);
-                return r && getTrailingRef.current ? getTrailingRef.current(r) : null;
-            },
-            formatValue: (_c, r) => r.status ?? "",
+            key: "status", name: "", width: 24, dataType: "string",
+            render: (cell) => trailing.current?.(cell) ?? "",
+            formatValue: (_c, row) => row.status ?? "",
         },
     ];
 }
 
 export function FileGrid(props: FileGridProps) {
-    const {
-        name,
-        items,
-        label,
-        onClick,
-        onDoubleClick,
-        onSelectionChange,
-        getTrailing,
-        getContextMenuItems,
-        compact,
-    } = props;
-    // Behind refs so the columns (and the selection effect) stay stable across
-    // re-renders without rebuilding — the cell reads the current callback.
-    const getTrailingRef = useRef(getTrailing);
-    getTrailingRef.current = getTrailing;
+    const { name, items, label, onClick, onDoubleClick, onSelectionChange, getTrailing, getContextMenuItems, compact } = props;
+    const trailingRef = useRef(getTrailing);
+    trailingRef.current = getTrailing;
     const onSelectionChangeRef = useRef(onSelectionChange);
     onSelectionChangeRef.current = onSelectionChange;
+    useBoardIcon(undefined);
+    const systemIcons = useSystemFileIcons();
+    customEditorRegistry.state.use((s) => s.entries);
+    const gridRef = useRef<DataGridInstance<FileGridItem> | undefined>(undefined);
+    const columnsRef = useRef<Column<FileGridItem>[] | undefined>(undefined);
+    if (!columnsRef.current) columnsRef.current = buildColumns(label, trailingRef);
 
-    const model = useComponentModel(props, FileGridModel, {
-        columns: buildColumns(label, getTrailingRef),
-        focus: undefined,
-    });
-    const { columns, focus } = model.state.use();
-
-    const gridRef = useRef<AVGridModel<FileGridItem>>(undefined);
-
-    // Derive the selection from the focus range. With sorting on, focus indices
-    // refer to AVGrid's displayed (sorted) rows — read them via the focus model,
-    // NOT the `items` prop, or the wrong files would be reported.
     useEffect(() => {
-        const sel = gridRef.current?.models.focus.getGridSelection();
-        onSelectionChangeRef.current?.(sel ? (sel.rows as FileGridItem[]) : []);
-    }, [focus]);
+        for (const item of items) if (!item.isFolder) prepareFileIcon(item.filePath);
+        gridRef.current?.refresh();
+    }, [items, systemIcons]);
+
+    useEffect(() => {
+        const grid = gridRef.current;
+        if (!grid) return;
+        const column = grid.getColumns().find((c) => c.key === "title");
+        if (column && column.name !== (label ?? "")) {
+            column.name = label ?? "";
+            grid.setColumns(grid.getColumns());
+        }
+    }, [label]);
 
     return (
         <Root data-type="file-grid" data-name={name} data-compact={compact ? "true" : undefined}>
-            <AVGrid<FileGridItem>
-                onModel={(grid) => { gridRef.current = grid ?? undefined; }}
+            <DataGrid<FileGridItem>
                 name={name}
-                columns={columns}
-                setColumns={model.setColumns}
+                columns={columnsRef.current}
                 rows={items}
-                getRowKey={(r) => r.filePath}
+                getRowKey={(row) => row.filePath}
                 rowHeight={compact ? ROW_HEIGHT_COMPACT : ROW_HEIGHT}
-                focus={focus}
-                setFocus={model.setFocus}
-                onClick={(r) => onClick?.(r)}
-                onDoubleClick={(r) => onDoubleClick?.(r)}
-                getContextMenuItems={getContextMenuItems}
+                onGrid={(grid) => { gridRef.current = grid ?? undefined; }}
+                onCellClick={(cell) => onClick?.(cell.row)}
+                onCellDoubleClick={(cell) => onDoubleClick?.(cell.row)}
+                onFocusChange={() => onSelectionChangeRef.current?.(gridRef.current?.getSelection()?.rows ?? [])}
+                getContextMenuItems={getContextMenuItems ? (event) =>
+                    event.target === "cell" ? getContextMenuItems(event.selection?.rows ?? []) : [] : undefined}
+                onGridContextMenu={showGridContextMenu}
                 disableFiltering
                 fitToWidth
                 cellBorders={false}

@@ -1,4 +1,4 @@
-import { SetStateAction, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
     Panel,
     Text,
@@ -7,11 +7,15 @@ import {
     IconButton,
     SegmentedControl,
     SelectableRow,
-    AVGrid,
-    type AVGridModel,
-    type Column,
-    type CellFocus,
 } from "../../uikit";
+import {
+    DataGrid,
+    type AddRowsEvent,
+    type CellEditEvent,
+    type Column,
+    type DataGridInstance,
+    type DeleteRowsEvent,
+} from "../../uikit/DataGrid";
 import { DeleteIcon, UnlockIcon } from "../../theme/icons";
 import type { EditorConfig } from "../base/EditorConfig";
 import { isFocusInSidebar } from "../../core/utils/focus-utils";
@@ -116,7 +120,7 @@ function NamespaceList({
 }
 
 // ============================================================================
-// Variables grid — AVGrid name/value editor for the selected namespace+profile.
+// Variables grid — DataGrid name/value editor for the selected namespace+profile.
 //
 // Edits are buffered locally (rows state), not written straight through to the
 // editor model. On every grid change the buffer is validated (no empty names,
@@ -129,8 +133,8 @@ function NamespaceList({
 type VarRow = { _rowKey: string; name: string; value: string };
 
 const VAR_COLUMNS: Column<VarRow>[] = [
-    { key: "name", name: "Name", width: 220, resizible: true },
-    { key: "value", name: "Value", width: 400, resizible: true },
+    { key: "name", name: "Name", width: 220, resizable: true },
+    { key: "value", name: "Value", width: 400, resizable: true },
 ];
 
 /** Returns a human-readable reason when `rows` can't be saved as-is, or
@@ -166,14 +170,11 @@ function rowsToRecord(rows: VarRow[]): Record<string, string> {
 }
 
 interface VariablesGridState {
-    rows: VarRow[];
-    columns: Column<VarRow>[];
-    focus: CellFocus<VarRow> | undefined;
     warning: string | undefined;
 }
 
 const defaultVariablesGridState: VariablesGridState = {
-    rows: [], columns: VAR_COLUMNS, focus: undefined, warning: undefined,
+    warning: undefined,
 };
 
 interface VariablesGridProps {
@@ -186,13 +187,32 @@ interface VariablesGridProps {
 class VariablesGridModel extends TComponentModel<VariablesGridState, VariablesGridProps> {
     private rowCounter = 0;
     private appliedData: Record<string, string> | null = null;
-
-    setRows = (value: SetStateAction<VarRow[]>) => this.state.set((state) => ({ ...state, rows: typeof value === "function" ? value(state.rows) : value }));
-    setColumns = (value: SetStateAction<Column<VarRow>[]>) => this.state.set((state) => ({ ...state, columns: typeof value === "function" ? value(state.columns) : value }));
-    setFocus = (value: SetStateAction<CellFocus<VarRow> | undefined>) => this.state.set((state) => ({ ...state, focus: typeof value === "function" ? value(state.focus) : value }));
+    private seedRows: VarRow[] = [];
+    private grid: DataGridInstance<VarRow> | undefined;
+    private applyQueued = false;
     setWarning = (warning: string | undefined) => this.state.update((s) => { s.warning = warning; });
 
     nextRowKey = () => `var-${++this.rowCounter}`;
+
+    setGrid = (grid: DataGridInstance<VarRow> | null): void => { this.grid = grid ?? undefined; };
+    focusGrid = (): void => { this.grid?.focus(); };
+    rowsForGrid = (): readonly VarRow[] => this.grid?.getRows() ?? this.seedRows;
+
+    scheduleApply = (): void => {
+        if (this.applyQueued) return;
+        this.applyQueued = true;
+        queueMicrotask(() => {
+            this.applyQueued = false;
+            if (!this.isLive || !this.grid || this.grid.isDestroyed()) return;
+            const rows = this.grid.getRows() as VarRow[];
+            const reason = validateRows(rows);
+            this.setWarning(reason);
+            if (!reason) {
+                this.markDataApplied(rowsToRecord(rows));
+                this.props.model.setProfileData(this.props.namespace, this.props.profile, rowsToRecord(rows));
+            }
+        });
+    };
 
     markDataApplied = (data: Record<string, string>) => {
         this.appliedData = data;
@@ -211,7 +231,7 @@ class VariablesGridModel extends TComponentModel<VariablesGridState, VariablesGr
             let cancelled = false;
             queueMicrotask(() => {
                 if (cancelled || !this.isLive) return;
-                this.setRows(seeded);
+                this.seedRows = seeded;
                 this.setWarning(undefined);
             });
             return () => { cancelled = true; };
@@ -220,88 +240,44 @@ class VariablesGridModel extends TComponentModel<VariablesGridState, VariablesGr
 }
 
 function VariablesGrid({ model, namespace, profile, data, editorConfig = {} }: VariablesGridProps & { editorConfig?: EditorConfig }) {
-    const gridRef = useRef<AVGridModel<VarRow> | null>(null);
     const gridModel = useComponentModel({ model, namespace, profile, data }, VariablesGridModel, defaultVariablesGridState);
-    const rows = gridModel.state.use((s) => s.rows);
-    const columns = gridModel.state.use((s) => s.columns);
-    const focus = gridModel.state.use((s) => s.focus);
     const warning = gridModel.state.use((s) => s.warning);
-    const setRows = gridModel.setRows;
-    const setColumns = gridModel.setColumns;
-    const setFocus = gridModel.setFocus;
-    const setWarning = gridModel.setWarning;
 
     // Mount-time autofocus so keyboard editing (Enter/F2/Delete) works immediately —
-    // AVGrid's focus-trap div only receives real DOM focus via an explicit focusGrid()
+    // DataGrid only receives real DOM focus via an explicit focusGrid()
     // call (mirrors GridBody's identical autofocus effect).
     useEffect(() => {
         if (!editorConfig.disableAutoFocus && !isFocusInSidebar()) {
-            gridRef.current?.focusGrid();
+            gridModel.focusGrid();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only autofocus
     }, []);
 
-    const applyIfValid = (nextRows: VarRow[]) => {
-        const reason = validateRows(nextRows);
-        setWarning(reason);
-        if (reason) return;
-        const record = rowsToRecord(nextRows);
-        gridModel.markDataApplied(record);
-        model.setProfileData(namespace, profile, record);
+    const onGrid = (grid: DataGridInstance<VarRow> | null) => gridModel.setGrid(grid);
+    const onEdit = (_event: CellEditEvent<VarRow>) => gridModel.scheduleApply();
+    const onAddRows = (event: AddRowsEvent<VarRow>) => {
+        event.rows.forEach((row) => { row._rowKey = gridModel.nextRowKey(); });
+        gridModel.scheduleApply();
     };
-
-    const editRow = (columnKey: string, rowKey: string, value: unknown) => {
-        setRows((prev) => {
-            const next = prev.map((r) =>
-                r._rowKey === rowKey ? { ...r, [columnKey]: String(value ?? "") } : r,
-            );
-            applyIfValid(next);
-            return next;
-        });
-    };
-
-    const onAddRows = (count: number, insertIndex?: number): VarRow[] => {
-        const newRows: VarRow[] = Array.from({ length: count }, () => ({
-            _rowKey: gridModel.nextRowKey(),
-            name: "",
-            value: "",
-        }));
-        setRows((prev) => {
-            const next = insertIndex !== undefined
-                ? [...prev.slice(0, insertIndex), ...newRows, ...prev.slice(insertIndex)]
-                : [...prev, ...newRows];
-            applyIfValid(next);
-            return next;
-        });
-        return newRows;
-    };
-
-    const onDeleteRows = (rowKeys: string[]) => {
-        setRows((prev) => {
-            const next = prev.filter((r) => !rowKeys.includes(r._rowKey));
-            applyIfValid(next);
-            return next;
-        });
-    };
-
-    const getRowKey = (r: VarRow) => r._rowKey;
+    const onDeleteRows = (_event: DeleteRowsEvent<VarRow>) => gridModel.scheduleApply();
 
     return (
         <Panel direction="column" flex={1} minWidth={0}>
             <Panel direction="column" flex={1} minWidth={0}>
-                <AVGrid
-                    onModel={(grid) => { gridRef.current = grid; }}
+                <DataGrid
                     name="env-vars-grid"
-                    columns={columns}
-                    setColumns={setColumns}
-                    rows={rows}
-                    getRowKey={getRowKey}
-                    focus={focus}
-                    setFocus={setFocus as (value: SetStateAction<CellFocus<VarRow> | undefined>) => void}
-                    editRow={editRow}
+                    columns={VAR_COLUMNS}
+                    rows={gridModel.rowsForGrid()}
+                    getRowKey={(row) => row._rowKey}
+                    onGrid={onGrid}
+                    editable
+                    canAddRows
+                    canDeleteRows
+                    newRow={() => ({ _rowKey: gridModel.nextRowKey(), name: "", value: "" })}
+                    onEdit={onEdit}
                     onAddRows={onAddRows}
                     onDeleteRows={onDeleteRows}
-                    entity="variable"
+                    rowNoun="variable"
                     disableFiltering
                     disableSorting
                     rowHeight={28}

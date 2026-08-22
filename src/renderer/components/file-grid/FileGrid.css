@@ -1,0 +1,19 @@
+@layer app {
+    [data-type="file-grid"] [data-column-key="icon"] {
+        overflow: hidden;
+    }
+
+    .file-grid-folder {
+        font-size: 13px;
+        padding-bottom: 3px;
+    }
+
+    .git-status-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        padding-left: 6px;
+        user-select: none;
+    }
+}
