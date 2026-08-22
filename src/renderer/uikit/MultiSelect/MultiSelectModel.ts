@@ -107,12 +107,13 @@ export class MultiSelectModel<T = IListBoxItem> extends TComponentModel<
     };
 
     // --- ids ---
-    private _reactId = "";
-    setReactId = (reactId: string) => {
-        this._reactId = reactId;
+    private _elementId = "";
+    /** Fed by the view from `nextElementId("multiselect")` — replaces React's `useId` (C3-5). */
+    setElementId = (elementId: string) => {
+        this._elementId = elementId;
     };
     get multiSelectId(): string {
-        return `multiselect-${this._reactId}`;
+        return this._elementId;
     }
     get popoverId(): string {
         return `${this.multiSelectId}-popover`;
@@ -132,15 +133,35 @@ export class MultiSelectModel<T = IListBoxItem> extends TComponentModel<
         () => [this.props.value, this.props.formatSelection],
     );
 
+    // --- state transitions ---
+
+    /*
+     * Draft mutators, not setters: they mutate an immer draft and never call `state.update`
+     * themselves, so every path that opens or closes produces exactly **one** write. That is not
+     * tidiness — `ListBoxView` picks its scroll entry point from a single `onUpdate` carrying both a
+     * moved row set and a moved highlight, and two writes make the second one report no content
+     * change (uikit/CLAUDE.md, "Scrolling after a change that resizes the content").
+     *
+     * `closeInto` also carries what `MultiSelectModel.init`'s effect used to do on a
+     * `queueMicrotask` (EPIC-056 C3-6 #9): the resize override is a *consequence of closing*, so it
+     * belongs at the site that closes.
+     */
+
+    private openInto(s: MultiSelectState): void {
+        s.open = true;
+    }
+
+    private closeInto(s: MultiSelectState): void {
+        s.open = false;
+        s.popoverResized = false;
+    }
+
     // --- handlers ---
 
     private tryOpen = () => {
         if (this.props.disabled) return;
-        if (!this.state.get().open) {
-            this.state.update((s) => {
-                s.open = true;
-            });
-        }
+        if (this.state.get().open) return;
+        this.state.update((s) => this.openInto(s));
     };
 
     onInputClick = () => {
@@ -151,23 +172,23 @@ export class MultiSelectModel<T = IListBoxItem> extends TComponentModel<
         // Don't auto-open on focus — only on explicit click / keyboard.
     };
 
-    onChevronMouseDown = (e: React.MouseEvent) => {
+    onChevronMouseDown = (e: MouseEvent) => {
         // Prevent the input from losing focus when the chevron is pressed.
         e.preventDefault();
     };
 
     onChevronClick = () => {
         if (this.props.disabled) return;
-        this.state.update((s) => {
-            s.open = !s.open;
-        });
+        // `open` is read before the write, never negated inside the producer: immer runs the
+        // producer against the previous state, and "reset `popoverResized` on the close leg only"
+        // is not expressible as `s.open = !s.open`.
+        const open = this.state.get().open;
+        this.state.update((s) => (open ? this.closeInto(s) : this.openInto(s)));
         this.inputRef?.focus();
     };
 
     onPopoverClose = () => {
-        this.state.update((s) => {
-            s.open = false;
-        });
+        this.state.update((s) => this.closeInto(s));
     };
 
     onPopoverResize = () => {
@@ -176,7 +197,7 @@ export class MultiSelectModel<T = IListBoxItem> extends TComponentModel<
         });
     };
 
-    onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    onInputKeyDown = (e: KeyboardEvent) => {
         if (this.props.disabled) return;
         const open = this.state.get().open;
         switch (e.key) {
@@ -185,40 +206,16 @@ export class MultiSelectModel<T = IListBoxItem> extends TComponentModel<
             case " ":
                 if (!open) {
                     e.preventDefault();
-                    this.state.update((s) => {
-                        s.open = true;
-                    });
+                    this.state.update((s) => this.openInto(s));
                 }
                 break;
             case "Escape":
                 if (open) {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.state.update((s) => {
-                        s.open = false;
-                    });
+                    this.state.update((s) => this.closeInto(s));
                 }
                 break;
         }
     };
-
-    // --- lifecycle ---
-
-    init() {
-        // Reset popover-resized flag when the popover closes — defer past the current
-        // render to avoid "Cannot update a component while rendering" warnings.
-        this.effect(
-            () => {
-                if (this.state.get().open) return;
-                queueMicrotask(() => {
-                    if (!this.isLive) return;
-                    if (this.state.get().open) return;
-                    this.state.update((s) => {
-                        s.popoverResized = false;
-                    });
-                });
-            },
-            () => [this.state.get().open],
-        );
-    }
 }

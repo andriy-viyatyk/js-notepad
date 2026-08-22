@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active — US-1013 through US-1017 implemented, awaiting user testing
+**Status:** Active — all six tasks implemented, awaiting user testing
 **Created:** 2026-08-21
 
 ## Overview
@@ -298,9 +298,9 @@ Four secondary counts close alongside it:
 
 | Count | Open | Target at close |
 |---|---:|---:|
-| `@emotion` importers in `uikit/` | 21 | **9** (all `AVGrid/`, C4) |
+| `@emotion` importers in `uikit/` | 21 | **10** — 9 `AVGrid/` (C4) + `RenderGrid/RenderGrid.tsx`, the React-only survivor C3-1 keeps alive on Epic F's ledger. Corrected in US-1017; **measured 10 at US-1018's close**. `Tree/Tree.story.tsx` also imports Emotion and is outside the production count by the measurement note |
 | Emotion files in `uikit/shared/` | 1 | **0** |
-| `Panel` consumers inside `uikit/` | 1 | **0** |
+| `Panel` consumers inside `uikit/` | 1 | **0** production, reached in US-1018. Note what this does *not* mean: **30 `uikit/` stories import `Panel` as their layout host**, so the component cannot be deleted when its production consumers reach zero. Epic F's ledger entry owns that, not C3 |
 | `uikit/` components without a story | 2 | **2** — `RenderGrid` (React, ledger) and `AVGrid` (C4). Corrected in US-1013: with coexistence the story lands on the vanilla engine, so the dying React one is still storyless. Both are removal-ledger entries |
 
 **C3-10 — C3 runs as one epic, with the dropdown trio's tail as the designated slip items.**
@@ -343,7 +343,7 @@ before its implementation, and this table's rows become links as that happens.
 | [US-1015](../tasks/US-1015-tree-vanilla/README.md) | `Tree` — rows, DnD, keyboard, and the largest model in `uikit/` | Implemented |
 | [US-1016](../tasks/US-1016-multilistbox-vanilla/README.md) | `MultiListBox` — checkbox rows and the select-all header | Implemented |
 | [US-1017](../tasks/US-1017-select-vanilla/README.md) | `Select` — four effects, async item loading, and the Rule 4 number | Implemented |
-| US-1018 | `MultiSelect` and `Autocomplete` — the last two dropdowns and `Panel`'s eviction | Planned |
+| [US-1018](../tasks/US-1018-multiselect-autocomplete-vanilla/README.md) | `MultiSelect` and `Autocomplete` — the last two dropdowns and `Panel`'s eviction | Implemented |
 
 Six tasks rather than C2's eight, because the engine cannot usefully be split (its six files are one
 paint loop) and the two zero-to-one-call-site dropdowns are cheaper together than apart. US-1013 and
@@ -1008,3 +1008,131 @@ repo). Rows are addressed as `[data-type="multilistbox"] [data-type="list-item"]
 header `mixed`, no trailing icon) and the AVGrid options filter (open on a `grid-json` page → four
 distinct options with 16px boxes, select-all indeterminate, click → checked, zero React slots in
 rows).
+
+### 2026-08-22 — US-1018 (`MultiSelect` + `Autocomplete`) implemented; `Panel` is out of `uikit/`
+
+**The last two effects in the epic are gone, so C3's ledger of ten is closed.** Both were the
+`queueMicrotask`-wrapped close reset (C3-6 #9 and #10) and both went into a `closeInto` **draft
+mutator**, the shape US-1017 established: a private method that mutates an immer draft and never
+calls `state.update`, so every close path stays one write and `ListBoxView` keeps choosing its scroll
+entry point correctly. `grep "this.effect(" MultiSelect/ Autocomplete/` returns nothing, and so does
+`grep "queueMicrotask("` — the epic's four deletions are all four deleted.
+
+**`MultiSelect`'s chevron toggle had to become an explicit branch.** `onChevronClick` was
+`s.open = !s.open`, and "reset `popoverResized` on the close leg only" is not expressible in that.
+`open` is now read *before* the write and the branch picks a mutator. This is the same class as
+US-1017's `seedIndex` correction: a producer cannot consult the state it is producing. Verified at
+runtime through all three close paths — Escape, chevron and outside click — each of which reopens
+with the resize override cleared (listbox back to 240px / 11 rows from the resized 396px / 17).
+
+**`Autocomplete` needed a third shape for `PopoverView`'s `contentView` seam, and `uikit/CLAUDE.md`
+now carries it.** The seam returns exactly one `IOwnedView` and this dropdown has two children — an
+optional header row and the `ListBox`. `AutocompleteContentView` therefore **adopts the popover host
+as its root**, as `MenuContentView` does, so both children stay direct children of `.popover-shell`.
+A wrapper element was rejected twice over: a real one becomes the popover's sole flex item and moves
+the overflow and shrink semantics down a level, and a `display: contents` one preserves layout but
+stops the two being direct children at all. The consequence worth writing down is that **the two
+factory shapes now look different on purpose** — `SelectView`'s must `host.append(list.root)` because
+a `ListBoxView` builds its own detached root, and `AutocompleteView`'s must not append anything at
+all. The price of adoption is three writes the content view may never make on its root
+(`dataset.type`, any `className` assignment, `replaceChildren`), because `PopoverFloatingView`
+reasserts all three on every update and would win *silently* — an attribute reverting one update
+later, not an exception. The class comment names them.
+
+**`Panel` has no production consumer inside `uikit/`, and its last one measured five declarations.**
+What `<Panel direction="row" align="center" paddingY="sm" paddingX="md">` actually emitted was
+`.panel-root` + `data-type="panel"` + `data-direction="row"` + four inline paddings and one inline
+`align-items` — and of that, `data-direction="row"` matches **no rule in `Panel.css`** and the class
+contributes only `display: flex` and `box-sizing: border-box`. So the whole computed box is
+`display:flex; box-sizing:border-box; align-items:center; padding:4px 8px`, relocated verbatim into
+`Autocomplete.css` and **measured back out of `getComputedStyle` at runtime** rather than assumed.
+The `<Spacer />` became a bare `<span data-type="spacer">` with `Spacer.css` imported as a borrowed
+stylesheet: `SpacerView`'s entire job is translating `name`/`size` into attributes and this call site
+passes neither, so a `child()` claim and a disposal slot would have bought nothing. Measured
+`flex: 1 1 auto` on it and the action element flush against its right edge.
+
+*Dropping `panel-root` is not a C3-5 violation, and the argument is empirical rather than asserted.*
+`panel-root` is selected only by `Panel.css`, which documents it as a private marker because
+`className` is not in `PanelProps`; `ui-element-contract.md` states that `className` is not an
+addressing mechanism; `data-direction` is selected only by `Panel.css` and by `Toolbar.css` in its
+own class scope; and the one cross-component selector that reaches a `[data-type="panel"]`
+descendant (`CollapsiblePanelStack.css`) cannot reach a node portalled into the overlay layer.
+Preserving the class would have resurrected a private hook whose only stylesheet is on the removal
+ledger.
+
+**A styling rule the epic did not have: an element inside a portalled branch needs a *root-level*
+`data-type` hook.** `[data-type="autocomplete"] [data-part="header"]` matches nothing, because the
+header row lives in `#persephone-overlay-layer` and is not a descendant of the component root. The
+alternatives are worse — `[data-type="popover"] > [data-part="header"]` claims every other
+component's popover header, and `data-name` is reserved for addressing. So the row carries
+`data-type="autocomplete-header"`, following `[data-type="popover-resize-handle"]`, and
+`uikit/CLAUDE.md`'s styling section now says so. This is the same trap as C3-9's mutation counters,
+one layer up: a selector, not an observer, silently failing to reach the overlay layer.
+
+**One intentional DOM delta, argued rather than smuggled: `MultiSelect`'s `aria-controls` used to
+point at nothing.** The trigger has always advertised `aria-controls="multiselect-N-popover"` and no
+element in the component ever carried that id — not the popover, not the `MultiListBox`. This is a
+*different bug class* from US-1017's `aria-expanded` fidelity fix: that one was the vanilla layer
+failing to reproduce React's output, so the migration rule required fixing it, whereas this one is a
+defect in the React original, and a faithful port reproduces it. The decisive argument for fixing it
+anyway is internal to the epic: **C3-5 obliges every task to assert the aria pairing still resolves**,
+and for `MultiSelect` that assertion is unsatisfiable by a verbatim port. The delta is one attribute
+(`id` on the `[data-type="multilistbox"]` root, present only while open), on a component whose only
+consumer is a story, with nothing in the tree selecting on it. Verified: `aria-controls` now resolves
+to the `multilistbox` element. Not fixed, and not a bug: both dropdowns' `aria-controls` dangle while
+*closed*, because the target lives in the conditional branch. `Select` does the same. That is
+standard combobox practice.
+
+**`data-state` and "the popover exists" are different facts in `Autocomplete`, and stayed that way.**
+The popover opens on a derived condition (`open && (matches || emptyMessage != null)`), which is now
+a `popoverOpen` getter on the model. Verified: typing a non-matching query with no `emptyMessage`
+leaves the root reading `data-state="open"` with **no floating branch at all**; supplying an
+`emptyMessage` keeps the branch with zero rows. A conversion that collapsed the two would have looked
+correct in every other test.
+
+**`commitFromIndex`'s `queueMicrotask` deleted; focus is inline.** Its comment claimed it deferred
+"past the popover close", and that is not a thing: closing is not a focus operation (the floating
+branch's disposal never touches `document.activeElement`), and the trigger `Input` is a *sibling* of
+the `Popover`, not inside the closing branch. Under React the update flushed inside the root listener
+anyway, so React also ran `focus()` with the branch gone — the deferral changed *when*, never
+*whether*. Measured: a row click leaves the popover already removed, `onChange` already fired and
+focus already on the `<input>`, all before the handler's task ends.
+
+*What was deliberately not fixed.* With `openOnFocus` set, a real mouse commit blurs the input (rows
+are plain `div`s and nothing `preventDefault`s their `mousedown`), so the inline `focus()` fires a
+real focus event and re-opens the dropdown. That is pre-existing — the microtask delayed it, it never
+prevented it — `openOnFocus` has no production caller, and `Select`'s `_suppressFocusOpen` exists only
+because *its* `onInputFocus` opens unconditionally. Adding the flag would be a behaviour change inside
+a mechanical conversion, so it is a follow-up. It is also not reachable synthetically: a dispatched
+`click` does not move focus the way a real mousedown does, which is why the probe could not exercise
+it either way.
+
+**`MultiSelect`'s `disabled`/`readOnly` asymmetry preserved and asserted, not reconciled.** Its
+trigger `Input` is `readOnly` unconditionally and takes no `onChange` — there is no in-trigger search,
+unlike `Select` — and `tryOpen` checks `disabled` only, so a read-only `MultiSelect` still opens with
+an enabled chevron. Measured all three states rather than trusting the diff, because "make it look
+like `Select`" is the tempting wrong move here.
+
+**Verified at runtime, including the real consumer.** Both components driven through offscreen React
+roots (the `mountReactHandle` seam, with React taken from Vite's pre-bundled dep so the probe shares
+the app's instance): closed and open structure, `react-slot` counts of **0** on both closed controls
+and 0 inside the `MultiSelect` dropdown, additive multi-selection, the resize/close-reset cycle
+through three paths, `disabled`/`readOnly`, filtering, the derived-open divergence, the header row's
+computed style and ordering, header toggled on and off *while open* (row removed and re-inserted above
+a list element whose identity never changed), a keystroke rebuilding neither the header row nor the
+list nor adding a React root, the full keyboard set with `aria-activedescendant` resolving at every
+step, `onSubmit`, `onEscape`, mouse commit, `openOnFocus`, and disposal-while-open leaving
+`#persephone-overlay-layer` empty for both. Then the production consumer: a `.rest.json` page's
+`KeyValueEditor`, where `kv-row-key` suggests header names, `aria-controls` resolves, and a mouse
+commit lands the value with focus retained. The probe page was closed and the user's four pages left
+untouched.
+
+**One correction to this document, found by measurement.** C3-9's table said `Panel` consumers inside
+`uikit/` reach **0**. That is true of production and false of the folder: **30 `uikit/` stories import
+`Panel` as their layout host**, so reaching zero production consumers does not make the component
+deletable. The row now says so. Epic F's removal ledger owns the story sweep; C3 does not.
+
+**Follow-ups recorded, not done here.** The `openOnFocus` re-open above; IME composition suppression
+in `InputView` (still open from US-1017); gating `applyRestProps`' `setAttribute` on the current value,
+which US-1017's Rule 4 measurement named as the cheapest remaining win on the keystroke path; the
+borrowed-CSS import sweep; and `Panel`'s 30 story call sites.

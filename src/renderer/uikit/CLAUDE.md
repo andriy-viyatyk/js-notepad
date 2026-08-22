@@ -711,6 +711,19 @@ keep it from creeping:
   `MenuContentView` reads its model live instead, which works only because nothing but state changes
   a menu's output; `SelectView` pushes typed `ListBoxProps`, because `items`, `emptyMessage`,
   `rowHeight` and the filter can all move with no state write.
+- **A `contentView` whose content is more than one sibling must *adopt* the host as its root**
+  (`super(props, host)`), not wrap it. `MenuContentView` and `AutocompleteContentView` both do.
+  A real wrapper element becomes the popover's sole flex item, moving the `overflow`/shrink
+  semantics down a level; a `display: contents` wrapper preserves layout but stops the children being
+  *direct* children of `.popover-shell`, which a `:scope >` query and an agent reading the tree can
+  both see. Adoption means the factory appends nothing — the view's own appends land on the host —
+  so **the two factory shapes look different on purpose**: `SelectView`'s must `host.append` because
+  a `ListBoxView` builds its own detached root, and `AutocompleteView`'s must not. The price of
+  adoption is three writes the content view may never make on `this.root`, because
+  `PopoverFloatingView` reasserts them on every update and wins silently: `dataset.type`, any
+  `className` assignment, and `replaceChildren` (the resize handle is appended to that same root
+  *after* the content mounts). Tag children instead. Name the three in the class comment — the
+  failure mode is an attribute reverting one update later, not an exception.
 - `mountReact` is only a temporary seam when a vanilla view owns a React subtree with no vanilla
   equivalent yet. The view owns the host element and the returned disposer owns the React root;
   neither adapter is a substitute for converting an ordinary parent or child.
@@ -882,6 +895,16 @@ scope every selector from the component's `[data-type]` root. The startup layer 
 do not rename them or replace state attributes with classes. Parent-owned descendant selectors are
 allowed when they target a child's `[data-type]` or `[data-part]` and preserve the documented
 owner relationship.
+
+**An element inside a portalled branch needs a root-level `data-type` hook.** Scoping every
+selector from the component's own `[data-type]` root is the rule, and it silently cannot work for
+DOM the component renders into `#persephone-overlay-layer` — a popover's contents are not
+descendants of the component root. Give that element its own `data-type` and select on it
+unqualified. `[data-type="popover-resize-handle"]` and `[data-type="autocomplete-header"]` are the
+two instances. Do not reach for `[data-type="popover"] > [data-part="…"]` (it claims every other
+component's popover) or for `data-name` (which
+[ui-element-contract.md](../../../doc/architecture/ui-element-contract.md) reserves as an addressing
+handle, never a styling hook).
 
 **Direct vanilla views must import borrowed styles explicitly.** A view that constructs another
 converted component's DOM directly, or calls a shared attribute helper such as

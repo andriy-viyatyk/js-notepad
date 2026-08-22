@@ -1,6 +1,7 @@
 import React from "react";
 import { TComponentModel } from "../../core/state/model";
 import { IListBoxItem } from "../ListBox";
+import type { SlotContent } from "../shared/fill-slot";
 import type { SlotText } from "../shared/slots";
 
 // =============================================================================
@@ -23,28 +24,31 @@ export interface AutocompleteProps
     items: string[] | IListBoxItem[];
 
     /** Filter mode for typeahead against `items`. Default: "contains".
-     *  When suggestions are pre-filtered upstream (e.g. Browser URL bar's
-     *  search-history filter), set to "off". */
+     *  When suggestions are pre-filtered upstream by the caller, set to "off". */
     filterMode?: "contains" | "startsWith" | "off";
     /** Custom filter — overrides `filterMode` when set. */
     filter?: (item: IListBoxItem, query: string) => boolean;
 
-    /** Open the dropdown automatically when the input receives focus. Default: false.
-     *  KeyValueEditor: false (open on first keystroke). Browser URL bar: true. */
+    /** Open the dropdown automatically when the input receives focus. Default: false —
+     *  the dropdown then opens on the first keystroke, which is what `KeyValueEditor` wants.
+     *  A URL-bar-style caller would set it true; none exists yet. */
     openOnFocus?: boolean;
     /** Fires when the user presses Enter with no highlighted suggestion. Use for
-     *  "submit"-style flows (Browser URL bar → navigate). Receives the current value. */
+     *  "submit"-style flows — a URL bar navigating, say. Receives the current value. */
     onSubmit?: (value: string) => void;
     /** Fires when the user presses Escape. Receives the value at the moment Escape was
-     *  pressed (useful for "revert to original" patterns like the Browser URL bar). */
+     *  pressed — for "revert to original" patterns. */
     onEscape?: (value: string) => void;
 
-    /** Optional header row above the suggestions list. Used by the Browser URL bar for
-     *  "Search History" / "Navigation History" labels. */
-    header?: React.ReactNode;
-    /** Optional action rendered at the trailing edge of the header row. Used by the
-     *  Browser URL bar for a "Clear" button. */
-    headerAction?: React.ReactNode;
+    /**
+     * Optional header row above the suggestions list — a "Search History" label, say. The row is a
+     * view-owned element styled by `[data-type="autocomplete-header"]`, and the selector is
+     * root-level rather than a descendant of the Autocomplete root because the row lives inside the
+     * popover's floating branch, which portals into the overlay layer.
+     */
+    header?: SlotContent;
+    /** Optional action rendered at the trailing edge of the header row — a "Clear" button, say. */
+    headerAction?: SlotContent;
     /** Empty-state node when there are zero matching suggestions. When omitted, the
      *  popover closes instead of rendering an empty list. */
     emptyMessage?: SlotText;
@@ -55,8 +59,11 @@ export interface AutocompleteProps
     readOnly?: boolean;
     size?: "sm" | "md";
     autoFocus?: boolean;
-    startSlot?: React.ReactNode;
-    endSlot?: React.ReactNode;
+    /** Content rendered inside the input chrome, before the text. A DOM `Node` is appended
+     *  directly with no React root. Forwarded verbatim to `InputProps.startSlot`. */
+    startSlot?: SlotContent;
+    /** Content rendered inside the input chrome, after the text. See `startSlot`. */
+    endSlot?: SlotContent;
     width?: number | string;
     minWidth?: number | string;
     maxWidth?: number | string;
@@ -136,12 +143,13 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
     };
 
     // --- ids ---
-    private _reactId = "";
-    setReactId = (reactId: string) => {
-        this._reactId = reactId;
+    private _elementId = "";
+    /** Fed by the view from `nextElementId("autocomplete")` — replaces React's `useId` (C3-5). */
+    setElementId = (elementId: string) => {
+        this._elementId = elementId;
     };
     get autocompleteId(): string {
-        return `autocomplete-${this._reactId}`;
+        return this._elementId;
     }
     get listboxId(): string {
         return `${this.autocompleteId}-listbox`;
@@ -191,6 +199,33 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
         return this.props.maxVisibleItems ?? defaultMaxVisibleItems;
     }
 
+    /**
+     * Whether the dropdown itself should exist — deliberately **not** the same thing as
+     * `state.open`, which is what the root's `data-state` reports. With no `emptyMessage` there is
+     * nothing to show for a query that matches nothing, so the popover closes while the component
+     * stays logically open: type a non-matching character and the root still reads
+     * `data-state="open"` with no floating branch at all.
+     */
+    get popoverOpen(): boolean {
+        if (!this.state.get().open) return false;
+        return this.filtered.value.filteredItems.length > 0 || this.props.emptyMessage != null;
+    }
+
+    // --- state transitions ---
+
+    /*
+     * A draft mutator, not a setter: it mutates an immer draft and never calls `state.update`
+     * itself, so every path that closes produces exactly **one** write (uikit/CLAUDE.md, "Scrolling
+     * after a change that resizes the content"). It also carries what `AutocompleteModel.init`'s
+     * effect used to do on a `queueMicrotask` (EPIC-056 C3-6 #10): clearing the highlight is a
+     * consequence of closing, so it belongs at the sites that close. Three of the four already did
+     * it by hand; routing all four through here is what makes that checkable.
+     */
+    private closeInto(s: AutocompleteState): void {
+        s.open = false;
+        s.activeIndex = null;
+    }
+
     // --- handlers ---
 
     private tryOpen = () => {
@@ -222,9 +257,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
     };
 
     onPopoverClose = () => {
-        this.state.update((s) => {
-            s.open = false;
-        });
+        this.state.update((s) => this.closeInto(s));
     };
 
     onActiveIndexChange = (i: number) => {
@@ -237,16 +270,18 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
         const { filteredCommits } = this.filtered.value;
         const next = filteredCommits[idx];
         if (next === undefined) return;
-        this.state.update((s) => {
-            s.open = false;
-            s.activeIndex = null;
-        });
+        this.state.update((s) => this.closeInto(s));
         this.props.onChange?.(next);
-        // Keep focus on the input — many flows (KV editor) expect Tab to move to
-        // the next field after commit. queueMicrotask defers past the popover close.
-        queueMicrotask(() => {
-            this.inputRef?.focus();
-        });
+        // Keep focus on the input — many flows (KV editor) expect Tab to move to the next field
+        // after commit. Called inline: the React implementation deferred this on a microtask to
+        // "defer past the popover close", but closing is not a focus operation — the floating
+        // branch's disposal never touches `document.activeElement`, and this input is a sibling of
+        // the popover rather than inside the closing branch. `SelectModel.commitSelection` calls it
+        // inline for the same reason. The one thing the deferral did buy is ordering against the
+        // *caller's* re-render, which runs from `onChange` above: a consumer that swapped the input
+        // element out in response would leave focus on a detached node. No caller does, and the fix
+        // if one ever does is a re-focus at that call site, not a deferral in here.
+        this.inputRef?.focus();
     };
 
     onListChange = (item: IListBoxItem) => {
@@ -256,7 +291,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
         this.commitFromIndex(idx);
     };
 
-    onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    onInputKeyDown = (e: KeyboardEvent) => {
         const { disabled, readOnly, onSubmit, onEscape, value } = this.props;
         if (disabled) return;
         const { open, activeIndex } = this.state.get();
@@ -328,10 +363,7 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
                     this.commitFromIndex(activeIndex);
                 } else if (onSubmit) {
                     e.preventDefault();
-                    this.state.update((s) => {
-                        s.open = false;
-                        s.activeIndex = null;
-                    });
+                    this.state.update((s) => this.closeInto(s));
                     onSubmit(value);
                 }
                 break;
@@ -339,32 +371,10 @@ export class AutocompleteModel extends TComponentModel<AutocompleteState, Autoco
                 if (open) {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.state.update((s) => {
-                        s.open = false;
-                        s.activeIndex = null;
-                    });
+                    this.state.update((s) => this.closeInto(s));
                 }
                 onEscape?.(value);
                 break;
         }
     };
-
-    // --- lifecycle ---
-
-    init() {
-        // Reset activeIndex when popover closes — so re-opening always starts unhighlighted.
-        this.effect(
-            () => {
-                if (this.state.get().open) return;
-                queueMicrotask(() => {
-                    if (!this.isLive) return;
-                    if (this.state.get().open) return;
-                    this.state.update((s) => {
-                        s.activeIndex = null;
-                    });
-                });
-            },
-            () => [this.state.get().open],
-        );
-    }
 }

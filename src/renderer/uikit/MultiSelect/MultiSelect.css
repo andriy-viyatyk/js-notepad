@@ -1,0 +1,18 @@
+/*
+ * Translated from the single Emotion block in `MultiSelect.tsx` (EPIC-056 US-1018). Three
+ * declarations and no state arms: every `data-*` attribute on the MultiSelect root is addressing
+ * only, and the visual states belong to the composed `Input`, `IconButton`, `Popover` and
+ * `MultiListBox`.
+ *
+ * `width` / `min-width` / `max-width` from props are written to `element.style` by
+ * `MultiSelectView.applyRoot`, matching React's own output — which is why the view must write `""`
+ * and not `"100%"` when a prop is absent: the `width: 100%` below is the default the cascade
+ * provides.
+ */
+@layer uikit {
+    [data-type="multiselect"] {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+}
