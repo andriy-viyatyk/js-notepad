@@ -65,13 +65,10 @@
     }
 
     /* The chips keep their size and the text absorbs the shrink — the same division of labour the
-       React cell got from `flexShrink: 0` plus `<TruncatedText>`. */
-    .avg-grid .avg-data-cell .git-subject-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-width: 0;
-    }
-
+       React cell got from `flexShrink: 0` plus `<TruncatedText>`. The shrinking half is now
+       av-grid's `.avg-cell-text`, which the subject and hash renderers emit: the three
+       declarations that used to live here as `.git-subject-text` were the library's own rule,
+       written by hand before the library had it (av-grid 2.2.3, US-1024). */
     /* Synthetic endpoint rows (Unstaged/Staged) read as special rows, not commits (US-618). */
     .avg-grid .avg-data-cell .git-special-subject {
         font-style: italic;

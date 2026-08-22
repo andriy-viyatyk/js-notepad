@@ -131,12 +131,17 @@ const RESIZE_EMIT_DELAY = 150;
  * `cell.highlight()` escapes and marks the active search words in one call — this grid sets no
  * search string, so it is the escaping that matters, and it is the right way to put a commit
  * subject into a `render` string either way.
+ *
+ * The text span carries av-grid's own `avg-cell-text` class, which is how a `render` column opts
+ * into the truncation the library gives a plain text cell — and, through the same class, into the
+ * hover-to-read tooltip (US-1024). It must stay a **direct** child of the cell, which is what the
+ * library's rule selects; the chips are its siblings.
  */
 const renderSubject = (cell: CellContext<GitCommitRow>): string => {
     const row = cell.row;
     if (!row) return "";
     if (row.recordType !== "commit") {
-        return `<span class="git-special-subject">${cell.highlight(row.subject)}</span>`;
+        return `<span class="git-special-subject avg-cell-text">${cell.highlight(row.subject)}</span>`;
     }
     let chips = "";
     for (const ref of row.refs) {
@@ -144,7 +149,7 @@ const renderSubject = (cell: CellContext<GitCommitRow>): string => {
             `<span class="git-ref-badge" style="color:${REF_COLOR[ref.kind]}">` +
             `${cell.highlight(ref.name)}</span>`;
     }
-    return `${chips}<span class="git-subject-text">${cell.highlight(row.subject)}</span>`;
+    return `${chips}<span class="avg-cell-text">${cell.highlight(row.subject)}</span>`;
 };
 
 /**
@@ -157,9 +162,12 @@ const renderSubject = (cell: CellContext<GitCommitRow>): string => {
 const renderHash = (cell: CellContext<GitCommitRow>): string => {
     const row = cell.row;
     if (!row) return "";
-    const text = `<span class="git-subject-text">${cell.highlight(row.shortHash)}</span>`;
     const isHead = row.recordType === "commit" && row.refs.some((ref) => ref.kind === "head");
-    return isHead ? `<span style="color:${REF_COLOR.head}">${text}</span>` : text;
+    // The colour goes on the text span itself rather than on a wrapper around it: av-grid's
+    // truncation rule selects a *direct* child of the cell, so nesting would leave the HEAD
+    // commit's hash as the one cell in the column that neither ellipsizes nor tooltips.
+    const style = isHead ? ` style="color:${REF_COLOR.head}"` : "";
+    return `<span class="avg-cell-text"${style}>${cell.highlight(row.shortHash)}</span>`;
 };
 
 /**

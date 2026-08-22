@@ -27,3 +27,19 @@
         position: relative;
     }
 }
+
+@layer uikit {
+    /* A cell's value in a tooltip, from `cell-tooltip.ts`.
+       Unqualified because the tooltip is portalled into the overlay layer and is not a descendant
+       of the grid — the documented shape for an element in a portalled branch, and the reason it
+       carries a `data-type` of its own rather than being a bare string.
+       The bounds are the point: a grid cell can hold a whole file, and although the text is capped
+       before it gets here, 2,000 characters on one line would still be a viewport-wide ribbon. */
+    [data-type="grid-cell-tooltip"] {
+        max-width: 480px;
+        max-height: 40vh;
+        overflow: hidden;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+}

@@ -34,6 +34,7 @@
 import { AVGrid } from "av-grid";
 
 import { VanillaView } from "../shared/vanilla-view";
+import { CellTooltip } from "./cell-tooltip";
 import type { DataGridInstance, DataGridProps } from "./types";
 import "./DataGrid.css";
 
@@ -93,6 +94,9 @@ export class DataGridView<R = any> extends VanillaView<DataGridProps<R>> {
     /** Callback props that currently have a trampoline installed — tracked by presence only. */
     private readonly bound = new Set<string>();
 
+    /** Hover-to-read for clipped cells. Owned here so every consumer gets it — see `cell-tooltip`. */
+    private cellTooltip: CellTooltip | undefined;
+
     // Rule 9: a concrete view declares a public constructor even when it only forwards.
     constructor(props: DataGridProps<R>) {
         const root = document.createElement("div");
@@ -111,6 +115,15 @@ export class DataGridView<R = any> extends VanillaView<DataGridProps<R>> {
             // app. `DataGrid.css` imports it into `@layer uikit` instead.
             injectStyles: false,
         } as any);
+
+        // Registered before the grid-destroy disposer below, because disposal runs in
+        // registration order and the tooltip's listeners must be gone before the grid they read
+        // from is torn down.
+        this.cellTooltip = new CellTooltip(this.root, () => this.grid, this.props.name);
+        this.own(() => {
+            this.cellTooltip?.dispose();
+            this.cellTooltip = undefined;
+        });
 
         const grid = this.grid;
         this.own(() => {

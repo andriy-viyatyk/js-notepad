@@ -5,6 +5,7 @@ import {
     offset as floatingOffset,
     shift,
     type Placement,
+    type ReferenceElement,
 } from "@floating-ui/dom";
 import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import { getOverlayLayer } from "../shared/overlayLayer";
@@ -19,10 +20,36 @@ export interface TooltipOptions {
     delayHide?: number;
     disabled?: boolean;
     name?: string;
+    /**
+     * Position against this instead of against the trigger. Defaults to the trigger.
+     *
+     * Events and identity stay with the trigger; only geometry comes from here. That split is
+     * what lets one attachment serve many targets inside a single element — a data grid's cells
+     * are pooled and recycled, so they are unusable as triggers (their `mouseenter` is not
+     * dependable and an attachment would outlive its occupant) but perfectly good as *anchors*.
+     * Floating UI accepts a virtual element, `{ getBoundingClientRect, contextElement }`, wherever
+     * it accepts a real one, so the anchor need not be in the DOM at all.
+     *
+     * Keep `contextElement` pointing at something stable: it is what `autoUpdate` uses to find the
+     * overflow ancestors to watch, so a moving `contextElement` re-subscribes on every change.
+     */
+    anchor?: ReferenceElement;
 }
 
 export interface TooltipAttachment {
     update(options: TooltipOptions): void;
+    /**
+     * Open it as a real hover would — the show delay, the suppression re-check when the delay
+     * fires, and the singleton claim all apply.
+     *
+     * For the case the trigger's own events cannot express: content that became showable while
+     * the pointer was *already* inside the trigger. `update()` deliberately never schedules a
+     * show, so without this a delegating host would set content to a cell's text and nothing
+     * would ever open it.
+     */
+    show(): void;
+    /** Close it after the hide delay, as leaving the trigger would. Content is kept. */
+    hide(): void;
     dispose(): void;
 }
 
@@ -95,6 +122,13 @@ export function attachTooltip(
         positionGeneration++;
     };
 
+    const clearHideTimer = (): void => {
+        if (hideTimer !== undefined) {
+            window.clearTimeout(hideTimer);
+            hideTimer = undefined;
+        }
+    };
+
     const scheduleHide = (): void => {
         clearTimers();
         hideTimer = window.setTimeout(() => {
@@ -111,7 +145,7 @@ export function attachTooltip(
         const placement = options.placement ?? DEFAULT_PLACEMENT;
         const [crossAxis, mainAxis] = options.offset ?? DEFAULT_OFFSET;
 
-        void computePosition(trigger, root, {
+        void computePosition(options.anchor ?? trigger, root, {
             placement,
             strategy: "fixed",
             middleware: [
@@ -162,7 +196,7 @@ export function attachTooltip(
 
             root.addEventListener("mouseenter", clearTimers);
             root.addEventListener("mouseleave", scheduleHide);
-            stopAutoUpdate = autoUpdate(trigger, root, position);
+            stopAutoUpdate = autoUpdate(options.anchor ?? trigger, root, position);
             position();
         }, options.delayShow ?? DEFAULT_DELAY_SHOW);
     };
@@ -198,6 +232,7 @@ export function attachTooltip(
             if (disposed) return;
             const previousPlacement = options.placement ?? DEFAULT_PLACEMENT;
             const previousOffset = options.offset ?? DEFAULT_OFFSET;
+            const previousAnchor = options.anchor ?? trigger;
             options = nextOptions;
 
             if (options.disabled || isEmptyContent(options.content)) {
@@ -211,12 +246,33 @@ export function attachTooltip(
                 contentDisposer = fillSlot(contentHost, options.content);
                 applyName(floatingRoot, options.name);
                 const nextOffset = options.offset ?? DEFAULT_OFFSET;
-                if (
+                const nextAnchor = options.anchor ?? trigger;
+                if (nextAnchor !== previousAnchor) {
+                    // The anchor is watched, not just read: `autoUpdate` is subscribed to the
+                    // previous one's scroll and resize ancestors, so it has to be re-pointed as
+                    // well as re-measured. A caller that swaps anchors per hovered target passes a
+                    // fresh object each time, which is what makes identity the signal.
+                    stopAutoUpdate?.();
+                    stopAutoUpdate = autoUpdate(nextAnchor, floatingRoot, position);
+                    position();
+                } else if (
                     previousPlacement !== (options.placement ?? DEFAULT_PLACEMENT)
                     || previousOffset[0] !== nextOffset[0]
                     || previousOffset[1] !== nextOffset[1]
                 ) position();
             }
+        },
+        show(): void {
+            // Cancel a pending hide first. The internal `show()` returns early while `open` is
+            // still true and would leave that timer running, so a hide-then-show inside the hide
+            // delay — which is exactly what moving between two adjacent targets looks like —
+            // would close a tooltip the caller just asked to keep.
+            clearHideTimer();
+            show();
+        },
+        hide(): void {
+            if (disposed) return;
+            scheduleHide();
         },
         dispose(): void {
             if (disposed) return;

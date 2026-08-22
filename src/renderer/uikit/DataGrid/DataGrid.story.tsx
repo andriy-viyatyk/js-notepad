@@ -26,14 +26,29 @@ import type { Column, DataGridInstance, DataGridProps } from "./types";
  *    own chance for an unthemed surface, and the font is the one token with no `--color-*` source.
  *  • **popover** — the combination `editors/grid/components/ColumnsOptions.tsx` needs (US-1020),
  *    where a grid lives inside a portalled popover whose height comes from its content.
- *  • **element renderer** — the C4-6 trap. The engine writes `top`/`left` and nothing writes
- *    `position`, so a flow-laid-out cell looks right at row 1 and leaves an empty band below.
- *    **Scroll before judging.** US-1021's `BranchTreeCell` depends on this.
+ *  • **element renderer** — the trap C4-6 described backwards. `render` returns the cell's
+ *    *child*: the engine writes `top`/`left` on the pooled `.avg-data-cell` around it, so the
+ *    content must **not** be positioned, and positioning it makes the cell paint over the hover
+ *    and selection tints while the rest of its row paints under them. So the check is not "does
+ *    row 1 look right" but "is this cell tinted *by* the overlays like a text cell" — and
+ *    **scroll before judging** either way. Corrected in US-1021 F8; `BranchTreeCell` depends on
+ *    it.
  *  • **context menu** — the app menu through the step-5 adapter, proving the `avg-` ids reach
  *    Persephone icons and that neither av-grid's own menu nor the browser's appears.
+ *  • **overflow tooltip** — hover-to-read on a clipped cell (US-1024), which is the one feature in
+ *    this folder the library does not provide and the app restores. Everything here is a case that
+ *    was wrong at some point: the ellipsis itself (av-grid 2.2.3 — before it, a clipped cell was
+ *    cut mid-glyph), a right-aligned number (which lost its *leading* digits), a `render` column
+ *    that opts in with `avg-cell-text` against one that must not tooltip at all, and a cell
+ *    holding more text than a tooltip should ever show.
  */
 
-type PanelId = "theming" | "in-popover" | "element-renderer" | "context-menu";
+type PanelId =
+    | "theming"
+    | "in-popover"
+    | "element-renderer"
+    | "context-menu"
+    | "overflow-tooltip";
 
 interface DemoRow {
     id: string;
@@ -97,6 +112,88 @@ function renderRatioBar(value: unknown): HTMLElement {
     el.append(bar, label);
     return el;
 }
+
+interface TooltipRow {
+    id: string;
+    path: string;
+    n: number;
+    tag: string;
+    bar: number;
+    blob: string;
+    when: Date;
+}
+
+/**
+ * The rows the overflow panel needs: one clipped value per shape, and one that is not clipped at
+ * all — a tooltip on a cell the reader can already read is as much a defect as a missing one.
+ */
+const TOOLTIP_ROWS: TooltipRow[] = [
+    {
+        id: "t1",
+        path: "C:/projects/persephone/src/renderer/uikit/DataGrid/cell-tooltip.ts",
+        n: 123456789012,
+        tag: "needs-a-tooltip-because-it-is-far-too-long",
+        bar: 3,
+        blob: JSON.stringify({ note: "x".repeat(50000) }),
+        when: new Date(Date.UTC(2026, 7, 22, 14, 3, 11)),
+    },
+    {
+        id: "t2",
+        path: "short.ts",
+        n: 7,
+        tag: "ok",
+        bar: 1,
+        blob: "{}",
+        when: new Date(Date.UTC(2026, 0, 2, 9, 0, 0)),
+    },
+    {
+        id: "t3",
+        path: "C:/projects/persephone/doc/tasks/US-1024-cell-overflow-tooltip/README.md",
+        n: 987654321098,
+        tag: "another-one-that-does-not-fit-either",
+        bar: 5,
+        blob: "y".repeat(3000),
+        when: new Date(Date.UTC(2026, 7, 22, 23, 59, 59)),
+    },
+];
+
+const TOOLTIP_COLUMNS: Column<TooltipRow>[] = [
+    { key: "path", name: "Path", width: 150 },
+    // Right-aligned by default because it is a number, which is the case the ellipsis fix was
+    // really about: the overflow of a nowrap flex line moves to the *start* side, so before
+    // av-grid 2.2.3 this column silently dropped its most significant digits.
+    { key: "n", name: "Number", width: 80, dataType: "number" },
+    // A raw `Date`, with no `formatValue` and no `displayFormat`: the cell renders it through the
+    // library's own default, so the tooltip has to apply the same rule or it would read
+    // `Tue Aug 19 2025 14:03:11 GMT+0200 (…)` beside a cell reading something else entirely.
+    { key: "when", name: "When", width: 90 },
+    {
+        // A `render` column that returns text opts into both the ellipsis and the tooltip by
+        // emitting the library's own text wrapper. The tooltip's text comes from the column, not
+        // from the markup, so it is the raw tag rather than whatever the span happens to contain.
+        key: "tag",
+        name: "Tag (render)",
+        width: 110,
+        render: (cell) => `<span class="avg-cell-text">${cell.highlight(String(cell.value))}</span>`,
+    },
+    {
+        // And one that must never tooltip: no text wrapper, and `formatValue` says it has no text
+        // at all — the same declaration that keeps it out of a filter and out of a copy.
+        key: "bar",
+        name: "Bar",
+        width: 90,
+        formatValue: () => "",
+        render: (cell) => {
+            const el = document.createElement("div");
+            el.dataset.part = "ratio-bar";
+            el.style.height = "8px";
+            el.style.width = `${Number(cell.value) * 14}px`;
+            el.style.background = "var(--color-bg-selection, #3b82f6)";
+            return el;
+        },
+    },
+    { key: "blob", name: "Blob", width: 110 },
+];
 
 interface DemoProps {
     panel?: PanelId;
@@ -210,12 +307,45 @@ function DataGridDemo({
                         Scroll to the middle
                     </Button>
                     <Text size="sm" color="light">
-                        Judge the Ratio column here, not at row 1 — a missing `position: absolute`
-                        is invisible on the first row.
+                        Judge the Ratio column here, not at row 1: hover a row and select one, and
+                        the bar cell must take the same tint as the text cells beside it. If it
+                        paints over them, its content has been positioned — which it must not be.
                     </Text>
                 </Panel>
                 <Panel direction="column" flex>
                     <DataGrid {...common} columns={columns} />
+                </Panel>
+            </Panel>
+        );
+    }
+
+    if (panel === "overflow-tooltip") {
+        return (
+            <Panel direction="column" width={720} height={420} gap="sm">
+                <Panel direction="row" gap="sm" align="center">
+                    <Button onClick={readViewport}>Read viewport</Button>
+                    <Text size="sm" color="light">{viewport}</Text>
+                </Panel>
+                <Text size="sm" color="light">
+                    Every column is deliberately too narrow. Each clipped cell must show a real
+                    ellipsis and, after the hover delay, its full value; Number must truncate on the
+                    right, never lose its leading digits. Tag opts into the tooltip from a render
+                    string; Bar must show none at all. Blob is capped, with the count of what was
+                    dropped. Nothing may appear while dragging a range, while resizing a column, or
+                    over an open filter popover.
+                </Text>
+                <Panel direction="column" flex>
+                    <DataGrid<TooltipRow>
+                        name="data-grid-story-overflow-tooltip"
+                        rows={TOOLTIP_ROWS}
+                        columns={TOOLTIP_COLUMNS}
+                        getRowKey={(row) => row.id}
+                        searchString={searchString || undefined}
+                        filterBar={filterBar}
+                        onGrid={(grid) => {
+                            gridRef.current = grid as unknown as DataGridInstance<DemoRow>;
+                        }}
+                    />
                 </Panel>
             </Panel>
         );
@@ -264,7 +394,13 @@ export const dataGridStory: Story = {
         {
             name: "panel",
             type: "enum",
-            options: ["theming", "in-popover", "element-renderer", "context-menu"],
+            options: [
+                "theming",
+                "in-popover",
+                "element-renderer",
+                "context-menu",
+                "overflow-tooltip",
+            ],
             default: "theming",
         },
         { name: "rowCount", type: "number", default: 2000, min: 0, step: 100 },

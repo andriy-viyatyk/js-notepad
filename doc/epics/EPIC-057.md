@@ -376,7 +376,7 @@ up, per this programme's convention.
 | [US-1019](../tasks/US-1019-adopt-av-grid/README.md) | Adopt av-grid — the pinned dependency, the `--p-*` bridge, layered CSS, the mounting shim, the story, and the Rule 4 "before" numbers taken on the React grid | **Implemented** — steps 2-7 landed; the "before" measurement is outstanding |
 | [US-1020](../tasks/US-1020-grid-editor-av-grid/README.md) | `editors/grid/` — the JSON/CSV grid editor. Seven files, the persisted view state, the filter bar, and the context menu that closes Rule 6 for this consumer | **Implemented** — C4-10's first invocation shipped as av-grid 2.2.1; app testing outstanding |
 | [US-1021](../tasks/US-1021-git-tree-av-grid/README.md) | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | **Implemented** — against av-grid **2.2.2**, C4-10's second invocation; app testing outstanding |
-| US-1024 | The cell-overflow tooltip, restored once in `DataGridView` for every consumer. Not a C4-10 workaround: the library supplies the ellipsis and the documented cell attributes, and Persephone supplies the tooltip it alone owns. Must land before US-1022 | Planned |
+| [US-1024](../tasks/US-1024-cell-overflow-tooltip/README.md) | The cell-overflow tooltip, restored once in `DataGridView` for every consumer — **and the ellipsis, which the library does not supply either** (see the note below; the premise in this row's original wording was wrong). Two halves: av-grid **2.2.3** for the ellipsis, C4-10's third invocation; then the tooltip in the shim, which Persephone alone owns. Must land before US-1022 | **Implemented** — against av-grid **2.2.3** (published); lint/typecheck/build-prod clean. App testing outstanding |
 | US-1022 | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | Planned |
 | US-1023 | Delete `uikit/AVGrid/` — 29 files, 9 Emotion importers, the barrel, and the epic's closing numbers | Planned |
 
@@ -765,3 +765,118 @@ and US-1023 may both touch that path, and the honest form of that row is now set
 re-painting them. `GitTree.tsx` lost its state entirely: no `columns`, no `focus`, no view model, no
 `setColumns` wrapper, no deferred rebuild. US-1022 should expect the same ratio in `FileGrid`, whose
 three `cellFormater`s look like the author and date columns that vanished here.
+
+### 2026-08-22 — US-1024 planned: the epic was wrong about the ellipsis, and it is the older half of the regression
+
+The task document is [US-1024](../tasks/US-1024-cell-overflow-tooltip/README.md). Four questions were
+settled with independent agents and one answer was cross-checked by a fifth, because it contradicts
+this epic. Nine findings; three are epic-level.
+
+**av-grid does not ellipsize, and never has.** The epic wrote — twice, in the US-1021 note and in
+US-1024's own first draft — that "the library supplies the ellipsis" and only the tooltip was lost.
+Both halves were lost. `text-overflow: ellipsis` applies to block containers, and a bare text node in
+a flex container becomes an *anonymous flex item* that inherits neither `overflow` nor `text-overflow`
+— so the declaration at `av-grid/src/styles/av-grid.css.ts:180` has never had an effect on a data
+cell. Verified twice, independently, in headless Chromium with screenshots at five device scales:
+every clipped cell in every Persephone grid today is a **hard mid-glyph cut**. The anonymous item is
+unreachable from CSS, so no host-side rule could have fixed it.
+
+A second, worse bug falls out of the same measurement. Overflow in a `nowrap` flex line moves to the
+*start* side when the line is not start-aligned, and `DataCell.alignClass` right-aligns every number
+by default — so an over-long value in a numeric column loses its **leading** characters. `123456789`
+renders as `456789`, which reads as a valid number and is not one. Silent, and worse than a
+truncation the user can see.
+
+This is **C4-10's third invocation**, and the cleanest of the three: US-1020's was a hard failure
+(`validateColumns` threw), US-1021's was a contingent performance defect, and this one is a library
+declaring an intent its own stylesheet does not achieve. The fix is the file's own established pattern
+— an inner `.avg-cell-text` wrapper, the same shape `.avg-header-title` and `.avg-cell-select-value`
+already use — measured at **zero pixels of layout difference** in every alignment, which is what the
+comment at `av-grid.css.ts:193-198` demands of a marked cell. `display: block` on the cell was
+measured and rejected: it moves the baseline 0.5 px, jumps `.avg-bool-box` 3 px, and kills
+`justify-content` for host `render` content. Ships as **2.2.3** before the Persephone half.
+
+**Two epic-level lessons about the shape of these consumer tasks.** First: the library fix is what
+makes the app fix small, and that is now the third time in C4 that going upstream *reduced* the
+consumer's work rather than merely unblocking it. With a block container in the cell, clip detection
+is `scrollWidth > clientWidth` on that element; without it, the only correct predicate was a `Range`
+measurement, because `scrollWidth` on the cell is **undetectable** for centred and right-aligned cells
+— the naive predicate would silently never have fired for numeric columns. Second: the discriminator
+for "which cells get a tooltip" needed no new API, because `formatValue` already *is* av-grid's
+plain-text projection — the rule the library itself filters and copies by
+(`av-grid/src/gridUtils.ts:117-123`) — and every graphical column in the tree already declares
+`formatValue: () => ""` for copy correctness, before this feature existed. US-1022's consumers
+inherit that for free.
+
+**Two more av-grid defects were found and one more Persephone one.** `CellFocus.isDragging` is public,
+looks exactly like the suppression gate this task needs, and **latches**: `cell.onMouseDown` is sent
+before the button guard, two paths then return before `selecting` is armed, and `updateFocus`
+preserves the stale flag forever — so ticking one checkbox would suppress every tooltip in the grid.
+Fixed in the same release; the tooltip infers from `e.buttons` instead, which self-heals. `data-col`
+indexes the **visible** columns while `getColumns()` returns all of them, which is undocumented and
+would have made any grid with a hidden column tooltip its neighbour's value — one sentence added to
+the DOM contract. And on the Persephone side, the app's tooltip paints **over** av-grid's own filter
+popover, not under it (`z-index` 1100 vs 1000, both in the root stacking context, because the overlay
+layer is deliberately unstyled).
+
+**US-1021 F8's correction did not fully land.** It fixed the `renderRatioBar` doc-comment in
+`uikit/DataGrid/DataGrid.story.tsx` and left the struck rule in two other places in the same file —
+including the on-screen `<Text>` that instructs whoever runs the story to check for it. US-1024 fixes
+both. Worth recording as a pattern rather than a slip: a correction that changes a *rule* has to be
+grepped for, not edited where it was noticed.
+
+### 2026-08-22 — US-1024 implemented: the ellipsis was the older half of the regression, and it is fixed upstream
+
+Landed against av-grid **2.2.3**, published the same day. Persephone's `npm run lint`,
+`npx tsc --noEmit` and `npm run build-prod` are clean; av-grid's 826 tests pass. The app-level
+acceptance list is untested. Detail in [the task](../tasks/US-1024-cell-overflow-tooltip/README.md);
+four things belong here.
+
+**C4-10's third invocation was a bug the epic had recorded as a working feature.** US-1020's was a
+hard failure, US-1021's a contingent performance defect, and this one is a library declaring an
+intent its own stylesheet never achieved: `text-overflow: ellipsis` on an `inline-flex` cell cannot
+reach the anonymous flex item its text becomes. Proved twice, independently, in headless Chromium,
+and then a third time against the built bundle by screenshot — `Alan Dijkstra Wonderful Long Name`
+in 110 px rendered as `Alan Dijkstra Wond`, cut mid-glyph, on 2.2.2 and as `Alan Dijkstra W…` on
+2.2.3. **And a right-aligned numeric column was worse than truncated: it lost its leading digits**,
+so `123456789012` in a 70 px column rendered as `456789012` — not a truncation the user could see
+but a different number. That had been live in the JSON/CSV grid editor since US-1020.
+
+**The fix cost nothing per frame, and the measurement is the interesting part.** 100,000 rows, 75
+visible cells, a `MutationObserver` on the grid root driven over CDP: childList, attribute and
+characterData counts are **identical** to 2.2.2 at every stage — a full `refresh()` (0/321, twice),
+a scroll to row 99,000 (162/0), a `refresh()` there (12/321), search on (75/22), a `refresh()` with
+search live (12/309). `setMode` already reported whether it had cleared the element, so a pooled cell
+builds its wrapper once per *content-shape change* rather than per paint. Two process notes for
+US-1022 and US-1023, both of which may touch this path: `docs/releasing.md`'s benchmark row is
+appended with the board timing gate explicitly **not** re-run (it needs a browser, as in US-1021),
+and the harness had to be driven over `--remote-debugging-port` because `--virtual-time-budget`
+paints one frame and then stops advancing rAF — a page that awaits a frame simply never resumes, and
+it looks like a hung script rather than a missing feature.
+
+**Two silent traps in av-grid's public surface, both found by asking how the host should read the
+DOM, and both now closed.** `data-col` indexes the **visible** columns while `getColumns()` returns
+all of them, which is undocumented and would have made any grid with a hidden column tooltip its
+neighbour's value — the DOM contract now says so, and the host resolves columns by
+`data-column-key`. And `CellFocus.isDragging` — which looks exactly like the "suppress while
+dragging" gate this feature wanted — **latched**: `cell.onMouseDown` is sent before the button
+check, two presses then return before a drag is armed (the boolean toggle, and a press on a cell
+with an open editor), and only `onSelectEnd` clears the flag, so ticking one checkbox left it true
+for the rest of the grid's life. Fixed in the same release, with a test per path. The tooltip
+deliberately does not use it: `e.buttons` is on the event already and fails safe, where a latched
+flag fails silently and forever.
+
+**The consumer half is where the epic's own conventions did the work.** Nothing new was invented for
+"which cells get a tooltip": `formatValue` is already av-grid's plain-text projection — the rule it
+filters and copies by — so a graphical column already declares `formatValue: () => ""` for reasons
+that predate this feature, and `.avg-cell-text` marks the text shapes structurally. US-1022's four
+consumers inherit both, and `FileGrid.tsx:115` already complies. The one thing a consumer must know
+is that a `render` column returning **text** opts in by emitting `<span class="avg-cell-text">`, and
+that it has to be a **direct** child of the cell — the git tree's HEAD-commit hash nested it inside a
+colour wrapper, which would have left exactly one row in the column neither ellipsizing nor
+tooltipping.
+
+**And US-1021 F8's correction had not fully landed.** It fixed the doc-comment on `renderRatioBar`
+and left the struck rule in two other places in the same file, one of them the on-screen `<Text>`
+telling whoever runs the story to check for it. Both fixed here. The pattern is worth keeping: a
+correction that changes a *rule* has to be grepped for, not edited where it was noticed.
