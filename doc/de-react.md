@@ -728,6 +728,8 @@ independent of every conversion and lands in **C1**.
 
 ### Epic D — Shell and shared components
 
+**Scoped as [EPIC-058](epics/EPIC-058.md) on 2026-08-22.** The next free epic number is **EPIC-059**.
+
 `ui/` (tabs, sidebar, dialogs, MainPage) and `components/`. Flip the application root to vanilla;
 from here React survives only inside unconverted editors, via `mountReact`.
 
@@ -735,6 +737,15 @@ Candidate tasks: icon set from `.tsx` components to a sprite or inline-SVG helpe
 sidebar and menu bar · dialog host · secondary-views host · root flip.
 
 Depends on Epic C being effectively complete.
+
+**Two things the epic-open investigation added to this sketch.** First, `theme/`'s icon files were
+never assigned to an epic and are claimed here (EPIC-058 D2): 115 of the app's 169 icons already have
+a DOM builder and the 54 that do not are exactly `theme/language-icons.tsx`, because
+`createIconWithViewBox` only attaches `createElement` for a string icon body. That asymmetry is the
+sole reason `react-dom/server` is in the renderer bundle, so the icon task is measured in icon bodies
+rather than lines. Second, the shell holds **zero React contexts and seven `useState`** across 9,192
+`.tsx` lines — Epic P's payoff lands here — so the hazards are structural (four portal hosts, the
+error boundary, the root flip) rather than stateful.
 
 ### Epic E — Editors
 

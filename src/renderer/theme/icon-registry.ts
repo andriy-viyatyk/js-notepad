@@ -120,7 +120,7 @@ import type { SvgIconComponent } from "./icons";
 
 // Keep this list in sync with the explicit exports in icons.tsx. The registry is the
 // single source of truth for IconName; adding an icon still requires a manual entry here.
-// Excluded by design: language-icons.tsx, components/icons/* resolver components,
+// Excluded by design: language-icons.ts, components/icons/* resolver components,
 // SvgIcon/SvgIconProps/SvgIconComponent, createIcon, and createIconWithViewBox.
 const ICONS = {
     "storybook": StorybookIcon,
