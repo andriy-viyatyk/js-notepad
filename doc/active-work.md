@@ -21,7 +21,13 @@ Overview of all active and planned epics and tasks.
     build-prod clean. F1 shipped as av-grid **2.2.1**, published. Context menu tested and one
     defect fixed (F7 — `Popover` dismissed on `mousedown`, which av-grid legitimately suppresses);
     the rest of the acceptance list is untested
-  - [ ] US-1021: `components/git-tree/` — including the `BranchTreeCell` swimlane rewrite
+  - [ ] [US-1021: `components/git-tree/` — the commit history grid on
+    av-grid](tasks/US-1021-git-tree-av-grid/README.md) — **implemented** against av-grid **2.2.2**
+    (published); lint/typecheck/build-prod clean. F8 corrects C4-6 — av-grid's `render` content must
+    **not** be positioned absolutely. The app-level acceptance list is untested
+  - [ ] US-1024: the cell-overflow tooltip, restored once in `DataGridView` — the React grid gave
+    every cell hover-to-read via `<TruncatedText>`; av-grid has no tooltip, so US-1020 already
+    shipped the regression. Must land **before** US-1022
   - [ ] US-1022: `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView`
   - [ ] US-1023: Delete `uikit/AVGrid/` and close Epic C
 - *(no epic)*

@@ -14,7 +14,7 @@
 import { TComponentState } from "../../core/state/state";
 import { settings } from "../../api/settings";
 import { git } from "../../api/git";
-import type { AVGridModel } from "../../uikit/AVGrid";
+import type { DataGridInstance } from "../../uikit/DataGrid";
 import type { GitCommit, GitRef } from "../../../ipc/git-ipc";
 import type { GitCommitRow } from "./swimlane-layout";
 import type { GitRefNodeKind } from "./git-refs-tree";
@@ -64,10 +64,10 @@ export class GitTreeModel {
     private loaded = false;
     private disposed = false;
 
-    /** Live AVGrid handle, registered by the `<GitTree>` view on mount (US-634).
+    /** Live grid handle, registered by the `<GitTree>` view on mount (US-634).
      *  Present only while the grid is rendered (i.e. the Git Tree is the page's
      *  main editor) — undefined otherwise, in which case `revealRef` no-ops. */
-    private grid: AVGridModel<GitCommitRow> | undefined;
+    private grid: DataGridInstance<GitCommitRow> | undefined;
 
     /** Set true by `markStale()` when a repo change happened while the tree was
      *  not the page's main editor; cleared by the next `reload()`. The owning
@@ -183,9 +183,9 @@ export class GitTreeModel {
         await this.reload();
     };
 
-    /** Register (or clear) the live AVGrid handle. The `<GitTree>` view calls
-     *  this on mount with `gridRef.current` and on unmount with `undefined`. */
-    setGrid(grid: AVGridModel<GitCommitRow> | undefined): void {
+    /** Register (or clear) the live grid handle. The `<GitTree>` view calls
+     *  this from `onGrid` — on mount with the instance, on dispose with `undefined`. */
+    setGrid(grid: DataGridInstance<GitCommitRow> | undefined): void {
         this.grid = grid;
     }
 
@@ -200,7 +200,13 @@ export class GitTreeModel {
     revealRef(refName: string, kind: GitRefNodeKind): void {
         const grid = this.grid;
         if (!grid) return;
-        const { rows, columns } = grid.data;
+        // Displayed rows, declared columns. `focusCell` indexes the *displayed* columns
+        // (hidden ones filtered out, the checkbox column prepended when enabled) while
+        // `getColumns()` returns the declared array — for this grid the two coincide: no column is
+        // ever hidden, `selectColumn` is never set, and `revealRef` is reachable only from the
+        // whole-repo editor, which has no side-select column (US-1021 F6).
+        const rows = grid.getVisibleRows();
+        const columns = grid.getColumns();
         if (!rows.length || !columns.length) return;
         let colIndex = columns.findIndex((c) => String(c.key) === "subject");
         if (colIndex < 0) colIndex = 0;
@@ -208,7 +214,7 @@ export class GitTreeModel {
             (r) => r.recordType === "commit" && r.refs.some((ref) => refMatches(ref, refName, kind)),
         );
         const rowIndex = matchIdx >= 0 ? matchIdx : rows.length - 1;
-        grid.models.focus.focusCell(rowIndex, colIndex, true);
+        grid.focusCell(rowIndex, colIndex, true);
     }
 
     dispose(): void {

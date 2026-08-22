@@ -1,41 +1,53 @@
 /**
- * Git Tree component (EPIC-030 / US-611).
+ * Git Tree component (EPIC-030 / US-611; moved onto av-grid in EPIC-057 / US-1021).
  *
- * The reusable history view: an AVGrid whose first column is the SVG
- * `BranchTreeCell` swimlane graph, with subject / author / date / hash columns.
- * Presentational — the caller fetches commits (whole-repo or single-file via
- * `git.log`) and passes them in; layout runs internally. Reused by the Git Tree
- * editor (US-612) and the File Diff commit-picker popover (US-613).
+ * The reusable history view: a grid whose first column is the SVG `BranchTreeCell` swimlane graph,
+ * with subject / author / date / hash columns. Presentational — the caller fetches commits
+ * (whole-repo or single-file via `git.log`) and passes them in; layout runs internally. Reused by
+ * the Git Tree editor (US-612) and the File Diff commit-picker popover (US-613).
  *
- * `components/` is app code (not uikit/), so Emotion is allowed for this
- * component's own elements — but only props are passed to AVGrid (Rule 7).
+ * ## No state, on purpose
+ *
+ * `uikit/AVGrid` was fully controlled: this component held `columns` and `focus` in React state,
+ * passed them down, and took setters back. av-grid owns both, so the state, the view model, the
+ * `setColumns` wrapper and its deferred rebuild are all gone (EPIC-057 C4-2, US-1021 D1). What is
+ * left is props in, imperative calls out — which is also the shape Epic D/E will convert to a
+ * vanilla view.
+ *
+ * The cells are `render` hooks returning HTML strings, so their styling lives in `GitTree.css`
+ * rather than in Emotion. `components/` is app code, so the CSS goes in `@layer app`, which
+ * outranks av-grid's own layer.
  */
-import React, { useCallback, useEffect, useMemo, useRef, type RefObject, type SetStateAction } from "react";
-import styled from "@emotion/styled";
-import { clsx } from "clsx";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import { AVGrid, AVGridModel } from "../../uikit/AVGrid";
-import type { CellFocus, Column, TCellFormater, TCellRenderer, TCellRendererProps } from "../../uikit/AVGrid";
+import {
+    DataGrid,
+    defaultColumnWidth,
+    type CellContext,
+    type CellRenderer,
+    type Column,
+    type DataGridInstance,
+    type GridContextMenuEvent,
+} from "../../uikit/DataGrid";
 import type { MenuItem } from "../../uikit/Menu";
+import { showGridContextMenu } from "../../ui/dialogs/poppers/grid-context-menu";
 import type { GitTreeModel } from "./GitTreeModel";
-import { SideSelectToggle } from "./SideSelectToggle";
-import { TruncatedText } from "../../uikit/TruncatedText";
 import { TAG_COLORS } from "../../theme/palette-colors";
-import color from "../../theme/color";
-import { fontSize, spacing } from "../../uikit/tokens";
-import { RefBadge, REF_COLOR } from "./RefBadge";
+import { REF_COLOR } from "./RefBadge";
 import { dateText } from "./git-date";
 import {
     GIT_TREE_ROW_HEIGHT,
     graphWidth,
     makeBranchTreeCell,
-} from "./BranchTreeCell";
+} from "./branch-tree-cell";
+import { createLoadMoreFooter } from "./load-more-footer";
+import { SIDE_SELECT_KEY, handleSideSelectClick, makeSideSelectCell } from "./side-select-cell";
 import {
     maxColumnCount,
     toCommitRows,
     type GitCommitRow,
 } from "./swimlane-layout";
-import { TComponentModel, useComponentModel } from "../../core/state/model";
+import "./GitTree.css";
 
 const LANE_COLORS = TAG_COLORS.map((c) => c.hex);
 
@@ -49,7 +61,7 @@ const LANE_COLORS = TAG_COLORS.map((c) => c.hex);
  */
 export interface GitTreeSideSelect {
     /** Changes whenever the diff's from/to changes — the trigger for repainting
-     *  the L/R column (`gridRef.update({ columns: [0] })`). */
+     *  the L/R column (`grid.refresh()`). */
     selectionKey: string;
     /** Render the L (from) toggle for this row (false for the Unstaged row). */
     showLeft: (row: GitCommitRow) => boolean;
@@ -72,7 +84,7 @@ export interface GitTreeSideSelect {
 export type GitColumnLayout = { key: string; width: number | `${number}%` }[];
 
 export interface GitTreeProps {
-    /** Optional debug label forwarded to the underlying AVGrid. */
+    /** Optional debug label forwarded to the underlying grid. */
     name?: string;
     /** Data + load/pagination model, owned by the editor (model-view). The
      *  component renders from `model.state` and calls `model.loadMore()` /
@@ -108,215 +120,72 @@ export interface GitTreeProps {
     getContextMenuItems?: (rows: GitCommitRow[]) => MenuItem[];
 }
 
-interface GitTreeState {
-    columns: Column<GitCommitRow>[];
-    focus: CellFocus<GitCommitRow> | undefined;
-}
+const getRowKey = (row: GitCommitRow) => row.hash;
 
-interface GitTreeViewModelProps extends GitTreeProps {
-    structureKey: string;
-    maxColumns: number;
-    sideSelectCell: TCellRenderer | undefined;
-}
+/** Resize fires on every pointermove, and the owner persists what it reports. */
+const RESIZE_EMIT_DELAY = 150;
 
-class GitTreeViewModel extends TComponentModel<GitTreeState, GitTreeViewModelProps> {
-    private builtStructureKey = "";
-    private previousMaxColumns = 0;
-
-    setColumns = (value: SetStateAction<Column<GitCommitRow>[]>) => {
-        this.state.update((s) => {
-            s.columns = typeof value === "function" ? value(s.columns) : value;
-        });
-    };
-
-    setFocus = (value: SetStateAction<CellFocus<GitCommitRow> | undefined>) => {
-        this.state.update((s) => {
-            s.focus = typeof value === "function" ? value(s.focus) : value;
-        });
-    };
-
-    init() {
-        this.builtStructureKey = this.props.structureKey;
-        this.previousMaxColumns = this.props.maxColumns;
-        this.effect(() => {
-            const structureChanged = this.builtStructureKey !== this.props.structureKey;
-            const maxColumnsChanged = this.previousMaxColumns !== this.props.maxColumns;
-            this.builtStructureKey = this.props.structureKey;
-            this.previousMaxColumns = this.props.maxColumns;
-            if (!structureChanged && !(maxColumnsChanged && !this.props.compact)) return;
-
-            const props = this.props;
-            queueMicrotask(() => {
-                if (!this.isLive) return;
-                if (this.props.structureKey !== props.structureKey || this.props.maxColumns !== props.maxColumns) return;
-                if (structureChanged) {
-                    this.setColumns(buildColumns(props.maxColumns, props.compact ?? false, props.sideSelectCell));
-                } else if (maxColumnsChanged && !props.compact) {
-                    this.setColumns((columns) => refitGraphColumn(columns, props.maxColumns));
-                }
-            });
-        }, () => [
-            this.props.maxColumns,
-            this.props.compact,
-            this.props.sideSelectCell,
-            this.props.structureKey,
-        ]);
+/**
+ * The subject cell: decoration chips, then the commit subject.
+ *
+ * `cell.highlight()` escapes and marks the active search words in one call — this grid sets no
+ * search string, so it is the escaping that matters, and it is the right way to put a commit
+ * subject into a `render` string either way.
+ */
+const renderSubject = (cell: CellContext<GitCommitRow>): string => {
+    const row = cell.row;
+    if (!row) return "";
+    if (row.recordType !== "commit") {
+        return `<span class="git-special-subject">${cell.highlight(row.subject)}</span>`;
     }
-}
-
-// Pinned to the bottom of the (relative, content-height) render area — the same
-// trick AVGrid's built-in add-row button uses. A normal-flow element would
-// collapse to the top behind the absolutely-positioned cells. Opaque background
-// so it reads as a footer over the bottom whitespace.
-const LoadMoreRow = styled.div({
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-    height: GIT_TREE_ROW_HEIGHT,
-    background: color.background.default,
-    fontSize: fontSize.sm,
-    userSelect: "none",
-});
-
-const LoadMoreLink = styled.span({
-    cursor: "pointer",
-    color: color.text.default,
-    "&:hover": { textDecoration: "underline" },
-    "&[data-disabled]": { opacity: 0.6, cursor: "default", textDecoration: "none" },
-});
-
-const LoadMoreSep = styled.span({
-    color: color.text.light,
-});
-
-function rowOf(props: TCellRendererProps): GitCommitRow | undefined {
-    return props.model.data.rows[props.row] as GitCommitRow | undefined;
-}
-
-// Synthetic endpoint rows (Unstaged/Staged) render their label muted + italic so
-// they read as special rows, not commits (US-618).
-const SpecialSubject = styled.span({
-    fontStyle: "italic",
-    color: color.text.light,
-}, { label: "GitTreeSpecialSubject" });
-
-// The HEAD commit's short-hash reads green (matches the green current-branch
-// label), so the active commit stays marked even when HEAD is detached and has no
-// branch label to color (US-636). TruncatedText inherits this color.
-const HeadHash = styled.span({ color: REF_COLOR.head }, { label: "GitTreeHeadHash" });
-
-// Each text column wraps its content in <TruncatedText> (like AVGrid's DataCell):
-// it ellipsizes when it doesn't fit the column and shows the full text in a
-// hover tooltip. The ref chips stay full-size (RefTag flexShrink:0); the
-// subject's TruncatedText absorbs the shrink.
-const subjectFormatter: TCellFormater = (props) => {
-    const r = rowOf(props);
-    if (!r) return null;
-    if (r.recordType !== "commit") {
-        return <SpecialSubject>{r.subject}</SpecialSubject>;
+    let chips = "";
+    for (const ref of row.refs) {
+        chips +=
+            `<span class="git-ref-badge" style="color:${REF_COLOR[ref.kind]}">` +
+            `${cell.highlight(ref.name)}</span>`;
     }
-    return (
-        <>
-            {r.refs.map((ref) => (
-                <RefBadge key={`${ref.kind}:${ref.name}`} refData={ref} />
-            ))}
-            <TruncatedText>{r.subject}</TruncatedText>
-        </>
-    );
+    return `${chips}<span class="git-subject-text">${cell.highlight(row.subject)}</span>`;
 };
 
-const authorFormatter: TCellFormater = (props) => {
-    const r = rowOf(props);
-    return r ? <TruncatedText>{r.authorName}</TruncatedText> : null;
+/**
+ * The short hash, green on the HEAD commit — so the active commit stays marked even when HEAD is
+ * detached and has no branch label to colour (US-636).
+ *
+ * A `render` rather than a `cellClass` because `REF_COLOR.head` is palette hex, not a CSS custom
+ * property, so a stylesheet cannot name it without hardcoding a colour.
+ */
+const renderHash = (cell: CellContext<GitCommitRow>): string => {
+    const row = cell.row;
+    if (!row) return "";
+    const text = `<span class="git-subject-text">${cell.highlight(row.shortHash)}</span>`;
+    const isHead = row.recordType === "commit" && row.refs.some((ref) => ref.kind === "head");
+    return isHead ? `<span style="color:${REF_COLOR.head}">${text}</span>` : text;
 };
 
-const dateFormatter: TCellFormater = (props) => {
-    const r = rowOf(props);
-    return r ? <TruncatedText>{dateText(r.authorDate)}</TruncatedText> : null;
-};
-
-const hashFormatter: TCellFormater = (props) => {
-    const r = rowOf(props);
-    if (!r) return null;
-    const content = <TruncatedText>{r.shortHash}</TruncatedText>;
-    const isHead = r.recordType === "commit" && r.refs.some((ref) => ref.kind === "head");
-    return isHead ? <HeadHash>{content}</HeadHash> : content;
-};
-
-// Cell root for the L/R side-select column. A custom cellRenderer fully replaces
-// DataCell, so it applies `props.style` (absolute box from RenderGrid), forwards
-// `className` (row-selected / row-hovered overlays), and paints its own cell
-// chrome — mirroring BranchTreeCell.
-const SideSelectCellRoot = styled.div(
-    {
-        // border-box so the 1px borderRight stays INSIDE the column width — without
-        // it the border overflows by 1px into the date cell and clips its left
-        // selection border (matches AVGrid's default DataCell; US-618).
-        boxSizing: "border-box",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: color.grid.dataCellBackground,
-        borderBottom: `solid 1px ${color.grid.borderColor}`,
-        borderRight: `solid 1px ${color.grid.borderColor}`,
-    },
-    { label: "SideSelectCell" },
-);
-
-// Build the L/R cell renderer bound (via a stable ref) to the live `sideSelect`,
-// so `from`/`to` changes are reflected without rebuilding the columns (which would
-// reset user-dragged widths). The owning component forces this column to re-render
-// on selection change via `gridRef.update({ columns: [0] })`.
-function makeSideSelectCell(ref: RefObject<GitTreeSideSelect | undefined>): TCellRenderer {
-    function SideSelectCell(props: Readonly<TCellRendererProps>) {
-        const { row, model, style, className } = props;
-        const r = model.data.rows[row] as GitCommitRow | undefined;
-        const sel = ref.current;
-        if (!r || !sel) {
-            return <SideSelectCellRoot style={style} className={clsx(className)} />;
-        }
-        return (
-            <SideSelectCellRoot style={style} className={clsx(className)}>
-                <SideSelectToggle
-                    showLeft={sel.showLeft(r)}
-                    leftActive={sel.isLeftActive(r)}
-                    rightActive={sel.isRightActive(r)}
-                    onPickLeft={() => ref.current?.onPickLeft(r)}
-                    onPickRight={() => ref.current?.onPickRight(r)}
-                />
-            </SideSelectCellRoot>
-        );
-    }
-    return SideSelectCell;
-}
-
-// Rows are flat (commit fields spread in), so AVGrid range-copy reads `row[key]`
-// directly for the string columns. Only the graph (no field) and the date
-// (number → readable) need an explicit `formatValue`.
+/**
+ * Rows are flat (commit fields spread in), so range-copy reads `row[key]` directly for the string
+ * columns and Author needs no hook at all — av-grid's default cell shows `row[key]` and ellipsizes
+ * it. Only the graph and the side-select column (no field) and the date (number → readable) need
+ * an explicit `formatValue`.
+ */
 function buildColumns(
     maxColumns: number,
     compact: boolean,
-    sideSelectCell?: TCellRenderer,
+    sideSelectCell?: CellRenderer<GitCommitRow>,
 ): Column<GitCommitRow>[] {
     const subject: Column<GitCommitRow> = {
         key: "subject",
         name: "Comment",
         width: compact ? 240 : 360,
-        resizible: true,
-        cellFormater: subjectFormatter,
+        resizable: true,
+        render: renderSubject,
     };
     const hash: Column<GitCommitRow> = {
         key: "shortHash",
         name: "Commit",
         width: 80,
-        resizible: true,
-        cellFormater: hashFormatter,
+        resizable: true,
+        render: renderHash,
     };
     const date: Column<GitCommitRow> = {
         key: "authorDate",
@@ -324,8 +193,7 @@ function buildColumns(
         // Compact (file-scoped): ~date-only width (`YYYY-MM-DD`), resizable to
         // reveal the time. Whole-repo editor: wide enough for the full string.
         width: compact ? 94 : 160,
-        resizible: true,
-        cellFormater: dateFormatter,
+        resizable: true,
         formatValue: (_c, r) => dateText(r.authorDate),
     };
     if (compact) {
@@ -334,13 +202,14 @@ function buildColumns(
         const cols: Column<GitCommitRow>[] = [date, subject, hash];
         if (sideSelectCell) {
             // L/R side-select — fixed, sticky-left, non-resizable status column
-            // (Revisions panel only).
+            // (Revisions panel only). `isStatusColumn` also makes av-grid ignore the press
+            // entirely (no focus move, no range drag), which is half the row-click suppression.
             cols.unshift({
-                key: "--side-select--",
+                key: SIDE_SELECT_KEY,
                 name: "",
                 width: 56,
                 isStatusColumn: true,
-                cellRenderer: sideSelectCell,
+                render: sideSelectCell,
                 formatValue: () => "",
             });
         }
@@ -350,23 +219,30 @@ function buildColumns(
         key: "graph",
         name: "",
         width: graphWidth(maxColumns),
-        resizible: true,
-        cellRenderer: makeBranchTreeCell(maxColumns),
+        resizable: true,
+        render: makeBranchTreeCell(maxColumns),
         formatValue: () => "",
     };
     return [
         graph,
         subject,
-        { key: "authorName", name: "Author", width: 140, resizible: true, cellFormater: authorFormatter },
+        { key: "authorName", name: "Author", width: 140, resizable: true },
         date,
         hash,
     ];
 }
 
-// Apply an owner-persisted layout (width + order) to freshly-built columns
-// (US-623). Widths are matched by key; the array is reordered to the stored
-// order. Keys absent from the layout (e.g. a column added since the layout was
-// saved) keep their relative order at the end. A no-op when no layout is stored.
+/**
+ * Apply an owner-persisted layout (width + order) to freshly-built columns
+ * (US-623). Widths are matched by key; the array is reordered to the stored
+ * order. Keys absent from the layout (e.g. a column added since the layout was
+ * saved) keep their relative order at the end. A no-op when no layout is stored.
+ *
+ * Status columns are hoisted back to the front afterwards. av-grid stops a status *header* from
+ * being dragged but does not exclude it as a drop target, so a user can land a normal column ahead
+ * of it — and the resulting `stickyLeft` then spans a non-status column. Without this guard a
+ * persisted layout would faithfully restore that (US-1021).
+ */
 function applyLayout(
     cols: Column<GitCommitRow>[],
     layout: GitColumnLayout | undefined,
@@ -377,20 +253,30 @@ function applyLayout(
     const withWidth = cols.map((c) =>
         widthByKey.has(String(c.key)) ? { ...c, width: widthByKey.get(String(c.key)) } : c,
     );
-    return withWidth
+    const ordered = withWidth
         .map((c, i) => ({
             c,
             rank: orderByKey.has(String(c.key)) ? orderByKey.get(String(c.key)) : layout.length + i,
         }))
         .sort((a, b) => a.rank - b.rank)
         .map((x) => x.c);
+    return [
+        ...ordered.filter((c) => c.isStatusColumn),
+        ...ordered.filter((c) => !c.isStatusColumn),
+    ];
 }
 
-// Re-fit ONLY the graph (swimlane) column to a new branch-lane count, in place —
-// preserving its position and every other column's user-set width + order. Both
-// the width and the cell renderer encode `maxColumns`, so update both (US-622).
-// Returns the same array reference when there is no graph column (compact views),
-// so the caller's setColumns is a no-op.
+/**
+ * Re-fit ONLY the graph (swimlane) column to a new branch-lane count, in place —
+ * preserving its position and every other column's user-set width + order. Both
+ * the width and the cell renderer encode `maxColumns`, so update both (US-622).
+ * Returns the same array reference when there is no graph column (compact views),
+ * so the caller can skip the `setColumns`.
+ *
+ * The array handed in is `grid.getColumns()`, which is the grid's live array — already carrying
+ * every user width and the user's exact order — so nothing has to be merged. The `slice()` is
+ * what keeps this from writing through it.
+ */
 function refitGraphColumn(
     cols: Column<GitCommitRow>[],
     maxColumns: number,
@@ -401,7 +287,7 @@ function refitGraphColumn(
     next[i] = {
         ...next[i],
         width: graphWidth(maxColumns),
-        cellRenderer: makeBranchTreeCell(maxColumns),
+        render: makeBranchTreeCell(maxColumns),
     };
     return next;
 }
@@ -409,7 +295,7 @@ function refitGraphColumn(
 export function GitTree(props: GitTreeProps) {
     const {
         name,
-        model: gitTreeModel,
+        model,
         selectedHash,
         onSelectCommit,
         compact = false,
@@ -419,7 +305,6 @@ export function GitTree(props: GitTreeProps) {
         onColumnLayoutChange,
         getContextMenuItems,
     } = props;
-    const model = gitTreeModel;
     const { commits, loadingMore, hasMore } = model.state.use((s) => ({
         commits: s.commits,
         loadingMore: s.loadingMore,
@@ -441,94 +326,181 @@ export function GitTree(props: GitTreeProps) {
         [hasSideSelect],
     );
 
-    // AVGrid model handle — used to repaint only the L/R column when the diff's
-    // from/to changes (US-618: `update({ columns: [0] })`).
-    const gridRef = useRef<AVGridModel<GitCommitRow>>(undefined);
+    const gridRef = useRef<DataGridInstance<GitCommitRow> | undefined>(undefined);
+
+    /**
+     * The columns, built ONCE — and never handed to the grid again.
+     *
+     * `DataGridView` diffs value props by identity and pushes changes through `setOptions`, so a
+     * new `columns` identity on any later render would replace the grid's live array and wipe the
+     * widths the user dragged. The grid owns the columns from `create()` onward (US-1021 D1);
+     * structural rebuilds and the graph re-fit go through `grid.setColumns()` below.
+     */
+    const initialColumns = useRef<Column<GitCommitRow>[] | undefined>(undefined);
+    if (!initialColumns.current) {
+        initialColumns.current = applyLayout(
+            buildColumns(maxColumns, compact, sideSelectCell),
+            initialColumnLayout,
+        );
+    }
+
+    /**
+     * Report the live layout to the owner for persistence.
+     *
+     * Wired only to `onColumnResize` / `onColumnsReorder`, which av-grid raises **only** from user
+     * interaction — a programmatic `setColumns` reaches `onColumnsChange` and nothing else. So the
+     * component's own rebuilds are silent structurally, where the React version needed a wrapper
+     * to tell the two apart (US-1021 F1). Both callbacks fire after the array is updated, so
+     * `getColumns()` is already current.
+     */
+    const emitLayout = useCallback(() => {
+        const grid = gridRef.current;
+        if (!grid || !onColumnLayoutChange) return;
+        onColumnLayoutChange(
+            grid.getColumns().map((c) => ({
+                key: String(c.key),
+                width: c.width ?? defaultColumnWidth,
+            })),
+        );
+    }, [onColumnLayoutChange]);
+
+    // A resize fires on every pointermove and the owner persists what it receives, so trail it.
+    // A reorder fires once per drop and emits directly.
+    const emitTimer = useRef<number | undefined>(undefined);
+    const scheduleEmitLayout = useCallback(() => {
+        if (emitTimer.current !== undefined) window.clearTimeout(emitTimer.current);
+        emitTimer.current = window.setTimeout(() => {
+            emitTimer.current = undefined;
+            emitLayout();
+        }, RESIZE_EMIT_DELAY);
+    }, [emitLayout]);
+    useEffect(
+        () => () => {
+            if (emitTimer.current !== undefined) window.clearTimeout(emitTimer.current);
+        },
+        [],
+    );
+
+    // Register the grid with the model so the owning editor can focus a commit row imperatively —
+    // e.g. reveal a branch/tag clicked in the "Branches & Tags" panel (US-634) — and seed the
+    // selection, since `selected` is an initial-only option (US-1021 F2).
+    const onGrid = useCallback(
+        (grid: DataGridInstance<GitCommitRow> | null) => {
+            gridRef.current = grid ?? undefined;
+            model.setGrid(grid ?? undefined);
+            if (grid && selectedHash) grid.setSelected([selectedHash]);
+        },
+        // `selectedHash` is deliberately not a dependency: this runs on mount and on a model
+        // change, and the effect below owns every later change.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [model],
+    );
+
+    /**
+     * Columns are generated ONCE on first mount, then preserved across refresh / load-more
+     * (US-622):
+     *   - A *structural* change (compact toggled, or the L/R side-select column added/removed)
+     *     rebuilds from scratch — resetting widths/order is the right behavior there.
+     *   - Otherwise, when more commits load and the branch-lane count shifts, we re-fit ONLY the
+     *     graph column — its width and cell renderer both depend on `maxColumns` — leaving every
+     *     other column's user width and the user's column order untouched. Compact views (no
+     *     graph) are fully preserved.
+     *
+     * Synchronous, unlike the React version's `queueMicrotask` hop: there is no `setState` here to
+     * loop back through render, so there is nothing to defer and no staleness to re-check.
+     */
+    const structureKey = `${compact}|${hasSideSelect}`;
+    const builtStructureKey = useRef(structureKey);
+    const previousMaxColumns = useRef(maxColumns);
     useEffect(() => {
-        if (hasSideSelect) gridRef.current?.update({ columns: [0] });
+        const grid = gridRef.current;
+        const structureChanged = builtStructureKey.current !== structureKey;
+        const maxColumnsChanged = previousMaxColumns.current !== maxColumns;
+        builtStructureKey.current = structureKey;
+        previousMaxColumns.current = maxColumns;
+        if (!grid) return;
+        if (structureChanged) {
+            grid.setColumns(buildColumns(maxColumns, compact, sideSelectCell));
+        } else if (maxColumnsChanged && !compact) {
+            grid.setColumns(refitGraphColumn(grid.getColumns(), maxColumns));
+        }
+    }, [structureKey, maxColumns, compact, sideSelectCell]);
+
+    // The row highlight. `selected` is initial-only in the shim — av-grid owns the selection after
+    // `create()` — so this is imperative rather than a prop (US-1021 F2).
+    useEffect(() => {
+        gridRef.current?.setSelected(selectedHash ? [selectedHash] : []);
+    }, [selectedHash]);
+
+    // Repaint the L/R glyphs when the diff's from/to moves. `refresh()` rather than a scoped
+    // repaint: ~100 cells, no DOM insertions or removals, once per click (US-1021 F4).
+    useEffect(() => {
+        if (hasSideSelect) gridRef.current?.refresh();
     }, [hasSideSelect, sideSelect?.selectionKey]);
 
-    // Register the grid handle with the model so the owning editor can focus a
-    // commit row imperatively — e.g. reveal a branch/tag clicked in the
-    // "Branches & Tags" panel (US-634). Cleared on unmount.
-    useEffect(() => {
-        model.setGrid(gridRef.current);
-        return () => model.setGrid(undefined);
-    }, [model]);
+    const footer = useMemo(
+        () =>
+            createLoadMoreFooter({
+                onLoadMore: () => void model.loadMore(),
+                onLoadAll: () => void model.loadAll(),
+            }),
+        [model],
+    );
+    useEffect(() => footer.setLoading(loadingMore), [footer, loadingMore]);
+    useEffect(() => () => footer.dispose(), [footer]);
 
-    // Columns are stateful so AVGrid's resize/reorder handlers (via setColumns)
-    // persist user-dragged widths and column order. They are generated ONCE on
-    // first mount, then preserved across refresh / load-more (US-622):
-    //   - A *structural* change (compact toggled, or the L/R side-select column
-    //     added/removed) rebuilds from scratch — resetting widths/order is the
-    //     right behavior there.
-    //   - Otherwise, when more commits load and the branch-lane count shifts, we
-    //     re-fit ONLY the graph (first) column — its width and cell renderer both
-    //     depend on `maxColumns` — leaving every other column's user width and
-    //     the user's column order untouched. Compact views (no graph) are fully
-    //     preserved.
-    const structureKey = `${compact}|${hasSideSelect}`;
-    // Apply the owner-persisted layout (width + order) once, at mount — read-once
-    // from the initial prop value (US-623).
-    const viewModel = useComponentModel({ ...props, structureKey, maxColumns, sideSelectCell }, GitTreeViewModel, {
-        columns: applyLayout(buildColumns(maxColumns, compact, sideSelectCell), initialColumnLayout),
-        focus: undefined,
-    });
-    const { columns, focus } = viewModel.state.use();
-
-    // AVGrid drives resize/reorder through `setColumns(updater)`. Wrap it so user
-    // changes are reported up to the owner for persistence — while the component's
-    // OWN programmatic updates (structural rebuild + graph re-fit, below) call the
-    // raw `setColumns` and therefore do NOT emit (US-623).
-    const handleColumnsChange = useCallback(
-        (action: SetStateAction<Column<GitCommitRow>[]>) => {
-            viewModel.setColumns((prev) => {
-                const next = typeof action === "function" ? action(prev) : action;
-                onColumnLayoutChange?.(next.map((c) => ({ key: String(c.key), width: c.width })));
-                return next;
-            });
+    const onCellClick = useCallback(
+        (cell: CellContext<GitCommitRow>, e: MouseEvent) => {
+            if (String(cell.column.key) === SIDE_SELECT_KEY) {
+                handleSideSelectClick(e.target, cell.row, sideSelectRef.current);
+                // A `return`, not `stopPropagation`: this callback is the last statement of
+                // av-grid's own delegated click handler, so there is no grid work left to cancel —
+                // and the column is `isStatusColumn`, so the press moved no focus either.
+                return;
+            }
+            onSelectCommit?.(cell.row.hash);
         },
-        [onColumnLayoutChange, viewModel],
+        [onSelectCommit],
     );
 
-    const selected = useMemo(
-        () => new Set<string>(selectedHash ? [selectedHash] : []),
-        [selectedHash],
+    /**
+     * Host items above av-grid's own, gated to data cells the way the React grid's
+     * `ContextMenuModel` gated them. `undefined` when the prop is absent, because passing a
+     * function at all is meaningful to av-grid — and here it would only add an empty array.
+     */
+    const gridMenuItems = useMemo(
+        () =>
+            getContextMenuItems
+                ? (e: GridContextMenuEvent<GitCommitRow>): MenuItem[] =>
+                      e.target === "cell"
+                          ? getContextMenuItems(e.selection?.rows ?? [])
+                          : []
+                : undefined,
+        [getContextMenuItems],
     );
-
-    // Cell focus + range selection (enables AVGrid's range-copy). Held here, in
-    // the AVGrid's parent, per the controlled focus/setFocus contract.
-    const loadMore = hasMore ? (
-        <LoadMoreRow data-type="git-tree-load-more">
-            {loadingMore ? (
-                <LoadMoreLink data-disabled>Loading…</LoadMoreLink>
-            ) : (
-                <>
-                    <LoadMoreLink onClick={() => void model.loadMore()}>Load more</LoadMoreLink>
-                    <LoadMoreSep>·</LoadMoreSep>
-                    <LoadMoreLink onClick={() => void model.loadAll()}>Load all</LoadMoreLink>
-                </>
-            )}
-        </LoadMoreRow>
-    ) : undefined;
 
     return (
-        <AVGrid<GitCommitRow>
-            onModel={(grid) => { gridRef.current = grid ?? undefined; }}
+        <DataGrid<GitCommitRow>
             name={name}
-            columns={columns}
-            setColumns={handleColumnsChange}
+            onGrid={onGrid}
+            columns={initialColumns.current}
             rows={rows}
-            getRowKey={(r) => r.hash}
+            getRowKey={getRowKey}
             rowHeight={GIT_TREE_ROW_HEIGHT}
-            selected={selected}
-            onClick={(r) => onSelectCommit?.(r.hash)}
-            focus={focus}
-            setFocus={viewModel.setFocus}
-            disableFiltering
             disableSorting
-            extraElement={loadMore}
-            getContextMenuItems={getContextMenuItems}
+            disableFiltering
+            // The footer is taller than av-grid's default 20px trailing slack, so it reserves its
+            // own room rather than overlapping the last row (US-1021 F5).
+            extraElement={hasMore ? footer.element : null}
+            whiteSpaceY={hasMore ? GIT_TREE_ROW_HEIGHT : undefined}
+            onCellClick={onCellClick}
+            onColumnResize={scheduleEmitLayout}
+            onColumnsReorder={emitLayout}
+            getContextMenuItems={gridMenuItems}
+            // Draw the menu with the application's own popup menu. This is where EPIC-057 C4-5
+            // closes Rule 6 for this consumer: the `showAppPopupMenu` call lives app-side, and the
+            // grid hands the event outward instead of reaching into `ui/`.
+            onGridContextMenu={showGridContextMenu}
         />
     );
 }

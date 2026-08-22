@@ -63,16 +63,21 @@ const COLUMNS: Column<DemoRow>[] = [
 ];
 
 /**
- * A cell renderer returning an element, with the one line that makes it correct.
+ * A cell renderer returning an element.
  *
- * `position: absolute` is set here and nowhere else: the engine writes `top` and `left` on the
- * cell it hands back, and a cell left in normal flow stacks at the top of the render area. The
- * symptom is not an error — row 1 looks perfect and everything below it is blank.
+ * **It must NOT be positioned.** av-grid's `render` supplies the *content* of the library's own
+ * pooled `.avg-data-cell`, and that cell is what the engine writes `top` and `left` on — the
+ * returned node is its child and lays out in flow inside it. Positioning it would take it out of
+ * flow into the positioned paint step, *after* `.avg-data-cell::before`, so this cell would paint
+ * over the hover and selection tints while every other cell in its row painted under them.
+ *
+ * (This comment previously said the opposite, on the strength of EPIC-057 C4-6. That requirement
+ * is real for the *React* grid being replaced, where a `cellRenderer` *was* the cell and received
+ * the absolute box. Corrected in US-1021 F8.)
  */
 function renderRatioBar(value: unknown): HTMLElement {
     const el = document.createElement("div");
     el.dataset.part = "ratio-bar";
-    el.style.position = "absolute";
     el.style.display = "flex";
     el.style.alignItems = "center";
     el.style.gap = "6px";

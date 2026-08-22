@@ -1,0 +1,161 @@
+/*
+ * Git-tree cell styling (EPIC-057 / US-1021).
+ *
+ * These cells are av-grid `render` hooks returning HTML strings, so Emotion cannot reach them and
+ * a stylesheet is the only form available. The layer is what makes it work: the app's order is
+ * `base, uikit, app, editor` (`theme/style-layers.css`), and `@layer app` outranks av-grid's
+ * `@layer uikit` regardless of specificity — so a rule aimed at `.avg-data-cell` wins without a
+ * specificity contest.
+ *
+ * Selectors key off `data-column-key`, which av-grid writes on every cell for free
+ * (`av-grid/src/view/DataCell.ts`).
+ */
+@layer app {
+    /* The swimlane graph cell.
+       `padding: 0` because `laneX()` measures lanes from the cell's own left edge, and av-grid's
+       4px cell padding would shift every lane right and misalign the graph from the layout
+       arithmetic. `flex-start` because the cell is border-box with a 1px bottom border, so a 24px
+       row has a 23px content box — centring a 24px SVG in it lands the node's centre on a
+       half-pixel and blurs the ring. The old React cell was a block container, so the SVG sat at
+       the top and its last pixel went under the border; this reproduces that exactly. */
+    .avg-grid .avg-data-cell[data-column-key="graph"] {
+        padding: 0;
+        align-items: flex-start;
+    }
+
+    /* `.avg-data-cell` is inline-flex, so the SVG is a flex item: without this it shrinks to fit a
+       narrowed column and the viewBox rescales the graph. Pinned, it overflows at constant size and
+       the cell's own `overflow: hidden` slides the clip edge instead (EPIC-030 Concern 9).
+
+       Deliberately NOT positioned. EPIC-057 C4-6 claimed a returned renderer must be absolutely
+       positioned; that was true of the React grid, where a `cellRenderer` *was* the cell and
+       received the absolute box. Here the content is the cell's child — av-grid positions
+       `.avg-data-cell` around it — and positioning this would move it into the positioned paint
+       step after `.avg-data-cell::before`, so the graph would paint OVER the hover and selection
+       tints while the rest of the row painted under them. See US-1021 F8. */
+    .avg-grid .avg-data-cell[data-column-key="graph"] > svg {
+        display: block;
+        flex: 0 0 auto;
+    }
+
+    /* The ring that separates a commit node from the row behind it.
+       `--avg-cell-bg` and NOT `--color-grid-data-bg`: av-grid paints its cells from its own token,
+       which resolves `--avg-cell-bg` → `--avg-bg` → `var(--p-bg)` → `--color-bg-default`. The two
+       are the same hex in all ten themes today, so stroking the wrong one is invisible — until
+       someone re-tints grid rows. A class rather than an SVG presentation attribute because
+       `var()` is not valid in one: a presentation attribute is parsed against the property's
+       grammar with no custom-property substitution. */
+    .avg-grid .avg-data-cell[data-column-key="graph"] .git-graph-node {
+        stroke: var(--avg-cell-bg);
+    }
+
+    /* Decoration-ref chips (branch / tag / HEAD / remote). Shared by the subject cell's `render`
+       string and the React `RefBadge` the Commit info panel uses, so the chip is defined once.
+       The per-kind text colour stays an inline style at both call sites: `REF_COLOR` is palette
+       hex, not a custom property, so a stylesheet cannot name it without hardcoding a colour. */
+    .git-ref-badge {
+        display: inline-block;
+        flex-shrink: 0;
+        margin-right: var(--space-sm, 4px);
+        padding: 0 var(--space-sm, 4px);
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-xs, 2px);
+        font-size: var(--font-xs, 12px);
+        font-weight: 600;
+    }
+
+    /* The chips keep their size and the text absorbs the shrink — the same division of labour the
+       React cell got from `flexShrink: 0` plus `<TruncatedText>`. */
+    .avg-grid .avg-data-cell .git-subject-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+
+    /* Synthetic endpoint rows (Unstaged/Staged) read as special rows, not commits (US-618). */
+    .avg-grid .avg-data-cell .git-special-subject {
+        font-style: italic;
+        color: var(--color-text-light);
+    }
+
+    /* The L/R side-select toggles (US-618). Spans rather than buttons, and no listeners of their
+       own: av-grid's cells are pooled and the root delegates — see `side-select-cell.ts`. */
+    .avg-grid .avg-data-cell[data-column-key="--side-select--"] {
+        justify-content: center;
+    }
+
+    .git-side-select {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-xs, 2px);
+    }
+
+    .git-side-toggle,
+    .git-side-spacer {
+        width: 20px;
+        height: 18px;
+        flex-shrink: 0;
+    }
+
+    .git-side-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-xs, 2px);
+        color: var(--color-text-light);
+        font-size: var(--font-xs, 12px);
+        font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .avg-grid .avg-data-cell .git-side-toggle:hover:not([data-active]) {
+        color: var(--color-text-default);
+    }
+
+    /* Active = the accent pair the UIKit primary Button uses, so the chosen side reads clearly. */
+    .avg-grid .avg-data-cell .git-side-toggle[data-active] {
+        background: var(--color-bg-selection);
+        color: var(--color-text-selection);
+        border-color: var(--color-bg-selection);
+    }
+
+    /* The "Load more" footer, passed to av-grid as `extraElement`. av-grid's own `.avg-extra`
+       supplies `position: absolute; left: 0; right: 0; bottom: 0`, so only the band's own look
+       belongs here — the four declarations the React version hand-wrote are gone (US-1021 F5).
+       The opaque background is kept even though `whiteSpaceY` now reserves the room: it is what
+       makes the band read as a footer rather than as empty space. */
+    .git-tree-load-more {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-md, 8px);
+        height: 24px;
+        background: var(--color-bg-default);
+        font-size: var(--font-sm, 12px);
+        user-select: none;
+    }
+
+    .git-tree-load-more-link {
+        cursor: pointer;
+        color: var(--color-text-default);
+    }
+
+    .git-tree-load-more-link:hover {
+        text-decoration: underline;
+    }
+
+    .git-tree-load-more-link[data-disabled] {
+        opacity: 0.6;
+        cursor: default;
+        text-decoration: none;
+    }
+
+    .git-tree-load-more-sep {
+        color: var(--color-text-light);
+    }
+}

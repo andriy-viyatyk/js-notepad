@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 
-import { GitTree } from "./GitTree";
+import { GitTree, type GitTreeSideSelect } from "./GitTree";
 import { GitTreeModel } from "./GitTreeModel";
+import type { GitCommitRow } from "./swimlane-layout";
 import { Panel } from "../../uikit/Panel";
 import type { GitCommit } from "../../../ipc/git-ipc";
 import type { Story } from "../../editors/storybook/storyTypes";
@@ -24,7 +25,13 @@ const DEMO_COMMITS: GitCommit[] = [
     { hash: h("I"), shortHash: "Iiiiiii", parents: [],               subject: "Initial commit",             authorName: "Ada",  authorEmail: "ada@example.com", authorDate: t(12), refs: [{ name: "v0.1", kind: "tag" }] },
 ];
 
-function GitTreeDemo({ compact = false }: { compact?: boolean }) {
+function GitTreeDemo({
+    compact = false,
+    sideSelect: withSideSelect = false,
+}: {
+    compact?: boolean;
+    sideSelect?: boolean;
+}) {
     const [selected, setSelected] = useState<string | undefined>(undefined);
     // Seed a model with the synthetic DAG (no git fetch) — the component is a
     // pure renderer over `model.state`.
@@ -33,6 +40,27 @@ function GitTreeDemo({ compact = false }: { compact?: boolean }) {
         m.state.update((s) => { s.commits = DEMO_COMMITS; });
         return m;
     }, []);
+
+    // The L/R side-select column (US-618) is otherwise reachable only through the Git Diff
+    // "Revisions" panel, so the story wires a local from/to pair: it exercises the toggles, the
+    // sticky status column, and the `grid.refresh()` repaint path (US-1021).
+    const [from, setFrom] = useState<string | undefined>(h("E"));
+    const [to, setTo] = useState<string | undefined>(h("A"));
+    const sideSelect = useMemo<GitTreeSideSelect | undefined>(
+        () =>
+            withSideSelect
+                ? {
+                      selectionKey: `${from}|${to}`,
+                      showLeft: () => true,
+                      isLeftActive: (row: GitCommitRow) => row.hash === from,
+                      isRightActive: (row: GitCommitRow) => row.hash === to,
+                      onPickLeft: (row: GitCommitRow) => setFrom(row.hash),
+                      onPickRight: (row: GitCommitRow) => setTo(row.hash),
+                  }
+                : undefined,
+        [withSideSelect, from, to],
+    );
+
     return (
         <Panel direction="column" width={compact ? 460 : 760} height={320}>
             <Panel direction="column" flex={1} height={0}>
@@ -41,6 +69,7 @@ function GitTreeDemo({ compact = false }: { compact?: boolean }) {
                     selectedHash={selected}
                     onSelectCommit={setSelected}
                     compact={compact}
+                    sideSelect={sideSelect}
                 />
             </Panel>
         </Panel>
@@ -52,5 +81,9 @@ export const gitTreeStory: Story = {
     name: "GitTree",
     section: "Git",
     component: GitTreeDemo as React.ComponentType<Record<string, unknown>>,
-    props: [{ name: "compact", type: "boolean", default: false }],
+    props: [
+        { name: "compact", type: "boolean", default: false },
+        // The L/R column only exists in the compact layout — turn both on together.
+        { name: "sideSelect", type: "boolean", default: false },
+    ],
 };

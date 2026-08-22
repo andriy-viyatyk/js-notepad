@@ -268,11 +268,23 @@ swimlane, which draws the branch graph and is a genuine React component with its
 (`swimlane-layout.ts`, which is pure and unaffected).
 
 `BranchTreeCell` is therefore the epic's one real component rewrite, and it lands in the git-tree
-task with the consumer that needs it. Note av-grid's DOM-contract requirement for element-returning
+task with the consumer that needs it.
+
+> ⚠ **The paragraph below is wrong, and following it produces a worse bug than the one it warns
+> about.** Corrected by US-1021 F8, 2026-08-22. It describes the **React** grid, where a
+> `cellRenderer` *replaced* the cell and so received the absolute box. av-grid's `render` returns
+> the cell's **child**: `applyCellStyle` writes `top`/`left` on the pooled `.avg-data-cell`
+> (`view/DataCell.ts:251`), and the returned content needs no positioning at all. Positioning it
+> moves the content into the positioned paint step *after* `.avg-data-cell::before`, so a custom
+> cell paints **over** the hover and selection tints while the rest of its row paints under them.
+> The Verification item below that repeats this check goes with it. `uikit/DataGrid/DataGrid.story.tsx`
+> teaches the wrong rule in a doc-comment and is fixed in US-1021.
+
+~~Note av-grid's DOM-contract requirement for element-returning
 renderers: **the stylesheet must position the returned element absolutely** — the engine writes
 `top` and `left` and nothing writes `position`. A cell that lays out in flow looks right at the top
 of the list and leaves an empty band below it, which is a failure that a screenshot of row 1 does
-not catch.
+not catch.~~
 
 ### C4-7 — four parity gaps, batched into one upstream av-grid release before the consumer tasks
 
@@ -363,7 +375,8 @@ up, per this programme's convention.
 |---|---|---|
 | [US-1019](../tasks/US-1019-adopt-av-grid/README.md) | Adopt av-grid — the pinned dependency, the `--p-*` bridge, layered CSS, the mounting shim, the story, and the Rule 4 "before" numbers taken on the React grid | **Implemented** — steps 2-7 landed; the "before" measurement is outstanding |
 | [US-1020](../tasks/US-1020-grid-editor-av-grid/README.md) | `editors/grid/` — the JSON/CSV grid editor. Seven files, the persisted view state, the filter bar, and the context menu that closes Rule 6 for this consumer | **Implemented** — C4-10's first invocation shipped as av-grid 2.2.1; app testing outstanding |
-| US-1021 | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | Planned |
+| [US-1021](../tasks/US-1021-git-tree-av-grid/README.md) | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | **Implemented** — against av-grid **2.2.2**, C4-10's second invocation; app testing outstanding |
+| US-1024 | The cell-overflow tooltip, restored once in `DataGridView` for every consumer. Not a C4-10 workaround: the library supplies the ellipsis and the documented cell attributes, and Persephone supplies the tooltip it alone owns. Must land before US-1022 | Planned |
 | US-1022 | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | Planned |
 | US-1023 | Delete `uikit/AVGrid/` — 29 files, 9 Emotion importers, the barrel, and the epic's closing numbers | Planned |
 
@@ -378,6 +391,10 @@ work.
 US-1019 carries the two upstream av-grid additions (C4-7) so that no consumer task blocks on a
 library release.
 
+**One ordering constraint was added after the fact:** US-1024 (the cell-overflow tooltip) lands
+**before US-1022**, because it is fixed once in `DataGridView` and every consumer that migrates
+before it would otherwise need a retrofit. It does not constrain US-1021, which is independent of it.
+
 ### Verification
 
 Per-consumer, through the app rather than through stories — these are editors and panels with real
@@ -388,8 +405,11 @@ rows, resize and reorder columns, sort, filter, range-select and copy, the conte
 
 Two checks that generalise across the tasks, because both are silent failures:
 
-- **The absolute-positioning requirement** for element-returning cell renderers (C4-6). Verify at a
-  scroll offset, not at the top of the list.
+- ~~**The absolute-positioning requirement** for element-returning cell renderers (C4-6). Verify at a
+  scroll offset, not at the top of the list.~~ **Struck 2026-08-22 (US-1021 F8)** — the requirement
+  does not exist for av-grid's `render`, and satisfying it is itself the defect. The check that
+  replaces it: a custom cell must be tinted *by* the hover and selection overlays like a text cell,
+  not paint over them. Still verify at a scroll offset.
 - **A theme switch** with a grid, a filter popover, a filter bar and the cell dropdown all open —
   the four elements that define the `--avg-*` block on themselves (C4-4), so each is a separate
   chance for an unthemed surface.
@@ -654,3 +674,94 @@ no existing call site has that ordering.
 And av-grid's own array-replacement semantics mean **a cached `rows` reference is a bug**: the
 library replaces its row array on add, so a host that hands a stale seed back through a prop push
 silently drops the row the user just added. Read through to `getRows()` instead.
+
+### 2026-08-22 — US-1021 planned: one decision corrected, and a regression the epic never predicted
+
+The task document is [US-1021](../tasks/US-1021-git-tree-av-grid/README.md). Four questions were
+settled with independent agents; eight findings came out of it. Four are epic-level.
+
+**C4-6's absolute-positioning requirement is wrong, and it is wrong in the direction that gets
+re-derived.** It is true of the grid being replaced — a React `cellRenderer` *was* the cell, and
+received the absolute box — and false of av-grid's `render`, which returns the cell's child while
+`applyCellStyle` positions the pooled `.avg-data-cell` around it. Following it is worse than
+ignoring it: the content leaves normal flow for the positioned paint step, *after*
+`.avg-data-cell::before`, so a custom cell paints over the hover and selection tints while the rest
+of its row paints under them. C4-6 is annotated above and its Verification twin struck. The reason
+this matters beyond one paragraph is that US-1019 wrote the false rule into
+`uikit/DataGrid/DataGrid.story.tsx` as a doc-comment explaining "the one line that makes it
+correct" — so the next two consumer tasks would have learned it from the code. US-1021 fixes both.
+
+**The same correction is what makes these rewrites small.** Because `render` supplies *content*
+inside av-grid's own cell, everything the React renderers hand-paint — the absolute box, the
+forwarded `className`, the background, the bottom and right borders, the `overflow: hidden` — is
+**deleted rather than ported**, and a custom cell inherits the selection and hover tints for free.
+The nine hook sites the epic counted in this consumer collapse to three real renderers plus two
+outright deletions: av-grid's default cell already shows `row[key]` and already ellipsizes, so an
+author column that existed only to wrap a string in `<TruncatedText>` becomes a plain declaration.
+US-1022 should expect the same ratio in `FileGrid`.
+
+**The overflow tooltip is an epic-wide regression that has already shipped.** The React `DataCell`
+wrapped every string cell in `<TruncatedText>` — ellipsis plus Persephone's own tooltip with the
+full value on hover. av-grid ellipsizes and has no tooltip at all (`title` appears in the library
+only on header cells), so **US-1020 dropped hover-to-read from the JSON/CSV grid editor and nobody
+noticed**. That is now [US-1024](#linked-tasks): one delegated helper measuring the single hovered
+cell, wired once in `DataGridView` — the seam every consumer passes through — and it must land
+before US-1022 so the remaining consumers inherit it instead of each needing a retrofit. It is not
+a C4-10 workaround, and the test is worth recording because it will be applied again: nothing is
+missing from av-grid (it supplies the ellipsis, the delegated-hover architecture, the publicly
+documented cell attributes, and the complete display string in the text node), while what has to be
+added is Persephone's tooltip component, its delay, its theme and its coordination with its own
+overlay and drag registries — none of which can exist in a framework-free published grid. That is
+the `grid-context-menu.tsx` case verbatim. Upstreaming a native `title` was considered on its merits
+and rejected: it would fire on unclipped cells, during a range-drag and under an open popover, with
+nothing able to suppress it.
+
+**The control inversion is *cheaper* than the code it replaces, for the third time.** C4-3 predicted
+this for persisted view state; here it lands on column layout. `onColumnResize` and
+`onColumnsReorder` are reachable only from `GridInteractions`, never from a programmatic
+`setColumns` — so "report the user's layout but not our own rebuilds", which the React component
+implements with a wrapper around `setColumns` and a comment explaining the distinction, is satisfied
+*structurally* by choosing those two callbacks. The wrapper, the `columns` state, the `focus` state,
+the `queueMicrotask` hop and its staleness re-check all delete. One new fact for the remaining
+tasks: a user resize fires on **every pointermove**, and it fires `onColumnsChange` *before* the
+resize-specific callback, so anything that persists on resize wants debouncing.
+
+### 2026-08-22 — US-1021 implemented: C4-10's second invocation, and it was an optimisation
+
+Landed against av-grid **2.2.2**, published the same day. `npm run lint`, `npm run typecheck` and
+`npm run build-prod` are clean; the app-level acceptance list is untested. The detail is in
+[the task](../tasks/US-1021-git-tree-av-grid/README.md); three things belong here.
+
+**C4-10 fired for the second time, and this time the gap was not a blocker.** US-1020's invocation
+was a hard failure — `validateColumns` threw on a legitimate column set, and no host-side reconcile
+could fix it. This one was a *contingent* performance defect: av-grid's `render` string path guarded
+its write with `el.innerHTML !== rendered`, and the getter serializes the subtree, so the guard held
+only for markup written exactly the way the serializer emits it. A hook that self-closed a tag or
+lowercased an SVG attribute re-parsed its cell on every repaint that touched it — invisibly, and
+undiscoverably from the hook that caused it. The swimlane cell is precisely that hook.
+
+The library already had the answer in the same file: the search-highlight path keeps a `WeakMap` of
+the last markup assigned, with a comment explaining that it chose the map *because* the getter
+serializes. 2.2.2 extends that map to both markup modes. Measured, not argued: childList node
+mutations on a full repaint of a `render`-string column **36 → 0**, attribute mutations unchanged.
+Two of the five new tests fail against the old code.
+
+The precedent worth keeping is about *when* to spend an upstream release. This one was optional — the
+consumer was correct and complete without it, and the cost was sub-millisecond. It was still the
+right call, because the alternative was a Persephone renderer whose correctness-of-performance
+depended on a serializer detail that nothing in this repository can test and that a future tidy-up
+would have broken silently. C4-10's rule reads "no workaround"; this is the softer neighbouring
+case — **no invisible contract**.
+
+**A process obligation the epic did not know about.** av-grid's `docs/releasing.md` requires a
+benchmark row for any render-path change, at change time. The row is appended, and it states
+plainly that the *board timing gate was not re-run* — it needs a browser — with the deterministic
+counter standing in as the number the change is actually about. Recording it here because US-1022
+and US-1023 may both touch that path, and the honest form of that row is now set.
+
+**The consumer shrank exactly as F8's correction predicted.** Nine React hook sites became three
+`render` strings and two outright deletions, because av-grid's cell keeps its own class, borders,
+`overflow` and selection/hover overlays — so a custom cell inherits the tints instead of
+re-painting them. `GitTree.tsx` lost its state entirely: no `columns`, no `focus`, no view model, no
+`setColumns` wrapper, no deferred rebuild. US-1022 should expect the same ratio in `FileGrid`, whose
+three `cellFormater`s look like the author and date columns that vanished here.

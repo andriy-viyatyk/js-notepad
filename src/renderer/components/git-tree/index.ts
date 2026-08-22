@@ -1,5 +1,4 @@
 export { GitTree, type GitTreeProps, type GitTreeSideSelect, type GitColumnLayout } from "./GitTree";
-export { SideSelectToggle, type SideSelectToggleProps } from "./SideSelectToggle";
 export { GitTreeModel, GIT_TREE_PAGE, type GitTreeState } from "./GitTreeModel";
 export { GitChangesModel, type GitChangesState } from "./GitChangesModel";
 export { GitBranchesModel, type GitBranchesState } from "./GitBranchesModel";
@@ -19,7 +18,8 @@ export {
     LANE_WIDTH,
     graphWidth,
     makeBranchTreeCell,
-} from "./BranchTreeCell";
+} from "./branch-tree-cell";
+export { SIDE_SELECT_KEY } from "./side-select-cell";
 export {
     toCommitRows,
     maxColumnCount,
