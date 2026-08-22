@@ -1,0 +1,16 @@
+/*
+ * Translated from the single Emotion block in `Select.tsx` (EPIC-056 US-1017). Three declarations
+ * and no state arms: every `data-*` attribute on the Select root is addressing only, and the visual
+ * states belong to the composed `Input`, `IconButton`, `Popover` and `ListBox`.
+ *
+ * `width` / `min-width` / `max-width` from props are written to `element.style` by
+ * `SelectView.applyRoot`, matching React's own output — which is why the view must write `""` and
+ * not `"100%"` when a prop is absent: the `width: 100%` below is the default the cascade provides.
+ */
+@layer uikit {
+    [data-type="select"] {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+}

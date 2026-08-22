@@ -6,6 +6,10 @@ import { applyRestProps, bindRef, clearRestListeners, createRestPropsState, type
 import { VanillaView } from "../shared/vanilla-view";
 import type { IconRef } from "../shared/slots";
 import type { IconButtonProps } from "./IconButton";
+// Owned by the view, not the shim: a vanilla parent may compose `IconButtonView` directly (`Select`
+// does, for its chevron), and it imports `IconButton` type-only — which erases at compile time — so
+// the stylesheet has to travel with the DOM rather than with the React face. Matches `InputView`.
+import "./IconButton.css";
 
 export type IconButtonViewProps = IconButtonProps;
 
@@ -13,6 +17,12 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private readonly iconHost = document.createElement("span");
     private iconCleanup: (() => void) | undefined;
+    /**
+     * The last icon *name* written to the host, or undefined when the current icon came from a
+     * React value. A composed parent pushes props on every update — `Select`'s chevron once per
+     * keystroke — and `createIconElement` would rebuild the `svg` each time.
+     */
+    private appliedIconName: string | undefined;
     private tooltip: TooltipAttachment | undefined;
     private refCleanup: (() => void) = () => undefined;
     private boundRef: React.Ref<HTMLButtonElement> | undefined;
@@ -86,18 +96,24 @@ export class IconButtonView extends VanillaView<IconButtonViewProps> {
      */
     private updateIcon(icon: IconRef): void {
         if (typeof icon === "string") {
+            if (this.appliedIconName === icon) return;
+            this.appliedIconName = icon;
             this.iconCleanup = fillSlot(
                 this.iconHost,
                 createIconElement(isIconName(icon) ? icon : icon as never),
             );
             return;
         }
+        // A React value keeps the ungated path: `fillSlot` re-renders into the cached root, so an
+        // inline element (always a fresh object) costs a reconcile rather than a rebuilt subtree.
+        this.appliedIconName = undefined;
         this.iconCleanup = fillSlot(this.iconHost, renderIcon(icon));
     }
 
     private clearIcon(): void {
         this.iconCleanup?.();
         this.iconCleanup = undefined;
+        this.appliedIconName = undefined;
     }
 
     private setRef(ref: React.Ref<HTMLButtonElement> | undefined): void {

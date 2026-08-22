@@ -1,5 +1,5 @@
 import React from "react";
-import { fillSlot } from "../shared/fill-slot";
+import { fillSlot, type SlotContent } from "../shared/fill-slot";
 import {
     applyRestProps,
     bindRef,
@@ -17,7 +17,7 @@ export function cssLength(value: number | string): string {
     return typeof value === "number" ? `${value}px` : value;
 }
 
-function hasSlot(value: React.ReactNode): boolean {
+function hasSlot(value: SlotContent): boolean {
     return value !== undefined && value !== null && value !== false;
 }
 
@@ -26,6 +26,17 @@ export class InputView extends VanillaView<InputProps> {
     private readonly restPropsState: RestPropsState = createRestPropsState();
     private readonly slotHosts = new Map<"start" | "end", HTMLDivElement>();
     private readonly slotCleanups = new Map<"start" | "end", () => void>();
+    /**
+     * The last value handed to `fillSlot` per slot. `fillSlot`'s node path runs
+     * `replaceChildren()` then `append()`, and `updateSlot` is called on every update — so without
+     * this gate a vanilla parent passing a stable element (`Select`'s chevron button) would have it
+     * detached and re-appended on every keystroke: layout invalidation, a restarted transition, and
+     * a spurious `MutationObserver` record, for identical content.
+     *
+     * Safe for both arms. The same `Node` means the same content, and a React element built inline
+     * is always a new object, so a genuinely-changed subtree always has a new identity.
+     */
+    private readonly appliedSlots = new Map<"start" | "end", SlotContent>();
     private refCleanup: (() => void) | undefined;
     private previousRef: React.Ref<HTMLInputElement> | undefined;
     private previousAutoFocus = false;
@@ -130,19 +141,23 @@ export class InputView extends VanillaView<InputProps> {
         this.updateSlot("end", props.endSlot);
     }
 
-    private updateSlot(kind: "start" | "end", value: React.ReactNode): void {
+    private updateSlot(kind: "start" | "end", value: SlotContent): void {
         const present = hasSlot(value);
         const host = this.slotHosts.get(kind);
 
         if (!present) {
             this.slotCleanups.get(kind)?.();
             this.slotCleanups.delete(kind);
+            this.appliedSlots.delete(kind);
             host?.remove();
             this.slotHosts.delete(kind);
             return;
         }
 
+        // `host` is undefined on the first application, which must always run.
+        if (host && this.appliedSlots.get(kind) === value) return;
         const nextHost = host ?? this.createSlotHost(kind);
+        this.appliedSlots.set(kind, value);
         this.slotCleanups.set(kind, fillSlot(nextHost, value));
     }
 
@@ -158,6 +173,7 @@ export class InputView extends VanillaView<InputProps> {
     private clearSlots(): void {
         for (const cleanup of this.slotCleanups.values()) cleanup();
         this.slotCleanups.clear();
+        this.appliedSlots.clear();
         for (const host of this.slotHosts.values()) host.remove();
         this.slotHosts.clear();
     }

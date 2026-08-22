@@ -1,6 +1,7 @@
 import React from "react";
 import { mountVanilla } from "../shared/mount";
 import { InputView } from "./InputView";
+import type { SlotContent } from "../shared/fill-slot";
 
 // --- Types ---
 
@@ -27,10 +28,14 @@ export interface InputProps
      * (search boxes, etc.). Default: `"default"`.
      */
     tone?: "default" | "accent";
-    /** Content rendered inside the input chrome, before the text. */
-    startSlot?: React.ReactNode;
-    /** Content rendered inside the input chrome, after the text. */
-    endSlot?: React.ReactNode;
+    /**
+     * Content rendered inside the input chrome, before the text. A DOM `Node` is appended directly
+     * with no React root — that is how a vanilla parent supplies a composed view's root
+     * (`Select` passes its chevron `IconButtonView`'s root here).
+     */
+    startSlot?: SlotContent;
+    /** Content rendered inside the input chrome, after the text. See `startSlot`. */
+    endSlot?: SlotContent;
     /** When true, paints a red border (`color.error.border`) — for required/validated
      *  fields whose current value is rejected. Persists through focus. Default: false. */
     invalid?: boolean;

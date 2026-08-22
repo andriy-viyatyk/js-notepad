@@ -13,7 +13,8 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1014: `ListBox`, `ListItem`, `SectionItem` — the first data view on the vanilla engine](tasks/US-1014-listbox-vanilla/README.md)
   - [ ] [US-1015: `Tree` — rows, DnD, keyboard, and the largest model in `uikit/`](tasks/US-1015-tree-vanilla/README.md)
   - [ ] [US-1016: `MultiListBox` — checkbox rows and the select-all header](tasks/US-1016-multilistbox-vanilla/README.md)
-  - *(US-1017 … US-1018 are planned in the epic; each gets its document immediately before its
+  - [ ] [US-1017: `Select` — four effects, async item loading, and the Rule 4 number](tasks/US-1017-select-vanilla/README.md)
+  - *(US-1018 is planned in the epic; it gets its document immediately before its
     implementation)*
 - *(no epic)*
   - *(no active tasks)*

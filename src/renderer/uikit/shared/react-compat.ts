@@ -69,6 +69,19 @@ export function toPublicEvent(event: Event): React.SyntheticEvent<HTMLElement> {
  */
 const ENUMERATED_ATTRIBUTES = new Set(["draggable", "spellcheck", "contenteditable"]);
 
+/**
+ * `aria-*` attributes take the same "true"/"false" keywords, and React renders a boolean on them as
+ * that string rather than dropping it — `aria-expanded={false}` is `aria-expanded="false"`, which is
+ * semantically different from no attribute at all (a collapsed combobox versus one that does not
+ * expand). Both of the generic arms below would get it wrong: `false` would be removed, and `true`
+ * would be written as the empty string a boolean attribute uses.
+ *
+ * `PathInputView` and `Select` both pass `aria-expanded={boolean}` through here.
+ */
+function isEnumeratedAttribute(key: string): boolean {
+    return ENUMERATED_ATTRIBUTES.has(key) || key.startsWith("aria-");
+}
+
 /** Apply React-style residual attributes/listeners and remove stale values. */
 export function applyRestProps(
     root: HTMLElement,
@@ -109,12 +122,12 @@ export function applyRestProps(
             continue;
         }
 
-        if (value == null || (value === false && !ENUMERATED_ATTRIBUTES.has(key))) {
+        if (value == null || (value === false && !isEnumeratedAttribute(key))) {
             root.removeAttribute(attributeName(key));
             previous.attributes.delete(key);
             continue;
         }
-        if (ENUMERATED_ATTRIBUTES.has(key)) {
+        if (isEnumeratedAttribute(key)) {
             root.setAttribute(attributeName(key), value === true ? "true" : String(value));
             previous.attributes.add(key);
             continue;

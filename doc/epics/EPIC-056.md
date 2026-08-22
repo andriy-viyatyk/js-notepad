@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status:** Active — US-1013 through US-1016 implemented, awaiting user testing
+**Status:** Active — US-1013 through US-1017 implemented, awaiting user testing
 **Created:** 2026-08-21
 
 ## Overview
@@ -342,7 +342,7 @@ before its implementation, and this table's rows become links as that happens.
 | [US-1014](../tasks/US-1014-listbox-vanilla/README.md) | `ListBox`, `ListItem`, `SectionItem` — the first data view on the vanilla engine | Implemented |
 | [US-1015](../tasks/US-1015-tree-vanilla/README.md) | `Tree` — rows, DnD, keyboard, and the largest model in `uikit/` | Implemented |
 | [US-1016](../tasks/US-1016-multilistbox-vanilla/README.md) | `MultiListBox` — checkbox rows and the select-all header | Implemented |
-| US-1017 | `Select` — four effects, async item loading, and the Rule 4 number | Planned |
+| [US-1017](../tasks/US-1017-select-vanilla/README.md) | `Select` — four effects, async item loading, and the Rule 4 number | Implemented |
 | US-1018 | `MultiSelect` and `Autocomplete` — the last two dropdowns and `Panel`'s eviction | Planned |
 
 Six tasks rather than C2's eight, because the engine cannot usefully be split (its six files are one
@@ -506,6 +506,155 @@ whether its slot props can narrow now that its only view is vanilla.
    itself editing an `AVGrid/` file, that is a signal the seam decision (C3-1) is being violated.
 
 ## Notes
+
+### 2026-08-22 — US-1017 (`Select`) implemented, and the Rule 4 number
+
+**All four effects are gone, and `Select` is the first model in the epic to lose its `init()`
+entirely.** Where each went: the items-source reset (`:520`) to `setProps` behind an identity guard on
+a model-owned `appliedItemsSource` sentinel; the load trigger (`:535`) to `resetItemsCache` for sync
+sources and `startLoadIfNeeded` from the open transition for async ones; the close reset (`:556`) into
+`closeInto`, a draft mutator applied inside the write that closes; and the `activeIndex` seed (`:577`)
+into `openInto` on the open transition plus `commitLoaded` when rows arrive. `state.update` call sites
+went 23 → 13, and `grep "s.open = "` inside the folder now returns exactly the two draft mutators.
+
+**Two `queueMicrotask` deferrals deleted, one kept — and the kept one gained a second reason to
+exist.** The deleted pair were documented React render-phase workarounds and the reason evaporates
+under a vanilla driver. The survivor clears `_suppressFocusOpen` after `commitSelection`, and it is no
+longer only about a focus bounce: the popover subtree is now detached *inside* `closePopover`'s
+synchronous dispatch, where React detached it after the handler returned. If focus was inside the
+popover it is on `<body>` by the time `inputRef.focus()` runs, so that call becomes a real focus
+change and fires `onInputFocus` synchronously. Verified: committing a row leaves the control closed.
+
+**Draft mutators rather than setters, because two writes break the scroll.** `openInto`/`closeInto`
+mutate an immer draft and never call `state.update`, so `commitSelection` and `onInputChange` each
+produce exactly one write. That is not tidiness: `ListBoxView` picks `scrollToRowAfterPaint` only when
+one `onUpdate` carries both a moved `repaintSignature()` and a moved `activeIndex`. Split them and the
+second push reports no content change, picks `scrollToRow`, and scrolls short the moment the grid is
+already measured. The rule is now in `uikit/CLAUDE.md` beside the two scroll entry points.
+
+**A live bug fixed, not preserved: `activeIndex` was seeded in the wrong index space.** The old effect
+computed `loadedItems.findIndex(...)`, but `activeIndex` is in **filtered** index space everywhere else
+(`commitSelection` reads `filteredSources[idx]`; the keyboard arms bound on `filteredItems.length`).
+They coincide only while the query is empty, and they diverge on a reachable path: with a value
+selected and the popover closed, typing one character opens and filters in the same write, so the seed
+indexed the unfiltered array and highlighted the wrong row. `seedIndex` now walks the filtered order
+directly, so its result is a valid index by construction. Verified: value `Option 1`, closed, type
+`1` → `Option 1` is active (the old computation would have made `Option 10` active).
+
+**And a bug I introduced and the runtime probe caught.** The first `seedIndex` read `loadedItems` from
+state — which is empty at exactly the moment `commitLoaded` needs it, so the async arm silently seeded
+nothing. Both the item array and the search text are now parameters. This is general enough that it is
+written into `uikit/CLAUDE.md` as its own rule: never read state or a `memo()` from inside a
+`state.update` producer; immer runs the producer against the previous state, so anything read there is
+one step stale and the failure is silent.
+
+**Zero React roots, open *and* closed.** The dropdown uses `PopoverView`'s `contentView` seam, so the
+floating root's direct child is `div[data-type="list-box"]` and the open dropdown measures **0**
+`[data-part="react-slot"]` with 1,000 items. The closed control also measures 0, which is new: the
+React implementation passed `icon={renderIcon("chevron-down")}`, so every `Select` on screen carried a
+retained React root inside its chevron at rest. Passing the `IconName` string takes
+`IconButtonView.updateIcon`'s `createIconElement` branch instead.
+
+**No wrapper view for the seam.** One design agent held that a wrapper was mandatory, because the
+returned view's root must *be* the host (as `MenuContentView`'s is) and letting `ListBoxView` adopt the
+host would collide with `PopoverFloatingView.applyProps` writing `root.dataset.type = "popover"` on
+every update. The collision is real but applies only to *adopting* the host; the factory appends a
+child instead, which the code permits. The two properties of the seam that are not visible in its
+prop type — it never appends what the factory returns, and it forwards no updates — are now documented
+in `uikit/CLAUDE.md`.
+
+**Three shared leaf files changed, each required by the chevron rather than by polish.**
+`InputProps.startSlot`/`endSlot` widen from `React.ReactNode` to `SlotContent` so a composed view's
+root can be a slot; `InputView` gained an `appliedSlots` identity gate, without which `fillSlot`'s
+node path would detach and re-append the chevron button on every keystroke; and
+`IconButtonView.updateIcon` gained a gate on the applied icon *name*, without which
+`createIconElement` would rebuild the `svg` per keystroke. Both churns would have been *introduced* by
+the conversion — React reconciled instead — which is what put them in scope. `IconButton.css` also
+moved from the shim into the view, matching what US-1016 did for `Input.css` and for the same reason:
+`IconButtonView` imports `IconButton` type-only, so nothing in its module graph pulled the stylesheet.
+`Notification` and `SplitButton` keep their now-redundant `../IconButton/IconButton.css` imports, as
+`DateInput` kept its `Input.css` one — the line is local evidence that those views compose the DOM
+directly, and a sweep over all borrowed-CSS imports is its own task.
+
+**A fidelity bug in the shared compat layer, found by the first `browser_snapshot`-style diff.**
+`applyRestProps` dropped `aria-expanded={false}` entirely and wrote `aria-expanded=""` for `true`;
+React renders booleans on `aria-*` as `"true"` / `"false"`, and `aria-expanded="false"` is
+semantically different from no attribute at all. The `ENUMERATED_ATTRIBUTES` mechanism already existed
+for exactly this class, so `isEnumeratedAttribute` now also matches any `aria-` prefix. This was
+**already live in the converted `PathInput`** (`PathInputView.tsx:83` passes
+`aria-expanded={showSuggestions}`), and US-1018 would have hit it twice more — `Autocomplete` and
+`MultiSelect` both pass `aria-expanded={open}`.
+
+**One compound `bind`, not a funnel — and the 23 write sites do not vote the other way.** Six of the
+nine state fields are literally child props, which is Rule 9's `bind()` case; the other three render
+nothing. The write count looked like the loudest possible argument for `Tree`'s `mutate()` funnel, at
+three times `Tree`'s, but it carries no correctness weight here: the funnel's value in `Tree` is that
+delivery is a call the mutation site makes, so `grep == 1` audits it, whereas `bind` delivers through
+`TOneState.subscribe` and **a write cannot bypass it by construction**. What the count did argue for is
+a *state-transition* choke point, which is what `openPopover`/`closePopover` are. The two kinds of
+funnel are different things and `Select` wanted one of each.
+
+**Rule 4 (C3-9) — one keystroke in a `Select` search over a large list.** Measured 2026-08-22 on the
+vanilla implementation. Two `MutationObserver`s with identical options
+`{ subtree: true, childList: true, attributes: true, characterData: true }`, one on the anchor pane and
+one on `#persephone-overlay-layer`, attached with the dropdown already open over **1,000** items and
+11 rows rendered, counters read from the callback record counts over ten animation frames after a
+single `input` event. Raw counts: **19** in the anchor pane and **198** in the overlay layer, for a
+total of **217** records.
+
+*Deviation from the stated procedure, and why.* The anchor pane is an offscreen React root, not
+`[data-type="live-preview"]`: the Storybook page could not be driven from the script host, because a
+`/@id/`-prefixed dynamic import yields a second module instance and `pagesModel.pages.length === 1` on
+it — a duplicate module graph, not a live one. The property the observer pair exists for (C1-8's trap:
+the popover portals out of the anchor pane, so the pane alone undercounts) is preserved exactly, and
+the overlay-layer figure — where the dropdown, its rows and its position writes all live — is measured
+identically to EPIC-055's. For comparison, C2's closure number was 6 / 119 / **125** for one click
+opening a context menu.
+
+*One observation the measurement produced, worth its own follow-up.* Most of the 19 anchor-pane records
+are `applyRestProps` rewriting every residual attribute unconditionally on every update — it calls
+`setAttribute` with the same value rather than comparing first. That is pre-existing, shared by every
+converted component, and is the cheapest remaining win on the keystroke path.
+
+**Verified at runtime, through real consumers rather than only offscreen.** `CellSelect` mounted with
+a real React root and an **async** `options` function — the only production route to the async arm:
+the ref fired **once** and is the inner `<input>` (the stable-callback half of the ref split holding
+across re-renders), autofocus opened the dropdown, the loader was invoked once, the rows arrived, and
+`aria-activedescendant` landed on the current value's row; commit emitted `onChange("pending")` and
+closed, reopening served the cache without a second invocation, and Escape fired `onCancel` once.
+`SettingsSections.LinkBehaviorSection` — the call site that rebuilds its `items` array on every render
+— survived five forced re-renders (five reset-and-reload pairs) with the trigger correct and the seed
+still landing on the selected row. Also checked: the loading arm and its spinner; a 300 ms promise
+source with a selected `Option 40` landing highlighted **and scrolled into view** (rows 31–43 visible);
+keyboard open seeding the selection and ArrowDown advancing it; `disabled` and `readOnly` both refusing
+to open, with `readOnly` leaving the input enabled; and unmounting while open removing the floating
+branch from the overlay layer.
+
+**Corrections to this document, found during the task.**
+
+- The US-1017 task note and Concern 6 both said the async arm "has no story coverage (the story passes
+  arrays)". Not true: `Select.story.tsx` has an `itemsMode` control with `array` / `lazy-fn` /
+  `lazy-promise`. The async arm is the arm the story covers *better* than production does — because no
+  production call site passes a Promise or function at all. All ten app-layer sites pass plain arrays;
+  the only reachable production route is `AVGrid`'s `Column.options` as a function
+  (`avGridTypes.ts:110`), which `CellSelect` bridges, and no production column supplies one. It is live
+  API with no live caller, which is why the interleavings were reasoned out in the task document rather
+  than smoke-tested.
+- C3-9's secondary-count table says `@emotion` importers in `uikit/` reach **9 at close, all
+  `AVGrid/`**. Measured at US-1017's open: 13 — nine `AVGrid/` plus `Select.tsx`, `MultiSelect.tsx`,
+  `Autocomplete.tsx` and `RenderGrid/RenderGrid.tsx`. US-1017 takes it to **12**, and US-1018 will
+  reach **10**, not 9, because `RenderGrid.tsx` is Emotion and C3-1 deliberately keeps it alive as a
+  React-only survivor on Epic F's removal ledger. The target should read 10 (9 `AVGrid/` +
+  `RenderGrid`).
+
+**Follow-ups recorded, not done here.** IME composition suppression in `InputView` (a close landing
+mid-composition pushes the selected label over a live composition session — pre-existing, identical
+under React, and a shared-file fix that benefits `MultiListBox`'s search box too); gating
+`applyRestProps`' `setAttribute` calls on the current value; hoisting `SettingsSections`' two `items`
+array literals to module constants (app layer, so out of C3's scope per C3-5); deleting the dead
+`itemsError` field and the unconsumed `SelectItemsResult` export (Epic F owns API cleanup); a sweep
+over borrowed-CSS imports; and making an async source load once per source rather than once per open,
+which is a semantic change and needs its own decision.
 
 ### 2026-08-21
 

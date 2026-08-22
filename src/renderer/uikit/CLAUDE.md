@@ -578,6 +578,19 @@ Five rules, each of which has already bitten:
   (`MultiListBoxModel.isSelected`). A `revision` counter is not the fix — it is a proxy for a signal
   that already has a channel, and a forgotten bump has no compiler or runtime signal at all.
 
+#### Never read state or a `memo()` from inside a `state.update` producer
+
+Immer runs the producer against the *previous* state, and `this.state.get()` still returns it — so a
+memo consulted there is computed from pre-write values, and a guard read from `this.state` compares
+against them too. The failure is silent: the producer writes a plausible value that is one step
+stale.
+
+Compute from explicit values **before** the update and assign the result inside the producer; read
+the guards from the **draft**, which is the state being committed. `SelectModel.seedIndex` takes both
+the item array and the search text as parameters for exactly this reason — its first version read
+`loadedItems` from state, which is empty on the load path, so the highlight it exists to seed was
+silently never applied.
+
 #### A state-driven model in a vanilla view
 
 `ListBox`'s inputs are all props, so its `DepsGate` in the host's `onUpdate` is the whole story.
@@ -648,6 +661,16 @@ clamped to the scrollable extent, and the extent (`area.style.height`) is writte
 The symptom of getting this wrong is not an error or a blank row — the list renders perfectly and is
 simply scrolled to the wrong place.
 
+**A parent therefore must not split "the rows changed" and "the highlight moved" into two state
+writes.** The host picks its entry point from `contentChanged && activeIndex !== lastActiveIndex` in
+one `onUpdate`, so one write means one push carrying both, and it chooses `scrollToRowAfterPaint`
+correctly. Two writes give the second push `contentChanged === false` and it picks `scrollToRow`.
+That survives by accident while the grid is still unmeasured — the engine's pending slot catches it —
+and stops surviving the moment the row set changes on a measured grid. `SelectModel.commitLoaded`
+assigns the seeded `activeIndex` in the same `state.update` as `loadedItems` for this reason, and
+`openInto`/`closeInto` exist so a caller that must produce one write can compose draft mutators
+instead of calling two setters.
+
 #### React-valued slots inside a virtualized row
 
 `ListBox` keeps a `renderItem` prop returning `ReactNode`, and `ListItem`'s `icon`, `label`,
@@ -678,6 +701,16 @@ keep it from creeping:
 - `mountVanilla` is a React boundary with a module-level stable host component. It appends the
   root before `mount()`, skips the redundant first `update`, and replaces the view only when the
   constructor identity changes. Do not define the host inside `mountVanilla` or use a changing key.
+- `PopoverView`'s `contentView?: (host) => IOwnedView` keeps the floating root's children native
+  DOM, and it has two properties the prop's type does not show. **It never appends what the factory
+  returns** — `PopoverFloatingView.onMount` only claims it with `child()` and mounts it, so the
+  factory attaches its own DOM (`host.append(view.root)`) or the dropdown renders empty. And **it is
+  not an update channel**: `PopoverFloatingView.onUpdate` forwards nothing to the content view, so
+  the parent pushes the content's props itself, from its own single consequence, and keeps a *bare*
+  reference to it — a second `child()` claim throws on the shared marker. `MenuView`'s
+  `MenuContentView` reads its model live instead, which works only because nothing but state changes
+  a menu's output; `SelectView` pushes typed `ListBoxProps`, because `items`, `emptyMessage`,
+  `rowHeight` and the filter can all move with no state write.
 - `mountReact` is only a temporary seam when a vanilla view owns a React subtree with no vanilla
   equivalent yet. The view owns the host element and the returned disposer owns the React root;
   neither adapter is a substitute for converting an ordinary parent or child.
