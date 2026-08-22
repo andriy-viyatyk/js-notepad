@@ -4,10 +4,10 @@
  * Deliberately **not** re-exported from `uikit/index.ts` (EPIC-057 / US-1019):
  *
  *  • `AVGrid` is the library's own exported class, so a Persephone component of that name would be
- *    permanently ambiguous. `DataGrid` is unambiguous and stays correct after US-1023 rather than
- *    becoming correct at US-1023.
+ *    permanently ambiguous. `DataGrid` is the unambiguous replacement.
  *  • The type names collide where the barrel would put them. `uikit/index.ts` already re-exports
- *    `Column` and `CellFocus` from `./AVGrid`, and av-grid exports both names too. The repo has
+ *    `Column` and `CellFocus` from the former React grid, and av-grid exports both names too. The old
+ *    general barrel put those names in the same namespace. The repo has
  *    run this experiment: forcing `VirtualGrid` into the barrel beside `RenderGrid` produced the
  *    `VirtualCellFunc` / `VirtualCellParams` aliases, where the survivor got the worse name
  *    because the corpse held the good one.
@@ -64,7 +64,7 @@ export type {
  *
  * `highlightText` marks search hits the same way the grid's own cells do — `editors/grid` needs it
  * for its custom renderers. `detectColumnWidth` / `detectColumnWidths` replace
- * `uikit/AVGrid/column-width.ts`, and `defaultRowHeight` / `defaultColumnWidth` are the two
+ * the former React grid's `column-width.ts`, and `defaultRowHeight` / `defaultColumnWidth` are the two
  * numbers a consumer computes layout against (both `24` and `100`, matching the React engine).
  */
 export {

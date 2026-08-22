@@ -8,8 +8,8 @@
  *
  * ## No state, on purpose
  *
- * `uikit/AVGrid` was fully controlled: this component held `columns` and `focus` in React state,
- * passed them down, and took setters back. av-grid owns both, so the state, the view model, the
+ * The former React grid was fully controlled: this component held `columns` and `focus` in React
+ * state, passed them down, and took setters back. av-grid owns both, so the state, the view model, the
  * `setColumns` wrapper and its deferred rebuild are all gone (EPIC-057 C4-2, US-1021 D1). What is
  * left is props in, imperative calls out — which is also the shape Epic D/E will convert to a
  * vanilla view.

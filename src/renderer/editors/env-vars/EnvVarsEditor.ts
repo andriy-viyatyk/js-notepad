@@ -179,7 +179,7 @@ export class EnvVarsEditor extends TextHostEditorModel<EnvVarsEditorState> {
 
     // ── Variable (key) CRUD ───────────────────────────────────────────────
 
-    /** Replace an entire profile's key→value record atomically. The AVGrid-based editor
+    /** Replace an entire profile's key→value record atomically. The av-grid-based editor
      *  (`EnvVarsBody`) owns row-level add/edit/delete as a local buffer and only calls this
      *  once its own validation (no empty/duplicate names) passes — so `record` is always
      *  well-formed by the time it lands here. */

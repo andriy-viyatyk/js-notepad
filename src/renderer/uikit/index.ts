@@ -123,7 +123,7 @@ export type {
     RenderedCell,
 } from "./VirtualGrid";
 
-// Virtualization, React — legacy. Still consumed by 12 app-layer files and `AVGrid`; converted
+// Virtualization, React — legacy. Still consumed by app-layer files alongside `DataGrid`; converted
 // away in Epics D/E and C4, then deleted (Epic F removal ledger). Do not add a consumer.
 export { RenderGrid, RenderGridModel, RenderFlexGrid } from "./RenderGrid";
 export type {
@@ -139,36 +139,3 @@ export type {
 // Truncated text (overflow-ellipsis with hover title)
 export { TruncatedText } from "./TruncatedText";
 export type { TruncatedTextProps } from "./TruncatedText";
-
-// Data grid (composite primitive — AVGrid + filters + 13-file model namespace)
-export { AVGrid, AVGridModel, FilterBar, FiltersModel,
-    detectColumnWidth, useResolveOptions,
-    defaultCompare, formatDispayValue, filterRows, defaultValidate,
-    columnDisplayValue, gridBoolean,
-    recordsToTableHTML, recordsToClipboardFormatted, rowsToCsvText,
-} from "./AVGrid";
-export type {
-    AVGridProps,
-    Column,
-    CellFocus,
-    CellEdit,
-    TFilter,
-    TAnyFilter,
-    TOptionsFilter,
-    TOptionsFilterValue,
-    TDisplayOption,
-    TSortColumn,
-    TSortDirection,
-    TDataType,
-    TDisplayFormat,
-    TAlignment,
-    TFilterType,
-    TOnColumnResize,
-    TOnColumnsReorder,
-    TOnGetFilterOptions,
-    TCellRenderer,
-    TCellRendererProps,
-    TCellFormater,
-    TRowCompare,
-    ColumnWidthOptions,
-} from "./AVGrid";

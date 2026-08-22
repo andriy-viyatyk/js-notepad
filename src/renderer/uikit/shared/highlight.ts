@@ -30,7 +30,7 @@ export function highlight(
  *
  * Same tokenizing, same `.highlighted-text` class, same non-breaking-space promotion on leaf
  * non-matches — so a converted row highlights identically to the React one. The React form above
- * stays until `AVGrid` converts (C4).
+ * editor consumers that have not yet moved to the DOM form.
  *
  * **This function owns `host` outright.** It calls `replaceChildren`, so the host must not also be
  * managed by `fillSlot`: a view that switches a label between a React node and a plain string has to

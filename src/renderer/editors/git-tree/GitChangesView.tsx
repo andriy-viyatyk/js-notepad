@@ -323,7 +323,7 @@ function ChangesList({
     );
 
     // Right-click → "Stage"/"Unstage" the selection (same action as the arrow
-    // buttons / double-click), prepended above AVGrid's built-in Copy items.
+    // buttons / double-click), prepended above av-grid's built-in Copy items.
     const getContextMenuItems = useCallback(
         (selected: FileGridItem[]): MenuItem[] => {
             const sel = selected

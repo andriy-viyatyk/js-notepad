@@ -405,7 +405,7 @@ UIKit primitive instead of styling around it.
 `renderAreaProps`, and `blockStyles` as part of their public API. These are not
 violations of Rule 7 — they are the API. RenderGrid is a multi-region composition
 (sticky-top, sticky-bottom, sticky-left, sticky-right, sticky-corners, render area)
-whose entire purpose is to host caller-styled regions. AVGrid and editor lists rely
+whose entire purpose is to host caller-styled regions. DataGrid and editor lists rely
 on these slots to paint region backgrounds and wire region-level event handlers.
 
 The Omit-style enforcement (`extends Omit<HTMLAttributes<…>, "style" | "className">`)

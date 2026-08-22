@@ -127,7 +127,7 @@ const items: MenuItem[] = [ ... ];
 showAppPopupMenu(clientX, clientY, items);
 ```
 
-**Used by:** BrowserWebviewModel (IPC from webview), GraphViewModel (canvas events), AVGrid/ContextMenuModel (internal subscription). These handlers call `e.stopPropagation()` to prevent `GlobalEventService` from showing a duplicate menu.
+**Used by:** BrowserWebviewModel (IPC from webview), GraphViewModel (canvas events), and the DataGrid host (imperative grid events). These handlers call `e.stopPropagation()` to prevent `GlobalEventService` from showing a duplicate menu.
 
 ## EventChannel Integration (Script Extension)
 

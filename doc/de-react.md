@@ -232,19 +232,18 @@ existing av-grid. Nothing needs to be invented to get there.
 
 | File | Imports | Note |
 |---|---|---|
-| `uikit/AVGrid/model/ContextMenuModel.tsx` | `ui/dialogs/poppers/showPopupMenu` | Dies with AVGrid — av-grid replaces it |
 | `uikit/ListBox/ListBoxModel.ts` | `api/events/events` (`ContextMenuEvent`) | Real |
 | `uikit/Tree/TreeModel.ts` | `api/events/events` (`ContextMenuEvent`) | Real |
 | `uikit/Menu/types.ts` | `api/types/events` (`MenuItem`) | Real — a re-export of an app type |
 | `uikit/RenderGrid/RenderFlexGrid.tsx` | `shared/utils` | Real |
 
-Four files were closed during C1–C3; once AVGrid is gone, no `uikit/` → app-layer leak remains.
+Four files were closed during C1–C3; C4 closes the final AVGrid leak, so no `uikit/` → app-layer leak remains.
 
-**Status at C3 close (2026-08-22): closed, except AVGrid's.** `ListBoxModel` and `TreeModel` now read
+**Status at C4 close (2026-08-22): closed.** `ListBoxModel` and `TreeModel` now read
 `core/events/context-menu`, `Menu/types` no longer re-exports an app type, and `RenderFlexGrid`
-imports `core/utils/*` rather than `shared/utils`. The only remaining violation is
-`uikit/AVGrid/model/ContextMenuModel.tsx`, which dies with AVGrid in C4 — so it stays as the single
-documented exemption in the lint zone (`eslint.config.mjs`).
+imports `core/utils/*` rather than `shared/utils`. The former AVGrid context-menu model was deleted
+with C4, so the lint zone has no remaining
+uikit-to-app exemption.
 
 **The standing rule that keeps it that way** is Rule 6 in §6.
 
@@ -479,9 +478,8 @@ handles (`AVGrid`, `Tree`, `ListBox`, `RenderGrid`, `Textarea`, `ImageViewport`,
 written in the wrong place — the caller wants to command the view. Moved onto the model or onto
 `ComponentQueue`, it survives the migration untouched.
 
-**4. Replace React context with explicit model references.** Five sites:
-`EditorConfigContext`, `LogViewContext`, `AVGrid/filters/useFilters`, `AVGrid/useAVGridContext`,
-`uikit/shared/highlight`. Context has no vanilla equivalent; each becomes a model passed down or
+**4. Replace React context with explicit model references.** Three sites:
+`EditorConfigContext`, `LogViewContext`, and `uikit/shared/highlight`. Context has no vanilla equivalent; each becomes a model passed down or
 resolved from the editor. Small, but each one blocks whichever component depends on it.
 
 **5. Route `createPortal` through one portal host.** 10 files, including `uikit/Popover`,
@@ -692,7 +690,7 @@ Persephone's own boards already vendor it from npm (`boards-assets/manifest.json
 default board grid). EPIC-057 C4-1 settles it as **the dependency** (user decision, 2026-08-22) —
 with vendoring kept explicitly available if the dependency ever gets in the way, which is what makes
 the reversal safe: the mounting shim is the only file that names the package, so a later copy-in is
-one import path and a folder. Second, **B15's "host-wiring changes" is control inversion, not an API rename**: `uikit/AVGrid`
+one import path and a folder. Second, **B15's "host-wiring changes" is control inversion, not an API rename**: the former React grid
 is a fully controlled React component and av-grid is uncontrolled-plus-callbacks, so nine of the
 props the call sites pass sit on that boundary. A controlled-prop compatibility shim is therefore
 ruled out — it would be a reconciliation layer added at the end of the programme that exists to
@@ -788,15 +786,15 @@ creates the duplicate, not in the epic that hopes to remove it.
 | Survivor | Kept because | Collectable once | Created by |
 |---|---|---|---|
 | `uikit/Panel/` | App-facing styling sugar with 716 JSX tags, 636 of them in `editors/`; a vanilla twin was deliberately not written (C1) | Epics D and E convert its call sites; C3 removes the last `uikit/` one | C1 / EPIC-054 |
-| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`; 12 app-layer importers cannot be swapped without breaking Rule 2 (EPIC-056 C3-1) | C4 replaces `uikit/AVGrid/`, and Epics D and E convert the 12 app-layer importers | C3 / EPIC-056 |
+| `uikit/RenderGrid/` (`RenderGrid`, `RenderGridModel`, `renderInfo`, `rerender-check`, `types`, `AsyncRef`) | Its cell contract returns a `ReactNode`; 12 app-layer importers cannot be swapped without breaking Rule 2 (EPIC-056 C3-1) | C4 removed its AVGrid importer; Epics D and E still convert the 12 app-layer importers | C3 / EPIC-056 |
 | `uikit/RenderGrid/RenderFlexGrid.tsx` | Variable-height virtualization with no av-grid counterpart and two `editors/` consumers (EPIC-056 C3-3) | Epic E converts `LogBody.tsx` and `NotebookBody.tsx` — either onto a vanilla variant or off flex rows entirely | C3 / EPIC-056 |
 | React faces on converted UIKit components (`Component.tsx` → `mountVanilla`) | Scaffolding that keeps call sites working mid-migration (open decision #3) | Epic E finishes; covered by this epic's main body above | C1 onward |
 | `WithMenu`'s render-prop face | 14 call sites; a render prop has no vanilla equivalent, so `openMenu` was added underneath it (EPIC-055 C2-5) | Its call sites use `openMenu` directly | C2 / EPIC-055 |
 | `renderIcon`'s `ReactNode` arm (`IconRef = IconName \| ReactNode`) | Epic P's D3 compromise | Already scheduled above — the arm is deleted with the wrappers | Epic P |
-| `uikit/shared/highlight.ts` React form | `AVGrid/DataCell.tsx` still consumes it after C3 adds the DOM form (EPIC-056 C3-7) | C4 replaces `uikit/AVGrid/` | C3 / EPIC-056 |
+| `uikit/shared/highlight.ts` React form | Five editor consumers still use it: GraphBody, LinksList, LinkCategoryPanel, ExpandedNoteView, and NoteItemView (EPIC-056 C3-7) | Epics D and E convert those editor consumers | C3 / EPIC-056 |
 
-**Two entries are already collectable at the point C4 closes** (`RenderGrid`'s `AVGrid` importers,
-`highlight`'s React form), which is worth checking there rather than deferring to F on principle:
+**One entry is already collectable at the point C4 closes** (RenderGrid's former AVGrid importers),
+which is worth checking there rather than deferring to F on principle:
 collecting a duplicate in the epic that frees it is cheaper than collecting it in a cleanup epic that
 has to re-establish why it existed.
 

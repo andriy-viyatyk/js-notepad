@@ -128,8 +128,6 @@ export default tseslint.config(
     // Areas that intentionally use `any`.
     {
         files: [
-            "src/renderer/uikit/AVGrid/**/*.ts",
-            "src/renderer/uikit/AVGrid/**/*.tsx",
             // av-grid's own generics default the row type to `any` (`AVGrid<R = any>`), so the
             // shim's props, instance type and prop-forwarding maps carry it through.
             "src/renderer/uikit/DataGrid/**/*.ts",
@@ -143,16 +141,6 @@ export default tseslint.config(
         ],
         rules: {
             "@typescript-eslint/no-explicit-any": "off",
-        },
-    },
-
-    // AVGrid models use the model-view pattern: a plain class exposes a `useModel()` method
-    // that is invoked from a function component's render, so its useEffect calls are valid.
-    // react-hooks v7's rules-of-hooks mis-flags them as "hook in a class component".
-    {
-        files: ["src/renderer/uikit/AVGrid/model/**/*.ts"],
-        rules: {
-            "react-hooks/rules-of-hooks": "off",
         },
     },
 

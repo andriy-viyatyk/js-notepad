@@ -1,8 +1,8 @@
 /**
  * The mounting shim: one av-grid instance, owned by a `VanillaView`.
  *
- * This is deliberately *not* a reconciliation layer (EPIC-057 C4-2). `uikit/AVGrid` is fully
- * controlled React — the caller holds rows, columns, focus, selection and the edit path in state
+ * This is deliberately *not* a reconciliation layer (EPIC-057 C4-2). The former React grid was
+ * fully controlled — the caller held rows, columns, focus, selection and the edit path in state
  * and passes them down. av-grid is the opposite: `AVGrid.create()` returns an instance that *owns*
  * that state, and options are initial values. The inversion is absorbed by each consumer, in the
  * model that already owns its persisted view state. All this file does is mount, forward, and

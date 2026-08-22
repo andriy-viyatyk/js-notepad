@@ -2,7 +2,7 @@
  * Show av-grid's context menu through Persephone's own popup menu.
  *
  * This is the file [EPIC-057 C4-5](../../../../../doc/epics/EPIC-057.md) moves the
- * `showAppPopupMenu` call *into*. `uikit/AVGrid/model/ContextMenuModel.tsx` keeps its Rule 6
+ * `showAppPopupMenu` call *into*. The old React grid performed this handoff in UIKit; the current
  * exemption until US-1023 deletes it with the rest of the React grid — nothing here changes that
  * file.
  *
@@ -32,7 +32,7 @@ import { showAppPopupMenu } from "./showPopupMenu";
 /**
  * The fourteen ids av-grid 2.2.0 ships, and the icon each takes.
  *
- * Read off `uikit/AVGrid/model/ContextMenuModel.tsx`, so the menu looks the same before and after
+ * Read from the av-grid built-in item contract, so the menu looks the same before and after
  * the migration. Match on the id and never on the label — the row labels carry a count and a
  * pluralised `rowNoun` (`Insert 3 links`), which is exactly why the ids were added upstream.
  *
@@ -105,7 +105,7 @@ export function showGridContextMenu<R>(
     // av-grid's own `preventDefault()` does not spare us. `showAppPopupMenu` closes any open menu
     // as its first statement, so letting the event through means the grid's menu opens and is
     // immediately replaced by a bare Copy / Inspect one. The React grid stopped the event here
-    // too (`uikit/AVGrid/model/ContextMenuModel.tsx`), which is the convention rather than a
+    // too (the former React grid did the same), which is the convention rather than a
     // workaround. Found in US-1020; the story panel that would have caught it was never run.
     e.event.stopPropagation();
 

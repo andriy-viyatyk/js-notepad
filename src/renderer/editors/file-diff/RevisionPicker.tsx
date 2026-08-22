@@ -65,7 +65,7 @@ export function RevisionPicker({ side, picker, value, showStaged, onPick }: Revi
 
     // A click resolves to the synthetic endpoint when it lands on a leading row,
     // otherwise to a commit (shorthash = first 7 chars, matching the panel).
-    // Memoized so the AVGrid-backed `<GitTree>` keeps a stable `onSelectCommit`.
+    // Memoized so the av-grid-backed `<GitTree>` keeps a stable `onSelectCommit`.
     const pick = useCallback(
         (hash: string) => {
             const lead = leadingRows.find((r) => r.hash === hash);

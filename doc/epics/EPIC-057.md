@@ -64,9 +64,9 @@ against `C:\projects\av-grid` at 2.1.0. Stories are excluded from production cou
 | | |
 |---|---:|
 | `uikit/AVGrid/` production lines | **4,917** |
-| Files | **29** (`.tsx` 12, `.ts` 17) |
+| Files | **30** (`.tsx` 12, `.ts` 18) |
 | `@emotion` importers | **9** — every remaining one in `uikit/` outside `RenderGrid` |
-| `uikit/` → app-layer imports (Rule 6) | **1**, the last in the tree |
+| `uikit/` → app-layer imports (Rule 6) | **0**, after deleting the former grid context-menu model |
 | Components in `uikit/` without a story | **1** after C4 (`RenderGrid`, Epic F's) |
 
 Largest files: `model/AVGridModel.ts`, `filters/FiltersModel.ts`, `model/EditingModel.ts`,
@@ -325,11 +325,10 @@ grid editor with a large generated file, before a line of `uikit/AVGrid/` is tou
 | React components in `uikit/` that render JSX of their own | `AVGrid` + `RenderGrid` | **`RenderGrid` only** |
 | `uikit/` components without a story | 2 | **1** (`RenderGrid`) |
 | `uikit/` production lines | — | **−4,917** |
-| The React form of `shared/highlight.ts` (C3-7) | alive for `AVGrid/DataCell` | **collectable** |
+| The React form of `shared/highlight.ts` (C3-7) | alive for five editor consumers | Deferred to Epics D/E |
 
-Two of Epic F's removal-ledger entries become collectable at this point: the React `highlight.ts`
-form, and `RenderGrid`'s `AVGrid` importers. Neither is C4's to collect — the ledger says Epic F —
-but C4 should record that they came due.
+One of Epic F's removal-ledger entries becomes collectable at this point: `RenderGrid`'s former
+AVGrid importers. It is not C4's to collect — the ledger says Epic F — but C4 records that it came due.
 
 ### C4-10 — when av-grid is not enough, the answer is to enhance av-grid
 
@@ -378,15 +377,15 @@ up, per this programme's convention.
 | [US-1021](../tasks/US-1021-git-tree-av-grid/README.md) | `components/git-tree/` — three files plus `BranchTreeCell`, the swimlane graph rewritten as a DOM renderer | **Implemented** — against av-grid **2.2.2**, C4-10's second invocation; app testing outstanding |
 | [US-1024](../tasks/US-1024-cell-overflow-tooltip/README.md) | The cell-overflow tooltip, restored once in `DataGridView` for every consumer — **and the ellipsis, which the library does not supply either** (see the note below; the premise in this row's original wording was wrong). Two halves: av-grid **2.2.3** for the ellipsis, C4-10's third invocation; then the tooltip in the shim, which Persephone alone owns. Must land before US-1022 | **Implemented** — against av-grid **2.2.3** (published); lint/typecheck/build-prod clean. App testing outstanding |
 | [US-1022](../tasks/US-1022-remaining-grid-consumers/README.md) | The four remaining consumers — `FileGrid`, `EnvVarsBody`, `GraphDetailPanel`, `GridOutputView` | **Implemented** — lint/typecheck/build-prod clean; no av-grid release needed, the first consumer task where none is |
-| US-1023 | Delete `uikit/AVGrid/` — 29 files, 9 Emotion importers, the barrel, and the epic's closing numbers | Planned |
+| [US-1023](../tasks/US-1023-delete-avgrid/README.md) | Delete `uikit/AVGrid/` — the measured 30-file / 4,917-line legacy namespace, 9 Emotion importers, the barrel, and the epic's closing numbers | Planned |
 
 ### Ordering
 
 US-1019 first and US-1023 last; the three consumer tasks in between are **independent of each other
 and can be reordered freely**, because the old grid stays in the tree until US-1023 and each
 consumer moves on its own. That is what makes C4 abortable at any point: stopping after US-1020
-leaves a tree where the grid editor uses av-grid, the other consumers use `uikit/AVGrid`, and both
-work.
+leaves a tree where the grid editor and every former consumer use av-grid through `uikit/DataGrid`,
+and both work.
 
 US-1019 carries the two upstream av-grid additions (C4-7) so that no consumer task blocks on a
 library release.
@@ -461,8 +460,8 @@ gap is a library change rather than a blocked epic — and **copying the source 
 if the dependency ever gets in the way.
 
 That second half is now a recorded property of the epic, not an aside. C4-1 carries the one rule that
-keeps it true: **no consumer imports from `av-grid`** — the mounting shim in `uikit/AVGrid` is the
-single file that names the package, so a later vendoring is one import path and a folder, not a
+keeps it true: **no consumer imports from `av-grid`** — the mounting shim in `uikit/DataGrid` is the
+single boundary that names the package, so a later vendoring is one import path and a folder, not a
 twelve-file sweep. It also means the eventual choice can be made against measured awkwardness
 instead of predicted awkwardness, which is the same discipline the rest of this programme has used
 on every inherited assumption.

@@ -34,7 +34,7 @@ Overview of all active and planned epics and tasks.
   - [ ] [US-1022: the four remaining consumers — `FileGrid`, `EnvVarsBody`,
     `GraphDetailPanel`, `GridOutputView`](tasks/US-1022-remaining-grid-consumers/README.md) —
     **implemented**; lint/typecheck/build-prod clean. No av-grid release needed
-  - [ ] US-1023: Delete `uikit/AVGrid/` and close Epic C
+  - [ ] [US-1023: Delete `uikit/AVGrid/` and close Epic C](tasks/US-1023-delete-avgrid/README.md)
 - *(no epic)*
   - *(no active tasks)*
 

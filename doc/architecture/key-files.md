@@ -128,7 +128,7 @@ Related maps: [folder-structure.md](folder-structure.md) for the directory tree,
 | MCP Inspector model      | `/src/renderer/editors/mcp-inspector/McpInspectorEditorModel.ts` |
 | Framework-free virtualization view | `/src/renderer/uikit/VirtualGrid/VirtualGridView.ts` |
 | React virtualization survivor (ReactNode cell contract; retained for app-layer consumers until its later migration) | `/src/renderer/uikit/RenderGrid/RenderGrid.tsx` |
-| Advanced grid            | `/src/renderer/uikit/AVGrid/AVGrid.tsx`           |
+| Data grid mounting boundary | `/src/renderer/uikit/DataGrid/DataGridView.ts` |
 | Virtualized list view (DOM rows, keyed reconciliation, selection/scroll projection, and `VirtualGrid` integration) | `/src/renderer/uikit/ListBox/ListBoxView.ts` |
 | Virtualized tree view (DOM rows, keyed reconciliation, DnD/keyboard integration, and `VirtualGrid` integration) | `/src/renderer/uikit/Tree/TreeView.ts` |
 | Dropdown composite views (`Select`, `MultiSelect`, and `Autocomplete`) | `/src/renderer/uikit/Select/SelectView.ts`, `/src/renderer/uikit/MultiSelect/MultiSelectView.ts`, `/src/renderer/uikit/Autocomplete/AutocompleteView.ts` |

@@ -16,7 +16,7 @@ import type { GridEditorId } from "./util";
 
 function GridEditorView({ model }: { model: EditorModel }) {
     const editor = model as GridEditor;
-    // Shared mutable holder for the AVGridModel ref — GridBody forwards it
+    // Shared mutable holder for the DataGridInstance ref — GridBody forwards it
     // here so GridToolbarBits / GridFooterBits can read it for the columns
     // popover and the visible-row count label.
     const gridRefHolder = useRef<DataGridInstance<any> | null>(null);

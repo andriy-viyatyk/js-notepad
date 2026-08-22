@@ -343,7 +343,7 @@ persephone/
 │   │   └── index.tsx
 │   ├── grid/               # JSON/CSV/JSONL grid editor (text-bearing, IContentHost + TRAIT)
 │   │   ├── GridEditor.ts             # EditorModel — parsing, sort/filter/edit state
-│   │   ├── GridBody.tsx              # React component (AVGrid integration)
+│   │   ├── GridBody.tsx              # React component (DataGrid integration)
 │   │   ├── components/               # Grid-specific components
 │   │   ├── utils/                    # Grid utilities
 │   │   ├── util.ts                   # Shared utility helpers
@@ -730,7 +730,7 @@ persephone/
 │   ├── Progress/           # Progress overlay + screen lock
 │   ├── RenderGrid/         # React virtualization survivor (sticky regions, RenderFlexGrid)
 │   ├── VirtualGrid/        # Framework-free virtualization engine and DOM cell pool
-│   ├── AVGrid/             # Composite data grid (uses RenderGrid; filters, sorting, edit)
+│   ├── DataGrid/           # av-grid mounting boundary (filters, sorting, editing, selection)
 │   └── shared/             # Internal helpers (overlay layer, slots, and React/vanilla seams)
 │       ├── async-ref.ts    # Callback-backed asynchronous DOM reference
 │       ├── vanilla-view.ts # Framework-free view lifecycle, ownership, binding, and cleanup
@@ -761,10 +761,10 @@ persephone/
 │   │   └── tree-drop-actions.ts # Move/import drop actions, taking a { path, title } target rather than a tree node so both views can call them
 │   ├── file-search/        # FileSearch — standalone file content search with virtualized results; accumulated rows live on the model, not in reactive state
 │   ├── file-list/          # FileList — flat file list (FileIcon + single-click + search), reused by the Recent files panel and the git Changes panel; getTrailing/compact props (EPIC-031)
-│   ├── file-grid/          # FileGrid — AVGrid-based file list (icon/path/status columns, header-as-label, sorting, range select + range-copy, single/double click, context-menu passthrough); git Changes panel; eventual FileList replacement (EPIC-031)
+│   ├── file-grid/          # FileGrid — DataGrid/av-grid file list (icon/path/status columns, header-as-label, sorting, range select + range-copy, single/double click, context-menu passthrough); git Changes panel; eventual FileList replacement (EPIC-031)
 │   ├── icons/              # FileIcon, LanguageIcon, TreeProviderItemIcon, favicon-cache
 │   ├── page-manager/       # Portal-based page/tab host (prevents iframe/webview reload on reorder)
-│   └── git-tree/           # Git history view (AVGrid + SVG BranchTreeCell + swimlane layout) + git data submodels (GitTreeModel = commits, GitChangesModel = staged/unstaged status, GitStatusBadge) — shared by the git-tree editor + File Diff picker + Changes panel (EPIC-030/031)
+│   └── git-tree/           # Git history view (DataGrid/av-grid + SVG BranchTreeCell + swimlane layout) + git data submodels (GitTreeModel = commits, GitChangesModel = staged/unstaged status, GitStatusBadge) — shared by the git-tree editor + File Diff picker + Changes panel (EPIC-030/031)
 │
 ├── core/                   # Core Infrastructure
 │   ├── state/              # State management primitives

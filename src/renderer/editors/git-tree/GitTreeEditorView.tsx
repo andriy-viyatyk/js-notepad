@@ -75,7 +75,7 @@ export function GitTreeEditorView({ model }: { model: GitTreeEditorModel }) {
     const panelH = Math.min(bottomPanelHeight ?? DEFAULT_PANEL_H, maxH);
     const tab = bottomPanelTab ?? "commit";
 
-    // Right-click a commit → Switch options (US-636). AVGrid passes the current
+    // Right-click a commit → Switch options (US-636). The grid passes the current
     // grid selection; a single right-click targets one row, a right-click inside a
     // multi-row range keeps the range — switch is single-commit, so the items are
     // disabled when more than one row is selected. The current branch (a `head`

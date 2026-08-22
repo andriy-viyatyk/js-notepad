@@ -312,7 +312,7 @@ export class SelectView<T = IListBoxItem> extends VanillaView<SelectViewProps<T>
      * The caller's ref needs the opposite cadence: re-bound whenever its identity moves, so the
      * previous ref is released (its own cleanup, or `ref(null)`) before the next one receives the
      * element. A purely stable callback reading `this.props.ref` live would never hand the element to
-     * a replacement ref. `AVGrid/CellSelect` passes a fresh arrow per render, which is exactly what
+     * a replacement ref. The former React grid's cell editor passed a fresh arrow per render, which is exactly what
      * the React `useCallback([model, ref])` re-bound too.
      */
     private syncCallerRef(force: boolean): void {
