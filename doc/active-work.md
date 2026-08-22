@@ -11,7 +11,7 @@ Overview of all active and planned epics and tasks.
 - **EPIC-058** — [De-React Epic D — Shell and shared components](epics/EPIC-058.md) — active; task documents are
   written one at a time, in the order below
   - [ ] [US-1025: Icon DOM builders](tasks/US-1025-icon-dom-builders/README.md) — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out
-  - [ ] US-1026: `components/icons/` vanilla views
+  - [ ] [US-1026: `components/icons/` vanilla DOM views](tasks/US-1026-components-icons-vanilla-views/README.md)
   - [ ] US-1027: `components/file-list/` + `components/file-grid/`
   - [ ] US-1028: `components/file-search/` (first `RenderGrid` collection)
   - [ ] US-1029: `components/tree-provider/`

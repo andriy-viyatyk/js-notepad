@@ -68,6 +68,7 @@ import {
     resolveEditorIdForFile,
 } from "../../editors/board/custom-editor-registry";
 import { BoardGlyph } from "../../editors/board/BoardGlyph";
+import { subscribeBoardIconChanges } from "../../editors/board/board-icon-cache";
 
 // =============================================================================
 // Language → Icon mapping
@@ -158,20 +159,27 @@ const defaultSystemIconState = {
 type SystemIconState = typeof defaultSystemIconState;
 
 class SystemIconModel extends TModel<SystemIconState> {
+    private readonly pendingExtensions = new Set<string>();
+
     constructor() {
         super(new TGlobalState(defaultSystemIconState));
     }
 
     prepareIcon = async (fileName: string) => {
         const ext = fpExtname(fileName).toLowerCase();
-        if (!ext || this.state.get().iconCache.has(ext)) return;
+        if (!ext || this.state.get().iconCache.has(ext) || this.pendingExtensions.has(ext)) return;
 
-        const iconDataUrl = await api.getFileIcon(fileName);
-        const newMap = new Map(this.state.get().iconCache);
-        newMap.set(ext, iconDataUrl);
-        this.state.update((s) => {
-            s.iconCache = newMap;
-        });
+        this.pendingExtensions.add(ext);
+        try {
+            const iconDataUrl = await api.getFileIcon(fileName);
+            const newMap = new Map(this.state.get().iconCache);
+            newMap.set(ext, iconDataUrl);
+            this.state.update((s) => {
+                s.iconCache = newMap;
+            });
+        } finally {
+            this.pendingExtensions.delete(ext);
+        }
     };
 }
 
@@ -202,6 +210,18 @@ export function prepareFileIcon(fileName: string): void { void systemIconModel.p
 
 export function useSystemFileIcons(): ReadonlyMap<string, string> {
     return systemIconModel.state.use((s) => s.iconCache);
+}
+
+/** Subscribe native icon owners to system-cache and trusted-board association changes. */
+export function subscribeFileIconChanges(listener: () => void): () => void {
+    const unsubSystem = systemIconModel.state.subscribe(listener);
+    const unsubBoards = customEditorRegistry.state.subscribe(listener);
+    const unsubBoardIcons = subscribeBoardIconChanges(listener);
+    return () => {
+        unsubSystem();
+        unsubBoards();
+        unsubBoardIcons();
+    };
 }
 
 // =============================================================================

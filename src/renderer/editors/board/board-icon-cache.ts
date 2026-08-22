@@ -83,3 +83,9 @@ export function useBoardIcon(boardRoot: string | undefined): void {
         if (boardRoot && !cache.has(boardRoot)) void resolveBoardIcon(boardRoot);
     }, [boardRoot]);
 }
+
+/** Subscribe non-React owners to board icon probe/invalidation notifications. */
+export function subscribeBoardIconChanges(callback: () => void): () => void {
+    listeners.add(callback);
+    return () => listeners.delete(callback);
+}

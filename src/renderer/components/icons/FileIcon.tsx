@@ -1,4 +1,3 @@
-import styled from "@emotion/styled";
 import { FileTypeIcon } from "./LanguageIcon";
 import { fpBasename } from "../../core/utils/file-path";
 
@@ -13,11 +12,6 @@ export function FileIcon(props: FileIconProps) {
     return <FileTypeIcon fileName={fileName} width={props.width} height={props.height} />;
 }
 
-const FolderIconRoot = styled("span")({
-    fontSize: 13,
-    paddingBottom: 3,
-});
-
 export function FolderIcon() {
-    return <FolderIconRoot>📁</FolderIconRoot>;
+    return <span style={{ fontSize: 13, paddingBottom: 3 }}>📁</span>;
 }

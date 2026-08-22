@@ -227,7 +227,7 @@ condition.
 | Task | Title | Status |
 |------|-------|--------|
 | [US-1025](../tasks/US-1025-icon-dom-builders/README.md) | Icon DOM builders — 54 language icon bodies + `BoardGlyph`; `react-dom/server` out | Planned |
-| US-1026 | `components/icons/` vanilla views | Planned |
+| [US-1026](../tasks/US-1026-components-icons-vanilla-views/README.md) | `components/icons/` vanilla DOM views | Implemented |
 | US-1027 | `components/file-list/` + `components/file-grid/` | Planned |
 | US-1028 | `components/file-search/` (first `RenderGrid` collection) | Planned |
 | US-1029 | `components/tree-provider/` | Planned |
